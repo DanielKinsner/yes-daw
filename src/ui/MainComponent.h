@@ -197,6 +197,17 @@ struct MainComponentSnapshot
 // carry it — the card drops WHOLE rather than keeping a label over a clipped meter.
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderMasterCardBounds (const juce::Component& component);
 
+// G0.7: the header layout law, read back. Section 0 = tools, 1 = transport, 2 = master (empty
+// when the card dropped). mainComponentHeaderRects lists every laid-out header rect (the
+// settings-row controls only while the row is shown). The settings row is toggled through the
+// real action; mainComponentRevealSettingsRowFor shows it only for an action that lives there.
+[[nodiscard]] juce::Rectangle<int> mainComponentHeaderSectionBounds (const juce::Component& component, int section);
+[[nodiscard]] std::vector<juce::Rectangle<int>> mainComponentHeaderRects (const juce::Component& component);
+[[nodiscard]] juce::Rectangle<int> mainComponentHeaderTimeReadoutBounds (const juce::Component& component);
+[[nodiscard]] int mainComponentHeaderHeight (const juce::Component& component);
+void mainComponentSetSettingsRowVisible (juce::Component& component, bool visible);
+void mainComponentRevealSettingsRowFor (juce::Component& component, UiActionId action);
+
 // N6: the rail's painted row rect (shell coordinates) — the SAME law the paint, rowBounds, and
 // rowAt hit-testing all share, so a gate can prove a height drag moved exactly one row.
 [[nodiscard]] juce::Rectangle<int> mainComponentPaintedRailRowBounds (const juce::Component& component,

@@ -41,10 +41,9 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.7 — first-minute density, first checkpoint: the header as one 60 px toolbar row under
-a 28 px menu strip (tools · transport centred · master right, from one layout law), the old third
-row as a collapsible settings row (Options ▸ Audio & Export Settings), fixed 72 px track rows
-(no stretch), the `[header-flex]` and density gates, headless screenshots at three sizes.
+**Now:** G0.7 checkpoint 1 (header + row law) built, gated, judged headlessly; committed; awaiting
+its exact-head run. Checkpoint 2 next: rail 260 / inspector 300 / dock widths with their internal
+relayout (rail row: number · icon · name · M S O · PAN/VOL must survive 260), then the item ticks.
 The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
 and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
 re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
@@ -64,6 +63,69 @@ code `24095d8` + fix `23d3e53`. Local suite 364/364 with the fix.
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G0.7 — First-minute density, checkpoint 1: the header and the row law (2026-09-01)
+
+**Story.** The first minute looks like a DAW: one toolbar row under a menu strip, the transport
+centred on the window, the master card right, a dozen tracks on a 1080p screen. **Build.**
+`UiTheme::Layout` tokens: `menuBarHeight 28`, `toolbarHeight 60`, `headerHeight 88` (was 118),
+`settingsRowHeight 40`, `headerMasterWidth 260` (was 300), `timelineCanvasLaneRowHeight 72` =
+`trackListRowMinHeight 72` (were 36 / 56). The shell's `headerLayout()` is ONE law from the window
+width (no fixed x anywhere): tools left (New Open Save Import · Undo Redo · Export), transport
+centred (⏮ ▶ ■ ● · bar|beat · tempo/meter · loop, 44 px buttons), the master card right-anchored
+against the gear, shrinking toward the transport group below 1280 and dropping whole under 150 px
+(M9's law, kept). The old third row (export bit-depth/range, output/input/channel choosers,
+Refresh, Test Device, Arm, Monitor, Comp) is a **settings row** under the toolbar, hidden by
+default, toggled by the new `view.toggle_settings_row` action ("Audio & Export Settings", Options
+menu, ticked) — the shell re-lays out on toggle (`headerHeightNow()`), the probe reports
+`view.settingsRow` and `view.headerHeight`. Rows: `computeCumulativeRowGeometry` now returns the
+fixed default height for every auto row (rows never stretch to fill the window; the arrangement
+scrolls) — the rail and the canvas share it as before.
+
+**Gates.** `[header-flex]` (screenshot check): at 1152×720, 1280×720, 1536×960, 1920×1080,
+2560×1440, with the settings row hidden and shown — every laid-out header rect inside the header
+and pairwise disjoint; every visible header child equals a laid-out rect or sits inside one; the
+master card never drops, is right-anchored to the gear, and is full width from 1280; sections in
+order; the transport section centred within 1 px from 1536 up; the three section fills painted.
+`[density]` (input check): a dozen tracks at 1920×1080 → ≥ 8 whole 72 px lanes through the probe,
+rail rows the same height. `[rubric-shots]` (screenshot check): the 16-track six-second fixture
+opened through the real Open action, rendered at 1280×720 / 1920×1080 / 2560×1440 into
+`YESDAW_UI_SCREENSHOT_DIR` (or `%TEMP%\yesdaw-ui-screenshots`), the header law and the density
+law asserted on it (≥ 8 whole lanes at 1080p, ≥ 3 at 720p with the 260 px dock open). Token
+asserts are `STATIC_REQUIRE`s in `[header-flex]`.
+
+**Rubric (headless PrintWindow-free renders of the real shell on the fixture; the drive is paused, D14).**
+| Size | Density | Header | Verdict |
+|---|---|---|---|
+| 1280×720 | 3 whole lanes + partial (dock 260 open) | one row; card 260 full; transport left of centre (clamped past the tools) | PASS for the header; density is the dock's — G-later |
+| 1920×1080 | 8 whole + partial 9th | centred within 1 px; card 260 right | PASS |
+| 2560×1440 | 13 whole | centred; card right; strips fill the dock | PASS |
+FIX lines seen: (a) the master card's meter is a 6 px sliver at 260 — the card needs a real
+stereo meter + LUFS stack (→ checkpoint 2 or G2); (b) the rail's PAN/VOL cluster is tight at 318
+and must be re-cut for 260 (checkpoint 2); (c) the fixture places its four MIDI clips ON TOP of
+the audio clips of the last four tracks — realistic overlap, wrong for a "MIDI track" reading
+(parking lot, fixture realism); (d) the inspector's empty state is 300+ px of "No clip selected"
+(G2's inspector rebuild).
+
+**Deviation log (G0.7 checkpoint 1).**
+- D23 The plan's "hide the device cluster" landed as the settings row (hidden by default), not a
+  deletion: G0.8 deletes Refresh/Test Device; the choosers and Arm/Monitor/Comp keep a home.
+  Tests that use those controls show the row first through the real action (the harness helper
+  `mainComponentRevealSettingsRowFor` does it for buttons; chooser sites call the toggle).
+- D24 Re-pins: 18 rail-row replicas in the input tests computed `max(min, rail/N)` — the stretch
+  law — and now use the fixed row height; one halved-rail replica likewise; the arm-badge and
+  harness-by-id screenshot tests show the settings row before measuring (it moves the rail); the
+  contrast gate's "track name" region was a literal that sat in the OLD header's third row (it
+  passed on the export choosers' text) — it now reads the rail's name cell; the piano-roll key
+  column is judged by a full scan (4 px key bars vs a 17 px sampling grid — the old pass was
+  phase luck); the section-hierarchy probe reads the layout law (top-centre of each section).
+- D25 The render-budget gate's crop was blank on BOTH sides of the compare: JUCE 8's software
+  renderer flushes into the image when the `Graphics` is destroyed, and the test read pixels
+  while it was alive. Why the pre-G0.7 compare passed is NOT established (it is not worth the
+  hour); the fix does not depend on it: the crop now scopes the context and draws the frame into
+  a fresh image, and on a red it writes both frames next to the screenshots.
+- D26 `[shell-sizes]` and the density floor at 720p: the 260 px dock leaves three whole rows —
+  recorded, not hidden; the dock's height is a later item's call (parking lot).
 
 ### G0.6 — The 16-track three-minute fixture (2026-09-01)
 

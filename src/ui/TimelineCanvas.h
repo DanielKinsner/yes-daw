@@ -115,7 +115,11 @@ struct CumulativeRowGeometry
     // row would silently resize every other auto row too. A customized row instead simply grows
     // or shrinks the panel's total content height (more or less to scroll) — the same way adding
     // a track does — never its neighbours.
-    geometry.autoShare = std::max (minRowHeight, availablePixels / rowCount);
+    // G0.7: rows never stretch to fill the window (Logic / Pro Tools): every auto row is the
+    // fixed default height and the panel scrolls. `availablePixels` stays in the signature so the
+    // callers keep passing what they have (a future "fit tracks to window" verb needs it).
+    (void) availablePixels;
+    geometry.autoShare = minRowHeight;
 
     geometry.tops.resize (static_cast<std::size_t> (rowCount));
     geometry.heights.resize (static_cast<std::size_t> (rowCount));

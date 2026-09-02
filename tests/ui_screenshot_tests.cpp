@@ -1,5 +1,6 @@
 // YES DAW - H16 CP8 mechanical UI screenshot harness.
 
+#include "app/SongFixture.h"
 #include "engine/Project.h"
 #include "ui/MainComponent.h"
 #include "ui/UiIcons.h"
@@ -93,6 +94,21 @@ std::uint64_t sampledDifferentPixelCount (const juce::Image& image, juce::Rectan
     return count;
 }
 
+// Full-resolution variant for thin structure (the piano roll's 4 px key bars): a 17/19 px
+// sampling grid can miss them entirely depending on the surface's vertical phase.
+std::uint64_t fullDifferentPixelCount (const juce::Image& image, juce::Rectangle<int> region)
+{
+    region = region.getIntersection (image.getBounds());
+    REQUIRE_FALSE (region.isEmpty());
+    const auto first = image.getPixelAt (region.getX(), region.getY()).getARGB();
+    std::uint64_t count = 0;
+    for (int y = region.getY(); y < region.getBottom(); ++y)
+        for (int x = region.getX(); x < region.getRight(); ++x)
+            if (image.getPixelAt (x, y).getARGB() != first)
+                ++count;
+    return count;
+}
+
 std::uint64_t sampledArgbFingerprint (const juce::Image& image)
 {
     std::uint64_t hash = 1469598103934665603ull;
@@ -161,6 +177,9 @@ std::filesystem::path writePng (const juce::Image& image, const std::filesystem:
 
 juce::Button& requireButtonForAction (juce::Component& shell, UiActionId action)
 {
+    // G0.7: the device/recording cluster lives in the collapsible settings row — a test that
+    // uses one of those buttons shows the row first, through the real toggle action.
+    yesdaw::ui::mainComponentRevealSettingsRowFor (shell, action);
     juce::Component* component = yesdaw::ui::findMainComponentChildForAction (shell, action);
     REQUIRE (component != nullptr);
 
@@ -249,12 +268,19 @@ bool hasHeaderCoverage (const juce::Image& image)
         && sampledDifferentPixelCount (image, { 1080, 0, image.getWidth() - 1080, 88 }) > 10u;
 }
 
-bool hasHeaderSectionHierarchy (const juce::Image& image)
+// G0.7: the three header sections come from the shell's layout law (no fixed x); each is
+// sampled just inside its top-left corner, where no control sits.
+bool hasHeaderSectionHierarchy (const juce::Image& image, const juce::Component& shell)
 {
     const auto sectionFill = yesdaw::ui::UiTheme::Color::controlInset();
-    return image.getPixelAt (20, 46) == sectionFill
-        && image.getPixelAt (340, 12) == sectionFill
-        && image.getPixelAt (1100, 12) == sectionFill;
+    for (int section = 0; section < 3; ++section)
+    {
+        const juce::Rectangle<int> bounds = yesdaw::ui::mainComponentHeaderSectionBounds (shell, section);
+        // Top edge, horizontal centre: inside the rounded fill, below the outline, above every control.
+        if (bounds.isEmpty() || image.getPixelAt (bounds.getCentreX(), bounds.getY() + 3) != sectionFill)
+            return false;
+    }
+    return true;
 }
 
 bool hasTrackMixSummaryCoverage (const juce::Image& image)
@@ -273,10 +299,10 @@ bool hasInspectorSectionHierarchy (const juce::Image& image)
         && image.getPixelAt (1244, 621) == sectionFill;
 }
 
-void requireHonestEmptyArrangementCoverage (const juce::Image& image)
+void requireHonestEmptyArrangementCoverage (const juce::Image& image, const juce::Component& shell)
 {
     REQUIRE (hasHeaderCoverage (image));
-    REQUIRE (hasHeaderSectionHierarchy (image));
+    REQUIRE (hasHeaderSectionHierarchy (image, shell));
     REQUIRE (sampledDifferentPixelCount (image, { 0, 88, 318, 612 }) > 20u);
     REQUIRE (sampledDifferentPixelCount (image, { 318, 88, image.getWidth() - 638, 612 }) > 100u);
     REQUIRE (sampledDifferentPixelCount (image, { image.getWidth() - 320, 88, 320, 612 }) > 10u);
@@ -364,8 +390,9 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
             UiActionId::TransportToggleLoop
         },
         juce::Rectangle<int> { 0, 0, shell->getWidth(), yesdaw::ui::UiTheme::Layout::headerHeight });
-    // The device + recording cluster lives in header row 3 (it used to float over the track rail
-    // and collide with the TRACKS strip — the layout law moved it inside the header).
+    // G0.7: the device + recording cluster lives in the collapsible settings row under the
+    // toolbar — shown, its buttons are disjoint and inside the (taller) header; then hidden again.
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
     requireDisjointActionBounds (
         *shell,
         std::array {
@@ -375,10 +402,11 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
             UiActionId::RecordingSetMonitoringPolicy,
             UiActionId::RecordingAssembleComp
         },
-        juce::Rectangle<int> { 0, 0, shell->getWidth(), yesdaw::ui::UiTheme::Layout::headerHeight });
+        juce::Rectangle<int> { 0, 0, shell->getWidth(), yesdaw::ui::mainComponentHeaderHeight (*shell) });
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);
 
     const juce::Image timelineImage = renderShell (*shell);
-    requireHonestEmptyArrangementCoverage (timelineImage);
+    requireHonestEmptyArrangementCoverage (timelineImage, *shell);
     const std::uint64_t timelineFingerprint = captureShellPng (timelineImage, "yesdaw-timeline-shell.png");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
@@ -393,7 +421,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::PianoRoll);
     const juce::Image pianoRollImage = renderShell (*shell);
-    requireHonestEmptyArrangementCoverage (pianoRollImage);
+    requireHonestEmptyArrangementCoverage (pianoRollImage, *shell);
     const std::uint64_t pianoRollFingerprint = captureShellPng (pianoRollImage, "yesdaw-piano-roll-shell.png");
 
     REQUIRE (timelineFingerprint != mixerFingerprint);
@@ -666,10 +694,12 @@ TEST_CASE ("Piano roll and automation lane render honestly with real notes and b
         local.reduce (12, 8);
         const auto expression = local.removeFromBottom (84);
         const auto keys = local.removeFromLeft (70);
-        REQUIRE (sampledDifferentPixelCount (image, keys) > 20u);
+        // The PNG is written BEFORE the judgments so a red leaves its evidence.
+        (void) captureShellPng (image, filename);
+        INFO ("keys " << keys.toString().toStdString() << " canvas " << bounds.toString().toStdString());
+        REQUIRE (fullDifferentPixelCount (image, keys) > 400u);   // G0.7: full scan (4 px key bars)
         REQUIRE (sampledDifferentPixelCount (image, local) > 60u);
         REQUIRE (sampledDifferentPixelCount (image, expression) > 10u);
-        (void) captureShellPng (image, filename);
     };
 
     renderRollAtSize (1152, 720, "yesdaw-roll-laptop.png");
@@ -937,6 +967,9 @@ TEST_CASE ("the rail arm badge lights red on the armed track", "[ui][screenshot]
             rail = shell->getChildComponent (child);
     REQUIRE (rail != nullptr);
 
+    // G0.7: the device/recording cluster lives in the settings row; showing it moves the rail,
+    // so it is shown BEFORE the badge centre is computed.
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
     // Row 0's third rail cell ("O") center, in shell space — the shared row/cell token law.
     using L = yesdaw::ui::UiTheme::Layout;
     const juce::Point<int> badgeCentre {
@@ -971,7 +1004,11 @@ TEST_CASE ("H16 screenshot coverage gate rejects a blank mixer surface", "[ui][s
     REQUIRE_FALSE (hasMixerMasterSummaryCoverage (
         blank,
         juce::Rectangle<int> { blank.getWidth() - 104, 88, 104, blank.getHeight() - 88 }));
-    REQUIRE_FALSE (hasHeaderSectionHierarchy (blank));
+    // G0.7: the section probe reads the shell's layout law for WHERE to sample; a blank image
+    // still fails it.
+    auto shell = yesdaw::ui::createMainComponent (yesdaw::ui::MainComponentFileChoices {});
+    shell->setSize (blank.getWidth(), blank.getHeight());
+    REQUIRE_FALSE (hasHeaderSectionHierarchy (blank, *shell));
     REQUIRE_FALSE (hasTrackMixSummaryCoverage (blank));
     REQUIRE_FALSE (hasInspectorSectionHierarchy (blank));
 }
@@ -1085,16 +1122,16 @@ TEST_CASE ("V1 painted text achieves legible contrast against its panel at every
         const juce::Image image = renderShell (*shell);
 
         // Header time readout: the largest, most load-bearing numeric readout in the shell.
-        const juce::Rectangle<int> timeReadout {
-            L::headerTransportTimeX, L::headerTransportReadoutY,
-            L::headerTransportTimeWidth, L::headerTransportReadoutHeight
-        };
+        const juce::Rectangle<int> timeReadout = yesdaw::ui::mainComponentHeaderTimeReadoutBounds (*shell);
+        REQUIRE_FALSE (timeReadout.isEmpty());
         INFO ("time readout contrast at " << size.first << "x" << size.second);
         REQUIRE (maxContrastInRegion (image, timeReadout) >= kMinContrastRatio);
 
         // Rail track name: the primary identifying label for every track.
+        juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+        REQUIRE (rail != nullptr);
         const juce::Rectangle<int> trackName {
-            L::trackListNameLeftInset, L::trackListHeaderHeight,
+            rail->getX() + L::trackListNameLeftInset, rail->getY() + L::trackListHeaderHeight,
             160, L::trackListNameHeight
         };
         INFO ("track name contrast at " << size.first << "x" << size.second);
@@ -1103,4 +1140,172 @@ TEST_CASE ("V1 painted text achieves legible contrast against its panel at every
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G0.7 (plan §3.4, ADR-0046): the header is a flex row — tools left, transport centred on the
+// window, master card right-anchored against the gear — from ONE layout law, at every supported
+// size, with and without the settings row. Nothing in the header overlaps anything else.
+TEST_CASE ("header flex row: tools left, transport centred, master right, nothing overlaps",
+           "[ui][screenshot][g0][header-flex]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    STATIC_REQUIRE (L::menuBarHeight == 28);
+    STATIC_REQUIRE (L::toolbarHeight == 60);
+    STATIC_REQUIRE (L::headerHeight == 88);
+    STATIC_REQUIRE (L::headerMasterWidth == 260);
+    STATIC_REQUIRE (L::timelineCanvasLaneRowHeight == 72);
+    STATIC_REQUIRE (L::trackListRowMinHeight == L::timelineCanvasLaneRowHeight);
+
+    auto shell = yesdaw::ui::createMainComponent (yesdaw::ui::MainComponentFileChoices {});
+    for (const auto& size : { std::pair<int, int> { L::windowMinWidth, L::windowMinHeight },
+                              std::pair<int, int> { 1280, 720 },
+                              std::pair<int, int> { L::defaultWindowWidth, L::defaultWindowHeight },
+                              std::pair<int, int> { 1920, 1080 },
+                              std::pair<int, int> { 2560, 1440 } })
+    {
+        const int width = size.first;
+        shell->setSize (width, size.second);
+        for (const bool settings : { false, true })
+        {
+            INFO ("size " << width << "x" << size.second << " settings row " << (settings ? "shown" : "hidden"));
+            yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, settings);
+            const int headerHeight = yesdaw::ui::mainComponentHeaderHeight (*shell);
+            REQUIRE (headerHeight == L::headerHeight + (settings ? L::settingsRowHeight : 0));
+            const juce::Rectangle<int> header { 0, 0, width, headerHeight };
+
+            // Every laid-out rect is inside the header and pairwise disjoint; every visible child
+            // that lives in the header IS one of those rects or sits inside one (the tempo/meter
+            // controls in their box, the LUFS readout on the master card).
+            const std::vector<juce::Rectangle<int>> rects = yesdaw::ui::mainComponentHeaderRects (*shell);
+            REQUIRE (rects.size() >= 17u);
+            for (std::size_t i = 0; i < rects.size(); ++i)
+            {
+                INFO ("rect " << rects[i].toString().toStdString());
+                REQUIRE (header.contains (rects[i]));
+                for (std::size_t j = i + 1; j < rects.size(); ++j)
+                {
+                    INFO ("vs " << rects[j].toString().toStdString());
+                    REQUIRE_FALSE (rects[i].intersects (rects[j]));
+                }
+            }
+            for (int i = 0; i < shell->getNumChildComponents(); ++i)
+            {
+                const juce::Component* child = shell->getChildComponent (i);
+                const juce::Rectangle<int> bounds = child->getBounds();
+                if (! child->isVisible() || bounds.isEmpty() || bounds.getBottom() > headerHeight)
+                    continue;
+                INFO ("child " << child->getName().toStdString() << " " << bounds.toString().toStdString());
+                bool placed = false;
+                for (const juce::Rectangle<int>& rect : rects)
+                    placed = placed || rect.contains (bounds);
+                REQUIRE (placed);
+            }
+
+            // The master card keeps its full width from 1280 up and is right-anchored against the
+            // gear; at the floor it may shrink but never drops.
+            const juce::Rectangle<int> card = yesdaw::ui::mainComponentHeaderMasterCardBounds (*shell);
+            REQUIRE_FALSE (card.isEmpty());
+            REQUIRE (card.getRight() == width - L::headerStatusIconRightInset - L::headerMasterGearGap);
+            if (width >= 1280)
+                REQUIRE (card.getWidth() == L::headerMasterWidth);
+
+            // Sections in order, disjoint; the transport group centred on the window once there
+            // is room for it (the default size and up).
+            const juce::Rectangle<int> tools = yesdaw::ui::mainComponentHeaderSectionBounds (*shell, 0);
+            const juce::Rectangle<int> transport = yesdaw::ui::mainComponentHeaderSectionBounds (*shell, 1);
+            const juce::Rectangle<int> master = yesdaw::ui::mainComponentHeaderSectionBounds (*shell, 2);
+            REQUIRE_FALSE (tools.isEmpty());
+            REQUIRE_FALSE (transport.isEmpty());
+            REQUIRE_FALSE (master.isEmpty());
+            REQUIRE (tools.getRight() <= transport.getX());
+            REQUIRE (transport.getRight() <= master.getX());
+            if (width >= L::defaultWindowWidth)
+                REQUIRE (std::abs (transport.getCentreX() - width / 2) <= 1);
+
+            const juce::Image image = renderShell (*shell);
+            REQUIRE (hasHeaderSectionHierarchy (image, *shell));
+        }
+        yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);
+    }
+}
+
+// G0.7: the rubric shots — the song fixture (16 tracks, six seconds) opened through the real Open
+// action and rendered at the three judged sizes into YESDAW_UI_SCREENSHOT_DIR (or the temp dir).
+// The mechanical part: with a real project loaded, the header law still holds and 1080p shows at
+// least eight whole 72 px lanes; the judgment part is the rubric in STATUS.md.
+TEST_CASE ("G0.7 rubric shots: the song fixture at 1280x720, 1920x1080 and 2560x1440",
+           "[ui][screenshot][g0][rubric-shots]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path fixtureDir = std::filesystem::temp_directory_path() / "yesdaw-g07-rubric-fixture";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (fixtureDir, ec);
+    }
+    yesdaw::app::fixture::SongFixtureSpec spec;
+    spec.tracks = 16;
+    spec.seconds = 6.0;
+    spec.sampleRateHz = 48000;
+    spec.channels = 2;
+    spec.midiTracks = 4;
+    const yesdaw::app::fixture::SongFixtureResult fixture = yesdaw::app::fixture::buildSongFixture (fixtureDir, spec);
+    INFO (fixture.error);
+    REQUIRE (fixture.ok);
+
+    yesdaw::ui::MainComponentFileChoices choices;
+    const std::filesystem::path bundlePath = fixture.bundlePath;
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (L::defaultWindowWidth, L::defaultWindowHeight);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.projectLoaded);
+
+    for (const auto& size : { std::pair<int, int> { 1280, 720 },
+                              std::pair<int, int> { 1920, 1080 },
+                              std::pair<int, int> { 2560, 1440 } })
+    {
+        const int width = size.first;
+        const int height = size.second;
+        shell->setSize (width, height);
+        const juce::Image image = renderShell (*shell);
+        const juce::String name = "yesdaw-g07-" + juce::String (width) + "x" + juce::String (height) + ".png";
+        (void) captureShellPng (image, name.toRawUTF8());
+
+        REQUIRE (hasHeaderCoverage (image));
+        REQUIRE (hasHeaderSectionHierarchy (image, *shell));
+        const juce::Rectangle<int> card = yesdaw::ui::mainComponentHeaderMasterCardBounds (*shell);
+        REQUIRE (card.getWidth() == L::headerMasterWidth);
+        const juce::Rectangle<int> transport = yesdaw::ui::mainComponentHeaderSectionBounds (*shell, 1);
+        if (width >= L::defaultWindowWidth)
+            REQUIRE (std::abs (transport.getCentreX() - width / 2) <= 1);
+
+        const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+        const juce::var layout = probe.getProperty ("layout", juce::var());
+        REQUIRE (layout.isObject());
+        const juce::Rectangle<int> timeline = yesdaw::ui::mainComponentTimelineBounds (*shell);
+        int wholeLanes = 0;
+        for (int lane = 0; lane < spec.tracks; ++lane)
+        {
+            const juce::var value = layout.getProperty ("lane." + juce::String (lane), juce::var());
+            if (! value.isArray() || value.size() != 4)
+                continue;
+            const juce::Rectangle<int> rect (static_cast<int> (value[0]), static_cast<int> (value[1]),
+                                             static_cast<int> (value[2]), static_cast<int> (value[3]));
+            REQUIRE (rect.getHeight() <= L::timelineCanvasLaneRowHeight);
+            if (timeline.contains (rect) && rect.getHeight() == L::timelineCanvasLaneRowHeight)
+                ++wholeLanes;
+        }
+        INFO ("whole lanes at " << width << "x" << height << ": " << wholeLanes);
+        // 720p with the 260 px mixer dock open leaves ~300 px of lanes: three whole rows (the
+        // rubric records it; the dock's height is a later item's call).
+        if (height >= 1080)
+            REQUIRE (wholeLanes >= 8);
+        else
+            REQUIRE (wholeLanes >= 3);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (fixtureDir, ec);
 }

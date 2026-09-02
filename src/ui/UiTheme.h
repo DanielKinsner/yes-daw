@@ -210,7 +210,36 @@ struct UiTheme
 
     struct Layout
     {
-        static constexpr int headerHeight = 118;   // three control rows; row 3 hosts export/device/recording
+        // G0.7 (plan §3.4, ADR-0046): the header is a 28 px menu strip over ONE 60 px toolbar row
+        // (tools · transport centred · master right). The export/device/recording controls that
+        // used to be a third row live in a collapsible settings row under the toolbar, off by
+        // default (Options ▸ Audio & Export Settings).
+        static constexpr int menuBarHeight = 28;
+        static constexpr int toolbarHeight = 60;
+        static constexpr int headerHeight = menuBarHeight + toolbarHeight;   // 88
+        static constexpr int settingsRowHeight = 40;
+        static constexpr int headerEdgeInset = 12;
+        static constexpr int headerButtonGap = 4;
+        static constexpr int headerClusterGap = 8;
+        static constexpr int headerGroupGap = 16;
+        static constexpr int headerSectionPad = 6;
+        static constexpr int headerControlHeight = 26;
+        static constexpr int headerSmallButtonWidth = 30;
+        static constexpr int headerUndoButtonWidth = 28;
+        static constexpr int headerExportButtonWidth = 88;
+        static constexpr int headerExportProgressWidth = 58;
+        static constexpr int headerExportCancelWidth = 28;
+        static constexpr int headerTransportButtonSize = 44;
+        static constexpr int headerLoopButtonWidth = 56;
+        static constexpr int settingsBitDepthWidth = 108;
+        static constexpr int settingsRangeWidth = 112;
+        static constexpr int settingsDeviceWidth = 150;
+        static constexpr int settingsChannelWidth = 64;
+        static constexpr int settingsRefreshWidth = 76;
+        static constexpr int settingsTestDeviceWidth = 90;
+        static constexpr int settingsArmWidth = 56;
+        static constexpr int settingsMonitorWidth = 82;
+        static constexpr int settingsCompWidth = 60;
         static constexpr int defaultWindowWidth = 1536;
         static constexpr int defaultWindowHeight = 960;
         // E27: the window resize floor is the smallest size every shipped layout stays honest
@@ -222,54 +251,38 @@ struct UiTheme
         static constexpr int leftRailWidth = 318;
         static constexpr int inspectorWidth = 320;
         static constexpr int mixerHeight = 260;
-        static juce::Rectangle<int> headerMenuBarBounds() noexcept { return { 22, 14, 320, 24 }; }
+        static juce::Rectangle<int> headerMenuBarBounds() noexcept { return { 8, 2, 420, 24 }; }
         static constexpr int headerMenuStartX = 22;
-        static constexpr int headerMenuY = 17;
+        static constexpr int headerMenuY = 5;
         static constexpr int headerMenuWidth = 70;
         static constexpr int headerMenuHeight = 18;
         static constexpr int headerMenuStep = 48;
         static constexpr int headerOptionsMenuStep = 72;
-        static juce::Rectangle<int> headerProjectSectionBounds() noexcept
-        {
-            return { 10, 43, 310, 37 };
-        }
-        static juce::Rectangle<int> headerTransportSectionBounds() noexcept
-        {
-            return { 328, 10, 752, 68 };
-        }
-        static juce::Rectangle<int> headerMasterSectionBounds() noexcept
-        {
-            return { 1092, 10, 434, 68 };
-        }
-        static constexpr int headerTransportRecordX = 520;
-        static constexpr int headerTransportRecordY = 36;
-        static constexpr int headerTransportRecordSize = 18;
-        static constexpr int headerTransportTimeX = 570;
+        // G0.7: the three header sections and every control in them are laid out by the shell's
+        // headerLayout() law from the window width (no fixed x), so the transport group is centred
+        // and the master card is right-anchored at every size.
         static constexpr int headerTransportReadoutY = 16;
-        static constexpr int headerTransportTimeWidth = 190;
-        static constexpr int headerTransportReadoutHeight = 56;
+        static constexpr int headerTransportTimeWidth = 150;
+        static constexpr int headerTransportReadoutHeight = 44;
         static constexpr int headerTransportTextInsetX = 8;
-        static constexpr int headerTransportClockInsetY = 4;
-        static constexpr int headerTransportClockHeight = 30;
-        static constexpr int headerTransportLabelInsetY = 34;
-        static constexpr int headerTransportBoxX = 760;
+        static constexpr int headerTransportClockInsetY = 2;
+        static constexpr int headerTransportClockHeight = 26;
+        static constexpr int headerTransportLabelInsetY = 28;
         // V2: was 248 (3 cells: TEMPO, TIME SIG, KEY) — the KEY cell was a dead literal with no
         // backing model (D3) and is gone; 164 = 2 cells exactly, so no dead space is left where
         // the third cell used to be.
-        static constexpr int headerTransportBoxWidth = 164;
-        static constexpr int headerTransportCellWidth = 82;
+        static constexpr int headerTransportBoxWidth = 150;
+        static constexpr int headerTransportCellWidth = 75;
         static constexpr int headerTransportCellInsetX = 4;
-        static constexpr int headerTransportValueInsetY = 8;
-        static constexpr int headerTransportValueHeight = 24;
-        static constexpr int headerMasterX = 1110;
-        static constexpr int headerMasterY = 18;
-        static constexpr int headerMasterWidth = 300;
+        static constexpr int headerTransportValueInsetY = 4;
+        static constexpr int headerTransportValueHeight = 20;
+        static constexpr int headerMasterY = 36;
+        static constexpr int headerMasterWidth = 260;
         static constexpr int headerMasterHeight = 44;
         static constexpr int headerMasterLabelHeight = 14;
         static constexpr int headerMasterMeterHeight = 16;
         static constexpr int headerMasterMeterWidth = 236;
-        static constexpr int headerMasterLufsX = 1370;
-        static constexpr int headerMasterLufsY = 33;
+        static constexpr int headerMasterLufsY = 51;
         static constexpr int headerMasterLufsWidth = 76;
         static constexpr int headerMasterLufsHeight = 16;
         // M9: the master card is RIGHT-anchored now. Below this width it drops WHOLE (label
@@ -278,8 +291,8 @@ struct UiTheme
         static constexpr int headerMasterMinWidth = 150;
         static constexpr int headerMasterGearGap = 12;
         static constexpr int headerMasterLufsGap = 8;
-        static constexpr int headerStatusIconRightInset = 54;
-        static constexpr int headerStatusIconY = 34;
+        static constexpr int headerStatusIconRightInset = 36;
+        static constexpr int headerStatusIconY = 46;
         static constexpr int headerStatusIconSize = 24;
         static constexpr int shellHeaderSeparatorHeight = 1;
         static constexpr int shellPanelHorizontalInset = 6;
@@ -308,34 +321,6 @@ struct UiTheme
         static constexpr float iconStrokeWidth = 1.45f;
         static constexpr float iconFineStrokeWidth = 1.1f;
         static constexpr float iconBoldStrokeWidth = 1.8f;
-        static juce::Rectangle<int> projectNewButtonBounds() noexcept { return { 16, 50, 30, 26 }; }
-        static juce::Rectangle<int> projectOpenButtonBounds() noexcept { return { 50, 50, 30, 26 }; }
-        static juce::Rectangle<int> projectSaveButtonBounds() noexcept { return { 84, 50, 30, 26 }; }
-        static juce::Rectangle<int> projectImportAudioButtonBounds() noexcept { return { 118, 50, 30, 26 }; }
-        static juce::Rectangle<int> projectExportAudioButtonBounds() noexcept { return { 156, 50, 88, 26 }; }
-        static juce::Rectangle<int> projectExportAudioProgressBounds() noexcept { return { 156, 50, 60, 26 }; }
-        static juce::Rectangle<int> projectExportAudioCancelButtonBounds() noexcept { return { 218, 50, 30, 26 }; }
-        // Header row 3 (y = 84): export options, the audio device chooser, and the recording
-        // cluster live INSIDE the header instead of floating over the track rail and timeline.
-        static juce::Rectangle<int> exportBitDepthChooserBounds() noexcept { return { 156, 84, 108, 26 }; }
-        static juce::Rectangle<int> exportRangeChooserBounds() noexcept { return { 268, 84, 112, 26 }; }
-        // E29: the device row carries BOTH sides — output chooser, input chooser, and the
-        // recorded-channel pick — inside the window floor (right edge 1140 ≤ 1152).
-        static juce::Rectangle<int> audioDeviceChooserBounds() noexcept { return { 388, 84, 150, 26 }; }
-        static juce::Rectangle<int> audioInputDeviceChooserBounds() noexcept { return { 542, 84, 150, 26 }; }
-        static juce::Rectangle<int> recordingInputChannelChooserBounds() noexcept { return { 696, 84, 64, 26 }; }
-        static juce::Rectangle<int> deviceRefreshAudioButtonBounds() noexcept { return { 764, 84, 76, 26 }; }
-        static juce::Rectangle<int> deviceSelectTestAudioButtonBounds() noexcept { return { 844, 84, 90, 26 }; }
-        static juce::Rectangle<int> recordingArmTrackButtonBounds() noexcept { return { 938, 84, 56, 26 }; }
-        static juce::Rectangle<int> recordingSetMonitoringPolicyButtonBounds() noexcept { return { 998, 84, 82, 26 }; }
-        static juce::Rectangle<int> recordingAssembleCompButtonBounds() noexcept { return { 1084, 84, 60, 26 }; }
-        static juce::Rectangle<int> transportRecordButtonBounds() noexcept { return { 504, 16, 56, 56 }; }
-        static juce::Rectangle<int> editUndoButtonBounds() noexcept { return { 256, 50, 28, 26 }; }
-        static juce::Rectangle<int> editRedoButtonBounds() noexcept { return { 288, 50, 28, 26 }; }
-        static juce::Rectangle<int> transportLocateStartButtonBounds() noexcept { return { 336, 16, 56, 56 }; }
-        static juce::Rectangle<int> transportPlayButtonBounds() noexcept { return { 392, 16, 56, 56 }; }
-        static juce::Rectangle<int> transportStopButtonBounds() noexcept { return { 448, 16, 56, 56 }; }
-        static juce::Rectangle<int> transportToggleLoopButtonBounds() noexcept { return { 1008, 16, 64, 56 }; }
         static juce::Rectangle<int> viewMixerButtonBounds (juce::Rectangle<int> mixer) noexcept
         {
             return { mixer.getX() + 10, mixer.getY() + 10, 76, 28 };
@@ -603,7 +588,9 @@ struct UiTheme
         static constexpr int timelineRepeatPasteChooserGap = 57;
         // Vertical track scroll (E5): when tracks overflow the viewport, lanes hold this fixed
         // row height and the shared row offset scrolls them; few tracks still stretch to fill.
-        static constexpr int timelineCanvasLaneRowHeight = 36;
+        // G0.7: a fixed DEFAULT row height (Logic / Pro Tools: rows never stretch to fill the
+        // window; the arrangement scrolls). Shared by the rail (trackListRowMinHeight) — same value.
+        static constexpr int timelineCanvasLaneRowHeight = 72;
         // Transport loop brace (E6): the band on the upper ruler and its end drag handles.
         static constexpr int timelineCanvasLoopBraceHeight = 12;
         static constexpr int timelineCanvasLoopHandleWidth = 8;
@@ -640,7 +627,7 @@ struct UiTheme
         static constexpr int trackListAddButtonInset = 12;
         static constexpr int trackListRenameEditorHeight = 24;
         static constexpr int trackListEmptyLabelInset = 24;
-        static constexpr int trackListRowMinHeight = 56;
+        static constexpr int trackListRowMinHeight = 72;   // G0.7: = timelineCanvasLaneRowHeight
         static constexpr int trackListRowHorizontalInset = 1;
         static constexpr int trackListRowVerticalInset = 0;
         static constexpr int trackListAccentWidth = 3;

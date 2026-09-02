@@ -37,3 +37,11 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 - [ ] 2026-09-01 · audio · the driver's xrun count reads 1 since launch in every G0.3 SS-1 run, with 0 during the edit burst and 0 deadline misses of our own — one xrun somewhere between device open and the first edits (device start? first Play?) · `src/ui/MainComponent.cpp` `audioDeviceAboutToStart` / probe `audio.underruns` · promote-to: G0.4 or G0.5 (localize with a per-step probe read; never hide)
 - [ ] 2026-09-01 · engine · a running engine re-located to 0 is not bit-identical to a fresh engine for the first 5 ms: the fader's Linear5Ms smoother starts from its last value, a fresh one snaps to the strip gain then ramps to the automation lane's value (seen when G0.5 kept the engine alive across a delete/undo) · `src/engine/nodes/FaderNode.h` `reset()` / `CompiledGraph.h` lane priming · promote-to: G2.15/G2.16 (loop and locate determinism gates decide which start is the law)
 - [ ] 2026-09-01 · engine · the runtime applies at most 64 commands per block, so a burst of N live edits lands within ceil(N/64) device blocks; the stopped transport does not drain commands at all (edits while stopped apply on the first block after Play) · `src/engine/Runtime.h` `Config::maxCommandsPerBlock` · promote-to: later (only matters above ~60 edits per 2.7 ms)
+
+- 2026-09-01 (G0.7 cp1): the song fixture stacks its four MIDI clips on top of audio clips on the
+  last four tracks — real overlap, but it reads as a bug in the arrangement; a "MIDI track" needs
+  its own identity (icon, colour, no audio clips) → G2 (track kinds) / fixture realism.
+- 2026-09-01 (G0.7 cp1): at 1280×720 the 260 px mixer dock leaves three whole 72 px rows; Logic
+  keeps ~5 at that size with a shorter dock → the dock's default height is a G2 call.
+- 2026-09-01 (G0.7 cp1): the header master card's meter is a 6 px sliver; the card wants a real
+  stereo meter + LUFS stack at 260 wide → G0.7 cp2 or G2.

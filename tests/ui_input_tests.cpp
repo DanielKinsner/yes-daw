@@ -349,6 +349,9 @@ juce::Component* findChildWithComponentId (juce::Component& component, const juc
 
 juce::Button& requireButtonForAction (juce::Component& shell, UiActionId action)
 {
+    // G0.7: the device/recording cluster lives in the collapsible settings row — a test that
+    // uses one of those buttons shows the row first, through the real toggle action.
+    yesdaw::ui::mainComponentRevealSettingsRowFor (shell, action);
     juce::Component* component = findMainComponentChildForAction (shell, action);
     REQUIRE (component != nullptr);
 
@@ -1199,6 +1202,7 @@ TEST_CASE ("no callback teardown: 200 dispatched actions request zero audio-call
     REQUIRE (retiredObjects() == 0);
 
     // Negative control: a device (re)open is the one legitimate suspend, and it still counts.
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
     auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.device.chooser"));
     REQUIRE (chooser != nullptr);
     REQUIRE (chooser->getNumItems() == 2);
@@ -1285,9 +1289,20 @@ TEST_CASE ("render budget: ticks invalidate only dynamic layers and refresh only
     // nothing changed (the cache is used, not re-rendered differently).
     const auto paintTimeline = [&] {
         juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
-        juce::Graphics g (image);
-        shell->paintEntireComponent (g, false);
-        return image.getClippedImage (timeline.getBounds()).createCopy();
+        {
+            // The renderer flushes on destruction: the pixels are only readable after the
+            // Graphics context is gone.
+            juce::Graphics g (image);
+            shell->paintEntireComponent (g, false);
+        }
+        // A manual crop: a fresh image the frame is drawn into at a negative offset.
+        const juce::Rectangle<int> bounds = timeline.getBounds();
+        juce::Image crop (juce::Image::ARGB, bounds.getWidth(), bounds.getHeight(), true);
+        {
+            juce::Graphics cg (crop);
+            cg.drawImageAt (image, -bounds.getX(), -bounds.getY());
+        }
+        return crop;
     };
     const auto sameImage = [] (const juce::Image& a, const juce::Image& b) {
         if (a.getWidth() != b.getWidth() || a.getHeight() != b.getHeight())
@@ -1303,6 +1318,20 @@ TEST_CASE ("render budget: ticks invalidate only dynamic layers and refresh only
     REQUIRE (sameImage (first, second));
     REQUIRE (shell->keyPressed (juce::KeyPress ('.')));   // nudge the selected clip right
     const juce::Image moved = paintTimeline();
+    if (sameImage (first, moved))
+    {
+        // Evidence for a red: both frames next to the other screenshots.
+        for (const auto& pair : { std::pair<const char*, const juce::Image*> { "yesdaw-render-budget-first.png", &first },
+                                  std::pair<const char*, const juce::Image*> { "yesdaw-render-budget-moved.png", &moved } })
+        {
+            const juce::File file (juce::File::getSpecialLocation (juce::File::tempDirectory)
+                                       .getChildFile ("yesdaw-ui-screenshots").getChildFile (pair.first));
+            file.getParentDirectory().createDirectory();
+            file.deleteFile();
+            juce::FileOutputStream stream (file);
+            juce::PNGImageFormat().writeImageToStream (*pair.second, stream);
+        }
+    }
     REQUIRE_FALSE (sameImage (first, moved));
     REQUIRE (shell->keyPressed (juce::KeyPress (',')));   // and back: the cache follows the model
     const juce::Image back = paintTimeline();
@@ -1953,9 +1982,10 @@ TEST_CASE ("shipped MainComponent imports, reopens, plays, and exports a stereo 
     }
 }
 
-TEST_CASE ("H12 UI input harness targets toolbar Components by stable action id", "[ui][input][shell]")
+TEST_CASE ("H12 UI input harness targets toolbar Components by stable action id (settings row shown)", "[ui][input][shell]")
 {
     auto shell = makeShell();
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);   // G0.7: the device/recording cluster lives there
 
     for (UiActionId action : mainShellToolbarActions())
     {
@@ -3821,8 +3851,7 @@ TEST_CASE ("interactive track rail — select, add, rename, remove, import-to-tr
     REQUIRE (railComponent != nullptr);
     REQUIRE (railComponent->isVisible());
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (railComponent->getHeight() - headerHeight) / 2);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     const juce::Point<int> secondRowCentre { railComponent->getWidth() / 2,
                                              headerHeight + rowHeight + rowHeight / 2 };
     mouseDownAt (*railComponent, secondRowCentre);
@@ -3903,8 +3932,7 @@ TEST_CASE ("Up and Down select adjacent Track rail rows and retarget persisted m
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 2);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     const juce::Rectangle<int> firstRow {
         rail->getX(), rail->getY() + headerHeight, rail->getWidth(), rowHeight
     };
@@ -4080,8 +4108,7 @@ TEST_CASE ("every mixer track strip is selectable and retargets the shared contr
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (railComponent != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (railComponent->getHeight() - headerHeight) / 2);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*railComponent, { railComponent->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
 
@@ -4193,7 +4220,7 @@ TEST_CASE ("track-rail mini pan, volume, and mute/solo controls edit the strip t
     using L = yesdaw::ui::UiTheme::Layout;
     juce::Rectangle<int> row = rail->getLocalBounds();
     row.removeFromTop (L::trackListHeaderHeight);
-    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row = row.withHeight (L::trackListRowMinHeight);   // G0.7: fixed rows, no stretch
     row.removeFromBottom (L::trackListSeparatorHeight);
 
     // VOL: clicking the middle of the mini slider sets the track gain to ~0.5, persisted.
@@ -4393,7 +4420,7 @@ TEST_CASE ("every direct strip edit is its own undo step: drags coalesce, toggle
     using L = yesdaw::ui::UiTheme::Layout;
     juce::Rectangle<int> row = rail->getLocalBounds();
     row.removeFromTop (L::trackListHeaderHeight);
-    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row = row.withHeight (L::trackListRowMinHeight);   // G0.7: fixed rows, no stretch
     row.removeFromBottom (L::trackListSeparatorHeight);
     const juce::Rectangle<int> level =
         row.withRight (row.getRight() - L::trackListLevelColumnRightInset)
@@ -4569,7 +4596,9 @@ TEST_CASE ("export bit-depth chooser drives a 16-bit PCM export through the real
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
 
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
     auto* bitDepth = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.export.bitdepth"));
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
     auto* range = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.export.range"));
     REQUIRE (bitDepth != nullptr);
     REQUIRE (range != nullptr);
@@ -4606,6 +4635,7 @@ TEST_CASE ("audio device chooser lists devices and switches the output device", 
 
     auto shell = makeShell (std::move (choices));
 
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
     auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.device.chooser"));
     REQUIRE (chooser != nullptr);
     REQUIRE (chooser->isEnabled());
@@ -4624,6 +4654,7 @@ TEST_CASE ("audio device chooser is present but empty without a device backend",
     // Harness shell: no desktop audio and no injected seams, so enumeration is deterministically empty.
     auto shell = makeShell();
 
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
     auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.device.chooser"));
     REQUIRE (chooser != nullptr);
     REQUIRE (chooser->getNumItems() == 0);
@@ -5576,8 +5607,7 @@ TEST_CASE ("every mixer strip paints its sends and a painted send row sets its l
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 3);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     for (int trackIndex = 1; trackIndex < 3; ++trackIndex)
     {
         mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight * trackIndex + rowHeight / 2 });
@@ -5999,8 +6029,7 @@ TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot open
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 3);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     for (int trackIndex = 1; trackIndex < 3; ++trackIndex)
     {
         mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight * trackIndex + rowHeight / 2 });
@@ -6169,8 +6198,7 @@ TEST_CASE ("tracks route their main output to a bus and the bus fader carries th
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 3);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     for (int trackIndex = 1; trackIndex < 3; ++trackIndex)
     {
         mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight * trackIndex + rowHeight / 2 });
@@ -6291,8 +6319,7 @@ TEST_CASE ("removing an automated target is never silently refused",
     REQUIRE (rail != nullptr);
     {
         const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-        const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                          (rail->getHeight() - headerHeight) / 3);
+        const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
         for (int trackIndex = 1; trackIndex < 3; ++trackIndex)
         {
             mouseDownAt (*rail, { rail->getWidth() / 2,
@@ -6849,7 +6876,7 @@ TEST_CASE ("V5 the rail meters L/R independently and the mini VOL is a vertical 
     // so the two rail columns must diverge: a real left peak, a silent right.
     juce::Rectangle<int> row = rail->getLocalBounds();
     row.removeFromTop (L::trackListHeaderHeight);
-    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row = row.withHeight (L::trackListRowMinHeight);   // G0.7: fixed rows, no stretch
     row.removeFromBottom (L::trackListSeparatorHeight);
     const juce::Rectangle<int> panKnob =
         row.withRight (row.getRight() - L::trackListPanRightInset)
@@ -9854,8 +9881,7 @@ TEST_CASE ("timeline multi-select edits the shipped project and playback as one 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 2);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
 
@@ -10010,8 +10036,7 @@ TEST_CASE ("three-track arrangement is first-class at the shipped boundary",
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 3);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     const auto railRowCenter = [&] (int row) {
         return juce::Point<int> { rail->getWidth() / 2, headerHeight + row * rowHeight + rowHeight / 2 };
     };
@@ -10166,8 +10191,7 @@ TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's o
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 3);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
 
     mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
@@ -10315,8 +10339,7 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 3);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
@@ -10747,8 +10770,7 @@ TEST_CASE ("vertical track scroll reaches and edits the last track of a deep pro
     REQUIRE (snapshotMainComponent (*shell).timelineTrackScrollRows == maxRows);
 
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int railRowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                          (rail->getHeight() - headerHeight) / kTrackCount);
+    const int railRowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     const int railVisibleRows = std::max (1, (rail->getHeight() - headerHeight) / railRowHeight);
     const int railMaxRows = std::max (0, kTrackCount - railVisibleRows);
     const int railEffectiveRows = std::min (maxRows, railMaxRows);
@@ -11121,8 +11143,7 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 2);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
@@ -11299,8 +11320,7 @@ TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 3);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     const auto selectRailRow = [&] (int row) {
         mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + row * rowHeight + rowHeight / 2 });
     };
@@ -11874,8 +11894,7 @@ TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 2);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight + rowHeight / 2 });
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
 
@@ -12570,8 +12589,7 @@ TEST_CASE ("N4 the automation lane anchors under the selected track and its head
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 3);
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight * 2 + rowHeight / 2 });
     REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 2);
 
@@ -12939,7 +12957,7 @@ TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists
     // give each row more than the minimum.
     using L = yesdaw::ui::UiTheme::Layout;
     const int headerHeight = L::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (L::trackListRowMinHeight, (rail->getHeight() - headerHeight) / 3);
+    const int rowHeight = L::trackListRowMinHeight;
     const auto railRowCenter = [&] (int row) {
         return juce::Point<int> { rail->getWidth() / 2, headerHeight + row * rowHeight + rowHeight / 2 };
     };
@@ -14180,6 +14198,7 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
     REQUIRE (std::filesystem::exists (wholeExportPath));
 
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
     auto* rangeChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.export.range"));
     REQUIRE (rangeChooser != nullptr);
     rangeChooser->setSelectedId (2, juce::sendNotificationSync);
@@ -14260,7 +14279,7 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     using L = yesdaw::ui::UiTheme::Layout;
     juce::Rectangle<int> row = rail->getLocalBounds();
     row.removeFromTop (L::trackListHeaderHeight);
-    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row = row.withHeight (L::trackListRowMinHeight);   // G0.7: fixed rows, no stretch
     row.removeFromBottom (L::trackListSeparatorHeight);
     mouseDownAt (*rail, { rail->getWidth() / 2, L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
 
@@ -14459,8 +14478,7 @@ TEST_CASE ("Ctrl+Shift+Up and Ctrl+Shift+Down reorder the selected track with th
     REQUIRE (rail != nullptr);
     using L = yesdaw::ui::UiTheme::Layout;
     const int headerHeight = L::trackListHeaderHeight;
-    const int rowHeight = juce::jmax (L::trackListRowMinHeight,
-                                      (rail->getHeight() - headerHeight) / 3);
+    const int rowHeight = L::trackListRowMinHeight;
     mouseDownAt (*rail, { rail->getWidth() / 2, headerHeight + rowHeight / 2 });
 
     const auto renderShell = [&shell]
@@ -14762,7 +14780,7 @@ TEST_CASE ("Alt+click resets faders to unity, pans to center, sends to unity, an
     // Rail mini VOL: a plain click sets ~0.5; Alt+click resets to exactly unity.
     juce::Rectangle<int> row = rail->getLocalBounds();
     row.removeFromTop (L::trackListHeaderHeight);
-    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row = row.withHeight (L::trackListRowMinHeight);   // G0.7: fixed rows, no stretch
     row.removeFromBottom (L::trackListSeparatorHeight);
     const juce::Rectangle<int> level =
         row.withRight (row.getRight() - L::trackListLevelColumnRightInset)
@@ -14861,7 +14879,7 @@ TEST_CASE ("Shift while dragging makes every fader, pan, and send exactly ten ti
     // fineDragScale of the pointer's proportional travel from the persisted anchor — no jump.
     juce::Rectangle<int> row = rail->getLocalBounds();
     row.removeFromTop (L::trackListHeaderHeight);
-    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row = row.withHeight (L::trackListRowMinHeight);   // G0.7: fixed rows, no stretch
     row.removeFromBottom (L::trackListSeparatorHeight);
     const juce::Rectangle<int> level =
         row.withRight (row.getRight() - L::trackListLevelColumnRightInset)
@@ -15024,7 +15042,7 @@ TEST_CASE ("the fader and rail VOL show a live dB readout while dragging, -inf a
     // The rail VOL mini shares the same readout while its gesture is held.
     juce::Rectangle<int> row = rail->getLocalBounds();
     row.removeFromTop (L::trackListHeaderHeight);
-    row = row.withHeight (juce::jmax (L::trackListRowMinHeight, row.getHeight()));
+    row = row.withHeight (L::trackListRowMinHeight);   // G0.7: fixed rows, no stretch
     row.removeFromBottom (L::trackListSeparatorHeight);
     const juce::Rectangle<int> level =
         row.withRight (row.getRight() - L::trackListLevelColumnRightInset)
@@ -15108,7 +15126,7 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     // Row 0's rail meter rect mirrors the shared rail geometry law (two tracks split the rail).
     juce::Rectangle<int> railRow = rail->getLocalBounds();
     railRow.removeFromTop (L::trackListHeaderHeight);
-    railRow = railRow.withHeight (juce::jmax (L::trackListRowMinHeight, railRow.getHeight() / 2));
+    railRow = railRow.withHeight (L::trackListRowMinHeight);   // G0.7: fixed rows, no stretch
     railRow.removeFromBottom (L::trackListSeparatorHeight);
     const juce::Rectangle<int> railMeter =
         railRow.withRight (railRow.getRight() - L::trackListMeterRightInset)
@@ -15935,6 +15953,57 @@ TEST_CASE ("the painted SNAP caption clears the snap and repeat-paste choosers",
     const juce::Rectangle<int> toggleBounds = L::automationLaneToggleBounds (timeline.getBounds());
     REQUIRE (toggleBounds.getX() >= snapChooser->getBounds().getRight());
     REQUIRE (toggleBounds.getRight() <= timeline.getBounds().getRight());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G0.7 (plan §3.4): first-minute density — rows are a fixed 72 px (they never stretch to fill
+// the window), so a dozen tracks at 1080p show at least eight whole lanes, and the rail rows agree.
+TEST_CASE ("first-minute density: a dozen tracks at 1080p show at least eight whole 72 px lanes",
+           "[ui][input][shell][g0][density]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("density");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    constexpr int kTrackCount = 12;
+    for (int i = 1; i < kTrackCount; ++i)
+        clickButton (*addTrack);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == static_cast<std::size_t> (kTrackCount));
+
+    const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+    const juce::var layout = probe.getProperty ("layout", juce::var());
+    REQUIRE (layout.isObject());
+    const juce::Rectangle<int> timeline = yesdaw::ui::mainComponentTimelineBounds (*shell);
+    const auto rectOf = [&layout] (const juce::String& key)
+    {
+        const juce::var value = layout.getProperty (key, juce::var());
+        if (! value.isArray() || value.size() != 4)
+            return juce::Rectangle<int>();
+        return juce::Rectangle<int> (static_cast<int> (value[0]), static_cast<int> (value[1]),
+                                     static_cast<int> (value[2]), static_cast<int> (value[3]));
+    };
+    int wholeLanes = 0;
+    for (int lane = 0; lane < kTrackCount; ++lane)
+    {
+        const juce::Rectangle<int> rect = rectOf ("lane." + juce::String (lane));
+        INFO ("lane " << lane << " " << rect.toString().toStdString());
+        if (rect.isEmpty())
+            continue;   // below the viewport: the probe lists only what is on screen
+        REQUIRE (rect.getHeight() <= L::timelineCanvasLaneRowHeight);
+        if (timeline.contains (rect) && rect.getHeight() == L::timelineCanvasLaneRowHeight)
+            ++wholeLanes;
+        const juce::Rectangle<int> railRow = rectOf ("rail.row." + juce::String (lane));
+        if (! railRow.isEmpty())
+            REQUIRE (std::abs (railRow.getHeight() - L::trackListRowMinHeight) <= L::trackListSeparatorHeight);
+    }
+    REQUIRE (wholeLanes >= 8);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

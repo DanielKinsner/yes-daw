@@ -6269,6 +6269,7 @@ public:
             case UiActionId::TimelineTogglePlayheadFollow:
             case UiActionId::TransportToggleReturnToStartOnStop:
             case UiActionId::TransportToggleRecordCountIn:
+            case UiActionId::ViewToggleSettingsRow:
             case UiActionId::TimelineAutomationToggleTrackLane:
             case UiActionId::TimelineToggleMixerDock:
             case UiActionId::InspectorShowClipTab:

@@ -37,6 +37,15 @@
 namespace {
 
 constexpr int kHeaderHeight = yesdaw::ui::UiTheme::Layout::headerHeight;
+
+// G0.7: the controls that live in the collapsible settings row under the toolbar.
+[[nodiscard]] constexpr bool isSettingsRowAction (yesdaw::ui::UiActionId action) noexcept
+{
+    using yesdaw::ui::UiActionId;
+    return action == UiActionId::DeviceRefreshAudio || action == UiActionId::DeviceSelectTestAudio
+        || action == UiActionId::RecordingArmTrack || action == UiActionId::RecordingSetMonitoringPolicy
+        || action == UiActionId::RecordingAssembleComp;
+}
 constexpr int kLeftRailWidth = yesdaw::ui::UiTheme::Layout::leftRailWidth;
 constexpr int kInspectorWidth = yesdaw::ui::UiTheme::Layout::inspectorWidth;
 constexpr int kMixerHeight = yesdaw::ui::UiTheme::Layout::mixerHeight;
@@ -4726,7 +4735,7 @@ public:
                 layout->setProperty (key, probeRect (rect));
         };
 
-        put ("header", getLocalBounds().withHeight (kHeaderHeight));
+        put ("header", getLocalBounds().withHeight (headerHeightNow()));
         put ("rail", leftRailPanelBounds());
         put ("timeline", timelineBounds());
         put ("inspector", inspectorBounds());
@@ -4934,6 +4943,8 @@ public:
                                            : context.mixerDockVisible ? juce::String ("Mixer")
                                                                       : juce::String ("None"));
             view->setProperty ("dockHeight", dockedMixerHeight());
+            view->setProperty ("settingsRow", context.settingsRowVisible);
+            view->setProperty ("headerHeight", headerHeightNow());
             view->setProperty ("tool", probeToolName (context.activeTimelineTool));
             view->setProperty ("snapEnabled", context.snapEnabled);
             view->setProperty ("snapGridTicks", static_cast<juce::int64> (context.snapGridTicks));
@@ -5221,12 +5232,12 @@ public:
         drawHeader (g);
 
         const auto bounds = getLocalBounds();
-        const auto top = bounds.withHeight (kHeaderHeight);
+        const auto top = bounds.withHeight (headerHeightNow());
         g.setColour (yesdaw::ui::UiTheme::Color::separator());
-        g.fillRect (top.withBottom (kHeaderHeight)
+        g.fillRect (top.withBottom (headerHeightNow())
                         .removeFromBottom (yesdaw::ui::UiTheme::Layout::shellHeaderSeparatorHeight));
 
-        auto work = bounds.withTrimmedTop (kHeaderHeight);
+        auto work = bounds.withTrimmedTop (headerHeightNow());
         if (appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
         {
             drawMixer (g, mixerPanelBounds());
@@ -5257,60 +5268,31 @@ public:
     void resized() override
     {
         const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
+        const HeaderLayout h = headerLayout();
 
         for (std::size_t i = 0; i < buttons.size(); ++i)
         {
             const auto action = toolbarActions[i];
+            if (isSettingsRowAction (action))
+                buttons[i].setVisible (h.settingsVisible);
             switch (action)
             {
-                case yesdaw::ui::UiActionId::ProjectNew:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::projectNewButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::ProjectOpen:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::projectOpenButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::ProjectSave:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::projectSaveButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::ProjectImportAudio:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::projectImportAudioButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::DeviceRefreshAudio:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::deviceRefreshAudioButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::DeviceSelectTestAudio:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::deviceSelectTestAudioButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::RecordingArmTrack:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::recordingArmTrackButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::recordingSetMonitoringPolicyButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::TransportRecord:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportRecordButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::RecordingAssembleComp:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::recordingAssembleCompButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::EditUndo:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::editUndoButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::EditRedo:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::editRedoButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::TransportLocateStart:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportLocateStartButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::TransportPlay:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportPlayButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::TransportStop:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportStopButtonBounds());
-                    break;
-                case yesdaw::ui::UiActionId::TransportToggleLoop:
-                    buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::transportToggleLoopButtonBounds());
-                    break;
+                case yesdaw::ui::UiActionId::ProjectNew:         buttons[i].setBounds (h.newButton); break;
+                case yesdaw::ui::UiActionId::ProjectOpen:        buttons[i].setBounds (h.openButton); break;
+                case yesdaw::ui::UiActionId::ProjectSave:        buttons[i].setBounds (h.saveButton); break;
+                case yesdaw::ui::UiActionId::ProjectImportAudio: buttons[i].setBounds (h.importButton); break;
+                case yesdaw::ui::UiActionId::DeviceRefreshAudio: buttons[i].setBounds (h.refresh); break;
+                case yesdaw::ui::UiActionId::DeviceSelectTestAudio: buttons[i].setBounds (h.testDevice); break;
+                case yesdaw::ui::UiActionId::RecordingArmTrack:  buttons[i].setBounds (h.arm); break;
+                case yesdaw::ui::UiActionId::RecordingSetMonitoringPolicy: buttons[i].setBounds (h.monitor); break;
+                case yesdaw::ui::UiActionId::TransportRecord:    buttons[i].setBounds (h.record); break;
+                case yesdaw::ui::UiActionId::RecordingAssembleComp: buttons[i].setBounds (h.comp); break;
+                case yesdaw::ui::UiActionId::EditUndo:           buttons[i].setBounds (h.undoButton); break;
+                case yesdaw::ui::UiActionId::EditRedo:           buttons[i].setBounds (h.redoButton); break;
+                case yesdaw::ui::UiActionId::TransportLocateStart: buttons[i].setBounds (h.locateStart); break;
+                case yesdaw::ui::UiActionId::TransportPlay:      buttons[i].setBounds (h.play); break;
+                case yesdaw::ui::UiActionId::TransportStop:      buttons[i].setBounds (h.stop); break;
+                case yesdaw::ui::UiActionId::TransportToggleLoop: buttons[i].setBounds (h.loop); break;
                 case yesdaw::ui::UiActionId::ViewMixer:
                     buttons[i].setBounds (yesdaw::ui::UiTheme::Layout::viewMixerButtonBounds (mixerPanelBounds()));
                     break;
@@ -5323,17 +5305,21 @@ public:
 
         autosaveRestoreButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveRestoreButtonBounds());
         autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
-        audioDeviceChooser.setBounds (yesdaw::ui::UiTheme::Layout::audioDeviceChooserBounds());
-        audioInputDeviceChooser.setBounds (
-            yesdaw::ui::UiTheme::Layout::audioInputDeviceChooserBounds());
-        recordingInputChannelChooser.setBounds (
-            yesdaw::ui::UiTheme::Layout::recordingInputChannelChooserBounds());
-        exportAudioButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioButtonBounds());
-        exportAudioProgress.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioProgressBounds());
-        exportAudioCancelButton.setBounds (yesdaw::ui::UiTheme::Layout::projectExportAudioCancelButtonBounds());
-        exportBitDepthChooser.setBounds (yesdaw::ui::UiTheme::Layout::exportBitDepthChooserBounds());
-        exportRangeChooser.setBounds (yesdaw::ui::UiTheme::Layout::exportRangeChooserBounds());
-        menuBar.setBounds (yesdaw::ui::UiTheme::Layout::headerMenuBarBounds());
+        audioDeviceChooser.setBounds (h.outputDevice);
+        audioInputDeviceChooser.setBounds (h.inputDevice);
+        recordingInputChannelChooser.setBounds (h.inputChannel);
+        exportAudioButton.setBounds (h.exportButton);
+        exportAudioProgress.setBounds (h.exportProgress);
+        exportAudioCancelButton.setBounds (h.exportCancel);
+        exportBitDepthChooser.setBounds (h.bitDepth);
+        exportRangeChooser.setBounds (h.range);
+        for (juce::Component* settingsControl : { static_cast<juce::Component*> (&audioDeviceChooser),
+                                                  static_cast<juce::Component*> (&audioInputDeviceChooser),
+                                                  static_cast<juce::Component*> (&recordingInputChannelChooser),
+                                                  static_cast<juce::Component*> (&exportBitDepthChooser),
+                                                  static_cast<juce::Component*> (&exportRangeChooser) })
+            settingsControl->setVisible (h.settingsVisible);
+        menuBar.setBounds (h.menuBar);
         // M9: the LUFS readout rides the master card — it drops with it instead of being clipped.
         masterLoudnessReadout.setBounds (headerMasterLufsBounds());
         masterLoudnessReadout.setVisible (! headerMasterLufsBounds().isEmpty());
@@ -5347,11 +5333,7 @@ public:
             mixerStripsInput.setBounds (strips);
         }
         {
-            auto box = juce::Rectangle<int> (
-                yesdaw::ui::UiTheme::Layout::headerTransportBoxX,
-                yesdaw::ui::UiTheme::Layout::headerTransportReadoutY,
-                yesdaw::ui::UiTheme::Layout::headerTransportBoxWidth,
-                yesdaw::ui::UiTheme::Layout::headerTransportReadoutHeight);
+            auto box = h.tempoMeterBox;
             auto tempoCell = box.removeFromLeft (yesdaw::ui::UiTheme::Layout::headerTransportCellWidth);
             headerTempoControl.setBounds (
                 tempoCell.reduced (yesdaw::ui::UiTheme::Layout::headerTransportCellInsetX,
@@ -6690,7 +6672,7 @@ private:
 
     [[nodiscard]] juce::Rectangle<int> timelineBounds() const
     {
-        auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
+        auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
         work.removeFromBottom (dockedMixerHeight());
         work.removeFromLeft (kLeftRailWidth);
         work.removeFromRight (kInspectorWidth);
@@ -6701,7 +6683,7 @@ private:
     // The exact rect drawTrackList paints into; the rail input overlay shares it so hits match paint.
     [[nodiscard]] juce::Rectangle<int> leftRailPanelBounds() const
     {
-        auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
+        auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
         work.removeFromBottom (dockedMixerHeight());
         return work.removeFromLeft (kLeftRailWidth)
                    .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
@@ -7135,7 +7117,7 @@ private:
 
     [[nodiscard]] juce::Rectangle<int> mixerPanelBounds() const
     {
-        auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
+        auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
         auto mixer = appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer
                          ? work
                          : work.removeFromBottom (dockedMixerHeight());
@@ -7322,7 +7304,7 @@ private:
 
     [[nodiscard]] juce::Rectangle<int> inspectorBounds() const
     {
-        auto work = getLocalBounds().withTrimmedTop (kHeaderHeight);
+        auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
         work.removeFromBottom (dockedMixerHeight());
         return work.removeFromRight (kInspectorWidth)
             .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
@@ -7756,7 +7738,7 @@ private:
     {
         ++dynamicInvalidations;
         playheadLayer.repaint();
-        repaint (getLocalBounds().withHeight (kHeaderHeight));
+        repaint (getLocalBounds().withHeight (headerHeightNow()));
         repaint (leftRailPanelBounds());
         if (appModel.context().mixerDockVisible
             || appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
@@ -7873,6 +7855,13 @@ private:
         // transport command queue, or the live scalar lane. The only legitimate suspends left are
         // the device choosers (device (re)open).
         handleActionWhileAudioStopped (action);
+
+        // G0.7: the settings row changes the header's height — the whole shell re-lays out.
+        if (action == yesdaw::ui::UiActionId::ViewToggleSettingsRow)
+        {
+            resized();
+            repaintAll();
+        }
     }
 
     // Vertical track scroll (E5): one shared whole-row offset moves the timeline lanes and the
@@ -7984,13 +7973,14 @@ private:
         static constexpr std::array<UiActionId, 3> kViewMenu {
             UiActionId::ViewTimeline, UiActionId::ViewMixer, UiActionId::ViewPianoRoll,
         };
-        static constexpr std::array<UiActionId, 9> kOptionsMenu {
+        static constexpr std::array<UiActionId, 10> kOptionsMenu {
             UiActionId::TransportToggleMetronome, UiActionId::TransportToggleLoop,
             UiActionId::TimelineSnapDisable,      UiActionId::TimelineSnapSetBar,
             UiActionId::TimelineSnapSetBeat,      UiActionId::TimelineSnapSetSixteenth,
             UiActionId::TimelineTogglePlayheadFollow,
             UiActionId::TransportToggleReturnToStartOnStop,
             UiActionId::TransportToggleRecordCountIn,
+            UiActionId::ViewToggleSettingsRow,
         };
         static constexpr std::array<UiActionId, 1> kHelpMenu { UiActionId::HelpShowKeymap };
 
@@ -8020,7 +8010,9 @@ private:
                               || (action == yesdaw::ui::UiActionId::TransportToggleReturnToStartOnStop
                                   && appModel.context().returnToStartOnStopEnabled)
                               || (action == yesdaw::ui::UiActionId::TransportToggleRecordCountIn
-                                  && appModel.context().recordCountInEnabled));
+                                  && appModel.context().recordCountInEnabled)
+                              || (action == yesdaw::ui::UiActionId::ViewToggleSettingsRow
+                                  && appModel.context().settingsRowVisible));
         }
 
         // Open Recent (B39): the File menu lists the MRU bundles, most recent first, on item ids
@@ -8499,9 +8491,9 @@ private:
         for (std::size_t i = 0; i < buttons.size(); ++i)
         {
             const auto action = toolbarActions[i];
-            // The device + recording cluster is header chrome (row 3) and stays visible in every
-            // view — the old hide-in-mixer rule existed only because it used to float over the rail.
-            buttons[i].setVisible (true);
+            // G0.7: the device + recording cluster lives in the collapsible settings row; every
+            // other toolbar button is visible in every view.
+            buttons[i].setVisible (! isSettingsRowAction (action) || appModel.context().settingsRowVisible);
             const auto state = appModel.registry().stateFor (action, appModel.context());
             const bool hasRequiredPlayback = ! toolbarActionRequiresPlayback (action) || appModel.playbackReady();
             buttons[i].setEnabled (state.enabled && hasRequiredPlayback);
@@ -9599,7 +9591,7 @@ private:
 
     void drawHeader (juce::Graphics& g) const
     {
-        const auto headerBounds = getLocalBounds().withHeight (kHeaderHeight);
+        const auto headerBounds = getLocalBounds().withHeight (headerHeightNow());
         juce::ColourGradient headerGradient (
             yesdaw::ui::UiTheme::Color::panelRaised(),
             static_cast<float> (headerBounds.getCentreX()),
@@ -9615,13 +9607,17 @@ private:
         g.fillRect (headerBounds.withHeight (
             yesdaw::ui::UiTheme::Layout::controlInnerHighlightHeight));
 
-        const std::array headerSections {
-            yesdaw::ui::UiTheme::Layout::headerProjectSectionBounds(),
-            yesdaw::ui::UiTheme::Layout::headerTransportSectionBounds(),
-            yesdaw::ui::UiTheme::Layout::headerMasterSectionBounds()
-        };
+        const HeaderLayout h = headerLayout();
+        if (h.settingsVisible)
+        {
+            g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+            g.fillRect (h.settingsRow);
+        }
+        const std::array headerSections { h.toolsSection, h.transportSection, h.masterSection };
         for (const auto section : headerSections)
         {
+            if (section.isEmpty())
+                continue;
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
             g.fillRoundedRectangle (section.toFloat(), yesdaw::ui::UiTheme::Radius::panel);
             g.setColour (yesdaw::ui::UiTheme::Color::panelInnerHighlight().withAlpha (
@@ -9637,7 +9633,7 @@ private:
         drawMasterMeter (g);
         g.setColour (kPanelStroke);
         g.fillRect (getLocalBounds()
-                        .withHeight (kHeaderHeight)
+                        .withHeight (headerHeightNow())
                         .removeFromBottom (yesdaw::ui::UiTheme::Space::hairline));
     }
 
@@ -9679,11 +9675,8 @@ private:
 
     void drawTransportReadouts (juce::Graphics& g) const
     {
-        auto time = juce::Rectangle<int> (
-            yesdaw::ui::UiTheme::Layout::headerTransportTimeX,
-            yesdaw::ui::UiTheme::Layout::headerTransportReadoutY,
-            yesdaw::ui::UiTheme::Layout::headerTransportTimeWidth,
-            yesdaw::ui::UiTheme::Layout::headerTransportReadoutHeight);
+        const HeaderLayout h = headerLayout();
+        auto time = h.timeReadout;
         fillPanel (g, time, yesdaw::ui::UiTheme::Radius::panel);
         g.setColour (kText);
         g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
@@ -9719,11 +9712,7 @@ private:
             { meter, "TIME SIG" }
         }};
 
-        auto box = juce::Rectangle<int> (
-            yesdaw::ui::UiTheme::Layout::headerTransportBoxX,
-            yesdaw::ui::UiTheme::Layout::headerTransportReadoutY,
-            yesdaw::ui::UiTheme::Layout::headerTransportBoxWidth,
-            yesdaw::ui::UiTheme::Layout::headerTransportReadoutHeight);
+        auto box = h.tempoMeterBox;
         for (const auto& readout : readouts)
         {
             auto cell = box.removeFromLeft (yesdaw::ui::UiTheme::Layout::headerTransportCellWidth);
@@ -9747,19 +9736,147 @@ private:
     }
 
 public:
-    // M9: the header's master card, right-anchored against the gear. At the supported floor the
-    // fixed x ran the card past the window edge, so the label survived while the meter and the LUFS
-    // readout were clipped away — a section that half-drops is exactly what E27 outlawed for the
-    // inspector. Empty rect = the card does not fit and drops whole.
-    [[nodiscard]] juce::Rectangle<int> headerMasterCardBounds() const
+    // G0.7 (plan §3.4): the header as a flex row — tools left, transport centred on the window,
+    // master card right-anchored against the gear — computed from the window width by ONE law
+    // that resized(), the paint, the probe and the harness all read. Nothing here has a fixed x.
+    struct HeaderLayout
+    {
+        juce::Rectangle<int> menuBar, toolsSection, transportSection, masterSection, settingsRow;
+        juce::Rectangle<int> newButton, openButton, saveButton, importButton, undoButton, redoButton;
+        juce::Rectangle<int> exportButton, exportProgress, exportCancel;
+        juce::Rectangle<int> locateStart, play, stop, record, timeReadout, tempoMeterBox, loop;
+        juce::Rectangle<int> masterCard, gear;
+        juce::Rectangle<int> bitDepth, range, outputDevice, inputDevice, inputChannel;
+        juce::Rectangle<int> refresh, testDevice, arm, monitor, comp;
+        bool settingsVisible = false;
+    };
+
+    [[nodiscard]] HeaderLayout headerLayout() const
     {
         using L = yesdaw::ui::UiTheme::Layout;
-        const int right = getWidth() - L::headerStatusIconRightInset - L::headerMasterGearGap;
-        const int width = juce::jmin (L::headerMasterWidth, right - L::headerMasterX);
-        if (width < L::headerMasterMinWidth)
-            return {};
+        HeaderLayout h;
+        const int width = getWidth();
+        h.menuBar = L::headerMenuBarBounds();
+        const int controlY = L::menuBarHeight + (L::toolbarHeight - L::headerControlHeight) / 2;
+        const int bigY = L::menuBarHeight + (L::toolbarHeight - L::headerTransportButtonSize) / 2;
 
-        return juce::Rectangle<int> (right - width, L::headerMasterY, width, L::headerMasterHeight);
+        // Tools, left: New Open Save Import · Undo Redo · Export.
+        int x = L::headerEdgeInset;
+        const auto small = [&x, controlY] (int w)
+        {
+            const juce::Rectangle<int> r (x, controlY, w, L::headerControlHeight);
+            x += w + L::headerButtonGap;
+            return r;
+        };
+        h.newButton = small (L::headerSmallButtonWidth);
+        h.openButton = small (L::headerSmallButtonWidth);
+        h.saveButton = small (L::headerSmallButtonWidth);
+        h.importButton = small (L::headerSmallButtonWidth);
+        x += L::headerClusterGap - L::headerButtonGap;
+        h.undoButton = small (L::headerUndoButtonWidth);
+        h.redoButton = small (L::headerUndoButtonWidth);
+        x += L::headerClusterGap - L::headerButtonGap;
+        h.exportButton = small (L::headerExportButtonWidth);
+        h.exportProgress = h.exportButton.withWidth (L::headerExportProgressWidth);
+        h.exportCancel = juce::Rectangle<int> (h.exportButton.getRight() - L::headerExportCancelWidth,
+                                               controlY, L::headerExportCancelWidth, L::headerControlHeight);
+        const int toolsRight = x - L::headerButtonGap;
+        h.toolsSection = juce::Rectangle<int> (L::headerEdgeInset, bigY, toolsRight - L::headerEdgeInset,
+                                               L::headerTransportButtonSize)
+                             .expanded (L::headerSectionPad);
+
+        // Gear, right edge.
+        h.gear = juce::Rectangle<int> (width - L::headerStatusIconRightInset, L::headerStatusIconY,
+                                       L::headerStatusIconSize, L::headerStatusIconSize);
+
+        // Transport, centred on the window; pushed right of the tools when the window is narrow
+        // and never past the gear.
+        const int centreWidth = 4 * L::headerTransportButtonSize + 3 * L::headerButtonGap
+                              + L::headerClusterGap + L::headerTransportTimeWidth
+                              + L::headerClusterGap + L::headerTransportBoxWidth
+                              + L::headerClusterGap + L::headerLoopButtonWidth;
+        const int minStart = toolsRight + L::headerGroupGap;
+        int cx = juce::jmax (minStart, width / 2 - centreWidth / 2);
+        cx = juce::jmax (minStart, juce::jmin (cx, h.gear.getX() - L::headerMasterGearGap - centreWidth));
+
+        // Master card: right-anchored against the gear, shrinks toward the transport group,
+        // drops WHOLE below its minimum (M9's law, now relative to the centred group).
+        const int cardRight = h.gear.getX() - L::headerMasterGearGap;
+        const int cardWidth = juce::jmin (L::headerMasterWidth, cardRight - (cx + centreWidth + L::headerGroupGap));
+        if (cardWidth >= L::headerMasterMinWidth)
+            h.masterCard = juce::Rectangle<int> (cardRight - cardWidth, L::headerMasterY, cardWidth, L::headerMasterHeight);
+
+        x = cx;
+        const auto big = [&x, bigY] (int w)
+        {
+            const juce::Rectangle<int> r (x, bigY, w, L::headerTransportButtonSize);
+            x += w + L::headerButtonGap;
+            return r;
+        };
+        h.locateStart = big (L::headerTransportButtonSize);
+        h.play = big (L::headerTransportButtonSize);
+        h.stop = big (L::headerTransportButtonSize);
+        h.record = big (L::headerTransportButtonSize);
+        x += L::headerClusterGap - L::headerButtonGap;
+        h.timeReadout = big (L::headerTransportTimeWidth);
+        x += L::headerClusterGap - L::headerButtonGap;
+        h.tempoMeterBox = big (L::headerTransportBoxWidth);
+        x += L::headerClusterGap - L::headerButtonGap;
+        h.loop = big (L::headerLoopButtonWidth);
+        h.transportSection = juce::Rectangle<int> (cx, bigY, centreWidth, L::headerTransportButtonSize)
+                                 .expanded (L::headerSectionPad);
+        if (! h.masterCard.isEmpty())
+            h.masterSection = juce::Rectangle<int> (h.masterCard.getX(), bigY,
+                                                    h.gear.getRight() - h.masterCard.getX(),
+                                                    L::headerTransportButtonSize)
+                                  .expanded (L::headerSectionPad);
+
+        // The settings row (export choosers, device choosers, the recording cluster).
+        h.settingsVisible = appModel.context().settingsRowVisible;
+        if (h.settingsVisible)
+        {
+            h.settingsRow = juce::Rectangle<int> (0, kHeaderHeight, width, L::settingsRowHeight);
+            const int rowY = kHeaderHeight + (L::settingsRowHeight - L::headerControlHeight) / 2;
+            x = L::headerEdgeInset;
+            const auto cell = [&x, rowY] (int w)
+            {
+                const juce::Rectangle<int> r (x, rowY, w, L::headerControlHeight);
+                x += w + L::headerButtonGap;
+                return r;
+            };
+            h.bitDepth = cell (L::settingsBitDepthWidth);
+            h.range = cell (L::settingsRangeWidth);
+            h.outputDevice = cell (L::settingsDeviceWidth);
+            h.inputDevice = cell (L::settingsDeviceWidth);
+            h.inputChannel = cell (L::settingsChannelWidth);
+            h.refresh = cell (L::settingsRefreshWidth);
+            h.testDevice = cell (L::settingsTestDeviceWidth);
+            h.arm = cell (L::settingsArmWidth);
+            h.monitor = cell (L::settingsMonitorWidth);
+            h.comp = cell (L::settingsCompWidth);
+        }
+        return h;
+    }
+
+    // G0.7: the header's height right now — the fixed menu + toolbar, plus the settings row when
+    // it is shown. Every work-area layout trims THIS, never the constant.
+    [[nodiscard]] int headerHeightNow() const
+    {
+        return kHeaderHeight + (appModel.context().settingsRowVisible ? yesdaw::ui::UiTheme::Layout::settingsRowHeight : 0);
+    }
+
+    // Harness: show/hide the settings row through the real action (the Options menu's toggle).
+    void harnessSetSettingsRowVisible (bool visible)
+    {
+        if (appModel.context().settingsRowVisible != visible)
+            handleAction (yesdaw::ui::UiActionId::ViewToggleSettingsRow);
+    }
+
+    // M9: the header's master card — right-anchored against the gear, drops WHOLE (empty rect)
+    // when it cannot keep its minimum width next to the centred transport group.
+    [[nodiscard]] juce::Rectangle<int> headerMasterCardBounds() const
+    {
+        return headerLayout().masterCard;
     }
 
     [[nodiscard]] juce::Rectangle<int> headerMasterLufsBounds() const
@@ -9784,11 +9901,7 @@ private:
             // The card is gone; the gear still belongs to the window edge.
             yesdaw::ui::drawSettingsIcon (
                 g,
-                juce::Rectangle<float> (
-                    static_cast<float> (getWidth() - yesdaw::ui::UiTheme::Layout::headerStatusIconRightInset),
-                    static_cast<float> (yesdaw::ui::UiTheme::Layout::headerStatusIconY),
-                    static_cast<float> (yesdaw::ui::UiTheme::Layout::headerStatusIconSize),
-                    static_cast<float> (yesdaw::ui::UiTheme::Layout::headerStatusIconSize)),
+                headerLayout().gear.toFloat(),
                 kMutedText);
             return;
         }
@@ -9804,11 +9917,7 @@ private:
 
         yesdaw::ui::drawSettingsIcon (
             g,
-            juce::Rectangle<float> (
-                static_cast<float> (getWidth() - yesdaw::ui::UiTheme::Layout::headerStatusIconRightInset),
-                static_cast<float> (yesdaw::ui::UiTheme::Layout::headerStatusIconY),
-                static_cast<float> (yesdaw::ui::UiTheme::Layout::headerStatusIconSize),
-                static_cast<float> (yesdaw::ui::UiTheme::Layout::headerStatusIconSize)),
+            headerLayout().gear.toFloat(),
             kMutedText);
     }
 
@@ -12258,6 +12367,66 @@ juce::Rectangle<int> mainComponentPaintedMixerMasterBounds (const juce::Componen
         return mainComponent->harnessPaintedMixerMasterBounds();
 
     return {};
+}
+
+juce::Rectangle<int> mainComponentHeaderSectionBounds (const juce::Component& component, int section)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+    {
+        const MainComponent::HeaderLayout h = mainComponent->headerLayout();
+        switch (section)
+        {
+            case 0: return h.toolsSection;
+            case 1: return h.transportSection;
+            case 2: return h.masterSection;
+            default: return {};
+        }
+    }
+    return {};
+}
+
+std::vector<juce::Rectangle<int>> mainComponentHeaderRects (const juce::Component& component)
+{
+    std::vector<juce::Rectangle<int>> rects;
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+    {
+        const MainComponent::HeaderLayout h = mainComponent->headerLayout();
+        for (const juce::Rectangle<int>& r : { h.menuBar, h.newButton, h.openButton, h.saveButton, h.importButton,
+                                               h.undoButton, h.redoButton, h.exportButton, h.locateStart, h.play,
+                                               h.stop, h.record, h.timeReadout, h.tempoMeterBox, h.loop,
+                                               h.masterCard, h.gear, h.bitDepth, h.range, h.outputDevice,
+                                               h.inputDevice, h.inputChannel, h.refresh, h.testDevice, h.arm,
+                                               h.monitor, h.comp })
+            if (! r.isEmpty())
+                rects.push_back (r);
+    }
+    return rects;
+}
+
+juce::Rectangle<int> mainComponentHeaderTimeReadoutBounds (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->headerLayout().timeReadout;
+    return {};
+}
+
+int mainComponentHeaderHeight (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->headerHeightNow();
+    return 0;
+}
+
+void mainComponentSetSettingsRowVisible (juce::Component& component, bool visible)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessSetSettingsRowVisible (visible);
+}
+
+void mainComponentRevealSettingsRowFor (juce::Component& component, yesdaw::ui::UiActionId action)
+{
+    if (isSettingsRowAction (action))
+        mainComponentSetSettingsRowVisible (component, true);
 }
 
 juce::Rectangle<int> mainComponentMixerPanelBounds (const juce::Component& component)

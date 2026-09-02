@@ -179,6 +179,7 @@ enum class UiActionId : std::uint8_t
     // G0.2 (ADR-0046 §4): Space toggles play/stop in every Focus context — the one transport
     // verb every reference DAW puts on the space bar.
     TransportTogglePlayStop,
+    ViewToggleSettingsRow,
     Count
 };
 
@@ -275,6 +276,7 @@ struct UiActionContext
     bool clipboardHasClip = false;
     bool metronomeEnabled = false;
     bool recordCountInEnabled = false;
+    bool settingsRowVisible = false;   // G0.7: the collapsible Audio & Export settings row
     bool recordCountInActive = false;
     bool playheadFollowEnabled = true;
     bool returnToStartOnStopEnabled = false;
@@ -697,7 +699,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, true },
     // G0.2: Space = play/stop toggle (Logic, Pro Tools, everyone).
     { UiActionId::TransportTogglePlayStop, "transport.toggle_play_stop", "Play/Stop", "Space", "Toggle play and stop",
-      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    // G0.7: the collapsible Audio & Export settings row under the toolbar (Options menu).
+    { UiActionId::ViewToggleSettingsRow, "view.toggle_settings_row", "Audio & Export Settings", "", "Show or hide the audio and export settings row",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -1415,6 +1420,10 @@ public:
 
             case UiActionId::TransportToggleRecordCountIn:
                 context.recordCountInEnabled = ! context.recordCountInEnabled;
+                break;
+
+            case UiActionId::ViewToggleSettingsRow:
+                context.settingsRowVisible = ! context.settingsRowVisible;
                 break;
 
             case UiActionId::TransportStoreLocatePoint1:

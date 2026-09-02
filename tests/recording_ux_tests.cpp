@@ -52,6 +52,9 @@ std::unique_ptr<juce::Component> makeShell (MainComponentFileChoices fileChoices
 
 juce::Button& requireButtonForAction (juce::Component& shell, UiActionId action)
 {
+    // G0.7: the device/recording cluster lives in the collapsible settings row — a test that
+    // uses one of those buttons shows the row first, through the real toggle action.
+    yesdaw::ui::mainComponentRevealSettingsRowFor (shell, action);
     juce::Component* component = findMainComponentChildForAction (shell, action);
     REQUIRE (component != nullptr);
 
