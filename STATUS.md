@@ -41,9 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.5 and G0.6 built, gated and pushed; their own runs went red on Linux/macOS at the
-compile step (D22, one warning-as-error), fixed in the next commit — awaiting that commit's
-exact-head run, then both evidence ticks. G0.7 (first-minute density) starts after it.
+**Now:** G0.7 — first-minute density, first checkpoint: the header as one 60 px toolbar row under
+a 28 px menu strip (tools · transport centred · master right, from one layout law), the old third
+row as a collapsible settings row (Options ▸ Audio & Export Settings), fixed 72 px track rows
+(no stretch), the `[header-flex]` and density gates, headless screenshots at three sizes.
 The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
 and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
 re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
@@ -56,7 +57,10 @@ G0.3 ✅ — certified: exact-head run `33589636898` green on all ten jobs for f
 `ea4dfea9351773eaca732cc79f3cb2996ef4f5a1` (first try). Local suite 363/363.
 G0.4 ✅ — certified: exact-head run `33592155901` green on all ten jobs for full SHA
 `f608d3ddfc6e1b09a35bc9eb7eb19e3c52dafad8` (first try). Local suite 363/363.
-G0.5 — built and gated headlessly; commit `96e9829` pushed; exact-head run `33595208144` pending.
+G0.5 ✅ — certified by the fix commit's exact-head run `33596503075` (green on all ten jobs, full SHA `23d3e5382fc868c98abe092f59efffbe483f723b`): its own
+run `33595208144` was red on Linux/macOS (D22); code `96e9829` + fix `23d3e53`.
+G0.6 ✅ — certified by the same fix-commit run; its own run `33595972964` carried the D22 red;
+code `24095d8` + fix `23d3e53`. Local suite 364/364 with the fix.
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
