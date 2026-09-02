@@ -224,6 +224,19 @@ struct MainComponentContextMenu
 // (+1) for the reorder verb.
 void mainComponentInvokeContextMenuItem (juce::Component& component, UiActionId action, int direction = 0);
 
+// G1.5: the keymap editor through the harness — its visible rows (after a search), the status
+// of the last rebind; search / select / bind drive the same paths the mouse and keyboard do.
+struct MainComponentKeymapEditor
+{
+    bool visible = false;
+    std::vector<UiActionId> rows;
+    juce::String status;
+};
+[[nodiscard]] MainComponentKeymapEditor mainComponentKeymapEditor (juce::Component& component);
+void mainComponentKeymapEditorSearch (juce::Component& component, const juce::String& text);
+void mainComponentKeymapEditorSelectRow (juce::Component& component, int row);
+void mainComponentKeymapEditorBind (juce::Component& component, const juce::String& chord);
+
 // G0.8: dispatch an action as a menu item or chord would, and read its live registry state.
 void mainComponentDispatchAction (juce::Component& component, UiActionId action);
 [[nodiscard]] UiActionState mainComponentActionState (const juce::Component& component, UiActionId action);

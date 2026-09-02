@@ -1046,7 +1046,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 141u));   // G1.4: nudge chooser + inspector toggle
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 142u));   // G1.4: nudge chooser + inspector toggle; G1.5: the keymap editor
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -16461,4 +16461,86 @@ TEST_CASE ("toolbar v2: nudge value chooser, inspector toggle, two-readout count
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G1.5: the keymap editor — Alt+K opens it, a search narrows the verbs, Enter on a chord rebinds
+// the selected verb (a conflict is refused and names the owner), Unbind and Restore defaults
+// work, and a rebind survives a relaunch through the session-state record.
+TEST_CASE ("keymap editor: search, rebind with conflict detection, restore, and a relaunch round-trip",
+           "[ui][input][shell][g1][keymap-editor]")
+{
+    const std::filesystem::path sessionDir = makeTempBundlePath ("keymap-editor-session");
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (sessionDir, ec);
+        std::filesystem::create_directories (sessionDir, ec);
+    }
+    // The click toggle needs a project (the registry state), so each shell opens a fresh one.
+    const std::filesystem::path bundleA = makeTempBundlePath ("keymap-editor-a");
+    const std::filesystem::path bundleB = makeTempBundlePath ("keymap-editor-b");
+    MainComponentFileChoices choices;
+    choices.sessionStateDirectory = sessionDir;
+    choices.chooseNewProjectBundle = [bundleA] { return bundleA; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    const auto probeView = [&] {
+        const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+        return probe.getProperty ("view", juce::var());
+    };
+    REQUIRE_FALSE (yesdaw::ui::mainComponentKeymapEditor (*shell).visible);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k', juce::ModifierKeys::altModifier, 0)));
+    REQUIRE (yesdaw::ui::mainComponentKeymapEditor (*shell).visible);
+    REQUIRE (static_cast<bool> (probeView().getProperty ("keymapEditor", false)));
+    REQUIRE (yesdaw::ui::mainComponentKeymapEditor (*shell).rows.size() == yesdaw::ui::kUiActionCount);
+
+    // Search narrows to the click.
+    yesdaw::ui::mainComponentKeymapEditorSearch (*shell, "metronome");
+    auto editor = yesdaw::ui::mainComponentKeymapEditor (*shell);
+    REQUIRE (editor.rows.size() == 1u);
+    REQUIRE (editor.rows.front() == UiActionId::TransportToggleMetronome);
+
+    // A conflict is refused and names the owner; the chord stays.
+    yesdaw::ui::mainComponentKeymapEditorSelectRow (*shell, 0);
+    yesdaw::ui::mainComponentKeymapEditorBind (*shell, "Space");
+    editor = yesdaw::ui::mainComponentKeymapEditor (*shell);
+    REQUIRE (editor.status.contains ("Play/Stop"));
+    const yesdaw::ui::UiActionRegistry defaults;
+    REQUIRE (snapshotMainComponent (*shell).context.metronomeEnabled == false);
+
+    // A free chord binds: Ctrl+Shift+K toggles the click, K no longer does.
+    yesdaw::ui::mainComponentKeymapEditorBind (*shell, "Ctrl+Shift+K");
+    editor = yesdaw::ui::mainComponentKeymapEditor (*shell);
+    REQUIRE (editor.status.contains ("Bound"));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));   // close the editor
+    REQUIRE_FALSE (yesdaw::ui::mainComponentKeymapEditor (*shell).visible);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.metronomeEnabled);
+    REQUIRE_FALSE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (std::filesystem::exists (sessionDir / "keymap-overrides.txt"));
+
+    // The record survives a relaunch: a fresh shell on the same session directory has the rebind.
+    shell.reset();
+    MainComponentFileChoices relaunch;
+    relaunch.sessionStateDirectory = sessionDir;
+    relaunch.chooseNewProjectBundle = [bundleB] { return bundleB; };
+    shell = makeShell (std::move (relaunch));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.metronomeEnabled);
+
+    // Restore defaults: K is the click again and the record is empty.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k', juce::ModifierKeys::altModifier, 0)));
+    auto* restore = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "keymap.editor.restore"));
+    REQUIRE (restore != nullptr);
+    clickButton (*restore);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.metronomeEnabled);
+    REQUIRE (std::filesystem::file_size (sessionDir / "keymap-overrides.txt") == 0u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (sessionDir, ec);
+    std::filesystem::remove_all (bundleA, ec);
+    std::filesystem::remove_all (bundleB, ec);
 }

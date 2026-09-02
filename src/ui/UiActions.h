@@ -991,6 +991,32 @@ public:
         return KeymapRebindStatus::Ok;
     }
 
+    // G1.5: the action that blocks binding `chord` to `id` in id's context (Count = none).
+    [[nodiscard]] UiActionId conflictingAction (UiActionId id, std::string_view chord) const
+    {
+        const std::string_view canonical = canonicalChord (chord);
+        for (std::size_t i = 0; i < chords_.size(); ++i)
+        {
+            const auto other = static_cast<UiActionId> (i);
+            if (other != id && chords_[i] == canonical && contextsConflict (contextOf (id), contextOf (other)))
+                return other;
+        }
+        return UiActionId::Count;
+    }
+
+    // G1.5: an action may carry no chord at all (the editor's Unbind).
+    void unbind (UiActionId id)
+    {
+        if (isKnownAction (id))
+            chords_[actionIndex (id)].clear();
+    }
+
+    [[nodiscard]] bool isDefault (UiActionId id) const
+    {
+        const UiActionDescriptor* descriptor = descriptorFor (id);
+        return descriptor != nullptr && chords_[actionIndex (id)] == descriptor->defaultKey;
+    }
+
     // G1.1 gate law: every pair of bound actions that would conflict. Empty = the keymap is sound.
     struct Conflict
     {

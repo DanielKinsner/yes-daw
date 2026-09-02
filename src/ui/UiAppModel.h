@@ -1265,6 +1265,7 @@ public:
     void setSessionStateDirectory (const std::filesystem::path& directory)
     {
         sessionStateDirectory_ = directory;
+        loadKeymapOverrides();
     }
 
     [[nodiscard]] std::filesystem::path readLastProjectRecord() const
@@ -1309,6 +1310,83 @@ public:
         }
 
         return recents;
+    }
+
+    // G1.5: keymap overrides persist beside the last-project record, one line per action whose
+    // chord differs from its default: `stableId<TAB>chord` (`-` = unbound). Loaded when the
+    // session-state directory is set; written on every rebind / unbind / restore.
+    static constexpr const char* kKeymapOverridesRecordFileName = "keymap-overrides.txt";
+
+    void loadKeymapOverrides()
+    {
+        if (sessionStateDirectory_.empty())
+            return;
+        std::ifstream input (sessionStateDirectory_ / kKeymapOverridesRecordFileName);
+        std::string line;
+        while (std::getline (input, line))
+        {
+            const std::size_t tab = line.find ('\t');
+            if (tab == std::string::npos)
+                continue;
+            const UiActionDescriptor* descriptor = descriptorForStableId (line.substr (0, tab));
+            if (descriptor == nullptr)
+                continue;
+            const std::string chord = line.substr (tab + 1);
+            if (chord == "-")
+                registry_.keymap().unbind (descriptor->id);
+            else
+                (void) registry_.keymap().rebind (descriptor->id, chord);
+        }
+    }
+
+    void saveKeymapOverrides() const
+    {
+        if (sessionStateDirectory_.empty())
+            return;
+        std::error_code ec;
+        std::filesystem::create_directories (sessionStateDirectory_, ec);
+        std::ofstream output (sessionStateDirectory_ / kKeymapOverridesRecordFileName, std::ios::binary | std::ios::trunc);
+        if (! output.good())
+            return;
+        for (const UiActionDescriptor& descriptor : registry_.actions())
+        {
+            if (registry_.keymap().isDefault (descriptor.id))
+                continue;
+            const std::string& chord = registry_.keymap().chordFor (descriptor.id);
+            output << descriptor.stableId << '\t' << (chord.empty() ? std::string ("-") : chord) << '\n';
+        }
+    }
+
+    [[nodiscard]] KeymapRebindStatus rebindChord (UiActionId id, std::string_view chord)
+    {
+        const KeymapRebindStatus status = registry_.keymap().rebind (id, chord);
+        if (status == KeymapRebindStatus::DuplicateChord)
+        {
+            const UiActionId owner = registry_.keymap().conflictingAction (id, chord);
+            const UiActionDescriptor* ownerDescriptor = owner != UiActionId::Count ? registry_.descriptor (owner) : nullptr;
+            reportStatus (std::string (chord) + " is already " + (ownerDescriptor != nullptr ? ownerDescriptor->label : "bound")
+                          + " (" + (ownerDescriptor != nullptr ? focusContextName (defaultFocusContext (owner)) : "") + ")", true);
+        }
+        else if (status == KeymapRebindStatus::Ok)
+        {
+            saveKeymapOverrides();
+            ++context_.commandDispatchCount;
+        }
+        return status;
+    }
+
+    void unbindChord (UiActionId id)
+    {
+        registry_.keymap().unbind (id);
+        saveKeymapOverrides();
+        ++context_.commandDispatchCount;
+    }
+
+    void restoreDefaultKeymap()
+    {
+        registry_.keymap() = Keymap {};
+        saveKeymapOverrides();
+        ++context_.commandDispatchCount;
     }
 
     // R4: one shared status line — failure results stop being silently discarded. Failures

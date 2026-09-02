@@ -755,6 +755,26 @@ struct UiTheme
                 .translated (timelineZoomReadoutWidth + timelineZoomClusterGap, 0)
                 .withWidth (timelineZoomButtonWidth);
         }
+        // G1.5: the keymap editor (Alt+K) — a centred panel over the arrangement.
+        static constexpr int keymapEditorMaxWidth = 760;
+        static constexpr int keymapEditorMaxHeight = 520;
+        static constexpr int keymapEditorMinWidth = 320;
+        static constexpr int keymapEditorMinHeight = 200;
+        static constexpr int keymapEditorMargin = 40;
+        static constexpr int keymapEditorInset = 12;
+        static constexpr int keymapEditorGap = 8;
+        static constexpr int keymapEditorTopRowHeight = 32;
+        static constexpr int keymapEditorBottomRowHeight = 28;
+        static constexpr int keymapEditorTitleWidth = 90;
+        static constexpr int keymapEditorCloseWidth = 72;
+        static constexpr int keymapEditorRestoreWidth = 140;
+        static constexpr int keymapEditorUnbindWidth = 80;
+        static constexpr int keymapEditorChordWidth = 220;
+        static constexpr int keymapEditorSearchInsetY = 3;
+        static constexpr int keymapEditorRowHeight = 24;
+        static constexpr int keymapEditorContextColumnWidth = 84;
+        static constexpr int keymapEditorChordColumnWidth = 140;
+        static constexpr int keymapEditorTextInset = 4;
         // G1.4 toolbar v2: the Nudge value chooser right of the zoom cluster and the Inspector
         // toggle at the row's right end; the status line takes what is left between them. At the
         // window floor the nudge chooser drops WHOLE (E27) — the Edit menu still carries it.

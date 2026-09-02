@@ -41,10 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G1.4 checkpoint 1 committed; a follow-up commit fixes two defects its rubric shot
-exposed (D45 menu bar width, D46 the counter caption clipped since G0.7) — its run certifies
-G1.3 and G1.4 cp1. Next: G1.5 keymap editor (the plan's X / P / A regrouping is recorded as a
-G1.7 sweep item, not a checkpoint). The drive stays paused (D14).
+**Now:** G1.5 (the keymap editor on Alt+K: search, rebind with conflict detection, unbind,
+restore defaults, persisted overrides that survive a relaunch; `[keymap-editor]`) built, gated
+locally, committed; awaiting its exact-head run. The header-fix commit `bd1117a` certifies G1.3
+and G1.4 cp1 when its run is green. Next: G1.6 tooltips and status hints. The drive stays paused
+(D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -84,6 +85,26 @@ D46 the caption clipped since G0.7) are fixed in `bd1117a`, whose run is watched
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G1.5 — Keymap editor (2026-09-02)
+
+**Build.** `KeymapEditorComponent` over the arrangement (Alt+K = `help.show_keymap`, which used
+to set a flag nothing painted): a search field, a list of every verb (context · label · chord),
+a chord field that rebinds the selected row on Enter, Unbind, Restore defaults, Close; Esc
+closes. `Keymap::conflictingAction / unbind / isDefault`; the model's `rebindChord` (a conflict
+reports the owner and its context on the status line), `unbindChord`, `restoreDefaultKeymap`.
+Overrides persist as `keymap-overrides.txt` beside the last-project record (`stableId<TAB>chord`,
+`-` = unbound), loaded when the session-state directory is set. Harness: search / select / bind
+seams; probe `view.keymapEditor`. Tokens `keymapEditor*`.
+
+**Gates.** `[keymap-editor]` (input check): Alt+K shows it; "metronome" narrows to one row; Space
+refused naming Play/Stop; Ctrl+Shift+K binds and toggles the click, K no longer does; the record
+exists; a fresh shell on the same session directory keeps the rebind; Restore defaults puts K
+back and empties the record.
+
+**Not built (recorded).** Control tooltips still quote the DEFAULT chord after a rebind (G1.6
+makes them live); a chord is typed as text, not captured from a key press (a capture field is
+G1.6/G1.7 polish); per-context sections in the list are a column, not headers.
 
 ### G1.4 — Toolbar v2, checkpoint 1 (2026-09-02)
 
