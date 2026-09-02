@@ -156,6 +156,14 @@ enum class UiActionId : std::uint8_t
     TransportLocatePreviousMarker,
     TransportLocateNextMarker,
     TimelineRangeToLoop,
+    // G2.5: the Time selection is a first-class object — verbs on the range.
+    TimelineRangeSplitEdges,
+    TimelineRangeCut,
+    TimelineRangeCopy,
+    TimelineRangeDelete,
+    TimelineRangeSilence,
+    TimelineZoomToSelection,
+    TimelineSelectAllFollowing,
     TrackDuplicate,
     TrackMoveUp,
     TrackMoveDown,
@@ -268,6 +276,13 @@ enum class UiFocusContext : std::uint8_t
         case UiActionId::TimelineClipSelectAllProject:
         case UiActionId::TimelineClipSelectAllTrack:
         case UiActionId::TimelineClipSplit:
+        case UiActionId::TimelineRangeSplitEdges:
+        case UiActionId::TimelineRangeCut:
+        case UiActionId::TimelineRangeCopy:
+        case UiActionId::TimelineRangeDelete:
+        case UiActionId::TimelineRangeSilence:
+        case UiActionId::TimelineZoomToSelection:
+        case UiActionId::TimelineSelectAllFollowing:
         case UiActionId::TimelineZoomIn:
         case UiActionId::TimelineZoomOut:
         case UiActionId::TransportLocateNextGrid:
@@ -760,6 +775,20 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineRangeToLoop, "timeline.range_to_loop", "Range To Loop", "Ctrl+U", "Convert the ruler range selection to the loop region",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineRangeSplitEdges, "timeline.range.split_edges", "Split at Selection Edges", "Ctrl+E", "Split every clip at the Time selection's edges, on all tracks",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineRangeCut, "timeline.range.cut", "Cut Selection", "", "Cut what lies inside the Time selection to the clipboard, on all tracks",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineRangeCopy, "timeline.range.copy", "Copy Selection", "", "Copy what lies inside the Time selection to the clipboard, on all tracks",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineRangeDelete, "timeline.range.delete", "Delete Selection", "", "Remove what lies inside the Time selection, on all tracks",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineRangeSilence, "timeline.range.silence", "Silence Selection", "", "Silence the Time selection: remove its audio and keep its time, on all tracks",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineZoomToSelection, "timeline.zoom.selection", "Zoom to Selection", "Z", "Fit the Time selection in the Timeline",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::TimelineSelectAllFollowing, "timeline.select.following", "Select All Following", "Shift+F", "Select everything from the playhead to the end, on all tracks",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TrackDuplicate, "track.duplicate", "Duplicate Track", "", "Duplicate selected track with clips and strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TrackMoveUp, "track.move_up", "Move Track Up", "", "Move selected track up one row",
@@ -1148,6 +1177,11 @@ public:
             return { false, "no loop region" };
         if (id == UiActionId::TimelineRangeToLoop && ! context.timelineRangeSelected)
             return { false, "no ruler range selection" };
+        if ((id == UiActionId::TimelineRangeSplitEdges || id == UiActionId::TimelineRangeCut
+             || id == UiActionId::TimelineRangeCopy || id == UiActionId::TimelineRangeDelete
+             || id == UiActionId::TimelineRangeSilence || id == UiActionId::TimelineZoomToSelection)
+            && ! context.timelineRangeSelected)
+            return { false, "no Time selection" };   // G2.5
         if (const int index = recallLocatePointIndex (id);
             index >= 0 && ! context.locatePoints[static_cast<std::size_t> (index)].has_value())
             return { false, "locate point is empty" };
@@ -1770,6 +1804,16 @@ public:
 
             case UiActionId::TimelineRangeToLoop:
                 context.loopEnabled = true;
+                break;
+
+            // G2.5: the range verbs edit the project in the model; the registry only counts them.
+            case UiActionId::TimelineRangeSplitEdges:
+            case UiActionId::TimelineRangeCut:
+            case UiActionId::TimelineRangeCopy:
+            case UiActionId::TimelineRangeDelete:
+            case UiActionId::TimelineRangeSilence:
+            case UiActionId::TimelineZoomToSelection:
+            case UiActionId::TimelineSelectAllFollowing:
                 break;
 
             case UiActionId::Count:

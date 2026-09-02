@@ -41,12 +41,15 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.4 (the Smart tool: pointer zones with cursors before the press; the lower band drags a
-Time selection; `[smart-tool]`) built, gated locally, committed; awaiting its exact-head run. G2.3
-(`83e8c5e`) ticks on its own run.
-Next: G2.5 — Time selection first-class (verbs on the range: cut / copy / paste-to / delete /
-silence, `Ctrl+E` split at edges, `Ctrl+U` loop from selection, `Z` zoom to selection,
-`Shift+F` select following). The drive stays paused (D14).
+**Now:** G2.5 (the Time selection as an edit object: `Ctrl+E` split at edges, Cut / Copy /
+Delete / Silence within the range on all tracks, track-keeping paste, `Shift+F` select all
+following, `Z` zoom to selection; `[time-selection]`) built, gated locally, committed; awaiting
+its exact-head run. G2.3's run `33626513605` (macOS, 18.5 ms) and G2.4's run `33627456994`
+(Windows, 16.88 ms) were red only on the timeline GPU frame-budget benchmark (budget 16.6 ms) —
+the same runner noise as `bd1117a`; nothing in G2.3 / G2.4 touches the canvas paint it measures
+(parking lot: measure the hosted runners' floor before pinning; the gate is not weakened). The
+Windows job was rerun on the same head; G2.3 and G2.4 (`c56e0e9`) tick when it is green. Next: G2.6 —
+edit modes (Overlap / No overlap / Shuffle). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -95,6 +98,36 @@ G2.1 cp2 + cp3 ✅ — dock tabs (`669d155`), the letter cluster (`3a0ca74`), it
 the Linux fix; certified by exact-head run `33625472284` (green on all ten jobs) — G2.1 complete.
 G2.2 ✅ — ruler v2 (`9618882`); certified by the same run `33625472284`.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.5 — Time selection is first-class (2026-09-02)
+
+**Build.** Verbs `TimelineRangeSplitEdges` (`Ctrl+E`), `TimelineRangeCut / Copy / Delete /
+Silence`, `TimelineSelectAllFollowing` (`Shift+F`), `TimelineZoomToSelection` (`Z`); all
+Arrange-context, gated on a Time selection (Shift+F on a project). Model: `splitAllClipsAt`
+splits every audio clip strictly containing a tick (allocates the right ids, one transaction);
+`splitAtTimelineRangeEdges`; `editTimelineRange (toClipboard, remove)` — Copy splits a SCRATCH
+copy and gathers the fragments inside the range into a clipboard with `keepTracks`, Cut /
+Delete / Silence split for real and delete the inside, one undo step; `addClipsFromClipboard`
+lands `keepTracks` entries on their own track (if it still exists); `selectAllFollowing` sets
+the range playhead → project end and selects the clips beginning inside. Shell: `Z` sets the
+zoom factor and scroll so the range fits with `timelineZoomToSelectionMarginFraction` (5 %)
+each side; with a Time selection and no clip selected, `Ctrl+X / Ctrl+C / Del` route to the
+range verbs. Edit menu +6, View menu +1; keymap doc regenerated. **Found on the way:** an undo
+or redo left the object selection naming clips the project no longer had (a pasted clip after
+its undo), so the chords acted on nothing and the Time-selection route stayed hidden —
+`pruneTimelineClipSelection` after every undo / redo.
+
+**Gates.** `[time-selection]` (input check): Ctrl+E → three contiguous clips on one track with
+edges exactly at the selection, one undo step, selection survives; Copy touches nothing, fills
+the clipboard; Paste at a moved playhead lands the fragment on its track with the range's
+length; Del with only a range removes the middle and keeps the outer pieces in place; Z raises
+the zoom and scrolls the range into view; Shift+F sets the range to the project end and selects
+nothing that begins before the playhead. Edit menu pin 20 → 26.
+
+**Not built (recorded).** Silence ≡ Delete until Shuffle exists (G2.6 makes Delete ripple and
+Silence keep time); MIDI clips are untouched by range edits (the piano-roll item); the range has
+no track scope (it spans all tracks, as the painted band does) — per-track scope waits for
+multi-track selection; `Ctrl+U` (range → loop) predates this item and stays.
 
 ### G2.4 — Smart tool (2026-09-02)
 

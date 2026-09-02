@@ -7740,6 +7740,28 @@ private:
                                        + "\ndock\t" + std::to_string (viewState.dockHeight) + "\n");
     }
 
+    // G2.5: what Zoom to Selection needs from the view, in one place.
+    struct MainComponentSnapshotLike
+    {
+        double rangeStartSeconds = 0.0, rangeSeconds = 0.0, widthPixels = 0.0, fitPixelsPerSecond = 0.0;
+    };
+    [[nodiscard]] MainComponentSnapshotLike snapshotForZoom() const
+    {
+        MainComponentSnapshotLike out;
+        const yesdaw::engine::Project& project = appModel.project();
+        const std::int64_t start = appModel.timelineRangeStartFrame();
+        const std::int64_t end = appModel.timelineRangeEndFrame();
+        if (! project.sampleRate.isValid() || start < 0 || end <= start)
+            return out;
+        out.rangeStartSeconds = static_cast<double> (start) / project.sampleRate.hz;
+        out.rangeSeconds = static_cast<double> (end - start) / project.sampleRate.hz;
+        const juce::Rectangle<int> timeline = timelineBounds();
+        out.widthPixels = static_cast<double> (juce::jmax (yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                         timeline.getWidth() - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter));
+        out.fitPixelsPerSecond = out.widthPixels / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds, timelineTotalSeconds);
+        return out;
+    }
+
     [[nodiscard]] juce::Rectangle<int> timelineBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
@@ -9101,10 +9123,12 @@ private:
             UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
             UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
         };
-        static constexpr std::array<UiActionId, 19> kEditMenu {
+        static constexpr std::array<UiActionId, 25> kEditMenu {
             UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::TimelineClipCut,
             UiActionId::TimelineClipCopy,  UiActionId::TimelineClipPaste,  UiActionId::TimelineClipDuplicate,
             UiActionId::TimelineClipRepeatPaste, UiActionId::TimelineClipDelete,
+            UiActionId::TimelineRangeCut,  UiActionId::TimelineRangeCopy,  UiActionId::TimelineRangeDelete,
+            UiActionId::TimelineRangeSilence, UiActionId::TimelineRangeSplitEdges, UiActionId::TimelineSelectAllFollowing,
             UiActionId::TimelineClipSelectAllProject, UiActionId::TimelineClipSelectAllTrack,
             UiActionId::EditRenameSelection,
             UiActionId::EditNudgeLeft,     UiActionId::EditNudgeRight,
@@ -9134,13 +9158,13 @@ private:
             UiActionId::PianoRollNoteDuplicate, UiActionId::PianoRollNoteSetLength,
             UiActionId::PianoRollNoteSetVelocity,
         };
-        static constexpr std::array<UiActionId, 19> kViewMenu {
+        static constexpr std::array<UiActionId, 20> kViewMenu {
             UiActionId::ViewTimeline,      UiActionId::ViewMixer,          UiActionId::ViewPianoRoll,
             UiActionId::ViewToggleInspector,
             UiActionId::TimelineToggleMixerDock, UiActionId::InspectorShowClipTab, UiActionId::InspectorShowTrackTab,
             UiActionId::TimelineAutomationToggleTrackLane,
             UiActionId::TimelineZoomIn,    UiActionId::TimelineZoomOut,
-            UiActionId::TimelineZoomFitProject, UiActionId::TimelineZoomFitLoop,
+            UiActionId::TimelineZoomFitProject, UiActionId::TimelineZoomFitLoop, UiActionId::TimelineZoomToSelection,
             UiActionId::TimelineTogglePlayheadFollow,
             UiActionId::TimelineToolSelectPointer, UiActionId::TimelineToolSelectPencil,
             UiActionId::TimelineToolSelectScissors, UiActionId::TimelineToolSelectHand,
@@ -9935,6 +9959,13 @@ private:
                     (void) appModel.deleteSelectedPianoRollNotes();
                     return;
                 }
+                // G2.5: with a Time selection and no clip selected, Del clears the range.
+                if (appModel.context().timelineRangeSelected && ! appModel.context().timelineClipSelected
+                    && appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll)
+                {
+                    (void) appModel.dispatch (yesdaw::ui::UiActionId::TimelineRangeDelete);
+                    return;
+                }
                 (void) appModel.dispatch (action);
                 return;
 
@@ -10011,6 +10042,39 @@ private:
                     zoomTimelineAtAnchor (
                         playheadSeconds, 1.0 / yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep);
                 }
+                return;
+
+            case yesdaw::ui::UiActionId::TimelineZoomToSelection:
+            {
+                // G2.5 (R22): fit the Time selection with a small margin — the zoom law is the
+                // view's (fit × factor), so the factor and scroll are set here, then clamped.
+                const MainComponentSnapshotLike view = snapshotForZoom();
+                if (view.rangeSeconds > 0.0 && view.fitPixelsPerSecond > 0.0)
+                {
+                    const double margin = view.rangeSeconds * yesdaw::ui::UiTheme::Layout::timelineZoomToSelectionMarginFraction;
+                    const double wanted = view.rangeSeconds + margin * 2.0;
+                    timelineZoomFactor = std::clamp (
+                                                     (view.widthPixels / wanted) / view.fitPixelsPerSecond,
+                                                     yesdaw::ui::UiTheme::Layout::timelineZoomMin,
+                                                     yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+                    timelineScrollSeconds = std::max (0.0, view.rangeStartSeconds - margin);
+                }
+                (void) appModel.dispatch (action);
+                return;
+            }
+
+            case yesdaw::ui::UiActionId::TimelineClipCut:
+            case yesdaw::ui::UiActionId::TimelineClipCopy:
+                // G2.5: with a Time selection and no clip selected, the clip chords act on the range.
+                if (appModel.context().timelineRangeSelected && ! appModel.context().timelineClipSelected
+                    && appModel.context().activePanel != yesdaw::ui::UiPanel::PianoRoll)
+                {
+                    (void) appModel.dispatch (action == yesdaw::ui::UiActionId::TimelineClipCut ? yesdaw::ui::UiActionId::TimelineRangeCut
+                                              : action == yesdaw::ui::UiActionId::TimelineClipCopy ? yesdaw::ui::UiActionId::TimelineRangeCopy
+                                                                                                    : yesdaw::ui::UiActionId::TimelineRangeDelete);
+                    return;
+                }
+                (void) appModel.dispatch (action);
                 return;
 
             case yesdaw::ui::UiActionId::ViewPianoRoll:

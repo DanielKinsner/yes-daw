@@ -75,6 +75,9 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `Ctrl+Left` | Zoom Out | `timeline.zoom.out` |
 | `Left` | Previous Grid | `transport.locate_previous_grid` |
 | `Right` | Next Grid | `transport.locate_next_grid` |
+| `Ctrl+E` | Split at Selection Edges | `timeline.range.split_edges` |
+| `Z` | Zoom to Selection | `timeline.zoom.selection` |
+| `Shift+F` | Select All Following | `timeline.select.following` |
 
 ## PianoRoll
 
@@ -172,6 +175,10 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Recall Locate 3 (`transport.locate_point.recall.3`)
 - Recall Locate 4 (`transport.locate_point.recall.4`)
 - Recall Locate 5 (`transport.locate_point.recall.5`)
+- Cut Selection (`timeline.range.cut`)
+- Copy Selection (`timeline.range.copy`)
+- Delete Selection (`timeline.range.delete`)
+- Silence Selection (`timeline.range.silence`)
 - Duplicate Track (`track.duplicate`)
 - Move Track Up (`track.move_up`)
 - Move Track Down (`track.move_down`)

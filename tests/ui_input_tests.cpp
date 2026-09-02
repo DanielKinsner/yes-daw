@@ -4632,7 +4632,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
     // Eight action items + the B39 Open Recent submenu.
     REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 9);
-    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 20);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 26);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
 
     // File > New Project through the model creates a real bundle.
@@ -16933,6 +16933,142 @@ TEST_CASE ("G2.4 smart tool: pointer zones map to modes and cursors on a wide cl
     REQUIRE (zone ({ narrow.getRight() - 2, narrow.getY() + 2 }, none) == "move");
     REQUIRE (zone ({ nMid.x, narrow.getBottom() - 2 }, none) == "move");
     REQUIRE (cursor (nMid, none) == "normal");
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("G2.5 time selection: split at edges, copy / paste keeping tracks, delete, select all following, zoom to selection",
+           "[ui][input][shell][g2][time-selection]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("time-selection");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    const yesdaw::engine::Clip source = original.clips.front();
+    const double sampleRate = original.sampleRate.hz;
+
+    // A Time selection inside the clip, made on the ruler's time row with Ctrl (no snap).
+    yesdaw::ui::TimelineCanvasState state;
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    const yesdaw::ui::timeline_canvas_detail::RulerRows rows = yesdaw::ui::timeline_canvas_detail::rulerRows (geometry.rulerArea);
+    const yesdaw::engine::Tick rangeStart = source.timelineStart + source.timelineLength / 4;
+    const yesdaw::engine::Tick rangeEnd = source.timelineStart + source.timelineLength / 2;
+    const int xStart = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), original, rangeStart).x;
+    const int xEnd = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), original, rangeEnd).x;
+    REQUIRE (xEnd > xStart + 4);
+    mouseDownAt (timeline, { timeline.getWidth() - 20, timeline.getHeight() - 20 });   // no clip selected
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    dragFromTo (timeline, { xStart, rows.time.getCentreY() }, { xEnd, rows.time.getCentreY() },
+                juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+    const MainComponentSnapshot withRange = snapshotMainComponent (*shell);
+    REQUIRE (withRange.timelineRangeStartFrame >= 0);
+    REQUIRE (withRange.timelineRangeEndFrame > withRange.timelineRangeStartFrame);
+    const auto selStart = static_cast<yesdaw::engine::Tick> (withRange.timelineRangeStartFrame);
+    const auto selEnd = static_cast<yesdaw::engine::Tick> (withRange.timelineRangeEndFrame);
+    REQUIRE (selStart > source.timelineStart);
+    REQUIRE (selEnd < source.timelineStart + source.timelineLength);
+
+    // Ctrl+E (R23): the clip splits at both edges — three clips, on the same track, contiguous.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('e', juce::ModifierKeys::ctrlModifier, 0)));
+    {
+        yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
+        REQUIRE (split.clips.size() == 3u);
+        std::sort (split.clips.begin(), split.clips.end(),
+                   [] (const yesdaw::engine::Clip& a, const yesdaw::engine::Clip& b) { return a.timelineStart < b.timelineStart; });
+        REQUIRE (split.clips[0].timelineStart == source.timelineStart);
+        REQUIRE (split.clips[0].timelineStart + split.clips[0].timelineLength == selStart);
+        REQUIRE (split.clips[1].timelineStart == selStart);
+        REQUIRE (split.clips[1].timelineStart + split.clips[1].timelineLength == selEnd);
+        REQUIRE (split.clips[2].timelineStart == selEnd);
+        REQUIRE (split.clips[2].timelineStart + split.clips[2].timelineLength == source.timelineStart + source.timelineLength);
+        for (const auto& clip : split.clips)
+            REQUIRE (clip.trackId == source.trackId);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));   // one undo step
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    REQUIRE (snapshotMainComponent (*shell).timelineRangeStartFrame == withRange.timelineRangeStartFrame);   // the selection survives
+
+    // Copy Selection touches nothing and fills the clipboard; Paste at the playhead lands the
+    // fragment on ITS track at the playhead.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineRangeCopy);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    REQUIRE (snapshotMainComponent (*shell).context.clipboardHasClip);
+    const yesdaw::engine::Tick pasteAt = source.timelineStart + source.timelineLength + source.timelineLength / 2;
+    const int xPaste = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), original, pasteAt).x;
+    mouseDownAt (timeline, { xPaste, rows.time.getCentreY() });
+    releaseDragAt (timeline, { xPaste, rows.time.getCentreY() }, { xPaste, rows.time.getCentreY() });
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipPaste);
+    {
+        const yesdaw::engine::Project pasted = readProjectSnapshot (bundlePath);
+        REQUIRE (pasted.clips.size() == 2u);
+        const auto it = std::find_if (pasted.clips.begin(), pasted.clips.end(),
+                                      [&] (const yesdaw::engine::Clip& c) { return c.id != source.id; });
+        REQUIRE (it != pasted.clips.end());
+        REQUIRE (it->trackId == source.trackId);
+        REQUIRE (it->timelineLength == selEnd - selStart);
+        REQUIRE (std::llabs (static_cast<long long> (it->timelineStart) - static_cast<long long> (snapshotMainComponent (*shell).context.playheadFrame)) <= 1);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    // Delete Selection (the Del chord with only a range selected routes here): the middle is gone,
+    // the two outer pieces stay where they were. An undo must leave no stale clip selection
+    // behind (the pasted clip is gone), so the chord sees "range only".
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    // The plain ruler click that placed the playhead collapsed the range (the ruler's own law):
+    // make the same selection again.
+    dragFromTo (timeline, { xStart, rows.time.getCentreY() }, { xEnd, rows.time.getCentreY() },
+                juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+    REQUIRE (snapshotMainComponent (*shell).timelineRangeStartFrame == withRange.timelineRangeStartFrame);
+    REQUIRE (snapshotMainComponent (*shell).timelineRangeEndFrame == withRange.timelineRangeEndFrame);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
+    {
+        yesdaw::engine::Project cleared = readProjectSnapshot (bundlePath);
+        REQUIRE (cleared.clips.size() == 2u);
+        std::sort (cleared.clips.begin(), cleared.clips.end(),
+                   [] (const yesdaw::engine::Clip& a, const yesdaw::engine::Clip& b) { return a.timelineStart < b.timelineStart; });
+        REQUIRE (cleared.clips[0].timelineStart + cleared.clips[0].timelineLength == selStart);
+        REQUIRE (cleared.clips[1].timelineStart == selEnd);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    // Z (R22): the view fits the selection with a margin; the range is most of the window.
+    dragFromTo (timeline, { xStart, rows.time.getCentreY() }, { xEnd, rows.time.getCentreY() },
+                juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+    REQUIRE (snapshotMainComponent (*shell).timelineRangeStartFrame >= 0);
+    const double zoomBefore = snapshotMainComponent (*shell).timelineZoomFactor;
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys(), 0)));
+    {
+        const MainComponentSnapshot zoomed = snapshotMainComponent (*shell);
+        REQUIRE (zoomed.timelineZoomFactor > zoomBefore);
+        const double rangeSeconds = static_cast<double> (selEnd - selStart) / sampleRate;
+        const double rangeStartSeconds = static_cast<double> (selStart) / sampleRate;
+        REQUIRE (zoomed.timelineScrollSeconds <= rangeStartSeconds + 1e-6);
+        REQUIRE (zoomed.timelineScrollSeconds >= rangeStartSeconds - rangeSeconds * 0.2);
+    }
+
+    // Shift+F: from the playhead to the end on all tracks; the clips that begin inside become the
+    // object selection (the whole clip starts before the playhead here, so none do).
+    const int xMid = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), original, rangeStart).x;
+    mouseDownAt (timeline, { xMid, rows.time.getCentreY() });
+    releaseDragAt (timeline, { xMid, rows.time.getCentreY() }, { xMid, rows.time.getCentreY() });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('f', juce::ModifierKeys::shiftModifier, 0)));
+    {
+        const MainComponentSnapshot following = snapshotMainComponent (*shell);
+        REQUIRE (following.timelineRangeStartFrame >= 0);
+        REQUIRE (following.timelineRangeEndFrame == static_cast<long long> (source.timelineStart + source.timelineLength));
+        REQUIRE (following.selectedTimelineClipCount == 0);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

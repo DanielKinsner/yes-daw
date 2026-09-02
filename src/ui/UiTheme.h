@@ -265,6 +265,8 @@ struct UiTheme
         static constexpr int splitterThickness = 6;
         // G2.3: drag previews and edge auto-scroll.
         static constexpr int timelineAutoScrollEdgeBandPx = 24;
+        // G2.5: Zoom to Selection leaves this much of the range as a margin on each side.
+        static constexpr double timelineZoomToSelectionMarginFraction = 0.05;
         static constexpr int timelineAutoScrollIntervalMs = 40;
         static constexpr double timelineAutoScrollStepFraction = 0.02;   // of the visible window per tick
         static constexpr float timelineDragGhostOutlineWidth = 1.5f;

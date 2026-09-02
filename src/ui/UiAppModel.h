@@ -6328,6 +6328,18 @@ public:
             case UiActionId::TimelineRangeToLoop:
                 return convertTimelineRangeToLoop (id, state);
 
+            case UiActionId::TimelineRangeSplitEdges:
+                return splitAtTimelineRangeEdges (id, state);
+            case UiActionId::TimelineRangeCut:
+                return editTimelineRange (id, state, true, true);
+            case UiActionId::TimelineRangeCopy:
+                return editTimelineRange (id, state, true, false);
+            case UiActionId::TimelineRangeDelete:
+            case UiActionId::TimelineRangeSilence:
+                return editTimelineRange (id, state, false, true);
+            case UiActionId::TimelineSelectAllFollowing:
+                return selectAllFollowing (id, state);
+
             case UiActionId::TransportToggleLoop:
             {
                 const UiActionDispatchResult toggled = dispatchTransport (id, [this] {
@@ -8122,9 +8134,28 @@ private:
             return { id, { false, "undo did not persist" }, false };
         }
 
+        pruneTimelineClipSelection();   // G2.5: an undone edit may have removed a selected clip
         ++context_.commandDispatchCount;
         ++context_.undoCount;
         return { id, state, true };
+    }
+
+    // G2.5: after undo / redo the object selection must not name clips the project no longer
+    // has — a stale id would make the chords act on nothing and hide the Time selection route.
+    void pruneTimelineClipSelection()
+    {
+        std::vector<engine::EntityId> kept;
+        for (const engine::EntityId clipId : selectedTimelineClipIds_)
+            if (timelineEntityView (clipId).valid)
+                kept.push_back (clipId);
+        if (kept.size() == selectedTimelineClipIds_.size())
+            return;
+        if (kept.empty())
+        {
+            clearTimelineClipSelection();
+            return;
+        }
+        (void) selectTimelineClips (std::span<const engine::EntityId> (kept.data(), kept.size()));
     }
 
     [[nodiscard]] UiActionDispatchResult dispatchRedo (UiActionId id, UiActionState state)
@@ -8145,6 +8176,7 @@ private:
             return { id, { false, "redo did not persist" }, false };
         }
 
+        pruneTimelineClipSelection();   // G2.5
         ++context_.commandDispatchCount;
         ++context_.redoCount;
         return { id, state, true };
@@ -8620,6 +8652,139 @@ private:
         return { id, state, true };
     }
 
+    // G2.5: the Time selection as an edit object. One law splits every audio clip crossing the
+    // range's edges (on all tracks); the range verbs build on it: Copy gathers the fragments
+    // inside the range into a track-keeping clipboard without touching the project, Cut / Delete
+    // / Silence split at the edges and remove the inside (one undo step). MIDI clips are left
+    // alone (recorded: the piano-roll item owns MIDI range edits).
+    [[nodiscard]] std::vector<engine::EntityId> clipsInsideRange (const engine::Project& project,
+                                                                  engine::Tick start, engine::Tick end) const
+    {
+        std::vector<engine::EntityId> inside;
+        for (const engine::Clip& clip : project.clips)
+            if (clip.timelineStart >= start && clip.timelineStart + clip.timelineLength <= end
+                && clip.timelineLength > 0)
+                inside.push_back (clip.id);
+        return inside;
+    }
+
+    // Splits every audio clip that strictly contains `tick`; returns false on a refused edit.
+    [[nodiscard]] bool splitAllClipsAt (engine::Project& project, engine::ProjectUndoStack& undo, engine::Tick tick)
+    {
+        std::vector<engine::EntityId> crossing;
+        for (const engine::Clip& clip : project.clips)
+            if (tick > clip.timelineStart && tick < clip.timelineStart + clip.timelineLength)
+                crossing.push_back (clip.id);
+        for (const engine::EntityId clipId : crossing)
+        {
+            const auto it = std::find_if (project.clips.begin(), project.clips.end(),
+                                          [clipId] (const engine::Clip& c) { return c.id == clipId; });
+            if (it == project.clips.end())
+                return false;
+            const engine::Tick leftTimelineLength = tick - it->timelineStart;
+            const std::optional<std::uint64_t> leftSourceLength = sourceLengthForSplit (*it, leftTimelineLength);
+            if (! leftSourceLength)
+                return false;
+            const engine::EntityId rightClipId = allocateSessionEntityId (0xC5u, project);
+            const engine::ProjectEditApplyResult applied = undo.apply (
+                project, engine::ProjectEditCommand::splitClip (clipId, rightClipId, leftTimelineLength, *leftSourceLength));
+            if (! applied.applied())
+                return false;
+        }
+        return true;
+    }
+
+    [[nodiscard]] UiActionDispatchResult splitAtTimelineRangeEdges (UiActionId id, UiActionState state)
+    {
+        if (timelineRangeStartFrame_ < 0 || timelineRangeEndFrame_ <= timelineRangeStartFrame_)
+            return { id, { false, "no Time selection" }, false };
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        if (! splitAllClipsAt (nextProject, nextUndo, static_cast<engine::Tick> (timelineRangeStartFrame_))
+            || ! splitAllClipsAt (nextProject, nextUndo, static_cast<engine::Tick> (timelineRangeEndFrame_)))
+            return { id, { false, "split refused inside the selection" }, false };
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult editTimelineRange (UiActionId id, UiActionState state, bool toClipboard, bool remove)
+    {
+        if (timelineRangeStartFrame_ < 0 || timelineRangeEndFrame_ <= timelineRangeStartFrame_)
+            return { id, { false, "no Time selection" }, false };
+        const auto start = static_cast<engine::Tick> (timelineRangeStartFrame_);
+        const auto end = static_cast<engine::Tick> (timelineRangeEndFrame_);
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        if (! splitAllClipsAt (nextProject, nextUndo, start) || ! splitAllClipsAt (nextProject, nextUndo, end))
+            return { id, { false, "split refused inside the selection" }, false };
+        const std::vector<engine::EntityId> inside = clipsInsideRange (nextProject, start, end);
+        if (toClipboard)
+        {
+            UiClipClipboard clipboard;
+            clipboard.keepTracks = true;
+            for (const engine::EntityId clipId : inside)
+                if (const auto it = std::find_if (nextProject.clips.begin(), nextProject.clips.end(),
+                                                  [clipId] (const engine::Clip& c) { return c.id == clipId; });
+                    it != nextProject.clips.end())
+                    clipboard.clips.push_back (clipboardEntryForClip (*it, start));
+            if (clipboard.clips.empty())
+                return { id, { false, "nothing inside the selection" }, false };
+            clipClipboard_ = std::move (clipboard);
+            context_.clipboardHasClip = true;
+        }
+        if (! remove)
+        {
+            ++context_.commandDispatchCount;   // Copy: the project is untouched (the splits were a scratch copy)
+            return { id, state, true };
+        }
+        for (const engine::EntityId clipId : inside)
+        {
+            const engine::ProjectEditApplyResult applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (clipId));
+            if (! applied.applied())
+                return { id, { false, "delete refused inside the selection" }, false };
+        }
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    // Shift+F: from the playhead (or the selection's start) to the project's end, every track;
+    // the clips that begin inside it become the object selection too.
+    [[nodiscard]] UiActionDispatchResult selectAllFollowing (UiActionId id, UiActionState state)
+    {
+        const std::int64_t from = timelineRangeStartFrame_ >= 0 ? timelineRangeStartFrame_
+                                                                 : std::max<std::int64_t> (0, context_.playheadFrame);
+        std::int64_t end = from;
+        for (const engine::Clip& clip : project_.clips)
+            end = std::max<std::int64_t> (end, clip.timelineStart + clip.timelineLength);
+        for (const engine::MidiClip& clip : project_.midiClips)
+            end = std::max<std::int64_t> (end, clip.timelineStart + clip.timelineLength);
+        if (end <= from)
+            return { id, { false, "nothing follows the playhead" }, false };
+        if (! setTimelineRangeSelection (from, end))
+            return { id, state, false };
+        std::vector<engine::EntityId> following;
+        for (const engine::Clip& clip : project_.clips)
+            if (clip.timelineStart >= from)
+                following.push_back (clip.id);
+        (void) selectTimelineClips (std::span<const engine::EntityId> (following.data(), following.size()));
+        ++context_.commandDispatchCount;
+        return { id, state, true };
+    }
+
     UiActionDispatchResult convertTimelineRangeToLoop (UiActionId id, UiActionState state)
     {
         if (playback_ == nullptr
@@ -8995,6 +9160,7 @@ private:
     };
     struct UiClipClipboard
     {
+        bool keepTracks = false;   // G2.5: a range copy keeps every fragment on its own track
         std::vector<UiClipClipboardEntry> clips;
     };
     UiClipClipboard clipClipboard_;
@@ -9041,6 +9207,12 @@ private:
         return clipboard;
     }
 
+    [[nodiscard]] static bool trackExists (const engine::Project& project, engine::EntityId trackId) noexcept
+    {
+        return std::any_of (project.tracks.begin(), project.tracks.end(),
+                            [trackId] (const engine::Track& t) { return t.id == trackId; });
+    }
+
     [[nodiscard]] UiActionDispatchResult addClipsFromClipboard (UiActionId id,
                                                                 const UiActionState& state,
                                                                 engine::EntityId targetTrackId,
@@ -9076,6 +9248,7 @@ private:
         if (clipClipboard_.clips.size() > pastedClipIds.max_size() / repeatCountSize)
             return { id, state, false };
         pastedClipIds.reserve (clipClipboard_.clips.size() * repeatCountSize);
+        const bool keepTracks = clipClipboard_.keepTracks;   // G2.5: range fragments land on their own tracks
         for (int repeatIndex = 0; repeatIndex < repeatCount; ++repeatIndex)
         {
             const engine::Tick repeatOffset = clipboardSpan * static_cast<engine::Tick> (repeatIndex);
@@ -9090,7 +9263,7 @@ private:
                 clip.assetId = entry.assetId;
                 clip.trackId = clipClipboard_.clips.size() > 1u && sourceTrackExists
                     ? entry.trackId
-                    : targetTrackId;
+                    : (keepTracks && trackExists (nextProject, entry.trackId) ? entry.trackId : targetTrackId);
                 clip.timelineStart = timelineStart + repeatOffset + entry.timelineOffset;
                 clip.timelineLength = entry.timelineLength;
                 clip.srcOffset = entry.srcOffset;
