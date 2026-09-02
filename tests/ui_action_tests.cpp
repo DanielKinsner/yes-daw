@@ -263,6 +263,7 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
 
     std::set<std::string_view> stableIds;
     std::set<std::string_view> defaultKeys;
+    std::set<std::string> defaultKeysByContext;
     for (const auto& action : actions)
     {
         REQUIRE (action.stableId != nullptr);
@@ -271,9 +272,12 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
         REQUIRE (action.label != nullptr);
         REQUIRE_FALSE (std::string_view (action.label).empty());
         REQUIRE (action.defaultKey != nullptr);
-        // G0.2 re-pin (ADR-0046 §2): a default chord is optional; every chord present is unique.
+        // G0.2 re-pin (ADR-0046 §2): a default chord is optional; every chord present is unique
+        // WITHIN its Focus context (G1.1: Alt+Up is clip gain in Arrange and transpose in the
+        // piano roll) — the keymap's own conflict law is the gate ([keymap-v2]).
         if (! std::string_view (action.defaultKey).empty())
-            REQUIRE (defaultKeys.insert (action.defaultKey).second);
+            REQUIRE (defaultKeysByContext.insert (std::string (action.defaultKey) + "@"
+                                                  + yesdaw::ui::focusContextName (yesdaw::ui::defaultFocusContext (action.id))).second);
         REQUIRE (action.accessibleName != nullptr);
         REQUIRE_FALSE (std::string_view (action.accessibleName).empty());
         REQUIRE_FALSE (std::string_view (roleName (action.accessibleRole)).empty());
@@ -285,14 +289,15 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
     REQUIRE (descriptorForStableId ("transport.toggle_loop")->id == UiActionId::TransportToggleLoop);
     REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Ctrl+R")
              == UiActionId::TimelineClipRepeatPaste);
-    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Alt+0")
-             == UiActionId::TimelineSnapDisable);
+    // G1.1 (§4): snap presets and zoom-to-loop have no default chord; zoom is Ctrl+arrows.
+    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Alt+0") == UiActionId::Count);
     REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Ctrl+0")
              == UiActionId::TimelineZoomFitProject);
-    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Ctrl+Shift+0")
-             == UiActionId::TimelineZoomFitLoop);
-    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("+") == UiActionId::TimelineZoomIn);
-    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("-") == UiActionId::TimelineZoomOut);
+    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Ctrl+Shift+0") == UiActionId::Count);
+    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("+") == UiActionId::Count);
+    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Ctrl+Right", UiFocusContext::Arrange) == UiActionId::TimelineZoomIn);
+    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Ctrl+Left", UiFocusContext::Arrange) == UiActionId::TimelineZoomOut);
+    REQUIRE (UiActionRegistry {}.keymap().actionForChord ("Ctrl+Right", UiFocusContext::Mixer) == UiActionId::Count);
     REQUIRE (descriptorForStableId ("missing.action") == nullptr);
 }
 
@@ -325,14 +330,16 @@ TEST_CASE ("H11 keymap remapping is stable and rejects duplicate or empty chords
     REQUIRE (registry.keymap().chordFor (UiActionId::TransportPlay).empty());
     REQUIRE (registry.keymap().actionForChord ("Shift+Space") == UiActionId::TransportPlayFromLastLocate);
     REQUIRE (registry.keymap().actionForChord ("F2") == UiActionId::EditRenameSelection);
-    REQUIRE (registry.keymap().actionForChord ("Ctrl+F2") == UiActionId::TrackRename);
+    // G1.1 (§4): Track Rename has no default chord (the rail's F2 / context menu reach it).
+    REQUIRE (registry.keymap().actionForChord ("Ctrl+F2") == UiActionId::Count);
+    REQUIRE (registry.keymap().chordFor (UiActionId::TrackRename).empty());
     REQUIRE (registry.keymap().rebind (UiActionId::TransportTogglePlayStop, "Shift+P") == KeymapRebindStatus::Ok);
     REQUIRE (registry.keymap().actionForChord ("Shift+P") == UiActionId::TransportTogglePlayStop);
     REQUIRE (registry.keymap().actionForChord ("Space") == UiActionId::Count);
 
     REQUIRE (registry.keymap().rebind (UiActionId::TransportStop, "Shift+P")
              == KeymapRebindStatus::DuplicateChord);
-    REQUIRE (registry.keymap().chordFor (UiActionId::TransportStop) == "K");
+    REQUIRE (registry.keymap().chordFor (UiActionId::TransportStop).empty());   // G1.1: Space toggles; K is the click
 
     REQUIRE (registry.keymap().rebind (UiActionId::TransportStop, "")
              == KeymapRebindStatus::EmptyChord);

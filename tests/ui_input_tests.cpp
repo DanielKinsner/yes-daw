@@ -1117,7 +1117,7 @@ TEST_CASE ("command router: widgets decline focus, Space toggles, window-level k
     REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
     clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
     REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
 
     // (3) The KeyListener half: a chord originating at a button (a widget that did not consume
@@ -1194,8 +1194,8 @@ TEST_CASE ("no callback teardown: 200 dispatched actions request zero audio-call
     for (int i = 0; i < 100; ++i)
     {
         // Shipped nudge chords (`,` / `.`); G1.1 re-pins them to Alt+arrows.
-        REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
-        REQUIRE (shell->keyPressed (juce::KeyPress (',')));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier, 0)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::altModifier, 0)));
     }
     REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount >= dispatchBefore + 200);
     REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
@@ -1203,7 +1203,7 @@ TEST_CASE ("no callback teardown: 200 dispatched actions request zero audio-call
     clickButton (requireButtonForAction (*shell, UiActionId::TrackAdd));
     REQUIRE (snapshotMainComponent (*shell).playbackReplaceCount > rebuildsBefore);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (suspendRequests() == 0);
 
     // No device callback is live in the harness, so the tick's janitor frees every retired
@@ -1286,11 +1286,11 @@ TEST_CASE ("render budget: ticks invalidate only dynamic layers and refresh only
     REQUIRE (after.full == before.full);
     REQUIRE (after.dynamic == before.dynamic + 30);
     REQUIRE (after.refreshes <= before.refreshes + 1);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     // An edit is a model change: it invalidates the static layer and refreshes.
     before = counters();
-    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier, 0)));
     after = counters();
     REQUIRE (after.full >= before.full + 1);
     REQUIRE (after.refreshes >= before.refreshes + 1);
@@ -1326,7 +1326,7 @@ TEST_CASE ("render budget: ticks invalidate only dynamic layers and refresh only
     const juce::Image first = paintTimeline();
     const juce::Image second = paintTimeline();
     REQUIRE (sameImage (first, second));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));   // nudge the selected clip right
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier, 0)));   // nudge the selected clip right
     const juce::Image moved = paintTimeline();
     if (sameImage (first, moved))
     {
@@ -1343,7 +1343,7 @@ TEST_CASE ("render budget: ticks invalidate only dynamic layers and refresh only
         }
     }
     REQUIRE_FALSE (sameImage (first, moved));
-    REQUIRE (shell->keyPressed (juce::KeyPress (',')));   // and back: the cache follows the model
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::altModifier, 0)));   // and back: the cache follows the model
     const juce::Image back = paintTimeline();
     REQUIRE (sameImage (first, back));
 }
@@ -1382,8 +1382,8 @@ TEST_CASE ("B4: placement edits while playing never rebuild the engine",
     // 100 nudges, ten undos, ten redos, a delete and its undo — all while playing.
     for (int i = 0; i < 50; ++i)
     {
-        REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
-        REQUIRE (shell->keyPressed (juce::KeyPress (',')));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier, 0)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::altModifier, 0)));
     }
     for (int i = 0; i < 10; ++i)
         REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
@@ -1401,7 +1401,7 @@ TEST_CASE ("B4: placement edits while playing never rebuild the engine",
     // Negative control: a new Track is topology — exactly one rebuild.
     clickButton (requireButtonForAction (*shell, UiActionId::TrackAdd));
     REQUIRE (snapshotMainComponent (*shell).playbackReplaceCount == rebuilds + 1);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 }
 
 // M7 — the timeline never invents content. `drawClipWaveform` used to synthesize a waveform from a
@@ -1611,7 +1611,7 @@ TEST_CASE ("F2 renames the selected Clip through the shipped shell and preserves
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeRename = renderMainComponentPlayback (*shell, 48'000, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeRename.data(), beforeRename.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F2Key)));
     auto* rename = dynamic_cast<juce::TextEditor*> (
@@ -1630,7 +1630,7 @@ TEST_CASE ("F2 renames the selected Clip through the shipped shell and preserves
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterRename = renderMainComponentPlayback (*shell, 48'000, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (afterRename == beforeRename);
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
@@ -1676,7 +1676,7 @@ TEST_CASE ("Escape cancels an in-progress timeline move before mouse-up can pers
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeCancel = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeCancel.data(), beforeCancel.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     const juce::Point<int> start = timelineClipCenterPoint (timeline, original, 0u);
     const juce::Point<int> end = start.translated (timeline.getWidth() / 4, 0);
@@ -1690,7 +1690,7 @@ TEST_CASE ("Escape cancels an in-progress timeline move before mouse-up can pers
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterCancel = renderMainComponentPlayback (*shell, 512, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (afterCancel == beforeCancel);
 }
 
@@ -1746,7 +1746,7 @@ TEST_CASE ("Escape cancels in-progress timeline trim and fade edits",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterCancel = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (afterCancel.data(), afterCancel.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 }
 
 TEST_CASE ("Escape cancels an in-progress marquee before mouse-up can change selection",
@@ -1770,7 +1770,7 @@ TEST_CASE ("Escape cancels an in-progress marquee before mouse-up can change sel
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeCancel = renderMainComponentPlayback (*shell, 512, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     const juce::Point<int> end = timelineClipCenterPoint (timeline, original, 0u);
     const juce::Point<int> start { timeline.getWidth() - 20, timeline.getHeight() - 20 };
@@ -1784,7 +1784,7 @@ TEST_CASE ("Escape cancels an in-progress marquee before mouse-up can change sel
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterCancel = renderMainComponentPlayback (*shell, 512, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (afterCancel == beforeCancel);
 }
 
@@ -1811,7 +1811,7 @@ TEST_CASE ("Escape dismisses Clip and Track inline editors without persisting dr
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeCancel = renderMainComponentPlayback (*shell, 512, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F2Key)));
     auto* clipEditor = dynamic_cast<juce::TextEditor*> (
@@ -1831,7 +1831,7 @@ TEST_CASE ("Escape dismisses Clip and Track inline editors without persisting dr
     mouseDownAt (*rail, { kRailRowClickX, firstTrackY });
 
     const juce::ModifierKeys ctrl = juce::ModifierKeys::ctrlModifier;
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F2Key, ctrl, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRename);   // G1.1: no default chord
     auto* trackEditor = dynamic_cast<juce::TextEditor*> (
         findChildWithComponentId (*shell, "shell.tracklist.rename"));
     REQUIRE (trackEditor != nullptr);
@@ -1847,7 +1847,7 @@ TEST_CASE ("Escape dismisses Clip and Track inline editors without persisting dr
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterCancel = renderMainComponentPlayback (*shell, 512, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (afterCancel == beforeCancel);
 }
 
@@ -3003,8 +3003,8 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
 
     // E23: the inspector is not first-track-only — a clip imported onto the THIRD track edits
     // through the SAME controls, and the first track's clip stays untouched.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (railComponent != nullptr);
     const int thirdRowHeight = juce::jmax (
@@ -3792,7 +3792,7 @@ TEST_CASE ("shipped MainComponent dispatches keymap chords through keyPressed",
 
     // Ctrl+N news, Ctrl+I imports — the same native-choice path as the toolbar buttons.
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('i', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('i', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.importCount == 1);
@@ -3802,12 +3802,12 @@ TEST_CASE ("shipped MainComponent dispatches keymap chords through keyPressed",
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.isPlaying);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.isPlaying);
 
     // Ctrl+T adds a track through the arrangement verb.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.trackEditCount == 1);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
@@ -3887,8 +3887,7 @@ TEST_CASE ("interactive track rail — select, add, rename, remove, import-to-tr
     REQUIRE (project.clips.front().trackId == project.tracks.back().id);
 
     // Ctrl+F2 is the explicit Track rename chord; F2 is the contextual Clip-or-Track rename action.
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F2Key,
-                                                juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRename);   // G1.1: no default chord
     auto* rename = dynamic_cast<juce::TextEditor*> (findChildWithComponentId (*shell, "shell.tracklist.rename"));
     REQUIRE (rename != nullptr);
     REQUIRE (rename->isVisible());
@@ -3900,8 +3899,7 @@ TEST_CASE ("interactive track rail — select, add, rename, remove, import-to-tr
 
     // Select the now-empty first row and Ctrl+Shift+T removes that track; no clip is lost.
     mouseDownAt (*railComponent, { kRailRowClickX, headerHeight + rowHeight / 2 });
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t',
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRemove);   // G1.1: no default chord
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.size() == 1u);
     REQUIRE (project.tracks.front().strip.name == "Drums");
@@ -3921,7 +3919,7 @@ TEST_CASE ("Up and Down select adjacent Track rail rows and retarget persisted m
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.tracks.size() == 2u);
@@ -3971,7 +3969,7 @@ TEST_CASE ("Up and Down select adjacent Track rail rows and retarget persisted m
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> audible = renderMainComponentPlayback (*shell, 4096, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (audible.data(), audible.size())) > 0.01);
 
     auto* mute = dynamic_cast<juce::Button*> (
@@ -3985,7 +3983,7 @@ TEST_CASE ("Up and Down select adjacent Track rail rows and retarget persisted m
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> silent = renderMainComponentPlayback (*shell, 4096, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (silent.data(), silent.size())) == 0.0);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));
@@ -4029,7 +4027,7 @@ TEST_CASE ("Left and Right locate the playhead by one current grid unit without 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> atStart = renderMainComponentPlayback (*shell, 128, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     const double startPeak = peakAbs (std::span<const float> (atStart.data(), atStart.size()));
     REQUIRE (startPeak > 0.05);
 
@@ -4044,7 +4042,7 @@ TEST_CASE ("Left and Right locate the playhead by one current grid unit without 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> atNextBeat = renderMainComponentPlayback (*shell, 128, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (atNextBeat.data(), atNextBeat.size()))
              == Catch::Approx (startPeak * 2.0));
     REQUIRE (atNextBeat != atStart);
@@ -4052,17 +4050,17 @@ TEST_CASE ("Left and Right locate the playhead by one current grid unit without 
     constexpr std::int64_t kBarFrames = 96'000;
     const juce::ModifierKeys shift = juce::ModifierKeys::shiftModifier;
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, shift, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == kBarFrames);
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, shift, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (',')));   // G1.1: previous bar
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, shift, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (',')));   // G1.1: previous bar
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, shift, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> atNextBar = renderMainComponentPlayback (*shell, 128, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (atNextBar.data(), atNextBar.size()))
              == Catch::Approx (startPeak * 5.0));
     REQUIRE (atNextBar != atNextBeat);
@@ -4095,7 +4093,7 @@ TEST_CASE ("Save As copies the bundle and continues working in the copy", "[ui][
     REQUIRE (copied.clips.size() == original.clips.size());
     REQUIRE (copied.assets.size() == original.assets.size());
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (saveAsPath).tracks.size() == 2u);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);   // original untouched
 
@@ -4122,7 +4120,7 @@ TEST_CASE ("every mixer track strip is selectable and retargets the shared contr
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
 
     // Second track via keymap, second clip onto it through the rail selection.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (railComponent != nullptr);
     const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
@@ -4298,8 +4296,8 @@ TEST_CASE ("mixer clicks, the control lane, and the master fader share the paint
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
 
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
@@ -4432,7 +4430,7 @@ TEST_CASE ("every direct strip edit is its own undo step: drags coalesce, toggle
 
     // Rail mini edits (panel-preserving path) are undoable too: a VOL drag is one step, and a
     // rail mute click undoes without touching anything else.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     using L = yesdaw::ui::UiTheme::Layout;
@@ -4530,9 +4528,9 @@ TEST_CASE ("bus and send controls route the selected track undoably through real
     REQUIRE (project.buses.size() == 1u);
 
     // E23: sends are not first-track-only — the SAME controls route the THIRD track.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     const int thirdRowHeight = juce::jmax (
         yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
         (railComponent->getHeight() - yesdaw::ui::UiTheme::Layout::trackListHeaderHeight) / 3);
@@ -4738,9 +4736,9 @@ TEST_CASE ("FX parameter sliders edit the selected insert undoably through real 
     // E23: param editing is not first-index-only — the SAME controls edit a NON-ZERO strip's
     // NON-ZERO slot. The third track gets an EQ then a Compressor; slot 1's threshold edit
     // persists on THAT track's slot 1 and nowhere else.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     const int thirdRowHeight = juce::jmax (
         yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
         (railComponent->getHeight() - yesdaw::ui::UiTheme::Layout::trackListHeaderHeight) / 3);
@@ -4825,7 +4823,7 @@ TEST_CASE ("FX slot up/down reorder the chain undoably and audibly for a non-com
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered = renderMainComponentPlayback (*shell, 48'000, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> eqFirstRender = renderFromStart();
@@ -5272,7 +5270,7 @@ TEST_CASE ("the master fader persists an undoable master gain that scales the wh
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered = renderMainComponentPlayback (*shell, 48'000, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> atUnity = renderFromStart();
@@ -5318,8 +5316,8 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
     // Park the audio four bars in (2 s per bar at 120 BPM 4/4) on the FIRST track, so the MIDI
     // window and the audio window never overlap.
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::shiftModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     {
         const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
@@ -5338,7 +5336,7 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         std::vector<float> rendered = renderMainComponentPlayback (*shell, kRenderFrames, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         REQUIRE (rendered.size() % kRenderFrames == 0u);
         channels = rendered.size() / kRenderFrames;
         REQUIRE (channels >= 1u);
@@ -5448,8 +5446,8 @@ TEST_CASE ("dropping audio files onto the timeline imports them where they land"
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
     REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
 
@@ -5486,7 +5484,7 @@ TEST_CASE ("dropping audio files onto the timeline imports them where they land"
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered =
             renderMainComponentPlayback (*shell, static_cast<std::uint64_t> (droppedStart) + 8'192, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         REQUIRE (peakAbs (std::span<const float> (rendered.data(), rendered.size())) > 0.02);
     }
 
@@ -5588,7 +5586,7 @@ TEST_CASE ("the painted fader scale puts unity at half travel with boost above i
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         std::vector<float> rendered = renderMainComponentPlayback (*shell, 4'096, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> atUnity = renderFromStart();
@@ -5619,8 +5617,8 @@ TEST_CASE ("every mixer strip paints its sends and a painted send row sets its l
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -5664,7 +5662,7 @@ TEST_CASE ("every mixer strip paints its sends and a painted send row sets its l
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         std::vector<float> rendered = renderMainComponentPlayback (*shell, 4'096, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> atUnitySend = renderFromStart();
@@ -5694,7 +5692,7 @@ TEST_CASE ("every mixer strip paints its sends and a painted send row sets its l
 
     // A strip with no room (the timeline view's short mini-mixer) drops the send rows instead of
     // starving the fader, exactly as the insert slots do.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     shell->setSize (1152, 720);
     REQUIRE (yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 2, 0).isEmpty());
 }
@@ -5715,8 +5713,8 @@ TEST_CASE ("N2 every mixer readout names the selected strip and prints no engine
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
@@ -5839,8 +5837,8 @@ TEST_CASE ("N1 the painted Mute and Solo cells work on every mixer strip",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
@@ -5892,7 +5890,7 @@ TEST_CASE ("N1 the painted Mute and Solo cells work on every mixer strip",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeMute = renderMainComponentPlayback (*shell, 2048, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (beforeMute.data(), beforeMute.size())) > 0.0);
 
     const juce::Rectangle<int> firstMute = yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 0, 1);
@@ -5901,7 +5899,7 @@ TEST_CASE ("N1 the painted Mute and Solo cells work on every mixer strip",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterMute = renderMainComponentPlayback (*shell, 2048, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (afterMute.data(), afterMute.size())) == 0.0);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
 
@@ -5962,8 +5960,8 @@ TEST_CASE ("N3 the mixer strip band fills its window and the master strip sits f
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
@@ -6041,8 +6039,8 @@ TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot open
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -6116,10 +6114,10 @@ TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot open
     // A SHORT strip drops the slot rows instead of starving the fader: the timeline view's
     // mini-mixer is barely tall enough for a fader, and painting four wells there squeezed the
     // rail into a stub (caught by eye at the 1152x720 floor and pinned here).
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));            // Timeline view
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord            // Timeline view
     shell->setSize (1152, 720);
     REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 0).isEmpty());
-    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));            // back to the Mixer view
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G1.1: no default chord            // back to the Mixer view
     shell->setSize (1536, 960);
     REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 0).isEmpty());
 
@@ -6150,7 +6148,7 @@ TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot open
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         std::vector<float> rendered = renderMainComponentPlayback (*shell, 4'096, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     // Open the FIRST slot of this strip through its painted row, then prove the panel really is
@@ -6210,8 +6208,8 @@ TEST_CASE ("tracks route their main output to a bus and the bus fader carries th
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -6236,7 +6234,7 @@ TEST_CASE ("tracks route their main output to a bus and the bus fader carries th
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         std::vector<float> rendered = renderMainComponentPlayback (*shell, 8'192, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> straightToMaster = renderFromStart();
@@ -6331,8 +6329,8 @@ TEST_CASE ("removing an automated target is never silently refused",
 
     // Three tracks, one clip each: the multi-track shape the run's rules require. Tracks are
     // selected by clicking their rail row (the [three-track] gate's law), then imported onto.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     {
@@ -6356,7 +6354,7 @@ TEST_CASE ("removing an automated target is never silently refused",
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         std::vector<float> rendered = renderMainComponentPlayback (*shell, 24'000, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
 
@@ -6427,7 +6425,7 @@ TEST_CASE ("removing an automated target is never silently refused",
     auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
     REQUIRE (fxChooser != nullptr);
     fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));                  // back to the Timeline view
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord                  // back to the Timeline view
     REQUIRE (targetChooser->getNumItems() > 2);
     targetChooser->setSelectedId (5, juce::sendNotificationSync);        // FX1 eq.band.gain
     mouseDownAt (*canvas, { canvas->getWidth() / 2, canvas->getHeight() / 2 });
@@ -6472,7 +6470,7 @@ TEST_CASE ("removing an automated target is never silently refused",
         REQUIRE (sends.tracks[2].sends.size() == 2u);
     }
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     const int sendLevelItem = targetChooser->getNumItems() - 1;          // sends are listed after Pan
     REQUIRE (sendLevelItem >= 3);
     targetChooser->setSelectedId (4, juce::sendNotificationSync);        // second send's level
@@ -6668,7 +6666,7 @@ TEST_CASE ("V2 the header shows real bar|beat at a non-default tempo, and the de
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     (void) renderMainComponentPlayback (*shell, 163'200, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     const yesdaw::engine::BarBeat afterMove = yesdaw::ui::mainComponentHeaderBarBeat (*shell);
     REQUIRE (afterMove.bar == 3);
@@ -6918,7 +6916,7 @@ TEST_CASE ("V5 the rail meters L/R independently and the mini VOL is a vertical 
     REQUIRE (rightPeak < leftPeak * 0.25f);
     REQUIRE (leftPeak != rightPeak);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
@@ -7294,7 +7292,7 @@ TEST_CASE ("Phase 3 dogfood readiness: new project, three stems, split, move, fa
         timeline, snapshot, project, project.clips.front().timelineLength / 2);
     REQUIRE (timeline.getLocalBounds().contains (rulerPoint));
     mouseDownAt (timeline, rulerPoint);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('b')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 2u);
     // Back to the fit view: the clip-position helpers below (and Dan's own next steps) work in
@@ -7305,7 +7303,7 @@ TEST_CASE ("Phase 3 dogfood readiness: new project, three stems, split, move, fa
     // each new track on the rail.
     for (int row = 1; row <= 2; ++row)
     {
-        REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
         juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
         REQUIRE (rail != nullptr);
         const juce::Rectangle<int> rowRect = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, row);
@@ -7487,7 +7485,7 @@ TEST_CASE ("Ctrl+0 fits the whole Project horizontally without changing Snap",
     REQUIRE (fitted.context.snapEnabled);
     REQUIRE (readProjectSnapshot (bundlePath).clips == persistedClipsBeforeFit);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('0', juce::ModifierKeys::altModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapDisable);   // G1.1: no default chord
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.snapEnabled);
 }
 
@@ -7560,7 +7558,7 @@ TEST_CASE ("Ctrl+Shift+0 fits the current loop region with exact viewport math",
     const juce::ModifierKeys ctrlShift {
         juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier
     };
-    REQUIRE (shell->keyPressed (juce::KeyPress ('0', ctrlShift, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomFitLoop);   // G1.1: no default chord
     const MainComponentSnapshot fitted = snapshotMainComponent (*shell);
     REQUIRE (fitted.timelineZoomFactor == expectedZoom);
     REQUIRE (fitted.timelineScrollSeconds == loopStartSeconds);
@@ -7592,7 +7590,7 @@ TEST_CASE ("plus zooms the Timeline in while keeping the playhead at the same pi
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeZoom = renderMainComponentPlayback (*shell, 48'000, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeZoom.data(), beforeZoom.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     juce::MouseWheelDetails wheelUp {};
@@ -7631,7 +7629,7 @@ TEST_CASE ("plus zooms the Timeline in while keeping the playhead at the same pi
                                     * (before.timelineZoomFactor / expectedZoom);
 
     const juce::ModifierKeys shift { juce::ModifierKeys::shiftModifier };
-    REQUIRE (shell->keyPressed (juce::KeyPress ('=', shift, '+')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::ctrlModifier, 0)));
 
     const MainComponentSnapshot after = snapshotMainComponent (*shell);
     REQUIRE (after.timelineZoomFactor == expectedZoom);
@@ -7645,7 +7643,7 @@ TEST_CASE ("plus zooms the Timeline in while keeping the playhead at the same pi
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterZoom = renderMainComponentPlayback (*shell, 48'000, 128);
     REQUIRE (afterZoom == beforeZoom);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 }
 
 TEST_CASE ("minus zooms the Timeline out at the playhead and clamps at whole-Project fit",
@@ -7674,7 +7672,7 @@ TEST_CASE ("minus zooms the Timeline out at the playhead and clamps at whole-Pro
     mouseDownAt (timeline, locatePoint);
 
     const juce::ModifierKeys shift { juce::ModifierKeys::shiftModifier };
-    REQUIRE (shell->keyPressed (juce::KeyPress ('=', shift, '+')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::ctrlModifier, 0)));
     const MainComponentSnapshot before = snapshotMainComponent (*shell);
     REQUIRE (before.timelineZoomFactor == yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep);
     REQUIRE (before.timelineScrollSeconds > 0.0);
@@ -7691,7 +7689,7 @@ TEST_CASE ("minus zooms the Timeline out at the playhead and clamps at whole-Pro
                                 - (playheadSeconds - before.timelineScrollSeconds)
                                     * (before.timelineZoomFactor / expectedZoom);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('-')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::ctrlModifier, 0)));
     const MainComponentSnapshot after = snapshotMainComponent (*shell);
     REQUIRE (after.timelineZoomFactor == expectedZoom);
     REQUIRE (after.timelineScrollSeconds == Catch::Approx (expectedScroll).margin (1.0e-12));
@@ -7700,7 +7698,7 @@ TEST_CASE ("minus zooms the Timeline out at the playhead and clamps at whole-Pro
              == playheadPixelBefore.x);
     REQUIRE (readProjectSnapshot (bundlePath).clips == persisted.clips);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('-')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::ctrlModifier, 0)));
     const MainComponentSnapshot clamped = snapshotMainComponent (*shell);
     REQUIRE (clamped.timelineZoomFactor == yesdaw::ui::UiTheme::Layout::timelineZoomMin);
     REQUIRE (clamped.timelineScrollSeconds
@@ -8492,7 +8490,7 @@ TEST_CASE ("riding a fader while playing never rebuilds the engine",
     // NEGATIVE CONTROL 2: an AUTOMATED fader falls back to the rebuild path — the compiled
     // lane owns the param during playback (the audio thread refuses a live set on it), so the
     // edit adopts exactly the way it does today.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // timeline view owns the automation lane
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord   // timeline view owns the automation lane
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     juce::Component* automationCanvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
     REQUIRE (automationCanvas != nullptr);
@@ -8533,7 +8531,7 @@ TEST_CASE ("buses route and send like tracks through real mixer controls",
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered = renderMainComponentPlayback (*shell, 4'096, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> baseline = renderFromStart();
@@ -8659,7 +8657,7 @@ TEST_CASE ("a penciled bus-fader lane audibly drives the render",
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered = renderMainComponentPlayback (*shell, 4'096, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> baseline = renderFromStart();
@@ -8667,7 +8665,7 @@ TEST_CASE ("a penciled bus-fader lane audibly drives the render",
     REQUIRE (baselinePeak > 0.01);
 
     // Timeline view, lane open, snap Off (raw pixel law), and the BUS FADER as the target.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     auto* snapChooser = dynamic_cast<juce::ComboBox*> (
         findChildWithComponentId (*shell, "timeline.snap.chooser"));
@@ -8781,7 +8779,7 @@ TEST_CASE ("R15 Touch rides send levels and FX params; Off ignores lanes and wri
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered = renderMainComponentPlayback (*shell, 24'000, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> baseline = renderFromStart();
@@ -8790,7 +8788,7 @@ TEST_CASE ("R15 Touch rides send levels and FX params; Off ignores lanes and wri
     // Set Touch through the shipped chooser (Timeline view owns it) — and the chooser now
     // carries the fourth, honest mode.
     const auto setMode = [&shell] (int itemId) {
-        REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
         clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
         auto* modeChooser = dynamic_cast<juce::ComboBox*> (
             findChildWithComponentId (*shell, "timeline.automation.mode"));
@@ -8884,7 +8882,7 @@ TEST_CASE ("R15 Touch rides send levels and FX params; Off ignores lanes and wri
     REQUIRE (readProjectSnapshot (bundlePath).automationLanes.size() == 1u);
     clickButton (requireButtonForAction (*shell, UiActionId::EditRedo));
     REQUIRE (readProjectSnapshot (bundlePath).automationLanes.size() == 2u);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     // READ plays the lanes back — the render differs from the lane-free baseline (the ridden
     // send starts low where the baseline send sits at unity).
@@ -8915,7 +8913,7 @@ TEST_CASE ("R15 Touch rides send levels and FX params; Off ignores lanes and wri
         sendLevel->mouseUp (up);
         (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
     }
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     {
         const yesdaw::engine::Project after = readProjectSnapshot (bundlePath);
         REQUIRE (after.automationLanes.size() == 2u);                       // nothing written
@@ -8988,7 +8986,7 @@ TEST_CASE ("R16 a breakpoint's curve cycles from the canvas and audibly shapes t
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered = renderMainComponentPlayback (*shell, frameB + 4'096u, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> linearRender = renderFromStart();
@@ -9436,7 +9434,7 @@ TEST_CASE ("Ctrl+R repeat-pastes the clipboard back-to-back as one audible undo 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::uint64_t renderFrames = static_cast<std::uint64_t> (source.timelineLength * 3);
     const std::vector<float> beforeRepeat = renderMainComponentPlayback (*shell, renderFrames, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     mouseDownAt (timeline, pastePoint);
     REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::ctrlModifier, 0)));
@@ -9466,7 +9464,7 @@ TEST_CASE ("Ctrl+R repeat-pastes the clipboard back-to-back as one audible undo 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterRepeat = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (afterRepeat != beforeRepeat);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
@@ -9474,7 +9472,7 @@ TEST_CASE ("Ctrl+R repeat-pastes the clipboard back-to-back as one audible undo 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (afterUndo == beforeRepeat);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     repeatChooser->setSelectedId (4, juce::sendNotificationSync);
     REQUIRE (repeatChooser->getSelectedId() == 4);
@@ -9517,7 +9515,7 @@ TEST_CASE ("Alt-drag copies a timeline clip to the drag destination as one audib
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeCopy = renderMainComponentPlayback (*shell, 48'000, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeCopy.data(), beforeCopy.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     auto* snapChooser = dynamic_cast<juce::ComboBox*> (
         findChildWithComponentId (*shell, "timeline.snap.chooser"));
@@ -9555,7 +9553,7 @@ TEST_CASE ("Alt-drag copies a timeline clip to the drag destination as one audib
     const std::vector<float> afterCopy = renderMainComponentPlayback (*shell, 48'000, 128);
     REQUIRE (afterCopy != beforeCopy);
     REQUIRE (peakAbs (std::span<const float> (afterCopy.data(), afterCopy.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
@@ -9590,7 +9588,7 @@ TEST_CASE ("Alt+Up and Alt+Down step the selected clip gain by one decibel",
     const std::vector<float> baseline = renderMainComponentPlayback (*shell, 512, 128);
     const double baselinePeak = peakAbs (std::span<const float> (baseline.data(), baseline.size()));
     REQUIRE (baselinePeak > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     const double oneDecibelRatio = std::pow (10.0, 1.0 / 20.0);
     const juce::ModifierKeys alt { juce::ModifierKeys::altModifier };
@@ -9603,7 +9601,7 @@ TEST_CASE ("Alt+Up and Alt+Down step the selected clip gain by one decibel",
     const std::vector<float> raised = renderMainComponentPlayback (*shell, 512, 128);
     const double raisedPeak = peakAbs (std::span<const float> (raised.data(), raised.size()));
     REQUIRE (std::fabs ((raisedPeak / baselinePeak) - oneDecibelRatio) < 0.000001);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey, alt, 0)));
     stepped = readProjectSnapshot (bundlePath);
@@ -9617,7 +9615,7 @@ TEST_CASE ("Alt+Up and Alt+Down step the selected clip gain by one decibel",
     const std::vector<float> reduced = renderMainComponentPlayback (*shell, 512, 128);
     const double reducedPeak = peakAbs (std::span<const float> (reduced.data(), reduced.size()));
     REQUIRE (std::fabs ((reducedPeak / baselinePeak) - (1.0 / oneDecibelRatio)) < 0.000001);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
@@ -9654,7 +9652,7 @@ TEST_CASE ("Ctrl+F replaces selected clip fades with the default length as one a
     const std::uint64_t renderFrames = static_cast<std::uint64_t> (original.clips.front().timelineLength);
     const std::vector<float> unfaded = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (peakAbs (std::span<const float> (unfaded.data(), unfaded.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     juce::Slider& fadeIn = requireSliderWithComponentId (*shell, kInspectorFadeInComponentId);
     juce::Slider& fadeOut = requireSliderWithComponentId (*shell, kInspectorFadeOutComponentId);
@@ -9668,7 +9666,7 @@ TEST_CASE ("Ctrl+F replaces selected clip fades with the default length as one a
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> preexistingAudio = renderMainComponentPlayback (*shell, renderFrames, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('f', juce::ModifierKeys::ctrlModifier, 0)));
     const yesdaw::engine::Project defaulted = readProjectSnapshot (bundlePath);
@@ -9678,7 +9676,7 @@ TEST_CASE ("Ctrl+F replaces selected clip fades with the default length as one a
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> defaultedAudio = renderMainComponentPlayback (*shell, renderFrames, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (defaultedAudio != unfaded);
 
     constexpr double halfPi = 1.57079632679489661923;
@@ -9744,15 +9742,14 @@ TEST_CASE ("X crossfades two overlapping clips on one track as one audible edit"
     const std::vector<float> sourceAudio = renderMainComponentPlayback (
         *shell, static_cast<std::uint64_t> (source.timelineLength), 128);
     REQUIRE (peakAbs (std::span<const float> (sourceAudio.data(), sourceAudio.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
     const yesdaw::engine::Tick overlapTicks = snapshotMainComponent (*shell).context.snapGridTicks / 8;
     REQUIRE (overlapTicks > 0);
     REQUIRE (overlapTicks < source.timelineLength);
-    REQUIRE (shell->keyPressed (juce::KeyPress (',', juce::ModifierKeys::shiftModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (
-        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::altModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
 
     const yesdaw::engine::Project overlapped = readProjectSnapshot (bundlePath);
@@ -9769,9 +9766,9 @@ TEST_CASE ("X crossfades two overlapping clips on one track as one audible edit"
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeCrossfade = renderMainComponentPlayback (*shell, renderFrames, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('x')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipCrossfade);   // G1.1: no default chord
     const yesdaw::engine::Project crossfaded = readProjectSnapshot (bundlePath);
     REQUIRE (crossfaded.clips.size() == 2u);
     REQUIRE (crossfaded.clips[0].fadeIn == leftBefore.fadeIn);
@@ -9782,7 +9779,7 @@ TEST_CASE ("X crossfades two overlapping clips on one track as one audible edit"
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterCrossfade = renderMainComponentPlayback (*shell, renderFrames, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (afterCrossfade != beforeCrossfade);
 
     const std::size_t channelCount = sourceAudio.size() / static_cast<std::size_t> (source.timelineLength);
@@ -9850,7 +9847,7 @@ TEST_CASE ("Ctrl+X cuts the selected clip into the clipboard as one undoable edi
     const std::vector<float> beforeCut = renderMainComponentPlayback (
         *shell, static_cast<std::uint64_t> (source.timelineLength), 128);
     REQUIRE (peakAbs (std::span<const float> (beforeCut.data(), beforeCut.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('x', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
@@ -9863,7 +9860,7 @@ TEST_CASE ("Ctrl+X cuts the selected clip into the clipboard as one undoable edi
     const std::vector<float> afterCut = renderMainComponentPlayback (
         *shell, static_cast<std::uint64_t> (source.timelineLength), 128);
     REQUIRE (peakAbs (std::span<const float> (afterCut.data(), afterCut.size())) == 0.0);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     // Cut itself is exactly one undo step.
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
@@ -9942,7 +9939,7 @@ TEST_CASE ("timeline multi-select edits the shipped project and playback as one 
 
     // Ctrl+A targets only the selected track. Copy/paste preserves the selected clips as one group.
     mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight / 2 });
-    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
     REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
@@ -9954,7 +9951,7 @@ TEST_CASE ("timeline multi-select edits the shipped project and playback as one 
     REQUIRE (project.clips.size() == 3u);
 
     // Dragging any member moves the whole track selection by the same snapped delta.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     const yesdaw::engine::Tick firstStart = project.clips[0].timelineStart;
     const yesdaw::engine::Tick secondStart = project.clips[1].timelineStart;
     const juce::Point<int> firstCentre = timelineClipCenterPoint (timeline, project, 0u);
@@ -9973,10 +9970,9 @@ TEST_CASE ("timeline multi-select edits the shipped project and playback as one 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeDelete = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeDelete.data(), beforeDelete.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
-    REQUIRE (shell->keyPressed (juce::KeyPress (
-        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
@@ -9984,7 +9980,7 @@ TEST_CASE ("timeline multi-select edits the shipped project and playback as one 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterDelete = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (afterDelete.data(), afterDelete.size())) == 0.0);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
@@ -10018,14 +10014,14 @@ TEST_CASE ("pointer-tool marquee selects exactly the touched clips for a persist
     const juce::Rectangle<int> firstBounds = timelineClipHitBounds (timeline, project, 0u);
     const juce::Rectangle<int> thirdBounds = timelineClipHitBounds (timeline, project, 2u);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeDelete = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeDelete.data(), beforeDelete.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     // Start in the empty second lane at the third Clip's left edge, then drag back across lane 0.
     // Rectangle-edge contact includes Clip 2 but excludes Clip 3.
@@ -10043,7 +10039,7 @@ TEST_CASE ("pointer-tool marquee selects exactly the touched clips for a persist
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterDelete = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (afterDelete.data(), afterDelete.size())) == 0.0);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
@@ -10105,10 +10101,10 @@ TEST_CASE ("three-track arrangement is first-class at the shipped boundary",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeEdits = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeEdits.data(), beforeEdits.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     // A pointer marquee spans all three lanes.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     juce::Component& timeline = requireTimelineComponent (*shell);
     const juce::Rectangle<int> topBounds = timelineClipHitBounds (timeline, project, 0u);
     const juce::Rectangle<int> midBounds = timelineClipHitBounds (timeline, project, 1u);
@@ -10163,8 +10159,7 @@ TEST_CASE ("three-track arrangement is first-class at the shipped boundary",
     REQUIRE (readProjectSnapshot (bundlePath).clips == beforeClamp.clips);
 
     // Project-wide copy/paste at a located playhead preserves each clip's track and relative time.
-    REQUIRE (shell->keyPressed (juce::KeyPress (
-        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
     REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
@@ -10193,7 +10188,7 @@ TEST_CASE ("three-track arrangement is first-class at the shipped boundary",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterPaste = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (afterPaste != beforeEdits);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == beforeClamp.clips);
@@ -10201,7 +10196,7 @@ TEST_CASE ("three-track arrangement is first-class at the shipped boundary",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (afterUndo == beforeEdits);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 }
 
 TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's offsets",
@@ -10251,7 +10246,7 @@ TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's o
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeEdits = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeEdits.data(), beforeEdits.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     const auto matchingCopy = [] (const yesdaw::engine::Project& snapshot,
                                   const yesdaw::engine::Clip& source,
@@ -10272,8 +10267,7 @@ TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's o
     };
 
     // Ctrl+D duplicates the WHOLE selection after its span, preserving relative time and track.
-    REQUIRE (shell->keyPressed (juce::KeyPress (
-        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 3);
     REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
 
@@ -10288,7 +10282,7 @@ TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's o
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterDuplicate = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (afterDuplicate != beforeEdits);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
@@ -10349,7 +10343,7 @@ TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's o
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (afterUndo == beforeEdits);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 }
 
 TEST_CASE ("the tool palette drives real timeline behavior per tool",
@@ -10420,7 +10414,7 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
     };
 
     // ZOOM tool: a click doubles the zoom around the click, Alt+click halves it; transient only.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('z')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('6')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Zoom);
     const juce::Point<int> zoomPoint { topBounds.getCentreX(), topBounds.getCentreY() };
     const MainComponentSnapshot zoomBase = snapshotMainComponent (*shell);
@@ -10447,7 +10441,7 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
 
     // HAND tool: a drag that STARTS ON A CLIP pans the viewport by the exact pixel delta and never
     // moves the clip; the reverse drag lands back at exactly zero scroll.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('h')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectHand);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Hand);
     const MainComponentSnapshot handBase = snapshotMainComponent (*shell);
     const yesdaw::ui::TimelineCanvasGeometry handGeometry = viewportAt (handBase);
@@ -10470,7 +10464,7 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
     // SCISSORS tool: with the snap chooser on and the grid coarser than this short clip, the
     // snapped split tick lands outside the clip body and is honestly refused (E4); Ctrl inverts
     // the grid, and the raw click splits as a persisted undoable edit.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('s')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('3')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Scissors);
     REQUIRE (snapshotMainComponent (*shell).context.snapEnabled);
     REQUIRE (snapshotMainComponent (*shell).context.snapGridTicks > original.clips[0].timelineLength);
@@ -10500,7 +10494,7 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
 
     // PENCIL tool: a click on a clip only selects it; a click on an empty lane creates a snapped
     // one-bar MIDI clip on THAT lane through the Ctrl+M law and opens the piano roll.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pencil);
     const std::vector<std::uint8_t> persistedAfterSplitUndo = readBytes (bundlePath / "project.db");
     mouseDownAt (timeline, midBounds.getCentre());
@@ -10534,13 +10528,13 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
              == static_cast<yesdaw::engine::Tick> (barSeconds * penciled.sampleRate.hz + 0.5));
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::Timeline);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).midiClips.empty());
 
     // POINTER law preserved: the plain move drag still persists.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer);
     dragFromTo (timeline, topBounds.getCentre(),
                 { topBounds.getCentreX() + timeline.getWidth() / 4, topBounds.getCentreY() });
@@ -11181,16 +11175,16 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight + rowHeight / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
 
     // E11: the empty roll grid is tool-aware — the pencil needs the Pencil tool; Pointer is
     // restored before the timeline gestures below.
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     mouseDownAt (pianoRoll, pianoRoll.getLocalBounds().getCentre());
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.tracks.size() == 2u);
@@ -11250,7 +11244,7 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeEdits = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeEdits.data(), beforeEdits.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     // HIT + SELECT: a click on the painted MIDI clip selects it like an audio clip.
     const yesdaw::engine::Tick midiMid = original.midiClips.front().timelineLength / 2;
@@ -11266,7 +11260,7 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterMove = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (afterMove != beforeEdits);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().timelineStart == 0);
 
@@ -11278,8 +11272,7 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().trackId == original.tracks[1].id);
 
     // GROUP: project-wide selection moves audio and MIDI together as one undo step.
-    REQUIRE (shell->keyPressed (juce::KeyPress (
-        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
     const yesdaw::engine::Tick audioMid = original.clips.front().timelineLength / 2;
     dragFromTo (timeline, pointAt (audioMid, 0),
@@ -11293,8 +11286,7 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     REQUIRE (edited.midiClips.front().timelineStart == 0);
 
     // DUPLICATE: Ctrl+D copies both kinds after the selection span, notes included, one undo.
-    REQUIRE (shell->keyPressed (juce::KeyPress (
-        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
     edited = readProjectSnapshot (bundlePath);
     REQUIRE (edited.clips.size() == 2u);
@@ -11334,7 +11326,7 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterUndo = renderMainComponentPlayback (*shell, renderFrames, 128);
     REQUIRE (afterUndo == beforeEdits);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 }
 
 TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
@@ -11365,8 +11357,8 @@ TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
     {
         selectRailRow (row);
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-        REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
-        REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     }
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.tracks.size() == 3u);
@@ -11414,7 +11406,7 @@ TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
 
     // Double-click the LAST track's MIDI clip: the roll opens on THAT clip and the pencil lands
     // its note there and nowhere else. (E11: the pencil needs the Pencil tool.)
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     doubleClickAt (timeline, midiClipPointOnLane (2));
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
@@ -11424,7 +11416,7 @@ TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
     REQUIRE (notesOnTrack (1) == 0u);
 
     // Switch to the FIRST track's clip the same way.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     doubleClickAt (timeline, midiClipPointOnLane (0));
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     mouseDownAt (pianoRoll, pianoRoll.getLocalBounds().getCentre());
@@ -11433,7 +11425,7 @@ TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
     REQUIRE (notesOnTrack (2) == 1u);
 
     // The View Piano Roll action retains the LAST opened clip instead of resetting to the first.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     mouseDownAt (pianoRoll, pianoRoll.getLocalBounds().getCentre().translated (
@@ -11453,10 +11445,10 @@ TEST_CASE ("the piano roll viewport scrolls all 128 keys and zooms and scrolls t
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     // E11: the empty-grid pencil needs the Pencil tool.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.midiClips.size() == 1u);
     const yesdaw::engine::Tick clipLength = original.midiClips.front().timelineLength;
@@ -11573,14 +11565,14 @@ TEST_CASE ("piano roll selection tools: pointer deselect, marquee, shift toggle,
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
     const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
     const int rowStep = juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollKeyRowMinHeight,
                                     grid.getHeight() / yesdaw::ui::UiTheme::Layout::pianoRollKeyCount);
 
     // Three pencilled notes at distinct keys and ticks.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     mouseDownAt (pianoRoll, grid.getCentre().translated (-80, 3 * rowStep));
     mouseDownAt (pianoRoll, grid.getCentre());
     mouseDownAt (pianoRoll, grid.getCentre().translated (80, -3 * rowStep));
@@ -11600,8 +11592,8 @@ TEST_CASE ("piano roll selection tools: pointer deselect, marquee, shift toggle,
     const yesdaw::engine::Note noteC = ordered[2];   // right-high
 
     // POINTER: an empty click clears the selection instead of pencilling; Del then refuses.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));   // G1.1: select all notes (PianoRoll context)
     const juce::Point<int> emptySpot { grid.getX() + 2, grid.getBottom() - 2 };
     mouseDownAt (pianoRoll, emptySpot);
     releaseDragAt (pianoRoll, emptySpot, emptySpot);
@@ -11625,7 +11617,7 @@ TEST_CASE ("piano roll selection tools: pointer deselect, marquee, shift toggle,
     REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 3u);
 
     // SHIFT+CLICK toggle: select all, toggle C OUT, Del keeps exactly C.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));   // G1.1: select all notes (PianoRoll context)
     const juce::Point<int> centreC = pianoRollNoteCenterPoint (pianoRoll, midi, noteC);
     mouseDownAt (pianoRoll, centreC,
                  juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
@@ -11650,7 +11642,7 @@ TEST_CASE ("piano roll selection tools: pointer deselect, marquee, shift toggle,
     REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 3u);
 
     // The Pencil tool still adds.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     mouseDownAt (pianoRoll, grid.getCentre().translated (0, -5 * rowStep));
     REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 4u);
 }
@@ -11781,11 +11773,11 @@ TEST_CASE ("piano roll drags: pitch, group move, left-edge trim, real snap",
 
     // PENCIL floors to the real chooser grid (Beat here), and the pencilled note is far too
     // narrow for the edge zones — the pointer must still MOVE it, never resize it.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     const int pencilRow = kPianoRollHighKey - 55;
     mouseDownAt (pianoRoll, { grid.getX() + juce::roundToInt (grid.getWidth() * 5.0 / 8.0),
                               grid.getY() + juce::roundToInt ((pencilRow + 0.5) * rowHeight) });
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     const std::vector<yesdaw::engine::Note> afterPencil =
         readProjectSnapshot (bundlePath).midiClips.front().notes;
     REQUIRE (afterPencil.size() == 3u);
@@ -11940,8 +11932,7 @@ TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate 
     REQUIRE (original.clips[1].timelineStart == 0);
     REQUIRE (original.clips[0].timelineLength == original.clips[1].timelineLength);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress (
-        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
@@ -11949,7 +11940,7 @@ TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate 
     const std::vector<float> beforeSplit = renderMainComponentPlayback (
         *shell, static_cast<std::uint64_t> (original.clips.front().timelineLength), 128);
     REQUIRE (peakAbs (std::span<const float> (beforeSplit.data(), beforeSplit.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Tick requestedSplitTick = original.clips.front().timelineLength / 2;
@@ -11976,7 +11967,7 @@ TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate 
     REQUIRE (splitTick > 0);
     REQUIRE (splitTick < original.clips.front().timelineLength);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('b')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
     const yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
     REQUIRE (split.clips.size() == 4u);
 
@@ -12007,7 +11998,7 @@ TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate 
     const std::vector<float> afterSplit = renderMainComponentPlayback (
         *shell, static_cast<std::uint64_t> (original.clips.front().timelineLength), 128);
     REQUIRE (afterSplit == beforeSplit);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     const yesdaw::engine::Project undone = readProjectSnapshot (bundlePath);
@@ -12036,11 +12027,11 @@ TEST_CASE ("Ctrl+J heals only adjacent clips with contiguous source windows",
     const std::vector<float> beforeHeal = renderMainComponentPlayback (
         *shell, static_cast<std::uint64_t> (original.clips.front().timelineLength), 128);
     REQUIRE (peakAbs (std::span<const float> (beforeHeal.data(), beforeHeal.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     // Duplicate is timeline-adjacent but restarts the same source window, so heal must refuse it.
     REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     const yesdaw::engine::Project ineligible = readProjectSnapshot (bundlePath);
     const MainComponentSnapshot beforeRefusal = snapshotMainComponent (*shell);
     REQUIRE (ineligible.clips.size() == 2u);
@@ -12053,8 +12044,7 @@ TEST_CASE ("Ctrl+J heals only adjacent clips with contiguous source windows",
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
-    REQUIRE (shell->keyPressed (juce::KeyPress (
-        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
@@ -12073,12 +12063,11 @@ TEST_CASE ("Ctrl+J heals only adjacent clips with contiguous source windows",
         timeline, snapshotMainComponent (*shell), original, requestedSplitTick);
     REQUIRE (timeline.getLocalBounds().contains (rulerPoint));
     mouseDownAt (timeline, rulerPoint);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('b')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
 
     const yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
     REQUIRE (split.clips.size() == 2u);
-    REQUIRE (shell->keyPressed (juce::KeyPress (
-        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('j', juce::ModifierKeys::ctrlModifier, 0)));
@@ -12091,7 +12080,7 @@ TEST_CASE ("Ctrl+J heals only adjacent clips with contiguous source windows",
     const std::vector<float> afterHeal = renderMainComponentPlayback (
         *shell, static_cast<std::uint64_t> (original.clips.front().timelineLength), 128);
     REQUIRE (afterHeal == beforeHeal);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == split.clips);
@@ -12111,8 +12100,7 @@ TEST_CASE ("comma and period nudge selected clips by the snap grid as one edit",
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (
-        'a', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.clips.size() == 2u);
@@ -12125,9 +12113,9 @@ TEST_CASE ("comma and period nudge selected clips by the snap grid as one edit",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeNudge = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeNudge.data(), beforeNudge.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier, 0)));
     yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
     REQUIRE (moved.clips[0].timelineStart == original.clips[0].timelineStart + grid);
     REQUIRE (moved.clips[1].timelineStart == original.clips[1].timelineStart + grid);
@@ -12136,20 +12124,20 @@ TEST_CASE ("comma and period nudge selected clips by the snap grid as one edit",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterRightNudge = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (afterRightNudge.data(), afterRightNudge.size())) == 0.0);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     const yesdaw::engine::Tick fine = grid / 8;
-    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier | juce::ModifierKeys::shiftModifier, 0)));
     moved = readProjectSnapshot (bundlePath);
     REQUIRE (moved.clips[0].timelineStart == original.clips[0].timelineStart + grid + fine);
     REQUIRE (moved.clips[1].timelineStart == original.clips[1].timelineStart + grid + fine);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress (',', juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::altModifier | juce::ModifierKeys::shiftModifier, 0)));
     const yesdaw::engine::Project fineRoundTrip = readProjectSnapshot (bundlePath);
     REQUIRE (fineRoundTrip.clips[0].timelineStart == original.clips[0].timelineStart + grid);
     REQUIRE (fineRoundTrip.clips[1].timelineStart == original.clips[1].timelineStart + grid);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress (',')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::altModifier, 0)));
     const yesdaw::engine::Project returned = readProjectSnapshot (bundlePath);
     REQUIRE (returned.clips == original.clips);
 
@@ -12157,7 +12145,7 @@ TEST_CASE ("comma and period nudge selected clips by the snap grid as one edit",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterReturn = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (afterReturn == beforeNudge);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == fineRoundTrip.clips);
@@ -12173,11 +12161,11 @@ TEST_CASE ("comma and period nudge the selected piano-roll note by the snap grid
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
 
     // E11: the empty-grid pencil needs the Pencil tool (the pencil selects its new note).
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.midiClips.size() == 1u);
@@ -12195,9 +12183,9 @@ TEST_CASE ("comma and period nudge the selected piano-roll note by the snap grid
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeNudge = renderMainComponentPlayback (*shell, 96'000, 512);
     REQUIRE (peakAbs (std::span<const float> (beforeNudge.data(), beforeNudge.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
-    REQUIRE (shell->keyPressed (juce::KeyPress (',')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::altModifier, 0)));
     yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
     REQUIRE (moved.midiClips.front().notes.front().startTick == originalNote.startTick - grid);
 
@@ -12206,18 +12194,18 @@ TEST_CASE ("comma and period nudge the selected piano-roll note by the snap grid
     const std::vector<float> afterLeftNudge = renderMainComponentPlayback (*shell, 96'000, 512);
     REQUIRE (afterLeftNudge != beforeNudge);
     REQUIRE (peakAbs (std::span<const float> (afterLeftNudge.data(), afterLeftNudge.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     const yesdaw::engine::Tick fine = grid / 8;
-    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier | juce::ModifierKeys::shiftModifier, 0)));
     moved = readProjectSnapshot (bundlePath);
     REQUIRE (moved.midiClips.front().notes.front().startTick == originalNote.startTick - grid + fine);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress (',', juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::altModifier | juce::ModifierKeys::shiftModifier, 0)));
     const yesdaw::engine::Project fineRoundTrip = readProjectSnapshot (bundlePath);
     REQUIRE (fineRoundTrip.midiClips.front().notes.front().startTick == originalNote.startTick - grid);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier, 0)));
     const yesdaw::engine::Project returned = readProjectSnapshot (bundlePath);
     REQUIRE (returned.midiClips == original.midiClips);
 
@@ -12225,7 +12213,7 @@ TEST_CASE ("comma and period nudge the selected piano-roll note by the snap grid
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterReturn = renderMainComponentPlayback (*shell, 96'000, 512);
     REQUIRE (afterReturn == beforeNudge);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).midiClips == fineRoundTrip.midiClips);
@@ -12617,8 +12605,8 @@ TEST_CASE ("N4 the automation lane anchors under the selected track and its head
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
     // Select the THIRD track (index 2).
@@ -12722,8 +12710,8 @@ TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
     // Open the automation lane once, only to set the write mode through the shipped chooser —
@@ -12805,11 +12793,11 @@ TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one 
     // The render follows the written automation — stopping and replaying from the top no longer
     // matches a flat unity-gain render. (G0.2 re-pin: Space TOGGLES now, so the stop the comment
     // describes is explicit — K — instead of relying on Space being a no-op while playing.)
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> automated = renderMainComponentPlayback (*shell, 48'000, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (automated.data(), automated.size())) > 0.0);
 
     // One undo removes the WHOLE ride.
@@ -12822,7 +12810,7 @@ TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one 
 
     // Read mode (the default, restored) writes NOTHING — a fader move during playback is a
     // plain, immediate edit exactly like today, never an automation point.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // Timeline view, to reopen the lane
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord   // Timeline view, to reopen the lane
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     modeChooser->setSelectedId (1, juce::sendNotificationSync);   // Read
     REQUIRE (readProjectSnapshot (bundlePath).automationMode == yesdaw::engine::AutomationMode::Read);
@@ -12872,8 +12860,8 @@ TEST_CASE ("N6 a row-boundary drag resizes exactly one track's row, persists, cl
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
@@ -12979,8 +12967,8 @@ TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));   // clip lands on track 0
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
@@ -13049,7 +13037,7 @@ TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists
                                               .withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight);
     REQUIRE_FALSE (header1.isEmpty());
     const juce::Image beforeHeaderImage = renderShell();
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // back to the Timeline view
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord   // back to the Timeline view
 
     // One click on track 1's colour swatch advances it to the FIRST palette entry; the other two
     // tracks' colours are untouched.
@@ -13093,7 +13081,7 @@ TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists
     REQUIRE (headerChanged);
 
     // One undo restores the previous (unset) colour as a single step.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // back to the Timeline view for the shortcut
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord   // back to the Timeline view for the shortcut
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks[1].colour == yesdaw::engine::kTrackColourUnset);
 
@@ -13130,7 +13118,7 @@ TEST_CASE ("the automation target chooser drives pan and FX-param lanes the rend
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered = renderMainComponentPlayback (*shell, 48'000, 128);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> baseline = renderFromStart();
@@ -13161,7 +13149,7 @@ TEST_CASE ("the automation target chooser drives pan and FX-param lanes the rend
     auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
     REQUIRE (fxChooser != nullptr);
     fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // back to the Timeline view
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord   // back to the Timeline view
     REQUIRE (targetChooser->getNumItems() == 2 + 24);   // the EQ's full param inventory appears
     REQUIRE (targetChooser->getItemText (4).contains ("eq.band.gain"));
     targetChooser->setSelectedId (5, juce::sendNotificationSync);   // FX1 eq.band.gain
@@ -13209,7 +13197,7 @@ TEST_CASE ("Ctrl+M creates a MIDI clip and the pencil adds audible notes", "[ui]
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
 
     // Ctrl+M: a one-bar MIDI clip appears on the selected track and the piano roll opens.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.size() == 1u);
     REQUIRE (project.midiClips.front().notes.empty());
@@ -13221,7 +13209,7 @@ TEST_CASE ("Ctrl+M creates a MIDI clip and the pencil adds audible notes", "[ui]
     // Pencil: with the Pencil tool (E11), a click on the empty grid creates a note at the
     // clicked key and snapped tick.
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 1u);
@@ -13276,7 +13264,7 @@ TEST_CASE ("Options toggles default-on playhead paging without changing Project 
     const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
 
     for (int step = 0; step < 32; ++step)
-        REQUIRE (shell->keyPressed (juce::KeyPress ('=', juce::ModifierKeys::shiftModifier, '+')));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::ctrlModifier, 0)));
 
     const MainComponentSnapshot before = snapshotMainComponent (*shell);
     REQUIRE (before.timelineZoomFactor == yesdaw::ui::UiTheme::Layout::timelineZoomMax);
@@ -13326,7 +13314,7 @@ TEST_CASE ("Options toggles default-on playhead paging without changing Project 
     REQUIRE (serviceMainComponentUiTimer (*shell));
     REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == before.timelineScrollSeconds);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     model->menuItemSelected (followItemId, 3);
     REQUIRE (playheadFollowMenuState().second);
@@ -13365,10 +13353,10 @@ TEST_CASE ("L starts forward shuttle playback at one-times speed without togglin
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> spacePlayback = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (spacePlayback.data(), spacePlayback.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleFaster);   // G1.1: no default chord
     const std::vector<float> shuttlePlayback = renderMainComponentPlayback (*shell, 512, 128);
     const MainComponentSnapshot shuttling = snapshotMainComponent (*shell);
     REQUIRE (shuttling.context.isPlaying);
@@ -13376,15 +13364,15 @@ TEST_CASE ("L starts forward shuttle playback at one-times speed without togglin
     REQUIRE (shuttling.context.playheadFrame == 512);
     REQUIRE (shuttlePlayback == spacePlayback);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     const juce::ModifierKeys ctrlAltShift {
         juce::ModifierKeys::ctrlModifier
             | juce::ModifierKeys::altModifier
             | juce::ModifierKeys::shiftModifier
     };
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l', ctrlAltShift, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('c')));
     REQUIRE (snapshotMainComponent (*shell).context.loopEnabled);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l', ctrlAltShift, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('c')));
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.loopEnabled);
     REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
 
@@ -13424,25 +13412,25 @@ TEST_CASE ("repeated L shuttles real playback at two-times then four-times speed
 
     const auto stopAndLocateStart = [&shell]
     {
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     };
 
     stopAndLocateStart();
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleFaster);   // G1.1: no default chord
     const std::vector<float> oneTimes = renderMainComponentPlayback (*shell, 128, 128);
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 128);
 
     stopAndLocateStart();
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleFaster);   // G1.1: no default chord
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleFaster);   // G1.1: no default chord
     const std::vector<float> twoTimes = renderMainComponentPlayback (*shell, 64, 64);
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 128);
 
     stopAndLocateStart();
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleFaster);   // G1.1: no default chord
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleFaster);   // G1.1: no default chord
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleFaster);   // G1.1: no default chord
     const std::vector<float> fourTimes = renderMainComponentPlayback (*shell, 32, 32);
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 128);
 
@@ -13482,7 +13470,7 @@ TEST_CASE ("J halves forward shuttle speed to stop and K stops from four-times s
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     for (int press = 0; press < 4; ++press)
-        REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleFaster);   // G1.1: no default chord
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.shuttlePlaybackRate == 4);
@@ -13491,14 +13479,14 @@ TEST_CASE ("J halves forward shuttle speed to stop and K stops from four-times s
     REQUIRE (peakAbs (std::span<const float> (atFourTimes.data(), atFourTimes.size())) > 0.01);
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 128);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('j')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleSlower);   // G1.1: no default chord
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.shuttlePlaybackRate == 2);
     (void) renderMainComponentPlayback (*shell, 32, 32);
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 192);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('j')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleSlower);   // G1.1: no default chord
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.shuttlePlaybackRate == 1);
@@ -13507,7 +13495,7 @@ TEST_CASE ("J halves forward shuttle speed to stop and K stops from four-times s
 
     // A further J would enter reverse on a full JKL transport. Reverse is not supported by this
     // engine, so the honest boundary is Stop at the current playhead, never fake reverse audio.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('j')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleSlower);   // G1.1: no default chord
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.shuttlePlaybackRate == 1);
@@ -13516,9 +13504,9 @@ TEST_CASE ("J halves forward shuttle speed to stop and K stops from four-times s
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 224);
 
     for (int press = 0; press < 3; ++press)
-        REQUIRE (shell->keyPressed (juce::KeyPress ('l')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportShuttleFaster);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.shuttlePlaybackRate == 4);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.shuttlePlaybackRate == 1);
@@ -13566,7 +13554,7 @@ TEST_CASE ("Options can return Stop to the captured playback start",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> defaultAudio = renderMainComponentPlayback (*shell, 256, 128);
     REQUIRE (peakAbs (std::span<const float> (defaultAudio.data(), defaultAudio.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     MainComponentSnapshot stopped = snapshotMainComponent (*shell);
     REQUIRE_FALSE (stopped.context.isPlaying);
     REQUIRE (stopped.context.playheadFrame == playbackStart + 256);
@@ -13601,7 +13589,7 @@ TEST_CASE ("Options can return Stop to the captured playback start",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> returnEnabledAudio = renderMainComponentPlayback (*shell, 256, 128);
     REQUIRE (returnEnabledAudio == defaultAudio);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     stopped = snapshotMainComponent (*shell);
     REQUIRE_FALSE (stopped.context.isPlaying);
     REQUIRE (stopped.context.playheadFrame == playbackStart);
@@ -13609,7 +13597,7 @@ TEST_CASE ("Options can return Stop to the captured playback start",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> replayed = renderMainComponentPlayback (*shell, 256, 128);
     REQUIRE (replayed == defaultAudio);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == playbackStart);
     REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
 
@@ -13652,7 +13640,7 @@ TEST_CASE ("Enter always returns the transport to timeline zero",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> zeroAudio = renderMainComponentPlayback (*shell, 128, 128);
     REQUIRE (peakAbs (std::span<const float> (zeroAudio.data(), zeroAudio.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
@@ -13668,7 +13656,7 @@ TEST_CASE ("Enter always returns the transport to timeline zero",
     REQUIRE (snapshot.context.playheadFrame == 0);
     const std::vector<float> returnedAudio = renderMainComponentPlayback (*shell, 128, 128);
     REQUIRE (returnedAudio == zeroAudio);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     auto* bar = dynamic_cast<juce::MenuBarComponent*> (
         findChildWithComponentId (*shell, "shell.menubar"));
@@ -13696,7 +13684,7 @@ TEST_CASE ("Enter always returns the transport to timeline zero",
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.playheadFrame == 0);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == nonzeroStart);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
@@ -13764,7 +13752,7 @@ TEST_CASE ("ruler double-click locates the real transport without creating a Mar
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> clickedAudio = renderMainComponentPlayback (*shell, 128, 128);
     REQUIRE (peakAbs (std::span<const float> (clickedAudio.data(), clickedAudio.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> zeroAudio = renderMainComponentPlayback (*shell, 128, 128);
@@ -13820,13 +13808,13 @@ TEST_CASE ("Shift+Space plays from the last explicit ruler locate",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> locatedAudio = renderMainComponentPlayback (*shell, 128, 128);
     REQUIRE (peakAbs (std::span<const float> (locatedAudio.data(), locatedAudio.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == lastLocateFrame + 128);
 
     // A later plain Play start must not replace the explicit locate remembered by Shift+Space.
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     (void) renderMainComponentPlayback (*shell, 64, 64);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == lastLocateFrame + 192);
 
     const juce::ModifierKeys shift { juce::ModifierKeys::shiftModifier };
@@ -13836,7 +13824,7 @@ TEST_CASE ("Shift+Space plays from the last explicit ruler locate",
     REQUIRE (snapshot.context.playheadFrame == lastLocateFrame);
     const std::vector<float> replayed = renderMainComponentPlayback (*shell, 128, 128);
     REQUIRE (replayed == locatedAudio);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     auto* bar = dynamic_cast<juce::MenuBarComponent*> (
         findChildWithComponentId (*shell, "shell.menubar"));
@@ -13857,7 +13845,7 @@ TEST_CASE ("Shift+Space plays from the last explicit ruler locate",
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey, shift, 0)));
     (void) renderMainComponentPlayback (*shell, 64, 64);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == lastLocateFrame);
     REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
 
@@ -13880,15 +13868,15 @@ TEST_CASE ("tool keys dispatch uniquely and idle Escape restores Pointer for a p
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pencil);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('s')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('3')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Scissors);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('h')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectHand);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Hand);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('z')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('6')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Zoom);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer);
 
     auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
@@ -13905,7 +13893,7 @@ TEST_CASE ("tool keys dispatch uniquely and idle Escape restores Pointer for a p
     };
     const juce::Point<int> clipPoint { clipBounds.getCentreX(), clipBounds.getCentreY() };
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     dragFromTo (timeline, emptyLanePoint, clipPoint);
     // Re-pinned to the E3 tool semantics: the Pencil press on an empty lane creates a MIDI clip
     // on that lane and opens the piano roll; the timeline clip selection is untouched (the
@@ -13913,7 +13901,7 @@ TEST_CASE ("tool keys dispatch uniquely and idle Escape restores Pointer for a p
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
     REQUIRE (readProjectSnapshot (bundlePath).midiClips.size() == 1u);
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::Timeline);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).midiClips.empty());
@@ -13927,7 +13915,7 @@ TEST_CASE ("tool keys dispatch uniquely and idle Escape restores Pointer for a p
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> beforeDelete = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (beforeDelete.data(), beforeDelete.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
@@ -13935,7 +13923,7 @@ TEST_CASE ("tool keys dispatch uniquely and idle Escape restores Pointer for a p
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> afterDelete = renderMainComponentPlayback (*shell, 512, 128);
     REQUIRE (peakAbs (std::span<const float> (afterDelete.data(), afterDelete.size())) == 0.0);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == before.clips);
 
@@ -13986,7 +13974,7 @@ TEST_CASE ("locate-point keys persist two playheads and recall their exact playb
     const juce::ModifierKeys ctrlShift {
         juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier
     };
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1', ctrlShift, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStoreLocatePoint1);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == firstStoredFrame);
 
     const juce::Point<int> fifthPoint = projectRulerPointAtTick (
@@ -13994,39 +13982,39 @@ TEST_CASE ("locate-point keys persist two playheads and recall their exact playb
     mouseDownAt (timeline, fifthPoint);
     const std::int64_t fifthStoredFrame = snapshotMainComponent (*shell).context.playheadFrame;
     REQUIRE (fifthStoredFrame > firstStoredFrame);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('5', ctrlShift, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStoreLocatePoint5);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == fifthStoredFrame);
 
     const juce::ModifierKeys alt { juce::ModifierKeys::altModifier };
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1', alt, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportRecallLocatePoint1);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == firstStoredFrame);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> firstAudio = renderMainComponentPlayback (*shell, 256, 128);
     REQUIRE (peakAbs (std::span<const float> (firstAudio.data(), firstAudio.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('5', alt, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportRecallLocatePoint5);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == fifthStoredFrame);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> fifthAudio = renderMainComponentPlayback (*shell, 256, 128);
     REQUIRE (peakAbs (std::span<const float> (fifthAudio.data(), fifthAudio.size())) > 0.01);
     REQUIRE (fifthAudio != firstAudio);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     shell.reset();
     auto reopenedShell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*reopenedShell, UiActionId::ProjectOpen));
-    REQUIRE (reopenedShell->keyPressed (juce::KeyPress ('1', alt, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*reopenedShell, UiActionId::TransportRecallLocatePoint1);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*reopenedShell).context.playheadFrame == firstStoredFrame);
     REQUIRE (reopenedShell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> reopenedAudio = renderMainComponentPlayback (*reopenedShell, 256, 128);
     REQUIRE (reopenedAudio == firstAudio);
-    REQUIRE (reopenedShell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*reopenedShell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (reopenedShell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (reopenedShell->keyPressed (juce::KeyPress ('2', alt, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*reopenedShell, UiActionId::TransportRecallLocatePoint2);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*reopenedShell).context.playheadFrame == 0);
 
     std::error_code ec;
@@ -14088,35 +14076,35 @@ TEST_CASE ("marker navigation keys locate persisted Markers and drive exact play
 
     const juce::ModifierKeys ctrl { juce::ModifierKeys::ctrlModifier };
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, ctrl, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::altModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == firstMarkerFrame);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> firstAudio = renderMainComponentPlayback (*shell, 256, 128);
     REQUIRE (peakAbs (std::span<const float> (firstAudio.data(), firstAudio.size())) > 0.01);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, ctrl, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, ctrl, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::altModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::altModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == secondMarkerFrame);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> secondAudio = renderMainComponentPlayback (*shell, 256, 128);
     REQUIRE (peakAbs (std::span<const float> (secondAudio.data(), secondAudio.size())) > 0.01);
     REQUIRE (secondAudio != firstAudio);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, ctrl, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, ctrl, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, ctrl, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::altModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::altModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::altModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == secondMarkerFrame);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, ctrl, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, ctrl, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, ctrl, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::altModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::altModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (',', juce::ModifierKeys::altModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == firstMarkerFrame);
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, ctrl, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (',', juce::ModifierKeys::altModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == firstMarkerFrame);
     REQUIRE (readProjectSnapshot (bundlePath).markers == persisted.markers);
 
@@ -14125,12 +14113,12 @@ TEST_CASE ("marker navigation keys locate persisted Markers and drive exact play
     clickButton (requireButtonForAction (*reopenedShell, UiActionId::ProjectOpen));
     REQUIRE (readProjectSnapshot (bundlePath).markers == persisted.markers);
     REQUIRE (reopenedShell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (reopenedShell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, ctrl, 0)));
+    REQUIRE (reopenedShell->keyPressed (juce::KeyPress ('.', juce::ModifierKeys::altModifier, 0)));
     REQUIRE (snapshotMainComponent (*reopenedShell).context.playheadFrame == firstMarkerFrame);
     REQUIRE (reopenedShell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> reopenedAudio = renderMainComponentPlayback (*reopenedShell, 256, 128);
     REQUIRE (reopenedAudio == firstAudio);
-    REQUIRE (reopenedShell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*reopenedShell, UiActionId::TransportStop);   // G1.1: no default chord
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
@@ -14179,7 +14167,7 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     REQUIRE_FALSE (snapshot.context.timelineRangeSelected);
     REQUIRE_FALSE (snapshot.context.loopEnabled);
     const int dispatchBeforeEmptyConvert = snapshot.context.commandDispatchCount;
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l', juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('u', juce::ModifierKeys::ctrlModifier, 0)));
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.loopEnabled);
     REQUIRE (snapshot.context.commandDispatchCount == dispatchBeforeEmptyConvert);
@@ -14223,7 +14211,7 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     REQUIRE (snapshot.timelineRangeEndFrame == rangeEnd);
 
     // Shift+L converts the committed range to the real transport loop region.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('l', juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('u', juce::ModifierKeys::ctrlModifier, 0)));
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.loopEnabled);
     REQUIRE (snapshot.playbackLoopStartFrame == rangeStart);
@@ -14303,8 +14291,7 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
 
     // With no rail row selected the chord resolves but the shell honestly does nothing.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t',
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::altModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackDuplicate);   // G1.1: no default chord
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
 
     // Enrich the source track through real controls so the duplicate has something to prove:
@@ -14348,11 +14335,11 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     REQUIRE (sendChooser != nullptr);
     sendChooser->setSelectedId (1, juce::sendNotificationSync);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
 
     const yesdaw::engine::Project before = readProjectSnapshot (bundlePath);
     REQUIRE (before.tracks.size() == 1u);
@@ -14370,12 +14357,11 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> baseline = renderMainComponentPlayback (*shell, 96'000, 512);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (baseline.data(), baseline.size())) > 0.01);
 
     // The real chord duplicates the selected track as one persisted transaction group.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t',
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::altModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackDuplicate);   // G1.1: no default chord
 
     const yesdaw::engine::Project after = readProjectSnapshot (bundlePath);
     REQUIRE (after.tracks.size() == 2u);
@@ -14425,7 +14411,7 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> doubled = renderMainComponentPlayback (*shell, 96'000, 512);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (doubled.size() == baseline.size());
     std::size_t firstMismatch = baseline.size();
     for (std::size_t i = 0; i < baseline.size(); ++i)
@@ -14449,7 +14435,7 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> restored = renderMainComponentPlayback (*shell, 96'000, 512);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (restored == baseline);
 
     // One Ctrl+Shift+Z redoes the whole group.
@@ -14466,8 +14452,7 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     REQUIRE (railAgain != nullptr);
     mouseDownAt (*railAgain, { railAgain->getWidth() / 2,
                                L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t',
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::altModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackDuplicate);   // G1.1: no default chord
     const yesdaw::engine::Project three = readProjectSnapshot (bundlePath);
     REQUIRE (three.tracks.size() == 3u);
     REQUIRE (three.tracks[0].id == source.id);
@@ -14495,12 +14480,11 @@ TEST_CASE ("Ctrl+Shift+Up and Ctrl+Shift+Down reorder the selected track with th
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
 
     // With no rail row selected the chords resolve but honestly do nothing.
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackMoveDown);   // G1.1: no default chord
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.tracks.size() == 3u);
     const yesdaw::engine::EntityId idA = original.tracks[0].id;   // owns the imported clip
@@ -14541,8 +14525,7 @@ TEST_CASE ("Ctrl+Shift+Up and Ctrl+Shift+Down reorder the selected track with th
     const juce::Rectangle<int> secondRow = firstRow.translated (0, rowHeight);
     const juce::Image beforeMove = renderShell();
 
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackMoveDown);   // G1.1: no default chord
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks[0].id == idB);
     REQUIRE (project.tracks[1].id == idA);
@@ -14553,8 +14536,7 @@ TEST_CASE ("Ctrl+Shift+Up and Ctrl+Shift+Down reorder the selected track with th
     REQUIRE (changedPixelsIn (beforeMove, afterMove, firstRow) > 0);
     REQUIRE (changedPixelsIn (beforeMove, afterMove, secondRow) > 0);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackMoveDown);   // G1.1: no default chord
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks[0].id == idB);
     REQUIRE (project.tracks[1].id == idC);
@@ -14562,15 +14544,13 @@ TEST_CASE ("Ctrl+Shift+Up and Ctrl+Shift+Down reorder the selected track with th
 
     // The bottom row cannot move further down: an honest no-op with no dispatch and no undo entry.
     const int dispatchBeforeBoundary = snapshotMainComponent (*shell).context.commandDispatchCount;
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackMoveDown);   // G1.1: no default chord
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks[2].id == idA);
     REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatchBeforeBoundary);
 
     // Ctrl+Shift+Up moves the still-selected track back up one row.
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey,
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackMoveUp);   // G1.1: no default chord
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks[0].id == idB);
     REQUIRE (project.tracks[1].id == idA);
@@ -14593,8 +14573,7 @@ TEST_CASE ("Ctrl+Shift+Up and Ctrl+Shift+Down reorder the selected track with th
     // The selection follows a fresh move: re-select the top row, move it down, and the shared
     // mute control lands on the moved track, silencing its only clip through the rebuilt graph.
     mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight / 2 });
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackMoveDown);   // G1.1: no default chord
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks[1].id == idA);
 
@@ -14610,7 +14589,7 @@ TEST_CASE ("Ctrl+Shift+Up and Ctrl+Shift+Down reorder the selected track with th
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> mutedPlayback = renderMainComponentPlayback (*shell, 4096, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (mutedPlayback.data(), mutedPlayback.size())) == 0.0);
 
     std::error_code ec;
@@ -14630,7 +14609,7 @@ TEST_CASE ("Shift+M, Shift+S, and Shift+R toggle mute, solo, and arm on the sele
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.size() == 2u);
     REQUIRE (project.clips.size() == 1u);
@@ -14652,7 +14631,7 @@ TEST_CASE ("Shift+M, Shift+S, and Shift+R toggle mute, solo, and arm on the sele
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> audible = renderMainComponentPlayback (*shell, 4096, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (audible.data(), audible.size())) > 0.01);
 
     // Shift+M mutes the selected track — persisted, playback-silencing, and the mixer stays shut.
@@ -14664,7 +14643,7 @@ TEST_CASE ("Shift+M, Shift+S, and Shift+R toggle mute, solo, and arm on the sele
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> mutedOut = renderMainComponentPlayback (*shell, 4096, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (mutedOut.data(), mutedOut.size())) == 0.0);
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::shiftModifier, 0)));
@@ -14681,7 +14660,7 @@ TEST_CASE ("Shift+M, Shift+S, and Shift+R toggle mute, solo, and arm on the sele
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> soloedOut = renderMainComponentPlayback (*shell, 4096, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (soloedOut.data(), soloedOut.size())) == 0.0);
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::shiftModifier, 0)));
@@ -14736,8 +14715,7 @@ TEST_CASE ("Shift+M, Shift+S, and Shift+R toggle mute, solo, and arm on the sele
     REQUIRE (project.markers.size() == 1u);
     REQUIRE (project.tracks.front().strip.muted);
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m',
-        juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMarkerRemove);   // G1.1: no default chord
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.markers.empty());
     REQUIRE (project.tracks.front().strip.muted);   // marker removal never touches the strip
@@ -14780,7 +14758,7 @@ TEST_CASE ("Alt+click resets faders to unity, pans to center, sends to unity, an
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> halved = renderMainComponentPlayback (*shell, 4096, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (halved.data(), halved.size())) > 0.005);
 
     mouseDownAt (*fader, fader->getLocalBounds().getCentre(), altClick);
@@ -14790,7 +14768,7 @@ TEST_CASE ("Alt+click resets faders to unity, pans to center, sends to unity, an
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> unity = renderMainComponentPlayback (*shell, 4096, 128);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (unity.size() == halved.size());
     std::size_t faderMismatch = unity.size();
     for (std::size_t i = 0; i < unity.size(); ++i)
@@ -15130,7 +15108,7 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     // A second (silent) track: deselecting the clip-owning strip later moves the interactive
     // overlay off its painted meter so the clip light is observable and clickable.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -15180,14 +15158,14 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     REQUIRE (fader != nullptr);
     fader->setValue (2.0, juce::sendNotificationSync);
     // The shared fader edit fronts the Mixer panel; return to the Timeline so the rail paints.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> loud = renderMainComponentPlayback (*shell, 8192, 128);
     REQUIRE (peakAbs (std::span<const float> (loud.data(), loud.size()))
              >= yesdaw::ui::UiTheme::Meter::clipThreshold);
     REQUIRE (serviceMainComponentUiTimer (*shell));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     // The rail meter shows the latched clip light, which survives stopped silence across ticks
     // until a real click on the rail meter clears it.
@@ -15205,7 +15183,7 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     (void) renderMainComponentPlayback (*shell, 8192, 128);
     REQUIRE (serviceMainComponentUiTimer (*shell));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));   // deselect strip 0
     clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
     // In Mixer view the rail does not paint, so every clip-coloured pixel belongs to the painted
@@ -15224,7 +15202,7 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     REQUIRE (strips != nullptr);
     mouseDownAt (*strips, stripClipPixel - strips->getPosition());
     REQUIRE (pixelsOfColour (renderShell(), shellArea, clipColour) == 0);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));               // back to the Timeline
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord               // back to the Timeline
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));   // re-select strip 0
 
     // Peak-hold decays on the tick law: a sub-clip peak paints only the held marker once the
@@ -15232,12 +15210,12 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     fader->setValue (0.35, juce::sendNotificationSync);
     // The shared fader edit deliberately fronts the Mixer panel; return to the Timeline so the
     // rail (whose meter this phase reads) is the painted surface.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     (void) renderMainComponentPlayback (*shell, 8192, 128);
     REQUIRE (serviceMainComponentUiTimer (*shell));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (serviceMainComponentUiTimer (*shell));   // live falls silent; the held marker stays
     REQUIRE (pixelsOfColour (renderShell(), railMeter, holdColour) > 0);
     REQUIRE (pixelsOfColour (renderShell(), railMeter, clipColour) == 0);
@@ -15323,7 +15301,7 @@ TEST_CASE ("bus meters read live send audio, latch a clip light, and a meter cli
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     (void) renderMainComponentPlayback (*shell, 8192, 128);
     REQUIRE (serviceMainComponentUiTimer (*shell));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     const int bothLights = clipPixels (shellArea);
     const int oneLightArea = yesdaw::ui::UiTheme::Meter::clipLightSize
@@ -15366,12 +15344,12 @@ TEST_CASE ("Alt+wheel on a piano-roll note edits its velocity undoably and tints
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
 
     // Ctrl+M + pencil: one synth note whose loudness follows its velocity.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));   // E11: the empty-grid pencil is tool-aware
     const juce::Point<int> noteCentre { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 };
     mouseDownAt (pianoRoll, noteCentre);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 1u);
     const double startVelocity = project.midiClips.front().notes.front().normalizedVelocity;
@@ -15384,7 +15362,7 @@ TEST_CASE ("Alt+wheel on a piano-roll note edits its velocity undoably and tints
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered = renderMainComponentPlayback (*shell, 96'000, 512);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         double energy = 0.0;
         for (const float sample : rendered)
             energy += std::abs (static_cast<double> (sample));
@@ -15465,12 +15443,12 @@ TEST_CASE ("piano-roll keys transpose the note selection and Ctrl+A with Del edi
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
 
     // Two penciled notes at different keys and ticks; the second stays selected.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 3 });
     mouseDownAt (pianoRoll, { (pianoRoll.getWidth() * 2) / 3, pianoRoll.getHeight() / 2 });
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 2u);
     const yesdaw::engine::EntityId firstNoteId = project.midiClips.front().notes[0].id;
@@ -15495,28 +15473,26 @@ TEST_CASE ("piano-roll keys transpose the note selection and Ctrl+A with Del edi
     REQUIRE (keyOf (secondNoteId) == secondKey);
 
     // Shift+Up/Down transpose by one octave.
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey,
-                                                juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey, juce::ModifierKeys::altModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (keyOf (secondNoteId) == secondKey + 12);
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey,
-                                                juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey, juce::ModifierKeys::altModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (keyOf (secondNoteId) == secondKey);
 
     // Outside the Piano Roll the arrows keep walking the track rail: no note changes.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
     REQUIRE (keyOf (firstNoteId) == firstKey);
     REQUIRE (keyOf (secondNoteId) == secondKey);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('3')));   // back to the Piano Roll
+    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // back to the Piano Roll
 
     // Ctrl+A selects every note; Up transposes both as ONE undo step, with audibly changed
     // playback through the real synth.
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> before = renderMainComponentPlayback (*shell, 96'000, 512);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));   // G1.1: select all notes (PianoRoll context)
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
     REQUIRE (keyOf (firstNoteId) == firstKey + 1);
     REQUIRE (keyOf (secondNoteId) == secondKey + 1);
@@ -15524,7 +15500,7 @@ TEST_CASE ("piano-roll keys transpose the note selection and Ctrl+A with Del edi
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> transposed = renderMainComponentPlayback (*shell, 96'000, 512);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (transposed != before);
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
@@ -15532,14 +15508,14 @@ TEST_CASE ("piano-roll keys transpose the note selection and Ctrl+A with Del edi
     REQUIRE (keyOf (secondNoteId) == secondKey);
 
     // Ctrl+A + Del deletes every note as one group; playback falls truly silent; one undo restores.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));   // G1.1: select all notes (PianoRoll context)
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.empty());
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> silent = renderMainComponentPlayback (*shell, 48'000, 512);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (peakAbs (std::span<const float> (silent.data(), silent.size())) == 0.0);
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
@@ -15547,7 +15523,7 @@ TEST_CASE ("piano-roll keys transpose the note selection and Ctrl+A with Del edi
     REQUIRE (project.midiClips.front().notes.size() == 2u);
 
     // Backspace deletes the selection too.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));   // G1.1: select all notes (PianoRoll context)
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::backspaceKey)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.empty());
@@ -15571,7 +15547,7 @@ TEST_CASE ("Ctrl+drag copy-drags a note and Ctrl+D duplicates it one grid step l
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
     // E12: note gestures snap through the real chooser; this gate pins the RAW copy-drag law,
     // so the chooser goes Off first.
@@ -15580,9 +15556,9 @@ TEST_CASE ("Ctrl+drag copy-drags a note and Ctrl+D duplicates it one grid step l
     REQUIRE (snapChooser != nullptr);
     snapChooser->setSelectedId (1, juce::sendNotificationSync);
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.snapEnabled);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 2 });
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 1u);
     const yesdaw::engine::Note source = project.midiClips.front().notes.front();
@@ -15593,7 +15569,7 @@ TEST_CASE ("Ctrl+drag copy-drags a note and Ctrl+D duplicates it one grid step l
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered = renderMainComponentPlayback (*shell, 96'000, 512);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> oneNote = renderSamples();
@@ -15603,7 +15579,7 @@ TEST_CASE ("Ctrl+drag copy-drags a note and Ctrl+D duplicates it one grid step l
     // every payload field preserved. Adjacent same-key playback rides the engine's same-frame
     // event order (deterministic per persisted note ids), so the audible proof below uses the
     // temporally separated drag copy instead.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));   // G1.1: Ctrl+D is Global (duplicates the note here)
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.front().notes.size() == 2u);
     const yesdaw::engine::Note copy = project.midiClips.front().notes.back();
@@ -15661,7 +15637,7 @@ TEST_CASE ("Q quantizes the selected notes to the snap grid as one undo group",
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
     // E12: the pencil floors to the real chooser grid, which would pre-align these notes and
     // leave the quantize nothing to do — pencil RAW (chooser Off) first, then restore Beat.
@@ -15669,10 +15645,10 @@ TEST_CASE ("Q quantizes the selected notes to the snap grid as one undo group",
         findChildWithComponentId (*shell, "timeline.snap.chooser"));
     REQUIRE (snapChooser != nullptr);
     snapChooser->setSelectedId (1, juce::sendNotificationSync);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));   // E11: the empty-grid pencil is tool-aware
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 3 });
     mouseDownAt (pianoRoll, { (pianoRoll.getWidth() * 2) / 3, pianoRoll.getHeight() / 2 });
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
     snapChooser->setSelectedId (3, juce::sendNotificationSync);
     REQUIRE (snapshotMainComponent (*shell).context.snapEnabled);
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
@@ -15714,12 +15690,12 @@ TEST_CASE ("Q quantizes the selected notes to the snap grid as one undo group",
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
         const std::vector<float> rendered = renderMainComponentPlayback (*shell, 96'000, 512);
-        REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
         return rendered;
     };
     const std::vector<float> before = renderSamples();
 
-    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));   // G1.1: select all notes (PianoRoll context)
     REQUIRE (shell->keyPressed (juce::KeyPress ('q')));
     REQUIRE (startOf (firstId) == firstExpected);
     REQUIRE (startOf (secondId) == secondExpected);
@@ -15770,7 +15746,7 @@ TEST_CASE ("closing with unsaved changes prompts Save, Close, or Cancel through 
     REQUIRE (chooserCalls == 0);
 
     // A real edit marks the session dirty; Cancel keeps the app open.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     nextChoice = yesdaw::ui::kCloseChoiceCancel;
     REQUIRE_FALSE (yesdaw::ui::mainComponentConfirmsClose (*shell));
     REQUIRE (chooserCalls == 1);
@@ -15782,7 +15758,7 @@ TEST_CASE ("closing with unsaved changes prompts Save, Close, or Cancel through 
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
 
     // Save closes AND marks the session clean: the very next close needs no prompt.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     nextChoice = yesdaw::ui::kCloseChoiceSave;
     const int savesBefore = snapshotMainComponent (*shell).context.saveCount;
     REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*shell));
@@ -15792,7 +15768,7 @@ TEST_CASE ("closing with unsaved changes prompts Save, Close, or Cancel through 
     REQUIRE (chooserCalls == 3);
 
     // An explicit Ctrl+S also cleans the session, so closing stays silent.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*shell));
     REQUIRE (chooserCalls == 3);
@@ -15823,7 +15799,7 @@ TEST_CASE ("the window title carries the project name and a dirty marker until s
     REQUIRE (snapshotMainComponent (*shell).windowTitle == cleanTitle);
 
     // A real edit raises the dirty marker; an explicit save clears it.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).windowTitle == dirtyTitle);
     REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).windowTitle == cleanTitle);

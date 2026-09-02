@@ -460,7 +460,7 @@ TEST_CASE ("Options count-in waits one head-tempo meter bar before persisting au
     REQUIRE (readProjectSnapshot (bundlePath).recordingTakes.empty());
     REQUIRE (shell->keyPressed (juce::KeyPress ('r')));
     REQUIRE (snapshotMainComponent (*shell).context.recordCountInActive);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.recordCountInActive);
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
     REQUIRE (readProjectSnapshot (bundlePath).recordingTakes.empty());
@@ -498,11 +498,11 @@ TEST_CASE ("Options count-in waits one head-tempo meter bar before persisting au
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> atZero = renderMainComponentPlayback (*shell, 256, 128);
     REQUIRE (peakAbs (std::span<const float> (atZero.data(), atZero.size())) == 0.0f);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
     const juce::ModifierKeys shift { juce::ModifierKeys::shiftModifier };
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, shift, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == kExpectedBarFrames);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> atBarTwo = renderMainComponentPlayback (*shell, 256, 128);

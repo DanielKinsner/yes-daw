@@ -307,7 +307,7 @@ TEST_CASE ("state probe: lanes and clips by id, and the published clip rect is c
     probe = probeOf (*shell);
     REQUIRE (static_cast<bool> (probe["transport"]["isPlaying"]));
     REQUIRE (probe["lastAction"].toString() == "transport.toggle_play_stop");   // G0.2: Space toggles
-    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     tick (*shell);
     probe = probeOf (*shell);
     REQUIRE_FALSE (static_cast<bool> (probe["transport"]["isPlaying"]));

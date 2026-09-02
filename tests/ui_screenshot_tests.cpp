@@ -484,13 +484,13 @@ TEST_CASE ("Timeline renders honestly at laptop, default, and large window sizes
         rail->mouseDown (event);
         (void) shell;
     };
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     selectRailRow (1, 2);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     selectRailRow (2, 3);
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));   // back to the Timeline view
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord   // back to the Timeline view
     REQUIRE (shell->keyPressed (juce::KeyPress ('m')));   // marker at the playhead
 
     const yesdaw::ui::MainComponentSnapshot content = yesdaw::ui::snapshotMainComponent (*shell);
@@ -657,7 +657,7 @@ TEST_CASE ("Piano roll and automation lane render honestly with real notes and b
     // pencilled with a phrase of notes across the key range.
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
 
     const yesdaw::ui::MainComponentSnapshot opened = yesdaw::ui::snapshotMainComponent (*shell);
     REQUIRE (opened.context.projectLoaded);
@@ -676,14 +676,14 @@ TEST_CASE ("Piano roll and automation lane render honestly with real notes and b
         grid.removeFromLeft (70);
         return grid.reduced (0, 2);
     };
-    REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     const juce::Rectangle<int> grid = pencilGrid();
     for (const auto& [fx, fy] : { std::pair { 0.08, 0.62 }, { 0.22, 0.55 }, { 0.36, 0.48 },
                                   { 0.52, 0.55 }, { 0.68, 0.42 }, { 0.84, 0.35 } })
         mouseDownUpAt (*pianoRoll,
                        { grid.getX() + juce::roundToInt (grid.getWidth() * fx),
                          grid.getY() + juce::roundToInt (grid.getHeight() * fy) });
-    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
 
     const auto renderRollAtSize = [&] (int width, int height, const char* filename)
     {
@@ -770,7 +770,7 @@ TEST_CASE ("Piano roll and automation lane render honestly with real notes and b
     }
 
     // The automation lane, open on the timeline with real breakpoints clicked into the canvas.
-    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     const yesdaw::ui::MainComponentSnapshot laneOpen = yesdaw::ui::snapshotMainComponent (*shell);
     REQUIRE (laneOpen.context.timelineAutomationTrackLaneVisible);
@@ -839,7 +839,7 @@ TEST_CASE ("the shell renders honestly at the resize-limit extremes",
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
     // The window's resize limits ARE the layout contract: every shipped panel must render
     // honestly at the floor and at a beyond-default wide size (E27; B41 gate model).

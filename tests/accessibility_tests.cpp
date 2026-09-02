@@ -69,7 +69,7 @@ TEST_CASE ("H11 accessibility action surface covers every shipped UI action",
     const UiActionRegistry registry;
     std::set<UiActionId> seenActions;
     std::set<std::string_view> stableIds;
-    std::set<std::string_view> keyboardPaths;
+    std::set<std::string> keyboardPaths;   // G1.1: chord@context (owned strings)
 
     REQUIRE (uiAccessibleActionIds().size() == kUiActionCount);
 
@@ -92,8 +92,12 @@ TEST_CASE ("H11 accessibility action surface covers every shipped UI action",
         // that exists is unique and resolves back to its action.
         if (! std::string_view (descriptor->defaultKey).empty())
         {
-            REQUIRE (keyboardPaths.insert (descriptor->defaultKey).second);
-            REQUIRE (registry.keymap().actionForChord (descriptor->defaultKey) == action);
+            // G1.1: uniqueness is per Focus context (the keymap's own conflict law); the chord
+            // resolves to its action in its own context.
+            REQUIRE (keyboardPaths.insert (std::string (descriptor->defaultKey) + "@"
+                                           + yesdaw::ui::focusContextName (yesdaw::ui::defaultFocusContext (action))).second);
+            REQUIRE (registry.keymap().actionForChord (descriptor->defaultKey,
+                                                       yesdaw::ui::defaultFocusContext (action)) == action);
         }
         else
         {
@@ -119,6 +123,7 @@ TEST_CASE ("H11 accessibility action surface covers every shipped UI action",
         REQUIRE (dispatch.dispatched);
     }
 
+    REQUIRE (registry.keymap().conflicts().empty());
     for (const UiActionId action : mainShellToolbarActions())
         REQUIRE (seenActions.contains (action));
 }

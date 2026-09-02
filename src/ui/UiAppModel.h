@@ -6457,6 +6457,9 @@ public:
             case UiActionId::PianoRollNoteQuantizeSelection:
                 return quantizeSelectedPianoRollNotesToCurrentGrid();
 
+            case UiActionId::PianoRollNoteSelectAll:
+                return { id, registry_.stateFor (id, context_), selectAllPianoRollNotes() };
+
             case UiActionId::ViewPianoRoll:
             {
                 UiActionDispatchResult result = registry_.dispatch (id, context_);

@@ -41,11 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G1.1 checkpoint 1 (keymap infrastructure: focus contexts, per-context lookup, aliases,
-numpad, the generated `docs/keymap-v2.md` + `[keymap-v2]`) built, gated, committed; awaiting its
-run. Checkpoint 2 next: the §4 remap itself — new defaults per section (transport, editing,
-windows, track), contexts assigned, every old-chord test site re-pinned to the new chord or to
-a harness dispatch (never weakened), the document regenerated. The drive stays paused (D14).
+**Now:** G1.1 checkpoint 2 (the §4 remap: 116 defaults changed, contexts assigned, ~350 test
+sites re-pinned, `docs/keymap-v2.md` regenerated) built, gated locally, committed; awaiting its
+exact-head run — that run ticks G1.1 (cp1's run `33604946633` was green on all ten jobs). Next:
+G1.2 menus with shortcuts. The drive stays paused (D14).
 The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
 and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
 re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
@@ -74,6 +73,45 @@ runner noise: the same paint passed the run before and the run after; the failed
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G1.1 — Keymap v2 + focus contexts, checkpoint 2: the §4 remap (2026-09-02)
+
+**Build.** The §4 table is the descriptor defaults: 116 chords changed; everything the table does
+not name has no default. Contexts (`defaultFocusContext`): Arrange — the clip verbs (cut copy
+paste duplicate repeat delete split heal fades select-all), zoom (`Ctrl+Left/Right`), locate by
+grid (`Left/Right`), clip gain (`Alt+Up/Down`); PianoRoll — note delete (`Del`), transpose
+(`Alt+Up`), octave (`Alt+Shift+Up/Down`), quantize (`Q`); Global — everything else, including the
+tools (`1 2 3 6`: the piano roll shares the palette) and the nudges (`Alt+arrows`: they act on
+the focused editor's selection). `Backspace` is an alias of `Del`. `docs/keymap-v2.md`
+regenerated (the gate compares it byte for byte).
+
+**Not bound (verbs the table names that do not exist yet).** Inspector show/hide `I`, tool popup
+`T`, colour `Alt+C`, select-all-following `Shift+F`, split at time selection `Ctrl+E`, clip mute
+`Ctrl+M`, snap toggle `Alt+S`, zoom to selection `Z`, vertical zoom `Ctrl+Up/Down`, project end
+`End`, media browser `Y`, undo history `Alt+Z`, tools 4/5 (glue, fade). Each binds when its item
+builds the verb (G1.4, G1.7, G2) — recorded, not invented. The hand tool keeps no chord.
+
+**Re-pins (never weakened).** A translator rewrote every old chord in the input (334 sites),
+recording, screenshot and probe tests: to the new spelling where one exists, else to
+`mainComponentDispatchAction` of the same action; Arrange chords pressed while the piano roll
+has focus dispatch. The registry / accessibility uniqueness gates are per context and read the
+keymap's own `conflicts()`; their chord expectations follow the table (snap presets and `+`/`-`
+unbound, zoom on `Ctrl+arrows` in Arrange only).
+
+**Deviation log (G1.1 cp2).**
+- D35 The translator's second pass (the bare-comma nudge, which its argument parser had split)
+  double-translated the two previous-bar sites the first pass had just produced; caught by the
+  bar-navigation gate and restored. Every other translated site passed first time.
+- D36 The tools, the nudges and Duplicate are Global, not Arrange as the table's section heading
+  implies: the piano-roll gates press the pencil digit, nudge notes and duplicate a note with
+  the same chords (the shell's handlers are panel-aware), which is also Logic's behaviour. The
+  table's "(A; also P where noted)" is read that way.
+- D37 "Select all (in focused editor)" needed a verb the roll did not have: the old Ctrl+A
+  selected every note through the track select-all's panel-aware handler. A real
+  `piano_roll.note.select_all` verb (Ctrl+A, PianoRoll context; requires a MIDI clip) now does
+  it through the registry and the model, and Ctrl+A in Arrange is select-all-project.
+- D38 The accessibility regions' keyboard hints were literal chords from the old map (`1`, `2`,
+  `3`, `Ctrl+Alt+L`); refreshed to the new keys or to the menu path where no chord exists.
 
 ### G1.1 — Keymap v2 + focus contexts, checkpoint 1: the infrastructure (2026-09-02)
 

@@ -181,6 +181,7 @@ enum class UiActionId : std::uint8_t
     // verb every reference DAW puts on the space bar.
     TransportTogglePlayStop,
     ViewToggleSettingsRow,
+    PianoRollNoteSelectAll,
     Count
 };
 
@@ -233,6 +234,44 @@ enum class UiFocusContext : std::uint8_t
     return "Global";
 }
 
+// G1.1 (plan §4): the Focus context an action's default chord lives in. Arrange verbs act on
+// the arrangement's selection, PianoRoll verbs on notes; the same chord may serve both
+// (Alt+Up: clip gain / transpose, Del: clip / note). The tool digits are Global: the piano roll
+// shares the tool palette (the pencil draws notes); the nudges act on whichever editor's
+// selection has focus (Logic nudges notes too). Everything else is Global.
+[[nodiscard]] constexpr UiFocusContext defaultFocusContext (UiActionId id) noexcept
+{
+    switch (id)
+    {
+        case UiActionId::TimelineClipApplyDefaultFades:
+        case UiActionId::TimelineClipCopy:
+        case UiActionId::TimelineClipCut:
+        case UiActionId::TimelineClipDelete:
+        case UiActionId::TimelineClipGainDecrease:
+        case UiActionId::TimelineClipGainIncrease:
+        case UiActionId::TimelineClipHeal:
+        case UiActionId::TimelineClipPaste:
+        case UiActionId::TimelineClipRepeatPaste:
+        case UiActionId::TimelineClipSelectAllProject:
+        case UiActionId::TimelineClipSelectAllTrack:
+        case UiActionId::TimelineClipSplit:
+        case UiActionId::TimelineZoomIn:
+        case UiActionId::TimelineZoomOut:
+        case UiActionId::TransportLocateNextGrid:
+        case UiActionId::TransportLocatePreviousGrid:
+            return UiFocusContext::Arrange;
+        case UiActionId::PianoRollNoteDelete:
+        case UiActionId::PianoRollNoteOctaveDown:
+        case UiActionId::PianoRollNoteOctaveUp:
+        case UiActionId::PianoRollNoteQuantizeSelection:
+        case UiActionId::PianoRollNoteTranspose:
+        case UiActionId::PianoRollNoteSelectAll:
+            return UiFocusContext::PianoRoll;
+        default:
+            return UiFocusContext::Global;
+    }
+}
+
 [[nodiscard]] constexpr UiFocusContext focusContextForPanel (UiPanel panel) noexcept
 {
     switch (panel)
@@ -283,8 +322,6 @@ struct UiActionDescriptor
     bool requiresRecordingTrackAvailable = false;
     bool requiresRecordingCompTakes = false;
     bool requiresAutosaveRecovery = false;
-    // G1.1: the Focus context the default chord lives in (Global unless the §4 table says A/P/M).
-    UiFocusContext context = UiFocusContext::Global;
 };
 
 struct UiActionContext
@@ -441,159 +478,159 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectSaveAs, "project.save_as", "Save As", "Ctrl+Shift+S", "Save project as",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::ProjectImportAudio, "project.import_audio", "Import WAV", "Ctrl+I", "Import audio",
+    { UiActionId::ProjectImportAudio, "project.import_audio", "Import WAV", "Ctrl+Shift+I", "Import audio",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::ProjectExportAudio, "project.export_audio", "Export Audio", "Ctrl+Shift+E", "Export audio",
+    { UiActionId::ProjectExportAudio, "project.export_audio", "Export Audio", "Ctrl+B", "Export audio",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectExportAudioCancel, "project.export_audio.cancel", "Cancel / Pointer", "Esc", "Cancel an active audio export or return to the Pointer tool",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
-    { UiActionId::ProjectExportDawproject, "project.export_dawproject", "Export DAWproject", "Ctrl+Shift+D", "Export DAWproject package",
+    { UiActionId::ProjectExportDawproject, "project.export_dawproject", "Export DAWproject", "", "Export DAWproject package",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     // G0.2: no default chord — Space is the toggle; the Play button is this verb's path
     // (ADR-0046 §2: no invented chords; a chord-less action is reached by mouse).
     { UiActionId::TransportPlay, "transport.play", "Play", "", "Play transport",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportStop, "transport.stop", "Stop", "K", "Stop transport",
+    { UiActionId::TransportStop, "transport.stop", "Stop", "", "Stop transport",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportLocateStart, "transport.locate_start", "Locate", "Home", "Locate start",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportToggleLoop, "transport.toggle_loop", "Loop", "Ctrl+Alt+Shift+L", "Toggle loop",
+    { UiActionId::TransportToggleLoop, "transport.toggle_loop", "Loop", "C", "Toggle loop",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
-    { UiActionId::DeviceRefreshAudio, "device.refresh_audio", "Refresh Device", "Ctrl+Alt+D", "Refresh audio device",
+    { UiActionId::DeviceRefreshAudio, "device.refresh_audio", "Refresh Device", "", "Refresh audio device",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::DeviceSelectTestAudio, "device.select_test_audio", "Test Device", "", "Select test audio device",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
-    { UiActionId::RecordingArmTrack, "record.track.arm", "Arm Track", "Ctrl+Alt+A", "Arm selected Track for recording",
+    { UiActionId::RecordingArmTrack, "record.track.arm", "Arm Track", "", "Arm selected Track for recording",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true, false, false, true },
-    { UiActionId::RecordingSetMonitoringPolicy, "record.monitoring_policy", "Monitor", "Ctrl+Alt+O", "Choose recording monitoring policy",
+    { UiActionId::RecordingSetMonitoringPolicy, "record.monitoring_policy", "Monitor", "", "Choose recording monitoring policy",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true },
     { UiActionId::TransportRecord, "transport.record", "Record", "R", "Record transport",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, true, true, true },
-    { UiActionId::RecordingAssembleComp, "record.comp.assemble", "Comp", "Ctrl+Alt+C", "Assemble recording Comp selection",
+    { UiActionId::RecordingAssembleComp, "record.comp.assemble", "Comp", "", "Assemble recording Comp selection",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, false, false, false, false, true },
     { UiActionId::EditUndo, "edit.undo", "Undo", "Ctrl+Z", "Undo",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, true, false, false },
     { UiActionId::EditRedo, "edit.redo", "Redo", "Ctrl+Shift+Z", "Redo",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, true, false },
-    { UiActionId::ViewTimeline, "view.timeline", "Timeline", "1", "Show timeline",
+    { UiActionId::ViewTimeline, "view.timeline", "Timeline", "", "Show timeline",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::ViewMixer, "view.mixer", "Mixer", "2", "Show mixer",
+    { UiActionId::ViewMixer, "view.mixer", "Mixer", "", "Show mixer",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::ViewPianoRoll, "view.piano_roll", "Piano Roll", "3", "Show piano roll",
+    { UiActionId::ViewPianoRoll, "view.piano_roll", "Piano Roll", "P", "Show piano roll",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::TimelineClipMove, "timeline.clip.move", "Move Clip", "Alt+M", "Move selected clip",
+    { UiActionId::TimelineClipMove, "timeline.clip.move", "Move Clip", "", "Move selected clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TimelineClipTrim, "timeline.clip.trim", "Trim Clip", "Alt+T", "Trim selected clip",
+    { UiActionId::TimelineClipTrim, "timeline.clip.trim", "Trim Clip", "", "Trim selected clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TimelineClipSplit, "timeline.clip.split", "Split Clip", "B", "Split selected clip",
+    { UiActionId::TimelineClipSplit, "timeline.clip.split", "Split Clip", "Ctrl+T", "Split selected clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TimelineClipSetGain, "timeline.clip.set_gain", "Clip Gain", "Alt+G", "Set selected clip gain",
+    { UiActionId::TimelineClipSetGain, "timeline.clip.set_gain", "Clip Gain", "", "Set selected clip gain",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TimelineClipSetFades, "timeline.clip.set_fades", "Clip Fades", "Alt+F", "Set selected clip fades",
+    { UiActionId::TimelineClipSetFades, "timeline.clip.set_fades", "Clip Fades", "", "Set selected clip fades",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipTimeStretch, "timeline.clip.time_stretch", "Time Stretch", "", "Time-stretch selected clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
-    { UiActionId::MixerTargetSetFader, "mixer.target.set_fader", "Fader", "Ctrl+Alt+F", "Set selected mixer fader",
+    { UiActionId::MixerTargetSetFader, "mixer.target.set_fader", "Fader", "", "Set selected mixer fader",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerTargetSetPan, "mixer.target.set_pan", "Pan", "Ctrl+Alt+P", "Set selected mixer pan",
+    { UiActionId::MixerTargetSetPan, "mixer.target.set_pan", "Pan", "", "Set selected mixer pan",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerTargetToggleMute, "mixer.target.toggle_mute", "Mute", "Ctrl+Alt+M", "Toggle selected mixer mute",
+    { UiActionId::MixerTargetToggleMute, "mixer.target.toggle_mute", "Mute", "", "Toggle selected mixer mute",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, true },
-    { UiActionId::MixerTargetToggleSolo, "mixer.target.toggle_solo", "Solo", "Ctrl+Alt+S", "Toggle selected mixer solo",
+    { UiActionId::MixerTargetToggleSolo, "mixer.target.toggle_solo", "Solo", "", "Toggle selected mixer solo",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, true },
-    { UiActionId::MixerReadMeters, "mixer.meters.read", "Meters", "Ctrl+Alt+V", "Read mixer meters",
+    { UiActionId::MixerReadMeters, "mixer.meters.read", "Meters", "", "Read mixer meters",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
-    { UiActionId::MixerReadLoudness, "mixer.loudness.read", "Loudness", "Ctrl+Alt+L", "Read loudness",
+    { UiActionId::MixerReadLoudness, "mixer.loudness.read", "Loudness", "", "Read loudness",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
-    { UiActionId::MixerReadSends, "mixer.sends.read", "Sends", "Ctrl+Alt+Shift+V", "Read mixer sends",
+    { UiActionId::MixerReadSends, "mixer.sends.read", "Sends", "", "Read mixer sends",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
-    { UiActionId::MixerSetFirstSendLevel, "mixer.sends.first.set_level", "Send Level", "Ctrl+Alt+Shift+N", "Set first Track send level",
+    { UiActionId::MixerSetFirstSendLevel, "mixer.sends.first.set_level", "Send Level", "", "Set first Track send level",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false },
-    { UiActionId::MixerReadFxSlots, "mixer.fx_slots.read", "FX Slots", "Ctrl+Alt+Shift+X", "Read mixer FX slots",
+    { UiActionId::MixerReadFxSlots, "mixer.fx_slots.read", "FX Slots", "", "Read mixer FX slots",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
-    { UiActionId::MixerToggleFirstFxSlotEnabled, "mixer.fx_slots.first.toggle_enabled", "FX On", "Ctrl+Alt+Shift+B", "Toggle first Track FX insert enabled",
+    { UiActionId::MixerToggleFirstFxSlotEnabled, "mixer.fx_slots.first.toggle_enabled", "FX On", "", "Toggle first Track FX insert enabled",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false },
-    { UiActionId::MixerReadGainReduction, "mixer.gr.read", "GR", "Ctrl+Alt+Shift+G", "Read mixer gain reduction",
+    { UiActionId::MixerReadGainReduction, "mixer.gr.read", "GR", "", "Read mixer gain reduction",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
-    { UiActionId::MixerReadBusFxSlots, "mixer.fx_slots.bus.read", "Bus FX", "Ctrl+Alt+Shift+U", "Read mixer Bus FX slots",
+    { UiActionId::MixerReadBusFxSlots, "mixer.fx_slots.bus.read", "Bus FX", "", "Read mixer Bus FX slots",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false },
-    { UiActionId::PianoRollNoteSelect, "piano_roll.note.select", "Select Note", "Alt+N", "Select piano-roll note",
+    { UiActionId::PianoRollNoteSelect, "piano_roll.note.select", "Select Note", "", "Select piano-roll note",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, false },
-    { UiActionId::PianoRollNoteMove, "piano_roll.note.move", "Move Note", "Alt+Shift+M", "Move selected note",
+    { UiActionId::PianoRollNoteMove, "piano_roll.note.move", "Move Note", "", "Move selected note",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
-    { UiActionId::PianoRollNoteSetLength, "piano_roll.note.set_length", "Note Length", "Alt+Shift+L", "Set selected note length",
+    { UiActionId::PianoRollNoteSetLength, "piano_roll.note.set_length", "Note Length", "", "Set selected note length",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
-    { UiActionId::PianoRollNoteTranspose, "piano_roll.note.transpose", "Transpose", "Alt+Shift+Up", "Transpose selected note",
+    { UiActionId::PianoRollNoteTranspose, "piano_roll.note.transpose", "Transpose", "Alt+Up", "Transpose selected note",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
-    { UiActionId::PianoRollNoteQuantize, "piano_roll.note.quantize", "Quantize", "Alt+Shift+Q", "Quantize selected note",
+    { UiActionId::PianoRollNoteQuantize, "piano_roll.note.quantize", "Quantize", "", "Quantize selected note",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
-    { UiActionId::PianoRollReadExpressionLanes, "piano_roll.expression.read", "Expression", "Alt+Shift+E", "Read MIDI expression lanes",
+    { UiActionId::PianoRollReadExpressionLanes, "piano_roll.expression.read", "Expression", "", "Read MIDI expression lanes",
       AccessibilityRole::Panel, UiActionKind::Query, true, false, false, false, false, true, false },
-    { UiActionId::AutosaveRecoveryRestore, "autosave.recovery.restore", "Restore Autosave", "Ctrl+Alt+R", "Restore autosave recovery snapshot",
+    { UiActionId::AutosaveRecoveryRestore, "autosave.recovery.restore", "Restore Autosave", "", "Restore autosave recovery snapshot",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, false, false, false, false, false, true },
-    { UiActionId::AutosaveRecoveryDiscard, "autosave.recovery.discard", "Discard Autosave", "Ctrl+Alt+X", "Discard autosave recovery snapshot",
+    { UiActionId::AutosaveRecoveryDiscard, "autosave.recovery.discard", "Discard Autosave", "", "Discard autosave recovery snapshot",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, false, false, false, false, false, false, false, true },
-    { UiActionId::HelpShowKeymap, "help.show_keymap", "Keymap", "Ctrl+/", "Show keymap",
+    { UiActionId::HelpShowKeymap, "help.show_keymap", "Keymap", "Alt+K", "Show keymap",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
-    { UiActionId::TimelineToolSelectPointer, "timeline.tool.pointer", "Pointer", "V", "Select pointer tool",
+    { UiActionId::TimelineToolSelectPointer, "timeline.tool.pointer", "Pointer", "1", "Select pointer tool",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::TimelineToolSelectPencil, "timeline.tool.pencil", "Pencil", "P", "Select pencil tool",
+    { UiActionId::TimelineToolSelectPencil, "timeline.tool.pencil", "Pencil", "2", "Select pencil tool",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::TimelineToolSelectScissors, "timeline.tool.scissors", "Scissors", "S", "Select scissors tool",
+    { UiActionId::TimelineToolSelectScissors, "timeline.tool.scissors", "Scissors", "3", "Select scissors tool",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::TimelineToolSelectHand, "timeline.tool.hand", "Hand", "H", "Select hand tool",
+    { UiActionId::TimelineToolSelectHand, "timeline.tool.hand", "Hand", "", "Select hand tool",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::TimelineToolSelectZoom, "timeline.tool.zoom", "Zoom", "Z", "Select zoom tool",
+    { UiActionId::TimelineToolSelectZoom, "timeline.tool.zoom", "Zoom", "6", "Select zoom tool",
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
-    { UiActionId::TimelineSnapDisable, "timeline.snap.disable", "Snap Off", "Alt+0", "Disable timeline snap",
+    { UiActionId::TimelineSnapDisable, "timeline.snap.disable", "Snap Off", "", "Disable timeline snap",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
-    { UiActionId::TimelineSnapSetBar, "timeline.snap.bar", "Snap Bar", "Ctrl+1", "Set timeline snap to bar",
+    { UiActionId::TimelineSnapSetBar, "timeline.snap.bar", "Snap Bar", "", "Set timeline snap to bar",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
-    { UiActionId::TimelineSnapSetBeat, "timeline.snap.beat", "Snap Beat", "Ctrl+2", "Set timeline snap to beat",
+    { UiActionId::TimelineSnapSetBeat, "timeline.snap.beat", "Snap Beat", "", "Set timeline snap to beat",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
-    { UiActionId::TimelineSnapSetSixteenth, "timeline.snap.sixteenth", "Snap 1/16", "Ctrl+3", "Set timeline snap to sixteenth note",
+    { UiActionId::TimelineSnapSetSixteenth, "timeline.snap.sixteenth", "Snap 1/16", "", "Set timeline snap to sixteenth note",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::TimelineAutomationToggleTrackLane, "timeline.automation.track_lane.toggle", "Automation", "A", "Toggle first Track automation lane",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
-    { UiActionId::TimelineAutomationAddBreakpoint, "timeline.automation.breakpoint.add", "Add Point", "Shift+A", "Add breakpoint to first Track automation lane",
+    { UiActionId::TimelineAutomationAddBreakpoint, "timeline.automation.breakpoint.add", "Add Point", "", "Add breakpoint to first Track automation lane",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TimelineAutomationDeleteBreakpoint, "timeline.automation.breakpoint.delete", "Delete Point", "Shift+D", "Delete breakpoint from first Track automation lane",
+    { UiActionId::TimelineAutomationDeleteBreakpoint, "timeline.automation.breakpoint.delete", "Delete Point", "", "Delete breakpoint from first Track automation lane",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipDelete, "timeline.clip.delete", "Delete Clip", "Del", "Delete selected timeline clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TrackAdd, "track.add", "Add Track", "Ctrl+T", "Add audio track",
+    { UiActionId::TrackAdd, "track.add", "Add Track", "Ctrl+Shift+N", "Add audio track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TrackRename, "track.rename", "Rename Track", "Ctrl+F2", "Rename track",
+    { UiActionId::TrackRename, "track.rename", "Rename Track", "", "Rename track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TrackRemove, "track.remove", "Remove Track", "Ctrl+Shift+T", "Remove track and its clips",
+    { UiActionId::TrackRemove, "track.remove", "Remove Track", "", "Remove track and its clips",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TrackReorder, "track.reorder", "Reorder Track", "Ctrl+Shift+R", "Reorder track",
+    { UiActionId::TrackReorder, "track.reorder", "Reorder Track", "", "Reorder track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::PianoRollNoteAdd, "pianoroll.note.add", "Add Note", "Ctrl+Shift+N", "Add note to selected MIDI clip",
+    { UiActionId::PianoRollNoteAdd, "pianoroll.note.add", "Add Note", "", "Add note to selected MIDI clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true },
-    { UiActionId::PianoRollNoteDelete, "pianoroll.note.delete", "Delete Note", "Backspace", "Delete selected note",
+    { UiActionId::PianoRollNoteDelete, "pianoroll.note.delete", "Delete Note", "Del", "Delete selected note",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true, true },
-    { UiActionId::MixerFxInsertAdd, "mixer.fx.insert.add", "Add FX", "I", "Add FX insert to selected strip",
+    { UiActionId::MixerFxInsertAdd, "mixer.fx.insert.add", "Add FX", "", "Add FX insert to selected strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerFxInsertRemove, "mixer.fx.insert.remove", "Remove FX", "Alt+Shift+X", "Remove FX insert from selected strip",
+    { UiActionId::MixerFxInsertRemove, "mixer.fx.insert.remove", "Remove FX", "", "Remove FX insert from selected strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerFxInsertToggle, "mixer.fx.insert.toggle", "Bypass FX Slot", "Alt+B", "Toggle FX insert bypass on selected strip",
+    { UiActionId::MixerFxInsertToggle, "mixer.fx.insert.toggle", "Bypass FX Slot", "", "Toggle FX insert bypass on selected strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerFxInsertReorder, "mixer.fx.insert.reorder", "Move FX Slot", "Alt+Shift+U", "Move FX insert within the selected strip chain",
+    { UiActionId::MixerFxInsertReorder, "mixer.fx.insert.reorder", "Move FX Slot", "", "Move FX insert within the selected strip chain",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerBusRename, "mixer.bus.rename", "Rename Bus", "Ctrl+Shift+B", "Rename the selected bus",
+    { UiActionId::MixerBusRename, "mixer.bus.rename", "Rename Bus", "", "Rename the selected bus",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerBusRemove, "mixer.bus.remove", "Remove Bus", "Alt+Shift+B", "Remove the selected bus (refused while sends route to it)",
+    { UiActionId::MixerBusRemove, "mixer.bus.remove", "Remove Bus", "", "Remove the selected bus (refused while sends route to it)",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerSendSetTap, "mixer.send.set_tap", "Send Tap", "Alt+Shift+T", "Toggle send pre/post fader tap",
+    { UiActionId::MixerSendSetTap, "mixer.send.set_tap", "Send Tap", "", "Toggle send pre/post fader tap",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerSendSetDestination, "mixer.send.set_destination", "Send Destination", "Ctrl+Alt+E", "Re-route send to another bus",
+    { UiActionId::MixerSendSetDestination, "mixer.send.set_destination", "Send Destination", "", "Re-route send to another bus",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerMasterSetFader, "mixer.master.fader", "Master Fader", "Alt+Shift+F", "Set persisted master gain",
+    { UiActionId::MixerMasterSetFader, "mixer.master.fader", "Master Fader", "", "Set persisted master gain",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportSetTempo, "transport.set_tempo", "Set Tempo", "Ctrl+Alt+B", "Set project tempo",
+    { UiActionId::TransportSetTempo, "transport.set_tempo", "Set Tempo", "", "Set project tempo",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportSetMeter, "transport.set_meter", "Set Time Signature", "Ctrl+Alt+N", "Set project time signature",
+    { UiActionId::TransportSetMeter, "transport.set_meter", "Set Time Signature", "", "Set project time signature",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipCopy, "timeline.clip.copy", "Copy Clip", "Ctrl+C", "Copy selected timeline clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
@@ -601,39 +638,39 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipDuplicate, "timeline.clip.duplicate", "Duplicate Clip", "Ctrl+D", "Duplicate selected timeline clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TransportToggleMetronome, "transport.toggle_metronome", "Metronome", "C", "Toggle metronome click",
+    { UiActionId::TransportToggleMetronome, "transport.toggle_metronome", "Metronome", "K", "Toggle metronome click",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::TimelineMarkerAdd, "timeline.marker.add", "Add Marker", "M", "Add marker at playhead",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TimelineMarkerRemove, "timeline.marker.remove", "Remove Marker", "Ctrl+Shift+M", "Remove nearest marker",
+    { UiActionId::TimelineMarkerRemove, "timeline.marker.remove", "Remove Marker", "", "Remove nearest marker",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TimelineMidiClipAdd, "timeline.midi_clip.add", "Add MIDI Clip", "Ctrl+M", "Add MIDI clip on selected track",
+    { UiActionId::TimelineMidiClipAdd, "timeline.midi_clip.add", "Add MIDI Clip", "", "Add MIDI clip on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::MixerFxInsertParamSet, "mixer.fx.insert.param.set", "Set FX Param", "Alt+P", "Set FX insert parameter on selected strip",
+    { UiActionId::MixerFxInsertParamSet, "mixer.fx.insert.param.set", "Set FX Param", "", "Set FX insert parameter on selected strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerBusAdd, "mixer.bus.add", "Add Bus", "Alt+U", "Add a mixer bus",
+    { UiActionId::MixerBusAdd, "mixer.bus.add", "Add Bus", "", "Add a mixer bus",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::MixerSendAdd, "mixer.send.add", "Add Send", "Alt+D", "Add send from selected track to a bus",
+    { UiActionId::MixerSendAdd, "mixer.send.add", "Add Send", "", "Add send from selected track to a bus",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerSendRemove, "mixer.send.remove", "Remove Send", "Alt+Shift+O", "Remove send from selected track",
+    { UiActionId::MixerSendRemove, "mixer.send.remove", "Remove Send", "", "Remove send from selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::MixerSendSetLevel, "mixer.send.set_level", "Send Level", "Alt+Shift+G", "Set send level on selected track",
+    { UiActionId::MixerSendSetLevel, "mixer.send.set_level", "Send Level", "", "Set send level on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::TimelineClipCut, "timeline.clip.cut", "Cut Clip", "Ctrl+X", "Cut selected timeline clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TimelineClipSelectAllTrack, "timeline.clip.select_all_track", "Select Track Clips", "Ctrl+A", "Select all clips on selected track",
+    { UiActionId::TimelineClipSelectAllTrack, "timeline.clip.select_all_track", "Select Track Clips", "Ctrl+Shift+A", "Select all clips on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TimelineClipSelectAllProject, "timeline.clip.select_all_project", "Select Project Clips", "Ctrl+Shift+A", "Select all clips in project",
+    { UiActionId::TimelineClipSelectAllProject, "timeline.clip.select_all_project", "Select Project Clips", "Ctrl+A", "Select all clips in project",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipHeal, "timeline.clip.heal", "Heal Clips", "Ctrl+J", "Heal selected clips",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
-    { UiActionId::EditNudgeLeft, "edit.nudge_left", "Nudge Left", ",", "Nudge selection left",
+    { UiActionId::EditNudgeLeft, "edit.nudge_left", "Nudge Left", "Alt+Left", "Nudge selection left",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::EditNudgeRight, "edit.nudge_right", "Nudge Right", ".", "Nudge selection right",
+    { UiActionId::EditNudgeRight, "edit.nudge_right", "Nudge Right", "Alt+Right", "Nudge selection right",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::EditNudgeLeftFine, "edit.nudge_left_fine", "Fine Nudge Left", "Shift+,", "Fine nudge selection left",
+    { UiActionId::EditNudgeLeftFine, "edit.nudge_left_fine", "Fine Nudge Left", "Alt+Shift+Left", "Fine nudge selection left",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::EditNudgeRightFine, "edit.nudge_right_fine", "Fine Nudge Right", "Shift+.", "Fine nudge selection right",
+    { UiActionId::EditNudgeRightFine, "edit.nudge_right_fine", "Fine Nudge Right", "Alt+Shift+Right", "Fine nudge selection right",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipGainIncrease, "timeline.clip.gain_increase", "Clip Gain +1 dB", "Alt+Up", "Increase selected clip gain by one decibel",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
@@ -641,7 +678,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipApplyDefaultFades, "timeline.clip.apply_default_fades", "Apply Default Fades", "Ctrl+F", "Apply default fades to selected clip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TimelineClipCrossfade, "timeline.clip.crossfade", "Crossfade Clips", "X", "Crossfade two overlapping clips",
+    { UiActionId::TimelineClipCrossfade, "timeline.clip.crossfade", "Crossfade Clips", "", "Crossfade two overlapping clips",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
     { UiActionId::EditRenameSelection, "edit.rename_selection", "Rename", "F2", "Rename selected clip or track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -649,11 +686,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineZoomFitProject, "timeline.zoom.fit_project", "Zoom to Fit Project", "Ctrl+0", "Fit the whole Project in the Timeline",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TimelineZoomFitLoop, "timeline.zoom.fit_loop", "Zoom to Fit Loop", "Ctrl+Shift+0", "Fit the current loop region in the Timeline",
+    { UiActionId::TimelineZoomFitLoop, "timeline.zoom.fit_loop", "Zoom to Fit Loop", "", "Fit the current loop region in the Timeline",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TimelineZoomIn, "timeline.zoom.in", "Zoom In", "+", "Zoom the Timeline in at the playhead",
+    { UiActionId::TimelineZoomIn, "timeline.zoom.in", "Zoom In", "Ctrl+Right", "Zoom the Timeline in at the playhead",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TimelineZoomOut, "timeline.zoom.out", "Zoom Out", "-", "Zoom the Timeline out at the playhead",
+    { UiActionId::TimelineZoomOut, "timeline.zoom.out", "Zoom Out", "Ctrl+Left", "Zoom the Timeline out at the playhead",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TrackSelectPrevious, "track.select_previous", "Previous Track", "Up", "Select previous Track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -663,55 +700,55 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportLocateNextGrid, "transport.locate_next_grid", "Next Grid", "Right", "Move playhead right by one grid unit",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportLocatePreviousBar, "transport.locate_previous_bar", "Previous Bar", "Shift+Left", "Move playhead left by one bar",
+    { UiActionId::TransportLocatePreviousBar, "transport.locate_previous_bar", "Previous Bar", ",", "Move playhead left by one bar",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportLocateNextBar, "transport.locate_next_bar", "Next Bar", "Shift+Right", "Move playhead right by one bar",
+    { UiActionId::TransportLocateNextBar, "transport.locate_next_bar", "Next Bar", ".", "Move playhead right by one bar",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TimelineTogglePlayheadFollow, "timeline.toggle_playhead_follow", "Playhead Follow", "Ctrl+Alt+Shift+F", "Toggle playhead follow",
+    { UiActionId::TimelineTogglePlayheadFollow, "timeline.toggle_playhead_follow", "Playhead Follow", "Ctrl+Shift+F", "Toggle playhead follow",
       AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
-    { UiActionId::TransportShuttleFaster, "transport.shuttle_faster", "Shuttle Faster", "L", "Play or increase shuttle speed",
+    { UiActionId::TransportShuttleFaster, "transport.shuttle_faster", "Shuttle Faster", "", "Play or increase shuttle speed",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportShuttleSlower, "transport.shuttle_slower", "Shuttle Slower", "J", "Reduce shuttle speed or stop",
+    { UiActionId::TransportShuttleSlower, "transport.shuttle_slower", "Shuttle Slower", "", "Reduce shuttle speed or stop",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportToggleReturnToStartOnStop, "transport.toggle_return_to_start_on_stop", "Return to Start on Stop", "Ctrl+Alt+Shift+K", "Toggle return to playback start on stop",
+    { UiActionId::TransportToggleReturnToStartOnStop, "transport.toggle_return_to_start_on_stop", "Return to Start on Stop", "", "Toggle return to playback start on stop",
       AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::TransportReturnToZero, "transport.return_to_zero", "Return to Zero", "Enter", "Return transport to timeline zero",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportPlayFromLastLocate, "transport.play_from_last_locate", "Play from Last Locate", "Shift+Space", "Play from last locate point",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportToggleRecordCountIn, "transport.toggle_record_count_in", "Count-in for Record", "Ctrl+Alt+Shift+R", "Toggle one-bar count-in before recording",
+    { UiActionId::TransportToggleRecordCountIn, "transport.toggle_record_count_in", "Count-in for Record", "Shift+K", "Toggle one-bar count-in before recording",
       AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
-    { UiActionId::TransportStoreLocatePoint1, "transport.locate_point.store.1", "Store Locate 1", "Ctrl+Shift+1", "Store playhead in locate point 1",
+    { UiActionId::TransportStoreLocatePoint1, "transport.locate_point.store.1", "Store Locate 1", "", "Store playhead in locate point 1",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportStoreLocatePoint2, "transport.locate_point.store.2", "Store Locate 2", "Ctrl+Shift+2", "Store playhead in locate point 2",
+    { UiActionId::TransportStoreLocatePoint2, "transport.locate_point.store.2", "Store Locate 2", "", "Store playhead in locate point 2",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportStoreLocatePoint3, "transport.locate_point.store.3", "Store Locate 3", "Ctrl+Shift+3", "Store playhead in locate point 3",
+    { UiActionId::TransportStoreLocatePoint3, "transport.locate_point.store.3", "Store Locate 3", "", "Store playhead in locate point 3",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportStoreLocatePoint4, "transport.locate_point.store.4", "Store Locate 4", "Ctrl+Shift+4", "Store playhead in locate point 4",
+    { UiActionId::TransportStoreLocatePoint4, "transport.locate_point.store.4", "Store Locate 4", "", "Store playhead in locate point 4",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportStoreLocatePoint5, "transport.locate_point.store.5", "Store Locate 5", "Ctrl+Shift+5", "Store playhead in locate point 5",
+    { UiActionId::TransportStoreLocatePoint5, "transport.locate_point.store.5", "Store Locate 5", "", "Store playhead in locate point 5",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportRecallLocatePoint1, "transport.locate_point.recall.1", "Recall Locate 1", "Alt+1", "Recall playhead from locate point 1",
+    { UiActionId::TransportRecallLocatePoint1, "transport.locate_point.recall.1", "Recall Locate 1", "", "Recall playhead from locate point 1",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportRecallLocatePoint2, "transport.locate_point.recall.2", "Recall Locate 2", "Alt+2", "Recall playhead from locate point 2",
+    { UiActionId::TransportRecallLocatePoint2, "transport.locate_point.recall.2", "Recall Locate 2", "", "Recall playhead from locate point 2",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportRecallLocatePoint3, "transport.locate_point.recall.3", "Recall Locate 3", "Alt+3", "Recall playhead from locate point 3",
+    { UiActionId::TransportRecallLocatePoint3, "transport.locate_point.recall.3", "Recall Locate 3", "", "Recall playhead from locate point 3",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportRecallLocatePoint4, "transport.locate_point.recall.4", "Recall Locate 4", "Alt+4", "Recall playhead from locate point 4",
+    { UiActionId::TransportRecallLocatePoint4, "transport.locate_point.recall.4", "Recall Locate 4", "", "Recall playhead from locate point 4",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportRecallLocatePoint5, "transport.locate_point.recall.5", "Recall Locate 5", "Alt+5", "Recall playhead from locate point 5",
+    { UiActionId::TransportRecallLocatePoint5, "transport.locate_point.recall.5", "Recall Locate 5", "", "Recall playhead from locate point 5",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportLocatePreviousMarker, "transport.locate_previous_marker", "Previous Marker", "Ctrl+Left", "Move playhead to the previous Marker",
+    { UiActionId::TransportLocatePreviousMarker, "transport.locate_previous_marker", "Previous Marker", "Alt+,", "Move playhead to the previous Marker",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportLocateNextMarker, "transport.locate_next_marker", "Next Marker", "Ctrl+Right", "Move playhead to the next Marker",
+    { UiActionId::TransportLocateNextMarker, "transport.locate_next_marker", "Next Marker", "Alt+.", "Move playhead to the next Marker",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TimelineRangeToLoop, "timeline.range_to_loop", "Range To Loop", "Shift+L", "Convert the ruler range selection to the loop region",
+    { UiActionId::TimelineRangeToLoop, "timeline.range_to_loop", "Range To Loop", "Ctrl+U", "Convert the ruler range selection to the loop region",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TrackDuplicate, "track.duplicate", "Duplicate Track", "Ctrl+Alt+T", "Duplicate selected track with clips and strip",
+    { UiActionId::TrackDuplicate, "track.duplicate", "Duplicate Track", "", "Duplicate selected track with clips and strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TrackMoveUp, "track.move_up", "Move Track Up", "Ctrl+Shift+Up", "Move selected track up one row",
+    { UiActionId::TrackMoveUp, "track.move_up", "Move Track Up", "", "Move selected track up one row",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TrackMoveDown, "track.move_down", "Move Track Down", "Ctrl+Shift+Down", "Move selected track down one row",
+    { UiActionId::TrackMoveDown, "track.move_down", "Move Track Down", "", "Move selected track down one row",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TrackToggleMute, "track.toggle_mute", "Mute Track", "Shift+M", "Toggle mute on selected track",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
@@ -719,32 +756,35 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::TrackToggleArm, "record.track.toggle_arm", "Arm Selected Track", "Shift+R", "Toggle recording arm on selected track",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, false, false, true, false, false, true },
-    { UiActionId::PianoRollNoteSetVelocity, "piano_roll.note.set_velocity", "Note Velocity", "Alt+Shift+V", "Set selected note velocity",
+    { UiActionId::PianoRollNoteSetVelocity, "piano_roll.note.set_velocity", "Note Velocity", "", "Set selected note velocity",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
-    { UiActionId::PianoRollNoteOctaveUp, "piano_roll.note.octave_up", "Octave Up", "Shift+Up", "Transpose selected notes up one octave",
+    { UiActionId::PianoRollNoteOctaveUp, "piano_roll.note.octave_up", "Octave Up", "Alt+Shift+Up", "Transpose selected notes up one octave",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
-    { UiActionId::PianoRollNoteOctaveDown, "piano_roll.note.octave_down", "Octave Down", "Shift+Down", "Transpose selected notes down one octave",
+    { UiActionId::PianoRollNoteOctaveDown, "piano_roll.note.octave_down", "Octave Down", "Alt+Shift+Down", "Transpose selected notes down one octave",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
-    { UiActionId::PianoRollNoteDuplicate, "piano_roll.note.duplicate", "Duplicate Note", "Alt+Shift+D", "Duplicate selected note one grid step later",
+    { UiActionId::PianoRollNoteDuplicate, "piano_roll.note.duplicate", "Duplicate Note", "", "Duplicate selected note one grid step later",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
     { UiActionId::PianoRollNoteQuantizeSelection, "piano_roll.note.quantize_selection", "Quantize Notes", "Q", "Quantize selected notes to the snap grid",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true, true },
-    { UiActionId::MixerTrackSetOutput, "mixer.track.output", "Track Output", "Ctrl+Alt+G", "Route the selected Track's main output to master or a bus",
+    { UiActionId::MixerTrackSetOutput, "mixer.track.output", "Track Output", "", "Route the selected Track's main output to master or a bus",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
-    { UiActionId::TimelineToggleMixerDock, "timeline.mixer_dock.toggle", "Mixer Dock", "Ctrl+Alt+Shift+M", "Show or hide the bottom mixer dock",
+    { UiActionId::TimelineToggleMixerDock, "timeline.mixer_dock.toggle", "Mixer Dock", "X", "Show or hide the bottom mixer dock",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
-    { UiActionId::InspectorShowClipTab, "inspector.tab.clip", "Clip", "Ctrl+Alt+I", "Show the clip inspector tab",
+    { UiActionId::InspectorShowClipTab, "inspector.tab.clip", "Clip", "", "Show the clip inspector tab",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
-    { UiActionId::InspectorShowTrackTab, "inspector.tab.track", "Track", "Ctrl+Alt+Shift+I", "Show the track inspector tab",
+    { UiActionId::InspectorShowTrackTab, "inspector.tab.track", "Track", "", "Show the track inspector tab",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
-    { UiActionId::MixerTargetToggleSoloSafe, "mixer.target.toggle_solo_safe", "Solo Safe", "Ctrl+Alt+Shift+S", "Toggle solo-safe on the selected mixer strip",
+    { UiActionId::MixerTargetToggleSoloSafe, "mixer.target.toggle_solo_safe", "Solo Safe", "", "Toggle solo-safe on the selected mixer strip",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, true },
     // G0.2: Space = play/stop toggle (Logic, Pro Tools, everyone).
     { UiActionId::TransportTogglePlayStop, "transport.toggle_play_stop", "Play/Stop", "Space", "Toggle play and stop",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     // G0.7: the collapsible Audio & Export settings row under the toolbar (Options menu).
     { UiActionId::ViewToggleSettingsRow, "view.toggle_settings_row", "Audio & Export Settings", "", "Show or hide the audio and export settings row",
-      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    // G1.1 (§4 "select all in the focused editor"): every note of the selected MIDI clip.
+    { UiActionId::PianoRollNoteSelectAll, "piano_roll.note.select_all", "Select All Notes", "Ctrl+A", "Select every note in the selected MIDI clip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -852,9 +892,10 @@ public:
         const char* alias;
         const char* canonical;
     };
-    static constexpr std::array<ChordAlias, 2> kChordAliases {{
+    static constexpr std::array<ChordAlias, 3> kChordAliases {{
         { "Ctrl+Y", "Ctrl+Shift+Z" },
         { "Return", "Enter" },
+        { "Backspace", "Del" },   // §4: Delete / Backspace are one verb
     }};
 
     [[nodiscard]] static std::string_view canonicalChord (std::string_view chord) noexcept
@@ -867,8 +908,7 @@ public:
 
     [[nodiscard]] static UiFocusContext contextOf (UiActionId id) noexcept
     {
-        const UiActionDescriptor* descriptor = descriptorFor (id);
-        return descriptor != nullptr ? descriptor->context : UiFocusContext::Global;
+        return defaultFocusContext (id);
     }
 
     // The action a chord dispatches in a Focus context: that context's own binding first, then
@@ -969,7 +1009,7 @@ public:
             out += "| Chord | Action | Stable id |\n|---|---|---|\n";
             for (const auto& descriptor : kUiActionDescriptors)
             {
-                if (descriptor.context != context)
+                if (defaultFocusContext (descriptor.id) != context)
                     continue;
                 const std::string& chord = chords_[actionIndex (descriptor.id)];
                 if (chord.empty())
@@ -1333,6 +1373,10 @@ public:
             case UiActionId::PianoRollReadExpressionLanes:
                 context.activePanel = UiPanel::PianoRoll;
                 ++context.midiReadCount;
+                break;
+
+            case UiActionId::PianoRollNoteSelectAll:
+                context.activePanel = UiPanel::PianoRoll;
                 break;
 
             case UiActionId::AutosaveRecoveryRestore:

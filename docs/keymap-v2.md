@@ -12,162 +12,79 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `Ctrl+O` | Open | `project.open` |
 | `Ctrl+S` | Save | `project.save` |
 | `Ctrl+Shift+S` | Save As | `project.save_as` |
-| `Ctrl+I` | Import WAV | `project.import_audio` |
-| `Ctrl+Shift+E` | Export Audio | `project.export_audio` |
+| `Ctrl+Shift+I` | Import WAV | `project.import_audio` |
+| `Ctrl+B` | Export Audio | `project.export_audio` |
 | `Esc` | Cancel / Pointer | `project.export_audio.cancel` |
-| `Ctrl+Shift+D` | Export DAWproject | `project.export_dawproject` |
-| `K` | Stop | `transport.stop` |
 | `Home` | Locate | `transport.locate_start` |
-| `Ctrl+Alt+Shift+L` | Loop | `transport.toggle_loop` |
-| `Ctrl+Alt+D` | Refresh Device | `device.refresh_audio` |
-| `Ctrl+Alt+A` | Arm Track | `record.track.arm` |
-| `Ctrl+Alt+O` | Monitor | `record.monitoring_policy` |
+| `C` | Loop | `transport.toggle_loop` |
 | `R` | Record | `transport.record` |
-| `Ctrl+Alt+C` | Comp | `record.comp.assemble` |
 | `Ctrl+Z` | Undo | `edit.undo` |
 | `Ctrl+Shift+Z` | Redo | `edit.redo` |
-| `1` | Timeline | `view.timeline` |
-| `2` | Mixer | `view.mixer` |
-| `3` | Piano Roll | `view.piano_roll` |
-| `Alt+M` | Move Clip | `timeline.clip.move` |
-| `Alt+T` | Trim Clip | `timeline.clip.trim` |
-| `B` | Split Clip | `timeline.clip.split` |
-| `Alt+G` | Clip Gain | `timeline.clip.set_gain` |
-| `Alt+F` | Clip Fades | `timeline.clip.set_fades` |
-| `Ctrl+Alt+F` | Fader | `mixer.target.set_fader` |
-| `Ctrl+Alt+P` | Pan | `mixer.target.set_pan` |
-| `Ctrl+Alt+M` | Mute | `mixer.target.toggle_mute` |
-| `Ctrl+Alt+S` | Solo | `mixer.target.toggle_solo` |
-| `Ctrl+Alt+V` | Meters | `mixer.meters.read` |
-| `Ctrl+Alt+L` | Loudness | `mixer.loudness.read` |
-| `Ctrl+Alt+Shift+V` | Sends | `mixer.sends.read` |
-| `Ctrl+Alt+Shift+N` | Send Level | `mixer.sends.first.set_level` |
-| `Ctrl+Alt+Shift+X` | FX Slots | `mixer.fx_slots.read` |
-| `Ctrl+Alt+Shift+B` | FX On | `mixer.fx_slots.first.toggle_enabled` |
-| `Ctrl+Alt+Shift+G` | GR | `mixer.gr.read` |
-| `Ctrl+Alt+Shift+U` | Bus FX | `mixer.fx_slots.bus.read` |
-| `Alt+N` | Select Note | `piano_roll.note.select` |
-| `Alt+Shift+M` | Move Note | `piano_roll.note.move` |
-| `Alt+Shift+L` | Note Length | `piano_roll.note.set_length` |
-| `Alt+Shift+Up` | Transpose | `piano_roll.note.transpose` |
-| `Alt+Shift+Q` | Quantize | `piano_roll.note.quantize` |
-| `Alt+Shift+E` | Expression | `piano_roll.expression.read` |
-| `Ctrl+Alt+R` | Restore Autosave | `autosave.recovery.restore` |
-| `Ctrl+Alt+X` | Discard Autosave | `autosave.recovery.discard` |
-| `Ctrl+/` | Keymap | `help.show_keymap` |
-| `V` | Pointer | `timeline.tool.pointer` |
-| `P` | Pencil | `timeline.tool.pencil` |
-| `S` | Scissors | `timeline.tool.scissors` |
-| `H` | Hand | `timeline.tool.hand` |
-| `Z` | Zoom | `timeline.tool.zoom` |
-| `Alt+0` | Snap Off | `timeline.snap.disable` |
-| `Ctrl+1` | Snap Bar | `timeline.snap.bar` |
-| `Ctrl+2` | Snap Beat | `timeline.snap.beat` |
-| `Ctrl+3` | Snap 1/16 | `timeline.snap.sixteenth` |
+| `P` | Piano Roll | `view.piano_roll` |
+| `Alt+K` | Keymap | `help.show_keymap` |
+| `1` | Pointer | `timeline.tool.pointer` |
+| `2` | Pencil | `timeline.tool.pencil` |
+| `3` | Scissors | `timeline.tool.scissors` |
+| `6` | Zoom | `timeline.tool.zoom` |
 | `A` | Automation | `timeline.automation.track_lane.toggle` |
-| `Shift+A` | Add Point | `timeline.automation.breakpoint.add` |
-| `Shift+D` | Delete Point | `timeline.automation.breakpoint.delete` |
-| `Del` | Delete Clip | `timeline.clip.delete` |
-| `Ctrl+T` | Add Track | `track.add` |
-| `Ctrl+F2` | Rename Track | `track.rename` |
-| `Ctrl+Shift+T` | Remove Track | `track.remove` |
-| `Ctrl+Shift+R` | Reorder Track | `track.reorder` |
-| `Ctrl+Shift+N` | Add Note | `pianoroll.note.add` |
-| `Backspace` | Delete Note | `pianoroll.note.delete` |
-| `I` | Add FX | `mixer.fx.insert.add` |
-| `Alt+Shift+X` | Remove FX | `mixer.fx.insert.remove` |
-| `Alt+B` | Bypass FX Slot | `mixer.fx.insert.toggle` |
-| `Alt+Shift+U` | Move FX Slot | `mixer.fx.insert.reorder` |
-| `Ctrl+Shift+B` | Rename Bus | `mixer.bus.rename` |
-| `Alt+Shift+B` | Remove Bus | `mixer.bus.remove` |
-| `Alt+Shift+T` | Send Tap | `mixer.send.set_tap` |
-| `Ctrl+Alt+E` | Send Destination | `mixer.send.set_destination` |
-| `Alt+Shift+F` | Master Fader | `mixer.master.fader` |
-| `Ctrl+Alt+B` | Set Tempo | `transport.set_tempo` |
-| `Ctrl+Alt+N` | Set Time Signature | `transport.set_meter` |
-| `Ctrl+C` | Copy Clip | `timeline.clip.copy` |
-| `Ctrl+V` | Paste Clip | `timeline.clip.paste` |
+| `Ctrl+Shift+N` | Add Track | `track.add` |
 | `Ctrl+D` | Duplicate Clip | `timeline.clip.duplicate` |
-| `C` | Metronome | `transport.toggle_metronome` |
+| `K` | Metronome | `transport.toggle_metronome` |
 | `M` | Add Marker | `timeline.marker.add` |
-| `Ctrl+Shift+M` | Remove Marker | `timeline.marker.remove` |
-| `Ctrl+M` | Add MIDI Clip | `timeline.midi_clip.add` |
-| `Alt+P` | Set FX Param | `mixer.fx.insert.param.set` |
-| `Alt+U` | Add Bus | `mixer.bus.add` |
-| `Alt+D` | Add Send | `mixer.send.add` |
-| `Alt+Shift+O` | Remove Send | `mixer.send.remove` |
-| `Alt+Shift+G` | Send Level | `mixer.send.set_level` |
-| `Ctrl+X` | Cut Clip | `timeline.clip.cut` |
-| `Ctrl+A` | Select Track Clips | `timeline.clip.select_all_track` |
-| `Ctrl+Shift+A` | Select Project Clips | `timeline.clip.select_all_project` |
-| `Ctrl+J` | Heal Clips | `timeline.clip.heal` |
-| `,` | Nudge Left | `edit.nudge_left` |
-| `.` | Nudge Right | `edit.nudge_right` |
-| `Shift+,` | Fine Nudge Left | `edit.nudge_left_fine` |
-| `Shift+.` | Fine Nudge Right | `edit.nudge_right_fine` |
-| `Alt+Up` | Clip Gain +1 dB | `timeline.clip.gain_increase` |
-| `Alt+Down` | Clip Gain -1 dB | `timeline.clip.gain_decrease` |
-| `Ctrl+F` | Apply Default Fades | `timeline.clip.apply_default_fades` |
-| `X` | Crossfade Clips | `timeline.clip.crossfade` |
+| `Alt+Left` | Nudge Left | `edit.nudge_left` |
+| `Alt+Right` | Nudge Right | `edit.nudge_right` |
+| `Alt+Shift+Left` | Fine Nudge Left | `edit.nudge_left_fine` |
+| `Alt+Shift+Right` | Fine Nudge Right | `edit.nudge_right_fine` |
 | `F2` | Rename | `edit.rename_selection` |
-| `Ctrl+R` | Repeat Paste | `timeline.clip.repeat_paste` |
 | `Ctrl+0` | Zoom to Fit Project | `timeline.zoom.fit_project` |
-| `Ctrl+Shift+0` | Zoom to Fit Loop | `timeline.zoom.fit_loop` |
-| `+` | Zoom In | `timeline.zoom.in` |
-| `-` | Zoom Out | `timeline.zoom.out` |
 | `Up` | Previous Track | `track.select_previous` |
 | `Down` | Next Track | `track.select_next` |
-| `Left` | Previous Grid | `transport.locate_previous_grid` |
-| `Right` | Next Grid | `transport.locate_next_grid` |
-| `Shift+Left` | Previous Bar | `transport.locate_previous_bar` |
-| `Shift+Right` | Next Bar | `transport.locate_next_bar` |
-| `Ctrl+Alt+Shift+F` | Playhead Follow | `timeline.toggle_playhead_follow` |
-| `L` | Shuttle Faster | `transport.shuttle_faster` |
-| `J` | Shuttle Slower | `transport.shuttle_slower` |
-| `Ctrl+Alt+Shift+K` | Return to Start on Stop | `transport.toggle_return_to_start_on_stop` |
+| `,` | Previous Bar | `transport.locate_previous_bar` |
+| `.` | Next Bar | `transport.locate_next_bar` |
+| `Ctrl+Shift+F` | Playhead Follow | `timeline.toggle_playhead_follow` |
 | `Enter` | Return to Zero | `transport.return_to_zero` |
 | `Shift+Space` | Play from Last Locate | `transport.play_from_last_locate` |
-| `Ctrl+Alt+Shift+R` | Count-in for Record | `transport.toggle_record_count_in` |
-| `Ctrl+Shift+1` | Store Locate 1 | `transport.locate_point.store.1` |
-| `Ctrl+Shift+2` | Store Locate 2 | `transport.locate_point.store.2` |
-| `Ctrl+Shift+3` | Store Locate 3 | `transport.locate_point.store.3` |
-| `Ctrl+Shift+4` | Store Locate 4 | `transport.locate_point.store.4` |
-| `Ctrl+Shift+5` | Store Locate 5 | `transport.locate_point.store.5` |
-| `Alt+1` | Recall Locate 1 | `transport.locate_point.recall.1` |
-| `Alt+2` | Recall Locate 2 | `transport.locate_point.recall.2` |
-| `Alt+3` | Recall Locate 3 | `transport.locate_point.recall.3` |
-| `Alt+4` | Recall Locate 4 | `transport.locate_point.recall.4` |
-| `Alt+5` | Recall Locate 5 | `transport.locate_point.recall.5` |
-| `Ctrl+Left` | Previous Marker | `transport.locate_previous_marker` |
-| `Ctrl+Right` | Next Marker | `transport.locate_next_marker` |
-| `Shift+L` | Range To Loop | `timeline.range_to_loop` |
-| `Ctrl+Alt+T` | Duplicate Track | `track.duplicate` |
-| `Ctrl+Shift+Up` | Move Track Up | `track.move_up` |
-| `Ctrl+Shift+Down` | Move Track Down | `track.move_down` |
+| `Shift+K` | Count-in for Record | `transport.toggle_record_count_in` |
+| `Alt+,` | Previous Marker | `transport.locate_previous_marker` |
+| `Alt+.` | Next Marker | `transport.locate_next_marker` |
+| `Ctrl+U` | Range To Loop | `timeline.range_to_loop` |
 | `Shift+M` | Mute Track | `track.toggle_mute` |
 | `Shift+S` | Solo Track | `track.toggle_solo` |
 | `Shift+R` | Arm Selected Track | `record.track.toggle_arm` |
-| `Alt+Shift+V` | Note Velocity | `piano_roll.note.set_velocity` |
-| `Shift+Up` | Octave Up | `piano_roll.note.octave_up` |
-| `Shift+Down` | Octave Down | `piano_roll.note.octave_down` |
-| `Alt+Shift+D` | Duplicate Note | `piano_roll.note.duplicate` |
-| `Q` | Quantize Notes | `piano_roll.note.quantize_selection` |
-| `Ctrl+Alt+G` | Track Output | `mixer.track.output` |
-| `Ctrl+Alt+Shift+M` | Mixer Dock | `timeline.mixer_dock.toggle` |
-| `Ctrl+Alt+I` | Clip | `inspector.tab.clip` |
-| `Ctrl+Alt+Shift+I` | Track | `inspector.tab.track` |
-| `Ctrl+Alt+Shift+S` | Solo Safe | `mixer.target.toggle_solo_safe` |
+| `X` | Mixer Dock | `timeline.mixer_dock.toggle` |
 | `Space` | Play/Stop | `transport.toggle_play_stop` |
 
 ## Arrange
 
 | Chord | Action | Stable id |
 |---|---|---|
+| `Ctrl+T` | Split Clip | `timeline.clip.split` |
+| `Del` | Delete Clip | `timeline.clip.delete` |
+| `Ctrl+C` | Copy Clip | `timeline.clip.copy` |
+| `Ctrl+V` | Paste Clip | `timeline.clip.paste` |
+| `Ctrl+X` | Cut Clip | `timeline.clip.cut` |
+| `Ctrl+Shift+A` | Select Track Clips | `timeline.clip.select_all_track` |
+| `Ctrl+A` | Select Project Clips | `timeline.clip.select_all_project` |
+| `Ctrl+J` | Heal Clips | `timeline.clip.heal` |
+| `Alt+Up` | Clip Gain +1 dB | `timeline.clip.gain_increase` |
+| `Alt+Down` | Clip Gain -1 dB | `timeline.clip.gain_decrease` |
+| `Ctrl+F` | Apply Default Fades | `timeline.clip.apply_default_fades` |
+| `Ctrl+R` | Repeat Paste | `timeline.clip.repeat_paste` |
+| `Ctrl+Right` | Zoom In | `timeline.zoom.in` |
+| `Ctrl+Left` | Zoom Out | `timeline.zoom.out` |
+| `Left` | Previous Grid | `transport.locate_previous_grid` |
+| `Right` | Next Grid | `transport.locate_next_grid` |
 
 ## PianoRoll
 
 | Chord | Action | Stable id |
 |---|---|---|
+| `Alt+Up` | Transpose | `piano_roll.note.transpose` |
+| `Del` | Delete Note | `pianoroll.note.delete` |
+| `Alt+Shift+Up` | Octave Up | `piano_roll.note.octave_up` |
+| `Alt+Shift+Down` | Octave Down | `piano_roll.note.octave_down` |
+| `Q` | Quantize Notes | `piano_roll.note.quantize_selection` |
+| `Ctrl+A` | Select All Notes | `piano_roll.note.select_all` |
 
 ## Mixer
 
@@ -176,7 +93,91 @@ the numpad's digits and operators spell the same chords as the main keys.
 
 ## No default chord
 
+- Export DAWproject (`project.export_dawproject`)
 - Play (`transport.play`)
+- Stop (`transport.stop`)
+- Refresh Device (`device.refresh_audio`)
 - Test Device (`device.select_test_audio`)
+- Arm Track (`record.track.arm`)
+- Monitor (`record.monitoring_policy`)
+- Comp (`record.comp.assemble`)
+- Timeline (`view.timeline`)
+- Mixer (`view.mixer`)
+- Move Clip (`timeline.clip.move`)
+- Trim Clip (`timeline.clip.trim`)
+- Clip Gain (`timeline.clip.set_gain`)
+- Clip Fades (`timeline.clip.set_fades`)
 - Time Stretch (`timeline.clip.time_stretch`)
+- Fader (`mixer.target.set_fader`)
+- Pan (`mixer.target.set_pan`)
+- Mute (`mixer.target.toggle_mute`)
+- Solo (`mixer.target.toggle_solo`)
+- Meters (`mixer.meters.read`)
+- Loudness (`mixer.loudness.read`)
+- Sends (`mixer.sends.read`)
+- Send Level (`mixer.sends.first.set_level`)
+- FX Slots (`mixer.fx_slots.read`)
+- FX On (`mixer.fx_slots.first.toggle_enabled`)
+- GR (`mixer.gr.read`)
+- Bus FX (`mixer.fx_slots.bus.read`)
+- Select Note (`piano_roll.note.select`)
+- Move Note (`piano_roll.note.move`)
+- Note Length (`piano_roll.note.set_length`)
+- Quantize (`piano_roll.note.quantize`)
+- Expression (`piano_roll.expression.read`)
+- Restore Autosave (`autosave.recovery.restore`)
+- Discard Autosave (`autosave.recovery.discard`)
+- Hand (`timeline.tool.hand`)
+- Snap Off (`timeline.snap.disable`)
+- Snap Bar (`timeline.snap.bar`)
+- Snap Beat (`timeline.snap.beat`)
+- Snap 1/16 (`timeline.snap.sixteenth`)
+- Add Point (`timeline.automation.breakpoint.add`)
+- Delete Point (`timeline.automation.breakpoint.delete`)
+- Rename Track (`track.rename`)
+- Remove Track (`track.remove`)
+- Reorder Track (`track.reorder`)
+- Add Note (`pianoroll.note.add`)
+- Add FX (`mixer.fx.insert.add`)
+- Remove FX (`mixer.fx.insert.remove`)
+- Bypass FX Slot (`mixer.fx.insert.toggle`)
+- Move FX Slot (`mixer.fx.insert.reorder`)
+- Rename Bus (`mixer.bus.rename`)
+- Remove Bus (`mixer.bus.remove`)
+- Send Tap (`mixer.send.set_tap`)
+- Send Destination (`mixer.send.set_destination`)
+- Master Fader (`mixer.master.fader`)
+- Set Tempo (`transport.set_tempo`)
+- Set Time Signature (`transport.set_meter`)
+- Remove Marker (`timeline.marker.remove`)
+- Add MIDI Clip (`timeline.midi_clip.add`)
+- Set FX Param (`mixer.fx.insert.param.set`)
+- Add Bus (`mixer.bus.add`)
+- Add Send (`mixer.send.add`)
+- Remove Send (`mixer.send.remove`)
+- Send Level (`mixer.send.set_level`)
+- Crossfade Clips (`timeline.clip.crossfade`)
+- Zoom to Fit Loop (`timeline.zoom.fit_loop`)
+- Shuttle Faster (`transport.shuttle_faster`)
+- Shuttle Slower (`transport.shuttle_slower`)
+- Return to Start on Stop (`transport.toggle_return_to_start_on_stop`)
+- Store Locate 1 (`transport.locate_point.store.1`)
+- Store Locate 2 (`transport.locate_point.store.2`)
+- Store Locate 3 (`transport.locate_point.store.3`)
+- Store Locate 4 (`transport.locate_point.store.4`)
+- Store Locate 5 (`transport.locate_point.store.5`)
+- Recall Locate 1 (`transport.locate_point.recall.1`)
+- Recall Locate 2 (`transport.locate_point.recall.2`)
+- Recall Locate 3 (`transport.locate_point.recall.3`)
+- Recall Locate 4 (`transport.locate_point.recall.4`)
+- Recall Locate 5 (`transport.locate_point.recall.5`)
+- Duplicate Track (`track.duplicate`)
+- Move Track Up (`track.move_up`)
+- Move Track Down (`track.move_down`)
+- Note Velocity (`piano_roll.note.set_velocity`)
+- Duplicate Note (`piano_roll.note.duplicate`)
+- Track Output (`mixer.track.output`)
+- Clip (`inspector.tab.clip`)
+- Track (`inspector.tab.track`)
+- Solo Safe (`mixer.target.toggle_solo_safe`)
 - Audio & Export Settings (`view.toggle_settings_row`)
