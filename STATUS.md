@@ -41,10 +41,12 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.1 checkpoint 2 (the mixer and the piano roll as Editor-dock tabs — X / P / Mixer —
-no modal views; `[dock-tabs]`) built, gated locally, committed; awaiting its exact-head run.
-Checkpoint 1 is certified (run `33616439236`, green on all ten jobs). Next: G2.1's rubric shots at three sizes
-(headless render + judgment; the drive stays paused, D14), then G2.2 the ruler v2.
+**Now:** G2.1 checkpoint 3 (the rubric-shot fixes: the view cluster is `[I][X][P][A]`, letters, one
+row, above the canvas; the Mixer toolbar button retired) built, gated locally, committed;
+awaiting its exact-head run, which also certifies checkpoint 2 (its own run `33621863428` was red
+on macOS only — the V7 compare, D49 closed here). Next: G2.2 — the ruler v2
+(bars | time rows, marker lane, loop brace, click = locate, row drags). The drive stays paused
+(D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -90,6 +92,45 @@ G1.7 ✅ — the dead-affordance sweep (`96c93bd`); certified by exact-head run 
 G2.1 cp1 ✅ — splitters + per-project view state (`98d1a89`); certified by exact-head run
 `33616439236` (green on all ten jobs, first try).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.1 — checkpoint 3: the rubric shots (2026-09-02)
+
+**Judged** (headless renders from `[rubric-shots]`, the song fixture, 1280×720 / 1920×1080;
+the drive stays paused): one window reads as a DAW — header, track headers, lanes, inspector,
+and the dock with real strips (name, pan, S M, two insert wells, fader, dB) under a splitter;
+3 track rows at 720, 8 at 1080 (7 whole). **Defects found and fixed here:** (1) at 1280 the
+status row's zoom controls overlapped the new view cluster — three 84 px word buttons do not fit
+beside tools, snap, automation, zoom and nudge; (2) at 1920 the Mixer / Piano buttons did not
+show at all — laid out inside the timeline canvas's rect but BELOW it in z-order, so the canvas
+painted over them (the Inspector toggle, added later, sat above); (3) the old floating "Mixer
+Dock" button still hung over the inspector's corner, a duplicate of the cluster.
+
+**Build.** The cluster is the plan's letters, in the plan's order: **[I]** the inspector toggle,
+**[X]** `mixerDockToggle` itself (the dock toggle), **[P]** the piano-roll toggle, **[A]** the
+automation lane toggle (its word button left the row; the zoom trio takes that slot, so the row
+holds at 1280); `inspectorToggleWidth` 84 → 32, gap 8; brought to the front after every layout;
+tooltips carry names + live chords. The old
+floating placement is gone. The Mixer toolbar button retires from `kMainShellToolbarActions`
+(16 → 15; the menu verb stays; X is the control).
+
+**Gates.** `[dock-tabs]` walks 1280×720 / 1920×1080 / 2560×1440: I / X / P / A visible, 32 px, one
+row in order, z-index above the timeline canvas, clear of the zoom-in button, the nudge chooser
+and the status line, inside the canvas; X lit while the mixer tab shows; the Mixer verb has no
+button. Re-pins: `inspectorToggleWidth` 32; tests dispatch the Mixer verb instead of clicking a
+toolbar button.
+
+**D49, closed.** Checkpoint 2's run `33621863428` was red on macOS only, again in the V7
+inspector compare, again exactly the TRACK tab's rect and exactly 5360 px — deterministic on
+that runner, absent on Windows and Linux, and about the tab buttons' own paint, not the
+column's content. The compare now covers the inspector CONTENT below the tab strip (the claim
+it makes); the tab strip's toggle state is asserted through the model in the same test. The
+arrangement's row controls (snap, zoom, nudge, the cluster) are always present now — the last
+"timeline panel active" visibility law is gone with the modal views.
+
+**Still visible in the shots (recorded, owned elsewhere).** The mixer's old utility column
+("MIXER / meters / sends / FX / GR / Safe") at the dock's left is the pre-arc control lane —
+G4's mixer rebuild; the rail's PAN/VOL captions (parking lot); 720p keeps two-and-a-half lanes
+with the 300 dock (D50, parked); the header's `-- LUFS` reads as a dash until audio runs.
 
 ### G2.1 — One window, docked panels, splitters — checkpoint 2 (2026-09-02)
 

@@ -819,7 +819,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
 // test device is a harness-only verb (no chord, no control) so fake provenance cannot be stamped
 // from the UI.
-inline constexpr std::array<UiActionId, 16> kMainShellToolbarActions {{
+inline constexpr std::array<UiActionId, 15> kMainShellToolbarActions {{
     UiActionId::ProjectNew,
     UiActionId::ProjectOpen,
     UiActionId::ProjectSave,
@@ -834,8 +834,7 @@ inline constexpr std::array<UiActionId, 16> kMainShellToolbarActions {{
     UiActionId::TransportStop,
     UiActionId::TransportLocateStart,
     UiActionId::TransportToggleLoop,
-    UiActionId::ViewMixer,
-    UiActionId::ViewPianoRoll
+    UiActionId::ViewPianoRoll   // G2.1 cp3: the Mixer button retired — the cluster's X (the dock toggle) is the control
 }};
 
 inline const std::array<UiActionDescriptor, kUiActionCount>& uiActionDescriptors()
@@ -843,7 +842,7 @@ inline const std::array<UiActionDescriptor, kUiActionCount>& uiActionDescriptors
     return kUiActionDescriptors;
 }
 
-inline const std::array<UiActionId, 16>& mainShellToolbarActions()
+inline const std::array<UiActionId, 15>& mainShellToolbarActions()
 {
     return kMainShellToolbarActions;
 }

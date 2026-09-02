@@ -121,8 +121,7 @@ juce::String actionButtonText (yesdaw::ui::UiActionId id)
         case yesdaw::ui::UiActionId::RecordingAssembleComp: return "Comp";
         case yesdaw::ui::UiActionId::AutosaveRecoveryRestore: return "Restore Autosave";
         case yesdaw::ui::UiActionId::AutosaveRecoveryDiscard: return "Discard Autosave";
-        case yesdaw::ui::UiActionId::ViewMixer: return "Mixer";
-        case yesdaw::ui::UiActionId::ViewPianoRoll: return "Piano";
+        case yesdaw::ui::UiActionId::ViewPianoRoll: return "P";   // G2.1 cp3: the plan's letter cluster
         default: break;
     }
     return "?";
@@ -4268,7 +4267,7 @@ public:
 
         // G1.4: the Inspector toggle (I) at the toolbar's right end.
         configureActionComponent (inspectorToggle, yesdaw::ui::UiActionId::ViewToggleInspector, "Inspector");
-        inspectorToggle.setButtonText ("Inspector");
+        inspectorToggle.setButtonText ("I");   // G2.1 cp3: the letter cluster (tooltip carries the name + chord)
         inspectorToggle.setClickingTogglesState (false);
         inspectorToggle.onClick = [this] {
             handleAction (yesdaw::ui::UiActionId::ViewToggleInspector);
@@ -5969,17 +5968,6 @@ public:
             };
             timelineSnapChooser.setBounds (snapBounds);
         }
-        {
-            // V3: anchored just above the dock's CURRENT top edge (using dockedMixerHeight(),
-            // not the fixed kMixerHeight) — it stays reachable whether the dock is expanded or
-            // collapsed, and tracks the dock's own state instead of a second, independent law.
-            using L = yesdaw::ui::UiTheme::Layout;
-            mixerDockToggle.setBounds (
-                getWidth() - L::mixerDockToggleWidth - L::mixerPanelHorizontalInset,
-                getHeight() - dockedMixerHeight() - L::mixerDockToggleHeight - L::mixerDockToggleBottomGap,
-                L::mixerDockToggleWidth,
-                L::mixerDockToggleHeight);
-        }
         layoutAutomationLaneControls();
         layoutInspectorControls();
         layoutMixerControls();
@@ -6035,10 +6023,7 @@ private:
     {
         constexpr yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::TimelineToggleMixerDock;
         configureActionComponent (mixerDockToggle, action, "Mixer dock");
-        if (const auto* descriptor = appModel.registry().descriptor (action))
-            mixerDockToggle.setButtonText (descriptor->label);
-        else
-            mixerDockToggle.setButtonText ("Mixer Dock");
+        mixerDockToggle.setButtonText ("X");   // G2.1 cp3: the view cluster's X (tooltip carries the name + chord)
         mixerDockToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
         mixerDockToggle.setColour (juce::TextButton::buttonOnColourId, kPurple.darker (0.45f));
         mixerDockToggle.setColour (juce::TextButton::textColourOffId, kText);
@@ -6133,9 +6118,9 @@ private:
         constexpr yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane;
         configureActionComponent (automationLaneToggle, action, "Automation lanes");
         if (const auto* descriptor = appModel.registry().descriptor (action))
-            automationLaneToggle.setButtonText (descriptor->label);
+            automationLaneToggle.setButtonText ("A");   // G2.1 cp3: the view cluster's A (the tooltip carries the name + chord)
         else
-            automationLaneToggle.setButtonText ("Automation");
+            automationLaneToggle.setButtonText ("A");
         automationLaneToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
         automationLaneToggle.setColour (juce::TextButton::buttonOnColourId, kPurple.darker (0.45f));
         automationLaneToggle.setColour (juce::TextButton::textColourOffId, kText);
@@ -7355,6 +7340,15 @@ private:
             && appModel.context().editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll;
     }
 
+    [[nodiscard]] juce::Component* toolbarButtonFor (yesdaw::ui::UiActionId action)
+    {
+        const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
+        for (std::size_t i = 0; i < buttons.size() && i < toolbarActions.size(); ++i)
+            if (toolbarActions[i] == action)
+                return &buttons[i];
+        return nullptr;
+    }
+
     void setToolbarButtonBounds (yesdaw::ui::UiActionId action, juce::Rectangle<int> bounds)
     {
         const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
@@ -8391,7 +8385,6 @@ private:
     {
         using L = yesdaw::ui::UiTheme::Layout;
         const auto timeline = timelineBounds();
-        automationLaneToggle.setBounds (L::automationLaneToggleBounds (timeline));
         // V8: the zoom cluster shares the automation toggle's toolbar row.
         timelineZoomOutButton.setBounds (L::timelineZoomOutButtonBounds (timeline));
         timelineZoomReadout.setBounds (L::timelineZoomReadoutBounds (timeline));
@@ -8403,15 +8396,26 @@ private:
             const juce::Rectangle<int> toggle = status.withX (timeline.getRight() - L::statusLineRightInset - L::inspectorToggleWidth)
                                                       .withWidth (L::inspectorToggleWidth);
             juce::Rectangle<int> nudge = status.withWidth (L::timelineNudgeChooserWidth);
-            const int clusterLeft = toggle.getX() - (L::inspectorToggleWidth + L::inspectorToggleGap) * 2;   // G2.1 cp2
+            const int clusterLeft = toggle.getX() - (L::inspectorToggleWidth + L::inspectorToggleGap) * 3;   // G2.1 cp3: [I][X][P][A]
             const bool nudgeFits = nudge.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
             nudgeValueChooser.setBounds (nudgeFits ? nudge : juce::Rectangle<int>());
-            inspectorToggle.setBounds (toggle);
-            // G2.1 cp2: the view cluster [Mixer][Piano][Inspector] — X / P / I, one row.
-            const juce::Rectangle<int> pianoToggle = toggle.translated (-(L::inspectorToggleWidth + L::inspectorToggleGap), 0);
-            const juce::Rectangle<int> mixerToggle = pianoToggle.translated (-(L::inspectorToggleWidth + L::inspectorToggleGap), 0);
+            // G2.1 cp3: the view cluster [I][X][P][A] (plan §3.1) — inspector, dock (mixer) toggle,
+            // piano-roll toggle, automation lane toggle — one row of letters at the status line's
+            // right, above the timeline canvas in z. The zoom trio took the old Automation slot.
+            const int step = L::inspectorToggleWidth + L::inspectorToggleGap;
+            const juce::Rectangle<int> automationToggle = toggle;
+            const juce::Rectangle<int> pianoToggle = toggle.translated (-step, 0);
+            const juce::Rectangle<int> mixerToggle = toggle.translated (-step * 2, 0);
+            const juce::Rectangle<int> inspectorToggleBounds = toggle.translated (-step * 3, 0);
+            inspectorToggle.setBounds (inspectorToggleBounds);
+            mixerDockToggle.setBounds (mixerToggle);
             setToolbarButtonBounds (yesdaw::ui::UiActionId::ViewPianoRoll, pianoToggle);
-            setToolbarButtonBounds (yesdaw::ui::UiActionId::ViewMixer, mixerToggle);
+            automationLaneToggle.setBounds (automationToggle);
+            inspectorToggle.toFront (false);
+            mixerDockToggle.toFront (false);
+            if (juce::Component* piano = toolbarButtonFor (yesdaw::ui::UiActionId::ViewPianoRoll))
+                piano->toFront (false);
+            automationLaneToggle.toFront (false);
             const int statusLeft = nudgeFits ? nudge.getRight() + L::timelineNudgeChooserGap : status.getX();
             const int statusRight = clusterLeft - L::inspectorToggleGap;
             statusLine.setBounds (statusRight > statusLeft ? status.withLeft (statusLeft).withRight (statusRight)
@@ -10027,7 +10031,7 @@ private:
         refreshAutomationLaneControls();
         refreshInspectorControls();
         refreshMixerControls();
-        mixerDockToggle.setToggleState (appModel.context().mixerDockVisible, juce::dontSendNotification);
+        mixerDockToggle.setToggleState (dockShowsMixer(), juce::dontSendNotification);   // G2.1 cp2: the mixer TAB
         // No effect in the full-view Mixer panel (it never reserves dock space to begin with).
         mixerDockToggle.setVisible (true);
         // V7: the tab buttons live wherever the inspector panel does; the active tab lights.
@@ -10044,7 +10048,7 @@ private:
     {
         constexpr yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane;
         const auto state = appModel.registry().stateFor (action, appModel.context());
-        const bool timelineVisible = appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline;
+        const bool timelineVisible = true;   // G2.1 cp2/cp3: the arrangement never leaves (no modal views)
         automationLaneToggle.setVisible (timelineVisible);
         automationLaneToggle.setEnabled (state.enabled);
         // V8: the zoom cluster lives and dies with the same toolbar row; the readout re-reads

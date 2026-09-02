@@ -2203,7 +2203,7 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track send through an action-ba
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
@@ -2240,7 +2240,7 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track meter through an action-b
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
@@ -2276,7 +2276,7 @@ TEST_CASE ("H16 CP6 UI input harness edits first Track send level through Projec
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
@@ -2348,7 +2348,7 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track FX slot through an action
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
@@ -2388,7 +2388,7 @@ TEST_CASE ("H16 CP6 UI input harness toggles first Track FX slot enabled state t
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
@@ -2457,7 +2457,7 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track GR meter through an actio
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
@@ -2497,7 +2497,7 @@ TEST_CASE ("H16 CP6 UI input harness reads first Bus FX slot through an action-b
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
@@ -2744,8 +2744,7 @@ TEST_CASE ("H12 UI input harness creates, saves, opens, and reopens Project bund
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.playheadFrame == 128);
 
-    juce::Button& mixer = requireButtonForAction (*shell, UiActionId::ViewMixer);
-    clickButton (mixer);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: no Mixer toolbar button
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 
@@ -3595,7 +3594,7 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (snapshot.context.playheadFrame == 0);
     REQUIRE (snapshot.context.commandDispatchCount == 27);
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
@@ -3820,7 +3819,7 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE_FALSE (mute.isEnabled());
     REQUIRE_FALSE (solo.isEnabled());
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     clickButton (requireButtonWithComponentId (*shell, "mixer.track.0.select"));
     snapshot = snapshotMainComponent (*shell);
@@ -4180,7 +4179,7 @@ TEST_CASE ("every mixer track strip is selectable and retargets the shared contr
     mouseDownAt (*railComponent, { kRailRowClickX, headerHeight + rowHeight + rowHeight / 2 });
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     // Click the SECOND strip through the overlay, then drive the shared mute control: the mute must
@@ -4351,7 +4350,7 @@ TEST_CASE ("mixer clicks, the control lane, and the master fader share the paint
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
@@ -4429,7 +4428,7 @@ TEST_CASE ("every direct strip edit is its own undo step: drags coalesce, toggle
     REQUIRE (shell->keyPressed (juce::KeyPress ('m')));
     REQUIRE (readProjectSnapshot (bundlePath).markers.size() == 1u);
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
     REQUIRE (strips != nullptr);
@@ -4544,7 +4543,7 @@ TEST_CASE ("bus and send controls route the selected track undoably through real
     mouseDownAt (*railComponent, { kRailRowClickX,
                                    yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
                                        + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     // + Bus creates a persisted Bus.
@@ -4595,7 +4594,7 @@ TEST_CASE ("bus and send controls route the selected track undoably through real
     mouseDownAt (*railComponent, { kRailRowClickX,
                                    yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
                                        + 2 * thirdRowHeight + thirdRowHeight / 2 });
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     sendChooser->setSelectedId (1, juce::sendNotificationSync);
     project = readProjectSnapshot (bundlePath);
@@ -5073,7 +5072,7 @@ TEST_CASE ("bus strips select and edit like real strips: undoable scalars and a 
     mouseDownAt (*railComponent, { kRailRowClickX,
                                    yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
                                        + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
     REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
@@ -5181,7 +5180,7 @@ TEST_CASE ("bus rename edits inline and bus remove honestly refuses while sends 
     mouseDownAt (*railComponent, { kRailRowClickX,
                                    yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
                                        + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
     REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
@@ -5253,7 +5252,7 @@ TEST_CASE ("send tap toggles pre/post undoably and the destination chooser re-ro
     mouseDownAt (*railComponent, { kRailRowClickX,
                                    yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
                                        + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
 
@@ -5323,7 +5322,7 @@ TEST_CASE ("the master fader persists an undoable master gain that scales the wh
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     auto* masterFader = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.master.fader"));
@@ -5423,7 +5422,7 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
     REQUIRE (baselineMidiPeak > 0.02);
     REQUIRE (baselineAudioPeak > 0.02);
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
     REQUIRE (strips != nullptr);
@@ -5609,7 +5608,7 @@ TEST_CASE ("the painted fader scale puts unity at half travel with boost above i
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
 
@@ -5697,7 +5696,7 @@ TEST_CASE ("every mixer strip paints its sends and a painted send row sets its l
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     }
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
@@ -5787,7 +5786,7 @@ TEST_CASE ("N2 every mixer readout names the selected strip and prints no engine
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
     REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
@@ -5912,7 +5911,7 @@ TEST_CASE ("N1 the painted Mute and Solo cells work on every mixer strip",
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
     REQUIRE (strips != nullptr);
@@ -6036,7 +6035,7 @@ TEST_CASE ("N3 the mixer strip band fills its window and the master strip sits f
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     using L = yesdaw::ui::UiTheme::Layout;
@@ -6125,7 +6124,7 @@ TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot open
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     }
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
     REQUIRE (strips != nullptr);
@@ -6318,7 +6317,7 @@ TEST_CASE ("tracks route their main output to a bus and the bus fader carries th
     const double masterPeak = peakAbs (std::span<const float> (straightToMaster.data(), straightToMaster.size()));
     REQUIRE (masterPeak > 0.02);
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
     REQUIRE (strips != nullptr);
@@ -6496,7 +6495,7 @@ TEST_CASE ("removing an automated target is never silently refused",
     }
 
     // 2. An automated FX insert can be removed: the insert and its lane go in ONE undo step.
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
     REQUIRE (strips != nullptr);
@@ -6516,7 +6515,7 @@ TEST_CASE ("removing an automated target is never silently refused",
         REQUIRE (automated.tracks[2].strip.fxChain.size() == 1u);
     }
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     auto* slotRemove = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.remove"));
     REQUIRE (slotRemove != nullptr);
@@ -6569,7 +6568,7 @@ TEST_CASE ("removing an automated target is never silently refused",
         automatedSendBusId = automated.tracks[2].sends[1].busId;
     }
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     auto* sendRemove = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.send.0.remove"));
     REQUIRE (sendRemove != nullptr);
@@ -6838,7 +6837,7 @@ TEST_CASE ("V3 the mixer dock shows a labelled column and a real show/hide toggl
     // Mixer view, still shows the whole panel (not a collapsed sliver).
     // G2.1 cp2: there is no full-window mixer any more — Mixer shows the mixer TAB in the dock.
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineToggleMixerDock));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     const juce::Rectangle<int> mixerTab = yesdaw::ui::mainComponentMixerPanelBounds (*shell);
     REQUIRE (mixerTab.getHeight() == dockBefore.getHeight());
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::Mixer);
@@ -7152,9 +7151,13 @@ TEST_CASE ("V7 the inspector's TRACK tab is real, FX list reflects the chain, an
     // The inspector column region: right of the timeline, below the header (the header's own
     // right-side chrome carries live-meter paint that is not part of this claim).
     juce::Component& timeline = requireTimelineComponent (*shell);
+    // The inspector CONTENT (below the tab strip): the claim is about what the column shows, not
+    // the two tab buttons' own pressed / hover look — on the macOS runner that strip's paint
+    // differed deterministically between two renders of the same state (STATUS D49: exactly the
+    // TRACK tab's rect, 5360 px, twice), while Windows and Linux matched.
     const juce::Rectangle<int> inspectorRegion =
         shell->getLocalBounds().withLeft (timeline.getRight() + 1)
-            .withTop (timeline.getY())
+            .withTop (timeline.getY() + yesdaw::ui::UiTheme::Layout::inspectorTabHeight)
             .withTrimmedBottom (shell->getHeight() - timeline.getBottom());
     const auto regionsDiffer = [&inspectorRegion] (const juce::Image& a, const juce::Image& b)
     {
@@ -8278,7 +8281,7 @@ TEST_CASE ("the master strip hosts a real FX chain that provably changes the mix
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
@@ -8376,7 +8379,7 @@ TEST_CASE ("solo never silences the soloed signal's own path through a bus",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
 
@@ -8453,7 +8456,7 @@ TEST_CASE ("riding a fader while playing never rebuilds the engine",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
 
@@ -8585,7 +8588,7 @@ TEST_CASE ("riding a fader while playing never rebuilds the engine",
     REQUIRE (automationCanvas != nullptr);
     mouseDownAt (*automationCanvas, { automationCanvas->getWidth() / 2, automationCanvas->getHeight() / 2 });
     REQUIRE_FALSE (readProjectSnapshot (bundlePath).automationLanes.empty());
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     mouseDownAt (*strips, paintedStripCentre (*strips, 0, 2));
     const std::uint64_t automatedBase = snapshotMainComponent (*shell).playbackReplaceCount;
@@ -8614,7 +8617,7 @@ TEST_CASE ("buses route and send like tracks through real mixer controls",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
 
@@ -8731,7 +8734,7 @@ TEST_CASE ("a penciled bus-fader lane audibly drives the render",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
 
@@ -8849,7 +8852,7 @@ TEST_CASE ("R15 Touch rides send levels and FX params; Off ignores lanes and wri
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
 
@@ -8891,7 +8894,7 @@ TEST_CASE ("R15 Touch rides send levels and FX params; Off ignores lanes and wri
         REQUIRE (modeChooser->getItemText (3) == "Off");
         modeChooser->setSelectedId (itemId, juce::sendNotificationSync);
         clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
-        clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
         yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
         mouseDownAt (*findChildWithComponentId (*shell, "shell.mixer.strips.input"),
                      paintedStripCentre (*findChildWithComponentId (*shell, "shell.mixer.strips.input"), 0, 2));
@@ -9164,7 +9167,7 @@ TEST_CASE ("R17 the send add refuses at the painted row capacity with a painted 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
 
@@ -12840,7 +12843,7 @@ TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one 
 
     // Select the SECOND track (index 1) in the mixer — the fader that follows must be its own,
     // not track 1's.
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
     REQUIRE (strips != nullptr);
@@ -12930,7 +12933,7 @@ TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one 
     // Setting the mode is itself a project edit. R2 keeps the transport rolling across edits
     // now, but this gate still starts playback AFTER the mode switch — the ride law it pins is
     // about what a rolling ride writes, not about edit/transport interplay.
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
@@ -13144,7 +13147,7 @@ TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists
     // Mixer nameplate BEFORE: visit the Mixer view while track 1 is still unset and capture its
     // header band as an image, then return to the Timeline view (the rail — and this swatch
     // click — only exist there). Compared against the AFTER capture below.
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     const juce::Rectangle<int> header1 = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 1)
                                               .withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight);
@@ -13182,7 +13185,7 @@ TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists
     // reduced alpha, so an exact-colour match would depend on the exact backdrop it blends onto —
     // a before/after diff sidesteps that, mirroring the pattern this file already uses for other
     // alpha-blended paint gates).
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     const juce::Image afterHeaderImage = renderShell();
     bool headerChanged = false;
@@ -14447,7 +14450,7 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     REQUIRE (fxParam != nullptr);
     fxParam->setValue (0.25, juce::sendNotificationSync);
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
     auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
@@ -14940,7 +14943,7 @@ TEST_CASE ("Alt+click resets faders to unity, pans to center, sends to unity, an
     REQUIRE (project.tracks.front().strip.pan == 0.0f);
 
     // Send level: a real slider edit persists 0.5; Alt+click resets the send to unity.
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
     auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
@@ -15091,7 +15094,7 @@ TEST_CASE ("Shift while dragging makes every fader, pan, and send exactly ten ti
 
     // Send level (horizontal, continuous): exact fine math, an anchored no-move Shift press
     // never jumps, and the same plain drag moves far more than five times as much.
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
     auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
@@ -15307,7 +15310,7 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     REQUIRE (serviceMainComponentUiTimer (*shell));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));   // deselect strip 0
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     // In Mixer view the rail does not paint, so every clip-coloured pixel belongs to the painted
     // strip meter's latched light.
@@ -15388,7 +15391,7 @@ TEST_CASE ("bus meters read live send audio, latch a clip light, and a meter cli
     mouseDownAt (*rail, { kRailRowClickX,
                           yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
                               + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
     auto* sendChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.send.add"));
@@ -16275,7 +16278,7 @@ TEST_CASE ("dead-affordance sweep: the repeat combo becomes Edit > Repeat Count,
     REQUIRE (rail != nullptr);
     mouseDownAt (*rail, { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
                                           + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     for (int slot = 0; slot < static_cast<int> (yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount); ++slot)
     {
@@ -16515,7 +16518,7 @@ TEST_CASE ("G2.1 dock tabs: the mixer and the piano roll are Editor-dock tabs (X
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
 
     // Mixer: the mixer tab, its control lane back, focus the mixer; the rail and lanes still there.
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     REQUIRE (dockName (*shell) == "Mixer");
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::Mixer);
     arrangementIntact();
@@ -16526,7 +16529,7 @@ TEST_CASE ("G2.1 dock tabs: the mixer and the piano roll are Editor-dock tabs (X
         REQUIRE_FALSE (findChildWithComponentId (*shell, kPianoRollComponentId)->isVisible());
     }
     // Mixer again is idempotent (the menu verb shows; X toggles).
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     REQUIRE (dockName (*shell) == "Mixer");
     REQUIRE (shell->keyPressed (juce::KeyPress ('x', juce::ModifierKeys(), 0)));
     REQUIRE (dockName (*shell) == "None");
@@ -16547,21 +16550,53 @@ TEST_CASE ("G2.1 dock tabs: the mixer and the piano roll are Editor-dock tabs (X
     }
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::Mixer);
 
-    // The view cluster: [Mixer][Piano][Inspector] share one row, in that order, all visible.
-    juce::Component* mixerButton = findMainComponentChildForAction (*shell, UiActionId::ViewMixer);
+    // The view cluster [I][X][P][A] (plan §3.1): the inspector toggle, the dock (mixer) toggle,
+    // the piano-roll toggle and the automation lane toggle share one row in that order at every
+    // rubric size, painted ABOVE the timeline canvas (z-order), clear of the zoom-in button, the
+    // nudge chooser and the status line, with the dock toggle lit while the mixer tab shows.
+    juce::Component* mixerButton = findChildWithComponentId (*shell, "timeline.mixer_dock.toggle");
     juce::Component* pianoButton = findMainComponentChildForAction (*shell, UiActionId::ViewPianoRoll);
     juce::Component* inspectorButton = findChildWithComponentId (*shell, "view.toggle_inspector");
+    juce::Component* automationButton = findMainComponentChildForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane);
     REQUIRE (mixerButton != nullptr);
     REQUIRE (pianoButton != nullptr);
     REQUIRE (inspectorButton != nullptr);
-    for (juce::Component* button : { mixerButton, pianoButton, inspectorButton })
+    REQUIRE (automationButton != nullptr);
+    REQUIRE (dynamic_cast<juce::Button*> (inspectorButton)->getButtonText() == "I");
+    REQUIRE (dynamic_cast<juce::Button*> (mixerButton)->getButtonText() == "X");
+    REQUIRE (dynamic_cast<juce::Button*> (pianoButton)->getButtonText() == "P");
+    REQUIRE (dynamic_cast<juce::Button*> (automationButton)->getButtonText() == "A");
+    REQUIRE (findMainComponentChildForAction (*shell, UiActionId::ViewMixer) == nullptr);   // the menu verb has no button
+    for (const auto& [width, height] : std::array<std::pair<int, int>, 3> {
+             std::pair { 1280, 720 }, std::pair { 1920, 1080 }, std::pair { 2560, 1440 } })
     {
-        REQUIRE (button->isVisible());
-        REQUIRE (button->getWidth() > 0);
-        REQUIRE (button->getY() == inspectorButton->getY());
+        shell->setSize (width, height);
+        INFO ("size " << width << "x" << height);
+        const juce::Component& canvas = requireTimelineComponent (*shell);
+        juce::Component* zoomIn = findMainComponentChildForAction (*shell, UiActionId::TimelineZoomIn);
+        juce::Component* nudge = findChildWithComponentId (*shell, "timeline.nudge.chooser");
+        juce::Component* status = findChildWithComponentId (*shell, "shell.statusline");
+        REQUIRE (zoomIn != nullptr);
+        REQUIRE (nudge != nullptr);
+        REQUIRE (status != nullptr);
+        for (juce::Component* button : { inspectorButton, mixerButton, pianoButton, automationButton })
+        {
+            REQUIRE (button->isVisible());
+            REQUIRE (button->getWidth() == yesdaw::ui::UiTheme::Layout::inspectorToggleWidth);
+            REQUIRE (button->getY() == inspectorButton->getY());
+            REQUIRE (shell->getIndexOfChildComponent (button) > shell->getIndexOfChildComponent (&canvas));
+            REQUIRE_FALSE (button->getBounds().intersects (zoomIn->getBounds()));
+            if (nudge->isVisible())
+                REQUIRE_FALSE (button->getBounds().intersects (nudge->getBounds()));
+            if (status->isVisible())
+                REQUIRE_FALSE (button->getBounds().intersects (status->getBounds()));
+        }
+        REQUIRE (inspectorButton->getRight() <= mixerButton->getX());
+        REQUIRE (mixerButton->getRight() <= pianoButton->getX());
+        REQUIRE (pianoButton->getRight() <= automationButton->getX());
+        REQUIRE (automationButton->getRight() <= canvas.getRight());
     }
-    REQUIRE (mixerButton->getRight() <= pianoButton->getX());
-    REQUIRE (pianoButton->getRight() <= inspectorButton->getX());
+    shell->setSize (1536, 960);
     REQUIRE (dynamic_cast<juce::Button*> (mixerButton)->getToggleState());
     REQUIRE_FALSE (dynamic_cast<juce::Button*> (pianoButton)->getToggleState());
 
@@ -16847,7 +16882,7 @@ TEST_CASE ("context menus: an insert slot's menu acts on the clicked slot",
     }
 
     // The full Mixer view paints every slot row (the 260 px dock paints fewer).
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     // Right-click slot 1 (the reverb): the strip and the slot are selected, the list is the table.
     const juce::Rectangle<int> slot1 = yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 1);
@@ -16898,7 +16933,7 @@ TEST_CASE ("toolbar v2: nudge value chooser, inspector toggle, two-readout count
 {
     using L = yesdaw::ui::UiTheme::Layout;
     STATIC_REQUIRE (L::timelineNudgeChooserWidth == 104);
-    STATIC_REQUIRE (L::inspectorToggleWidth == 84);
+    STATIC_REQUIRE (L::inspectorToggleWidth == 32);   // G2.1 cp3: the letter cluster [X][P][I]
     const std::filesystem::path bundlePath = makeTempBundlePath ("toolbar-v2");
     const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
     MainComponentFileChoices choices;

@@ -739,7 +739,7 @@ struct UiTheme
 
         // V8: the toolbar zoom cluster — [-] readout [+] to the right of the automation toggle,
         // sharing its row (the same toolbar band the tools/SNAP/repeat cluster already fills).
-        static constexpr int timelineZoomOutButtonLeftInset = 548;
+        static constexpr int timelineZoomOutButtonLeftInset = automationLaneToggleLeftInset;   // G2.1 cp3: the zoom trio takes the old Automation slot (A joined the view cluster)
         static constexpr int timelineZoomButtonWidth = 28;
         static constexpr int timelineZoomReadoutWidth = 48;
         static constexpr int timelineZoomClusterGap = 4;
@@ -787,8 +787,8 @@ struct UiTheme
         // window floor the nudge chooser drops WHOLE (E27) — the Edit menu still carries it.
         static constexpr int timelineNudgeChooserWidth = 104;
         static constexpr int timelineNudgeChooserGap = 12;
-        static constexpr int inspectorToggleWidth = 84;
-        static constexpr int inspectorToggleGap = 12;
+        static constexpr int inspectorToggleWidth = 32;   // G2.1 cp3: the view cluster is letters — [X][P][I] — so it fits the status row at 1280
+        static constexpr int inspectorToggleGap = 8;   // G2.1 cp3: four letters fit the 1280 row
         // R4: the status line fills the toolbar row's remaining width right of the zoom cluster.
         static constexpr int statusLineLeftGap = 12;
         static constexpr int statusLineRightInset = 8;

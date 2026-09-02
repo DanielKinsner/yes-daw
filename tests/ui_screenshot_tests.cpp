@@ -409,7 +409,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
     requireHonestEmptyArrangementCoverage (timelineImage, *shell);
     const std::uint64_t timelineFingerprint = captureShellPng (timelineImage, "yesdaw-timeline-shell.png");
 
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.activePanel == UiPanel::Mixer);
     const juce::Rectangle<int> masterRegion = yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell);
@@ -579,7 +579,7 @@ TEST_CASE ("Mixer renders honestly at laptop, default, and large window sizes wi
     juce::KeyPress addTrack ('t', juce::ModifierKeys::ctrlModifier, 0);
     REQUIRE (shell->keyPressed (addTrack));
     REQUIRE (shell->keyPressed (addTrack));
-    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
     // M4: the strips paint their FX chains, so the mixer capture carries a REAL chain — an empty
