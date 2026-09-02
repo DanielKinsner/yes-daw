@@ -41,10 +41,13 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G3.2 — piano roll dock v2: cp1 ✅ (`bdf0c36` + the -Werror=switch fix `e770d23`, run
-`33664900243` green on all ten jobs); cp2 (audition on click through the Track instrument — the live
-note lane, `[audition]` + `[audition-shell]`) built, gated locally, committed; awaiting its run. Next:
-G3.2's UI checkpoint (drives + shots + rubric), then G3.3.
+**Now:** G3.2 — piano roll dock v2: cp1 ✅ (`bdf0c36` + `e770d23`, run `33664900243`), cp2 (audition, the
+live note lane) `c5be1f8` — its run went red on GCC's misleading-indentation check, fixed in the
+checkpoint's first commit. **UI checkpoint in progress:** the first drive against the roll
+(`ss5-piano-roll.ps1`) found the mixer lane painting over the roll after a UI tick (FIX 1), the pencil
+drawing a 512-tick dot (FIX 2), and the roll squeezing 25 keys into ~5 px rows at the default dock
+(FIX 3, the key window — next commit, with the drive's rerun, the three-size shots and the §7.4 rubric).
+Then G3.3.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA

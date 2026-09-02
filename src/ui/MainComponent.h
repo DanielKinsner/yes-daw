@@ -274,6 +274,7 @@ struct MainComponentPianoRollAudition
 };
 [[nodiscard]] MainComponentPianoRollAudition mainComponentPianoRollAudition (juce::Component& component, int key);
 [[nodiscard]] bool mainComponentAuditionNote (juce::Component& component, std::int16_t key, bool on);
+void mainComponentServiceUiTick (juce::Component& component);   // G3.2 checkpoint: one UI tick (the timer's refresh path)
 [[nodiscard]] std::vector<float> mainComponentRenderPlaybackFrames (juce::Component& component, std::uint64_t frames, int blockSize);
 void mainComponentKeymapEditorSearch (juce::Component& component, const juce::String& text);
 // G1.6: the gesture hint the status line shows for the zone under a shell point (the same law

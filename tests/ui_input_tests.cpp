@@ -11947,7 +11947,7 @@ TEST_CASE ("piano roll drags: pitch, group move, left-edge trim, real snap",
     REQUIRE (pencilledIt != afterPencil.end());
     const yesdaw::engine::Note pencilled = *pencilledIt;
     REQUIRE (pencilled.startTick % gridTicks == 0);
-    REQUIRE (pencilled.lengthTicks == yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep);
+    REQUIRE (pencilled.lengthTicks == yesdaw::engine::kTicksPerQuarter / 4);   // G3.2 checkpoint FIX 2: a sixteenth of the beat in force (4/4)
     REQUIRE (pencilled.key == 55);
 
     const juce::Point<int> pencilCentre = pianoRollNoteCenterPoint (pianoRoll, midi, pencilled);
@@ -16566,6 +16566,14 @@ TEST_CASE ("G2.1 dock tabs: the mixer and the piano roll are Editor-dock tabs (X
         REQUIRE (strays.isEmpty());
         juce::Component* fxChooser = findChildWithComponentId (*shell, "mixer.fx.insert.add");
         REQUIRE (fxChooser != nullptr);
+        REQUIRE_FALSE (fxChooser->isVisible());
+        // G3.2 checkpoint FIX 1: the UI tick's refresh restored the lane in the real app (the readout
+        // list and the faders painted over the roll's keyboard column) - the timer path hides it too.
+        for (int tick = 0; tick < 3; ++tick)
+            yesdaw::ui::mainComponentServiceUiTick (*shell);
+        const juce::StringArray straysAfterTick = strayWidgetsInDock (kPianoRollComponentId);
+        INFO ("stray widgets over the piano roll after the UI tick: " << straysAfterTick.joinIntoString (", "));
+        REQUIRE (straysAfterTick.isEmpty());
         REQUIRE_FALSE (fxChooser->isVisible());
     }
 

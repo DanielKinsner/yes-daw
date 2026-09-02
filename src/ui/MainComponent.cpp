@@ -2138,6 +2138,7 @@ public:
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteSplit;   // G3.2: the Scissors tool
     std::function<void (std::int16_t, bool)> onKeyAuditioned;   // G3.2: audition - key, on / off (keyboard column, note press, drawn note)
     [[nodiscard]] int heldAuditionKey() const noexcept { return auditionKey; }   // G3.2: -1 = none
+    [[nodiscard]] int lastAuditionKey() const noexcept { return lastAuditioned; }   // G3.2: the probe's record of the last press; -1 = never
     // Piano-roll viewport (E10): plain wheel scrolls keys, Shift+wheel scrolls time, Ctrl+wheel
     // zooms time anchored at the pointer tick. Alt+wheel keeps the B33 velocity law.
     std::function<void (int)> onViewKeysScrolled;                          // +1 up / -1 down
@@ -2334,8 +2335,10 @@ public:
                 if (key >= surface.viewLowKey && key <= pianoRollViewHighKey (surface)
                     && key >= yesdaw::ui::UiThemeLayout::pianoRollKeyMin
                     && key <= yesdaw::ui::UiThemeLayout::pianoRollKeyMax)
+                {
                     onNoteAdded (surface.midiClipId, tick, static_cast<std::int16_t> (key));
                     beginAudition (key);   // G3.2: a drawn note sounds while the pencil holds it
+                }
                 return;
             }
 
@@ -2812,6 +2815,7 @@ private:
 
     PianoDragState dragState;
     int auditionKey = -1;   // G3.2: the key the mouse holds (keyboard column / note press); -1 = none
+    int lastAuditioned = -1;   // G3.2: the last key auditioned (the state probe reads it)
 
     // G3.2 / ADR-0047: audition - one held key at a time, ended by the mouse-up that ends the press.
     void beginAudition (int key)
@@ -2821,6 +2825,7 @@ private:
         if (auditionKey >= 0)
             endAudition();
         auditionKey = key;
+        lastAuditioned = key;
         if (onKeyAuditioned)
             onKeyAuditioned (static_cast<std::int16_t> (key), true);
     }
@@ -5642,7 +5647,11 @@ public:
         };
         pianoRollInput.onNoteAdded = [this] (yesdaw::engine::EntityId midiClipId, yesdaw::engine::Tick tick, std::int16_t key) {
             (void) midiClipId;
-            (void) appModel.addPianoRollNoteAt (tick, kPianoRollSnapGridTicks, key);
+            // G3.2 checkpoint FIX 2: a sixteenth of the beat in force (Logic's default division), not
+            // the pre-G3.2 512-tick grid step, which drew a dot. The roll's own division chooser is G3.4.
+            const yesdaw::engine::Tick sixteenth =
+                std::max<yesdaw::engine::Tick> (1, currentPianoRollSurface().beatTicks / 4);
+            (void) appModel.addPianoRollNoteAt (tick, sixteenth, key);
             refreshActionState();
             repaintAll();
         };
@@ -5781,6 +5790,7 @@ public:
         configureMixerControls();
         resized();
         refreshActionState();
+        hideMixerControlsBehindDockTab();   // G3.2 checkpoint FIX 1
 
         if (desktopAudioRequested)
         {
@@ -5926,6 +5936,7 @@ public:
                 lastRefreshedContext = context;
                 lastRefreshedContextValid = true;
                 refreshActionState();
+                hideMixerControlsBehindDockTab();   // G3.2 checkpoint FIX 1: the tick's refresh restores the lane; hide it again
             }
         }
 
@@ -6650,6 +6661,15 @@ public:
                 view->setProperty ("counterSecondary", counter.secondary);
             }
             view->setProperty ("tool", probeToolName (context.activeTimelineTool));
+            view->setProperty ("lastAuditionKey", pianoRollInput.lastAuditionKey());   // G3.2
+            {
+                int noteCount = -1;   // -1 = no MIDI clip selected
+                if (context.projectLoaded)
+                    for (const yesdaw::engine::MidiClip& clip : appModel.project().midiClips)
+                        if (clip.id == appModel.selectedMidiClipId())
+                            noteCount = static_cast<int> (clip.notes.size());
+                view->setProperty ("noteCount", noteCount);   // G3.2: the roll's clip's note count
+            }
             view->setProperty ("snapEnabled", context.snapEnabled);
             view->setProperty ("snapGridTicks", static_cast<juce::int64> (context.snapGridTicks));
             view->setProperty ("playheadFollow", context.playheadFollowEnabled);
@@ -6745,6 +6765,7 @@ public:
     [[nodiscard]] yesdaw::ui::UiPianoRollSurfaceSnapshot harnessPianoRollSurface() const { return currentPianoRollSurface(); }   // G3.2
     [[nodiscard]] juce::Rectangle<int> harnessPianoRollBounds() const { return pianoRollInput.getBounds(); }
     [[nodiscard]] int harnessPianoRollAuditionKey() const { return pianoRollInput.heldAuditionKey(); }   // G3.2
+    void harnessServiceUiTick() { serviceUiTick(); }   // G3.2 checkpoint: the timer's own refresh path
     [[nodiscard]] bool harnessAuditionNote (std::int16_t key, bool on) { return appModel.auditionNote (key, on); }   // G3.2
     [[nodiscard]] std::vector<float> harnessRenderPlayback (std::uint64_t frames, int blockSize)   // G3.2: the engine's own blocks
     {
@@ -10532,6 +10553,7 @@ private:
         lastContextMenu.index = index;
         // The click's selection is part of the context the items are built from.
         refreshActionState();
+        hideMixerControlsBehindDockTab();   // G3.2 checkpoint FIX 1
         juce::PopupMenu menu;
         // G1.7: an EMPTY insert slot offers exactly one thing — Add Insert (the kinds) — instead
         // of four disabled verbs; a strip's Add Insert is the same submenu, so a right-click
@@ -11253,14 +11275,14 @@ private:
                 if (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll
                     && appModel.context().midiNoteSelected)
                 {
-                    (void) appModel.duplicateSelectedPianoRollNote (kPianoRollSnapGridTicks);
+                    (void) appModel.duplicateSelectedPianoRollNote (0);   // G3.2 checkpoint: right after the note
                     return;
                 }
                 (void) appModel.dispatch (action);
                 return;
 
             case yesdaw::ui::UiActionId::PianoRollNoteDuplicate:
-                (void) appModel.duplicateSelectedPianoRollNote (kPianoRollSnapGridTicks);
+                (void) appModel.duplicateSelectedPianoRollNote (0);   // G3.2 checkpoint: right after the note
                 return;
 
 
@@ -15960,6 +15982,12 @@ MainComponentPianoRollAudition mainComponentPianoRollAudition (juce::Component& 
         out.gridRight = geometry.grid.getRight();
     }
     return out;
+}
+
+void mainComponentServiceUiTick (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessServiceUiTick();
 }
 
 bool mainComponentAuditionNote (juce::Component& component, std::int16_t key, bool on)

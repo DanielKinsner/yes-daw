@@ -2770,7 +2770,7 @@ public:
 
         return duplicatePianoRollNote (selectedMidiClipId_,
                                        selectedMidiNoteId_,
-                                       source->startTick + gridStepTicks);
+                                       source->startTick + (gridStepTicks > 0 ? gridStepTicks : source->lengthTicks));   // G3.2 checkpoint: 0 = right after the note (Logic's Repeat)
     }
 
     // Quantize the whole note selection to the current snap grid as one atomic undo group (B36).

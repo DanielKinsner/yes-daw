@@ -28,6 +28,8 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `2` | Pencil | `timeline.tool.pencil` |
 | `3` | Scissors | `timeline.tool.scissors` |
 | `6` | Zoom | `timeline.tool.zoom` |
+| `4` | Eraser | `timeline.tool.eraser` |
+| `5` | Velocity | `timeline.tool.velocity` |
 | `A` | Automation | `timeline.automation.track_lane.toggle` |
 | `Ctrl+Shift+N` | Add Track | `track.add` |
 | `Ctrl+D` | Duplicate Clip | `timeline.clip.duplicate` |
@@ -144,8 +146,6 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Restore Autosave (`autosave.recovery.restore`)
 - Discard Autosave (`autosave.recovery.discard`)
 - Hand (`timeline.tool.hand`)
-- Eraser (`timeline.tool.eraser`)
-- Velocity (`timeline.tool.velocity`)
 - Snap Off (`timeline.snap.disable`)
 - Snap Bar (`timeline.snap.bar`)
 - Snap Beat (`timeline.snap.beat`)
