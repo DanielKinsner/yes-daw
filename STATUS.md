@@ -41,10 +41,12 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.18 (the undo history window, `Alt+Z`; `[undo-history]`) built, gated locally,
-committed; G2.16 (`a8f609c`) / G2.17 (`a5b2dbe`) / G2.18 awaiting exact-head runs (G2.16's run
-`33645105611` went red on macOS only — checked, see the G2.16 section). Next: SS-3 "Edit a song"
-(the drive stays paused, D14 — recorded as pending), then G3.1. 
+**Now:** **G2 headless work complete** (G2.1–G2.18 built, gated, certified). The exit's
+**SS-3 "Edit a song"** drive needs the real mouse and keyboard and stays paused (D14) — recorded
+as pending, not done, exactly as SS-2 was. **G3.1 is a plan §8.4 stop-and-ask (trigger 1):** its
+per-Track instrument slot supersedes ADR-0045's Instrument-by-Clip identity law, so
+[ADR-0047](docs/adr/0047-per-track-instrument-slot.md) is filed as *Proposed* and the loop has
+stopped there (D53). Next, once Dan accepts or amends ADR-0047: G3.1 per its Verification section.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -109,7 +111,28 @@ G2.11 ✅ — slip (`080c6b8`); G2.12 ✅ — clip properties, schema v24 (`0c39
 job green on the same head.
 G2.13 ✅ — clip processing, schema v25 (`05472a5`); G2.14 ✅ — markers v2, schema v26 (`dba562f`);
 certified by exact-head run `33641728768` on `dba562f` (green on all ten jobs).
+G2.15 ✅ — tempo and meter map editing (`8beb692`); G2.16 ✅ — zoom and navigation (`a8f609c`); certified by run `33645105611` on `a8f609c` after a rerun of its macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
+G2.17 ✅ — track headers v2 (`a5b2dbe`); G2.18 ✅ — the undo history window (`6f46a5e`); certified by exact-head run `33649032858` on `2eddd07` (the label fix for GCC/Clang -Wswitch, D51's lesson again — the engine label switch is now covered by the checker) — green on all ten jobs. **G2 headless work complete**; SS-3 pending Dan's go (D14).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2 close-out (2026-09-02)
+
+**Exit.** Everything headless in G2.1–G2.18 is built and gated; every item ticks on an exact-head
+run (the macOS GPU frame-budget reruns are logged in the parking lot). The exit's **SS-3 "Edit a
+song"** drive needs the real mouse and keyboard and stays paused until Dan says go (D14) — recorded
+as pending, not done (the same call as the G1 exit). No montage: the drive that captures the
+evidence screenshots is the paused step; the rubric verdicts sit in each item's section.
+
+**Parking-lot promotions decided.** None promoted into G3: the inspector-scroll (D50), the rail
+caption size and the ruler badge are shell polish that does not serve G3's exit (SS-4); the GPU
+frame-budget noise stays with the render-budget item (G3 layered rendering) as its first task.
+
+**Deviation log (G2 close).**
+- D53 **G3.1 is a §8.4 trigger 1.** The plan's "Build (ADR)" for the Track instrument replaces
+  per-Clip instantiation, i.e. ADR-0045's `Instrument`-keyed-by-Clip identity law (Accepted).
+  ADR-0047 is written as *Proposed* (one instrument per Track fed by a per-Track MIDI merge;
+  additive schema; `ParamSpec`; automation by Track id) and the loop stops at G3.1. Nothing in
+  G3.2+ is started (plan §8.1.6: never skip ahead within a phase).
 
 ### G2.18 — Undo history window (2026-09-02)
 
