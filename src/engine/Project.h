@@ -490,6 +490,7 @@ struct Clip
     Tick fadeOut = 0;
     TimeBase timeBase = TimeBase::SampleLocked;
     ClipName name;
+    float stretchFactor = 1.0f;   // G2.9 (ADR-0030): output / source frames, 0.5..2.0; 1 = unstretched
 
     [[nodiscard]] constexpr bool references (const Asset& asset) const noexcept
     {
@@ -807,6 +808,7 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidTimelineWindow,
     InvalidSourceWindow,
     InvalidClipEnvelope,
+    InvalidClipStretch,   // G2.9: the stretch factor is outside ADR-0030's 0.5..2.0 (or not finite)
     InvalidMidiClipId,
     MidiClipNotFound,
     InvalidNoteId,
@@ -1762,6 +1764,12 @@ namespace detail {
     return fadeIn >= 0 && fadeOut >= 0;
 }
 
+// G2.9: ADR-0030 supports finite factors in [0.5, 2.0]; 1 means unstretched.
+[[nodiscard]] inline bool clipStretchIsStorageSafe (float stretchFactor) noexcept
+{
+    return std::isfinite (stretchFactor) && stretchFactor >= 0.5f && stretchFactor <= 2.0f;
+}
+
 [[nodiscard]] inline bool clipEditMetadataIsStorageSafe (const Clip& clip) noexcept
 {
     return ! clip.name.empty()
@@ -1769,6 +1777,7 @@ namespace detail {
            && clip.timelineLength >= 0
            && clipGainIsStorageSafe (clip.gain)
            && clipFadesAreStorageSafe (clip.fadeIn, clip.fadeOut)
+           && clipStretchIsStorageSafe (clip.stretchFactor)
            && (clip.timeBase == TimeBase::TempoLocked || clip.timeBase == TimeBase::SampleLocked);
 }
 
@@ -1907,6 +1916,40 @@ namespace detail {
 
     clip->fadeIn = newFadeIn;
     clip->fadeOut = newFadeOut;
+    return ProjectEditStatus::Applied;
+}
+
+// G2.9: the stretch edit sets the factor and the timeline length together (the caller's law is
+// length = round (srcLen * factor)); the factor must sit inside ADR-0030's bounds and the window
+// must stay legal. The source window is untouched — stretching never re-slices the asset.
+[[nodiscard]] inline ProjectEditStatus setClipStretch (Project& project,
+                                                       EntityId clipId,
+                                                       float newStretchFactor,
+                                                       Tick newTimelineLength) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (! detail::clipStretchIsStorageSafe (newStretchFactor))
+        return ProjectEditStatus::InvalidClipStretch;
+
+    if (newTimelineLength < 0)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    Clip edited = *clip;
+    edited.stretchFactor = newStretchFactor;
+    edited.timelineLength = newTimelineLength;
+    if (! detail::clipSourceWindowFitsProject (project, edited))
+        return ProjectEditStatus::InvalidSourceWindow;
+
+    *clip = edited;
     return ProjectEditStatus::Applied;
 }
 

@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 21;   // R16: breakpoints persist all four curves
+inline constexpr int          kCodeSchemaVersion = 22;   // G2.9: clips.stretch_factor
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1351,13 +1351,19 @@ DROP TABLE automation_breakpoints;
 ALTER TABLE automation_breakpoints_v21 RENAME TO automation_breakpoints;
 )SQL";
 
+// v22 (G2.9): the time-stretch factor per audio Clip (ADR-0030 bounds are validated on read; a
+// column default keeps every older row unstretched).
+inline constexpr std::string_view kSchemaV22Sql = R"SQL(
+ALTER TABLE clips ADD COLUMN stretch_factor REAL NOT NULL DEFAULT 1.0;
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 21> kMigrations {
+inline constexpr std::array<SchemaMigration, 22> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1379,6 +1385,7 @@ inline constexpr std::array<SchemaMigration, 21> kMigrations {
     SchemaMigration { 19, kSchemaV19Sql },
     SchemaMigration { 20, kSchemaV20Sql },
     SchemaMigration { 21, kSchemaV21Sql },
+    SchemaMigration { 22, kSchemaV22Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2267,8 +2274,8 @@ public:
 
         detail::Statement clipStmt (
             db_,
-            "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+            "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name, stretch_factor) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 
         for (const engine::Clip& clip : project.clips)
         {
@@ -2329,6 +2336,11 @@ public:
                 return result;
             }
             if (auto result = clipStmt.bindText (12, clip.name); ! result.ok())
+            {
+                rollback();
+                return result;
+            }
+            if (auto result = clipStmt.bindDouble (13, clip.stretchFactor); ! result.ok())   // G2.9
             {
                 rollback();
                 return result;
@@ -2987,7 +2999,7 @@ public:
             detail::Statement stmt;
             if (auto result = stmt.prepare (
                     db_,
-                    "SELECT id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name "
+                    "SELECT id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name, stretch_factor "
                     "FROM clips ORDER BY rowid;");
                 ! result.ok())
                 return result;
@@ -3032,6 +3044,11 @@ public:
                 if (name == nullptr)
                     return detail::semanticInvalid ("clips.name is NULL");
                 clip.name = reinterpret_cast<const char*> (name);
+
+                const double stretchFactor = sqlite3_column_double (stmt.get(), 12);   // G2.9
+                if (! engine::detail::clipStretchIsStorageSafe (static_cast<float> (stretchFactor)))
+                    return detail::semanticInvalid ("clips.stretch_factor is outside the ADR-0030 range");
+                clip.stretchFactor = static_cast<float> (stretchFactor);
 
                 project.clips.push_back (std::move (clip));
             }

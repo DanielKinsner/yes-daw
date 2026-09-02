@@ -1088,6 +1088,48 @@ TEST_CASE ("Project undo stack records command diffs for clip metadata edits", "
     REQUIRE (undo.redoDepth() == 0u);
 }
 
+// G2.9: the stretch edit validates ADR-0030's bounds, changes only the factor and the timeline
+// length, and undoes exactly.
+TEST_CASE ("Project setClipStretch validates the factor and undoes exactly", "[project][clip-edit][stretch][undo]")
+{
+    Project project = makeEditableProject();
+    const Project original = project;
+    const EntityId clipId = project.clips.front().id;
+    const Clip before = project.clips.front();
+    ProjectUndoStack undo;
+
+    REQUIRE (undo.apply (project, ProjectEditCommand::setClipStretch (clipId, 2.5f, before.timelineLength)).editStatus
+             == ProjectEditStatus::InvalidClipStretch);
+    REQUIRE (undo.apply (project, ProjectEditCommand::setClipStretch (clipId, 0.25f, before.timelineLength)).editStatus
+             == ProjectEditStatus::InvalidClipStretch);
+    REQUIRE (undo.apply (project, ProjectEditCommand::setClipStretch (clipId, 1.5f, -1)).editStatus
+             == ProjectEditStatus::InvalidTimelineWindow);
+    REQUIRE_FALSE (undo.canUndo());
+    requireProjectValueUnchanged (project, original);
+
+    const Tick stretchedLength = static_cast<Tick> (std::llround (static_cast<double> (before.srcLen) * 1.5));
+    const auto result = undo.apply (project, ProjectEditCommand::setClipStretch (clipId, 1.5f, stretchedLength));
+    REQUIRE (result.applied());
+    REQUIRE (undo.undoDepth() == 1u);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::SetClipStretch);
+    const Clip& after = project.clips.front();
+    REQUIRE (after.stretchFactor == 1.5f);
+    REQUIRE (after.timelineLength == stretchedLength);
+    REQUIRE (after.timelineStart == before.timelineStart);
+    REQUIRE (after.srcOffset == before.srcOffset);
+    REQUIRE (after.srcLen == before.srcLen);
+    REQUIRE (after.gain == before.gain);
+    REQUIRE (after.fadeIn == before.fadeIn);
+    REQUIRE (after.fadeOut == before.fadeOut);
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (project.clips.front().stretchFactor == 1.5f);
+    REQUIRE (project.clips.front().timelineLength == stretchedLength);
+}
+
 TEST_CASE ("Project undo stack records command diffs for recording Comp selection", "[project][recording][comp][undo]")
 {
     Project project = makeRecordingCompEditableProject();

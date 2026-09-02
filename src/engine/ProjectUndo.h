@@ -24,6 +24,7 @@ enum class ProjectEditVerb : std::uint8_t
     SplitClip,
     SetClipGain,
     SetClipFades,
+    SetClipStretch,   // G2.9
     MoveNote,
     SetNoteLength,
     SplitNote,
@@ -107,6 +108,7 @@ struct ProjectEditCommand
     float gain = 1.0f;
     Tick fadeIn = 0;
     Tick fadeOut = 0;
+    float stretchFactor = 1.0f;   // G2.9
     EntityId midiClipId;
     EntityId noteId;
     EntityId rightNoteId;
@@ -247,6 +249,19 @@ struct ProjectEditCommand
         command.clipId = clipId;
         command.fadeIn = newFadeIn;
         command.fadeOut = newFadeOut;
+        return command;
+    }
+
+    // G2.9: stretch = factor + the timeline length it implies (round (srcLen * factor)).
+    [[nodiscard]] static constexpr ProjectEditCommand setClipStretch (EntityId clipId,
+                                                                      float newStretchFactor,
+                                                                      Tick newTimelineLength) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetClipStretch;
+        command.clipId = clipId;
+        command.stretchFactor = newStretchFactor;
+        command.timelineLength = newTimelineLength;
         return command;
     }
 
@@ -517,6 +532,7 @@ struct ProjectEditCommand
         command.gain = clip.gain;
         command.fadeIn = clip.fadeIn;
         command.fadeOut = clip.fadeOut;
+        command.stretchFactor = clip.stretchFactor;   // G2.9
         command.clipTimeBase = clip.timeBase;
         (void) copyClipName (command, clip.name.asView());
         return command;
@@ -1223,6 +1239,9 @@ namespace detail {
         case ProjectEditVerb::SetClipFades:
             return setClipFades (project, command.clipId, command.fadeIn, command.fadeOut);
 
+        case ProjectEditVerb::SetClipStretch:   // G2.9
+            return setClipStretch (project, command.clipId, command.stretchFactor, command.timelineLength);
+
         case ProjectEditVerb::MoveNote:
             return moveNote (project, command.midiClipId, command.noteId, command.noteStartTick);
 
@@ -1316,6 +1335,7 @@ namespace detail {
             clip.gain = command.gain;
             clip.fadeIn = command.fadeIn;
             clip.fadeOut = command.fadeOut;
+            clip.stretchFactor = command.stretchFactor;   // G2.9
             clip.timeBase = command.clipTimeBase;
             if (command.clipName[0] == '\0')
                 return ProjectEditStatus::InvalidClipName;
@@ -2060,6 +2080,7 @@ namespace detail {
            || verb == ProjectEditVerb::TrimClip
            || verb == ProjectEditVerb::SetClipGain
            || verb == ProjectEditVerb::SetClipFades
+           || verb == ProjectEditVerb::SetClipStretch   // G2.9: a stretch drag coalesces like a trim
            || verb == ProjectEditVerb::MoveNote
            || verb == ProjectEditVerb::SetNoteLength
            // E21: continuous strip-scalar gestures (fader/pan drags) coalesce inside a group.

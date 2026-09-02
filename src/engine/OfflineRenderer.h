@@ -12,6 +12,7 @@
 #include "engine/Midi.h"
 #include "engine/MixerGraphProjection.h"
 #include "engine/ProjectMixerProjection.h"
+#include "engine/TimeStretch.h"
 #include "engine/MixerMutePolicy.h"
 #include "engine/nodes/SimpleSynthNode.h"
 #include "engine/nodes/DecodedClipNode.h"
@@ -47,6 +48,19 @@ struct AssetOwnership
     std::shared_ptr<const AssetSamples> samples;
 };
 
+// G2.9: one stretched Clip's prepared samples (ADR-0030: prepared on the control side, read by
+// absolute frame on the audio thread). Keyed by everything the preparation depends on, so a
+// cache entry is reused only for the identical source window and factor.
+struct StretchedOwnership
+{
+    EntityId                            clipId;
+    EntityId                            assetId;
+    std::uint64_t                       srcOffset = 0;
+    std::uint64_t                       srcLen = 0;
+    float                               stretchFactor = 1.0f;
+    std::shared_ptr<const AssetSamples> samples;
+};
+
 struct OfflineRenderOptions
 {
     GraphId graphId = 7000;
@@ -55,6 +69,7 @@ struct OfflineRenderOptions
     int     maxBlockSize = 128;
     std::vector<ProjectMixerSendRoute> sendRoutes;
     std::vector<AssetOwnership> assetOwners;   // G0.5: optional shared storage per asset id
+    std::vector<StretchedOwnership> stretchOwners;   // G2.9: optional prepared stretches per clip
 };
 
 enum class OfflineRenderStatus : std::uint8_t
@@ -73,6 +88,7 @@ enum class OfflineRenderStatus : std::uint8_t
     MixerProjectionFailed,
     OutputTooLarge,
     RenderProducedNonFinite,
+    TimeStretchFailed,          // G2.9: a stretched Clip's control-side preparation failed
     GraphNotBlockParallelSafe   // ADR-0027: graph has a cross-Block-stateful node; use the serial renderer
 };
 
@@ -254,7 +270,10 @@ namespace detail {
                                                    const ResolvedClipWindow& window,
                                                    std::vector<std::pair<EntityId, std::shared_ptr<const AssetSamples>>>& copiedAssets,
                                                    ScheduledClipSource& out,
-                                                   OfflineRenderStatus& status)
+                                                   OfflineRenderStatus& status,
+                                                   double sampleRate = 0.0,
+                                                   std::span<const StretchedOwnership> stretchOwners = {},
+                                                   std::vector<StretchedOwnership>* preparedStretches = nullptr)
 {
     const DecodedAssetAudio* const decoded = findDecodedAsset (decodedAssets, asset.id);
     if (decoded == nullptr)
@@ -331,6 +350,63 @@ namespace detail {
         return false;
     }
 
+    // G2.9: a stretched Clip plays PREPARED samples (ADR-0030) — reused from the caller's owners or
+    // this build's own preparations, prepared once otherwise. The window law is the unstretched
+    // one with the prepared length in place of srcLen.
+    if (clip.stretchFactor != 1.0f)
+    {
+        if (! clipStretchIsStorageSafe (clip.stretchFactor) || sampleRate <= 0.0
+            || clip.srcOffset > asset.frames || clip.srcLen > asset.frames - clip.srcOffset)
+        {
+            status = OfflineRenderStatus::TimeStretchFailed;
+            return false;
+        }
+        const auto matches = [&] (const StretchedOwnership& entry)
+        {
+            return entry.samples != nullptr && entry.clipId == clip.id && entry.assetId == asset.id
+                && entry.srcOffset == clip.srcOffset && entry.srcLen == clip.srcLen
+                && entry.stretchFactor == clip.stretchFactor && entry.samples->channels == owner->channels;
+        };
+        std::shared_ptr<const AssetSamples> stretched;
+        for (const StretchedOwnership& entry : stretchOwners)
+            if (stretched == nullptr && matches (entry))
+                stretched = entry.samples;
+        if (preparedStretches != nullptr)
+            for (const StretchedOwnership& entry : *preparedStretches)
+                if (stretched == nullptr && matches (entry))
+                    stretched = entry.samples;
+        if (stretched == nullptr)
+        {
+            const std::size_t first = static_cast<std::size_t> (clip.srcOffset) * static_cast<std::size_t> (owner->channels);
+            const std::size_t count = static_cast<std::size_t> (clip.srcLen) * static_cast<std::size_t> (owner->channels);
+            PreparedTimeStretch prepared = prepareTimeStretch (std::span<const float> (owner->interleaved.data() + first, count),
+                                                               static_cast<std::uint32_t> (owner->channels),
+                                                               sampleRate,
+                                                               static_cast<double> (clip.stretchFactor));
+            if (! prepared.ok())
+            {
+                status = OfflineRenderStatus::TimeStretchFailed;
+                return false;
+            }
+            auto samples = std::make_shared<AssetSamples>();
+            samples->channels = owner->channels;
+            samples->frames = prepared.outputFrames;
+            samples->interleaved = std::move (prepared.interleavedSamples);
+            stretched = samples;
+            if (preparedStretches != nullptr)
+                preparedStretches->push_back ({ clip.id, asset.id, clip.srcOffset, clip.srcLen, clip.stretchFactor, stretched });
+        }
+        out.owner = stretched;
+        out.clip.samples = stretched->interleaved.data();
+        out.clip.sourceFrames = static_cast<std::int64_t> (std::min<std::uint64_t> (stretched->frames, window.lengthFrames));
+        out.clip.sourceChannels = stretched->channels;
+        out.clip.startFrame = static_cast<std::int64_t> (window.startFrame);
+        out.clip.fadeInFrames = static_cast<std::int64_t> (clip.fadeIn);
+        out.clip.fadeOutFrames = static_cast<std::int64_t> (clip.fadeOut);
+        out.clip.gain = clip.gain;
+        return true;
+    }
+
     out.owner = owner;
     out.clip.samples = owner->interleaved.data()
                      + static_cast<std::size_t> (clip.srcOffset) * static_cast<std::size_t> (owner->channels);
@@ -370,11 +446,16 @@ namespace detail {
                                                                             EntityId trackId,
                                                                             std::span<const DecodedAssetAudio> decodedAssets,
                                                                             OfflineRenderStatus& status,
-                                                                            std::span<const AssetOwnership> assetOwners = {})
+                                                                            std::span<const AssetOwnership> assetOwners = {},
+                                                                            std::span<const StretchedOwnership> stretchOwners = {},
+                                                                            std::vector<StretchedOwnership>* preparedStretches = nullptr)
 {
     status = OfflineRenderStatus::Ok;
     auto schedule = std::make_unique<ClipSchedule>();
     std::vector<std::pair<EntityId, std::shared_ptr<const AssetSamples>>> copiedAssets;
+    std::vector<StretchedOwnership> localStretches;   // G2.9: this build's preparations when the caller keeps none
+    if (preparedStretches == nullptr)
+        preparedStretches = &localStretches;
 
     int stripChannels = 1;
     for (const Clip& clip : project.clips)
@@ -409,7 +490,8 @@ namespace detail {
         }
         ScheduledClipSource source;
         if (! detail::makeScheduledClipSource (decodedAssets, assetOwners, clip, *asset, stripChannels, window,
-                                               copiedAssets, source, status))
+                                               copiedAssets, source, status,
+                                               project.sampleRate.hz, stretchOwners, preparedStretches))
             return nullptr;
         schedule->clips.push_back (source.clip);
         if (source.owner != nullptr)
@@ -536,11 +618,13 @@ namespace detail {
     // G0.5: the SAME per-clip law the live placement lane uses (buildTrackClipSchedule) — one
     // resolver, so what the engine plays after a live edit is exactly what a rebuild would bake.
     std::vector<std::pair<EntityId, std::shared_ptr<const AssetSamples>>> copiedAssets;
+    std::vector<StretchedOwnership> preparedStretches;   // G2.9: prepared once per stretched Clip per build
     const bool projected = projectToMixerProjectionInputs (
         project,
         config,
-        [&decodedAssets, &resolved, &factoryStatus, &copiedAssets, &options] (const Project&, const Clip& clip, const Asset& asset,
-                                                                               int stripChannels, ScheduledClipSource& out) -> bool
+        [&decodedAssets, &resolved, &factoryStatus, &copiedAssets, &options, &preparedStretches] (const Project& projected,
+                                                                                                  const Clip& clip, const Asset& asset,
+                                                                                                  int stripChannels, ScheduledClipSource& out) -> bool
         {
             const detail::ResolvedClipWindow* const window = detail::findResolvedClip (resolved, clip.id);
             if (window == nullptr)
@@ -552,7 +636,11 @@ namespace detail {
                                                     std::span<const AssetOwnership> (options.assetOwners.data(),
                                                                                      options.assetOwners.size()),
                                                     clip, asset, stripChannels, *window,
-                                                    copiedAssets, out, factoryStatus);
+                                                    copiedAssets, out, factoryStatus,
+                                                    projected.sampleRate.hz,
+                                                    std::span<const StretchedOwnership> (options.stretchOwners.data(),
+                                                                                         options.stretchOwners.size()),
+                                                    &preparedStretches);
         },
         projection,
         &result.projectError);

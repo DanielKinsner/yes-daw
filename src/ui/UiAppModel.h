@@ -7844,6 +7844,7 @@ private:
         // the ordinary rebuild path, before anything is adopted.
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
         const std::vector<engine::AssetOwnership> owners = makeDecodedOwners (decodedAssets_);
+        const std::vector<engine::StretchedOwnership> stretches = refreshStretchOwners (nextProject, owners);   // G2.9
         std::vector<std::pair<engine::NodeId, std::unique_ptr<const engine::ClipSchedule>>> schedules;
         for (const engine::Track& track : nextProject.tracks)
         {
@@ -7854,7 +7855,8 @@ private:
                 nextProject, track.id,
                 std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
                 status,
-                std::span<const engine::AssetOwnership> (owners.data(), owners.size()));
+                std::span<const engine::AssetOwnership> (owners.data(), owners.size()),
+                std::span<const engine::StretchedOwnership> (stretches.data(), stretches.size()));
             if (schedule == nullptr || status != engine::OfflineRenderStatus::Ok)
                 return false;
             schedules.emplace_back (
@@ -9197,7 +9199,63 @@ private:
         // G0.5: every engine build references the model's shared per-asset storage by asset id,
         // so the live placement lane's schedules can keep it alive without copying.
         options.assetOwners = makeDecodedOwners (decodedAssets_);
+        options.stretchOwners = refreshStretchOwners (project_, options.assetOwners);   // G2.9
         return options;
+    }
+
+    // G2.9: the prepared samples of every stretched Clip (ADR-0030: control side, once per source
+    // window + factor), kept across builds so a live publish and a rebuild play the SAME buffer
+    // and neither re-runs the stretcher for an unchanged Clip. Entries no Clip needs any more are
+    // dropped here; a failed preparation leaves the Clip out and the build reports it.
+    std::vector<engine::StretchedOwnership> refreshStretchOwners (const engine::Project& project,
+                                                                  const std::vector<engine::AssetOwnership>& owners) const
+    {
+        std::vector<engine::StretchedOwnership> next;
+        for (const engine::Clip& clip : project.clips)
+        {
+            if (clip.stretchFactor == 1.0f || ! engine::detail::clipStretchIsStorageSafe (clip.stretchFactor))
+                continue;
+            const engine::Asset* const asset = project.findAsset (clip.assetId);
+            if (asset == nullptr || clip.srcOffset > asset->frames || clip.srcLen > asset->frames - clip.srcOffset)
+                continue;
+            std::shared_ptr<const engine::AssetSamples> owner;
+            for (const engine::AssetOwnership& ownership : owners)
+                if (ownership.assetId == asset->id && ownership.samples != nullptr
+                    && ownership.samples->frames >= asset->frames
+                    && ownership.samples->channels == static_cast<int> (asset->channels))
+                    owner = ownership.samples;
+            if (owner == nullptr)
+                continue;
+            bool reused = false;
+            for (const engine::StretchedOwnership& cached : stretchedSamplesCache_)
+            {
+                if (cached.samples != nullptr && cached.clipId == clip.id && cached.assetId == asset->id
+                    && cached.srcOffset == clip.srcOffset && cached.srcLen == clip.srcLen
+                    && cached.stretchFactor == clip.stretchFactor && cached.samples->channels == owner->channels)
+                {
+                    next.push_back (cached);
+                    reused = true;
+                    break;
+                }
+            }
+            if (reused)
+                continue;
+            const std::size_t first = static_cast<std::size_t> (clip.srcOffset) * static_cast<std::size_t> (owner->channels);
+            const std::size_t count = static_cast<std::size_t> (clip.srcLen) * static_cast<std::size_t> (owner->channels);
+            engine::PreparedTimeStretch prepared = engine::prepareTimeStretch (
+                std::span<const float> (owner->interleaved.data() + first, count),
+                static_cast<std::uint32_t> (owner->channels), project.sampleRate.hz,
+                static_cast<double> (clip.stretchFactor));
+            if (! prepared.ok())
+                continue;
+            auto samples = std::make_shared<engine::AssetSamples>();
+            samples->channels = owner->channels;
+            samples->frames = prepared.outputFrames;
+            samples->interleaved = std::move (prepared.interleavedSamples);
+            next.push_back ({ clip.id, asset->id, clip.srcOffset, clip.srcLen, clip.stretchFactor, samples });
+        }
+        stretchedSamplesCache_ = next;
+        return next;
     }
 
     void replacePlayback (std::unique_ptr<engine::PlaybackEngine> replacement)
@@ -9517,6 +9575,7 @@ private:
         std::shared_ptr<const engine::AssetSamples> samples;
     };
     mutable std::vector<OwnedAssetSamples> assetSamplesCache_;   // filled from const build-option reads
+    mutable std::vector<engine::StretchedOwnership> stretchedSamplesCache_;   // G2.9: prepared stretches per clip
     std::uint64_t livePlacementEdits_ = 0;
     std::vector<RetiredMonitorChain> retiredMonitorChains_;
     std::atomic<std::uint64_t> deviceBlocksStarted_ { 0 };

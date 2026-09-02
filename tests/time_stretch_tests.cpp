@@ -1,5 +1,7 @@
 #include "engine/TimeStretch.h"
 #include "engine/nodes/TimeStretchNode.h"
+#include "engine/OfflineRenderer.h"
+#include "engine/Project.h"
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -372,4 +374,119 @@ TEST_CASE ("TimeStretchNode fallback cursor resets for simple sequential tests",
     node.reset();
     node.process ({ audio, events, transport, 64 });
     requireSamplesClose (storage, std::span<const float> (prepared.interleavedSamples.data(), 64u));
+}
+
+// G2.9: a stretched Clip in a Project renders — offline and through the live schedule — exactly the
+// samples the pinned stretcher prepares for its source window, placed at the Clip's start with its
+// gain (ADR-0030: prepared on the control side, zero runtime latency); an unstretched Clip is
+// unchanged by the new law; an out-of-range factor is refused, never guessed.
+TEST_CASE ("A stretched Clip renders offline and live exactly as its prepared samples", "[g2][time-stretch][project][render]")
+{
+    using namespace yesdaw::engine;
+    const auto idFromLowByte = [] (std::uint8_t low)
+    {
+        EntityId::StorageBytes bytes {};
+        bytes.back() = low;
+        return EntityId::fromBytes (bytes);
+    };
+    const std::vector<float> source = makeMonoFixture();
+    Asset asset;
+    asset.id = idFromLowByte (10);
+    for (std::size_t i = 0; i < asset.contentHash.bytes.size(); ++i)
+        asset.contentHash.bytes[i] = static_cast<std::uint8_t> (7u + i);
+    asset.frames = static_cast<std::uint64_t> (source.size());
+    asset.sampleRate = SampleRate { kSampleRate };
+    asset.channels = 1;
+
+    Clip clip;
+    clip.id = idFromLowByte (20);
+    clip.assetId = asset.id;
+    clip.trackId = idFromLowByte (30);
+    clip.timelineStart = 1000;
+    clip.srcOffset = 512;
+    clip.srcLen = 4096;
+    clip.gain = 0.5f;
+    clip.stretchFactor = 1.5f;
+    clip.timelineLength = static_cast<Tick> (std::llround (static_cast<double> (clip.srcLen) * 1.5));
+    clip.name = "stretched";
+
+    Project project;
+    project.id = idFromLowByte (1);
+    project.sampleRate = SampleRate { kSampleRate };
+    project.assets = { asset };
+    Track track;
+    track.id = clip.trackId;
+    track.strip.name = "Audio 1";
+    project.tracks = { track };
+    project.clips = { clip };
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    DecodedAssetAudio decoded;
+    decoded.assetId = asset.id;
+    decoded.sampleRate = asset.sampleRate;
+    decoded.frames = asset.frames;
+    decoded.channels = 1;
+    decoded.interleavedSamples = std::span<const float> (source.data(), source.size());
+    const std::span<const DecodedAssetAudio> decodedAssets (&decoded, 1u);
+
+    // The reference: the stretcher on the Clip's own source window.
+    const PreparedTimeStretch prepared = prepareTimeStretch (
+        std::span<const float> (source.data() + clip.srcOffset, static_cast<std::size_t> (clip.srcLen)), 1u, kSampleRate, 1.5);
+    REQUIRE (prepared.ok());
+    REQUIRE (prepared.outputFrames == static_cast<std::uint64_t> (clip.timelineLength));
+
+    const auto rendered = renderOfflineProject (project, decodedAssets, OfflineRenderOptions {});
+    INFO ("offline status " << static_cast<int> (rendered.status));
+    REQUIRE (rendered.ok());
+    REQUIRE (rendered.channels == 2u);
+    REQUIRE (rendered.frames >= static_cast<std::uint64_t> (clip.timelineStart + clip.timelineLength));
+    const float centre = kScheduledClipEqualPowerCentreGain;
+    double maxError = 0.0;
+    for (std::uint64_t frame = 0; frame < rendered.frames; ++frame)
+    {
+        const std::int64_t local = static_cast<std::int64_t> (frame) - clip.timelineStart;
+        const float expected = (local >= 0 && local < static_cast<std::int64_t> (prepared.outputFrames))
+                                 ? prepared.interleavedSamples[static_cast<std::size_t> (local)] * clip.gain * centre
+                                 : 0.0f;
+        for (std::uint64_t channel = 0; channel < 2u; ++channel)
+            maxError = std::max (maxError, static_cast<double> (std::abs (
+                rendered.interleavedSamples[static_cast<std::size_t> (frame * 2u + channel)] - expected)));
+    }
+    INFO ("max error vs prepared " << maxError);
+    REQUIRE (maxError < 1.0e-5);
+
+    // The live lane: the same resolver builds the Track's schedule; its samples ARE the prepared ones.
+    OfflineRenderStatus status = OfflineRenderStatus::Ok;
+    std::vector<StretchedOwnership> preparedStretches;
+    const std::unique_ptr<ClipSchedule> schedule = buildTrackClipSchedule (project, track.id, decodedAssets, status, {}, {}, &preparedStretches);
+    REQUIRE (status == OfflineRenderStatus::Ok);
+    REQUIRE (schedule != nullptr);
+    REQUIRE (schedule->clips.size() == 1u);
+    REQUIRE (preparedStretches.size() == 1u);
+    REQUIRE (schedule->clips[0].sourceFrames == static_cast<std::int64_t> (prepared.outputFrames));
+    REQUIRE (schedule->clips[0].startFrame == clip.timelineStart);
+    for (std::size_t i = 0; i < prepared.interleavedSamples.size(); i += 97u)
+        REQUIRE (schedule->clips[0].samples[i] == prepared.interleavedSamples[i]);
+
+    // A second build with the first build's preparations reuses them (no second stretch).
+    std::vector<StretchedOwnership> reused;
+    const std::unique_ptr<ClipSchedule> again = buildTrackClipSchedule (
+        project, track.id, decodedAssets, status,
+        {}, std::span<const StretchedOwnership> (preparedStretches.data(), preparedStretches.size()), &reused);
+    REQUIRE (status == OfflineRenderStatus::Ok);
+    REQUIRE (again != nullptr);
+    REQUIRE (reused.empty());
+    REQUIRE (again->clips[0].samples == schedule->clips[0].samples);
+
+    // Negative controls: an out-of-range factor is refused; an unstretched Clip takes the old path.
+    Project bad = project;
+    bad.clips[0].stretchFactor = 3.0f;
+    REQUIRE_FALSE (renderOfflineProject (bad, decodedAssets, OfflineRenderOptions {}).ok());
+    Project plain = project;
+    plain.clips[0].stretchFactor = 1.0f;
+    plain.clips[0].timelineLength = static_cast<Tick> (clip.srcLen);
+    const auto plainRendered = renderOfflineProject (plain, decodedAssets, OfflineRenderOptions {});
+    REQUIRE (plainRendered.ok());
+    REQUIRE (plainRendered.interleavedSamples[static_cast<std::size_t> ((clip.timelineStart + 100) * 2)]
+             == source[static_cast<std::size_t> (clip.srcOffset + 100)] * clip.gain * centre);
 }

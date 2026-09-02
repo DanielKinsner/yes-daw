@@ -24,6 +24,7 @@ struct UiTimelineEditPayload
     float gain = 1.0f;
     engine::Tick fadeIn = 0;
     engine::Tick fadeOut = 0;
+    float stretchFactor = 1.0f;   // G2.9
 
     [[nodiscard]] static constexpr UiTimelineEditPayload moveTo (engine::EntityId clipId,
                                                                  engine::Tick timelineStart) noexcept
@@ -212,16 +213,9 @@ private:
                 out = engine::ProjectEditCommand::setClipFades (clipId, payload.fadeIn, payload.fadeOut);
                 return true;
 
-            case UiActionId::TimelineClipTimeStretch:
-            {
-                const engine::Clip* clip = findClip (clipId);
-                if (clip == nullptr)
-                    return false;
-
-                out = engine::ProjectEditCommand::trimClip (
-                    clipId, clip->timelineStart, payload.timelineLength, clip->srcOffset, clip->srcLen);
+            case UiActionId::TimelineClipTimeStretch:   // G2.9: a real stretch, not a trim
+                out = engine::ProjectEditCommand::setClipStretch (clipId, payload.stretchFactor, payload.timelineLength);
                 return true;
-            }
 
             default:
                 break;

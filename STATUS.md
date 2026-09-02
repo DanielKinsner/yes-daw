@@ -41,9 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.8 (Nudge value in clock units — 1 ms, 10 ms, 1 frame, 1 sample; `[nudge-value]`)
-built, gated locally, committed; awaiting its exact-head run. Next: G2.9 per the plan. The drive
-stays paused (D14).
+**Now:** G2.9a (time-stretch for real — engine, schema v22, undo, resolver; gates in the
+time-stretch, project and persistence checks) built, gated locally, committed; awaiting its
+exact-head run. Next: G2.9b — the gesture (Alt on the right edge), the inspector field, Stretch
+to Loop Length, the returned verb; gate `[stretch]`. The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -96,7 +97,38 @@ G2.3 ✅ — drag ghosts, landing line, Esc, auto-scroll (`83e8c5e`); G2.4 ✅ �
 benchmark's hosted-runner noise, parking lot) — every job green on the same head.
 G2.5 ✅ — Time selection first-class (`c6568e5`); G2.6 ✅ — Edit modes (`e25e008`); both certified
 by run `33630615703` on `af3c034` (the one-label fix; D51 in G2.7's section) — green on all ten jobs.
+G2.7 ✅ — Snap modes (`02ea877`); certified by exact-head run `33632069331` (green on all ten jobs).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.9a — Time-stretch for real: engine half (2026-09-02)
+
+**Build.** `Clip::stretchFactor` (0.5..2.0 per ADR-0030; `clipStretchIsStorageSafe` joins the
+metadata law); bundle schema **v22** (`ALTER TABLE clips ADD COLUMN stretch_factor REAL NOT
+NULL DEFAULT 1.0`; validated on read); `ProjectEditVerb::SetClipStretch` +
+`setClipStretch (project, id, factor, newLength)` (factor bounds, window legality, the source
+window untouched; coalesces like a trim; undo by the before-image diff as every clip edit).
+Render: `makeScheduledClipSource` (the ONE resolver behind the live lane and the graph build)
+prepares a stretched Clip through `prepareTimeStretch` on the control side and schedules the
+prepared buffer (`sourceFrames = min (prepared, length)`); `StretchedOwnership` keyed by
+(clip, asset, srcOffset, srcLen, factor) lets callers hand in prepared samples
+(`OfflineRenderOptions::stretchOwners`, `buildTrackClipSchedule (…, stretchOwners,
+preparedOut)`); the model's `refreshStretchOwners` keeps `stretchedSamplesCache_` across
+builds so a live publish and a rebuild play the same buffer. `OfflineRenderStatus::
+TimeStretchFailed`; the DAWproject exporter refuses stretched Clips (`UnsupportedStretch`);
+the UI payload gains `stretchFactor` and the Time Stretch case maps to the verb (still
+disabled in the registry until G2.9b). CMake: the Signalsmith include dir is global (SYSTEM).
+
+**Gates.** Time-stretch check: offline render of a stretched Clip == the stretcher's own output
+for its window at the Clip's start × gain × centre (max error < 1e-5); the live schedule's
+samples are the prepared buffer; a second build with the first's owners prepares nothing;
+out-of-range factor refused; unstretched Clip unchanged. Project check: SetClipStretch refuses
+2.5 / 0.25 / negative length, edits only factor + length, undo/redo exact. Persistence:
+round-trip carries 1.5 through v22.
+
+**Not built (recorded).** PDC: the prepared node reports zero latency (ADR-0030), so no PDC
+change — asserted by the render equality, not a separate gate; a project frame rate for the
+stretch is the sample rate (no tempo-locked stretch: TempoLocked clips are refused as before);
+the packaged self-check has no stretched fixture yet.
 
 ### G2.8 — Nudge value in clock units (2026-09-02)
 

@@ -40,6 +40,7 @@ enum class PackageStatus : std::uint8_t
     AssetMetadataMismatch,
     UnsupportedAssetChannels,
     UnsupportedTimeBase,
+    UnsupportedStretch,   // G2.9: stretched audio Clips have no DAWproject mapping yet
     NonFiniteValue,
     DuplicateXmlId,
     PackageWriteFailed,
@@ -645,6 +646,8 @@ inline bool midiTrackAlreadySeen (std::span<const engine::EntityId> tracks, engi
             return detail::fail (PackageStatus::InvalidTimeline, "audio Clip metadata is invalid");
         if (clip.timeBase != engine::TimeBase::SampleLocked)
             return detail::fail (PackageStatus::UnsupportedTimeBase, "tempo-locked audio Clips are unsupported");
+        if (clip.stretchFactor != 1.0f)
+            return detail::fail (PackageStatus::UnsupportedStretch, "stretched audio Clips are unsupported");
         if (! std::isfinite (clip.gain))
             return detail::fail (PackageStatus::NonFiniteValue, "audio Clip gain is non-finite");
 

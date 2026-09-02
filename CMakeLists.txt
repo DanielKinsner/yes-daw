@@ -77,6 +77,10 @@ else()
   FetchContent_MakeAvailable(Catch2 choc sqlite3 libebur128 signalsmith_stretch)   # RTSan/TSan leg: skip the JUCE clone, still get choc
 endif()
 
+# G2.9: the engine's clip resolver prepares stretched Clips (ADR-0030), so every target that
+# includes OfflineRenderer.h sees the pinned Signalsmith header (SYSTEM: its warnings are not ours).
+include_directories(SYSTEM ${signalsmith_stretch_SOURCE_DIR})
+
 add_library(sqlite3_amalgamation STATIC ${sqlite3_SOURCE_DIR}/sqlite3.c)
 target_include_directories(sqlite3_amalgamation SYSTEM PUBLIC ${sqlite3_SOURCE_DIR})
 target_compile_definitions(sqlite3_amalgamation PRIVATE
