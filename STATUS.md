@@ -63,9 +63,14 @@ run `33595208144` was red on Linux/macOS (D22); code `96e9829` + fix `23d3e53`.
 G0.6 ✅ — certified by the same fix-commit run; its own run `33595972964` carried the D22 red;
 code `24095d8` + fix `23d3e53`. Local suite 364/364 with the fix.
 G0.7 ✅ — three checkpoints (`8795c42` header + row law, `8817813` panels + rail row, `4e9932a`
-ruler rows); certified by exact-head run `PENDING` for full SHA `PENDING` (cp1/cp2's own runs were
-red on macOS only: D30 clang capture warning, D31 the inspector exact-restore compare — see the
-cp3/G0.8 notes for the diagnosis). SS-1 see-it steps stay pending the drive (D14).
+ruler rows); certified by exact-head run `33604946633` (green on all ten jobs) for full SHA
+`171363ae4143c29bd6519069c0a4067a5e98976c` (the G1.1 cp1 commit, which carries every G0.7/G0.8 change). Its own
+checkpoint runs were red on macOS only (D30 clang capture warning; D31 the inspector
+exact-restore compare — did not recur; D32 the lane-budget gate's vacuous Windows pass).
+SS-1 see-it steps stay pending the drive (D14).
+G0.8 ✅ — `f117c42`; certified by the same run `33604946633` / `171363ae4143c29bd6519069c0a4067a5e98976c`. Its own run
+`33604218038` was red on macOS only in the GPU frame-budget gate (18.1 ms sustained vs 16.7 —
+runner noise: the same paint passed the run before and the run after; the failed job was rerun).
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
@@ -123,8 +128,9 @@ unchanged at the three sizes). The drive stays paused (D14).
   "Send" and "FX On" verbs (first-Track tools) were disabled by the shell on content presence
   while their registry state said enabled with no reason. Fixed at the root: two context flags
   synced with the derived flags, the registry names the reason, the shell reads that state.
-- D34 The G0.7 tick above shows PENDING for its certifying run: this commit's run certifies G0.7
-  (all three checkpoints) and G0.8 together; the ids are filled by the next docs commit.
+- D34 G0.7 and G0.8 are certified by the G1.1 cp1 commit's run `33604946633` (`171363a`), the first
+  run green on all ten jobs since cp1 of G0.7; each item's own run had a macOS-only red
+  (D30–D32, and the GPU budget noise on G0.8's).
 
 ### G0.7 — First-minute density, checkpoint 3: the ruler's rows (2026-09-02)
 
