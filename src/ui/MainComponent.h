@@ -245,6 +245,9 @@ void mainComponentSetDockHeight (juce::Component& component, int height);
 // Time Display) and the id of the ruler menu's Time Display entry for a mode (1 min:sec, 2 SMPTE,
 // 3 samples) — so the gate walks the REAL menu record.
 void mainComponentInvokeContextMenuId (juce::Component& component, int itemId);
+// G2.3: one edge-band auto-scroll step while a clip drag sits in the band (the timer's law,
+// ticked directly); returns the seconds scrolled.
+double mainComponentTimelineAutoScrollTick (juce::Component& component);
 [[nodiscard]] int mainComponentTimeDisplayMenuId (int mode);
 void mainComponentKeymapEditorSelectRow (juce::Component& component, int row);
 void mainComponentKeymapEditorBind (juce::Component& component, const juce::String& chord);

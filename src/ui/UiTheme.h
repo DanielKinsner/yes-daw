@@ -131,6 +131,8 @@ struct UiTheme
         static constexpr float timelineCanvasCompactHighlightBrightness = 0.3f;
         static constexpr float timelineCanvasClipFillAlpha = 0.42f;
         static constexpr float timelineCanvasClipOutlineBrightness = 0.35f;
+        static constexpr float timelineDragGhostFillAlpha = 0.30f;      // G2.3
+        static constexpr float timelineDragGhostOutlineAlpha = 0.95f;   // G2.3
         static constexpr float timelineCanvasRulerTickAlpha = 0.65f;
         static constexpr float timelineCanvasGridLaneSeparatorAlpha = 0.7f;
         static constexpr float timelineCanvasGridTrackTintAlpha = 0.20f;
@@ -261,6 +263,11 @@ struct UiTheme
         static constexpr int editorDockMinHeight = 160;
         static constexpr int arrangeMinHeight = 200;
         static constexpr int splitterThickness = 6;
+        // G2.3: drag previews and edge auto-scroll.
+        static constexpr int timelineAutoScrollEdgeBandPx = 24;
+        static constexpr int timelineAutoScrollIntervalMs = 40;
+        static constexpr double timelineAutoScrollStepFraction = 0.02;   // of the visible window per tick
+        static constexpr float timelineDragGhostOutlineWidth = 1.5f;
         static juce::Rectangle<int> headerMenuBarBounds() noexcept { return { 8, 2, 680, 24 }; }   // G1.4: nine menus (G1.2) need the room
         static constexpr int headerMenuStartX = 22;
         static constexpr int headerMenuY = 5;

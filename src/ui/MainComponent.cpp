@@ -472,7 +472,8 @@ StoredProjectAssetsResult decodeStoredProjectAssets (const std::filesystem::path
 
 class TimelineInputComponent final : public juce::Component,
                                      public juce::FileDragAndDropTarget,
-                                     public juce::SettableTooltipClient
+                                     public juce::SettableTooltipClient,
+                                     private juce::Timer   // G2.3: edge-band auto-scroll
 {
 public:
     // M10: dropping files from the OS. The drop POINT picks the track and the start tick; the
@@ -550,6 +551,7 @@ public:
 
     [[nodiscard]] bool cancelInProgressEdit()
     {
+        stopTimer();   // G2.3: an Esc mid-drag ends the auto-scroll with the drag
         if (! dragState.active && ! marqueeState.active && ! rulerRangeDragActive && ! handDragActive
             && loopBraceDrag == LoopBraceEdit::None && markerDragIndex < 0)
             return false;
@@ -562,6 +564,134 @@ public:
         markerDragIndex = -1;
         repaint();
         return true;
+    }
+
+    // G2.3: the drag ghost — what the release WILL do, painted from dragState + the pointer while
+    // the model stays untouched: move / copy (with the lane change and the snap landing line),
+    // trims (the moved edge), fades (the wedge), gain (the level line). Same arithmetic as the
+    // release path (mouseUp) and the hit test.
+    void paintDragGhost (juce::Graphics& g, const yesdaw::ui::TimelineCanvasState& state)
+    {
+        const yesdaw::ui::Clip* clip = findClipByLayoutId (state, dragState.layoutClipId);
+        if (clip == nullptr)
+            return;
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+        const yesdaw::ui::Viewport vp = yesdaw::ui::viewportForClipLayout (geometry);
+        const double pps = std::max (yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+                                     geometry.viewport.pixelsPerSecond);
+        const yesdaw::ui::ClipPixelRect base = yesdaw::ui::visibleClipPixelRect (*clip, vp);
+        const juce::Rectangle<float> clipRect (static_cast<float> (geometry.clipArea.getX() + base.x),
+                                               static_cast<float> (geometry.clipArea.getY() + base.y),
+                                               static_cast<float> (base.w), static_cast<float> (base.h));
+        const int deltaX = dragState.currentPosition.x - dragState.downPosition.x;
+        const int deltaY = dragState.currentPosition.y - dragState.downPosition.y;
+        const auto fill = kPurple.withAlpha (yesdaw::ui::UiTheme::Tone::timelineDragGhostFillAlpha);
+        const auto outline = kPurple.withAlpha (yesdaw::ui::UiTheme::Tone::timelineDragGhostOutlineAlpha);
+        const auto snapped = [this] (double seconds, bool snapping)
+        {
+            return snapping && snapSecondsForPreview && ! dragState.snapInvert ? snapSecondsForPreview (seconds) : seconds;
+        };
+        g.saveState();
+        g.reduceClipRegion (geometry.clipArea);
+        switch (dragState.mode)
+        {
+            case TimelineDragMode::Move:
+            case TimelineDragMode::SnapMove:
+            {
+                const double rawStart = std::max (yesdaw::ui::UiTheme::Layout::timelineCoordinateSecondsFloor,
+                                                  clip->startSeconds + static_cast<double> (deltaX) / pps);
+                const double start = snapped (rawStart, dragState.mode == TimelineDragMode::SnapMove);
+                int lane = clip->lane;
+                if (state.trackCount > 0 && geometry.laneHeight > 0
+                    && std::abs (deltaY) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
+                    lane = std::clamp (geometry.laneAtPixel (dragState.currentPosition.y - geometry.clipArea.getY()
+                                                             + geometry.viewport.laneScrollPixels),
+                                       0, state.trackCount - 1);
+                const float x = static_cast<float> (geometry.clipArea.getX() + (start - vp.scrollSeconds) * pps);
+                const float y = static_cast<float> (geometry.clipArea.getY() + yesdaw::ui::laneTopPixelsFor (lane, vp));
+                const juce::Rectangle<float> ghost (x, y, clipRect.getWidth(), clipRect.getHeight());
+                g.setColour (fill);
+                g.fillRect (ghost);
+                g.setColour (outline);
+                if (dragState.copy)
+                {
+                    const float dashes[] = { 4.0f, 3.0f };
+                    juce::Path p;
+                    p.addRectangle (ghost);
+                    juce::PathStrokeType (yesdaw::ui::UiTheme::Layout::timelineDragGhostOutlineWidth)
+                        .createDashedStroke (p, p, dashes, 2);
+                    g.fillPath (p);
+                }
+                else
+                    g.drawRect (ghost, yesdaw::ui::UiTheme::Layout::timelineDragGhostOutlineWidth);
+                // The snap landing line: where the start WILL land, across every lane.
+                g.fillRect (juce::Rectangle<float> (x, static_cast<float> (geometry.clipArea.getY()),
+                                                    static_cast<float> (yesdaw::ui::UiTheme::Space::hairline),
+                                                    static_cast<float> (geometry.clipArea.getHeight())));
+                break;
+            }
+            case TimelineDragMode::TrimRight:
+            case TimelineDragMode::TrimLeft:
+            {
+                const bool right = dragState.mode == TimelineDragMode::TrimRight;
+                const double edgeSeconds = right ? clip->startSeconds + clip->lengthSeconds : clip->startSeconds;
+                const double moved = snapped (std::max (0.0, edgeSeconds + static_cast<double> (deltaX) / pps), true);
+                const float edgeX = static_cast<float> (geometry.clipArea.getX() + (moved - vp.scrollSeconds) * pps);
+                const juce::Rectangle<float> ghost = right
+                    ? clipRect.withRight (std::max (clipRect.getX() + 1.0f, edgeX))
+                    : clipRect.withLeft (std::min (clipRect.getRight() - 1.0f, edgeX));
+                g.setColour (fill);
+                g.fillRect (ghost);
+                g.setColour (outline);
+                g.drawRect (ghost, yesdaw::ui::UiTheme::Layout::timelineDragGhostOutlineWidth);
+                g.fillRect (juce::Rectangle<float> (edgeX, static_cast<float> (geometry.clipArea.getY()),
+                                                    static_cast<float> (yesdaw::ui::UiTheme::Space::hairline),
+                                                    static_cast<float> (geometry.clipArea.getHeight())));
+                break;
+            }
+            case TimelineDragMode::FadeIn:
+            case TimelineDragMode::FadeOut:
+            {
+                const bool fadeIn = dragState.mode == TimelineDragMode::FadeIn;
+                const double fadeSeconds = std::clamp ((fadeIn ? 1.0 : -1.0) * static_cast<double> (deltaX) / pps,
+                                                       0.0, clip->lengthSeconds);
+                const float fadeW = static_cast<float> (fadeSeconds * pps);
+                juce::Path wedge;
+                if (fadeIn)
+                {
+                    wedge.startNewSubPath (clipRect.getX(), clipRect.getBottom());
+                    wedge.lineTo (clipRect.getX() + fadeW, clipRect.getY());
+                    wedge.lineTo (clipRect.getX(), clipRect.getY());
+                }
+                else
+                {
+                    wedge.startNewSubPath (clipRect.getRight(), clipRect.getBottom());
+                    wedge.lineTo (clipRect.getRight() - fadeW, clipRect.getY());
+                    wedge.lineTo (clipRect.getRight(), clipRect.getY());
+                }
+                wedge.closeSubPath();
+                g.setColour (fill);
+                g.fillPath (wedge);
+                g.setColour (outline);
+                g.strokePath (wedge, juce::PathStrokeType (yesdaw::ui::UiTheme::Layout::timelineDragGhostOutlineWidth));
+                break;
+            }
+            case TimelineDragMode::Gain:
+            {
+                const float y = juce::jlimit (clipRect.getY(), clipRect.getBottom() - 1.0f,
+                                              clipRect.getCentreY() + static_cast<float> (deltaY));
+                g.setColour (fill);
+                g.fillRect (clipRect);
+                g.setColour (outline);
+                g.fillRect (juce::Rectangle<float> (clipRect.getX(), y, clipRect.getWidth(),
+                                                    static_cast<float> (yesdaw::ui::UiTheme::Space::hairline)));
+                break;
+            }
+            default:
+                break;
+        }
+        g.restoreState();
     }
 
     void paint (juce::Graphics& g) override
@@ -585,6 +715,8 @@ public:
                 }
             }
             (void) yesdaw::ui::paintTimelineCanvas (g, getLocalBounds(), state);
+            if (dragState.active && dragState.moved)
+                paintDragGhost (g, state);   // G2.3
             if (state.trackCount == 0 && state.clipCount == 0)
             {
                 const auto geometry = yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
@@ -1031,11 +1163,75 @@ public:
         }
 
         if (dragState.active)
+        {
             dragState.moved = true;
+            dragState.currentPosition = event.getPosition();
+            dragState.snapInvert = event.mods.isCtrlDown();
+            updateAutoScroll (event.getPosition());   // G2.3
+            repaint();                                // the ghost
+        }
     }
+
+    // G2.3: edge-band auto-scroll. A clip drag near the clip area's left / right edge scrolls
+    // the view by a fraction of the visible window per tick; the drag's press anchor shifts
+    // with it so the release lands where the ghost shows. The harness ticks it directly.
+    std::function<void (double)> onAutoScrolled;   // secondsDelta (the hand tool's law)
+    std::function<double (double)> snapSecondsForPreview;   // the shell's snap-to-grid, for the landing line
+
+    void updateAutoScroll (juce::Point<int> position)
+    {
+        autoScrollDirection = 0;
+        if (dragState.active && stateProvider)
+        {
+            const yesdaw::ui::TimelineCanvasState state = stateProvider();
+            const yesdaw::ui::TimelineCanvasGeometry geometry =
+                yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+            const int band = yesdaw::ui::UiTheme::Layout::timelineAutoScrollEdgeBandPx;
+            if (position.x >= geometry.clipArea.getRight() - band)
+                autoScrollDirection = 1;
+            else if (position.x <= geometry.clipArea.getX() + band)
+                autoScrollDirection = -1;
+        }
+        if (autoScrollDirection != 0)
+        {
+            if (! isTimerRunning())
+                startTimer (yesdaw::ui::UiTheme::Layout::timelineAutoScrollIntervalMs);
+        }
+        else
+            stopTimer();
+    }
+
+    // One auto-scroll step; returns the seconds scrolled (0 when nothing to do).
+    double autoScrollTick()
+    {
+        if (! dragState.active || autoScrollDirection == 0 || ! stateProvider || ! onAutoScrolled)
+        {
+            stopTimer();
+            return 0.0;
+        }
+        const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+        const double pps = std::max (yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+                                     geometry.viewport.pixelsPerSecond);
+        const double visibleSeconds = static_cast<double> (geometry.clipArea.getWidth()) / pps;
+        double delta = autoScrollDirection * visibleSeconds * yesdaw::ui::UiTheme::Layout::timelineAutoScrollStepFraction;
+        if (delta < 0.0)
+            delta = std::max (delta, -state.viewport.scrollSeconds);   // never before zero
+        if (std::abs (delta) <= 0.0)
+            return 0.0;
+        onAutoScrolled (delta);
+        dragState.downPosition.x -= juce::roundToInt (delta * pps);   // the anchor rides the scroll
+        repaint();
+        return delta;
+    }
+
+    void timerCallback() override { (void) autoScrollTick(); }
 
     void mouseUp (const juce::MouseEvent& event) override
     {
+        stopTimer();   // G2.3
+        autoScrollDirection = 0;
         if (markerDragIndex >= 0)
         {
             const int markerIndex = markerDragIndex;
@@ -1372,6 +1568,8 @@ private:
         double lengthSeconds = 0.0;
         TimelineDragMode mode = TimelineDragMode::Move;
         juce::Point<int> downPosition;
+        juce::Point<int> currentPosition;   // G2.3: the ghost follows the pointer
+        bool snapInvert = false;            // G2.3: Ctrl held mid-drag (trims / fades read it at release)
     };
 
     struct TimelineMarqueeState
@@ -1521,6 +1719,7 @@ private:
     }
 
     TimelineDragState dragState;
+    int autoScrollDirection = 0;   // G2.3: -1 left band, +1 right band, 0 none
     TimelineMarqueeState marqueeState;
     // Hand tool (E3): a press-drag pans the viewport horizontally; transient view state only.
     bool handDragActive = false;
@@ -3729,6 +3928,16 @@ public:
         timelineInput.onHandToolScrolled = [this] (double secondsDelta) {
             timelineScrollSeconds += secondsDelta;
             repaintAll();
+        };
+        timelineInput.onAutoScrolled = [this] (double secondsDelta) {   // G2.3: the hand tool's law
+            timelineScrollSeconds = std::max (0.0, timelineScrollSeconds + secondsDelta);
+            repaintAll();
+        };
+        timelineInput.snapSecondsForPreview = [this] (double seconds) {   // G2.3: the release's snap law
+            if (const auto tick = timelineTickFromSeconds (seconds))
+                if (appModel.project().sampleRate.isValid())
+                    return static_cast<double> (snappedTimelineTick (*tick, true)) / appModel.project().sampleRate.hz;
+            return seconds;
         };
         timelineInput.onVerticalScrollRows = [this] (int rowDelta) {
             scrollTrackRowsBy (rowDelta);
@@ -9079,6 +9288,7 @@ private:
 
 public:
     void harnessSetDockHeight (int height) { setDockHeight (height); }   // G2.1
+    double harnessTimelineAutoScrollTick() { return timelineInput.autoScrollTick(); }   // G2.3
     void harnessInvokeContextMenuId (int itemId) { invokeContextMenuItem (itemId); }   // G2.2
     [[nodiscard]] static constexpr int harnessTimeDisplayMenuId (int mode) noexcept { return kContextMenuTimeDisplayBase + mode; }
 
@@ -13768,6 +13978,13 @@ void mainComponentSetDockHeight (juce::Component& component, int height)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         mainComponent->harnessSetDockHeight (height);
+}
+
+double mainComponentTimelineAutoScrollTick (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessTimelineAutoScrollTick();
+    return 0.0;
 }
 
 void mainComponentInvokeContextMenuId (juce::Component& component, int itemId)

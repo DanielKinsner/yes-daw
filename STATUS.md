@@ -41,12 +41,9 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.2 (ruler v2: Time Display Min:Sec / SMPTE / Samples from the ruler menu, shared by
-the header counter; bars-row drag = loop, time-row drag = Time selection, click = locate;
-`[ruler-v2]`) built, gated locally, committed; awaiting its exact-head run. G2.1 (cp1 certified;
-cp3's own run `33623275648` was red on Linux — an unused binding the A relabel left, GCC -Werror —
-fixed in cp3d; cp2, cp3 and the cluster fixes certify on the next exact-head green run). Next:
-G2.3 — drag previews and auto-scroll. The drive stays paused (D14).
+**Now:** G2.3 (drag ghosts + snap landing line, Esc cancels, edge-band auto-scroll;
+`[drag-preview]`) built, gated locally, committed; awaiting its exact-head run. Next: G2.4 — the
+Smart tool (pointer zones with cursors before the press). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -92,6 +89,34 @@ G1.7 ✅ — the dead-affordance sweep (`96c93bd`); certified by exact-head run 
 G2.1 cp1 ✅ — splitters + per-project view state (`98d1a89`); certified by exact-head run
 `33616439236` (green on all ten jobs, first try).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.3 — Drag previews and auto-scroll (2026-09-02)
+
+**Build.** The timeline overlay paints a **ghost** from `dragState` + the pointer while the
+model stays untouched until release: move / copy (dashed) with the lane change and a **snap
+landing line** across every lane at the start the release will use (`snapSecondsForPreview` =
+the shell's `snappedTimelineTick` law; Ctrl defeats it); trims show the moved edge + its line;
+fades a wedge; gain a level line. `visibleClipPixelRect` / `laneTopPixelsFor`
+(`TimelineLayout.h`) are the hit test's arithmetic. `Esc` cancels the drag and its ghost
+(`cancelInProgressEdit`, which also stops the scroll timer). **Edge-band auto-scroll**: the
+input is a `juce::Timer`; a clip drag within `timelineAutoScrollEdgeBandPx` (24) of the clip
+area's left / right edge scrolls `timelineAutoScrollStepFraction` (2 %) of the visible window
+every `timelineAutoScrollIntervalMs` (40) through the hand tool's scroll law, and the drag's
+press anchor rides the scroll so the release lands where the ghost shows. Tokens `Tone::
+timelineDragGhostFillAlpha / OutlineAlpha`, `Layout::timelineDragGhostOutlineWidth`. Harness
+`mainComponentTimelineAutoScrollTick` (the timer's law, ticked directly, returns the seconds).
+
+**Gates.** `[drag-preview]` (input check): R18 — mid-drag the ghost area's pixels differ from
+the pre-drag render while the project's clips are identical; Esc restores the clip area's paint
+exactly, model untouched. R19 — zoomed in so there is content past the edge (the fixture fits
+the minimum window; the view never scrolls past its content), a drag into the right band: the
+first tick scrolls a positive step, three ticks three equal steps, model untouched; out of the
+band a tick scrolls nothing.
+
+**Not built (recorded).** No ghost for note drags in the piano roll (G2.6 piano-roll v2 owns
+it); the auto-scroll timer runs on wall-clock in the real app — the gate ticks the law directly
+(the timer's interval is a token, not a gate); vertical auto-scroll (lanes) waits for the
+track-height / zoom-v item.
 
 ### G2.2 — Ruler v2 (2026-09-02)
 

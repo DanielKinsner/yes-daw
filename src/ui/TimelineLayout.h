@@ -117,6 +117,34 @@ inline int layoutVisible (const Clip* clips, int n, const Viewport& vp,
 
 // Hit-test a viewport-local pixel against visible clips. Later input clips win, matching the paint order
 // where later rectangles are drawn over earlier ones.
+// G2.3: a clip's pixel rect in clip-area coordinates — the SAME arithmetic hitTestVisibleClip
+// uses, so a drag ghost lands exactly where the hit test says the clip is.
+struct ClipPixelRect
+{
+    double x = 0.0, y = 0.0, w = 0.0, h = 0.0;
+};
+
+[[nodiscard]] inline ClipPixelRect visibleClipPixelRect (const Clip& c, const Viewport& vp) noexcept
+{
+    const double pps = vp.pixelsPerSecond;
+    const double laneTop = vp.laneTopPixels != nullptr
+        ? vp.laneTopPixels[c.lane]
+        : static_cast<double> (c.lane) * vp.laneHeightPixels;
+    const double laneH = vp.laneHeightPixelsPerLane != nullptr
+        ? vp.laneHeightPixelsPerLane[c.lane]
+        : vp.laneHeightPixels;
+    return { (c.startSeconds - vp.scrollSeconds) * pps, laneTop - vp.laneScrollPixels,
+             c.lengthSeconds * pps, laneH };
+}
+
+[[nodiscard]] inline double laneTopPixelsFor (int lane, const Viewport& vp) noexcept
+{
+    const double laneTop = vp.laneTopPixels != nullptr
+        ? vp.laneTopPixels[lane]
+        : static_cast<double> (lane) * vp.laneHeightPixels;
+    return laneTop - vp.laneScrollPixels;
+}
+
 inline TimelineHitTestResult hitTestVisibleClip (const Clip* clips, int n, const Viewport& vp,
                                                  double xPixels, double yPixels)
 {
