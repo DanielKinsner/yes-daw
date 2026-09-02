@@ -25,6 +25,7 @@ enum class ProjectEditVerb : std::uint8_t
     SetClipGain,
     SetClipFades,
     SetClipStretch,   // G2.9
+    SetClipFadeShapes,   // G2.10
     MoveNote,
     SetNoteLength,
     SplitNote,
@@ -109,6 +110,10 @@ struct ProjectEditCommand
     Tick fadeIn = 0;
     Tick fadeOut = 0;
     float stretchFactor = 1.0f;   // G2.9
+    FadeShape fadeInShape = FadeShape::EqualPower;   // G2.10
+    FadeShape fadeOutShape = FadeShape::EqualPower;
+    float fadeInCurve = 0.0f;
+    float fadeOutCurve = 0.0f;
     EntityId midiClipId;
     EntityId noteId;
     EntityId rightNoteId;
@@ -262,6 +267,23 @@ struct ProjectEditCommand
         command.clipId = clipId;
         command.stretchFactor = newStretchFactor;
         command.timelineLength = newTimelineLength;
+        return command;
+    }
+
+    // G2.10: the fade shapes and curve amounts of both ends.
+    [[nodiscard]] static constexpr ProjectEditCommand setClipFadeShapes (EntityId clipId,
+                                                                         FadeShape newFadeInShape,
+                                                                         float newFadeInCurve,
+                                                                         FadeShape newFadeOutShape,
+                                                                         float newFadeOutCurve) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetClipFadeShapes;
+        command.clipId = clipId;
+        command.fadeInShape = newFadeInShape;
+        command.fadeInCurve = newFadeInCurve;
+        command.fadeOutShape = newFadeOutShape;
+        command.fadeOutCurve = newFadeOutCurve;
         return command;
     }
 
@@ -533,6 +555,10 @@ struct ProjectEditCommand
         command.fadeIn = clip.fadeIn;
         command.fadeOut = clip.fadeOut;
         command.stretchFactor = clip.stretchFactor;   // G2.9
+        command.fadeInShape = clip.fadeInShape;       // G2.10
+        command.fadeInCurve = clip.fadeInCurve;
+        command.fadeOutShape = clip.fadeOutShape;
+        command.fadeOutCurve = clip.fadeOutCurve;
         command.clipTimeBase = clip.timeBase;
         (void) copyClipName (command, clip.name.asView());
         return command;
@@ -1242,6 +1268,10 @@ namespace detail {
         case ProjectEditVerb::SetClipStretch:   // G2.9
             return setClipStretch (project, command.clipId, command.stretchFactor, command.timelineLength);
 
+        case ProjectEditVerb::SetClipFadeShapes:   // G2.10
+            return setClipFadeShapes (project, command.clipId, command.fadeInShape, command.fadeInCurve,
+                                      command.fadeOutShape, command.fadeOutCurve);
+
         case ProjectEditVerb::MoveNote:
             return moveNote (project, command.midiClipId, command.noteId, command.noteStartTick);
 
@@ -1336,6 +1366,10 @@ namespace detail {
             clip.fadeIn = command.fadeIn;
             clip.fadeOut = command.fadeOut;
             clip.stretchFactor = command.stretchFactor;   // G2.9
+            clip.fadeInShape = command.fadeInShape;       // G2.10
+            clip.fadeInCurve = command.fadeInCurve;
+            clip.fadeOutShape = command.fadeOutShape;
+            clip.fadeOutCurve = command.fadeOutCurve;
             clip.timeBase = command.clipTimeBase;
             if (command.clipName[0] == '\0')
                 return ProjectEditStatus::InvalidClipName;
@@ -2081,6 +2115,7 @@ namespace detail {
            || verb == ProjectEditVerb::SetClipGain
            || verb == ProjectEditVerb::SetClipFades
            || verb == ProjectEditVerb::SetClipStretch   // G2.9: a stretch drag coalesces like a trim
+           || verb == ProjectEditVerb::SetClipFadeShapes   // G2.10: a curve drag coalesces like a fade
            || verb == ProjectEditVerb::MoveNote
            || verb == ProjectEditVerb::SetNoteLength
            // E21: continuous strip-scalar gestures (fader/pan drags) coalesce inside a group.

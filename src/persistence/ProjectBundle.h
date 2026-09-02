@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 22;   // G2.9: clips.stretch_factor
+inline constexpr int          kCodeSchemaVersion = 23;   // G2.10: clips fade shapes + curve amounts
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1357,13 +1357,22 @@ inline constexpr std::string_view kSchemaV22Sql = R"SQL(
 ALTER TABLE clips ADD COLUMN stretch_factor REAL NOT NULL DEFAULT 1.0;
 )SQL";
 
+// v23 (G2.10): the fade shape (0 linear, 1 equal-power, 2 S-curve, 3 log) and curve amount
+// (-1..1) per clip end; defaults keep every older row on the equal-power law it always had.
+inline constexpr std::string_view kSchemaV23Sql = R"SQL(
+ALTER TABLE clips ADD COLUMN fade_in_shape INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE clips ADD COLUMN fade_out_shape INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE clips ADD COLUMN fade_in_curve REAL NOT NULL DEFAULT 0.0;
+ALTER TABLE clips ADD COLUMN fade_out_curve REAL NOT NULL DEFAULT 0.0;
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 22> kMigrations {
+inline constexpr std::array<SchemaMigration, 23> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1386,6 +1395,7 @@ inline constexpr std::array<SchemaMigration, 22> kMigrations {
     SchemaMigration { 20, kSchemaV20Sql },
     SchemaMigration { 21, kSchemaV21Sql },
     SchemaMigration { 22, kSchemaV22Sql },
+    SchemaMigration { 23, kSchemaV23Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2274,8 +2284,9 @@ public:
 
         detail::Statement clipStmt (
             db_,
-            "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name, stretch_factor) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+            "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name, stretch_factor, "
+            "fade_in_shape, fade_out_shape, fade_in_curve, fade_out_curve) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 
         for (const engine::Clip& clip : project.clips)
         {
@@ -2341,6 +2352,26 @@ public:
                 return result;
             }
             if (auto result = clipStmt.bindDouble (13, clip.stretchFactor); ! result.ok())   // G2.9
+            {
+                rollback();
+                return result;
+            }
+            if (auto result = clipStmt.bindInt64 (14, static_cast<sqlite3_int64> (clip.fadeInShape)); ! result.ok())   // G2.10
+            {
+                rollback();
+                return result;
+            }
+            if (auto result = clipStmt.bindInt64 (15, static_cast<sqlite3_int64> (clip.fadeOutShape)); ! result.ok())
+            {
+                rollback();
+                return result;
+            }
+            if (auto result = clipStmt.bindDouble (16, clip.fadeInCurve); ! result.ok())
+            {
+                rollback();
+                return result;
+            }
+            if (auto result = clipStmt.bindDouble (17, clip.fadeOutCurve); ! result.ok())
             {
                 rollback();
                 return result;
@@ -2999,7 +3030,8 @@ public:
             detail::Statement stmt;
             if (auto result = stmt.prepare (
                     db_,
-                    "SELECT id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name, stretch_factor "
+                    "SELECT id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name, stretch_factor, "
+                    "fade_in_shape, fade_out_shape, fade_in_curve, fade_out_curve "
                     "FROM clips ORDER BY rowid;");
                 ! result.ok())
                 return result;
@@ -3049,6 +3081,21 @@ public:
                 if (! engine::detail::clipStretchIsStorageSafe (static_cast<float> (stretchFactor)))
                     return detail::semanticInvalid ("clips.stretch_factor is outside the ADR-0030 range");
                 clip.stretchFactor = static_cast<float> (stretchFactor);
+
+                const sqlite3_int64 fadeInShape = sqlite3_column_int64 (stmt.get(), 13);   // G2.10
+                const sqlite3_int64 fadeOutShape = sqlite3_column_int64 (stmt.get(), 14);
+                const double fadeInCurve = sqlite3_column_double (stmt.get(), 15);
+                const double fadeOutCurve = sqlite3_column_double (stmt.get(), 16);
+                if (fadeInShape < 0 || fadeInShape > static_cast<sqlite3_int64> (engine::FadeShape::Log)
+                    || fadeOutShape < 0 || fadeOutShape > static_cast<sqlite3_int64> (engine::FadeShape::Log))
+                    return detail::semanticInvalid ("clips fade shape is outside the Project value range");
+                clip.fadeInShape = static_cast<engine::FadeShape> (fadeInShape);
+                clip.fadeOutShape = static_cast<engine::FadeShape> (fadeOutShape);
+                if (! engine::detail::clipFadeShapeIsStorageSafe (clip.fadeInShape, static_cast<float> (fadeInCurve))
+                    || ! engine::detail::clipFadeShapeIsStorageSafe (clip.fadeOutShape, static_cast<float> (fadeOutCurve)))
+                    return detail::semanticInvalid ("clips fade curve is outside -1..1");
+                clip.fadeInCurve = static_cast<float> (fadeInCurve);
+                clip.fadeOutCurve = static_cast<float> (fadeOutCurve);
 
                 project.clips.push_back (std::move (clip));
             }

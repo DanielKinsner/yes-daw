@@ -403,6 +403,10 @@ namespace detail {
         out.clip.startFrame = static_cast<std::int64_t> (window.startFrame);
         out.clip.fadeInFrames = static_cast<std::int64_t> (clip.fadeIn);
         out.clip.fadeOutFrames = static_cast<std::int64_t> (clip.fadeOut);
+        out.clip.fadeInShape = clip.fadeInShape;     // G2.10
+        out.clip.fadeOutShape = clip.fadeOutShape;
+        out.clip.fadeInCurve = clip.fadeInCurve;
+        out.clip.fadeOutCurve = clip.fadeOutCurve;
         out.clip.gain = clip.gain;
         return true;
     }
@@ -415,6 +419,10 @@ namespace detail {
     out.clip.startFrame = static_cast<std::int64_t> (window.startFrame);
     out.clip.fadeInFrames = static_cast<std::int64_t> (clip.fadeIn);
     out.clip.fadeOutFrames = static_cast<std::int64_t> (clip.fadeOut);
+    out.clip.fadeInShape = clip.fadeInShape;     // G2.10
+    out.clip.fadeOutShape = clip.fadeOutShape;
+    out.clip.fadeInCurve = clip.fadeInCurve;
+    out.clip.fadeOutCurve = clip.fadeOutCurve;
     out.clip.gain = clip.gain;
     return true;
 }

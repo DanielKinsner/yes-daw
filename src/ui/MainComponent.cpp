@@ -74,6 +74,10 @@ constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
 constexpr const char* kInspectorFadeCurveComponentId = "clip.inspector.fade_curve";
 constexpr const char* kInspectorStretchComponentId = "clip.inspector.stretch";   // G2.9b
+constexpr const char* kInspectorFadeCurveAmountComponentId = "clip.inspector.fade_curve_amount";   // G2.10
+constexpr int kInspectorLinearFadeCurveId = 2;    // G2.10: the chooser's ids, equal power stays 1
+constexpr int kInspectorSCurveFadeCurveId = 3;
+constexpr int kInspectorLogFadeCurveId = 4;
 constexpr const char* kAutomationLaneRowComponentId = "timeline.automation.track.0.lane";
 // N1: a mixer strip carries exactly two painted toggle cells — Solo then Mute, left to right.
 constexpr std::size_t kMixerPaintedMuteSoloCellCount = 2;
@@ -521,7 +525,7 @@ public:
     std::function<void (int, double, bool)> onClipStretchedRight; // G2.9b: layoutClipId, new end seconds, snapInvert
     std::function<void (int, double, bool)> onClipTrimmedLeft;   // layoutClipId, seconds, snapInvert
     std::function<void (int, int)> onClipGainAdjusted;
-    std::function<void (int, bool, double)> onClipFadeAdjusted;
+    std::function<void (int, bool, double, double)> onClipFadeAdjusted;   // G2.10: + the curve bend
     std::function<void (double)> onTimelineLocated;
     std::function<void (double, double, bool)> onLoopRegionDragged;   // startSeconds, endSeconds, snapInvert
     // N8: Alt+Shift-drag on the ruler — startSeconds, endSeconds, snapInvert. A degenerate span
@@ -1485,18 +1489,27 @@ public:
 
         if (drag.mode == TimelineDragMode::FadeIn || drag.mode == TimelineDragMode::FadeOut)
         {
-            if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels || ! eventSeconds)
+            // G2.10: the horizontal travel is the fade's length; the vertical travel bends its curve
+            // (up = a faster rise, Logic's curve drag). Either past the dead zone is a gesture.
+            const bool movedX = std::abs (deltaX) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels;
+            const bool movedY = std::abs (deltaY) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels;
+            if ((! movedX && ! movedY) || ! eventSeconds)
                 return;
 
-            const double fadeSeconds = drag.mode == TimelineDragMode::FadeIn
-                ? *eventSeconds - drag.startSeconds
-                : (drag.startSeconds + drag.lengthSeconds) - *eventSeconds;
+            const double fadeSeconds = ! movedX ? -1.0   // the sentinel: keep the current fade
+                                     : drag.mode == TimelineDragMode::FadeIn
+                                         ? *eventSeconds - drag.startSeconds
+                                         : (drag.startSeconds + drag.lengthSeconds) - *eventSeconds;
+            const double curveDelta = movedY
+                ? -static_cast<double> (deltaY) / yesdaw::ui::UiTheme::Layout::timelineFadeCurveDragPixelsPerUnit
+                : 0.0;
 
             if (onClipFadeAdjusted)
                 onClipFadeAdjusted (
                     drag.layoutClipId,
                     drag.mode == TimelineDragMode::FadeIn,
-                    std::clamp (fadeSeconds, 0.0, drag.lengthSeconds));
+                    fadeSeconds < 0.0 ? -1.0 : std::clamp (fadeSeconds, 0.0, drag.lengthSeconds),
+                    curveDelta);
             return;
         }
 
@@ -4219,8 +4232,8 @@ public:
         timelineInput.onClipGainAdjusted = [this] (int timelineClipId, int deltaPixels) {
             adjustTimelineClipGainByLayoutId (timelineClipId, deltaPixels);
         };
-        timelineInput.onClipFadeAdjusted = [this] (int timelineClipId, bool fadeIn, double fadeSeconds) {
-            adjustTimelineClipFadeByLayoutId (timelineClipId, fadeIn, fadeSeconds);
+        timelineInput.onClipFadeAdjusted = [this] (int timelineClipId, bool fadeIn, double fadeSeconds, double curveDelta) {
+            adjustTimelineClipFadeByLayoutId (timelineClipId, fadeIn, fadeSeconds, curveDelta);
         };
         timelineInput.onZoomWheel = [this] (double anchorSeconds, double wheelDelta) {
             const double factor = wheelDelta > 0.0
@@ -6789,15 +6802,48 @@ private:
         inspectorFadeCurve.setTitle ("Clip fade curve");
         inspectorFadeCurve.setTooltip ("H14 canonical fade law");
         inspectorFadeCurve.addItem ("Equal power", kInspectorEqualPowerFadeCurveId);
+        inspectorFadeCurve.addItem ("Linear", kInspectorLinearFadeCurveId);      // G2.10
+        inspectorFadeCurve.addItem ("S-curve", kInspectorSCurveFadeCurveId);
+        inspectorFadeCurve.addItem ("Log", kInspectorLogFadeCurveId);
         inspectorFadeCurve.setSelectedId (kInspectorEqualPowerFadeCurveId, juce::dontSendNotification);
         inspectorFadeCurve.onChange = [this] {
-            if (refreshingInspectorControls)
+            if (refreshingInspectorControls || ! inspectorFadeCurve.isEnabled())
                 return;
 
-            inspectorFadeCurve.setSelectedId (kInspectorEqualPowerFadeCurveId, juce::dontSendNotification);
+            // G2.10: the chooser sets BOTH ends' shape; the curve amounts stay.
+            const yesdaw::engine::FadeShape shape = fadeShapeForInspectorId (inspectorFadeCurve.getSelectedId());
+            if (const yesdaw::engine::Clip* const clip = findProjectClipById (appModel.selectedTimelineClipId()))
+                (void) appModel.setSelectedTimelineClipFadeShapes (shape, clip->fadeInCurve, shape, clip->fadeOutCurve);
+            refreshActionState();
             repaintAll();
         };
         addAndMakeVisible (inspectorFadeCurve);
+
+        // G2.10: the curve amount — one row for both ends (-100..100 = the engine's -1..1).
+        inspectorFadeCurveAmount.setComponentID (kInspectorFadeCurveAmountComponentId);
+        inspectorFadeCurveAmount.setName ("Clip fade curve amount");
+        inspectorFadeCurveAmount.setTitle ("Clip fade curve amount");
+        inspectorFadeCurveAmount.setTooltip ("Clip fade curve amount: bends both fades (-100 slow rise .. 100 fast rise)");
+        inspectorFadeCurveAmount.setSliderStyle (juce::Slider::LinearHorizontal);
+        inspectorFadeCurveAmount.setTextBoxStyle (juce::Slider::NoTextBox,
+                                                  false,
+                                                  yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                                  yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
+        inspectorFadeCurveAmount.setRange (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveAmountMin,
+                                           yesdaw::ui::UiTheme::Layout::inspectorFadeCurveAmountMax,
+                                           yesdaw::ui::UiTheme::Layout::inspectorFadeCurveAmountInterval);
+        inspectorFadeCurveAmount.setValue (0.0, juce::dontSendNotification);
+        inspectorFadeCurveAmount.onValueChange = [this] {
+            if (refreshingInspectorControls || ! inspectorFadeCurveAmount.isEnabled())
+                return;
+
+            const auto amount = static_cast<float> (inspectorFadeCurveAmount.getValue() / 100.0);
+            if (const yesdaw::engine::Clip* const clip = findProjectClipById (appModel.selectedTimelineClipId()))
+                (void) appModel.setSelectedTimelineClipFadeShapes (clip->fadeInShape, amount, clip->fadeOutShape, amount);
+            refreshActionState();
+            repaintAll();
+        };
+        addAndMakeVisible (inspectorFadeCurveAmount);
     }
 
     void configureInspectorTimeSlider (juce::Slider& slider, const char* componentId, const juce::String& name)
@@ -6819,6 +6865,30 @@ private:
         slider.setColour (juce::Slider::backgroundColourId, yesdaw::ui::UiTheme::Color::transparent());
         slider.setColour (juce::Slider::trackColourId, yesdaw::ui::UiTheme::Color::transparent());
         slider.setColour (juce::Slider::thumbColourId, yesdaw::ui::UiTheme::Color::transparent());
+    }
+
+    // G2.10: the chooser id <-> engine shape.
+    [[nodiscard]] static yesdaw::engine::FadeShape fadeShapeForInspectorId (int id) noexcept
+    {
+        switch (id)
+        {
+            case kInspectorLinearFadeCurveId: return yesdaw::engine::FadeShape::Linear;
+            case kInspectorSCurveFadeCurveId: return yesdaw::engine::FadeShape::SCurve;
+            case kInspectorLogFadeCurveId:    return yesdaw::engine::FadeShape::Log;
+            default:                          return yesdaw::engine::FadeShape::EqualPower;
+        }
+    }
+
+    [[nodiscard]] static int inspectorIdForFadeShape (yesdaw::engine::FadeShape shape) noexcept
+    {
+        switch (shape)
+        {
+            case yesdaw::engine::FadeShape::Linear:     return kInspectorLinearFadeCurveId;
+            case yesdaw::engine::FadeShape::SCurve:     return kInspectorSCurveFadeCurveId;
+            case yesdaw::engine::FadeShape::Log:        return kInspectorLogFadeCurveId;
+            case yesdaw::engine::FadeShape::EqualPower: break;
+        }
+        return kInspectorEqualPowerFadeCurveId;
     }
 
     void configureInspectorFadeSlider (juce::Slider& slider, const char* componentId, const juce::String& name)
@@ -8542,6 +8612,7 @@ private:
             inspectorFadeIn.setBounds ({});
             inspectorFadeOut.setBounds ({});
             inspectorFadeCurve.setBounds ({});
+            inspectorFadeCurveAmount.setBounds ({});
             inspectorTakeChooser.setBounds ({});
             inspectorTakeDelete.setBounds ({});
             return;
@@ -8602,10 +8673,13 @@ private:
                             yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset)
             : juce::Rectangle<int>());
         fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlTopGap);
-        inspectorFadeCurve.setBounds (fadesFit
-            ? fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlHeight)
-                  .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
-            : juce::Rectangle<int>());
+        // G2.10: the Curve row carries the shape chooser (left half) and the amount slider (right half).
+        juce::Rectangle<int> curveRow = fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlHeight)
+                                             .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset);
+        const juce::Rectangle<int> chooserCell = curveRow.removeFromLeft (curveRow.getWidth() / 2);
+        curveRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveAmountGap);
+        inspectorFadeCurve.setBounds (fadesFit ? chooserCell : juce::Rectangle<int>());
+        inspectorFadeCurveAmount.setBounds (fadesFit ? curveRow : juce::Rectangle<int>());
 
         // E33: the TAKES section (the old automation placeholder's area) — the chooser and
         // the delete button share its whole-section drop law.
@@ -10619,6 +10693,7 @@ private:
         inspectorFadeIn.setVisible (inspectorVisible);
         inspectorFadeOut.setVisible (inspectorVisible);
         inspectorFadeCurve.setVisible (inspectorVisible);
+        inspectorFadeCurveAmount.setVisible (inspectorVisible);
         refreshAutomationLaneControls();
         refreshInspectorControls();
         refreshMixerControls();
@@ -10894,6 +10969,8 @@ private:
                                                                    appModel.context()).enabled);
         inspectorFadeCurve.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetFades,
                                                                      appModel.context()).enabled);
+        inspectorFadeCurveAmount.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetFades,
+                                                                           appModel.context()).enabled);   // G2.10
 
         refreshingInspectorControls = true;
         if (selected && appModel.project().sampleRate.isValid())
@@ -10933,7 +11010,11 @@ private:
                                                    yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMinSeconds,
                                                    yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMaxSeconds),
                                         juce::dontSendNotification);
-            inspectorFadeCurve.setSelectedId (kInspectorEqualPowerFadeCurveId, juce::dontSendNotification);
+            inspectorFadeCurve.setSelectedId (inspectorIdForFadeShape (clip->fadeInShape), juce::dontSendNotification);   // G2.10
+            inspectorFadeCurveAmount.setValue (std::clamp (static_cast<double> (clip->fadeInCurve) * 100.0,
+                                                           yesdaw::ui::UiTheme::Layout::inspectorFadeCurveAmountMin,
+                                                           yesdaw::ui::UiTheme::Layout::inspectorFadeCurveAmountMax),
+                                               juce::dontSendNotification);
         }
         else
         {
@@ -10956,6 +11037,7 @@ private:
             inspectorFadeOut.setValue (yesdaw::ui::UiTheme::Layout::inspectorFadeSliderDefaultSeconds,
                                        juce::dontSendNotification);
             inspectorFadeCurve.setSelectedId (kInspectorEqualPowerFadeCurveId, juce::dontSendNotification);
+            inspectorFadeCurveAmount.setValue (0.0, juce::dontSendNotification);
         }
 
         // E33: rebuild the take stack for the selected clip's window.
@@ -12194,7 +12276,11 @@ private:
                                             appModel.isTimelineClipSelected (clip.id),
                                             static_cast<long long> (clip.timelineLength),
                                             static_cast<long long> (clip.fadeIn),
-                                            static_cast<long long> (clip.fadeOut) });
+                                            static_cast<long long> (clip.fadeOut),
+                                            static_cast<int> (clip.fadeInShape),      // G2.10
+                                            static_cast<int> (clip.fadeOutShape),
+                                            clip.fadeInCurve,
+                                            clip.fadeOutCurve });
             timelineClipIds.push_back (clip.id);
             timelineClipAssetHashes.push_back (asset->contentHash);
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
@@ -12693,7 +12779,7 @@ private:
         repaintAll();
     }
 
-    void adjustTimelineClipFadeByLayoutId (int layoutClipId, bool fadeIn, double fadeSeconds)
+    void adjustTimelineClipFadeByLayoutId (int layoutClipId, bool fadeIn, double fadeSeconds, double curveDelta = 0.0)
     {
         if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
             return;
@@ -12703,7 +12789,10 @@ private:
         if (clip == nullptr)
             return;
 
-        const std::optional<yesdaw::engine::Tick> fadeTicks = timelineTickFromSeconds (fadeSeconds);
+        // G2.10: a negative fadeSeconds is the sentinel for "keep the current fade" (a pure bend).
+        const std::optional<yesdaw::engine::Tick> fadeTicks = fadeSeconds < 0.0
+            ? std::optional<yesdaw::engine::Tick> (fadeIn ? clip->fadeIn : clip->fadeOut)
+            : timelineTickFromSeconds (fadeSeconds);
         if (! fadeTicks)
             return;
 
@@ -12711,11 +12800,15 @@ private:
             std::clamp<yesdaw::engine::Tick> (*fadeTicks, 0, std::max<yesdaw::engine::Tick> (0, clip->timelineLength));
         const yesdaw::engine::Tick nextFadeIn = fadeIn ? clampedFade : clip->fadeIn;
         const yesdaw::engine::Tick nextFadeOut = fadeIn ? clip->fadeOut : clampedFade;
-        if (nextFadeIn == clip->fadeIn && nextFadeOut == clip->fadeOut)
+        const bool bends = std::fabs (curveDelta) > 0.0;
+        if (nextFadeIn == clip->fadeIn && nextFadeOut == clip->fadeOut && ! bends)
             return;
 
         (void) appModel.selectTimelineClip (clipId);
-        (void) appModel.setSelectedTimelineClipFades (nextFadeIn, nextFadeOut);
+        if (bends)   // G2.10: length + curve bend as one undo step
+            (void) appModel.adjustSelectedTimelineClipFade (nextFadeIn, nextFadeOut, fadeIn, static_cast<float> (curveDelta));
+        else
+            (void) appModel.setSelectedTimelineClipFades (nextFadeIn, nextFadeOut);
 
         refreshActionState();
         repaintAll();
@@ -13153,7 +13246,7 @@ private:
             // (the old painted "Equal power" collided with the combo's own text).
             for (const auto& label : { juce::String ("Fade In     ") + juce::String (fadeInSeconds, 3) + " s",
                                        juce::String ("Fade Out    ") + juce::String (fadeOutSeconds, 3) + " s",
-                                       juce::String ("Curve") })
+                                       juce::String ("Curve") })   // G2.10: the overlaid chooser + amount slider are the values
             {
                 auto row = fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeRowHeight)
                                .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetX,
@@ -13189,7 +13282,9 @@ private:
                     static_cast<long long> (selectedClip->timelineLength),
                     static_cast<long long> (selectedClip->fadeIn),
                     static_cast<long long> (selectedClip->fadeOut),
-                    fadeOutRegion);
+                    fadeOutRegion,
+                    static_cast<int> (selectedClip->fadeInShape), selectedClip->fadeInCurve,
+                    static_cast<int> (selectedClip->fadeOutShape), selectedClip->fadeOutCurve);
                 if (points.size() < 2u)
                     continue;
                 juce::Path curve;
@@ -14018,6 +14113,7 @@ private:
     FineDragSlider inspectorFadeIn;
     FineDragSlider inspectorFadeOut;
     juce::ComboBox inspectorFadeCurve;
+    FineDragSlider inspectorFadeCurveAmount;   // G2.10
     std::array<ToolbarActionButton, yesdaw::ui::kMainShellToolbarActions.size()> buttons;
     bool refreshingInspectorControls = false;
     bool refreshingTimeMapControls = false;

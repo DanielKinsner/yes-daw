@@ -476,6 +476,17 @@ struct ClipName
     std::array<char, kMaxLength + 1u> value { 'A', 'u', 'd', 'i', 'o', ' ', 'C', 'l', 'i', 'p' };
 };
 
+// G2.10: a fade's shape (Logic / Pro Tools: linear, equal-power, S-curve, logarithmic) and a curve
+// amount in -1..1 that bends it (0 = the shape as drawn; + rises faster, - rises slower). ONE
+// evaluator (ClipEnvelope.h) turns these into gain for the renderer AND the painted curve.
+enum class FadeShape : std::uint8_t
+{
+    Linear = 0,
+    EqualPower,
+    SCurve,
+    Log
+};
+
 struct Clip
 {
     EntityId id;
@@ -491,6 +502,10 @@ struct Clip
     TimeBase timeBase = TimeBase::SampleLocked;
     ClipName name;
     float stretchFactor = 1.0f;   // G2.9 (ADR-0030): output / source frames, 0.5..2.0; 1 = unstretched
+    FadeShape fadeInShape = FadeShape::EqualPower;    // G2.10
+    FadeShape fadeOutShape = FadeShape::EqualPower;
+    float fadeInCurve = 0.0f;                         // -1..1 bends the shape
+    float fadeOutCurve = 0.0f;
 
     [[nodiscard]] constexpr bool references (const Asset& asset) const noexcept
     {
@@ -809,6 +824,7 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidSourceWindow,
     InvalidClipEnvelope,
     InvalidClipStretch,   // G2.9: the stretch factor is outside ADR-0030's 0.5..2.0 (or not finite)
+    InvalidClipFadeShape, // G2.10: an unknown shape or a curve amount outside -1..1
     InvalidMidiClipId,
     MidiClipNotFound,
     InvalidNoteId,
@@ -1764,6 +1780,13 @@ namespace detail {
     return fadeIn >= 0 && fadeOut >= 0;
 }
 
+// G2.10: a known shape and a finite curve amount in [-1, 1].
+[[nodiscard]] inline bool clipFadeShapeIsStorageSafe (FadeShape shape, float curve) noexcept
+{
+    return static_cast<std::uint8_t> (shape) <= static_cast<std::uint8_t> (FadeShape::Log)
+        && std::isfinite (curve) && curve >= -1.0f && curve <= 1.0f;
+}
+
 // G2.9: ADR-0030 supports finite factors in [0.5, 2.0]; 1 means unstretched.
 [[nodiscard]] inline bool clipStretchIsStorageSafe (float stretchFactor) noexcept
 {
@@ -1778,6 +1801,8 @@ namespace detail {
            && clipGainIsStorageSafe (clip.gain)
            && clipFadesAreStorageSafe (clip.fadeIn, clip.fadeOut)
            && clipStretchIsStorageSafe (clip.stretchFactor)
+           && clipFadeShapeIsStorageSafe (clip.fadeInShape, clip.fadeInCurve)
+           && clipFadeShapeIsStorageSafe (clip.fadeOutShape, clip.fadeOutCurve)
            && (clip.timeBase == TimeBase::TempoLocked || clip.timeBase == TimeBase::SampleLocked);
 }
 
@@ -1950,6 +1975,35 @@ namespace detail {
         return ProjectEditStatus::InvalidSourceWindow;
 
     *clip = edited;
+    return ProjectEditStatus::Applied;
+}
+
+// G2.10: the fade shapes and curve amounts, both ends at once (a crossfade sets the pair).
+[[nodiscard]] inline ProjectEditStatus setClipFadeShapes (Project& project,
+                                                          EntityId clipId,
+                                                          FadeShape newFadeInShape,
+                                                          float newFadeInCurve,
+                                                          FadeShape newFadeOutShape,
+                                                          float newFadeOutCurve) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+
+    if (! detail::clipFadeShapeIsStorageSafe (newFadeInShape, newFadeInCurve)
+        || ! detail::clipFadeShapeIsStorageSafe (newFadeOutShape, newFadeOutCurve))
+        return ProjectEditStatus::InvalidClipFadeShape;
+
+    clip->fadeInShape = newFadeInShape;
+    clip->fadeInCurve = newFadeInCurve;
+    clip->fadeOutShape = newFadeOutShape;
+    clip->fadeOutCurve = newFadeOutCurve;
     return ProjectEditStatus::Applied;
 }
 

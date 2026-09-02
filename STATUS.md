@@ -41,11 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.9b (time-stretch as a gesture — Alt on the right edge, the inspector's Stretch
-field, Stretch to Loop Length, the verb returned; `[stretch]`) built, gated locally, committed;
-awaiting its exact-head run. Next: G2.10 — Fades v2 and honest crossfades (fade shapes with a
-curve amount, ONE evaluator for the renderer and the UI, draggable handles, crossfade as a
-paired fade; render golden per shape; `[fade-handles]`). The drive stays paused (D14).
+**Now:** G2.10 (fades v2 — four shapes with a curve amount through ONE evaluator, the corner
+drag bends the curve, the inspector sets shape and amount; schema v23; `[fade-handles]` + the
+golden table) built, gated locally, committed; awaiting its exact-head run. Next: G2.11 — Slip
+(`Ctrl+Alt`-drag the body slips `srcOffset` with the window fixed; `[slip]`). The drive stays
+paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -102,6 +102,34 @@ G2.7 ✅ — Snap modes (`02ea877`); certified by exact-head run `33632069331` (
 G2.8 ✅ — Nudge value in clock units (`463646e`); certified by run `33633084596` after a rerun of its
 macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.10 — Fades v2 and honest crossfades (2026-09-02)
+
+**Build.** `FadeShape { Linear, EqualPower, SCurve, Log }` + `fadeInCurve / fadeOutCurve`
+(-1..1) on `Clip`; `clipFadeShapeIsStorageSafe`; schema **v23** (four `ALTER TABLE clips ADD
+COLUMN`s with defaults). ONE law `fadeShapeGain (shape, curve, x)` in `ClipEnvelope.h` (the
+curve bends the progress `x^(2^-2c)`, then the shape maps it); `evaluateClipFadeEnvelopeGain`
+takes the shapes (defaults keep old callers); `ScheduledClip` carries them; the resolver fills
+them (stretched and plain); `clipFadeCurvePoints` (timeline body + the inspector's fade card)
+passes them. Verb `SetClipFadeShapes` (+ `setClipFadeShapes` apply; coalesces). Shell: the
+fade corner drag's vertical travel bends the curve (`timelineFadeCurveDragPixelsPerUnit` 80; a
+pure vertical drag keeps the length via a sentinel); `adjustSelectedTimelineClipFade` = fades +
+shapes in one transaction group. Inspector: the Curve chooser offers the four shapes (both
+ends); `clip.inspector.fade_curve_amount` (-100..100, both ends) shares the Curve row with the
+chooser — the FADES card keeps its 124 (a taller card pushed the takes section off a 720-px
+shell: D50's stack must not grow).
+
+**Gates.** Project check: the golden table (five points × seven rows), monotonic 0→1, clamps,
+NaN amount = 0, envelope midpoints, the edit's validation and exact undo. Persistence: v23
+round-trip; the v10 simulation strips v23. `[fade-handles]`: corner drag length, the vertical
+bend (0.5 ± 0.02, length untouched, one undo), the chooser and the amount row (both ends,
+follow, undo), the painted midpoint (Linear 0.5, equal power higher). Child count +1.
+
+**Not built (recorded).** Per-end shape from the inspector (the chooser and the amount row set
+BOTH ends; per-end bending is the corner drag); crossfade shape as its own control (a crossfade
+keeps each clip's shapes — equal power by default, the constant-power pair); no S-curve
+"tension" beyond the one curve amount; DAWproject export writes fade lengths only; the FADES
+card paints "Amount" as a label with the overlaid slider as the value (E24's law).
 
 ### G2.9b — Time-stretch as a gesture (2026-09-02)
 

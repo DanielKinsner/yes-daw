@@ -5740,6 +5740,70 @@ public:
         return { id, state, true };
     }
 
+    // G2.10: the fade shapes and curve amounts of the selected clip (both ends).
+    [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipFadeShapes (engine::FadeShape fadeInShape,
+                                                                            float fadeInCurve,
+                                                                            engine::FadeShape fadeOutShape,
+                                                                            float fadeOutCurve)
+    {
+        const UiActionId id = UiActionId::TimelineClipSetFades;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject,
+            engine::ProjectEditCommand::setClipFadeShapes (selectedTimelineClipId_, fadeInShape, fadeInCurve,
+                                                           fadeOutShape, fadeOutCurve));
+        if (! applied.applied())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    // G2.10: one fade gesture = the new lengths AND a bend of that end's curve amount, as ONE
+    // undo step (a transaction group of the two clip edits).
+    [[nodiscard]] UiActionDispatchResult adjustSelectedTimelineClipFade (engine::Tick fadeIn,
+                                                                         engine::Tick fadeOut,
+                                                                         bool inEnd,
+                                                                         float curveDelta)
+    {
+        const UiActionId id = UiActionId::TimelineClipSetFades;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+        const float nextInCurve = std::clamp (clip->fadeInCurve + (inEnd ? curveDelta : 0.0f), -1.0f, 1.0f);
+        const float nextOutCurve = std::clamp (clip->fadeOutCurve + (inEnd ? 0.0f : curveDelta), -1.0f, 1.0f);
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setClipFades (selectedTimelineClipId_, fadeIn, fadeOut)).applied()
+            || ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setClipFadeShapes (
+                                                  selectedTimelineClipId_, clip->fadeInShape, nextInCurve,
+                                                  clip->fadeOutShape, nextOutCurve)).applied()
+            || ! nextUndo.endTransactionGroup())
+        {
+            return { id, state, false };
+        }
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipFades (engine::Tick fadeIn, engine::Tick fadeOut)
     {
         return applySelectedTimelineClipFades (UiActionId::TimelineClipSetFades, fadeIn, fadeOut);

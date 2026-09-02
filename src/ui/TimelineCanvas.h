@@ -50,6 +50,10 @@ struct TimelineCanvasClipStyle
     long long lengthTicks = 0;
     long long fadeInTicks = 0;
     long long fadeOutTicks = 0;
+    int fadeInShape = 1;      // G2.10: engine::FadeShape as an int (1 = equal power)
+    int fadeOutShape = 1;
+    float fadeInCurve = 0.0f;
+    float fadeOutCurve = 0.0f;
 };
 
 struct TimelineMarker
@@ -353,7 +357,11 @@ struct RulerBarLabel
     long long lengthTicks,
     long long fadeInTicks,
     long long fadeOutTicks,
-    bool fadeOutRegion)
+    bool fadeOutRegion,
+    int fadeInShape = 1,        // G2.10: the shapes and curve amounts ride into the ONE evaluator
+    float fadeInCurve = 0.0f,
+    int fadeOutShape = 1,
+    float fadeOutCurve = 0.0f)
 {
     std::vector<juce::Point<float>> points;
     const long long fadeTicks = fadeOutRegion ? fadeOutTicks : fadeInTicks;
@@ -380,7 +388,11 @@ struct RulerBarLabel
             0,
             lengthTicks - 1);
         const float gain = engine::evaluateClipFadeEnvelopeGain (
-            localTick, lengthTicks, fadeInTicks, fadeOutTicks);
+            localTick, lengthTicks, fadeInTicks, fadeOutTicks,
+            static_cast<engine::FadeShape> (std::clamp (fadeInShape, 0, static_cast<int> (engine::FadeShape::Log))),
+            fadeInCurve,
+            static_cast<engine::FadeShape> (std::clamp (fadeOutShape, 0, static_cast<int> (engine::FadeShape::Log))),
+            fadeOutCurve);
         points.push_back ({ x0 + static_cast<float> (t) * regionWidth,
                             area.getY() + (1.0f - gain) * area.getHeight() });
     }
@@ -699,7 +711,8 @@ inline void drawClipFadeOverlays (juce::Graphics& g, juce::Rectangle<int> area,
     for (const bool fadeOutRegion : { false, true })
     {
         const std::vector<juce::Point<float>> points = clipFadeCurvePoints (
-            inner, style.lengthTicks, style.fadeInTicks, style.fadeOutTicks, fadeOutRegion);
+            inner, style.lengthTicks, style.fadeInTicks, style.fadeOutTicks, fadeOutRegion,
+            style.fadeInShape, style.fadeInCurve, style.fadeOutShape, style.fadeOutCurve);
         if (points.size() < 2u)
             continue;
 

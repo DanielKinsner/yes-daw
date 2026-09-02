@@ -1130,6 +1130,82 @@ TEST_CASE ("Project setClipStretch validates the factor and undoes exactly", "[p
     REQUIRE (project.clips.front().timelineLength == stretchedLength);
 }
 
+// G2.10: the fade law — every shape starts at 0, ends at 1, rises monotonically, matches a
+// checked-in table at the quarter points, and the curve amount bends it the documented way; the
+// shape edit validates and undoes exactly.
+TEST_CASE ("Fade shapes match their golden table and setClipFadeShapes undoes exactly", "[project][clip-edit][fade][shape][undo]")
+{
+    using yesdaw::engine::FadeShape;
+    using yesdaw::engine::detail::fadeShapeGain;
+    struct Row { FadeShape shape; float curve; std::array<double, 5> gains; };
+    // Values at x = 0, 0.25, 0.5, 0.75, 1 (the law written out by hand, not the function).
+    const std::array<Row, 7> table {{
+        { FadeShape::Linear,     0.0f, { 0.0, 0.25, 0.5, 0.75, 1.0 } },
+        { FadeShape::EqualPower, 0.0f, { 0.0, std::sin (0.25 * 1.5707963267948966), std::sin (0.5 * 1.5707963267948966),
+                                         std::sin (0.75 * 1.5707963267948966), 1.0 } },
+        { FadeShape::SCurve,     0.0f, { 0.0, 0.15625, 0.5, 0.84375, 1.0 } },
+        { FadeShape::Log,        0.0f, { 0.0, (1.0 - std::exp (-1.0)) / (1.0 - std::exp (-4.0)), (1.0 - std::exp (-2.0)) / (1.0 - std::exp (-4.0)),
+                                         (1.0 - std::exp (-3.0)) / (1.0 - std::exp (-4.0)), 1.0 } },
+        { FadeShape::Linear,     1.0f, { 0.0, std::pow (0.25, 0.25), std::pow (0.5, 0.25), std::pow (0.75, 0.25), 1.0 } },   // +1: x^(1/4)
+        { FadeShape::Linear,    -1.0f, { 0.0, std::pow (0.25, 4.0), std::pow (0.5, 4.0), std::pow (0.75, 4.0), 1.0 } },       // -1: x^4
+        { FadeShape::EqualPower, 0.5f, { 0.0, std::sin (std::pow (0.25, 0.5) * 1.5707963267948966), std::sin (std::pow (0.5, 0.5) * 1.5707963267948966),
+                                         std::sin (std::pow (0.75, 0.5) * 1.5707963267948966), 1.0 } },
+    }};
+    for (const Row& row : table)
+    {
+        for (std::size_t i = 0; i < row.gains.size(); ++i)
+        {
+            const double x = static_cast<double> (i) * 0.25;
+            INFO ("shape " << static_cast<int> (row.shape) << " curve " << row.curve << " x " << x);
+            REQUIRE (std::abs (static_cast<double> (fadeShapeGain (row.shape, row.curve, x)) - row.gains[i]) < 1.0e-6);
+        }
+        float previous = -1.0f;
+        for (int step = 0; step <= 200; ++step)
+        {
+            const float gain = fadeShapeGain (row.shape, row.curve, static_cast<double> (step) / 200.0);
+            REQUIRE (gain >= previous);
+            REQUIRE (gain >= 0.0f);
+            REQUIRE (gain <= 1.0f);
+            previous = gain;
+        }
+    }
+    // Out of range progress clamps; an unknown curve amount is treated as 0.
+    REQUIRE (fadeShapeGain (FadeShape::SCurve, 0.0f, -1.0) == 0.0f);
+    REQUIRE (fadeShapeGain (FadeShape::SCurve, 0.0f, 2.0) == 1.0f);
+    REQUIRE (fadeShapeGain (FadeShape::Log, std::numeric_limits<float>::quiet_NaN(), 0.5)
+             == fadeShapeGain (FadeShape::Log, 0.0f, 0.5));
+
+    // The clip envelope uses the shapes: a linear fade-in at its midpoint is 0.5, the S-curve 0.5,
+    // the log one steeper; the fade-out mirrors.
+    REQUIRE (yesdaw::engine::evaluateClipFadeEnvelopeGain (500, 4000, 1000, 0, FadeShape::Linear, 0.0f) == Catch::Approx (0.5f));
+    REQUIRE (yesdaw::engine::evaluateClipFadeEnvelopeGain (500, 4000, 1000, 0, FadeShape::Log, 0.0f) > 0.85f);
+    REQUIRE (yesdaw::engine::evaluateClipFadeEnvelopeGain (3500, 4000, 0, 1000, FadeShape::EqualPower, 0.0f, FadeShape::Linear, 0.0f)
+             == Catch::Approx (0.5f));
+
+    // The edit: validates, changes only the four fields, undoes and redoes exactly.
+    Project project = makeEditableProject();
+    const Project original = project;
+    const EntityId clipId = project.clips.front().id;
+    ProjectUndoStack undo;
+    REQUIRE (undo.apply (project, ProjectEditCommand::setClipFadeShapes (clipId, FadeShape::Log, 1.5f, FadeShape::Linear, 0.0f)).editStatus
+             == ProjectEditStatus::InvalidClipFadeShape);
+    REQUIRE (undo.apply (project, ProjectEditCommand::setClipFadeShapes (clipId, static_cast<FadeShape> (9), 0.0f, FadeShape::Linear, 0.0f)).editStatus
+             == ProjectEditStatus::InvalidClipFadeShape);
+    REQUIRE_FALSE (undo.canUndo());
+    REQUIRE (undo.apply (project, ProjectEditCommand::setClipFadeShapes (clipId, FadeShape::SCurve, 0.25f, FadeShape::Log, -0.5f)).applied());
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::SetClipFadeShapes);
+    Clip expected = original.clips.front();
+    expected.fadeInShape = FadeShape::SCurve;
+    expected.fadeInCurve = 0.25f;
+    expected.fadeOutShape = FadeShape::Log;
+    expected.fadeOutCurve = -0.5f;
+    REQUIRE (project.clips.front() == expected);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (project.clips.front() == expected);
+}
+
 TEST_CASE ("Project undo stack records command diffs for recording Comp selection", "[project][recording][comp][undo]")
 {
     Project project = makeRecordingCompEditableProject();

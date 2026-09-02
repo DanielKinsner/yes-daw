@@ -40,6 +40,10 @@ struct ScheduledClip
     std::int64_t startFrame     = 0;    // timeline frame the window starts at
     std::int64_t fadeInFrames   = 0;
     std::int64_t fadeOutFrames  = 0;
+    FadeShape    fadeInShape    = FadeShape::EqualPower;   // G2.10
+    FadeShape    fadeOutShape   = FadeShape::EqualPower;
+    float        fadeInCurve    = 0.0f;
+    float        fadeOutCurve   = 0.0f;
     float        gain           = 1.0f;
 };
 
@@ -84,7 +88,9 @@ inline void accumulateClipSchedule (const ClipSchedule& schedule,
                     continue;
                 const float sample = clip.samples[static_cast<std::size_t> (local)]
                                    * evaluateClipFadeEnvelopeGain (local, clip.sourceFrames,
-                                                                   clip.fadeInFrames, clip.fadeOutFrames)
+                                                                   clip.fadeInFrames, clip.fadeOutFrames,
+                                                                   clip.fadeInShape, clip.fadeInCurve,
+                                                                   clip.fadeOutShape, clip.fadeOutCurve)
                                    * clip.gain
                                    * monoWiden;
                 for (int c = 0; c < numChannels; ++c)
@@ -101,7 +107,9 @@ inline void accumulateClipSchedule (const ClipSchedule& schedule,
                 if (local < 0 || local >= clip.sourceFrames)
                     continue;
                 const float frameGain = evaluateClipFadeEnvelopeGain (local, clip.sourceFrames,
-                                                                      clip.fadeInFrames, clip.fadeOutFrames)
+                                                                      clip.fadeInFrames, clip.fadeOutFrames,
+                                                                      clip.fadeInShape, clip.fadeInCurve,
+                                                                      clip.fadeOutShape, clip.fadeOutCurve)
                                       * clip.gain;
                 const std::size_t base = static_cast<std::size_t> (local) * static_cast<std::size_t> (sourceChannels);
                 for (int c = 0; c < numChannels; ++c)

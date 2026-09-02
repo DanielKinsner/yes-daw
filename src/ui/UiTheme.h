@@ -409,6 +409,14 @@ struct UiTheme
         static constexpr double inspectorFadeSliderIntervalSeconds = 0.001;
         static constexpr double inspectorFadeSliderDefaultSeconds = 0.0;
         static constexpr double inspectorFadeReadoutDefaultSeconds = inspectorFadeSliderDefaultSeconds;
+        // G2.10: the curve amount (-100..100 = -1..1) — shares the Curve row with the shape chooser
+        // (the card keeps its height: D50's inspector stack must not grow) — and the vertical drag
+        // in a fade zone (this many pixels of drag bend the curve by a full unit).
+        static constexpr int inspectorFadeCurveAmountGap = 6;
+        static constexpr double inspectorFadeCurveAmountMin = -100.0;
+        static constexpr double inspectorFadeCurveAmountMax = 100.0;
+        static constexpr double inspectorFadeCurveAmountInterval = 1.0;
+        static constexpr double timelineFadeCurveDragPixelsPerUnit = 80.0;
         static constexpr int inspectorFadeRowHeight = 32;
         static constexpr int inspectorFadeRowInsetX = 0;
         static constexpr int inspectorFadeRowInsetY = 3;

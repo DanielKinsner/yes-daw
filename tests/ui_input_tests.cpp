@@ -1086,7 +1086,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 147u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 148u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -17569,6 +17569,93 @@ TEST_CASE ("G2.9b stretch: Alt on the right edge stretches, the inspector field 
     }
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (clipNow().stretchFactor == 0.75f);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G2.10: fades v2 — the fade corner drag sets the length (as before) and its vertical travel bends
+// the curve amount; the inspector's curve chooser sets both ends' shape and its amount row both
+// curves; every one an undoable edit; the painted curve follows the shape through the ONE law.
+TEST_CASE ("G2.10 fade handles: the corner drag bends the curve, the inspector sets the shape and amount, the paint follows",
+           "[ui][input][shell][g2][fade-handles]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("fade-handles");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    const yesdaw::engine::Clip base = original.clips.front();
+    REQUIRE (base.fadeInShape == yesdaw::engine::FadeShape::EqualPower);
+    REQUIRE (base.fadeInCurve == 0.0f);
+    const auto clipNow = [&] { return readProjectSnapshot (bundlePath).clips.front(); };
+
+    const juce::Rectangle<int> rect = timelineClipHitBounds (timeline, original, 0u);
+    const juce::Point<int> fadeInCorner { rect.getX() + 2, rect.getY() + 3 };
+    const int fadeWidth = rect.getWidth() / 4;
+
+    // The corner drag to the right sets the fade-in length; a plain horizontal drag leaves the curve alone.
+    dragFromTo (timeline, fadeInCorner, fadeInCorner.translated (fadeWidth, 0));
+    const yesdaw::engine::Clip faded = clipNow();
+    REQUIRE (faded.fadeIn > 0);
+    REQUIRE (faded.fadeInCurve == 0.0f);
+    REQUIRE (faded.fadeInShape == yesdaw::engine::FadeShape::EqualPower);
+
+    // A vertical drag in the fade corner bends the curve: 40 px up = +0.5 (80 px per unit); the
+    // length is untouched; one undo removes the bend.
+    dragFromTo (timeline, fadeInCorner, fadeInCorner.translated (0, -40));
+    {
+        const yesdaw::engine::Clip bent = clipNow();
+        INFO ("curve " << bent.fadeInCurve << " fade " << bent.fadeIn);
+        REQUIRE (std::abs (bent.fadeInCurve - 0.5f) < 0.02f);
+        REQUIRE (bent.fadeIn == faded.fadeIn);
+        REQUIRE (bent.fadeOutCurve == 0.0f);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == faded);
+
+    // The inspector: the shape chooser sets both ends; the amount row sets both curves; both follow.
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "clip.inspector.fade_curve"));
+    auto* amount = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "clip.inspector.fade_curve_amount"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (amount != nullptr);
+    REQUIRE (chooser->getNumItems() == 4);
+    REQUIRE (chooser->getSelectedId() == 1);
+    REQUIRE (amount->getValue() == 0.0);
+    chooser->setSelectedId (3, juce::sendNotificationSync);   // S-curve
+    REQUIRE (clipNow().fadeInShape == yesdaw::engine::FadeShape::SCurve);
+    REQUIRE (clipNow().fadeOutShape == yesdaw::engine::FadeShape::SCurve);
+    amount->setValue (25.0, juce::sendNotificationSync);
+    REQUIRE (clipNow().fadeInCurve == 0.25f);
+    REQUIRE (clipNow().fadeOutCurve == 0.25f);
+    REQUIRE (chooser->getSelectedId() == 3);
+    REQUIRE (amount->getValue() == 25.0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow().fadeInCurve == 0.0f);
+    REQUIRE (clipNow().fadeInShape == yesdaw::engine::FadeShape::SCurve);
+    REQUIRE (amount->getValue() == 0.0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == faded);
+    REQUIRE (chooser->getSelectedId() == 1);
+
+    // The paint law: the sampled curve differs between shapes at the fade's midpoint (Linear 0.5 vs
+    // equal power ~0.707), so the shape is visible, and it is the engine's own number.
+    const juce::Rectangle<float> area (0.0f, 0.0f, 400.0f, 100.0f);
+    const auto linear = yesdaw::ui::clipFadeCurvePoints (area, 1000, 1000, 0, false, 0, 0.0f, 1, 0.0f);
+    const auto equalPower = yesdaw::ui::clipFadeCurvePoints (area, 1000, 1000, 0, false, 1, 0.0f, 1, 0.0f);
+    REQUIRE (linear.size() == equalPower.size());
+    REQUIRE (linear.size() >= 3u);
+    const std::size_t mid = linear.size() / 2;
+    const float linearGain = 1.0f - (linear[mid].y - area.getY()) / area.getHeight();
+    const float powerGain = 1.0f - (equalPower[mid].y - area.getY()) / area.getHeight();
+    REQUIRE (std::abs (linearGain - 0.5f) < 0.02f);
+    REQUIRE (powerGain > linearGain + 0.15f);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
