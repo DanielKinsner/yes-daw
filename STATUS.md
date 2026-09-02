@@ -41,9 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.12 (clip properties — mute, colour, inline rename from the name band; schema v24;
-`[clip-properties]`) built, gated locally, committed; awaiting its exact-head run. Next: the
-plan's G2.13 (see the plan for the next item in order). The drive stays paused (D14).
+**Now:** G2.13 (clip processing — Reverse, Normalize, Strip Silence, non-destructive; schema
+v25; render golden + `[clip-processing]`) built, gated locally, committed; awaiting its
+exact-head run. Next: G2.14 — Markers v2 (colours, `Alt+,` / `Alt+.` navigation, marker list;
+`[markers-v2]`). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -104,6 +105,35 @@ G2.9a ✅ — time-stretch engine half, schema v22 (`4e24714`); certified by exa
 G2.9b ✅ — time-stretch gesture (`15e16e1`); G2.10 ✅ — fades v2, schema v23 (`d0800c6`); certified by
 exact-head run `33637897699` on `d0800c6` (green on all ten jobs).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.13 — Clip processing, non-destructive (2026-09-02)
+
+**Build.** `Clip::reversed` (schema **v25**); `ScheduledClip::reversed` + `windowFrames` (the
+readable window: `srcLen`, or a stretched Clip's prepared frames); the accumulate reads
+`windowFrames − 1 − local` when reversed (branch-only, no allocation); the resolver fills both
+at both sites; the canvas mirrors the waveform (`drawClipCachedWaveform (…, reversed)`: the
+window offset mirrored, the columns painted backwards). Verb `SetClipReversed` (undo).
+`engine/ClipSilence.h`: `detectSilentRuns (interleaved, channels, frames, threshold,
+minRunFrames)` — pure. Model: `toggleSelectedTimelineClipReverse`,
+`normalizeSelectedTimelineClip` (peak over the window from `decodedAssets_` → gain =
+`kNormalizeTargetPeak` (−1 dBFS) / peak via the gain edit), `stripSelectedTimelineClip…`
+(runs → split + delete in ONE transaction group from the end; refuses no-silence and stretched
+clips). UI verbs `TimelineClipReverse` (Toggle, ticked via `context.timelineClipReversed`),
+`TimelineClipNormalize`, `TimelineClipStripSilence`; Clip menu 15 → 18; context entries 16 →
+19.
+
+**Gates.** Offline render: a reversed Clip == the window mirrored by hand; the forward
+reference is not it. Project check: `detectSilentRuns` (two runs, cross-channel loudness,
+min length, refusals), reverse undo exact. Persistence: v25. `[clip-processing]`: a
+synthesised tone / 0.3 s silence / tone fixture: Reverse (tick, render differs, window kept,
+undo), Normalize (gain within 0.01 of −1 dBFS / 0.5, undo), Strip Silence (two honest clips,
+one undo).
+
+**Not built (recorded).** Strip Silence's threshold and minimum length are tokens (−40 dBFS,
+50 ms), not a dialog (the plan's "Strip Silence…" prompt is chrome for the G3 pass);
+Normalize targets peak only (LUFS needs libebur128 in the app target — recorded for the
+mastering items); no pre-roll / post-roll padding around kept regions; a reversed clip's fades
+apply to the OUTPUT position (Logic's law), not the source.
 
 ### G2.12 — Clip properties (2026-09-02)
 

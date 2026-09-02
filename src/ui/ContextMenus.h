@@ -48,13 +48,14 @@ struct ContextMenuEntry
 
 namespace context_menu_detail {
 
-inline constexpr std::array<ContextMenuEntry, 16> kClip {{
+inline constexpr std::array<ContextMenuEntry, 19> kClip {{
     { UiActionId::TimelineClipCut }, { UiActionId::TimelineClipCopy }, { UiActionId::TimelineClipPaste },
     { UiActionId::TimelineClipDuplicate }, { UiActionId::TimelineClipDelete },
     { UiActionId::TimelineClipSplit, true }, { UiActionId::TimelineClipHeal }, { UiActionId::TimelineClipCrossfade },
     { UiActionId::EditRenameSelection, true }, { UiActionId::TimelineClipSetGain },
     { UiActionId::TimelineClipSetFades }, { UiActionId::TimelineClipTimeStretch },
     { UiActionId::TimelineClipToggleMute, true }, { UiActionId::TimelineClipColourNext },   // G2.12
+    { UiActionId::TimelineClipReverse, true }, { UiActionId::TimelineClipNormalize }, { UiActionId::TimelineClipStripSilence },   // G2.13
     { UiActionId::TimelineClipSelectAllTrack, true },
     { UiActionId::TimelineRangeToLoop, true },
 }};

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "app/RecordingAssetCommit.h"
+#include "engine/ClipSilence.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
 #include "engine/ProjectMixerProjection.h"   // M13: the shared FX-insert node factory
@@ -5806,6 +5807,149 @@ public:
         return { id, state, true };
     }
 
+    // G2.13: clip processing, all non-destructive — the asset is never touched.
+    static constexpr float kNormalizeTargetPeak = 0.89125094f;      // -1 dBFS
+    static constexpr float kStripSilenceThreshold = 0.01f;          // -40 dBFS
+    static constexpr double kStripSilenceMinRunSeconds = 0.05;
+
+    [[nodiscard]] const UiDecodedAsset* findDecodedAsset (engine::EntityId assetId) const noexcept
+    {
+        for (const UiDecodedAsset& decoded : decodedAssets_)
+            if (decoded.assetId == assetId)
+                return &decoded;
+        return nullptr;
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleSelectedTimelineClipReverse()
+    {
+        const UiActionId id = UiActionId::TimelineClipReverse;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setClipReversed (selectedTimelineClipId_, ! clip->reversed)).applied())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    // Normalize: the gain that lands the window's peak at -1 dBFS (a gain edit, so it undoes as one).
+    [[nodiscard]] UiActionDispatchResult normalizeSelectedTimelineClip()
+    {
+        const UiActionId id = UiActionId::TimelineClipNormalize;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+        const UiDecodedAsset* const decoded = findDecodedAsset (clip->assetId);
+        if (decoded == nullptr || decoded->channels == 0 || clip->srcOffset > decoded->frames
+            || clip->srcLen > decoded->frames - clip->srcOffset)
+            return { id, { false, "timeline clip source missing" }, false };
+        const std::size_t stride = decoded->channels;
+        const std::size_t first = static_cast<std::size_t> (clip->srcOffset) * stride;
+        const std::size_t count = static_cast<std::size_t> (clip->srcLen) * stride;
+        float peak = 0.0f;
+        for (std::size_t n = first; n < first + count && n < decoded->interleavedSamples.size(); ++n)
+            peak = std::max (peak, std::abs (decoded->interleavedSamples[n]));
+        if (! std::isfinite (peak) || peak <= 0.0f)
+            return { id, { false, "normalize: the clip is silent" }, false };
+        return applySelectedTimelineClipGain (id, kNormalizeTargetPeak / peak);
+    }
+
+    // Strip Silence: every silent run (-40 dBFS for 50 ms or more) becomes split + delete edits
+    // inside ONE transaction group, walked from the clip's end so earlier ticks stay valid.
+    [[nodiscard]] UiActionDispatchResult stripSilenceSelectedTimelineClip()
+    {
+        const UiActionId id = UiActionId::TimelineClipStripSilence;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+        if (clip->stretchFactor != 1.0f)
+            return { id, { false, "strip silence needs an unstretched clip" }, false };
+        const UiDecodedAsset* const decoded = findDecodedAsset (clip->assetId);
+        if (decoded == nullptr || decoded->channels == 0 || clip->srcOffset > decoded->frames
+            || clip->srcLen > decoded->frames - clip->srcOffset || ! project_.sampleRate.isValid())
+            return { id, { false, "timeline clip source missing" }, false };
+        const std::uint64_t windowFrames = std::min<std::uint64_t> (clip->srcLen, static_cast<std::uint64_t> (std::max<engine::Tick> (0, clip->timelineLength)));
+        const std::size_t stride = decoded->channels;
+        const std::size_t first = static_cast<std::size_t> (clip->srcOffset) * stride;
+        const auto minRun = static_cast<std::uint64_t> (std::llround (kStripSilenceMinRunSeconds * project_.sampleRate.hz));
+        const std::vector<engine::SilentRun> runs = engine::detectSilentRuns (
+            std::span<const float> (decoded->interleavedSamples.data() + first, static_cast<std::size_t> (windowFrames) * stride),
+            static_cast<int> (stride), windowFrames, kStripSilenceThreshold, minRun);
+        if (runs.empty())
+            return { id, { false, "strip silence: no silent stretch found" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        const auto clipIn = [] (const engine::Project& project, engine::EntityId clipId) -> const engine::Clip*
+        {
+            for (const engine::Clip& candidate : project.clips)
+                if (candidate.id == clipId)
+                    return &candidate;
+            return nullptr;
+        };
+        engine::EntityId current = selectedTimelineClipId_;
+        std::uint8_t seed = 0xD0u;
+        bool ok = true;
+        for (auto it = runs.rbegin(); it != runs.rend() && ok; ++it)
+        {
+            const engine::Clip* const working = clipIn (nextProject, current);
+            if (working == nullptr) { ok = false; break; }
+            const auto runStart = static_cast<engine::Tick> (it->start);
+            const auto runEnd = static_cast<engine::Tick> (std::min<std::uint64_t> (it->end, windowFrames));
+            if (runEnd < working->timelineLength)   // keep what follows the run as its own clip
+            {
+                const std::optional<std::uint64_t> leftSource = sourceLengthForSplit (*working, runEnd);
+                if (! leftSource) { ok = false; break; }
+                ok = nextUndo.apply (nextProject, engine::ProjectEditCommand::splitClip (
+                                         current, allocateSessionEntityId (seed++, nextProject), runEnd, *leftSource)).applied();
+                if (! ok) break;
+            }
+            if (runStart > 0)   // the silent piece becomes its own clip, then goes
+            {
+                const engine::Clip* const head = clipIn (nextProject, current);
+                if (head == nullptr) { ok = false; break; }
+                const std::optional<std::uint64_t> leftSource = sourceLengthForSplit (*head, runStart);
+                if (! leftSource) { ok = false; break; }
+                const engine::EntityId silentId = allocateSessionEntityId (seed++, nextProject);
+                ok = nextUndo.apply (nextProject, engine::ProjectEditCommand::splitClip (current, silentId, runStart, *leftSource)).applied()
+                  && nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (silentId)).applied();
+            }
+            else   // the run starts the clip: the head itself is the silence
+            {
+                ok = nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (current)).applied();
+                current = engine::EntityId {};
+                break;
+            }
+        }
+        if (! ok || ! nextUndo.endTransactionGroup())
+            return { id, { false, "strip silence: an edit was refused" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+        if (! current.isValid())
+            selectedTimelineClipIds_.clear();
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult toggleSelectedTimelineClipMute()
     {
         const UiActionId id = UiActionId::TimelineClipToggleMute;
@@ -6886,6 +7030,15 @@ public:
             case UiActionId::TimelineClipColourNext:
                 return cycleSelectedTimelineClipColour();
 
+            case UiActionId::TimelineClipReverse:   // G2.13
+                return toggleSelectedTimelineClipReverse();
+
+            case UiActionId::TimelineClipNormalize:
+                return normalizeSelectedTimelineClip();
+
+            case UiActionId::TimelineClipStripSilence:
+                return stripSilenceSelectedTimelineClip();
+
             case UiActionId::TimelineClipMove:
             case UiActionId::TimelineClipTrim:
             case UiActionId::TimelineClipSplit:
@@ -7915,6 +8068,7 @@ private:
         {
             const engine::Clip* const selectedClip = context_.projectLoaded ? findClip (selectedTimelineClipId_) : nullptr;   // G2.12
             context_.timelineClipMuted = selectedClip != nullptr && selectedClip->muted;
+            context_.timelineClipReversed = selectedClip != nullptr && selectedClip->reversed;   // G2.13
         }
 
         const engine::MidiClip* const midiClip = context_.projectLoaded ? findMidiClip (selectedMidiClipId_) : nullptr;

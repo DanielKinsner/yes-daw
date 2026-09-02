@@ -9393,7 +9393,7 @@ private:
             UiActionId::TrackToggleMute,   UiActionId::TrackToggleSolo,    UiActionId::TrackToggleArm,
             UiActionId::MixerTrackSetOutput,
         };
-        static constexpr std::array<UiActionId, 15> kClipMenu {
+        static constexpr std::array<UiActionId, 18> kClipMenu {
             UiActionId::TimelineClipSplit, UiActionId::TimelineClipHeal,
             UiActionId::TimelineClipApplyDefaultFades, UiActionId::TimelineClipSetFades,
             UiActionId::TimelineClipCrossfade, UiActionId::TimelineClipSetGain,
@@ -9401,6 +9401,7 @@ private:
             UiActionId::TimelineClipMove,  UiActionId::TimelineClipTrim,
             UiActionId::TimelineClipTimeStretch, UiActionId::TimelineClipStretchToLoop,   // G2.9b
             UiActionId::TimelineClipToggleMute, UiActionId::TimelineClipColourNext,      // G2.12
+            UiActionId::TimelineClipReverse, UiActionId::TimelineClipNormalize, UiActionId::TimelineClipStripSilence,   // G2.13
             UiActionId::TimelineMidiClipAdd,
         };
         static constexpr std::array<UiActionId, 10> kMidiMenu {
@@ -9493,6 +9494,7 @@ private:
             case UiActionId::TimelineSnapModeEvents:            return c.snapMode == yesdaw::ui::UiSnapMode::Events;
             case UiActionId::TimelineSnapModeOff:               return c.snapMode == yesdaw::ui::UiSnapMode::Off;
             case UiActionId::TimelineClipToggleMute:            return c.timelineClipMuted;   // G2.12
+            case UiActionId::TimelineClipReverse:               return c.timelineClipReversed;   // G2.13
             case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
             case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
             case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
@@ -12331,7 +12333,8 @@ private:
                                             static_cast<int> (clip.fadeOutShape),
                                             clip.fadeInCurve,
                                             clip.fadeOutCurve,
-                                            clip.muted });   // G2.12
+                                            clip.muted,      // G2.12
+                                            clip.reversed });   // G2.13
             timelineClipIds.push_back (clip.id);
             timelineClipAssetHashes.push_back (asset->contentHash);
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);

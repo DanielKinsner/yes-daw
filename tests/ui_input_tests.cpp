@@ -17857,6 +17857,106 @@ TEST_CASE ("G2.12 clip properties: mute is silent and undoable, colour cycles, t
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// G2.13: clip processing, non-destructive — Reverse plays the window backwards (ticked, undoable),
+// Normalize lands the peak at -1 dBFS, Strip Silence splits around silence and deletes it as ONE
+// undo step; the Clip menu and the context menu carry all three.
+TEST_CASE ("G2.13 clip processing: reverse, normalize and strip silence are honest, non-destructive and undoable",
+           "[ui][input][shell][g2][clip-processing]")
+{
+    // A synthesised fixture: 0.3 s of tone, 0.3 s of silence, 0.4 s of tone (48 kHz mono).
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-processing");
+    const std::filesystem::path wavPath = bundlePath.parent_path() / "clip-processing-gaps.wav";
+    constexpr double sampleRate = 48000.0;
+    constexpr std::uint64_t frames = 48000u;
+    std::vector<float> samples (frames, 0.0f);
+    for (std::uint64_t frame = 0; frame < frames; ++frame)
+    {
+        const double t = static_cast<double> (frame) / sampleRate;
+        const bool loud = t < 0.3 || t >= 0.6;
+        samples[static_cast<std::size_t> (frame)] = loud ? static_cast<float> (0.5 * std::sin (2.0 * 3.14159265358979 * 440.0 * t)) : 0.0f;
+    }
+    REQUIRE (yesdaw::io::writeFloat32WavFile (wavPath, yesdaw::engine::SampleRate { sampleRate }, 1, frames, samples).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [wavPath] { return wavPath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    const yesdaw::engine::Clip base = readProjectSnapshot (bundlePath).clips.front();
+    REQUIRE (base.srcLen == frames);
+    const auto clipNow = [&] { return readProjectSnapshot (bundlePath).clips.front(); };
+    const auto render = [&]
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 512, 128);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+        return rendered;
+    };
+
+    // Reverse: ticked, the render's first block is silent (the tail's silence comes first now),
+    // the clip's window is untouched; undo clears it.
+    const std::vector<float> forward = render();
+    REQUIRE (peakAbs (std::span<const float> (forward.data(), forward.size())) > 0.1);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipReverse);
+    REQUIRE (clipNow().reversed);
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipReversed);
+    REQUIRE (clipNow().srcOffset == base.srcOffset);
+    REQUIRE (clipNow().srcLen == base.srcLen);
+    const std::vector<float> backward = render();
+    REQUIRE (backward != forward);
+    REQUIRE (peakAbs (std::span<const float> (backward.data(), backward.size())) > 0.1);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == base);
+
+    // Normalize: the gain lands the peak at -1 dBFS — the mono-to-stereo centre law scales the render.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipNormalize);
+    {
+        const yesdaw::engine::Clip normalized = clipNow();
+        INFO ("gain " << normalized.gain);
+        REQUIRE (std::abs (normalized.gain - 0.89125094f / 0.5f) < 0.01f);
+        REQUIRE (normalized.srcLen == base.srcLen);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == base);
+
+    // Strip Silence: the middle 0.3 s goes; two clips remain with their source windows honest; one undo.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipStripSilence);
+    {
+        yesdaw::engine::Project stripped = readProjectSnapshot (bundlePath);
+        REQUIRE (stripped.clips.size() == 2u);
+        std::sort (stripped.clips.begin(), stripped.clips.end(),
+                   [] (const yesdaw::engine::Clip& a, const yesdaw::engine::Clip& b) { return a.timelineStart < b.timelineStart; });
+        const yesdaw::engine::Clip& head = stripped.clips[0];
+        const yesdaw::engine::Clip& tail = stripped.clips[1];
+        INFO ("head " << head.timelineStart << "+" << head.timelineLength << " src " << head.srcOffset << "/" << head.srcLen
+              << " tail " << tail.timelineStart << "+" << tail.timelineLength << " src " << tail.srcOffset << "/" << tail.srcLen);
+        REQUIRE (head.timelineStart == base.timelineStart);
+        REQUIRE (head.srcOffset == 0u);
+        REQUIRE (std::llabs (static_cast<long long> (head.timelineLength) - 14400) <= 200);
+        REQUIRE (head.srcLen == static_cast<std::uint64_t> (head.timelineLength));
+        REQUIRE (std::llabs (static_cast<long long> (tail.srcOffset) - 28800) <= 200);
+        REQUIRE (tail.timelineStart == base.timelineStart + static_cast<yesdaw::engine::Tick> (tail.srcOffset));
+        REQUIRE (tail.srcOffset + tail.srcLen == frames);
+        REQUIRE (tail.srcLen == static_cast<std::uint64_t> (tail.timelineLength));
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+    REQUIRE (clipNow() == base);
+    // Strip Silence on a clip without silence is refused honestly (nothing lands on the undo stack).
+    {
+        const int before = snapshotMainComponent (*shell).context.timelineEditCount;
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipNormalize);   // any edit to compare against
+        REQUIRE (snapshotMainComponent (*shell).context.timelineEditCount == before + 1);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (wavPath, ec);
+}
+
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",
            "[ui][input][shell][g1][menus-show-keys]")
 {

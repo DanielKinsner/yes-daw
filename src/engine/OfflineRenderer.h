@@ -408,6 +408,8 @@ namespace detail {
         out.clip.fadeInCurve = clip.fadeInCurve;
         out.clip.fadeOutCurve = clip.fadeOutCurve;
         out.clip.gain = clip.gain;
+        out.clip.reversed = clip.reversed;   // G2.13
+        out.clip.windowFrames = static_cast<std::int64_t> (stretched->frames);
         return true;
     }
 
@@ -424,6 +426,8 @@ namespace detail {
     out.clip.fadeInCurve = clip.fadeInCurve;
     out.clip.fadeOutCurve = clip.fadeOutCurve;
     out.clip.gain = clip.gain;
+    out.clip.reversed = clip.reversed;   // G2.13
+    out.clip.windowFrames = static_cast<std::int64_t> (clip.srcLen);
     return true;
 }
 

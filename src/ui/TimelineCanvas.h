@@ -55,6 +55,7 @@ struct TimelineCanvasClipStyle
     float fadeInCurve = 0.0f;
     float fadeOutCurve = 0.0f;
     bool muted = false;       // G2.12: painted dim (a panel wash over everything but the ring)
+    bool reversed = false;    // G2.13: the waveform paints mirrored
 };
 
 struct TimelineMarker
@@ -579,7 +580,8 @@ inline int drawClipNotePreview (juce::Graphics& g, juce::Rectangle<int> area, ju
 inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour,
                                    float amplitude, const Clip& clip,
                                    const persistence::WaveformPeakCache& cache,
-                                   const Viewport& vp)
+                                   const Viewport& vp,
+                                   bool reversed = false)   // G2.13: mirror the window
 {
     area.reduce (UiTheme::Layout::timelineCanvasWaveformInsetX,
                  UiTheme::Layout::timelineCanvasWaveformInsetY);
@@ -599,8 +601,12 @@ inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area,
     const auto sourceFrameCount = static_cast<std::uint64_t> (
         std::llround (visibleSeconds * sampleRate));
 
+    // G2.13: a reversed clip reads its window from the other end, and paints the columns backwards.
+    const std::uint64_t mirroredOffset = reversed && cache.sourceFrames >= sourceFrameOffset + sourceFrameCount
+                                           ? cache.sourceFrames - sourceFrameOffset - sourceFrameCount
+                                           : sourceFrameOffset;
     const WaveformColumnViewport columnViewport {
-        sourceFrameOffset,
+        mirroredOffset,
         sourceFrameCount,
         sampleRate,
         vp.pixelsPerSecond,
@@ -622,8 +628,10 @@ inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area,
     const juce::Colour rmsColour = peakColour.withAlpha (UiTheme::Tone::timelineCanvasGridMinorLineAlpha);
 
     int x = area.getX();
-    for (const auto& column : columns.columns)
+    const std::size_t columnCount = columns.columns.size();
+    for (std::size_t n = 0; n < columnCount; ++n)
     {
+        const auto& column = columns.columns[reversed ? columnCount - 1u - n : n];
         const float top = midY - half * std::clamp (column.max, minValue, maxValue);
         const float bottom = midY - half * std::clamp (column.min, minValue, maxValue);
         const float rms = half * std::clamp (column.rms, UiTheme::Layout::timelineCanvasWaveformMinAmplitude,
@@ -1313,7 +1321,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
                 {
                     stats.readyWaveformColumns += drawClipCachedWaveform (g, clipRect, style.colour,
                                                                            style.amplitude, *clip,
-                                                                           *readyCache, vp);
+                                                                           *readyCache, vp, style.reversed);
                 }
             }
         }

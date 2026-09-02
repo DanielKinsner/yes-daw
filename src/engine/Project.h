@@ -508,6 +508,7 @@ struct Clip
     float fadeOutCurve = 0.0f;
     std::uint32_t colour = kTrackColourUnset;         // G2.12: 0 = follow the track's colour
     bool muted = false;                               // G2.12: silent in the mix, painted dim
+    bool reversed = false;                            // G2.13: the source window plays backwards
 
     [[nodiscard]] constexpr bool references (const Asset& asset) const noexcept
     {
@@ -2038,6 +2039,20 @@ namespace detail {
     if (clip == nullptr)
         return ProjectEditStatus::ClipNotFound;
     clip->muted = newMuted;
+    return ProjectEditStatus::Applied;
+}
+
+// G2.13: reverse — the source window plays backwards; nothing in the asset changes.
+[[nodiscard]] inline ProjectEditStatus setClipReversed (Project& project, EntityId clipId, bool newReversed) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+    clip->reversed = newReversed;
     return ProjectEditStatus::Applied;
 }
 

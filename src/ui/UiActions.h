@@ -50,6 +50,9 @@ enum class UiActionId : std::uint8_t
     TimelineClipStretchToLoop,   // G2.9b
     TimelineClipToggleMute,      // G2.12
     TimelineClipColourNext,
+    TimelineClipReverse,         // G2.13
+    TimelineClipNormalize,
+    TimelineClipStripSilence,
     MixerTargetSetFader,
     MixerTargetSetPan,
     MixerTargetToggleMute,
@@ -398,6 +401,7 @@ struct UiActionContext
     bool isPlaying = false;
     bool loopEnabled = false;
     bool timelineClipMuted = false;   // G2.12: the selected clip is muted (the Mute Clip tick)
+    bool timelineClipReversed = false;   // G2.13: the selected clip is reversed (the Reverse tick)
     bool timelineRangeSelected = false;
     bool canUndo = false;
     bool canRedo = false;
@@ -609,6 +613,12 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineClipToggleMute, "timeline.clip.toggle_mute", "Mute Clip", "Ctrl+M", "Mute or unmute the selected clip: it keeps its place, plays nothing, paints dim",
       AccessibilityRole::MenuItem, UiActionKind::Toggle, true, false, false, true },
     { UiActionId::TimelineClipColourNext, "timeline.clip.colour_next", "Clip Colour: Next", "", "Cycle the selected clip's colour: follow the track, then the five accents",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipReverse, "timeline.clip.reverse", "Reverse", "", "Play the selected clip's source window backwards (non-destructive)",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, true, false, false, true },
+    { UiActionId::TimelineClipNormalize, "timeline.clip.normalize", "Normalize", "", "Set the selected clip's gain so its peak lands at -1 dBFS (non-destructive)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipStripSilence, "timeline.clip.strip_silence", "Strip Silence", "", "Split the selected clip around its silent stretches (-40 dBFS, 50 ms) and delete them, as one undo step",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
     { UiActionId::MixerTargetSetFader, "mixer.target.set_fader", "Fader", "", "Set selected mixer fader",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, true },
@@ -1490,6 +1500,9 @@ public:
             case UiActionId::TimelineClipStretchToLoop:   // G2.9b
             case UiActionId::TimelineClipToggleMute:      // G2.12
             case UiActionId::TimelineClipColourNext:
+            case UiActionId::TimelineClipReverse:         // G2.13
+            case UiActionId::TimelineClipNormalize:
+            case UiActionId::TimelineClipStripSilence:
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = true;
                 context.canRedo = false;

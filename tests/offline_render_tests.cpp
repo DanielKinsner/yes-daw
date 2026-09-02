@@ -744,3 +744,37 @@ TEST_CASE ("OfflineRenderer rejects a wider-than-stereo Asset with UnsupportedAs
 
     REQUIRE (rendered.status != OfflineRenderStatus::Ok);
 }
+
+// G2.13: a reversed Clip plays its source window backwards — the renderer's output equals the
+// window mirrored by hand, with the fades and gain applied to the OUTPUT position as before.
+TEST_CASE ("OfflineRenderer plays a reversed Clip's window backwards", "[g2][offline-render][reverse]")
+{
+    OfflineFixture fixture = makeOfflineFixture();
+    fixture.project.clips[0].reversed = true;
+    const auto rendered = renderOfflineProject (fixture.project,
+                                                std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(),
+                                                                                   fixture.decodedAssets.size()),
+                                                OfflineRenderOptions {});
+    REQUIRE (rendered.ok());
+    std::vector<float> expected (static_cast<std::size_t> (rendered.frames) * 2u, 0.0f);
+    for (std::size_t clipIndex = 0; clipIndex < fixture.project.clips.size(); ++clipIndex)
+    {
+        const Clip& clip = fixture.project.clips[clipIndex];
+        const auto& samples = samplesForAsset (fixture, clip.assetId);
+        const std::uint64_t sourceFrames = std::min<std::uint64_t> (clip.srcLen, static_cast<std::uint64_t> (clip.timelineLength));
+        for (std::uint64_t local = 0; local < sourceFrames; ++local)
+        {
+            const std::uint64_t read = clip.reversed ? clip.srcLen - 1u - local : local;
+            const float value = samples[static_cast<std::size_t> (clip.srcOffset + read)]
+                              * independentEqualPowerFade (clip, static_cast<Tick> (local), sourceFrames)
+                              * clip.gain
+                              * kCenterGain;
+            const std::size_t frame = static_cast<std::size_t> (clip.timelineStart + static_cast<Tick> (local));
+            expected[frame * 2u] += value;
+            expected[frame * 2u + 1u] += value;
+        }
+    }
+    REQUIRE (buffersNear (rendered.interleavedSamples, expected));
+    // The negative control: the forward reference is NOT what a reversed clip renders.
+    REQUIRE_FALSE (buffersNear (rendered.interleavedSamples, independentProjectReference (fixture)));
+}

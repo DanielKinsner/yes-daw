@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 24;   // G2.12: clips colour + muted
+inline constexpr int          kCodeSchemaVersion = 25;   // G2.13: clips reversed
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1372,13 +1372,18 @@ ALTER TABLE clips ADD COLUMN colour INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE clips ADD COLUMN muted INTEGER NOT NULL DEFAULT 0;
 )SQL";
 
+// v25 (G2.13): reverse — the Clip's source window plays backwards.
+inline constexpr std::string_view kSchemaV25Sql = R"SQL(
+ALTER TABLE clips ADD COLUMN reversed INTEGER NOT NULL DEFAULT 0;
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 24> kMigrations {
+inline constexpr std::array<SchemaMigration, 25> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1403,6 +1408,7 @@ inline constexpr std::array<SchemaMigration, 24> kMigrations {
     SchemaMigration { 22, kSchemaV22Sql },
     SchemaMigration { 23, kSchemaV23Sql },
     SchemaMigration { 24, kSchemaV24Sql },
+    SchemaMigration { 25, kSchemaV25Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2292,8 +2298,8 @@ public:
         detail::Statement clipStmt (
             db_,
             "INSERT INTO clips(id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name, stretch_factor, "
-            "fade_in_shape, fade_out_shape, fade_in_curve, fade_out_curve, colour, muted) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+            "fade_in_shape, fade_out_shape, fade_in_curve, fade_out_curve, colour, muted, reversed) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
 
         for (const engine::Clip& clip : project.clips)
         {
@@ -2389,6 +2395,11 @@ public:
                 return result;
             }
             if (auto result = clipStmt.bindInt64 (19, clip.muted ? 1 : 0); ! result.ok())
+            {
+                rollback();
+                return result;
+            }
+            if (auto result = clipStmt.bindInt64 (20, clip.reversed ? 1 : 0); ! result.ok())   // G2.13
             {
                 rollback();
                 return result;
@@ -3048,7 +3059,7 @@ public:
             if (auto result = stmt.prepare (
                     db_,
                     "SELECT id, asset_id, track_id, timeline_start, timeline_length, src_offset, src_len, gain, fade_in, fade_out, time_base, name, stretch_factor, "
-                    "fade_in_shape, fade_out_shape, fade_in_curve, fade_out_curve, colour, muted "
+                    "fade_in_shape, fade_out_shape, fade_in_curve, fade_out_curve, colour, muted, reversed "
                     "FROM clips ORDER BY rowid;");
                 ! result.ok())
                 return result;
@@ -3123,6 +3134,11 @@ public:
                     return detail::semanticInvalid ("clips.muted is outside the Project value range");
                 clip.colour = static_cast<std::uint32_t> (colour);
                 clip.muted = muted == 1;
+
+                const sqlite3_int64 reversed = sqlite3_column_int64 (stmt.get(), 19);   // G2.13
+                if (reversed != 0 && reversed != 1)
+                    return detail::semanticInvalid ("clips.reversed is outside the Project value range");
+                clip.reversed = reversed == 1;
 
                 project.clips.push_back (std::move (clip));
             }

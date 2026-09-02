@@ -652,6 +652,7 @@ TEST_CASE ("Project value surface round-trips through a reopened bundle", "[pers
     project.clips[1].fadeOutCurve = -0.5f;
     project.clips[1].colour = 0xff3b8cffu;   // G2.12: schema v24
     project.clips[1].muted = true;
+    project.clips[1].reversed = true;   // G2.13: schema v25
     project.tracks[0].strip.name = "Vocal";
     project.tracks[0].strip.linearGain = 0.5f;
     project.tracks[0].strip.pan = -0.25f;
@@ -1752,6 +1753,8 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "DELETE FROM schema_migrations WHERE version = 23; "
             "ALTER TABLE clips DROP COLUMN colour; ALTER TABLE clips DROP COLUMN muted; "   // G2.12: v24
             "DELETE FROM schema_migrations WHERE version = 24; "
+            "ALTER TABLE clips DROP COLUMN reversed; "   // G2.13: v25
+            "DELETE FROM schema_migrations WHERE version = 25; "
             "PRAGMA user_version = 10;").ok());
     }
 

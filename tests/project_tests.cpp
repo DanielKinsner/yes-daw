@@ -4,6 +4,7 @@
 // serializing it.
 
 #include "engine/ClipEnvelope.h"
+#include "engine/ClipSilence.h"
 #include "engine/Project.h"
 #include "engine/ProjectUndo.h"
 
@@ -1204,6 +1205,42 @@ TEST_CASE ("Fade shapes match their golden table and setClipFadeShapes undoes ex
     requireProjectValueUnchanged (project, original);
     REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
     REQUIRE (project.clips.front() == expected);
+}
+
+// G2.13: the silence law Strip Silence is built on — runs under the threshold for at least the
+// minimum length, across channels, with the tail run counted; the reverse edit undoes exactly.
+TEST_CASE ("detectSilentRuns finds the runs Strip Silence removes and setClipReversed undoes exactly", "[project][clip-edit][silence][reverse][undo]")
+{
+    std::vector<float> stereo (1000u * 2u, 0.0f);
+    for (std::size_t frame = 0; frame < 1000u; ++frame)
+    {
+        const bool loud = frame < 100u || (frame >= 400u && frame < 800u);
+        stereo[frame * 2u] = loud ? 0.5f : 0.001f;
+        stereo[frame * 2u + 1u] = loud ? -0.25f : (frame == 500u ? 0.9f : 0.002f);   // one channel alone keeps a frame loud
+    }
+    const auto runs = yesdaw::engine::detectSilentRuns (stereo, 2, 1000u, 0.01f, 50u);
+    REQUIRE (runs.size() == 2u);
+    REQUIRE (runs[0].start == 100u);
+    REQUIRE (runs[0].end == 400u);
+    REQUIRE (runs[1].start == 800u);
+    REQUIRE (runs[1].end == 1000u);
+    const auto longOnly = yesdaw::engine::detectSilentRuns (stereo, 2, 1000u, 0.01f, 250u);
+    REQUIRE (longOnly.size() == 1u);
+    REQUIRE (longOnly[0].start == 100u);
+    REQUIRE (yesdaw::engine::detectSilentRuns (stereo, 2, 1000u, 0.0f, 50u).empty());   // no threshold, no runs
+    REQUIRE (yesdaw::engine::detectSilentRuns (stereo, 2, 5000u, 0.01f, 50u).empty());  // a short buffer is refused
+
+    Project project = makeEditableProject();
+    const Project original = project;
+    const EntityId clipId = project.clips.front().id;
+    ProjectUndoStack undo;
+    REQUIRE (undo.apply (project, ProjectEditCommand::setClipReversed (clipId, true)).applied());
+    REQUIRE (project.clips.front().reversed);
+    Clip expected = original.clips.front();
+    expected.reversed = true;
+    REQUIRE (project.clips.front() == expected);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
 }
 
 TEST_CASE ("Project undo stack records command diffs for recording Comp selection", "[project][recording][comp][undo]")

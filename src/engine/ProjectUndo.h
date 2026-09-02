@@ -28,6 +28,7 @@ enum class ProjectEditVerb : std::uint8_t
     SetClipFadeShapes,   // G2.10
     SetClipColour,   // G2.12
     SetClipMuted,
+    SetClipReversed,   // G2.13
     MoveNote,
     SetNoteLength,
     SplitNote,
@@ -118,6 +119,7 @@ struct ProjectEditCommand
     float fadeOutCurve = 0.0f;
     std::uint32_t clipColour = 0;   // G2.12
     bool clipMuted = false;
+    bool clipReversed = false;   // G2.13
     EntityId midiClipId;
     EntityId noteId;
     EntityId rightNoteId;
@@ -307,6 +309,15 @@ struct ProjectEditCommand
         command.verb = ProjectEditVerb::SetClipMuted;
         command.clipId = clipId;
         command.clipMuted = muted;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setClipReversed (EntityId clipId, bool reversed) noexcept   // G2.13
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetClipReversed;
+        command.clipId = clipId;
+        command.clipReversed = reversed;
         return command;
     }
 
@@ -584,6 +595,7 @@ struct ProjectEditCommand
         command.fadeOutCurve = clip.fadeOutCurve;
         command.clipColour = clip.colour;   // G2.12
         command.clipMuted = clip.muted;
+        command.clipReversed = clip.reversed;   // G2.13
         command.clipTimeBase = clip.timeBase;
         (void) copyClipName (command, clip.name.asView());
         return command;
@@ -1303,6 +1315,9 @@ namespace detail {
         case ProjectEditVerb::SetClipMuted:
             return setClipMuted (project, command.clipId, command.clipMuted);
 
+        case ProjectEditVerb::SetClipReversed:   // G2.13
+            return setClipReversed (project, command.clipId, command.clipReversed);
+
         case ProjectEditVerb::MoveNote:
             return moveNote (project, command.midiClipId, command.noteId, command.noteStartTick);
 
@@ -1403,6 +1418,7 @@ namespace detail {
             clip.fadeOutCurve = command.fadeOutCurve;
             clip.colour = command.clipColour;   // G2.12
             clip.muted = command.clipMuted;
+            clip.reversed = command.clipReversed;   // G2.13
             clip.timeBase = command.clipTimeBase;
             if (command.clipName[0] == '\0')
                 return ProjectEditStatus::InvalidClipName;

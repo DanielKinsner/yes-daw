@@ -45,6 +45,8 @@ struct ScheduledClip
     float        fadeInCurve    = 0.0f;
     float        fadeOutCurve   = 0.0f;
     float        gain           = 1.0f;
+    bool         reversed       = false;   // G2.13: read the window backwards
+    std::int64_t windowFrames   = 0;       // G2.13: readable frames behind `samples` (the mirror axis)
 };
 
 struct ClipSchedule
@@ -86,7 +88,7 @@ inline void accumulateClipSchedule (const ClipSchedule& schedule,
                 const std::int64_t local = (blockStart + static_cast<std::int64_t> (i)) - clip.startFrame;
                 if (local < 0 || local >= clip.sourceFrames)
                     continue;
-                const float sample = clip.samples[static_cast<std::size_t> (local)]
+                const float sample = clip.samples[static_cast<std::size_t> (clip.reversed ? clip.windowFrames - 1 - local : local)]   // G2.13
                                    * evaluateClipFadeEnvelopeGain (local, clip.sourceFrames,
                                                                    clip.fadeInFrames, clip.fadeOutFrames,
                                                                    clip.fadeInShape, clip.fadeInCurve,
@@ -111,7 +113,8 @@ inline void accumulateClipSchedule (const ClipSchedule& schedule,
                                                                       clip.fadeInShape, clip.fadeInCurve,
                                                                       clip.fadeOutShape, clip.fadeOutCurve)
                                       * clip.gain;
-                const std::size_t base = static_cast<std::size_t> (local) * static_cast<std::size_t> (sourceChannels);
+                const std::size_t base = static_cast<std::size_t> (clip.reversed ? clip.windowFrames - 1 - local : local)   // G2.13
+                                       * static_cast<std::size_t> (sourceChannels);
                 for (int c = 0; c < numChannels; ++c)
                 {
                     const float sample =
