@@ -3069,6 +3069,18 @@ public:
         if (! onContextMenuRequested || ! stripAtPosition || getParentComponent() == nullptr)
             return;
         const juce::Point<int> shellPosition = position + getPosition();
+        // An insert slot first: the click selects the strip and the slot (the same law as the
+        // left-click), and the slot's own menu follows.
+        if (insertSlotAtPosition && onInsertSlotClicked)
+        {
+            const auto [slotStrip, slotIndex] = insertSlotAtPosition (shellPosition);
+            if (slotStrip >= 0 && slotIndex >= 0)
+            {
+                onInsertSlotClicked (slotStrip, slotIndex);
+                onContextMenuRequested (yesdaw::ui::ContextMenuTarget::InsertSlot, slotIndex, position);
+                return;
+            }
+        }
         const int strip = stripAtPosition (shellPosition);
         const int stripCount = stripCountProvider ? stripCountProvider() : 0;
         if (strip < 0 || strip >= stripCount)
@@ -8262,11 +8274,33 @@ private:
             if (entry.separatorBefore)
                 menu.addSeparator();
             const auto& descriptor = yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (entry.action)];
-            juce::PopupMenu::Item item (descriptor.label);
+            const bool slotVerb = target == yesdaw::ui::ContextMenuTarget::InsertSlot;
+            const bool slotEnabled = slotVerb && index >= 0
+                                  && static_cast<std::size_t> (index) < appModel.selectedStripFxChain().size();
+            if (slotVerb && entry.action == yesdaw::ui::UiActionId::MixerFxInsertReorder)
+            {
+                // §3.3: Move Up · Move Down — one reorder verb, two directions.
+                juce::PopupMenu::Item up ("Move Up");
+                up.itemID = kContextMenuMoveUpId;
+                up.isEnabled = slotEnabled && index > 0;
+                menu.addItem (std::move (up));
+                juce::PopupMenu::Item down ("Move Down");
+                down.itemID = kContextMenuMoveDownId;
+                down.isEnabled = slotEnabled && static_cast<std::size_t> (index + 1) < appModel.selectedStripFxChain().size();
+                menu.addItem (std::move (down));
+                lastContextMenu.actions.push_back (entry.action);
+                continue;
+            }
+            juce::PopupMenu::Item item (slotVerb && entry.action == yesdaw::ui::UiActionId::MixerFxInsertParamSet
+                                            ? juce::String ("Open Editor")
+                                            : juce::String (descriptor.label));
             item.itemID = static_cast<int> (entry.action) + 1;
-            item.isEnabled = appModel.registry().stateFor (entry.action, appModel.context()).enabled;
-            item.isTicked = menuTickState (entry.action);
-            item.shortcutKeyDescription = menuShortcutFor (entry.action);
+            item.isEnabled = slotVerb ? slotEnabled
+                                      : appModel.registry().stateFor (entry.action, appModel.context()).enabled;
+            item.isTicked = slotVerb && entry.action == yesdaw::ui::UiActionId::MixerFxInsertToggle && slotEnabled
+                                ? ! appModel.selectedStripFxChain()[static_cast<std::size_t> (index)].enabled
+                                : menuTickState (entry.action);
+            item.shortcutKeyDescription = slotVerb ? juce::String() : menuShortcutFor (entry.action);
             menu.addItem (std::move (item));
             lastContextMenu.actions.push_back (entry.action);
         }
@@ -8277,16 +8311,61 @@ private:
         menu.showMenuAsync (juce::PopupMenu::Options()
                                 .withTargetScreenArea (juce::Rectangle<int> (screenPoint.x, screenPoint.y, 1, 1))
                                 .withParentComponent (nullptr),
-                            [this] (int itemId)
-                            {
-                                if (itemId <= 0 || itemId > static_cast<int> (yesdaw::ui::kUiActionCount))
-                                    return;
-                                handleAction (static_cast<yesdaw::ui::UiActionId> (itemId - 1));
-                                refreshActionState();
-                                resized();
-                                repaintAll();
-                            });
+                            [this] (int itemId) { invokeContextMenuItem (itemId); });
     }
+
+    static constexpr int kContextMenuMoveUpId = 2001;
+    static constexpr int kContextMenuMoveDownId = 2002;
+
+    // The one path a picked context-menu item takes (the popup's callback and the harness): the
+    // insert-slot verbs act on the clicked slot through the shell's per-slot handlers; every
+    // other target dispatches the action.
+    void invokeContextMenuItem (int itemId)
+    {
+        if (lastContextMenu.target == yesdaw::ui::ContextMenuTarget::InsertSlot)
+        {
+            const int slot = lastContextMenu.index;
+            if (slot < 0)
+                return;
+            const auto slotIndex = static_cast<std::size_t> (slot);
+            if (itemId == kContextMenuMoveUpId)
+                (void) appModel.moveFxInsertOnSelectedStrip (slotIndex, -1);
+            else if (itemId == kContextMenuMoveDownId)
+                (void) appModel.moveFxInsertOnSelectedStrip (slotIndex, 1);
+            else if (itemId == static_cast<int> (yesdaw::ui::UiActionId::MixerFxInsertToggle) + 1)
+                (void) appModel.toggleFxInsertEnabledOnSelectedStrip (slotIndex);
+            else if (itemId == static_cast<int> (yesdaw::ui::UiActionId::MixerFxInsertRemove) + 1)
+                (void) appModel.removeFxInsertFromSelectedStrip (slotIndex);
+            else if (itemId == static_cast<int> (yesdaw::ui::UiActionId::MixerFxInsertParamSet) + 1)
+            {
+                selectedFxParamSlot = selectedFxParamSlot == slot ? -1 : slot;
+                selectedFxParamPage = 0;
+            }
+            else
+                return;
+            refreshActionState();
+            resized();
+            repaintAll();
+            return;
+        }
+        if (itemId <= 0 || itemId > static_cast<int> (yesdaw::ui::kUiActionCount))
+            return;
+        handleAction (static_cast<yesdaw::ui::UiActionId> (itemId - 1));
+        refreshActionState();
+        resized();
+        repaintAll();
+    }
+
+public:
+    void harnessInvokeContextMenuItem (yesdaw::ui::UiActionId action, int direction)
+    {
+        if (lastContextMenu.target == yesdaw::ui::ContextMenuTarget::InsertSlot
+            && action == yesdaw::ui::UiActionId::MixerFxInsertReorder)
+            invokeContextMenuItem (direction < 0 ? kContextMenuMoveUpId : kContextMenuMoveDownId);
+        else
+            invokeContextMenuItem (static_cast<int> (action) + 1);
+    }
+private:
 
 public:
     // Harness: route a shell point to the input surface under it and run its right-click law.
@@ -12760,6 +12839,12 @@ yesdaw::ui::MainComponentContextMenu mainComponentRequestContextMenu (juce::Comp
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         return mainComponent->harnessRequestContextMenu (shellPoint);
     return {};
+}
+
+void mainComponentInvokeContextMenuItem (juce::Component& component, yesdaw::ui::UiActionId action, int direction)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessInvokeContextMenuItem (action, direction);
 }
 
 void mainComponentDispatchAction (juce::Component& component, yesdaw::ui::UiActionId action)

@@ -218,6 +218,11 @@ struct MainComponentContextMenu
     std::vector<UiActionId> actions;
 };
 [[nodiscard]] MainComponentContextMenu mainComponentRequestContextMenu (juce::Component& component, juce::Point<int> shellPoint);
+// G1.3 cp2: invoke an item of the LAST requested context menu the way the popup's callback
+// would — the insert-slot verbs route through the shell's per-slot handlers with the clicked
+// slot; every other target dispatches the action. `direction` picks Move Up (-1) / Move Down
+// (+1) for the reorder verb.
+void mainComponentInvokeContextMenuItem (juce::Component& component, UiActionId action, int direction = 0);
 
 // G0.8: dispatch an action as a menu item or chord would, and read its live registry state.
 void mainComponentDispatchAction (juce::Component& component, UiActionId action);

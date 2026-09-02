@@ -16319,3 +16319,75 @@ TEST_CASE ("context menus: clip, empty lane, track header, ruler, marker, note a
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G1.3 cp2 (plan §3.3): the insert-slot menu — a right-click on a painted slot selects its strip
+// and slot; Bypass, Remove, Move Up / Move Down and Open Editor act on THAT slot.
+TEST_CASE ("context menus: an insert slot's menu acts on the clicked slot",
+           "[ui][input][shell][g1][context-menus-slot]")
+{
+    using yesdaw::ui::ContextMenuTarget;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("context-menus-slot");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                          + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (fxChooser != nullptr);
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1, juce::sendNotificationSync);
+    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Reverb) + 1, juce::sendNotificationSync);
+    {
+        const auto chain = readProjectSnapshot (bundlePath).tracks.front().strip.fxChain;
+        REQUIRE (chain.size() == 2u);
+        REQUIRE (chain[0].kind == yesdaw::engine::FxKind::Compressor);
+        REQUIRE (chain[1].kind == yesdaw::engine::FxKind::Reverb);
+    }
+
+    // The full Mixer view paints every slot row (the 260 px dock paints fewer).
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    // Right-click slot 1 (the reverb): the strip and the slot are selected, the list is the table.
+    const juce::Rectangle<int> slot1 = yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 1);
+    REQUIRE_FALSE (slot1.isEmpty());
+    auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, slot1.getCentre());
+    REQUIRE (menu.shown);
+    REQUIRE (menu.target == ContextMenuTarget::InsertSlot);
+    REQUIRE (menu.index == 1);
+    const auto entries = yesdaw::ui::contextMenuEntries (ContextMenuTarget::InsertSlot);
+    REQUIRE (menu.actions.size() == entries.size());
+    for (std::size_t i = 0; i < entries.size(); ++i)
+        REQUIRE (menu.actions[i] == entries[i].action);
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 0);
+
+    // Move Up: the reverb becomes slot 0.
+    yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerFxInsertReorder, -1);
+    {
+        const auto chain = readProjectSnapshot (bundlePath).tracks.front().strip.fxChain;
+        REQUIRE (chain[0].kind == yesdaw::engine::FxKind::Reverb);
+        REQUIRE (chain[1].kind == yesdaw::engine::FxKind::Compressor);
+    }
+
+    // Bypass on slot 0 (now the reverb) flips its enabled flag; a second right-click ticks it.
+    const juce::Rectangle<int> slot0 = yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 0);
+    menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, slot0.getCentre());
+    REQUIRE (menu.index == 0);
+    yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerFxInsertToggle);
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain[0].enabled);
+
+    // Remove on slot 0 leaves the compressor alone.
+    menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, slot0.getCentre());
+    yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerFxInsertRemove);
+    {
+        const auto chain = readProjectSnapshot (bundlePath).tracks.front().strip.fxChain;
+        REQUIRE (chain.size() == 1u);
+        REQUIRE (chain[0].kind == yesdaw::engine::FxKind::Compressor);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

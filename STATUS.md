@@ -41,10 +41,9 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G1.3 checkpoint 1 (context menus for clip, empty lane, track header, ruler, marker, note
-and mixer strip; `[context-menus]`) built, gated locally, committed; awaiting its exact-head run.
-G1.2's run `33608447371` ticks G1.1 and G1.2 when green. Checkpoint 2 next: the insert-slot menu
-(its verbs need the slot as a payload). The drive stays paused (D14).
+**Now:** G1.3 checkpoint 2 (the insert-slot context menu; `[context-menus-slot]`) built, gated
+locally, committed; awaiting its exact-head run, which ticks G1.3 (cp1's run `33609467177` was
+its own check). Next: G1.4 toolbar v2. The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -75,6 +74,20 @@ G1.2 ✅ — `92a9f54`; certified by the same run `33608447371`.
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G1.3 — Context menus, checkpoint 2: the insert slot (2026-09-02)
+
+**Build.** A right-click on a painted insert slot selects its strip and the slot (the
+left-click's law) and shows Bypass · Remove ─ Move Up · Move Down ─ Open Editor. The slot verbs
+carry no slot payload in the registry, so the menu routes them through the shell's per-slot
+handlers with the clicked slot; Move Up / Move Down are the one reorder verb in two directions
+(custom item ids above the action range, like Open Recent); Bypass ticks when the slot is
+bypassed; items disable for an empty slot or an impossible move. One invoke path serves the
+popup's callback and the harness (`mainComponentInvokeContextMenuItem`).
+
+**Gates.** `[context-menus-slot]` (input check): two inserts on track 0; right-click slot 1 →
+strip 0 and slot 1 selected, the table's list; Move Up swaps the chain; Bypass on slot 0 clears
+its enabled flag; Remove on slot 0 leaves the other insert.
 
 ### G1.3 — Context menus, checkpoint 1 (2026-09-02)
 
