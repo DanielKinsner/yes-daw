@@ -30,6 +30,9 @@ using yesdaw::engine::kTicksPerQuarter;
 using yesdaw::engine::snapTick;
 using yesdaw::engine::tickForGridIndex;
 using yesdaw::engine::tickToFrame;
+using yesdaw::engine::BarBeat;               // G2.15
+using yesdaw::engine::computeBarBeat;
+using yesdaw::engine::computeBarBeatPiecewise;
 
 static_assert (std::is_same_v<Tick, std::int64_t>);
 static_assert (kTicksPerQuarter == 15360);
@@ -265,4 +268,80 @@ TEST_CASE ("CompiledTempoMap prefix-sum frameForTick is bit-identical to tickToF
     REQUIRE_FALSE (CompiledTempoMap::build (TempoMapView { nonZeroStart.data(), nonZeroStart.size() }, SampleRate { sr }, invalid));
     double naiveInvalid = 0.0;
     REQUIRE_FALSE (tickToFrame (TempoMapView { nonZeroStart.data(), nonZeroStart.size() }, SampleRate { sr }, 100, naiveInvalid));
+}
+
+// G2.15: the inverse and the piecewise readout — tickForFrame undoes frameForTick within a tick across
+// a ramp, a jump and a constant tail, monotonically; bar|beat under a tempo AND a meter change equals
+// the closed form written out by hand.
+TEST_CASE ("CompiledTempoMap tickForFrame inverts frameForTick and computeBarBeatPiecewise matches the closed form", "[time][g2][tempo][inverse]")
+{
+    constexpr double sr = 48000.0;
+    const std::array<TempoChange, 3> changes {
+        TempoChange { 0, 120.0, TempoCurve::LinearRamp },
+        TempoChange { 3840, 60.0, TempoCurve::Jump },   // two quarters of ramp 120 -> 60
+        TempoChange { 7680, 90.0, TempoCurve::Jump },
+    };
+    const TempoMapView view { changes.data(), changes.size() };
+    CompiledTempoMap compiled;
+    REQUIRE (CompiledTempoMap::build (view, SampleRate { sr }, compiled));
+    Tick previous = -1;
+    for (Tick tick = 0; tick <= 12000; tick += 7)
+    {
+        double frame = 0.0;
+        REQUIRE (compiled.frameForTick (tick, frame));
+        Tick back = -1;
+        REQUIRE (compiled.tickForFrame (frame, back));
+        REQUIRE (std::llabs (back - tick) <= 1);
+        REQUIRE (back >= previous);
+        previous = back;
+    }
+    // The closed form at the segment starts: frames 0 and the prefix sums land on their ticks exactly.
+    for (const TempoChange& change : changes)
+    {
+        double frame = 0.0;
+        REQUIRE (compiled.frameForTick (change.tick, frame));
+        Tick back = -1;
+        REQUIRE (compiled.tickForFrame (frame, back));
+        REQUIRE (back == change.tick);
+    }
+    Tick scratch = 0;
+    REQUIRE_FALSE (compiled.tickForFrame (-1.0, scratch));
+    CompiledTempoMap emptyCompiled;
+    REQUIRE (CompiledTempoMap::build (TempoMapView {}, SampleRate { sr }, emptyCompiled));
+    REQUIRE (emptyCompiled.tickForFrame (24000.0, scratch));   // 0.5 s at 120 BPM = one quarter
+    REQUIRE (scratch == kTicksPerQuarter);
+
+    // Piecewise bar|beat: 4/4 for two bars (8 quarters), then 3/4. Under the ramped tempo above, the
+    // frame of tick T comes from the map; the bar|beat of that frame must be T's bar|beat by hand.
+    const std::array<MeterChange, 2> meters { MeterChange { 0, 4, 4 }, MeterChange { 8 * kTicksPerQuarter, 3, 4 } };
+    const MeterMapView meterView { meters.data(), meters.size() };
+    const auto expectAt = [&] (Tick tick, std::int64_t bar, std::int64_t beat)
+    {
+        double frame = 0.0;
+        REQUIRE (compiled.frameForTick (tick, frame));
+        BarBeat result;
+        REQUIRE (computeBarBeatPiecewise (compiled, meterView, static_cast<std::int64_t> (std::llround (frame)), result));
+        INFO ("tick " << tick << " -> " << result.bar << "|" << result.beat);
+        REQUIRE (result.bar == bar);
+        REQUIRE (result.beat == beat);
+    };
+    expectAt (0, 1, 1);
+    expectAt (kTicksPerQuarter, 1, 2);                       // inside the ramp
+    expectAt (5 * kTicksPerQuarter, 2, 2);                   // past the ramp, 4/4 still
+    expectAt (8 * kTicksPerQuarter, 3, 1);                   // the meter change starts bar 3 (3/4)
+    expectAt (8 * kTicksPerQuarter + 2 * kTicksPerQuarter, 3, 3);
+    expectAt (11 * kTicksPerQuarter, 4, 1);                  // three quarters later: bar 4 of 3/4
+    expectAt (14 * kTicksPerQuarter + kTicksPerQuarter / 2, 5, 1);
+    // With no meter change the piecewise law agrees with the single-tempo law at a constant tempo.
+    const std::array<TempoChange, 1> flat { TempoChange { 0, 100.0, TempoCurve::Jump } };
+    CompiledTempoMap flatCompiled;
+    REQUIRE (CompiledTempoMap::build (TempoMapView { flat.data(), flat.size() }, SampleRate { sr }, flatCompiled));
+    for (std::int64_t frame = 0; frame < 480000; frame += 12345)
+    {
+        BarBeat piecewise;
+        REQUIRE (computeBarBeatPiecewise (flatCompiled, MeterMapView {}, frame, piecewise));
+        const BarBeat single = computeBarBeat (100.0, 4, 4, sr, frame);
+        REQUIRE (piecewise.bar == single.bar);
+        REQUIRE (piecewise.beat == single.beat);
+    }
 }

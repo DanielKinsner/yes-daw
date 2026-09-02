@@ -72,8 +72,11 @@ inline constexpr std::array<ContextMenuEntry, 11> kTrackHeader {{
     { UiActionId::MixerTrackSetOutput, true },
     { UiActionId::TimelineAutomationToggleTrackLane, true },
 }};
-inline constexpr std::array<ContextMenuEntry, 5> kRuler {{
+inline constexpr std::array<ContextMenuEntry, 10> kRuler {{
     { UiActionId::TimelineMarkerAdd }, { UiActionId::TransportSetTempo }, { UiActionId::TransportSetMeter },
+    { UiActionId::TimelineTempoChangeAdd, true }, { UiActionId::TimelineTempoChangeRemove },   // G2.15
+    { UiActionId::TimelineTempoChangeToggleRamp },
+    { UiActionId::TimelineMeterChangeAdd, true }, { UiActionId::TimelineMeterChangeRemove },
     { UiActionId::TimelineRangeToLoop, true }, { UiActionId::TransportToggleLoop },
 }};
 inline constexpr std::array<ContextMenuEntry, 2> kMarker {{

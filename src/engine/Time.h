@@ -457,6 +457,45 @@ public:
         return std::isfinite (frameOut);
     }
 
+    // G2.15: the inverse — the tick at a frame, per segment: a jump inverts the linear law, a ramp
+    // inverts the logarithm (frame = (k/slope)·ln(bpmAt/startBpm)  ⇒  bpmAt = startBpm·exp(frame·slope/k),
+    // delta = (bpmAt − startBpm)/slope). Rounded to the nearest tick; frameForTick (tickForFrame (f)) ≈ f.
+    [[nodiscard]] bool tickForFrame (double frame, Tick& tickOut) const noexcept
+    {
+        tickOut = 0;
+        if (! sampleRate_.isValid() || ! std::isfinite (frame) || frame < 0.0)
+            return false;
+        const double k = 60.0 * sampleRate_.hz / static_cast<double> (kTicksPerQuarter);
+        if (empty_)
+        {
+            tickOut = static_cast<Tick> (std::llround (frame * 120.0 / k));
+            return true;
+        }
+        // Last segment whose start frame <= frame.
+        const std::size_t upper = static_cast<std::size_t> (
+            std::upper_bound (startFrame_.begin(), startFrame_.end(), frame) - startFrame_.begin());
+        const std::size_t i = upper == 0 ? 0 : upper - 1u;
+        const double local = frame - startFrame_[i];
+        const bool haveNext = i + 1u < changes_.size();
+        const double startBpm = changes_[i].bpm;
+        double deltaTicks = 0.0;
+        if (haveNext && changes_[i].curveToNext == TempoCurve::LinearRamp && changes_[i + 1u].bpm != startBpm)
+        {
+            const double segmentTicks = static_cast<double> (changes_[i + 1u].tick - changes_[i].tick);
+            const double slope = (changes_[i + 1u].bpm - startBpm) / segmentTicks;
+            if (std::abs (slope) < 1.0e-12)
+                deltaTicks = local * startBpm / k;
+            else
+                deltaTicks = (startBpm * std::exp (local * slope / k) - startBpm) / slope;
+        }
+        else
+            deltaTicks = local * startBpm / k;
+        if (! std::isfinite (deltaTicks))
+            return false;
+        tickOut = changes_[i].tick + static_cast<Tick> (std::llround (deltaTicks));
+        return true;
+    }
+
     [[nodiscard]] bool empty() const noexcept { return empty_; }
     [[nodiscard]] std::size_t segmentCount() const noexcept { return changes_.size(); }
 
@@ -466,5 +505,50 @@ private:
     std::vector<double>      startFrame_;
     bool                     empty_ = true;
 };
+
+// G2.15: bar|beat at a frame under the FULL tempo and meter maps — frame → tick through the
+// compiled tempo map's inverse, then a walk over the meter changes (each change starts a bar).
+// Beat lengths follow each meter's denominator; the head meter covers everything before the first
+// change. Falls back to the single-tempo law when the maps are empty.
+[[nodiscard]] inline bool computeBarBeatPiecewise (const CompiledTempoMap& tempoMap,
+                                                   MeterMapView meterMap,
+                                                   std::int64_t frame,
+                                                   BarBeat& out) noexcept
+{
+    out = BarBeat {};
+    Tick tick = 0;
+    if (! tempoMap.tickForFrame (static_cast<double> (std::max<std::int64_t> (0, frame)), tick))
+        return false;
+    const auto ticksPerBeat = [] (const MeterChange& meter) noexcept -> double
+    {
+        const double den = std::clamp (static_cast<double> (meter.denominator), 1.0, 64.0);
+        return static_cast<double> (kTicksPerQuarter) * 4.0 / den;
+    };
+    MeterChange head { 0, 4, 4 };
+    if (meterMap.count > 0 && meterMap.changes != nullptr && meterMap.changes[0].isValid())
+        head = meterMap.changes[0];
+    std::int64_t bar = 1;
+    Tick segmentStart = 0;
+    MeterChange current = head;
+    for (std::size_t i = 1; meterMap.changes != nullptr && i < meterMap.count; ++i)
+    {
+        const MeterChange& next = meterMap.changes[i];
+        if (! next.isValid() || next.tick <= segmentStart || next.tick > tick)
+            break;
+        const double barTicks = ticksPerBeat (current) * std::clamp (static_cast<double> (current.numerator), 1.0, 32.0);
+        bar += static_cast<std::int64_t> (std::ceil (static_cast<double> (next.tick - segmentStart) / barTicks));
+        segmentStart = next.tick;
+        current = next;
+    }
+    const double beatTicks = ticksPerBeat (current);
+    const double numerator = std::clamp (static_cast<double> (current.numerator), 1.0, 32.0);
+    const double barTicks = beatTicks * numerator;
+    const double local = static_cast<double> (tick - segmentStart);
+    const auto barsIn = static_cast<std::int64_t> (std::floor (local / barTicks));
+    const double inBar = local - static_cast<double> (barsIn) * barTicks;
+    out.bar = bar + barsIn;
+    out.beat = 1 + static_cast<std::int64_t> (std::floor (inBar / beatTicks));
+    return true;
+}
 
 } // namespace yesdaw::engine

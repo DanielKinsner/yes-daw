@@ -4066,6 +4066,126 @@ public:
     [[nodiscard]] std::int64_t timelineRangeStartFrame() const noexcept { return timelineRangeStartFrame_; }
     [[nodiscard]] std::int64_t timelineRangeEndFrame() const noexcept { return timelineRangeEndFrame_; }
 
+    // G2.15: the tempo and meter MAPS at the playhead. The playhead's tick comes from the compiled
+    // map's inverse (frame -> tick); "in force" is the change at or before that tick (the head when
+    // none is later). The tempo field edits the change in force, so the head is what it always was
+    // while the playhead sits before any later change.
+    [[nodiscard]] bool compiledTempoMap (engine::CompiledTempoMap& out) const
+    {
+        return engine::CompiledTempoMap::build (
+            engine::TempoMapView { project_.tempoMap.data(), project_.tempoMap.size() }, project_.sampleRate, out);
+    }
+
+    [[nodiscard]] std::optional<engine::Tick> playheadTick() const
+    {
+        engine::CompiledTempoMap compiled;
+        engine::Tick tick = 0;
+        if (! project_.sampleRate.isValid() || ! compiledTempoMap (compiled)
+            || ! compiled.tickForFrame (static_cast<double> (std::max<std::int64_t> (0, context_.playheadFrame)), tick))
+            return std::nullopt;
+        return tick;
+    }
+
+    [[nodiscard]] const engine::TempoChange* tempoChangeInForceAtPlayhead() const
+    {
+        const std::optional<engine::Tick> tick = playheadTick();
+        if (! tick || project_.tempoMap.empty())
+            return nullptr;
+        const engine::TempoChange* inForce = &project_.tempoMap.front();
+        for (const engine::TempoChange& change : project_.tempoMap)
+            if (change.tick <= *tick)
+                inForce = &change;
+        return inForce;
+    }
+
+    [[nodiscard]] const engine::MeterChange* meterChangeInForceAtPlayhead() const
+    {
+        const std::optional<engine::Tick> tick = playheadTick();
+        if (! tick || project_.meterMap.empty())
+            return nullptr;
+        const engine::MeterChange* inForce = &project_.meterMap.front();
+        for (const engine::MeterChange& change : project_.meterMap)
+            if (change.tick <= *tick)
+                inForce = &change;
+        return inForce;
+    }
+
+    [[nodiscard]] double tempoAtPlayhead() const
+    {
+        const engine::TempoChange* const change = tempoChangeInForceAtPlayhead();
+        return change != nullptr ? change->bpm : (project_.tempoMap.empty() ? 120.0 : project_.tempoMap.front().bpm);
+    }
+
+    [[nodiscard]] UiActionDispatchResult applyMapEdit (UiActionId id, const engine::ProjectEditCommand& command)
+    {
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, command).applied())
+            return { id, { false, "map edit refused" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "map edit did not persist" }, false };
+        refreshSnapGrid();
+        applyMetronomeToPlayback();
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult addTempoChangeAtPlayhead()
+    {
+        const UiActionId id = UiActionId::TimelineTempoChangeAdd;
+        const std::optional<engine::Tick> tick = playheadTick();
+        if (! tick)
+            return { id, { false, "no tempo map at the playhead" }, false };
+        return applyMapEdit (id, engine::ProjectEditCommand::addTempoChange (*tick, tempoAtPlayhead(), engine::TempoCurve::Jump));
+    }
+
+    [[nodiscard]] UiActionDispatchResult removeTempoChangeAtPlayhead()
+    {
+        const UiActionId id = UiActionId::TimelineTempoChangeRemove;
+        const engine::TempoChange* const change = tempoChangeInForceAtPlayhead();
+        if (change == nullptr || change->tick <= 0)
+            return { id, { false, "no tempo change at the playhead (the head tempo stays)" }, false };
+        return applyMapEdit (id, engine::ProjectEditCommand::removeTempoChange (change->tick));
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleTempoRampAtPlayhead()
+    {
+        const UiActionId id = UiActionId::TimelineTempoChangeToggleRamp;
+        const engine::TempoChange* const change = tempoChangeInForceAtPlayhead();
+        if (change == nullptr)
+            return { id, { false, "no tempo map at the playhead" }, false };
+        const engine::TempoCurve next = change->curveToNext == engine::TempoCurve::LinearRamp
+                                          ? engine::TempoCurve::Jump : engine::TempoCurve::LinearRamp;
+        return applyMapEdit (id, engine::ProjectEditCommand::addTempoChange (change->tick, change->bpm, next));
+    }
+
+    [[nodiscard]] UiActionDispatchResult addMeterChangeAtPlayhead()
+    {
+        const UiActionId id = UiActionId::TimelineMeterChangeAdd;
+        const std::optional<engine::Tick> tick = playheadTick();
+        if (! tick)
+            return { id, { false, "no tempo map at the playhead" }, false };
+        const engine::MeterChange* const meter = meterChangeInForceAtPlayhead();
+        return applyMapEdit (id, engine::ProjectEditCommand::addMeterChange (*tick,
+                                                                           meter != nullptr ? meter->numerator : 4,
+                                                                           meter != nullptr ? meter->denominator : 4));
+    }
+
+    [[nodiscard]] UiActionDispatchResult removeMeterChangeAtPlayhead()
+    {
+        const UiActionId id = UiActionId::TimelineMeterChangeRemove;
+        const engine::MeterChange* const meter = meterChangeInForceAtPlayhead();
+        if (meter == nullptr || meter->tick <= 0)
+            return { id, { false, "no meter change at the playhead (the head meter stays)" }, false };
+        return applyMapEdit (id, engine::ProjectEditCommand::removeMeterChange (meter->tick));
+    }
+
     [[nodiscard]] UiActionDispatchResult setProjectTempoBpm (double bpm)
     {
         const UiActionId id = UiActionId::TransportSetTempo;
@@ -4075,7 +4195,12 @@ public:
 
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setProjectTempo (bpm)).applied())
+        // G2.15: the field edits the change in force at the playhead (the head before any later change).
+        const engine::TempoChange* const inForce = tempoChangeInForceAtPlayhead();
+        const engine::ProjectEditCommand command = inForce != nullptr && inForce->tick > 0
+            ? engine::ProjectEditCommand::addTempoChange (inForce->tick, bpm, inForce->curveToNext)
+            : engine::ProjectEditCommand::setProjectTempo (bpm);
+        if (! nextUndo.apply (nextProject, command).applied())
             return { id, state, false };
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
@@ -6955,6 +7080,12 @@ public:
             case UiActionId::TimelineMarkerColourNext:   // G2.14: the shell routes the menu pick with its marker
                 return { id, { false, "marker colour needs a marker under the pointer" }, false };
 
+            case UiActionId::TimelineTempoChangeAdd:        return addTempoChangeAtPlayhead();        // G2.15
+            case UiActionId::TimelineTempoChangeRemove:     return removeTempoChangeAtPlayhead();
+            case UiActionId::TimelineTempoChangeToggleRamp: return toggleTempoRampAtPlayhead();
+            case UiActionId::TimelineMeterChangeAdd:        return addMeterChangeAtPlayhead();
+            case UiActionId::TimelineMeterChangeRemove:     return removeMeterChangeAtPlayhead();
+
             case UiActionId::TimelineMarkerRemove:
                 return removeTimelineMarkerNearestTick (
                     static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)));
@@ -8097,6 +8228,10 @@ private:
             const engine::Clip* const selectedClip = context_.projectLoaded ? findClip (selectedTimelineClipId_) : nullptr;   // G2.12
             context_.timelineClipMuted = selectedClip != nullptr && selectedClip->muted;
             context_.timelineClipReversed = selectedClip != nullptr && selectedClip->reversed;   // G2.13
+        }
+        {
+            const engine::TempoChange* const change = tempoChangeInForceAtPlayhead();   // G2.15
+            context_.tempoChangeAtPlayheadRamps = change != nullptr && change->curveToNext == engine::TempoCurve::LinearRamp;
         }
 
         const engine::MidiClip* const midiClip = context_.projectLoaded ? findMidiClip (selectedMidiClipId_) : nullptr;

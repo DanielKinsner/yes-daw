@@ -58,6 +58,13 @@ struct TimelineCanvasClipStyle
     bool reversed = false;    // G2.13: the waveform paints mirrored
 };
 
+// G2.15: a tempo or meter change painted in the ruler's bars row ("120", "120~" for a ramp, "3/4").
+struct TimelineMapLabel
+{
+    double seconds;
+    const char* label;
+};
+
 struct TimelineMarker
 {
     double seconds;
@@ -164,6 +171,8 @@ struct TimelineCanvasState
 
     const TimelineMarker* markers = nullptr;
     int markerCount = 0;
+    const TimelineMapLabel* mapLabels = nullptr;   // G2.15: tempo / meter changes after the head
+    int mapLabelCount = 0;
 
     // M7: notes for MIDI clips, sorted by clipId. A clip with no entries here is an audio clip.
     const TimelineClipNote* clipNotes = nullptr;
@@ -911,6 +920,25 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
                     rows.time.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight / 2,
                     UiTheme::Layout::timelineCanvasRulerTickWidth,
                     UiTheme::Layout::timelineCanvasRulerTickHeight / 2);
+    }
+
+    // G2.15: tempo / meter changes in the bars row, right of their tick, in the accent colour.
+    for (int i = 0; state.mapLabels != nullptr && i < state.mapLabelCount; ++i)
+    {
+        const auto& change = state.mapLabels[i];
+        const int x = clipArea.getX() + juce::roundToInt ((change.seconds - vp.scrollSeconds) * vp.pixelsPerSecond);
+        if (x < clipArea.getX() - UiTheme::Layout::timelineCanvasRulerMarkerCullPadding || x > clipArea.getRight())
+            continue;
+        const RulerRows mapRows = rulerRows (ruler);
+        g.setColour (UiTheme::Color::accentAmber());
+        g.fillRect (x, mapRows.bars.getY(), UiTheme::Layout::timelineCanvasRulerTickWidth, mapRows.bars.getHeight());
+        g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
+        g.drawText (change.label,
+                    x + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,
+                    mapRows.bars.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
+                    UiTheme::Layout::timelineCanvasRulerMarkerLabelWidth,
+                    UiTheme::Layout::timelineCanvasRulerLabelHeight,
+                    juce::Justification::centredLeft, false);
     }
 
     if (state.markers == nullptr)

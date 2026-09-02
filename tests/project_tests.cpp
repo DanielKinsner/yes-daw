@@ -1243,6 +1243,44 @@ TEST_CASE ("detectSilentRuns finds the runs Strip Silence removes and setClipRev
     requireProjectValueUnchanged (project, original);
 }
 
+// G2.15: the map verbs keep the maps sorted, keep the head, replace on an equal tick, and undo exactly.
+TEST_CASE ("Tempo and meter map verbs keep the maps sorted and undo exactly", "[project][tempo][meter][undo]")
+{
+    using yesdaw::engine::TempoCurve;
+    Project project = makeEditableProject();
+    const Project original = project;
+    ProjectUndoStack undo;
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (7680, 90.0, TempoCurve::Jump)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (3840, 60.0, TempoCurve::LinearRamp)).applied());
+    REQUIRE (project.tempoMap.size() == 3u);
+    REQUIRE (project.tempoMap[0].tick == 0);
+    REQUIRE (project.tempoMap[1].tick == 3840);
+    REQUIRE (project.tempoMap[1].bpm == 60.0);
+    REQUIRE (project.tempoMap[1].curveToNext == TempoCurve::LinearRamp);
+    REQUIRE (project.tempoMap[2].tick == 7680);
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (3840, 70.0, TempoCurve::Jump)).applied());   // replaces
+    REQUIRE (project.tempoMap.size() == 3u);
+    REQUIRE (project.tempoMap[1].bpm == 70.0);
+    REQUIRE (undo.apply (project, ProjectEditCommand::removeTempoChange (0)).editStatus == ProjectEditStatus::InvalidTempo);   // the head stays
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (100, 500.0, TempoCurve::Jump)).editStatus == ProjectEditStatus::InvalidTempo);
+    REQUIRE (undo.apply (project, ProjectEditCommand::removeTempoChange (7680)).applied());
+    REQUIRE (project.tempoMap.size() == 2u);
+    REQUIRE (undo.apply (project, ProjectEditCommand::addMeterChange (7680, 3, 4)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addMeterChange (3840, 6, 8)).applied());
+    REQUIRE (project.meterMap.size() == 3u);
+    REQUIRE (project.meterMap[1].tick == 3840);
+    REQUIRE (project.meterMap[1].numerator == 6);
+    REQUIRE (project.meterMap[2].tick == 7680);
+    REQUIRE (undo.apply (project, ProjectEditCommand::removeMeterChange (0)).editStatus == ProjectEditStatus::InvalidMeter);
+    REQUIRE (undo.apply (project, ProjectEditCommand::addMeterChange (10, 0, 4)).editStatus == ProjectEditStatus::InvalidMeter);
+    REQUIRE (undo.apply (project, ProjectEditCommand::removeMeterChange (3840)).applied());
+    REQUIRE (project.meterMap.size() == 2u);
+    const std::size_t depth = undo.undoDepth();
+    for (std::size_t i = 0; i < depth; ++i)
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+}
+
 TEST_CASE ("Project undo stack records command diffs for recording Comp selection", "[project][recording][comp][undo]")
 {
     Project project = makeRecordingCompEditableProject();

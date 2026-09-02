@@ -3386,6 +3386,76 @@ namespace detail {
     return ProjectEditStatus::Applied;
 }
 
+// G2.15: the tempo and meter MAPS. A change at tick 0 is the head (never removed); every other
+// change keeps the map sorted by tick; adding on an existing tick replaces it.
+[[nodiscard]] inline ProjectEditStatus addTempoChange (Project& project, Tick tick, double bpm, TempoCurve curve)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (tick < 0 || ! std::isfinite (bpm) || bpm < 20.0 || bpm > 400.0)
+        return ProjectEditStatus::InvalidTempo;
+    if (project.tempoMap.empty())
+        project.tempoMap.push_back (TempoChange { 0, 120.0, TempoCurve::Jump });
+    auto it = std::lower_bound (project.tempoMap.begin(), project.tempoMap.end(), tick,
+                                [] (const TempoChange& change, Tick value) { return change.tick < value; });
+    if (it != project.tempoMap.end() && it->tick == tick)
+    {
+        it->bpm = bpm;
+        it->curveToNext = curve;
+    }
+    else
+        project.tempoMap.insert (it, TempoChange { tick, bpm, curve });
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeTempoChange (Project& project, Tick tick)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (tick <= 0)
+        return ProjectEditStatus::InvalidTempo;   // the head stays
+    const auto it = std::find_if (project.tempoMap.begin(), project.tempoMap.end(),
+                                  [tick] (const TempoChange& change) { return change.tick == tick; });
+    if (it == project.tempoMap.end())
+        return ProjectEditStatus::InvalidTempo;
+    project.tempoMap.erase (it);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus addMeterChange (Project& project, Tick tick, std::uint16_t numerator, std::uint16_t denominator)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (tick < 0 || numerator == 0 || numerator > 32 || denominator == 0 || denominator > 64)
+        return ProjectEditStatus::InvalidMeter;
+    if (project.meterMap.empty())
+        project.meterMap.push_back (MeterChange { 0, 4, 4 });
+    auto it = std::lower_bound (project.meterMap.begin(), project.meterMap.end(), tick,
+                                [] (const MeterChange& change, Tick value) { return change.tick < value; });
+    if (it != project.meterMap.end() && it->tick == tick)
+    {
+        it->numerator = numerator;
+        it->denominator = denominator;
+    }
+    else
+        project.meterMap.insert (it, MeterChange { tick, numerator, denominator });
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeMeterChange (Project& project, Tick tick)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (tick <= 0)
+        return ProjectEditStatus::InvalidMeter;
+    const auto it = std::find_if (project.meterMap.begin(), project.meterMap.end(),
+                                  [tick] (const MeterChange& change) { return change.tick == tick; });
+    if (it == project.meterMap.end())
+        return ProjectEditStatus::InvalidMeter;
+    project.meterMap.erase (it);
+    return ProjectEditStatus::Applied;
+}
+
 [[nodiscard]] inline ProjectEditStatus setProjectMeter (Project& project,
                                                         std::uint16_t numerator,
                                                         std::uint16_t denominator)

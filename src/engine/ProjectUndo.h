@@ -59,6 +59,10 @@ enum class ProjectEditVerb : std::uint8_t
     RemoveTrack,
     SetProjectTempo,
     SetProjectMeter,
+    AddTempoChange,     // G2.15
+    RemoveTempoChange,
+    AddMeterChange,
+    RemoveMeterChange,
     AddMarker,
     RemoveMarker,
     AddMidiClip,
@@ -175,6 +179,8 @@ struct ProjectEditCommand
     double tempoBpm = 120.0;
     std::uint16_t meterNumerator = 4;
     std::uint16_t meterDenominator = 4;
+    Tick mapTick = 0;                          // G2.15: the tempo / meter change's tick
+    TempoCurve tempoCurve = TempoCurve::Jump;
     EntityId clipAssetId;
     TimeBase clipTimeBase = TimeBase::SampleLocked;
     EntityId markerId;
@@ -1002,6 +1008,43 @@ struct ProjectEditCommand
         return command;
     }
 
+    // G2.15: the maps.
+    [[nodiscard]] static constexpr ProjectEditCommand addTempoChange (Tick tick, double bpm, TempoCurve curve) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddTempoChange;
+        command.mapTick = tick;
+        command.tempoBpm = bpm;
+        command.tempoCurve = curve;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeTempoChange (Tick tick) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveTempoChange;
+        command.mapTick = tick;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand addMeterChange (Tick tick, std::uint16_t numerator, std::uint16_t denominator) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddMeterChange;
+        command.mapTick = tick;
+        command.meterNumerator = numerator;
+        command.meterDenominator = denominator;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeMeterChange (Tick tick) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveMeterChange;
+        command.mapTick = tick;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand setProjectMeter (std::uint16_t numerator,
                                                                        std::uint16_t denominator) noexcept
     {
@@ -1233,7 +1276,11 @@ namespace detail {
 [[nodiscard]] constexpr bool isTimeMapEditVerb (ProjectEditVerb verb) noexcept
 {
     return verb == ProjectEditVerb::SetProjectTempo
-           || verb == ProjectEditVerb::SetProjectMeter;
+           || verb == ProjectEditVerb::SetProjectMeter
+           || verb == ProjectEditVerb::AddTempoChange      // G2.15: the time-map rows diff records the map verbs
+           || verb == ProjectEditVerb::RemoveTempoChange
+           || verb == ProjectEditVerb::AddMeterChange
+           || verb == ProjectEditVerb::RemoveMeterChange;
 }
 
 [[nodiscard]] constexpr bool isMarkerEditVerb (ProjectEditVerb verb) noexcept
@@ -1484,6 +1531,18 @@ namespace detail {
 
         case ProjectEditVerb::SetProjectMeter:
             return setProjectMeter (project, command.meterNumerator, command.meterDenominator);
+
+        case ProjectEditVerb::AddTempoChange:   // G2.15
+            return addTempoChange (project, command.mapTick, command.tempoBpm, command.tempoCurve);
+
+        case ProjectEditVerb::RemoveTempoChange:
+            return removeTempoChange (project, command.mapTick);
+
+        case ProjectEditVerb::AddMeterChange:
+            return addMeterChange (project, command.mapTick, command.meterNumerator, command.meterDenominator);
+
+        case ProjectEditVerb::RemoveMeterChange:
+            return removeMeterChange (project, command.mapTick);
 
         case ProjectEditVerb::AddMarker:
         {

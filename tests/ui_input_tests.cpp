@@ -18057,6 +18057,168 @@ TEST_CASE ("G2.14 markers v2: colour cycles and persists, the inspector list loc
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// G2.15: the tempo and meter maps are editable at the playhead, the readout follows the FULL maps
+// (a ramp, a jump, a meter change), the tempo field edits the change in force, and the ruler menu
+// carries the verbs.
+TEST_CASE ("G2.15 tempo map: changes at the playhead, the piecewise readout, the field edits the change in force",
+           "[ui][input][shell][g2][tempo-map]")
+{
+    // A two-second synthesised clip so the ruler spans the seconds this story locates in (the
+    // sine fixture is 85 ms long).
+    const std::filesystem::path bundlePath = makeTempBundlePath ("tempo-map");
+    const std::filesystem::path wavPath = bundlePath.parent_path() / "tempo-map-two-seconds.wav";
+    {
+        constexpr double sr = 48000.0;
+        constexpr std::uint64_t frames = 96000u;
+        std::vector<float> samples (frames, 0.0f);
+        for (std::uint64_t frame = 0; frame < frames; ++frame)
+            samples[static_cast<std::size_t> (frame)] = static_cast<float> (0.25 * std::sin (2.0 * 3.14159265358979 * 220.0 * static_cast<double> (frame) / sr));
+        REQUIRE (yesdaw::io::writeFloat32WavFile (wavPath, yesdaw::engine::SampleRate { sr }, 1, frames, samples).ok());
+    }
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [wavPath] { return wavPath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const double sampleRate = readProjectSnapshot (bundlePath).sampleRate.hz;
+    REQUIRE (sampleRate > 0.0);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().timelineLength == 96000);
+    // Locate by a ruler click at the pixel for `seconds` (the SAME viewport law the older gates use);
+    // the landed frame is read back and the expectations use it, never the requested seconds.
+    const auto locate = [&] (double seconds)
+    {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                                  yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                  timeline.getWidth() - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds, snapshot.visibleTimelineTotalSeconds);
+        yesdaw::ui::TimelineCanvasState state;
+        state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * snapshot.timelineZoomFactor;
+        state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+        const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+        const yesdaw::ui::timeline_canvas_detail::RulerRows rows = yesdaw::ui::timeline_canvas_detail::rulerRows (geometry.rulerArea);
+        const int x = geometry.clipArea.getX() + juce::roundToInt ((seconds - state.viewport.scrollSeconds) * state.viewport.pixelsPerSecond);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeOff);   // the click lands raw
+        mouseDownAt (timeline, { x, rows.time.getCentreY() });
+        releaseDragAt (timeline, { x, rows.time.getCentreY() }, { x, rows.time.getCentreY() });
+        const std::int64_t landed = snapshotMainComponent (*shell).context.playheadFrame;
+        INFO ("locate " << seconds << " s landed " << landed);
+        REQUIRE (std::llabs (landed - static_cast<std::int64_t> (std::llround (seconds * sampleRate))) <= 200);   // a pixel
+    };
+    const auto expectedReadout = [&]
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        yesdaw::engine::CompiledTempoMap compiled;
+        REQUIRE (yesdaw::engine::CompiledTempoMap::build (
+            yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() }, project.sampleRate, compiled));
+        yesdaw::engine::BarBeat out;
+        REQUIRE (yesdaw::engine::computeBarBeatPiecewise (
+            compiled, yesdaw::engine::MeterMapView { project.meterMap.data(), project.meterMap.size() },
+            snapshotMainComponent (*shell).context.playheadFrame, out));
+        return out;
+    };
+    const auto tempoMap = [&] { return readProjectSnapshot (bundlePath).tempoMap; };
+    const auto meterMap = [&] { return readProjectSnapshot (bundlePath).meterMap; };
+    REQUIRE (tempoMap().size() == 1u);
+    REQUIRE (tempoMap()[0].bpm == 120.0);
+
+    // A change at 0.5 s (one quarter at 120): it starts at the tempo in force; the field then sets 60.
+    locate (0.5);
+    const std::int64_t frameAtAdd = snapshotMainComponent (*shell).context.playheadFrame;
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineTempoChangeAdd);
+    REQUIRE (tempoMap().size() == 2u);
+    {
+        // The change lands on the engine's own inverse of the frame the playhead sat on.
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        yesdaw::engine::CompiledTempoMap flat;
+        const std::array<yesdaw::engine::TempoChange, 1> head { yesdaw::engine::TempoChange { 0, 120.0, yesdaw::engine::TempoCurve::Jump } };
+        REQUIRE (yesdaw::engine::CompiledTempoMap::build (yesdaw::engine::TempoMapView { head.data(), head.size() }, project.sampleRate, flat));
+        yesdaw::engine::Tick expectedTick = 0;
+        REQUIRE (flat.tickForFrame (static_cast<double> (frameAtAdd), expectedTick));
+        INFO ("frame at add " << frameAtAdd << " expected tick " << expectedTick << " landed " << tempoMap()[1].tick);
+        REQUIRE (tempoMap()[1].tick == expectedTick);
+        REQUIRE (std::llabs (expectedTick - yesdaw::engine::kTicksPerQuarter) <= 200);   // a pixel of locate (200 frames = 128 ticks at 120 BPM)
+    }
+    REQUIRE (tempoMap()[1].bpm == 120.0);
+    auto* tempoField = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "transport.set_tempo"));
+    REQUIRE (tempoField != nullptr);
+    tempoField->setValue (60.0, juce::sendNotificationSync);
+    REQUIRE (tempoMap()[0].bpm == 120.0);   // the head is untouched
+    REQUIRE (tempoMap()[1].bpm == 60.0);
+    REQUIRE (tempoField->getValue() == 60.0);
+
+    // The readout at 1.0 s: half a second at 60 BPM after the change = a quarter, so still beat 2
+    // (the single-tempo law would say beat 3). And it equals the engine's piecewise closed form.
+    locate (1.0);
+    {
+        const yesdaw::engine::BarBeat shown = yesdaw::ui::mainComponentHeaderBarBeat (*shell);
+        REQUIRE (shown.bar == 1);
+        REQUIRE (shown.beat == 2);
+        const yesdaw::engine::BarBeat expected = expectedReadout();
+        REQUIRE (shown.bar == expected.bar);
+        REQUIRE (shown.beat == expected.beat);
+    }
+    // The field shows the tempo in force here (60) and, back before the change, the head (120).
+    REQUIRE (tempoField->getValue() == 60.0);
+    locate (0.25);
+    REQUIRE (tempoField->getValue() == 120.0);
+
+    // A ramp on the head (the change in force at 0.25 s): the tick is ticked, the readout still
+    // equals the closed form, and the ruler menu carries the verbs.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineTempoChangeToggleRamp);
+    REQUIRE (tempoMap()[0].curveToNext == yesdaw::engine::TempoCurve::LinearRamp);
+    REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::TimelineTempoChangeToggleRamp).enabled);
+    REQUIRE (snapshotMainComponent (*shell).context.tempoChangeAtPlayheadRamps);
+    locate (1.25);
+    {
+        const yesdaw::engine::BarBeat shown = yesdaw::ui::mainComponentHeaderBarBeat (*shell);
+        const yesdaw::engine::BarBeat expected = expectedReadout();
+        INFO ("ramp readout " << shown.bar << "|" << shown.beat);
+        REQUIRE (shown.bar == expected.bar);
+        REQUIRE (shown.beat == expected.beat);
+    }
+    {
+        const yesdaw::ui::timeline_canvas_detail::RulerRows rows = yesdaw::ui::timeline_canvas_detail::rulerRows (
+            yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {}).rulerArea);
+        const yesdaw::ui::MainComponentContextMenu menu = yesdaw::ui::mainComponentRequestContextMenu (
+            *shell, juce::Point<int> (timeline.getWidth() / 2, rows.time.getCentreY()) + timeline.getPosition());
+        REQUIRE (menu.shown);
+        REQUIRE (menu.target == yesdaw::ui::ContextMenuTarget::Ruler);
+        for (const UiActionId verb : { UiActionId::TimelineTempoChangeAdd, UiActionId::TimelineTempoChangeRemove,
+                                       UiActionId::TimelineTempoChangeToggleRamp, UiActionId::TimelineMeterChangeAdd,
+                                       UiActionId::TimelineMeterChangeRemove })
+            REQUIRE (std::find (menu.actions.begin(), menu.actions.end(), verb) != menu.actions.end());
+    }
+
+    // A meter change at 1.0 s (3/4 by the field's law would be a second step; here it starts at 4/4),
+    // then its removal; the tempo change's removal; the head never goes.
+    locate (1.0);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMeterChangeAdd);
+    REQUIRE (meterMap().size() == 2u);
+    REQUIRE (meterMap()[1].numerator == 4);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMeterChangeRemove);
+    REQUIRE (meterMap().size() == 1u);
+    locate (0.75);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineTempoChangeRemove);
+    REQUIRE (tempoMap().size() == 1u);
+    locate (0.1);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineTempoChangeRemove);   // the head stays
+    REQUIRE (tempoMap().size() == 1u);
+    // Undo walks the whole story back to one flat change.
+    for (int i = 0; i < 6; ++i)
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (tempoMap().size() == 1u);
+    REQUIRE (tempoMap()[0].bpm == 120.0);
+    REQUIRE (tempoMap()[0].curveToNext == yesdaw::engine::TempoCurve::Jump);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (wavPath, ec);
+}
+
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",
            "[ui][input][shell][g1][menus-show-keys]")
 {

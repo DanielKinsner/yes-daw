@@ -112,6 +112,11 @@ enum class UiActionId : std::uint8_t
     TimelineMarkerAdd,
     TimelineMarkerRemove,
     TimelineMarkerColourNext,   // G2.14
+    TimelineTempoChangeAdd,        // G2.15: the tempo and meter maps at the playhead
+    TimelineTempoChangeRemove,
+    TimelineTempoChangeToggleRamp,
+    TimelineMeterChangeAdd,
+    TimelineMeterChangeRemove,
     TimelineMidiClipAdd,
     MixerFxInsertParamSet,
     // ADR-0044 send routing actions
@@ -403,6 +408,7 @@ struct UiActionContext
     bool loopEnabled = false;
     bool timelineClipMuted = false;   // G2.12: the selected clip is muted (the Mute Clip tick)
     bool timelineClipReversed = false;   // G2.13: the selected clip is reversed (the Reverse tick)
+    bool tempoChangeAtPlayheadRamps = false;   // G2.15: the change in force at the playhead ramps to the next
     bool timelineRangeSelected = false;
     bool canUndo = false;
     bool canRedo = false;
@@ -736,6 +742,16 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineMarkerRemove, "timeline.marker.remove", "Remove Marker", "", "Remove nearest marker",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineMarkerColourNext, "timeline.marker.colour_next", "Marker Colour: Next", "", "Cycle the marker under the pointer through the palette (default, then the five accents)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineTempoChangeAdd, "timeline.tempo.change_add", "Add Tempo Change at Playhead", "", "Add a tempo change at the playhead (starts at the tempo in force there; edit it with the tempo field)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineTempoChangeRemove, "timeline.tempo.change_remove", "Remove Tempo Change at Playhead", "", "Remove the tempo change in force at the playhead (the head tempo stays)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineTempoChangeToggleRamp, "timeline.tempo.change_toggle_ramp", "Tempo Change: Ramp to Next", "", "The tempo change in force at the playhead ramps to the next change instead of jumping",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, true, false, false, false },
+    { UiActionId::TimelineMeterChangeAdd, "timeline.meter.change_add", "Add Meter Change at Playhead", "", "Add a meter change at the playhead (starts at the meter in force there; edit it with the meter field)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineMeterChangeRemove, "timeline.meter.change_remove", "Remove Meter Change at Playhead", "", "Remove the meter change in force at the playhead (the head meter stays)",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineMidiClipAdd, "timeline.midi_clip.add", "Add MIDI Clip", "", "Add MIDI clip on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -1883,6 +1899,11 @@ public:
             case UiActionId::TimelineMarkerAdd:
             case UiActionId::TimelineMarkerRemove:
             case UiActionId::TimelineMarkerColourNext:   // G2.14
+            case UiActionId::TimelineTempoChangeAdd:     // G2.15
+            case UiActionId::TimelineTempoChangeRemove:
+            case UiActionId::TimelineTempoChangeToggleRamp:
+            case UiActionId::TimelineMeterChangeAdd:
+            case UiActionId::TimelineMeterChangeRemove:
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = true;
                 context.canRedo = false;

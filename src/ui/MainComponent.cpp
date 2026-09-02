@@ -9537,6 +9537,7 @@ private:
             case UiActionId::TimelineSnapModeOff:               return c.snapMode == yesdaw::ui::UiSnapMode::Off;
             case UiActionId::TimelineClipToggleMute:            return c.timelineClipMuted;   // G2.12
             case UiActionId::TimelineClipReverse:               return c.timelineClipReversed;   // G2.13
+            case UiActionId::TimelineTempoChangeToggleRamp:     return c.tempoChangeAtPlayheadRamps;   // G2.15
             case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
             case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
             case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
@@ -10482,7 +10483,7 @@ private:
             headerMeterChooser.setEnabled (
                 appModel.registry().stateFor (yesdaw::ui::UiActionId::TransportSetMeter, appModel.context()).enabled);
             if (appModel.context().projectLoaded && ! appModel.project().tempoMap.empty())
-                headerTempoControl.setValue (appModel.project().tempoMap.front().bpm, juce::dontSendNotification);
+                headerTempoControl.setValue (appModel.tempoAtPlayhead(), juce::dontSendNotification);   // G2.15: the tempo in force
             if (appModel.context().projectLoaded && ! appModel.project().meterMap.empty())
             {
                 const auto& head = appModel.project().meterMap.front();
@@ -11635,6 +11636,16 @@ private:
         const double sampleRate = appModel.project().sampleRate.isValid()
                                       ? appModel.project().sampleRate.hz
                                       : 48000.0;
+        // G2.15: the FULL maps — frame -> tick through the compiled tempo map's inverse, then the
+        // meter walk; the single-tempo law only when the map cannot be built.
+        yesdaw::engine::CompiledTempoMap compiled;
+        yesdaw::engine::BarBeat piecewise;
+        if (appModel.project().sampleRate.isValid() && appModel.compiledTempoMap (compiled)
+            && yesdaw::engine::computeBarBeatPiecewise (
+                   compiled,
+                   yesdaw::engine::MeterMapView { appModel.project().meterMap.data(), appModel.project().meterMap.size() },
+                   appModel.context().playheadFrame, piecewise))
+            return piecewise;
         const HeadTempoMeter head = headTempoMeter();
         return yesdaw::engine::computeBarBeat (
             head.bpm, head.numerator, head.denominator, sampleRate, appModel.context().playheadFrame);
@@ -12266,6 +12277,42 @@ private:
         }
         state.markers = timelineMarkerViews.empty() ? nullptr : timelineMarkerViews.data();
         state.markerCount = static_cast<int> (timelineMarkerViews.size());
+
+        // G2.15: the tempo and meter changes after the head, placed by the compiled map (so a ramp
+        // puts the next change where it really lands), labelled "120" / "120~" / "3/4".
+        timelineMapLabelTexts.clear();
+        timelineMapLabelViews.clear();
+        {
+            yesdaw::engine::CompiledTempoMap compiled;
+            if (appModel.context().projectLoaded && appModel.project().sampleRate.isValid()
+                && appModel.compiledTempoMap (compiled))
+            {
+                const double sampleRateHz = appModel.project().sampleRate.hz;
+                const auto& tempoMap = appModel.project().tempoMap;
+                const auto& meterMap = appModel.project().meterMap;
+                timelineMapLabelTexts.reserve (tempoMap.size() + meterMap.size());
+                timelineMapLabelViews.reserve (tempoMap.size() + meterMap.size());
+                for (std::size_t i = 1; i < tempoMap.size(); ++i)
+                {
+                    double frame = 0.0;
+                    if (! compiled.frameForTick (tempoMap[i].tick, frame))
+                        continue;
+                    timelineMapLabelTexts.push_back (juce::String (juce::roundToInt (tempoMap[i].bpm)).toStdString()
+                                                     + (tempoMap[i].curveToNext == yesdaw::engine::TempoCurve::LinearRamp ? "~" : ""));
+                    timelineMapLabelViews.push_back ({ frame / sampleRateHz, timelineMapLabelTexts.back().c_str() });
+                }
+                for (std::size_t i = 1; i < meterMap.size(); ++i)
+                {
+                    double frame = 0.0;
+                    if (! compiled.frameForTick (meterMap[i].tick, frame))
+                        continue;
+                    timelineMapLabelTexts.push_back (std::to_string (meterMap[i].numerator) + "/" + std::to_string (meterMap[i].denominator));
+                    timelineMapLabelViews.push_back ({ frame / sampleRateHz, timelineMapLabelTexts.back().c_str() });
+                }
+            }
+        }
+        state.mapLabels = timelineMapLabelViews.empty() ? nullptr : timelineMapLabelViews.data();
+        state.mapLabelCount = static_cast<int> (timelineMapLabelViews.size());
 
         // N4: the automation lane anchors under the SAME track automationTargetTrackId() resolves
         // (identical clamp), so the band's position can never disagree with the header/canvas
@@ -14082,6 +14129,8 @@ private:
     double timelineTotalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
     std::vector<std::string> timelineMarkerLabels;
     std::vector<yesdaw::ui::TimelineMarker> timelineMarkerViews;
+    std::vector<std::string> timelineMapLabelTexts;                // G2.15
+    std::vector<yesdaw::ui::TimelineMapLabel> timelineMapLabelViews;
     double timelineZoomFactor = 1.0;   // 1.0 == whole timeline fits the window
     mutable double timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
     // Vertical track scroll (E5): whole lane rows above the viewport, shared by the timeline

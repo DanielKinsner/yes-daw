@@ -41,11 +41,12 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.14 (markers v2 — colours, the marker menu, the inspector's marker list; schema v26;
-`[markers-v2]`) built, gated locally, committed; awaiting its exact-head run. Next: G2.15 —
-tempo and meter map editing (frame→tick inverse, piecewise bar|beat, a tempo lane in the ruler;
-bar|beat readout across a change equals the closed form; render goldens with a ramp). The drive
-stays paused (D14).
+**Now:** G2.15 (tempo and meter map editing — the frame→tick inverse, the piecewise bar|beat,
+map verbs at the playhead, the field edits the tempo in force, the ruler paints the changes;
+time / project / `[tempo-map]` gates) built, gated locally, committed; awaiting its exact-head
+run. Next: G2.16 — zoom and navigation (`Ctrl+arrows`, a zoom slider, real scroll bars,
+`Shift+wheel`, playhead follow modes, `Z` toggle, zoom history; `[zoom-nav]`). The drive stays
+paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -105,7 +106,40 @@ G2.9a ✅ — time-stretch engine half, schema v22 (`4e24714`); certified by exa
 (green on all ten jobs).
 G2.9b ✅ — time-stretch gesture (`15e16e1`); G2.10 ✅ — fades v2, schema v23 (`d0800c6`); certified by
 exact-head run `33637897699` on `d0800c6` (green on all ten jobs).
+G2.11 ✅ — slip (`080c6b8`); G2.12 ✅ — clip properties, schema v24 (`0c39c05`); certified by run
+`33639686386` on `0c39c05` after a rerun of its macOS job (GPU frame-budget noise, parking lot) — every
+job green on the same head.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.15 — Tempo and meter map editing (2026-09-02)
+
+**Build.** `CompiledTempoMap::tickForFrame` (per-segment inverse: linear for a jump, the
+logarithm inverted for a ramp; nearest tick); `computeBarBeatPiecewise (compiled, meterView,
+frame)` (frame → tick, then the meter walk — each meter change starts a bar). Verbs
+`AddTempoChange (tick, bpm, curve)` / `RemoveTempoChange` / `AddMeterChange` /
+`RemoveMeterChange` (+ `ProjectEditCommand` fields `mapTick`, `tempoCurve`; the time-map diff
+family records them). Model: `compiledTempoMap()`, `playheadTick()`,
+`tempoChangeInForceAtPlayhead()`, `meterChangeInForceAtPlayhead()`, `tempoAtPlayhead()`, the
+five at-playhead verbs through `applyMapEdit` (snap grid + metronome refreshed);
+`setProjectTempoBpm` edits the change in force; context flag `tempoChangeAtPlayheadRamps`
+(the Ramp tick). Shell: `headerBarBeat()` is piecewise; the tempo field shows the tempo in
+force; the ruler paints `TimelineMapLabel`s ("120", "120~", "3/4") in the bars row at the
+compiled frame; the ruler menu 5 → 10 entries.
+
+**Gates.** Time check: the inverse round-trip (±1 tick, monotonic, exact at segment starts,
+the empty map), the piecewise readout vs the hand-written closed form across a ramp and a 3/4
+change, equality with the single law on a flat map. Project check: the map verbs' laws and
+exact undo. `[tempo-map]`: add at 0.5 s → the quarter at 120; the field → 60 (head 120); the
+readout at 1.0 s = 1|2 and equals the engine law; the field follows the playhead; the ramp
+tick + readout; the ruler menu; meter add / remove; the head's removal refused; undo.
+
+**Not built (recorded).** No drag-to-edit in a tempo lane and no numeric "Add Tempo Change…"
+dialog (chrome — G3); the ruler paints changes as labels, not a curve; the snap grid and the
+nudge units still derive from the HEAD tempo (`snapFramesForUnit`) — a piecewise grid is the
+next tempo item; the bar-label positions in the ruler still assume the head tempo (only the
+readout and the change labels are piecewise); no render golden with a ramp beyond the
+existing bit-identical placement test (a MIDI onset golden needs a synth-onset fixture —
+parking lot).
 
 ### G2.14 — Markers v2 (2026-09-02)
 
