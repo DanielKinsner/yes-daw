@@ -41,12 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.15 (tempo and meter map editing — the frame→tick inverse, the piecewise bar|beat,
-map verbs at the playhead, the field edits the tempo in force, the ruler paints the changes;
-time / project / `[tempo-map]` gates) built, gated locally, committed; awaiting its exact-head
-run. Next: G2.16 — zoom and navigation (`Ctrl+arrows`, a zoom slider, real scroll bars,
-`Shift+wheel`, playhead follow modes, `Z` toggle, zoom history; `[zoom-nav]`). The drive stays
-paused (D14).
+**Now:** G2.16 (zoom and navigation — row zoom, the zoom slider, real scroll bars, continuous
+follow, Z toggle, zoom history; `[zoom-nav]`) built, gated locally, committed; awaiting its
+exact-head run. Next: G2.17 — track headers v2 (type icon, drag reorder, multi-select;
+`[track-headers-v2]`). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -109,7 +107,46 @@ exact-head run `33637897699` on `d0800c6` (green on all ten jobs).
 G2.11 ✅ — slip (`080c6b8`); G2.12 ✅ — clip properties, schema v24 (`0c39c05`); certified by run
 `33639686386` on `0c39c05` after a rerun of its macOS job (GPU frame-budget noise, parking lot) — every
 job green on the same head.
+G2.13 ✅ — clip processing, schema v25 (`05472a5`); G2.14 ✅ — markers v2, schema v26 (`dba562f`);
+certified by exact-head run `33641728768` on `dba562f` (green on all ten jobs).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.16 — Zoom and navigation (2026-09-02)
+
+**Build.** `timelineRowZoom` (0.5..3, step 1.25) rides `TimelineCanvasState::rowZoom` into
+`timelineCanvasGeometry`'s auto row height (one law for canvas and rail); verbs
+`TimelineZoomTracksIn` (`Ctrl+Up`) / `TimelineZoomTracksOut` (`Ctrl+Down`). Zoom history
+(`zoomHistory`, depth 32) pushed by `zoomTimelineAtAnchor` and Zoom to Selection;
+`TimelineZoomBack` (View menu) pops; Z toggles back when the view equals the last selection
+zoom (`lastSelectionZoom`). `timeline.zoom.slider` (log2, after the zoom trio; the status
+line starts after it) drives the law at the playhead; `refreshTimelineZoomReadout` syncs it
+and the bars. `timeline.scroll.h` (seconds) / `timeline.scroll.v` (rows): ranges refreshed
+with the readout, `scrollBarMoved` drives the view; the timeline input keeps the rest of its
+area. `TimelinePlayheadFollowContinuous` (Toggle; context flag; `followPlaybackPlayhead`
+keeps the playhead at the middle). View menu 24 → 28. Probe `view.rowZoom`,
+`view.zoomHistoryDepth`, `view.playheadFollowContinuous`.
+
+**Gates.** `[zoom-nav]`: row zoom down / up (hit height + probe), the slider → 4x with the
+bar's range, the bar drives the scroll, Zoom Back → 1x, Z / Z restores exactly, continuous
+follow at 8x keeps the playhead at the middle. Child count +3.
+
+**Found while gating (fixed, locked).** (1) The rail's row law ignored the row zoom — the canvas
+shrank and the rail did not; `rowZoomProvider` feeds the same factor into the rail's cumulative
+law, and the gate measures the rail's painted row plus the canvas zone at a point near the
+clip's bottom. (2) Carving the bars from `timelineBounds()` left the playhead layer, the toolbar
+cluster, the automation canvas and the fit law on the uncarved rect (10 px wider than the
+input) — `timelinePanelBounds()` is the panel, `timelineBounds()` the canvas, one rect for all
+(D52). (3) The hand tool could overshoot the timeline end transiently (the paint clamp hid it);
+it now clamps like the bars, and the E3 hand gate starts both drags on the canvas (its old
+reverse drag began off-canvas and only "landed at zero" because of that clamp). (4) Two
+ruler-click paste pins ("≤ 4 frames") were rounding luck at the old width — re-pinned to half a
+pixel of frames computed from the view. (5) The scroll bars are tooltip clients like every
+identified control. (6) Continuous follow recentres a playhead behind the window too.
+
+**Not built (recorded).** The vertical bar counts rows (the scroll law is rows, not pixels);
+the row zoom does not persist in the view-state sidecar yet (D48's record carries zoom and
+dock only); no `Ctrl+wheel` on the rail; the zoom slider drops nothing at 1280 (the status
+line shrinks instead — the cluster's drop-whole law is unchanged); no zoom-to-fit-tracks.
 
 ### G2.15 — Tempo and meter map editing (2026-09-02)
 

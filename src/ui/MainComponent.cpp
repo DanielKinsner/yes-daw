@@ -2856,6 +2856,7 @@ public:
     // N6: persisted per-track heights, one entry per row (0 = auto-shared). Empty or unset means
     // every row auto-shares, exactly like every row did before this field existed.
     std::function<std::vector<int>()> rowHeightsProvider;
+    std::function<double()> rowZoomProvider;   // G2.16: the row zoom the canvas geometry also multiplies by
     std::function<void (int)> onRowClicked;
     std::function<void (int)> onRowDoubleClicked;
     // Mini controls (usable-DAW P2): the painted PAN knob, VOL slider, and M/S cells become live.
@@ -3092,8 +3093,11 @@ public:
     [[nodiscard]] yesdaw::ui::CumulativeRowGeometry rowGeometry (int rows, int availablePixels) const
     {
         const std::vector<int> heights = rowHeightsProvider ? rowHeightsProvider() : std::vector<int> {};
+        const double rowZoom = std::clamp (rowZoomProvider ? rowZoomProvider() : 1.0,
+                                           yesdaw::ui::UiTheme::Layout::timelineRowZoomMin,
+                                           yesdaw::ui::UiTheme::Layout::timelineRowZoomMax);   // G2.16
         return yesdaw::ui::computeCumulativeRowGeometry (
-            rows, availablePixels, yesdaw::ui::UiTheme::Layout::trackListRowMinHeight,
+            rows, availablePixels, juce::roundToInt (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight * rowZoom),
             static_cast<int> (heights.size()) >= rows ? heights.data() : nullptr);
     }
 
@@ -3944,6 +3948,7 @@ public:
 };
 
 class MainComponent : public juce::Component,
+                      public juce::ScrollBar::Listener,   // G2.16: the real scroll bars
                       public juce::MenuBarModel,
                       public juce::KeyListener,    // G0.2: the command router on the top-level window
                       private juce::Timer,
@@ -4098,7 +4103,10 @@ public:
             repaintAll();
         };
         timelineInput.onHandToolScrolled = [this] (double secondsDelta) {
-            timelineScrollSeconds += secondsDelta;
+            // G2.16: clamped to the view's range like the scroll bar — no transient overshoot.
+            const double visible = timelineVisibleSecondsFor (timelineTotalSeconds);
+            const double maxScroll = std::max (0.0, timelineTotalSeconds - visible);
+            timelineScrollSeconds = std::clamp (timelineScrollSeconds + secondsDelta, 0.0, maxScroll);
             repaintAll();
         };
         timelineInput.onAutoScrolled = [this] (double secondsDelta) {   // G2.3: the hand tool's law
@@ -4442,6 +4450,7 @@ public:
         trackListInput.rowCountProvider = [this] {
             return appModel.context().projectLoaded ? static_cast<int> (appModel.project().tracks.size()) : 0;
         };
+        trackListInput.rowZoomProvider = [this] { return timelineRowZoom; };   // G2.16
         trackListInput.rowHeightsProvider = [this] {
             std::vector<int> heights;
             if (appModel.context().projectLoaded)
@@ -6012,6 +6021,9 @@ public:
             view->setProperty ("snapEnabled", context.snapEnabled);
             view->setProperty ("snapGridTicks", static_cast<juce::int64> (context.snapGridTicks));
             view->setProperty ("playheadFollow", context.playheadFollowEnabled);
+            view->setProperty ("playheadFollowContinuous", context.playheadFollowContinuous);   // G2.16
+            view->setProperty ("rowZoom", timelineRowZoom);
+            view->setProperty ("zoomHistoryDepth", static_cast<int> (zoomHistory.size()));
             view->setProperty ("trackCount", context.projectLoaded
                                                  ? static_cast<int> (appModel.project().tracks.size())
                                                  : 0);
@@ -6377,7 +6389,16 @@ public:
         // M9: the LUFS readout rides the master card — it drops with it instead of being clipped.
         masterLoudnessReadout.setBounds (headerMasterLufsBounds());
         masterLoudnessReadout.setVisible (! headerMasterLufsBounds().isEmpty());
-        timelineInput.setBounds (timelineBounds());
+        {
+            // G2.16: the scroll bars take a strip below and beside the timeline; the input keeps the rest.
+            juce::Rectangle<int> area = timelinePanelBounds();
+            const juce::Rectangle<int> hBar = area.removeFromBottom (yesdaw::ui::UiTheme::Layout::timelineScrollBarThickness);
+            const juce::Rectangle<int> vBar = area.removeFromRight (yesdaw::ui::UiTheme::Layout::timelineScrollBarThickness);
+            timelineHScroll.setBounds (hBar.withTrimmedRight (yesdaw::ui::UiTheme::Layout::timelineScrollBarThickness));
+            timelineVScroll.setBounds (vBar);
+            timelineInput.setBounds (area);
+            jassert (area == timelineBounds());
+        }
         playheadLayer.setBounds (timelineBounds());
         {
             // G2.1: the splitters sit on the panel edges, above every panel (last in z-order).
@@ -6576,6 +6597,45 @@ private:
         timelineZoomReadout.setColour (juce::Label::textColourId, kMutedText);
         timelineZoomReadout.setInterceptsMouseClicks (false, false);
         addAndMakeVisible (timelineZoomReadout);
+
+        // G2.16: the zoom slider (log2 of the factor, 0..6 = 1x..64x) drives the ONE zoom law at the playhead.
+        timelineZoomSlider.setComponentID ("timeline.zoom.slider");
+        timelineZoomSlider.setName ("Timeline zoom");
+        timelineZoomSlider.setTitle ("Timeline zoom");
+        timelineZoomSlider.setTooltip ("Timeline zoom: drag to zoom at the playhead (1x fits the project)");
+        timelineZoomSlider.setSliderStyle (juce::Slider::LinearHorizontal);
+        timelineZoomSlider.setTextBoxStyle (juce::Slider::NoTextBox, false,
+                                            yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                            yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
+        timelineZoomSlider.setRange (0.0, std::log2 (yesdaw::ui::UiTheme::Layout::timelineZoomMax), 0.01);
+        timelineZoomSlider.setValue (0.0, juce::dontSendNotification);
+        timelineZoomSlider.onValueChange = [this] {
+            if (refreshingZoomSlider)
+                return;
+            const double wanted = std::exp2 (timelineZoomSlider.getValue());
+            const double playheadSeconds = appModel.project().sampleRate.isValid()
+                ? static_cast<double> (std::max<std::int64_t> (0, appModel.context().playheadFrame)) / appModel.project().sampleRate.hz
+                : 0.0;
+            zoomTimelineAtAnchor (playheadSeconds, wanted / std::max (1.0e-9, timelineZoomFactor));
+            repaintAll();
+        };
+        addAndMakeVisible (timelineZoomSlider);
+
+        // G2.16: real scroll bars — horizontal in seconds under the timeline, vertical in rows beside it.
+        timelineHScroll.setComponentID ("timeline.scroll.h");
+        timelineHScroll.setName ("Timeline scroll");
+        timelineHScroll.setTitle ("Timeline scroll");
+        timelineHScroll.setTooltip ("Scroll the timeline in time (drag the thumb; the wheel over the timeline scrolls too)");
+        timelineHScroll.setAutoHide (false);
+        timelineHScroll.addListener (this);
+        addAndMakeVisible (timelineHScroll);
+        timelineVScroll.setComponentID ("timeline.scroll.v");
+        timelineVScroll.setName ("Track scroll");
+        timelineVScroll.setTitle ("Track scroll");
+        timelineVScroll.setTooltip ("Scroll the tracks (drag the thumb)");
+        timelineVScroll.setAutoHide (false);
+        timelineVScroll.addListener (this);
+        addAndMakeVisible (timelineVScroll);
 
         // R4: the shared status line — failures from save/export/create/autosave/device paint
         // here from real model state; success stays quiet and the UI timer decays the text.
@@ -8014,7 +8074,10 @@ private:
         return out;
     }
 
-    [[nodiscard]] juce::Rectangle<int> timelineBounds() const
+    // G2.16: the timeline PANEL holds the canvas plus the scroll-bar strips below and beside it;
+    // timelineBounds() is the canvas alone — the ONE rect the input, the playhead layer, the
+    // toolbar cluster, the fit law and the probe share, so a pixel means the same time everywhere.
+    [[nodiscard]] juce::Rectangle<int> timelinePanelBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
         work.removeFromBottom (dockedMixerHeight());
@@ -8022,6 +8085,13 @@ private:
         work.removeFromRight (inspectorWidthNow());
         return work.reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                              yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
+    }
+
+    [[nodiscard]] juce::Rectangle<int> timelineBounds() const
+    {
+        return timelinePanelBounds()
+            .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::timelineScrollBarThickness)
+            .withTrimmedRight (yesdaw::ui::UiTheme::Layout::timelineScrollBarThickness);
     }
 
     // The exact rect drawTrackList paints into; the rail input overlay shares it so hits match paint.
@@ -9017,6 +9087,7 @@ private:
         timelineZoomOutButton.setBounds (L::timelineZoomOutButtonBounds (timeline));
         timelineZoomReadout.setBounds (L::timelineZoomReadoutBounds (timeline));
         timelineZoomInButton.setBounds (L::timelineZoomInButtonBounds (timeline));
+        timelineZoomSlider.setBounds (L::timelineZoomSliderBounds (timeline));   // G2.16
         // G1.4 toolbar v2: [nudge] … status … [Inspector]; the nudge chooser drops whole when
         // the row cannot hold it next to the toggle.
         {
@@ -9328,10 +9399,75 @@ private:
     {
         timelineZoomReadout.setText (juce::String (timelineZoomFactor, 1) + "x",
                                      juce::dontSendNotification);
+        refreshingZoomSlider = true;   // G2.16: the slider follows the factor (log scale)
+        timelineZoomSlider.setValue (std::log2 (std::clamp (timelineZoomFactor, yesdaw::ui::UiTheme::Layout::timelineZoomMin,
+                                                             yesdaw::ui::UiTheme::Layout::timelineZoomMax)),
+                                     juce::dontSendNotification);
+        refreshingZoomSlider = false;
+        refreshTimelineScrollBars();
+    }
+
+    // G2.16: the zoom history — every zoom change pushes the view it leaves; Zoom Back pops.
+    struct ZoomView { double zoom; double scroll; };
+    std::vector<ZoomView> zoomHistory;
+    void pushZoomHistory()
+    {
+        if (! zoomHistory.empty() && zoomHistory.back().zoom == timelineZoomFactor && zoomHistory.back().scroll == timelineScrollSeconds)
+            return;
+        zoomHistory.push_back ({ timelineZoomFactor, timelineScrollSeconds });
+        if (zoomHistory.size() > static_cast<std::size_t> (yesdaw::ui::UiTheme::Layout::timelineZoomHistoryDepth))
+            zoomHistory.erase (zoomHistory.begin());
+    }
+    [[nodiscard]] bool popZoomHistory()
+    {
+        if (zoomHistory.empty())
+            return false;
+        const ZoomView view = zoomHistory.back();
+        zoomHistory.pop_back();
+        timelineZoomFactor = std::clamp (view.zoom, yesdaw::ui::UiTheme::Layout::timelineZoomMin, yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+        timelineScrollSeconds = std::max (0.0, view.scroll);
+        refreshTimelineZoomReadout();
+        return true;
+    }
+
+    // G2.16: the vertical zoom — every auto-height row scales; the rail and the canvas share it.
+    void zoomTracksBy (double factor)
+    {
+        timelineRowZoom = std::clamp (timelineRowZoom * factor, yesdaw::ui::UiTheme::Layout::timelineRowZoomMin,
+                                      yesdaw::ui::UiTheme::Layout::timelineRowZoomMax);
+        resized();
+        refreshTimelineScrollBars();
+    }
+
+    // G2.16: the scroll bars mirror the view (seconds horizontally, rows vertically) and drive it.
+    void refreshTimelineScrollBars()
+    {
+        refreshingScrollBars = true;
+        const double visible = std::max (0.0, timelineVisibleSecondsFor (timelineTotalSeconds));
+        timelineHScroll.setRangeLimits (0.0, std::max (timelineTotalSeconds, timelineScrollSeconds + visible), juce::dontSendNotification);
+        timelineHScroll.setCurrentRange (timelineScrollSeconds, visible, juce::dontSendNotification);
+        const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (timelineInput.getLocalBounds(), makeTimelineState());
+        const int maxRows = std::max (geometry.maxTrackScrollRows, trackListInput.maxScrollRows());
+        const double visibleRows = std::max (1.0, static_cast<double> (std::max (1, appModel.context().projectLoaded ? static_cast<int> (appModel.project().tracks.size()) : 1) - maxRows));
+        timelineVScroll.setRangeLimits (0.0, static_cast<double> (maxRows) + visibleRows, juce::dontSendNotification);
+        timelineVScroll.setCurrentRange (static_cast<double> (timelineTrackScrollRows), visibleRows, juce::dontSendNotification);
+        refreshingScrollBars = false;
+    }
+
+    void scrollBarMoved (juce::ScrollBar* bar, double newRangeStart) override
+    {
+        if (refreshingScrollBars)
+            return;
+        if (bar == &timelineHScroll)
+            timelineScrollSeconds = std::max (0.0, newRangeStart);
+        else if (bar == &timelineVScroll)
+            timelineTrackScrollRows = std::max (0, juce::roundToInt (newRangeStart));
+        repaintAll();
     }
 
     void zoomTimelineAtAnchor (double anchorSeconds, double factor)
     {
+        pushZoomHistory();   // G2.16
         const double previousZoom = timelineZoomFactor;
         timelineZoomFactor = std::clamp (timelineZoomFactor * factor,
                                          yesdaw::ui::UiTheme::Layout::timelineZoomMin,
@@ -9377,6 +9513,16 @@ private:
         const double playheadSeconds = static_cast<double> (
                                            std::max<std::int64_t> (0, appModel.context().playheadFrame))
                                      / appModel.project().sampleRate.hz;
+        if (appModel.context().playheadFollowContinuous)   // G2.16: the playhead stays at the middle
+        {
+            // Pro Tools' continuous scroll: the playhead runs from the left edge to the middle
+            // and then the view moves under it; a playhead behind the window (a locate) recentres.
+            if (playheadSeconds > timelineScrollSeconds + visibleSeconds * 0.5
+                || playheadSeconds < timelineScrollSeconds)
+                timelineScrollSeconds = std::max (0.0, playheadSeconds - visibleSeconds * 0.5);
+            refreshTimelineScrollBars();
+            return;
+        }
         if (playheadSeconds >= timelineScrollSeconds + visibleSeconds)
         {
             const double elapsedPages = std::floor (
@@ -9453,12 +9599,14 @@ private:
             UiActionId::PianoRollNoteDuplicate, UiActionId::PianoRollNoteSetLength,
             UiActionId::PianoRollNoteSetVelocity,
         };
-        static constexpr std::array<UiActionId, 24> kViewMenu {
+        static constexpr std::array<UiActionId, 28> kViewMenu {
             UiActionId::ViewTimeline,      UiActionId::ViewMixer,          UiActionId::ViewPianoRoll,
             UiActionId::ViewToggleInspector,
             UiActionId::TimelineToggleMixerDock, UiActionId::InspectorShowClipTab, UiActionId::InspectorShowTrackTab,
             UiActionId::TimelineAutomationToggleTrackLane,
             UiActionId::TimelineZoomIn,    UiActionId::TimelineZoomOut,
+            UiActionId::TimelineZoomTracksIn, UiActionId::TimelineZoomTracksOut, UiActionId::TimelineZoomBack,   // G2.16
+            UiActionId::TimelinePlayheadFollowContinuous,
             UiActionId::TimelineZoomFitProject, UiActionId::TimelineZoomFitLoop, UiActionId::TimelineZoomToSelection,
             UiActionId::TimelineTogglePlayheadFollow,
             UiActionId::TimelineToolSelectPointer, UiActionId::TimelineToolSelectPencil,
@@ -9538,6 +9686,7 @@ private:
             case UiActionId::TimelineClipToggleMute:            return c.timelineClipMuted;   // G2.12
             case UiActionId::TimelineClipReverse:               return c.timelineClipReversed;   // G2.13
             case UiActionId::TimelineTempoChangeToggleRamp:     return c.tempoChangeAtPlayheadRamps;   // G2.15
+            case UiActionId::TimelinePlayheadFollowContinuous:  return c.playheadFollowContinuous;    // G2.16
             case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
             case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
             case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
@@ -10368,13 +10517,34 @@ private:
                 }
                 return;
 
+            case yesdaw::ui::UiActionId::TimelineZoomTracksIn:   // G2.16
+                if (appModel.dispatch (action).dispatched)
+                    zoomTracksBy (yesdaw::ui::UiTheme::Layout::timelineRowZoomStep);
+                return;
+            case yesdaw::ui::UiActionId::TimelineZoomTracksOut:
+                if (appModel.dispatch (action).dispatched)
+                    zoomTracksBy (1.0 / yesdaw::ui::UiTheme::Layout::timelineRowZoomStep);
+                return;
+            case yesdaw::ui::UiActionId::TimelineZoomBack:
+                if (appModel.dispatch (action).dispatched)
+                    (void) popZoomHistory();
+                return;
             case yesdaw::ui::UiActionId::TimelineZoomToSelection:
             {
                 // G2.5 (R22): fit the Time selection with a small margin — the zoom law is the
                 // view's (fit × factor), so the factor and scroll are set here, then clamped.
+                // G2.16: Z toggles — when the view already IS the selection's, go back instead.
+                if (lastSelectionZoom && lastSelectionZoom->zoom == timelineZoomFactor
+                    && lastSelectionZoom->scroll == timelineScrollSeconds && popZoomHistory())
+                {
+                    lastSelectionZoom.reset();
+                    (void) appModel.dispatch (action);
+                    return;
+                }
                 const MainComponentSnapshotLike view = snapshotForZoom();
                 if (view.rangeSeconds > 0.0 && view.fitPixelsPerSecond > 0.0)
                 {
+                    pushZoomHistory();
                     const double margin = view.rangeSeconds * yesdaw::ui::UiTheme::Layout::timelineZoomToSelectionMarginFraction;
                     const double wanted = view.rangeSeconds + margin * 2.0;
                     timelineZoomFactor = std::clamp (
@@ -10382,6 +10552,8 @@ private:
                                                      yesdaw::ui::UiTheme::Layout::timelineZoomMin,
                                                      yesdaw::ui::UiTheme::Layout::timelineZoomMax);
                     timelineScrollSeconds = std::max (0.0, view.rangeStartSeconds - margin);
+                    refreshTimelineZoomReadout();
+                    lastSelectionZoom = ZoomView { timelineZoomFactor, timelineScrollSeconds };
                 }
                 (void) appModel.dispatch (action);
                 return;
@@ -10827,6 +10999,9 @@ private:
         // the ONE shared zoom factor every gesture mutates.
         timelineZoomOutButton.setVisible (timelineVisible);
         timelineZoomInButton.setVisible (timelineVisible);
+        timelineZoomSlider.setVisible (timelineVisible);   // G2.16
+        timelineHScroll.setVisible (timelineVisible);
+        timelineVScroll.setVisible (timelineVisible);
         timelineZoomReadout.setVisible (timelineVisible);
         statusLine.setVisible (timelineVisible);
         refreshTimelineZoomReadout();
@@ -12241,6 +12416,7 @@ private:
                     timelineClipAssetHashes[static_cast<std::size_t> (layoutClipId)]);
             };
             state.totalSeconds = timelineTotalSeconds;
+            state.rowZoom = timelineRowZoom;   // G2.16
             state.playheadSeconds = appModel.project().sampleRate.isValid()
                                         ? static_cast<double> (appModel.context().playheadFrame)
                                             / appModel.project().sampleRate.hz
@@ -14132,6 +14308,18 @@ private:
     std::vector<std::string> timelineMapLabelTexts;                // G2.15
     std::vector<yesdaw::ui::TimelineMapLabel> timelineMapLabelViews;
     double timelineZoomFactor = 1.0;   // 1.0 == whole timeline fits the window
+    double timelineRowZoom = 1.0;      // G2.16: multiplies every auto-height row
+    std::optional<ZoomView> lastSelectionZoom;   // G2.16: the view Z produced (Z again goes back)
+    bool refreshingZoomSlider = false;
+    bool refreshingScrollBars = false;
+    FineDragSlider timelineZoomSlider;
+    // G2.16: a scroll bar that carries a tooltip like every other identified control.
+    struct TooltipScrollBar final : juce::ScrollBar, juce::SettableTooltipClient
+    {
+        using juce::ScrollBar::ScrollBar;
+    };
+    TooltipScrollBar timelineHScroll { false };
+    TooltipScrollBar timelineVScroll { true };
     mutable double timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
     // Vertical track scroll (E5): whole lane rows above the viewport, shared by the timeline
     // lanes and the track rail; geometry clamps it against the current lane count.

@@ -637,6 +637,14 @@ struct UiTheme
         static constexpr double timelineZoomToolClickFactor = 2.0;
         static constexpr double timelineZoomMin = 1.0;
         static constexpr double timelineZoomMax = 64.0;
+        // G2.16: the vertical (row) zoom multiplies every auto-height row; the zoom history depth.
+        static constexpr double timelineRowZoomMin = 0.5;
+        static constexpr double timelineRowZoomMax = 3.0;
+        static constexpr double timelineRowZoomStep = 1.25;
+        static constexpr int timelineZoomHistoryDepth = 32;
+        static constexpr int timelineScrollBarThickness = 10;
+        static constexpr int timelineZoomSliderWidth = 96;
+        static constexpr int timelineZoomSliderGap = 8;
         static constexpr double timelineScrollWheelFraction = 0.15;
         static constexpr int headerTempoTextWidth = 52;
         static constexpr int headerTempoTextHeight = 18;
@@ -832,9 +840,16 @@ struct UiTheme
         // R4: the status line fills the toolbar row's remaining width right of the zoom cluster.
         static constexpr int statusLineLeftGap = 12;
         static constexpr int statusLineRightInset = 8;
+        // G2.16: the zoom slider sits right after the zoom trio; the status line starts after it.
+        static juce::Rectangle<int> timelineZoomSliderBounds (juce::Rectangle<int> timeline) noexcept
+        {
+            return timelineZoomInButtonBounds (timeline)
+                .translated (timelineZoomButtonWidth + timelineZoomSliderGap, 0)
+                .withWidth (timelineZoomSliderWidth);
+        }
         static juce::Rectangle<int> statusLineBounds (juce::Rectangle<int> timeline) noexcept
         {
-            const juce::Rectangle<int> zoomIn = timelineZoomInButtonBounds (timeline);
+            const juce::Rectangle<int> zoomIn = timelineZoomSliderBounds (timeline);
             const int left = zoomIn.getRight() + statusLineLeftGap;
             return zoomIn.withX (left).withWidth (
                 juce::jmax (0, timeline.getRight() - statusLineRightInset - left));

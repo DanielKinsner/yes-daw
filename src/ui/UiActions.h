@@ -117,6 +117,10 @@ enum class UiActionId : std::uint8_t
     TimelineTempoChangeToggleRamp,
     TimelineMeterChangeAdd,
     TimelineMeterChangeRemove,
+    TimelineZoomTracksIn,             // G2.16: zoom and navigation
+    TimelineZoomTracksOut,
+    TimelineZoomBack,
+    TimelinePlayheadFollowContinuous,
     TimelineMidiClipAdd,
     MixerFxInsertParamSet,
     // ADR-0044 send routing actions
@@ -334,6 +338,9 @@ enum class UiFocusContext : std::uint8_t
         case UiActionId::TimelineSelectAllFollowing:
         case UiActionId::TimelineZoomIn:
         case UiActionId::TimelineZoomOut:
+        case UiActionId::TimelineZoomTracksIn:       // G2.16
+        case UiActionId::TimelineZoomTracksOut:
+        case UiActionId::TimelineZoomBack:
         case UiActionId::TransportLocateNextGrid:
         case UiActionId::TransportLocatePreviousGrid:
             return UiFocusContext::Arrange;
@@ -409,6 +416,7 @@ struct UiActionContext
     bool timelineClipMuted = false;   // G2.12: the selected clip is muted (the Mute Clip tick)
     bool timelineClipReversed = false;   // G2.13: the selected clip is reversed (the Reverse tick)
     bool tempoChangeAtPlayheadRamps = false;   // G2.15: the change in force at the playhead ramps to the next
+    bool playheadFollowContinuous = false;     // G2.16: continuous follow (vs page)
     bool timelineRangeSelected = false;
     bool canUndo = false;
     bool canRedo = false;
@@ -753,6 +761,14 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineMeterChangeRemove, "timeline.meter.change_remove", "Remove Meter Change at Playhead", "", "Remove the meter change in force at the playhead (the head meter stays)",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineZoomTracksIn, "timeline.zoom.tracks_in", "Zoom Tracks In", "Ctrl+Up", "Make every auto-height track row taller",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineZoomTracksOut, "timeline.zoom.tracks_out", "Zoom Tracks Out", "Ctrl+Down", "Make every auto-height track row shorter",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineZoomBack, "timeline.zoom.back", "Zoom Back", "", "Return to the previous zoom and scroll (the zoom history)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelinePlayheadFollowContinuous, "timeline.playhead_follow.continuous", "Follow Playhead: Continuous", "", "While playing, keep the playhead at the window's middle instead of turning pages",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::TimelineMidiClipAdd, "timeline.midi_clip.add", "Add MIDI Clip", "", "Add MIDI clip on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::MixerFxInsertParamSet, "mixer.fx.insert.param.set", "Set FX Param", "", "Set FX insert parameter on selected strip",
@@ -1627,6 +1643,9 @@ public:
 
             case UiActionId::TimelineZoomFitProject:
             case UiActionId::TimelineZoomFitLoop:
+            case UiActionId::TimelineZoomTracksIn:   // G2.16
+            case UiActionId::TimelineZoomTracksOut:
+            case UiActionId::TimelineZoomBack:
             case UiActionId::TimelineZoomIn:
             case UiActionId::TimelineZoomOut:
                 context.activePanel = UiPanel::Timeline;
@@ -1939,6 +1958,9 @@ public:
             case UiActionId::TimelineSnapModeRelative: context.snapMode = UiSnapMode::Relative; break;
             case UiActionId::TimelineSnapModeEvents:   context.snapMode = UiSnapMode::Events;   break;
             case UiActionId::TimelineSnapModeOff:      context.snapMode = UiSnapMode::Off;      break;
+            case UiActionId::TimelinePlayheadFollowContinuous:   // G2.16
+                context.playheadFollowContinuous = ! context.playheadFollowContinuous;
+                break;
 
             case UiActionId::Count:
                 return { id, { false, "unknown action" }, false };

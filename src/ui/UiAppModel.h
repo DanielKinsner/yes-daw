@@ -6936,6 +6936,10 @@ public:
             case UiActionId::TimelineZoomIn:
             case UiActionId::TimelineZoomOut:
             case UiActionId::TimelineZoomToSelection:   // G2.5: the shell zooms; the registry counts
+            case UiActionId::TimelineZoomTracksIn:      // G2.16: likewise
+            case UiActionId::TimelineZoomTracksOut:
+            case UiActionId::TimelineZoomBack:
+            case UiActionId::TimelinePlayheadFollowContinuous:
             case UiActionId::TrackSelectPrevious:
             case UiActionId::TrackSelectNext:
             case UiActionId::TimelineTogglePlayheadFollow:

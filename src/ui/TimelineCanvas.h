@@ -189,6 +189,7 @@ struct TimelineCanvasState
     // length, never by elapsed seconds. Defaults to the same 120 BPM 4/4 fallback the
     // transport readout uses when no project is loaded.
     double barSeconds = UiTheme::Layout::timelineCanvasDefaultBarSeconds;
+    double rowZoom = 1.0;   // G2.16: multiplies every auto-height row (Ctrl+Up / Ctrl+Down)
 
     // G2.2: the time row's format — 0 / 1 min:sec (the header shows bars or min:sec primary),
     // 2 SMPTE (hh:mm:ss:ff at kRulerSmpteFramesPerSecond), 3 samples — and the project sample
@@ -1140,7 +1141,8 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
             laneCustomHeights[static_cast<std::size_t> (i)] = state.tracks[i].heightPx;
 
     const CumulativeRowGeometry laneLaw = computeCumulativeRowGeometry (
-        laneCount, geometry.clipArea.getHeight (), UiTheme::Layout::timelineCanvasLaneRowHeight,
+        laneCount, geometry.clipArea.getHeight (),
+        juce::roundToInt (UiTheme::Layout::timelineCanvasLaneRowHeight * std::clamp (state.rowZoom, UiTheme::Layout::timelineRowZoomMin, UiTheme::Layout::timelineRowZoomMax)),   // G2.16
         laneCustomHeights.data());
     geometry.laneHeight = laneLaw.autoShare;
     geometry.laneTopPixels = laneLaw.tops;

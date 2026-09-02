@@ -64,6 +64,8 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `Del` | Delete Clip | `timeline.clip.delete` |
 | `Ctrl+C` | Copy Clip | `timeline.clip.copy` |
 | `Ctrl+V` | Paste Clip | `timeline.clip.paste` |
+| `Ctrl+Up` | Zoom Tracks In | `timeline.zoom.tracks_in` |
+| `Ctrl+Down` | Zoom Tracks Out | `timeline.zoom.tracks_out` |
 | `Ctrl+X` | Cut Clip | `timeline.clip.cut` |
 | `Ctrl+Shift+A` | Select Track Clips | `timeline.clip.select_all_track` |
 | `Ctrl+A` | Select Project Clips | `timeline.clip.select_all_project` |
@@ -166,6 +168,8 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Tempo Change: Ramp to Next (`timeline.tempo.change_toggle_ramp`)
 - Add Meter Change at Playhead (`timeline.meter.change_add`)
 - Remove Meter Change at Playhead (`timeline.meter.change_remove`)
+- Zoom Back (`timeline.zoom.back`)
+- Follow Playhead: Continuous (`timeline.playhead_follow.continuous`)
 - Add MIDI Clip (`timeline.midi_clip.add`)
 - Set FX Param (`mixer.fx.insert.param.set`)
 - Add Bus (`mixer.bus.add`)

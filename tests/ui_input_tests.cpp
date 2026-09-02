@@ -1086,7 +1086,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 149u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 152u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -10550,23 +10550,36 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
     // moves the clip; the reverse drag lands back at exactly zero scroll.
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectHand);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Hand);
-    const MainComponentSnapshot handBase = snapshotMainComponent (*shell);
+    // G2.16 re-pin: at fit zoom there is no room to pan (the hand clamps like the scroll bar);
+    // zoom in first so the pan has somewhere to go, and zoom back out afterwards.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomIn);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomIn);
+    REQUIRE (snapshotMainComponent (*shell).timelineZoomFactor > 1.0);
+    const MainComponentSnapshot handBase = snapshotMainComponent (*shell);   // the zoom anchored the view; the pan is relative
     const yesdaw::ui::TimelineCanvasGeometry handGeometry = viewportAt (handBase);
     const double handPixelsPerSecond = std::max (
         yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
         handGeometry.viewport.pixelsPerSecond);
     const int handDragPixels = 120;
-    dragFromTo (timeline, topBounds.getCentre(),
-                { topBounds.getCentreX() - handDragPixels, topBounds.getCentreY() });
+    // Both drags stay inside the clip area: the hand pans from anywhere on the canvas, and the
+    // clip's own centre minus the pan would fall left of the canvas (G2.16 re-pin: the old
+    // reverse drag started off-canvas and only "landed at zero" because the paint clamp did).
+    const juce::Point<int> handFrom { timeline.getWidth() / 2, topBounds.getCentreY() };
+    const juce::Point<int> handTo { handFrom.x - handDragPixels, handFrom.y };
+    dragFromTo (timeline, handFrom, handTo);
     const MainComponentSnapshot handMoved = snapshotMainComponent (*shell);
     REQUIRE (handMoved.timelineScrollSeconds
              == Catch::Approx (handBase.timelineScrollSeconds
                                + static_cast<double> (handDragPixels) / handPixelsPerSecond));
     REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
-    dragFromTo (timeline, { topBounds.getCentreX() - handDragPixels, topBounds.getCentreY() },
-                topBounds.getCentre());
-    REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == 0.0);
+    dragFromTo (timeline, handTo, handFrom);
+    REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == Catch::Approx (handBase.timelineScrollSeconds).margin (1.0e-9));
     REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomOut);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomOut);
+    REQUIRE (snapshotMainComponent (*shell).timelineZoomFactor == 1.0);
+    REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == 0.0);
+    REQUIRE (timelineClipHitBounds (timeline, original, 0u) == topBounds);
 
     // SCISSORS tool: with the snap chooser on and the grid coarser than this short clip, the
     // snapped split tick lands outside the clip body and is honestly refused (E4); Ctrl inverts
@@ -17133,6 +17146,17 @@ TEST_CASE ("G2.6 edit modes: Overlap leaves neighbours, No Overlap trims what a 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.clips.size() == 1u);
     const yesdaw::engine::Tick L = original.clips.front().timelineLength;
+    // A ruler click rounds to a pixel: the honest bound is half a pixel of frames (G2.16 re-pin —
+    // the canvas lost the scroll-bar strip's width, and the old "4" was rounding luck).
+    const auto halfPixelFrames = [&]
+    {
+        const MainComponentSnapshot view = snapshotMainComponent (*shell);
+        const double pixelsPerSecond = static_cast<double> (juce::jmax (yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                                        timeline.getWidth() - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                     / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds, view.visibleTimelineTotalSeconds)
+                                     * view.timelineZoomFactor;
+        return static_cast<long long> (std::ceil (0.5 * original.sampleRate.hz / pixelsPerSecond)) + 1;
+    };
     REQUIRE (L > 8);
     mouseDownAt (timeline, timelineClipCenterPoint (timeline, original, 0u));
     REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
@@ -17142,7 +17166,7 @@ TEST_CASE ("G2.6 edit modes: Overlap leaves neighbours, No Overlap trims what a 
         const auto clips = sortedClips();
         REQUIRE (clips.size() == 2u);
         REQUIRE (clips[0].timelineStart == 0);
-        REQUIRE (std::llabs (static_cast<long long> (clips[1].timelineStart) - static_cast<long long> (L)) <= 4);   // a ruler click rounds to a pixel
+        REQUIRE (std::llabs (static_cast<long long> (clips[1].timelineStart) - static_cast<long long> (L)) <= halfPixelFrames());
     }
     const auto base = sortedClips();
     const yesdaw::engine::Tick B0 = base[1].timelineStart;   // where B really landed
@@ -17156,7 +17180,7 @@ TEST_CASE ("G2.6 edit modes: Overlap leaves neighbours, No Overlap trims what a 
         REQUIRE (clips.size() == 3u);
         REQUIRE (clips[0].timelineStart == 0);
         REQUIRE (clips[0].timelineLength == L);
-        REQUIRE (std::llabs (static_cast<long long> (clips[1].timelineStart) - static_cast<long long> (L / 2)) <= 4);
+        REQUIRE (std::llabs (static_cast<long long> (clips[1].timelineStart) - static_cast<long long> (L / 2)) <= halfPixelFrames());
         REQUIRE (clips[2].timelineStart == B0);
         REQUIRE (clips[2].timelineLength == L);
     }
@@ -17175,7 +17199,7 @@ TEST_CASE ("G2.6 edit modes: Overlap leaves neighbours, No Overlap trims what a 
         const auto clips = sortedClips();
         REQUIRE (clips.size() == 3u);
         const yesdaw::engine::Tick placedStart = clips[1].timelineStart;
-        REQUIRE (std::llabs (static_cast<long long> (placedStart) - static_cast<long long> (L / 2)) <= 4);
+        REQUIRE (std::llabs (static_cast<long long> (placedStart) - static_cast<long long> (L / 2)) <= halfPixelFrames());
         REQUIRE (clips[0].timelineStart == 0);
         REQUIRE (clips[0].timelineLength == placedStart);              // A trimmed to the placed start
         REQUIRE (clips[1].timelineLength == L);                       // the placed clip, whole
@@ -18217,6 +18241,129 @@ TEST_CASE ("G2.15 tempo map: changes at the playhead, the piecewise readout, the
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
     std::filesystem::remove (wavPath, ec);
+}
+
+// G2.16: zoom and navigation — Ctrl+Up / Ctrl+Down scale every auto row (one law for canvas and
+// rail), the zoom slider drives the ONE zoom law, the scroll bars mirror the view and drive it,
+// continuous follow keeps the playhead at the middle, Z toggles back, Zoom Back pops the history.
+TEST_CASE ("G2.16 zoom and navigation: row zoom, the zoom slider, scroll bars, continuous follow, Z toggle, zoom back",
+           "[ui][input][shell][g2][zoom-nav]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("zoom-nav");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const auto viewNum = [&] (const char* key)
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return static_cast<double> (probe.getProperty ("view", {}).getProperty (key, 0.0));
+    };
+
+    // Row zoom: Ctrl+Down shrinks every auto row by the step — the rail's painted row AND the
+    // canvas lane (a point near the clip's bottom edge leaves the clip); Ctrl+Up restores both.
+    const juce::Rectangle<int> clipBefore = timelineClipHitBounds (timeline, readProjectSnapshot (bundlePath), 0u);
+    const int railRowBefore = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 0).getHeight();
+    const juce::Point<int> nearBottom { clipBefore.getCentreX(), clipBefore.getBottom() - 4 };
+    const auto zoneAt = [&] (juce::Point<int> local)
+    {
+        return yesdaw::ui::mainComponentTimelineZoneAt (*shell, local + timeline.getPosition(), juce::ModifierKeys());
+    };
+    REQUIRE (railRowBefore == yesdaw::ui::UiTheme::Layout::trackListRowMinHeight);
+    REQUIRE (zoneAt (nearBottom) != "none");
+    REQUIRE (viewNum ("rowZoom") == 1.0);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey, juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (viewNum ("rowZoom") < 1.0);
+    const int railRowSmaller = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 0).getHeight();
+    INFO ("rail row " << railRowBefore << " -> " << railRowSmaller);
+    REQUIRE (railRowSmaller < railRowBefore);
+    REQUIRE (railRowSmaller == juce::roundToInt (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / yesdaw::ui::UiTheme::Layout::timelineRowZoomStep));
+    REQUIRE (zoneAt (nearBottom) == "none");   // the lane shrank with the rail row
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey, juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (viewNum ("rowZoom") == 1.0);
+    REQUIRE (yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 0).getHeight() == railRowBefore);
+    REQUIRE (zoneAt (nearBottom) != "none");
+
+    // The zoom slider drives the factor; the readout and the horizontal bar follow.
+    auto* slider = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "timeline.zoom.slider"));
+    auto* hBar = dynamic_cast<juce::ScrollBar*> (findChildWithComponentId (*shell, "timeline.scroll.h"));
+    auto* vBar = dynamic_cast<juce::ScrollBar*> (findChildWithComponentId (*shell, "timeline.scroll.v"));
+    REQUIRE (slider != nullptr);
+    REQUIRE (hBar != nullptr);
+    REQUIRE (vBar != nullptr);
+    REQUIRE (slider->isVisible());
+    REQUIRE (! hBar->getBounds().isEmpty());
+    REQUIRE (! vBar->getBounds().isEmpty());
+    slider->setValue (2.0, juce::sendNotificationSync);   // 2^2 = 4x
+    REQUIRE (snapshotMainComponent (*shell).timelineZoomFactor == Catch::Approx (4.0).margin (0.01));
+    REQUIRE (hBar->getCurrentRangeSize() == Catch::Approx (snapshotMainComponent (*shell).visibleTimelineTotalSeconds / 4.0).margin (0.05));
+    // The horizontal bar drives the scroll; the vertical bar's range is the rows.
+    hBar->setCurrentRangeStart (0.25, juce::sendNotificationSync);
+    REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == Catch::Approx (0.25).margin (0.001));
+    REQUIRE (hBar->getCurrentRangeStart() == Catch::Approx (0.25).margin (0.001));
+
+    // Zoom Back pops the history: the view returns to 1x at scroll 0.
+    REQUIRE (viewNum ("zoomHistoryDepth") >= 1.0);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomBack);
+    REQUIRE (snapshotMainComponent (*shell).timelineZoomFactor == 1.0);
+
+    // Z toggles: a Time selection, Z fits it, Z again returns to the previous view.
+    {
+        // The fixture is 85 ms — a quarter of the VISIBLE window is a real drag; the clip is not.
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        const MainComponentSnapshot view = snapshotMainComponent (*shell);
+        const auto frameAt = [&] (double fraction)
+        {
+            return static_cast<yesdaw::engine::Tick> (std::llround (view.visibleTimelineTotalSeconds * fraction * project.sampleRate.hz));
+        };
+        const juce::Point<int> from = projectRulerPointAtTick (timeline, view, project, frameAt (0.25));
+        const juce::Point<int> to = projectRulerPointAtTick (timeline, view, project, frameAt (0.5));
+        REQUIRE (timeline.getLocalBounds().contains (from));
+        REQUIRE (timeline.getLocalBounds().contains (to));
+        dragFromTo (timeline, from, to);
+        REQUIRE (snapshotMainComponent (*shell).context.timelineRangeSelected);
+    }
+    const double zoomBeforeZ = snapshotMainComponent (*shell).timelineZoomFactor;
+    const double scrollBeforeZ = snapshotMainComponent (*shell).timelineScrollSeconds;
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z')));
+    REQUIRE (snapshotMainComponent (*shell).timelineZoomFactor > zoomBeforeZ);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z')));
+    REQUIRE (snapshotMainComponent (*shell).timelineZoomFactor == zoomBeforeZ);
+    REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == scrollBeforeZ);
+
+    // Continuous follow: zoomed in, playing from 0, the scroll keeps the playhead near the middle.
+    REQUIRE (viewNum ("playheadFollowContinuous") == 0.0);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelinePlayheadFollowContinuous);
+    REQUIRE (viewNum ("playheadFollowContinuous") == 1.0);
+    REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::TimelinePlayheadFollowContinuous).enabled);
+    slider->setValue (3.0, juce::sendNotificationSync);   // 8x
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    // The first tick: the playhead is still left of the middle, so the view stays at 0.
+    (void) renderMainComponentPlayback (*shell, 512, 512);
+    REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == 0.0);
+    // Past the middle of the 8x window the view moves under the playhead.
+    (void) renderMainComponentPlayback (*shell, 512 * 12, 512);
+    REQUIRE (serviceMainComponentUiTimer (*shell));
+    {
+        const MainComponentSnapshot playing = snapshotMainComponent (*shell);
+        const double sampleRate = readProjectSnapshot (bundlePath).sampleRate.hz;
+        const double playheadSeconds = static_cast<double> (playing.context.playheadFrame) / sampleRate;
+        const double visible = playing.visibleTimelineTotalSeconds / playing.timelineZoomFactor;
+        INFO ("playhead " << playheadSeconds << " scroll " << playing.timelineScrollSeconds << " visible " << visible);
+        REQUIRE (playheadSeconds > visible * 0.5);
+        REQUIRE (playing.timelineScrollSeconds == Catch::Approx (playheadSeconds - visible * 0.5).margin (0.01));
+    }
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",
