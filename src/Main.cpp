@@ -5,7 +5,10 @@
 
 #include <juce_gui_extra/juce_gui_extra.h>
 
+#include <filesystem>
 #include <memory>
+#include <string>
+#include <utility>
 
 // Build-time version stamp (git-describe), injected by CMake (YESDAW_GIT_VERSION) exactly as the
 // YesDawSelfCheck CLI is stamped. Falls back to a dev marker for an unstamped/loose build so the
@@ -36,8 +39,24 @@ public:
 
     void initialise (const juce::String&) override
     {
+        // G0.1: `YesDaw.exe <path.yesdaw>` opens that bundle instead of the last-project record
+        // (the Session drive's `Launch [bundle]`). Absolute paths only.
+        std::filesystem::path openBundleAtLaunch;
+        for (const juce::String& argument : getCommandLineParameterArray())
+        {
+            const juce::String trimmed = argument.unquoted().trim();
+            if (trimmed.endsWithIgnoreCase (".yesdaw") && juce::File::isAbsolutePath (trimmed))
+            {
+                const std::string utf8 = juce::File (trimmed).getFullPathName().toStdString();
+                const auto* bytes = reinterpret_cast<const char8_t*> (utf8.data());
+                openBundleAtLaunch = std::filesystem::path { std::u8string (bytes, bytes + utf8.size()) };
+                break;
+            }
+        }
+
         const juce::String title = "YES DAW " + getApplicationVersion();
-        mainWindow.reset (new MainWindow (title, yesdaw::ui::createMainComponent().release(), *this));
+        mainWindow.reset (new MainWindow (
+            title, yesdaw::ui::createNativeMainComponent (std::move (openBundleAtLaunch)).release(), *this));
     }
 
     void shutdown() override { mainWindow = nullptr; }

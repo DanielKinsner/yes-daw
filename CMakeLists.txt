@@ -403,6 +403,30 @@ if (YESDAW_BUILD_APPS)
   yesdaw_harden(YesDawUiInputCheck)
   add_test(NAME YesDawUiInputCheck COMMAND $<TARGET_FILE:YesDawUiInputCheck>)
 
+  # --- State probe gate (G0.1; ADR-0046 §10) -------------------------------------------
+  # The debug-only JSON snapshot the Session drive reads: schema version, required sections,
+  # element ids in the layout map (widgets by id, lanes, clips by hex id), and the "never in a
+  # normal launch" law. Built the same way as the UI input harness (real MainComponent).
+  juce_add_console_app(YesDawStateProbeCheck PRODUCT_NAME "YesDawStateProbeCheck")
+  target_sources(YesDawStateProbeCheck PRIVATE tests/state_probe_tests.cpp src/ui/MainComponent.cpp)
+  target_include_directories(YesDawStateProbeCheck PRIVATE ${YESDAW_SRC_DIR})
+  target_include_directories(YesDawStateProbeCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+  target_compile_definitions(YesDawStateProbeCheck PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_MODAL_LOOPS_PERMITTED=1
+    YESDAW_WAV_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sine_440_48k_mono.wav")
+  target_link_libraries(YesDawStateProbeCheck
+    PRIVATE
+      Catch2::Catch2WithMain
+      sqlite3_amalgamation
+      juce::juce_audio_devices
+      juce::juce_audio_formats
+      juce::juce_gui_extra
+      juce::juce_recommended_config_flags)
+  yesdaw_harden(YesDawStateProbeCheck)
+  add_test(NAME YesDawStateProbeCheck COMMAND $<TARGET_FILE:YesDawStateProbeCheck>)
+
   # --- UI screenshot harness (H16 CP8; mechanical nonblank PNG proof) ---
   juce_add_console_app(YesDawUiScreenshotCheck PRODUCT_NAME "YesDawUiScreenshotCheck")
   target_sources(YesDawUiScreenshotCheck PRIVATE tests/ui_screenshot_tests.cpp src/ui/MainComponent.cpp)

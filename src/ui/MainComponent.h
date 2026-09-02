@@ -43,6 +43,13 @@ struct MainComponentFileChoices
     // Session-state directory seam (B39): the harness points last-project/recent-projects records
     // at a test-local directory; the native shell keeps its real per-user location when unset.
     std::filesystem::path sessionStateDirectory;
+    // G0.1 State probe (ADR-0046 §10): when set, the shell writes a JSON snapshot of its state to
+    // this file on every UI tick (schema in the plan §7.2). The native shell fills it from the
+    // YESDAW_STATE_PROBE environment variable; a normal launch leaves it empty and writes nothing.
+    std::filesystem::path stateProbePath;
+    // G0.1 Session drive: open this bundle at launch instead of the last-project record (the
+    // native shell fills it from the command line: `YesDaw.exe <path.yesdaw>`).
+    std::filesystem::path openBundleAtLaunch;
 };
 
 inline constexpr int kCloseChoiceSave = 0;
@@ -111,6 +118,16 @@ struct MainComponentSnapshot
 
 [[nodiscard]] std::unique_ptr<juce::Component> createMainComponent();
 [[nodiscard]] std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices);
+// G0.1: the native launch path. Desktop audio + native choosers (as createMainComponent()), plus
+// the launch-time seams the Session drive relies on: `openBundleAtLaunch` (from the command
+// line), and the environment variables YESDAW_STATE_PROBE (probe file) and
+// YESDAW_SESSION_STATE_DIR (last-project / recent-projects directory), so a driven launch never
+// reads or writes the owner's real session records.
+[[nodiscard]] std::unique_ptr<juce::Component> createNativeMainComponent (std::filesystem::path openBundleAtLaunch);
+// G0.1: the State probe document for the shell as it stands right now (the SAME string the
+// timer tick writes to `stateProbePath`), so a gate can assert the schema without a file race.
+// Empty for a non-MainComponent.
+[[nodiscard]] std::string mainComponentStateProbeJson (juce::Component& component);
 [[nodiscard]] MainComponentSnapshot snapshotMainComponent (const juce::Component& component);
 [[nodiscard]] std::vector<float> renderMainComponentPlayback (juce::Component& component,
                                                               std::uint64_t frames,

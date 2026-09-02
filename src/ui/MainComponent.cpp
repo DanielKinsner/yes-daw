@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <atomic>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -277,6 +278,27 @@ constexpr std::array<std::uint32_t, 6> kTrackColourCycle {
 
 // Translate a JUCE KeyPress into the keymap's chord vocabulary ("Ctrl+Alt+Shift+B", "Space", "Del",
 // "F2", "Ctrl+/"). Modifier order matches the descriptor table: Ctrl, Alt, Shift.
+// G0.1 State probe: the shell's JSON schema version. Bumped only when a field changes meaning;
+// the [state-probe] gate and tools/session-drive.ps1 pin it.
+constexpr int kStateProbeSchemaVersion = 1;
+// G0.1: paint-time ring used for the p95 the B2 feel budget reads (about eight seconds at 30 Hz).
+constexpr std::size_t kStateProbePaintRingSize = 256;
+
+// G0.1: an EntityId as 32 lowercase hex digits — the id form the State probe publishes and the
+// Session drive clicks by (`clip.<hex>`).
+std::string entityIdHex (const yesdaw::engine::EntityId& id)
+{
+    static constexpr char kDigits[] = "0123456789abcdef";
+    std::string out;
+    out.reserve (id.bytes.size() * 2u);
+    for (const std::uint8_t byte : id.bytes)
+    {
+        out.push_back (kDigits[byte >> 4u]);
+        out.push_back (kDigits[byte & 0x0Fu]);
+    }
+    return out;
+}
+
 std::string chordForKeyPress (const juce::KeyPress& key)
 {
     std::string chord;
@@ -3031,6 +3053,10 @@ public:
         if (! fileChoices.sessionStateDirectory.empty())
             appModel.setSessionStateDirectory (fileChoices.sessionStateDirectory);
 
+        // G0.1 State probe: debug-only; a normal launch leaves the path empty and writes nothing.
+        stateProbePath = fileChoices.stateProbePath;
+        launchStamp = std::chrono::steady_clock::now();
+
         setOpaque (true);
         setLookAndFeel (&lookAndFeel);
         setWantsKeyboardFocus (true);   // the declared keymap chords dispatch through keyPressed
@@ -4050,6 +4076,9 @@ public:
             // Native shell only: remember and reopen the last project so a crash-then-relaunch reaches
             // the autosave recovery prompt with no manual navigation (usable-DAW P1). The harness never
             // takes this path, so injected-choice tests stay deterministic.
+            // G0.1: a Session drive redirects the records (YESDAW_SESSION_STATE_DIR) so a driven
+            // launch never reads or rewrites the owner's real last-project record.
+            if (fileChoices.sessionStateDirectory.empty())
             {
                 const std::string sessionUtf8 =
                     juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
@@ -4058,7 +4087,10 @@ public:
                 appModel.setSessionStateDirectory (
                     std::filesystem::path { std::u8string (sessionBytes, sessionBytes + sessionUtf8.size()) });
             }
-            const std::filesystem::path lastProject = appModel.readLastProjectRecord();
+            // G0.1: a bundle named on the command line wins over the last-project record.
+            const std::filesystem::path lastProject = ! fileChoices.openBundleAtLaunch.empty()
+                                                          ? fileChoices.openBundleAtLaunch
+                                                          : appModel.readLastProjectRecord();
             if (! lastProject.empty())
             {
                 const StoredProjectAssetsResult stored = decodeStoredProjectAssets (lastProject);
@@ -4087,6 +4119,7 @@ public:
                 if (juce::AudioIODevice* device = audioDeviceManager.getCurrentAudioDevice())
                     appModel.setPlaybackMaxBlockSize (device->getCurrentBufferSizeSamples());
                 audioDeviceManager.addAudioCallback (this);
+                ++audioCallbackAdds;   // G0.1 probe: the one legitimate startup registration
                 desktopAudioCallbackRegistered = true;
                 desktopAudioOpen.store (true, std::memory_order_release);
                 refreshAudioDeviceChooser();   // now the current device can be marked selected
@@ -4136,6 +4169,16 @@ public:
     // The UI polls the lock-free audio-thread transport snapshot at ~30 Hz. Autosave remains on its
     // independent slow schedule and never runs in the device callback.
     void timerCallback() override
+    {
+        const auto tickStart = std::chrono::steady_clock::now();
+        serviceUiTick();
+        lastTickMs = std::chrono::duration<double, std::milli> (
+                         std::chrono::steady_clock::now() - tickStart).count();
+        ++probeTick;
+        writeStateProbeIfEnabled();
+    }
+
+    void serviceUiTick()
     {
         appModel.refreshTransportSnapshot();
         appModel.serviceRecordingCountIn();
@@ -4234,6 +4277,12 @@ public:
             (void) appModel.adoptRealRecordingDevice (profile);
         }
         desktopAudioOpen.store (device != nullptr, std::memory_order_release);
+        // G0.1 probe: the block budget the deadline-miss counter measures against, and the
+        // driver's own xrun baseline (-1 when the driver cannot report one).
+        deviceSampleRateHz.store (device != nullptr ? device->getCurrentSampleRate() : 0.0,
+                                  std::memory_order_relaxed);
+        deviceXRunBaseline.store (device != nullptr ? device->getXRunCount() : -1,
+                                  std::memory_order_relaxed);
     }
 
     void audioDeviceIOCallbackWithContext (const float* const* inputChannels,
@@ -4243,9 +4292,29 @@ public:
                                            int numFrames,
                                            const juce::AudioIODeviceCallbackContext&) override
     {
+        const auto blockStart = std::chrono::steady_clock::now();
         (void) appModel.processDeviceAudioBlock (
             inputChannels, numInputChannels, outputChannels, numOutputChannels, numFrames);
         accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
+
+        // G0.1 probe (B5): a block that took longer than the audio it produced is a deadline miss.
+        // Atomics only — the device thread never allocates, locks, or logs here.
+        const auto elapsed = std::chrono::steady_clock::now() - blockStart;
+        const auto elapsedNs = static_cast<std::uint64_t> (
+            std::chrono::duration_cast<std::chrono::nanoseconds> (elapsed).count());
+        const double rateHz = deviceSampleRateHz.load (std::memory_order_relaxed);
+        if (rateHz > 0.0 && numFrames > 0)
+        {
+            const double budgetNs = 1.0e9 * static_cast<double> (numFrames) / rateHz;
+            if (static_cast<double> (elapsedNs) > budgetNs)
+                deviceDeadlineMisses.fetch_add (1u, std::memory_order_relaxed);
+        }
+        std::uint64_t previousMax = deviceMaxCallbackNs.load (std::memory_order_relaxed);
+        while (elapsedNs > previousMax
+               && ! deviceMaxCallbackNs.compare_exchange_weak (previousMax, elapsedNs,
+                                                               std::memory_order_relaxed))
+        {
+        }
     }
 
     void audioDeviceStopped() override
@@ -4514,6 +4583,327 @@ public:
         return rail.isEmpty() ? 0 : mixerFaderThumbYForGain (rail, linearGain);
     }
 
+    // ---- G0.1 State probe ------------------------------------------------------------------
+    // One JSON document of what the shell is right now: transport, selection, focus, view,
+    // frame/audio counters, and a `layout` map of shell-coordinate hit rects keyed by element
+    // id so a Session script clicks by NAME (`widget.transport.play`, `lane.0`, `clip.<hex>`),
+    // never by pixel. Every rect comes from the SAME law the paint and hit-test paths use.
+
+    [[nodiscard]] static juce::var probeRect (juce::Rectangle<int> rect)
+    {
+        juce::Array<juce::var> values;
+        values.add (rect.getX());
+        values.add (rect.getY());
+        values.add (rect.getWidth());
+        values.add (rect.getHeight());
+        return values;
+    }
+
+    [[nodiscard]] static const char* probeFocusContextName (yesdaw::ui::UiPanel panel) noexcept
+    {
+        switch (panel)
+        {
+            case yesdaw::ui::UiPanel::Timeline:  return "Arrange";
+            case yesdaw::ui::UiPanel::Mixer:     return "Mixer";
+            case yesdaw::ui::UiPanel::PianoRoll: return "PianoRoll";
+        }
+        return "Arrange";
+    }
+
+    [[nodiscard]] static const char* probeToolName (yesdaw::ui::TimelineTool tool) noexcept
+    {
+        switch (tool)
+        {
+            case yesdaw::ui::TimelineTool::Pointer:  return "Pointer";
+            case yesdaw::ui::TimelineTool::Pencil:   return "Pencil";
+            case yesdaw::ui::TimelineTool::Scissors: return "Scissors";
+            case yesdaw::ui::TimelineTool::Hand:     return "Hand";
+            case yesdaw::ui::TimelineTool::Zoom:     return "Zoom";
+        }
+        return "Pointer";
+    }
+
+    [[nodiscard]] juce::String probeRendererName() const
+    {
+        if (const juce::ComponentPeer* peer = getPeer())
+        {
+            // getAvailableRenderingEngines() is non-const in JUCE's peer API; the query itself
+            // mutates nothing.
+            auto& mutablePeer = const_cast<juce::ComponentPeer&> (*peer);
+            const juce::StringArray engines = mutablePeer.getAvailableRenderingEngines();
+            const int index = peer->getCurrentRenderingEngine();
+            if (index >= 0 && index < engines.size())
+                return engines[index];
+            return "unknown";
+        }
+        return "none";
+    }
+
+    [[nodiscard]] double probePaintP95Ms() const
+    {
+        if (paintRingCount == 0)
+            return 0.0;
+        std::array<double, kStateProbePaintRingSize> sorted = paintRing;
+        std::sort (sorted.begin(), sorted.begin() + static_cast<std::ptrdiff_t> (paintRingCount));
+        const std::size_t rank = std::min (paintRingCount - 1u, (paintRingCount * 95u) / 100u);
+        return sorted[rank];
+    }
+
+    [[nodiscard]] juce::var buildProbeLayout()
+    {
+        auto* layout = new juce::DynamicObject();
+        juce::var layoutVar (layout);
+        const auto put = [layout] (const juce::String& key, juce::Rectangle<int> rect) {
+            if (! rect.isEmpty())
+                layout->setProperty (key, probeRect (rect));
+        };
+
+        put ("header", getLocalBounds().withHeight (kHeaderHeight));
+        put ("rail", leftRailPanelBounds());
+        put ("timeline", timelineBounds());
+        put ("inspector", inspectorBounds());
+        if (appModel.context().mixerDockVisible
+            || appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
+            put ("dock", mixerPanelBounds());
+
+        // Every visible identified child by its component id — toolbar buttons carry their
+        // action's stable id (configureActionComponent), choosers their shell ids.
+        for (int i = 0; i < getNumChildComponents(); ++i)
+            if (const juce::Component* child = getChildComponent (i))
+                if (child->isVisible() && child->getComponentID().isNotEmpty())
+                    put ("widget." + child->getComponentID(), child->getBounds());
+
+        if (appModel.context().projectLoaded
+            && appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer)
+        {
+            const yesdaw::ui::TimelineCanvasState state = makeTimelineState();
+            const yesdaw::ui::TimelineCanvasGeometry geometry =
+                yesdaw::ui::timelineCanvasGeometry (timelineInput.getLocalBounds(), state);
+            const juce::Point<int> origin = timelineInput.getPosition();
+            put ("ruler", geometry.rulerArea.translated (origin.x, origin.y));
+            put ("clipArea", geometry.clipArea.translated (origin.x, origin.y));
+
+            for (int lane = 0; lane < state.trackCount; ++lane)
+            {
+                const int top = geometry.clipArea.getY()
+                    + juce::roundToInt (geometry.laneTop (lane) - geometry.viewport.laneScrollPixels);
+                const int height = lane < static_cast<int> (geometry.laneHeightPixelsPerLane.size())
+                    ? juce::roundToInt (geometry.laneHeightPixelsPerLane[static_cast<std::size_t> (lane)])
+                    : geometry.laneHeight;
+                const juce::Rectangle<int> row (geometry.clipArea.getX(), top,
+                                                geometry.clipArea.getWidth(), height);
+                put ("lane." + juce::String (lane),
+                     row.getIntersection (geometry.clipArea).translated (origin.x, origin.y));
+                put ("rail.row." + juce::String (lane), harnessPaintedRailRowBounds (lane));
+            }
+
+            std::array<yesdaw::ui::ElementRect, yesdaw::ui::UiTheme::Layout::timelineCanvasVisibleClipCapacity> visible {};
+            const yesdaw::ui::Viewport clipViewport = yesdaw::ui::viewportForClipLayout (geometry);
+            const int visibleCount = state.clipCount > 0
+                ? yesdaw::ui::layoutVisible (state.clips, state.clipCount, clipViewport,
+                                             visible.data(), static_cast<int> (visible.size()))
+                : 0;
+            for (int i = 0; i < visibleCount; ++i)
+            {
+                const auto& rect = visible[static_cast<std::size_t> (i)];
+                if (rect.id < 0 || rect.id >= static_cast<int> (timelineClipIds.size()))
+                    continue;
+                const juce::Rectangle<int> clipRect =
+                    juce::Rectangle<int> (geometry.clipArea.getX() + juce::roundToInt (rect.x),
+                                          geometry.clipArea.getY() + juce::roundToInt (rect.y),
+                                          juce::roundToInt (rect.w),
+                                          juce::roundToInt (rect.h))
+                        .getIntersection (geometry.clipArea);
+                put ("clip." + juce::String (entityIdHex (timelineClipIds[static_cast<std::size_t> (rect.id)])),
+                     clipRect.translated (origin.x, origin.y));
+            }
+        }
+
+        return layoutVar;
+    }
+
+    [[nodiscard]] juce::String buildStateProbeJson()
+    {
+        const yesdaw::ui::UiActionContext context = appModel.contextSnapshot();
+        auto* root = new juce::DynamicObject();
+        juce::var rootVar (root);
+
+        root->setProperty ("version", kStateProbeSchemaVersion);
+        root->setProperty ("tick", static_cast<juce::int64> (probeTick));
+        root->setProperty ("uptimeMs", std::chrono::duration<double, std::milli> (
+                                           std::chrono::steady_clock::now() - launchStamp).count());
+        root->setProperty ("renderer", probeRendererName());
+        root->setProperty ("windowTitle", computedWindowTitle());
+        root->setProperty ("projectLoaded", context.projectLoaded);
+        root->setProperty ("bundlePath", juceFileFromPath (harnessBundlePath()).getFullPathName());
+        root->setProperty ("window", probeRect (getScreenBounds()));
+        {
+            double displayScale = 1.0;
+            if (const juce::Displays::Display* display =
+                    juce::Desktop::getInstance().getDisplays().getDisplayForRect (getScreenBounds()))
+                displayScale = display->scale;
+            root->setProperty ("displayScale", displayScale);
+        }
+
+        {
+            auto* transport = new juce::DynamicObject();
+            transport->setProperty ("isPlaying", context.isPlaying);
+            transport->setProperty ("isRecording", context.isRecording);
+            transport->setProperty ("playheadFrame", static_cast<juce::int64> (context.playheadFrame));
+            transport->setProperty ("playheadSeconds",
+                                    context.projectLoaded && appModel.project().sampleRate.isValid()
+                                        ? static_cast<double> (context.playheadFrame)
+                                              / appModel.project().sampleRate.hz
+                                        : 0.0);
+            transport->setProperty ("rate", context.shuttlePlaybackRate);
+            transport->setProperty ("metronome", context.metronomeEnabled);
+            auto* loop = new juce::DynamicObject();
+            loop->setProperty ("enabled", context.loopEnabled);
+            loop->setProperty ("start", static_cast<juce::int64> (harnessPlaybackLoopStartFrame()));
+            loop->setProperty ("end", static_cast<juce::int64> (harnessPlaybackLoopEndFrame()));
+            transport->setProperty ("loop", juce::var (loop));
+            root->setProperty ("transport", juce::var (transport));
+        }
+
+        {
+            auto* selection = new juce::DynamicObject();
+            juce::Array<juce::var> clips;
+            if (context.projectLoaded)
+                for (const yesdaw::engine::Clip& clip : appModel.project().clips)
+                    if (appModel.isTimelineClipSelected (clip.id))
+                        clips.add (juce::String (entityIdHex (clip.id)));
+            selection->setProperty ("clips", clips);
+            juce::Array<juce::var> notes;
+            for (const yesdaw::engine::EntityId& noteId : appModel.selectedMidiNoteIds())
+                notes.add (juce::String (entityIdHex (noteId)));
+            selection->setProperty ("notes", notes);
+            juce::Array<juce::var> tracks;
+            if (selectedTrackLane >= 0)
+                tracks.add (selectedTrackLane);
+            selection->setProperty ("tracks", tracks);
+            selection->setProperty ("midiClip",
+                                    appModel.selectedMidiClipId().isValid()
+                                        ? juce::var (juce::String (entityIdHex (appModel.selectedMidiClipId())))
+                                        : juce::var());
+            if (context.timelineRangeSelected)
+            {
+                auto* range = new juce::DynamicObject();
+                range->setProperty ("startFrame", static_cast<juce::int64> (harnessTimelineRangeStartFrame()));
+                range->setProperty ("endFrame", static_cast<juce::int64> (harnessTimelineRangeEndFrame()));
+                selection->setProperty ("timeRange", juce::var (range));
+            }
+            else
+            {
+                selection->setProperty ("timeRange", juce::var());
+            }
+            selection->setProperty ("mixerStrip", harnessSelectedMixerStripOrdinal());
+            root->setProperty ("selection", juce::var (selection));
+        }
+
+        root->setProperty ("focusContext", probeFocusContextName (context.activePanel));
+        {
+            const juce::Component* focused = juce::Component::getCurrentlyFocusedComponent();
+            juce::String owner = "none";
+            if (focused == this)
+                owner = "shell";
+            else if (focused != nullptr)
+                owner = focused->getComponentID().isNotEmpty() ? focused->getComponentID()
+                                                                : focused->getName().isNotEmpty()
+                                                                      ? focused->getName()
+                                                                      : juce::String ("unnamed");
+            root->setProperty ("focusOwner", owner);
+            root->setProperty ("textEditorActive",
+                               dynamic_cast<const juce::TextEditor*> (focused) != nullptr
+                                   || trackRenameEditor.isVisible() || clipRenameEditor.isVisible()
+                                   || markerRenameEditor.isVisible() || busRenameEditor.isVisible());
+        }
+        root->setProperty ("lastAction", juce::String (lastActionStableId));
+        root->setProperty ("commandDispatchCount", context.commandDispatchCount);
+        {
+            auto* status = new juce::DynamicObject();
+            status->setProperty ("text", juce::String (appModel.statusLineText()));
+            status->setProperty ("isError", appModel.statusLineIsError());
+            root->setProperty ("status", juce::var (status));
+        }
+
+        {
+            auto* view = new juce::DynamicObject();
+            view->setProperty ("width", getWidth());
+            view->setProperty ("height", getHeight());
+            view->setProperty ("zoom", timelineZoomFactor);
+            view->setProperty ("scrollSec", timelineScrollSeconds);
+            view->setProperty ("trackScrollRows", timelineTrackScrollRows);
+            view->setProperty ("activePanel", probeFocusContextName (context.activePanel));
+            view->setProperty ("inspector", ! inspectorBounds().isEmpty()
+                                                && context.activePanel != yesdaw::ui::UiPanel::Mixer);
+            view->setProperty ("dock", context.activePanel == yesdaw::ui::UiPanel::Mixer
+                                           ? juce::String ("MixerFull")
+                                           : context.mixerDockVisible ? juce::String ("Mixer")
+                                                                      : juce::String ("None"));
+            view->setProperty ("dockHeight", dockedMixerHeight());
+            view->setProperty ("tool", probeToolName (context.activeTimelineTool));
+            view->setProperty ("snapEnabled", context.snapEnabled);
+            view->setProperty ("snapGridTicks", static_cast<juce::int64> (context.snapGridTicks));
+            view->setProperty ("playheadFollow", context.playheadFollowEnabled);
+            view->setProperty ("trackCount", context.projectLoaded
+                                                 ? static_cast<int> (appModel.project().tracks.size())
+                                                 : 0);
+            view->setProperty ("clipCount", context.projectLoaded
+                                                ? static_cast<int> (appModel.project().clips.size())
+                                                : 0);
+            root->setProperty ("view", juce::var (view));
+        }
+
+        {
+            auto* frame = new juce::DynamicObject();
+            frame->setProperty ("paintMs", lastPaintMs);
+            frame->setProperty ("paintP95Ms", probePaintP95Ms());
+            frame->setProperty ("paintCount", static_cast<juce::int64> (paintCount));
+            frame->setProperty ("tickMs", lastTickMs);
+            frame->setProperty ("actionToPaintMs", lastActionToPaintMs);
+            root->setProperty ("frame", juce::var (frame));
+        }
+
+        {
+            auto* audio = new juce::DynamicObject();
+            audio->setProperty ("callbackAdds", static_cast<juce::int64> (audioCallbackAdds));
+            audio->setProperty ("callbackRemovals", static_cast<juce::int64> (audioCallbackRemovals));
+            audio->setProperty ("callbackRegistered", desktopAudioCallbackRegistered);
+            audio->setProperty ("deviceOpen", desktopAudioOpen.load (std::memory_order_acquire));
+            audio->setProperty ("rebuilds", static_cast<juce::int64> (appModel.playbackReplaceCount()));
+            audio->setProperty ("liveScalars", static_cast<juce::int64> (appModel.playbackLiveScalarsApplied()));
+            audio->setProperty ("blocks", static_cast<juce::int64> (
+                                              deviceAudioCallbackBlockCount.load (std::memory_order_acquire)));
+            audio->setProperty ("deadlineMisses", static_cast<juce::int64> (
+                                                      deviceDeadlineMisses.load (std::memory_order_relaxed)));
+            audio->setProperty ("maxCallbackMs",
+                                static_cast<double> (deviceMaxCallbackNs.load (std::memory_order_relaxed)) / 1.0e6);
+            audio->setProperty ("sampleRateHz", deviceSampleRateHz.load (std::memory_order_relaxed));
+            // Driver-reported xruns since the device started; -1 when the driver cannot count.
+            int underruns = -1;
+            if (const juce::AudioIODevice* device = audioDeviceManager.getCurrentAudioDevice())
+            {
+                const int baseline = deviceXRunBaseline.load (std::memory_order_relaxed);
+                const int current = device->getXRunCount();
+                if (baseline >= 0 && current >= 0)
+                    underruns = current - baseline;
+            }
+            audio->setProperty ("underruns", underruns);
+            root->setProperty ("audio", juce::var (audio));
+        }
+
+        root->setProperty ("layout", buildProbeLayout());
+        return juce::JSON::toString (rootVar, true);
+    }
+
+    void writeStateProbeIfEnabled()
+    {
+        if (stateProbePath.empty())
+            return;
+        // Write-then-replace so a reader never sees a torn document.
+        (void) juceFileFromPath (stateProbePath).replaceWithText (buildStateProbeJson());
+    }
+
     // N6: the rail's painted row rect (shell coordinates), the SAME law rowBounds/rowAt/paint
     // share — so a gate can prove a height drag moved exactly one row and left every other row's
     // position/height alone.
@@ -4691,8 +5081,28 @@ public:
         return choice == yesdaw::ui::kCloseChoiceClose;
     }
 
+    // G0.1 probe: paint() opens the frame stamp and paintOverChildren() closes it — JUCE paints
+    // this component, then every child, then paintOverChildren on the same component, so the
+    // pair brackets the whole shell's paint work for one frame (the B2 budget).
+    void paintOverChildren (juce::Graphics&) override
+    {
+        const auto now = std::chrono::steady_clock::now();
+        lastPaintMs = std::chrono::duration<double, std::milli> (now - paintStartStamp).count();
+        paintRing[paintRingIndex] = lastPaintMs;
+        paintRingIndex = (paintRingIndex + 1u) % paintRing.size();
+        paintRingCount = std::min (paintRingCount + 1u, paintRing.size());
+        ++paintCount;
+        if (actionStampPending)
+        {
+            actionStampPending = false;
+            lastActionToPaintMs =
+                std::chrono::duration<double, std::milli> (now - pendingActionStamp).count();
+        }
+    }
+
     void paint (juce::Graphics& g) override
     {
+        paintStartStamp = std::chrono::steady_clock::now();
         g.fillAll (kBackground);
         drawHeader (g);
 
@@ -7171,6 +7581,7 @@ private:
         if (desktopAudioCallbackRegistered)
         {
             audioDeviceManager.removeAudioCallback (this);
+            ++audioCallbackRemovals;   // G0.1 probe: B3 counts every one of these after startup
             desktopAudioCallbackRegistered = false;
         }
     }
@@ -7183,6 +7594,7 @@ private:
         if (resumeDesktopAudioAfterSuspend && audioDeviceManager.getCurrentAudioDevice() != nullptr)
         {
             audioDeviceManager.addAudioCallback (this);
+            ++audioCallbackAdds;
             desktopAudioCallbackRegistered = true;
         }
         resumeDesktopAudioAfterSuspend = false;
@@ -7240,6 +7652,13 @@ private:
 
     void handleAction (yesdaw::ui::UiActionId action)
     {
+        // G0.1 probe: the last dispatched action by stable id, and the stamp the B1
+        // action-to-paint budget is measured from (closed by the next completed paint).
+        if (const auto* descriptor = appModel.registry().descriptor (action))
+            lastActionStableId = descriptor->stableId;
+        pendingActionStamp = std::chrono::steady_clock::now();
+        actionStampPending = true;
+
         suspendDesktopAudioCallback();
         handleActionWhileAudioStopped (action);
         resumeDesktopAudioCallback();
@@ -11309,6 +11728,29 @@ private:
     bool refreshingMixerControls = false;
     int autosaveElapsedMs = 0;
 
+    // G0.1 State probe (ADR-0046 §10; plan §7.2). Debug-only: `stateProbePath` is empty in a
+    // normal launch and nothing below is ever written. Counters are the feel-budget inputs.
+    std::filesystem::path stateProbePath;
+    std::uint64_t probeTick = 0;
+    std::chrono::steady_clock::time_point launchStamp {};
+    std::uint64_t audioCallbackAdds = 0;
+    std::uint64_t audioCallbackRemovals = 0;
+    std::atomic<double> deviceSampleRateHz { 0.0 };
+    std::atomic<int> deviceXRunBaseline { -1 };
+    std::atomic<std::uint32_t> deviceDeadlineMisses { 0u };
+    std::atomic<std::uint64_t> deviceMaxCallbackNs { 0u };
+    std::string lastActionStableId;
+    std::chrono::steady_clock::time_point pendingActionStamp {};
+    bool actionStampPending = false;
+    double lastActionToPaintMs = -1.0;
+    std::chrono::steady_clock::time_point paintStartStamp {};
+    double lastPaintMs = 0.0;
+    std::array<double, kStateProbePaintRingSize> paintRing {};
+    std::size_t paintRingIndex = 0;
+    std::size_t paintRingCount = 0;
+    std::uint64_t paintCount = 0;
+    double lastTickMs = 0.0;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
 
@@ -11427,12 +11869,39 @@ namespace yesdaw::ui {
 
 std::unique_ptr<juce::Component> createMainComponent()
 {
-    return std::make_unique<MainComponent> (makeNativeFileChoices(), true);
+    return createNativeMainComponent ({});
+}
+
+std::unique_ptr<juce::Component> createNativeMainComponent (std::filesystem::path openBundleAtLaunch)
+{
+    yesdaw::ui::MainComponentFileChoices choices = makeNativeFileChoices();
+    choices.openBundleAtLaunch = std::move (openBundleAtLaunch);
+
+    // G0.1: the Session drive's launch-time seams. Both are absolute paths; anything else is
+    // ignored so a stray variable can never point the shell at a relative location.
+    const juce::String probe = juce::SystemStats::getEnvironmentVariable ("YESDAW_STATE_PROBE", {});
+    if (probe.isNotEmpty() && juce::File::isAbsolutePath (probe))
+        choices.stateProbePath = pathFromJuceFile (juce::File (probe));
+
+    const juce::String sessionDir =
+        juce::SystemStats::getEnvironmentVariable ("YESDAW_SESSION_STATE_DIR", {});
+    if (sessionDir.isNotEmpty() && juce::File::isAbsolutePath (sessionDir))
+        choices.sessionStateDirectory = pathFromJuceFile (juce::File (sessionDir));
+
+    return std::make_unique<MainComponent> (std::move (choices), true);
 }
 
 std::unique_ptr<juce::Component> createMainComponent (MainComponentFileChoices fileChoices)
 {
     return std::make_unique<MainComponent> (std::move (fileChoices), false);
+}
+
+std::string mainComponentStateProbeJson (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->buildStateProbeJson().toStdString();
+
+    return {};
 }
 
 MainComponentSnapshot snapshotMainComponent (const juce::Component& component)

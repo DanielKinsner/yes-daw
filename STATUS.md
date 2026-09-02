@@ -41,11 +41,133 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** checkpoint handed back to Dan. Nothing built yet.
-**Next (on "go"):** G0.1 — State probe + `tools/session-drive.ps1` + `ss1-first-minute` authored
-red; then G0.2 Command router (Space toggles; widgets decline focus). The two agent maps that
-grounded the plan (shell architecture; engine/MIDI/FX capability) are summarized in the plan §1
-and §5; re-derive from code if in doubt — the drift rule applies.
+**Now:** G0.1 built and proven locally (below); awaiting exact-head CI, then the evidence tick.
+**Next:** G0.2 Command router — `Space` toggles play/stop; every button/combo/slider declines
+keyboard focus; a `KeyListener` on the top-level window routes chords before children; `Esc`
+cancels. SS-1 steps 1 (Ctrl+N right after launch), 5, 7, 9 are its red lines. The two agent maps
+that grounded the plan (shell architecture; engine/MIDI/FX capability) are summarized in the plan
+§1 and §5; re-derive from code if in doubt — the drift rule applies.
+
+### G0.1 — State probe + Session drive (2026-09-01)
+
+**Story.** An agent can drive the real built app the way a user does and prove what happened,
+without pixel-guessing or a back channel. **Precedent.** Not a UX item; the gate class is ADR-0046
+§10. **Audit first.** The shell had no debug state output; `snapshotMainComponent` exists only in
+process for the harness; no widget geometry was published anywhere; `Main.cpp` ignored the command
+line; the native shell always reopened the owner's last-project record.
+
+**Built.**
+- `MainComponentFileChoices` gains `stateProbePath` and `openBundleAtLaunch`. The native factory
+  `createNativeMainComponent(bundle)` fills them from `YESDAW_STATE_PROBE`,
+  `YESDAW_SESSION_STATE_DIR` (a driven launch never reads or rewrites the owner's last-project
+  record) and `YesDaw.exe <path.yesdaw>`. A normal launch leaves the probe path empty and writes
+  nothing.
+- Every UI tick writes one JSON document (schema **v1**, plan §7.2): transport, selection (clips/
+  notes/tracks by 32-hex id, time range, mixer strip), `focusContext`, **`focusOwner`** (which
+  JUCE component holds keyboard focus — the Space bug in one field), `lastAction` (stable id),
+  view state, `frame` (`paintMs`, `paintP95Ms` over the last 256 paints, `tickMs`,
+  `actionToPaintMs` from dispatch to the next completed paint), `audio` (`callbackAdds`,
+  `callbackRemovals`, `rebuilds`, `liveScalars`, driver `underruns` or −1, own `deadlineMisses`,
+  `maxCallbackMs`), `renderer` (peer engine name), `window` screen rect, `displayScale`, and a
+  **`layout`** map of shell-coordinate hit rects: panels (`header`, `rail`, `timeline`,
+  `inspector`, `dock`, `ruler`, `clipArea`), `widget.<componentId>` for every visible identified
+  child (toolbar buttons publish their action's stable id: `widget.transport.play`), `lane.<n>`,
+  `rail.row.<n>`, `clip.<hex>`. Every rect comes from the SAME state build + geometry the paint
+  and hit-test paths use (`makeTimelineState` → `timelineCanvasGeometry` → `layoutVisible`).
+- Paint timing brackets `paint()`/`paintOverChildren()` (JUCE paints this component, then every
+  child, then paintOverChildren — the whole shell's frame). Callback add/remove sites are counted;
+  the device callback times each block against its own duration with atomics only.
+- `tools/session-drive.ps1`: `Launch [-Bundle]`, `Focus`, `Click <id|x,y>` (`-Right -Double
+  -Modifiers -OffsetX/Y`), `Drag`, `Key "<chord>" [-Repeat]`, `TypeText`, `FileDialogEnter`,
+  `WaitDialog`, `Probe`, `WaitProbe {…}`, `Assert`, `Shot`, `Resize w h` (client size), `Close`,
+  `-SelfTest`. Real `SendInput` (mouse absolute over the virtual desktop, keys with scan codes,
+  unicode text), per-monitor-v2 DPI aware; screen points = Win32 client origin + shell-local
+  rect × `displayScale`. Screenshots by `PrintWindow(PW_RENDERFULLCONTENT)` cropped to the
+  client area. Refuses to launch when another instance runs (R9 single-instance).
+- `tools/session-scripts/ss1-first-minute.ps1`: the plan's SS-1, all 14 steps, authored red where
+  the bugs are; where a red step would stop the rest from being exercised it records the FAIL and
+  takes the shipped path (toolbar button, old chord) so later steps still run.
+
+**Gates.** `YesDawStateProbeCheck` (ctest, new console app on the real `MainComponent`):
+`[state-probe][schema]` schema v1 + required sections + panel/widget ids + widget rects equal the
+child's own bounds + no lanes/clips/ruler without a project (D3); `[state-probe][layout]` after New
++ Import the map carries `ruler`, `clipArea`, `lane.0`, `rail.row.0`, `clip.<hex of the persisted
+clip>` nested correctly, clicking the published lane rect (real hit path, deepest visible child)
+clears the selection and clicking the published clip rect selects exactly that clip; Space/K move
+`transport.isPlaying` and `lastAction`; the file on disk carries the same document;
+`[state-probe][frame]` paint/action-to-paint counters move; `[state-probe][negative]` nothing is
+written without a probe path and a plain component has no document. Session-drive self-test:
+`session-drive.ps1 -SelfTest` PASS on the real exe (probe at ~1.6 s, renderer **Direct2D**).
+
+**SS-1 on the real exe (2026-09-01, head of this commit, 1536×960 default window, display 150 %):
+31 PASS / 10 FAIL — red exactly where the plan says.**
+
+| Step | Result | Owner |
+|---|---|---|
+| 1 launch: probe v1, Arrange, stopped | PASS | — |
+| 1 an empty project exists at launch | FAIL (no project until New/Open) | deviation D3 below |
+| 1 `Ctrl+N` right after launch opens the chooser | FAIL — `focusOwner` is the *window title*: the first keypress goes to the DocumentWindow, never to the shell | G0.2 |
+| 1 native New chooser creates a project | PASS | — |
+| 1 B6 launch → first tick ≤ 3 s | PASS (1.5–1.8 s over four runs) | — |
+| 2 `Ctrl+Shift+I` opens import | FAIL (today `Ctrl+I`) | G1.1 |
+| 2 import → one clip; `clip.<hex>` published | PASS | — |
+| 3 `lane.0` published; empty-lane click clears selection | PASS | — |
+| 4 Space after lane click plays; playhead advances | PASS | — |
+| 5 Space stops | FAIL (Space is play-only) | G0.2 |
+| 6 Play button plays | PASS | — |
+| 7 Space after a button click stops | FAIL | G0.2 |
+| 8 snap combo, Esc, Space plays | PASS | — |
+| 9 `K` toggles click / Space stops / `Enter` to zero | FAIL ×3 (`K` = Stop, `Enter` unbound) | G1.1 / G0.2 |
+| 10 click clip by id; 50 `Alt+Right` in 1.5 s while playing; still playing; underruns 0 | PASS | — |
+| 10 `callbackRemovals == 0` | FAIL — **31–39** removals in fifty nudges | G0.3 |
+| 11 drag / `Ctrl+T` / `Ctrl+Z` while playing; still playing; `Ctrl+T` did not add a track | PASS (`Ctrl+T` = Add Track fired but the count stayed 1 — see D5) | G1.1 |
+| 11 `rebuilds` unchanged | FAIL — 2 → 4 or 5 | G0.5 |
+| 12 5 s playback paint p95 ≤ 8 ms | PASS (3.2 ms, Direct2D, one clip — the real B2 waits for G0.4 + G0.6) | — |
+| 13 resize + shots at 1280×720 / 1920×1080 / 2560×1440 | PASS | — |
+| 14 `Ctrl+S`, relaunch with the bundle: same clips, stopped at 0 | PASS | — |
+
+**Visual rubric (§7.4), baseline at G0.1** — shots `build-ci/session-shots/ss1-*.png` (local):
+1. Overlap / dead regions: **FIX** — at 1280×720 the zoom cluster's `+` sits under the inspector
+   `Clip` tab; at every size the header has a dead box between the loop button and the master
+   card (≈300 px at 1280, ≈1000 px at 2560); at 1280 the master card drops whole. → G0.7.
+2. Tracks visible at 1080p with the dock open: **FIX** — rows fill the lane area (one track =
+   340 px tall); the 72 px default height token does not exist yet. → G0.7.
+3. Label or icon + tooltip on every control: **FIX** — four unlabeled icon buttons (new/open/
+   save/import), the `2x` combo, `Comp` disabled with no reason, dock readout buttons
+   (`Audio 1 meters: peak n/a`, `… GR: none`, `Bus FX: no Bus`) are agent read verbs, not user
+   controls. → G1.4 / G1.7 (G0.8 removes Test Device / Refresh).
+4. Text ≥ 11 px: **FIX** — rail `PAN`/`VOL`/`C` and the dock's tiny labels are below 11 px
+   logical. → G0.7 tokens.
+5. Selection / playhead / loop / hover distinct: **PASS** for selection (white ring) and loop;
+   **observed** — at 2560×1440 with the counter at 010|04 no playhead line is visible in the
+   lanes (parked, see parking lot). Hover states not judged (static shots).
+6. Structure matches the reference: **PASS** for the five regions (header / rail / lanes /
+   inspector / dock); **FIX** for the three-row 118 px header and the modal `Mixer`/`Piano`
+   buttons instead of dock tabs. → G0.7 / G2.1.
+7. No fake data: **PASS** (`--` LUFS/dBTP are honest empties).
+
+**Deviation log (G0.1).**
+- D1 `.github/workflows/ci.yml` is untouched on Dan's instruction; the plan's additive
+  non-blocking session-drive CI job is **not** added. The drive runs locally at every checkpoint
+  (self-test + all scripts of the current and earlier phases); ctest carries the probe gate.
+- D2 The G0.6 fixture does not exist yet; SS-1 uses `tests/fixtures/sine_440_48k_mono.wav` via
+  the drive's `-Fixture` until G0.6 lands, then switches.
+- D3 SS-1 step 1 assumes launch lands in an empty project; the shipped shell launches with no
+  project ("Create or open a Project"). Asserted red; the script creates one through the real
+  New chooser so the rest runs. Proposed owner: G0.2 (the first-minute focus item) — "launch
+  lands in an empty, unsaved project" — decided at that item's audit, logged here, not asked.
+- D4 Element ids are `widget.<componentId>` (toolbar buttons = the action's stable id), not the
+  plan's illustrative `toolbar.play`. One law, no aliases.
+- D5 `Ctrl+T` (today Add Track) fired during step 11 but the probe's `trackCount` stayed 1 —
+  the add-track path with a chord while playing did not add a row this run. Not investigated
+  (anti-wander); G1.1 re-pins `Ctrl+T` to Split at Playhead and its gate will say.
+- D6 The owner box runs Windows at 150 % scaling: `Resize` sets logical client sizes (the plan's
+  numbers), so the PNGs are 1.5× (1920×1080 / 2880×1620 / 3840×2160 physical).
+- D7 The H12 native-shell startup test (`createMainComponent()`) still reopens the owner's real
+  last-project record — the known ritual: SHA-256'd, moved aside for the full suite, restored
+  byte-identical (`25334FA9…C5673`, verified).
+
+**Local suite:** `ctest --test-dir build-ci -j 6` green **363/363** (362 + `YesDawStateProbeCheck`).
 
 ## 2026-08-25 reality run (carved — ready for the loop)
 

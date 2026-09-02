@@ -31,3 +31,5 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 
 ## New findings (append below)
 
+
+- [ ] 2026-09-01 · arrange · with the counter at 010|04 and playhead-follow on, no playhead line is visible in the lanes at 2560×1440 (SS-1 step 13 shot, zoom "2x") · `src/ui/MainComponent.cpp` `followPlaybackPlayhead` · promote-to: G2.16 (follow modes)
