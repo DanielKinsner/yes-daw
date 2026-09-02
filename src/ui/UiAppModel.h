@@ -7629,6 +7629,7 @@ private:
         // Build every changed Track's schedule FIRST (same law as a rebuild); any failure means
         // the ordinary rebuild path, before anything is adopted.
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
+        const std::vector<engine::AssetOwnership> owners = makeDecodedOwners (decodedAssets_);
         std::vector<std::pair<engine::NodeId, std::unique_ptr<const engine::ClipSchedule>>> schedules;
         for (const engine::Track& track : nextProject.tracks)
         {
@@ -7638,7 +7639,8 @@ private:
             std::unique_ptr<engine::ClipSchedule> schedule = engine::buildTrackClipSchedule (
                 nextProject, track.id,
                 std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
-                status);
+                status,
+                std::span<const engine::AssetOwnership> (owners.data(), owners.size()));
             if (schedule == nullptr || status != engine::OfflineRenderStatus::Ok)
                 return false;
             schedules.emplace_back (
@@ -8020,16 +8022,35 @@ private:
         return decoded;
     }
 
-    // G0.5: decoded views carry shared OWNED storage so a live ClipSchedule can keep an asset's
-    // samples alive by reference. One copy per asset, made here (control thread) and re-made
-    // only when the decoded data itself changed (identity: pointer + frames + channels); the
-    // copy is scanned for non-finite samples once, which is what the old per-window copy did
-    // per rebuild.
-    std::vector<engine::DecodedAssetAudio> makeDecodedViews (const std::vector<UiDecodedAsset>& decodedAssets)
+    static std::vector<engine::DecodedAssetAudio> makeDecodedViews (const std::vector<UiDecodedAsset>& decodedAssets)
     {
         std::vector<engine::DecodedAssetAudio> views;
         views.reserve (decodedAssets.size());
 
+        for (const UiDecodedAsset& asset : decodedAssets)
+        {
+            views.push_back (engine::DecodedAssetAudio {
+                asset.assetId,
+                asset.sampleRate,
+                asset.frames,
+                asset.channels,
+                std::span<const float> (asset.interleavedSamples.data(), asset.interleavedSamples.size())
+            });
+        }
+
+        return views;
+    }
+
+    // G0.5: shared OWNED storage per decoded asset so a live ClipSchedule can keep an asset's
+    // samples alive by reference. One copy per asset, made here (control thread) and re-made only
+    // when the decoded data itself changed (identity: pointer + frames + channels); the copy is
+    // scanned for non-finite samples once, which is what the old per-window copy did per rebuild.
+    // Keyed by asset id (OfflineRenderOptions::assetOwners), so a views list built from a
+    // different decoded vector (import / record commit) can never pair the wrong storage.
+    std::vector<engine::AssetOwnership> makeDecodedOwners (const std::vector<UiDecodedAsset>& decodedAssets) const
+    {
+        std::vector<engine::AssetOwnership> owners;
+        owners.reserve (decodedAssets.size());
         for (const UiDecodedAsset& asset : decodedAssets)
         {
             std::shared_ptr<const engine::AssetSamples> owner;
@@ -8063,18 +8084,10 @@ private:
                 }
                 // A non-finite decode keeps no owner: the projection copies and rejects it as before.
             }
-
-            views.push_back (engine::DecodedAssetAudio {
-                asset.assetId,
-                asset.sampleRate,
-                asset.frames,
-                asset.channels,
-                std::span<const float> (asset.interleavedSamples.data(), asset.interleavedSamples.size()),
-                owner
-            });
+            if (owner != nullptr)
+                owners.push_back ({ asset.assetId, owner });
         }
-
-        return views;
+        return owners;
     }
 
     static void drainTransport (engine::PlaybackEngine& playback) noexcept
@@ -8684,6 +8697,9 @@ private:
     {
         engine::OfflineRenderOptions options;
         options.maxBlockSize = playbackMaxBlockSize_;
+        // G0.5: every engine build references the model's shared per-asset storage by asset id,
+        // so the live placement lane's schedules can keep it alive without copying.
+        options.assetOwners = makeDecodedOwners (decodedAssets_);
         return options;
     }
 
@@ -8992,7 +9008,7 @@ private:
         std::uint16_t channels = 0;
         std::shared_ptr<const engine::AssetSamples> samples;
     };
-    std::vector<OwnedAssetSamples> assetSamplesCache_;
+    mutable std::vector<OwnedAssetSamples> assetSamplesCache_;   // filled from const build-option reads
     std::uint64_t livePlacementEdits_ = 0;
     std::vector<RetiredMonitorChain> retiredMonitorChains_;
     std::atomic<std::uint64_t> deviceBlocksStarted_ { 0 };

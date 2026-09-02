@@ -36,10 +36,15 @@ struct DecodedAssetAudio
     std::uint64_t     frames = 0;
     std::uint16_t     channels = 0;
     std::span<const float> interleavedSamples;
-    // G0.5: when set, `interleavedSamples` views THIS storage and a ClipSchedule may keep it alive
-    // by reference instead of copying the window (the model shares one per asset). Null means the
-    // span is only valid for the duration of the build and the projection copies what it needs.
-    std::shared_ptr<const AssetSamples> owner;
+};
+
+// G0.5: shared storage an asset's samples live in. When a build is handed one for an asset
+// (OfflineRenderOptions::assetOwners, keyed by asset id), a ClipSchedule keeps the storage alive by
+// reference instead of copying the window; without one the projection copies what it needs.
+struct AssetOwnership
+{
+    EntityId                            assetId;
+    std::shared_ptr<const AssetSamples> samples;
 };
 
 struct OfflineRenderOptions
@@ -49,6 +54,7 @@ struct OfflineRenderOptions
     NodeId  masterNodeId = GraphBuilder::kDefaultMasterNodeId - 100u;
     int     maxBlockSize = 128;
     std::vector<ProjectMixerSendRoute> sendRoutes;
+    std::vector<AssetOwnership> assetOwners;   // G0.5: optional shared storage per asset id
 };
 
 enum class OfflineRenderStatus : std::uint8_t
@@ -241,6 +247,7 @@ namespace detail {
 // copied ONCE per asset for this build (into `copiedAssets`) with the finite-sample scan the old
 // window copy performed.
 [[nodiscard]] inline bool makeScheduledClipSource (std::span<const DecodedAssetAudio> decodedAssets,
+                                                   std::span<const AssetOwnership> assetOwners,
                                                    const Clip& clip,
                                                    const Asset& asset,
                                                    int stripChannels,
@@ -276,7 +283,14 @@ namespace detail {
         return false;
     }
 
-    std::shared_ptr<const AssetSamples> owner = decoded->owner;
+    // An owner handed in for this asset is used only when it describes the SAME audio the view
+    // does (frames + channels); anything else falls back to the build's own copy.
+    std::shared_ptr<const AssetSamples> owner;
+    for (const AssetOwnership& ownership : assetOwners)
+        if (ownership.assetId == asset.id && ownership.samples != nullptr
+            && ownership.samples->frames == decoded->frames
+            && ownership.samples->channels == static_cast<int> (decoded->channels))
+            owner = ownership.samples;
     if (owner == nullptr)
     {
         for (const auto& copied : copiedAssets)
@@ -355,7 +369,8 @@ namespace detail {
 [[nodiscard]] inline std::unique_ptr<ClipSchedule> buildTrackClipSchedule (const Project& project,
                                                                             EntityId trackId,
                                                                             std::span<const DecodedAssetAudio> decodedAssets,
-                                                                            OfflineRenderStatus& status)
+                                                                            OfflineRenderStatus& status,
+                                                                            std::span<const AssetOwnership> assetOwners = {})
 {
     status = OfflineRenderStatus::Ok;
     auto schedule = std::make_unique<ClipSchedule>();
@@ -393,7 +408,7 @@ namespace detail {
             return nullptr;
         }
         ScheduledClipSource source;
-        if (! detail::makeScheduledClipSource (decodedAssets, clip, *asset, stripChannels, window,
+        if (! detail::makeScheduledClipSource (decodedAssets, assetOwners, clip, *asset, stripChannels, window,
                                                copiedAssets, source, status))
             return nullptr;
         schedule->clips.push_back (source.clip);
@@ -524,8 +539,8 @@ namespace detail {
     const bool projected = projectToMixerProjectionInputs (
         project,
         config,
-        [&decodedAssets, &resolved, &factoryStatus, &copiedAssets] (const Project&, const Clip& clip, const Asset& asset,
-                                                                     int stripChannels, ScheduledClipSource& out) -> bool
+        [&decodedAssets, &resolved, &factoryStatus, &copiedAssets, &options] (const Project&, const Clip& clip, const Asset& asset,
+                                                                               int stripChannels, ScheduledClipSource& out) -> bool
         {
             const detail::ResolvedClipWindow* const window = detail::findResolvedClip (resolved, clip.id);
             if (window == nullptr)
@@ -533,7 +548,10 @@ namespace detail {
                 factoryStatus = OfflineRenderStatus::InvalidTimeline;
                 return false;
             }
-            return detail::makeScheduledClipSource (decodedAssets, clip, asset, stripChannels, *window,
+            return detail::makeScheduledClipSource (decodedAssets,
+                                                    std::span<const AssetOwnership> (options.assetOwners.data(),
+                                                                                     options.assetOwners.size()),
+                                                    clip, asset, stripChannels, *window,
                                                     copiedAssets, out, factoryStatus);
         },
         projection,

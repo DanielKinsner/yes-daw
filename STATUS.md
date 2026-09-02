@@ -41,8 +41,9 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.6 built and gated locally (below); awaiting exact-head CI for G0.5 (run
-`33595208144`, in progress at the time of writing) and for this commit, then the evidence ticks.
+**Now:** G0.5 and G0.6 built, gated and pushed; their own runs went red on Linux/macOS at the
+compile step (D22, one warning-as-error), fixed in the next commit — awaiting that commit's
+exact-head run, then both evidence ticks. G0.7 (first-minute density) starts after it.
 The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
 and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
 re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
@@ -167,6 +168,14 @@ Expected green: drag, split and undo are placement edits now.
   MIDI clips unchanged. Import (a new asset) also rebuilds; add/split/duplicate/paste of
   existing-asset clips are live.
 - D18 The drive is paused on Dan's word (D14); G0.5's see-it is recorded as pending, not green.
+- D22 The G0.5 commit's run `33595208144` was red on Linux and macOS at the COMPILE step
+  (Windows, RTSan, TSan green): the new `DecodedAssetAudio::owner` field turned every existing
+  five-field aggregate initializer into `-Wmissing-field-initializers` under `-Werror` (28 sites
+  in tests and tools). Fixed without touching them: the field is gone; asset ownership travels
+  through `OfflineRenderOptions::assetOwners` keyed by asset id (which also cannot misalign on
+  the import / record-commit paths that build views from a different decoded vector). The G0.6
+  commit `24095d8` (run `33595972964`) carries the same red; both are certified by the fix
+  commit's run. First red round for G0.5 (no stop trigger).
 
 ### G0.4 — Rendering budget (2026-09-01)
 
