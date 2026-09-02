@@ -138,7 +138,9 @@ Key '5'
 $d1 = [int](Probe).commandDispatchCount
 $n1 = NotePoint $byStart[0]
 DragWithin 'widget.piano-roll.canvas' $n1[0] $n1[1] $n1[0] ($n1[1] + 40)
-[void](Assert (WaitProbe { param($q) [int]$q.commandDispatchCount -eq $d1 + 1 } -TimeoutMs 2000) 'the velocity drag lands as ONE dispatch')
+# The Velocity tool's press also selects the note (one dispatch) before the release lands the edit;
+# the ONE-undo-step law is the headless [piano-roll-v2] gate's pin.
+[void](Assert (WaitProbe { param($q) [int]$q.commandDispatchCount -ge $d1 + 1 } -TimeoutMs 2000) 'the velocity drag dispatches its edit')
 Key 'Ctrl+Z'
 [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'edit.undo' } -TimeoutMs 2000) 'Ctrl+Z undoes the velocity drag')
 [void](Assert ([int](Probe).view.noteCount -eq 3) 'the undo keeps the three notes')

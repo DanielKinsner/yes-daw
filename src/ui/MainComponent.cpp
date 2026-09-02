@@ -1929,6 +1929,7 @@ struct PianoRollCanvasGeometry
     juce::Rectangle<int> keyboard;
     juce::Rectangle<int> grid;
     float rowHeight = 1.0f;
+    int visibleKeys = yesdaw::ui::UiTheme::Layout::pianoRollKeyCount;   // G3.2 FIX 3: the key window
 };
 
 [[nodiscard]] PianoRollCanvasGeometry pianoRollCanvasGeometry (juce::Rectangle<int> area) noexcept
@@ -1941,9 +1942,10 @@ struct PianoRollCanvasGeometry
     geometry.keyboard = area.removeFromLeft (yesdaw::ui::UiTheme::Layout::pianoRollKeyboardWidth);
     geometry.grid = area.reduced (yesdaw::ui::UiTheme::Layout::pianoRollGridInsetX,
                                   yesdaw::ui::UiTheme::Layout::pianoRollGridInsetY);
+    geometry.visibleKeys = yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (geometry.grid.getHeight());
     geometry.rowHeight = static_cast<float> (juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollGridMinHeight,
                                                          geometry.grid.getHeight()))
-                       / static_cast<float> (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount);
+                       / static_cast<float> (geometry.visibleKeys);
     return geometry;
 }
 
@@ -1969,7 +1971,7 @@ struct PianoRollCanvasGeometry
 
 [[nodiscard]] int pianoRollViewHighKey (const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface) noexcept
 {
-    return surface.viewLowKey + yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1;
+    return surface.viewLowKey + surface.viewKeyCount - 1;   // G3.2 FIX 3: the window in force
 }
 
 
@@ -5571,7 +5573,7 @@ public:
                 pianoRollViewLowKey + keyDelta,
                 yesdaw::ui::UiThemeLayout::pianoRollKeyMin,
                 yesdaw::ui::UiThemeLayout::pianoRollKeyMax
-                    - (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1));
+                    - (currentPianoRollSurface().viewKeyCount - 1));   // G3.2 FIX 3
             repaintAll();
         };
         pianoRollInput.onViewZoomWheel = [this] (yesdaw::engine::Tick anchorTick, double wheelDelta) {
@@ -6669,6 +6671,36 @@ public:
                         if (clip.id == appModel.selectedMidiClipId())
                             noteCount = static_cast<int> (clip.notes.size());
                 view->setProperty ("noteCount", noteCount);   // G3.2: the roll's clip's note count
+            }
+            {
+                // G3.2 checkpoint: the roll's window and its painted notes (shell-local geometry), so a
+                // session drive aims at what is painted instead of guessing.
+                auto* roll = new juce::DynamicObject();
+                const yesdaw::ui::UiPianoRollSurfaceSnapshot rollSurface = currentPianoRollSurface();
+                const PianoRollCanvasGeometry rollGeometry = pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin());
+                roll->setProperty ("viewLowKey", rollSurface.viewLowKey);
+                roll->setProperty ("viewHighKey", pianoRollViewHighKey (rollSurface));
+                roll->setProperty ("rowHeight", static_cast<double> (rollGeometry.rowHeight));
+                roll->setProperty ("viewScrollTicks", static_cast<juce::int64> (rollSurface.viewScrollTicks));
+                roll->setProperty ("visibleTicks", static_cast<juce::int64> (pianoRollVisibleTicks (rollSurface)));
+                roll->setProperty ("gridX", rollGeometry.grid.getX());
+                roll->setProperty ("gridY", rollGeometry.grid.getY());
+                roll->setProperty ("gridWidth", rollGeometry.grid.getWidth());
+                roll->setProperty ("gridHeight", rollGeometry.grid.getHeight());
+                roll->setProperty ("keyboardX", rollGeometry.keyboard.getX());
+                roll->setProperty ("keyboardWidth", rollGeometry.keyboard.getWidth());
+                juce::Array<juce::var> rollNotes;
+                for (const yesdaw::ui::UiPianoRollNoteView& note : rollSurface.notes)
+                {
+                    auto* item = new juce::DynamicObject();
+                    item->setProperty ("id", juce::String (entityIdHex (note.noteId)));
+                    item->setProperty ("start", static_cast<juce::int64> (note.startTick));
+                    item->setProperty ("length", static_cast<juce::int64> (note.lengthTicks));
+                    item->setProperty ("key", static_cast<int> (note.key));
+                    rollNotes.add (juce::var (item));
+                }
+                roll->setProperty ("notes", rollNotes);
+                view->setProperty ("pianoRoll", juce::var (roll));
             }
             view->setProperty ("snapEnabled", context.snapEnabled);
             view->setProperty ("snapGridTicks", static_cast<juce::int64> (context.snapGridTicks));
@@ -15140,11 +15172,12 @@ private:
 
             // Piano-roll viewport (E10): the surface publishes the CLAMPED view so every paint,
             // hit-test, and gesture consumer shares one law.
+            // G3.2 FIX 3: the key window follows the roll's grid height (one law with the geometry).
+            surface.viewKeyCount = pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin()).visibleKeys;
             pianoRollViewLowKey = std::clamp (
                 pianoRollViewLowKey,
                 yesdaw::ui::UiThemeLayout::pianoRollKeyMin,
-                yesdaw::ui::UiThemeLayout::pianoRollKeyMax
-                    - (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1));
+                yesdaw::ui::UiThemeLayout::pianoRollKeyMax - (surface.viewKeyCount - 1));
             pianoRollViewZoom = std::clamp (pianoRollViewZoom,
                                             yesdaw::ui::UiThemeLayout::pianoRollZoomMin,
                                             yesdaw::ui::UiThemeLayout::pianoRollZoomMax);

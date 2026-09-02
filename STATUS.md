@@ -41,13 +41,12 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G3.2 — piano roll dock v2: cp1 ✅ (`bdf0c36` + `e770d23`, run `33664900243`), cp2 (audition, the
-live note lane) `c5be1f8` — its run went red on GCC's misleading-indentation check, fixed in the
-checkpoint's first commit. **UI checkpoint in progress:** the first drive against the roll
-(`ss5-piano-roll.ps1`) found the mixer lane painting over the roll after a UI tick (FIX 1), the pencil
-drawing a 512-tick dot (FIX 2), and the roll squeezing 25 keys into ~5 px rows at the default dock
-(FIX 3, the key window — next commit, with the drive's rerun, the three-size shots and the §7.4 rubric).
-Then G3.3.
+**Now:** G3.2 — piano roll dock v2: cp1 ✅, cp2 ✅ (audition, the live note lane), and the **UI checkpoint**
+(two commits: `71efc63` on run `33668863266`, and the key-window commit — awaiting its run). The G3.2 see-it
+drive (`ss5-piano-roll.ps1`) is 31 / 31 on the real exe; the §7.4 rubric is recorded below. **The loop
+is stopped here at Dan's request** ("stop the loop on the next logical point"). Next when it resumes:
+tick G3.2 once the key-window run is green, then G3.3 (the roll's tool popup / snap + quantize header
+is G3.4 per the plan's order).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -119,6 +118,62 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.2 UI checkpoint — the real exe, the roll drive, the rubric (2026-09-02)
+
+**Drive.** `tools/session-scripts/ss5-piano-roll.ps1` (a slice of SS-4, plan §6), real Win32 input
+against the real exe: New → rail select → Create MIDI Clip from the lane menu (the roll opens) → the
+pencil (2) draws three notes, each auditioning its key → the pointer (1) presses a note (auditions)
+and Left / Right walk the selection and clamp → the keyboard column auditions the key under the press
+→ the scissors (3) Ctrl-click split → the eraser (4) → the velocity tool (5) + Ctrl+Z → a
+double-click on the empty grid adds → shots at 1280×720 / 1920×1080 / 2560×1440. **31 / 31.** The
+drive aims at the probe's new `view.pianoRoll` (the window, the grid, the painted notes) instead of
+guessing geometry; `view.lastAuditionKey` and `view.noteCount` are the audition and edit witnesses.
+The drive must run under Windows PowerShell 5.1 (`powershell.exe -File tools\session-drive.ps1`):
+pwsh 7 lacks the System.Drawing reference the shot capture needs.
+
+**Found by the drive (all fixed, all gated — none of them visible to a headless gate before):**
+1. **The mixer lane painted over the roll.** With the roll tab showing, the real exe still painted the
+   mixer's readout list ("Audio 1 meters: peak n/a", "Send", "FX", …) and its fader handles over the
+   roll's keyboard column: the UI tick's refresh restores the mixer lane's visibility and never hid it
+   again (the dispatch path hides; the timer path did not). FIX 1: the tick, the context-menu refresh
+   and the constructor hide after refreshing; `[dock-tabs]` now drives three UI ticks through the new
+   `mainComponentServiceUiTick` hook and refuses any stray widget.
+2. **The pencil drew a 512-tick dot.** cp1's "one snap step long" was the pre-G3.2 grid-step constant.
+   FIX 2: a sixteenth of the beat in force (Logic's default division; the roll's own division chooser
+   is G3.4); Ctrl+D lands the copy right after the note (Logic's Repeat) instead of 512 ticks later.
+3. **25 keys squeezed into ~5 px rows at the default dock** — notes were slivers, no key could carry
+   its name (cp1's name law needs 11 px rows). FIX 3, the **key window**: the roll shows as many keys as
+   fit at `pianoRollRowTargetHeight` (11 px), never fewer than `pianoRollViewKeysMin` (10) nor more
+   than 25, and scrolls; the paint, the hit-test, the wheel clamp, the surface (`viewKeyCount`) and the
+   probe share `UiTheme::Layout::pianoRollVisibleKeys (gridHeight)`. `[roll-key-window]` pins legible
+   rows at the default 1080p dock, the clamp with the window in force, and the full window on a tall
+   dock; the nineteen roll gates that address keys 48..72 grow the dock first (the historical
+   expectations hold at the full window).
+4. **Eraser / Velocity unreachable by key** (no chord, no button; View menu only). They take 4 and 5,
+   the free slots between the numbered tools; keymap doc regenerated.
+5. **cp2's CI red**: GCC's -Werror=misleading-indentation on the pencil's audition line (braces).
+
+**Rubric (§7.4) on the ss5 shots at 1280×720 / 1920×1080 / 2560×1440 (150 % scaling), the roll open:**
+1. Overlaps / clips / dead regions — **PASS after FIX 1** (was FAIL: the mixer lane over the roll).
+2. Track count at 1080p with the dock open ≥ 8 — PASS (unchanged from G3.1: 8.3 rows; the dock
+   height is untouched — the key window fits the roll to it instead of growing it).
+3. Labels + tooltips — PASS for what exists (key names on the white keys, Velocity / Pitch lane
+   labels, the tool tooltips); the roll header carries no Snap / Quantize / Scale controls yet (G3.4).
+4. Text ≥ 11 px — key names at 11.8 px rows; **their font is the caption size, below the floor at
+   100 %** — parked with the rail captions under the theme font-floor audit (G4).
+5. Selection / playhead / loop / hover distinct — PASS (selected note purple vs cyan; the roll's
+   playhead line; hover hint on the status line).
+6. Structure matches the reference — PASS for keyboard column + grid + lanes; **gap (parked):** the roll
+   has no key / time scrollbars of its own (Logic has both; the wheel scrolls), and the roll's
+   division is the arrangement's snap until G3.4.
+7. No fake data — PASS.
+
+**Deviation log (G3.2 checkpoint).**
+- D56 The first checkpoint commit (`71efc63`) carries cp2's CI fix and FIXes 1, 2, 4 with the drive;
+  the key window (FIX 3) is its own commit so each is independently green.
+- D57 The velocity drive step asserts "the drag dispatches" (the Velocity tool's press also selects the
+  note, one dispatch before the edit); the ONE-undo-step law stays the headless `[piano-roll-v2]` pin.
 
 ### G3.2 cp2 — Audition on click: the live note lane (2026-09-02)
 

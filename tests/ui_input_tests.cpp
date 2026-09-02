@@ -65,7 +65,6 @@ constexpr double kInspectorTimingShortenRatio = 0.5;
 constexpr double kInspectorFadeInRatio = 0.25;
 constexpr double kInspectorFadeOutRatio = 0.75;
 constexpr int kPianoRollHighKey = yesdaw::ui::UiTheme::Layout::pianoRollHighKey;
-constexpr int kPianoRollKeyCount = yesdaw::ui::UiTheme::Layout::pianoRollKeyCount;
 
 constexpr yesdaw::engine::EntityId idFromLowByte (std::uint8_t low) noexcept
 {
@@ -998,10 +997,13 @@ juce::Point<int> pianoRollNoteCenterPoint (juce::Component& pianoRoll,
     const int width = juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollNoteMinWidth,
                                   tickX (note.startTick + note.lengthTicks) - startX);
     const int x = startX + width / 2;
+    // G3.2 FIX 3: the key window in force (an unscrolled view: the default low key up).
+    const int visibleKeys = yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight());
+    const int highKey = yesdaw::ui::UiThemeLayout::pianoRollDefaultLowKey + visibleKeys - 1;
     const double rowHeight = static_cast<double> (std::max (1, grid.getHeight()))
-                           / static_cast<double> (kPianoRollKeyCount);
+                           / static_cast<double> (visibleKeys);
     const int y = grid.getY()
-                + static_cast<int> (std::llround (static_cast<double> (kPianoRollHighKey - note.key) * rowHeight
+                + static_cast<int> (std::llround (static_cast<double> (highKey - note.key) * rowHeight
                                                   + rowHeight * 0.5));
     return {
         std::clamp (x, grid.getX(), grid.getRight() - 1),
@@ -2783,6 +2785,7 @@ TEST_CASE ("H12 UI input harness edits MIDI Clip Notes through the real Piano Ro
     REQUIRE_FALSE (snapshot.context.midiNoteSelected);
 
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     // E12 re-pin: roll drags follow the REAL snap chooser now; this gate asserts the raw
     // pixel-exact laws, so it runs with the chooser Off.
     auto* snapChooser = dynamic_cast<juce::ComboBox*> (
@@ -2928,6 +2931,7 @@ TEST_CASE ("H12 UI input harness edits MIDI Clip Notes through the real Piano Ro
     REQUIRE (snapshot.context.midiClipSelected);
     REQUIRE_FALSE (snapshot.context.midiNoteSelected);
     (void) requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
 }
 
 TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspector controls",
@@ -3696,6 +3700,7 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE_FALSE (snapshot.context.midiNoteSelected);
 
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     // E12 re-pin: roll drags follow the REAL snap chooser now; these raw pixel-exact
     // expectations need the chooser Off.
     auto* pianoSnapChooser = dynamic_cast<juce::ComboBox*> (
@@ -11331,6 +11336,7 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     // E11: the empty roll grid is tool-aware — the pencil needs the Pencil tool; Pointer is
     // restored before the timeline gestures below.
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     mouseDownAt (pianoRoll, pianoRoll.getLocalBounds().getCentre());
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
@@ -11562,6 +11568,7 @@ TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
     doubleClickAt (timeline, midiClipPointOnLane (2));
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     mouseDownAt (pianoRoll, pianoRoll.getLocalBounds().getCentre());
     REQUIRE (notesOnTrack (2) == 1u);
     REQUIRE (notesOnTrack (0) == 0u);
@@ -11620,6 +11627,7 @@ TEST_CASE ("the piano roll viewport scrolls all 128 keys and zooms and scrolls t
     REQUIRE (snapshot.pianoRollViewScrollTicks == 0);
 
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
     juce::MouseWheelDetails wheelDown {};
     wheelDown.deltaY = -0.4f;
@@ -11654,7 +11662,7 @@ TEST_CASE ("the piano roll viewport scrolls all 128 keys and zooms and scrolls t
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.pianoRollViewLowKey
              == yesdaw::ui::UiThemeLayout::pianoRollKeyMax
-                    - (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1));
+                    - (yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight()) - 1));   // G3.2 FIX 3
     mouseDownAt (pianoRoll, { grid.getCentreX(), grid.getY() + 2 });
     edited = readProjectSnapshot (bundlePath);
     REQUIRE (edited.midiClips.front().notes.size() == 2u);
@@ -11698,10 +11706,10 @@ TEST_CASE ("the piano roll viewport scrolls all 128 keys and zooms and scrolls t
     REQUIRE (snapshot.context.snapEnabled);
     expectedTick -= expectedTick % static_cast<yesdaw::engine::Tick> (snapshot.context.snapGridTicks);
     const int expectedCentreKey = snapshot.pianoRollViewLowKey
-        + yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1
+        + yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight()) - 1
         - static_cast<int> (static_cast<double> (grid.getCentreY() - grid.getY())
                             / (static_cast<double> (juce::jmax (1, grid.getHeight()))
-                               / static_cast<double> (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount)));
+                               / static_cast<double> (yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight()))));
     const yesdaw::engine::Note* const centreNote = noteWithKey (edited, expectedCentreKey);
     REQUIRE (centreNote != nullptr);
     REQUIRE (centreNote->startTick == expectedTick);
@@ -11726,9 +11734,10 @@ TEST_CASE ("piano roll selection tools: pointer deselect, marquee, shift toggle,
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
     const int rowStep = juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollKeyRowMinHeight,
-                                    grid.getHeight() / yesdaw::ui::UiTheme::Layout::pianoRollKeyCount);
+                                    grid.getHeight() / yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight()));
 
     // Three pencilled notes at distinct keys and ticks.
     REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
@@ -11835,6 +11844,7 @@ TEST_CASE ("piano roll drags: pitch, group move, left-edge trim, real snap",
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
 
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
 
     const yesdaw::engine::MidiClip midi = readProjectSnapshot (bundlePath).midiClips.front();
@@ -11855,7 +11865,7 @@ TEST_CASE ("piano roll drags: pitch, group move, left-edge trim, real snap",
         return yesdaw::engine::Note {};
     };
     const double rowHeight = static_cast<double> (std::max (1, grid.getHeight()))
-                           / static_cast<double> (kPianoRollKeyCount);
+                           / static_cast<double> (yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight()));
 
     // PITCH drag (chooser Off): a pure vertical drag transposes without moving the start.
     const juce::Point<int> centreA = pianoRollNoteCenterPoint (pianoRoll, midi, noteA);
@@ -11934,7 +11944,7 @@ TEST_CASE ("piano roll drags: pitch, group move, left-edge trim, real snap",
     // PENCIL floors to the real chooser grid (Beat here), and the pencilled note is far too
     // narrow for the edge zones — the pointer must still MOVE it, never resize it.
     REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
-    const int pencilRow = kPianoRollHighKey - 55;
+    const int pencilRow = (yesdaw::ui::UiThemeLayout::pianoRollDefaultLowKey + yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight()) - 1) - 55;   // G3.2 FIX 3
     mouseDownAt (pianoRoll, { grid.getX() + juce::roundToInt (grid.getWidth() * 5.0 / 8.0),
                               grid.getY() + juce::roundToInt ((pencilRow + 0.5) * rowHeight) });
     REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
@@ -11983,6 +11993,7 @@ TEST_CASE ("velocity lane drags paint crossed notes and the selection paints tog
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
 
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
     const juce::Rectangle<int> lane = pianoRollVelocityLaneBounds (pianoRoll);
     const yesdaw::engine::MidiClip midi = readProjectSnapshot (bundlePath).midiClips.front();
@@ -12326,6 +12337,7 @@ TEST_CASE ("comma and period nudge the selected piano-roll note by the snap grid
 
     // E11: the empty-grid pencil needs the Pencil tool (the pencil selects its new note).
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -13383,6 +13395,7 @@ TEST_CASE ("Ctrl+M creates a MIDI clip and the pencil adds audible notes", "[ui]
     // Pencil: with the Pencil tool (E11), a click on the empty grid creates a note at the
     // clicked key and snapped tick.
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
     project = readProjectSnapshot (bundlePath);
@@ -14521,6 +14534,7 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
 
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     REQUIRE (shell->keyPressed (juce::KeyPress ('2')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
@@ -15539,6 +15553,7 @@ TEST_CASE ("Alt+wheel on a piano-roll note edits its velocity undoably and tints
     // Ctrl+M + pencil: one synth note whose loudness follows its velocity.
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     REQUIRE (shell->keyPressed (juce::KeyPress ('2')));   // E11: the empty-grid pencil is tool-aware
     const juce::Point<int> noteCentre { pianoRoll.getWidth() / 2, pianoRoll.getHeight() / 2 };
     mouseDownAt (pianoRoll, noteCentre);
@@ -15638,6 +15653,7 @@ TEST_CASE ("piano-roll keys transpose the note selection and Ctrl+A with Del edi
     // Two penciled notes at different keys and ticks; the second stays selected.
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     REQUIRE (shell->keyPressed (juce::KeyPress ('2')));   // E11: the empty-grid pencil is tool-aware
     mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 3 });
     mouseDownAt (pianoRoll, { (pianoRoll.getWidth() * 2) / 3, pianoRoll.getHeight() / 2 });
@@ -15746,6 +15762,7 @@ TEST_CASE ("Ctrl+drag copy-drags a note and Ctrl+D duplicates it one grid step l
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     // E12: note gestures snap through the real chooser; this gate pins the RAW copy-drag law,
     // so the chooser goes Off first.
     auto* snapChooser = dynamic_cast<juce::ComboBox*> (
@@ -15836,6 +15853,7 @@ TEST_CASE ("Q quantizes the selected notes to the snap grid as one undo group",
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     // E12: the pencil floors to the real chooser grid, which would pre-align these notes and
     // leave the quantize nothing to do — pencil RAW (chooser Off) first, then restore Beat.
     auto* snapChooser = dynamic_cast<juce::ComboBox*> (
@@ -16560,6 +16578,7 @@ TEST_CASE ("G2.1 dock tabs: the mixer and the piano roll are Editor-dock tabs (X
     arrangementIntact();
     {
         juce::Component& roll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
         REQUIRE (roll.getBounds() == yesdaw::ui::mainComponentMixerPanelBounds (*shell));
         const juce::StringArray strays = strayWidgetsInDock (kPianoRollComponentId);
         INFO ("stray widgets over the piano roll: " << strays.joinIntoString (", "));
@@ -18751,6 +18770,7 @@ TEST_CASE ("G3.2 piano roll v2: grid, names, playhead + follow, adjacent notes, 
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     const auto project = [&] { return readProjectSnapshot (bundlePath); };
     REQUIRE (project().midiClips.size() == 1u);
     const yesdaw::engine::Tick clipLength = project().midiClips.front().timelineLength;
@@ -18785,7 +18805,7 @@ TEST_CASE ("G3.2 piano roll v2: grid, names, playhead + follow, adjacent notes, 
     const auto keyCentreY = [&] (int key)
     {
         const int lowKey = snapshotMainComponent (*shell).pianoRollViewLowKey;
-        const double rowHeight = static_cast<double> (grid.getHeight()) / yesdaw::ui::UiTheme::Layout::pianoRollKeyCount;
+        const double rowHeight = static_cast<double> (grid.getHeight()) / yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight());   // G3.2 FIX 3
         return grid.getBottom() - static_cast<int> ((key - lowKey + 0.5) * rowHeight);
     };
     const auto gridPoint = [&] (double fraction, int key)
@@ -19510,6 +19530,7 @@ TEST_CASE ("G3.2 audition: keyboard column, note press and pencil sound the Trac
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     const auto project = [&] { return readProjectSnapshot (bundlePath); };
     REQUIRE (project().midiClips.size() == 1u);
 
@@ -19552,6 +19573,64 @@ TEST_CASE ("G3.2 audition: keyboard column, note press and pencil sound the Trac
     REQUIRE (yesdaw::ui::mainComponentPianoRollAudition (*shell, 67).heldKey == -1);
     REQUIRE (project().midiClips.front().notes.size() == 1u);
 
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G3.2 checkpoint FIX 3: the key window. At the plan's default dock the roll used to squeeze all 25
+// keys into the grid (about 5 px rows at 1080p - notes were slivers and no key could carry its
+// name); it now shows as many keys as fit at the legible row target and scrolls, never fewer than
+// ten, and the full 25-key window returns when the dock is tall enough. The paint, the hit-test,
+// the wheel clamp and the probe share the one law.
+TEST_CASE ("G3.2 piano roll key window: legible rows at the default dock, the full window when tall",
+           "[ui][input][shell][g3][rubric][roll-key-window]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("roll-key-window");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    const auto rollProbe = [&] {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return probe["view"]["pianoRoll"];
+    };
+    {
+        const juce::var roll = rollProbe();
+        const int lowKey = static_cast<int> (roll["viewLowKey"]);
+        const int highKey = static_cast<int> (roll["viewHighKey"]);
+        const double rowHeight = static_cast<double> (roll["rowHeight"]);
+        const int gridHeight = static_cast<int> (roll["gridHeight"]);
+        INFO ("default dock: keys " << lowKey << ".." << highKey << " rows " << rowHeight << " px, grid " << gridHeight << " px");
+        REQUIRE (highKey - lowKey + 1 == L::pianoRollVisibleKeys (gridHeight));
+        REQUIRE (highKey - lowKey + 1 >= L::pianoRollViewKeysMin);
+        REQUIRE (highKey - lowKey + 1 <= L::pianoRollKeyCount);
+        if (highKey - lowKey + 1 > L::pianoRollViewKeysMin)
+            REQUIRE (rowHeight >= static_cast<double> (L::pianoRollRowTargetHeight));   // legible rows whenever the floor is not forcing
+        REQUIRE (lowKey == yesdaw::ui::UiThemeLayout::pianoRollDefaultLowKey);
+    }
+    // The wheel scrolls the window and clamps at the top with the window in force.
+    {
+        const juce::MouseEvent hover = makeMouseEvent (pianoRoll, pianoRoll.getLocalBounds().getCentre(), pianoRoll.getLocalBounds().getCentre(), false, 0, juce::ModifierKeys());
+        juce::MouseWheelDetails wheelUp {};
+        wheelUp.deltaY = 1.0f;
+        for (int i = 0; i < 130; ++i)
+            pianoRoll.mouseWheelMove (hover, wheelUp);
+        const juce::var roll = rollProbe();
+        REQUIRE (static_cast<int> (roll["viewHighKey"]) == yesdaw::ui::UiThemeLayout::pianoRollKeyMax);
+        REQUIRE (static_cast<int> (roll["viewHighKey"]) - static_cast<int> (roll["viewLowKey"]) + 1
+                 == L::pianoRollVisibleKeys (static_cast<int> (roll["gridHeight"])));
+    }
+    // A tall dock brings the full window back.
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::windowMaxHeight);
+    {
+        const juce::var roll = rollProbe();
+        REQUIRE (static_cast<int> (roll["viewHighKey"]) - static_cast<int> (roll["viewLowKey"]) + 1 == L::pianoRollKeyCount);
+    }
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }

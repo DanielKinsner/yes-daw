@@ -68,3 +68,9 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 
 - **An empty MIDI Track has no Instrument node, so it cannot audition (2026-09-02, G3.2 cp2).** The projection builds a Track's MidiMerge + Instrument only for Tracks that own a MIDI clip (ProjectMixerProjection.h, the per-clip loop); a fresh MIDI Track with no clip is silent under the keyboard column and would be silent under live input. Owner: G3.10 (live MIDI input) — build the Instrument for every MIDI-kind Track, clip or not, and re-pin `[audition-shell]` on an empty Track.
 
+- **Roll key names use the caption font (2026-09-02, G3.2 checkpoint, rubric line 4).** The key window now gives 11 px rows at the default 1080p dock and the white keys carry their names, but the name font is the caption size (below the 11 px floor at 100 % scaling). Owner: the G4 theme font-floor audit, with the rail's PAN / VOL captions — one token change, one gate.
+
+- **The roll has no scrollbars of its own (2026-09-02, G3.2 checkpoint, rubric line 6).** Keys scroll by wheel and time by Shift+wheel / zoom, but Logic shows a key scrollbar and a time scrollbar on the roll. Owner: G3.3 / the roll header pass (G3.4) — reuse the arrangement's TooltipScrollBar (G2.16).
+
+- **The velocity drive step counts dispatches (2026-09-02, D57).** The probe has no undo-depth field, so the drive proves "the drag dispatches" and the one-undo law stays headless. Owner: the next probe pass — publish `undoDepth` and re-pin the drive step to one undo.
+

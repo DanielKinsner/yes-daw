@@ -72,6 +72,7 @@ struct UiPianoRollSurfaceSnapshot
     // horizontal window zooms/scrolls across the clip; the defaults reproduce the historical
     // fixed C3-C5 full-clip view exactly.
     int viewLowKey = UiThemeLayout::pianoRollDefaultLowKey;
+    int viewKeyCount = 25;   // G3.2 FIX 3: the key window in force (from the grid height); 25 = the widest (UiTheme::Layout::pianoRollKeyCount)
     double viewZoom = 1.0;
     engine::Tick viewScrollTicks = 0;
 

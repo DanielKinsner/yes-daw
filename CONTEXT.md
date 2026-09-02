@@ -347,6 +347,14 @@ Sounding a key through the Track's Instrument on a press — the roll's keyboard
 pencil-drawn note — held while the mouse is, released on mouse-up; not an edit (nothing to undo).
 The Track is the roll's Clip's Track, else the selected strip.
 
+**Key window** (G3.2 checkpoint):
+The keys the piano roll shows: as many as fit its grid at the legible row target (11 px), never fewer
+than ten nor more than the widest window (25), scrolled by the wheel and clamped at the keyboard's
+ends. One law (`pianoRollVisibleKeys (gridHeight)`) for the paint, the hit-test, the wheel clamp, the
+surface snapshot and the state probe; a gate that addresses a key first grows the dock to the full
+window.
+_Avoid_: key range (the persisted clip range), zoom (the roll's time zoom)
+
 **Instrument track auto-wire**:
 The H9 headless bridge that turns a Project MIDI Clip into `DecodedMidiClipNode -> ImpulseInstrumentNode`
 inside the mixer graph. It proves timing and transport; it is not the final user-facing instrument model.

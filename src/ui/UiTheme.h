@@ -929,7 +929,20 @@ struct UiTheme
         static constexpr int pianoRollKeyboardWidth = 70;
         static constexpr int pianoRollLowKey = 48;
         static constexpr int pianoRollHighKey = 72;
-        static constexpr int pianoRollKeyCount = pianoRollHighKey - pianoRollLowKey + 1;
+        static constexpr int pianoRollKeyCount = pianoRollHighKey - pianoRollLowKey + 1;   // the WIDEST key window
+        // G3.2 checkpoint FIX 3 (the key window): the roll shows as many keys as fit at a legible row
+        // (the reference: ~11 px rows, a window of keys that scrolls), never fewer than
+        // pianoRollViewKeysMin nor more than pianoRollKeyCount. One law for the paint, the hit-test,
+        // the wheel clamp and the gates.
+        static constexpr int pianoRollRowTargetHeight = 11;
+        static constexpr int pianoRollViewKeysMin = 10;
+        [[nodiscard]] static constexpr int pianoRollVisibleKeys (int gridHeight) noexcept
+        {
+            const int fit = gridHeight / pianoRollRowTargetHeight;
+            return fit < pianoRollViewKeysMin ? pianoRollViewKeysMin
+                 : fit > pianoRollKeyCount    ? pianoRollKeyCount
+                                              : fit;
+        }
         static constexpr int pianoRollGridTickStep = 512;         // (pre-G3.2 fixed grid; the paint now follows the meter + snap)
         static constexpr int pianoRollGridStrongTickStep = 2048;
         static constexpr int pianoRollGridMinLinePx = 6;          // G3.2: a snap subdivision paints only when its cells are this wide
