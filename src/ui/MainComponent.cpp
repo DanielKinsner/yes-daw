@@ -51,6 +51,7 @@ constexpr int kMixerHeight = yesdaw::ui::UiTheme::Layout::mixerHeight;
 constexpr int kUiRefreshIntervalMs = 33;
 // Open Recent menu item ids live above the action-id range (B39).
 constexpr int kRecentMenuBaseId = 1000;
+constexpr int kRepeatCountMenuBaseId = 1100;   // G1.7: Edit ▸ Repeat Count ▸ (+ the count: 2, 3, 4, 8)
 
 // The menu bar names its menus itself; the tooltip mixin satisfies the every-control law (B40).
 class TooltippedMenuBar final : public juce::MenuBarComponent,
@@ -3169,6 +3170,7 @@ public:
     std::function<void (int)> onMeterClicked;
     // M4: painted insert-slot hit test — a click on a slot row selects the strip and that slot.
     std::function<std::pair<int, int> (juce::Point<int>)> insertSlotAtPosition;
+    std::function<bool (int, int)> insertSlotFilled;   // G1.7: an empty slot hints and menus "add"
     std::function<void (int, int)> onInsertSlotClicked;
     // M5: painted send rows — press picks the row, drag sets the level, release commits ONE
     // undoable edit (a per-pixel commit would bury the undo stack).
@@ -3196,7 +3198,11 @@ public:
                 return "Send: drag to set its level";
         if (insertSlotAtPosition)
             if (const auto [slotStrip, slotIndex] = insertSlotAtPosition (shellPosition); slotStrip >= 0 && slotIndex >= 0)
-                return "Insert slot: click to edit \u00b7 right-click to bypass, remove or move";
+            {
+                const bool filled = insertSlotFilled == nullptr || insertSlotFilled (slotStrip, slotIndex);
+                return filled ? "Insert slot: click to edit \u00b7 right-click to bypass, remove or move"
+                              : "Empty insert: right-click to add an effect";
+            }
         if (meterStripAtPosition && meterStripAtPosition (shellPosition) >= 0)
             return "Meter: click clears the clip light";
         if (stripAtPosition && stripAtPosition (shellPosition) >= 0)
@@ -4319,26 +4325,6 @@ public:
         };
         addChildComponent (keymapEditor);
 
-        configureActionComponent (
-            timelineRepeatPasteChooser,
-            yesdaw::ui::UiActionId::TimelineClipRepeatPaste,
-            "Repeat paste count");
-        timelineRepeatPasteChooser.setComponentID ("timeline.repeat-paste.chooser");
-        timelineRepeatPasteChooser.addItem ("2x", 2);
-        timelineRepeatPasteChooser.addItem ("3x", 3);
-        timelineRepeatPasteChooser.addItem ("4x", 4);
-        timelineRepeatPasteChooser.addItem ("8x", 8);
-        timelineRepeatPasteChooser.setSelectedId (
-            yesdaw::ui::UiAppModel::kDefaultRepeatPasteCount,
-            juce::dontSendNotification);
-        timelineRepeatPasteChooser.onChange = [this] {
-            if (refreshingRepeatPasteChooser)
-                return;
-
-            appModel.setRepeatPasteCount (timelineRepeatPasteChooser.getSelectedId());
-            refreshActionState();
-        };
-        addAndMakeVisible (timelineRepeatPasteChooser);
 
         configureAutomationLaneControls();
         configureMixerDockToggle();
@@ -5862,7 +5848,8 @@ public:
         {
             const auto action = toolbarActions[i];
             if (isSettingsRowAction (action))
-                buttons[i].setVisible (h.settingsVisible);
+                buttons[i].setVisible (h.settingsVisible
+                                       && action != yesdaw::ui::UiActionId::RecordingAssembleComp);   // G1.7: hidden until G7
             switch (action)
             {
                 case yesdaw::ui::UiActionId::ProjectNew:         buttons[i].setBounds (h.newButton); break;
@@ -5959,12 +5946,6 @@ public:
                 automationBounds.getHeight()
             };
             timelineSnapChooser.setBounds (snapBounds);
-            timelineRepeatPasteChooser.setBounds (
-                snapBounds.getX() - yesdaw::ui::UiTheme::Layout::timelineRepeatPasteChooserWidth
-                    - yesdaw::ui::UiTheme::Layout::timelineRepeatPasteChooserGap,
-                snapBounds.getY(),
-                yesdaw::ui::UiTheme::Layout::timelineRepeatPasteChooserWidth,
-                snapBounds.getHeight());
         }
         {
             // V3: anchored just above the dock's CURRENT top edge (using dockedMixerHeight(),
@@ -6543,6 +6524,16 @@ private:
                         return std::pair<int, int> { static_cast<int> (i), static_cast<int> (slot) };
             }
             return std::pair<int, int> { -1, -1 };
+        };
+        mixerStripsInput.insertSlotFilled = [this] (int strip, int slot) {
+            const auto surface = currentMixerSurface();
+            const std::size_t trackCount = surface.tracks.size();
+            const auto stripIndex = static_cast<std::size_t> (strip);
+            if (strip < 0 || stripIndex >= trackCount + surface.buses.size())
+                return false;
+            const auto& state = stripIndex < trackCount ? surface.tracks[stripIndex]
+                                                        : surface.buses[stripIndex - trackCount];
+            return slot >= 0 && static_cast<std::size_t> (slot) < state.fxSlots.size();
         };
         // M5: painted send rows. The press selects the strip and previews the level; the release
         // commits ONE undoable SetSendLevel through the same model verb the control lane uses.
@@ -8759,10 +8750,32 @@ private:
         // The click's selection is part of the context the items are built from.
         refreshActionState();
         juce::PopupMenu menu;
-        for (const yesdaw::ui::ContextMenuEntry& entry : yesdaw::ui::contextMenuEntries (target))
+        // G1.7: an EMPTY insert slot offers exactly one thing — Add Insert (the kinds) — instead
+        // of four disabled verbs; a strip's Add Insert is the same submenu, so a right-click
+        // reaches every effect without the dock's chooser.
+        const bool emptySlot = target == yesdaw::ui::ContextMenuTarget::InsertSlot
+                            && ! (index >= 0 && static_cast<std::size_t> (index) < appModel.selectedStripFxChain().size());
+        std::vector<yesdaw::ui::ContextMenuEntry> entries;
+        if (emptySlot)
+            entries.push_back ({ yesdaw::ui::UiActionId::MixerFxInsertAdd });
+        else
+            for (const yesdaw::ui::ContextMenuEntry& entry : yesdaw::ui::contextMenuEntries (target))
+                entries.push_back (entry);
+        for (const yesdaw::ui::ContextMenuEntry& entry : entries)
         {
             if (entry.separatorBefore)
                 menu.addSeparator();
+            if (entry.action == yesdaw::ui::UiActionId::MixerFxInsertAdd)
+            {
+                juce::PopupMenu kinds;
+                for (int kind = 0; kind < kContextMenuAddInsertKindCount; ++kind)
+                    kinds.addItem (kContextMenuAddInsertBase + kind,
+                                   fxKindName (static_cast<yesdaw::engine::FxKind> (kind)));
+                menu.addSubMenu ("Add Insert", kinds,
+                                 appModel.registry().stateFor (entry.action, appModel.context()).enabled);
+                lastContextMenu.actions.push_back (entry.action);
+                continue;
+            }
             const auto& descriptor = yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (entry.action)];
             const bool slotVerb = target == yesdaw::ui::ContextMenuTarget::InsertSlot;
             const bool slotEnabled = slotVerb && index >= 0
@@ -8806,12 +8819,23 @@ private:
 
     static constexpr int kContextMenuMoveUpId = 2001;
     static constexpr int kContextMenuMoveDownId = 2002;
+    static constexpr int kContextMenuAddInsertBase = 3001;      // + FxKind
+    static constexpr int kContextMenuAddInsertKindCount = 5;    // Eq … Limiter
 
     // The one path a picked context-menu item takes (the popup's callback and the harness): the
     // insert-slot verbs act on the clicked slot through the shell's per-slot handlers; every
     // other target dispatches the action.
     void invokeContextMenuItem (int itemId)
     {
+        if (itemId >= kContextMenuAddInsertBase && itemId < kContextMenuAddInsertBase + kContextMenuAddInsertKindCount)
+        {
+            (void) appModel.addFxInsertToSelectedStrip (
+                static_cast<yesdaw::engine::FxKind> (itemId - kContextMenuAddInsertBase));
+            refreshActionState();
+            resized();
+            repaintAll();
+            return;
+        }
         if (lastContextMenu.target == yesdaw::ui::ContextMenuTarget::InsertSlot)
         {
             const int slot = lastContextMenu.index;
@@ -8849,8 +8873,10 @@ private:
 public:
     void harnessInvokeContextMenuItem (yesdaw::ui::UiActionId action, int direction)
     {
-        if (lastContextMenu.target == yesdaw::ui::ContextMenuTarget::InsertSlot
-            && action == yesdaw::ui::UiActionId::MixerFxInsertReorder)
+        if (action == yesdaw::ui::UiActionId::MixerFxInsertAdd)
+            invokeContextMenuItem (kContextMenuAddInsertBase + direction);   // direction carries the FxKind
+        else if (lastContextMenu.target == yesdaw::ui::ContextMenuTarget::InsertSlot
+                 && action == yesdaw::ui::UiActionId::MixerFxInsertReorder)
             invokeContextMenuItem (direction < 0 ? kContextMenuMoveUpId : kContextMenuMoveDownId);
         else
             invokeContextMenuItem (static_cast<int> (action) + 1);
@@ -8961,6 +8987,21 @@ private:
             menu.addItem (std::move (item));
         }
 
+        // G1.7: the repeat-paste count (Ctrl+R) is a ticked Edit ▸ Repeat Count submenu — the
+        // toolbar "2x" combo the sweep flagged is gone (the reference toolbar has no such thing).
+        if (topLevelMenuIndex == 1)
+        {
+            juce::PopupMenu counts;
+            for (const int count : { 2, 3, 4, 8 })
+            {
+                juce::PopupMenu::Item item (juce::String (count) + juce::String::charToString (0xd7));
+                item.itemID = kRepeatCountMenuBaseId + count;
+                item.isTicked = appModel.repeatPasteCount() == count;
+                counts.addItem (std::move (item));
+            }
+            menu.addSubMenu ("Repeat Count", counts);
+        }
+
         // Open Recent (B39): the File menu lists the MRU bundles, most recent first, on item ids
         // above the action range.
         if (topLevelMenuIndex == 0)
@@ -8978,6 +9019,13 @@ private:
 
     void menuItemSelected (int menuItemID, int /*topLevelMenuIndex*/) override
     {
+        if (menuItemID > kRepeatCountMenuBaseId && menuItemID <= kRepeatCountMenuBaseId + 8)
+        {
+            appModel.setRepeatPasteCount (menuItemID - kRepeatCountMenuBaseId);
+            refreshActionState();
+            repaintAll();
+            return;
+        }
         if (menuItemID >= kRecentMenuBaseId
             && menuItemID < kRecentMenuBaseId + static_cast<int> (yesdaw::ui::UiAppModel::kRecentProjectsLimit))
         {
@@ -9439,7 +9487,10 @@ private:
             const auto action = toolbarActions[i];
             // G0.7: the device + recording cluster lives in the collapsible settings row; every
             // other toolbar button is visible in every view.
-            buttons[i].setVisible (! isSettingsRowAction (action) || appModel.context().settingsRowVisible);
+            // G1.7: Comp belongs to the G7 take-lane UI — hidden until then (the verb stays
+            // dispatchable through the menu and the harness).
+            buttons[i].setVisible ((! isSettingsRowAction (action) || appModel.context().settingsRowVisible)
+                                   && action != yesdaw::ui::UiActionId::RecordingAssembleComp);
             const auto state = appModel.registry().stateFor (action, appModel.context());
             const bool hasRequiredPlayback = ! toolbarActionRequiresPlayback (action) || appModel.playbackReady();
             buttons[i].setEnabled (state.enabled && hasRequiredPlayback);
@@ -9771,18 +9822,6 @@ private:
             refreshActionTooltips();
             inspectorToggle.setToggleState (appModel.context().inspectorVisible, juce::dontSendNotification);
             refreshingSnapChooser = false;
-        }
-        {
-            refreshingRepeatPasteChooser = true;
-            const bool timelineVisible = appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline;
-            const auto repeatState = appModel.registry().stateFor (
-                yesdaw::ui::UiActionId::TimelineClipRepeatPaste,
-                appModel.context());
-            timelineRepeatPasteChooser.setVisible (timelineVisible);
-            timelineRepeatPasteChooser.setEnabled (repeatState.enabled);
-            timelineRepeatPasteChooser.setSelectedId (
-                appModel.repeatPasteCount(), juce::dontSendNotification);
-            refreshingRepeatPasteChooser = false;
         }
         const bool railVisible = appModel.context().activePanel != yesdaw::ui::UiPanel::Mixer;
         trackListInput.setVisible (railVisible);
@@ -12998,7 +13037,6 @@ private:
     KeymapEditorComponent keymapEditor;    // G1.5
     juce::TextButton inspectorToggle;      // G1.4
     int timeDisplayMode = 0;               // G1.4: 0 bars|beats primary, 1 min:sec primary
-    juce::ComboBox timelineRepeatPasteChooser;
     AutomationLaneCanvasComponent automationLaneCanvas;
     // E20: the automation lane target — what the canvas edits (struct declared with the
     // target helpers earlier in the class).
@@ -13052,7 +13090,6 @@ private:
     bool refreshingTimeMapControls = false;
     bool refreshingSnapChooser = false;
     bool refreshingNudgeChooser = false;   // G1.4
-    bool refreshingRepeatPasteChooser = false;
     bool refreshingMixerControls = false;
     int autosaveElapsedMs = 0;
 

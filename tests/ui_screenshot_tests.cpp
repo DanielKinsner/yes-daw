@@ -400,8 +400,7 @@ TEST_CASE ("MainComponent renders nonblank screenshot PNGs for shipped surface s
         *shell,
         std::array {
             UiActionId::RecordingArmTrack,
-            UiActionId::RecordingSetMonitoringPolicy,
-            UiActionId::RecordingAssembleComp
+            UiActionId::RecordingSetMonitoringPolicy
         },
         juce::Rectangle<int> { 0, 0, shell->getWidth(), yesdaw::ui::mainComponentHeaderHeight (*shell) });
     yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);

@@ -41,10 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G1.6 (status hints for every hovered zone; tooltips follow the live keymap;
-`[hover-hints]`) built, gated locally, committed; awaiting its exact-head run (G1.5's run
-`33612568972` is watched too). Next: G1.7 the dead-affordance sweep — the G1 exit. The drive
-stays paused (D14).
+**Now:** G1.7 (the dead-affordance sweep — the G1 exit; `[dead-affordance-sweep]`) built, gated
+locally, committed; awaiting its exact-head run. G1.6 (`15ce6e7`) ticks when its exact-head run
+is green. Next: G2.1 (one window, docked panels, splitters; `[dock-layout]`). The drive stays
+paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -81,9 +81,44 @@ two-readout counter); certified by the same run `33611170410`. Deferred inside t
 Edit mode / Snap mode choosers (their model is G2), the X / P / A regrouping (G1.7 sweep), nudge
 in ms / samples / frames (G2.15). The two defects its rubric shot exposed (D45 menu bar width,
 D46 the caption clipped since G0.7) are fixed in `bd1117a`, whose run is watched.
-**Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
-default track height 72, header width 260), the header as a flex row (tools · transport centred ·
-master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+G1.5 ✅ — the keymap editor (`1baa2ed`); certified by exact-head run `33612568972` (green on all
+ten jobs, first try). G1.6 (`15ce6e7`) and G1.7 tick on their own exact-head runs.
+**Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G1.7 — Dead-affordance sweep (2026-09-02)
+
+**Build.** The sweep's list, fixed or removed: the `2x` combo is **removed** — the reference
+toolbar has no such thing and the tool cells left it no room to name itself — and the Ctrl+R
+repeat count becomes a ticked **Edit ▸ Repeat Count ▸ 2× / 3× / 4× / 8×** submenu (menu ids
+above the action range, like Open Recent; tokens `timelineRepeatPasteChooser*` deleted).
+`Comp` is hidden until
+the G7 take-lane UI (verb stays in the menu / keymap / harness; the recording tests dispatch it
+through the harness; both the state refresh and the layout pass exclude it). `Arm` / `Monitor`
+stay, with tooltips. FX-slot button arrays already hid with no FX; the painted empty wells stay
+(Pro Tools law) but stop lying: an empty slot's hint is "right-click to add an effect" and its
+context menu is exactly **Add Insert ▸** (EQ / Compressor / Delay / Reverb / Limiter) instead of
+four disabled verbs; a strip's Add Insert is the same submenu. The inspector's clip controls
+already hide without a clip — now gated. Harness: the existing
+`mainComponentInvokeContextMenuItem (MixerFxInsertAdd, kind)` seam carries the kind.
+
+**Gates.** `[dead-affordance-sweep]` (input check): no repeat combo child; the Edit menu's four
+count items read 2× … 8×, 2× ticked by default, 8× ticks when chosen, 2× again; Comp
+invisible with the settings row shown, Arm + Monitor visible with tooltips; gain + start hide on
+deselect; no-FX → every slot toggle/remove invisible, empty-slot hint "add", menu = {Add Insert},
+EQ added through it (chain 1, EQ), hint "edit", filled-slot menu = the full slot table, toggle
+visible; slot 1 adds a Reverb the same way. Re-pins with rationale: the repeat-paste test
+drives the real Edit menu (count 4×); the SNAP caption test checks the caption against the tool
+cells instead of the combo; Edit menu 19 → 20 items; shell child count −1; the H12 toolbar
+harness test expects exactly Comp hidden; recording tests dispatch Comp through the harness.
+
+**Not built (recorded).** The X / P / A regrouping G1.4 deferred here is G2.1's by nature: X and
+P become the Editor dock's tab toggles and A the automation editor's, so the header's view
+cluster is built with the dock, not moved twice. A strip-menu **Add Send ▸** (§3.3) waits for the
+bus list to be a submenu (G4 mixer work); a chord-capture field in the keymap editor is parked.
+
+**G1 exit.** Everything headless in G1.1–G1.7 is built and gated (G1.6–G1.7 tick on their
+exact-head runs). The exit's **SS-2 "By mouse, then by keys"** drive needs the real mouse and
+keyboard and stays paused until Dan says go (D14) — it is recorded as pending, not done.
 
 ### G1.6 — Tooltips and status hints (2026-09-02)
 

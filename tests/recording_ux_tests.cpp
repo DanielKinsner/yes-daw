@@ -184,7 +184,6 @@ AutosaveRecoveryFixture makeAutosaveRecoveryFixture (std::string label)
         juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
         juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
         juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
-        juce::Button& comp = requireButtonForAction (*shell, UiActionId::RecordingAssembleComp);
 
         clickButton (newProject);
         yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
@@ -193,7 +192,7 @@ AutosaveRecoveryFixture makeAutosaveRecoveryFixture (std::string label)
         clickButton (record);
         clickButton (record);
         clickButton (record);
-        clickButton (comp);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::RecordingAssembleComp);   // G1.7: Comp is hidden until G7
     }
 
     fixture.autosaved = readProjectSnapshot (fixture.bundlePath);
@@ -223,7 +222,7 @@ TEST_CASE ("H13 recording UX harness targets shipped MainComponent recording con
     juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
     juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
     juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
-    juce::Button& comp = requireButtonForAction (*shell, UiActionId::RecordingAssembleComp);
+    juce::Component* comp = findMainComponentChildForAction (*shell, UiActionId::RecordingAssembleComp);
 
     // G0.8: neither device verb has a shell control any more.
     REQUIRE (findMainComponentChildForAction (*shell, UiActionId::DeviceRefreshAudio) == nullptr);
@@ -231,8 +230,9 @@ TEST_CASE ("H13 recording UX harness targets shipped MainComponent recording con
     REQUIRE (armTrack.getComponentID() == "record.track.arm");
     REQUIRE (monitor.getComponentID() == "record.monitoring_policy");
     REQUIRE (record.getComponentID() == "transport.record");
-    REQUIRE (comp.getComponentID() == "record.comp.assemble");
-    REQUIRE (comp.getButtonText() == "Comp");
+    // G1.7: Comp exists as a verb but its control stays hidden until the G7 take-lane UI.
+    REQUIRE (comp != nullptr);
+    REQUIRE_FALSE (comp->isVisible());
 }
 
 TEST_CASE ("H13 recording UX harness keeps Record disabled until a test device and armed Track input exist",
@@ -638,7 +638,6 @@ TEST_CASE ("H13 take lanes and Comp basics persist and undo through shipped Main
     juce::Button& armTrack = requireButtonForAction (*shell, UiActionId::RecordingArmTrack);
     juce::Button& monitor = requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy);
     juce::Button& record = requireButtonForAction (*shell, UiActionId::TransportRecord);
-    juce::Button& comp = requireButtonForAction (*shell, UiActionId::RecordingAssembleComp);
     juce::Button& undo = requireButtonForAction (*shell, UiActionId::EditUndo);
     juce::Button& redo = requireButtonForAction (*shell, UiActionId::EditRedo);
 
@@ -647,7 +646,7 @@ TEST_CASE ("H13 take lanes and Comp basics persist and undo through shipped Main
     clickButton (armTrack);
     clickButton (monitor);
 
-    REQUIRE_FALSE (comp.isEnabled());
+    REQUIRE_FALSE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::RecordingAssembleComp).enabled);
 
     clickButton (record);
     clickButton (record);
@@ -657,7 +656,7 @@ TEST_CASE ("H13 take lanes and Comp basics persist and undo through shipped Main
     REQUIRE (snapshot.context.isRecording);
     REQUIRE (snapshot.context.recordingCommandCount == 3);
     REQUIRE (snapshot.context.recordingCompTakesAvailable);
-    REQUIRE (comp.isEnabled());
+    REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::RecordingAssembleComp).enabled);
 
     yesdaw::engine::Project recorded = readProjectSnapshot (bundlePath);
     REQUIRE (recorded.recordingTakes.size() == 2u);
@@ -667,7 +666,7 @@ TEST_CASE ("H13 take lanes and Comp basics persist and undo through shipped Main
     REQUIRE (recorded.recordingTakes[1].takeOrdinal == 1u);
     REQUIRE (recorded.recordingCompSegments.empty());
 
-    clickButton (comp);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::RecordingAssembleComp);   // G1.7: Comp is hidden until G7
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.recordingCompSelected);

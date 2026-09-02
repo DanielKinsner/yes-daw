@@ -53,3 +53,5 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 - 2026-09-02 (G0.7 cp3): the playhead's ruler badge covers bar 1's number in the bars row; the
   badge belongs in the time row or the marker lane (Logic: the playhead's triangle rides the
   lower ruler edge) → G2 ruler/playhead pass.
+
+- **Keymap editor: chord capture (2026-09-02, G1.7).** A chord is typed as text in the editor ("Ctrl+Shift+K"); a capture field that records the next key press is polish for a later G-item. Also parked: a strip-menu **Add Send ▸** submenu (§3.3) once the bus list can be a submenu (G4).

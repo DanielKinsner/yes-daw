@@ -583,10 +583,8 @@ struct UiTheme
         static constexpr float automationCanvasLineWidth = 1.6f;
         static constexpr int timelineSnapChooserWidth = 96;
         static constexpr int timelineSnapChooserGap = 8;
-        static constexpr int timelineRepeatPasteChooserWidth = 72;
         // Wide enough for the painted SNAP caption to sit between the repeat-paste and snap
         // choosers without being clipped by either (B41).
-        static constexpr int timelineRepeatPasteChooserGap = 57;
         // Vertical track scroll (E5): when tracks overflow the viewport, lanes hold this fixed
         // row height and the shared row offset scrolls them; few tracks still stretch to fill.
         // G0.7: a fixed DEFAULT row height (Logic / Pro Tools: rows never stretch to fill the

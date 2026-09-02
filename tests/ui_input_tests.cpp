@@ -407,6 +407,46 @@ juce::Button& requireButtonWithComponentId (juce::Component& shell, const juce::
     return *button;
 }
 
+// G1.7: the repeat-paste count lives in Edit ▸ Repeat Count (ticked 2× / 3× / 4× / 8×), not in a
+// toolbar combo. These walk the REAL menu model.
+juce::MenuBarModel& requireMenuBarModel (juce::Component& shell)
+{
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    REQUIRE (bar->getModel() != nullptr);
+    return *bar->getModel();
+}
+
+int tickedRepeatCount (juce::Component& shell)
+{
+    juce::PopupMenu edit = requireMenuBarModel (shell).getMenuForIndex (1, "Edit");
+    juce::PopupMenu::MenuItemIterator it (edit, true);
+    while (it.next())
+    {
+        const juce::PopupMenu::Item& item = it.getItem();
+        if (item.isTicked && item.text.endsWithChar (static_cast<juce::juce_wchar> (0xd7)))
+            return item.text.dropLastCharacters (1).getIntValue();
+    }
+    return 0;
+}
+
+void selectRepeatCount (juce::Component& shell, int count)
+{
+    juce::MenuBarModel& model = requireMenuBarModel (shell);
+    juce::PopupMenu edit = model.getMenuForIndex (1, "Edit");
+    juce::PopupMenu::MenuItemIterator it (edit, true);
+    while (it.next())
+    {
+        const juce::PopupMenu::Item& item = it.getItem();
+        if (item.text == juce::String (count) + juce::String::charToString (0xd7))
+        {
+            model.menuItemSelected (item.itemID, 1);
+            return;
+        }
+    }
+    FAIL ("no Repeat Count item for " << count);
+}
+
 juce::Slider& requireSliderWithComponentId (juce::Component& shell, const juce::String& componentId)
 {
     juce::Component* component = findChildWithComponentId (shell, componentId);
@@ -1046,7 +1086,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 142u));   // G1.4: nudge chooser + inspector toggle; G1.5: the keymap editor
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 141u));   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2009,7 +2049,8 @@ TEST_CASE ("H12 UI input harness targets toolbar Components by stable action id 
         REQUIRE (component != nullptr);
         REQUIRE_FALSE (component->getComponentID().isEmpty());
         REQUIRE_FALSE (component->getName().isEmpty());
-        REQUIRE (component->isVisible());
+        // G1.7: Comp is the one toolbar verb whose control stays hidden until the G7 take-lane UI.
+        REQUIRE (component->isVisible() == (action != UiActionId::RecordingAssembleComp));
     }
 
     REQUIRE (findMainComponentChildForAction (*shell, UiActionId::TimelineClipMove) == nullptr);
@@ -4573,7 +4614,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
     // Eight action items + the B39 Open Recent submenu.
     REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 9);
-    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 19);   // G1.4: + the four nudge values
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 20);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
 
     // File > New Project through the model creates a real bundle.
@@ -9409,18 +9450,14 @@ TEST_CASE ("Ctrl+R repeat-pastes the clipboard back-to-back as one audible undo 
     const yesdaw::engine::Clip source = original.clips.front();
     REQUIRE (source.timelineLength > 0);
 
-    auto* repeatChooser = dynamic_cast<juce::ComboBox*> (
-        findChildWithComponentId (*shell, "timeline.repeat-paste.chooser"));
-    REQUIRE (repeatChooser != nullptr);
-    REQUIRE (repeatChooser->isVisible());
-    REQUIRE_FALSE (repeatChooser->isEnabled());
-    REQUIRE (repeatChooser->getSelectedId() == 2);
+    // G1.7: no toolbar combo; the count is Edit ▸ Repeat Count, 2× by default.
+    REQUIRE (findChildWithComponentId (*shell, "timeline.repeat-paste.chooser") == nullptr);
+    REQUIRE (tickedRepeatCount (*shell) == 2);
     REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
 
     mouseDownAt (timeline, timelineClipCenterPoint (timeline, original, 0u));
     REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (repeatChooser->isEnabled());
 
     const juce::Point<int> pastePoint = projectRulerPointAtTick (
         timeline,
@@ -9474,8 +9511,8 @@ TEST_CASE ("Ctrl+R repeat-pastes the clipboard back-to-back as one audible undo 
     REQUIRE (afterUndo == beforeRepeat);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 
-    repeatChooser->setSelectedId (4, juce::sendNotificationSync);
-    REQUIRE (repeatChooser->getSelectedId() == 4);
+    selectRepeatCount (*shell, 4);
+    REQUIRE (tickedRepeatCount (*shell) == 4);
     mouseDownAt (timeline, pastePoint);
     REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::ctrlModifier, 0)));
 
@@ -15917,7 +15954,7 @@ TEST_CASE ("every componentID'd control carries a tooltip naming its action and 
     std::filesystem::remove_all (bundlePath, ec);
 }
 
-TEST_CASE ("the painted SNAP caption clears the snap and repeat-paste choosers",
+TEST_CASE ("the painted SNAP caption clears the snap chooser and the painted tool cells",
            "[ui][input][shell][snap-label]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("snap-label");
@@ -15939,26 +15976,21 @@ TEST_CASE ("the painted SNAP caption clears the snap and repeat-paste choosers",
             .translated (timeline.getX(), timeline.getY());
 
     auto* snapChooser = findChildWithComponentId (*shell, "timeline.snap.chooser");
-    auto* repeatChooser = findChildWithComponentId (*shell, "timeline.repeat-paste.chooser");
     REQUIRE (snapChooser != nullptr);
-    REQUIRE (repeatChooser != nullptr);
+    // G1.7: the repeat-paste combo is gone (Edit ▸ Repeat Count).
+    REQUIRE (findChildWithComponentId (*shell, "timeline.repeat-paste.chooser") == nullptr);
     INFO ("label " << labelInShell.toString().toStdString()
-          << " snap " << snapChooser->getBounds().toString().toStdString()
-          << " repeat " << repeatChooser->getBounds().toString().toStdString());
+          << " snap " << snapChooser->getBounds().toString().toStdString());
     REQUIRE_FALSE (labelInShell.intersects (snapChooser->getBounds()));
-    REQUIRE_FALSE (labelInShell.intersects (repeatChooser->getBounds()));
 
-    // The caption reads as the snap chooser's label: right of the repeat-paste chooser,
-    // left of the snap chooser.
-    REQUIRE (labelInShell.getX() >= repeatChooser->getBounds().getRight());
+    // The caption reads as the snap chooser's label: left of the snap chooser, clear of the
+    // painted tool cells.
     REQUIRE (labelInShell.getRight() <= snapChooser->getBounds().getX());
-
-    // The repeat-paste chooser clears the painted tool cells on its left.
     const juce::Rectangle<int> toolCellsInShell =
         geometry.toolbarArea.withTrimmedLeft (yesdaw::ui::UiTheme::Space::xl)
             .withWidth (5 * L::timelineCanvasToolCellWidth)
             .translated (timeline.getX(), timeline.getY());
-    REQUIRE_FALSE (toolCellsInShell.intersects (repeatChooser->getBounds()));
+    REQUIRE_FALSE (toolCellsInShell.intersects (labelInShell));
 
     // And the whole cluster still fits: the automation toggle sits right of the snap chooser
     // and inside the timeline header.
@@ -16083,6 +16115,120 @@ TEST_CASE ("no dead affordances: every visible control is enabled or reasoned; t
 // G1.2: every menu item whose action has a chord paints it — for the CURRENT Focus context —
 // every chorded verb is reachable from a menu, the nine menus are in Logic's order, and the
 // tick states follow the registry context.
+TEST_CASE ("dead-affordance sweep: the repeat combo becomes Edit > Repeat Count, Comp hides until G7, an empty insert offers Add Insert, clip controls hide without a clip",
+           "[ui][input][shell][g1][dead-affordance-sweep]")
+{
+    using yesdaw::ui::ContextMenuTarget;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("dead-affordance-sweep");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    // 1. The "2x" combo is gone; the count is a ticked Edit ▸ Repeat Count submenu.
+    REQUIRE (findChildWithComponentId (*shell, "timeline.repeat-paste.chooser") == nullptr);
+    {
+        juce::PopupMenu edit = requireMenuBarModel (*shell).getMenuForIndex (1, "Edit");
+        juce::StringArray counts;
+        juce::PopupMenu::MenuItemIterator it (edit, true);
+        while (it.next())
+            if (it.getItem().text.endsWithChar (static_cast<juce::juce_wchar> (0xd7)))
+                counts.add (it.getItem().text);
+        REQUIRE (counts.size() == 4);
+        REQUIRE (counts[0] == juce::String ("2") + juce::String::charToString (0xd7));
+        REQUIRE (counts[3] == juce::String ("8") + juce::String::charToString (0xd7));
+    }
+    REQUIRE (tickedRepeatCount (*shell) == 2);
+    selectRepeatCount (*shell, 8);
+    REQUIRE (tickedRepeatCount (*shell) == 8);
+    selectRepeatCount (*shell, 2);
+    REQUIRE (tickedRepeatCount (*shell) == 2);
+
+    // 2. Comp stays hidden even with the settings row shown; Arm and Monitor stay, with tooltips.
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
+    juce::Component* comp = findMainComponentChildForAction (*shell, UiActionId::RecordingAssembleComp);
+    REQUIRE (comp != nullptr);
+    REQUIRE_FALSE (comp->isVisible());
+    for (const UiActionId action : { UiActionId::RecordingArmTrack, UiActionId::RecordingSetMonitoringPolicy })
+    {
+        juce::Button& button = requireButtonForAction (*shell, action);
+        INFO ("action " << static_cast<int> (action));
+        REQUIRE (button.getTooltip().isNotEmpty());
+    }
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);
+
+    // 3. Clip controls in the inspector hide without a clip and return with one.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::Slider& gain = requireSliderForAction (*shell, UiActionId::TimelineClipSetGain);
+    juce::Slider& start = requireSliderWithComponentId (*shell, kInspectorStartComponentId);
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    REQUIRE (gain.isVisible());
+    REQUIRE (start.isVisible());
+    mouseDownAt (timeline, { timeline.getWidth() - 20, timeline.getHeight() - 20 });
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    REQUIRE_FALSE (gain.isVisible());
+    REQUIRE_FALSE (start.isVisible());
+
+    // 4. With no FX, the slot button arrays paint nothing; an empty painted slot hints "add" and its
+    //    menu is exactly Add Insert; adding through it fills the slot, whose hint then says "edit".
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                          + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::ViewMixer));
+    for (int slot = 0; slot < static_cast<int> (yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount); ++slot)
+    {
+        juce::Component* toggle = findChildWithComponentId (*shell, "mixer.fx.slot." + juce::String (slot) + ".toggle");
+        juce::Component* remove = findChildWithComponentId (*shell, "mixer.fx.slot." + juce::String (slot) + ".remove");
+        REQUIRE (toggle != nullptr);
+        REQUIRE (remove != nullptr);
+        REQUIRE_FALSE (toggle->isVisible());
+        REQUIRE_FALSE (remove->isVisible());
+    }
+    const juce::Rectangle<int> slot0 = yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 0);
+    REQUIRE_FALSE (slot0.isEmpty());
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, slot0.getCentre()).containsIgnoreCase ("add"));
+    auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, slot0.getCentre());
+    REQUIRE (menu.shown);
+    REQUIRE (menu.target == ContextMenuTarget::InsertSlot);
+    REQUIRE (menu.index == 0);
+    REQUIRE (menu.actions.size() == 1u);
+    REQUIRE (menu.actions[0] == UiActionId::MixerFxInsertAdd);
+    yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerFxInsertAdd,
+                                                    static_cast<int> (yesdaw::engine::FxKind::Eq));
+    {
+        const auto chain = readProjectSnapshot (bundlePath).tracks.front().strip.fxChain;
+        REQUIRE (chain.size() == 1u);
+        REQUIRE (chain[0].kind == yesdaw::engine::FxKind::Eq);
+    }
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, slot0.getCentre()).containsIgnoreCase ("edit"));
+    menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, slot0.getCentre());
+    REQUIRE (menu.actions.size() == yesdaw::ui::contextMenuEntries (ContextMenuTarget::InsertSlot).size());
+    juce::Component* toggle0 = findChildWithComponentId (*shell, "mixer.fx.slot.0.toggle");
+    REQUIRE (toggle0 != nullptr);
+    REQUIRE (toggle0->isVisible());
+
+    // The next empty slot adds a second kind the same way.
+    const juce::Rectangle<int> slot1 = yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 1);
+    REQUIRE_FALSE (slot1.isEmpty());
+    menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, slot1.getCentre());
+    REQUIRE (menu.index == 1);
+    REQUIRE (menu.actions.size() == 1u);
+    yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerFxInsertAdd,
+                                                    static_cast<int> (yesdaw::engine::FxKind::Reverb));
+    {
+        const auto chain = readProjectSnapshot (bundlePath).tracks.front().strip.fxChain;
+        REQUIRE (chain.size() == 2u);
+        REQUIRE (chain[1].kind == yesdaw::engine::FxKind::Reverb);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",
            "[ui][input][shell][g1][menus-show-keys]")
 {
