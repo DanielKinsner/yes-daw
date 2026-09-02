@@ -2305,8 +2305,11 @@ public:
 
     void paintButton (juce::Graphics& g, bool highlighted, bool down) override
     {
-        // G2.1 cp3: a cluster-narrow button ([I][X][P][A]) paints its letter, never its icon.
-        if (! yesdaw::ui::hasActionIcon (action) || getWidth() <= yesdaw::ui::UiTheme::Layout::inspectorToggleWidth)
+        // G2.1 cp3: a cluster-narrow button ([I][X][P][A]) paints its letter, never its icon —
+        // but icon-only chrome (the header's New / Open / Save / transport) stays an icon at any width.
+        if (! yesdaw::ui::hasActionIcon (action)
+            || (getWidth() <= yesdaw::ui::UiTheme::Layout::inspectorToggleWidth
+                && ! yesdaw::ui::actionUsesIconOnlyChrome (action)))
         {
             juce::TextButton::paintButton (g, highlighted, down);
             return;
