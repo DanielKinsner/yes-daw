@@ -63,6 +63,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0043](0043-simple-synth-instrument.md) | SimpleSynth — the built-in musical Instrument | Accepted |
 | [0044](0044-persisted-send-routing.md) | Persisted send routing — sends live on the Track | Accepted |
 | [0045](0045-midi-plays-through-its-track-strip.md) | MIDI plays through its owning Track's strip (supersedes ADR-0026's per-Clip projection shape) | Accepted |
+| [0046](0046-feel-first-shell-arc.md) | The feel-first shell arc: reference-DAW parity is the UI law (amends 0032's keymap rule and 0037's feel-session clause) | Accepted |
 
 ## Decision status (the five research forks)
 
