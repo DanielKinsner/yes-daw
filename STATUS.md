@@ -89,6 +89,14 @@ popup's callback and the harness (`mainComponentInvokeContextMenuItem`).
 strip 0 and slot 1 selected, the table's list; Move Up swaps the chain; Bypass on slot 0 clears
 its enabled flag; Remove on slot 0 leaves the other insert.
 
+**Deviation log (G1.3 cp2).**
+- D44 cp1's run `33609467177` was red on macOS only: three clip-drag gates moved nothing. The
+  right-click branch was keyed on `ModifierKeys::isPopupMenu()`, which on macOS is also true for
+  Ctrl+click — and Ctrl is a gesture modifier here (snap invert, copy-drag), so the Ctrl-drags
+  became context-menu requests. The branch is keyed on the right button itself now (the macOS
+  two-finger / right click reaches it; Ctrl+click stays a modifier). cp2's own run carries the
+  same red; the fix commit's run certifies G1.3.
+
 ### G1.3 — Context menus, checkpoint 1 (2026-09-02)
 
 **Build.** `src/ui/ContextMenus.h`: `ContextMenuTarget` (Clip, EmptyLane, TrackHeader, Ruler,

@@ -699,7 +699,7 @@ public:
         if (! stateProvider)
             return;
 
-        if (event.mods.isPopupMenu())
+        if (event.mods.isRightButtonDown())   // the right button itself: on macOS isPopupMenu() also fires for Ctrl+click, which is a gesture modifier here
         {
             requestContextMenu (event.getPosition());
             return;
@@ -1732,7 +1732,7 @@ public:
         if (! stateProvider)
             return;
 
-        if (event.mods.isPopupMenu())
+        if (event.mods.isRightButtonDown())   // the right button itself: on macOS isPopupMenu() also fires for Ctrl+click, which is a gesture modifier here
         {
             requestContextMenu (event.getPosition());
             return;
@@ -2428,7 +2428,7 @@ public:
 
     void mouseDown (const juce::MouseEvent& event) override
     {
-        if (event.mods.isPopupMenu())
+        if (event.mods.isRightButtonDown())   // the right button itself: on macOS isPopupMenu() also fires for Ctrl+click, which is a gesture modifier here
         {
             requestContextMenu (event.getPosition());
             return;
@@ -3095,7 +3095,7 @@ public:
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
 
-        if (event.mods.isPopupMenu())
+        if (event.mods.isRightButtonDown())   // the right button itself: on macOS isPopupMenu() also fires for Ctrl+click, which is a gesture modifier here
         {
             requestContextMenu (event.getPosition());
             return;
