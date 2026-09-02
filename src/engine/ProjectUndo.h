@@ -177,6 +177,9 @@ enum class ProjectEditVerb : std::uint8_t
         case ProjectEditVerb::RemoveRecordingTake: return "Remove Take";
         case ProjectEditVerb::SetTrackOutput: return "Track Output";
         case ProjectEditVerb::SetAutomationMode: return "Automation Mode";
+        case ProjectEditVerb::SetTrackHeight: return "Track Height";
+        case ProjectEditVerb::SetTrackColour: return "Track Colour";
+        case ProjectEditVerb::SetPunchRegion: return "Punch Region";
     }
     return "Edit";
 }
