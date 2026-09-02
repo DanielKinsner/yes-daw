@@ -2305,7 +2305,8 @@ public:
 
     void paintButton (juce::Graphics& g, bool highlighted, bool down) override
     {
-        if (! yesdaw::ui::hasActionIcon (action))
+        // G2.1 cp3: a cluster-narrow button ([I][X][P][A]) paints its letter, never its icon.
+        if (! yesdaw::ui::hasActionIcon (action) || getWidth() <= yesdaw::ui::UiTheme::Layout::inspectorToggleWidth)
         {
             juce::TextButton::paintButton (g, highlighted, down);
             return;
