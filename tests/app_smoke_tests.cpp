@@ -2175,3 +2175,40 @@ TEST_CASE ("G0.3 engine swaps retire the old engine until the device thread is p
     deviceBlock();
     REQUIRE (app.deviceBlocksStarted() == blocks + 1);
 }
+
+// G0.4 (a G0.3 consequence): the REAL device survives a project change. attachProjectBundle
+// drops per-project recording state; the adopted hardware profile is re-adopted with a NEW,
+// monotonic generation so the shell's choosers re-read it. Before G0.3 this happened only by
+// accident (every action re-registered the audio callback, and JUCE re-ran device adoption).
+TEST_CASE ("G0.4 the adopted real device survives New / Open with a new generation",
+           "[ui][app][recording][device-survives-project]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("device-survives");
+    UiAppModel app;
+    REQUIRE_FALSE (app.recordingDeviceSelection().selected);
+
+    // Without an adopted device a project change leaves the selection honestly empty.
+    REQUIRE (app.createProjectBundle (bundlePath).ok());
+    REQUIRE_FALSE (app.recordingDeviceSelection().selected);
+    REQUIRE (app.recordingDeviceSelection().generation == 0u);
+
+    REQUIRE (app.adoptRealRecordingDevice ({ 0xFEED0042u, 48'000.0, 2, 256, 12, 34 }));
+    const std::uint32_t adopted = app.recordingDeviceSelection().generation;
+    REQUIRE (adopted >= 1u);
+    REQUIRE (app.recordingDeviceSelection().inputChannels == 2u);
+
+    const std::filesystem::path second = makeTempBundlePath ("device-survives-2");
+    REQUIRE (app.createProjectBundle (second).ok());
+    REQUIRE (app.recordingDeviceSelection().selected);
+    REQUIRE (app.recordingDeviceSelection().stableDeviceId == 0xFEED0042u);
+    REQUIRE (app.recordingDeviceSelection().inputChannels == 2u);
+    REQUIRE (app.recordingDeviceSelection().generation > adopted);
+    REQUIRE (app.context().recordingDeviceGeneration == app.recordingDeviceSelection().generation);
+    REQUIRE (app.context().recordingDeviceSelected);
+
+    // Reopening the first bundle re-adopts again — still the same hardware, one generation on.
+    const std::uint32_t afterCreate = app.recordingDeviceSelection().generation;
+    REQUIRE (app.openProjectBundle (bundlePath).ok());
+    REQUIRE (app.recordingDeviceSelection().selected);
+    REQUIRE (app.recordingDeviceSelection().generation > afterCreate);
+}

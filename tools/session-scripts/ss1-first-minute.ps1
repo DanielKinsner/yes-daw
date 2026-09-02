@@ -19,6 +19,7 @@ if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $
 Step 1 'Launch with no project'
 Launch
 $p = Probe
+$launchProbe = $p
 [void](Assert ([int]$p.version -eq 1) 'probe schema v1')
 [void](Assert ($p.focusContext -eq 'Arrange') 'focus context is Arrange')
 [void](Assert (-not [bool]$p.transport.isPlaying) 'transport stopped')
@@ -52,6 +53,11 @@ if (-not $opened) {
 }
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $Fixture }
 [void](Assert (WaitProbe { param($q) [int]$q.view.clipCount -eq 1 } -TimeoutMs 8000) 'one clip on track 1 after import')
+# G0.4: the real device adopted at launch survives New + Import (it used to come back only
+# because every action re-registered the audio callback).
+$launchDevice = [bool]$launchProbe.recording.deviceSelected
+$nowDevice = [bool](Probe).recording.deviceSelected
+[void](Assert ($nowDevice -eq $launchDevice) ('adopted device survives New + Import: launch=' + $launchDevice + ' now=' + $nowDevice + " input chooser='" + (Probe).text.'shell.device.input.channel' + "'"))
 $clipKey = $null
 $p = Probe
 foreach ($prop in $p.layout.PSObject.Properties) { if ($prop.Name -like 'clip.*') { $clipKey = $prop.Name; break } }
@@ -98,7 +104,11 @@ $metroBefore = [bool](Probe).transport.metronome
 Key 'K'
 [void](Assert (WaitProbe { param($q) [bool]$q.transport.metronome -ne $metroBefore } -TimeoutMs 1000) 'K toggles the metronome click (keymap v2)')
 if ([bool](Probe).transport.metronome -ne $metroBefore) { Key 'K' }
-if (-not [bool](Probe).transport.isPlaying) { Click 'widget.transport.play'; [void](WaitProbe { param($q) [bool]$q.transport.isPlaying } -TimeoutMs 1500) }
+# K is Stop in the shipped keymap: let the published transport state settle before deciding
+# whether Play is needed (reading the probe immediately after K raced its own stop once).
+Start-Sleep -Milliseconds 250
+if (-not [bool](Probe).transport.isPlaying) { Click 'widget.transport.play' }
+[void](WaitProbe { param($q) [bool]$q.transport.isPlaying } -TimeoutMs 1500)
 Key 'Space'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.transport.isPlaying } -TimeoutMs 1500) 'Space stops')
 if ([bool](Probe).transport.isPlaying) { Click 'widget.transport.stop' }

@@ -329,6 +329,9 @@ struct UiActionContext
     int mixerReadCount = 0;
     int midiEditCount = 0;
     int midiReadCount = 0;
+
+    // G0.4: the shell refreshes its action state only when the context CHANGED (not every tick).
+    [[nodiscard]] bool operator== (const UiActionContext&) const = default;
 };
 
 // H17 CP4 — crash-safety default. The shipped shell schedules an autosave on a control-tick

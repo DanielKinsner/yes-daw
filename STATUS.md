@@ -41,7 +41,9 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.4 rendering budget in progress (built locally; suite + SS-1 + the entry next).
+**Now:** G0.4 built and proven locally (below); awaiting exact-head CI, then the evidence tick.
+The session drive is paused: Dan declined a rerun on 2026-09-01 evening (it takes the mouse and
+keyboard for ~40 s), so no drive run happens until he says go; G0.5's see-it step waits on that.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -49,6 +51,68 @@ G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) f
 only (compile hide, D11), green everywhere else.
 G0.3 ✅ — certified: exact-head run `33589636898` green on all ten jobs for full SHA
 `ea4dfea9351773eaca732cc79f3cb2996ef4f5a1` (first try). Local suite 363/363.
+
+### G0.4 — Rendering budget (2026-09-01)
+
+**Story.** Scrolling and playback look smooth at any window size. **Precedent.** Every DAW paints
+the playhead over a cached arrangement and repaints only what moves. **Audit first.** The tick
+called whole-window `repaint()` thirty times a second and ran the 391-line `refreshActionState()`
+(which rebuilds the clip view arrays) every tick; the timeline canvas (`TimelineInputComponent::
+paint` → `paintTimelineCanvas`) re-rendered every clip and waveform each frame because the
+playhead was painted inside it; 136 shell-level `repaint()` calls were the only invalidation law.
+The renderer was already Direct2D (G0.1 probe).
+
+**Built.**
+- `TimelineCanvasState::paintPlayhead` (default true: every headless consumer — frame check,
+  screenshot gates — stays byte-identical). The shell's canvas provider sets it false and the
+  canvas is `setBufferedToImage(true)`: the **static layer**. A transparent
+  `PlayheadLayerComponent` above it paints the playhead from the SAME `drawPlayhead` law and
+  `timelineCanvasGeometry`; it takes no clicks and carries no control id (a paint layer, so the
+  tooltip / dead-affordance laws do not enumerate it).
+- `repaintAll()` replaces every shell-level `repaint()` (136 sites, mechanical) and also
+  invalidates the canvas cache — the static layer cannot go stale on a model/view change. The
+  tick calls `repaintDynamicLayers()` (playhead layer, header band, rail, dock) or `repaintAll()`
+  when a follow-scroll moved the canvas.
+- `refreshActionState()` runs only when the `UiActionContext` CHANGED (playhead position
+  excluded); `UiActionContext` gains a defaulted `operator==`.
+- Probe: `frame.fullInvalidations / dynamicInvalidations / actionStateRefreshes`, a `text` map
+  (combo / button / label text by component id — the drive asserts on words, never pixels), and
+  a `recording` section (device selected, input channels, generations).
+- **A G0.3 consequence caught by the drive:** after New/Open the input-channel chooser went
+  blank. `attachProjectBundle` resets the recording device selection, and before G0.3 it came
+  back only because every action re-registered the audio callback and JUCE re-ran device
+  adoption. The model now remembers the adopted real profile (`adoptedRealDevice_`) and
+  re-adopts it after the reset with a monotonic generation, so choosers re-read the truth.
+
+**Gates.** `[render-budget]` (ui_input harness): the layer sits exactly over the canvas, above it,
+no hit-test, no control id; thirty idle ticks → 0 full invalidations, 30 dynamic, 0 refreshes;
+thirty playing ticks → 0 full, 30 dynamic, ≤ 1 refresh; an edit invalidates and refreshes;
+stale-cache honesty — identical paint when nothing changed, different after a nudge, identical
+again after nudging back. `[device-survives-project]` (app smoke): no adoption → stays empty;
+adopted → survives create and open with a new generation each time, context in step. Child-count
+pin bumped deliberately (138 → 139). Probe gate unchanged. Local suite **363/363** (owner file
+restored byte-identical).
+
+**SS-1 on the real exe (this tree, four runs): 37 PASS / 4 FAIL ×3, and one run 37 / 5** where
+step 9 "Space stops" read the probe immediately after `K` and raced its own stop (script race,
+fixed: it now lets the published transport settle before deciding). B2 2.15–2.4 ms p95 (one
+clip, 1536×960); B3 0 removals; B5 0 during the burst; the adopted device survives New + Import
+(`In 1`). Remaining reds unchanged and owned: step 1 empty project (G5.5), `Ctrl+Shift+I` and
+`K` (G1.1), `rebuilds` 2 → 5 (G0.5).
+
+**Visual rubric.** Shots retaken at three sizes: structure identical to the G0.1 baseline; the
+playhead badge and line paint exactly as before (layer over cache); the input chooser reads
+`In 1` again after New + Import. G0.1's FIX lines stand (G0.7 / G0.8 / G1.x own them).
+
+**Deviation log (G0.4).**
+- D12 B2's real measurement (16 tracks, three minutes, 1920×1080 and 2560×1440) waits for the
+  G0.6 fixture; today's p95 is on one clip. The structural change is gated by counters now and
+  re-measured at G0.6 — logged so the close-out re-reads it.
+- D13 Waveform tile cache (plan §5.2 fourth bullet) is NOT built in this item: with the canvas
+  buffered, tiles only matter on cache invalidation; measured at G0.6 before deciding.
+- D14 The drive is paused on Dan's rejection of a rerun (2026-09-01 evening); every later
+  see-it step runs when he says go. Non-intrusive work (audits, code, ctest, CI) continues.
+
 **Next:** G0.4 — rendering budget: verify the renderer (probe says Direct2D), layered
 invalidation instead of whole-window `repaint()` per tick, `refreshActionState()` off the 30 Hz
 tick, waveform tile cache; gate B2 on the G0.6 fixture at 1920×1080 and 2560×1440; SS-1 step 12.

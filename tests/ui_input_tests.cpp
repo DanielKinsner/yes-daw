@@ -1030,8 +1030,9 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // CLIP/TRACK tab buttons + the V8 zoom cluster (two steppers and the readout label) —
     // bumped deliberately.
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
-    // solo-safe button (137 -> 138).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 138u));
+    // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
+    // canvas (138 -> 139).
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 139u));
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -1204,6 +1205,108 @@ TEST_CASE ("no callback teardown: 200 dispatched actions request zero audio-call
     chooser->setSelectedId (2, juce::sendNotificationSync);
     REQUIRE (selectedNames == std::vector<std::string> { "Beta Out" });
     REQUIRE (suspendRequests() == 1);
+}
+
+// G0.4 — rendering budget (ADR-0046 §6/§7; plan §5.2). The tick no longer repaints the whole
+// window and no longer runs the 391-line action-state refresh thirty times a second: the
+// timeline canvas is a buffered static layer invalidated by repaintAll() on every model/view
+// change (and by its own gesture repaints), the playhead is a transparent layer above it painted
+// from the SAME drawPlayhead law, and the tick repaints only the dynamic regions. The probe's
+// counters make the law mechanical; the stale-cache check makes it honest.
+TEST_CASE ("render budget: ticks invalidate only dynamic layers and refresh only on change",
+           "[ui][input][shell][render-budget]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("render-budget");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+
+    struct Counters { juce::int64 full, dynamic, refreshes; };
+    const auto counters = [&shell] {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return Counters { static_cast<juce::int64> (probe["frame"]["fullInvalidations"]),
+                          static_cast<juce::int64> (probe["frame"]["dynamicInvalidations"]),
+                          static_cast<juce::int64> (probe["frame"]["actionStateRefreshes"]) };
+    };
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.clips.size() == 1u);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, imported, 0u));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+
+    // The playhead layer sits above the buffered canvas, exactly over it, and takes no clicks.
+    juce::Component* layer = nullptr;
+    for (int i = 0; i < shell->getNumChildComponents(); ++i)
+        if (shell->getChildComponent (i)->getName() == "Playhead layer")
+            layer = shell->getChildComponent (i);
+    REQUIRE (layer != nullptr);
+    REQUIRE (layer->getComponentID().isEmpty());   // a paint layer, not a control
+    REQUIRE (layer->isVisible());
+    REQUIRE (layer->getBounds() == timeline.getBounds());
+    REQUIRE (shell->getIndexOfChildComponent (layer) > shell->getIndexOfChildComponent (&timeline));
+    REQUIRE_FALSE (layer->hitTest (layer->getWidth() / 2, layer->getHeight() / 2));
+
+    // Idle and stopped: thirty ticks invalidate NOTHING static and refresh NOTHING.
+    REQUIRE (serviceMainComponentUiTimer (*shell));   // settles the post-import refresh
+    Counters before = counters();
+    for (int i = 0; i < 30; ++i)
+        REQUIRE (serviceMainComponentUiTimer (*shell));
+    Counters after = counters();
+    REQUIRE (after.full == before.full);
+    REQUIRE (after.dynamic == before.dynamic + 30);
+    REQUIRE (after.refreshes == before.refreshes);
+
+    // Playing: the transport change refreshes ONCE; the ticks after it stay dynamic-only.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    before = counters();
+    for (int i = 0; i < 30; ++i)
+        REQUIRE (serviceMainComponentUiTimer (*shell));
+    after = counters();
+    REQUIRE (after.full == before.full);
+    REQUIRE (after.dynamic == before.dynamic + 30);
+    REQUIRE (after.refreshes <= before.refreshes + 1);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+
+    // An edit is a model change: it invalidates the static layer and refreshes.
+    before = counters();
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
+    after = counters();
+    REQUIRE (after.full >= before.full + 1);
+    REQUIRE (after.refreshes >= before.refreshes + 1);
+
+    // Stale-cache honesty: the painted timeline changes after an edit and is identical when
+    // nothing changed (the cache is used, not re-rendered differently).
+    const auto paintTimeline = [&] {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics g (image);
+        shell->paintEntireComponent (g, false);
+        return image.getClippedImage (timeline.getBounds()).createCopy();
+    };
+    const auto sameImage = [] (const juce::Image& a, const juce::Image& b) {
+        if (a.getWidth() != b.getWidth() || a.getHeight() != b.getHeight())
+            return false;
+        for (int y = 0; y < a.getHeight(); y += 3)
+            for (int x = 0; x < a.getWidth(); x += 3)
+                if (a.getPixelAt (x, y) != b.getPixelAt (x, y))
+                    return false;
+        return true;
+    };
+    const juce::Image first = paintTimeline();
+    const juce::Image second = paintTimeline();
+    REQUIRE (sameImage (first, second));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));   // nudge the selected clip right
+    const juce::Image moved = paintTimeline();
+    REQUIRE_FALSE (sameImage (first, moved));
+    REQUIRE (shell->keyPressed (juce::KeyPress (',')));   // and back: the cache follows the model
+    const juce::Image back = paintTimeline();
+    REQUIRE (sameImage (first, back));
 }
 
 // M7 — the timeline never invents content. `drawClipWaveform` used to synthesize a waveform from a

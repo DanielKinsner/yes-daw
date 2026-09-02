@@ -197,6 +197,11 @@ struct TimelineCanvasState
     // -1 means no row is targeted (nothing paints).
     bool automationLaneVisible = false;
     int automationLaneTrackRow = -1;
+
+    // G0.4: the shell paints the playhead on its own transparent layer above the buffered
+    // canvas so a moving playhead never re-renders the clips. Default true keeps every
+    // headless consumer (frame check, screenshot gates) byte-identical.
+    bool paintPlayhead = true;
 };
 
 struct TimelineCanvasPaintStats
@@ -1241,7 +1246,8 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
         }
     }
 
-    drawPlayhead (g, ruler, clipArea, state, vp);
+    if (state.paintPlayhead)
+        drawPlayhead (g, ruler, clipArea, state, vp);
 
     return stats;
 }

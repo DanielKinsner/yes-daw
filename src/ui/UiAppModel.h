@@ -537,7 +537,13 @@ public:
 
         recordingDevice_.selected = true;
         recordingDevice_.stableDeviceId = profile.stableDeviceId;
-        ++recordingDevice_.generation;
+        // G0.4 (a G0.3 consequence): the generation is monotonic across project resets so every
+        // adoption — including the re-adoption after attachProjectBundle — is a NEW generation
+        // the shell's choosers re-read; and the real profile is remembered so a project change
+        // never forgets the hardware (the old per-action callback re-registration used to
+        // re-adopt it by accident).
+        recordingDevice_.generation = ++recordingDeviceGenerationCounter_;
+        adoptedRealDevice_ = profile;
         recordingDevice_.sampleRate = engine::SampleRate { profile.sampleRateHz };
         recordingDevice_.inputChannels = static_cast<std::uint16_t> (
             std::min (profile.inputChannels,
@@ -8102,6 +8108,10 @@ private:
         timelineRangeStartFrame_ = -1;
         timelineRangeEndFrame_ = -1;
         recordingDevice_ = {};
+        // G0.4: a project change drops per-project recording state, never the real device —
+        // the remembered hardware profile is adopted again (its own new generation).
+        if (adoptedRealDevice_.has_value())
+            (void) adoptRealRecordingDevice (*adoptedRealDevice_);
         clearRecordingTrackInput();
         lastRecordedAudioTake_ = {};
         lastRecordedAudioTakes_.clear();
@@ -8534,6 +8544,8 @@ private:
     std::uint64_t playbackReplaceCount_ = 0;   // R12: engine rebuild counter (see replacePlayback)
     MixerTargetSelection selectedMixerTarget_ {};
     UiRecordingDeviceSelection recordingDevice_;
+    std::optional<UiRealRecordingDeviceProfile> adoptedRealDevice_;   // G0.4: survives project resets
+    std::uint32_t recordingDeviceGenerationCounter_ = 0;               // G0.4: monotonic
     // M11: the ARM SET, in arm order. The FIRST entry is the primary — the one the single-arm
     // context surface (selectedRecordingTrackIndex/Channel) reports, the one the global pick
     // retargets, and the one captured MIDI rides. Empty = nothing armed.

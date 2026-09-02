@@ -3036,6 +3036,33 @@ private:
     int draggingSendIndex = -1;
 };
 
+// G0.4 (ADR-0046 §6 "nothing is blind", plan §5.2 layered rendering): the playhead lives on its
+// own transparent layer ABOVE the buffered timeline canvas, painted by the SAME drawPlayhead law
+// and the SAME geometry the canvas would use. A moving playhead therefore repaints a cheap
+// overlay thirty times a second instead of re-rendering every clip and waveform.
+class PlayheadLayerComponent final : public juce::Component
+{
+public:
+    std::function<yesdaw::ui::TimelineCanvasState()> stateProvider;
+
+    PlayheadLayerComponent()
+    {
+        setInterceptsMouseClicks (false, false);
+        setOpaque (false);
+        setWantsKeyboardFocus (false);
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        if (! stateProvider)
+            return;
+        const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+        yesdaw::ui::timeline_canvas_detail::drawPlayhead (g, geometry.rulerArea, geometry.clipArea, state, geometry.viewport);
+    }
+};
+
 class MainComponent : public juce::Component,
                       public juce::MenuBarModel,
                       public juce::KeyListener,    // G0.2: the command router on the top-level window
@@ -3084,7 +3111,7 @@ public:
                 handleAction (action);
                 refreshActionState();
                 resized();
-                repaint();
+                repaintAll();
             };
             addAndMakeVisible (button);
         }
@@ -3099,7 +3126,7 @@ public:
         exportAudioButton.onClick = [this] {
             handleAction (yesdaw::ui::UiActionId::ProjectExportAudio);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (exportAudioButton);
 
@@ -3150,7 +3177,7 @@ public:
         exportAudioCancelButton.onClick = [this] {
             handleAction (yesdaw::ui::UiActionId::ProjectExportAudioCancel);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (exportAudioCancelButton);
 
@@ -3161,7 +3188,7 @@ public:
         masterLoudnessReadout.onClick = [this] {
             (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadLoudness);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (masterLoudnessReadout);
 
@@ -3169,18 +3196,30 @@ public:
         timelineInput.setTooltip ("Timeline: drag clips, drag the ruler to select a range, Shift-drag for the loop");
         timelineInput.setName ("Timeline");
         timelineInput.setTitle ("Timeline");
-        timelineInput.stateProvider = [this] { return makeTimelineState(); };
+        // G0.4: the canvas is the STATIC layer — cached as an image and re-rendered only when
+        // repaintAll() (any model/view change) or the canvas's own gesture repaints invalidate
+        // it. It never paints the playhead; the layer above does, every tick, from the same law.
+        timelineInput.stateProvider = [this] {
+            yesdaw::ui::TimelineCanvasState state = makeTimelineState();
+            state.paintPlayhead = false;
+            return state;
+        };
+        timelineInput.setBufferedToImage (true);
+        playheadLayer.stateProvider = [this] { return makeTimelineState(); };
+        // A paint layer, not a control: no component id (the tooltip / dead-affordance laws
+        // enumerate identified children), a name for the render-budget gate.
+        playheadLayer.setName ("Playhead layer");
         timelineInput.activeToolProvider = [this] {
             return appModel.context().activeTimelineTool;
         };
         timelineInput.onZoomToolClicked = [this] (double anchorSeconds, bool zoomOut) {
             const double factor = yesdaw::ui::UiTheme::Layout::timelineZoomToolClickFactor;
             zoomTimelineAtAnchor (anchorSeconds, zoomOut ? 1.0 / factor : factor);
-            repaint();
+            repaintAll();
         };
         timelineInput.onHandToolScrolled = [this] (double secondsDelta) {
             timelineScrollSeconds += secondsDelta;
-            repaint();
+            repaintAll();
         };
         timelineInput.onVerticalScrollRows = [this] (int rowDelta) {
             scrollTrackRowsBy (rowDelta);
@@ -3244,7 +3283,7 @@ public:
                 selectedTrackLane = lane;
 
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         timelineInput.onPencilEmptyLane = [this] (int lane, double seconds) {
             const auto& tracks = appModel.project().tracks;
@@ -3255,7 +3294,7 @@ public:
                     tracks[static_cast<std::size_t> (lane)].id,
                     snappedTimelineTick (*tick, false));
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         timelineInput.onClipClicked = [this] (int timelineClipId, bool toggle) {
             selectTimelineClipByLayoutId (timelineClipId, toggle);
@@ -3263,7 +3302,7 @@ public:
         timelineInput.onEmptyClicked = [this] {
             appModel.clearTimelineClipSelection();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         timelineInput.onMarqueeSelection = [this] (std::span<const int> timelineClipLayoutIds) {
             std::vector<yesdaw::engine::EntityId> selectedClipIds;
@@ -3279,7 +3318,7 @@ public:
             (void) appModel.selectTimelineClips (
                 std::span<const yesdaw::engine::EntityId> (selectedClipIds.data(), selectedClipIds.size()));
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         timelineInput.onClipMoved = [this] (int timelineClipId, double startSeconds, bool snapToGrid) {
             moveTimelineClipByLayoutId (timelineClipId, startSeconds, snapToGrid);
@@ -3304,7 +3343,7 @@ public:
 
             refreshActionState();
             resized();
-            repaint();
+            repaintAll();
             return true;
         };
         timelineInput.onClipTrimmedRight = [this] (int timelineClipId, double endSeconds, bool snapInvert) {
@@ -3319,7 +3358,7 @@ public:
                 (void) appModel.trimSelectedTimelineClipLeftTo (snappedTimelineTick (*tick, snapInvert));
 
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         timelineInput.onClipGainAdjusted = [this] (int timelineClipId, int deltaPixels) {
             adjustTimelineClipGainByLayoutId (timelineClipId, deltaPixels);
@@ -3332,21 +3371,21 @@ public:
                 ? yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep
                 : 1.0 / yesdaw::ui::UiTheme::Layout::timelineZoomWheelStep;
             zoomTimelineAtAnchor (anchorSeconds, factor);
-            repaint();
+            repaintAll();
         };
         timelineInput.onScrollWheel = [this] (double wheelDelta) {
             const double visibleSeconds = std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds,
                                                     timelineTotalSeconds / std::max (1.0, timelineZoomFactor));
             timelineScrollSeconds -= wheelDelta * visibleSeconds
                                    * yesdaw::ui::UiTheme::Layout::timelineScrollWheelFraction;
-            repaint();
+            repaintAll();
         };
         timelineInput.onRulerAltClicked = [this] (double seconds) {
             if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds))
             {
                 (void) appModel.removeTimelineMarkerNearestTick (*tick);
                 refreshActionState();
-                repaint();
+                repaintAll();
             }
         };
         timelineInput.onLoopRegionDragged = [this] (double startSeconds, double endSeconds, bool snapInvert) {
@@ -3360,7 +3399,7 @@ public:
                 {
                     (void) appModel.setPlaybackLoopRegion (snappedStart, snappedEnd);
                     refreshActionState();
-                    repaint();
+                    repaintAll();
                 }
             }
         };
@@ -3379,14 +3418,14 @@ public:
             else
                 (void) appModel.setPunchRegion (false, 0, 0);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         timelineInput.onTimelineLocated = [this] (double seconds) {
             if (const std::optional<yesdaw::engine::Tick> frame = timelineTickFromSeconds (seconds))
             {
                 (void) appModel.locatePlaybackFrame (*frame);
                 refreshActionState();
-                repaint();
+                repaintAll();
             }
         };
         // Marker edits (E7): the dragged label commits a snapped MoveMarker; double-click opens
@@ -3401,7 +3440,7 @@ public:
                     markers[static_cast<std::size_t> (markerIndex)].id,
                     snappedTimelineTick (*tick, snapInvert));
                 refreshActionState();
-                repaint();
+                repaintAll();
             }
         };
         timelineInput.onMarkerRenameRequested = [this] (int markerIndex) {
@@ -3453,7 +3492,7 @@ public:
             if (edited)
             {
                 refreshActionState();
-                repaint();
+                repaintAll();
             }
         };
         timelineInput.onRulerRangeSelected = [this] (double startSeconds, double endSeconds, bool snapInvert) {
@@ -3467,16 +3506,17 @@ public:
                 {
                     (void) appModel.setTimelineRangeSelection (snappedStart, snappedEnd);
                     refreshActionState();
-                    repaint();
+                    repaintAll();
                 }
             }
         };
         timelineInput.onRulerRangeCleared = [this] {
             appModel.clearTimelineRangeSelection();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (timelineInput);
+        addAndMakeVisible (playheadLayer);   // G0.4: z-order above the buffered canvas
 
         // Interactive Track rail (usable-DAW P0): row click selects the Track for import/mixer/remove
         // targeting, double-click (or F2) opens the inline rename editor, and the Add Track button
@@ -3527,7 +3567,7 @@ public:
             if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
                 (void) appModel.setSelectedMixerPan (pan);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         trackListInput.onVolumeEdited = [this] (int row, float linearGain) {
             appModel.beginStripGesture();
@@ -3538,7 +3578,7 @@ public:
                                    .translated (trackListInput.getX(), trackListInput.getY()),
                                linearGain);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         trackListInput.onMiniDragEnded = [this] {
             appModel.endStripGesture();
@@ -3553,7 +3593,7 @@ public:
             appModel.beginStripGesture();
             (void) appModel.setTrackHeight (tracks[static_cast<std::size_t> (row)].id, heightPx);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         trackListInput.onRowResizeEnded = [this] { appModel.endStripGesture(); };
         trackListInput.onMeterClicked = [this] (int row) { clearTrackMeterHold (row); };
@@ -3562,14 +3602,14 @@ public:
             if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
                 (void) appModel.toggleSelectedMixerMute();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         trackListInput.onSoloToggled = [this] (int row) {
             selectTrackLane (row);
             if (appModel.selectMixerTrack (static_cast<std::size_t> (row), false))
                 (void) appModel.toggleSelectedMixerSolo();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         // N7: one click on a row's colour swatch commits ONE undo step, advancing THAT track
         // (not necessarily the selected one) to the next colour in the fixed cycle.
@@ -3580,7 +3620,7 @@ public:
             const auto& track = tracks[static_cast<std::size_t> (row)];
             (void) appModel.setTrackColour (track.id, nextTrackColourInCycle (track.colour));
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (trackListInput);
 
@@ -3607,7 +3647,7 @@ public:
 
             (void) appModel.setProjectTempoBpm (headerTempoControl.getValue());
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (headerTempoControl);
 
@@ -3627,7 +3667,7 @@ public:
             const auto& choice = kHeaderMeterChoices[static_cast<std::size_t> (selected - 1)];
             (void) appModel.setProjectMeterSignature (choice.first, choice.second);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (headerMeterChooser);
 
@@ -3639,7 +3679,7 @@ public:
             if (appModel.addAudioTrack().dispatched)
                 selectedTrackLane = static_cast<int> (appModel.project().tracks.size()) - 1;
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (trackAddButton);
 
@@ -3692,7 +3732,7 @@ public:
                 : yesdaw::ui::UiActionId::TimelineSnapSetBeat;
             (void) appModel.dispatch (action);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (timelineSnapChooser);
 
@@ -3759,7 +3799,7 @@ public:
             {
                 (void) appModel.cycleAutomationBreakpointCurveAtTick (lane->id, *tick);
                 refreshActionState();
-                repaint();
+                repaintAll();
             }
         };
         automationLaneCanvas.secondsForLocalX = [this] (int localX) {
@@ -3778,7 +3818,7 @@ public:
                     target.ownerEntity, target.role, target.paramId,
                     snappedTimelineTick (*tick, false), value);
                 refreshActionState();
-                repaint();
+                repaintAll();
             }
         };
         automationLaneCanvas.onMovePoint = [this] (double oldSeconds, double newSeconds, double newValue) {
@@ -3794,7 +3834,7 @@ public:
                                                             snappedTimelineTick (*newTick, false),
                                                             newValue);
                 refreshActionState();
-                repaint();
+                repaintAll();
             }
         };
         automationLaneCanvas.onDeletePoint = [this] (double seconds) {
@@ -3807,7 +3847,7 @@ public:
             {
                 (void) appModel.removeAutomationBreakpointAtTick (lane->id, *tick);
                 refreshActionState();
-                repaint();
+                repaintAll();
             }
         };
         addChildComponent (automationLaneCanvas);
@@ -3822,7 +3862,7 @@ public:
             // E12: a plain press on a selected member keeps the group for the drag.
             (void) appModel.selectPianoRollNoteForGesture (midiClipId, noteId);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         // Piano-roll selection tools (E11).
         pianoRollInput.activeToolProvider = [this] {
@@ -3832,26 +3872,26 @@ public:
                                                yesdaw::engine::EntityId noteId) {
             (void) appModel.togglePianoRollNoteSelection (midiClipId, noteId);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onNotesMarqueeSelected = [this] (yesdaw::engine::EntityId midiClipId,
                                                         std::span<const yesdaw::engine::EntityId> noteIds) {
             juce::ignoreUnused (midiClipId);
             (void) appModel.selectPianoRollNotes (noteIds);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onSelectionCleared = [this] {
             appModel.clearPianoRollNoteSelection();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onNoteDeleted = [this] (yesdaw::engine::EntityId midiClipId,
                                                yesdaw::engine::EntityId noteId) {
             if (appModel.selectPianoRollNote (midiClipId, noteId).dispatched)
                 (void) appModel.deleteSelectedPianoRollNotes();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         // Piano-roll viewport wheel map (E10): plain wheel scrolls keys, Shift+wheel scrolls
         // time, Ctrl+wheel zooms time anchored at the pointer tick.
@@ -3861,7 +3901,7 @@ public:
                 yesdaw::ui::UiThemeLayout::pianoRollKeyMin,
                 yesdaw::ui::UiThemeLayout::pianoRollKeyMax
                     - (yesdaw::ui::UiTheme::Layout::pianoRollKeyCount - 1));
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onViewZoomWheel = [this] (yesdaw::engine::Tick anchorTick, double wheelDelta) {
             const double factor = wheelDelta > 0.0
@@ -3880,7 +3920,7 @@ public:
             }
             if (pianoRollViewZoom == yesdaw::ui::UiThemeLayout::pianoRollZoomMin)
                 pianoRollViewScrollTicks = 0;
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onViewTicksScrolled = [this] (double wheelDelta) {
             const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = currentPianoRollSurface();
@@ -3889,7 +3929,7 @@ public:
                               * static_cast<double> (pianoRollVisibleTicks (surface))
                               * yesdaw::ui::UiTheme::Layout::timelineScrollWheelFraction));
             pianoRollViewScrollTicks = juce::jmax<yesdaw::engine::Tick> (0, pianoRollViewScrollTicks);
-            repaint();
+            repaintAll();
         };
         // E12: the drag moves the whole selection (anchored on the dragged note) by the snapped
         // tick delta and the row-derived key delta as one undo transaction.
@@ -3900,7 +3940,7 @@ public:
             (void) appModel.selectPianoRollNoteForGesture (midiClipId, noteId);
             (void) appModel.moveSelectedPianoRollNotesBy (tickDelta, keyDelta);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onNoteHeadTrimmed = [this] (yesdaw::engine::EntityId midiClipId,
                                                    yesdaw::engine::EntityId noteId,
@@ -3908,7 +3948,7 @@ public:
             (void) appModel.selectPianoRollNote (midiClipId, noteId);
             (void) appModel.trimSelectedPianoRollNoteHeadTo (newStart);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onNoteLengthChanged = [this] (yesdaw::engine::EntityId midiClipId,
                                                      yesdaw::engine::EntityId noteId,
@@ -3916,7 +3956,7 @@ public:
             (void) appModel.selectPianoRollNote (midiClipId, noteId);
             (void) appModel.setSelectedPianoRollNoteLength (lengthTicks);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onNoteTransposed = [this] (yesdaw::engine::EntityId midiClipId,
                                                   yesdaw::engine::EntityId noteId,
@@ -3924,7 +3964,7 @@ public:
             (void) appModel.selectPianoRollNote (midiClipId, noteId);
             (void) appModel.transposeSelectedPianoRollNote (semitones);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onNoteQuantized = [this] (yesdaw::engine::EntityId midiClipId,
                                                  yesdaw::engine::EntityId noteId,
@@ -3932,18 +3972,18 @@ public:
             (void) appModel.selectPianoRollNote (midiClipId, noteId);
             (void) appModel.quantizeSelectedPianoRollNoteTo (yesdaw::engine::SnapGrid { snapGridTicks });
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onNoteAdded = [this] (yesdaw::engine::EntityId midiClipId, yesdaw::engine::Tick tick, std::int16_t key) {
             (void) midiClipId;
             (void) appModel.addPianoRollNoteAt (tick, kPianoRollSnapGridTicks, key);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onExpressionRead = [this] {
             (void) appModel.readPianoRollExpressionLanes();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         pianoRollInput.onNoteVelocityAdjusted = [this] (yesdaw::engine::EntityId midiClipId,
                                                         yesdaw::engine::EntityId noteId,
@@ -3951,7 +3991,7 @@ public:
             (void) appModel.selectPianoRollNote (midiClipId, noteId);
             (void) appModel.setSelectedPianoRollNoteVelocity (normalizedVelocity);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         // E13: the lane paint gesture-selects its anchor (keeping a group the anchor belongs to)
         // and paints the batch as one undo transaction.
@@ -3963,14 +4003,14 @@ public:
                 (void) appModel.selectPianoRollNoteForGesture (midiClipId, edits.front().first);
                 (void) appModel.paintPianoRollNoteVelocities (midiClipId, edits);
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
         pianoRollInput.onNoteCopyDragged = [this] (yesdaw::engine::EntityId midiClipId,
                                                    yesdaw::engine::EntityId noteId,
                                                    yesdaw::engine::Tick newStartTick) {
             (void) appModel.duplicatePianoRollNote (midiClipId, noteId, newStartTick);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (pianoRollInput);
 
@@ -4008,7 +4048,7 @@ public:
                     appModel.setPlaybackMaxBlockSize (device->getCurrentBufferSizeSamples());
             refreshAudioDeviceChooser();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (audioDeviceChooser);
 
@@ -4035,7 +4075,7 @@ public:
             resumeDesktopAudioCallback();
             refreshAudioDeviceChooser();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (audioInputDeviceChooser);
 
@@ -4058,7 +4098,7 @@ public:
             const int base = stereo ? selected - 1001 : selected - 1;
             (void) appModel.setRecordingInputChannel (static_cast<std::uint16_t> (base), stereo);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (recordingInputChannelChooser);
         refreshAudioDeviceChooser();
@@ -4200,9 +4240,29 @@ public:
         refreshStatusLine();
         updateTrackMeterHoldStates();
         pushWindowTitle();
-        refreshActionState();
+
+        // G0.4: the 391-line action-state refresh runs only when the context CHANGED (the
+        // playhead position is not a change — it moves every tick while playing), never as a
+        // 30 Hz habit. Meter-dependent chrome is painted, not refreshed, so it needs no tick here.
+        {
+            yesdaw::ui::UiActionContext context = appModel.contextSnapshot();
+            context.playheadFrame = 0;
+            if (! lastRefreshedContextValid || ! (context == lastRefreshedContext))
+            {
+                lastRefreshedContext = context;
+                lastRefreshedContextValid = true;
+                refreshActionState();
+            }
+        }
+
+        // G0.4: a follow-scroll moves the whole canvas — that IS a view change; otherwise only the
+        // dynamic layers (playhead, meters, transport counter) repaint this tick.
+        const double scrollBefore = timelineScrollSeconds;
         followPlaybackPlayhead();
-        repaint();
+        if (timelineScrollSeconds != scrollBefore)
+            repaintAll();
+        else
+            repaintDynamicLayers();
 
         if (! appModel.autosaveSchedule().enabled)
             return;
@@ -4730,6 +4790,31 @@ public:
         return layoutVar;
     }
 
+    // G0.4: what identified widgets SAY (combo / button / label text by component id) — the
+    // drive asserts on words, never on pixels, and a stale control is visible in the document.
+    [[nodiscard]] juce::var buildProbeText() const
+    {
+        auto* text = new juce::DynamicObject();
+        juce::var textVar (text);
+        for (int i = 0; i < getNumChildComponents(); ++i)
+        {
+            const juce::Component* child = getChildComponent (i);
+            if (child == nullptr || ! child->isVisible() || child->getComponentID().isEmpty())
+                continue;
+            juce::String value;
+            if (const auto* combo = dynamic_cast<const juce::ComboBox*> (child))
+                value = combo->getText();
+            else if (const auto* button = dynamic_cast<const juce::Button*> (child))
+                value = button->getButtonText();
+            else if (const auto* label = dynamic_cast<const juce::Label*> (child))
+                value = label->getText();
+            else
+                continue;
+            text->setProperty (child->getComponentID(), value);
+        }
+        return textVar;
+    }
+
     [[nodiscard]] juce::String buildStateProbeJson()
     {
         const yesdaw::ui::UiActionContext context = appModel.contextSnapshot();
@@ -4869,6 +4954,11 @@ public:
             frame->setProperty ("paintCount", static_cast<juce::int64> (paintCount));
             frame->setProperty ("tickMs", lastTickMs);
             frame->setProperty ("actionToPaintMs", lastActionToPaintMs);
+            // G0.4: how the shell invalidates — full (model/view change) vs dynamic (tick) — and
+            // how often the action-state refresh really runs.
+            frame->setProperty ("fullInvalidations", static_cast<juce::int64> (fullInvalidations));
+            frame->setProperty ("dynamicInvalidations", static_cast<juce::int64> (dynamicInvalidations));
+            frame->setProperty ("actionStateRefreshes", static_cast<juce::int64> (actionStateRefreshes));
             root->setProperty ("frame", juce::var (frame));
         }
 
@@ -4906,6 +4996,17 @@ public:
         }
 
         root->setProperty ("layout", buildProbeLayout());
+        root->setProperty ("text", buildProbeText());
+        {
+            auto* recording = new juce::DynamicObject();
+            const auto& device = appModel.recordingDeviceSelection();
+            recording->setProperty ("deviceSelected", device.selected);
+            recording->setProperty ("inputChannels", static_cast<int> (device.inputChannels));
+            recording->setProperty ("deviceGeneration", static_cast<juce::int64> (device.generation));
+            recording->setProperty ("selectedInputChannel", context.selectedRecordingInputChannel);
+            recording->setProperty ("chooserGeneration", static_cast<juce::int64> (recordingChannelChooserGeneration));
+            root->setProperty ("recording", juce::var (recording));
+        }
         return juce::JSON::toString (rootVar, true);
     }
 
@@ -5237,6 +5338,7 @@ public:
         masterLoudnessReadout.setBounds (headerMasterLufsBounds());
         masterLoudnessReadout.setVisible (! headerMasterLufsBounds().isEmpty());
         timelineInput.setBounds (timelineBounds());
+        playheadLayer.setBounds (timelineBounds());
         pianoRollInput.setBounds (timelineBounds());
         trackListInput.setBounds (leftRailPanelBounds());
         {
@@ -5340,7 +5442,7 @@ private:
         button.onClick = [this, action] {
             (void) appModel.dispatch (action);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         button.setVisible (false);
         addAndMakeVisible (button);
@@ -5364,7 +5466,7 @@ private:
             (void) appModel.dispatch (yesdaw::ui::UiActionId::TimelineToggleMixerDock);
             refreshActionState();
             resized();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerDockToggle);
     }
@@ -5392,7 +5494,7 @@ private:
                 (void) appModel.dispatch (action);
                 refreshActionState();
                 resized();
-                repaint();
+                repaintAll();
             };
             addAndMakeVisible (button);
         };
@@ -5419,7 +5521,7 @@ private:
             button.onClick = [this, action] {
                 handleAction (action);
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addAndMakeVisible (button);
         };
@@ -5460,7 +5562,7 @@ private:
         automationLaneToggle.onClick = [this] {
             (void) appModel.dispatch (yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (automationLaneToggle);
 
@@ -5478,7 +5580,7 @@ private:
 
             selectedAutomationTargetIndex = selected - 1;
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addChildComponent (automationTargetChooser);
 
@@ -5504,7 +5606,7 @@ private:
             (void) appModel.setAutomationMode (
                 static_cast<yesdaw::engine::AutomationMode> (selected - 1));
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addChildComponent (automationModeChooser);
 
@@ -5535,7 +5637,7 @@ private:
                     yesdaw::ui::UiAppModel::kFirstTrackAutomationBreakpointAddTick,
                     yesdaw::ui::UiAppModel::kFirstTrackAutomationBreakpointAddValue);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         automationBreakpointAddButton.setVisible (false);
         addAndMakeVisible (automationBreakpointAddButton);
@@ -5560,7 +5662,7 @@ private:
                 }
             }
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         automationBreakpointDeleteButton.setVisible (false);
         addAndMakeVisible (automationBreakpointDeleteButton);
@@ -5588,7 +5690,7 @@ private:
             (void) appModel.switchAudibleTakeForSelectedClip (
                 inspectorTakeViews[static_cast<std::size_t> (selected - 1)].takeId);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addChildComponent (inspectorTakeChooser);
 
@@ -5606,7 +5708,7 @@ private:
             (void) appModel.deleteRecordingTake (
                 inspectorTakeViews[static_cast<std::size_t> (selected - 1)].takeId);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addChildComponent (inspectorTakeDelete);
 
@@ -5654,7 +5756,7 @@ private:
 
             (void) appModel.setSelectedTimelineClipGain (static_cast<float> (inspectorGain.getValue()));
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (inspectorGain);
 
@@ -5688,7 +5790,7 @@ private:
                 return;
 
             inspectorFadeCurve.setSelectedId (kInspectorEqualPowerFadeCurveId, juce::dontSendNotification);
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (inspectorFadeCurve);
     }
@@ -5744,7 +5846,7 @@ private:
             (void) appModel.selectMixerTrack (0);
             layoutMixerControls();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerTrackSelect);
 
@@ -5778,7 +5880,7 @@ private:
             }
             layoutMixerControls();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         // E17: double-clicking a BUS strip opens the inline rename editor over its header.
         mixerStripsInput.onStripDoubleClicked = [this] (int stripIndex) {
@@ -5842,7 +5944,7 @@ private:
             }
 
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         // M4: a click on a painted insert row selects the strip and opens THAT slot's params.
         mixerStripsInput.insertSlotAtPosition = [this] (juce::Point<int> positionInShell) {
@@ -5902,7 +6004,7 @@ private:
             if (! commit)
             {
                 paintedSendDragPreview = { stripIndex, sendIndex, static_cast<float> (level) };
-                repaint();
+                repaintAll();
                 return;
             }
 
@@ -5911,7 +6013,7 @@ private:
                                                         static_cast<float> (level));
             layoutMixerControls();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         mixerStripsInput.onInsertSlotClicked = [this] (int stripIndex, int slotIndex) {
             const auto surface = currentMixerSurface();
@@ -5937,7 +6039,7 @@ private:
             layoutMixerControls();
             refreshActionState();
             resized();
-            repaint();
+            repaintAll();
         };
         // E25: clicks hit-test the PAINTED lanes — the same geometry the eye sees.
         mixerStripsInput.stripAtPosition = [this] (juce::Point<int> positionInShell) {
@@ -5969,7 +6071,7 @@ private:
             mixerFxAddChooser.setSelectedId (0, juce::dontSendNotification);
             (void) appModel.addFxInsertToSelectedStrip (static_cast<yesdaw::engine::FxKind> (selected - 1));
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerFxAddChooser);
 
@@ -5984,7 +6086,7 @@ private:
             toggle.onClick = [this, slot] {
                 (void) appModel.toggleFxInsertEnabledOnSelectedStrip (slot);
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addChildComponent (toggle);
 
@@ -5998,7 +6100,7 @@ private:
             remove.onClick = [this, slot] {
                 (void) appModel.removeFxInsertFromSelectedStrip (slot);
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addChildComponent (remove);
 
@@ -6015,7 +6117,7 @@ private:
                 selectedFxParamPage = 0;   // E15: a fresh slot always opens on its first page
                 refreshActionState();
                 resized();
-                repaint();
+                repaintAll();
             };
             addChildComponent (edit);
 
@@ -6030,7 +6132,7 @@ private:
             up.onClick = [this, slot] {
                 (void) appModel.moveFxInsertOnSelectedStrip (slot, -1);
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addChildComponent (up);
 
@@ -6044,7 +6146,7 @@ private:
             down.onClick = [this, slot] {
                 (void) appModel.moveFxInsertOnSelectedStrip (slot, 1);
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addChildComponent (down);
         }
@@ -6076,7 +6178,7 @@ private:
 
             (void) appModel.setMasterFader (static_cast<float> (mixerMasterFader.getValue()));
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerMasterFader);
 
@@ -6087,7 +6189,7 @@ private:
         mixerBusAddButton.onClick = [this] {
             (void) appModel.addBusToMixer();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerBusAddButton);
 
@@ -6101,7 +6203,7 @@ private:
             (void) appModel.removeSelectedBus();
             layoutMixerControls();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerBusRemoveButton);
 
@@ -6129,7 +6231,7 @@ private:
             mixerSendAddChooser.setSelectedId (0, juce::dontSendNotification);
             (void) appModel.addSendOnSelectedTrack (static_cast<std::size_t> (selected - 1));
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerSendAddChooser);
 
@@ -6154,7 +6256,7 @@ private:
                     : buses[static_cast<std::size_t> (selected - 2)].id;
             (void) appModel.setOutputOnSelectedTrack (target);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerTrackOutputChooser);
 
@@ -6197,7 +6299,7 @@ private:
                     (void) appModel.setSendLevelOnSelectedTrack (
                         row, static_cast<float> (mixerSendLevelSliders[row].getValue()));
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addChildComponent (slider);
 
@@ -6211,7 +6313,7 @@ private:
             remove.onClick = [this, row] {
                 (void) appModel.removeSendOnSelectedTrack (row);
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addChildComponent (remove);
 
@@ -6225,7 +6327,7 @@ private:
             tap.onClick = [this, row] {
                 (void) appModel.toggleSendTapOnSelectedTrack (row);
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addChildComponent (tap);
 
@@ -6244,7 +6346,7 @@ private:
                 (void) appModel.setSendDestinationOnSelectedTrack (
                     row, static_cast<std::size_t> (selected - 1));
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addChildComponent (destination);
         }
@@ -6295,7 +6397,7 @@ private:
                         mixerFxParamSliderIds[index],
                         mixerFxParamSliders[index].getValue());
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addChildComponent (slider);
 
@@ -6323,7 +6425,7 @@ private:
                     mixerFxParamSliderIds[index],
                     yesdaw::engine::normalizedForChoice (spec, static_cast<std::uint8_t> (choice)));
                 refreshActionState();
-                repaint();
+                repaintAll();
             };
             addChildComponent (choiceChooser);
         }
@@ -6343,7 +6445,7 @@ private:
             selectedFxParamPage = page;
             refreshActionState();
             resized();
-            repaint();
+            repaintAll();
         };
         addChildComponent (mixerFxParamPageChooser);
 
@@ -6377,7 +6479,7 @@ private:
             if (dragDbReadout.isVisible())
                 dragDbReadout.setText (dbReadoutText (mixerFader.getValue()), juce::dontSendNotification);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         // Live dB readout while the fader is dragged (B31); the rail VOL shares the same label.
         mixerFader.onDragStart = [this] {
@@ -6447,7 +6549,7 @@ private:
             else
                 (void) appModel.setSelectedMixerPan (static_cast<float> (snapped));
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerPan);
 
@@ -6458,7 +6560,7 @@ private:
         mixerMetersReadout.onClick = [this] {
             (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadMeters);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerMetersReadout);
 
@@ -6469,7 +6571,7 @@ private:
         mixerSendsReadout.onClick = [this] {
             (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadSends);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerSendsReadout);
 
@@ -6480,7 +6582,7 @@ private:
         mixerSendLevelEdit.onClick = [this] {
             (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerSetFirstSendLevel);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerSendLevelEdit);
 
@@ -6491,7 +6593,7 @@ private:
         mixerFxSlotsReadout.onClick = [this] {
             (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadFxSlots);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerFxSlotsReadout);
 
@@ -6502,7 +6604,7 @@ private:
         mixerGainReductionReadout.onClick = [this] {
             (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadGainReduction);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerGainReductionReadout);
 
@@ -6513,7 +6615,7 @@ private:
         mixerBusFxSlotsReadout.onClick = [this] {
             (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadBusFxSlots);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerBusFxSlotsReadout);
 
@@ -6524,7 +6626,7 @@ private:
         mixerFxSlotToggle.onClick = [this] {
             (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled);
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerFxSlotToggle);
 
@@ -6542,7 +6644,7 @@ private:
 
             (void) appModel.toggleSelectedMixerMute();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerMute);
 
@@ -6560,7 +6662,7 @@ private:
 
             (void) appModel.toggleSelectedMixerSolo();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerSolo);
 
@@ -6581,7 +6683,7 @@ private:
 
             (void) appModel.toggleSelectedMixerSoloSafe();
             refreshActionState();
-            repaint();
+            repaintAll();
         };
         addAndMakeVisible (mixerSoloSafe);
     }
@@ -6616,7 +6718,7 @@ private:
         selectedTrackLane = lane;
         (void) appModel.selectMixerTrack (static_cast<std::size_t> (lane), /*showMixerPanel*/ false);
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void selectAdjacentTrackLane (yesdaw::ui::UiActionId action)
@@ -6666,7 +6768,7 @@ private:
 
         dismissTrackRenameEditor();
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void dismissTrackRenameEditor()
@@ -6715,7 +6817,7 @@ private:
         (void) appModel.renameSelectedTimelineClip (clipRenameEditor.getText().toStdString());
         dismissClipRenameEditor();
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     // Marker rename (E7): positioned over the painted label through the shared rect law.
@@ -6766,7 +6868,7 @@ private:
                                          busRenameEditor.getText().toStdString());
         dismissBusRenameEditor();
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void dismissBusRenameEditor()
@@ -6784,7 +6886,7 @@ private:
                 markerRenameEditor.getText().toStdString());
         dismissMarkerRenameEditor();
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void dismissMarkerRenameEditor()
@@ -6810,7 +6912,7 @@ private:
                                           static_cast<int> (appModel.project().tracks.size()) - 1);
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     // Selected-track strip/arm toggles (B28): the rail row is the target; the mixer never opens.
@@ -6837,7 +6939,7 @@ private:
         }
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void moveSelectedTrack (int delta)
@@ -6857,7 +6959,7 @@ private:
             selectTrackLane (targetLane);   // the rail highlight follows the moved row
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     // Per-track meter peak-hold and clip-latch state (B32), advanced once per UI refresh tick so
@@ -6944,7 +7046,7 @@ private:
                 channel.heldPeak = channel.livePeak;
                 channel.holdTicksRemaining = 0;
             }
-        repaint();
+        repaintAll();
     }
 
     // E22: a click on a painted BUS meter clears its hold and latch, like the track law.
@@ -6957,7 +7059,7 @@ private:
         state.clipLatched = false;
         state.heldPeak = state.livePeak;
         state.holdTicksRemaining = 0;
-        repaint();
+        repaintAll();
     }
 
     // Live gain readout in dB (B31): 20*log10(linear gain), "-inf dB" at silence.
@@ -6999,7 +7101,7 @@ private:
             selectTrackLane (selectedTrackLane + 1);   // the copy lands directly below the source
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     // Open a project bundle at a known path (B39): shared by File > Open and Open Recent.
@@ -7634,8 +7736,31 @@ private:
 
         handleAction (action);
         refreshActionState();
-        repaint();
+        repaintAll();
         return true;
+    }
+
+    // G0.4 layered invalidation. repaintAll() is what every model/view change calls (the old
+    // whole-window repaint()), and it also invalidates the buffered timeline canvas so the static
+    // layer can never go stale. repaintDynamicLayers() is what the tick calls: the playhead layer,
+    // the rail (meters), the dock (meters, master), and the header band (transport counter) — the
+    // expensive clip/waveform canvas is left to its cache.
+    void repaintAll()
+    {
+        ++fullInvalidations;
+        timelineInput.repaint();
+        repaint();
+    }
+
+    void repaintDynamicLayers()
+    {
+        ++dynamicInvalidations;
+        playheadLayer.repaint();
+        repaint (getLocalBounds().withHeight (kHeaderHeight));
+        repaint (leftRailPanelBounds());
+        if (appModel.context().mixerDockVisible
+            || appModel.context().activePanel == yesdaw::ui::UiPanel::Mixer)
+            repaint (mixerPanelBounds());
     }
 
     // G0.2 Command router (ADR-0046 §4). Only an active text field consumes keys: every other
@@ -7729,7 +7854,7 @@ private:
         if (cancelled)
         {
             refreshActionState();
-            repaint();
+            repaintAll();
         }
         return cancelled;
     }
@@ -7759,7 +7884,7 @@ private:
             timelineInput.getLocalBounds(), makeTimelineState());
         const int maxRows = std::max (geometry.maxTrackScrollRows, trackListInput.maxScrollRows());
         timelineTrackScrollRows = std::clamp (timelineTrackScrollRows + rowDelta, 0, maxRows);
-        repaint();
+        repaintAll();
     }
 
     // V8: the ONE place the toolbar readout learns the current factor — called from every path
@@ -7923,7 +8048,7 @@ private:
             if (index < recents.size())
                 openProjectBundleAtPath (recents[index]);
             refreshActionState();
-            repaint();
+            repaintAll();
             return;
         }
 
@@ -7932,7 +8057,7 @@ private:
 
         handleAction (static_cast<yesdaw::ui::UiActionId> (menuItemID - 1));
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     // Device chooser plumbing (usable-DAW P1): harness seams win when injected; the native shell
@@ -8360,6 +8485,7 @@ private:
 
     void refreshActionState()
     {
+        ++actionStateRefreshes;   // G0.4 probe: how often the 391-line refresh actually runs
         rebuildTimelineClipViews();
         // E29: a device change (adoption, Test Device, refresh) re-lists the channel pick.
         if (recordingChannelChooserGeneration != appModel.context().recordingDeviceGeneration)
@@ -8410,6 +8536,7 @@ private:
                                           appModel.context()).enabled);
         masterLoudnessReadout.setButtonText (masterLoudnessReadoutText());
         timelineInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
+        playheadLayer.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
         pianoRollInput.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::PianoRoll);
         {
             refreshingTimeMapControls = true;
@@ -8960,7 +9087,7 @@ private:
                 automationTouchRideSamples);
         automationTouchRideSamples.clear();
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void refreshAutosaveRecoveryControls()
@@ -9102,7 +9229,7 @@ private:
             (void) appModel.moveSelectedTimelineClipTo (*tick);
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void setSelectedInspectorEndFromSlider()
@@ -9117,7 +9244,7 @@ private:
 
         (void) appModel.trimSelectedTimelineClipRightTo (*endTick);
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void setSelectedInspectorLengthFromSlider()
@@ -9132,7 +9259,7 @@ private:
 
         (void) appModel.trimSelectedTimelineClipRightTo (clip->timelineStart + *lengthTick);
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void setSelectedInspectorFadesFromSliders()
@@ -9153,7 +9280,7 @@ private:
             toTicks (inspectorFadeIn.getValue()),
             toTicks (inspectorFadeOut.getValue()));
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void refreshMixerControls()
@@ -10202,7 +10329,7 @@ private:
         }
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     [[nodiscard]] yesdaw::engine::EntityId automationTargetTrackId() const noexcept
@@ -10377,7 +10504,7 @@ private:
             (void) appModel.moveSelectedTimelineClipTo (snappedTimelineTick (*tick, snapToGrid));
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     // The active snap grid applied to a gesture tick. The gesture's Ctrl flag INVERTS the global
@@ -10416,7 +10543,7 @@ private:
                 snappedTimelineTick (*tick, snapToGrid));
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void copyTimelineClipByLayoutId (int layoutClipId, int targetLane, double startSeconds, bool snapToGrid)
@@ -10449,7 +10576,7 @@ private:
                 targetTrackId, snappedTimelineTick (*tick, snapToGrid));
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     // Snap law for edge gestures (E4): the snapped tick goes straight to the verb, whose legality
@@ -10464,7 +10591,7 @@ private:
             (void) appModel.splitSelectedTimelineClipAt (snappedTimelineTick (*tick, snapInvert));
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void trimTimelineClipRightByLayoutId (int layoutClipId, double endSeconds, bool snapInvert = false)
@@ -10477,7 +10604,7 @@ private:
             (void) appModel.trimSelectedTimelineClipRightTo (snappedTimelineTick (*tick, snapInvert));
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void adjustTimelineClipGainByLayoutId (int layoutClipId, int deltaPixels)
@@ -10502,7 +10629,7 @@ private:
         (void) appModel.setSelectedTimelineClipGain (nextGain);
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     void adjustTimelineClipFadeByLayoutId (int layoutClipId, bool fadeIn, double fadeSeconds)
@@ -10530,7 +10657,7 @@ private:
         (void) appModel.setSelectedTimelineClipFades (nextFadeIn, nextFadeOut);
 
         refreshActionState();
-        repaint();
+        repaintAll();
     }
 
     [[nodiscard]] const yesdaw::engine::Clip* findProjectClipById (yesdaw::engine::EntityId clipId) const noexcept
@@ -11671,6 +11798,7 @@ private:
     mutable double pianoRollViewZoom = 1.0;
     mutable yesdaw::engine::Tick pianoRollViewScrollTicks = 0;
     TimelineInputComponent timelineInput;
+    PlayheadLayerComponent playheadLayer;   // G0.4: above the buffered canvas
     PianoRollInputComponent pianoRollInput;
     TrackListInputComponent trackListInput;
     MixerStripsInputComponent mixerStripsInput;
@@ -11826,6 +11954,12 @@ private:
     std::uint64_t audioCallbackAdds = 0;
     std::uint64_t audioCallbackRemovals = 0;
     std::uint64_t audioSuspendRequests = 0;   // G0.3
+    // G0.4: invalidation and refresh counters, and the context the last refresh ran against.
+    std::uint64_t fullInvalidations = 0;
+    std::uint64_t dynamicInvalidations = 0;
+    std::uint64_t actionStateRefreshes = 0;
+    yesdaw::ui::UiActionContext lastRefreshedContext {};
+    bool lastRefreshedContextValid = false;
     std::atomic<double> deviceSampleRateHz { 0.0 };
     std::atomic<int> deviceXRunBaseline { -1 };
     std::atomic<std::uint32_t> deviceDeadlineMisses { 0u };
