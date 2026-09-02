@@ -41,9 +41,12 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.4 built and proven locally (below); awaiting exact-head CI, then the evidence tick.
-The session drive is paused: Dan declined a rerun on 2026-09-01 evening (it takes the mouse and
-keyboard for ~40 s), so no drive run happens until he says go; G0.5's see-it step waits on that.
+**Now:** G0.5 in progress — placement edits must not rebuild the engine (audio first; MIDI as
+G0.5b if needed). The session drive is paused: Dan declined a rerun on 2026-09-01 evening (it takes
+the mouse and keyboard for ~40 s), so no drive run happens until he says go; G0.5's see-it step
+waits on that. Headless work (audit, code, ctest, CI) continues.
+G0.4 ✅ — certified: exact-head run `33592155901` green on all ten jobs for full SHA
+`f608d3ddfc6e1b09a35bc9eb7eb19e3c52dafad8` (first try). Local suite 363/363.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
