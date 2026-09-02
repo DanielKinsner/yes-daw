@@ -41,9 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G1.3 checkpoint 2 (the insert-slot context menu; `[context-menus-slot]`) built, gated
-locally, committed; awaiting its exact-head run, which ticks G1.3 (cp1's run `33609467177` was
-its own check). Next: G1.4 toolbar v2. The drive stays paused (D14).
+**Now:** G1.4 checkpoint 1 (Nudge value chooser + verbs, the inspector toggle on `I`, the
+two-readout counter with the click cycle; `[toolbar-v2]`) built, gated locally, committed;
+awaiting its exact-head run. G1.3 is certified by the right-button fix's run once green (D44).
+Next: G1.4 cp2 (regroup the X / P / A panel toggles into the toolbar) or, if the plan's reading
+allows, straight to G1.5. The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -74,6 +76,30 @@ G1.2 ✅ — `92a9f54`; certified by the same run `33608447371`.
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G1.4 — Toolbar v2, checkpoint 1 (2026-09-02)
+
+**Build.** Nudge value: `UiNudgeUnit {Grid, Bar, Beat, Sixteenth}` in the model, `nudgeFrames()`
+through the snap grid's own tempo/meter law; four verbs (`edit.nudge.value.*`, no chords, Edit
+menu, ticked) behind one toolbar chooser (`timeline.nudge.chooser`); the nudge keys read it.
+Inspector: `view.toggle_inspector` (`I`, Global, View menu, ticked) + a toolbar button at the
+row's right end; `inspectorWidthNow()` is the token or 0, so the arrangement widens and every
+inspector control drops whole. Counter: `counterStrings()` gives bars|beats and m:ss.mmm; the
+primary paints big, the secondary in the caption row; a click on the readout swaps them
+(`timeDisplayMode`); the probe carries `view.timeDisplay`, `counterPrimary`, `counterSecondary`,
+`nudgeValue`. Tokens `timelineNudgeChooserWidth 104`, `inspectorToggleWidth 84`. At the floor the
+nudge chooser drops whole (E27).
+
+**Gates.** `[toolbar-v2]` (input check): tokens; Alt+Right = a beat on Grid, a bar after the chooser
+picks Bar, a sixteenth back after the verb picks 1/16 (the chooser follows); `I` hides the
+inspector and the arrangement widens by `inspectorWidth`, the button restores; the counter's two
+strings at the start and a bar later; the click swaps them. Re-pins: Edit menu 19 items; the
+shell child count + 2.
+
+**Not built (recorded).** Edit mode and Snap mode choosers — their model lands in G2 (a chooser
+with no behaviour is a dead affordance); the panel toggles X / P / A exist as the dock, Piano and
+Automation buttons and are not regrouped here (cp2 if kept in G1.4); nudge in milliseconds /
+samples / frames (needs the frame↔time law at the playhead's tempo — G2.15).
 
 ### G1.3 — Context menus, checkpoint 2: the insert slot (2026-09-02)
 

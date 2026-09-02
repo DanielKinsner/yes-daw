@@ -755,6 +755,13 @@ struct UiTheme
                 .translated (timelineZoomReadoutWidth + timelineZoomClusterGap, 0)
                 .withWidth (timelineZoomButtonWidth);
         }
+        // G1.4 toolbar v2: the Nudge value chooser right of the zoom cluster and the Inspector
+        // toggle at the row's right end; the status line takes what is left between them. At the
+        // window floor the nudge chooser drops WHOLE (E27) — the Edit menu still carries it.
+        static constexpr int timelineNudgeChooserWidth = 104;
+        static constexpr int timelineNudgeChooserGap = 12;
+        static constexpr int inspectorToggleWidth = 84;
+        static constexpr int inspectorToggleGap = 12;
         // R4: the status line fills the toolbar row's remaining width right of the zoom cluster.
         static constexpr int statusLineLeftGap = 12;
         static constexpr int statusLineRightInset = 8;

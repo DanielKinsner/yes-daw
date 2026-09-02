@@ -3901,6 +3901,43 @@ public:
         };
         addAndMakeVisible (timelineSnapChooser);
 
+        // G1.4: the Nudge value chooser — four registered verbs as one control.
+        nudgeValueChooser.setComponentID ("timeline.nudge.chooser");
+        nudgeValueChooser.setName ("Nudge value");
+        nudgeValueChooser.setTitle ("Nudge value");
+        nudgeValueChooser.setTooltip ("Nudge value: the distance Alt+Left / Alt+Right move the selection");
+        nudgeValueChooser.addItem ("Nudge: Grid", 1);
+        nudgeValueChooser.addItem ("Nudge: Bar", 2);
+        nudgeValueChooser.addItem ("Nudge: Beat", 3);
+        nudgeValueChooser.addItem ("Nudge: 1/16", 4);
+        nudgeValueChooser.setSelectedId (1, juce::dontSendNotification);
+        nudgeValueChooser.onChange = [this] {
+            if (refreshingNudgeChooser)
+                return;
+            const int selected = nudgeValueChooser.getSelectedId();
+            const yesdaw::ui::UiActionId action =
+                selected == 2 ? yesdaw::ui::UiActionId::EditNudgeValueBar
+                : selected == 3 ? yesdaw::ui::UiActionId::EditNudgeValueBeat
+                : selected == 4 ? yesdaw::ui::UiActionId::EditNudgeValueSixteenth
+                                : yesdaw::ui::UiActionId::EditNudgeValueGrid;
+            (void) appModel.dispatch (action);
+            refreshActionState();
+            repaintAll();
+        };
+        addAndMakeVisible (nudgeValueChooser);
+
+        // G1.4: the Inspector toggle (I) at the toolbar's right end.
+        configureActionComponent (inspectorToggle, yesdaw::ui::UiActionId::ViewToggleInspector, "Inspector");
+        inspectorToggle.setButtonText ("Inspector");
+        inspectorToggle.setClickingTogglesState (false);
+        inspectorToggle.onClick = [this] {
+            handleAction (yesdaw::ui::UiActionId::ViewToggleInspector);
+            refreshActionState();
+            resized();
+            repaintAll();
+        };
+        addAndMakeVisible (inspectorToggle);
+
         configureActionComponent (
             timelineRepeatPasteChooser,
             yesdaw::ui::UiActionId::TimelineClipRepeatPaste,
@@ -5104,6 +5141,13 @@ public:
             view->setProperty ("dockHeight", dockedMixerHeight());
             view->setProperty ("settingsRow", context.settingsRowVisible);
             view->setProperty ("headerHeight", headerHeightNow());
+            view->setProperty ("nudgeValue", context.nudgeValue);
+            {
+                const CounterStrings counter = counterStrings();
+                view->setProperty ("timeDisplay", counter.mode);
+                view->setProperty ("counterPrimary", counter.primary);
+                view->setProperty ("counterSecondary", counter.secondary);
+            }
             view->setProperty ("tool", probeToolName (context.activeTimelineTool));
             view->setProperty ("snapEnabled", context.snapEnabled);
             view->setProperty ("snapGridTicks", static_cast<juce::int64> (context.snapGridTicks));
@@ -5407,7 +5451,7 @@ public:
         auto left = work.removeFromLeft (kLeftRailWidth)
                         .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                                   yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
-        auto inspector = work.removeFromRight (kInspectorWidth)
+        auto inspector = work.removeFromRight (inspectorWidthNow())
                              .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                                        yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
         auto timeline = work.reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
@@ -6834,12 +6878,18 @@ private:
         addAndMakeVisible (mixerSoloSafe);
     }
 
+    // G1.4: the inspector's width right now — the token, or nothing while it is hidden (I).
+    [[nodiscard]] int inspectorWidthNow() const noexcept
+    {
+        return appModel.context().inspectorVisible ? kInspectorWidth : 0;
+    }
+
     [[nodiscard]] juce::Rectangle<int> timelineBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
         work.removeFromBottom (dockedMixerHeight());
         work.removeFromLeft (kLeftRailWidth);
-        work.removeFromRight (kInspectorWidth);
+        work.removeFromRight (inspectorWidthNow());
         return work.reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                              yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
     }
@@ -7470,6 +7520,8 @@ private:
     {
         auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
         work.removeFromBottom (dockedMixerHeight());
+        if (! appModel.context().inspectorVisible)
+            return {};
         return work.removeFromRight (kInspectorWidth)
             .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                       yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
@@ -7804,8 +7856,22 @@ private:
         // V8: the zoom cluster shares the automation toggle's toolbar row.
         timelineZoomOutButton.setBounds (L::timelineZoomOutButtonBounds (timeline));
         timelineZoomReadout.setBounds (L::timelineZoomReadoutBounds (timeline));
-        statusLine.setBounds (L::statusLineBounds (timeline));
         timelineZoomInButton.setBounds (L::timelineZoomInButtonBounds (timeline));
+        // G1.4 toolbar v2: [nudge] … status … [Inspector]; the nudge chooser drops whole when
+        // the row cannot hold it next to the toggle.
+        {
+            juce::Rectangle<int> status = L::statusLineBounds (timeline);
+            const juce::Rectangle<int> toggle = status.withX (timeline.getRight() - L::statusLineRightInset - L::inspectorToggleWidth)
+                                                      .withWidth (L::inspectorToggleWidth);
+            juce::Rectangle<int> nudge = status.withWidth (L::timelineNudgeChooserWidth);
+            const bool nudgeFits = nudge.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= toggle.getX();
+            nudgeValueChooser.setBounds (nudgeFits ? nudge : juce::Rectangle<int>());
+            inspectorToggle.setBounds (toggle);
+            const int statusLeft = nudgeFits ? nudge.getRight() + L::timelineNudgeChooserGap : status.getX();
+            const int statusRight = toggle.getX() - L::inspectorToggleGap;
+            statusLine.setBounds (statusRight > statusLeft ? status.withLeft (statusLeft).withRight (statusRight)
+                                                          : juce::Rectangle<int>());
+        }
 
         // E26: the lane lives in the geometry law's reserved band — a header row (lane label
         // left, breakpoint controls right) above a FULL-WIDTH canvas, so the curve is never
@@ -8023,8 +8089,10 @@ private:
         // the device choosers (device (re)open).
         handleActionWhileAudioStopped (action);
 
-        // G0.7: the settings row changes the header's height — the whole shell re-lays out.
-        if (action == yesdaw::ui::UiActionId::ViewToggleSettingsRow)
+        // G0.7 / G1.4: the settings row and the inspector change the layout — the whole shell
+        // re-lays out.
+        if (action == yesdaw::ui::UiActionId::ViewToggleSettingsRow
+            || action == yesdaw::ui::UiActionId::ViewToggleInspector)
         {
             resized();
             repaintAll();
@@ -8134,7 +8202,7 @@ private:
             UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
             UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
         };
-        static constexpr std::array<UiActionId, 15> kEditMenu {
+        static constexpr std::array<UiActionId, 19> kEditMenu {
             UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::TimelineClipCut,
             UiActionId::TimelineClipCopy,  UiActionId::TimelineClipPaste,  UiActionId::TimelineClipDuplicate,
             UiActionId::TimelineClipRepeatPaste, UiActionId::TimelineClipDelete,
@@ -8142,6 +8210,8 @@ private:
             UiActionId::EditRenameSelection,
             UiActionId::EditNudgeLeft,     UiActionId::EditNudgeRight,
             UiActionId::EditNudgeLeftFine, UiActionId::EditNudgeRightFine,
+            UiActionId::EditNudgeValueGrid, UiActionId::EditNudgeValueBar,
+            UiActionId::EditNudgeValueBeat, UiActionId::EditNudgeValueSixteenth,
         };
         static constexpr std::array<UiActionId, 12> kTrackMenu {
             UiActionId::TrackAdd,          UiActionId::TrackDuplicate,     UiActionId::TrackRemove,
@@ -8165,8 +8235,9 @@ private:
             UiActionId::PianoRollNoteDuplicate, UiActionId::PianoRollNoteSetLength,
             UiActionId::PianoRollNoteSetVelocity,
         };
-        static constexpr std::array<UiActionId, 18> kViewMenu {
+        static constexpr std::array<UiActionId, 19> kViewMenu {
             UiActionId::ViewTimeline,      UiActionId::ViewMixer,          UiActionId::ViewPianoRoll,
+            UiActionId::ViewToggleInspector,
             UiActionId::TimelineToggleMixerDock, UiActionId::InspectorShowClipTab, UiActionId::InspectorShowTrackTab,
             UiActionId::TimelineAutomationToggleTrackLane,
             UiActionId::TimelineZoomIn,    UiActionId::TimelineZoomOut,
@@ -8227,6 +8298,11 @@ private:
             case UiActionId::TransportToggleReturnToStartOnStop: return c.returnToStartOnStopEnabled;
             case UiActionId::TransportToggleRecordCountIn:      return c.recordCountInEnabled;
             case UiActionId::ViewToggleSettingsRow:             return c.settingsRowVisible;
+            case UiActionId::ViewToggleInspector:               return c.inspectorVisible;
+            case UiActionId::EditNudgeValueGrid:                return c.nudgeValue == 0;
+            case UiActionId::EditNudgeValueBar:                 return c.nudgeValue == 1;
+            case UiActionId::EditNudgeValueBeat:                return c.nudgeValue == 2;
+            case UiActionId::EditNudgeValueSixteenth:           return c.nudgeValue == 3;
             case UiActionId::TimelineToggleMixerDock:           return c.mixerDockVisible;
             case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
             case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
@@ -9222,6 +9298,10 @@ private:
                              : appModel.snapUnit() == yesdaw::ui::UiAppModel::UiSnapUnit::Sixteenth ? 4
                              : 3;
             timelineSnapChooser.setSelectedId (snapId, juce::dontSendNotification);
+            refreshingNudgeChooser = true;
+            nudgeValueChooser.setSelectedId (appModel.context().nudgeValue + 1, juce::dontSendNotification);
+            refreshingNudgeChooser = false;
+            inspectorToggle.setToggleState (appModel.context().inspectorVisible, juce::dontSendNotification);
             refreshingSnapChooser = false;
         }
         {
@@ -10073,6 +10153,36 @@ private:
             head.bpm, head.numerator, head.denominator, sampleRate, appModel.context().playheadFrame);
     }
 
+    // G1.4: the transport counter shows bars|beats AND minutes:seconds; a click on it swaps which
+    // is the big one (Logic's display-mode click).
+    struct CounterStrings
+    {
+        juce::String primary, secondary, mode;
+    };
+
+    [[nodiscard]] CounterStrings counterStrings() const
+    {
+        const yesdaw::engine::BarBeat barBeat = headerBarBeat();
+        const juce::String bars = juce::String::formatted (
+            "%03lld|%02lld", static_cast<long long> (barBeat.bar), static_cast<long long> (barBeat.beat));
+        const double sampleRate = appModel.project().sampleRate.isValid() ? appModel.project().sampleRate.hz : 48000.0;
+        const double seconds = std::max (0.0, static_cast<double> (appModel.context().playheadFrame) / sampleRate);
+        const int minutes = static_cast<int> (seconds / 60.0);
+        const double rest = seconds - 60.0 * minutes;
+        const juce::String minSec = juce::String::formatted ("%d:%06.3f", minutes, rest);
+        return timeDisplayMode == 0 ? CounterStrings { bars, minSec, "bars" }
+                                    : CounterStrings { minSec, bars, "minsec" };
+    }
+
+    void mouseDown (const juce::MouseEvent& event) override
+    {
+        if (headerLayout().timeReadout.contains (event.getPosition()))
+        {
+            timeDisplayMode = timeDisplayMode == 0 ? 1 : 0;
+            repaint (getLocalBounds().withHeight (headerHeightNow()));
+        }
+    }
+
     void drawTransportReadouts (juce::Graphics& g) const
     {
         const HeaderLayout h = headerLayout();
@@ -10083,17 +10193,15 @@ private:
             yesdaw::ui::UiTheme::Type::transportClock));
         // V2: bar|beat, not a stopwatch clock — the SAME single-tempo/meter law V4's ruler
         // reuses, so the header readout and the ruler's bar numbers can never disagree.
-        const yesdaw::engine::BarBeat barBeat = headerBarBeat();
-        const juce::String clock = juce::String::formatted (
-            "%03lld|%02lld", static_cast<long long> (barBeat.bar), static_cast<long long> (barBeat.beat));
-        g.drawText (clock,
+        const CounterStrings counter = counterStrings();
+        g.drawText (counter.primary,
                     time.reduced (yesdaw::ui::UiTheme::Layout::headerTransportTextInsetX,
                                   yesdaw::ui::UiTheme::Layout::headerTransportClockInsetY)
                         .removeFromTop (yesdaw::ui::UiTheme::Layout::headerTransportClockHeight),
                     juce::Justification::centred,
                     false);
         drawSmallLabel (g,
-                        "BAR | BEAT",
+                        counter.secondary,
                         time.reduced (yesdaw::ui::UiTheme::Layout::headerTransportTextInsetX,
                                       yesdaw::ui::UiTheme::Layout::headerTransportLabelInsetY),
                         juce::Justification::centred);
@@ -12412,6 +12520,9 @@ private:
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
     juce::ComboBox timelineSnapChooser;
+    juce::ComboBox nudgeValueChooser;      // G1.4
+    juce::TextButton inspectorToggle;      // G1.4
+    int timeDisplayMode = 0;               // G1.4: 0 bars|beats primary, 1 min:sec primary
     juce::ComboBox timelineRepeatPasteChooser;
     AutomationLaneCanvasComponent automationLaneCanvas;
     // E20: the automation lane target — what the canvas edits (struct declared with the
@@ -12465,6 +12576,7 @@ private:
     bool refreshingInspectorControls = false;
     bool refreshingTimeMapControls = false;
     bool refreshingSnapChooser = false;
+    bool refreshingNudgeChooser = false;   // G1.4
     bool refreshingRepeatPasteChooser = false;
     bool refreshingMixerControls = false;
     int autosaveElapsedMs = 0;

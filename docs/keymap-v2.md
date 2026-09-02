@@ -53,6 +53,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `Shift+R` | Arm Selected Track | `record.track.toggle_arm` |
 | `X` | Mixer Dock | `timeline.mixer_dock.toggle` |
 | `Space` | Play/Stop | `transport.toggle_play_stop` |
+| `I` | Inspector | `view.toggle_inspector` |
 
 ## Arrange
 
@@ -181,3 +182,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Track (`inspector.tab.track`)
 - Solo Safe (`mixer.target.toggle_solo_safe`)
 - Audio & Export Settings (`view.toggle_settings_row`)
+- Nudge: Grid (`edit.nudge.value.grid`)
+- Nudge: Bar (`edit.nudge.value.bar`)
+- Nudge: Beat (`edit.nudge.value.beat`)
+- Nudge: 1/16 (`edit.nudge.value.sixteenth`)

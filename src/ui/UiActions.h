@@ -182,6 +182,11 @@ enum class UiActionId : std::uint8_t
     TransportTogglePlayStop,
     ViewToggleSettingsRow,
     PianoRollNoteSelectAll,
+    ViewToggleInspector,
+    EditNudgeValueGrid,
+    EditNudgeValueBar,
+    EditNudgeValueBeat,
+    EditNudgeValueSixteenth,
     Count
 };
 
@@ -352,6 +357,8 @@ struct UiActionContext
     bool metronomeEnabled = false;
     bool recordCountInEnabled = false;
     bool settingsRowVisible = false;   // G0.7: the collapsible Audio & Export settings row
+    bool inspectorVisible = true;      // G1.4: I shows / hides the inspector
+    int nudgeValue = 0;                // G1.4: 0 grid, 1 bar, 2 beat, 3 sixteenth
     bool recordCountInActive = false;
     bool playheadFollowEnabled = true;
     bool returnToStartOnStopEnabled = false;
@@ -784,7 +791,20 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
     // G1.1 (§4 "select all in the focused editor"): every note of the selected MIDI clip.
     { UiActionId::PianoRollNoteSelectAll, "piano_roll.note.select_all", "Select All Notes", "Ctrl+A", "Select every note in the selected MIDI clip",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true },
+    // G1.4 (§4.3): the inspector shows and hides on I.
+    { UiActionId::ViewToggleInspector, "view.toggle_inspector", "Inspector", "I", "Show or hide the inspector",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    // G1.4: the Nudge value — the distance the nudge keys move the selection (CONTEXT: never
+    // hard-wired to the snap grid). Four verbs, one chooser, no default chords.
+    { UiActionId::EditNudgeValueGrid, "edit.nudge.value.grid", "Nudge: Grid", "", "Nudge by the snap grid",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::EditNudgeValueBar, "edit.nudge.value.bar", "Nudge: Bar", "", "Nudge by one bar",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::EditNudgeValueBeat, "edit.nudge.value.beat", "Nudge: Beat", "", "Nudge by one beat",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::EditNudgeValueSixteenth, "edit.nudge.value.sixteenth", "Nudge: 1/16", "", "Nudge by a sixteenth",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -1634,6 +1654,15 @@ public:
             case UiActionId::ViewToggleSettingsRow:
                 context.settingsRowVisible = ! context.settingsRowVisible;
                 break;
+
+            case UiActionId::ViewToggleInspector:
+                context.inspectorVisible = ! context.inspectorVisible;
+                break;
+
+            case UiActionId::EditNudgeValueGrid:      context.nudgeValue = 0; break;
+            case UiActionId::EditNudgeValueBar:       context.nudgeValue = 1; break;
+            case UiActionId::EditNudgeValueBeat:      context.nudgeValue = 2; break;
+            case UiActionId::EditNudgeValueSixteenth: context.nudgeValue = 3; break;
 
             case UiActionId::TransportStoreLocatePoint1:
             case UiActionId::TransportStoreLocatePoint2:

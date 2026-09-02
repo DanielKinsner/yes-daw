@@ -4994,7 +4994,7 @@ public:
                         || id == UiActionId::EditNudgeRightFine;
         const bool fine = id == UiActionId::EditNudgeLeftFine
                        || id == UiActionId::EditNudgeRightFine;
-        const engine::Tick grid = std::max<engine::Tick> (1, context_.snapGridTicks);
+        const engine::Tick grid = std::max<engine::Tick> (1, nudgeFrames());
         const engine::Tick amount = fine ? std::max<engine::Tick> (1, grid / 8) : grid;
 
         if (context_.activePanel == UiPanel::PianoRoll)
@@ -5154,6 +5154,22 @@ public:
     // the model overwrites snapGridTicks with REAL frame counts from the head tempo/meter so a "bar"
     // is a bar at the current BPM. Re-derived whenever tempo, meter, or the unit changes.
     enum class UiSnapUnit : std::uint8_t { Off, Bar, Beat, Sixteenth };
+
+    // G1.4: the Nudge value. Grid follows the snap grid (a beat when snap is off); the others are
+    // their own unit through the same head tempo / meter law the snap grid uses.
+    enum class UiNudgeUnit : std::uint8_t { Grid, Bar, Beat, Sixteenth };
+    [[nodiscard]] UiNudgeUnit nudgeUnit() const noexcept { return nudgeUnit_; }
+    [[nodiscard]] std::int64_t nudgeFrames() const noexcept
+    {
+        switch (nudgeUnit_)
+        {
+            case UiNudgeUnit::Bar:       return snapFramesForUnit (UiSnapUnit::Bar);
+            case UiNudgeUnit::Beat:      return snapFramesForUnit (UiSnapUnit::Beat);
+            case UiNudgeUnit::Sixteenth: return snapFramesForUnit (UiSnapUnit::Sixteenth);
+            case UiNudgeUnit::Grid:      break;
+        }
+        return std::max<std::int64_t> (1, context_.snapGridTicks);
+    }
 
     [[nodiscard]] UiSnapUnit snapUnit() const noexcept { return snapUnit_; }
 
@@ -6270,6 +6286,7 @@ public:
             case UiActionId::TransportToggleReturnToStartOnStop:
             case UiActionId::TransportToggleRecordCountIn:
             case UiActionId::ViewToggleSettingsRow:
+            case UiActionId::ViewToggleInspector:
             case UiActionId::TimelineAutomationToggleTrackLane:
             case UiActionId::TimelineToggleMixerDock:
             case UiActionId::InspectorShowClipTab:
@@ -6359,6 +6376,21 @@ public:
             case UiActionId::EditNudgeLeftFine:
             case UiActionId::EditNudgeRightFine:
                 return nudgeSelection (id);
+
+            // G1.4: the Nudge value (CONTEXT): a unit of its own, never the snap grid by force.
+            case UiActionId::EditNudgeValueGrid:
+            case UiActionId::EditNudgeValueBar:
+            case UiActionId::EditNudgeValueBeat:
+            case UiActionId::EditNudgeValueSixteenth:
+            {
+                const UiActionDispatchResult result = registry_.dispatch (id, context_);
+                if (result.dispatched)
+                    nudgeUnit_ = id == UiActionId::EditNudgeValueBar       ? UiNudgeUnit::Bar
+                               : id == UiActionId::EditNudgeValueBeat      ? UiNudgeUnit::Beat
+                               : id == UiActionId::EditNudgeValueSixteenth ? UiNudgeUnit::Sixteenth
+                                                                            : UiNudgeUnit::Grid;
+                return result;
+            }
 
             case UiActionId::TimelineClipGainIncrease:
             case UiActionId::TimelineClipGainDecrease:
@@ -8848,6 +8880,7 @@ private:
     UiClipClipboard clipClipboard_;
     std::filesystem::path sessionStateDirectory_;
     UiSnapUnit snapUnit_ = UiSnapUnit::Beat;
+    UiNudgeUnit nudgeUnit_ = UiNudgeUnit::Grid;   // G1.4
     int repeatPasteCount_ = kDefaultRepeatPasteCount;
     static constexpr const char* kLastProjectRecordFileName = "last-project.txt";
     static constexpr const char* kRecentProjectsRecordFileName = "recent-projects.txt";

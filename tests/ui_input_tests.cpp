@@ -1046,7 +1046,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 139u));
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 141u));   // G1.4: nudge chooser + inspector toggle
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -4573,7 +4573,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
     // Eight action items + the B39 Open Recent submenu.
     REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 9);
-    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 15);
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 19);   // G1.4: + the four nudge values
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
 
     // File > New Project through the model creates a real bundle.
@@ -16387,6 +16387,77 @@ TEST_CASE ("context menus: an insert slot's menu acts on the clicked slot",
         REQUIRE (chain.size() == 1u);
         REQUIRE (chain[0].kind == yesdaw::engine::FxKind::Compressor);
     }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G1.4 toolbar v2: the Nudge value drives the nudge keys (CONTEXT: never hard-wired to the snap
+// grid); I hides and shows the inspector and the arrangement takes the room; the transport
+// counter shows bars|beats AND minutes:seconds and a click swaps which is primary.
+TEST_CASE ("toolbar v2: nudge value chooser, inspector toggle, two-readout counter",
+           "[ui][input][shell][g1][toolbar-v2]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    STATIC_REQUIRE (L::timelineNudgeChooserWidth == 104);
+    STATIC_REQUIRE (L::inspectorToggleWidth == 84);
+    const std::filesystem::path bundlePath = makeTempBundlePath ("toolbar-v2");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, readProjectSnapshot (bundlePath), 0u));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+
+    // Nudge value: Grid (the beat grid) moves a beat; Bar moves a bar; the chooser is the verb.
+    auto* nudge = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.nudge.chooser"));
+    REQUIRE (nudge != nullptr);
+    REQUIRE (nudge->isVisible());
+    REQUIRE (nudge->getSelectedId() == 1);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().timelineStart == 24'000);   // one beat at 120 BPM / 48 kHz
+    nudge->setSelectedId (2, juce::sendNotificationSync);
+    REQUIRE (snapshotMainComponent (*shell).context.nudgeValue == 1);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().timelineStart == 24'000 + 96'000);   // + one bar
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditNudgeValueSixteenth);
+    REQUIRE (nudge->getSelectedId() == 4);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::altModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().timelineStart == 24'000 + 96'000 - 6'000);
+
+    // Inspector: I hides it, the arrangement widens by its width; I again restores it.
+    const auto probeView = [&] {
+        const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+        return probe.getProperty ("view", juce::var());
+    };
+    const int timelineWidthBefore = yesdaw::ui::mainComponentTimelineBounds (*shell).getWidth();
+    REQUIRE (static_cast<bool> (probeView().getProperty ("inspector", false)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('i')));
+    REQUIRE_FALSE (static_cast<bool> (probeView().getProperty ("inspector", true)));
+    REQUIRE (yesdaw::ui::mainComponentTimelineBounds (*shell).getWidth() == timelineWidthBefore + L::inspectorWidth);
+    auto* inspectorToggle = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "view.toggle_inspector"));
+    REQUIRE (inspectorToggle != nullptr);
+    REQUIRE_FALSE (inspectorToggle->getToggleState());
+    clickButton (*inspectorToggle);
+    REQUIRE (static_cast<bool> (probeView().getProperty ("inspector", false)));
+    REQUIRE (yesdaw::ui::mainComponentTimelineBounds (*shell).getWidth() == timelineWidthBefore);
+
+    // Counter: bars|beats primary with min:sec under it; a bar later both move; a click swaps.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (probeView().getProperty ("counterPrimary", "").toString() == "001|01");
+    REQUIRE (probeView().getProperty ("counterSecondary", "").toString() == "0:00.000");
+    REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
+    REQUIRE (probeView().getProperty ("counterPrimary", "").toString() == "002|01");
+    REQUIRE (probeView().getProperty ("counterSecondary", "").toString() == "0:02.000");
+    const juce::Rectangle<int> readout = yesdaw::ui::mainComponentHeaderTimeReadoutBounds (*shell);
+    mouseDownAt (*shell, readout.getCentre());
+    REQUIRE (probeView().getProperty ("timeDisplay", "").toString() == "minsec");
+    REQUIRE (probeView().getProperty ("counterPrimary", "").toString() == "0:02.000");
+    REQUIRE (probeView().getProperty ("counterSecondary", "").toString() == "002|01");
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
