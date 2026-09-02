@@ -41,10 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G1.1 checkpoint 2 (the §4 remap: 116 defaults changed, contexts assigned, ~350 test
-sites re-pinned, `docs/keymap-v2.md` regenerated) built, gated locally, committed; awaiting its
-exact-head run — that run ticks G1.1 (cp1's run `33604946633` was green on all ten jobs). Next:
-G1.2 menus with shortcuts. The drive stays paused (D14).
+**Now:** G1.2 (nine menus in Logic's order, every item paints its chord for the focus context,
+`[menus-show-keys]`) built, gated locally, committed; awaiting its exact-head run. G1.1 cp2's run
+`33607145399` was red on Linux/macOS for two orphaned locals (D41) — this commit carries the fix
+and its run certifies G1.1 and G1.2 together. Next: G1.3 context menus. The drive stays paused
+(D14).
 The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
 and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
 re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
@@ -73,6 +74,33 @@ runner noise: the same paint passed the run before and the run after; the failed
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G1.2 — Menus with shortcuts (2026-09-02)
+
+**Build.** `File · Edit · Track · Clip · MIDI · View · Transport · Options · Help` (Logic's
+order); every registered verb in exactly one menu (106 items: File 8 + Open Recent, Edit 15,
+Track 12, Clip 12, MIDI 10, View 18 incl. the tools, Transport 24, Options 6, Help 1). Each item
+paints `shortcutKeyDescription` = the chord that fires it in the CURRENT Focus context (its own
+or a Global binding; another editor's binding paints nothing). Tick states through one law
+(`menuTickState`): loop, click, follow, return-to-start, count-in, settings row, mixer dock,
+automation lane, the current view, the inspector tab, the snap preset, the tool.
+
+**Gates.** `[menus-show-keys]` (input check): names in order; every item's text is its label and
+its painted chord equals the keymap chord exactly when it fires in the focus context, checked in
+Arrange and again in the piano roll; every chorded verb is in a menu; the click item's tick
+follows its toggle. Re-pins: the menu-model test's names/counts; count-in, follow and
+return-to-start tests address Transport (6) / View (5) instead of Options (3).
+
+**Deviation log (G1.2).**
+- D39 "Disabled items carry the reason as tooltip" is not built: JUCE popup items have no
+  tooltip field; it needs a custom item component, which is G1.6's tooltip pass. The reason is
+  still one call away (`mainComponentActionState`) and the no-dead-affordances gate holds it.
+- D40 Menu separators are not added yet (they change item counts the gates pin); G1.6/G1.7 may
+  group items — recorded as a look item, not a law.
+- D41 G1.1 cp2's run `33607145399` was red on Linux and macOS at the COMPILE step only: two
+  modifier locals the translator had orphaned (`ctrl`, `shift`) are unused-variable errors
+  under GCC/Clang `-Werror` and silent on MSVC. Removed in this commit, whose run certifies
+  G1.1 cp2 and G1.2 together. First red round for G1.1 (no stop trigger).
 
 ### G1.1 — Keymap v2 + focus contexts, checkpoint 2: the §4 remap (2026-09-02)
 

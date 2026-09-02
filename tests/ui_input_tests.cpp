@@ -24,6 +24,7 @@
 #include <fstream>
 #include <memory>
 #include <span>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -1830,7 +1831,6 @@ TEST_CASE ("Escape dismisses Clip and Track inline editors without persisting dr
                           + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2;
     mouseDownAt (*rail, { kRailRowClickX, firstTrackY });
 
-    const juce::ModifierKeys ctrl = juce::ModifierKeys::ctrlModifier;
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRename);   // G1.1: no default chord
     auto* trackEditor = dynamic_cast<juce::TextEditor*> (
         findChildWithComponentId (*shell, "shell.tracklist.rename"));
@@ -4048,7 +4048,6 @@ TEST_CASE ("Left and Right locate the playhead by one current grid unit without 
     REQUIRE (atNextBeat != atStart);
 
     constexpr std::int64_t kBarFrames = 96'000;
-    const juce::ModifierKeys shift = juce::ModifierKeys::shiftModifier;
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == kBarFrames);
@@ -4570,11 +4569,12 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (bar != nullptr);
     juce::MenuBarModel* model = bar->getModel();
     REQUIRE (model != nullptr);
-    REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "View", "Options", "Help" }));
-    // Six action items + the B39 Open Recent submenu.
-    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 7);
-    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 9);
-    REQUIRE (model->getMenuForIndex (4, "Help").getNumItems() == 1);
+    // G1.2: Logic's menu order.
+    REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
+    // Eight action items + the B39 Open Recent submenu.
+    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 9);
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 15);
+    REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
 
     // File > New Project through the model creates a real bundle.
     model->menuItemSelected (static_cast<int> (UiActionId::ProjectNew) + 1, 0);
@@ -4584,7 +4584,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     // File > Import lands a clip; View > Mixer switches the active panel.
     model->menuItemSelected (static_cast<int> (UiActionId::ProjectImportAudio) + 1, 0);
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
-    model->menuItemSelected (static_cast<int> (UiActionId::ViewMixer) + 1, 2);
+    model->menuItemSelected (static_cast<int> (UiActionId::ViewMixer) + 1, 5);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 
@@ -13289,7 +13289,7 @@ TEST_CASE ("Options toggles default-on playhead paging without changing Project 
     REQUIRE (model != nullptr);
     const auto playheadFollowMenuState = [model]
     {
-        juce::PopupMenu options = model->getMenuForIndex (3, "Options");
+        juce::PopupMenu options = model->getMenuForIndex (5, "View");
         juce::PopupMenu::MenuItemIterator iterator (options);
         while (iterator.next())
         {
@@ -13304,7 +13304,7 @@ TEST_CASE ("Options toggles default-on playhead paging without changing Project 
     REQUIRE (followItemId > 0);
     REQUIRE (defaultFollowEnabled);
 
-    model->menuItemSelected (followItemId, 3);
+    model->menuItemSelected (followItemId, 5);
     REQUIRE_FALSE (playheadFollowMenuState().second);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> followDisabledAudio =
@@ -13316,7 +13316,7 @@ TEST_CASE ("Options toggles default-on playhead paging without changing Project 
 
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    model->menuItemSelected (followItemId, 3);
+    model->menuItemSelected (followItemId, 5);
     REQUIRE (playheadFollowMenuState().second);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> followEnabledAudio =
@@ -13566,7 +13566,7 @@ TEST_CASE ("Options can return Stop to the captured playback start",
     REQUIRE (model != nullptr);
     const auto returnToStartMenuState = [model]
     {
-        juce::PopupMenu options = model->getMenuForIndex (3, "Options");
+        juce::PopupMenu options = model->getMenuForIndex (6, "Transport");
         juce::PopupMenu::MenuItemIterator iterator (options);
         while (iterator.next())
         {
@@ -13580,7 +13580,7 @@ TEST_CASE ("Options can return Stop to the captured playback start",
     const auto [returnItemId, defaultReturnEnabled] = returnToStartMenuState();
     REQUIRE (returnItemId > 0);
     REQUIRE_FALSE (defaultReturnEnabled);
-    model->menuItemSelected (returnItemId, 3);
+    model->menuItemSelected (returnItemId, 6);
     REQUIRE (returnToStartMenuState().second);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
@@ -13663,7 +13663,7 @@ TEST_CASE ("Enter always returns the transport to timeline zero",
     REQUIRE (bar != nullptr);
     juce::MenuBarModel* model = bar->getModel();
     REQUIRE (model != nullptr);
-    juce::PopupMenu options = model->getMenuForIndex (3, "Options");
+    juce::PopupMenu options = model->getMenuForIndex (6, "Transport");
     juce::PopupMenu::MenuItemIterator iterator (options);
     int returnItemId = 0;
     while (iterator.next())
@@ -13673,7 +13673,7 @@ TEST_CASE ("Enter always returns the transport to timeline zero",
             returnItemId = item.itemID;
     }
     REQUIRE (returnItemId > 0);
-    model->menuItemSelected (returnItemId, 3);
+    model->menuItemSelected (returnItemId, 6);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
@@ -13831,7 +13831,7 @@ TEST_CASE ("Shift+Space plays from the last explicit ruler locate",
     REQUIRE (bar != nullptr);
     juce::MenuBarModel* model = bar->getModel();
     REQUIRE (model != nullptr);
-    juce::PopupMenu options = model->getMenuForIndex (3, "Options");
+    juce::PopupMenu options = model->getMenuForIndex (6, "Transport");
     juce::PopupMenu::MenuItemIterator iterator (options);
     int returnItemId = 0;
     while (iterator.next())
@@ -13841,7 +13841,7 @@ TEST_CASE ("Shift+Space plays from the last explicit ruler locate",
             returnItemId = item.itemID;
     }
     REQUIRE (returnItemId > 0);
-    model->menuItemSelected (returnItemId, 3);
+    model->menuItemSelected (returnItemId, 6);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey, shift, 0)));
     (void) renderMainComponentPlayback (*shell, 64, 64);
@@ -16075,6 +16075,85 @@ TEST_CASE ("no dead affordances: every visible control is enabled or reasoned; t
     const yesdaw::ui::UiActionState stretch = yesdaw::ui::mainComponentActionState (*shell, UiActionId::TimelineClipTimeStretch);
     REQUIRE_FALSE (stretch.enabled);
     REQUIRE (juce::String (stretch.disabledReason).contains ("G2.9"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G1.2: every menu item whose action has a chord paints it — for the CURRENT Focus context —
+// every chorded verb is reachable from a menu, the nine menus are in Logic's order, and the
+// tick states follow the registry context.
+TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",
+           "[ui][input][shell][g1][menus-show-keys]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("menus-show-keys");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    juce::MenuBarModel* model = bar->getModel();
+    REQUIRE (model != nullptr);
+    const juce::StringArray names = model->getMenuBarNames();
+    REQUIRE (names == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
+
+    const yesdaw::ui::UiActionRegistry registry;
+    const auto& descriptors = yesdaw::ui::uiActionDescriptors();
+    const auto collect = [&] (yesdaw::ui::UiFocusContext focus, std::set<int>& seen)
+    {
+        for (int menuIndex = 0; menuIndex < names.size(); ++menuIndex)
+        {
+            juce::PopupMenu menu = model->getMenuForIndex (menuIndex, names[menuIndex]);
+            juce::PopupMenu::MenuItemIterator iterator (menu);
+            while (iterator.next())
+            {
+                const juce::PopupMenu::Item& item = iterator.getItem();
+                if (item.itemID <= 0 || item.itemID > static_cast<int> (yesdaw::ui::kUiActionCount))
+                    continue;   // Open Recent rows
+                REQUIRE (seen.insert (item.itemID).second);   // every verb in exactly one menu
+                const auto& descriptor = descriptors[static_cast<std::size_t> (item.itemID - 1)];
+                const std::string& chord = registry.keymap().chordFor (descriptor.id);
+                const yesdaw::ui::UiFocusContext context = yesdaw::ui::defaultFocusContext (descriptor.id);
+                const bool fires = ! chord.empty()
+                                && (context == yesdaw::ui::UiFocusContext::Global || context == focus);
+                INFO (names[menuIndex] << " > " << descriptor.label << " chord '" << chord << "' painted '"
+                      << item.shortcutKeyDescription << "'");
+                REQUIRE (item.text == juce::String (descriptor.label));
+                REQUIRE (item.shortcutKeyDescription == (fires ? juce::String (chord) : juce::String()));
+            }
+        }
+    };
+
+    std::set<int> arrange;
+    collect (yesdaw::ui::UiFocusContext::Arrange, arrange);
+    for (const auto& descriptor : descriptors)
+        if (! registry.keymap().chordFor (descriptor.id).empty())
+        {
+            INFO ("chorded verb missing from every menu: " << descriptor.stableId);
+            REQUIRE (arrange.contains (static_cast<int> (descriptor.id) + 1));
+        }
+
+    // Ticks follow the context: the loop toggle through its own menu item.
+    const auto loopItem = [&] {
+        juce::PopupMenu transportMenu = model->getMenuForIndex (6, "Transport");   // the iterator borrows it
+        juce::PopupMenu::MenuItemIterator iterator (transportMenu);
+        juce::PopupMenu::Item found;
+        while (iterator.next())
+            if (iterator.getItem().itemID == static_cast<int> (UiActionId::TransportToggleMetronome) + 1)
+                found = iterator.getItem();
+        return found;
+    };
+    REQUIRE_FALSE (loopItem().isTicked);
+    REQUIRE (loopItem().shortcutKeyDescription == "K");   // the click: a toggle no project state gates
+    model->menuItemSelected (static_cast<int> (UiActionId::TransportToggleMetronome) + 1, 6);
+    REQUIRE (loopItem().isTicked);
+
+    // In the piano roll, Arrange-only chords paint nothing and the roll's own paint.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewPianoRoll);
+    std::set<int> roll;
+    collect (yesdaw::ui::UiFocusContext::PianoRoll, roll);
+    REQUIRE (roll == arrange);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

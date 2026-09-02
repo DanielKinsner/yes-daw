@@ -7963,35 +7963,81 @@ private:
     // Real menu bar (usable-DAW P1): the painted FILE/EDIT/VIEW text is gone; a juce::MenuBarComponent
     // over the same header spot dispatches registered actions through the SAME handleAction path the
     // toolbar and keymap use. The model is mechanically testable without opening popups.
+    // G1.2 (plan §3, Logic's order): File · Edit · Track · Clip · MIDI · View · Transport ·
+    // Options · Help. Every item paints the chord that fires it in the CURRENT Focus context.
     juce::StringArray getMenuBarNames() override
     {
-        return { "File", "Edit", "View", "Options", "Help" };
+        return { "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" };
     }
 
     [[nodiscard]] static std::span<const yesdaw::ui::UiActionId> menuActionsForIndex (int topLevelMenuIndex)
     {
         using yesdaw::ui::UiActionId;
-        static constexpr std::array<UiActionId, 6> kFileMenu {
+        static constexpr std::array<UiActionId, 8> kFileMenu {
             UiActionId::ProjectNew,        UiActionId::ProjectOpen,        UiActionId::ProjectSave,
             UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
+            UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
         };
-        static constexpr std::array<UiActionId, 9> kEditMenu {
+        static constexpr std::array<UiActionId, 15> kEditMenu {
             UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::TimelineClipCut,
             UiActionId::TimelineClipCopy,  UiActionId::TimelineClipPaste,  UiActionId::TimelineClipDuplicate,
-            UiActionId::TimelineClipDelete, UiActionId::TimelineClipSelectAllTrack,
-            UiActionId::TimelineClipSelectAllProject,
+            UiActionId::TimelineClipRepeatPaste, UiActionId::TimelineClipDelete,
+            UiActionId::TimelineClipSelectAllProject, UiActionId::TimelineClipSelectAllTrack,
+            UiActionId::EditRenameSelection,
+            UiActionId::EditNudgeLeft,     UiActionId::EditNudgeRight,
+            UiActionId::EditNudgeLeftFine, UiActionId::EditNudgeRightFine,
         };
-        static constexpr std::array<UiActionId, 3> kViewMenu {
-            UiActionId::ViewTimeline, UiActionId::ViewMixer, UiActionId::ViewPianoRoll,
+        static constexpr std::array<UiActionId, 12> kTrackMenu {
+            UiActionId::TrackAdd,          UiActionId::TrackDuplicate,     UiActionId::TrackRemove,
+            UiActionId::TrackRename,       UiActionId::TrackMoveUp,        UiActionId::TrackMoveDown,
+            UiActionId::TrackSelectPrevious, UiActionId::TrackSelectNext,
+            UiActionId::TrackToggleMute,   UiActionId::TrackToggleSolo,    UiActionId::TrackToggleArm,
+            UiActionId::MixerTrackSetOutput,
         };
-        static constexpr std::array<UiActionId, 11> kOptionsMenu {
-            UiActionId::TransportToggleMetronome, UiActionId::TransportToggleLoop,
+        static constexpr std::array<UiActionId, 12> kClipMenu {
+            UiActionId::TimelineClipSplit, UiActionId::TimelineClipHeal,
+            UiActionId::TimelineClipApplyDefaultFades, UiActionId::TimelineClipSetFades,
+            UiActionId::TimelineClipCrossfade, UiActionId::TimelineClipSetGain,
+            UiActionId::TimelineClipGainIncrease, UiActionId::TimelineClipGainDecrease,
+            UiActionId::TimelineClipMove,  UiActionId::TimelineClipTrim,
+            UiActionId::TimelineClipTimeStretch, UiActionId::TimelineMidiClipAdd,
+        };
+        static constexpr std::array<UiActionId, 10> kMidiMenu {
+            UiActionId::PianoRollNoteAdd,  UiActionId::PianoRollNoteDelete, UiActionId::PianoRollNoteSelectAll,
+            UiActionId::PianoRollNoteQuantizeSelection, UiActionId::PianoRollNoteTranspose,
+            UiActionId::PianoRollNoteOctaveUp, UiActionId::PianoRollNoteOctaveDown,
+            UiActionId::PianoRollNoteDuplicate, UiActionId::PianoRollNoteSetLength,
+            UiActionId::PianoRollNoteSetVelocity,
+        };
+        static constexpr std::array<UiActionId, 18> kViewMenu {
+            UiActionId::ViewTimeline,      UiActionId::ViewMixer,          UiActionId::ViewPianoRoll,
+            UiActionId::TimelineToggleMixerDock, UiActionId::InspectorShowClipTab, UiActionId::InspectorShowTrackTab,
+            UiActionId::TimelineAutomationToggleTrackLane,
+            UiActionId::TimelineZoomIn,    UiActionId::TimelineZoomOut,
+            UiActionId::TimelineZoomFitProject, UiActionId::TimelineZoomFitLoop,
+            UiActionId::TimelineTogglePlayheadFollow,
+            UiActionId::TimelineToolSelectPointer, UiActionId::TimelineToolSelectPencil,
+            UiActionId::TimelineToolSelectScissors, UiActionId::TimelineToolSelectHand,
+            UiActionId::TimelineToolSelectZoom, UiActionId::ViewToggleSettingsRow,
+        };
+        static constexpr std::array<UiActionId, 24> kTransportMenu {
+            UiActionId::TransportTogglePlayStop, UiActionId::TransportPlay, UiActionId::TransportStop,
+            UiActionId::TransportPlayFromLastLocate, UiActionId::TransportRecord,
+            UiActionId::TransportReturnToZero, UiActionId::TransportLocateStart,
+            UiActionId::TransportLocatePreviousBar, UiActionId::TransportLocateNextBar,
+            UiActionId::TransportLocatePreviousGrid, UiActionId::TransportLocateNextGrid,
+            UiActionId::TransportLocatePreviousMarker, UiActionId::TransportLocateNextMarker,
+            UiActionId::TimelineMarkerAdd, UiActionId::TimelineMarkerRemove,
+            UiActionId::TransportToggleLoop, UiActionId::TimelineRangeToLoop,
+            UiActionId::TransportToggleMetronome, UiActionId::TransportToggleRecordCountIn,
+            UiActionId::TransportToggleReturnToStartOnStop,
+            UiActionId::TransportSetTempo, UiActionId::TransportSetMeter,
+            UiActionId::TransportShuttleFaster, UiActionId::TransportShuttleSlower,
+        };
+        static constexpr std::array<UiActionId, 6> kOptionsMenu {
             UiActionId::TimelineSnapDisable,      UiActionId::TimelineSnapSetBar,
             UiActionId::TimelineSnapSetBeat,      UiActionId::TimelineSnapSetSixteenth,
-            UiActionId::TimelineTogglePlayheadFollow,
-            UiActionId::TransportToggleReturnToStartOnStop,
-            UiActionId::TransportToggleRecordCountIn,
-            UiActionId::ViewToggleSettingsRow,
+            UiActionId::MixerTargetToggleSoloSafe,
             UiActionId::DeviceRefreshAudio,   // G0.8: Options ▸ Refresh Device (no toolbar button)
         };
         static constexpr std::array<UiActionId, 1> kHelpMenu { UiActionId::HelpShowKeymap };
@@ -8000,11 +8046,63 @@ private:
         {
             case 0: return kFileMenu;
             case 1: return kEditMenu;
-            case 2: return kViewMenu;
-            case 3: return kOptionsMenu;
-            case 4: return kHelpMenu;
+            case 2: return kTrackMenu;
+            case 3: return kClipMenu;
+            case 4: return kMidiMenu;
+            case 5: return kViewMenu;
+            case 6: return kTransportMenu;
+            case 7: return kOptionsMenu;
+            case 8: return kHelpMenu;
             default: return {};
         }
+    }
+
+    // G1.2: the tick a menu item shows — the registry context's own flags, one law for every
+    // toggle and every "which one is current" group (views, inspector tabs, snap presets).
+    [[nodiscard]] bool menuTickState (yesdaw::ui::UiActionId action) const noexcept
+    {
+        using yesdaw::ui::UiActionId;
+        const yesdaw::ui::UiActionContext& c = appModel.context();
+        switch (action)
+        {
+            case UiActionId::TransportToggleLoop:               return c.loopEnabled;
+            case UiActionId::TransportToggleMetronome:          return c.metronomeEnabled;
+            case UiActionId::TimelineTogglePlayheadFollow:      return c.playheadFollowEnabled;
+            case UiActionId::TransportToggleReturnToStartOnStop: return c.returnToStartOnStopEnabled;
+            case UiActionId::TransportToggleRecordCountIn:      return c.recordCountInEnabled;
+            case UiActionId::ViewToggleSettingsRow:             return c.settingsRowVisible;
+            case UiActionId::TimelineToggleMixerDock:           return c.mixerDockVisible;
+            case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
+            case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
+            case UiActionId::ViewMixer:                         return c.activePanel == yesdaw::ui::UiPanel::Mixer;
+            case UiActionId::ViewPianoRoll:                     return c.activePanel == yesdaw::ui::UiPanel::PianoRoll;
+            case UiActionId::InspectorShowClipTab:              return ! c.inspectorTrackTabActive;
+            case UiActionId::InspectorShowTrackTab:             return c.inspectorTrackTabActive;
+            case UiActionId::TimelineSnapDisable:               return ! c.snapEnabled;
+            case UiActionId::TimelineSnapSetBar:                return c.snapEnabled && c.snapGridTicks == 2048;
+            case UiActionId::TimelineSnapSetBeat:               return c.snapEnabled && c.snapGridTicks == 512;
+            case UiActionId::TimelineSnapSetSixteenth:          return c.snapEnabled && c.snapGridTicks == 128;
+            case UiActionId::TimelineToolSelectPointer:         return c.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer;
+            case UiActionId::TimelineToolSelectPencil:          return c.activeTimelineTool == yesdaw::ui::TimelineTool::Pencil;
+            case UiActionId::TimelineToolSelectScissors:        return c.activeTimelineTool == yesdaw::ui::TimelineTool::Scissors;
+            case UiActionId::TimelineToolSelectHand:            return c.activeTimelineTool == yesdaw::ui::TimelineTool::Hand;
+            case UiActionId::TimelineToolSelectZoom:            return c.activeTimelineTool == yesdaw::ui::TimelineTool::Zoom;
+            default:                                            return false;
+        }
+    }
+
+    // G1.2: the chord a menu item paints — the one that fires in the CURRENT Focus context
+    // (its own binding or a Global one); another editor's binding paints nothing.
+    [[nodiscard]] juce::String menuShortcutFor (yesdaw::ui::UiActionId action) const
+    {
+        const std::string& chord = appModel.registry().keymap().chordFor (action);
+        if (chord.empty())
+            return {};
+        const yesdaw::ui::UiFocusContext context = yesdaw::ui::defaultFocusContext (action);
+        const yesdaw::ui::UiFocusContext focus = yesdaw::ui::focusContextForPanel (appModel.context().activePanel);
+        if (context != yesdaw::ui::UiFocusContext::Global && context != focus)
+            return {};
+        return juce::String (chord);
     }
 
     juce::PopupMenu getMenuForIndex (int topLevelMenuIndex, const juce::String&) override
@@ -8014,17 +8112,12 @@ private:
         {
             const auto& descriptor =
                 yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (action)];
-            menu.addItem (static_cast<int> (action) + 1,
-                          descriptor.label,
-                          appModel.registry().stateFor (action, appModel.context()).enabled,
-                          (action == yesdaw::ui::UiActionId::TimelineTogglePlayheadFollow
-                               && appModel.context().playheadFollowEnabled)
-                              || (action == yesdaw::ui::UiActionId::TransportToggleReturnToStartOnStop
-                                  && appModel.context().returnToStartOnStopEnabled)
-                              || (action == yesdaw::ui::UiActionId::TransportToggleRecordCountIn
-                                  && appModel.context().recordCountInEnabled)
-                              || (action == yesdaw::ui::UiActionId::ViewToggleSettingsRow
-                                  && appModel.context().settingsRowVisible));
+            juce::PopupMenu::Item item (descriptor.label);
+            item.itemID = static_cast<int> (action) + 1;
+            item.isEnabled = appModel.registry().stateFor (action, appModel.context()).enabled;
+            item.isTicked = menuTickState (action);
+            item.shortcutKeyDescription = menuShortcutFor (action);
+            menu.addItem (std::move (item));
         }
 
         // Open Recent (B39): the File menu lists the MRU bundles, most recent first, on item ids

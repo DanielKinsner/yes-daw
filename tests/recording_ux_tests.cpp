@@ -438,7 +438,7 @@ TEST_CASE ("Options count-in waits one head-tempo meter bar before persisting au
     REQUIRE (model != nullptr);
 
     const auto countInItem = [&] {
-        juce::PopupMenu options = model->getMenuForIndex (3, "Options");
+        juce::PopupMenu options = model->getMenuForIndex (6, "Transport");   // G1.2: count-in lives in Transport
         juce::PopupMenu::MenuItemIterator iterator (options);
         juce::PopupMenu::Item found;
         while (iterator.next())
@@ -453,7 +453,7 @@ TEST_CASE ("Options count-in waits one head-tempo meter bar before persisting au
     const juce::PopupMenu::Item disabledCountIn = countInItem();
     REQUIRE (disabledCountIn.itemID > 0);
     REQUIRE_FALSE (disabledCountIn.isTicked);
-    model->menuItemSelected (disabledCountIn.itemID, 3);
+    model->menuItemSelected (disabledCountIn.itemID, 6);
     REQUIRE (countInItem().isTicked);
 
     constexpr std::int64_t kExpectedBarFrames = 67'200; // 150 BPM, 7/8, 48 kHz.
