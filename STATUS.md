@@ -71,6 +71,11 @@ SS-1 see-it steps stay pending the drive (D14).
 G0.8 ✅ — `f117c42`; certified by the same run `33604946633` / `171363ae4143c29bd6519069c0a4067a5e98976c`. Its own run
 `33604218038` was red on macOS only in the GPU frame-budget gate (18.1 ms sustained vs 16.7 —
 runner noise: the same paint passed the run before and the run after; the failed job was rerun).
+G1.1 ✅ — keymap v2 + focus contexts (`171363a` infrastructure, `708daed` the §4 remap); certified
+by exact-head run `33608447371` (green on all ten jobs) for full SHA
+`92a9f5464593995e6c21cf3ea0672a098f5f0c90` (the G1.2 commit, which carries the D41 fix). cp2's own
+run was red on Linux/macOS at the compile step (D41).
+G1.2 ✅ — `92a9f54`; certified by the same run `33608447371`.
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
