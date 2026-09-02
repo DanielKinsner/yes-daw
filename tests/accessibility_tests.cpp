@@ -31,6 +31,7 @@ UiActionContext fullyReachableContext()
     context.canUndo = true;
     context.canRedo = true;
     context.timelineClipSelected = true;
+    context.loopEnabled = true;   // G2.9b: Stretch to Loop Length reads the loop
     context.mixerTargetSelected = true;
     context.midiClipSelected = true;
     context.midiNoteSelected = true;
@@ -109,14 +110,6 @@ TEST_CASE ("H11 accessibility action surface covers every shipped UI action",
 
         UiActionContext context = fullyReachableContext();
         const auto state = registry.stateFor (action, context);
-        // G0.8: Time Stretch is registered but disabled with its reason until G2.9 wires the node.
-        if (action == UiActionId::TimelineClipTimeStretch)
-        {
-            REQUIRE_FALSE (state.enabled);
-            REQUIRE (std::string (state.disabledReason).find ("G2.9") != std::string::npos);
-            REQUIRE_FALSE (registry.dispatch (action, context).dispatched);
-            continue;
-        }
         REQUIRE (state.enabled);
 
         const auto dispatch = registry.dispatch (action, context);

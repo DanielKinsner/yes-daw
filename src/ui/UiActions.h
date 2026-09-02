@@ -47,6 +47,7 @@ enum class UiActionId : std::uint8_t
     TimelineClipSetGain,
     TimelineClipSetFades,
     TimelineClipTimeStretch,
+    TimelineClipStretchToLoop,   // G2.9b
     MixerTargetSetFader,
     MixerTargetSetPan,
     MixerTargetToggleMute,
@@ -598,8 +599,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipSetFades, "timeline.clip.set_fades", "Clip Fades", "", "Set selected clip fades",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
-    { UiActionId::TimelineClipTimeStretch, "timeline.clip.time_stretch", "Time Stretch", "", "Time-stretch selected clip",
+    { UiActionId::TimelineClipTimeStretch, "timeline.clip.time_stretch", "Time Stretch", "", "Time-stretch the selected clip (Alt-drag its right edge, or the inspector's Stretch field)",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipStretchToLoop, "timeline.clip.stretch_to_loop", "Stretch to Loop Length", "", "Time-stretch the selected clip to the loop region's length",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
     { UiActionId::MixerTargetSetFader, "mixer.target.set_fader", "Fader", "", "Set selected mixer fader",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::MixerTargetSetPan, "mixer.target.set_pan", "Pan", "", "Set selected mixer pan",
@@ -1195,10 +1198,9 @@ public:
         if (descriptor == nullptr)
             return { false, "unknown action" };
 
-        // G0.8: the verb stays registered but disabled with its reason until G2.9 wires the
-        // TimeStretchNode into the projection and the renderer (today it is a trim in disguise).
-        if (id == UiActionId::TimelineClipTimeStretch)
-            return { false, "coming in G2.9: the time-stretch node is not wired yet" };
+        // G2.9b: Stretch to Loop Length reads the loop region, so it needs one.
+        if (id == UiActionId::TimelineClipStretchToLoop && ! context.loopEnabled)
+            return { false, "no loop region" };
         if (id == UiActionId::MixerSetFirstSendLevel && context.projectLoaded && ! context.firstTrackSendAvailable)
             return { false, "no send on the first Track" };
         if (id == UiActionId::MixerToggleFirstFxSlotEnabled && context.projectLoaded && ! context.firstTrackFxSlotAvailable)
@@ -1478,6 +1480,7 @@ public:
             case UiActionId::TimelineClipApplyDefaultFades:
             case UiActionId::TimelineClipCrossfade:
             case UiActionId::TimelineClipTimeStretch:
+            case UiActionId::TimelineClipStretchToLoop:   // G2.9b
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = true;
                 context.canRedo = false;

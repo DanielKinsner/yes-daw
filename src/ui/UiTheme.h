@@ -385,6 +385,12 @@ struct UiTheme
         static constexpr double inspectorGainSliderMin = 0.0;
         static constexpr double inspectorGainSliderMax = 2.0;
         static constexpr double inspectorGainSliderInterval = 0.01;
+        // G2.9b: the inspector's Stretch field, percent of the source length (ADR-0030: 50..200).
+        static constexpr int inspectorStretchControlTopGap = 4;
+        static constexpr double inspectorStretchSliderMin = 50.0;
+        static constexpr double inspectorStretchSliderMax = 200.0;
+        static constexpr double inspectorStretchSliderInterval = 1.0;
+        static constexpr double inspectorStretchSliderDefault = 100.0;
         static constexpr double inspectorGainSliderDefault = 1.0;
         static constexpr float inspectorGainReadoutDefault = 1.0f;
         static constexpr double inspectorReadoutFallbackSampleRate = 48000.0;

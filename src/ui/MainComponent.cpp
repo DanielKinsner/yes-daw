@@ -73,6 +73,7 @@ constexpr const char* kInspectorLengthComponentId = "clip.inspector.length";
 constexpr const char* kInspectorFadeInComponentId = "clip.inspector.fade_in";
 constexpr const char* kInspectorFadeOutComponentId = "clip.inspector.fade_out";
 constexpr const char* kInspectorFadeCurveComponentId = "clip.inspector.fade_curve";
+constexpr const char* kInspectorStretchComponentId = "clip.inspector.stretch";   // G2.9b
 constexpr const char* kAutomationLaneRowComponentId = "timeline.automation.track.0.lane";
 // N1: a mixer strip carries exactly two painted toggle cells — Solo then Mute, left to right.
 constexpr std::size_t kMixerPaintedMuteSoloCellCount = 2;
@@ -517,6 +518,7 @@ public:
     // Ctrl inversion (E4); fades are durations and stay honestly unsnapped.
     std::function<void (int, double, bool)> onClipSplit;         // layoutClipId, seconds, snapInvert
     std::function<void (int, double, bool)> onClipTrimmedRight;  // layoutClipId, seconds, snapInvert
+    std::function<void (int, double, bool)> onClipStretchedRight; // G2.9b: layoutClipId, new end seconds, snapInvert
     std::function<void (int, double, bool)> onClipTrimmedLeft;   // layoutClipId, seconds, snapInvert
     std::function<void (int, int)> onClipGainAdjusted;
     std::function<void (int, bool, double)> onClipFadeAdjusted;
@@ -633,8 +635,9 @@ public:
             }
             case TimelineDragMode::TrimRight:
             case TimelineDragMode::TrimLeft:
+            case TimelineDragMode::StretchRight:   // G2.9b: the ghost is the trim ghost — the end moves
             {
-                const bool right = dragState.mode == TimelineDragMode::TrimRight;
+                const bool right = dragState.mode != TimelineDragMode::TrimLeft;
                 const double edgeSeconds = right ? clip->startSeconds + clip->lengthSeconds : clip->startSeconds;
                 const double moved = snapped (std::max (0.0, edgeSeconds + static_cast<double> (deltaX) / pps), true);
                 const float edgeX = static_cast<float> (geometry.clipArea.getX() + (moved - vp.scrollSeconds) * pps);
@@ -814,7 +817,8 @@ public:
         switch (dragModeForPointer (state, getLocalBounds(), hit.id, position, modifiers))
         {
             case TimelineDragMode::TrimLeft:
-            case TimelineDragMode::TrimRight: return "Clip edge: drag to trim \u00b7 Alt-drag sets the fade \u00b7 Ctrl defeats snap";
+            case TimelineDragMode::TrimRight: return "Clip edge: drag to trim \u00b7 Alt on the right edge time-stretches \u00b7 Ctrl defeats snap";
+            case TimelineDragMode::StretchRight: return "Clip edge: Alt-drag to time-stretch \u00b7 the length changes, the source does not";
             case TimelineDragMode::FadeIn:
             case TimelineDragMode::FadeOut:   return "Fade: drag to set its length";
             case TimelineDragMode::Gain:      return "Clip: drag up or down to set gain";
@@ -1447,6 +1451,17 @@ public:
             return;
         }
 
+        if (drag.mode == TimelineDragMode::StretchRight)   // G2.9b
+        {
+            if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
+                return;
+
+            if (eventSeconds)
+                if (onClipStretchedRight)
+                    onClipStretchedRight (drag.layoutClipId, *eventSeconds, event.mods.isCtrlDown());
+            return;
+        }
+
         if (drag.mode == TimelineDragMode::TrimLeft)
         {
             if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
@@ -1618,7 +1633,8 @@ public:
         Gain,
         FadeIn,
         FadeOut,
-        TimeSelect   // G2.4: the clip body's lower band drags a Time selection (Pro Tools smart tool)
+        TimeSelect,  // G2.4: the clip body's lower band drags a Time selection (Pro Tools smart tool)
+        StretchRight // G2.9b: Alt on the right edge time-stretches the clip (Logic's Option-drag)
     };
 private:
 
@@ -1635,6 +1651,7 @@ private:
             case TimelineDragMode::FadeIn:     return "fade-in";
             case TimelineDragMode::FadeOut:    return "fade-out";
             case TimelineDragMode::TimeSelect: return "time-select";
+            case TimelineDragMode::StretchRight: return "stretch-right";
         }
         return "move";
     }
@@ -1645,7 +1662,8 @@ private:
         switch (mode)
         {
             case TimelineDragMode::TrimLeft:
-            case TimelineDragMode::TrimRight:  return juce::MouseCursor::LeftRightResizeCursor;
+            case TimelineDragMode::TrimRight:
+            case TimelineDragMode::StretchRight: return juce::MouseCursor::LeftRightResizeCursor;
             case TimelineDragMode::FadeIn:     return juce::MouseCursor::TopLeftCornerResizeCursor;
             case TimelineDragMode::FadeOut:    return juce::MouseCursor::TopRightCornerResizeCursor;
             case TimelineDragMode::TimeSelect: return juce::MouseCursor::IBeamCursor;
@@ -1804,8 +1822,10 @@ private:
                                 <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth);
             if (nearLeft && (inTopBand || modifiers.isAltDown()))
                 return TimelineDragMode::FadeIn;
-            if (nearRight && (inTopBand || modifiers.isAltDown()))
+            if (nearRight && inTopBand)
                 return TimelineDragMode::FadeOut;
+            if (nearRight && modifiers.isAltDown())
+                return TimelineDragMode::StretchRight;   // G2.9b: Logic's Option-drag on the right edge
             if (nearRight)
                 return TimelineDragMode::TrimRight;
             if (nearLeft)
@@ -4181,6 +4201,9 @@ public:
         };
         timelineInput.onClipTrimmedRight = [this] (int timelineClipId, double endSeconds, bool snapInvert) {
             trimTimelineClipRightByLayoutId (timelineClipId, endSeconds, snapInvert);
+        };
+        timelineInput.onClipStretchedRight = [this] (int timelineClipId, double endSeconds, bool snapInvert) {   // G2.9b
+            stretchTimelineClipRightByLayoutId (timelineClipId, endSeconds, snapInvert);
         };
         timelineInput.onClipTrimmedLeft = [this] (int timelineClipId, double startSeconds, bool snapInvert) {
             if (timelineClipId < 0 || timelineClipId >= static_cast<int> (timelineClipIds.size()))
@@ -6717,6 +6740,31 @@ private:
         };
         addAndMakeVisible (inspectorGain);
 
+        // G2.9b: the Stretch field — percent of the source length (100 = unstretched).
+        inspectorStretch.setComponentID (kInspectorStretchComponentId);
+        inspectorStretch.setName ("Clip stretch");
+        inspectorStretch.setTitle ("Clip stretch");
+        inspectorStretch.setTooltip ("Clip stretch: percent of the source length (50..200)");
+        inspectorStretch.setSliderStyle (juce::Slider::LinearHorizontal);
+        inspectorStretch.setTextBoxStyle (juce::Slider::NoTextBox,
+                                          false,
+                                          yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                          yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
+        inspectorStretch.setRange (yesdaw::ui::UiTheme::Layout::inspectorStretchSliderMin,
+                                   yesdaw::ui::UiTheme::Layout::inspectorStretchSliderMax,
+                                   yesdaw::ui::UiTheme::Layout::inspectorStretchSliderInterval);
+        inspectorStretch.setValue (yesdaw::ui::UiTheme::Layout::inspectorStretchSliderDefault,
+                                   juce::dontSendNotification);
+        inspectorStretch.onValueChange = [this] {
+            if (refreshingInspectorControls || ! inspectorStretch.isEnabled())
+                return;
+
+            (void) appModel.setSelectedTimelineClipStretchFactor (static_cast<float> (inspectorStretch.getValue() / 100.0));
+            refreshActionState();
+            repaintAll();
+        };
+        addAndMakeVisible (inspectorStretch);
+
         configureInspectorFadeSlider (inspectorFadeIn, kInspectorFadeInComponentId, "Clip fade in");
         inspectorFadeIn.onValueChange = [this] {
             if (refreshingInspectorControls || ! inspectorFadeIn.isEnabled())
@@ -8490,6 +8538,7 @@ private:
             inspectorEnd.setBounds ({});
             inspectorLength.setBounds ({});
             inspectorGain.setBounds ({});
+            inspectorStretch.setBounds ({});
             inspectorFadeIn.setBounds ({});
             inspectorFadeOut.setBounds ({});
             inspectorFadeCurve.setBounds ({});
@@ -8526,6 +8575,11 @@ private:
         auto gain = gainSection;
         gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlTopInset);
         inspectorGain.setBounds (sectionFits (gainSection)
+            ? gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlHeight)
+                  .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainControlLeftInset)
+            : juce::Rectangle<int>());
+        gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorStretchControlTopGap);   // G2.9b
+        inspectorStretch.setBounds (sectionFits (gainSection)
             ? gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlHeight)
                   .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainControlLeftInset)
             : juce::Rectangle<int>());
@@ -9220,13 +9274,14 @@ private:
             UiActionId::TrackToggleMute,   UiActionId::TrackToggleSolo,    UiActionId::TrackToggleArm,
             UiActionId::MixerTrackSetOutput,
         };
-        static constexpr std::array<UiActionId, 12> kClipMenu {
+        static constexpr std::array<UiActionId, 13> kClipMenu {
             UiActionId::TimelineClipSplit, UiActionId::TimelineClipHeal,
             UiActionId::TimelineClipApplyDefaultFades, UiActionId::TimelineClipSetFades,
             UiActionId::TimelineClipCrossfade, UiActionId::TimelineClipSetGain,
             UiActionId::TimelineClipGainIncrease, UiActionId::TimelineClipGainDecrease,
             UiActionId::TimelineClipMove,  UiActionId::TimelineClipTrim,
-            UiActionId::TimelineClipTimeStretch, UiActionId::TimelineMidiClipAdd,
+            UiActionId::TimelineClipTimeStretch, UiActionId::TimelineClipStretchToLoop,   // G2.9b
+            UiActionId::TimelineMidiClipAdd,
         };
         static constexpr std::array<UiActionId, 10> kMidiMenu {
             UiActionId::PianoRollNoteAdd,  UiActionId::PianoRollNoteDelete, UiActionId::PianoRollNoteSelectAll,
@@ -10560,6 +10615,7 @@ private:
         inspectorEnd.setVisible (inspectorVisible);
         inspectorLength.setVisible (inspectorVisible);
         inspectorGain.setVisible (inspectorVisible);
+        inspectorStretch.setVisible (inspectorVisible);
         inspectorFadeIn.setVisible (inspectorVisible);
         inspectorFadeOut.setVisible (inspectorVisible);
         inspectorFadeCurve.setVisible (inspectorVisible);
@@ -10830,6 +10886,8 @@ private:
                                                                   appModel.context()).enabled);
         inspectorGain.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetGain,
                                                                 appModel.context()).enabled);
+        inspectorStretch.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipTimeStretch,
+                                                                   appModel.context()).enabled);   // G2.9b
         inspectorFadeIn.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetFades,
                                                                   appModel.context()).enabled);
         inspectorFadeOut.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetFades,
@@ -10863,6 +10921,10 @@ private:
                                                   maxSeconds),
                                       juce::dontSendNotification);
             inspectorGain.setValue (clip->gain, juce::dontSendNotification);
+            inspectorStretch.setValue (std::clamp (static_cast<double> (clip->stretchFactor) * 100.0,
+                                                   yesdaw::ui::UiTheme::Layout::inspectorStretchSliderMin,
+                                                   yesdaw::ui::UiTheme::Layout::inspectorStretchSliderMax),
+                                       juce::dontSendNotification);   // G2.9b
             inspectorFadeIn.setValue (std::clamp (static_cast<double> (clip->fadeIn) / sampleRate,
                                                   yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMinSeconds,
                                                   yesdaw::ui::UiTheme::Layout::inspectorFadeSliderMaxSeconds),
@@ -12592,6 +12654,20 @@ private:
         repaintAll();
     }
 
+    // G2.9b: the Alt-drag on the right edge lands a NEW END; the model turns it into the factor.
+    void stretchTimelineClipRightByLayoutId (int layoutClipId, double endSeconds, bool snapInvert = false)
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+            return;
+
+        (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (layoutClipId)]);
+        if (const auto tick = timelineTickFromSeconds (endSeconds))
+            (void) appModel.stretchSelectedTimelineClipTo (snappedTimelineTick (*tick, snapInvert));
+
+        refreshActionState();
+        repaintAll();
+    }
+
     void adjustTimelineClipGainByLayoutId (int layoutClipId, int deltaPixels)
     {
         if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
@@ -13938,6 +14014,7 @@ private:
     FineDragSlider inspectorEnd;
     FineDragSlider inspectorLength;
     FineDragSlider inspectorGain;
+    FineDragSlider inspectorStretch;   // G2.9b: percent of the source length
     FineDragSlider inspectorFadeIn;
     FineDragSlider inspectorFadeOut;
     juce::ComboBox inspectorFadeCurve;

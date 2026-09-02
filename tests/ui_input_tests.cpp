@@ -1086,7 +1086,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 146u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 147u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -3439,7 +3439,9 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE_FALSE (snapshot.context.canRedo);
     REQUIRE (snapshot.context.commandDispatchCount == 17);
 
-    const juce::Point<int> fadeOutStart = timelineClipRightEdgeDragPoint (timeline, fadeRedone, 0u);
+    // G2.9b: Alt on the right EDGE stretches now; the fade-out lives in the top-right corner.
+    const juce::Rectangle<int> fadeRect = timelineClipHitBounds (timeline, fadeRedone, 0u);
+    const juce::Point<int> fadeOutStart { fadeRect.getRight() - 3, fadeRect.getY() + 3 };
     dragFromTo (timeline, fadeOutStart, fadeOutStart.translated (-16, 0), altDrag);
 
     const yesdaw::engine::Project fadedBoth = readProjectSnapshot (bundlePath);
@@ -10831,7 +10833,9 @@ TEST_CASE ("every timeline time-gesture consults the snap chooser with Ctrl inve
     // (a snapped duration would have collapsed to zero and changed nothing).
     const juce::ModifierKeys altDrag (
         juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier);
-    const juce::Point<int> fadeOutStart = timelineClipRightEdgeDragPoint (timeline, original, 0u);
+    // G2.9b: Alt on the right EDGE stretches now; the fade-out lives in the top-right corner.
+    const juce::Rectangle<int> fadeRect = timelineClipHitBounds (timeline, original, 0u);
+    const juce::Point<int> fadeOutStart { fadeRect.getRight() - 3, fadeRect.getY() + 3 };
     dragFromTo (timeline, fadeOutStart, { trimTargetX, fadeOutStart.y }, altDrag);
     {
         const yesdaw::engine::Clip faded = readProjectSnapshot (bundlePath).clips.front();
@@ -16220,8 +16224,7 @@ TEST_CASE ("no dead affordances: every visible control is enabled or reasoned; t
     REQUIRE (std::string (descriptors[static_cast<std::size_t> (UiActionId::DeviceSelectTestAudio)].defaultKey).empty());
     REQUIRE (std::string (descriptors[static_cast<std::size_t> (UiActionId::TimelineClipTimeStretch)].defaultKey).empty());
     const yesdaw::ui::UiActionState stretch = yesdaw::ui::mainComponentActionState (*shell, UiActionId::TimelineClipTimeStretch);
-    REQUIRE_FALSE (stretch.enabled);
-    REQUIRE (juce::String (stretch.disabledReason).contains ("G2.9"));
+    REQUIRE_FALSE (juce::String (stretch.disabledReason).contains ("G2.9"));   // G2.9b: wired for real
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
@@ -17451,6 +17454,121 @@ TEST_CASE ("G2.8 nudge value: 1 ms, 10 ms, 1 frame and 1 sample nudge by exactly
     }
     REQUIRE (nudgeItems == 8);
     REQUIRE (ticked == 1);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G2.9b: time-stretch as a gesture — Alt on the right edge stretches (the zone, the cursor, the
+// drop), the inspector's Stretch field follows and drives, Stretch to Loop Length fits the loop,
+// every one an exact, undoable SetClipStretch (factor = length / srcLen, clamped 0.5..2.0).
+TEST_CASE ("G2.9b stretch: Alt on the right edge stretches, the inspector field follows and drives, Stretch to Loop fits the loop",
+           "[ui][input][shell][g2][stretch]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("stretch");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+    const yesdaw::engine::Clip base = original.clips.front();
+    REQUIRE (base.stretchFactor == 1.0f);
+    REQUIRE (base.srcLen > 0u);
+
+    const juce::ModifierKeys alt (juce::ModifierKeys::altModifier);
+    const juce::ModifierKeys altDrag (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier
+                                      | juce::ModifierKeys::ctrlModifier);   // Ctrl: no snap, the pointer decides
+    const auto zone = [&] (juce::Point<int> local, juce::ModifierKeys mods)
+    {
+        return yesdaw::ui::mainComponentTimelineZoneAt (*shell, local + timeline.getPosition(), mods);
+    };
+    const auto cursor = [&] (juce::Point<int> local, juce::ModifierKeys mods)
+    {
+        return yesdaw::ui::mainComponentTimelineCursorAt (*shell, local + timeline.getPosition(), mods);
+    };
+    const auto clipNow = [&] { return readProjectSnapshot (bundlePath).clips.front(); };
+    const auto expectedLength = [&] (float factor)
+    {
+        return static_cast<yesdaw::engine::Tick> (std::llround (static_cast<double> (base.srcLen) * static_cast<double> (factor)));
+    };
+
+    // The clip fills the fit view; zoom out so a 50% stretch stays inside the timeline.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomOut);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomOut);
+    const juce::Rectangle<int> clipRect = timelineClipHitBounds (timeline, readProjectSnapshot (bundlePath), 0u);
+    REQUIRE (clipRect.getWidth() >= yesdaw::ui::UiTheme::Layout::timelineClipEdgeMinGrabWidth);
+    const int midY = clipRect.getCentreY();
+    const int rightX = clipRect.getRight() - 3;
+
+    // The zone and the cursor: Alt on the right edge is the stretch; without Alt it trims.
+    REQUIRE (zone ({ rightX, midY }, juce::ModifierKeys()) == "trim-right");
+    REQUIRE (zone ({ rightX, midY }, alt) == "stretch-right");
+    REQUIRE (cursor ({ rightX, midY }, alt) == "left-right");
+
+    // The drop: dragging the edge to 1.5x the width stretches to about 1.5 (Ctrl: the pointer decides).
+    const int targetX = clipRect.getX() + (clipRect.getWidth() * 3) / 2;
+    dragFromTo (timeline, { rightX, midY }, { targetX, midY }, altDrag);
+    {
+        const yesdaw::engine::Clip stretched = clipNow();
+        INFO ("factor " << stretched.stretchFactor << " length " << stretched.timelineLength);
+        REQUIRE (std::abs (stretched.stretchFactor - 1.5f) < 0.05f);
+        REQUIRE (stretched.timelineLength == expectedLength (stretched.stretchFactor));
+        REQUIRE (stretched.timelineStart == base.timelineStart);
+        REQUIRE (stretched.srcOffset == base.srcOffset);
+        REQUIRE (stretched.srcLen == base.srcLen);
+    }
+    // The inspector field follows.
+    auto* field = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "clip.inspector.stretch"));
+    REQUIRE (field != nullptr);
+    REQUIRE (field->isEnabled());
+    REQUIRE (std::abs (field->getValue() - static_cast<double> (clipNow().stretchFactor) * 100.0) < 0.6);
+
+    // One undo restores the clip exactly; the field follows back to 100.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == base);
+    REQUIRE (field->getValue() == 100.0);
+
+    // The field drives: 75% is a 0.75 factor with the implied length.
+    field->setValue (75.0, juce::sendNotificationSync);
+    REQUIRE (clipNow().stretchFactor == 0.75f);
+    REQUIRE (clipNow().timelineLength == expectedLength (0.75f));
+
+    // Stretch to Loop Length: no loop, refused with its reason; a loop of one beat fits exactly.
+    REQUIRE_FALSE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::TimelineClipStretchToLoop).enabled);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeRelative);   // the plain unit
+    const std::int64_t beat = snapshotMainComponent (*shell).context.snapGridTicks;
+    REQUIRE (beat > 0);
+    {
+        const juce::ModifierKeys shiftDrag (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier);
+        // Inside the ruler (tick 0 sits on the header gutter) and inside the visible window (the
+        // clip is three quarters of a second now); snap lands the ends on 0 and one beat.
+        const juce::Point<int> p0 = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), readProjectSnapshot (bundlePath),
+                                                            static_cast<yesdaw::engine::Tick> (beat * 2 / 5));
+        const juce::Point<int> p1 = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), readProjectSnapshot (bundlePath),
+                                                            static_cast<yesdaw::engine::Tick> (beat + beat / 5));
+        dragFromTo (timeline, p0, p1, shiftDrag);   // the ruler's loop drag, as the snap-gestures gate does it
+    }
+    const MainComponentSnapshot looped = snapshotMainComponent (*shell);
+    REQUIRE (looped.context.loopEnabled);
+    const std::int64_t loopLength = looped.playbackLoopEndFrame - looped.playbackLoopStartFrame;
+    REQUIRE (loopLength > 0);
+    REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::TimelineClipStretchToLoop).enabled);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipStretchToLoop);
+    {
+        const yesdaw::engine::Clip fitted = clipNow();
+        const float wanted = std::clamp (static_cast<float> (static_cast<double> (loopLength) / static_cast<double> (base.srcLen)), 0.5f, 2.0f);
+        INFO ("loop " << loopLength << " factor " << fitted.stretchFactor << " wanted " << wanted);
+        REQUIRE (fitted.stretchFactor == wanted);
+        REQUIRE (fitted.timelineLength == expectedLength (wanted));
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow().stretchFactor == 0.75f);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

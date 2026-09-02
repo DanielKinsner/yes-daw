@@ -41,10 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.9a (time-stretch for real — engine, schema v22, undo, resolver; gates in the
-time-stretch, project and persistence checks) built, gated locally, committed; awaiting its
-exact-head run. Next: G2.9b — the gesture (Alt on the right edge), the inspector field, Stretch
-to Loop Length, the returned verb; gate `[stretch]`. The drive stays paused (D14).
+**Now:** G2.9b (time-stretch as a gesture — Alt on the right edge, the inspector's Stretch
+field, Stretch to Loop Length, the verb returned; `[stretch]`) built, gated locally, committed;
+awaiting its exact-head run. Next: G2.10 — Fades v2 and honest crossfades (fade shapes with a
+curve amount, ONE evaluator for the renderer and the UI, draggable handles, crossfade as a
+paired fade; render golden per shape; `[fade-handles]`). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -98,7 +99,35 @@ benchmark's hosted-runner noise, parking lot) — every job green on the same he
 G2.5 ✅ — Time selection first-class (`c6568e5`); G2.6 ✅ — Edit modes (`e25e008`); both certified
 by run `33630615703` on `af3c034` (the one-label fix; D51 in G2.7's section) — green on all ten jobs.
 G2.7 ✅ — Snap modes (`02ea877`); certified by exact-head run `33632069331` (green on all ten jobs).
+G2.8 ✅ — Nudge value in clock units (`463646e`); certified by run `33633084596` after a rerun of its
+macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.9b — Time-stretch as a gesture (2026-09-02)
+
+**Build.** `TimelineDragMode::StretchRight` (Alt on the right edge; cursor left-right; hint;
+the trim ghost); release → `onClipStretchedRight` → `stretchTimelineClipRightByLayoutId` →
+model `stretchSelectedTimelineClipTo (endTick)`; `setSelectedTimelineClipStretchFactor`;
+`stretchSelectedTimelineClipToLoop`; all through `applySelectedTimelineClipStretch` (factor
+clamped 0.5..2.0, length = round (srcLen × factor), one `SetClipStretch` through the live
+lane). Inspector `clip.inspector.stretch` (FineDragSlider, 50..200 %, under the gain slider;
+tokens `inspectorStretch*`). Verb `TimelineClipStretchToLoop` ("Stretch to Loop Length", Clip
+menu 12 → 13; disabled "no loop region" without a loop). The G0.8 "coming in G2.9" disabling of
+Time Stretch is removed.
+
+**Gates.** `[stretch]` (input check): zone / cursor under Alt; the Alt+Ctrl edge drag lands
+~1.5 with the exact implied length and an untouched start / source window; the inspector field
+follows; undo restores byte-for-byte; the field drives 0.75; Stretch to Loop disabled then fits
+a two-beat loop exactly; undo. Re-pins: the three G0.8 "disabled with reason" pins (action,
+accessibility, input) now assert the wired verb; the reachable context carries a loop; child
+count +1.
+
+**Not built (recorded).** No stretch on the LEFT edge (Logic stretches from either edge; the
+left keeps its Alt-fade — a later pass once fades move fully to the corners); no painted
+"Stretch" label in the inspector (the field carries its name and tooltip; the inspector's
+section labels are a G3 paint item); no stretch of MIDI clips; the packaged self-check has no
+stretched fixture; drag-copy with Alt on the body is unchanged (Alt only changes the right
+edge's meaning).
 
 ### G2.9a — Time-stretch for real: engine half (2026-09-02)
 

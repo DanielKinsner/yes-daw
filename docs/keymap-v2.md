@@ -112,6 +112,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Clip Gain (`timeline.clip.set_gain`)
 - Clip Fades (`timeline.clip.set_fades`)
 - Time Stretch (`timeline.clip.time_stretch`)
+- Stretch to Loop Length (`timeline.clip.stretch_to_loop`)
 - Fader (`mixer.target.set_fader`)
 - Pan (`mixer.target.set_pan`)
 - Mute (`mixer.target.toggle_mute`)

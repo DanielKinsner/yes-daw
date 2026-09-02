@@ -5683,6 +5683,63 @@ public:
         return applySelectedTimelineClipGain (id, nextGain);
     }
 
+    // G2.9b: the stretch gestures — the right edge dragged with Alt (a new end), the inspector's
+    // percentage, and Stretch to Loop Length — go through ONE law: factor = length / srcLen,
+    // clamped to ADR-0030's 0.5..2.0, and the length re-derived from the clamped factor.
+    [[nodiscard]] UiActionDispatchResult stretchSelectedTimelineClipTo (engine::Tick timelineEnd)
+    {
+        const UiActionId id = UiActionId::TimelineClipTimeStretch;
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr || clip->srcLen == 0)
+            return { id, { false, "timeline clip missing" }, false };
+        if (timelineEnd <= clip->timelineStart)
+            return { id, { false, "stretch must leave a positive clip length" }, false };
+        const double factor = static_cast<double> (timelineEnd - clip->timelineStart) / static_cast<double> (clip->srcLen);
+        return applySelectedTimelineClipStretch (id, static_cast<float> (factor));
+    }
+
+    [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipStretchFactor (float factor)
+    {
+        return applySelectedTimelineClipStretch (UiActionId::TimelineClipTimeStretch, factor);
+    }
+
+    [[nodiscard]] UiActionDispatchResult stretchSelectedTimelineClipToLoop()
+    {
+        const UiActionId id = UiActionId::TimelineClipStretchToLoop;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        const std::int64_t loopLength = playbackLoopEndFrame() - playbackLoopStartFrame();
+        if (clip == nullptr || clip->srcLen == 0 || loopLength <= 0)
+            return { id, { false, "no loop region" }, false };
+        return applySelectedTimelineClipStretch (id, static_cast<float> (static_cast<double> (loopLength)
+                                                                         / static_cast<double> (clip->srcLen)));
+    }
+
+    [[nodiscard]] UiActionDispatchResult applySelectedTimelineClipStretch (UiActionId id, float factor)
+    {
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr || clip->srcLen == 0)
+            return { id, { false, "timeline clip missing" }, false };
+        const float clamped = std::clamp (factor, 0.5f, 2.0f);
+        const auto newLength = static_cast<engine::Tick> (std::llround (static_cast<double> (clip->srcLen) * static_cast<double> (clamped)));
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject, engine::ProjectEditCommand::setClipStretch (selectedTimelineClipId_, clamped, newLength));
+        if (! applied.applied())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipFades (engine::Tick fadeIn, engine::Tick fadeOut)
     {
         return applySelectedTimelineClipFades (UiActionId::TimelineClipSetFades, fadeIn, fadeOut);
@@ -6668,6 +6725,9 @@ public:
                     (void) selectFirstMidiClip();
                 return result;
             }
+
+            case UiActionId::TimelineClipStretchToLoop:   // G2.9b
+                return stretchSelectedTimelineClipToLoop();
 
             case UiActionId::TimelineClipMove:
             case UiActionId::TimelineClipTrim:
