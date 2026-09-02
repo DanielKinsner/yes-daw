@@ -868,6 +868,40 @@ TEST_CASE ("Track instrument slot round-trips through a reopened bundle (schema 
     REQUIRE_FALSE (reopened.readProjectSnapshot (refused).ok());
 }
 
+// G3.1 checkpoint (SS-3 found it): a saved project.db is self-contained — the WAL is checkpointed
+// and truncated by the save, so nothing waits in project.db-wal, and reopening then closing the
+// bundle leaves the bytes exactly as the save wrote them.
+TEST_CASE ("a save leaves no pending WAL and project.db survives a reopen byte-identically",
+           "[persistence][project][wal][g3]")
+{
+    const auto path = makeTempBundlePath ("wal-checkpoint");
+    const Project project = makeProject();
+    const std::filesystem::path db = path / "project.db";
+    const std::filesystem::path wal = path / "project.db-wal";
+
+    std::vector<std::uint8_t> saved;
+    {
+        ProjectBundleDb bundle = openFreshBundle (path);
+        REQUIRE (bundle.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        std::error_code ec;
+        const auto walSize = std::filesystem::exists (wal, ec) ? std::filesystem::file_size (wal, ec) : 0u;
+        REQUIRE (walSize == 0u);   // nothing pending after the save
+        saved = readBytes (db);
+        REQUIRE (! saved.empty());
+    }
+    REQUIRE (readBytes (db) == saved);   // closing the connection rewrote nothing
+
+    {
+        ProjectBundleDb reopened;
+        REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+        Project readback;
+        REQUIRE (reopened.readProjectSnapshot (readback).ok());
+        requireSameProjectSurface (readback, project);
+    }
+    REQUIRE (readBytes (db) == saved);   // a read-only open + close changes no byte
+}
+
 TEST_CASE ("Project tempo map, meter map, and markers round-trip through a reopened bundle",
            "[persistence][project][round-trip][time]")
 {

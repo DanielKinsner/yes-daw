@@ -41,11 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G3.1 — Track instrument (ADR-0047 Accepted): cp1 ✅ (`381e8db`, run `33652552912`),
-cp2 ✅ (`fa6c67e`, run `33654084069`), cp3 (the shell: chooser, Instrument dock tab, lane entries,
-`[track-instrument]`) built, gated locally, committed; awaiting its run. Next: G3.1's UI
-checkpoint — the real exe, the session drive (pause D14 lifted; SS-1..SS-3 pending since G0–G2),
-screenshots at three sizes, the rubric; then G3.2 piano roll v2.
+**Now:** G3.1 — Track instrument: cp1 ✅ (`381e8db`), cp2 ✅ (`fa6c67e`), cp3 ✅ (`4c26a17`, run
+`33655909259`), and the **UI checkpoint** (the first session drives since D14 lifted; the §7.4
+rubric; two FIXes — one gated here, one owned by G4) committed; awaiting its run. Next: G3.2 —
+piano roll dock v2 (`[piano-roll-v2]`).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -113,6 +112,58 @@ certified by exact-head run `33641728768` on `dba562f` (green on all ten jobs).
 G2.15 ✅ — tempo and meter map editing (`8beb692`); G2.16 ✅ — zoom and navigation (`a8f609c`); certified by run `33645105611` on `a8f609c` after a rerun of its macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
 G2.17 ✅ — track headers v2 (`a5b2dbe`); G2.18 ✅ — the undo history window (`6f46a5e`); certified by exact-head run `33649032858` on `2eddd07` (the label fix for GCC/Clang -Wswitch, D51's lesson again — the engine label switch is now covered by the checker) — green on all ten jobs. **G2 headless work complete**; SS-3 pending Dan's go (D14).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.1 UI checkpoint — the real exe, the drives, the rubric (2026-09-02)
+
+**Drives (tools/session-drive.ps1, the real YesDaw.exe, real Win32 input; pause D14 lifted by
+Dan's "Accept and go").** SS-1 "First minute": 41 / 42 — the one red is step 1's empty project at
+launch (D3, owned by G5.5). SS-2 "By mouse, then by keys" (`tools/session-scripts/ss2-mouse-then-keys.ps1`,
+authored today — the G1 exit had it pending): 23 / 23 on the real exe after three rounds of script fixes (menu picks count enabled items; a combo's popup pre-highlights its current item; the rebind persists across a relaunch that reuses the session dir). SS-3 "Edit a song"
+(`ss3-edit-a-song.ps1`, authored today — the G2 exit had it pending): 51 / 51 (every step of the plan's text lands: loop by ruler drag, split while playing, drag with snap and Ctrl-defeat, trim, fade shape, crossfade, slip, stretch to loop, colour + rename, mute, markers + Alt+, / Alt+., Shuffle delete, range + Ctrl+E, 10 ms nudge, Z / Ctrl+0, a tempo ramp with the bar readout following, undo / redo ×20, save, relaunch, byte-identical project.db, zoom / dock restored). G3.1's see-it
+(`ss4-track-instrument.ps1`, a first slice of SS-4): 11 / 11 (rail select, Create MIDI Clip, the TRACK tab's chooser to SimpleSynth as one dispatch, Edit → the Instrument dock tab, a cutoff drag as one undoable edit, Ctrl+Z). The drive gained `DragWithin` (a drag
+inside one element with modifiers) and `Launch -ReuseSessionDir` (a relaunch that keeps the
+session state, as a real relaunch does). Context menus are driven by keys (JUCE's popup skips
+disabled items, so each pick states the enabled set it assumes); a combo's popup pre-highlights
+the current item, so a pick is Down × (target − current) then Enter.
+
+**Rubric (§7.4) on the SS-1 shots at 1280×720 / 1920×1080 / 2560×1440 (150 % scaling):**
+1. Overlaps / clips / dead regions — **FIX 1** (fixed here, gated): the inspector's Start / End /
+   Length cells divided a shrinking width by the full count (1/3, 2/9, 4/27), so "Length" and its
+   value were cut at every size → one `inspectorStatsCells` law for paint and controls;
+   `[inspector-stats]` pins equal widths and that "Length" / "180.000 s" fit at the three widths.
+   The dock's empty right half with one track is content, not a dead region (the reference fills
+   it with strips). PASS otherwise.
+2. Track count at 1080p with the dock open ≥ 8 — PASS (8.3 rows).
+3. Labels + tooltips — PASS (icons carry tooltips; the letter cluster's tooltips name the verb).
+4. Text ≥ 11 px — PASS at 150 %; **FIX (parked)**: the rail's PAN / VOL captions are 8 px logical
+   (parking lot, re-owned by the G4 rail / strip pass with a theme-audit font floor).
+5. Selection / playhead / loop / hover distinct — PASS (white clip border, white playhead line
+   with the purple badge; loop not exercised in SS-1).
+6. Structure matches the reference — **FIX 2** (owned by G4.1, parking lot): the mixer dock's
+   left column is a readout list ("Audio 1 meters: peak n/a", "Send", "FX", …), not a strip; the
+   header / rail / lanes / inspector / dock structure itself matches.
+7. No fake data — PASS ("peak n/a" and "-- LUFS" are honest empties).
+
+**Found by the drives (fixed, gated).** (1) A rail RIGHT-click no longer selected its row after
+G2.17 moved the click callback (the header menu's Duplicate Track dispatched on no lane) →
+`requestContextMenu` selects through the modifier-aware callback. (2) Duplicating an UNTOUCHED
+track never worked in the real app: the default-strip copy is a no-op edit the undo stack does
+not record, so `duplicateProjectTrack` failed silently (the headless gate only ever duplicated an
+enriched track) → it copies only what differs, and a refused duplicate reports its reason on the
+status line (R4). Both pinned in `[track-headers-v2]`. (3) The G3.1 see-it: an instrument knob
+drag landed one undo step per intermediate value (after Ctrl+Z the shot still read 229 Hz) →
+the panel's drag start / end bracket the edits with the E21 strip gesture; `[track-instrument]`
+pins that a two-value drag undoes as one step. (4) SS-3's byte-identity step: a save left its
+pages in `project.db-wal` until the connection closed (WAL mode), so `project.db` alone was not the
+saved project and its bytes changed at quit → `writeProjectSnapshot` checkpoints and truncates the
+WAL; `[wal]` pins no pending WAL after a save and byte-identical bytes across a reopen.
+
+**Deviation log (G3.1 checkpoint).**
+- D54 SS-2 "the same four by chord": Duplicate Track and Create MIDI Clip have no chord in the
+  plan's §4 table; the step chords the two that do (Ctrl+T, M). SS-3 "jump between markers" uses
+  the table's `Alt+,` / `Alt+.` (already shipped as Transport › Previous / Next Marker).
+- D55 No montage yet: `docs/evidence/` is written at the phase close (§7.4); per-checkpoint shots
+  stay under `build-ci/session-shots/`.
 
 ### G3.1 cp3 — The Track instrument in the shell (2026-09-02)
 

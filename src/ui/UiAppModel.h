@@ -4853,14 +4853,27 @@ public:
         if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addTrack (newTrackId, copyName)).applied())
             return { id, { false, "duplicate track add failed" }, false };
 
-        if (! nextUndo.apply (nextProject,
-                              engine::ProjectEditCommand::setTrackMixScalars (newTrackId,
-                                                                              source.strip.linearGain,
-                                                                              source.strip.pan,
-                                                                              source.strip.muted,
-                                                                              source.strip.soloed,
-                                                                              source.strip.soloSafe)).applied())
-            return { id, { false, "duplicate strip copy failed" }, false };
+        // G3.1 checkpoint (SS-2 found it): a fresh track already carries the default strip, and a
+        // no-op scalar edit is not RECORDED (an empty diff) — so copying an untouched strip used to
+        // fail the whole duplicate. Copy only what differs.
+        {
+            const engine::Track* const fresh = nextProject.findTrack (newTrackId);
+            const bool stripDiffers = fresh == nullptr
+                || fresh->strip.linearGain != source.strip.linearGain
+                || fresh->strip.pan != source.strip.pan
+                || fresh->strip.muted != source.strip.muted
+                || fresh->strip.soloed != source.strip.soloed
+                || fresh->strip.soloSafe != source.strip.soloSafe;
+            if (stripDiffers
+                && ! nextUndo.apply (nextProject,
+                                     engine::ProjectEditCommand::setTrackMixScalars (newTrackId,
+                                                                                     source.strip.linearGain,
+                                                                                     source.strip.pan,
+                                                                                     source.strip.muted,
+                                                                                     source.strip.soloed,
+                                                                                     source.strip.soloSafe)).applied())
+                return { id, { false, "duplicate strip copy failed" }, false };
+        }
 
         for (std::size_t position = 0; position < source.strip.fxChain.size(); ++position)
         {

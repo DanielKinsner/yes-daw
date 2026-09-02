@@ -13519,7 +13519,7 @@ TEST_CASE ("L starts forward shuttle playback at one-times speed without togglin
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
+    const yesdaw::engine::Project persistedBefore = readProjectSnapshot (bundlePath);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
@@ -13546,7 +13546,15 @@ TEST_CASE ("L starts forward shuttle playback at one-times speed without togglin
     REQUIRE (snapshotMainComponent (*shell).context.loopEnabled);
     REQUIRE (shell->keyPressed (juce::KeyPress ('c')));
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.loopEnabled);
-    REQUIRE (readBytes (bundlePath / "project.db") == persistedBefore);
+    // G3.1 re-pin: the two loop toggles are persisted edits (R3), so the saved PROJECT is what must
+    // come back — not the file's bytes (a save now checkpoints its WAL into project.db, so the
+    // pages legitimately move; the old byte pin only held because the writes sat in the WAL).
+    {
+        const yesdaw::engine::Project persistedAfter = readProjectSnapshot (bundlePath);
+        REQUIRE (persistedAfter.loopRegion == persistedBefore.loopRegion);
+        REQUIRE (persistedAfter.clips == persistedBefore.clips);
+        REQUIRE (persistedAfter.tracks == persistedBefore.tracks);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
@@ -18471,6 +18479,29 @@ TEST_CASE ("G2.17 track headers v2: kind badges, drag reorder, multi-select",
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));
     REQUIRE (selectedLanes() == std::vector<int> { 2 });
 
+    // G3.1 checkpoint (SS-2 found it): a RIGHT-click on an unselected row selects it before its
+    // menu, so the header menu's Duplicate Track acts on that row — not on a stale lane.
+    mouseDownAt (*rail, { kRailRowClickX, rowY (0) }, juce::ModifierKeys (juce::ModifierKeys::rightButtonModifier));
+    REQUIRE (selectedLanes() == std::vector<int> { 0 });
+    // The row's strip is UNTOUCHED (defaults): the duplicate must still land (its scalar copy is a
+    // no-op the undo stack does not record — the duplicate used to fail on exactly that).
+    const std::vector<yesdaw::engine::Track> beforeDuplicate = readProjectSnapshot (bundlePath).tracks;
+    {
+        yesdaw::engine::MixerStripState defaults;
+        defaults.name = beforeDuplicate[0].strip.name;   // the name is the only thing a fresh track sets
+        REQUIRE (beforeDuplicate[0].strip == defaults);
+    }
+    yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::TrackDuplicate);
+    {
+        const juce::var probeAfter = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+        INFO ("status " << juce::JSON::toString (probeAfter.getProperty ("status", {})));
+        const std::vector<yesdaw::engine::Track> after = readProjectSnapshot (bundlePath).tracks;
+        REQUIRE (after.size() == beforeDuplicate.size() + 1);
+        REQUIRE (after[1].strip.name.find (beforeDuplicate[0].strip.name) != std::string::npos);   // the copy sits after row 0
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks == beforeDuplicate);
+
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
@@ -18637,6 +18668,15 @@ TEST_CASE ("G3.1 track instrument: chooser, panel rows, undoable knob, lane choo
     REQUIRE (readProjectSnapshot (bundlePath).tracks[0].instrumentState.empty());
     REQUIRE (yesdaw::ui::mainComponentInstrumentPanel (*shell).rows[5].second == Catch::Approx (1.0));
 
+    // G3.1 checkpoint (SS-4 found it): a DRAG that passes two values is ONE undo step (E21 gesture
+    // coalescing through beginStripGesture / endStripGesture), so Ctrl+Z returns to the value
+    // before the drag, not to the drag's first intermediate value.
+    yesdaw::ui::mainComponentInstrumentPanelDragRow (*shell, 5, 0.6, 0.4);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[0].instrumentParamNormalized (yesdaw::engine::SimpleSynthNode::kCutoffParamId) == Catch::Approx (0.4));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[0].instrumentState.empty());
+    REQUIRE (yesdaw::ui::mainComponentInstrumentPanel (*shell).rows[5].second == Catch::Approx (1.0));
+
     // The automation lane chooser lists the instrument's parameters for this Track.
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineAutomationToggleTrackLane);
     auto* laneChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.automation.target"));
@@ -18656,6 +18696,33 @@ TEST_CASE ("G3.1 track instrument: chooser, panel rows, undoable knob, lane choo
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G3.1 rubric FIX 1 (plan §7.4 line 1, the SS-1 shots at 1280×720 / 1920×1080 / 2560×1440): the
+// inspector's Start / End / Length cells share the section equally and the "Length" label fits its
+// cell at every rubric size; the painted cards and the overlay fields use the SAME law.
+TEST_CASE ("inspector stat cells share the width equally and the Length label fits at every rubric size",
+           "[ui][input][shell][g3][rubric][inspector-stats]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    for (const int width : { 1280, 1920, 2560 })
+    {
+        INFO ("width " << width);
+        const juce::Rectangle<int> inspector { 0, 0, width == 1280 ? 288 : width == 1920 ? 300 : 320, 600 };
+        juce::Rectangle<int> area = inspector.reduced (L::inspectorContentInsetX, L::inspectorContentInsetY);
+        const juce::Rectangle<int> stats = area.withTrimmedTop (L::inspectorStatsSectionTop).withHeight (L::inspectorStatsSectionHeight);
+        const auto cells = L::inspectorStatsCells (stats);
+        REQUIRE (std::abs (cells[0].getWidth() - cells[1].getWidth()) <= 1);
+        REQUIRE (std::abs (cells[1].getWidth() - cells[2].getWidth()) <= 1);
+        REQUIRE (cells[0].getX() == stats.getX());
+        REQUIRE (cells[2].getRight() == stats.getRight());
+        const juce::Font labelFont = yesdaw::ui::UiTheme::Type::numericFont (yesdaw::ui::UiTheme::Type::caption);
+        const juce::Font valueFont = yesdaw::ui::UiTheme::Type::numericFont (yesdaw::ui::UiTheme::Type::body, juce::Font::bold);
+        const int textWidth = cells[2].reduced (L::inspectorStatsCellInsetX, L::inspectorStatsCellInsetY)
+                                      .reduced (L::inspectorStatsTextInset).getWidth();
+        REQUIRE (juce::GlyphArrangement::getStringWidthInt (labelFont, "Length") <= textWidth);
+        REQUIRE (juce::GlyphArrangement::getStringWidthInt (valueFont, "180.000 s") <= textWidth);
+    }
 }
 
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",

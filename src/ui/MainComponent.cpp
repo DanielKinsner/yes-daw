@@ -2933,7 +2933,13 @@ public:
         const int row = rowAt (position);
         if (row < 0)
             return;
-        if (onRowClicked)
+        // A right-click selects the row it lands on before its menu opens (Logic), so the header
+        // verbs act on THAT track. G3.1 checkpoint: G2.17 had moved the click to the modifier-aware
+        // callback and left this path on the unset plain one — SS-2's Duplicate Track dispatched
+        // on no selected lane (found by the session drive).
+        if (onRowClickedWithModifiers)
+            onRowClickedWithModifiers (row, juce::ModifierKeys());
+        else if (onRowClicked)
             onRowClicked (row);
         onContextMenuRequested (yesdaw::ui::ContextMenuTarget::TrackHeader, row, position);
     }
@@ -3917,6 +3923,18 @@ public:
         if (row < 0 || static_cast<std::size_t> (row) >= rows.size())
             return;
         sliders[static_cast<std::size_t> (row)].setValue (normalized, juce::sendNotificationSync);
+    }
+    // A whole drag: start, the values in order, end — the shape a real slider drag has.
+    void harnessDragRow (int row, std::initializer_list<double> values)
+    {
+        if (row < 0 || static_cast<std::size_t> (row) >= rows.size())
+            return;
+        if (onRowDragStart)
+            onRowDragStart (rows[static_cast<std::size_t> (row)].paramId);
+        for (const double value : values)
+            sliders[static_cast<std::size_t> (row)].setValue (value, juce::sendNotificationSync);
+        if (onRowDragEnd)
+            onRowDragEnd();
     }
 
     void paint (juce::Graphics& g) override
@@ -5155,10 +5173,14 @@ public:
         };
         instrumentPanel.rowsProvider = [this] { return instrumentPanelRows(); };
         instrumentPanel.onRowDragStart = [this] (std::uint32_t paramId) {
+            appModel.beginStripGesture();   // G3.1 checkpoint (SS-4 found it): one drag = one undo step (E21)
             if (const yesdaw::engine::Track* const track = appModel.selectedTrackForInstrument())
                 beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::InstrumentParam, paramId, track->id);
         };
-        instrumentPanel.onRowDragEnd = [this] { endAutomationTouchRideIfActive(); };
+        instrumentPanel.onRowDragEnd = [this] {
+            endAutomationTouchRideIfActive();
+            appModel.endStripGesture();
+        };
         instrumentPanel.onRowValue = [this] (std::uint32_t paramId, double normalized) {
             if (automationTouchRideActive)
                 recordAutomationTouchSample (normalized);
@@ -9028,8 +9050,12 @@ private:
             return;
 
         dismissTrackRenameEditor();
-        if (appModel.duplicateProjectTrack (tracks[static_cast<std::size_t> (selectedTrackLane)].id).dispatched)
+        const yesdaw::ui::UiActionDispatchResult result =
+            appModel.duplicateProjectTrack (tracks[static_cast<std::size_t> (selectedTrackLane)].id);
+        if (result.dispatched)
             selectTrackLane (selectedTrackLane + 1);   // the copy lands directly below the source
+        else if (result.state.disabledReason != nullptr && result.state.disabledReason[0] != '\0')
+            appModel.reportStatus (std::string ("Duplicate Track refused: ") + result.state.disabledReason, true);   // R4: a refusal says why
 
         refreshActionState();
         repaintAll();
@@ -9316,15 +9342,13 @@ private:
         };
         const auto statsSection = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop)
                                       .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
-        auto stats = statsSection;
-        auto startCell = stats.removeFromLeft (stats.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount)
-                              .reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
-                                        yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
-        auto endCell = stats.removeFromLeft (stats.getWidth() / (yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount - 1))
-                            .reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
-                                      yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
-        auto lengthCell = stats.reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
-                                         yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
+        const auto statsCells = yesdaw::ui::UiTheme::Layout::inspectorStatsCells (statsSection);   // G3.1 rubric FIX 1
+        const auto startCell = statsCells[0].reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
+                                                      yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
+        const auto endCell = statsCells[1].reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
+                                                    yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
+        const auto lengthCell = statsCells[2].reduced (yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetX,
+                                                       yesdaw::ui::UiTheme::Layout::inspectorTimingControlInsetY);
         const bool statsFit = sectionFits (statsSection);
         inspectorStart.setBounds (statsFit ? startCell : juce::Rectangle<int>());
         inspectorEnd.setBounds (statsFit ? endCell : juce::Rectangle<int>());
@@ -14159,9 +14183,11 @@ private:
                 { "End", juce::String (selectedStartSeconds + selectedLengthSeconds, 3) + " s" },
                 { "Length", juce::String (selectedLengthSeconds, 3) + " s" }
             }};
+            const auto statsCells = yesdaw::ui::UiTheme::Layout::inspectorStatsCells (stats);   // G3.1 rubric FIX 1
+            std::size_t statIndex = 0;
             for (const auto& [label, value] : statsText)
             {
-                auto cell = stats.removeFromLeft (stats.getWidth() / yesdaw::ui::UiTheme::Layout::inspectorStatsColumnCount)
+                auto cell = statsCells[statIndex++]
                                 .reduced (yesdaw::ui::UiTheme::Layout::inspectorStatsCellInsetX,
                                           yesdaw::ui::UiTheme::Layout::inspectorStatsCellInsetY);
                 g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
@@ -15684,6 +15710,12 @@ void mainComponentInstrumentPanelSetRow (juce::Component& component, int row, do
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         mainComponent->harnessInstrumentPanel().harnessSetRow (row, normalized);
+}
+
+void mainComponentInstrumentPanelDragRow (juce::Component& component, int row, double first, double second)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessInstrumentPanel().harnessDragRow (row, { first, second });
 }
 
 void mainComponentUndoHistoryClickRow (juce::Component& component, int row)

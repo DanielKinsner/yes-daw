@@ -363,6 +363,16 @@ struct UiTheme
         static constexpr int inspectorStatsSectionTop = 42;
         static constexpr int inspectorStatsSectionHeight = 46;
         static constexpr int inspectorStatsColumnCount = 3;
+        // G3.1 rubric FIX 1: the three stat cells (Start / End / Length) share the section's width
+        // EQUALLY — one law for the painted cards and the overlay fields. (The paint used to divide
+        // a shrinking remainder by the full count, so "Length" got 4/27 of the width and was cut.)
+        static std::array<juce::Rectangle<int>, 3> inspectorStatsCells (juce::Rectangle<int> stats) noexcept
+        {
+            std::array<juce::Rectangle<int>, 3> cells {};
+            for (int i = 0; i < inspectorStatsColumnCount; ++i)
+                cells[static_cast<std::size_t> (i)] = stats.removeFromLeft (stats.getWidth() / (inspectorStatsColumnCount - i));
+            return cells;
+        }
         static constexpr int inspectorStatsCellInsetX = 2;
         static constexpr int inspectorStatsCellInsetY = 0;
         static constexpr int inspectorStatsTextInset = 2;

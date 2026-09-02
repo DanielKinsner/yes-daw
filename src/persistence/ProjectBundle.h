@@ -2606,6 +2606,13 @@ public:
             return result;
         }
 
+        // G3.1 checkpoint (SS-3 found it): the connection runs in WAL mode, so a committed save sat in
+        // project.db-wal until the connection closed — project.db alone was NOT the saved project
+        // (a bundle copied without its -wal lost the save; the session drive saw the bytes change at
+        // quit). A save now checkpoints and truncates the WAL, so project.db is self-contained the
+        // moment writeProjectSnapshot returns. Best effort: a busy checkpoint is retried on close.
+        (void) detail::exec (db_, "PRAGMA wal_checkpoint(TRUNCATE);");
+
         return detail::ok();
     }
 

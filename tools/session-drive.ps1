@@ -17,6 +17,7 @@
 #   Focus                              - bring the window to the foreground
 #   Click <elementId|"x,y"> [-Right] [-Double] [-Modifiers "Ctrl+Shift"] [-OffsetX n] [-OffsetY n]
 #   Drag <from> <to> [-Modifiers ...]  - press at `from`, move in steps, release at `to`
+#   DragWithin <id> fx fy tx ty [-Modifiers ...] - a drag inside one element, offsets from its centre
 #   Key "<chord>" [-Repeat n]          - e.g. "Space", "Ctrl+Shift+I", "Alt+Right", "F2", "K"
 #   TypeText "<text>"                  - unicode text into whatever has focus (not `Type`: a built-in alias)
 #   FileDialogEnter "<path>"           - after WaitDialog: settle, select-all, type the path, Enter
@@ -377,6 +378,26 @@ function Drag([string] $from, [string] $to, [string] $Modifiers = '', [int] $Ste
   Start-Sleep -Milliseconds 100
 }
 
+# G3.1: a drag INSIDE one element — press at (fromX, fromY) offsets from the element's centre, move in
+# steps, release at (toX, toY) — with optional modifiers held throughout (Ctrl-defeat, Ctrl+Alt slip,
+# Shift loop drag). The same input law as Drag, for gestures that start and end in the same rect.
+function DragWithin([string] $target, [int] $fromX, [int] $fromY, [int] $toX, [int] $toY, [string] $Modifiers = '', [int] $Steps = 12) {
+  $a = ScreenPoint $target $fromX $fromY; $b = ScreenPoint $target $toX $toY
+  $mods = ModifierVks $Modifiers
+  foreach ($m in $mods) { [YesDawDrive]::KeyEvent([uint16]$m, $true, $false) }
+  if ($mods.Count -gt 0) { Start-Sleep -Milliseconds 40 }
+  [YesDawDrive]::MouseMoveAbs($a[0], $a[1]); Start-Sleep -Milliseconds 40
+  [YesDawDrive]::MouseButton($true, $false); Start-Sleep -Milliseconds 60
+  for ($i = 1; $i -le $Steps; $i++) {
+    $x = [int]($a[0] + ($b[0] - $a[0]) * $i / $Steps)
+    $y = [int]($a[1] + ($b[1] - $a[1]) * $i / $Steps)
+    [YesDawDrive]::MouseMoveAbs($x, $y); Start-Sleep -Milliseconds 25
+  }
+  [YesDawDrive]::MouseButton($false, $false)
+  foreach ($m in $mods) { [YesDawDrive]::KeyEvent([uint16]$m, $false, $false) }
+  Start-Sleep -Milliseconds 100
+}
+
 function Shot([string] $name) {
   $path = Join-Path $Shots ($name + '.png')
   try {
@@ -414,13 +435,19 @@ function WaitDialog([string] $titleContains, [int] $TimeoutMs = 4000) {
   return [IntPtr]::Zero
 }
 
-function Launch([string] $Bundle = '') {
+function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '') {
   if (-not (Test-Path -LiteralPath $Exe)) { throw "exe not found: $Exe (build first)" }
   $others = @(Get-Process -Name 'YesDaw' -ErrorAction SilentlyContinue)
   if ($others.Count -gt 0) { throw "another YesDaw.exe is running (pid $($others[0].Id)); the shell is single-instance (R9) - close it first" }
 
-  $stamp = (Get-Date).ToString('yyyyMMdd-HHmmss-fff')
-  $script:SessionDir = Join-Path ([System.IO.Path]::GetTempPath()) ("yesdaw-drive-" + $stamp)
+  # G3.1 (SS-2 step 7): a relaunch may REUSE the previous session-state dir so persisted session
+  # state (the keymap overrides, the last-project record) survives the way a real relaunch keeps it.
+  if (-not [string]::IsNullOrWhiteSpace($ReuseSessionDir)) {
+    $script:SessionDir = $ReuseSessionDir
+  } else {
+    $stamp = (Get-Date).ToString('yyyyMMdd-HHmmss-fff')
+    $script:SessionDir = Join-Path ([System.IO.Path]::GetTempPath()) ("yesdaw-drive-" + $stamp)
+  }
   New-Item -ItemType Directory -Force -Path $script:SessionDir | Out-Null
   $script:ProbePath = Join-Path $script:SessionDir 'probe.json'
   $script:LastProbe = $null
