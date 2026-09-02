@@ -153,6 +153,20 @@ public:
         const std::span<const Event> regular = args.events.events();
         const std::span<const Event> automation =
             args.automationEvents != nullptr ? args.automationEvents->events() : std::span<const Event> {};
+
+        // G3.2 / ADR-0047: the live lane (audition, later G3.10 input) - block-top notes addressed to THIS
+        // Instrument by NotePayload::targetNode; every other node's live notes are not ours.
+        if (args.liveEvents != nullptr)
+            for (const Event& event : args.liveEvents->events())
+            {
+                if (event.payload.note.targetNode != id_)
+                    continue;
+                if (event.type == EventType::NoteOn)
+                    noteOn (event);
+                else if (event.type == EventType::NoteOff)
+                    noteOff (event);
+            }
+
         std::size_t regularIndex = 0;
         std::size_t automationIndex = 0;
         std::uint32_t cursor = 0;

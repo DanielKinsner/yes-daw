@@ -41,11 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G3.1 ✅ (cp1 `381e8db`, cp2 `fa6c67e`, cp3 `4c26a17`, the UI checkpoint `dc60b42` on run
-`33660679423` — green on all ten jobs). G3.2 — piano roll dock v2: cp1 (the editor laws, `[piano-roll-v2]`)
-built, gated locally, committed; awaiting its run. Next: cp2 — audition on click through the Track
-instrument (a live-event lane into the Track's `MidiMerge`, the seam G3.10 reuses), then G3.2's
-UI checkpoint (drives + shots + rubric), then G3.3.
+**Now:** G3.2 — piano roll dock v2: cp1 ✅ (`bdf0c36` + the -Werror=switch fix `e770d23`, run
+`33664900243` green on all ten jobs); cp2 (audition on click through the Track instrument — the live
+note lane, `[audition]` + `[audition-shell]`) built, gated locally, committed; awaiting its run. Next:
+G3.2's UI checkpoint (drives + shots + rubric), then G3.3.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -117,6 +116,40 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.2 cp2 — Audition on click: the live note lane (2026-09-02)
+
+**Build.** `PlaybackEngine::postLiveEvent` (CONTROL → a bounded SPSC of `Event`, 256 deep, 64 drained
+per Block, block-top): a NoteOn / NoteOff addressed to one Instrument by the new
+`NotePayload::targetNode` (0 = a scheduled note; `Event` 40 → 48 bytes, under the 64 pin). The
+drained notes ride a new `ProcessArgs::liveEvents` side-band that reaches EVERY node
+(`CompiledGraph::process` / `Runtime::processBlock` / `processDeviceBlock` gain a trailing
+`liveEvents`); `SimpleSynthNode` takes the ones addressed to its id. Stopped, the transport keeps the
+graph running while a live note is held or its release rings (`kAuditionTailSeconds` 4) with a new
+`Transport::clipsSilenced` — the three clip sources (`DecodedClipNode`, `DecodedMidiClipNode`,
+`TrackClipScheduleNode`) emit nothing and hold their cursors, the playhead never moves; with nothing
+live the Block is the exact zeros of the H8 pin. Model `auditionNote (key, on)`: the roll's clip names
+the Track first, else the selected strip; every Track that owns MIDI carries an Instrument (ADR-0047),
+so no kind check. Shell: the roll's keyboard column press / release, a note press (pointer), and a
+pencil-drawn note audition through `onKeyAuditioned` → one held key, released on mouse-up
+(`beginAudition` / `endAudition`). Hooks `mainComponentPianoRollAudition` (held key + a key's row
+geometry), `mainComponentAuditionNote`, `mainComponentRenderPlaybackFrames`. This lane is the seam
+G3.10 (live MIDI input) reuses.
+
+**Gates.** `[audition]` (engine, 44 assertions): the lane refuses a ParameterChange and an unaddressed
+note; stopped → exact zeros; a held live note sounds across 8 Blocks with the playhead at 0; a project
+whose clip note sits on ANOTHER key renders the SAME bytes while stopped (nothing scheduled leaks); the
+release rings, then past the tail the Blocks are exact zeros; playing, the live note changes the render
+and the playhead advances as before. `[audition-shell]` (shell, 22 assertions): an empty project posts
+nothing; the keyboard column press holds key 64 and the engine's Blocks sound, the project is untouched,
+the release returns to zeros after 5 s; the pencil's drawn note (67) sounds while held; the pointer's
+note press sounds and releases. `[piano-roll-v2]` / `[track-instrument]` / the playback suite (644)
+unchanged.
+
+**Not built (recorded).** Audition on the arrangement's clip / Track selection (Logic auditions only in
+the editors — matches); a velocity from the press's y on the key (Logic: yes; parking lot, G3.2
+checkpoint). A Track with no MIDI clip has no Instrument node, so an empty MIDI track cannot audition
+until G3.10 builds the Instrument for every MIDI Track — parking lot.
 
 ### G3.2 cp1 — Piano roll dock v2: the editor laws (2026-09-02)
 

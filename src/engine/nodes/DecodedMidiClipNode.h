@@ -50,7 +50,8 @@ public:
     {
         silenceAudio (args);
 
-        if (args.numFrames <= 0)
+        // G3.2: a stopped transport carrying live notes - nothing scheduled sounds, the cursor holds.
+        if (args.numFrames <= 0 || args.transport.clipsSilenced)
         {
             (void) args.events.replaceEvents (std::span<const Event> {});
             return;

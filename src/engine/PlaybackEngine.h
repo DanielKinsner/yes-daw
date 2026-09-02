@@ -167,12 +167,23 @@ public:
 
         drainTransportCommands();
 
+        // G3.2 / ADR-0047: this Block's live notes (audition; later G3.10 input), block-top.
+        const std::size_t liveCount = drainLiveEvents();
+        const std::span<const Event> liveEvents (liveEventStorage_.data(), liveCount);
+
         if (! playing_)
         {
-            zeroOutputChannels (outChannels, numOutputChannels, numFrames);
+            // Stopped: the graph still runs while a live note is held or its release rings, with the clip
+            // sources silenced and the playhead untouched; with nothing live, the exact zeros of old.
+            if (liveCount > 0 || heldLiveNotes_ > 0 || auditionTailFrames_ > 0)
+                processLiveOnlyBlock (outChannels, numOutputChannels, numFrames, liveEvents);
+            else
+                zeroOutputChannels (outChannels, numOutputChannels, numFrames);
             publishTransportSnapshot();
             return;
         }
+
+        auditionTailFrames_ = std::max<std::int64_t> (0, auditionTailFrames_ - static_cast<std::int64_t> (numFrames));
 
         if (playbackRate_ > 1)
         {
@@ -199,7 +210,8 @@ public:
                 YESDAW_RT_FATAL (segment >= 1);
             }
 
-            processTransportSegment (outChannels, numOutputChannels, offset, segment);
+            processTransportSegment (outChannels, numOutputChannels, offset, segment,
+                                     offset == 0 ? liveEvents : std::span<const Event> {});
             overlayMetronome (outChannels, numOutputChannels, offset, segment, playheadFrame_);
             playheadFrame_ += static_cast<std::int64_t> (segment);
             offset += segment;
@@ -233,6 +245,19 @@ public:
     }
 
     bool clearLoop() noexcept { return postTransportCommand (TransportCommand { TransportCommandType::ClearLoop }); }
+
+    // CONTROL THREAD (G3.2 / ADR-0047): the LIVE note lane. Audition (and later G3.10 input) posts a
+    // NoteOn / NoteOff addressed to one Instrument (NotePayload::targetNode != 0); the audio thread hands
+    // it to the graph at the top of its next Block, transport playing or stopped. Bounded SPSC: false when
+    // the lane is full or the event is not an addressed note - never blocks, never allocates.
+    [[nodiscard]] bool postLiveEvent (const Event& event) noexcept
+    {
+        if (event.type != EventType::NoteOn && event.type != EventType::NoteOff)
+            return false;
+        if (event.payload.note.targetNode == 0)
+            return false;
+        return liveEvents_.push (event);
+    }
 
     [[nodiscard]] bool setPlaybackRate (int rate) noexcept
     {
@@ -284,6 +309,8 @@ public:
     [[nodiscard]] std::uint16_t channels() const noexcept { return channels_; }
     [[nodiscard]] std::uint64_t frames() const noexcept { return frames_; }   // full timeline incl tail
     [[nodiscard]] int           maxBlockSize() const noexcept { return maxBlockSize_; }
+    // G3.2: how long a stopped transport keeps the graph running after the last live note releases.
+    static constexpr double kAuditionTailSeconds = 4.0;
     [[nodiscard]] std::uint64_t processedGen() const noexcept { return driver_.processedGen(); }
     // R12: how many live scalar commands the audio thread has applied to the running graph.
     [[nodiscard]] std::uint64_t liveScalarsApplied() const noexcept { return driver_.scalarsApplied(); }
@@ -368,6 +395,8 @@ public:
 private:
     static constexpr int kMaxDeviceOutputChannels = 64;
     static constexpr std::uint32_t kTransportCommandCapacity = 512;
+    static constexpr std::uint32_t kLiveEventCapacity = 256;         // G3.2: the live note lane
+    static constexpr std::uint32_t kMaxLiveEventsPerBlock = 64;
     static constexpr std::uint32_t kMaxTransportCommandsPerBlock = 64;
 
     // Transport frames are bounded well below INT64_MAX so playhead arithmetic and the loop-split narrowing
@@ -405,6 +434,7 @@ private:
               0.0f)
     {
         transportCommands_.reset (kTransportCommandCapacity);
+        liveEvents_.reset (kLiveEventCapacity);
         buildMetronomeClickTables();
     }
 
@@ -468,6 +498,31 @@ private:
     [[nodiscard]] bool postTransportCommand (TransportCommand command) noexcept
     {
         return transportCommands_.push (command);
+    }
+
+    // AUDIO THREAD (G3.2): pop this Block's live notes into the preallocated storage, block-top; keep the
+    // held count and arm the audition tail on the last release so a stopped transport keeps rendering
+    // the Instrument's release and then falls back to exact silence.
+    [[nodiscard]] std::size_t drainLiveEvents() noexcept YESDAW_RT_HOT
+    {
+        std::size_t count = 0;
+        Event event;
+        while (count < liveEventStorage_.size() && liveEvents_.pop (event))
+        {
+            event.timeInBlock = 0;
+            if (event.type == EventType::NoteOn)
+            {
+                ++heldLiveNotes_;
+            }
+            else
+            {
+                heldLiveNotes_ = std::max (0, heldLiveNotes_ - 1);
+                if (heldLiveNotes_ == 0)
+                    auditionTailFrames_ = static_cast<std::int64_t> (kAuditionTailSeconds * sampleRate_.hz);
+            }
+            liveEventStorage_[count++] = event;
+        }
+        return count;
     }
 
     void drainTransportCommands() noexcept YESDAW_RT_HOT
@@ -541,10 +596,29 @@ private:
         }
     }
 
+    // AUDIO THREAD (G3.2): a stopped Block that carries live notes - the graph runs with the clip sources
+    // silenced (Transport::clipsSilenced) and no timeline frame, so nothing scheduled sounds and no source
+    // cursor moves; the playhead is untouched. The tail counts down here.
+    void processLiveOnlyBlock (float* const* outChannels,
+                               int numOutputChannels,
+                               int numFrames,
+                               std::span<const Event> liveEvents) noexcept YESDAW_RT_HOT
+    {
+        Transport transport;
+        transport.projectSampleRate = sampleRate_;
+        transport.timelineFrame = playheadFrame_;
+        transport.hasTimelineFrame = false;
+        transport.isPlaying = false;
+        transport.clipsSilenced = true;
+        driver_.processDeviceBlock (outChannels, numOutputChannels, numFrames, transport, liveEvents);
+        auditionTailFrames_ = std::max<std::int64_t> (0, auditionTailFrames_ - static_cast<std::int64_t> (numFrames));
+    }
+
     void processTransportSegment (float* const* outChannels,
                                   int numOutputChannels,
                                   int offset,
-                                  int numFrames) noexcept YESDAW_RT_HOT
+                                  int numFrames,
+                                  std::span<const Event> liveEvents = {}) noexcept YESDAW_RT_HOT
     {
         YESDAW_RT_FATAL (numOutputChannels <= kMaxDeviceOutputChannels);
 
@@ -560,7 +634,7 @@ private:
         transport.timelineFrame = playheadFrame_;
         transport.hasTimelineFrame = true;
         transport.isPlaying = true;
-        driver_.processDeviceBlock (segmentChannels.data(), numOutputChannels, numFrames, transport);
+        driver_.processDeviceBlock (segmentChannels.data(), numOutputChannels, numFrames, transport, liveEvents);
     }
 
     void processForwardShuttleBlock (float* const* outChannels,
@@ -629,6 +703,10 @@ private:
     std::vector<std::pair<EntityId, const MeterNode*>> trackMeters_;   // harvested at create()
     std::vector<std::pair<EntityId, const MeterNode*>> busMeters_;     // harvested at create() (E22)
     choc::fifo::SingleReaderSingleWriterFIFO<TransportCommand> transportCommands_;
+    choc::fifo::SingleReaderSingleWriterFIFO<Event> liveEvents_;                  // G3.2: the live note lane
+    std::array<Event, kMaxLiveEventsPerBlock> liveEventStorage_ {};             // audio-thread block storage
+    int          heldLiveNotes_ = 0;                                              // audio thread
+    std::int64_t auditionTailFrames_ = 0;                                         // audio thread
     static constexpr double kMetronomeClickSeconds = 0.005;
     static constexpr double kMetronomeDecayPerSecond = 600.0;
     static constexpr double kMetronomeBeatHz = 1000.0;

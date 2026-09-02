@@ -85,6 +85,8 @@ struct NotePayload
 {
     double normalizedVelocity = 0.0;
     double pitchNote          = 0.0;
+    NodeId targetNode         = 0;   // G3.2 / ADR-0047: a LIVE note (audition, later G3.10 input) names the one
+                                     // Instrument it is for; 0 = a scheduled note, routed by the graph's event edges.
 };
 
 struct SysExPayload
@@ -255,6 +257,9 @@ struct ProcessArgs
     const Transport& transport;
     int              numFrames = 0;   // <= the maxBlockSize passed to prepare()
     const EventStream* automationEvents = nullptr; // H15 side-band; null until compiled lanes exist.
+    const EventStream* liveEvents = nullptr;       // G3.2 side-band: this Block's LIVE notes, handed to EVERY
+                                                   // node; an Instrument takes the ones addressed to it
+                                                   // (NotePayload::targetNode). Block-top (timeInBlock 0).
 };
 
 // The trait every processing unit implements.

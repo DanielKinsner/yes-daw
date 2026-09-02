@@ -194,6 +194,8 @@ struct Transport
     std::int64_t timelineFrame = 0;
     bool         isPlaying = false;
     bool         hasTimelineFrame = false;
+    bool         clipsSilenced = false;   // G3.2: the transport is stopped and the graph runs only to carry live
+                                          // notes - clip sources emit nothing and hold their cursors.
 };
 
 namespace detail {

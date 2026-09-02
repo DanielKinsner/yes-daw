@@ -323,7 +323,8 @@ public:
                   int numOutputChannels,
                   int numFrames,
                   EventStream& events,
-                  const Transport& transport) const noexcept YESDAW_RT_HOT
+                  const Transport& transport,
+                  const EventStream* liveEvents = nullptr) const noexcept YESDAW_RT_HOT
     {
         YESDAW_RT_FATAL (canary_ == kCanary);   // UAF tripwire — ALWAYS live (incl. RTSan/TSan/Release).
         YESDAW_RT_FATAL (numFrames >= 0);
@@ -475,7 +476,7 @@ public:
                 YESDAW_RT_FATAL (nodeEvents.replaceEvents (inputEvents));
 
                 const ProcessArgs args { AudioBlock { nodeOutChannels, static_cast<int> (cn.numChannels) },
-                                         nodeEvents, transport, numFrames, automationEventsForBlock };
+                                         nodeEvents, transport, numFrames, automationEventsForBlock, liveEvents };
                 cn.node->process (args);
                 eventCounts[cn.eventOutputSlot] = static_cast<std::uint32_t> (nodeEvents.size());
             }
@@ -483,7 +484,7 @@ public:
             {
                 EventStream nodeEvents { inputEvents, events.sysexBytes() };
                 const ProcessArgs args { AudioBlock { nodeOutChannels, static_cast<int> (cn.numChannels) },
-                                         nodeEvents, transport, numFrames, automationEventsForBlock };
+                                         nodeEvents, transport, numFrames, automationEventsForBlock, liveEvents };
                 cn.node->process (args);
             }
         }

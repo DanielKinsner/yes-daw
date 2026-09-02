@@ -1982,6 +1982,21 @@ struct PianoRollCanvasGeometry
              static_cast<float> (pianoRollViewHighKey (surface) - key) * geometry.rowHeight);
 }
 
+// G3.2: the key under a y in the roll (the keyboard column shares the grid's rows); -1 outside the
+// view or off the keyboard.
+[[nodiscard]] int pianoRollKeyAtY (const PianoRollCanvasGeometry& geometry,
+                                   const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+                                   int y) noexcept
+{
+    const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
+    const int key = pianoRollViewHighKey (surface)
+        - static_cast<int> (static_cast<float> (y - geometry.grid.getY()) / rowHeight);
+    if (key < surface.viewLowKey || key > pianoRollViewHighKey (surface)
+        || key < yesdaw::ui::UiThemeLayout::pianoRollKeyMin || key > yesdaw::ui::UiThemeLayout::pianoRollKeyMax)
+        return -1;
+    return key;
+}
+
 [[nodiscard]] int pianoRollTickX (const PianoRollCanvasGeometry& geometry,
                                   const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
                                   yesdaw::engine::Tick tick) noexcept
@@ -2121,6 +2136,8 @@ public:
     std::function<void()> onSelectionCleared;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId)> onNoteDeleted;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteSplit;   // G3.2: the Scissors tool
+    std::function<void (std::int16_t, bool)> onKeyAuditioned;   // G3.2: audition - key, on / off (keyboard column, note press, drawn note)
+    [[nodiscard]] int heldAuditionKey() const noexcept { return auditionKey; }   // G3.2: -1 = none
     // Piano-roll viewport (E10): plain wheel scrolls keys, Shift+wheel scrolls time, Ctrl+wheel
     // zooms time anchored at the pointer tick. Alt+wheel keeps the B33 velocity law.
     std::function<void (int)> onViewKeysScrolled;                          // +1 up / -1 down
@@ -2254,6 +2271,18 @@ public:
         }
 
         const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+
+        // G3.2: the keyboard column auditions its key through the Track's Instrument (Logic's roll);
+        // the press holds the note, the mouse-up releases it.
+        {
+            const PianoRollCanvasGeometry keyGeometry = pianoRollCanvasGeometry (getLocalBounds());
+            if (keyGeometry.keyboard.contains (event.getPosition()))
+            {
+                beginAudition (pianoRollKeyAtY (keyGeometry, surface, event.getPosition().y));
+                return;
+            }
+        }
+
         const auto hit = noteAt (surface, event.getPosition());
         if (! hit)
         {
@@ -2306,6 +2335,7 @@ public:
                     && key >= yesdaw::ui::UiThemeLayout::pianoRollKeyMin
                     && key <= yesdaw::ui::UiThemeLayout::pianoRollKeyMax)
                     onNoteAdded (surface.midiClipId, tick, static_cast<std::int16_t> (key));
+                    beginAudition (key);   // G3.2: a drawn note sounds while the pencil holds it
                 return;
             }
 
@@ -2370,6 +2400,7 @@ public:
         {
             onNoteClicked (surface.midiClipId, hit->noteId);
         }
+        beginAudition (hit->key);   // G3.2: a pressed note sounds
 
         dragState = {};
         dragState.active = true;
@@ -2452,6 +2483,8 @@ public:
 
     void mouseUp (const juce::MouseEvent& event) override
     {
+        endAudition();   // G3.2: the audition ends with the press
+
         if (velocityDragState.active)
         {
             const VelocityDragState drag = velocityDragState;
@@ -2778,6 +2811,29 @@ private:
     VelocityDragState velocityDragState;
 
     PianoDragState dragState;
+    int auditionKey = -1;   // G3.2: the key the mouse holds (keyboard column / note press); -1 = none
+
+    // G3.2 / ADR-0047: audition - one held key at a time, ended by the mouse-up that ends the press.
+    void beginAudition (int key)
+    {
+        if (key < 0)
+            return;
+        if (auditionKey >= 0)
+            endAudition();
+        auditionKey = key;
+        if (onKeyAuditioned)
+            onKeyAuditioned (static_cast<std::int16_t> (key), true);
+    }
+
+    void endAudition()
+    {
+        if (auditionKey < 0)
+            return;
+        const int key = auditionKey;
+        auditionKey = -1;
+        if (onKeyAuditioned)
+            onKeyAuditioned (static_cast<std::int16_t> (key), false);
+    }
     // Piano-roll selection tools (E11): Pointer note marquee + the pending Shift+click toggle
     // that resolves on a movement-free mouse-up (a Shift+DRAG keeps the length-edit law).
     struct NoteMarqueeState
@@ -5595,6 +5651,9 @@ public:
             refreshActionState();
             repaintAll();
         };
+        pianoRollInput.onKeyAuditioned = [this] (std::int16_t key, bool on) {   // G3.2: audition through the Track's Instrument
+            (void) appModel.auditionNote (key, on);
+        };
         pianoRollInput.onExpressionRead = [this] {
             (void) appModel.readPianoRollExpressionLanes();
             refreshActionState();
@@ -6685,6 +6744,12 @@ public:
     [[nodiscard]] InstrumentPanelComponent& harnessInstrumentPanel() noexcept { return instrumentPanel; }   // G3.1
     [[nodiscard]] yesdaw::ui::UiPianoRollSurfaceSnapshot harnessPianoRollSurface() const { return currentPianoRollSurface(); }   // G3.2
     [[nodiscard]] juce::Rectangle<int> harnessPianoRollBounds() const { return pianoRollInput.getBounds(); }
+    [[nodiscard]] int harnessPianoRollAuditionKey() const { return pianoRollInput.heldAuditionKey(); }   // G3.2
+    [[nodiscard]] bool harnessAuditionNote (std::int16_t key, bool on) { return appModel.auditionNote (key, on); }   // G3.2
+    [[nodiscard]] std::vector<float> harnessRenderPlayback (std::uint64_t frames, int blockSize)   // G3.2: the engine's own blocks
+    {
+        return appModel.renderPlaybackFrames (frames, blockSize);
+    }
 
     [[nodiscard]] juce::Rectangle<int> harnessPaintedRailRowBounds (int row) const
     {
@@ -15879,6 +15944,36 @@ MainComponentPianoRollGrid mainComponentPianoRollGrid (juce::Component& componen
         out.visibleTicks = pianoRollVisibleTicks (surface);
     }
     return out;
+}
+
+MainComponentPianoRollAudition mainComponentPianoRollAudition (juce::Component& component, int key)
+{
+    MainComponentPianoRollAudition out;
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = mainComponent->harnessPianoRollSurface();
+        const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (mainComponent->harnessPianoRollBounds().withZeroOrigin());
+        out.heldKey = mainComponent->harnessPianoRollAuditionKey();
+        out.keyboardX = geometry.keyboard.getCentreX();
+        out.keyY = pianoRollKeyY (geometry, surface, key) + juce::roundToInt (geometry.rowHeight * 0.5f);
+        out.gridLeft = geometry.grid.getX();
+        out.gridRight = geometry.grid.getRight();
+    }
+    return out;
+}
+
+bool mainComponentAuditionNote (juce::Component& component, std::int16_t key, bool on)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessAuditionNote (key, on);
+    return false;
+}
+
+std::vector<float> mainComponentRenderPlaybackFrames (juce::Component& component, std::uint64_t frames, int blockSize)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessRenderPlayback (frames, blockSize);
+    return {};
 }
 
 MainComponentInstrumentPanel mainComponentInstrumentPanel (juce::Component& component)

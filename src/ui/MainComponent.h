@@ -262,6 +262,19 @@ struct MainComponentPianoRollGrid
     std::int64_t visibleTicks = 0;
 };
 [[nodiscard]] MainComponentPianoRollGrid mainComponentPianoRollGrid (juce::Component& component);
+// G3.2: audition - the key the roll's mouse holds, and where a key's row sits (the keyboard column's
+// centre x, the row's centre y, the grid's x span) so a gate can press it as the mouse would.
+struct MainComponentPianoRollAudition
+{
+    int heldKey = -1;
+    int keyboardX = 0;
+    int keyY = 0;
+    int gridLeft = 0;
+    int gridRight = 0;
+};
+[[nodiscard]] MainComponentPianoRollAudition mainComponentPianoRollAudition (juce::Component& component, int key);
+[[nodiscard]] bool mainComponentAuditionNote (juce::Component& component, std::int16_t key, bool on);
+[[nodiscard]] std::vector<float> mainComponentRenderPlaybackFrames (juce::Component& component, std::uint64_t frames, int blockSize);
 void mainComponentKeymapEditorSearch (juce::Component& component, const juce::String& text);
 // G1.6: the gesture hint the status line shows for the zone under a shell point (the same law
 // the surfaces' mouseMove uses); empty where nothing has a hint.

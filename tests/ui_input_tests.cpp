@@ -19475,3 +19475,75 @@ TEST_CASE ("hover hints name the gesture for every zone; tooltips follow the liv
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G3.2 / ADR-0047 audition: a press on the roll's keyboard column, on a note, or with the pencil
+// sounds that key through the selected Track's Instrument while the transport stands still - the
+// engine's own Blocks carry the note - and the mouse-up releases it; after the release tail the
+// Blocks are exact zeros again. With no Track to audition through, nothing is posted.
+TEST_CASE ("G3.2 audition: keyboard column, note press and pencil sound the Track's Instrument while stopped; release ends it",
+           "[ui][input][shell][g3][audition-shell]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("audition-shell");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    const auto anyNonZero = [] (const std::vector<float>& samples) {
+        for (const float sample : samples)
+            if (sample != 0.0f)
+                return true;
+        return false;
+    };
+
+    // An empty project: no Track is selected, so there is nothing to audition through.
+    REQUIRE_FALSE (yesdaw::ui::mainComponentAuditionNote (*shell, 60, true));
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    const auto project = [&] { return readProjectSnapshot (bundlePath); };
+    REQUIRE (project().midiClips.size() == 1u);
+
+    // Stopped and silent before any press.
+    REQUIRE_FALSE (anyNonZero (yesdaw::ui::mainComponentRenderPlaybackFrames (*shell, 256, 64)));
+
+    // The keyboard column: press key 64 - the roll holds it and the engine's Blocks sound.
+    const yesdaw::ui::MainComponentPianoRollAudition before = yesdaw::ui::mainComponentPianoRollAudition (*shell, 64);
+    REQUIRE (before.heldKey == -1);
+    const juce::Point<int> keyPoint { before.keyboardX, before.keyY };
+    mouseDownAt (pianoRoll, keyPoint);
+    REQUIRE (yesdaw::ui::mainComponentPianoRollAudition (*shell, 64).heldKey == 64);
+    REQUIRE (anyNonZero (yesdaw::ui::mainComponentRenderPlaybackFrames (*shell, 512, 64)));
+    REQUIRE (project().midiClips.front().notes.empty());   // an audition is not an edit
+    releaseDragAt (pianoRoll, keyPoint, keyPoint);
+    REQUIRE (yesdaw::ui::mainComponentPianoRollAudition (*shell, 64).heldKey == -1);
+
+    // The release tail rings, then the Blocks are exact zeros again (5 s covers the 4 s tail).
+    (void) yesdaw::ui::mainComponentRenderPlaybackFrames (*shell, 5u * 48000u, 64);
+    REQUIRE_FALSE (anyNonZero (yesdaw::ui::mainComponentRenderPlaybackFrames (*shell, 256, 64)));
+
+    // The pencil: a drawn note sounds while the pencil holds it.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectPencil);
+    const yesdaw::ui::MainComponentPianoRollAudition row67 = yesdaw::ui::mainComponentPianoRollAudition (*shell, 67);
+    const juce::Point<int> gridPoint { row67.gridLeft + (row67.gridRight - row67.gridLeft) / 4, row67.keyY };
+    mouseDownAt (pianoRoll, gridPoint);
+    REQUIRE (project().midiClips.front().notes.size() == 1u);
+    REQUIRE (project().midiClips.front().notes.front().key == 67);
+    REQUIRE (yesdaw::ui::mainComponentPianoRollAudition (*shell, 67).heldKey == 67);
+    REQUIRE (anyNonZero (yesdaw::ui::mainComponentRenderPlaybackFrames (*shell, 512, 64)));
+    releaseDragAt (pianoRoll, gridPoint, gridPoint);
+    REQUIRE (yesdaw::ui::mainComponentPianoRollAudition (*shell, 67).heldKey == -1);
+
+    // The pointer: pressing the note sounds its key; the release ends it.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectPointer);
+    const juce::Point<int> notePoint = pianoRollNoteCenterPoint (pianoRoll, project().midiClips.front(), project().midiClips.front().notes.front());
+    mouseDownAt (pianoRoll, notePoint);
+    REQUIRE (yesdaw::ui::mainComponentPianoRollAudition (*shell, 67).heldKey == 67);
+    releaseDragAt (pianoRoll, notePoint, notePoint);
+    REQUIRE (yesdaw::ui::mainComponentPianoRollAudition (*shell, 67).heldKey == -1);
+    REQUIRE (project().midiClips.front().notes.size() == 1u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

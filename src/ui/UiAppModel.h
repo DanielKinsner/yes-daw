@@ -3843,6 +3843,37 @@ public:
         return project_.findTrack (trackId);
     }
 
+    // G3.2 / ADR-0047: audition - a live note through the selected Track's Instrument, transport playing or
+    // stopped (the piano roll's keyboard column, a note press, a pencil-added note). Posts to the live note
+    // lane; false when no Track with an Instrument is selected, the key is off the keyboard, the engine is
+    // absent, or the lane is full. Not an edit: nothing to undo, nothing on the status line.
+    [[nodiscard]] bool auditionNote (std::int16_t key, bool on, double normalizedVelocity = 0.8) noexcept
+    {
+        // The roll's clip names the Track first (the roll is where the press lands); else the selected
+        // strip. Every Track that owns MIDI carries an Instrument node (ADR-0047), whatever its kind.
+        const engine::Track* track = nullptr;
+        for (const engine::MidiClip& clip : project_.midiClips)
+            if (clip.id == selectedMidiClipId_)
+            {
+                track = project_.findTrack (clip.trackId);
+                break;
+            }
+        if (track == nullptr)
+            track = selectedTrackForInstrument();
+        if (playback_ == nullptr || track == nullptr || key < 0 || key > 127)
+            return false;
+
+        engine::Event event;
+        event.type = on ? engine::EventType::NoteOn : engine::EventType::NoteOff;
+        event.voice.key = key;
+        event.voice.channel = 0;
+        event.voice.noteId = key;
+        event.payload.note.normalizedVelocity = on ? std::clamp (normalizedVelocity, 0.0, 1.0) : 0.0;
+        event.payload.note.targetNode =
+            engine::projectMixerNodeIdForTrack (track->id, engine::ProjectMixerNodeRole::Instrument);
+        return playback_->postLiveEvent (event);
+    }
+
     [[nodiscard]] UiActionDispatchResult setInstrumentOnSelectedTrack (engine::TrackInstrumentKind kind)
     {
         const UiActionId id = UiActionId::TrackSetInstrument;

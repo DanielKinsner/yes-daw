@@ -333,6 +333,20 @@ inputs are the Track's MIDI sources (each Clip's `DecodedMidiClipNode`; the live
 The compiled graph merges N event-producing inputs into one time-ordered stream in the executor
 (stable on ties, bounded by the per-block event budget, no allocation) — the N-event-input law.
 
+**Live note lane** (G3.2 cp2 / ADR-0047):
+The transport's bounded SPSC of live `Event`s (`PlaybackEngine::postLiveEvent`): a NoteOn / NoteOff
+addressed to one Instrument by `NotePayload::targetNode`, drained block-top and handed to EVERY node
+as the `ProcessArgs::liveEvents` side-band; the addressed Instrument takes its own. Stopped, the
+transport keeps the graph running while a live note is held or its release rings, with
+`Transport::clipsSilenced` (clip sources emit nothing and hold their cursors). Audition today; live
+MIDI input (G3.10) reuses the lane.
+_Avoid_: preview (the H-era term for rendering a Clip alone), MIDI thru
+
+**Audition** (G3.2 cp2):
+Sounding a key through the Track's Instrument on a press — the roll's keyboard column, a note press, a
+pencil-drawn note — held while the mouse is, released on mouse-up; not an edit (nothing to undo).
+The Track is the roll's Clip's Track, else the selected strip.
+
 **Instrument track auto-wire**:
 The H9 headless bridge that turns a Project MIDI Clip into `DecodedMidiClipNode -> ImpulseInstrumentNode`
 inside the mixer graph. It proves timing and transport; it is not the final user-facing instrument model.

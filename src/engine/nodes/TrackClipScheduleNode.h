@@ -60,6 +60,18 @@ public:
         const int frames = std::min (args.numFrames, maxBlock_);
         const std::int64_t blockStart = args.transport.hasTimelineFrame ? args.transport.timelineFrame : playFrame_;
 
+        // G3.2: a stopped transport carrying live notes - silence out, the play cursor holds.
+        if (args.transport.clipsSilenced)
+        {
+            for (int c = 0; c < channels; ++c)
+            {
+                float* const out = args.audio.channels[c];
+                for (int i = 0; i < frames; ++i)
+                    out[i] = 0.0f;
+            }
+            return;
+        }
+
         double* const accum = accum_.data();
         for (int c = 0; c < channels; ++c)
         {

@@ -64,3 +64,7 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 
 - **Rail mini-cluster captions are 8 px at 100 % scaling (2026-09-02, rubric line 4).** "PAN" / "VOL" captions in the rail row measure ~8 px logical (12 px at 150 %); the plan's floor is 11 px. Already in this lot from G0.7 cp2 ("legible, not a reference look → G2 rail pass"); G2 did not take it — re-owned by the G4 rail / strip pass with the token change gated by the theme audit's minimum-font check.
 
+- **Audition velocity from the press (2026-09-02, G3.2 cp2).** The roll's keyboard column auditions at a fixed 0.8 velocity; Logic takes the velocity from where on the key the press lands (lower = louder). Owner: the G3.2 UI checkpoint or G3.4 (velocity tools) — a `pianoRollAuditionVelocityAt (y)` law with a gate, no new surface state.
+
+- **An empty MIDI Track has no Instrument node, so it cannot audition (2026-09-02, G3.2 cp2).** The projection builds a Track's MidiMerge + Instrument only for Tracks that own a MIDI clip (ProjectMixerProjection.h, the per-clip loop); a fresh MIDI Track with no clip is silent under the keyboard column and would be silent under live input. Owner: G3.10 (live MIDI input) — build the Instrument for every MIDI-kind Track, clip or not, and re-pin `[audition-shell]` on an empty Track.
+

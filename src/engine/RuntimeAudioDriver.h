@@ -59,9 +59,13 @@ public:
     void processDeviceBlock (float* const* outputChannels,
                              int numOutputChannels,
                              int numFrames,
-                             const Transport& transport) noexcept YESDAW_RT_HOT
+                             const Transport& transport,
+                             std::span<const Event> liveEvents = {}) noexcept YESDAW_RT_HOT
     {
-        runtime_.processBlock (outputChannels, numOutputChannels, numFrames, transport);
+        // G3.2: the live note lane rides beside the root stream as a side-band every node sees.
+        const EventStream live { liveEvents };
+        runtime_.processBlock (outputChannels, numOutputChannels, numFrames, transport,
+                               liveEvents.empty() ? nullptr : &live);
     }
 
     // JANITOR / CONTROL THREAD: never call from the Audio thread.

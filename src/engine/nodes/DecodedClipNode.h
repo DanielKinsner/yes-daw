@@ -65,6 +65,18 @@ public:
         const std::int64_t total    = static_cast<std::int64_t> (samples_.size() / static_cast<std::size_t> (sourceChannels_));
         const std::int64_t blockStart = args.transport.hasTimelineFrame ? args.transport.timelineFrame : playFrame_;
 
+        // G3.2: a stopped transport carrying live notes - silence out, the play cursor holds.
+        if (args.transport.clipsSilenced)
+        {
+            for (int c = 0; c < channels; ++c)
+            {
+                float* const out = args.audio.channels[c];
+                for (int i = 0; i < args.numFrames; ++i)
+                    out[i] = 0.0f;
+            }
+            return;
+        }
+
         if (sourceChannels_ == 1)
         {
             for (int i = 0; i < args.numFrames; ++i)

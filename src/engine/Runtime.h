@@ -220,17 +220,19 @@ public:
     void processBlock (float* const* outChannels,
                        int numOutputChannels,
                        int numFrames,
-                       const Transport& transport) noexcept YESDAW_RT_HOT
+                       const Transport& transport,
+                       const EventStream* liveEvents = nullptr) noexcept YESDAW_RT_HOT
     {
         EventStream events;
-        processBlock (outChannels, numOutputChannels, numFrames, events, transport);
+        processBlock (outChannels, numOutputChannels, numFrames, events, transport, liveEvents);
     }
 
     void processBlock (float* const* outChannels,
                        int numOutputChannels,
                        int numFrames,
                        EventStream& events,
-                       const Transport& transport) noexcept YESDAW_RT_HOT
+                       const Transport& transport,
+                       const EventStream* liveEvents = nullptr) noexcept YESDAW_RT_HOT
     {
         // (1) Drain the command queue IN ORDER.
         //     INVARIANT: this drain MUST run before the end-of-block release-store at (3), inside this
@@ -262,7 +264,7 @@ public:
         }
         else
         {
-            current_->process (outChannels, numOutputChannels, numFrames, events, transport);
+            current_->process (outChannels, numOutputChannels, numFrames, events, transport, liveEvents);
         }
 
         // (3) Publish the end-of-block generation LAST (release). Pairs with reclaim()'s acquire-load.

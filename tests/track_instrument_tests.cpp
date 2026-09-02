@@ -14,6 +14,7 @@
 #include "engine/InstrumentState.h"
 #include "engine/ProjectUndo.h"
 #include "engine/OfflineRenderer.h"
+#include "engine/PlaybackEngine.h"
 #include "engine/Project.h"
 #include "engine/ProjectMixerProjection.h"
 #include "engine/nodes/DecodedMidiClipNode.h"
@@ -647,4 +648,125 @@ TEST_CASE ("an automation lane on an instrument parameter targets the Track's In
     INFO ("status " << static_cast<int> (built.status) << " projection error " << static_cast<int> (built.projectError.code)
           << " at lane/clip " << built.projectError.clipIndex);
     REQUIRE (built.ok());
+}
+
+// G3.2 / ADR-0047: the LIVE note lane. A note posted to the transport - addressed to one Track's
+// Instrument - sounds through that Instrument at the top of the next Block whether the transport
+// plays or stands still. Stopped, the graph runs only while a live note is held or its release
+// rings: the clip sources are silenced (nothing scheduled leaks), the playhead never moves, and once
+// the tail passes the Block is exact zeros again - the H8 stopped-silence pin still holds.
+namespace
+{
+std::vector<float> renderEngineBlocks (yesdaw::engine::PlaybackEngine& engine, int blocks, int blockSize)
+{
+    const int channels = static_cast<int> (engine.channels());
+    REQUIRE (channels > 0);
+    std::vector<float> out (static_cast<std::size_t> (blocks) * static_cast<std::size_t> (blockSize) * static_cast<std::size_t> (channels), 0.0f);
+    std::vector<float> storage (static_cast<std::size_t> (channels) * static_cast<std::size_t> (blockSize), 0.0f);
+    std::vector<float*> outputs (static_cast<std::size_t> (channels), nullptr);
+    for (int c = 0; c < channels; ++c)
+        outputs[static_cast<std::size_t> (c)] = storage.data() + static_cast<std::size_t> (c) * static_cast<std::size_t> (blockSize);
+    for (int b = 0; b < blocks; ++b)
+    {
+        engine.processBlock (outputs.data(), channels, blockSize);
+        for (int c = 0; c < channels; ++c)
+            for (int i = 0; i < blockSize; ++i)
+                out[(static_cast<std::size_t> (b) * static_cast<std::size_t> (blockSize) + static_cast<std::size_t> (i)) * static_cast<std::size_t> (channels)
+                    + static_cast<std::size_t> (c)] = outputs[static_cast<std::size_t> (c)][i];
+    }
+    return out;
+}
+
+yesdaw::engine::Event liveNote (yesdaw::engine::NodeId instrument, std::int16_t key, bool on, double velocity = 0.8)
+{
+    yesdaw::engine::Event event;
+    event.type = on ? yesdaw::engine::EventType::NoteOn : yesdaw::engine::EventType::NoteOff;
+    event.voice.key = key;
+    event.voice.channel = 0;
+    event.voice.noteId = key;
+    event.payload.note.normalizedVelocity = velocity;
+    event.payload.note.targetNode = instrument;
+    return event;
+}
+} // namespace
+
+TEST_CASE ("live note lane: a posted note sounds through the Track's Instrument stopped or playing; stopped, clips stay silent, the playhead holds, and the tail returns to exact zeros",
+           "[engine][instrument][audition][g3]")
+{
+    using yesdaw::engine::PlaybackEngine;
+    using yesdaw::engine::ProjectMixerNodeRole;
+
+    const Project plain = makeOneNoteProject (4096, 4096, 60);
+    OfflineRenderOptions options;
+    options.maxBlockSize = 64;
+    const yesdaw::engine::NodeId instrument =
+        yesdaw::engine::projectMixerNodeIdForTrack (plain.tracks[0].id, ProjectMixerNodeRole::Instrument);
+    REQUIRE (instrument != 0u);
+
+    const auto makeEngine = [&] (const Project& project) {
+        PlaybackEngine::Result created = PlaybackEngine::create (project, std::span<const DecodedAssetAudio> {}, options);
+        REQUIRE (created.ok());
+        return std::move (created.engine);
+    };
+
+    // The lane accepts only addressed notes.
+    {
+        auto engine = makeEngine (plain);
+        yesdaw::engine::Event parameter;
+        parameter.type = yesdaw::engine::EventType::ParameterChange;
+        REQUIRE_FALSE (engine->postLiveEvent (parameter));
+        REQUIRE_FALSE (engine->postLiveEvent (liveNote (0u, 64, true)));
+        REQUIRE (engine->postLiveEvent (liveNote (instrument, 64, true)));
+    }
+
+    // Stopped: silence, then a held live note sounds, the playhead holds, and the clip's own note
+    // (key 60 at tick 0, right under the stopped playhead) does not leak - a project whose clip note
+    // sits on another key renders the SAME bytes while stopped.
+    const auto stoppedWithLive = [&] (const Project& project, int blocks) {
+        auto engine = makeEngine (project);
+        engine->stop();
+        REQUIRE (engine->locate (0));
+        const std::vector<float> silent = renderEngineBlocks (*engine, 2, 64);
+        REQUIRE_FALSE (anyNonZero (silent));
+        REQUIRE (engine->playheadFrame() == 0);
+        REQUIRE (engine->postLiveEvent (liveNote (instrument, 64, true)));
+        const std::vector<float> held = renderEngineBlocks (*engine, blocks, 64);
+        REQUIRE (engine->playheadFrame() == 0);
+        return held;
+    };
+    const std::vector<float> heldA = stoppedWithLive (plain, 8);
+    REQUIRE (anyNonZero (heldA));
+    REQUIRE (anyNonZero (std::vector<float> (heldA.end() - 128, heldA.end())));   // still held: the last block sounds
+    const std::vector<float> heldB = stoppedWithLive (makeOneNoteProject (4096, 4096, 72), 8);
+    REQUIRE (heldA == heldB);
+
+    // Release: the tail rings, then - past kAuditionTailSeconds - the Blocks are exact zeros again.
+    {
+        auto engine = makeEngine (plain);
+        engine->stop();
+        REQUIRE (engine->postLiveEvent (liveNote (instrument, 64, true)));
+        (void) renderEngineBlocks (*engine, 4, 64);
+        REQUIRE (engine->postLiveEvent (liveNote (instrument, 64, false)));
+        const std::vector<float> release = renderEngineBlocks (*engine, 4, 64);
+        REQUIRE (anyNonZero (release));
+        const int tailBlocks = static_cast<int> (PlaybackEngine::kAuditionTailSeconds * plain.sampleRate.hz / 64.0) + 2;
+        (void) renderEngineBlocks (*engine, tailBlocks, 64);
+        const std::vector<float> after = renderEngineBlocks (*engine, 2, 64);
+        REQUIRE_FALSE (anyNonZero (after));
+        REQUIRE (engine->playheadFrame() == 0);
+    }
+
+    // Playing: the live note ADDS to the scheduled render - the first block differs from playback alone.
+    {
+        auto reference = makeEngine (plain);
+        reference->play();
+        const std::vector<float> alone = renderEngineBlocks (*reference, 4, 64);
+        auto engine = makeEngine (plain);
+        engine->play();
+        REQUIRE (engine->postLiveEvent (liveNote (instrument, 67, true)));
+        const std::vector<float> withLive = renderEngineBlocks (*engine, 4, 64);
+        REQUIRE (anyNonZero (alone));
+        REQUIRE (withLive != alone);
+        REQUIRE (engine->playheadFrame() == 256);
+    }
 }
