@@ -692,6 +692,9 @@ struct UiTheme
         static constexpr int trackListIconLeftInset = 45;
         static constexpr int trackListIconTopInset = 13;
         static constexpr int trackListIconSize = 28;
+        static constexpr int trackListKindBadgeSize = 10;   // G2.17: the audio / MIDI badge beside the glyph
+        static constexpr int trackListKindBadgeGap = 3;
+        static constexpr int trackListReorderDeadZonePx = 6;   // G2.17: a vertical drag past this reorders
         static constexpr int trackListMixSummaryWidth = 68;
         static constexpr int trackListMixSummaryRightInset = 34;
         static constexpr int trackListMixSummaryVerticalInset = 4;

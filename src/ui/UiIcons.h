@@ -331,6 +331,31 @@ inline void drawTimelineToolIcon (juce::Graphics& g,
     strokeIconPath (g, path, colour, UiTheme::Layout::iconFineStrokeWidth);
 }
 
+// G2.17: the track KIND badge — a three-key keyboard for a MIDI track, a three-bar waveform for an
+// audio track — painted beside the row's glyph so the kind reads at a glance (Logic / Pro Tools).
+inline void drawTrackKindBadge (juce::Graphics& g, bool midi, juce::Rectangle<float> bounds, juce::Colour colour)
+{
+    g.setColour (colour);
+    const float w = bounds.getWidth();
+    const float h = bounds.getHeight();
+    if (midi)
+    {
+        const float keyW = w / 3.0f;
+        for (int k = 0; k < 3; ++k)
+            g.drawRect (juce::Rectangle<float> (bounds.getX() + keyW * static_cast<float> (k), bounds.getY(), keyW, h), 1.0f);
+        g.fillRect (juce::Rectangle<float> (bounds.getX() + keyW * 0.7f, bounds.getY(), keyW * 0.6f, h * 0.55f));
+        g.fillRect (juce::Rectangle<float> (bounds.getX() + keyW * 1.7f, bounds.getY(), keyW * 0.6f, h * 0.55f));
+        return;
+    }
+    const float barW = w / 5.0f;
+    const float heights[3] { 0.45f, 1.0f, 0.65f };
+    for (int b = 0; b < 3; ++b)
+    {
+        const float barH = h * heights[b];
+        g.fillRect (juce::Rectangle<float> (bounds.getX() + barW * (2.0f * static_cast<float> (b)), bounds.getCentreY() - barH * 0.5f, barW, barH));
+    }
+}
+
 inline void drawTrackGlyph (juce::Graphics& g,
                             std::size_t trackIndex,
                             juce::Rectangle<float> bounds,

@@ -30,6 +30,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <set>
 #include <span>
 #include <string>
 #include <utility>
@@ -2858,6 +2859,8 @@ public:
     std::function<std::vector<int>()> rowHeightsProvider;
     std::function<double()> rowZoomProvider;   // G2.16: the row zoom the canvas geometry also multiplies by
     std::function<void (int)> onRowClicked;
+    std::function<void (int, juce::ModifierKeys)> onRowClickedWithModifiers;   // G2.17: Ctrl toggles, Shift extends
+    std::function<void (int, int)> onRowReordered;                             // G2.17: from row, to row
     std::function<void (int)> onRowDoubleClicked;
     // Mini controls (usable-DAW P2): the painted PAN knob, VOL slider, and M/S cells become live.
     std::function<void (int, float)> onPanEdited;      // row, pan in [-1, 1]
@@ -3019,8 +3022,14 @@ public:
                 break;
         }
 
-        if (onRowClicked)
+        if (onRowClickedWithModifiers)
+            onRowClickedWithModifiers (row, event.mods);   // G2.17
+        else if (onRowClicked)
             onRowClicked (row);
+        // G2.17: a vertical drag from the name band reorders (the drop row follows the pointer).
+        reorderDragRow = row;
+        reorderDropRow = -1;
+        reorderDragStartY = event.getPosition().y;
     }
 
     void mouseDrag (const juce::MouseEvent& event) override
@@ -3035,6 +3044,19 @@ public:
             return;
         }
 
+        if (reorderDragRow >= 0 && dragRow < 0)   // G2.17: the reorder drag
+        {
+            if (std::abs (event.getPosition().y - reorderDragStartY) >= yesdaw::ui::UiTheme::Layout::trackListReorderDeadZonePx)
+            {
+                const int rows = rowCountProvider ? rowCountProvider() : 0;
+                int drop = rowAt (event.getPosition());
+                if (drop < 0 && rows > 0)
+                    drop = event.getPosition().y < getHeight() / 2 ? 0 : rows - 1;
+                reorderDropRow = drop;
+                repaint();
+            }
+            return;
+        }
         if (dragRow < 0)
             return;
 
@@ -3063,11 +3085,34 @@ public:
             return;
         }
 
+        if (reorderDragRow >= 0)   // G2.17
+        {
+            const int from = reorderDragRow;
+            const int to = reorderDropRow;
+            reorderDragRow = -1;
+            reorderDropRow = -1;
+            if (to >= 0 && to != from && onRowReordered)
+                onRowReordered (from, to);
+            repaint();
+        }
         dragRow = -1;
         dragZone = MiniZone::None;
         fineDragActive = false;
         if (onMiniDragEnded)
             onMiniDragEnded();
+    }
+
+    // G2.17: the reorder drop line (the input is transparent otherwise; the shell paints the rail).
+    void paint (juce::Graphics& g) override
+    {
+        if (reorderDragRow < 0 || reorderDropRow < 0)
+            return;
+        const juce::Rectangle<int> target = rowBounds (reorderDropRow);
+        if (target.isEmpty())
+            return;
+        const int y = reorderDropRow > reorderDragRow ? target.getBottom() - 1 : target.getY();
+        g.setColour (yesdaw::ui::UiTheme::Color::accentBlue());
+        g.fillRect (target.getX(), y - 1, target.getWidth(), 3);
     }
 
     void mouseDoubleClick (const juce::MouseEvent& event) override
@@ -3296,6 +3341,9 @@ private:
 
     int dragRow = -1;
     MiniZone dragZone = MiniZone::None;
+    int reorderDragRow = -1;      // G2.17
+    int reorderDropRow = -1;
+    int reorderDragStartY = 0;
     bool fineDragActive = false;
     float fineDragValue = 0.0f;
     int fineDragLastX = 0;
@@ -4463,7 +4511,24 @@ public:
         };
         trackListInput.rowScrollProvider = [this] { return timelineTrackScrollRows; };
         trackListInput.onVerticalScrollRows = [this] (int rowDelta) { scrollTrackRowsBy (rowDelta); };
-        trackListInput.onRowClicked = [this] (int row) { selectTrackLane (row); };
+        trackListInput.onRowClickedWithModifiers = [this] (int row, juce::ModifierKeys mods) {   // G2.17
+            if (mods.isCtrlDown())
+                toggleTrackLaneSelection (row);
+            else if (mods.isShiftDown())
+                extendTrackLaneSelection (row);
+            else
+                selectTrackLane (row);
+        };
+        trackListInput.onRowReordered = [this] (int from, int to) {   // G2.17
+            const auto& tracks = appModel.project().tracks;
+            if (from < 0 || to < 0 || from >= static_cast<int> (tracks.size()) || to >= static_cast<int> (tracks.size()))
+                return;
+            if (appModel.reorderProjectTrack (tracks[static_cast<std::size_t> (from)].id, static_cast<std::size_t> (to)).dispatched)
+                selectTrackLane (to);
+            refreshActionState();
+            resized();
+            repaintAll();
+        };
         trackListInput.onContextMenuRequested = [this] (yesdaw::ui::ContextMenuTarget target, int index, juce::Point<int> position) {
             openContextMenu (target, index, trackListInput, position);
         };
@@ -5933,9 +5998,21 @@ public:
                 notes.add (juce::String (entityIdHex (noteId)));
             selection->setProperty ("notes", notes);
             juce::Array<juce::var> tracks;
-            if (selectedTrackLane >= 0)
-                tracks.add (selectedTrackLane);
+            if (selectedTrackLanes.empty())
+            {
+                if (selectedTrackLane >= 0)
+                    tracks.add (selectedTrackLane);
+            }
+            else
+                for (const int lane : selectedTrackLanes)   // G2.17: every selected lane, ascending
+                    tracks.add (lane);
             selection->setProperty ("tracks", tracks);
+            selection->setProperty ("primaryTrack", selectedTrackLane);
+            juce::Array<juce::var> trackKinds;
+            if (appModel.context().projectLoaded)
+                for (std::size_t t = 0; t < appModel.project().tracks.size(); ++t)
+                    trackKinds.add (trackHoldsMidi (t) ? "midi" : "audio");
+            selection->setProperty ("trackKinds", trackKinds);
             selection->setProperty ("midiClip",
                                     appModel.selectedMidiClipId().isValid()
                                         ? juce::var (juce::String (entityIdHex (appModel.selectedMidiClipId())))
@@ -8104,6 +8181,47 @@ private:
                              yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
     }
 
+    // G2.17: multi-select — Ctrl toggles a lane in the set, Shift extends from the primary; a plain
+    // click and the Up / Down verbs collapse to one. The primary stays the lane the strip verbs act on.
+    void toggleTrackLaneSelection (int lane)
+    {
+        const int trackCount = static_cast<int> (appModel.project().tracks.size());
+        if (! appModel.context().projectLoaded || lane < 0 || lane >= trackCount)
+            return;
+        if (selectedTrackLane >= 0 && selectedTrackLanes.empty())
+            selectedTrackLanes.insert (selectedTrackLane);
+        if (selectedTrackLanes.count (lane) > 0 && selectedTrackLanes.size() > 1)
+            selectedTrackLanes.erase (lane);
+        else
+            selectedTrackLanes.insert (lane);
+        dismissTrackRenameEditor();
+        selectedTrackLane = lane;
+        (void) appModel.selectMixerTrack (static_cast<std::size_t> (lane), /*showMixerPanel*/ false);
+        refreshActionState();
+        repaintAll();
+    }
+
+    void extendTrackLaneSelection (int lane)
+    {
+        const int trackCount = static_cast<int> (appModel.project().tracks.size());
+        if (! appModel.context().projectLoaded || lane < 0 || lane >= trackCount)
+            return;
+        const int anchor = selectedTrackLane >= 0 ? selectedTrackLane : lane;
+        selectedTrackLanes.clear();
+        for (int row = std::min (anchor, lane); row <= std::max (anchor, lane); ++row)
+            selectedTrackLanes.insert (row);
+        dismissTrackRenameEditor();
+        selectedTrackLane = lane;
+        (void) appModel.selectMixerTrack (static_cast<std::size_t> (lane), /*showMixerPanel*/ false);
+        refreshActionState();
+        repaintAll();
+    }
+
+    [[nodiscard]] bool trackLaneIsSelected (int lane) const noexcept
+    {
+        return lane == selectedTrackLane || selectedTrackLanes.count (lane) > 0;
+    }
+
     void selectTrackLane (int lane)
     {
         const int trackCount = static_cast<int> (appModel.project().tracks.size());
@@ -8111,10 +8229,23 @@ private:
             return;
 
         dismissTrackRenameEditor();
+        selectedTrackLanes.clear();   // G2.17: a plain selection is one lane
         selectedTrackLane = lane;
         (void) appModel.selectMixerTrack (static_cast<std::size_t> (lane), /*showMixerPanel*/ false);
         refreshActionState();
         repaintAll();
+    }
+
+    // G2.17: a track is a MIDI track when it holds MIDI clips; audio otherwise (an empty track is audio).
+    [[nodiscard]] bool trackHoldsMidi (std::size_t trackIndex) const noexcept
+    {
+        const auto& tracks = appModel.project().tracks;
+        if (trackIndex >= tracks.size())
+            return false;
+        for (const yesdaw::engine::MidiClip& clip : appModel.project().midiClips)
+            if (clip.trackId == tracks[trackIndex].id)
+                return true;
+        return false;
     }
 
     void selectAdjacentTrackLane (yesdaw::ui::UiActionId action)
@@ -12169,7 +12300,7 @@ private:
                 yesdaw::ui::UiTheme::Layout::trackListRowHorizontalInset,
                 yesdaw::ui::UiTheme::Layout::trackListRowVerticalInset);
             juce::ColourGradient rowGradient (
-                static_cast<int> (i) == selectedTrackLane
+                trackLaneIsSelected (static_cast<int> (i))   // G2.17: every selected lane highlights
                     ? yesdaw::ui::UiTheme::Color::selectedLane()
                     : yesdaw::ui::UiTheme::Color::panelRaised(),
                 static_cast<float> (rowSurface.getX()),
@@ -12195,6 +12326,18 @@ private:
                     static_cast<float> (row.getY() + yesdaw::ui::UiTheme::Layout::trackListIconTopInset),
                     static_cast<float> (yesdaw::ui::UiTheme::Layout::trackListIconSize),
                     static_cast<float> (yesdaw::ui::UiTheme::Layout::trackListIconSize)),
+                trackColour.withAlpha (yesdaw::ui::UiTheme::Tone::trackIconAlpha));
+            // G2.17: the kind badge — MIDI when the track holds MIDI clips, audio otherwise.
+            yesdaw::ui::drawTrackKindBadge (
+                g,
+                trackHoldsMidi (i),
+                juce::Rectangle<float> (
+                    static_cast<float> (row.getX() + yesdaw::ui::UiTheme::Layout::trackListIconLeftInset
+                                        + yesdaw::ui::UiTheme::Layout::trackListIconSize + yesdaw::ui::UiTheme::Layout::trackListKindBadgeGap),
+                    static_cast<float> (row.getY() + yesdaw::ui::UiTheme::Layout::trackListIconTopInset
+                                        + yesdaw::ui::UiTheme::Layout::trackListIconSize - yesdaw::ui::UiTheme::Layout::trackListKindBadgeSize),
+                    static_cast<float> (yesdaw::ui::UiTheme::Layout::trackListKindBadgeSize),
+                    static_cast<float> (yesdaw::ui::UiTheme::Layout::trackListKindBadgeSize)),
                 trackColour.withAlpha (yesdaw::ui::UiTheme::Tone::trackIconAlpha));
 
             auto mixSummary = row.withRight (
@@ -14388,6 +14531,7 @@ private:
     juce::TextEditor markerRenameEditor;
     int markerRenameIndex = -1;
     int selectedTrackLane = -1;
+    std::set<int> selectedTrackLanes;   // G2.17: the multi-selection (empty = just the primary)
     juce::TextButton exportAudioButton;
     juce::ComboBox exportBitDepthChooser;
     juce::ComboBox exportRangeChooser;

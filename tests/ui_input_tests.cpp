@@ -18366,6 +18366,96 @@ TEST_CASE ("G2.16 zoom and navigation: row zoom, the zoom slider, scroll bars, c
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// G2.17: track headers v2 — the kind badge follows the clips, a vertical drag from the name band
+// reorders (one undo step), Ctrl+click toggles and Shift+click extends a multi-selection, a plain
+// click collapses it; the probe reports it all.
+TEST_CASE ("G2.17 track headers v2: kind badges, drag reorder, multi-select",
+           "[ui][input][shell][g2][track-headers-v2]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("track-headers-v2");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const auto rowY = [] (int row)
+    {
+        return yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+             + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight * row
+             + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2;
+    };
+    const auto probe = [&]
+    {
+        juce::var out;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), out).wasOk());
+        return out.getProperty ("selection", {});
+    };
+    const auto selectedLanes = [&]
+    {
+        std::vector<int> lanes;
+        const juce::var selection = probe();   // holds the array the pointer below reads
+        if (const juce::Array<juce::var>* rows = selection.getProperty ("tracks", {}).getArray())
+            for (const juce::var& row : *rows)
+                lanes.push_back (static_cast<int> (row));
+        return lanes;
+    };
+
+    // The kind badge: a MIDI clip on lane 1 makes it a MIDI track; the others stay audio.
+    mouseDownAt (*rail, { kRailRowClickX, rowY (1) });
+    REQUIRE (selectedLanes() == std::vector<int> { 1 });
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    {
+        const juce::var selection = probe();
+        const juce::Array<juce::var>* kinds = selection.getProperty ("trackKinds", {}).getArray();
+        REQUIRE (kinds != nullptr);
+        REQUIRE (kinds->size() == 3);
+        REQUIRE ((*kinds)[0].toString() == "audio");
+        REQUIRE ((*kinds)[1].toString() == "midi");
+        REQUIRE ((*kinds)[2].toString() == "audio");
+    }
+
+    // Drag reorder: lane 0's name band dragged below lane 2 → the order is [1, 2, 0]; one undo restores.
+    const std::vector<yesdaw::engine::Track> before = readProjectSnapshot (bundlePath).tracks;
+    dragFromTo (*rail, { kRailRowClickX, rowY (0) }, { kRailRowClickX, rowY (2) });
+    {
+        const std::vector<yesdaw::engine::Track> after = readProjectSnapshot (bundlePath).tracks;
+        REQUIRE (after.size() == 3u);
+        REQUIRE (after[0].id == before[1].id);
+        REQUIRE (after[1].id == before[2].id);
+        REQUIRE (after[2].id == before[0].id);
+        REQUIRE (selectedLanes() == std::vector<int> { 2 });
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks == before);
+
+    // Multi-select: Ctrl+click adds lane 2 to lane 0; Shift+click from the primary (2) to 0 spans all
+    // three; Ctrl+click on a selected lane drops it; a plain click collapses to one.
+    mouseDownAt (*rail, { kRailRowClickX, rowY (0) });
+    REQUIRE (selectedLanes() == std::vector<int> { 0 });
+    mouseDownAt (*rail, { kRailRowClickX, rowY (2) }, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier));
+    REQUIRE (selectedLanes() == std::vector<int> { 0, 2 });
+    REQUIRE (static_cast<int> (probe().getProperty ("primaryTrack", -1)) == 2);
+    mouseDownAt (*rail, { kRailRowClickX, rowY (0) }, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier));
+    REQUIRE (selectedLanes() == std::vector<int> { 0, 1, 2 });
+    mouseDownAt (*rail, { kRailRowClickX, rowY (1) }, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier));
+    REQUIRE (selectedLanes() == std::vector<int> { 0, 2 });
+    mouseDownAt (*rail, { kRailRowClickX, rowY (1) });
+    REQUIRE (selectedLanes() == std::vector<int> { 1 });
+    // Down collapses too and moves the primary.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::downKey)));
+    REQUIRE (selectedLanes() == std::vector<int> { 2 });
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",
            "[ui][input][shell][g1][menus-show-keys]")
 {
