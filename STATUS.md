@@ -41,12 +41,12 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.1 checkpoint 3 (the rubric-shot fixes: the view cluster is `[I][X][P][A]`, letters, one
-row, above the canvas; the Mixer toolbar button retired) built, gated locally, committed;
-awaiting its exact-head run, which also certifies checkpoint 2 (its own run `33621863428` was red
-on macOS only — the V7 compare, D49 closed here). Next: G2.2 — the ruler v2
-(bars | time rows, marker lane, loop brace, click = locate, row drags). The drive stays paused
-(D14).
+**Now:** G2.2 (ruler v2: Time Display Min:Sec / SMPTE / Samples from the ruler menu, shared by
+the header counter; bars-row drag = loop, time-row drag = Time selection, click = locate;
+`[ruler-v2]`) built, gated locally, committed; awaiting its exact-head run. G2.1 (cp1 certified;
+cp3's own run `33623275648` was red on Linux — an unused binding the A relabel left, GCC -Werror —
+fixed in cp3d; cp2, cp3 and the cluster fixes certify on the next exact-head green run). Next:
+G2.3 — drag previews and auto-scroll. The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -92,6 +92,37 @@ G1.7 ✅ — the dead-affordance sweep (`96c93bd`); certified by exact-head run 
 G2.1 cp1 ✅ — splitters + per-project view state (`98d1a89`); certified by exact-head run
 `33616439236` (green on all ten jobs, first try).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.2 — Ruler v2 (2026-09-02)
+
+**Already there** (recorded, not rebuilt): two time rows + marker lane (G0.7), the loop brace
+with start / end / move handles on the upper band (E6), shift-drag = loop, alt+shift-drag =
+punch, alt-click, named marker labels with rename and drag, the ruler context menu (Add Marker,
+Tempo, Meter, Range → Loop, Loop).
+
+**Build.** `formatRulerTime / formatSmpte / rulerTimeFormatName` in `TimelineCanvas.h` — one
+law for the ruler's time row and the header counter: modes 0 bars-primary / 1 min:sec / 2 SMPTE
+(non-drop, `kRulerSmpteFramesPerSecond` 30 until the project carries a rate) / 3 samples (exact
+frames at the project rate). `TimelineCanvasState` gains `timeDisplayMode` + `sampleRateHz`.
+The ruler context menu carries **Time Display ▸ Min:Sec / SMPTE / Samples** (ticked; ids above
+the action range, like Add Insert); the header counter's click cycles all four. Row-based
+gestures: the **bars row** is the cycle row — click locates, drag sets the loop (Logic); the
+**time / marker rows** keep click = locate, drag = Time selection (Pro Tools); shift-drag stays
+the loop gesture anywhere; the bars row over an EXISTING loop region is its brace (E6 — click
+grabs, drag moves, Logic's cycle band), and a plain loop drag snaps to the grid (Ctrl defeats it).
+Probe `view.rulerTimeFormat`. Harness
+`mainComponentInvokeContextMenuId` + `mainComponentTimeDisplayMenuId (mode)`.
+
+**Gates.** `[ruler-v2]` (input check): the formatters' strings; the ruler menu sets smpte →
+samples → min:sec with the probe and the header counter's primary text following; a bars-row
+click locates, makes no selection, leaves the loop; a Ctrl bars-row drag sets the loop to the
+dragged seconds exactly (a plain drag snaps to the beat, as it should); a time-row drag makes the Time selection and
+leaves the loop untouched.
+
+**Not built (recorded).** Punch "on the lower row" stays the alt+shift gesture (a painted punch
+band exists; a dedicated punch row is G7's recording UI); the project has no frame-rate field
+(SMPTE is 30 fps non-drop — a project setting when G7 needs it); drop-frame and the SMPTE offset
+are not modelled.
 
 ### G2.1 — checkpoint 3: the rubric shots (2026-09-02)
 

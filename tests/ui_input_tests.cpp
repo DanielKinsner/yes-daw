@@ -16610,6 +16610,128 @@ TEST_CASE ("G2.1 dock tabs: the mixer and the piano roll are Editor-dock tabs (X
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("G2.2 ruler v2: the time row's format comes from the ruler menu and the header counter shares it; the bars row drags the loop, the time row the selection, a click locates",
+           "[ui][input][shell][g2][ruler-v2]")
+{
+    using yesdaw::ui::ContextMenuTarget;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("ruler-v2");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // The formatters: one law for the ruler's time row and the header counter.
+    REQUIRE (yesdaw::ui::timeline_canvas_detail::formatRulerTime (61.5, yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplayMinSec, 200.0, 48000.0) == "1:01.5");
+    REQUIRE (yesdaw::ui::timeline_canvas_detail::formatRulerTime (61.5, yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySmpte, 200.0, 48000.0) == "00:01:01:15");
+    REQUIRE (yesdaw::ui::timeline_canvas_detail::formatRulerTime (3661.0, yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySmpte, 200.0, 48000.0) == "01:01:01:00");
+    REQUIRE (yesdaw::ui::timeline_canvas_detail::formatRulerTime (61.5, yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples, 200.0, 48000.0) == "2952000");
+    REQUIRE (yesdaw::ui::timeline_canvas_detail::formatRulerTime (0.0, yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples, 200.0, 44100.0) == "0");
+
+    const auto view = [&] (const char* key)
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return probe.getProperty ("view", {}).getProperty (key, {}).toString();
+    };
+    const auto loopProbe = [&] ()
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return probe.getProperty ("transport", {}).getProperty ("loop", {});
+    };
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::ui::TimelineCanvasState state;
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    const yesdaw::ui::timeline_canvas_detail::RulerRows rows = yesdaw::ui::timeline_canvas_detail::rulerRows (geometry.rulerArea);
+    REQUIRE (rows.bars.getHeight() == yesdaw::ui::UiTheme::Layout::timelineRulerBarsRowHeight);
+    REQUIRE (rows.time.getHeight() == yesdaw::ui::UiTheme::Layout::timelineRulerTimeRowHeight);
+
+    // The ruler menu's Time Display submenu sets the app-wide format; the header counter follows.
+    REQUIRE (view ("rulerTimeFormat") == "minsec");
+    REQUIRE (view ("timeDisplay") == "bars");
+    const juce::Point<int> rulerPoint = rows.time.getCentre() + timeline.getPosition();
+    auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, rulerPoint);
+    REQUIRE (menu.shown);
+    REQUIRE (menu.target == ContextMenuTarget::Ruler);
+    yesdaw::ui::mainComponentInvokeContextMenuId (*shell, yesdaw::ui::mainComponentTimeDisplayMenuId (yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySmpte));
+    REQUIRE (view ("rulerTimeFormat") == "smpte");
+    REQUIRE (view ("timeDisplay") == "smpte");
+    REQUIRE (view ("counterPrimary") == "00:00:00:00");
+    yesdaw::ui::mainComponentInvokeContextMenuId (*shell, yesdaw::ui::mainComponentTimeDisplayMenuId (yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples));
+    REQUIRE (view ("rulerTimeFormat") == "samples");
+    REQUIRE (view ("counterPrimary") == "0");
+    yesdaw::ui::mainComponentInvokeContextMenuId (*shell, yesdaw::ui::mainComponentTimeDisplayMenuId (yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplayMinSec));
+    REQUIRE (view ("rulerTimeFormat") == "minsec");
+    REQUIRE (view ("timeDisplay") == "minsec");
+
+    // A click in the bars row locates without touching the loop; a drag there sets the loop.
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    const double sampleRate = project.sampleRate.hz;
+    const auto tickAt = [&] (double seconds) { return static_cast<yesdaw::engine::Tick> (std::llround (seconds * sampleRate)); };
+    // The bars row over an EXISTING loop region is its brace (E6: click grabs, drag moves — Logic's
+    // cycle band), so the locate / new-loop gestures aim just past the region the project carries.
+    const juce::var loopAtStart = loopProbe();
+    const double loopEndAtStart = static_cast<double> (static_cast<juce::int64> (loopAtStart.getProperty ("end", 0))) / sampleRate;
+    const double visibleSeconds = snapshotMainComponent (*shell).visibleTimelineTotalSeconds;
+    // The fixture is short, so the view fits one second: aim at fractions of the visible window.
+    const double s1 = std::max (loopEndAtStart + 0.05, visibleSeconds * 0.25);
+    const double s2 = std::min (visibleSeconds * 0.9, s1 + visibleSeconds * 0.35);
+    REQUIRE (s2 > s1 + 0.1);
+    INFO ("loop end at start " << loopEndAtStart << " visible " << visibleSeconds << " s1 " << s1);
+    const int x1 = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), project, tickAt (s1)).x;
+    const int x2 = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), project, tickAt (s2)).x;
+    REQUIRE (x2 > x1 + 20);
+    const auto playheadSeconds = [&] ()
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return static_cast<double> (probe.getProperty ("transport", {}).getProperty ("playheadSeconds", 0.0));
+    };
+    const juce::var loopBefore = loopProbe();
+    mouseDownAt (timeline, { x1, rows.bars.getCentreY() });
+    releaseDragAt (timeline, { x1, rows.bars.getCentreY() }, { x1, rows.bars.getCentreY() });
+    REQUIRE (serviceMainComponentUiTimer (*shell));   // the probe reads the engine's position on the UI tick
+    {
+        INFO ("playhead " << playheadSeconds());
+        REQUIRE (std::abs (playheadSeconds() - s1) < 0.05);
+        REQUIRE (static_cast<bool> (loopProbe().getProperty ("enabled", false)) == static_cast<bool> (loopBefore.getProperty ("enabled", false)));
+        REQUIRE (snapshotMainComponent (*shell).timelineRangeStartFrame < 0);   // no Time selection from the bars row
+    }
+    // A plain drag snaps the loop to the grid (Logic snaps the cycle); Ctrl defeats snap, so the
+    // dragged seconds land exactly.
+    dragFromTo (timeline, { x1, rows.bars.getCentreY() }, { x2, rows.bars.getCentreY() },
+                juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+    {
+        const juce::var loop = loopProbe();
+        const double start = static_cast<double> (static_cast<juce::int64> (loop.getProperty ("start", 0))) / sampleRate;
+        const double end = static_cast<double> (static_cast<juce::int64> (loop.getProperty ("end", 0))) / sampleRate;
+        INFO ("loop " << start << " .. " << end);
+        REQUIRE (end > start);
+        REQUIRE (std::abs (start - s1) < 0.05);
+        REQUIRE (std::abs (end - s2) < 0.05);
+        REQUIRE (snapshotMainComponent (*shell).timelineRangeStartFrame < 0);
+    }
+
+    // A drag in the time row makes the Time selection and leaves the loop alone.
+    const juce::var loopAfterBars = loopProbe();
+    dragFromTo (timeline, { x1, rows.time.getCentreY() }, { x2, rows.time.getCentreY() });
+    {
+        const MainComponentSnapshot after = snapshotMainComponent (*shell);
+        REQUIRE (after.timelineRangeStartFrame >= 0);
+        REQUIRE (after.timelineRangeEndFrame > after.timelineRangeStartFrame);
+        REQUIRE (static_cast<juce::int64> (loopProbe().getProperty ("start", -1)) == static_cast<juce::int64> (loopAfterBars.getProperty ("start", -2)));
+        REQUIRE (static_cast<juce::int64> (loopProbe().getProperty ("end", -1)) == static_cast<juce::int64> (loopAfterBars.getProperty ("end", -2)));
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",
            "[ui][input][shell][g1][menus-show-keys]")
 {

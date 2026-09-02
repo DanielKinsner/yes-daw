@@ -174,6 +174,12 @@ struct TimelineCanvasState
     // transport readout uses when no project is loaded.
     double barSeconds = UiTheme::Layout::timelineCanvasDefaultBarSeconds;
 
+    // G2.2: the time row's format — 0 / 1 min:sec (the header shows bars or min:sec primary),
+    // 2 SMPTE (hh:mm:ss:ff at kRulerSmpteFramesPerSecond), 3 samples — and the project sample
+    // rate the samples format needs. One app-wide setting; the ruler context menu sets it.
+    int timeDisplayMode = 0;
+    double sampleRateHz = 48000.0;
+
     // Ruler range selection (parity item 25): painted as a band across ruler and lanes when active.
     bool rangeSelectionActive = false;
     double rangeStartSeconds = 0.0;
@@ -784,6 +790,43 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
     return juce::String::formatted ("%d:%02d", minutes, static_cast<int> (rest));
 }
 
+// G2.2: the time row's formats (plan §3.1: min:sec / SMPTE / samples via the ruler's context
+// menu). SMPTE is non-drop at a fixed frame rate until the project carries one; samples are the
+// exact frame count at the project rate. ONE law for the ruler and the header counter.
+inline constexpr int kRulerSmpteFramesPerSecond = 30;
+inline constexpr int kRulerTimeDisplayMinSec = 1;
+inline constexpr int kRulerTimeDisplaySmpte = 2;
+inline constexpr int kRulerTimeDisplaySamples = 3;
+
+[[nodiscard]] inline juce::String formatSmpte (double seconds)
+{
+    const double clamped = std::max (0.0, seconds);
+    const long long totalFrames = static_cast<long long> (clamped * kRulerSmpteFramesPerSecond + 1e-9);
+    const long long frames = totalFrames % kRulerSmpteFramesPerSecond;
+    const long long wholeSeconds = totalFrames / kRulerSmpteFramesPerSecond;
+    return juce::String::formatted ("%02lld:%02lld:%02lld:%02lld",
+                                    wholeSeconds / 3600, (wholeSeconds / 60) % 60, wholeSeconds % 60, frames);
+}
+
+[[nodiscard]] inline juce::String formatRulerTime (double seconds, int timeDisplayMode,
+                                                  double pixelsPerSecond, double sampleRateHz)
+{
+    if (timeDisplayMode == kRulerTimeDisplaySmpte)
+        return formatSmpte (seconds);
+    if (timeDisplayMode == kRulerTimeDisplaySamples)
+        return juce::String (static_cast<long long> (std::llround (std::max (0.0, seconds) * sampleRateHz)));
+    return formatRulerSeconds (seconds, pixelsPerSecond);
+}
+
+[[nodiscard]] inline const char* rulerTimeFormatName (int timeDisplayMode) noexcept
+{
+    if (timeDisplayMode == kRulerTimeDisplaySmpte)
+        return "smpte";
+    if (timeDisplayMode == kRulerTimeDisplaySamples)
+        return "samples";
+    return "minsec";
+}
+
 // G0.7 cp3: the ruler's three rows — the same split the marker-label law and the loop brace read.
 struct RulerRows
 {
@@ -835,7 +878,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
                              + static_cast<double> (x - clipArea.getX()) / std::max (1.0, vp.pixelsPerSecond);
         g.setColour (kMutedText.withAlpha (UiTheme::Tone::timelineCanvasRulerTickAlpha));
         g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
-        g.drawText (formatRulerSeconds (seconds, vp.pixelsPerSecond),
+        g.drawText (formatRulerTime (seconds, state.timeDisplayMode, vp.pixelsPerSecond, state.sampleRateHz),
                     x + UiTheme::Layout::timelineCanvasRulerTickWidth + 2,
                     rows.time.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
                     UiTheme::Layout::timelineRulerTimeLabelWidth,

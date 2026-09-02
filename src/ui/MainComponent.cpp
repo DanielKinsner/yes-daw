@@ -927,6 +927,20 @@ public:
                 }
             }
 
+            // G2.2 (plan §3.1): the UPPER row (bars) is the cycle row — click locates, a drag
+            // sets the loop (Logic); the lower rows keep click = locate, drag = Time selection
+            // (Pro Tools). Shift-drag stays the loop gesture on any row.
+            if (yesdaw::ui::timeline_canvas_detail::rulerRows (geometry.rulerArea).bars.contains (event.getPosition()))
+            {
+                if (const std::optional<double> seconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition()))
+                {
+                    if (onTimelineLocated)
+                        onTimelineLocated (*seconds);
+                    loopDragActive = true;
+                    loopDragStartSeconds = *seconds;
+                }
+                return;
+            }
             playheadLocateActive = true;
             rulerRangeDownPosition = event.getPosition();
             rulerRangeCurrentPosition = event.getPosition();
@@ -5534,6 +5548,7 @@ public:
             {
                 const CounterStrings counter = counterStrings();
                 view->setProperty ("timeDisplay", counter.mode);
+                view->setProperty ("rulerTimeFormat", juce::String (yesdaw::ui::timeline_canvas_detail::rulerTimeFormatName (timeDisplayMode)));   // G2.2
                 view->setProperty ("counterPrimary", counter.primary);
                 view->setProperty ("counterSecondary", counter.secondary);
             }
@@ -6121,10 +6136,7 @@ private:
     {
         constexpr yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane;
         configureActionComponent (automationLaneToggle, action, "Automation lanes");
-        if (const auto* descriptor = appModel.registry().descriptor (action))
-            automationLaneToggle.setButtonText ("A");   // G2.1 cp3: the view cluster's A (the tooltip carries the name + chord)
-        else
-            automationLaneToggle.setButtonText ("A");
+        automationLaneToggle.setButtonText ("A");   // G2.1 cp3: the view cluster's A (the tooltip carries the name + chord)
         automationLaneToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
         automationLaneToggle.setColour (juce::TextButton::buttonOnColourId, kPurple.darker (0.45f));
         automationLaneToggle.setColour (juce::TextButton::textColourOffId, kText);
@@ -8975,6 +8987,25 @@ private:
             menu.addItem (std::move (item));
             lastContextMenu.actions.push_back (entry.action);
         }
+        if (target == yesdaw::ui::ContextMenuTarget::Ruler)
+        {
+            // G2.2: the time row's format — Min:Sec / SMPTE / Samples — one app-wide setting the
+            // header counter shares (ids above the action range, like Add Insert).
+            juce::PopupMenu formats;
+            for (const auto& [mode, label] : std::array<std::pair<int, const char*>, 3> {
+                     std::pair { yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplayMinSec, "Min:Sec" },
+                     std::pair { yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySmpte, "SMPTE" },
+                     std::pair { yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples, "Samples" } })
+            {
+                juce::PopupMenu::Item item (label);
+                item.itemID = kContextMenuTimeDisplayBase + mode;
+                item.isTicked = mode == yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplayMinSec
+                                    ? timeDisplayMode <= yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplayMinSec
+                                    : timeDisplayMode == mode;
+                formats.addItem (std::move (item));
+            }
+            menu.addSubMenu ("Time Display", formats);
+        }
         repaintAll();
         if (getPeer() == nullptr)
             return;   // headless: the record is the menu
@@ -8988,6 +9019,7 @@ private:
     static constexpr int kContextMenuMoveUpId = 2001;
     static constexpr int kContextMenuMoveDownId = 2002;
     static constexpr int kContextMenuAddInsertBase = 3001;      // + FxKind
+    static constexpr int kContextMenuTimeDisplayBase = 3100;    // + time display mode (G2.2)
     static constexpr int kContextMenuAddInsertKindCount = 5;    // Eq … Limiter
 
     // The one path a picked context-menu item takes (the popup's callback and the harness): the
@@ -8995,6 +9027,13 @@ private:
     // other target dispatches the action.
     void invokeContextMenuItem (int itemId)
     {
+        if (itemId > kContextMenuTimeDisplayBase && itemId <= kContextMenuTimeDisplayBase + yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples)
+        {
+            timeDisplayMode = itemId - kContextMenuTimeDisplayBase;   // G2.2
+            refreshActionState();
+            repaintAll();
+            return;
+        }
         if (itemId >= kContextMenuAddInsertBase && itemId < kContextMenuAddInsertBase + kContextMenuAddInsertKindCount)
         {
             (void) appModel.addFxInsertToSelectedStrip (
@@ -9040,6 +9079,8 @@ private:
 
 public:
     void harnessSetDockHeight (int height) { setDockHeight (height); }   // G2.1
+    void harnessInvokeContextMenuId (int itemId) { invokeContextMenuItem (itemId); }   // G2.2
+    [[nodiscard]] static constexpr int harnessTimeDisplayMenuId (int mode) noexcept { return kContextMenuTimeDisplayBase + mode; }
 
     void harnessInvokeContextMenuItem (yesdaw::ui::UiActionId action, int direction)
     {
@@ -10877,6 +10918,11 @@ private:
         const int minutes = static_cast<int> (seconds / 60.0);
         const double rest = seconds - 60.0 * minutes;
         const juce::String minSec = juce::String::formatted ("%d:%06.3f", minutes, rest);
+        // G2.2: SMPTE and samples share the ruler's formatters (one law, two readouts).
+        if (timeDisplayMode == yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySmpte)
+            return CounterStrings { yesdaw::ui::timeline_canvas_detail::formatSmpte (seconds), bars, "smpte" };
+        if (timeDisplayMode == yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples)
+            return CounterStrings { yesdaw::ui::timeline_canvas_detail::formatRulerTime (seconds, timeDisplayMode, 0.0, sampleRate), bars, "samples" };
         return timeDisplayMode == 0 ? CounterStrings { bars, minSec, "bars" }
                                     : CounterStrings { minSec, bars, "minsec" };
     }
@@ -10885,8 +10931,8 @@ private:
     {
         if (headerLayout().timeReadout.contains (event.getPosition()))
         {
-            timeDisplayMode = timeDisplayMode == 0 ? 1 : 0;
-            repaint (getLocalBounds().withHeight (headerHeightNow()));
+            timeDisplayMode = (timeDisplayMode + 1) % (yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples + 1);   // G2.2: bars → min:sec → SMPTE → samples
+            repaintAll();   // the ruler's time row follows
         }
     }
 
@@ -11460,6 +11506,9 @@ private:
                 yesdaw::engine::computeBarGrid (head.bpm, head.numerator, head.denominator, 1.0)
                     .barFrames;
         }
+        // G2.2: the time row follows the app-wide time display (the header counter's law).
+        state.timeDisplayMode = timeDisplayMode;
+        state.sampleRateHz = appModel.project().sampleRate.isValid() ? appModel.project().sampleRate.hz : 48000.0;
 
         timelineMarkerLabels.clear();
         timelineMarkerViews.clear();
@@ -13719,6 +13768,17 @@ void mainComponentSetDockHeight (juce::Component& component, int height)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         mainComponent->harnessSetDockHeight (height);
+}
+
+void mainComponentInvokeContextMenuId (juce::Component& component, int itemId)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessInvokeContextMenuId (itemId);
+}
+
+int mainComponentTimeDisplayMenuId (int mode)
+{
+    return MainComponent::harnessTimeDisplayMenuId (mode);
 }
 
 void mainComponentInvokeContextMenuItem (juce::Component& component, yesdaw::ui::UiActionId action, int direction)
