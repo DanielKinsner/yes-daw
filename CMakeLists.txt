@@ -334,7 +334,14 @@ catch_discover_tests(YesDawUiCheck)
 # --- UI action registry check (H11; app shell command/keymap/accessibility seam) ---
 add_executable(YesDawUiActionCheck tests/ui_action_tests.cpp)
 target_include_directories(YesDawUiActionCheck PRIVATE ${YESDAW_SRC_DIR})
+target_compile_definitions(YesDawUiActionCheck PRIVATE
+  YESDAW_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(YesDawUiActionCheck PRIVATE Catch2::Catch2WithMain)
+
+# --- G1.1: the keymap document generator (docs/keymap-v2.md is generated, gated by [keymap-v2]) ---
+add_executable(YesDawKeymapDoc tools/keymap/KeymapDocMain.cpp)
+target_include_directories(YesDawKeymapDoc PRIVATE ${YESDAW_SRC_DIR})
+yesdaw_harden(YesDawKeymapDoc)
 yesdaw_harden(YesDawUiActionCheck)
 add_test(NAME YesDawUiActionCheck COMMAND $<TARGET_FILE:YesDawUiActionCheck>)
 

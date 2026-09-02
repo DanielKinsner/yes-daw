@@ -342,6 +342,19 @@ std::string chordForKeyPress (const juce::KeyPress& key)
         chord += "Backspace";
     else if (code >= juce::KeyPress::F1Key && code <= juce::KeyPress::F12Key)
         chord += "F" + std::to_string (1 + code - juce::KeyPress::F1Key);
+    // G1.1: the numpad spells the same chords as the main keys.
+    else if (code >= juce::KeyPress::numberPad0 && code <= juce::KeyPress::numberPad9)
+        chord += static_cast<char> ('0' + (code - juce::KeyPress::numberPad0));
+    else if (code == juce::KeyPress::numberPadAdd)
+        chord += "+";
+    else if (code == juce::KeyPress::numberPadSubtract)
+        chord += "-";
+    else if (code == juce::KeyPress::numberPadDecimalPoint)
+        chord += ".";
+    else if (code == juce::KeyPress::numberPadMultiply)
+        chord += "*";
+    else if (code == juce::KeyPress::numberPadDivide)
+        chord += "/";
     else if (code > 32 && code < 127)
         chord += static_cast<char> (juce::CharacterFunctions::toUpperCase (static_cast<juce::juce_wchar> (code)));
     else
@@ -7707,7 +7720,10 @@ private:
         if (chord.empty())
             return false;
 
-        const yesdaw::ui::UiActionId action = appModel.registry().keymap().actionForChord (chord);
+        // G1.1: the chord is looked up in the CURRENT Focus context (the editor that has focus),
+        // then Global — never in another editor's bindings.
+        const yesdaw::ui::UiActionId action = appModel.registry().keymap().actionForChord (
+            chord, yesdaw::ui::focusContextForPanel (appModel.context().activePanel));
         if (action == yesdaw::ui::UiActionId::Count)
             return false;
 

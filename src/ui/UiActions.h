@@ -12,6 +12,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace yesdaw::ui {
 
@@ -208,6 +209,41 @@ enum class UiPanel : std::uint8_t
     PianoRoll
 };
 
+// G1.1 (plan §4): the Focus context a chord is looked up in. Global chords work everywhere; an
+// Arrange / PianoRoll / Mixer chord only while that editor has focus, and the same chord may
+// mean different things in different contexts (Alt+Up: clip gain in Arrange, transpose in the
+// piano roll). Uniqueness is per context, and Global against every context.
+enum class UiFocusContext : std::uint8_t
+{
+    Global,
+    Arrange,
+    PianoRoll,
+    Mixer
+};
+
+[[nodiscard]] constexpr const char* focusContextName (UiFocusContext context) noexcept
+{
+    switch (context)
+    {
+        case UiFocusContext::Global:    return "Global";
+        case UiFocusContext::Arrange:   return "Arrange";
+        case UiFocusContext::PianoRoll: return "PianoRoll";
+        case UiFocusContext::Mixer:     return "Mixer";
+    }
+    return "Global";
+}
+
+[[nodiscard]] constexpr UiFocusContext focusContextForPanel (UiPanel panel) noexcept
+{
+    switch (panel)
+    {
+        case UiPanel::Timeline:  return UiFocusContext::Arrange;
+        case UiPanel::Mixer:     return UiFocusContext::Mixer;
+        case UiPanel::PianoRoll: return UiFocusContext::PianoRoll;
+    }
+    return UiFocusContext::Arrange;
+}
+
 enum class TimelineTool : std::uint8_t
 {
     Pointer,
@@ -247,6 +283,8 @@ struct UiActionDescriptor
     bool requiresRecordingTrackAvailable = false;
     bool requiresRecordingCompTakes = false;
     bool requiresAutosaveRecovery = false;
+    // G1.1: the Focus context the default chord lives in (Global unless the §4 table says A/P/M).
+    UiFocusContext context = UiFocusContext::Global;
 };
 
 struct UiActionContext
@@ -807,16 +845,71 @@ public:
         return chords_[actionIndex (id)];
     }
 
+    // G1.1: chord aliases — a second spelling that means the canonical chord everywhere
+    // (Ctrl+Y for Redo on Windows; Return and Enter are one key).
+    struct ChordAlias
+    {
+        const char* alias;
+        const char* canonical;
+    };
+    static constexpr std::array<ChordAlias, 2> kChordAliases {{
+        { "Ctrl+Y", "Ctrl+Shift+Z" },
+        { "Return", "Enter" },
+    }};
+
+    [[nodiscard]] static std::string_view canonicalChord (std::string_view chord) noexcept
+    {
+        for (const ChordAlias& alias : kChordAliases)
+            if (chord == alias.alias)
+                return alias.canonical;
+        return chord;
+    }
+
+    [[nodiscard]] static UiFocusContext contextOf (UiActionId id) noexcept
+    {
+        const UiActionDescriptor* descriptor = descriptorFor (id);
+        return descriptor != nullptr ? descriptor->context : UiFocusContext::Global;
+    }
+
+    // The action a chord dispatches in a Focus context: that context's own binding first, then
+    // a Global one; another context's binding never fires. Aliases resolve first.
+    UiActionId actionForChord (std::string_view chord, UiFocusContext focus) const
+    {
+        if (chord.empty())
+            return UiActionId::Count;
+        const std::string_view canonical = canonicalChord (chord);
+
+        UiActionId global = UiActionId::Count;
+        for (std::size_t i = 0; i < chords_.size(); ++i)
+        {
+            if (chords_[i] != canonical)
+                continue;
+            const auto id = static_cast<UiActionId> (i);
+            const UiFocusContext context = contextOf (id);
+            if (context == focus)
+                return id;
+            if (context == UiFocusContext::Global && global == UiActionId::Count)
+                global = id;
+        }
+        return global;
+    }
+
+    // Context-free lookup (the pre-G1.1 law): the first action carrying the chord in any context.
     UiActionId actionForChord (std::string_view chord) const
     {
         if (chord.empty())
             return UiActionId::Count;
-
+        const std::string_view canonical = canonicalChord (chord);
         for (std::size_t i = 0; i < chords_.size(); ++i)
-            if (chords_[i] == chord)
+            if (chords_[i] == canonical)
                 return static_cast<UiActionId> (i);
-
         return UiActionId::Count;
+    }
+
+    // Two bindings conflict when they share a chord within one context, or one of them is Global.
+    [[nodiscard]] static bool contextsConflict (UiFocusContext a, UiFocusContext b) noexcept
+    {
+        return a == b || a == UiFocusContext::Global || b == UiFocusContext::Global;
     }
 
     KeymapRebindStatus rebind (UiActionId id, std::string_view chord)
@@ -826,12 +919,70 @@ public:
         if (chord.empty())
             return KeymapRebindStatus::EmptyChord;
 
-        const UiActionId existing = actionForChord (chord);
-        if (existing != UiActionId::Count && existing != id)
-            return KeymapRebindStatus::DuplicateChord;
+        const std::string_view canonical = canonicalChord (chord);
+        for (std::size_t i = 0; i < chords_.size(); ++i)
+        {
+            const auto other = static_cast<UiActionId> (i);
+            if (other != id && chords_[i] == canonical && contextsConflict (contextOf (id), contextOf (other)))
+                return KeymapRebindStatus::DuplicateChord;
+        }
 
-        chords_[actionIndex (id)] = std::string (chord);
+        chords_[actionIndex (id)] = std::string (canonical);
         return KeymapRebindStatus::Ok;
+    }
+
+    // G1.1 gate law: every pair of bound actions that would conflict. Empty = the keymap is sound.
+    struct Conflict
+    {
+        UiActionId first;
+        UiActionId second;
+    };
+
+    [[nodiscard]] std::vector<Conflict> conflicts() const
+    {
+        std::vector<Conflict> out;
+        for (std::size_t i = 0; i < chords_.size(); ++i)
+        {
+            if (chords_[i].empty())
+                continue;
+            for (std::size_t j = i + 1; j < chords_.size(); ++j)
+                if (chords_[i] == chords_[j]
+                    && contextsConflict (contextOf (static_cast<UiActionId> (i)), contextOf (static_cast<UiActionId> (j))))
+                    out.push_back ({ static_cast<UiActionId> (i), static_cast<UiActionId> (j) });
+        }
+        return out;
+    }
+
+    // G1.1: the keymap as the markdown table docs/keymap-v2.md carries — generated, never typed,
+    // so the document and the code cannot drift ([keymap-v2] compares byte for byte).
+    [[nodiscard]] std::string renderMarkdown() const
+    {
+        std::string out;
+        out += "# YES DAW keymap v2\n\n";
+        out += "Generated by `YesDawKeymapDoc` from the action descriptors (plan §4; G1.1). Do not edit by hand:\n";
+        out += "run the tool and commit the result. `Ctrl+Y` is an alias of `Ctrl+Shift+Z`; `Return` of `Enter`;\n";
+        out += "the numpad's digits and operators spell the same chords as the main keys.\n\n";
+        for (const UiFocusContext context : { UiFocusContext::Global, UiFocusContext::Arrange,
+                                              UiFocusContext::PianoRoll, UiFocusContext::Mixer })
+        {
+            out += std::string ("## ") + focusContextName (context) + "\n\n";
+            out += "| Chord | Action | Stable id |\n|---|---|---|\n";
+            for (const auto& descriptor : kUiActionDescriptors)
+            {
+                if (descriptor.context != context)
+                    continue;
+                const std::string& chord = chords_[actionIndex (descriptor.id)];
+                if (chord.empty())
+                    continue;
+                out += "| `" + chord + "` | " + descriptor.label + " | `" + descriptor.stableId + "` |\n";
+            }
+            out += "\n";
+        }
+        out += "## No default chord\n\n";
+        for (const auto& descriptor : kUiActionDescriptors)
+            if (chords_[actionIndex (descriptor.id)].empty())
+                out += std::string ("- ") + descriptor.label + " (`" + descriptor.stableId + "`)\n";
+        return out;
     }
 
 private:

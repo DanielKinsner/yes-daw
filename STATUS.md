@@ -41,8 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.8 built, gated locally, committed; awaiting its exact-head run. Next: G1.1 (the first
-item of G1) per the plan, strictly top to bottom. The drive stays paused (D14).
+**Now:** G1.1 checkpoint 1 (keymap infrastructure: focus contexts, per-context lookup, aliases,
+numpad, the generated `docs/keymap-v2.md` + `[keymap-v2]`) built, gated, committed; awaiting its
+run. Checkpoint 2 next: the §4 remap itself — new defaults per section (transport, editing,
+windows, track), contexts assigned, every old-chord test site re-pinned to the new chord or to
+a harness dispatch (never weakened), the document regenerated. The drive stays paused (D14).
 The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
 and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
 re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
@@ -66,6 +69,28 @@ cp3/G0.8 notes for the diagnosis). SS-1 see-it steps stay pending the drive (D14
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G1.1 — Keymap v2 + focus contexts, checkpoint 1: the infrastructure (2026-09-02)
+
+**Build.** `UiFocusContext {Global, Arrange, PianoRoll, Mixer}`; every descriptor carries its
+context (all Global in this checkpoint). `Keymap::actionForChord (chord, focus)`: the focus
+context's own binding, else Global, never another editor's; `conflicts()` (same chord within a
+context, or against Global); `rebind` honours the law; aliases `Ctrl+Y` → `Ctrl+Shift+Z`,
+`Return` → `Enter`; the shell's `chordForKeyPress` spells the numpad's digits and operators as
+the main keys; the shell resolves in `focusContextForPanel (activePanel)`.
+`Keymap::renderMarkdown()` + `YesDawKeymapDoc --out docs/keymap-v2.md`: the document is
+generated, committed, never typed.
+
+**Gates.** `[keymap-v2]` (action check): no conflicts; the aliases resolve in every context; a
+scratch rebind colliding with a Global chord is refused; `docs/keymap-v2.md` equals the rendered
+table byte for byte (the failure message says how to regenerate).
+
+**Next (cp2).** The §4 remap: new defaults per section with contexts (A/P/M) assigned, the
+"no default" list applied (every `Ctrl+Alt+*`, the `MixerRead*` queries, the per-note
+`Alt+Shift+*` chords), old→new re-pins across the ~900 chord sites in the input tests, the
+document regenerated. Verbs the table names that do not exist yet (inspector show/hide `I`,
+tool popup `T`, colour `Alt+C`, undo history `Alt+Z`, media browser `Y`, vertical zoom) get no
+binding until their item builds them — recorded, not invented.
 
 ### G0.8 — Remove the two shipped lies (2026-09-02)
 
