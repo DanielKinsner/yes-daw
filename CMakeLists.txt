@@ -718,6 +718,21 @@ target_link_libraries(YesDawPersistenceCheck PRIVATE Catch2::Catch2WithMain sqli
 yesdaw_harden(YesDawPersistenceCheck)
 catch_discover_tests(YesDawPersistenceCheck)
 
+# --- Song fixture (G0.6; the deterministic 16-track three-minute song, never committed as audio) ---
+# The generator is a pure header (src/app/SongFixture.h); the gate pins its hashes on a small variant
+# and proves the bundle reopens and renders; the console tool builds the full fixture for the
+# Session drive and the feel budgets (tools/fixtures).
+add_executable(YesDawSongFixtureCheck tests/song_fixture_tests.cpp)
+target_include_directories(YesDawSongFixtureCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawSongFixtureCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
+yesdaw_harden(YesDawSongFixtureCheck)
+add_test(NAME YesDawSongFixtureCheck COMMAND $<TARGET_FILE:YesDawSongFixtureCheck>)
+
+add_executable(YesDawMakeSongFixture tools/fixtures/MakeSongFixtureMain.cpp)
+target_include_directories(YesDawMakeSongFixture PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawMakeSongFixture PRIVATE sqlite3_amalgamation)
+yesdaw_harden(YesDawMakeSongFixture)
+
 # --- CompiledGraph check (H1; pure, the immutable graph the audio thread runs — ADR-0006/0007) ---
 add_executable(YesDawGraphCheck tests/compiledgraph_tests.cpp)
 target_include_directories(YesDawGraphCheck PRIVATE ${YESDAW_SRC_DIR})

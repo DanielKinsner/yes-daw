@@ -44,7 +44,12 @@ $root = Split-Path -Parent $PSScriptRoot
 
 if ([string]::IsNullOrWhiteSpace($Exe)) { $Exe = Join-Path $root 'build-ci\YesDaw_artefacts\Release\YesDaw.exe' }
 if ([string]::IsNullOrWhiteSpace($Shots)) { $Shots = Join-Path $root 'build-ci\session-shots' }
-if ([string]::IsNullOrWhiteSpace($Fixture)) { $Fixture = Join-Path $root 'tests\fixtures\sine_440_48k_mono.wav' }
+if ([string]::IsNullOrWhiteSpace($Fixture)) {
+  # G0.6: the song fixture's first stem when it has been generated on this machine
+  # (YesDawMakeSongFixture --out "$env:LOCALAPPDATA\YES DAW\fixtures"), else the sine fixture.
+  $songStem = Join-Path $env:LOCALAPPDATA 'YES DAW\fixtures\stems\stem-01.wav'
+  $Fixture = if (Test-Path -LiteralPath $songStem) { $songStem } else { Join-Path $root 'tests\fixtures\sine_440_48k_mono.wav' }
+}
 New-Item -ItemType Directory -Force -Path $Shots | Out-Null
 
 # --- Win32 --------------------------------------------------------------------------------------

@@ -41,10 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.5 built and proven headlessly (below); awaiting exact-head CI, then the evidence
-tick. The session drive is paused: Dan declined a rerun on 2026-09-01 evening (it takes the
-mouse and keyboard for ~40 s), so G0.5's see-it step (SS-1 step 11, `rebuilds` unchanged
-while playing) and every later see-it wait for his go. Headless work continues.
+**Now:** G0.6 built and gated locally (below); awaiting exact-head CI for G0.5 (run
+`33595208144`, in progress at the time of writing) and for this commit, then the evidence ticks.
+The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
+and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
+re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -54,8 +55,48 @@ G0.3 ✅ — certified: exact-head run `33589636898` green on all ten jobs for f
 `ea4dfea9351773eaca732cc79f3cb2996ef4f5a1` (first try). Local suite 363/363.
 G0.4 ✅ — certified: exact-head run `33592155901` green on all ten jobs for full SHA
 `f608d3ddfc6e1b09a35bc9eb7eb19e3c52dafad8` (first try). Local suite 363/363.
-**Next:** G0.6 — the 16-track three-minute fixture generator (deterministic, hash-stable,
-never committed as WAV); then B2/B4/B5 re-measured on it and every Session script switches to it.
+G0.5 — built and gated headlessly; commit `96e9829` pushed; exact-head run `33595208144` pending.
+**Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
+default track height 72, header width 260), the header as a flex row (tools · transport centred ·
+master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G0.6 — The 16-track three-minute fixture (2026-09-01)
+
+**Story.** Every feel budget and every Session script runs against the same real song. **Build.**
+`src/app/SongFixture.h` — a pure generator (engine + persistence + io, no JUCE): N stereo stems
+synthesized with **integer arithmetic only** (32-bit phase accumulators, triangle/saw partials,
+120 BPM beat envelopes on even tracks, tremolo on odd ones, a 0.2 % right-channel detune) so the
+bytes are identical on every platform (no libm, no float contraction); written as float32 WAVs
+(`/32768.0f` is exact) and assembled into `song.yesdaw` through the bundle's own asset import (one
+Asset per stem, content-hashed by the bundle) with 3–6 windowed Clips per Track (offsets, 50 ms
+fades, gains) and one four-bar MIDI Clip of sixteen notes on each of the last four Tracks.
+`tools/fixtures/MakeSongFixtureMain.cpp` → `YesDawMakeSongFixture --out <dir> [--tracks N]
+[--seconds S] [--rate HZ] [--midi N]` prints the hashes and reopens the bundle. The drive's
+default stem is now the song's `stem-01.wav` when the fixture exists on the machine
+(`%LOCALAPPDATA%\YES DAW\fixtures`), else the sine.
+
+**Gates.** `YesDawSongFixtureCheck` (ctest, everywhere): a 16-track six-second variant built
+twice into two directories yields identical hashes, equal to the pinned
+`stemHash 0x16cb1e048c484aa2` / `projectHash 0x1464a389f66aca53`; the bundle reopens with 16
+Tracks, 16 stereo Assets of the promised length, 3–6 Clips per Track, 4 MIDI clips of 16 notes;
+the stems read back as WAVs and the first second renders non-silent and below 0 dBFS through the
+same offline path the export uses. Local suite green (below). The full fixture on the owner box:
+16 × 180 s at 48 kHz, 72 clips, 4 MIDI clips, `stemHash 0x78031533d23097b5`, built in 23 s.
+
+**See-it.** Pending the drive (D14): SS-1 step 2 imports the song's first stem; B2 is re-measured
+at 1920×1080 and 2560×1440 playing the bundle (`Launch -Bundle …\song.yesdaw`), B4/B5 over a
+100-edit script on it.
+
+**Deviation log (G0.6).**
+- D19 Disk footprint: the full fixture is 1.1 GB of stems plus a 1.1 GB bundle copy of them
+  (the bundle imports by copying — G5.4 decoded-asset sharing / relink is where that becomes a
+  reference). It lives under `%LOCALAPPDATA%`, never under the repo (the repo folder is
+  OneDrive-synced) and never in git.
+- D20 The first pin (`0xc86c…3229`) was replaced before the gate ever went green: the sixteen
+  summed stems peaked at 1.10 on the master, so the stem amplitudes were halved and the stem hash
+  re-pinned in the same item. The project hash did not move.
+- D21 The plan's "hash-stable output" is the generator's own FNV-1a over the float bytes and the
+  placements, not a hash of the SQLite file (which carries no byte-stability promise).
 
 ### G0.5 — Placement edits don't rebuild the engine (2026-09-01)
 
