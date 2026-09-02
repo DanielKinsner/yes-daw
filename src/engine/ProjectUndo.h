@@ -74,6 +74,7 @@ enum class ProjectEditVerb : std::uint8_t
     // E7: marker editing beyond add/remove
     MoveMarker,
     RenameMarker,
+    SetMarkerColour,   // G2.14
     // E8: MIDI clips as first-class timeline citizens
     MoveMidiClip,
     MoveMidiClipToTrack,
@@ -984,6 +985,15 @@ struct ProjectEditCommand
         return command;
     }
 
+    [[nodiscard]] static constexpr ProjectEditCommand setMarkerColour (EntityId markerId, std::uint32_t colour) noexcept   // G2.14
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetMarkerColour;
+        command.markerId = markerId;
+        command.trackColour = colour;   // rides the shared colour field
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand setProjectTempo (double bpm) noexcept
     {
         ProjectEditCommand command;
@@ -1231,7 +1241,8 @@ namespace detail {
     return verb == ProjectEditVerb::AddMarker
            || verb == ProjectEditVerb::RemoveMarker
            || verb == ProjectEditVerb::MoveMarker
-           || verb == ProjectEditVerb::RenameMarker;
+           || verb == ProjectEditVerb::RenameMarker
+           || verb == ProjectEditVerb::SetMarkerColour;   // G2.14: the marker rows diff records it
 }
 
 [[nodiscard]] constexpr bool isRecordingCompEditVerb (ProjectEditVerb verb) noexcept
@@ -1491,6 +1502,9 @@ namespace detail {
 
         case ProjectEditVerb::RenameMarker:
             return renameMarker (project, command.markerId, std::string_view { command.trackName });
+
+        case ProjectEditVerb::SetMarkerColour:   // G2.14
+            return setMarkerColour (project, command.markerId, command.trackColour);
 
         case ProjectEditVerb::MoveMidiClip:
             return moveMidiClip (project, command.midiClipId, command.timelineStart);

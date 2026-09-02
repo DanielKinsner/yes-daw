@@ -6732,6 +6732,34 @@ private:
         };
         addChildComponent (inspectorTakeChooser);
 
+        // G2.14: the marker list (every marker, tick order, seconds readout); a click locates.
+        inspectorMarkerList.setComponentID ("clip.inspector.markers");
+        inspectorMarkerList.setName ("Markers");
+        inspectorMarkerList.setTitle ("Markers");
+        inspectorMarkerList.setTooltip ("Markers: click one to move the playhead there");
+        inspectorMarkerList.setRowHeight (yesdaw::ui::UiTheme::Layout::inspectorMarkerRowHeight);
+        inspectorMarkerListModel.rowCount = [this] { return static_cast<int> (appModel.project().markers.size()); };
+        inspectorMarkerListModel.rowText = [this] (int row) -> juce::String
+        {
+            const auto& markers = appModel.project().markers;
+            if (row < 0 || row >= static_cast<int> (markers.size()) || ! appModel.project().sampleRate.isValid())
+                return {};
+            const yesdaw::engine::Marker& marker = markers[static_cast<std::size_t> (row)];
+            const double seconds = static_cast<double> (marker.tick) / appModel.project().sampleRate.hz;
+            return juce::String (marker.name) + "   " + juce::String (seconds, 3) + " s";
+        };
+        inspectorMarkerListModel.onRowClicked = [this] (int row)
+        {
+            const auto& markers = appModel.project().markers;
+            if (row < 0 || row >= static_cast<int> (markers.size()))
+                return;
+            (void) appModel.locatePlaybackFrame (markers[static_cast<std::size_t> (row)].tick);
+            refreshActionState();
+            repaintAll();
+        };
+        inspectorMarkerList.setModel (&inspectorMarkerListModel);
+        addAndMakeVisible (inspectorMarkerList);
+
         inspectorTakeDelete.setComponentID ("clip.inspector.take.delete");
         inspectorTakeDelete.setButtonText ("Delete Take");
         inspectorTakeDelete.setTooltip ("Delete the chosen take (its clip goes with it)");
@@ -8728,6 +8756,20 @@ private:
 
         // E33: the TAKES section (the old automation placeholder's area) — the chooser and
         // the delete button share its whole-section drop law.
+        // G2.14: the MARKERS card below the takes — whole-section drop like every card.
+        {
+            auto markersSection = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorMarkersSectionTop)
+                                      .withHeight (yesdaw::ui::UiTheme::Layout::inspectorMarkersSectionHeight);
+            if (sectionFits (markersSection))
+            {
+                markersSection.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight);
+                inspectorMarkerList.setBounds (markersSection.reduced (yesdaw::ui::UiTheme::Layout::inspectorAutomationChartInsetX,
+                                                                       yesdaw::ui::UiTheme::Space::none));
+            }
+            else
+                inspectorMarkerList.setBounds ({});
+            inspectorMarkerList.updateContent();
+        }
         auto takesSection = area.withTrimmedTop (
             yesdaw::ui::UiTheme::Layout::inspectorAutomationSectionTop);
         const int takesNeededHeight = yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight
@@ -9677,6 +9719,18 @@ private:
         }
         if (itemId <= 0 || itemId > static_cast<int> (yesdaw::ui::kUiActionCount))
             return;
+        // G2.14: a marker menu pick acts on the marker under the pointer (the canvas lists markers in
+        // project order, so the menu's index IS the project index).
+        if (lastContextMenu.target == yesdaw::ui::ContextMenuTarget::Marker
+            && itemId == static_cast<int> (yesdaw::ui::UiActionId::TimelineMarkerColourNext) + 1)
+        {
+            const int index = lastContextMenu.index;
+            if (index >= 0 && index < static_cast<int> (appModel.project().markers.size()))
+                (void) appModel.cycleMarkerColour (appModel.project().markers[static_cast<std::size_t> (index)].id);
+            refreshActionState();
+            repaintAll();
+            return;
+        }
         handleAction (static_cast<yesdaw::ui::UiActionId> (itemId - 1));
         refreshActionState();
         resized();
@@ -10744,6 +10798,7 @@ private:
         inspectorFadeOut.setVisible (inspectorVisible);
         inspectorFadeCurve.setVisible (inspectorVisible);
         inspectorFadeCurveAmount.setVisible (inspectorVisible);
+        inspectorMarkerList.setVisible (inspectorVisible);   // G2.14
         refreshAutomationLaneControls();
         refreshInspectorControls();
         refreshMixerControls();
@@ -12205,7 +12260,8 @@ private:
             {
                 timelineMarkerLabels.push_back (marker.name);
                 timelineMarkerViews.push_back ({ static_cast<double> (marker.tick) / sampleRateHz,
-                                                 timelineMarkerLabels.back().c_str() });
+                                                 timelineMarkerLabels.back().c_str(),
+                                                 marker.colour });   // G2.14
             }
         }
         state.markers = timelineMarkerViews.empty() ? nullptr : timelineMarkerViews.data();
@@ -13378,6 +13434,12 @@ private:
         // E33: the TAKES section replaced the old placeholder that ALWAYS said "No automation"
         // — the interactive chooser + delete button overlay this card; the painted text only
         // covers the honest empty case.
+        {
+            auto markersCard = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorMarkersSectionTop)
+                                   .withHeight (yesdaw::ui::UiTheme::Layout::inspectorMarkersSectionHeight);
+            if (drawInspectorSectionCard (markersCard))   // G2.14
+                drawSmallLabel (g, "MARKERS", markersCard.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
+        }
         auto takes = area.withTrimmedTop (
             yesdaw::ui::UiTheme::Layout::inspectorAutomationSectionTop);
         if (! drawInspectorSectionCard (takes))
@@ -14177,6 +14239,33 @@ private:
     bool automationLaneLaidOutVisible = false;
     // E33: the inspector take stack — chooser + delete over the TAKES section.
     juce::ComboBox inspectorTakeChooser;
+    // G2.14: the inspector's marker list — every marker in tick order; a click locates the playhead.
+    struct MarkerListModel final : public juce::ListBoxModel
+    {
+        std::function<int()> rowCount;
+        std::function<juce::String (int)> rowText;
+        std::function<void (int)> onRowClicked;
+        int getNumRows() override { return rowCount ? rowCount() : 0; }
+        void paintListBoxItem (int row, juce::Graphics& g, int width, int height, bool selected) override
+        {
+            if (selected)
+            {
+                g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+                g.fillRect (0, 0, width, height);
+            }
+            g.setColour (yesdaw::ui::UiTheme::Color::text());
+            g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small));
+            g.drawText (rowText ? rowText (row) : juce::String(), yesdaw::ui::UiTheme::Space::sm, 0,
+                        width - 2 * yesdaw::ui::UiTheme::Space::sm, height, juce::Justification::centredLeft, true);
+        }
+        void listBoxItemClicked (int row, const juce::MouseEvent&) override
+        {
+            if (onRowClicked)
+                onRowClicked (row);
+        }
+    };
+    MarkerListModel inspectorMarkerListModel;
+    juce::ListBox inspectorMarkerList;
     juce::TextButton inspectorTakeDelete;
     std::vector<yesdaw::ui::UiClipTakeView> inspectorTakeViews;
     // E34: open MIDI inputs + the message-thread note-on pairing map (note -> frame, velocity).

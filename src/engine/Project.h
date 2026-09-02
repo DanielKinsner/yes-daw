@@ -528,6 +528,7 @@ struct Marker
     EntityId    id;
     Tick        tick = 0;
     std::string name;
+    std::uint32_t colour = kTrackColourUnset;   // G2.14: 0 = the ruler's default; else fully opaque
 
     [[nodiscard]] bool isValid() const noexcept { return id.isValid(); }
 
@@ -3324,6 +3325,26 @@ namespace detail {
 
 // E7: rename a marker; like renameTrack, the length cap lives at the command factory's shared
 // name buffer, so the engine only refuses empty names.
+// G2.14: a marker's colour (the track colour law: 0 clears, a set colour is fully opaque).
+[[nodiscard]] inline ProjectEditStatus setMarkerColour (Project& project, EntityId markerId, std::uint32_t colour)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (! markerId.isValid())
+        return ProjectEditStatus::InvalidMarkerId;
+    if (! trackColourIsValid (colour))
+        return ProjectEditStatus::InvalidClipColour;
+    for (Marker& marker : project.markers)
+    {
+        if (marker.id == markerId)
+        {
+            marker.colour = colour;
+            return ProjectEditStatus::Applied;
+        }
+    }
+    return ProjectEditStatus::MarkerNotFound;
+}
+
 [[nodiscard]] inline ProjectEditStatus renameMarker (Project& project, EntityId markerId, std::string_view name)
 {
     if (! project.hasValidAssetClipIndirection())

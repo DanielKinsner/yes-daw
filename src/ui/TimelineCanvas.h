@@ -62,6 +62,7 @@ struct TimelineMarker
 {
     double seconds;
     const char* label;
+    std::uint32_t colour = 0;   // G2.14: 0 = the ruler's default text colour
 };
 
 // N6: the shared "split available space between custom-height and auto-share rows" law. Used
@@ -923,7 +924,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
             || x > clipArea.getRight())
             continue;
 
-        g.setColour (kText);
+        g.setColour (marker.colour == 0u ? kText : juce::Colour (marker.colour));   // G2.14
         g.setFont (UiTheme::Type::font (UiTheme::Type::small, juce::Font::bold));
         g.drawText (marker.label,
                     x + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,

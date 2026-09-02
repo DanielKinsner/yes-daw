@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 25;   // G2.13: clips reversed
+inline constexpr int          kCodeSchemaVersion = 26;   // G2.14: markers colour
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1377,13 +1377,18 @@ inline constexpr std::string_view kSchemaV25Sql = R"SQL(
 ALTER TABLE clips ADD COLUMN reversed INTEGER NOT NULL DEFAULT 0;
 )SQL";
 
+// v26 (G2.14): a marker's colour (the tracks.colour law).
+inline constexpr std::string_view kSchemaV26Sql = R"SQL(
+ALTER TABLE markers ADD COLUMN colour INTEGER NOT NULL DEFAULT 0;
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 25> kMigrations {
+inline constexpr std::array<SchemaMigration, 26> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1409,6 +1414,7 @@ inline constexpr std::array<SchemaMigration, 25> kMigrations {
     SchemaMigration { 23, kSchemaV23Sql },
     SchemaMigration { 24, kSchemaV24Sql },
     SchemaMigration { 25, kSchemaV25Sql },
+    SchemaMigration { 26, kSchemaV26Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2516,13 +2522,14 @@ public:
         }
 
         {
-            detail::Statement markerStmt (db_, "INSERT INTO markers(id, tick, name) VALUES (?, ?, ?);");
+            detail::Statement markerStmt (db_, "INSERT INTO markers(id, tick, name, colour) VALUES (?, ?, ?, ?);");
             for (const engine::Marker& marker : project.markers)
             {
                 markerStmt.reset();
                 if (auto result = markerStmt.bindBlob (1, marker.id.bytes); ! result.ok()) { rollback(); return result; }
                 if (auto result = markerStmt.bindInt64 (2, marker.tick); ! result.ok()) { rollback(); return result; }
                 if (auto result = markerStmt.bindText (3, marker.name); ! result.ok()) { rollback(); return result; }
+                if (auto result = markerStmt.bindInt64 (4, static_cast<sqlite3_int64> (marker.colour)); ! result.ok()) { rollback(); return result; }   // G2.14
                 if (auto result = detail::expectDone (db_, markerStmt); ! result.ok()) { rollback(); return result; }
             }
         }
@@ -3370,7 +3377,7 @@ public:
 
         {
             detail::Statement stmt;
-            if (auto result = stmt.prepare (db_, "SELECT id, tick, name FROM markers ORDER BY tick, id;"); ! result.ok())
+            if (auto result = stmt.prepare (db_, "SELECT id, tick, name, colour FROM markers ORDER BY tick, id;"); ! result.ok())
                 return result;
 
             while (true)
@@ -3391,6 +3398,11 @@ public:
                 if (text != nullptr && textBytes > 0)
                     marker.name.assign (reinterpret_cast<const char*> (text), static_cast<std::size_t> (textBytes));
 
+                const sqlite3_int64 markerColour = sqlite3_column_int64 (stmt.get(), 3);   // G2.14
+                if (markerColour < 0 || markerColour > static_cast<sqlite3_int64> (std::numeric_limits<std::uint32_t>::max())
+                    || ! engine::trackColourIsValid (static_cast<std::uint32_t> (markerColour)))
+                    return detail::semanticInvalid ("markers.colour is outside the Project value range");
+                marker.colour = static_cast<std::uint32_t> (markerColour);
                 project.markers.push_back (marker);
             }
         }

@@ -434,6 +434,9 @@ struct UiTheme
         static constexpr int inspectorFxTextInsetX = 10;
         static constexpr int inspectorFxTextInsetY = 0;
         static constexpr int inspectorAutomationSectionTop = 426;
+        static constexpr int inspectorMarkersSectionTop = 500;    // G2.14: the marker list card
+        static constexpr int inspectorMarkersSectionHeight = 140;
+        static constexpr int inspectorMarkerRowHeight = 20;
         static constexpr int inspectorAutomationChartTop = 4;
         static constexpr int inspectorAutomationChartHeight = 44;
         static constexpr int inspectorAutomationChartInsetX = 6;

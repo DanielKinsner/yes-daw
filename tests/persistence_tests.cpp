@@ -1755,6 +1755,8 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "DELETE FROM schema_migrations WHERE version = 24; "
             "ALTER TABLE clips DROP COLUMN reversed; "   // G2.13: v25
             "DELETE FROM schema_migrations WHERE version = 25; "
+            "ALTER TABLE markers DROP COLUMN colour; "   // G2.14: v26
+            "DELETE FROM schema_migrations WHERE version = 26; "
             "PRAGMA user_version = 10;").ok());
     }
 

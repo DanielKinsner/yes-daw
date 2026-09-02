@@ -1086,7 +1086,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 148u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 149u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -17955,6 +17955,106 @@ TEST_CASE ("G2.13 clip processing: reverse, normalize and strip silence are hone
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
     std::filesystem::remove (wavPath, ec);
+}
+
+// G2.14: markers v2 — a marker carries a colour (persisted, undoable, painted), the marker menu
+// cycles it, and the inspector lists every marker in tick order; a row click locates the playhead.
+TEST_CASE ("G2.14 markers v2: colour cycles and persists, the inspector list locates",
+           "[ui][input][shell][g2][markers-v2]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("markers-v2");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    const yesdaw::engine::Tick L = original.clips.front().timelineLength;
+
+    // Two markers: at the start and at half the clip (M at the playhead).
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys(), 0)));
+    {
+        const yesdaw::ui::timeline_canvas_detail::RulerRows rows = yesdaw::ui::timeline_canvas_detail::rulerRows (
+            yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {}).rulerArea);
+        const int x = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), readProjectSnapshot (bundlePath), L / 2).x;
+        mouseDownAt (timeline, { x, rows.time.getCentreY() });
+        releaseDragAt (timeline, { x, rows.time.getCentreY() }, { x, rows.time.getCentreY() });
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys(), 0)));
+    const auto markersNow = [&] { return readProjectSnapshot (bundlePath).markers; };
+    REQUIRE (markersNow().size() == 2u);
+    REQUIRE (markersNow()[0].colour == yesdaw::engine::kTrackColourUnset);
+
+    // The marker menu's colour pick cycles the marker under the pointer; it persists and undoes.
+    // (The label rect comes from the SAME canvas law the older marker gate replicates.)
+    std::vector<std::string> markerLabels;
+    std::vector<yesdaw::ui::TimelineMarker> markerViews;
+    const auto canvasState = [&]
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        markerLabels.clear();
+        markerViews.clear();
+        for (const yesdaw::engine::Marker& marker : project.markers)
+        {
+            markerLabels.push_back (marker.name);
+            markerViews.push_back ({ static_cast<double> (marker.tick) / project.sampleRate.hz, markerLabels.back().c_str() });
+        }
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = static_cast<int> (project.tracks.size());
+        state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                                  yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                  timeline.getWidth() - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds, state.totalSeconds);
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * snapshot.timelineZoomFactor;
+        state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+        state.markers = markerViews.data();
+        state.markerCount = static_cast<int> (markerViews.size());
+        return state;
+    };
+    {
+        const juce::Rectangle<int> label = yesdaw::ui::timelineMarkerLabelRect (timeline.getLocalBounds(), canvasState(), 0);
+        REQUIRE_FALSE (label.isEmpty());
+        const yesdaw::ui::MainComponentContextMenu menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, label.getCentre() + timeline.getPosition());
+        REQUIRE (menu.shown);
+        REQUIRE (menu.target == yesdaw::ui::ContextMenuTarget::Marker);
+        REQUIRE (std::find (menu.actions.begin(), menu.actions.end(), UiActionId::TimelineMarkerColourNext) != menu.actions.end());
+        REQUIRE (menu.index == 0);
+        REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::TimelineMarkerColourNext).enabled);
+        const int dispatchesBefore = snapshotMainComponent (*shell).context.commandDispatchCount;
+        yesdaw::ui::mainComponentInvokeContextMenuId (*shell, static_cast<int> (UiActionId::TimelineMarkerColourNext) + 1);
+        REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatchesBefore + 1);
+    }
+    REQUIRE (markersNow()[0].colour == 0xff3b8cffu);
+    REQUIRE (markersNow()[1].colour == yesdaw::engine::kTrackColourUnset);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (markersNow()[0].colour == yesdaw::engine::kTrackColourUnset);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('y', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (markersNow()[0].colour == 0xff3b8cffu);
+
+    // The inspector list: make room (a tall window, the settings row hidden, the dock at its
+    // minimum — at 720 rows the card drops whole, D50), two rows in tick order, and a click on
+    // the second row locates the playhead to its tick.
+    shell->setSize (shell->getWidth(), 1080);
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::editorDockMinHeight);
+    auto* list = dynamic_cast<juce::ListBox*> (findChildWithComponentId (*shell, "clip.inspector.markers"));
+    REQUIRE (list != nullptr);
+    INFO ("list bounds " << list->getBounds().toString().toStdString());
+    REQUIRE (list->isVisible());
+    REQUIRE (! list->getBounds().isEmpty());
+    REQUIRE (list->getListBoxModel()->getNumRows() == 2);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
+    list->getListBoxModel()->listBoxItemClicked (1, juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), {}, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, list, list, juce::Time(), {}, juce::Time(), 1, false));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == markersNow()[1].tick);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",

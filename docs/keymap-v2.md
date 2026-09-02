@@ -160,6 +160,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Set Tempo (`transport.set_tempo`)
 - Set Time Signature (`transport.set_meter`)
 - Remove Marker (`timeline.marker.remove`)
+- Marker Colour: Next (`timeline.marker.colour_next`)
 - Add MIDI Clip (`timeline.midi_clip.add`)
 - Set FX Param (`mixer.fx.insert.param.set`)
 - Add Bus (`mixer.bus.add`)

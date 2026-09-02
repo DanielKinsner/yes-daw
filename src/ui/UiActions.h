@@ -111,6 +111,7 @@ enum class UiActionId : std::uint8_t
     TransportToggleMetronome,
     TimelineMarkerAdd,
     TimelineMarkerRemove,
+    TimelineMarkerColourNext,   // G2.14
     TimelineMidiClipAdd,
     MixerFxInsertParamSet,
     // ADR-0044 send routing actions
@@ -733,6 +734,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::TimelineMarkerAdd, "timeline.marker.add", "Add Marker", "M", "Add marker at playhead",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineMarkerRemove, "timeline.marker.remove", "Remove Marker", "", "Remove nearest marker",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineMarkerColourNext, "timeline.marker.colour_next", "Marker Colour: Next", "", "Cycle the marker under the pointer through the palette (default, then the five accents)",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineMidiClipAdd, "timeline.midi_clip.add", "Add MIDI Clip", "", "Add MIDI clip on selected track",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -1879,6 +1882,7 @@ public:
 
             case UiActionId::TimelineMarkerAdd:
             case UiActionId::TimelineMarkerRemove:
+            case UiActionId::TimelineMarkerColourNext:   // G2.14
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = true;
                 context.canRedo = false;

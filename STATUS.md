@@ -41,10 +41,11 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.13 (clip processing — Reverse, Normalize, Strip Silence, non-destructive; schema
-v25; render golden + `[clip-processing]`) built, gated locally, committed; awaiting its
-exact-head run. Next: G2.14 — Markers v2 (colours, `Alt+,` / `Alt+.` navigation, marker list;
-`[markers-v2]`). The drive stays paused (D14).
+**Now:** G2.14 (markers v2 — colours, the marker menu, the inspector's marker list; schema v26;
+`[markers-v2]`) built, gated locally, committed; awaiting its exact-head run. Next: G2.15 —
+tempo and meter map editing (frame→tick inverse, piecewise bar|beat, a tempo lane in the ruler;
+bar|beat readout across a change equals the closed form; render goldens with a ramp). The drive
+stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -105,6 +106,30 @@ G2.9a ✅ — time-stretch engine half, schema v22 (`4e24714`); certified by exa
 G2.9b ✅ — time-stretch gesture (`15e16e1`); G2.10 ✅ — fades v2, schema v23 (`d0800c6`); certified by
 exact-head run `33637897699` on `d0800c6` (green on all ten jobs).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.14 — Markers v2 (2026-09-02)
+
+**Build.** `Marker::colour` (schema **v26**, the track colour law); verb `SetMarkerColour` +
+`setMarkerColour` apply; `TimelineMarkerColourNext` (the marker context menu, 1 → 2 entries;
+the shell routes the pick to `cycleMarkerColour (markers[index].id)` — the canvas lists
+markers in project order); the ruler paints a set colour. Inspector `clip.inspector.markers`
+(`juce::ListBox` over a `MarkerListModel`: rows = the project's markers, "name   t s"; a click
+→ `locatePlaybackFrame (tick)`); the MARKERS card (`inspectorMarkersSectionTop` 500, height
+140) drops whole when it does not fit. Inline rename (E7), `Alt+,` / `Alt+.` and the marker
+drag already existed.
+
+**Gates.** Persistence: the v10 simulation strips v26. `[markers-v2]`: colour pick from the
+marker menu on the first marker only (the pick reaches the model — the count of dispatches
+grows by one), undo / redo; the list (room made per D50: a 1080-row window, the settings row
+hidden, the dock at its minimum) shows two rows and a row click locates. Child count +1.
+Found on the way: a new verb must also join its undo DIFF FAMILY (`isMarkerEditVerb` here),
+or the edit applies but is never recorded and the model refuses it — the same check now sits in
+the G2.15 script for the map verbs.
+
+**Not built (recorded).** No marker colour on the marker LIST rows (the list paints text only);
+the list does not rename (double-click the ruler label — E7); the markers card sits below
+every other card, so at 720p it only appears with the dock at its minimum (D50 — the inspector
+must scroll); no marker "lane" with its own drag (the ruler's marker drag is the lane).
 
 ### G2.13 — Clip processing, non-destructive (2026-09-02)
 

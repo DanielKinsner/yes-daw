@@ -5496,6 +5496,31 @@ public:
         return { id, state, true };
     }
 
+    // G2.14: a marker's colour cycles the SAME six swatches clips and tracks use.
+    [[nodiscard]] UiActionDispatchResult cycleMarkerColour (engine::EntityId markerId)
+    {
+        const UiActionId id = UiActionId::TimelineMarkerColourNext;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const auto marker = std::find_if (project_.markers.begin(), project_.markers.end(),
+                                          [markerId] (const engine::Marker& candidate) { return candidate.id == markerId; });
+        if (marker == project_.markers.end())
+            return { id, { false, "marker missing" }, false };
+        const auto it = std::find (kClipColourCycle.begin(), kClipColourCycle.end(), marker->colour);
+        const std::size_t index = it == kClipColourCycle.end() ? 0u : static_cast<std::size_t> (it - kClipColourCycle.begin());
+        const std::uint32_t next = kClipColourCycle[(index + 1u) % kClipColourCycle.size()];
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setMarkerColour (markerId, next)).applied())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "marker edit did not persist" }, false };
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult toggleMetronome()
     {
         const UiActionId id = UiActionId::TransportToggleMetronome;
@@ -6926,6 +6951,9 @@ public:
             case UiActionId::TimelineMarkerAdd:
                 return addTimelineMarkerAtTick (
                     static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)));
+
+            case UiActionId::TimelineMarkerColourNext:   // G2.14: the shell routes the menu pick with its marker
+                return { id, { false, "marker colour needs a marker under the pointer" }, false };
 
             case UiActionId::TimelineMarkerRemove:
                 return removeTimelineMarkerNearestTick (

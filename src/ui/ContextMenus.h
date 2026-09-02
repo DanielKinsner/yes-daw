@@ -76,8 +76,8 @@ inline constexpr std::array<ContextMenuEntry, 5> kRuler {{
     { UiActionId::TimelineMarkerAdd }, { UiActionId::TransportSetTempo }, { UiActionId::TransportSetMeter },
     { UiActionId::TimelineRangeToLoop, true }, { UiActionId::TransportToggleLoop },
 }};
-inline constexpr std::array<ContextMenuEntry, 1> kMarker {{
-    { UiActionId::TimelineMarkerRemove },
+inline constexpr std::array<ContextMenuEntry, 2> kMarker {{
+    { UiActionId::TimelineMarkerRemove }, { UiActionId::TimelineMarkerColourNext },   // G2.14
 }};
 inline constexpr std::array<ContextMenuEntry, 9> kNote {{
     { UiActionId::PianoRollNoteDuplicate }, { UiActionId::PianoRollNoteDelete },
