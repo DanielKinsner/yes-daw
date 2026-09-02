@@ -121,9 +121,15 @@ $after = Probe
 [void](Assert ([bool]$after.transport.isPlaying) 'still playing after fifty nudges')
 [void](Assert ($nudgeMs -le 2500) ('fifty nudges injected within 2.5 s: ' + $nudgeMs + ' ms'))
 [void](Assert ([int]$after.audio.callbackRemovals -eq 0) ('audio-callback removals == 0 (B3): ' + $after.audio.callbackRemovals))
+# B5 is "underruns DURING the edit burst while playing": the driver's xrun counter accumulates
+# from device start (G0.3 stopped re-registering the callback, which used to reset it), so the
+# budget is the delta over this step; the absolute count is printed for the record.
 $underruns = [int]$after.audio.underruns
-if ($underruns -lt 0) { [void](Assert ([int]$after.audio.deadlineMisses -eq 0) ('driver cannot count xruns; deadline misses == 0 (B5): ' + $after.audio.deadlineMisses)) }
-else { [void](Assert ($underruns -eq 0) ('underruns == 0 (B5): ' + $underruns)) }
+$underrunsDelta = $underruns - [int]$before.audio.underruns
+$missDelta = [int]$after.audio.deadlineMisses - [int]$before.audio.deadlineMisses
+$rtDetail = ' [sinceLaunch=' + $underruns + ' deadlineMisses=' + $after.audio.deadlineMisses + ' maxCallbackMs=' + ('{0:N2}' -f [double]$after.audio.maxCallbackMs) + ' rebuilds=' + ([int]$after.audio.rebuilds - [int]$before.audio.rebuilds) + ']'
+if ($underruns -lt 0) { [void](Assert ($missDelta -eq 0) ('driver cannot count xruns; deadline misses during the burst == 0 (B5): ' + $missDelta + $rtDetail)) }
+else { [void](Assert ($underrunsDelta -eq 0) ('underruns during the burst == 0 (B5): ' + $underrunsDelta + $rtDetail)) }
 
 Step 11 'Drag, split, undo while playing: no rebuilds'
 $rebuildsBefore = [int](Probe).audio.rebuilds

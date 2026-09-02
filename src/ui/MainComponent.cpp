@@ -3047,10 +3047,6 @@ public:
     explicit MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool enableDesktopAudio)
         : fileChoices (std::move (choices)), desktopAudioRequested (enableDesktopAudio)
     {
-        appModel.setPlaybackReplacementCallbacks (
-            [this] { suspendDesktopAudioCallback(); },
-            [this] { resumeDesktopAudioCallback(); });
-
         if (! fileChoices.sessionStateDirectory.empty())
             appModel.setSessionStateDirectory (fileChoices.sessionStateDirectory);
 
@@ -4122,6 +4118,7 @@ public:
                 audioDeviceManager.addAudioCallback (this);
                 ++audioCallbackAdds;   // G0.1 probe: the one legitimate startup registration
                 desktopAudioCallbackRegistered = true;
+                appModel.setDeviceCallbackLive (true);
                 desktopAudioOpen.store (true, std::memory_order_release);
                 refreshAudioDeviceChooser();   // now the current device can be marked selected
             }
@@ -4186,6 +4183,11 @@ public:
 
     void serviceUiTick()
     {
+        // G0.3: the janitor runs on the control thread every tick — retired engines / monitor
+        // chains are freed once the device thread is provably past them.
+        appModel.setDeviceCallbackLive (desktopAudioCallbackRegistered
+                                        && desktopAudioOpen.load (std::memory_order_acquire));
+        appModel.reclaimRetiredAudioObjects();
         appModel.refreshTransportSnapshot();
         appModel.serviceRecordingCountIn();
         if (appModel.realRecordingCaptureActive())
@@ -4875,6 +4877,11 @@ public:
             audio->setProperty ("callbackAdds", static_cast<juce::int64> (audioCallbackAdds));
             audio->setProperty ("callbackRemovals", static_cast<juce::int64> (audioCallbackRemovals));
             audio->setProperty ("callbackRegistered", desktopAudioCallbackRegistered);
+            // G0.3: suspend REQUESTS (registered or not) — the [no-callback-teardown] gate's
+            // number in the headless harness, where no device callback ever exists.
+            audio->setProperty ("suspendRequests", static_cast<juce::int64> (audioSuspendRequests));
+            audio->setProperty ("retiredObjects", static_cast<juce::int64> (appModel.retiredAudioObjectCount()));
+            audio->setProperty ("deviceBlocks", static_cast<juce::int64> (appModel.deviceBlocksStarted()));
             audio->setProperty ("deviceOpen", desktopAudioOpen.load (std::memory_order_acquire));
             audio->setProperty ("rebuilds", static_cast<juce::int64> (appModel.playbackReplaceCount()));
             audio->setProperty ("liveScalars", static_cast<juce::int64> (appModel.playbackLiveScalarsApplied()));
@@ -7580,6 +7587,7 @@ private:
 
     void suspendDesktopAudioCallback()
     {
+        ++audioSuspendRequests;   // G0.3 probe: every request counts, registered or not
         if (desktopAudioCallbackSuspendDepth++ != 0)
             return;
 
@@ -7589,6 +7597,7 @@ private:
             audioDeviceManager.removeAudioCallback (this);
             ++audioCallbackRemovals;   // G0.1 probe: B3 counts every one of these after startup
             desktopAudioCallbackRegistered = false;
+            appModel.setDeviceCallbackLive (false);
         }
     }
 
@@ -7602,6 +7611,7 @@ private:
             audioDeviceManager.addAudioCallback (this);
             ++audioCallbackAdds;
             desktopAudioCallbackRegistered = true;
+            appModel.setDeviceCallbackLive (true);
         }
         resumeDesktopAudioAfterSuspend = false;
     }
@@ -7692,6 +7702,9 @@ private:
     }
 
     bool keyStateChanged (bool, juce::Component*) override { return false; }
+    // Declared alongside the KeyListener overload so neither hides the other (Clang's
+    // -Woverloaded-virtual is an error here); the Component half keeps its default behaviour.
+    bool keyStateChanged (bool isKeyDown) override { return juce::Component::keyStateChanged (isKeyDown); }
 
     [[nodiscard]] bool cancelInProgressEdit()
     {
@@ -7730,9 +7743,11 @@ private:
         pendingActionStamp = std::chrono::steady_clock::now();
         actionStampPending = true;
 
-        suspendDesktopAudioCallback();
+        // G0.3 (ADR-0046 §6): no suspend/resume bracket — the device callback is never removed by
+        // a UI action. Every branch below rides the atomic engine publish + retire law, the
+        // transport command queue, or the live scalar lane. The only legitimate suspends left are
+        // the device choosers (device (re)open).
         handleActionWhileAudioStopped (action);
-        resumeDesktopAudioCallback();
     }
 
     // Vertical track scroll (E5): one shared whole-row offset moves the timeline lanes and the
@@ -11810,6 +11825,7 @@ private:
     std::chrono::steady_clock::time_point launchStamp {};
     std::uint64_t audioCallbackAdds = 0;
     std::uint64_t audioCallbackRemovals = 0;
+    std::uint64_t audioSuspendRequests = 0;   // G0.3
     std::atomic<double> deviceSampleRateHz { 0.0 };
     std::atomic<int> deviceXRunBaseline { -1 };
     std::atomic<std::uint32_t> deviceDeadlineMisses { 0u };

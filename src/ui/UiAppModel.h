@@ -285,11 +285,37 @@ public:
     {
         return playback_ != nullptr ? playback_->liveScalarsApplied() : 0;
     }
-    void setPlaybackReplacementCallbacks (std::function<void()> willReplace,
-                                          std::function<void()> didReplace)
+    // G0.3 (ADR-0046 §6): the audio callback is never removed by a UI action. An engine or
+    // monitor-chain swap publishes the NEW object to the device thread atomically and RETIRES the
+    // old one instead of destroying it under a callback that may still be inside it. Retired
+    // objects are freed once the device thread has started two blocks past the retirement (the
+    // block after the swap already loaded the new pointer, and the block before it — the last
+    // that could have loaded the old one — has finished on that single sequential thread), or at
+    // once while no device callback is live (headless harness, no device, callback suspended).
+    void setDeviceCallbackLive (bool live) noexcept { deviceCallbackLive_ = live; }
+    [[nodiscard]] bool deviceCallbackLive() const noexcept { return deviceCallbackLive_; }
+
+    void reclaimRetiredAudioObjects()
     {
-        playbackReplacementWillBegin_ = std::move (willReplace);
-        playbackReplacementDidEnd_ = std::move (didReplace);
+        const std::uint64_t started = deviceBlocksStarted_.load (std::memory_order_acquire);
+        const bool live = deviceCallbackLive_;
+        const auto reclaimable = [live, started] (std::uint64_t retiredAtBlock) noexcept {
+            return ! live || started >= retiredAtBlock + 2u;
+        };
+        std::erase_if (retiredPlayback_,
+                       [&] (const RetiredPlayback& r) { return reclaimable (r.retiredAtBlock); });
+        std::erase_if (retiredMonitorChains_,
+                       [&] (const RetiredMonitorChain& r) { return reclaimable (r.retiredAtBlock); });
+    }
+
+    [[nodiscard]] std::size_t retiredAudioObjectCount() const noexcept
+    {
+        return retiredPlayback_.size() + retiredMonitorChains_.size();
+    }
+
+    [[nodiscard]] std::uint64_t deviceBlocksStarted() const noexcept
+    {
+        return deviceBlocksStarted_.load (std::memory_order_acquire);
     }
     void setPlaybackMaxBlockSize (int maxBlockSize) noexcept
     {
@@ -324,6 +350,9 @@ public:
                                                 int numOutputChannels,
                                                 int numFrames) noexcept YESDAW_RT_HOT
     {
+        // G0.3: the block counter the retire law reads — bumped BEFORE the engine pointer is
+        // loaded, so "started >= retiredAtBlock + 2" proves the old object is no longer in use.
+        deviceBlocksStarted_.fetch_add (1u, std::memory_order_acq_rel);
         engine::PlaybackEngine* const playback = audioPlayback_.load (std::memory_order_acquire);
         if (playback == nullptr || numFrames < 0 || numFrames > playback->maxBlockSize())
         {
@@ -6646,8 +6675,12 @@ private:
         context_.isRecording = false;
         // E30/E31: no armed pick — the live input meters read silent and monitoring stops.
         // M13: the compensated path goes with it (a chain with no armed input is a lie).
+        // G0.3: retired, not destroyed — the device thread may still be inside it.
         audioMonitorChain_.store (nullptr, std::memory_order_release);
-        monitorChain_.reset();
+        if (monitorChain_ != nullptr)
+            retiredMonitorChains_.push_back ({ std::move (monitorChain_),
+                                               deviceBlocksStarted_.load (std::memory_order_acquire) });
+        reclaimRetiredAudioObjects();
         monitorChainBuilt_ = false;
         armedPickCount_.store (0u, std::memory_order_release);
         for (std::size_t index = 0; index < kMaxArmedRecordingTracks; ++index)
@@ -6738,15 +6771,15 @@ private:
             next = buildMonitorChain (signature);
         }
 
-        if (playbackReplacementWillBegin_)
-            playbackReplacementWillBegin_();
-
-        audioMonitorChain_.store (nullptr, std::memory_order_release);
+        // G0.3: one atomic publish of the complete new chain; the old one is retired for the
+        // janitor rather than destroyed under a running callback.
+        std::unique_ptr<MonitorChain> retired = std::move (monitorChain_);
         monitorChain_ = std::move (next);
         audioMonitorChain_.store (monitorChain_.get(), std::memory_order_release);
-
-        if (playbackReplacementDidEnd_)
-            playbackReplacementDidEnd_();
+        if (retired != nullptr)
+            retiredMonitorChains_.push_back ({ std::move (retired),
+                                               deviceBlocksStarted_.load (std::memory_order_acquire) });
+        reclaimRetiredAudioObjects();
     }
 
     [[nodiscard]] std::unique_ptr<MonitorChain> buildMonitorChain (const MonitorChainSignature& signature)
@@ -8437,16 +8470,17 @@ private:
     void replacePlayback (std::unique_ptr<engine::PlaybackEngine> replacement)
     {
         ++playbackReplaceCount_;   // R12: every engine swap counts — the live lane must not take this path
-        if (playbackReplacementWillBegin_)
-            playbackReplacementWillBegin_();
 
-        audioPlayback_.store (nullptr, std::memory_order_release);
+        // G0.3: publish the complete new engine in one atomic store (no silent gap), retire the
+        // old one for the janitor instead of destroying it under a running callback.
+        std::unique_ptr<engine::PlaybackEngine> retired = std::move (playback_);
         playback_ = std::move (replacement);
-        audioPlayback_.store (playback_.get(), std::memory_order_release);
         applyMetronomeToPlayback();
-
-        if (playbackReplacementDidEnd_)
-            playbackReplacementDidEnd_();
+        audioPlayback_.store (playback_.get(), std::memory_order_release);
+        if (retired != nullptr)
+            retiredPlayback_.push_back ({ std::move (retired),
+                                          deviceBlocksStarted_.load (std::memory_order_acquire) });
+        reclaimRetiredAudioObjects();
     }
 
     void applyMetronomeToPlayback (bool forceEnabled = false) noexcept
@@ -8714,8 +8748,22 @@ private:
     // Ruler range selection (parity item 25): transient, never persisted; -1 means no range.
     std::int64_t timelineRangeStartFrame_ = -1;
     std::int64_t timelineRangeEndFrame_ = -1;
-    std::function<void()> playbackReplacementWillBegin_;
-    std::function<void()> playbackReplacementDidEnd_;
+    // G0.3: retired audio objects awaiting the janitor (see reclaimRetiredAudioObjects), the
+    // device-thread block counter the retire law reads, and whether a device callback is live.
+    struct RetiredPlayback
+    {
+        std::unique_ptr<engine::PlaybackEngine> engine;
+        std::uint64_t retiredAtBlock = 0;
+    };
+    struct RetiredMonitorChain
+    {
+        std::unique_ptr<MonitorChain> chain;
+        std::uint64_t retiredAtBlock = 0;
+    };
+    std::vector<RetiredPlayback> retiredPlayback_;
+    std::vector<RetiredMonitorChain> retiredMonitorChains_;
+    std::atomic<std::uint64_t> deviceBlocksStarted_ { 0 };
+    bool deviceCallbackLive_ = false;
     WaveformPeakService waveformService_;
 };
 

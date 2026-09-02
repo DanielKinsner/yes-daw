@@ -2117,3 +2117,61 @@ TEST_CASE ("midi-only project pencils a note and renders it audibly", "[ui][app]
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G0.3 — the retire law behind "the audio callback is never removed by a UI action" (ADR-0046
+// §6). An engine swap publishes the new engine atomically and RETIRES the old one; the janitor
+// frees it only once the device thread has started two blocks past the retirement (so the last
+// block that could have loaded the old pointer has finished), or immediately while no device
+// callback is live. Headless: this test IS the device thread, one block at a time.
+TEST_CASE ("G0.3 engine swaps retire the old engine until the device thread is provably past it",
+           "[ui][app][no-callback-teardown][retire]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("retire-law");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundlePath).ok());
+    app.reclaimRetiredAudioObjects();
+    REQUIRE (app.retiredAudioObjectCount() == 0);
+    REQUIRE_FALSE (app.deviceCallbackLive());
+
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+    const auto deviceBlock = [&] { REQUIRE (app.processDeviceAudioBlock (outputs.data(), 2, 128)); };
+
+    // Live callback: a topology edit (Add Track) rebuilds the engine — the old one is retired,
+    // not freed, until two more blocks have STARTED.
+    app.setDeviceCallbackLive (true);
+    const std::uint64_t rebuildsBefore = app.playbackReplaceCount();
+    REQUIRE (app.dispatch (UiActionId::TrackAdd).dispatched);
+    REQUIRE (app.playbackReplaceCount() == rebuildsBefore + 1);
+    REQUIRE (app.retiredAudioObjectCount() == 1);
+    app.reclaimRetiredAudioObjects();
+    REQUIRE (app.retiredAudioObjectCount() == 1);
+    deviceBlock();
+    app.reclaimRetiredAudioObjects();
+    REQUIRE (app.retiredAudioObjectCount() == 1);   // one block: the pre-swap block may still be inside it
+    deviceBlock();
+    app.reclaimRetiredAudioObjects();
+    REQUIRE (app.retiredAudioObjectCount() == 0);   // two blocks: provably past it
+
+    // Two swaps back to back retire two engines; both wait for the same proof.
+    REQUIRE (app.dispatch (UiActionId::TrackAdd).dispatched);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.retiredAudioObjectCount() == 2);
+    deviceBlock();
+    deviceBlock();
+    app.reclaimRetiredAudioObjects();
+    REQUIRE (app.retiredAudioObjectCount() == 0);
+
+    // No live callback (headless harness, no device, chooser suspended): freed at once.
+    app.setDeviceCallbackLive (false);
+    REQUIRE (app.dispatch (UiActionId::TrackAdd).dispatched);
+    REQUIRE (app.retiredAudioObjectCount() == 0);
+
+    // The device thread never sees a null engine during a swap: every block after the first
+    // rebuild rendered through a live engine (returns true), and the block counter only grows.
+    const std::uint64_t blocks = app.deviceBlocksStarted();
+    REQUIRE (blocks == 4);
+    deviceBlock();
+    REQUIRE (app.deviceBlocksStarted() == blocks + 1);
+}

@@ -163,6 +163,10 @@ TEST_CASE ("state probe: schema v1 with the required sections and element ids",
     REQUIRE (probe["selection"]["timeRange"].isVoid());
     REQUIRE (static_cast<juce::int64> (probe["audio"]["callbackAdds"]) == 0);
     REQUIRE (static_cast<juce::int64> (probe["audio"]["callbackRemovals"]) == 0);
+    // G0.3 fields: suspend requests, retired audio objects awaiting the janitor, device blocks.
+    REQUIRE (static_cast<juce::int64> (probe["audio"]["suspendRequests"]) == 0);
+    REQUIRE (static_cast<juce::int64> (probe["audio"]["retiredObjects"]) == 0);
+    REQUIRE (static_cast<juce::int64> (probe["audio"]["deviceBlocks"]) == 0);
     REQUIRE (probe["view"]["activePanel"].toString() == "Arrange");
     REQUIRE (probe["view"]["tool"].toString() == "Pointer");
     REQUIRE (static_cast<int> (probe["view"]["width"]) == shell->getWidth());

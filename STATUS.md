@@ -41,16 +41,78 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.2 built and proven locally (below); awaiting exact-head CI, then the evidence tick.
+**Now:** G0.3 built and proven locally (below); awaiting exact-head CI, then the evidence ticks
+for G0.2 (its own run went red on macOS only — a compile hide of `Component::keyStateChanged`
+by the KeyListener overload; fixed in this commit) and G0.3.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
-**Next:** G0.3 — stop tearing down the audio callback per action: remove the
-`suspendDesktopAudioCallback()` / `resume` bracket from `handleAction`; keep it only for device
-(re)open and sample-rate change; audit the engine-swap and device-block paths it protected;
-`[no-callback-teardown]` counts add/remove across 200 dispatched actions; SS-1 step 10 (`B3`) is
-its red line. The two agent maps that grounded the plan (shell architecture; engine/MIDI/FX
-capability) are summarized in the plan §1 and §5; re-derive from code if in doubt — the drift
-rule applies.
+G0.2 — built, gated, SS-1 green on its lines; run `33588671718` for `9bb995e` was green on
+Linux/Windows and every other job, red on macOS at the compile step (`-Woverloaded-virtual`);
+certified by the next green exact-head run (this commit carries the one-line fix).
+**Next:** G0.4 — rendering budget: verify the renderer (probe says Direct2D), layered
+invalidation instead of whole-window `repaint()` per tick, `refreshActionState()` off the 30 Hz
+tick, waveform tile cache; gate B2 on the G0.6 fixture at 1920×1080 and 2560×1440; SS-1 step 12.
+The two agent maps that grounded the plan (shell architecture; engine/MIDI/FX capability) are
+summarized in the plan §1 and §5; re-derive from code if in doubt — the drift rule applies.
+
+### G0.3 — Stop tearing down the audio callback (2026-09-01)
+
+**Story.** Pressing a key never causes a dropout. **Precedent.** Every DAW keeps the device
+running while you edit. **Audit first.** `handleAction` bracketed EVERY action with
+`suspendDesktopAudioCallback()` / `resume` (remove + add the JUCE device callback), and the model's
+`replacePlayback` and the monitor-chain install/reset called the same bracket through two
+`std::function` seams. The device block (`processDeviceAudioBlock`) already reads everything it
+touches through atomics: the engine pointer (`audioPlayback_`), armed picks, capture flag and
+slots, monitor flag and chain pointer. The only thing the bracket genuinely protected was the
+*destruction* of the old engine / old monitor chain right after the atomic store — the device
+thread may still be inside the object it loaded a moment earlier. The transport (SPSC command
+queue) and the live scalar lane never needed it. Legitimate suspends: the output/input device
+choosers (device (re)open) — kept.
+
+**Built.**
+- **Retire law** (`UiAppModel`): a swap publishes the COMPLETE new engine (metronome applied
+  first) in one atomic store — no silent null gap any more — and pushes the old engine onto
+  `retiredPlayback_` with the device block counter at retirement; the monitor chain does the
+  same (`retiredMonitorChains_`) on install and on reset. `processDeviceAudioBlock` bumps
+  `deviceBlocksStarted_` before loading the engine pointer. `reclaimRetiredAudioObjects()`
+  (control thread; every swap and every UI tick) frees an object once `started ≥ retiredAt + 2`
+  — the block after the swap already loaded the new pointer and the block before it, the last
+  that could hold the old one, has finished on that single sequential thread — or at once while
+  no device callback is live (`setDeviceCallbackLive`, kept true/false by the shell at the
+  register/remove sites and each tick; the headless harness is never live).
+- `handleAction` has no bracket. The `setPlaybackReplacementCallbacks` seam and its two
+  `std::function` members are deleted (delete before you add). `suspendDesktopAudioCallback`
+  counts every request into the probe (`audio.suspendRequests`, alongside `retiredObjects` and
+  `deviceBlocks`), so the headless harness can see a suspend even though it has no device.
+
+**Gates.** `[no-callback-teardown][retire]` (`YesDawAppSmokeCheck`, headless, this test IS the
+device thread): Add Track retires the old engine; still retained after one block, freed after
+two; two back-to-back swaps (Add Track + Undo) both wait for the same proof; with no live
+callback a swap frees at once; the block counter only grows. `[no-callback-teardown]` (ui_input
+harness): New + Import, select the clip, Space, 200 nudge dispatches (`.`/`,`), Add Track
+(rebuilds), Undo, Stop → `suspendRequests == 0` and the tick's janitor leaves `retiredObjects ==
+0`; negative control: picking a device through the output chooser seam requests exactly one
+suspend. The probe schema gate pins the three new fields. Local suite **363/363** (owner file
+restored byte-identical).
+
+**SS-1 on the real exe (this commit): 37 PASS / 4 FAIL.** Step 10: `callbackRemovals` **0**
+(was 12–43) — **B3 green**; `underruns` during the fifty-nudge burst **0** (delta), our own
+`deadlineMisses` 0, worst callback 0.07 ms — **B5 green** for the step. Remaining red, each
+owned: step 1 empty project at launch (G5.5, D3); `Ctrl+Shift+I`, `K` (G1.1); step 11
+`rebuilds` 2 → 5 (G0.5). B6 1.42–1.66 s; B2 2.3 ms p95 (one clip). No layout change; the G0.1
+rubric baseline stands.
+
+**Deviation log (G0.3).**
+- D10 B5 is measured as the **delta** of the driver's xrun count over the edit burst: G0.3
+  stopped re-registering the callback, which used to reset that counter, so the absolute count
+  now accumulates from device start. The absolute count read **1** since launch in every
+  G0.3 run (0 during the burst, 0 deadline misses of our own) — one xrun somewhere between
+  device open and step 10, before any edit. Logged in the parking lot for G0.4/G0.5 to
+  localize with the probe; not hidden.
+- D11 The G0.2 commit's macOS red was a compile error, not a test: declaring the KeyListener
+  `keyStateChanged (bool, Component*)` hid `Component::keyStateChanged (bool)` under Clang's
+  `-Woverloaded-virtual`. The forwarding override rides this commit; G0.2 is certified by this
+  commit's run (first red round for G0.2; no stop trigger).
 
 ### G0.2 — Command router (2026-09-01)
 

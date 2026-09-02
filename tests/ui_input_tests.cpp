@@ -1129,6 +1129,83 @@ TEST_CASE ("command router: widgets decline focus, Space toggles, window-level k
     REQUIRE_FALSE (router->keyPressed (juce::KeyPress (juce::KeyPress::F11Key), &fakeWindow));
 }
 
+// G0.3 — the audio callback is never removed by a UI action (ADR-0046 §6; feel budget B3).
+// `handleAction` used to bracket EVERY action with suspend/resume of the device callback (the
+// dropout Dan felt as "laggy"). The probe counts suspend REQUESTS (registered or not, so the
+// headless harness can see them): 200 dispatched actions — nudges, transport, undo, a topology
+// edit that rebuilds the engine — request zero suspends; the one legitimate suspend left, a
+// device (re)open through the output chooser, still requests exactly one (negative control).
+TEST_CASE ("no callback teardown: 200 dispatched actions request zero audio-callback suspends",
+           "[ui][input][shell][no-callback-teardown]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("no-callback-teardown");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    std::vector<std::string> selectedNames;
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    choices.listAudioOutputDevices = [] { return std::vector<std::string> { "Alpha Out", "Beta Out" }; };
+    choices.selectAudioOutputDevice = [&selectedNames] (const std::string& name) {
+        selectedNames.push_back (name);
+        return true;
+    };
+    auto shell = makeShell (std::move (choices));
+
+    const auto suspendRequests = [&shell] {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return static_cast<juce::int64> (probe["audio"]["suspendRequests"]);
+    };
+    const auto retiredObjects = [&shell] {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return static_cast<juce::int64> (probe["audio"]["retiredObjects"]);
+    };
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (suspendRequests() == 0);
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
+    REQUIRE (imported.clips.size() == 1u);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, imported, 0u));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+
+    // 200 actions of every lane: placement nudges (100 pairs = 200 dispatches), transport, undo,
+    // and a topology edit (Add Track rebuilds the engine — the swap must not suspend either).
+    const int dispatchBefore = snapshotMainComponent (*shell).context.commandDispatchCount;
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    for (int i = 0; i < 100; ++i)
+    {
+        // Shipped nudge chords (`,` / `.`); G1.1 re-pins them to Alt+arrows.
+        REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
+        REQUIRE (shell->keyPressed (juce::KeyPress (',')));
+    }
+    REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount >= dispatchBefore + 200);
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    const std::uint64_t rebuildsBefore = snapshotMainComponent (*shell).playbackReplaceCount;
+    clickButton (requireButtonForAction (*shell, UiActionId::TrackAdd));
+    REQUIRE (snapshotMainComponent (*shell).playbackReplaceCount > rebuildsBefore);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (suspendRequests() == 0);
+
+    // No device callback is live in the harness, so the tick's janitor frees every retired
+    // engine at once — nothing accumulates.
+    REQUIRE (serviceMainComponentUiTimer (*shell));
+    REQUIRE (retiredObjects() == 0);
+
+    // Negative control: a device (re)open is the one legitimate suspend, and it still counts.
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.device.chooser"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->getNumItems() == 2);
+    chooser->setSelectedId (2, juce::sendNotificationSync);
+    REQUIRE (selectedNames == std::vector<std::string> { "Beta Out" });
+    REQUIRE (suspendRequests() == 1);
+}
+
 // M7 — the timeline never invents content. `drawClipWaveform` used to synthesize a waveform from a
 // hash of the clip id whenever no peak cache was ready, and MIDI clips ALWAYS took that path (they
 // carry no asset), so every MIDI clip painted confident audio detail for audio that does not exist.
