@@ -248,6 +248,11 @@ void mainComponentInvokeContextMenuId (juce::Component& component, int itemId);
 // G2.3: one edge-band auto-scroll step while a clip drag sits in the band (the timer's law,
 // ticked directly); returns the seconds scrolled.
 double mainComponentTimelineAutoScrollTick (juce::Component& component);
+// G2.4: the Smart tool's zone ("move", "snap-move", "trim-left", "trim-right", "fade-in",
+// "fade-out", "gain", "time-select", "none") and cursor ("normal", "left-right", "top-left",
+// "top-right", "ibeam", "up-down") under a shell point with the given modifiers.
+[[nodiscard]] juce::String mainComponentTimelineZoneAt (juce::Component& component, juce::Point<int> shellPoint, juce::ModifierKeys modifiers);
+[[nodiscard]] juce::String mainComponentTimelineCursorAt (juce::Component& component, juce::Point<int> shellPoint, juce::ModifierKeys modifiers);
 [[nodiscard]] int mainComponentTimeDisplayMenuId (int mode);
 void mainComponentKeymapEditorSelectRow (juce::Component& component, int row);
 void mainComponentKeymapEditorBind (juce::Component& component, const juce::String& chord);

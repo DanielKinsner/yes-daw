@@ -677,6 +677,20 @@ public:
                 g.strokePath (wedge, juce::PathStrokeType (yesdaw::ui::UiTheme::Layout::timelineDragGhostOutlineWidth));
                 break;
             }
+            case TimelineDragMode::TimeSelect:
+            {
+                const float x0 = static_cast<float> (std::min (dragState.downPosition.x, dragState.currentPosition.x));
+                const float x1 = static_cast<float> (std::max (dragState.downPosition.x, dragState.currentPosition.x));
+                g.setColour (fill);
+                g.fillRect (juce::Rectangle<float> (x0, static_cast<float> (geometry.clipArea.getY()), x1 - x0,
+                                                    static_cast<float> (geometry.clipArea.getHeight())));
+                g.setColour (outline);
+                for (const float x : { x0, x1 })
+                    g.fillRect (juce::Rectangle<float> (x, static_cast<float> (geometry.clipArea.getY()),
+                                                        static_cast<float> (yesdaw::ui::UiTheme::Space::hairline),
+                                                        static_cast<float> (geometry.clipArea.getHeight())));
+                break;
+            }
             case TimelineDragMode::Gain:
             {
                 const float y = juce::jlimit (clipRect.getY(), clipRect.getBottom() - 1.0f,
@@ -804,6 +818,7 @@ public:
             case TimelineDragMode::FadeIn:
             case TimelineDragMode::FadeOut:   return "Fade: drag to set its length";
             case TimelineDragMode::Gain:      return "Clip: drag up or down to set gain";
+            case TimelineDragMode::TimeSelect: return "Clip: drag here to select a time range \u00b7 the body above moves";
             case TimelineDragMode::SnapMove:  return "Clip: drag to move without snap";
             case TimelineDragMode::Move:      break;
         }
@@ -812,12 +827,43 @@ public:
 
     void mouseMove (const juce::MouseEvent& event) override
     {
+        setMouseCursor (cursorAt (event.getPosition(), event.mods));   // G2.4: the zone shows before the press
         if (onHoverHint)
             onHoverHint (hintAt (event.getPosition(), event.mods));
     }
 
+    enum class TimelineDragMode;   // defined below (the class-scope enum the zone law returns)
+
+    // G2.4: the zone under a point, as a drag mode (nullopt off any clip) — the hint, the cursor,
+    // the press and the harness share it.
+    [[nodiscard]] std::optional<TimelineDragMode> zoneAt (juce::Point<int> position, juce::ModifierKeys modifiers) const
+    {
+        if (! stateProvider)
+            return std::nullopt;
+        const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        const yesdaw::ui::TimelineHitTestResult hit = yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, position);
+        if (! hit.hit)
+            return std::nullopt;
+        return dragModeForPointer (state, getLocalBounds(), hit.id, position, modifiers);
+    }
+
+    [[nodiscard]] juce::MouseCursor cursorAt (juce::Point<int> position, juce::ModifierKeys modifiers) const
+    {
+        if (const std::optional<TimelineDragMode> zone = zoneAt (position, modifiers))
+            return cursorForDragMode (*zone);
+        return juce::MouseCursor::NormalCursor;
+    }
+
+    [[nodiscard]] juce::String zoneNameAt (juce::Point<int> position, juce::ModifierKeys modifiers) const
+    {
+        if (const std::optional<TimelineDragMode> zone = zoneAt (position, modifiers))
+            return dragModeName (*zone);
+        return "none";
+    }
+
     void mouseExit (const juce::MouseEvent&) override
     {
+        setMouseCursor (juce::MouseCursor::NormalCursor);   // G2.4
         if (onHoverHint)
             onHoverHint ({});
     }
@@ -1374,6 +1420,22 @@ public:
 
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
         const std::optional<double> eventSeconds = timelineSecondsAt (state, getLocalBounds(), event.getPosition());
+        if (drag.mode == TimelineDragMode::TimeSelect)
+        {
+            // G2.4: the lower band's drag is the ruler's Time selection, made from the lanes.
+            if (eventSeconds && onRulerRangeSelected)
+            {
+                const std::optional<double> downSeconds = timelineSecondsAt (state, getLocalBounds(), drag.downPosition);
+                if (downSeconds)
+                {
+                    const double first = std::min (*downSeconds, *eventSeconds);
+                    const double second = std::max (*downSeconds, *eventSeconds);
+                    if (second > first)
+                        onRulerRangeSelected (first, second, event.mods.isCtrlDown());
+                }
+            }
+            return;
+        }
         if (drag.mode == TimelineDragMode::TrimRight)
         {
             if (std::abs (deltaX) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
@@ -1546,8 +1608,8 @@ public:
                 onClipSplit (hit.id, *splitSeconds, event.mods.isCtrlDown());
     }
 
-private:
-    enum class TimelineDragMode
+public:
+    enum class TimelineDragMode   // public: the zone law's return type is part of the harness contract (G2.4)
     {
         Move,
         SnapMove,
@@ -1555,8 +1617,44 @@ private:
         TrimRight,
         Gain,
         FadeIn,
-        FadeOut
+        FadeOut,
+        TimeSelect   // G2.4: the clip body's lower band drags a Time selection (Pro Tools smart tool)
     };
+private:
+
+    // G2.4: one name per zone, for the hint, the harness and the gate.
+    [[nodiscard]] static const char* dragModeName (TimelineDragMode mode) noexcept
+    {
+        switch (mode)
+        {
+            case TimelineDragMode::Move:       return "move";
+            case TimelineDragMode::SnapMove:   return "snap-move";
+            case TimelineDragMode::TrimLeft:   return "trim-left";
+            case TimelineDragMode::TrimRight:  return "trim-right";
+            case TimelineDragMode::Gain:       return "gain";
+            case TimelineDragMode::FadeIn:     return "fade-in";
+            case TimelineDragMode::FadeOut:    return "fade-out";
+            case TimelineDragMode::TimeSelect: return "time-select";
+        }
+        return "move";
+    }
+
+    // G2.4: the cursor announces the zone BEFORE the press (every DAW).
+    [[nodiscard]] static juce::MouseCursor cursorForDragMode (TimelineDragMode mode) noexcept
+    {
+        switch (mode)
+        {
+            case TimelineDragMode::TrimLeft:
+            case TimelineDragMode::TrimRight:  return juce::MouseCursor::LeftRightResizeCursor;
+            case TimelineDragMode::FadeIn:     return juce::MouseCursor::TopLeftCornerResizeCursor;
+            case TimelineDragMode::FadeOut:    return juce::MouseCursor::TopRightCornerResizeCursor;
+            case TimelineDragMode::TimeSelect: return juce::MouseCursor::IBeamCursor;
+            case TimelineDragMode::Gain:       return juce::MouseCursor::UpDownResizeCursor;
+            case TimelineDragMode::Move:
+            case TimelineDragMode::SnapMove:   return juce::MouseCursor::NormalCursor;
+        }
+        return juce::MouseCursor::NormalCursor;
+    }
 
     struct TimelineDragState
     {
@@ -1686,27 +1784,34 @@ private:
         // middle (the piano roll's E12 law) — otherwise a short clip at a wide zoom is all
         // edge and could never be moved. Modifier gestures (Shift gain, Ctrl snap-invert,
         // Alt body copy-drag) stay available at any width.
+        // G2.4 Smart tool (plan §3.1; Pro Tools smart tool, Logic pointer zones): on a clip wide
+        // enough to grab, the edges trim, the TOP corners fade (Alt on an edge still fades, the
+        // old gesture), the LOWER band drags a Time selection, the rest moves. A narrow clip is
+        // all body, so it can always be grabbed.
+        const yesdaw::ui::ClipPixelRect rect = yesdaw::ui::visibleClipPixelRect (*clip, yesdaw::ui::viewportForClipLayout (geometry));
+        const double clipTopY = static_cast<double> (geometry.clipArea.getY()) + rect.y;
+        const double clipHeight = rect.h;
+        const bool inTopBand = clipHeight > 0.0
+                            && static_cast<double> (position.y) < clipTopY + clipHeight * yesdaw::ui::UiTheme::Layout::timelineClipFadeCornerBandFraction;
+        const bool inLowerBand = clipHeight > 0.0
+                              && static_cast<double> (position.y) >= clipTopY + clipHeight * (1.0 - yesdaw::ui::UiTheme::Layout::timelineClipTimeSelectBandFraction);
         if (clipRightX - clipLeftX
             >= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeMinGrabWidth))
         {
-            if (modifiers.isAltDown())
-            {
-                if (std::fabs (static_cast<double> (position.x) - clipLeftX)
-                    <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
-                    return TimelineDragMode::FadeIn;
-
-                if (std::fabs (static_cast<double> (position.x) - clipRightX)
-                    <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
-                    return TimelineDragMode::FadeOut;
-            }
-
-            if (std::fabs (static_cast<double> (position.x) - clipRightX)
-                <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
+            const bool nearLeft = std::fabs (static_cast<double> (position.x) - clipLeftX)
+                               <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth);
+            const bool nearRight = std::fabs (static_cast<double> (position.x) - clipRightX)
+                                <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth);
+            if (nearLeft && (inTopBand || modifiers.isAltDown()))
+                return TimelineDragMode::FadeIn;
+            if (nearRight && (inTopBand || modifiers.isAltDown()))
+                return TimelineDragMode::FadeOut;
+            if (nearRight)
                 return TimelineDragMode::TrimRight;
-
-            if (std::fabs (static_cast<double> (position.x) - clipLeftX)
-                <= static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineClipEdgeHitWidth))
+            if (nearLeft)
                 return TimelineDragMode::TrimLeft;
+            if (inLowerBand && ! modifiers.isShiftDown())
+                return TimelineDragMode::TimeSelect;   // Ctrl only defeats snap here, as on the ruler
         }
 
         if (modifiers.isShiftDown())
@@ -9289,6 +9394,21 @@ private:
 public:
     void harnessSetDockHeight (int height) { setDockHeight (height); }   // G2.1
     double harnessTimelineAutoScrollTick() { return timelineInput.autoScrollTick(); }   // G2.3
+    // G2.4: the Smart tool's zone and cursor under a shell point.
+    [[nodiscard]] juce::String harnessTimelineZoneAt (juce::Point<int> shellPoint, juce::ModifierKeys modifiers) const
+    {
+        return timelineInput.zoneNameAt (shellPoint - timelineInput.getPosition(), modifiers);
+    }
+    [[nodiscard]] juce::String harnessTimelineCursorAt (juce::Point<int> shellPoint, juce::ModifierKeys modifiers) const
+    {
+        const juce::MouseCursor zoneCursor = timelineInput.cursorAt (shellPoint - timelineInput.getPosition(), modifiers);
+        if (zoneCursor == juce::MouseCursor (juce::MouseCursor::LeftRightResizeCursor)) return "left-right";
+        if (zoneCursor == juce::MouseCursor (juce::MouseCursor::TopLeftCornerResizeCursor)) return "top-left";
+        if (zoneCursor == juce::MouseCursor (juce::MouseCursor::TopRightCornerResizeCursor)) return "top-right";
+        if (zoneCursor == juce::MouseCursor (juce::MouseCursor::IBeamCursor)) return "ibeam";
+        if (zoneCursor == juce::MouseCursor (juce::MouseCursor::UpDownResizeCursor)) return "up-down";
+        return "normal";
+    }
     void harnessInvokeContextMenuId (int itemId) { invokeContextMenuItem (itemId); }   // G2.2
     [[nodiscard]] static constexpr int harnessTimeDisplayMenuId (int mode) noexcept { return kContextMenuTimeDisplayBase + mode; }
 
@@ -13978,6 +14098,20 @@ void mainComponentSetDockHeight (juce::Component& component, int height)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         mainComponent->harnessSetDockHeight (height);
+}
+
+juce::String mainComponentTimelineZoneAt (juce::Component& component, juce::Point<int> shellPoint, juce::ModifierKeys modifiers)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessTimelineZoneAt (shellPoint, modifiers);
+    return "none";
+}
+
+juce::String mainComponentTimelineCursorAt (juce::Component& component, juce::Point<int> shellPoint, juce::ModifierKeys modifiers)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessTimelineCursorAt (shellPoint, modifiers);
+    return "normal";
 }
 
 double mainComponentTimelineAutoScrollTick (juce::Component& component)

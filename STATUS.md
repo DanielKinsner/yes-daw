@@ -41,9 +41,12 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.3 (drag ghosts + snap landing line, Esc cancels, edge-band auto-scroll;
-`[drag-preview]`) built, gated locally, committed; awaiting its exact-head run. Next: G2.4 — the
-Smart tool (pointer zones with cursors before the press). The drive stays paused (D14).
+**Now:** G2.4 (the Smart tool: pointer zones with cursors before the press; the lower band drags a
+Time selection; `[smart-tool]`) built, gated locally, committed; awaiting its exact-head run. G2.3
+(`83e8c5e`) ticks on its own run.
+Next: G2.5 — Time selection first-class (verbs on the range: cut / copy / paste-to / delete /
+silence, `Ctrl+E` split at edges, `Ctrl+U` loop from selection, `Z` zoom to selection,
+`Shift+F` select following). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -88,7 +91,32 @@ G1.7 ✅ — the dead-affordance sweep (`96c93bd`); certified by exact-head run 
 (green on all ten jobs, first try). **G1 headless work complete**; SS-2 pending Dan's go (D14).
 G2.1 cp1 ✅ — splitters + per-project view state (`98d1a89`); certified by exact-head run
 `33616439236` (green on all ten jobs, first try).
+G2.1 cp2 + cp3 ✅ — dock tabs (`669d155`), the letter cluster (`3a0ca74`), its paint fixes and
+the Linux fix; certified by exact-head run `33625472284` (green on all ten jobs) — G2.1 complete.
+G2.2 ✅ — ruler v2 (`9618882`); certified by the same run `33625472284`.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.4 — Smart tool (2026-09-02)
+
+**Build.** One zone law (`dragModeForPointer`) reads the whole clip rect
+(`visibleClipPixelRect`): on a clip ≥ `timelineClipEdgeMinGrabWidth` the edges trim, the **top
+corners fade** (Alt on an edge still fades — the old gesture), the **lower band** (`timelineClip
+TimeSelectBandFraction` 0.34) drags a **Time selection** (`TimelineDragMode::TimeSelect` → the
+ruler's `onRulerRangeSelected` from the lanes), the rest moves; Shift = gain, Ctrl = snap-move, a
+modifier wins over the band; a narrow clip is all body. **Cursors before the press**
+(`cursorForDragMode` in `mouseMove`; normal on exit): left-right on edges, corner cursors on
+fades, I-beam on the time band, up-down on gain. The G2.3 ghost paints the Time band. The hint
+names the zone. Harness `mainComponentTimelineZoneAt / CursorAt` (zone and cursor names).
+
+**Gates.** `[smart-tool]` (input check): on the fixture's wide clip every zone → mode and cursor
+(body, both edges, both top corners, lower band, Shift, Ctrl, Alt-edge, off-clip); the lower
+band's drag makes a Time selection and moves nothing; zoomed out below the grab minimum every
+point is "move" + normal.
+
+**Not built (recorded).** `Alt` on the right edge = stretch waits for G2.9 (Time Stretch is a
+lie today, G0 finding); the zone bands are fractions of the lane height — with track heights
+per lane (later) the tokens stay fractions; no zone glyphs painted on hover (the cursor is the
+affordance, per the reference).
 
 ### G2.3 — Drag previews and auto-scroll (2026-09-02)
 

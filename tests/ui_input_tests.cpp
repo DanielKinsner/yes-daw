@@ -16832,6 +16832,112 @@ TEST_CASE ("G2.3 drag previews: a mid-drag paints a ghost while the model stays 
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("G2.4 smart tool: pointer zones map to modes and cursors on a wide clip, a narrow clip is all body, the lower band drags a Time selection",
+           "[ui][input][shell][g2][smart-tool]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("smart-tool");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::ModifierKeys none;
+    const juce::ModifierKeys shift (juce::ModifierKeys::shiftModifier);
+    const juce::ModifierKeys ctrl (juce::ModifierKeys::ctrlModifier);
+    const juce::ModifierKeys alt (juce::ModifierKeys::altModifier);
+
+    const auto zone = [&] (juce::Point<int> local, juce::ModifierKeys mods)
+    {
+        return yesdaw::ui::mainComponentTimelineZoneAt (*shell, local + timeline.getPosition(), mods);
+    };
+    const auto cursor = [&] (juce::Point<int> local, juce::ModifierKeys mods)
+    {
+        return yesdaw::ui::mainComponentTimelineCursorAt (*shell, local + timeline.getPosition(), mods);
+    };
+    // The clip's rect in timeline coordinates, from the harness's own hit bounds.
+    const juce::Rectangle<int> clip = timelineClipHitBounds (timeline, project, 0u);
+    INFO ("clip " << clip.toString().toStdString());
+    REQUIRE (clip.getWidth() >= L::timelineClipEdgeMinGrabWidth);
+
+    const int midY = clip.getCentreY();
+    const int topY = clip.getY() + 3;
+    const int lowY = clip.getBottom() - 4;
+    const int leftX = clip.getX() + 2;
+    const int rightX = clip.getRight() - 3;
+    const int midX = clip.getCentreX();
+
+    // A wide clip: body moves, edges trim, top corners fade, the lower band selects time.
+    REQUIRE (zone ({ midX, midY }, none) == "move");
+    REQUIRE (cursor ({ midX, midY }, none) == "normal");
+    REQUIRE (zone ({ leftX, midY }, none) == "trim-left");
+    REQUIRE (cursor ({ leftX, midY }, none) == "left-right");
+    REQUIRE (zone ({ rightX, midY }, none) == "trim-right");
+    REQUIRE (cursor ({ rightX, midY }, none) == "left-right");
+    REQUIRE (zone ({ leftX, topY }, none) == "fade-in");
+    REQUIRE (cursor ({ leftX, topY }, none) == "top-left");
+    REQUIRE (zone ({ rightX, topY }, none) == "fade-out");
+    REQUIRE (cursor ({ rightX, topY }, none) == "top-right");
+    REQUIRE (zone ({ midX, lowY }, none) == "time-select");
+    REQUIRE (cursor ({ midX, lowY }, none) == "ibeam");
+    REQUIRE (zone ({ midX, midY }, shift) == "gain");
+    REQUIRE (cursor ({ midX, midY }, shift) == "up-down");
+    REQUIRE (zone ({ midX, midY }, ctrl) == "snap-move");
+    REQUIRE (zone ({ leftX, midY }, alt) == "fade-in");   // the old Alt-on-edge gesture still fades
+    REQUIRE (zone ({ midX, lowY }, shift) == "gain");      // Shift wins over the lower band
+    REQUIRE (zone ({ midX, lowY }, ctrl) == "time-select"); // Ctrl only defeats snap there
+    REQUIRE (zone ({ clip.getX() - 40, midY }, none) == "none");
+    REQUIRE (cursor ({ clip.getX() - 40, midY }, none) == "normal");
+
+    // The lower band's drag makes the Time selection and moves nothing.
+    REQUIRE (snapshotMainComponent (*shell).timelineRangeStartFrame < 0);
+    // Ctrl defeats snap, so a short drag inside one beat still makes a selection.
+    dragFromTo (timeline, { midX - 10, lowY }, { midX + 12, lowY },
+                juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+    {
+        const MainComponentSnapshot after = snapshotMainComponent (*shell);
+        REQUIRE (after.timelineRangeStartFrame >= 0);
+        REQUIRE (after.timelineRangeEndFrame > after.timelineRangeStartFrame);
+        REQUIRE (readProjectSnapshot (bundlePath).clips == project.clips);
+    }
+
+    // A narrow clip is all body. The view cannot zoom out below fit, so make one: split the clip a
+    // few milliseconds in (Ctrl+T at the playhead) — the left piece is a handful of pixels wide.
+    mouseDownAt (timeline, { midX, midY });   // select the clip
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    const yesdaw::ui::timeline_canvas_detail::RulerRows rulerRows =
+        yesdaw::ui::timeline_canvas_detail::rulerRows (yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {}).rulerArea);
+    const auto splitTick = static_cast<yesdaw::engine::Tick> (std::llround (0.008 * project.sampleRate.hz));
+    const int xSplit = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), project, project.clips.front().timelineStart + splitTick).x;
+    mouseDownAt (timeline, { xSplit, rulerRows.time.getCentreY() });
+    releaseDragAt (timeline, { xSplit, rulerRows.time.getCentreY() }, { xSplit, rulerRows.time.getCentreY() });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Project split = readProjectSnapshot (bundlePath);
+    REQUIRE (split.clips.size() == 2u);
+    std::size_t narrowIndex = 0;
+    for (std::size_t i = 1; i < split.clips.size(); ++i)
+        if (split.clips[i].timelineLength < split.clips[narrowIndex].timelineLength)
+            narrowIndex = i;
+    const juce::Rectangle<int> narrow = timelineClipHitBounds (timeline, split, narrowIndex);
+    INFO ("narrow " << narrow.toString().toStdString());
+    REQUIRE (narrow.getWidth() < L::timelineClipEdgeMinGrabWidth);
+    REQUIRE (narrow.getWidth() > 0);
+    const juce::Point<int> nMid = narrow.getCentre();
+    REQUIRE (zone (nMid, none) == "move");
+    REQUIRE (zone ({ narrow.getX() + 1, nMid.y }, none) == "move");
+    REQUIRE (zone ({ narrow.getRight() - 2, narrow.getY() + 2 }, none) == "move");
+    REQUIRE (zone ({ nMid.x, narrow.getBottom() - 2 }, none) == "move");
+    REQUIRE (cursor (nMid, none) == "normal");
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",
            "[ui][input][shell][g1][menus-show-keys]")
 {

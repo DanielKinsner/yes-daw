@@ -712,6 +712,10 @@ struct UiTheme
         static constexpr double timelineCoordinatePixelsPerSecondFloor = 1.0;
         static constexpr int timelineSnapGridTicks = 512;
         static constexpr int timelineClipEdgeHitWidth = 8;
+        // G2.4 (Smart tool, plan §3.1): the pointer zones of a clip body — the top band holds the
+        // fade corners, the lower band is the Time-selection zone, the rest moves.
+        static constexpr double timelineClipFadeCornerBandFraction = 0.34;
+        static constexpr double timelineClipTimeSelectBandFraction = 0.34;
         // R1: edge zones only bite on a clip painted at least this wide — the piano roll's
         // E12 min-grab law applied to the timeline, so a narrow clip keeps a movable body.
         static constexpr int timelineClipEdgeMinGrabWidth = 24;
