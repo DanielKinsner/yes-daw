@@ -26,6 +26,8 @@ enum class ProjectEditVerb : std::uint8_t
     SetClipFades,
     SetClipStretch,   // G2.9
     SetClipFadeShapes,   // G2.10
+    SetClipColour,   // G2.12
+    SetClipMuted,
     MoveNote,
     SetNoteLength,
     SplitNote,
@@ -114,6 +116,8 @@ struct ProjectEditCommand
     FadeShape fadeOutShape = FadeShape::EqualPower;
     float fadeInCurve = 0.0f;
     float fadeOutCurve = 0.0f;
+    std::uint32_t clipColour = 0;   // G2.12
+    bool clipMuted = false;
     EntityId midiClipId;
     EntityId noteId;
     EntityId rightNoteId;
@@ -284,6 +288,25 @@ struct ProjectEditCommand
         command.fadeInCurve = newFadeInCurve;
         command.fadeOutShape = newFadeOutShape;
         command.fadeOutCurve = newFadeOutCurve;
+        return command;
+    }
+
+    // G2.12: a Clip's own colour (0 = follow the track) and its mute.
+    [[nodiscard]] static constexpr ProjectEditCommand setClipColour (EntityId clipId, std::uint32_t colour) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetClipColour;
+        command.clipId = clipId;
+        command.clipColour = colour;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setClipMuted (EntityId clipId, bool muted) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetClipMuted;
+        command.clipId = clipId;
+        command.clipMuted = muted;
         return command;
     }
 
@@ -559,6 +582,8 @@ struct ProjectEditCommand
         command.fadeInCurve = clip.fadeInCurve;
         command.fadeOutShape = clip.fadeOutShape;
         command.fadeOutCurve = clip.fadeOutCurve;
+        command.clipColour = clip.colour;   // G2.12
+        command.clipMuted = clip.muted;
         command.clipTimeBase = clip.timeBase;
         (void) copyClipName (command, clip.name.asView());
         return command;
@@ -1272,6 +1297,12 @@ namespace detail {
             return setClipFadeShapes (project, command.clipId, command.fadeInShape, command.fadeInCurve,
                                       command.fadeOutShape, command.fadeOutCurve);
 
+        case ProjectEditVerb::SetClipColour:   // G2.12
+            return setClipColour (project, command.clipId, command.clipColour);
+
+        case ProjectEditVerb::SetClipMuted:
+            return setClipMuted (project, command.clipId, command.clipMuted);
+
         case ProjectEditVerb::MoveNote:
             return moveNote (project, command.midiClipId, command.noteId, command.noteStartTick);
 
@@ -1370,6 +1401,8 @@ namespace detail {
             clip.fadeInCurve = command.fadeInCurve;
             clip.fadeOutShape = command.fadeOutShape;
             clip.fadeOutCurve = command.fadeOutCurve;
+            clip.colour = command.clipColour;   // G2.12
+            clip.muted = command.clipMuted;
             clip.timeBase = command.clipTimeBase;
             if (command.clipName[0] == '\0')
                 return ProjectEditStatus::InvalidClipName;

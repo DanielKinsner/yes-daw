@@ -54,6 +54,7 @@ struct TimelineCanvasClipStyle
     int fadeOutShape = 1;
     float fadeInCurve = 0.0f;
     float fadeOutCurve = 0.0f;
+    bool muted = false;       // G2.12: painted dim (a panel wash over everything but the ring)
 };
 
 struct TimelineMarker
@@ -1342,6 +1343,12 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
                         clipRect.reduced (UiTheme::Space::sm),
                         juce::Justification::topLeft,
                         true);
+        }
+        if (style.muted)   // G2.12: the muted wash sits over body, waveform, fades and name
+        {
+            g.setColour (kPanel.withAlpha (UiTheme::Tone::timelineClipMutedWashAlpha));
+            g.fillRoundedRectangle (clipRect.toFloat().reduced (UiTheme::Layout::timelineCanvasOutlineInset),
+                                    UiTheme::Radius::md);
         }
 
         if (style.selected)

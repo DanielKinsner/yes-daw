@@ -506,6 +506,8 @@ struct Clip
     FadeShape fadeOutShape = FadeShape::EqualPower;
     float fadeInCurve = 0.0f;                         // -1..1 bends the shape
     float fadeOutCurve = 0.0f;
+    std::uint32_t colour = kTrackColourUnset;         // G2.12: 0 = follow the track's colour
+    bool muted = false;                               // G2.12: silent in the mix, painted dim
 
     [[nodiscard]] constexpr bool references (const Asset& asset) const noexcept
     {
@@ -825,6 +827,7 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidClipEnvelope,
     InvalidClipStretch,   // G2.9: the stretch factor is outside ADR-0030's 0.5..2.0 (or not finite)
     InvalidClipFadeShape, // G2.10: an unknown shape or a curve amount outside -1..1
+    InvalidClipColour,    // G2.12: a clip colour that is neither unset nor fully opaque
     InvalidMidiClipId,
     MidiClipNotFound,
     InvalidNoteId,
@@ -1803,6 +1806,7 @@ namespace detail {
            && clipStretchIsStorageSafe (clip.stretchFactor)
            && clipFadeShapeIsStorageSafe (clip.fadeInShape, clip.fadeInCurve)
            && clipFadeShapeIsStorageSafe (clip.fadeOutShape, clip.fadeOutCurve)
+           && trackColourIsValid (clip.colour)
            && (clip.timeBase == TimeBase::TempoLocked || clip.timeBase == TimeBase::SampleLocked);
 }
 
@@ -2004,6 +2008,36 @@ namespace detail {
     clip->fadeInCurve = newFadeInCurve;
     clip->fadeOutShape = newFadeOutShape;
     clip->fadeOutCurve = newFadeOutCurve;
+    return ProjectEditStatus::Applied;
+}
+
+// G2.12: a Clip's own colour (0 = follow the track; a set colour is fully opaque, like a track's).
+[[nodiscard]] inline ProjectEditStatus setClipColour (Project& project, EntityId clipId, std::uint32_t newColour) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+    if (! trackColourIsValid (newColour))
+        return ProjectEditStatus::InvalidClipColour;
+    clip->colour = newColour;
+    return ProjectEditStatus::Applied;
+}
+
+// G2.12: clip mute — the Clip stays where it is and plays nothing.
+[[nodiscard]] inline ProjectEditStatus setClipMuted (Project& project, EntityId clipId, bool newMuted) noexcept
+{
+    if (! detail::projectCanApplyClipEdit (project))
+        return ProjectEditStatus::InvalidProject;
+    if (! clipId.isValid())
+        return ProjectEditStatus::InvalidClipId;
+    Clip* const clip = detail::findClip (project, clipId);
+    if (clip == nullptr)
+        return ProjectEditStatus::ClipNotFound;
+    clip->muted = newMuted;
     return ProjectEditStatus::Applied;
 }
 

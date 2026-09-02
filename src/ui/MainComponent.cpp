@@ -524,6 +524,7 @@ public:
     std::function<void (int, double, bool)> onClipTrimmedRight;  // layoutClipId, seconds, snapInvert
     std::function<void (int, double, bool)> onClipStretchedRight; // G2.9b: layoutClipId, new end seconds, snapInvert
     std::function<void (int, double)> onClipSlipped;              // G2.11: layoutClipId, delta seconds (content moves right for +)
+    std::function<void (int)> onClipRenameRequested;              // G2.12: layoutClipId (a double-click in the name band)
     std::function<void (int, double, bool)> onClipTrimmedLeft;   // layoutClipId, seconds, snapInvert
     std::function<void (int, int)> onClipGainAdjusted;
     std::function<void (int, bool, double, double)> onClipFadeAdjusted;   // G2.10: + the curve bend
@@ -1642,6 +1643,19 @@ public:
         if (onClipClicked)
             onClipClicked (hit.id, false);
 
+        // G2.12: a double-click in the clip's NAME band renames it inline; the body keeps its split.
+        if (const yesdaw::ui::Clip* const namedClip = findClipByLayoutId (state, hit.id))
+        {
+            const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+            const yesdaw::ui::ClipPixelRect rect = yesdaw::ui::visibleClipPixelRect (*namedClip, yesdaw::ui::viewportForClipLayout (geometry));
+            const double clipTopY = static_cast<double> (geometry.clipArea.getY()) + rect.y;
+            if (static_cast<double> (event.getPosition().y) < clipTopY + yesdaw::ui::UiTheme::Layout::timelineClipNameBandHeight)
+            {
+                if (onClipRenameRequested)
+                    onClipRenameRequested (hit.id);
+                return;
+            }
+        }
         if (onClipDoubleClicked && onClipDoubleClicked (hit.id))
             return;
 
@@ -4240,6 +4254,14 @@ public:
         };
         timelineInput.onClipSlipped = [this] (int timelineClipId, double deltaSeconds) {   // G2.11
             slipTimelineClipByLayoutId (timelineClipId, deltaSeconds);
+        };
+        timelineInput.onClipRenameRequested = [this] (int timelineClipId) {   // G2.12
+            if (timelineClipId < 0 || timelineClipId >= static_cast<int> (timelineClipIds.size()))
+                return;
+            (void) appModel.selectTimelineClip (timelineClipIds[static_cast<std::size_t> (timelineClipId)]);
+            refreshActionState();
+            openClipRenameEditor();
+            repaintAll();
         };
         timelineInput.onClipTrimmedLeft = [this] (int timelineClipId, double startSeconds, bool snapInvert) {
             if (timelineClipId < 0 || timelineClipId >= static_cast<int> (timelineClipIds.size()))
@@ -9371,13 +9393,14 @@ private:
             UiActionId::TrackToggleMute,   UiActionId::TrackToggleSolo,    UiActionId::TrackToggleArm,
             UiActionId::MixerTrackSetOutput,
         };
-        static constexpr std::array<UiActionId, 13> kClipMenu {
+        static constexpr std::array<UiActionId, 15> kClipMenu {
             UiActionId::TimelineClipSplit, UiActionId::TimelineClipHeal,
             UiActionId::TimelineClipApplyDefaultFades, UiActionId::TimelineClipSetFades,
             UiActionId::TimelineClipCrossfade, UiActionId::TimelineClipSetGain,
             UiActionId::TimelineClipGainIncrease, UiActionId::TimelineClipGainDecrease,
             UiActionId::TimelineClipMove,  UiActionId::TimelineClipTrim,
             UiActionId::TimelineClipTimeStretch, UiActionId::TimelineClipStretchToLoop,   // G2.9b
+            UiActionId::TimelineClipToggleMute, UiActionId::TimelineClipColourNext,      // G2.12
             UiActionId::TimelineMidiClipAdd,
         };
         static constexpr std::array<UiActionId, 10> kMidiMenu {
@@ -9469,6 +9492,7 @@ private:
             case UiActionId::TimelineSnapModeRelative:          return c.snapMode == yesdaw::ui::UiSnapMode::Relative;
             case UiActionId::TimelineSnapModeEvents:            return c.snapMode == yesdaw::ui::UiSnapMode::Events;
             case UiActionId::TimelineSnapModeOff:               return c.snapMode == yesdaw::ui::UiSnapMode::Off;
+            case UiActionId::TimelineClipToggleMute:            return c.timelineClipMuted;   // G2.12
             case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
             case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
             case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
@@ -12295,7 +12319,9 @@ private:
             // V6: selection is a painted RING, not a colour swap — the clip keeps its N7 track
             // colour while selected (the old accent-blue swap was invisible on a blue track,
             // the exact false-positive risk the N7 gate had to work around).
-            timelineClipStyles.push_back ({ colourForTrack (*track, kPurple),
+            timelineClipStyles.push_back ({ clip.colour != yesdaw::engine::kTrackColourUnset
+                                                ? juce::Colour (clip.colour)                 // G2.12: the clip's own colour
+                                                : colourForTrack (*track, kPurple),
                                             yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha,
                                             appModel.isTimelineClipSelected (clip.id),
                                             static_cast<long long> (clip.timelineLength),
@@ -12304,7 +12330,8 @@ private:
                                             static_cast<int> (clip.fadeInShape),      // G2.10
                                             static_cast<int> (clip.fadeOutShape),
                                             clip.fadeInCurve,
-                                            clip.fadeOutCurve });
+                                            clip.fadeOutCurve,
+                                            clip.muted });   // G2.12
             timelineClipIds.push_back (clip.id);
             timelineClipAssetHashes.push_back (asset->contentHash);
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);

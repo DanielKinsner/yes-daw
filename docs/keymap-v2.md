@@ -21,6 +21,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `Ctrl+Z` | Undo | `edit.undo` |
 | `Ctrl+Shift+Z` | Redo | `edit.redo` |
 | `P` | Piano Roll | `view.piano_roll` |
+| `Ctrl+M` | Mute Clip | `timeline.clip.toggle_mute` |
 | `Alt+K` | Keymap | `help.show_keymap` |
 | `1` | Pointer | `timeline.tool.pointer` |
 | `2` | Pencil | `timeline.tool.pencil` |
@@ -113,6 +114,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Clip Fades (`timeline.clip.set_fades`)
 - Time Stretch (`timeline.clip.time_stretch`)
 - Stretch to Loop Length (`timeline.clip.stretch_to_loop`)
+- Clip Colour: Next (`timeline.clip.colour_next`)
 - Fader (`mixer.target.set_fader`)
 - Pan (`mixer.target.set_pan`)
 - Mute (`mixer.target.toggle_mute`)

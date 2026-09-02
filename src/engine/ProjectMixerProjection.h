@@ -486,6 +486,8 @@ template <typename ClipSourceProvider>
             const Clip& clip = project.clips[i];
             if (! (clip.trackId == owningTrack.id))
                 continue;
+            if (clip.muted)   // G2.12: the SAME skip the live builder applies
+                continue;
 
             const Asset* const asset = project.findAsset (clip.assetId);
             if (asset == nullptr)

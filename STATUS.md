@@ -41,10 +41,9 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.11 (slip — Ctrl+Alt-drag moves the source under a fixed window, snapped, clamped,
-undoable; `[slip]`) built, gated locally, committed; awaiting its exact-head run. Next: G2.12 —
-Clip properties (colour, mute, inline rename, inspector numeric fields; `[clip-properties]`).
-The drive stays paused (D14).
+**Now:** G2.12 (clip properties — mute, colour, inline rename from the name band; schema v24;
+`[clip-properties]`) built, gated locally, committed; awaiting its exact-head run. Next: the
+plan's G2.13 (see the plan for the next item in order). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -102,7 +101,33 @@ G2.8 ✅ — Nudge value in clock units (`463646e`); certified by run `336330845
 macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
 G2.9a ✅ — time-stretch engine half, schema v22 (`4e24714`); certified by exact-head run `33634707297`
 (green on all ten jobs).
+G2.9b ✅ — time-stretch gesture (`15e16e1`); G2.10 ✅ — fades v2, schema v23 (`d0800c6`); certified by
+exact-head run `33637897699` on `d0800c6` (green on all ten jobs).
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.12 — Clip properties (2026-09-02)
+
+**Build.** `Clip::colour` (0 = follow the track; `trackColourIsValid`) and `Clip::muted`;
+schema **v24** (two `ALTER TABLE clips ADD COLUMN`s with defaults); verbs `SetClipColour` /
+`SetClipMuted` (+ apply functions; `InvalidClipColour`). Render: `buildTrackClipSchedule` and
+the projection's per-track clip loop skip a muted Clip (the SAME skip on both paths). UI verbs
+`TimelineClipToggleMute` (`Ctrl+M`, Toggle, ticked via `context.timelineClipMuted`) and
+`TimelineClipColourNext` (the model's `kClipColourCycle` = the rail's six swatches); the Clip
+menu (13 → 15) and the clip context menu (14 → 16) carry both. Canvas: the style carries the
+clip's own colour and `muted`; a panel wash (`timelineClipMutedWashAlpha` 0.55) sits over a
+muted clip's body, waveform, fades and name (the selection ring stays on top). The timeline's
+double-click in the name band (`timelineClipNameBandHeight` 18) → `onClipRenameRequested` →
+the existing inline rename editor; the body double-click still splits (E4).
+
+**Gates.** Persistence: v24 round-trip; the v10 simulation strips v24. `[clip-properties]`:
+Ctrl+M mutes (tick, silent render, place kept), unmutes (sounds), undo walks back; the colour
+verb cycles six and undoes; the name-band double-click opens the editor without a split,
+Enter commits, undo restores; the context menu lists both verbs after Time Stretch.
+
+**Not built (recorded).** No 72-colour palette (Logic) — the six-swatch cycle is the track
+law; a palette submenu is a G3 chrome item; no colour swatch or mute button in the inspector
+(the verbs live in the menus and the chord); a muted clip's waveform is washed, not hatched;
+MIDI clips have neither property yet.
 
 ### G2.11 — Slip (2026-09-02)
 

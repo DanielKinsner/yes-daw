@@ -17772,6 +17772,91 @@ TEST_CASE ("G2.11 slip: Ctrl+Alt-drag moves the source under a fixed window, sna
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// G2.12: clip properties — Ctrl+M mutes (silent in the render, painted dim, ticked), the colour
+// cycles through the track palette (0 = follow the track), a double-click in the name band renames
+// inline; each an undoable edit; the Clip menu and the clip context menu carry the two verbs.
+TEST_CASE ("G2.12 clip properties: mute is silent and undoable, colour cycles, the name band renames inline",
+           "[ui][input][shell][g2][clip-properties]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-properties");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Clip base = readProjectSnapshot (bundlePath).clips.front();
+    REQUIRE_FALSE (base.muted);
+    REQUIRE (base.colour == yesdaw::engine::kTrackColourUnset);
+    const auto clipNow = [&] { return readProjectSnapshot (bundlePath).clips.front(); };
+    const auto renderPeak = [&]
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, 512, 128);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+        return peakAbs (std::span<const float> (rendered.data(), rendered.size()));
+    };
+    REQUIRE (renderPeak() > 0.01);
+
+    // Mute: Ctrl+M mutes (the tick follows), the render is silent, the clip keeps its place.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow().muted);
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipMuted);
+    REQUIRE (renderPeak() == 0.0);
+    REQUIRE (clipNow().timelineStart == base.timelineStart);
+    REQUIRE (clipNow().timelineLength == base.timelineLength);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (clipNow().muted);
+    REQUIRE (renderPeak() > 0.01);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow().muted);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == base);
+
+    // Colour: the verb cycles follow-track -> the five accents -> follow-track; undo walks back.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipColourNext);
+    REQUIRE (clipNow().colour == 0xff3b8cffu);
+    for (int i = 0; i < 5; ++i)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipColourNext);
+    REQUIRE (clipNow().colour == yesdaw::engine::kTrackColourUnset);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow().colour == 0xff20c8d8u);
+    for (int i = 0; i < 5; ++i)
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == base);
+
+    // Rename: a double-click in the name band opens the inline editor; Enter commits; a
+    // double-click on the body still splits (E4's law, untouched).
+    const juce::Rectangle<int> rect = timelineClipHitBounds (timeline, readProjectSnapshot (bundlePath), 0u);
+    auto* editor = dynamic_cast<juce::TextEditor*> (findChildWithComponentId (*shell, "shell.timeline.clip.rename"));
+    REQUIRE (editor != nullptr);
+    REQUIRE_FALSE (editor->isVisible());
+    doubleClickAt (timeline, { rect.getX() + 12, rect.getY() + 6 });
+    REQUIRE (editor->isVisible());
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);   // no split from the name band
+    editor->setText ("Verse", juce::dontSendNotification);
+    editor->onReturnKey();   // Enter commits (the editor's own return law)
+    REQUIRE_FALSE (editor->isVisible());
+    REQUIRE (clipNow().name.asView() == std::string_view ("Verse"));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (clipNow() == base);
+
+    // The clip context menu carries the two verbs, right after Time Stretch.
+    const yesdaw::ui::MainComponentContextMenu menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, rect.getCentre() + timeline.getPosition());
+    REQUIRE (menu.shown);
+    const auto it = std::find (menu.actions.begin(), menu.actions.end(), UiActionId::TimelineClipTimeStretch);
+    REQUIRE (it != menu.actions.end());
+    REQUIRE (it + 2 < menu.actions.end());
+    REQUIRE (*(it + 1) == UiActionId::TimelineClipToggleMute);
+    REQUIRE (*(it + 2) == UiActionId::TimelineClipColourNext);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its chord for the focus context",
            "[ui][input][shell][g1][menus-show-keys]")
 {

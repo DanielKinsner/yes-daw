@@ -132,6 +132,7 @@ struct UiTheme
         static constexpr float timelineCanvasClipFillAlpha = 0.42f;
         static constexpr float timelineCanvasClipOutlineBrightness = 0.35f;
         static constexpr float timelineDragGhostFillAlpha = 0.30f;      // G2.3
+        static constexpr float timelineClipMutedWashAlpha = 0.55f;   // G2.12: the panel wash over a muted clip
         static constexpr float timelineDragGhostOutlineAlpha = 0.95f;   // G2.3
         static constexpr float timelineCanvasRulerTickAlpha = 0.65f;
         static constexpr float timelineCanvasGridLaneSeparatorAlpha = 0.7f;
@@ -417,6 +418,8 @@ struct UiTheme
         static constexpr double inspectorFadeCurveAmountMax = 100.0;
         static constexpr double inspectorFadeCurveAmountInterval = 1.0;
         static constexpr double timelineFadeCurveDragPixelsPerUnit = 80.0;
+        // G2.12: a double-click in the clip's name band (the painted label row) renames; below it splits.
+        static constexpr int timelineClipNameBandHeight = 18;
         static constexpr int inspectorFadeRowHeight = 32;
         static constexpr int inspectorFadeRowInsetX = 0;
         static constexpr int inspectorFadeRowInsetY = 3;

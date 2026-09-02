@@ -5778,6 +5778,55 @@ public:
         return { id, state, true };
     }
 
+    // G2.12: the clip's own colour cycle — the SAME six swatches the rail row cycles through
+    // (0 = follow the track, then the five theme accents), so a clip colour always looks native.
+    static constexpr std::array<std::uint32_t, 6> kClipColourCycle {
+        engine::kTrackColourUnset, 0xff3b8cffu, 0xff1bb5a6u, 0xffd29118u, 0xffa578ffu, 0xff20c8d8u };
+
+    [[nodiscard]] UiActionDispatchResult cycleSelectedTimelineClipColour()
+    {
+        const UiActionId id = UiActionId::TimelineClipColourNext;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+        const auto it = std::find (kClipColourCycle.begin(), kClipColourCycle.end(), clip->colour);
+        const std::size_t index = it == kClipColourCycle.end() ? 0u : static_cast<std::size_t> (it - kClipColourCycle.begin());
+        const std::uint32_t next = kClipColourCycle[(index + 1u) % kClipColourCycle.size()];
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setClipColour (selectedTimelineClipId_, next)).applied())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleSelectedTimelineClipMute()
+    {
+        const UiActionId id = UiActionId::TimelineClipToggleMute;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::Clip* const clip = findClip (selectedTimelineClipId_);
+        if (clip == nullptr)
+            return { id, { false, "timeline clip missing" }, false };
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setClipMuted (selectedTimelineClipId_, ! clip->muted)).applied())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "timeline edit did not persist" }, false };
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        ++context_.timelineEditCount;
+        return { id, state, true };
+    }
+
     // G2.10: the fade shapes and curve amounts of the selected clip (both ends).
     [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipFadeShapes (engine::FadeShape fadeInShape,
                                                                             float fadeInCurve,
@@ -6831,6 +6880,12 @@ public:
             case UiActionId::TimelineClipStretchToLoop:   // G2.9b
                 return stretchSelectedTimelineClipToLoop();
 
+            case UiActionId::TimelineClipToggleMute:   // G2.12
+                return toggleSelectedTimelineClipMute();
+
+            case UiActionId::TimelineClipColourNext:
+                return cycleSelectedTimelineClipColour();
+
             case UiActionId::TimelineClipMove:
             case UiActionId::TimelineClipTrim:
             case UiActionId::TimelineClipSplit:
@@ -7857,6 +7912,10 @@ private:
         else if (! isTimelineClipSelected (selectedTimelineClipId_))
             selectedTimelineClipId_ = selectedTimelineClipIds_.back();
         context_.timelineClipSelected = ! selectedTimelineClipIds_.empty();
+        {
+            const engine::Clip* const selectedClip = context_.projectLoaded ? findClip (selectedTimelineClipId_) : nullptr;   // G2.12
+            context_.timelineClipMuted = selectedClip != nullptr && selectedClip->muted;
+        }
 
         const engine::MidiClip* const midiClip = context_.projectLoaded ? findMidiClip (selectedMidiClipId_) : nullptr;
         if (midiClip == nullptr)

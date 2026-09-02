@@ -484,6 +484,8 @@ namespace detail {
     {
         if (! (clip.trackId == trackId))
             continue;
+        if (clip.muted)   // G2.12: a muted Clip keeps its place and plays nothing
+            continue;
         const Asset* const asset = project.findAsset (clip.assetId);
         if (asset == nullptr || ! mixerGainIsValid (clip.gain))
         {
