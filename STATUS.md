@@ -72,6 +72,15 @@ by exact-head run `33608447371` (green on all ten jobs) for full SHA
 `92a9f5464593995e6c21cf3ea0672a098f5f0c90` (the G1.2 commit, which carries the D41 fix). cp2's own
 run was red on Linux/macOS at the compile step (D41).
 G1.2 ✅ — `92a9f54`; certified by the same run `33608447371`.
+G1.3 ✅ — context menus (`74ca3a2` seven targets, `4aa49b4` the insert slot, `998cd21` the
+right-button fix for macOS Ctrl+click); certified by exact-head run `33611170410` (green on all ten
+jobs) for full SHA `35814d5b51f1096a19c7f62c498cc0b62f53e555` (the G1.4 cp1 commit). Its own runs: cp1/cp2 red on
+macOS only (D44), the fix's run cancelled by the next push (D47).
+G1.4 ✅ — toolbar v2 (`35814d5`: nudge value chooser + verbs, the inspector toggle on I, the
+two-readout counter); certified by the same run `33611170410`. Deferred inside the item, recorded:
+Edit mode / Snap mode choosers (their model is G2), the X / P / A regrouping (G1.7 sweep), nudge
+in ms / samples / frames (G2.15). The two defects its rubric shot exposed (D45 menu bar width,
+D46 the caption clipped since G0.7) are fixed in `bd1117a`, whose run is watched.
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
