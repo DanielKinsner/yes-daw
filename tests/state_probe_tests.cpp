@@ -302,7 +302,7 @@ TEST_CASE ("state probe: lanes and clips by id, and the published clip rect is c
     tick (*shell);
     probe = probeOf (*shell);
     REQUIRE (static_cast<bool> (probe["transport"]["isPlaying"]));
-    REQUIRE (probe["lastAction"].toString() == "transport.play");
+    REQUIRE (probe["lastAction"].toString() == "transport.toggle_play_stop");   // G0.2: Space toggles
     REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
     tick (*shell);
     probe = probeOf (*shell);

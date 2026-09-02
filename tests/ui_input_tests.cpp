@@ -1045,6 +1045,90 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     REQUIRE (snapshot.visiblePianoRollNoteCount == 0);
 }
 
+// G0.2 — the command router (ADR-0046 §4). Keys go to the router, not to widgets: (1) every
+// widget in the shell except a text editor declines keyboard focus, so a clicked button/combo/
+// slider can never eat the next chord; (2) Space TOGGLES play/stop; (3) the KeyListener half
+// routes a chord that reached the top-level window (the launch-time focus hole Dan hit) exactly
+// as if the shell were focused, while a text editor that originated the key keeps it.
+TEST_CASE ("command router: widgets decline focus, Space toggles, window-level keys route",
+           "[ui][input][shell][command-router]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("command-router");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // (1) The focus law over the WHOLE tree: buttons, combos, sliders, overlays — all decline;
+    // only text editors (the rename editors) may take focus; the shell itself wants it.
+    REQUIRE (shell->getWantsKeyboardFocus());
+    int declined = 0, textEditors = 0, buttons = 0, combos = 0, sliders = 0;
+    std::function<void (juce::Component&)> walk = [&] (juce::Component& parent) {
+        for (int i = 0; i < parent.getNumChildComponents(); ++i)
+        {
+            juce::Component& child = *parent.getChildComponent (i);
+            if (dynamic_cast<juce::TextEditor*> (&child) != nullptr)
+                ++textEditors;
+            else
+            {
+                INFO ("component id: " << child.getComponentID() << " name: " << child.getName());
+                REQUIRE_FALSE (child.getWantsKeyboardFocus());
+                ++declined;
+                if (dynamic_cast<juce::Button*> (&child) != nullptr) ++buttons;
+                if (dynamic_cast<juce::ComboBox*> (&child) != nullptr) ++combos;
+                if (dynamic_cast<juce::Slider*> (&child) != nullptr) ++sliders;
+            }
+            walk (child);
+        }
+    };
+    walk (*shell);
+    REQUIRE (textEditors >= 4);   // track / clip / marker / bus rename editors
+    REQUIRE (buttons > 20);
+    REQUIRE (combos > 5);
+    REQUIRE (sliders > 3);
+    REQUIRE (declined > 100);
+
+    // (2) Space toggles through the shell's own keyPressed (the focused-shell path).
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
+    // Plain Play has no chord any more; its button still plays, and a second click keeps playing.
+    REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount > 0);
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
+
+    // (3) The KeyListener half: a chord originating at a button (a widget that did not consume
+    // it) or at the window routes; one originating at a text editor is left alone.
+    auto* router = dynamic_cast<juce::KeyListener*> (shell.get());
+    REQUIRE (router != nullptr);
+    juce::Button& play = requireButtonForAction (*shell, UiActionId::TransportPlay);
+    REQUIRE (router->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey), &play));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    juce::Component fakeWindow;
+    REQUIRE (router->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey), &fakeWindow));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
+    juce::TextEditor editor;
+    REQUIRE_FALSE (router->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey), &editor));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
+    // Originating at the shell itself is the focused-shell path already handled by keyPressed(key):
+    // the listener declines so nothing dispatches twice.
+    REQUIRE_FALSE (router->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey), shell.get()));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
+
+    // Negative control: an unmapped chord dispatches nothing on either path.
+    REQUIRE_FALSE (shell->keyPressed (juce::KeyPress (juce::KeyPress::F11Key)));
+    REQUIRE_FALSE (router->keyPressed (juce::KeyPress (juce::KeyPress::F11Key), &fakeWindow));
+}
+
 // M7 — the timeline never invents content. `drawClipWaveform` used to synthesize a waveform from a
 // hash of the clip id whenever no peak cache was ready, and MIDI clips ALWAYS took that path (they
 // carry no asset), so every MIDI clip painted confident audio detail for audio that does not exist.
@@ -12414,7 +12498,9 @@ TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one 
     REQUIRE (lane.points.back().value > lane.points.front().value);
 
     // The render follows the written automation — stopping and replaying from the top no longer
-    // matches a flat unity-gain render.
+    // matches a flat unity-gain render. (G0.2 re-pin: Space TOGGLES now, so the stop the comment
+    // describes is explicit — K — instead of relying on Space being a no-op while playing.)
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
     const std::vector<float> automated = renderMainComponentPlayback (*shell, 48'000, 128);

@@ -33,3 +33,4 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 
 
 - [ ] 2026-09-01 · arrange · with the counter at 010|04 and playhead-follow on, no playhead line is visible in the lanes at 2560×1440 (SS-1 step 13 shot, zoom "2x") · `src/ui/MainComponent.cpp` `followPlaybackPlayhead` · promote-to: G2.16 (follow modes)
+- [ ] 2026-09-01 · shell · SS-1 step 1 assumes launch lands in an empty project; the shipped shell launches with NO project ("Create or open a Project") because every edit writes a full snapshot to a bundle path that only New/Open provide · `src/ui/MainComponent.cpp` constructor (last-project reopen) / `UiAppModel::createProjectBundle` · promote-to: G5.5 (new-project dialog / templates decide where an unsaved project lives); until then SS-1 step 1's empty-project line stays red by design and the G0 exit is evaluated with that one line excluded (logged in STATUS G0.2)

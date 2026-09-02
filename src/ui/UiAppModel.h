@@ -6088,6 +6088,19 @@ public:
                 }
                 return dispatchTransport (id, [this] { return stopPlaybackAtConfiguredPosition(); });
 
+            case UiActionId::TransportTogglePlayStop:
+            {
+                // G0.2: the LIVE engine state decides (not the tick-synced context copy), so a
+                // transport that ran off the end since the last tick still toggles honestly. A
+                // pending count-in counts as "playing" — Space cancels it, as Stop does.
+                const bool playing = context_.recordCountInActive
+                                  || (playback_ != nullptr && playback_->isPlaying());
+                UiActionDispatchResult result = dispatch (playing ? UiActionId::TransportStop
+                                                                  : UiActionId::TransportPlay);
+                result.action = id;
+                return result;
+            }
+
             case UiActionId::TransportLocateStart:
             case UiActionId::TransportReturnToZero:
                 return locatePlaybackAbsolute (id, 0);

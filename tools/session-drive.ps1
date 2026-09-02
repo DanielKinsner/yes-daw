@@ -300,13 +300,20 @@ function Key([string] $chord, [int] $Repeat = 1) {
   if ($parts.Count -gt 1) { $mods = ModifierVks (($parts[0..($parts.Count - 2)]) -join '+') }
   $vk = VkFor $keyName
   $ext = $script:ExtendedVk -contains $vk
+  # JUCE reads modifier state with GetAsyncKeyState (the PHYSICAL state at processing time), not
+  # from the message queue — so a modifier must still be held when the app gets round to the key
+  # message. Hold it for a beat on both sides of the key or "Ctrl+N" arrives as "N".
+  # A repeat burst holds the modifier ONCE across all presses (a user holds Alt and taps Right),
+  # so fifty nudges take about a second, not a minute of modifier settling.
+  foreach ($m in $mods) { [YesDawDrive]::KeyEvent([uint16]$m, $true, $false) }
+  if ($mods.Count -gt 0) { Start-Sleep -Milliseconds 40 }
   for ($i = 0; $i -lt $Repeat; $i++) {
-    foreach ($m in $mods) { [YesDawDrive]::KeyEvent([uint16]$m, $true, $false) }
     [YesDawDrive]::KeyEvent([uint16]$vk, $true, $ext)
     [YesDawDrive]::KeyEvent([uint16]$vk, $false, $ext)
-    foreach ($m in ($mods | Sort-Object -Descending)) { [YesDawDrive]::KeyEvent([uint16]$m, $false, $false) }
     Start-Sleep -Milliseconds 15
   }
+  if ($mods.Count -gt 0) { Start-Sleep -Milliseconds 40 }
+  foreach ($m in ($mods | Sort-Object -Descending)) { [YesDawDrive]::KeyEvent([uint16]$m, $false, $false) }
 }
 
 function TypeText([string] $text) {
@@ -338,6 +345,7 @@ function Click([string] $target, [switch] $Right, [switch] $Double, [string] $Mo
   $mods = ModifierVks $Modifiers
   [YesDawDrive]::MouseMoveAbs($pt[0], $pt[1]); Start-Sleep -Milliseconds 40
   foreach ($m in $mods) { [YesDawDrive]::KeyEvent([uint16]$m, $true, $false) }
+  if ($mods.Count -gt 0) { Start-Sleep -Milliseconds 40 }
   $count = if ($Double) { 2 } else { 1 }
   for ($i = 0; $i -lt $count; $i++) {
     [YesDawDrive]::MouseButton($true, [bool]$Right); Start-Sleep -Milliseconds 30
@@ -351,6 +359,7 @@ function Drag([string] $from, [string] $to, [string] $Modifiers = '', [int] $Ste
   $a = ScreenPoint $from; $b = ScreenPoint $to
   $mods = ModifierVks $Modifiers
   foreach ($m in $mods) { [YesDawDrive]::KeyEvent([uint16]$m, $true, $false) }
+  if ($mods.Count -gt 0) { Start-Sleep -Milliseconds 40 }
   [YesDawDrive]::MouseMoveAbs($a[0], $a[1]); Start-Sleep -Milliseconds 40
   [YesDawDrive]::MouseButton($true, $false); Start-Sleep -Milliseconds 60
   for ($i = 1; $i -le $Steps; $i++) {

@@ -176,6 +176,9 @@ enum class UiActionId : std::uint8_t
     // R10: solo-safe on the selected strip — a solo elsewhere never mutes a safe strip
     // (buses default safe so a soloed bus-routed track stays audible through its bus).
     MixerTargetToggleSoloSafe,
+    // G0.2 (ADR-0046 §4): Space toggles play/stop in every Focus context — the one transport
+    // verb every reference DAW puts on the space bar.
+    TransportTogglePlayStop,
     Count
 };
 
@@ -399,7 +402,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectExportDawproject, "project.export_dawproject", "Export DAWproject", "Ctrl+Shift+D", "Export DAWproject package",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::TransportPlay, "transport.play", "Play", "Space", "Play transport",
+    // G0.2: no default chord — Space is the toggle; the Play button is this verb's path
+    // (ADR-0046 §2: no invented chords; a chord-less action is reached by mouse).
+    { UiActionId::TransportPlay, "transport.play", "Play", "", "Play transport",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TransportStop, "transport.stop", "Stop", "K", "Stop transport",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
@@ -686,7 +691,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::InspectorShowTrackTab, "inspector.tab.track", "Track", "Ctrl+Alt+Shift+I", "Show the track inspector tab",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::MixerTargetToggleSoloSafe, "mixer.target.toggle_solo_safe", "Solo Safe", "Ctrl+Alt+Shift+S", "Toggle solo-safe on the selected mixer strip",
-      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, true }
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, true },
+    // G0.2: Space = play/stop toggle (Logic, Pro Tools, everyone).
+    { UiActionId::TransportTogglePlayStop, "transport.toggle_play_stop", "Play/Stop", "Space", "Toggle play and stop",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
 }};
 
 inline constexpr std::array<UiActionId, 18> kMainShellToolbarActions {{
@@ -961,6 +969,23 @@ public:
                 context.recordCountInActive = false;
                 if (context.returnToStartOnStopEnabled)
                     context.playheadFrame = context.playbackStartFrame;
+                context.shuttlePlaybackRate = 1;
+                break;
+
+            case UiActionId::TransportTogglePlayStop:
+                // G0.2: exactly the Play or the Stop law above, chosen by the current state.
+                if (context.isPlaying)
+                {
+                    context.isPlaying = false;
+                    context.recordCountInActive = false;
+                    if (context.returnToStartOnStopEnabled)
+                        context.playheadFrame = context.playbackStartFrame;
+                }
+                else
+                {
+                    context.playbackStartFrame = context.playheadFrame;
+                    context.isPlaying = true;
+                }
                 context.shuttlePlaybackRate = 1;
                 break;
 

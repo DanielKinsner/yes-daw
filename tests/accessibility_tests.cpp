@@ -85,9 +85,18 @@ TEST_CASE ("H11 accessibility action surface covers every shipped UI action",
         REQUIRE_FALSE (std::string_view (descriptor->accessibleName).empty());
         REQUIRE_FALSE (std::string_view (roleName (descriptor->accessibleRole)).empty());
         REQUIRE (descriptor->defaultKey != nullptr);
-        REQUIRE_FALSE (std::string_view (descriptor->defaultKey).empty());
-        REQUIRE (keyboardPaths.insert (descriptor->defaultKey).second);
-        REQUIRE (registry.keymap().actionForChord (descriptor->defaultKey) == action);
+        // G0.2 re-pin (ADR-0046 §2 "no invented chords"): a default chord is OPTIONAL — an
+        // action without one is reached by mouse (button, menu, context menu) — but every chord
+        // that exists is unique and resolves back to its action.
+        if (! std::string_view (descriptor->defaultKey).empty())
+        {
+            REQUIRE (keyboardPaths.insert (descriptor->defaultKey).second);
+            REQUIRE (registry.keymap().actionForChord (descriptor->defaultKey) == action);
+        }
+        else
+        {
+            REQUIRE (registry.keymap().actionForChord (descriptor->defaultKey) == UiActionId::Count);
+        }
         REQUIRE ((descriptor->kind == UiActionKind::Command
                   || descriptor->kind == UiActionKind::Toggle
                   || descriptor->kind == UiActionKind::Query));

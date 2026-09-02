@@ -41,16 +41,80 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.2 Command router in progress (built locally, UI gates green; SS-1 rerun and the
-feature commit next).
+**Now:** G0.2 built and proven locally (below); awaiting exact-head CI, then the evidence tick.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
-**Next after G0.2:** G0.3 — stop tearing down the audio callback per action — `Space` toggles play/stop; every button/combo/slider declines
-keyboard focus; a `KeyListener` on the top-level window routes chords before children; `Esc`
-cancels. SS-1 steps 1 (Ctrl+N right after launch), 5, 7, 9 are its red lines. Then G0.3
-(`[no-callback-teardown]`, B3). The two agent maps
-that grounded the plan (shell architecture; engine/MIDI/FX capability) are summarized in the plan
-§1 and §5; re-derive from code if in doubt — the drift rule applies.
+**Next:** G0.3 — stop tearing down the audio callback per action: remove the
+`suspendDesktopAudioCallback()` / `resume` bracket from `handleAction`; keep it only for device
+(re)open and sample-rate change; audit the engine-swap and device-block paths it protected;
+`[no-callback-teardown]` counts add/remove across 200 dispatched actions; SS-1 step 10 (`B3`) is
+its red line. The two agent maps that grounded the plan (shell architecture; engine/MIDI/FX
+capability) are summarized in the plan §1 and §5; re-derive from code if in doubt — the drift
+rule applies.
+
+### G0.2 — Command router (2026-09-01)
+
+**Story.** Space plays and stops no matter what I clicked last. **Precedent.** Every DAW: Space
+toggles (Logic, Pro Tools, Cubase, Reaper). **Audit first.** `Space` was bound to *Play only*
+(`UiActions.h` descriptor), Stop on `K`; the shell was the only component that declared
+`setWantsKeyboardFocus`, so every `TextButton`, `ComboBox`, and `Slider` took focus on click and
+ate the next chord (JUCE's defaults); right after launch the *DocumentWindow* held focus (the
+G0.1 probe's `focusOwner` was the window title) and the shell never saw the first chord.
+
+**Built.**
+- New action `TransportTogglePlayStop` (`transport.toggle_play_stop`, chord **`Space`**) at the
+  end of the enum and table with cases in both exhaustive switches. The model's case reads the
+  LIVE engine state (`playback_->isPlaying()`, plus a pending count-in counts as playing) and
+  dispatches the existing Play or Stop verb — no new transport law. `TransportPlay` has **no
+  default chord** now (ADR-0046 §2: no invented chords; the Play button is its path;
+  `Shift+Space` stays the shipped play-from-last-locate).
+- **Focus law:** `applyKeyboardFocusLaw()` walks the whole tree at construction and on
+  `childrenChanged()`: every component that is not a `juce::TextEditor` declines keyboard focus;
+  the shell keeps it. A click on any widget therefore hands focus to the shell (JUCE walks a
+  click's focus grab up to the first ancestor that wants it), and the next chord dispatches
+  through `keyPressed`.
+- **Router on the window:** the shell is a `juce::KeyListener` registered on its top-level
+  component (`parentHierarchyChanged`); a chord that reaches the window (focus on the window
+  itself) dispatches exactly as if the shell were focused; a chord originating at a text editor
+  is left alone; one originating at the shell is declined (no double dispatch). On attach the
+  shell also grabs focus asynchronously once showing, so the first chord after launch lands.
+- Re-pins (never weakened): `[ui][keymap]` Space → toggle, Play chord-less, `Shift+Space` →
+  play-from-last-locate; the accessibility "every action" gate and the registry uniqueness gate
+  now read *a default chord is optional; every chord present is unique and resolves back* (the
+  ADR-0046 rule G1.1 needs anyway); the toolbar-resolves gate skips chord-less toolbar actions;
+  one harness test that pressed Space *while playing* to "replay from the top" now stops with
+  `K` first (Space toggles); the G0.1 probe gate expects `lastAction == transport.toggle_play_stop`.
+
+**Gates.** `[command-router]` (ui_input harness): the focus law over the whole tree (>100
+declining components incl. >20 buttons, >5 combos, >3 sliders; ≥4 text editors keep focus; the
+shell wants it); Space toggles play→stop→play through the shell's `keyPressed`; the Play button
+plays and a second click keeps playing; the KeyListener half routes a chord originating at a
+button or at a window stand-in, declines one from a text editor or from the shell itself;
+negative control: an unmapped chord dispatches on neither path. Local suite **363/363** under
+the owner-file ritual (restored byte-identical).
+
+**SS-1 on the real exe (this commit): 36 PASS / 5 FAIL** — every G0.2 line went green:
+step 1 `Ctrl+N` right after launch opens the chooser (was: first chord lost to the window);
+5 Space stops; 7 Space stops after a button click; 8 Space plays after the snap combo took a
+click; 9 Space stops. Still red, each owned: step 1 empty project at launch (D3 → parked for
+G5.5, below); 2 `Ctrl+Shift+I` and 9 `K` (G1.1); 10 `callbackRemovals` **12** (G0.3);
+11 `rebuilds` 2 → 5 (G0.5). B6 1.45–1.63 s; B2 2.4 ms p95 (one clip); fifty nudges in 1.2 s.
+
+**Visual rubric.** No layout change in G0.2; the G0.1 baseline verdicts stand unchanged
+(shots retaken at three sizes, identical structure).
+
+**Deviation log (G0.2).**
+- D8 The drive itself had the "modifier lost" bug: JUCE reads modifier state with
+  `GetAsyncKeyState` (physical state at processing time), so a modifier released microseconds
+  after its key was already gone — `Ctrl+N` arrived as `N`, `Ctrl+Z` as `Z` (which is why the
+  G0.1 run's step 11 saw `Ctrl+T` "not add a track": it never sent `Ctrl+T`; D5 is closed by this).
+  The drive now holds modifiers 40 ms on both sides of a key/click and once across a repeat burst.
+- D9 `TransportPlay` is chord-less rather than on an invented provisional chord; `Shift+Space`
+  was already the shipped play-from-last-locate verb. G1.1's table settles Play's final chord.
+- D3 (from G0.1) is decided: launch-lands-in-an-empty-project is a new-project-lifecycle
+  question (where an unsaved project lives), parked for **G5.5**; SS-1 step 1's empty-project
+  line stays red by design, and the G0 exit will be evaluated with that one line excluded — the
+  exclusion is logged here so the close-out cannot forget it.
 
 ### G0.1 — State probe + Session drive (2026-09-01)
 

@@ -264,8 +264,9 @@ TEST_CASE ("H11 action registry exposes stable action ids, labels, keys, and acc
         REQUIRE (action.label != nullptr);
         REQUIRE_FALSE (std::string_view (action.label).empty());
         REQUIRE (action.defaultKey != nullptr);
-        REQUIRE_FALSE (std::string_view (action.defaultKey).empty());
-        REQUIRE (defaultKeys.insert (action.defaultKey).second);
+        // G0.2 re-pin (ADR-0046 §2): a default chord is optional; every chord present is unique.
+        if (! std::string_view (action.defaultKey).empty())
+            REQUIRE (defaultKeys.insert (action.defaultKey).second);
         REQUIRE (action.accessibleName != nullptr);
         REQUIRE_FALSE (std::string_view (action.accessibleName).empty());
         REQUIRE_FALSE (std::string_view (roleName (action.accessibleRole)).empty());
@@ -300,7 +301,10 @@ TEST_CASE ("H11 default shell toolbar actions all resolve through the registry",
         REQUIRE (seen.insert (id).second);
         REQUIRE_FALSE (std::string_view (descriptor->stableId).empty());
         REQUIRE_FALSE (std::string_view (descriptor->label).empty());
-        REQUIRE (registry.keymap().actionForChord (descriptor->defaultKey) == id);
+        // G0.2 re-pin: a toolbar action may have no default chord (Play: Space is the toggle,
+        // the button is the verb's path); one that has a chord resolves back to itself.
+        if (! std::string_view (descriptor->defaultKey).empty())
+            REQUIRE (registry.keymap().actionForChord (descriptor->defaultKey) == id);
     }
 }
 
@@ -308,11 +312,15 @@ TEST_CASE ("H11 keymap remapping is stable and rejects duplicate or empty chords
 {
     UiActionRegistry registry;
 
-    REQUIRE (registry.keymap().actionForChord ("Space") == UiActionId::TransportPlay);
+    // G0.2 re-pin: Space is the play/stop TOGGLE (ADR-0046 §4); plain Play has no default chord
+    // (the Play button is its path); Shift+Space stays play-from-last-locate (shipped).
+    REQUIRE (registry.keymap().actionForChord ("Space") == UiActionId::TransportTogglePlayStop);
+    REQUIRE (registry.keymap().chordFor (UiActionId::TransportPlay).empty());
+    REQUIRE (registry.keymap().actionForChord ("Shift+Space") == UiActionId::TransportPlayFromLastLocate);
     REQUIRE (registry.keymap().actionForChord ("F2") == UiActionId::EditRenameSelection);
     REQUIRE (registry.keymap().actionForChord ("Ctrl+F2") == UiActionId::TrackRename);
-    REQUIRE (registry.keymap().rebind (UiActionId::TransportPlay, "Shift+P") == KeymapRebindStatus::Ok);
-    REQUIRE (registry.keymap().actionForChord ("Shift+P") == UiActionId::TransportPlay);
+    REQUIRE (registry.keymap().rebind (UiActionId::TransportTogglePlayStop, "Shift+P") == KeymapRebindStatus::Ok);
+    REQUIRE (registry.keymap().actionForChord ("Shift+P") == UiActionId::TransportTogglePlayStop);
     REQUIRE (registry.keymap().actionForChord ("Space") == UiActionId::Count);
 
     REQUIRE (registry.keymap().rebind (UiActionId::TransportStop, "Shift+P")

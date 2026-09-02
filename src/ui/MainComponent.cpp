@@ -3038,6 +3038,7 @@ private:
 
 class MainComponent : public juce::Component,
                       public juce::MenuBarModel,
+                      public juce::KeyListener,    // G0.2: the command router on the top-level window
                       private juce::Timer,
                       private juce::AudioIODeviceCallback,
                       private juce::MidiInputCallback
@@ -4150,10 +4151,15 @@ public:
         // default is covered by a headless test). The Timer fires on the message thread — which is this
         // app's control thread — so writeAutosaveTick()'s heavy SQLite/asset I/O is on the right thread.
         startTimer (kUiRefreshIntervalMs);
+
+        // G0.2: keys go to the command router, not to widgets (ADR-0046 §4).
+        applyKeyboardFocusLaw();
     }
 
     ~MainComponent() override
     {
+        if (routedTopLevel != nullptr)
+            routedTopLevel->removeKeyListener (this);
         menuBar.setModel (nullptr);
         stopTimer();
         for (auto& midiInput : midiInputs)
@@ -7621,6 +7627,71 @@ private:
         repaint();
         return true;
     }
+
+    // G0.2 Command router (ADR-0046 §4). Only an active text field consumes keys: every other
+    // widget declines keyboard focus, so a click on a button, combo, or slider hands focus to
+    // THIS component (JUCE walks a click's focus grab up to the first ancestor that wants it)
+    // and the next chord dispatches through keyPressed above. The KeyListener half below catches
+    // the one remaining hole: right after launch (and whenever focus falls back to the window
+    // itself) the DocumentWindow, not the shell, is the focused component — its key listeners
+    // run before its own keyPressed, so the chord still reaches the router.
+    void applyKeyboardFocusLaw()
+    {
+        applyKeyboardFocusLawTo (*this);
+    }
+
+    static void applyKeyboardFocusLawTo (juce::Component& parent)
+    {
+        for (int i = 0; i < parent.getNumChildComponents(); ++i)
+        {
+            juce::Component* child = parent.getChildComponent (i);
+            if (child == nullptr)
+                continue;
+            if (dynamic_cast<juce::TextEditor*> (child) == nullptr)
+                child->setWantsKeyboardFocus (false);
+            applyKeyboardFocusLawTo (*child);
+        }
+    }
+
+    void childrenChanged() override
+    {
+        applyKeyboardFocusLaw();
+    }
+
+    void parentHierarchyChanged() override
+    {
+        juce::Component* top = getTopLevelComponent();
+        if (top == this)
+            top = nullptr;
+        if (top != routedTopLevel)
+        {
+            if (routedTopLevel != nullptr)
+                routedTopLevel->removeKeyListener (this);
+            routedTopLevel = top;
+            if (routedTopLevel != nullptr)
+                routedTopLevel->addKeyListener (this);
+        }
+
+        // Take focus once the window is showing so the very first chord after launch lands here.
+        juce::Component::SafePointer<MainComponent> safeThis (this);
+        juce::MessageManager::callAsync ([safeThis] {
+            if (safeThis != nullptr && safeThis->isShowing() && ! safeThis->hasKeyboardFocus (true))
+                safeThis->grabKeyboardFocus();
+        });
+    }
+
+    // KeyListener half of the router: chords that reach the top-level window (focus on the
+    // window itself, or on a child that did not consume them) dispatch exactly as if this
+    // component were focused. A text editor that originated the event keeps its keys.
+    bool keyPressed (const juce::KeyPress& key, juce::Component* originatingComponent) override
+    {
+        if (originatingComponent == this
+            || dynamic_cast<juce::TextEditor*> (originatingComponent) != nullptr)
+            return false;
+        return keyPressed (key);
+    }
+
+    bool keyStateChanged (bool, juce::Component*) override { return false; }
 
     [[nodiscard]] bool cancelInProgressEdit()
     {
@@ -11727,6 +11798,10 @@ private:
     bool refreshingRepeatPasteChooser = false;
     bool refreshingMixerControls = false;
     int autosaveElapsedMs = 0;
+
+    // G0.2: the top-level component this shell is registered on as a KeyListener (null in the
+    // headless harness, where the shell is its own top level).
+    juce::Component* routedTopLevel = nullptr;
 
     // G0.1 State probe (ADR-0046 §10; plan §7.2). Debug-only: `stateProbePath` is empty in a
     // normal launch and nothing below is ever written. Counters are the feel-budget inputs.
