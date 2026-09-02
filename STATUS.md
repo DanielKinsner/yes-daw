@@ -41,14 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G1.2 (nine menus in Logic's order, every item paints its chord for the focus context,
-`[menus-show-keys]`) built, gated locally, committed; awaiting its exact-head run. G1.1 cp2's run
-`33607145399` was red on Linux/macOS for two orphaned locals (D41) — this commit carries the fix
-and its run certifies G1.1 and G1.2 together. Next: G1.3 context menus. The drive stays paused
-(D14).
-The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
-and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
-re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
+**Now:** G1.3 checkpoint 1 (context menus for clip, empty lane, track header, ruler, marker, note
+and mixer strip; `[context-menus]`) built, gated locally, committed; awaiting its exact-head run.
+G1.2's run `33608447371` ticks G1.1 and G1.2 when green. Checkpoint 2 next: the insert-slot menu
+(its verbs need the slot as a payload). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -79,6 +75,35 @@ G1.2 ✅ — `92a9f54`; certified by the same run `33608447371`.
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G1.3 — Context menus, checkpoint 1 (2026-09-02)
+
+**Build.** `src/ui/ContextMenus.h`: `ContextMenuTarget` (Clip, EmptyLane, TrackHeader, Ruler,
+Marker, Note, MixerStrip, InsertSlot) and one table of registered verbs per target in §3.3's
+order (separators kept as flags). Each input surface (timeline, rail, piano roll, mixer strips)
+classifies a right-click with its own hit laws, makes the clicked object the selection first
+(Logic: an unselected clip becomes the selection, a selected one keeps the multi-selection; an
+empty lane selects its track; a marker locates the playhead to itself so its verbs act on it),
+and asks the shell for that target's menu. Items are built by the menu bar's law (label,
+registry enabled, context tick, focus-context chord). A shell without a desktop peer records
+the menu instead of showing it; `mainComponentRequestContextMenu (shell, point)` runs the same
+path and returns the record.
+
+**Gates.** `[context-menus]` (input check): each target's list equals its table; the selection
+side effects hold; the first item dispatches (Cut → clipboard; Paste onto the empty lane's
+track; Rename → inline editor; Add Marker; Remove Marker after the locate; strip 0 selected;
+Duplicate Note → two notes); a point in the inspector has no menu.
+
+**Not built (recorded, not invented).** Verbs the §3.3 rows name that do not exist: Split at
+Selection, Mute Clip, Colour, Reverse, Normalize, Strip Silence, Select All Following, Zoom to
+Selection, Paste at Pointer, Import Audio Here, Add Audio/MIDI Track split, Route to New Bus,
+Track Height, Time display, Go to Marker (the right-click's locate does it), Select Same Pitch,
+note Cut/Copy/Paste, Width Narrow/Wide, Replace, Open Editor. Each binds when its item lands.
+
+**Deviation log (G1.3 cp1).**
+- D42 The insert-slot menu is cp2: Bypass / Remove / Move are registry-only no-ops without a slot
+  payload (the shell's per-slot buttons carry it); the menu must route through those paths.
+- D43 SS-2 steps 1–8 (the see-it) wait for the drive (D14); the headless record is the gate.
 
 ### G1.2 — Menus with shortcuts (2026-09-02)
 

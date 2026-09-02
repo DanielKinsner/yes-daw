@@ -6,6 +6,7 @@
 #pragma once
 
 #include "engine/Project.h"
+#include "ui/ContextMenus.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
 
@@ -206,6 +207,18 @@ struct MainComponentSnapshot
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderTimeReadoutBounds (const juce::Component& component);
 [[nodiscard]] int mainComponentHeaderHeight (const juce::Component& component);
 void mainComponentSetSettingsRowVisible (juce::Component& component, bool visible);
+// G1.3: the context menu a right-click at a shell point produces — the clicked object becomes
+// the selection first, and the list (registered verbs in plan §3.3's order) is returned WITHOUT
+// showing it, so headless gates can assert it. `shown` is false where nothing has a menu.
+struct MainComponentContextMenu
+{
+    bool shown = false;
+    ContextMenuTarget target = ContextMenuTarget::Clip;
+    int index = -1;   // lane / row / strip / marker index the click resolved to, when any
+    std::vector<UiActionId> actions;
+};
+[[nodiscard]] MainComponentContextMenu mainComponentRequestContextMenu (juce::Component& component, juce::Point<int> shellPoint);
+
 // G0.8: dispatch an action as a menu item or chord would, and read its live registry state.
 void mainComponentDispatchAction (juce::Component& component, UiActionId action);
 [[nodiscard]] UiActionState mainComponentActionState (const juce::Component& component, UiActionId action);

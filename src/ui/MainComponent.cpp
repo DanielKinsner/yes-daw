@@ -642,10 +642,68 @@ public:
         }
     }
 
+    // G1.3: a right-click classifies what was clicked (clip / marker / ruler / empty lane),
+    // makes it the selection, and asks the shell for that target's context menu.
+    std::function<void (yesdaw::ui::ContextMenuTarget, int, juce::Point<int>)> onContextMenuRequested;
+
+    void requestContextMenu (juce::Point<int> position)
+    {
+        if (! stateProvider || ! onContextMenuRequested)
+            return;
+        const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+        if (geometry.rulerArea.contains (position))
+        {
+            for (int markerIndex = 0; markerIndex < state.markerCount; ++markerIndex)
+            {
+                if (yesdaw::ui::timelineMarkerLabelRect (getLocalBounds(), state, markerIndex).contains (position))
+                {
+                    // The marker's own verbs act on the marker nearest the playhead: go there first.
+                    if (onTimelineLocated)
+                        onTimelineLocated (state.markers[markerIndex].seconds);
+                    onContextMenuRequested (yesdaw::ui::ContextMenuTarget::Marker, markerIndex, position);
+                    return;
+                }
+            }
+            onContextMenuRequested (yesdaw::ui::ContextMenuTarget::Ruler, -1, position);
+            return;
+        }
+        if (! geometry.clipArea.contains (position))
+            return;
+        const yesdaw::ui::TimelineHitTestResult hit =
+            yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, position);
+        if (hit.hit)
+        {
+            // Logic: a right-click on an unselected clip selects it; one on a selected clip keeps
+            // the selection (so a multi-selection's menu acts on all of it).
+            bool alreadySelected = false;
+            for (int c = 0; c < state.clipCount; ++c)
+                if (state.clips[c].id == hit.id && state.clipStyles != nullptr && state.clipStyles[c].selected)
+                    alreadySelected = true;
+            if (! alreadySelected && onClipClicked)
+                onClipClicked (hit.id, false);
+            onContextMenuRequested (yesdaw::ui::ContextMenuTarget::Clip, hit.id, position);
+            return;
+        }
+        if (state.trackCount <= 0 || geometry.laneHeight <= 0)
+            return;
+        const int lane = std::clamp (
+            geometry.laneAtPixel (position.y - geometry.clipArea.getY() + geometry.viewport.laneScrollPixels),
+            0, state.trackCount - 1);
+        onContextMenuRequested (yesdaw::ui::ContextMenuTarget::EmptyLane, lane, position);
+    }
+
     void mouseDown (const juce::MouseEvent& event) override
     {
         if (! stateProvider)
             return;
+
+        if (event.mods.isPopupMenu())
+        {
+            requestContextMenu (event.getPosition());
+            return;
+        }
 
         playheadLocateActive = false;
         rulerRangeDragActive = false;
@@ -1653,10 +1711,32 @@ public:
             onViewKeysScrolled (delta > 0.0 ? 1 : -1);
     }
 
+    // G1.3: a right-click on a note selects it and asks for the Note context menu.
+    std::function<void (yesdaw::ui::ContextMenuTarget, int, juce::Point<int>)> onContextMenuRequested;
+
+    void requestContextMenu (juce::Point<int> position)
+    {
+        if (! stateProvider || ! onContextMenuRequested)
+            return;
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+        const auto hit = noteAt (surface, position);
+        if (! hit)
+            return;
+        if (onNoteClicked)
+            onNoteClicked (surface.midiClipId, hit->noteId);
+        onContextMenuRequested (yesdaw::ui::ContextMenuTarget::Note, -1, position);
+    }
+
     void mouseDown (const juce::MouseEvent& event) override
     {
         if (! stateProvider)
             return;
+
+        if (event.mods.isPopupMenu())
+        {
+            requestContextMenu (event.getPosition());
+            return;
+        }
 
         const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
         const auto hit = noteAt (surface, event.getPosition());
@@ -2331,8 +2411,29 @@ public:
                              : juce::MouseCursor::NormalCursor);
     }
 
+    // G1.3: a right-click on a row selects its track and asks for the Track header menu.
+    std::function<void (yesdaw::ui::ContextMenuTarget, int, juce::Point<int>)> onContextMenuRequested;
+
+    void requestContextMenu (juce::Point<int> position)
+    {
+        if (! onContextMenuRequested)
+            return;
+        const int row = rowAt (position);
+        if (row < 0)
+            return;
+        if (onRowClicked)
+            onRowClicked (row);
+        onContextMenuRequested (yesdaw::ui::ContextMenuTarget::TrackHeader, row, position);
+    }
+
     void mouseDown (const juce::MouseEvent& event) override
     {
+        if (event.mods.isPopupMenu())
+        {
+            requestContextMenu (event.getPosition());
+            return;
+        }
+
         dragRow = -1;
         dragZone = MiniZone::None;
         resizeDragRow = -1;
@@ -2958,10 +3059,35 @@ public:
     std::function<std::pair<int, int> (juce::Point<int>)> muteSoloCellAtPosition;
     std::function<void (int, int)> onMuteSoloCellClicked;
 
+    // G1.3: a right-click on a strip selects it and asks for the Mixer strip menu (the master
+    // strip has none; insert slots come with their own list in the next checkpoint).
+    std::function<void (yesdaw::ui::ContextMenuTarget, int, juce::Point<int>)> onContextMenuRequested;
+    std::function<int ()> stripCountProvider;   // track + bus strips (the master is the next index)
+
+    void requestContextMenu (juce::Point<int> position)
+    {
+        if (! onContextMenuRequested || ! stripAtPosition || getParentComponent() == nullptr)
+            return;
+        const juce::Point<int> shellPosition = position + getPosition();
+        const int strip = stripAtPosition (shellPosition);
+        const int stripCount = stripCountProvider ? stripCountProvider() : 0;
+        if (strip < 0 || strip >= stripCount)
+            return;
+        if (onStripClicked)
+            onStripClicked (strip);
+        onContextMenuRequested (yesdaw::ui::ContextMenuTarget::MixerStrip, strip, position);
+    }
+
     void mouseDown (const juce::MouseEvent& event) override
     {
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
+
+        if (event.mods.isPopupMenu())
+        {
+            requestContextMenu (event.getPosition());
+            return;
+        }
 
         if (muteSoloCellAtPosition && onMuteSoloCellClicked)
         {
@@ -3315,6 +3441,11 @@ public:
             refreshActionState();
             repaintAll();
         };
+        timelineInput.onContextMenuRequested = [this] (yesdaw::ui::ContextMenuTarget target, int index, juce::Point<int> position) {
+            if (target == yesdaw::ui::ContextMenuTarget::EmptyLane)
+                selectTrackLane (index);   // the lane's track becomes the selection first
+            openContextMenu (target, index, timelineInput, position);
+        };
         timelineInput.onClipClicked = [this] (int timelineClipId, bool toggle) {
             selectTimelineClipByLayoutId (timelineClipId, toggle);
         };
@@ -3560,6 +3691,9 @@ public:
         trackListInput.rowScrollProvider = [this] { return timelineTrackScrollRows; };
         trackListInput.onVerticalScrollRows = [this] (int rowDelta) { scrollTrackRowsBy (rowDelta); };
         trackListInput.onRowClicked = [this] (int row) { selectTrackLane (row); };
+        trackListInput.onContextMenuRequested = [this] (yesdaw::ui::ContextMenuTarget target, int index, juce::Point<int> position) {
+            openContextMenu (target, index, trackListInput, position);
+        };
         trackListInput.panValueProvider = [this] (int row) {
             const auto& tracks = appModel.project().tracks;
             return row >= 0 && row < static_cast<int> (tracks.size())
@@ -3876,6 +4010,9 @@ public:
         pianoRollInput.setName ("Piano Roll");
         pianoRollInput.setTitle ("Piano Roll");
         pianoRollInput.stateProvider = [this] { return currentPianoRollSurface(); };
+        pianoRollInput.onContextMenuRequested = [this] (yesdaw::ui::ContextMenuTarget target, int index, juce::Point<int> position) {
+            openContextMenu (target, index, pianoRollInput, position);
+        };
         pianoRollInput.onNoteClicked = [this] (yesdaw::engine::EntityId midiClipId,
                                                yesdaw::engine::EntityId noteId) {
             // E12: a plain press on a selected member keeps the group for the drag.
@@ -5846,6 +5983,13 @@ private:
         mixerStripsInput.setName ("Mixer Strips");
         mixerStripsInput.setTitle ("Mixer Strips");
         mixerStripsInput.setTooltip ("Mixer strips: click a strip to retarget the shared controls, click a meter to clear its clip light");
+        mixerStripsInput.onContextMenuRequested = [this] (yesdaw::ui::ContextMenuTarget target, int index, juce::Point<int> position) {
+            openContextMenu (target, index, mixerStripsInput, position);
+        };
+        mixerStripsInput.stripCountProvider = [this] {
+            const auto surface = currentMixerSurface();
+            return static_cast<int> (surface.tracks.size() + surface.buses.size());
+        };
         mixerStripsInput.onStripClicked = [this] (int stripIndex) {
             const auto surface = currentMixerSurface();
             const int trackCount = static_cast<int> (surface.tracks.size());
@@ -8091,6 +8235,81 @@ private:
         }
     }
 
+    // G1.3: the context menu for a target — the same registry-driven item law the menu bar
+    // uses (label, enabled, tick, chord for the focus context). Recorded for the harness, and
+    // shown only when the shell is on a real desktop (headless gates read the record).
+    struct LastContextMenu
+    {
+        bool shown = false;
+        yesdaw::ui::ContextMenuTarget target = yesdaw::ui::ContextMenuTarget::Clip;
+        int index = -1;
+        std::vector<yesdaw::ui::UiActionId> actions;
+    };
+    LastContextMenu lastContextMenu;
+
+    void openContextMenu (yesdaw::ui::ContextMenuTarget target, int index, juce::Component& source,
+                          juce::Point<int> sourcePosition)
+    {
+        lastContextMenu = {};
+        lastContextMenu.shown = true;
+        lastContextMenu.target = target;
+        lastContextMenu.index = index;
+        // The click's selection is part of the context the items are built from.
+        refreshActionState();
+        juce::PopupMenu menu;
+        for (const yesdaw::ui::ContextMenuEntry& entry : yesdaw::ui::contextMenuEntries (target))
+        {
+            if (entry.separatorBefore)
+                menu.addSeparator();
+            const auto& descriptor = yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (entry.action)];
+            juce::PopupMenu::Item item (descriptor.label);
+            item.itemID = static_cast<int> (entry.action) + 1;
+            item.isEnabled = appModel.registry().stateFor (entry.action, appModel.context()).enabled;
+            item.isTicked = menuTickState (entry.action);
+            item.shortcutKeyDescription = menuShortcutFor (entry.action);
+            menu.addItem (std::move (item));
+            lastContextMenu.actions.push_back (entry.action);
+        }
+        repaintAll();
+        if (getPeer() == nullptr)
+            return;   // headless: the record is the menu
+        const juce::Point<int> screenPoint = source.localPointToGlobal (sourcePosition);
+        menu.showMenuAsync (juce::PopupMenu::Options()
+                                .withTargetScreenArea (juce::Rectangle<int> (screenPoint.x, screenPoint.y, 1, 1))
+                                .withParentComponent (nullptr),
+                            [this] (int itemId)
+                            {
+                                if (itemId <= 0 || itemId > static_cast<int> (yesdaw::ui::kUiActionCount))
+                                    return;
+                                handleAction (static_cast<yesdaw::ui::UiActionId> (itemId - 1));
+                                refreshActionState();
+                                resized();
+                                repaintAll();
+                            });
+    }
+
+public:
+    // Harness: route a shell point to the input surface under it and run its right-click law.
+    [[nodiscard]] yesdaw::ui::MainComponentContextMenu harnessRequestContextMenu (juce::Point<int> shellPoint)
+    {
+        lastContextMenu = {};
+        if (timelineInput.isVisible() && timelineInput.getBounds().contains (shellPoint))
+            timelineInput.requestContextMenu (shellPoint - timelineInput.getPosition());
+        else if (pianoRollInput.isVisible() && pianoRollInput.getBounds().contains (shellPoint))
+            pianoRollInput.requestContextMenu (shellPoint - pianoRollInput.getPosition());
+        else if (trackListInput.isVisible() && trackListInput.getBounds().contains (shellPoint))
+            trackListInput.requestContextMenu (shellPoint - trackListInput.getPosition());
+        else if (mixerStripsInput.isVisible() && mixerStripsInput.getBounds().contains (shellPoint))
+            mixerStripsInput.requestContextMenu (shellPoint - mixerStripsInput.getPosition());
+        yesdaw::ui::MainComponentContextMenu out;
+        out.shown = lastContextMenu.shown;
+        out.target = lastContextMenu.target;
+        out.index = lastContextMenu.index;
+        out.actions = lastContextMenu.actions;
+        return out;
+    }
+
+private:
     // G1.2: the chord a menu item paints — the one that fires in the CURRENT Focus context
     // (its own binding or a Global one); another editor's binding paints nothing.
     [[nodiscard]] juce::String menuShortcutFor (yesdaw::ui::UiActionId action) const
@@ -12534,6 +12753,13 @@ int mainComponentHeaderHeight (const juce::Component& component)
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->headerHeightNow();
     return 0;
+}
+
+yesdaw::ui::MainComponentContextMenu mainComponentRequestContextMenu (juce::Component& component, juce::Point<int> shellPoint)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessRequestContextMenu (shellPoint);
+    return {};
 }
 
 void mainComponentDispatchAction (juce::Component& component, yesdaw::ui::UiActionId action)

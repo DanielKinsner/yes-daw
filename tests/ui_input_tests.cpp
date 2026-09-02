@@ -16158,3 +16158,164 @@ TEST_CASE ("menus show keys: every chorded verb sits in a menu and paints its ch
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G1.3 (plan §3.3): right-click each target type — the clicked object becomes the selection,
+// the list is the registry-driven table for that target, and its first item dispatches.
+TEST_CASE ("context menus: clip, empty lane, track header, ruler, marker, note and strip select then list",
+           "[ui][input][shell][g1][context-menus]")
+{
+    using yesdaw::ui::ContextMenuTarget;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("context-menus");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    clickButton (*addTrack);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
+
+    const auto expectList = [] (const yesdaw::ui::MainComponentContextMenu& menu, ContextMenuTarget target)
+    {
+        INFO ("target " << yesdaw::ui::contextMenuTargetName (menu.target));
+        REQUIRE (menu.shown);
+        REQUIRE (menu.target == target);
+        const auto entries = yesdaw::ui::contextMenuEntries (target);
+        REQUIRE (menu.actions.size() == entries.size());
+        for (std::size_t i = 0; i < entries.size(); ++i)
+            REQUIRE (menu.actions[i] == entries[i].action);
+        return entries.front().action;
+    };
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+
+    // Clip: selects it; first item (Cut) removes it into the clipboard.
+    {
+        yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.clips.size() == 1u);
+        const juce::Point<int> centre = timelineClipCenterPoint (timeline, project, 0u) + timeline.getPosition();
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, centre);
+        const UiActionId first = expectList (menu, ContextMenuTarget::Clip);
+        REQUIRE (first == UiActionId::TimelineClipCut);
+        REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+        yesdaw::ui::mainComponentDispatchAction (*shell, first);
+        REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+        REQUIRE (snapshotMainComponent (*shell).context.clipboardHasClip);
+    }
+
+    // Empty lane (track 1): selects that track; first item (Paste) lands the clip there.
+    {
+        const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+        const juce::var lane = probe.getProperty ("layout", juce::var()).getProperty ("lane.1", juce::var());
+        REQUIRE ((lane.isArray() && lane.size() == 4));
+        const juce::Rectangle<int> laneRect (static_cast<int> (lane[0]), static_cast<int> (lane[1]),
+                                             static_cast<int> (lane[2]), static_cast<int> (lane[3]));
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, laneRect.getCentre());
+        const UiActionId first = expectList (menu, ContextMenuTarget::EmptyLane);
+        REQUIRE (menu.index == 1);
+        REQUIRE (first == UiActionId::TimelineClipPaste);
+        yesdaw::ui::mainComponentDispatchAction (*shell, first);
+        const yesdaw::engine::Project pasted = readProjectSnapshot (bundlePath);
+        REQUIRE (pasted.clips.size() == 1u);
+        REQUIRE (pasted.clips.front().trackId == pasted.tracks[1].id);
+    }
+
+    // Track header (row 0): selects track 0; first item (Rename) opens the inline editor.
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const juce::Point<int> row0 = rail->getPosition()
+            + juce::Point<int> { kRailRowClickX, L::trackListHeaderHeight + L::trackListRowMinHeight / 2 };
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, row0);
+        const UiActionId first = expectList (menu, ContextMenuTarget::TrackHeader);
+        REQUIRE (menu.index == 0);
+        REQUIRE (first == UiActionId::TrackRename);
+        yesdaw::ui::mainComponentDispatchAction (*shell, first);
+        auto* editor = dynamic_cast<juce::TextEditor*> (findChildWithComponentId (*shell, "shell.tracklist.rename"));
+        REQUIRE (editor != nullptr);
+        REQUIRE (editor->isVisible());
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    }
+
+    // Ruler: first item (Add Marker) adds one at the playhead.
+    const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+    const juce::var rulerVar = probe.getProperty ("layout", juce::var()).getProperty ("ruler", juce::var());
+    REQUIRE ((rulerVar.isArray() && rulerVar.size() == 4));
+    const juce::Rectangle<int> ruler (static_cast<int> (rulerVar[0]), static_cast<int> (rulerVar[1]),
+                                      static_cast<int> (rulerVar[2]), static_cast<int> (rulerVar[3]));
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, ruler.getCentre());
+        const UiActionId first = expectList (menu, ContextMenuTarget::Ruler);
+        REQUIRE (first == UiActionId::TimelineMarkerAdd);
+        yesdaw::ui::mainComponentDispatchAction (*shell, first);
+        REQUIRE (readProjectSnapshot (bundlePath).markers.size() == 1u);
+    }
+
+    // Marker (its label in the marker lane): the playhead goes to it; first item (Remove) deletes it.
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        REQUIRE (shell->keyPressed (juce::KeyPress ('.')));   // a bar away, so the locate is real
+        const juce::var lane0 = probe.getProperty ("layout", juce::var()).getProperty ("lane.0", juce::var());
+        const int clipAreaX = static_cast<int> (lane0[0]);
+        const juce::Point<int> label { clipAreaX + L::timelineCanvasRulerMarkerLabelLeftInset + 8,
+                                       ruler.getY() + L::timelineCanvasRulerMarkerLabelTopInset + L::timelineCanvasRulerMarkerLabelHeight / 2 };
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, label);
+        const UiActionId first = expectList (menu, ContextMenuTarget::Marker);
+        REQUIRE (menu.index == 0);
+        REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
+        REQUIRE (first == UiActionId::TimelineMarkerRemove);
+        yesdaw::ui::mainComponentDispatchAction (*shell, first);
+        REQUIRE (readProjectSnapshot (bundlePath).markers.empty());
+    }
+
+    // Mixer strip 0 (in the dock): selects it; first item (Rename) opens the track editor.
+    {
+        const juce::Rectangle<int> strip = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+        REQUIRE_FALSE (strip.isEmpty());
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, { strip.getCentreX(), strip.getY() + 8 });
+        const UiActionId first = expectList (menu, ContextMenuTarget::MixerStrip);
+        REQUIRE (menu.index == 0);
+        REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 0);
+        REQUIRE (first == UiActionId::TrackRename);
+    }
+
+    // Note: a MIDI clip with one note in the piano roll; right-click selects the note; first item
+    // (Duplicate) adds one.
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('p')));
+        juce::Component* pianoRoll = findChildWithComponentId (*shell, "piano-roll.canvas");
+        REQUIRE (pianoRoll != nullptr);
+        // The pencil draws the note (the add verb needs a position payload the harness has no seam for).
+        REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
+        const juce::Rectangle<int> grid = pianoRollGridBounds (*pianoRoll);
+        mouseDownAt (*pianoRoll, { grid.getX() + grid.getWidth() / 4, grid.getY() + grid.getHeight() / 2 });
+        REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+        yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.midiClips.size() == 1u);
+        REQUIRE (project.midiClips.front().notes.size() == 1u);
+        const juce::Point<int> centre =
+            pianoRollNoteCenterPoint (*pianoRoll, project.midiClips.front(), project.midiClips.front().notes.front())
+            + pianoRoll->getPosition();
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, centre);
+        const UiActionId first = expectList (menu, ContextMenuTarget::Note);
+        REQUIRE (snapshotMainComponent (*shell).context.midiNoteSelected);
+        REQUIRE (first == UiActionId::PianoRollNoteDuplicate);
+        yesdaw::ui::mainComponentDispatchAction (*shell, first);
+        REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 2u);
+    }
+
+    // Nowhere: a point in the inspector has no menu.
+    {
+        const auto none = yesdaw::ui::mainComponentRequestContextMenu (*shell, { shell->getWidth() - 40, shell->getHeight() / 2 });
+        REQUIRE_FALSE (none.shown);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
