@@ -4627,6 +4627,10 @@ public:
         nudgeValueChooser.addItem ("Nudge: Bar", 2);
         nudgeValueChooser.addItem ("Nudge: Beat", 3);
         nudgeValueChooser.addItem ("Nudge: 1/16", 4);
+        nudgeValueChooser.addItem ("Nudge: 1 ms", 5);      // G2.8
+        nudgeValueChooser.addItem ("Nudge: 10 ms", 6);
+        nudgeValueChooser.addItem ("Nudge: 1 Frame", 7);
+        nudgeValueChooser.addItem ("Nudge: 1 Sample", 8);
         nudgeValueChooser.setSelectedId (1, juce::dontSendNotification);
         nudgeValueChooser.onChange = [this] {
             if (refreshingNudgeChooser)
@@ -4636,6 +4640,10 @@ public:
                 selected == 2 ? yesdaw::ui::UiActionId::EditNudgeValueBar
                 : selected == 3 ? yesdaw::ui::UiActionId::EditNudgeValueBeat
                 : selected == 4 ? yesdaw::ui::UiActionId::EditNudgeValueSixteenth
+                : selected == 5 ? yesdaw::ui::UiActionId::EditNudgeValueMs1      // G2.8
+                : selected == 6 ? yesdaw::ui::UiActionId::EditNudgeValueMs10
+                : selected == 7 ? yesdaw::ui::UiActionId::EditNudgeValueFrame
+                : selected == 8 ? yesdaw::ui::UiActionId::EditNudgeValueSample
                                 : yesdaw::ui::UiActionId::EditNudgeValueGrid;
             (void) appModel.dispatch (action);
             refreshActionState();
@@ -5900,6 +5908,7 @@ public:
             view->setProperty ("settingsRow", context.settingsRowVisible);
             view->setProperty ("headerHeight", headerHeightNow());
             view->setProperty ("nudgeValue", context.nudgeValue);
+            view->setProperty ("nudgeFrames", static_cast<juce::int64> (appModel.nudgeFrames()));   // G2.8
             view->setProperty ("editMode", context.editMode == yesdaw::ui::UiEditMode::Overlap ? "overlap"
                                            : context.editMode == yesdaw::ui::UiEditMode::NoOverlap ? "no-overlap" : "shuffle");   // G2.6
             view->setProperty ("snapMode", context.snapMode == yesdaw::ui::UiSnapMode::Grid ? "grid"
@@ -9188,7 +9197,7 @@ private:
             UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
             UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
         };
-        static constexpr std::array<UiActionId, 28> kEditMenu {
+        static constexpr std::array<UiActionId, 32> kEditMenu {
             UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::TimelineClipCut,
             UiActionId::TimelineClipCopy,  UiActionId::TimelineClipPaste,  UiActionId::TimelineClipDuplicate,
             UiActionId::TimelineClipRepeatPaste, UiActionId::TimelineClipDelete,
@@ -9201,6 +9210,8 @@ private:
             UiActionId::EditNudgeLeftFine, UiActionId::EditNudgeRightFine,
             UiActionId::EditNudgeValueGrid, UiActionId::EditNudgeValueBar,
             UiActionId::EditNudgeValueBeat, UiActionId::EditNudgeValueSixteenth,
+            UiActionId::EditNudgeValueMs1, UiActionId::EditNudgeValueMs10,          // G2.8
+            UiActionId::EditNudgeValueFrame, UiActionId::EditNudgeValueSample,
         };
         static constexpr std::array<UiActionId, 12> kTrackMenu {
             UiActionId::TrackAdd,          UiActionId::TrackDuplicate,     UiActionId::TrackRemove,
@@ -9294,6 +9305,10 @@ private:
             case UiActionId::EditNudgeValueBar:                 return c.nudgeValue == 1;
             case UiActionId::EditNudgeValueBeat:                return c.nudgeValue == 2;
             case UiActionId::EditNudgeValueSixteenth:           return c.nudgeValue == 3;
+            case UiActionId::EditNudgeValueMs1:                 return c.nudgeValue == 4;   // G2.8
+            case UiActionId::EditNudgeValueMs10:                return c.nudgeValue == 5;
+            case UiActionId::EditNudgeValueFrame:               return c.nudgeValue == 6;
+            case UiActionId::EditNudgeValueSample:              return c.nudgeValue == 7;
             case UiActionId::TimelineToggleMixerDock:           return c.mixerDockVisible;
             case UiActionId::EditModeOverlap:                   return c.editMode == yesdaw::ui::UiEditMode::Overlap;    // G2.6
             case UiActionId::EditModeNoOverlap:                 return c.editMode == yesdaw::ui::UiEditMode::NoOverlap;

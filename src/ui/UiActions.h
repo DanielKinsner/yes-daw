@@ -205,6 +205,11 @@ enum class UiActionId : std::uint8_t
     EditNudgeValueBar,
     EditNudgeValueBeat,
     EditNudgeValueSixteenth,
+    // G2.8: the Nudge value in clock units too — 1 ms, 10 ms, one SMPTE frame, one sample.
+    EditNudgeValueMs1,
+    EditNudgeValueMs10,
+    EditNudgeValueFrame,
+    EditNudgeValueSample,
     Count
 };
 
@@ -890,6 +895,14 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::EditNudgeValueBeat, "edit.nudge.value.beat", "Nudge: Beat", "", "Nudge by one beat",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::EditNudgeValueSixteenth, "edit.nudge.value.sixteenth", "Nudge: 1/16", "", "Nudge by a sixteenth",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::EditNudgeValueMs1, "edit.nudge.value.ms1", "Nudge: 1 ms", "", "Nudge by one millisecond",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::EditNudgeValueMs10, "edit.nudge.value.ms10", "Nudge: 10 ms", "", "Nudge by ten milliseconds",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::EditNudgeValueFrame, "edit.nudge.value.frame", "Nudge: 1 Frame", "", "Nudge by one SMPTE frame (30 fps)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    { UiActionId::EditNudgeValueSample, "edit.nudge.value.sample", "Nudge: 1 Sample", "", "Nudge by one sample",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false }
 }};
 
@@ -1807,6 +1820,10 @@ public:
             case UiActionId::EditNudgeValueBar:       context.nudgeValue = 1; break;
             case UiActionId::EditNudgeValueBeat:      context.nudgeValue = 2; break;
             case UiActionId::EditNudgeValueSixteenth: context.nudgeValue = 3; break;
+            case UiActionId::EditNudgeValueMs1:       context.nudgeValue = 4; break;   // G2.8
+            case UiActionId::EditNudgeValueMs10:      context.nudgeValue = 5; break;
+            case UiActionId::EditNudgeValueFrame:     context.nudgeValue = 6; break;
+            case UiActionId::EditNudgeValueSample:    context.nudgeValue = 7; break;
 
             case UiActionId::TransportStoreLocatePoint1:
             case UiActionId::TransportStoreLocatePoint2:

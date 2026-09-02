@@ -5290,15 +5290,23 @@ public:
 
     // G1.4: the Nudge value. Grid follows the snap grid (a beat when snap is off); the others are
     // their own unit through the same head tempo / meter law the snap grid uses.
-    enum class UiNudgeUnit : std::uint8_t { Grid, Bar, Beat, Sixteenth };
+    // G2.8: clock units too — 1 ms, 10 ms, one SMPTE frame (30 fps), one sample — each through
+    // the project sample rate, never less than one sample.
+    enum class UiNudgeUnit : std::uint8_t { Grid, Bar, Beat, Sixteenth, Ms1, Ms10, Frame, Sample };
+    static constexpr double kNudgeSmpteFramesPerSecond = 30.0;
     [[nodiscard]] UiNudgeUnit nudgeUnit() const noexcept { return nudgeUnit_; }
     [[nodiscard]] std::int64_t nudgeFrames() const noexcept
     {
+        const double sampleRate = project_.sampleRate.isValid() ? project_.sampleRate.hz : 48000.0;
         switch (nudgeUnit_)
         {
             case UiNudgeUnit::Bar:       return snapFramesForUnit (UiSnapUnit::Bar);
             case UiNudgeUnit::Beat:      return snapFramesForUnit (UiSnapUnit::Beat);
             case UiNudgeUnit::Sixteenth: return snapFramesForUnit (UiSnapUnit::Sixteenth);
+            case UiNudgeUnit::Ms1:       return std::max<std::int64_t> (1, static_cast<std::int64_t> (std::llround (sampleRate * 0.001)));
+            case UiNudgeUnit::Ms10:      return std::max<std::int64_t> (1, static_cast<std::int64_t> (std::llround (sampleRate * 0.01)));
+            case UiNudgeUnit::Frame:     return std::max<std::int64_t> (1, static_cast<std::int64_t> (std::llround (sampleRate / kNudgeSmpteFramesPerSecond)));
+            case UiNudgeUnit::Sample:    return 1;
             case UiNudgeUnit::Grid:      break;
         }
         return std::max<std::int64_t> (1, context_.snapGridTicks);
@@ -6535,12 +6543,20 @@ public:
             case UiActionId::EditNudgeValueBar:
             case UiActionId::EditNudgeValueBeat:
             case UiActionId::EditNudgeValueSixteenth:
+            case UiActionId::EditNudgeValueMs1:       // G2.8
+            case UiActionId::EditNudgeValueMs10:
+            case UiActionId::EditNudgeValueFrame:
+            case UiActionId::EditNudgeValueSample:
             {
                 const UiActionDispatchResult result = registry_.dispatch (id, context_);
                 if (result.dispatched)
                     nudgeUnit_ = id == UiActionId::EditNudgeValueBar       ? UiNudgeUnit::Bar
                                : id == UiActionId::EditNudgeValueBeat      ? UiNudgeUnit::Beat
                                : id == UiActionId::EditNudgeValueSixteenth ? UiNudgeUnit::Sixteenth
+                               : id == UiActionId::EditNudgeValueMs1       ? UiNudgeUnit::Ms1
+                               : id == UiActionId::EditNudgeValueMs10      ? UiNudgeUnit::Ms10
+                               : id == UiActionId::EditNudgeValueFrame     ? UiNudgeUnit::Frame
+                               : id == UiActionId::EditNudgeValueSample    ? UiNudgeUnit::Sample
                                                                             : UiNudgeUnit::Grid;
                 return result;
             }

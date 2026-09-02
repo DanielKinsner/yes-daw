@@ -4632,7 +4632,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
     // Eight action items + the B39 Open Recent submenu.
     REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 9);
-    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 29);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 33);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
 
     // File > New Project through the model creates a real bundle.
@@ -17363,6 +17363,94 @@ TEST_CASE ("G2.7 snap modes: Grid subdivides with zoom, Relative keeps the offse
     REQUIRE (chooser->getSelectedId() == 4);
     chooser->setSelectedId (1, juce::sendNotificationSync);
     REQUIRE (viewStr ("snapMode") == "grid");
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G2.8: the Nudge value in clock units — 1 ms, 10 ms, one SMPTE frame, one sample — each through
+// the project sample rate; the chooser and the Edit menu carry them; the probe reports the frames.
+TEST_CASE ("G2.8 nudge value: 1 ms, 10 ms, 1 frame and 1 sample nudge by exactly those distances",
+           "[ui][input][shell][g2][nudge-value]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("nudge-value");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    REQUIRE (original.clips.size() == 1u);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+    const double sampleRate = original.sampleRate.hz;
+    REQUIRE (sampleRate > 0.0);
+
+    const auto probeInt = [&] (const char* key)
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return static_cast<long long> (static_cast<juce::int64> (probe.getProperty ("view", {}).getProperty (key, 0)));
+    };
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.nudge.chooser"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->getNumItems() == 8);
+
+    struct Unit { UiActionId action; int nudgeValue; int chooserId; long long frames; };
+    const std::array<Unit, 4> units {{
+        { UiActionId::EditNudgeValueMs1, 4, 5, std::llround (sampleRate * 0.001) },
+        { UiActionId::EditNudgeValueMs10, 5, 6, std::llround (sampleRate * 0.01) },
+        { UiActionId::EditNudgeValueFrame, 6, 7, std::llround (sampleRate / 30.0) },
+        { UiActionId::EditNudgeValueSample, 7, 8, 1 },
+    }};
+    yesdaw::engine::Tick expected = original.clips[0].timelineStart;
+    for (const Unit& unit : units)
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, unit.action);
+        INFO ("unit " << unit.chooserId);
+        REQUIRE (probeInt ("nudgeValue") == unit.nudgeValue);
+        REQUIRE (probeInt ("nudgeFrames") == unit.frames);
+        REQUIRE (chooser->getSelectedId() == unit.chooserId);
+        REQUIRE (yesdaw::ui::mainComponentActionState (*shell, unit.action).enabled);
+
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::altModifier, 0)));
+        expected += static_cast<yesdaw::engine::Tick> (unit.frames);
+        REQUIRE (readProjectSnapshot (bundlePath).clips[0].timelineStart == expected);
+    }
+    // Back the same way, then the chooser drives the verb.
+    for (auto it = units.rbegin(); it != units.rend(); ++it)
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, it->action);
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey, juce::ModifierKeys::altModifier, 0)));
+        expected -= static_cast<yesdaw::engine::Tick> (it->frames);
+        REQUIRE (readProjectSnapshot (bundlePath).clips[0].timelineStart == expected);
+    }
+    REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+    chooser->setSelectedId (6, juce::sendNotificationSync);
+    REQUIRE (probeInt ("nudgeValue") == 5);
+    REQUIRE (probeInt ("nudgeFrames") == std::llround (sampleRate * 0.01));
+
+    // The Edit menu carries all eight values and ticks the current one.
+    juce::MenuBarModel& model = requireMenuBarModel (*shell);
+    const juce::PopupMenu edit = model.getMenuForIndex (1, "Edit");
+    int nudgeItems = 0;
+    int ticked = 0;
+    for (juce::PopupMenu::MenuItemIterator it (edit, true); it.next();)
+    {
+        const juce::PopupMenu::Item& item = it.getItem();
+        if (! item.text.startsWith ("Nudge: "))
+            continue;
+        ++nudgeItems;
+        if (item.isTicked)
+        {
+            ++ticked;
+            REQUIRE (item.text == "Nudge: 10 ms");
+        }
+    }
+    REQUIRE (nudgeItems == 8);
+    REQUIRE (ticked == 1);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

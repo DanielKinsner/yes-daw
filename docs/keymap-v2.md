@@ -200,3 +200,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Nudge: Bar (`edit.nudge.value.bar`)
 - Nudge: Beat (`edit.nudge.value.beat`)
 - Nudge: 1/16 (`edit.nudge.value.sixteenth`)
+- Nudge: 1 ms (`edit.nudge.value.ms1`)
+- Nudge: 10 ms (`edit.nudge.value.ms10`)
+- Nudge: 1 Frame (`edit.nudge.value.frame`)
+- Nudge: 1 Sample (`edit.nudge.value.sample`)

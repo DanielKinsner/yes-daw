@@ -41,9 +41,9 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.7 (Snap modes Grid / Relative / Events / Off, Ctrl inverts, one snap law for every
-drop; `[snap-modes]`) built, gated locally, committed; awaiting its exact-head run. Next: G2.8 —
-Nudge value (bar, beat, grid, 1 ms, 10 ms, 1 frame, samples). The drive stays paused (D14).
+**Now:** G2.8 (Nudge value in clock units — 1 ms, 10 ms, 1 frame, 1 sample; `[nudge-value]`)
+built, gated locally, committed; awaiting its exact-head run. Next: G2.9 per the plan. The drive
+stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -97,6 +97,23 @@ benchmark's hosted-runner noise, parking lot) — every job green on the same he
 G2.5 ✅ — Time selection first-class (`c6568e5`); G2.6 ✅ — Edit modes (`e25e008`); both certified
 by run `33630615703` on `af3c034` (the one-label fix; D51 in G2.7's section) — green on all ten jobs.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.8 — Nudge value in clock units (2026-09-02)
+
+**Build.** `UiNudgeUnit` gains `Ms1, Ms10, Frame, Sample`; `nudgeFrames()` resolves them through
+the project sample rate (`round (sr × 0.001)`, `round (sr × 0.01)`, `round (sr / 30)`, `1`),
+never below one sample. Verbs `EditNudgeValueMs1 / Ms10 / Frame / Sample` (Edit menu, ticked;
+`nudgeValue` 4..7); the status row's nudge chooser carries eight items; probe
+`view.nudgeFrames`.
+
+**Gates.** `[nudge-value]` (input check): each unit's verb sets the value, the probe's frames
+match the arithmetic, the chooser follows, one nudge right moves the clip by exactly those
+frames, four nudges back restore the clips; the chooser drives; the Edit menu holds eight
+Nudge items with one ticked. Edit menu 29 → 33.
+
+**Not built (recorded).** The frame unit is fixed at 30 fps (the ruler's SMPTE rate); a
+project frame rate comes with the sync work. No fine-nudge multiplier for the clock units
+(Shift+Alt still divides by eight, which for 1 sample floors to 1).
 
 ### G2.7 — Snap modes (2026-09-02)
 
