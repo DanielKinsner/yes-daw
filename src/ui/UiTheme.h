@@ -800,6 +800,12 @@ struct UiTheme
         // window floor the nudge chooser drops WHOLE (E27) — the Edit menu still carries it.
         static constexpr int timelineNudgeChooserWidth = 104;
         static constexpr int timelineEditModeChooserWidth = 128;   // G2.6: "Edit: No Overlap"
+        static constexpr int timelineSnapModeChooserWidth = 112;   // G2.7: "Snap: Relative"
+        // G2.7: the zoom-adaptive grid subdivides while a cell stays at least this wide; Events
+        // snapping catches an edge within this many pixels.
+        static constexpr int timelineSnapMinGridPx = 24;
+        static constexpr int timelineSnapMaxSubdivisions = 4;
+        static constexpr int timelineSnapEventTolerancePx = 8;
         static constexpr int timelineNudgeChooserGap = 12;
         static constexpr int inspectorToggleWidth = 32;   // G2.1 cp3: the view cluster is letters — [X][P][I] — so it fits the status row at 1280
         static constexpr int inspectorToggleGap = 8;   // G2.1 cp3: four letters fit the 1280 row

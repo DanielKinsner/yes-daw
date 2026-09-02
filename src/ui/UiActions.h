@@ -168,6 +168,12 @@ enum class UiActionId : std::uint8_t
     EditModeOverlap,
     EditModeNoOverlap,
     EditModeShuffle,
+    // G2.7: the Snap mode — how a dragged position lands: Grid (zoom-adaptive), Relative (the
+    // moved distance snaps, the offset stays), Events (clip edges, markers, playhead, loop), Off.
+    TimelineSnapModeGrid,
+    TimelineSnapModeRelative,
+    TimelineSnapModeEvents,
+    TimelineSnapModeOff,
     TrackDuplicate,
     TrackMoveUp,
     TrackMoveDown,
@@ -243,6 +249,18 @@ enum class UiEditMode : std::uint8_t
     Overlap,
     NoOverlap,
     Shuffle
+};
+
+// G2.7 (plan G2.7; Logic / Pro Tools snap modes): Grid snaps the position to the grid, whose unit
+// halves as you zoom in; Relative snaps the moved DISTANCE so an off-grid clip keeps its offset;
+// Events snaps to clip edges, markers, the playhead and the loop edges; Off snaps nothing.
+// Ctrl inverts during a drag in every mode.
+enum class UiSnapMode : std::uint8_t
+{
+    Grid,
+    Relative,
+    Events,
+    Off
 };
 
 // G1.1 (plan §4): the Focus context a chord is looked up in. Global chords work everywhere; an
@@ -405,6 +423,7 @@ struct UiActionContext
     bool mixerDockVisible = true;
     UiEditorDockTab editorDockTab = UiEditorDockTab::Mixer;   // G2.1: the tab the dock shows
     UiEditMode editMode = UiEditMode::Overlap;                // G2.6
+    UiSnapMode snapMode = UiSnapMode::Grid;                   // G2.7
     // V7: which inspector tab is active — false = CLIP (the historical content), true = TRACK.
     bool inspectorTrackTabActive = false;
     bool timelineAutomationTrackLaneVisible = false;
@@ -809,6 +828,14 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::EditModeNoOverlap, "edit.mode.no_overlap", "No Overlap", "", "Edit mode: a placed Clip trims what it covers",
       AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::EditModeShuffle, "edit.mode.shuffle", "Shuffle", "", "Edit mode: neighbours close up on a removal and move aside on a placement",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::TimelineSnapModeGrid, "timeline.snap_mode.grid", "Snap: Grid", "", "Snap mode: positions land on the grid, whose unit halves as you zoom in",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::TimelineSnapModeRelative, "timeline.snap_mode.relative", "Snap: Relative", "", "Snap mode: the moved distance snaps to the grid, the Clip keeps its offset",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::TimelineSnapModeEvents, "timeline.snap_mode.events", "Snap: Events", "", "Snap mode: positions land on clip edges, markers, the playhead and the loop edges",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::TimelineSnapModeOff, "timeline.snap_mode.off", "Snap: Off", "", "Snap mode: nothing snaps (Ctrl during a drag snaps to the grid)",
       AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::TrackDuplicate, "track.duplicate", "Duplicate Track", "", "Duplicate selected track with clips and strip",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -1840,6 +1867,11 @@ public:
             case UiActionId::EditModeOverlap:   context.editMode = UiEditMode::Overlap;   break;   // G2.6
             case UiActionId::EditModeNoOverlap: context.editMode = UiEditMode::NoOverlap; break;
             case UiActionId::EditModeShuffle:   context.editMode = UiEditMode::Shuffle;   break;
+
+            case UiActionId::TimelineSnapModeGrid:     context.snapMode = UiSnapMode::Grid;     break;   // G2.7
+            case UiActionId::TimelineSnapModeRelative: context.snapMode = UiSnapMode::Relative; break;
+            case UiActionId::TimelineSnapModeEvents:   context.snapMode = UiSnapMode::Events;   break;
+            case UiActionId::TimelineSnapModeOff:      context.snapMode = UiSnapMode::Off;      break;
 
             case UiActionId::Count:
                 return { id, { false, "unknown action" }, false };

@@ -6440,6 +6440,10 @@ public:
             case UiActionId::EditModeOverlap:          // G2.6: the mode lives in the context
             case UiActionId::EditModeNoOverlap:
             case UiActionId::EditModeShuffle:
+            case UiActionId::TimelineSnapModeGrid:     // G2.7: the mode lives in the context
+            case UiActionId::TimelineSnapModeRelative:
+            case UiActionId::TimelineSnapModeEvents:
+            case UiActionId::TimelineSnapModeOff:
             {
                 return registry_.dispatch (id, context_);
             }

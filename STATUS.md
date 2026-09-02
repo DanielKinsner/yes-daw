@@ -41,10 +41,9 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G2.6 (Edit modes Overlap / No Overlap / Shuffle — one chooser, one law inside each
-placing or removing edit; `[edit-modes]`) built, gated locally, committed; awaiting its exact-head
-run. Next: G2.7 — Snap modes (Grid zoom-adaptive, Relative, Events, Off; Ctrl inverts; a snap
-line during drag). The drive stays paused (D14).
+**Now:** G2.7 (Snap modes Grid / Relative / Events / Off, Ctrl inverts, one snap law for every
+drop; `[snap-modes]`) built, gated locally, committed; awaiting its exact-head run. Next: G2.8 —
+Nudge value (bar, beat, grid, 1 ms, 10 ms, 1 frame, samples). The drive stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -95,7 +94,53 @@ G2.2 ✅ — ruler v2 (`9618882`); certified by the same run `33625472284`.
 G2.3 ✅ — drag ghosts, landing line, Esc, auto-scroll (`83e8c5e`); G2.4 ✅ — the Smart tool
 (`c56e0e9`); certified by run `33627456994` after a rerun of its Windows job (the GPU frame-budget
 benchmark's hosted-runner noise, parking lot) — every job green on the same head.
+G2.5 ✅ — Time selection first-class (`c6568e5`); G2.6 ✅ — Edit modes (`e25e008`); both certified
+by run `33630615703` on `af3c034` (the one-label fix; D51 in G2.7's section) — green on all ten jobs.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G2.7 — Snap modes (2026-09-02)
+
+**Build.** `UiSnapMode { Grid, Relative, Events, Off }` in the action context; verbs
+`TimelineSnapModeGrid / Relative / Events / Off` (Global, ticked in the View menu). Shell: ONE
+law `snappedTimelineTickFrom (tick, invert, origin, movingClip)` behind the old
+`snappedTimelineTick`: **Grid** uses `effectiveSnapGridTicks()` — the unit subdivided while a
+cell stays ≥ `timelineSnapMinGridPx` (24) at the current zoom, at most
+`timelineSnapMaxSubdivisions` (4) — so the grid halves as you zoom in; **Relative** rounds the
+distance from the dragged clip's start; **Events** takes the nearest clip edge (not the moving
+clip's own), marker, playhead or loop edge within `timelineSnapEventTolerancePx` (8), else no
+snap; **Off** snaps nothing; Ctrl inverts in every mode. The move drop passes the clip as origin
+and moving clip; trims, lane moves, copies and the ruler keep the plain grid law (recorded).
+Status row `snapModeChooser` ("Snap: …", width 112) leads `[Snap][Edit][Nudge]`. Probe
+`view.snapMode`, `view.snapEffectiveTicks`.
+
+**Gates.** `[snap-modes]` (input check): Grid's effective grid divides the beat and shrinks
+after zooming in; a plain drag lands on it and a Ctrl drag off it; Relative keeps the off-grid
+offset over a one-grid drag; Events lands a second clip exactly on the first's end and exactly
+on the playhead; Off lands where the pointer says and Ctrl snaps back to the beat; the chooser
+follows and drives. Child count +1.
+
+**Not built (recorded).** Relative / Events apply to clip MOVES on the same lane; trims, lane
+moves, drag-copies, marker drags and the ruler still snap to the plain grid (each has its own
+release path — G2.11 slip and the marker item fold them in); the toolbar's unit chooser keeps
+its own Off (the two Offs agree: either snaps nothing); no separate snap indicator beyond the
+chooser and the G2.3 landing line; the canvas still draws the beat grid while Grid mode snaps
+to its subdivisions (the landing line shows the true target — drawing the subdivisions is a
+G3 paint item).
+
+**Re-pins.** Seven older gates assumed the plain beat grid for drags at fit zoom:
+`[loop-brace]`, `[vertical-scroll]`, the marker drag, the snap-chooser clip drag and the
+automation point drag now assert a multiple of the probe's `snapEffectiveTicks` (and that it
+divides the beat); `[snap-gestures]` and `[tool-palette]`, whose stories need a grid coarser
+than the fixture clip, run in Relative mode (its trims, splits and ruler drags snap to the
+plain unit).
+
+**D51 (deviation).** The G2.5 head `c6568e5` and the G2.6 head `e25e008` are red on Linux,
+macOS and Package: the model's exhaustive dispatch switch missed `TimelineZoomToSelection`
+(GCC/Clang `-Werror=switch`; MSVC does not warn, so the local suite was green). Fixed by
+`af3c034` alone (one case label); G2.5 and G2.6 are certified by that head's run, which carries
+both commits unchanged. Lesson recorded: any new `UiActionId` must appear in the model's
+dispatch switch and the registry's exhaustive switch (both lack a default on purpose); the
+MSVC-only local build cannot catch it, so the pre-commit check is a grep of both switches.
 
 ### G2.6 — Edit modes (2026-09-02)
 

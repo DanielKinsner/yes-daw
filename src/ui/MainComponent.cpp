@@ -4573,6 +4573,30 @@ public:
         addAndMakeVisible (timelineSnapChooser);
 
         // G1.4: the Nudge value chooser — four registered verbs as one control.
+        // G2.7: the Snap mode chooser — Grid / Relative / Events / Off (the unit stays in the
+        // toolbar's snap chooser; Ctrl inverts during a drag; the G2.3 landing line shows it).
+        configureActionComponent (snapModeChooser, yesdaw::ui::UiActionId::TimelineSnapModeGrid, "Snap mode");
+        snapModeChooser.setComponentID ("timeline.snap_mode.chooser");
+        snapModeChooser.setName ("Snap mode");
+        snapModeChooser.setTitle ("Snap mode");
+        snapModeChooser.addItem ("Snap: Grid", 1);
+        snapModeChooser.addItem ("Snap: Relative", 2);
+        snapModeChooser.addItem ("Snap: Events", 3);
+        snapModeChooser.addItem ("Snap: Off", 4);
+        snapModeChooser.setSelectedId (1, juce::dontSendNotification);
+        snapModeChooser.onChange = [this] {
+            if (refreshingSnapModeChooser)
+                return;
+            const int selected = snapModeChooser.getSelectedId();
+            handleAction (selected == 2 ? yesdaw::ui::UiActionId::TimelineSnapModeRelative
+                          : selected == 3 ? yesdaw::ui::UiActionId::TimelineSnapModeEvents
+                          : selected == 4 ? yesdaw::ui::UiActionId::TimelineSnapModeOff
+                                          : yesdaw::ui::UiActionId::TimelineSnapModeGrid);
+            refreshActionState();
+            repaintAll();
+        };
+        addAndMakeVisible (snapModeChooser);
+
         // G2.6: the Edit mode chooser — Overlap / No Overlap / Shuffle — one setting the placing
         // and removing verbs consult; the Edit menu carries the same three, ticked.
         configureActionComponent (editModeChooser, yesdaw::ui::UiActionId::EditModeOverlap, "Edit mode");
@@ -5878,6 +5902,10 @@ public:
             view->setProperty ("nudgeValue", context.nudgeValue);
             view->setProperty ("editMode", context.editMode == yesdaw::ui::UiEditMode::Overlap ? "overlap"
                                            : context.editMode == yesdaw::ui::UiEditMode::NoOverlap ? "no-overlap" : "shuffle");   // G2.6
+            view->setProperty ("snapMode", context.snapMode == yesdaw::ui::UiSnapMode::Grid ? "grid"
+                                           : context.snapMode == yesdaw::ui::UiSnapMode::Relative ? "relative"
+                                           : context.snapMode == yesdaw::ui::UiSnapMode::Events ? "events" : "off");   // G2.7
+            view->setProperty ("snapEffectiveTicks", static_cast<juce::int64> (effectiveSnapGridTicks()));
             view->setProperty ("keymapEditor", context.keymapVisible);
             view->setProperty ("hoverHint", hoverHint);
             view->setProperty ("railWidth", viewState.railWidth);          // G2.1
@@ -8772,11 +8800,17 @@ private:
             const juce::Rectangle<int> toggle = status.withX (timeline.getRight() - L::statusLineRightInset - L::inspectorToggleWidth)
                                                       .withWidth (L::inspectorToggleWidth);
             const int clusterLeft = toggle.getX() - (L::inspectorToggleWidth + L::inspectorToggleGap) * 3;   // G2.1 cp3: [I][X][P][A]
-            // G2.6: [Edit mode][Nudge] lead the status row; each drops whole when the row cannot hold it.
-            const juce::Rectangle<int> editMode = status.withWidth (L::timelineEditModeChooserWidth);
+            // G2.6 / G2.7: [Snap mode][Edit mode][Nudge] lead the status row; each drops whole when
+            // the row cannot hold it.
+            const juce::Rectangle<int> snapMode = status.withWidth (L::timelineSnapModeChooserWidth);
+            const bool snapModeFits = snapMode.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
+            snapModeChooser.setBounds (snapModeFits ? snapMode : juce::Rectangle<int>());
+            const juce::Rectangle<int> editMode = status.withX (snapModeFits ? snapMode.getRight() + L::timelineNudgeChooserGap : status.getX())
+                                                        .withWidth (L::timelineEditModeChooserWidth);
             const bool editModeFits = editMode.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
             editModeChooser.setBounds (editModeFits ? editMode : juce::Rectangle<int>());
-            juce::Rectangle<int> nudge = status.withX (editModeFits ? editMode.getRight() + L::timelineNudgeChooserGap : status.getX())
+            juce::Rectangle<int> nudge = status.withX (editModeFits ? editMode.getRight() + L::timelineNudgeChooserGap
+                                                       : snapModeFits ? snapMode.getRight() + L::timelineNudgeChooserGap : status.getX())
                                                .withWidth (L::timelineNudgeChooserWidth);
             const bool nudgeFits = nudge.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
             nudgeValueChooser.setBounds (nudgeFits ? nudge : juce::Rectangle<int>());
@@ -8798,7 +8832,8 @@ private:
                 piano->toFront (false);
             automationLaneToggle.toFront (false);
             const int statusLeft = nudgeFits ? nudge.getRight() + L::timelineNudgeChooserGap
-                                 : editModeFits ? editMode.getRight() + L::timelineNudgeChooserGap : status.getX();
+                                 : editModeFits ? editMode.getRight() + L::timelineNudgeChooserGap
+                                 : snapModeFits ? snapMode.getRight() + L::timelineNudgeChooserGap : status.getX();
             const int statusRight = clusterLeft - L::inspectorToggleGap;
             statusLine.setBounds (statusRight > statusLeft ? status.withLeft (statusLeft).withRight (statusRight)
                                                           : juce::Rectangle<int>());
@@ -9189,7 +9224,7 @@ private:
             UiActionId::PianoRollNoteDuplicate, UiActionId::PianoRollNoteSetLength,
             UiActionId::PianoRollNoteSetVelocity,
         };
-        static constexpr std::array<UiActionId, 20> kViewMenu {
+        static constexpr std::array<UiActionId, 24> kViewMenu {
             UiActionId::ViewTimeline,      UiActionId::ViewMixer,          UiActionId::ViewPianoRoll,
             UiActionId::ViewToggleInspector,
             UiActionId::TimelineToggleMixerDock, UiActionId::InspectorShowClipTab, UiActionId::InspectorShowTrackTab,
@@ -9200,6 +9235,8 @@ private:
             UiActionId::TimelineToolSelectPointer, UiActionId::TimelineToolSelectPencil,
             UiActionId::TimelineToolSelectScissors, UiActionId::TimelineToolSelectHand,
             UiActionId::TimelineToolSelectZoom, UiActionId::ViewToggleSettingsRow,
+            UiActionId::TimelineSnapModeGrid, UiActionId::TimelineSnapModeRelative,
+            UiActionId::TimelineSnapModeEvents, UiActionId::TimelineSnapModeOff,
         };
         static constexpr std::array<UiActionId, 24> kTransportMenu {
             UiActionId::TransportTogglePlayStop, UiActionId::TransportPlay, UiActionId::TransportStop,
@@ -9261,6 +9298,10 @@ private:
             case UiActionId::EditModeOverlap:                   return c.editMode == yesdaw::ui::UiEditMode::Overlap;    // G2.6
             case UiActionId::EditModeNoOverlap:                 return c.editMode == yesdaw::ui::UiEditMode::NoOverlap;
             case UiActionId::EditModeShuffle:                   return c.editMode == yesdaw::ui::UiEditMode::Shuffle;
+            case UiActionId::TimelineSnapModeGrid:              return c.snapMode == yesdaw::ui::UiSnapMode::Grid;      // G2.7
+            case UiActionId::TimelineSnapModeRelative:          return c.snapMode == yesdaw::ui::UiSnapMode::Relative;
+            case UiActionId::TimelineSnapModeEvents:            return c.snapMode == yesdaw::ui::UiSnapMode::Events;
+            case UiActionId::TimelineSnapModeOff:               return c.snapMode == yesdaw::ui::UiSnapMode::Off;
             case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
             case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
             case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
@@ -10479,6 +10520,9 @@ private:
             refreshingEditModeChooser = true;   // G2.6
             editModeChooser.setSelectedId (static_cast<int> (appModel.context().editMode) + 1, juce::dontSendNotification);
             refreshingEditModeChooser = false;
+            refreshingSnapModeChooser = true;   // G2.7
+            snapModeChooser.setSelectedId (static_cast<int> (appModel.context().snapMode) + 1, juce::dontSendNotification);
+            refreshingSnapModeChooser = false;
             refreshingNudgeChooser = false;
             refreshActionTooltips();
             inspectorToggle.setToggleState (appModel.context().inspectorVisible, juce::dontSendNotification);
@@ -12327,7 +12371,16 @@ private:
         else
             (void) appModel.selectTimelineClipForGesture (draggedClipId, false);
         if (const auto tick = timelineTickFromSeconds (startSeconds))
-            (void) appModel.moveSelectedTimelineClipTo (snappedTimelineTick (*tick, snapToGrid));
+        {
+            const yesdaw::engine::Clip* moving = nullptr;   // G2.7: Relative / Events read the clip
+            for (const yesdaw::engine::Clip& clip : appModel.project().clips)
+                if (clip.id == draggedClipId)
+                    moving = &clip;
+            (void) appModel.moveSelectedTimelineClipTo (snappedTimelineTickFrom (
+                *tick, snapToGrid,
+                moving != nullptr ? std::optional<yesdaw::engine::Tick> (moving->timelineStart) : std::nullopt,
+                std::optional<yesdaw::engine::EntityId> (draggedClipId)));
+        }
 
         refreshActionState();
         repaintAll();
@@ -12335,17 +12388,108 @@ private:
 
     // The active snap grid applied to a gesture tick. The gesture's Ctrl flag INVERTS the global
     // grid: grid on -> Ctrl drags fine; grid off -> Ctrl snaps one-shot.
+    // G2.7: the grid a drag lands on. Grid mode subdivides the chosen unit while a cell stays at
+    // least timelineSnapMinGridPx wide at the current zoom (halving as you zoom in); the other
+    // modes use the unit as chosen.
+    [[nodiscard]] std::int64_t effectiveSnapGridTicks() const
+    {
+        std::int64_t grid = appModel.context().snapGridTicks;
+        if (grid <= 0 || appModel.context().snapMode != yesdaw::ui::UiSnapMode::Grid)
+            return grid;
+        const yesdaw::engine::Project& project = appModel.project();
+        if (! project.sampleRate.isValid())
+            return grid;
+        const double pps = timelinePixelsPerSecondFor (timelineTotalSeconds);
+        if (pps <= 0.0)
+            return grid;
+        for (int k = 0; k < yesdaw::ui::UiTheme::Layout::timelineSnapMaxSubdivisions; ++k)
+        {
+            const std::int64_t half = grid / 2;
+            if (half <= 0 || grid % 2 != 0)
+                break;
+            if (static_cast<double> (half) / project.sampleRate.hz * pps < static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineSnapMinGridPx))
+                break;
+            grid = half;
+        }
+        return grid;
+    }
+
+    // The Events mode's candidates: every clip edge (except the dragged clip's own), every marker,
+    // the playhead and the loop edges; the nearest within the tolerance wins, else no snap.
+    [[nodiscard]] std::optional<yesdaw::engine::Tick> snapTickToEvents (yesdaw::engine::Tick tick,
+                                                                       std::optional<yesdaw::engine::EntityId> excludeClip) const
+    {
+        const yesdaw::engine::Project& project = appModel.project();
+        if (! project.sampleRate.isValid())
+            return std::nullopt;
+        const double pps = timelinePixelsPerSecondFor (timelineTotalSeconds);
+        if (pps <= 0.0)
+            return std::nullopt;
+        const auto tolerance = static_cast<yesdaw::engine::Tick> (
+            std::llround (static_cast<double> (yesdaw::ui::UiTheme::Layout::timelineSnapEventTolerancePx) / pps * project.sampleRate.hz));
+        std::optional<yesdaw::engine::Tick> best;
+        const auto consider = [&] (yesdaw::engine::Tick candidate)
+        {
+            const auto distance = static_cast<yesdaw::engine::Tick> (std::llabs (static_cast<long long> (candidate) - static_cast<long long> (tick)));
+            if (distance > tolerance)
+                return;
+            if (! best || distance < static_cast<yesdaw::engine::Tick> (std::llabs (static_cast<long long> (*best) - static_cast<long long> (tick))))
+                best = candidate;
+        };
+        for (const yesdaw::engine::Clip& clip : project.clips)
+        {
+            if (excludeClip && clip.id == *excludeClip)
+                continue;
+            consider (clip.timelineStart);
+            consider (clip.timelineStart + clip.timelineLength);
+        }
+        for (const yesdaw::engine::Marker& marker : project.markers)
+            consider (marker.tick);
+        consider (static_cast<yesdaw::engine::Tick> (std::max<std::int64_t> (0, appModel.context().playheadFrame)));
+        if (appModel.playbackLoopEndFrame() > appModel.playbackLoopStartFrame())
+        {
+            consider (static_cast<yesdaw::engine::Tick> (appModel.playbackLoopStartFrame()));
+            consider (static_cast<yesdaw::engine::Tick> (appModel.playbackLoopEndFrame()));
+        }
+        return best;
+    }
+
     [[nodiscard]] yesdaw::engine::Tick snappedTimelineTick (yesdaw::engine::Tick tick, bool invertSnap) const
     {
-        const bool shouldSnap = appModel.context().snapEnabled != invertSnap;
-        const std::int64_t gridTicks = appModel.context().snapGridTicks;
-        if (! shouldSnap || gridTicks <= 0)
-            return tick;
+        return snappedTimelineTickFrom (tick, invertSnap, std::nullopt, std::nullopt);
+    }
 
+    // G2.7: ONE snap law for every drop. `origin` is the dragged clip's start before the drag
+    // (Relative mode snaps the distance from it); `movingClip` is excluded from the Events.
+    [[nodiscard]] yesdaw::engine::Tick snappedTimelineTickFrom (yesdaw::engine::Tick tick, bool invertSnap,
+                                                               std::optional<yesdaw::engine::Tick> origin,
+                                                               std::optional<yesdaw::engine::EntityId> movingClip) const
+    {
+        const yesdaw::ui::UiSnapMode mode = appModel.context().snapMode;
+        const bool unitOn = appModel.context().snapEnabled;
+        // Off (or the unit chooser's Off) snaps nothing; Ctrl inverts: it snaps to the grid.
+        const bool modeOff = mode == yesdaw::ui::UiSnapMode::Off || ! unitOn;
+        const bool shouldSnap = modeOff ? invertSnap : ! invertSnap;
+        if (! shouldSnap)
+            return tick;
+        if (! modeOff && mode == yesdaw::ui::UiSnapMode::Events)
+        {
+            if (const std::optional<yesdaw::engine::Tick> hit = snapTickToEvents (tick, movingClip))
+                return std::max<yesdaw::engine::Tick> (0, *hit);
+            return tick;
+        }
+        const std::int64_t gridTicks = modeOff ? appModel.context().snapGridTicks : effectiveSnapGridTicks();
+        if (gridTicks <= 0)
+            return tick;
         yesdaw::engine::Tick snapped = 0;
+        if (! modeOff && mode == yesdaw::ui::UiSnapMode::Relative && origin)
+        {
+            const auto delta = static_cast<yesdaw::engine::Tick> (static_cast<long long> (tick) - static_cast<long long> (*origin));
+            const long long rounded = std::llround (static_cast<double> (delta) / static_cast<double> (gridTicks)) * gridTicks;
+            return std::max<yesdaw::engine::Tick> (0, static_cast<yesdaw::engine::Tick> (static_cast<long long> (*origin) + rounded));
+        }
         if (! yesdaw::engine::snapTick (tick, yesdaw::engine::SnapGrid { gridTicks }, snapped))
             return tick;
-
         return std::max<yesdaw::engine::Tick> (0, snapped);
     }
 
@@ -13718,6 +13862,8 @@ private:
     juce::TextButton inspectorToggle;      // G1.4
     juce::ComboBox editModeChooser;        // G2.6
     bool refreshingEditModeChooser = false;
+    juce::ComboBox snapModeChooser;        // G2.7
+    bool refreshingSnapModeChooser = false;
     // G2.1: the Arrange window's splitter sizes (persisted per project as view-state.txt).
     struct ViewState
     {

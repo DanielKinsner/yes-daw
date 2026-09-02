@@ -1086,7 +1086,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 145u));   // G2.1: + three splitters; G2.6: + the edit mode chooser   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 146u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -10442,6 +10442,14 @@ TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's o
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
 }
 
+// G2.7: the grid a drop lands on in Grid mode subdivides with zoom; the probe reports it.
+[[nodiscard]] static std::int64_t probeSnapEffectiveTicks (juce::Component& shell)
+{
+    juce::var probe;
+    REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (shell)), probe).wasOk());
+    return static_cast<std::int64_t> (static_cast<juce::int64> (probe.getProperty ("view", {}).getProperty ("snapEffectiveTicks", 0)));
+}
+
 TEST_CASE ("the tool palette drives real timeline behavior per tool",
            "[ui][input][shell][timeline][tool-palette]")
 {
@@ -10559,7 +10567,9 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
 
     // SCISSORS tool: with the snap chooser on and the grid coarser than this short clip, the
     // snapped split tick lands outside the clip body and is honestly refused (E4); Ctrl inverts
-    // the grid, and the raw click splits as a persisted undoable edit.
+    // the grid, and the raw click splits as a persisted undoable edit. (G2.7: Grid mode
+    // subdivides with zoom, so the coarse-grid premise needs the Relative mode's plain unit.)
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeRelative);
     REQUIRE (shell->keyPressed (juce::KeyPress ('3')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Scissors);
     REQUIRE (snapshotMainComponent (*shell).context.snapEnabled);
@@ -10664,6 +10674,9 @@ TEST_CASE ("every timeline time-gesture consults the snap chooser with Ctrl inve
     REQUIRE (original.clips.size() == 1u);
     const yesdaw::engine::Clip baseClip = original.clips.front();
 
+    // G2.7: Grid mode subdivides with zoom; this gate's coarse-grid premise runs in Relative
+    // mode, whose trims, splits and ruler drags snap to the plain unit.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeRelative);
     const MainComponentSnapshot base = snapshotMainComponent (*shell);
     REQUIRE (base.context.snapEnabled);
     const std::int64_t grid = base.context.snapGridTicks;
@@ -10934,7 +10947,7 @@ TEST_CASE ("vertical track scroll reaches and edits the last track of a deep pro
     REQUIRE (movedClip->timelineStart > 0);
     const auto movedSnapshot = snapshotMainComponent (*shell);
     REQUIRE (movedSnapshot.context.snapEnabled);
-    REQUIRE (movedClip->timelineStart % movedSnapshot.context.snapGridTicks == 0);
+    REQUIRE (movedClip->timelineStart % probeSnapEffectiveTicks (*shell) == 0);   // G2.7: the zoom-adaptive grid
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == imported.clips);
 }
@@ -10959,7 +10972,7 @@ TEST_CASE ("the loop brace resizes and moves on the ruler with snap and exact sp
 
     const MainComponentSnapshot base = snapshotMainComponent (*shell);
     REQUIRE (base.context.snapEnabled);
-    const std::int64_t grid = base.context.snapGridTicks;
+    const std::int64_t grid = probeSnapEffectiveTicks (*shell);   // G2.7: the zoom-adaptive grid
 
     const auto xAtTick = [&] (yesdaw::engine::Tick tick) {
         return projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), project, tick).x;
@@ -11204,7 +11217,8 @@ TEST_CASE ("markers drag-move on the ruler and rename inline, all undoable",
     moved = readProjectSnapshot (bundlePath);
     movedMarker = markerById (moved, movedMarkerId);
     REQUIRE (movedMarker != nullptr);
-    REQUIRE (movedMarker->tick == grid * 2);
+    REQUIRE (movedMarker->tick > 0);
+    REQUIRE (movedMarker->tick % probeSnapEffectiveTicks (*shell) == 0);   // G2.7: the zoom-adaptive grid
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (markerById (readProjectSnapshot (bundlePath), movedMarkerId)->tick == rawTickAtX (rawTargetX));
 
@@ -12352,7 +12366,8 @@ TEST_CASE ("the snap grid derives from tempo and bites on unmodified drags", "[u
     dragFromTo (timeline, clipCentre, { clipCentre.x + timeline.getWidth() / 3, clipCentre.y });
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.front().timelineStart > 0);
-    REQUIRE (project.clips.front().timelineStart % 24'000 == 0);
+    REQUIRE (project.clips.front().timelineStart % probeSnapEffectiveTicks (*shell) == 0);   // G2.7: the zoom-adaptive grid
+    REQUIRE (24'000 % probeSnapEffectiveTicks (*shell) == 0);                                 // ... a subdivision of the beat
 
     // The chooser switches to Bar: the grid becomes 4 beats at the current meter.
     auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
@@ -13254,7 +13269,7 @@ TEST_CASE ("the automation target chooser drives pan and FX-param lanes the rend
     INFO ("pan tick " << project.automationLanes.front().points.front().tick
           << " value " << project.automationLanes.front().points.front().value
           << " canvas " << canvas->getBounds().toString().toStdString());
-    REQUIRE (project.automationLanes.front().points.front().tick % 24'000 == 0);
+    REQUIRE (project.automationLanes.front().points.front().tick % probeSnapEffectiveTicks (*shell) == 0);   // G2.7: the zoom-adaptive grid
     const std::vector<float> panned = renderFromStart();
     REQUIRE (panned != baseline);
 
@@ -17197,6 +17212,157 @@ TEST_CASE ("G2.6 edit modes: Overlap leaves neighbours, No Overlap trims what a 
     // Back to Overlap through the chooser itself.
     chooser->setSelectedId (1, juce::sendNotificationSync);
     REQUIRE (editMode() == "overlap");
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("G2.7 snap modes: Grid subdivides with zoom, Relative keeps the offset, Events lands on edges and the playhead, Off snaps nothing and Ctrl inverts",
+           "[ui][input][shell][g2][snap-modes]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("snap-modes");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+
+    const auto viewStr = [&] (const char* key)
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return probe.getProperty ("view", {}).getProperty (key, {}).toString();
+    };
+    const auto viewInt = [&] (const char* key)
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return static_cast<long long> (static_cast<juce::int64> (probe.getProperty ("view", {}).getProperty (key, 0)));
+    };
+    const auto clipStart = [&] (std::size_t index)
+    {
+        yesdaw::engine::Project p = readProjectSnapshot (bundlePath);
+        std::sort (p.clips.begin(), p.clips.end(),
+                   [] (const yesdaw::engine::Clip& a, const yesdaw::engine::Clip& b) { return a.timelineStart < b.timelineStart; });
+        REQUIRE (index < p.clips.size());
+        return p.clips[index].timelineStart;
+    };
+    // Drag the clip at `index` (sorted by start) so its start lands at the pixel for `toTick`.
+    const auto dragClipTo = [&] (std::size_t index, yesdaw::engine::Tick toTick, juce::ModifierKeys mods)
+    {
+        yesdaw::engine::Project p = readProjectSnapshot (bundlePath);
+        std::sort (p.clips.begin(), p.clips.end(),
+                   [] (const yesdaw::engine::Clip& a, const yesdaw::engine::Clip& b) { return a.timelineStart < b.timelineStart; });
+        const yesdaw::engine::Project raw = readProjectSnapshot (bundlePath);
+        const std::size_t rawIndex = static_cast<std::size_t> (std::distance (
+            raw.clips.begin(),
+            std::find_if (raw.clips.begin(), raw.clips.end(),
+                          [&] (const yesdaw::engine::Clip& c) { return c.id == p.clips[index].id; })));
+        const juce::Point<int> from = timelineClipCenterPoint (timeline, raw, rawIndex);
+        const int fromStartX = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), p, p.clips[index].timelineStart).x;
+        const int toStartX = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), p, toTick).x;
+        dragFromTo (timeline, from, from.translated (toStartX - fromStartX, 0), mods);
+    };
+    const juce::ModifierKeys plain (juce::ModifierKeys::leftButtonModifier);
+    const juce::ModifierKeys ctrl (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+    const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
+    const yesdaw::engine::Tick L = original.clips.front().timelineLength;
+    const long long beat = snapshotMainComponent (*shell).context.snapGridTicks;   // the unit chooser's Beat
+    REQUIRE (beat > 0);
+
+    // Grid: the effective grid subdivides the beat while a cell stays at least the minimum width;
+    // zooming in halves it again.
+    REQUIRE (viewStr ("snapMode") == "grid");
+    const long long gridAtFit = viewInt ("snapEffectiveTicks");
+    INFO ("beat " << beat << " grid at fit " << gridAtFit);
+    REQUIRE (gridAtFit > 0);
+    REQUIRE (beat % gridAtFit == 0);
+    REQUIRE (gridAtFit <= beat);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomIn);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomIn);
+    const long long gridZoomed = viewInt ("snapEffectiveTicks");
+    INFO ("grid zoomed " << gridZoomed);
+    REQUIRE (gridZoomed <= gridAtFit);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomFitProject);
+    // A plain drag lands on a multiple of the effective grid; a Ctrl drag lands off it.
+    const yesdaw::engine::Tick offGrid = static_cast<yesdaw::engine::Tick> (gridAtFit) + static_cast<yesdaw::engine::Tick> (gridAtFit / 3 + 7);
+    dragClipTo (0, offGrid, plain);
+    {
+        const long long start = clipStart (0);
+        INFO ("grid drop " << start << " effective " << viewInt ("snapEffectiveTicks"));
+        REQUIRE (start % viewInt ("snapEffectiveTicks") == 0);
+        REQUIRE (start > 0);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    dragClipTo (0, offGrid, ctrl);
+    const long long offGridStart = clipStart (0);
+    REQUIRE (std::llabs (offGridStart - static_cast<long long> (offGrid)) <= 64);   // a pixel of rounding at this zoom
+    REQUIRE (offGridStart % viewInt ("snapEffectiveTicks") != 0);
+
+    // Relative: from the off-grid start, a plain drag by about one grid keeps the offset.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeRelative);
+    REQUIRE (viewStr ("snapMode") == "relative");
+    const long long g = viewInt ("snapEffectiveTicks");
+    dragClipTo (0, static_cast<yesdaw::engine::Tick> (offGridStart + g + g / 5), plain);
+    {
+        const long long start = clipStart (0);
+        INFO ("relative drop " << start << " from " << offGridStart << " grid " << g);
+        REQUIRE (start == offGridStart + g);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+
+    // Events: a second clip; dragging it near the first clip's end lands exactly on that end;
+    // near the playhead lands exactly on the playhead.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeEvents);
+    REQUIRE (viewStr ("snapMode") == "events");
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, readProjectSnapshot (bundlePath), 0u));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
+    {
+        const yesdaw::ui::timeline_canvas_detail::RulerRows rows = yesdaw::ui::timeline_canvas_detail::rulerRows (
+            yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {}).rulerArea);
+        const int x = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), readProjectSnapshot (bundlePath),
+                                              static_cast<yesdaw::engine::Tick> (offGridStart) + 3 * L).x;
+        mouseDownAt (timeline, { x, rows.time.getCentreY() });
+        releaseDragAt (timeline, { x, rows.time.getCentreY() }, { x, rows.time.getCentreY() });
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 2u);
+    const long long firstEnd = offGridStart + static_cast<long long> (L);
+    dragClipTo (1, static_cast<yesdaw::engine::Tick> (firstEnd + 3), plain);   // a few frames past the edge
+    {
+        const long long start = clipStart (1);
+        INFO ("events drop " << start << " edge " << firstEnd);
+        REQUIRE (start == firstEnd);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    {
+        const long long playhead = static_cast<long long> (snapshotMainComponent (*shell).context.playheadFrame);
+        REQUIRE (playhead > firstEnd + static_cast<long long> (L));
+        dragClipTo (1, static_cast<yesdaw::engine::Tick> (playhead - 2), plain);
+        INFO ("events drop " << clipStart (1) << " playhead " << playhead);
+        REQUIRE (clipStart (1) == playhead);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+
+    // Off: a plain drag lands where the pointer says; Ctrl inverts back onto the grid.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeOff);
+    REQUIRE (viewStr ("snapMode") == "off");
+    const yesdaw::engine::Tick offTarget = static_cast<yesdaw::engine::Tick> (offGridStart + g / 2 + 5);
+    dragClipTo (0, offTarget, plain);
+    REQUIRE (std::llabs (clipStart (0) - static_cast<long long> (offTarget)) <= 64);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    dragClipTo (0, offTarget, ctrl);
+    REQUIRE (clipStart (0) % static_cast<long long> (beat) == 0);
+
+    // The chooser follows the verbs and drives them.
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap_mode.chooser"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->getSelectedId() == 4);
+    chooser->setSelectedId (1, juce::sendNotificationSync);
+    REQUIRE (viewStr ("snapMode") == "grid");
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
