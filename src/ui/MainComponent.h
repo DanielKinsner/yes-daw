@@ -234,6 +234,9 @@ struct MainComponentKeymapEditor
 };
 [[nodiscard]] MainComponentKeymapEditor mainComponentKeymapEditor (juce::Component& component);
 void mainComponentKeymapEditorSearch (juce::Component& component, const juce::String& text);
+// G1.6: the gesture hint the status line shows for the zone under a shell point (the same law
+// the surfaces' mouseMove uses); empty where nothing has a hint.
+[[nodiscard]] juce::String mainComponentHoverHintAt (juce::Component& component, juce::Point<int> shellPoint);
 void mainComponentKeymapEditorSelectRow (juce::Component& component, int row);
 void mainComponentKeymapEditorBind (juce::Component& component, const juce::String& chord);
 

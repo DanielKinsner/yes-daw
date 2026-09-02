@@ -15901,7 +15901,7 @@ TEST_CASE ("every componentID'd control carries a tooltip naming its action and 
                 // Drift-proofing: an action-backed control's tooltip carries the LIVE chord from
                 // the descriptor table.
                 if (const auto* descriptor = yesdaw::ui::descriptorForStableId (id.toStdString()))
-                    REQUIRE (client->getTooltip().contains (descriptor->defaultKey));
+                    REQUIRE (client->getTooltip().contains (juce::String (yesdaw::ui::UiActionRegistry {}.keymap().chordFor (descriptor->id))));
 
                 ++checkedControls;
             }
@@ -16543,4 +16543,92 @@ TEST_CASE ("keymap editor: search, rebind with conflict detection, restore, and 
     std::filesystem::remove_all (sessionDir, ec);
     std::filesystem::remove_all (bundleA, ec);
     std::filesystem::remove_all (bundleB, ec);
+}
+
+// G1.6: status hints and live tooltips. The status line shows the gesture hint for the hovered
+// zone (clip body, clip edge, ruler, marker, empty lane, rail row and its pan, mixer strip, note),
+// a status message wins over it, and every action control's tooltip quotes its LIVE chord — a
+// rebind in the keymap editor changes the toolbar button's tooltip.
+TEST_CASE ("hover hints name the gesture for every zone; tooltips follow the live keymap",
+           "[ui][input][shell][g1][hover-hints]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("hover-hints");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    auto* statusLine = dynamic_cast<juce::Label*> (findChildWithComponentId (*shell, "shell.statusline"));
+    REQUIRE (statusLine != nullptr);
+    const auto probeHint = [&] {
+        const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+        return probe.getProperty ("view", juce::var()).getProperty ("hoverHint", "").toString();
+    };
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+
+    // Clip body, then its right edge.
+    const juce::Point<int> clipCentre = timelineClipCenterPoint (timeline, project, 0u) + timeline.getPosition();
+    juce::String hint = yesdaw::ui::mainComponentHoverHintAt (*shell, clipCentre);
+    REQUIRE (hint.contains ("drag to move"));
+    REQUIRE (statusLine->getText() == hint);
+    REQUIRE (probeHint() == hint);
+    // Ruler and empty lane.
+    const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+    const juce::var rulerVar = probe.getProperty ("layout", juce::var()).getProperty ("ruler", juce::var());
+    const juce::Rectangle<int> ruler (static_cast<int> (rulerVar[0]), static_cast<int> (rulerVar[1]),
+                                      static_cast<int> (rulerVar[2]), static_cast<int> (rulerVar[3]));
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, ruler.getCentre()).contains ("click to locate"));
+    const juce::var lane0 = probe.getProperty ("layout", juce::var()).getProperty ("lane.0", juce::var());
+    const juce::Rectangle<int> laneRect (static_cast<int> (lane0[0]), static_cast<int> (lane0[1]),
+                                         static_cast<int> (lane0[2]), static_cast<int> (lane0[3]));
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, { laneRect.getRight() - 20, laneRect.getCentreY() }).contains ("select the track"));
+
+    // A marker at the playhead, then its label.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMarkerAdd);
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, { laneRect.getX() + L::timelineCanvasRulerMarkerLabelLeftInset + 8,
+                                                             ruler.getY() + L::timelineCanvasRulerMarkerLabelTopInset + L::timelineCanvasRulerMarkerLabelHeight / 2 })
+                 .contains ("Marker"));
+
+    // Rail: the name cell, then the pan knob.
+    const juce::Point<int> row0 = rail->getPosition() + juce::Point<int> { kRailRowClickX, L::trackListHeaderHeight + L::trackListRowMinHeight / 2 };
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, row0).contains ("rename"));
+    {
+        juce::Rectangle<int> row = rail->getLocalBounds();
+        row.removeFromTop (L::trackListHeaderHeight);
+        row = row.withHeight (L::trackListRowMinHeight);
+        const juce::Rectangle<int> pan = row.withRight (row.getRight() - L::trackListPanRightInset)
+                                            .removeFromRight (L::trackListPanDiameter)
+                                            .withY (row.getY() + L::trackListPanTopInset)
+                                            .withHeight (L::trackListPanDiameter);
+        REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, pan.getCentre() + rail->getPosition()).contains ("Pan"));
+    }
+
+    // Mixer strip in the dock.
+    const juce::Rectangle<int> strip = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, { strip.getCentreX(), strip.getY() + 8 }).contains ("Strip"));
+
+    // Nowhere: the inspector has no hint, and the status line empties.
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, { shell->getWidth() - 40, shell->getHeight() / 2 }).isEmpty());
+    REQUIRE (statusLine->getText().isEmpty());
+
+    // Live tooltips: the Loop toolbar button quotes C; after a rebind it quotes the new chord.
+    juce::Button& loop = requireButtonForAction (*shell, UiActionId::TransportToggleLoop);
+    REQUIRE (loop.getTooltip().contains ("C"));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k', juce::ModifierKeys::altModifier, 0)));
+    yesdaw::ui::mainComponentKeymapEditorSearch (*shell, "transport.toggle_loop");
+    REQUIRE (yesdaw::ui::mainComponentKeymapEditor (*shell).rows.size() == 1u);
+    yesdaw::ui::mainComponentKeymapEditorSelectRow (*shell, 0);
+    yesdaw::ui::mainComponentKeymapEditorBind (*shell, "Ctrl+Shift+L");
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    REQUIRE (loop.getTooltip().contains ("Ctrl+Shift+L"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }

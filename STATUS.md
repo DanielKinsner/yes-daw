@@ -41,11 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G1.5 (the keymap editor on Alt+K: search, rebind with conflict detection, unbind,
-restore defaults, persisted overrides that survive a relaunch; `[keymap-editor]`) built, gated
-locally, committed; awaiting its exact-head run. The header-fix commit `bd1117a` certifies G1.3
-and G1.4 cp1 when its run is green. Next: G1.6 tooltips and status hints. The drive stays paused
-(D14).
+**Now:** G1.6 (status hints for every hovered zone; tooltips follow the live keymap;
+`[hover-hints]`) built, gated locally, committed; awaiting its exact-head run (G1.5's run
+`33612568972` is watched too). Next: G1.7 the dead-affordance sweep — the G1 exit. The drive
+stays paused (D14).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -85,6 +84,28 @@ D46 the caption clipped since G0.7) are fixed in `bd1117a`, whose run is watched
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G1.6 — Tooltips and status hints (2026-09-02)
+
+**Build.** Each input surface (timeline, rail, piano roll, mixer strips) has `hintAt (point,
+modifiers)` — one law its `mouseMove` and the harness share — naming the gesture for the zone:
+clip body / edge / fade, ruler, marker label, empty lane; rail name / pan / volume / mute /
+solo / meter / colour / row edge; note / head / end / grid / velocity lane; strip / insert slot /
+send row / meter. The shell's status line shows the hint while no model status message is
+active (a message wins). Every action-backed control registered through
+`configureActionComponent` (and the toolbar buttons) gets its tooltip refreshed from the LIVE
+keymap on every action-state refresh, so a rebind in the keymap editor changes the tooltips.
+Probe: `view.hoverHint`. Harness: `mainComponentHoverHintAt`.
+
+**Gates.** `[hover-hints]` (input check): the hints on a clip body, the ruler, an empty lane, a
+marker label, the rail's name cell and pan knob, and a mixer strip each name their gesture; the
+status line and the probe carry the current hint; nowhere → empty and the status line empties;
+the Loop button's tooltip quotes `C`, then `Ctrl+Shift+L` after a rebind. The `[tooltips]` gate
+reads the live keymap instead of the descriptor default.
+
+**Not built (recorded).** The plan's `[no-dead-affordances]` "extension" is this gate plus the
+live-tooltip law; the status message's precedence over a hint is asserted by construction, not
+by a gate (no harness seam raises a model status message yet).
 
 ### G1.5 — Keymap editor (2026-09-02)
 

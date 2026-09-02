@@ -642,6 +642,55 @@ public:
         }
     }
 
+    // G1.6: the gesture hint for the hovered zone — the status line shows it while no status
+    // message is active. hintAt() is the one law mouseMove and the harness share.
+    std::function<void (const juce::String&)> onHoverHint;
+
+    [[nodiscard]] juce::String hintAt (juce::Point<int> position, juce::ModifierKeys modifiers) const
+    {
+        if (! stateProvider)
+            return {};
+        const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        const yesdaw::ui::TimelineCanvasGeometry geometry =
+            yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+        if (geometry.rulerArea.contains (position))
+        {
+            for (int markerIndex = 0; markerIndex < state.markerCount; ++markerIndex)
+                if (yesdaw::ui::timelineMarkerLabelRect (getLocalBounds(), state, markerIndex).contains (position))
+                    return "Marker: drag to move \u00b7 double-click to rename \u00b7 Alt-click removes";
+            return "Ruler: click to locate \u00b7 drag to select a time range \u00b7 Shift-drag sets the loop \u00b7 Alt+Shift-drag sets the punch";
+        }
+        if (! geometry.clipArea.contains (position))
+            return {};
+        const yesdaw::ui::TimelineHitTestResult hit =
+            yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, position);
+        if (! hit.hit)
+            return "Lane: click to select the track \u00b7 drag a marquee to select clips \u00b7 right-click for the lane menu";
+        switch (dragModeForPointer (state, getLocalBounds(), hit.id, position, modifiers))
+        {
+            case TimelineDragMode::TrimLeft:
+            case TimelineDragMode::TrimRight: return "Clip edge: drag to trim \u00b7 Alt-drag sets the fade \u00b7 Ctrl defeats snap";
+            case TimelineDragMode::FadeIn:
+            case TimelineDragMode::FadeOut:   return "Fade: drag to set its length";
+            case TimelineDragMode::Gain:      return "Clip: drag up or down to set gain";
+            case TimelineDragMode::SnapMove:  return "Clip: drag to move without snap";
+            case TimelineDragMode::Move:      break;
+        }
+        return "Clip: drag to move \u00b7 Shift-drag sets gain \u00b7 Ctrl-drag defeats snap \u00b7 edges trim \u00b7 right-click for the clip menu";
+    }
+
+    void mouseMove (const juce::MouseEvent& event) override
+    {
+        if (onHoverHint)
+            onHoverHint (hintAt (event.getPosition(), event.mods));
+    }
+
+    void mouseExit (const juce::MouseEvent&) override
+    {
+        if (onHoverHint)
+            onHoverHint ({});
+    }
+
     // G1.3: a right-click classifies what was clicked (clip / marker / ruler / empty lane),
     // makes it the selection, and asks the shell for that target's context menu.
     std::function<void (yesdaw::ui::ContextMenuTarget, int, juce::Point<int>)> onContextMenuRequested;
@@ -1711,6 +1760,45 @@ public:
             onViewKeysScrolled (delta > 0.0 ? 1 : -1);
     }
 
+    // G1.6: the gesture hint for the hovered zone — the status line shows it while no status
+    // message is active. hintAt() is the one law mouseMove and the harness share.
+    std::function<void (const juce::String&)> onHoverHint;
+
+    [[nodiscard]] juce::String hintAt (juce::Point<int> position, juce::ModifierKeys modifiers) const
+    {
+        if (! stateProvider)
+            return {};
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+        const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+        if (surface.midiClipSelected && pianoRollVelocityLaneArea (geometry).contains (position))
+            return "Velocity lane: drag to paint velocities";
+        if (const auto hit = noteAt (surface, position))
+        {
+            switch (dragModeForPointer (surface, *hit, position, modifiers))
+            {
+                case PianoDragMode::TrimHead:  return "Note head: drag to trim";
+                case PianoDragMode::SetLength: return "Note end: drag to set its length";
+                case PianoDragMode::Move:      break;
+            }
+            return "Note: drag to move \u00b7 up or down transposes \u00b7 Ctrl-drag copies \u00b7 Shift-drag sets length \u00b7 right-click for the note menu";
+        }
+        if (surface.midiClipSelected && geometry.grid.contains (position))
+            return "Grid: the pencil (2) draws a note \u00b7 the pointer (1) drags a marquee";
+        return {};
+    }
+
+    void mouseMove (const juce::MouseEvent& event) override
+    {
+        if (onHoverHint)
+            onHoverHint (hintAt (event.getPosition(), event.mods));
+    }
+
+    void mouseExit (const juce::MouseEvent&) override
+    {
+        if (onHoverHint)
+            onHoverHint ({});
+    }
+
     // G1.3: a right-click on a note selects it and asks for the Note context menu.
     std::function<void (yesdaw::ui::ContextMenuTarget, int, juce::Point<int>)> onContextMenuRequested;
 
@@ -2404,8 +2492,40 @@ public:
     // undo step for M/S/O).
     std::function<void (int)> onColourSwatchClicked;
 
+    // G1.6: the gesture hint for the hovered zone — the status line shows it while no status
+    // message is active. hintAt() is the one law mouseMove and the harness share.
+    std::function<void (const juce::String&)> onHoverHint;
+
+    [[nodiscard]] juce::String hintAt (juce::Point<int> position, juce::ModifierKeys) const
+    {
+        if (rowResizeHandleAt (position) >= 0)
+            return "Row edge: drag to resize the track";
+        const int row = rowAt (position);
+        if (row < 0)
+            return {};
+        switch (zoneAt (row, position))
+        {
+            case MiniZone::Pan:    return "Pan: drag \u00b7 Alt-click or double-click recentres \u00b7 Shift for fine";
+            case MiniZone::Volume: return "Volume: drag \u00b7 Alt-click resets to unity \u00b7 Shift for fine";
+            case MiniZone::Mute:   return "Mute: click toggles";
+            case MiniZone::Solo:   return "Solo: click toggles";
+            case MiniZone::Meter:  return "Meter: click clears the clip light";
+            case MiniZone::Colour: return "Colour: click cycles the track colour";
+            case MiniZone::None:   break;
+        }
+        return "Track: click to select \u00b7 double-click to rename \u00b7 right-click for the track menu";
+    }
+
+    void mouseExit (const juce::MouseEvent&) override
+    {
+        if (onHoverHint)
+            onHoverHint ({});
+    }
+
     void mouseMove (const juce::MouseEvent& event) override
     {
+        if (onHoverHint)
+            onHoverHint (hintAt (event.getPosition(), event.mods));
         setMouseCursor (rowResizeHandleAt (event.getPosition()) >= 0
                              ? juce::MouseCursor::UpDownResizeCursor
                              : juce::MouseCursor::NormalCursor);
@@ -3059,6 +3179,43 @@ public:
     std::function<std::pair<int, int> (juce::Point<int>)> muteSoloCellAtPosition;
     std::function<void (int, int)> onMuteSoloCellClicked;
 
+    // G1.6: the gesture hint for the hovered zone — the status line shows it while no status
+    // message is active. hintAt() is the one law mouseMove and the harness share.
+    std::function<void (const juce::String&)> onHoverHint;
+
+    [[nodiscard]] juce::String hintAt (juce::Point<int> position, juce::ModifierKeys) const
+    {
+        if (getParentComponent() == nullptr)
+            return {};
+        const juce::Point<int> shellPosition = position + getPosition();
+        if (muteSoloCellAtPosition)
+            if (const auto [cellStrip, cellIndex] = muteSoloCellAtPosition (shellPosition); cellStrip >= 0 && cellIndex >= 0)
+                return cellIndex == 0 ? "Solo: click toggles" : "Mute: click toggles";
+        if (sendRowAtPosition)
+            if (const auto [sendStrip, sendIndex] = sendRowAtPosition (shellPosition); sendStrip >= 0 && sendIndex >= 0)
+                return "Send: drag to set its level";
+        if (insertSlotAtPosition)
+            if (const auto [slotStrip, slotIndex] = insertSlotAtPosition (shellPosition); slotStrip >= 0 && slotIndex >= 0)
+                return "Insert slot: click to edit \u00b7 right-click to bypass, remove or move";
+        if (meterStripAtPosition && meterStripAtPosition (shellPosition) >= 0)
+            return "Meter: click clears the clip light";
+        if (stripAtPosition && stripAtPosition (shellPosition) >= 0)
+            return "Strip: click to select \u00b7 right-click for the strip menu";
+        return {};
+    }
+
+    void mouseMove (const juce::MouseEvent& event) override
+    {
+        if (onHoverHint)
+            onHoverHint (hintAt (event.getPosition(), event.mods));
+    }
+
+    void mouseExit (const juce::MouseEvent&) override
+    {
+        if (onHoverHint)
+            onHoverHint ({});
+    }
+
     // G1.3: a right-click on a strip selects it and asks for the Mixer strip menu (the master
     // strip has none; insert slots come with their own list in the next checkpoint).
     std::function<void (yesdaw::ui::ContextMenuTarget, int, juce::Point<int>)> onContextMenuRequested;
@@ -3626,6 +3783,11 @@ public:
             refreshActionState();
             repaintAll();
         };
+        const auto hintSink = [this] (const juce::String& hint) { setHoverHint (hint); };
+        timelineInput.onHoverHint = hintSink;
+        pianoRollInput.onHoverHint = hintSink;
+        trackListInput.onHoverHint = hintSink;
+        mixerStripsInput.onHoverHint = hintSink;
         timelineInput.onContextMenuRequested = [this] (yesdaw::ui::ContextMenuTarget target, int index, juce::Point<int> position) {
             if (target == yesdaw::ui::ContextMenuTarget::EmptyLane)
                 selectTrackLane (index);   // the lane's track becomes the selection first
@@ -4703,7 +4865,9 @@ public:
 
     void refreshStatusLine()
     {
-        statusLine.setText (appModel.statusLineText(), juce::dontSendNotification);
+        // G1.6: a status message wins; otherwise the hovered zone's gesture hint.
+        statusLine.setText (appModel.statusLineText().empty() ? hoverHint : juce::String (appModel.statusLineText()),
+                            juce::dontSendNotification);
         statusLine.setColour (juce::Label::textColourId,
                               appModel.statusLineIsError()
                                   ? yesdaw::ui::UiTheme::Color::dangerRed()
@@ -5362,6 +5526,7 @@ public:
             view->setProperty ("headerHeight", headerHeightNow());
             view->setProperty ("nudgeValue", context.nudgeValue);
             view->setProperty ("keymapEditor", context.keymapVisible);
+            view->setProperty ("hoverHint", hoverHint);
             {
                 const CounterStrings counter = counterStrings();
                 view->setProperty ("timeDisplay", counter.mode);
@@ -5823,6 +5988,7 @@ private:
                                    yesdaw::ui::UiActionId action,
                                    const juce::String& fallbackName)
     {
+        actionComponents.emplace_back (&component, action);   // G1.6: tooltips follow the live keymap
         if (const auto* descriptor = appModel.registry().descriptor (action))
         {
             component.setComponentID (descriptor->stableId);
@@ -8713,6 +8879,59 @@ public:
     }
 
 private:
+    // G1.6: the hovered zone's gesture hint; the status line shows it while no message is active.
+    void setHoverHint (const juce::String& hint)
+    {
+        if (hoverHint == hint)
+            return;
+        hoverHint = hint;
+        if (appModel.statusLineText().empty())
+            statusLine.setText (hoverHint, juce::dontSendNotification);
+    }
+
+    // G1.6: every action-backed control's tooltip quotes its LIVE chord (a rebind in the keymap
+    // editor changes the tooltip), from the registry's descriptor name and the keymap.
+    void refreshActionTooltips()
+    {
+        const auto& keymap = appModel.registry().keymap();
+        for (const auto& [component, action] : actionComponents)
+        {
+            auto* client = dynamic_cast<juce::SettableTooltipClient*> (component);
+            const auto* descriptor = appModel.registry().descriptor (action);
+            if (client == nullptr || descriptor == nullptr)
+                continue;
+            const std::string& chord = keymap.chordFor (action);
+            client->setTooltip (chord.empty() ? juce::String (descriptor->accessibleName)
+                                              : juce::String (descriptor->accessibleName) + "  (" + chord + ")");
+        }
+        const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
+        for (std::size_t i = 0; i < buttons.size(); ++i)
+        {
+            const auto* descriptor = appModel.registry().descriptor (toolbarActions[i]);
+            if (descriptor == nullptr)
+                continue;
+            const std::string& chord = keymap.chordFor (toolbarActions[i]);
+            buttons[i].setTooltip (juce::String (descriptor->stableId) + (chord.empty() ? juce::String() : "  " + juce::String (chord)));
+        }
+    }
+
+public:
+    [[nodiscard]] juce::String harnessHoverHintAt (juce::Point<int> shellPoint)
+    {
+        juce::String hint;
+        if (timelineInput.isVisible() && timelineInput.getBounds().contains (shellPoint))
+            hint = timelineInput.hintAt (shellPoint - timelineInput.getPosition(), {});
+        else if (pianoRollInput.isVisible() && pianoRollInput.getBounds().contains (shellPoint))
+            hint = pianoRollInput.hintAt (shellPoint - pianoRollInput.getPosition(), {});
+        else if (trackListInput.isVisible() && trackListInput.getBounds().contains (shellPoint))
+            hint = trackListInput.hintAt (shellPoint - trackListInput.getPosition(), {});
+        else if (mixerStripsInput.isVisible() && mixerStripsInput.getBounds().contains (shellPoint))
+            hint = mixerStripsInput.hintAt (shellPoint - mixerStripsInput.getPosition(), {});
+        setHoverHint (hint);
+        return hint;
+    }
+private:
+
     // G1.2: the chord a menu item paints — the one that fires in the CURRENT Focus context
     // (its own binding or a Global one); another editor's binding paints nothing.
     [[nodiscard]] juce::String menuShortcutFor (yesdaw::ui::UiActionId action) const
@@ -9549,6 +9768,7 @@ private:
             refreshingNudgeChooser = true;
             nudgeValueChooser.setSelectedId (appModel.context().nudgeValue + 1, juce::dontSendNotification);
             refreshingNudgeChooser = false;
+            refreshActionTooltips();
             inspectorToggle.setToggleState (appModel.context().inspectorVisible, juce::dontSendNotification);
             refreshingSnapChooser = false;
         }
@@ -12773,6 +12993,8 @@ private:
     juce::TextButton autosaveDiscardButton;
     juce::ComboBox timelineSnapChooser;
     juce::ComboBox nudgeValueChooser;      // G1.4
+    juce::String hoverHint;                // G1.6: the status line's gesture hint
+    std::vector<std::pair<juce::Component*, yesdaw::ui::UiActionId>> actionComponents;   // G1.6: live tooltips
     KeymapEditorComponent keymapEditor;    // G1.5
     juce::TextButton inspectorToggle;      // G1.4
     int timeDisplayMode = 0;               // G1.4: 0 bars|beats primary, 1 min:sec primary
@@ -13209,6 +13431,13 @@ yesdaw::ui::MainComponentKeymapEditor mainComponentKeymapEditor (juce::Component
         out.status = mainComponent->harnessKeymapEditor().statusText();
     }
     return out;
+}
+
+juce::String mainComponentHoverHintAt (juce::Component& component, juce::Point<int> shellPoint)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessHoverHintAt (shellPoint);
+    return {};
 }
 
 void mainComponentKeymapEditorSearch (juce::Component& component, const juce::String& text)
