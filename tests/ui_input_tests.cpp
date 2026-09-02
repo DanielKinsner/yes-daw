@@ -3082,7 +3082,8 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (snapshot.context.commandDispatchCount == 2);
     REQUIRE (snapshot.context.timelineEditCount == 0);
 
-    mouseDownAt (timeline, { 30, 100 });
+    // G0.7 cp3: the clip's centre through the shared lane law (a literal y sat in the taller ruler).
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, readProjectSnapshot (bundlePath), 0u));
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.timelineClipSelected);
@@ -3090,7 +3091,8 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (snapshot.context.timelineEditCount == 0);
 
     // The default Beat grid is live, so a fine 4-pixel move needs Ctrl (the grid INVERT).
-    dragFromTo (timeline, { 30, 100 }, { 34, 100 },
+    const juce::Point<int> clipCentre = timelineClipCenterPoint (timeline, readProjectSnapshot (bundlePath), 0u);
+    dragFromTo (timeline, clipCentre, clipCentre.translated (4, 0),
                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier));
 
     const yesdaw::engine::Project moved = readProjectSnapshot (bundlePath);
@@ -3135,7 +3137,7 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
 
     // E4: the double-click split tick snaps through the snap chooser; with the default grid far
     // coarser than this short clip, Ctrl inverts the grid so the raw click point splits.
-    doubleClickAt (timeline, { 80, 100 },
+    doubleClickAt (timeline, { 80, clipCentre.y },
                    juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
                                        | juce::ModifierKeys::ctrlModifier));
 
@@ -7116,7 +7118,24 @@ TEST_CASE ("V7 the inspector's TRACK tab is real, FX list reflects the chain, an
     REQUIRE (fxRemove != nullptr);
     clickButton (*fxRemove);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain.empty());
-    REQUIRE_FALSE (regionsDiffer (trackTabSelected, renderShell()));
+    {
+        // Evidence on a red (macOS-only on run 33601255603): WHERE the restored inspector differs.
+        const juce::Image restored = renderShell();
+        juce::Rectangle<int> differing;
+        int differingCount = 0;
+        for (int y = inspectorRegion.getY(); y < inspectorRegion.getBottom(); ++y)
+            for (int x = inspectorRegion.getX(); x < inspectorRegion.getRight(); ++x)
+                if (trackTabSelected.getPixelAt (x, y) != restored.getPixelAt (x, y))
+                {
+                    differing = differingCount == 0 ? juce::Rectangle<int> (x, y, 1, 1)
+                                                    : differing.getUnion (juce::Rectangle<int> (x, y, 1, 1));
+                    ++differingCount;
+                }
+        INFO ("inspector region " << inspectorRegion.toString().toStdString() << " differing pixels "
+              << differingCount << " within " << differing.toString().toStdString()
+              << " timeline " << timeline.getBounds().toString().toStdString());
+        REQUIRE (differingCount == 0);
+    }
 
     // Back to CLIP: the overlay controls return.
     clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));

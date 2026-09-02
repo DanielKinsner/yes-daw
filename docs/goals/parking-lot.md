@@ -50,3 +50,6 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
   timeline hides) → G2 inspector rebuild; `mixerHeight` pinned at 260 until then (STATUS D27).
 - 2026-09-02 (G0.7 cp2): the rail's PAN/VOL cluster labels are 8 px captions in a 68 px box —
   legible, not a reference look → G2 rail pass.
+- 2026-09-02 (G0.7 cp3): the playhead's ruler badge covers bar 1's number in the bars row; the
+  badge belongs in the time row or the marker lane (Logic: the playhead's triangle rides the
+  lower ruler edge) → G2 ruler/playhead pass.

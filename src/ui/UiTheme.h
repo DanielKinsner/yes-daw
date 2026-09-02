@@ -858,7 +858,14 @@ struct UiTheme
         static constexpr int timelineCanvasToolCellInsetY = 0;
         static constexpr int timelineCanvasOuterInset = 1;
         static constexpr int timelineCanvasToolbarHeight = 36;
-        static constexpr int timelineCanvasRulerHeight = 48;
+        // G0.7 cp3 (plan §3.4): the ruler is two 22 px time rows (bars · minutes:seconds) over a
+        // 20 px marker lane. The whole band stays ONE hit zone (locate, range, loop, punch).
+        static constexpr int timelineRulerBarsRowHeight = 22;
+        static constexpr int timelineRulerTimeRowHeight = 22;
+        static constexpr int timelineRulerMarkerLaneHeight = 20;
+        static constexpr int timelineCanvasRulerHeight = timelineRulerBarsRowHeight + timelineRulerTimeRowHeight
+                                                       + timelineRulerMarkerLaneHeight;   // 64
+        static constexpr int timelineRulerTimeLabelWidth = 48;
         static constexpr int timelineCanvasClipAreaInsetX = 12;
         static constexpr int timelineCanvasClipAreaInsetY = 0;
         // E26: the automation lane is a real full-width band between the ruler and the clip
@@ -913,14 +920,15 @@ struct UiTheme
         static constexpr double timelineCanvasRulerMinBarLabelSpacingPx = 56.0;
         static constexpr int timelineCanvasRulerLabelCullPadding = 40;
         static constexpr int timelineCanvasRulerLabelLeftInset = 18;
-        static constexpr int timelineCanvasRulerLabelTopInset = 7;
+        static constexpr int timelineCanvasRulerLabelTopInset = 3;   // within the bars row
         static constexpr int timelineCanvasRulerLabelWidth = 36;
         static constexpr int timelineCanvasRulerLabelHeight = 16;
         static constexpr int timelineCanvasRulerTickHeight = 14;
         static constexpr int timelineCanvasRulerTickWidth = 1;
         static constexpr int timelineCanvasRulerMarkerCullPadding = 60;
         static constexpr int timelineCanvasRulerMarkerLabelLeftInset = 4;
-        static constexpr int timelineCanvasRulerMarkerLabelTopInset = 24;
+        static constexpr int timelineCanvasRulerMarkerLabelTopInset = timelineRulerBarsRowHeight
+                                                                    + timelineRulerTimeRowHeight + 2;   // in the marker lane
         static constexpr int timelineCanvasRulerMarkerLabelWidth = 76;
         static constexpr int timelineCanvasRulerMarkerLabelHeight = 16;
         static constexpr int timelineCanvasGridMinLaneCount = 1;

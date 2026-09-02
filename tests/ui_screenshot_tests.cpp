@@ -1169,6 +1169,10 @@ TEST_CASE ("header flex row: tools left, transport centred, master right, nothin
     STATIC_REQUIRE (L::trackListRowMinHeight == L::timelineCanvasLaneRowHeight);
     STATIC_REQUIRE (L::leftRailWidth == 260);
     STATIC_REQUIRE (L::inspectorWidth == 300);
+    STATIC_REQUIRE (L::timelineRulerBarsRowHeight == 22);
+    STATIC_REQUIRE (L::timelineRulerTimeRowHeight == 22);
+    STATIC_REQUIRE (L::timelineRulerMarkerLaneHeight == 20);
+    STATIC_REQUIRE (L::timelineCanvasRulerHeight == 64);
     STATIC_REQUIRE (L::mixerHeight == 260);   // plan §3.4 says 300: held until the inspector stack scrolls (STATUS D27)
     // The rail row at 260: number · icon · name · M S O left of the PAN/VOL cluster, no overlap.
     STATIC_REQUIRE (L::trackListNameLeftInset + 3 * L::trackListButtonWidth
@@ -1315,6 +1319,23 @@ TEST_CASE ("G0.7 rubric shots: the song fixture at 1280x720, 1920x1080 and 2560x
             REQUIRE (rect.getHeight() <= L::timelineCanvasLaneRowHeight);
             if (timeline.contains (rect) && rect.getHeight() == L::timelineCanvasLaneRowHeight)
                 ++wholeLanes;
+        }
+        // G0.7 cp3: the ruler's three rows on the real fixture — bar numbers in the bars row,
+        // minutes:seconds in the time row (each row: real painted text right of bar 1, judged by
+        // a full scan), the marker lane 20 px under them.
+        {
+            const juce::var rulerVar = layout.getProperty ("ruler", juce::var());
+            REQUIRE ((rulerVar.isArray() && rulerVar.size() == 4));
+            const juce::Rectangle<int> ruler (static_cast<int> (rulerVar[0]), static_cast<int> (rulerVar[1]),
+                                              static_cast<int> (rulerVar[2]), static_cast<int> (rulerVar[3]));
+            REQUIRE (ruler.getHeight() == L::timelineCanvasRulerHeight);
+            const juce::Rectangle<int> rightHalf = ruler.withLeft (ruler.getCentreX());
+            const juce::Rectangle<int> barsRow = rightHalf.withHeight (L::timelineRulerBarsRowHeight - 1);
+            const juce::Rectangle<int> timeRow = rightHalf.withY (ruler.getY() + L::timelineRulerBarsRowHeight)
+                                                     .withHeight (L::timelineRulerTimeRowHeight - 1);
+            INFO ("ruler " << ruler.toString().toStdString());
+            REQUIRE (fullDifferentPixelCount (image, barsRow) > 30u);
+            REQUIRE (fullDifferentPixelCount (image, timeRow) > 30u);
         }
         INFO ("whole lanes at " << width << "x" << height << ": " << wholeLanes);
         // 720p with the 260 px mixer dock open leaves ~300 px of lanes: three whole rows (the

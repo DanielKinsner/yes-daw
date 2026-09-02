@@ -41,10 +41,10 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G0.7 checkpoint 2 (rail 260, inspector 300, rail row re-cut) built, gated, judged
-headlessly; committed with the macOS capture fix; awaiting its exact-head run (it certifies cp1 and
-cp2). Checkpoint 3 next: the ruler as two 22 px time rows (bars, minutes:seconds) plus a 20 px
-marker lane (plan §3.4), then the item ticks. G0.8 after.
+**Now:** G0.7 checkpoint 3 (the ruler's three rows) built, gated, judged headlessly; committed;
+awaiting its exact-head run. cp1's and cp2's runs were red on macOS only (D30, D31: a clang
+warning, then one inspector exact-restore compare that Windows/Linux pass — this commit carries a
+differing-pixel diagnostic for it). G0.7 ticks when a run is green on all ten jobs; G0.8 after.
 The session drive is paused (D14): Dan declined a rerun on 2026-09-01 evening (it takes the mouse
 and keyboard for ~40 s), so the see-it steps of G0.5 (SS-1 step 11) and G0.6 (the B2/B4/B5
 re-measurement on the fixture at 1920×1080 / 2560×1440) wait for his go. Headless work continues.
@@ -64,6 +64,36 @@ code `24095d8` + fix `23d3e53`. Local suite 364/364 with the fix.
 **Next:** G0.7 — first-minute density: the §3.4 tokens (menu 28 + toolbar 60, ruler 44 + 20,
 default track height 72, header width 260), the header as a flex row (tools · transport centred ·
 master right), and the `[header-flex]` gate; the G0.1 rubric FIX lines it owns.
+
+### G0.7 — First-minute density, checkpoint 3: the ruler's rows (2026-09-02)
+
+**Build.** The ruler is `timelineRulerBarsRowHeight 22` + `timelineRulerTimeRowHeight 22` +
+`timelineRulerMarkerLaneHeight 20` = `timelineCanvasRulerHeight 64` (was 48, one row). Bars row:
+bar numbers and ticks (as before). Time row: the same positions in minutes:seconds
+(`formatRulerSeconds`; tenths once a second is wider than the bar-label spacing), shorter ticks.
+Marker lane: the marker labels moved there (`timelineCanvasRulerMarkerLabelTopInset` = the two
+rows + 2) — the shared label law and the rename/drag hit-tests follow it. Row separators. The
+whole band stays ONE hit zone (locate, range, loop on the top edge, punch); the loop brace keeps
+the bars row. `rulerRows()` is the split every reader shares.
+
+**Gates.** `[header-flex]` pins the three row tokens and the 64 px sum. `[rubric-shots]` reads the
+probe's `layout.ruler` rect on the fixture at every size, requires its height to be the token, and
+requires real painted text in BOTH time rows right of bar 1 (full scan, > 30 differing pixels
+each). Re-pins: the end-to-end input session used a literal y (100) for its clip click, drag and
+split — that y sits in the taller ruler now; the three sites read the clip's centre through the
+shared lane law.
+
+**Rubric (headless renders on the fixture).** All three sizes: bars row `2 3 4`, time row `0:00.0
+0:02.0 0:04.0 0:06.0`, marker lane empty under them, playhead badge over bar 1 — PASS. FIX line:
+the playhead badge hides bar 1's number (G2's ruler/playhead pass: the badge belongs in the time
+row or the marker lane, not over the bar label) — parking lot.
+
+**Deviation log (G0.7 checkpoint 3).**
+- D31 cp2's run `33601255603` was red on macOS ONLY: `V7 the inspector's TRACK tab is real...`
+  — the exact-restore compare after add + remove of an FX differs on macOS while Windows and
+  Linux restore pixel-identically. No macOS box here and CI uploads no screenshots, so this
+  commit adds a diagnostic that logs the differing pixel count and bounding box; the next macOS
+  run tells where. Not a stop trigger (first diagnosis round).
 
 ### G0.7 — First-minute density, checkpoint 2: the panels and the rail row (2026-09-02)
 

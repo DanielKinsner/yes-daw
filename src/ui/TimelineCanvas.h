@@ -772,31 +772,79 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
                 false);
 }
 
+// G0.7 cp3: the time row's label — minutes:seconds, tenths once a second is wider than the
+// minimum label spacing (the zoomed-in case where whole seconds would repeat).
+[[nodiscard]] inline juce::String formatRulerSeconds (double seconds, double pixelsPerSecond)
+{
+    const double clamped = std::max (0.0, seconds);
+    const int minutes = static_cast<int> (clamped / 60.0);
+    const double rest = clamped - 60.0 * minutes;
+    if (pixelsPerSecond >= UiTheme::Layout::timelineCanvasRulerMinBarLabelSpacingPx)
+        return juce::String::formatted ("%d:%04.1f", minutes, rest);
+    return juce::String::formatted ("%d:%02d", minutes, static_cast<int> (rest));
+}
+
+// G0.7 cp3: the ruler's three rows — the same split the marker-label law and the loop brace read.
+struct RulerRows
+{
+    juce::Rectangle<int> bars, time, markers;
+};
+
+[[nodiscard]] inline RulerRows rulerRows (juce::Rectangle<int> ruler) noexcept
+{
+    RulerRows rows;
+    rows.bars = ruler.removeFromTop (UiTheme::Layout::timelineRulerBarsRowHeight);
+    rows.time = ruler.removeFromTop (UiTheme::Layout::timelineRulerTimeRowHeight);
+    rows.markers = ruler;
+    return rows;
+}
+
 inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea,
                        const TimelineCanvasState& state, const Viewport& vp)
 {
+    const RulerRows rows = rulerRows (ruler);
     g.setColour (kRulerBack);
     g.fillRect (ruler);
+    // Row separators and the band's bottom edge.
     g.setColour (kGrid);
+    for (const juce::Rectangle<int>& row : { rows.bars, rows.time })
+        g.fillRect (row.withHeight (UiTheme::Layout::timelineCanvasRulerSeparatorHeight)
+                        .withY (row.getBottom() - UiTheme::Layout::timelineCanvasRulerSeparatorHeight));
     g.fillRect (ruler.withHeight (UiTheme::Layout::timelineCanvasRulerSeparatorHeight)
                       .withY (ruler.getBottom() - UiTheme::Layout::timelineCanvasRulerSeparatorHeight));
 
     for (const RulerBarLabel& label : computeRulerBarLabels (clipArea, state, vp))
     {
         const int x = label.x;
+        // Bars row: the bar number and its tick.
         g.setColour (kMutedText);
         g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
         g.drawText (juce::String (label.bar),
                     x - UiTheme::Layout::timelineCanvasRulerLabelLeftInset,
-                    ruler.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
+                    rows.bars.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
                     UiTheme::Layout::timelineCanvasRulerLabelWidth,
                     UiTheme::Layout::timelineCanvasRulerLabelHeight,
                     juce::Justification::centred, false);
         g.setColour (kMutedText.withAlpha (UiTheme::Tone::timelineCanvasRulerTickAlpha));
         g.fillRect (x,
-                    ruler.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight,
+                    rows.bars.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight,
                     UiTheme::Layout::timelineCanvasRulerTickWidth,
                     UiTheme::Layout::timelineCanvasRulerTickHeight);
+        // Time row: the same position in minutes:seconds, with a shorter tick.
+        const double seconds = vp.scrollSeconds
+                             + static_cast<double> (x - clipArea.getX()) / std::max (1.0, vp.pixelsPerSecond);
+        g.setColour (kMutedText.withAlpha (UiTheme::Tone::timelineCanvasRulerTickAlpha));
+        g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
+        g.drawText (formatRulerSeconds (seconds, vp.pixelsPerSecond),
+                    x + UiTheme::Layout::timelineCanvasRulerTickWidth + 2,
+                    rows.time.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
+                    UiTheme::Layout::timelineRulerTimeLabelWidth,
+                    UiTheme::Layout::timelineCanvasRulerLabelHeight,
+                    juce::Justification::centredLeft, false);
+        g.fillRect (x,
+                    rows.time.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight / 2,
+                    UiTheme::Layout::timelineCanvasRulerTickWidth,
+                    UiTheme::Layout::timelineCanvasRulerTickHeight / 2);
     }
 
     if (state.markers == nullptr)
