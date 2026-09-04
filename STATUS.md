@@ -79,6 +79,23 @@ source) and `YesDawUiInputCheck` (a real split's halves carry adjacent windows t
 open: the 64× zoom cap (`timelineZoomMax`) is ~1–3 ms per pixel, no sample-level view — not in the plan;
 and split / trim snap to the grid by default (Ctrl inverts, Snap Off exists) — by design, matches the
 reference DAWs.
+**Workflow rule (Dan, 2026-09-04): the agent works HEADLESS by default on Dan's PC.** The build, ctest and the
+in-memory UI harness need no screen. The Session drives inject real input into the real window and fought
+Dan's mouse and focus twice today — so **no drive, no app launch, no screenshot without asking Dan first**
+and getting a yes ("run drives", "go ahead"). Batch the drives into one hands-off window per checkpoint.
+Per-machine setup the drives need (not in git, not in the agent's memory on another PC): a `build-ci`
+Release build via a vcvars64 wrapper; the song fixture once —
+`build-ci\YesDawMakeSongFixture.exe --out "%LOCALAPPDATA%\YES DAWixtures"` (without it the 0.09 s sine
+fixture makes ss3's split-while-playing fail every time); the app closed before a drive or a relink
+(single-instance; LNK1104). The drive harness is Windows-only: the MacBook runs the headless suite only.
+**G2.19 — zoom to sample level (Dan's call, 2026-09-04; "64× is hella restrictive"). Now.** The cap
+`timelineZoomMax = 64` (× fit) is ~1–3 ms per pixel. Decision (recommended, Dan silent = accepted; say
+"millisecond floor" to change): the ceiling is ONE SAMPLE PER PIXEL, with a floor on the visible window
+(never less than the width in samples); past the peak cache's finest tier (256 frames / peak) the painter
+reads decoded audio directly for the visible window only. Gates: the zoom slider / Ctrl+wheel reach the
+ceiling and clamp there; a headless paint at the ceiling shows the actual wave shape (a synthetic ramp
+paints monotonic columns); the frame-budget gate stays green (paint cost is bounded by the window width,
+never the file); saved zooms above the old cap round-trip. Not started at the time of writing.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
