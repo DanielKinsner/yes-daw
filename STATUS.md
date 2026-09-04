@@ -54,6 +54,19 @@ key order (1 Pointer · 2 Pencil · 3 Scissors · 4 Eraser · 5 Velocity · 6 Zo
 a click dispatches the same select action the key does; the active tool's cell is lit; the hover hint
 names the tool; the probe publishes `tool.<name>` cells. Pins: `[tool-strip]` in `YesDawUiInputCheck`
 (a click on each cell selects that tool; the paint lights the active cell) and ss5 Step 10 (drive 38/38).
+**The same-family sweep (2026-09-04, Dan's "a bunch of wins like that"):** an agent swept for painted-not-hit-tested
+controls, key-only verbs and blind hover zones; the top claims were verified by reading the missing handlers.
+Shipped, one commit each, every one with a `YesDawUiInputCheck` pin: the rail's **O record-arm badge** clicks
+(`973a227`); the **header gear** toggles the settings row and lights (`bd234f5`); the painted **"SNAP: Bar"**
+mockup field is gone (`4290d24`); **Transport ▸ Locate Points** submenu reaches the ten store / recall verbs
+(`606b0cd`); a **mixer track strip double-click renames** inline (`c3ae41c`); the **piano roll keyboard column**
+names itself on hover (`15acdfb`). Structural: the probe now names `rail.row.N.{mute,solo,arm}`,
+`header.gear`, `mixer.strip.N.{solo,mute,fader,insert.K,send.K}`, and ss2 Step 8 clicks them on the real exe
+(ss2 29/29). Also `7b25ebd`: the H12 shell test builds against a temp session dir (Dan's hand-made
+Untitled.yesdaw had turned it red locally). **Still open from the sweep (one checkpoint each, not started):**
+mixer fader / pan on an *unselected* strip paint draggable but are not; ruler tempo / meter change labels
+are not clickable; the ruler time-format switch is only on the header counter, not in the ruler menu; the
+mixer SC badge is decorative (G4.4). Every macOS red in this batch was the GPU frame-budget flake (rerun).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
