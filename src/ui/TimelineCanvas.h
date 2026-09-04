@@ -635,18 +635,36 @@ inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area,
         return 0;
     }
 
-    const double sampleRate = static_cast<double> (cache.sourceFrames) / clip.lengthSeconds;
+    // The clip's source window (asset frames): srcOffset / srcLen from the engine Clip, or the
+    // whole source when the caller gave none. Source frames per TIMELINE second come from the
+    // window's length over the clip's length, so a stretched clip (G2.9) reads its source at the
+    // stretched rate, and a split's right half starts where the left half stopped.
+    const std::uint64_t windowStart = clip.sourceFrameCount != 0u
+                                        ? std::min (clip.sourceStartFrame, cache.sourceFrames)
+                                        : 0u;
+    const std::uint64_t windowCount = clip.sourceFrameCount != 0u
+                                        ? std::min (clip.sourceFrameCount, cache.sourceFrames - windowStart)
+                                        : cache.sourceFrames;
+    if (windowCount == 0u)
+        return 0;
+
+    const double sampleRate = static_cast<double> (windowCount) / clip.lengthSeconds;
     const double clipLocalStartSeconds = std::max (UiThemeLayout::timelineLayoutZeroFloor,
                                                    vp.scrollSeconds - clip.startSeconds);
     const double visibleSeconds = static_cast<double> (area.getWidth()) / vp.pixelsPerSecond;
-    const auto sourceFrameOffset = static_cast<std::uint64_t> (
-        std::llround (clipLocalStartSeconds * sampleRate));
-    const auto sourceFrameCount = static_cast<std::uint64_t> (
-        std::llround (visibleSeconds * sampleRate));
+    const auto localFrameOffset = std::min (
+        windowCount, static_cast<std::uint64_t> (std::llround (clipLocalStartSeconds * sampleRate)));
+    const auto sourceFrameCount = std::min (
+        windowCount - localFrameOffset,
+        static_cast<std::uint64_t> (std::llround (visibleSeconds * sampleRate)));
+    if (sourceFrameCount == 0u)
+        return 0;
+    const std::uint64_t sourceFrameOffset = windowStart + localFrameOffset;
 
-    // G2.13: a reversed clip reads its window from the other end, and paints the columns backwards.
-    const std::uint64_t mirroredOffset = reversed && cache.sourceFrames >= sourceFrameOffset + sourceFrameCount
-                                           ? cache.sourceFrames - sourceFrameOffset - sourceFrameCount
+    // G2.13: a reversed clip reads its window from the other end, and paints the columns
+    // backwards — mirrored inside the clip's OWN window, not the whole source.
+    const std::uint64_t mirroredOffset = reversed
+                                           ? windowStart + (windowCount - localFrameOffset - sourceFrameCount)
                                            : sourceFrameOffset;
     const WaveformColumnViewport columnViewport {
         mirroredOffset,

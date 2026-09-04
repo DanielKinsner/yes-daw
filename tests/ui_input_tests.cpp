@@ -20028,3 +20028,60 @@ TEST_CASE ("piano roll keyboard column: hovering a key names it in the status li
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// 2026-09-04: every split's halves painted the same waveform because the canvas was handed only a
+// clip's timeline start and length, never which part of the file it plays. Pin at the shell: after
+// a real split, the two painted clips carry the engine's source windows — the right half starts
+// where the left half stops, and the two add up to the original.
+TEST_CASE ("timeline clips carry their source window to the painter: a split's halves are different audio",
+           "[ui][input][shell][timeline][source-window]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("source-window-split");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+
+    const yesdaw::ui::TimelineClipSourceWindow whole = yesdaw::ui::mainComponentTimelineClipSourceWindow (*shell, 0);
+    REQUIRE (whole.frameCount == project.clips.front().srcLen);
+    REQUIRE (whole.frameCount > 0u);
+    REQUIRE (whole.startFrame == project.clips.front().srcOffset);
+
+    // Zoom at the clip's start, locate at half its length, split (the split-at-playhead law).
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, project, 0u));
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    const juce::Point<int> zoomAnchor = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), project, 0);
+    const juce::MouseEvent ctrlWheel = makeMouseEvent (timeline, zoomAnchor, zoomAnchor, false, 1,
+                                                       juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    for (int i = 0; i < 10; ++i)
+        timeline.mouseWheelMove (ctrlWheel, wheelUp);
+    const juce::Point<int> rulerPoint = projectRulerPointAtTick (
+        timeline, snapshotMainComponent (*shell), project, project.clips.front().timelineLength / 2);
+    REQUIRE (timeline.getLocalBounds().contains (rulerPoint));
+    mouseDownAt (timeline, rulerPoint);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 2u);
+
+    yesdaw::ui::TimelineClipSourceWindow a = yesdaw::ui::mainComponentTimelineClipSourceWindow (*shell, 0);
+    yesdaw::ui::TimelineClipSourceWindow b = yesdaw::ui::mainComponentTimelineClipSourceWindow (*shell, 1);
+    if (a.startFrame > b.startFrame)
+        std::swap (a, b);
+    INFO ("a " << a.startFrame << "+" << a.frameCount << " b " << b.startFrame << "+" << b.frameCount);
+    REQUIRE (a.startFrame == whole.startFrame);
+    REQUIRE (a.frameCount > 0u);
+    REQUIRE (b.frameCount > 0u);
+    REQUIRE (b.startFrame == a.startFrame + a.frameCount);   // the right half starts where the left stops
+    REQUIRE (a.frameCount + b.frameCount == whole.frameCount);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

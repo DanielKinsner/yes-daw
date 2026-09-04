@@ -325,6 +325,17 @@ void mainComponentRevealSettingsRowFor (juce::Component& component, UiActionId a
 // The header's painted gear rect (shell coordinates) — the settings-row toggle's click target.
 [[nodiscard]] juce::Rectangle<int> mainComponentPaintedHeaderGearBounds (const juce::Component& component);
 
+// The source window (asset frames: start, count) the timeline canvas is handed for one painted
+// clip (by layout id) — the SAME window the waveform painter reads, so a gate can prove a split's
+// right half paints where the left half stopped.
+struct TimelineClipSourceWindow
+{
+    std::uint64_t startFrame = 0;
+    std::uint64_t frameCount = 0;
+};
+[[nodiscard]] TimelineClipSourceWindow mainComponentTimelineClipSourceWindow (const juce::Component& component,
+                                                                             int layoutClipId);
+
 // N7: the ACTUAL colour the timeline canvas paints for one clip (by id) — reads the same cached
 // style array the paint code reads from, so it can never drift from what is on screen.
 [[nodiscard]] juce::Colour mainComponentTimelineClipColour (juce::Component& component,

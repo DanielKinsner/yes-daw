@@ -630,4 +630,68 @@ TEST_CASE ("H16 CP3 timeline paint keeps not-ready waveform clips on the placeho
     REQUIRE (stats.readyWaveformColumns == 0);
     REQUIRE (stats.placeholderWaveformClips == 1);
 }
+// 2026-09-04: the painter squeezed the WHOLE source into every clip — a split's two halves, a
+// trimmed clip, a slipped clip all painted the same waveform. Pin: with a source that is silent
+// for its first half and loud for its second, a clip windowed onto the first half paints no peaks,
+// a clip windowed onto the second half does, the two halves differ, and a clip with no window
+// (every headless caller) still paints exactly what "the whole source" painted before.
+TEST_CASE ("timeline paint reads each clip's OWN source window, not the whole file", "[ui][waveform-cache][source-window]")
+{
+    constexpr std::uint64_t kFrames = 4096;
+    Asset asset = makeColumnAsset();
+    asset.frames = kFrames;
+    asset.sampleRate = SampleRate { 1024.0 };   // a 4 s source
+    std::vector<float> samples (static_cast<std::size_t> (kFrames), 0.0f);
+    for (std::size_t i = kFrames / 2; i < kFrames; ++i)
+        samples[i] = (i % 2 == 0) ? 0.9f : -0.9f;   // loud second half
+    const auto built = buildWaveformPeakCache (asset, std::span<const float> (samples.data(), samples.size()), 4);
+    INFO (built.message);
+    REQUIRE (built.ok());
+    const auto ready = std::make_shared<const yesdaw::persistence::WaveformPeakCache> (built.cache);
+
+    const TimelineCanvasClipStyle style { juce::Colour { 0xff7c5cff }, 0.65f };
+    const juce::Colour peak = style.colour.brighter (yesdaw::ui::UiTheme::Tone::timelineCanvasWaveformBrightness);
+
+    // Paint one clip (id 0, 2 s long at t = 0) with the given source window; return the image.
+    const auto paintWindow = [&] (std::uint64_t startFrame, std::uint64_t frameCount) {
+        const Clip clip { 0, 0, 0.0, 2.0, nullptr, startFrame, frameCount };
+        TimelineCanvasState state = makePaintState (&clip, &style, 1);
+        state.waveformCacheLookup = [ready] (int) -> std::shared_ptr<const yesdaw::persistence::WaveformPeakCache> { return ready; };
+        juce::Image image (juce::Image::ARGB, 640, 160, true);
+        {
+            juce::Graphics graphics (image);
+            const TimelineCanvasPaintStats stats = paintTimelineCanvas (graphics, image.getBounds(), state);
+            REQUIRE (stats.readyWaveformClips == 1);
+        }
+        return image;
+    };
+    // Peak-coloured pixels off the centre line: the waveform's body.
+    const auto peakPixels = [&] (const juce::Image& image) {
+        int n = 0;
+        for (int y = 0; y < image.getHeight(); ++y)
+            for (int x = 0; x < image.getWidth(); ++x)
+                if (image.getPixelAt (x, y) == peak)
+                    ++n;
+        return n;
+    };
+    const auto same = [] (const juce::Image& a, const juce::Image& b) {
+        for (int y = 0; y < a.getHeight(); ++y)
+            for (int x = 0; x < a.getWidth(); ++x)
+                if (a.getPixelAt (x, y) != b.getPixelAt (x, y))
+                    return false;
+        return true;
+    };
+
+    const juce::Image firstHalf = paintWindow (0, kFrames / 2);
+    const juce::Image secondHalf = paintWindow (kFrames / 2, kFrames / 2);
+    const juce::Image whole = paintWindow (0, 0);            // no window: the whole source
+    const juce::Image wholeExplicit = paintWindow (0, kFrames);
+
+    INFO ("first " << peakPixels (firstHalf) << " second " << peakPixels (secondHalf) << " whole " << peakPixels (whole));
+    REQUIRE (peakPixels (secondHalf) > peakPixels (firstHalf) * 4);   // the loud half paints a body; the silent half a line at most
+    REQUIRE_FALSE (same (firstHalf, secondHalf));
+    REQUIRE (same (whole, wholeExplicit));                            // "no window" == "the whole source", byte for byte
+    REQUIRE_FALSE (same (whole, secondHalf));                         // and the whole source is not the second half squeezed
+}
+
 #endif

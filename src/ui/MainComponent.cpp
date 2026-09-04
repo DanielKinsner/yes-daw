@@ -6899,6 +6899,15 @@ public:
             .translated (trackListInput.getX(), trackListInput.getY());
     }
 
+    // The source window the canvas was handed for a painted clip (the waveform painter's law).
+    [[nodiscard]] yesdaw::ui::TimelineClipSourceWindow harnessTimelineClipSourceWindow (int layoutClipId) const
+    {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClips.size()))
+            return {};
+        const yesdaw::ui::Clip& clip = timelineClips[static_cast<std::size_t> (layoutClipId)];
+        return { clip.sourceStartFrame, clip.sourceFrameCount };
+    }
+
     // The rail's three painted cells (M / S / O) in shell coordinates — the rects the rail's
     // hit-test claims, so a test or a drive clicks the badge it sees.
     [[nodiscard]] juce::Rectangle<int> harnessPaintedRailCellBounds (int row, int cell) const
@@ -13655,7 +13664,10 @@ private:
             const double startSeconds = static_cast<double> (clip.timelineStart) / sampleRate;
             const double lengthSeconds = static_cast<double> (clip.timelineLength) / sampleRate;
             const int id = static_cast<int> (timelineClips.size());
-            timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds, clip.name.c_str() });
+            // The clip's source window rides along (srcOffset / srcLen, asset frames) so the
+            // painter draws THIS clip's audio, not the whole file squeezed into its width.
+            timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds, clip.name.c_str(),
+                                       clip.srcOffset, clip.srcLen });
             // V6: selection is a painted RING, not a colour swap — the clip keeps its N7 track
             // colour while selected (the old accent-blue swap was invisible on a blue track,
             // the exact false-positive risk the N7 gate had to work around).
@@ -16269,6 +16281,13 @@ juce::Rectangle<int> mainComponentPaintedHeaderGearBounds (const juce::Component
 {
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->headerLayout().gear;
+    return {};
+}
+
+TimelineClipSourceWindow mainComponentTimelineClipSourceWindow (const juce::Component& component, int layoutClipId)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessTimelineClipSourceWindow (layoutClipId);
     return {};
 }
 

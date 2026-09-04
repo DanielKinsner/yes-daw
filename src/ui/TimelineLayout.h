@@ -12,6 +12,7 @@
 
 #include "ui/UiThemeLayout.h"
 
+#include <cstdint>
 #include <algorithm>
 
 namespace yesdaw::ui {
@@ -25,6 +26,13 @@ struct Clip
     double startSeconds;
     double lengthSeconds;
     const char* name = nullptr;
+    // The window of the SOURCE this clip plays, in the asset's frames (engine Clip::srcOffset /
+    // srcLen). sourceFrameCount == 0 means "the whole source" (every synthetic / headless clip),
+    // which keeps the goldens byte-identical. Until 2026-09-04 the painter had neither field and
+    // squeezed the entire source into every clip — every split, trim, slip and stretch painted
+    // the same waveform.
+    std::uint64_t sourceStartFrame = 0;
+    std::uint64_t sourceFrameCount = 0;
 };
 
 // The visible window onto the timeline.
