@@ -1069,7 +1069,10 @@ double pianoRollVelocityForLaneYPixel (juce::Rectangle<int> lane, int y)
 TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][input][shell]")
 {
     juce::MessageManager::getInstance();
-    auto shell = yesdaw::ui::createMainComponent();
+    // The shipped shell (desktop audio, native choosers) against a temp session directory: the
+    // native path reopens the last-project record, and this machine's owner may well have one
+    // (found 2026-09-04 — Dan's hand-made Untitled.yesdaw turned this test red locally).
+    auto shell = yesdaw::ui::createNativeMainComponent ({}, makeTempBundlePath ("h12-session"));
     REQUIRE (shell != nullptr);
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
 

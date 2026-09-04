@@ -15656,10 +15656,16 @@ std::unique_ptr<juce::Component> createMainComponent()
     return createNativeMainComponent ({});
 }
 
-std::unique_ptr<juce::Component> createNativeMainComponent (std::filesystem::path openBundleAtLaunch)
+std::unique_ptr<juce::Component> createNativeMainComponent (std::filesystem::path openBundleAtLaunch,
+                                                            std::filesystem::path sessionStateDirectory)
 {
     yesdaw::ui::MainComponentFileChoices choices = makeNativeFileChoices();
     choices.openBundleAtLaunch = std::move (openBundleAtLaunch);
+    if (! sessionStateDirectory.empty())
+    {
+        choices.sessionStateDirectory = std::move (sessionStateDirectory);
+        return std::make_unique<MainComponent> (std::move (choices), true);
+    }
 
     // G0.1: the Session drive's launch-time seams. Both are absolute paths; anything else is
     // ignored so a stray variable can never point the shell at a relative location.

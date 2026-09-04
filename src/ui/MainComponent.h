@@ -123,8 +123,11 @@ struct MainComponentSnapshot
 // the launch-time seams the Session drive relies on: `openBundleAtLaunch` (from the command
 // line), and the environment variables YESDAW_STATE_PROBE (probe file) and
 // YESDAW_SESSION_STATE_DIR (last-project / recent-projects directory), so a driven launch never
-// reads or writes the owner's real session records.
-[[nodiscard]] std::unique_ptr<juce::Component> createNativeMainComponent (std::filesystem::path openBundleAtLaunch);
+// reads or writes the owner's real session records. An explicit `sessionStateDirectory` wins
+// over the variable: the harness constructs the shipped shell against a temp directory so a
+// test never reopens whatever project the machine's owner last had open.
+[[nodiscard]] std::unique_ptr<juce::Component> createNativeMainComponent (std::filesystem::path openBundleAtLaunch,
+                                                                          std::filesystem::path sessionStateDirectory = {});
 // G0.1: the State probe document for the shell as it stands right now (the SAME string the
 // timer tick writes to `stateProbePath`), so a gate can assert the schema without a file race.
 // Empty for a non-MainComponent.
