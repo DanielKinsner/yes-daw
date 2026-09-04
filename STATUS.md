@@ -95,7 +95,16 @@ fixture makes ss3's split-while-playing fail every time); the app closed before 
 reads decoded audio directly for the visible window only. Gates: the zoom slider / Ctrl+wheel reach the
 ceiling and clamp there; a headless paint at the ceiling shows the actual wave shape (a synthetic ramp
 paints monotonic columns); the frame-budget gate stays green (paint cost is bounded by the window width,
-never the file); saved zooms above the old cap round-trip. Not started at the time of writing.
+never the file); saved zooms above the old cap round-trip. **Done (2026-09-04):** `timelineZoomCeiling()` =
+max(64, rate / fit px-per-second) replaces every `timelineZoomMax` clamp (wheel, tool, slider range, fit-loop,
+zoom-to-selection, restore); the canvas `Clip` state carries a `waveformSampleLookup` (the decoded asset the
+playback reads) and below tier 0 (256 frames / px) `drawClipCachedWaveform` projects columns from the samples
+(`computeWaveformColumnsFromSamples`, one whole pixel per single-sample column); `TimelineCanvasPaintStats
+.sampleWaveformClips` counts it. Pins: `[sample-zoom]` in `YesDawWaveformCacheCheck` (a ramp at one sample
+per pixel: column n is sample n, the painted tops climb monotonically, the cache path differs) and in
+`YesDawUiInputCheck` (Ctrl+wheel climbs past 64x and clamps at the ceiling; ceiling x fit px/s == the
+project rate; Ctrl+0 returns to 1x; a 0.09 s project honestly stays at the 64 floor). Frame-budget gate
+untouched (no sample lookup in the headless checks).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
