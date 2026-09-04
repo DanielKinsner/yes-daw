@@ -19871,3 +19871,72 @@ TEST_CASE ("toolbar paints no fake snap field after the SNAP caption", "[ui][tim
     }
 }
 
+// Locate points 1–5 (store / recall) were fully implemented verbs with no chord (plan §4 assigns
+// none), no menu entry, no button: unreachable by any user until 2026-09-04. Pin: the Transport
+// menu carries a Locate Points submenu with all ten, gated on a project, and a store then a
+// recall through the menu moves the playhead back.
+TEST_CASE ("Transport menu: a Locate Points submenu reaches the ten store / recall verbs",
+           "[ui][input][shell][menus][locate-points]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("locate-points-menu");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    juce::MenuBarModel& model = requireMenuBarModel (*shell);
+
+    const auto locateItems = [&] {
+        std::vector<juce::PopupMenu::Item> items;
+        juce::PopupMenu transport = model.getMenuForIndex (6, "Transport");
+        juce::PopupMenu::MenuItemIterator top (transport);
+        while (top.next())
+        {
+            const juce::PopupMenu::Item& entry = top.getItem();
+            if (entry.text != "Locate Points" || entry.subMenu == nullptr)
+                continue;
+            juce::PopupMenu::MenuItemIterator sub (*entry.subMenu);
+            while (sub.next())
+                if (! sub.getItem().isSeparator)
+                    items.push_back (sub.getItem());
+        }
+        return items;
+    };
+
+    // No project: the submenu exists and every verb is disabled (the descriptors need one).
+    std::vector<juce::PopupMenu::Item> items = locateItems();
+    REQUIRE (items.size() == 10u);
+    for (const juce::PopupMenu::Item& item : items)
+    {
+        INFO (item.text.toStdString());
+        REQUIRE_FALSE (item.isEnabled);
+    }
+    REQUIRE (items.front().itemID == static_cast<int> (UiActionId::TransportStoreLocatePoint1) + 1);
+    REQUIRE (items.back().itemID == static_cast<int> (UiActionId::TransportRecallLocatePoint5) + 1);
+
+    // A project: the five Store verbs enable; each Recall stays disabled until its point is stored.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    items = locateItems();
+    REQUIRE (items.size() == 10u);
+    for (std::size_t i = 0; i < items.size(); ++i)
+    {
+        INFO (items[i].text.toStdString());
+        REQUIRE (items[i].isEnabled == (i < 5u));
+    }
+
+    // Store at bar 2, go home, recall through the menu: the playhead returns.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportLocateNextBar);
+    const std::int64_t stored = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (stored > 0);
+    model.menuItemSelected (static_cast<int> (UiActionId::TransportStoreLocatePoint2) + 1, 6);
+    items = locateItems();
+    REQUIRE (items[6].itemID == static_cast<int> (UiActionId::TransportRecallLocatePoint2) + 1);
+    REQUIRE (items[6].isEnabled);        // stored: Recall Locate 2 enables
+    REQUIRE_FALSE (items[5].isEnabled);  // Recall Locate 1 still has nothing to recall
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
+    model.menuItemSelected (static_cast<int> (UiActionId::TransportRecallLocatePoint2) + 1, 6);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == stored);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

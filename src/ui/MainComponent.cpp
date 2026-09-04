@@ -10950,6 +10950,16 @@ private:
         return juce::String (chord);
     }
 
+    // Transport ▸ Locate Points (a submenu, not a flat run of ten): the store / recall pairs.
+    static constexpr std::array<yesdaw::ui::UiActionId, 10> kLocatePointMenu {
+        yesdaw::ui::UiActionId::TransportStoreLocatePoint1,  yesdaw::ui::UiActionId::TransportStoreLocatePoint2,
+        yesdaw::ui::UiActionId::TransportStoreLocatePoint3,  yesdaw::ui::UiActionId::TransportStoreLocatePoint4,
+        yesdaw::ui::UiActionId::TransportStoreLocatePoint5,
+        yesdaw::ui::UiActionId::TransportRecallLocatePoint1, yesdaw::ui::UiActionId::TransportRecallLocatePoint2,
+        yesdaw::ui::UiActionId::TransportRecallLocatePoint3, yesdaw::ui::UiActionId::TransportRecallLocatePoint4,
+        yesdaw::ui::UiActionId::TransportRecallLocatePoint5,
+    };
+
     juce::PopupMenu getMenuForIndex (int topLevelMenuIndex, const juce::String&) override
     {
         juce::PopupMenu menu;
@@ -10978,6 +10988,28 @@ private:
                 counts.addItem (std::move (item));
             }
             menu.addSubMenu ("Repeat Count", counts);
+        }
+
+        // Transport ▸ Locate Points: the five store / recall pairs. Fully implemented verbs that
+        // had no chord (plan §4 assigns none — Logic has no default), no menu entry and no
+        // button, so nothing but a test could reach them until 2026-09-04. Same item law as
+        // the flat entries: the action's id, its live enabled state, its (empty) chord.
+        if (topLevelMenuIndex == 6)
+        {
+            juce::PopupMenu locatePoints;
+            for (const yesdaw::ui::UiActionId action : kLocatePointMenu)
+            {
+                const auto& descriptor =
+                    yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (action)];
+                juce::PopupMenu::Item item (descriptor.label);
+                item.itemID = static_cast<int> (action) + 1;
+                item.isEnabled = appModel.registry().stateFor (action, appModel.context()).enabled;
+                item.shortcutKeyDescription = menuShortcutFor (action);
+                if (action == yesdaw::ui::UiActionId::TransportRecallLocatePoint1)
+                    locatePoints.addSeparator();
+                locatePoints.addItem (std::move (item));
+            }
+            menu.addSubMenu ("Locate Points", locatePoints);
         }
 
         // Open Recent (B39): the File menu lists the MRU bundles, most recent first, on item ids
