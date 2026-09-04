@@ -85,7 +85,7 @@ Dan's mouse and focus twice today — so **no drive, no app launch, no screensho
 and getting a yes ("run drives", "go ahead"). Batch the drives into one hands-off window per checkpoint.
 Per-machine setup the drives need (not in git, not in the agent's memory on another PC): a `build-ci`
 Release build via a vcvars64 wrapper; the song fixture once —
-`build-ci\YesDawMakeSongFixture.exe --out "%LOCALAPPDATA%\YES DAWixtures"` (without it the 0.09 s sine
+`build-ci\YesDawMakeSongFixture.exe --out "%LOCALAPPDATA%\YES DAW\fixtures"` (without it the 0.09 s sine
 fixture makes ss3's split-while-playing fail every time); the app closed before a drive or a relink
 (single-instance; LNK1104). The drive harness is Windows-only: the MacBook runs the headless suite only.
 **G2.19 — zoom to sample level (Dan's call, 2026-09-04; "64× is hella restrictive"). Now.** The cap
