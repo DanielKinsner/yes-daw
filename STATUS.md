@@ -66,7 +66,19 @@ names itself on hover (`15acdfb`). Structural: the probe now names `rail.row.N.{
 Untitled.yesdaw had turned it red locally). **Still open from the sweep (one checkpoint each, not started):**
 mixer fader / pan on an *unselected* strip paint draggable but are not; ruler tempo / meter change labels
 are not clickable; the ruler time-format switch is only on the header counter, not in the ruler menu; the
-mixer SC badge is decorative (G4.4). Every macOS red in this batch was the GPU frame-budget flake (rerun).
+mixer SC badge is decorative (G4.4). Every macOS red in this batch was the GPU frame-budget flake (rerun). **Dan's call (2026-09-04): stop spending
+time on that flake** — it is parked; treat a macOS red on `YesDawTimelineGpuCheck` alone as noise, no reruns,
+the local suite + drives are the working gate until the runner floor is measured.
+**Waveform lie fixed (2026-09-04, Dan's screenshot: identical waveforms after a split).** The canvas `Clip` had
+no source window; `drawClipCachedWaveform` set its sample rate as `sourceFrames / clip.lengthSeconds` — the
+WHOLE file squeezed into every clip, so every split, trim, slip and stretch painted the same waveform since
+G2. Now `Clip` carries `sourceStartFrame` / `sourceFrameCount` (engine `srcOffset` / `srcLen`; 0 count =
+whole source keeps every golden byte-identical), the painter maps clip time into that window (stretch and
+reverse honoured inside it). Pins: `[source-window]` in `YesDawWaveformCacheCheck` (silent-half / loud-half
+source) and `YesDawUiInputCheck` (a real split's halves carry adjacent windows that add up). Related, still
+open: the 64× zoom cap (`timelineZoomMax`) is ~1–3 ms per pixel, no sample-level view — not in the plan;
+and split / trim snap to the grid by default (Ctrl inverts, Snap Off exists) — by design, matches the
+reference DAWs.
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
