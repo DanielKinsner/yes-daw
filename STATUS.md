@@ -45,8 +45,11 @@ are mapped into phases by the plan §9. Do not work R-items from that document a
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
 all ten jobs (the intermediate run `33668863266` failed only on the macOS GPU frame-budget flake,
 twice — parking lot; never weakened). The G3.2 drive is 31 / 31 on the real exe; the §7.4 rubric is
-below. **The loop is STOPPED at Dan's request** ("stop the loop on the next logical point"). When it
-resumes: G3.3, per the plan's order.
+below. **The loop is STOPPED at Dan's request** ("stop the loop on the next logical point"). **Dan's call
+(2026-09-04): Codex resumes the plan at G3.3** (MIDI CC / pitch bend / aftertouch / program change), per the
+plan's order and §8 process rules, after the 2026-09-04 sweep below closed. The next agent starts by reading
+this file, then the plan's G3.3 entry; every rule that changed today (headless by default, the parked macOS
+flake, the per-machine drive setup) is in the block below.
 **G3.2 follow-up (2026-09-04, found by Dan's hand-test on the office PC):** the timeline tool strip was
 paint-only — it always lit the Pointer and no click reached it (the keys 1–6 worked; every drive picked
 tools by key, so the buttons were never exercised). Fixed as one checkpoint: the strip is seven cells in
@@ -63,10 +66,15 @@ mockup field is gone (`4290d24`); **Transport ▸ Locate Points** submenu reache
 names itself on hover (`15acdfb`). Structural: the probe now names `rail.row.N.{mute,solo,arm}`,
 `header.gear`, `mixer.strip.N.{solo,mute,fader,insert.K,send.K}`, and ss2 Step 8 clicks them on the real exe
 (ss2 29/29). Also `7b25ebd`: the H12 shell test builds against a temp session dir (Dan's hand-made
-Untitled.yesdaw had turned it red locally). **Still open from the sweep (one checkpoint each, not started):**
-mixer fader / pan on an *unselected* strip paint draggable but are not; ruler tempo / meter change labels
-are not clickable; the ruler time-format switch is only on the header counter, not in the ruler menu; the
-mixer SC badge is decorative (G4.4). Every macOS red in this batch was the GPU frame-budget flake (rerun). **Dan's call (2026-09-04): stop spending
+Untitled.yesdaw had turned it red locally). **Sweep closed (2026-09-04, later):** the mixer's painted fader THUMB and pan knob on an unselected strip
+drag that strip (`b55c656`, `[strip-fader]`); a tempo / meter change label click locates exactly on the
+change so the ruler menu's verbs act on it (`[map-label]`); the ruler time-format switch was ALREADY in
+the ruler menu ("Time Display" submenu, G2.2) — the sweep's claim was wrong, verified, no change. Still
+decorative by design until G4.4: the mixer SC badge. **Follow-up to reproduce under a debugger:** an
+earlier draft of the strip-fader fix hit-tested the whole rail; a plain strip click on a BUS strip then
+segfaulted inside the shipped bus-strip test (`bus strips select and edit like real strips`). The thumb
+target sidesteps that path and a bus thumb drag is pinned green, but the rail-click crash itself is
+unexplained — parked, not fixed. Every macOS red in this batch was the GPU frame-budget flake (rerun). **Dan's call (2026-09-04): stop spending
 time on that flake** — it is parked; treat a macOS red on `YesDawTimelineGpuCheck` alone as noise, no reruns,
 the local suite + drives are the working gate until the runner floor is measured.
 **Waveform lie fixed (2026-09-04, Dan's screenshot: identical waveforms after a split).** The canvas `Clip` had
