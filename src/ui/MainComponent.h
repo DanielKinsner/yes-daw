@@ -317,6 +317,11 @@ void mainComponentRevealSettingsRowFor (juce::Component& component, UiActionId a
 [[nodiscard]] juce::Rectangle<int> mainComponentPaintedColourSwatchBounds (const juce::Component& component,
                                                                             int row);
 
+// The rail row's painted M (0) / S (1) / O record-arm (2) cell rect (shell coordinates) — the
+// SAME law the rail's click hit-test claims, so a test clicks the badge it sees.
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedRailCellBounds (const juce::Component& component,
+                                                                        int row, int cell);
+
 // N7: the ACTUAL colour the timeline canvas paints for one clip (by id) — reads the same cached
 // style array the paint code reads from, so it can never drift from what is on screen.
 [[nodiscard]] juce::Colour mainComponentTimelineClipColour (juce::Component& component,

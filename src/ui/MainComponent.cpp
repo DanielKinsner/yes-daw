@@ -3058,6 +3058,7 @@ public:
     std::function<void (int, float)> onVolumeEdited;   // row, linear gain in [0, 1]
     std::function<void (int)> onMuteToggled;
     std::function<void (int)> onSoloToggled;
+    std::function<void (int)> onArmToggled;   // the "O" cell: the real record-arm badge, clickable
     // Current strip values, used to anchor Shift fine drags without a jump (B30).
     std::function<float (int)> panValueProvider;
     std::function<float (int)> volumeValueProvider;
@@ -3092,6 +3093,7 @@ public:
             case MiniZone::Volume: return "Volume: drag \u00b7 Alt-click resets to unity \u00b7 Shift for fine";
             case MiniZone::Mute:   return "Mute: click toggles";
             case MiniZone::Solo:   return "Solo: click toggles";
+            case MiniZone::Arm:    return "Arm: click arms this track for recording (needs an input device)";
             case MiniZone::Meter:  return "Meter: click clears the clip light";
             case MiniZone::Colour: return "Colour: click cycles the track colour";
             case MiniZone::None:   break;
@@ -3203,6 +3205,11 @@ public:
             case MiniZone::Solo:
                 if (onSoloToggled)
                     onSoloToggled (row);
+                return;
+
+            case MiniZone::Arm:
+                if (onArmToggled)
+                    onArmToggled (row);
                 return;
 
             case MiniZone::Meter:
@@ -3386,6 +3393,10 @@ public:
 
     [[nodiscard]] juce::Rectangle<int> muteCellBounds (int row) const { return buttonCellBounds (row, 0); }
     [[nodiscard]] juce::Rectangle<int> soloCellBounds (int row) const { return buttonCellBounds (row, 1); }
+    // The third painted cell is the "O" record-arm badge (E30). It was painted, lit red on an armed
+    // track, and dead to the mouse until 2026-09-04: no zone claimed cell 2, so a click selected
+    // the track instead of arming it.
+    [[nodiscard]] juce::Rectangle<int> armCellBounds (int row) const { return buttonCellBounds (row, 2); }
 
     [[nodiscard]] juce::Rectangle<int> meterZoneBounds (int row) const
     {
@@ -3410,7 +3421,7 @@ public:
     }
 
 private:
-    enum class MiniZone : std::uint8_t { None, Pan, Volume, Mute, Solo, Meter, Colour };
+    enum class MiniZone : std::uint8_t { None, Pan, Volume, Mute, Solo, Arm, Meter, Colour };
 
     [[nodiscard]] juce::Rectangle<int> buttonCellBounds (int row, int cellIndex) const
     {
@@ -3438,6 +3449,8 @@ private:
             return MiniZone::Mute;
         if (soloCellBounds (row).contains (position))
             return MiniZone::Solo;
+        if (armCellBounds (row).contains (position))
+            return MiniZone::Arm;
         if (meterZoneBounds (row).contains (position))
             return MiniZone::Meter;
         if (colourSwatchBounds (row).contains (position))
@@ -5083,6 +5096,16 @@ public:
             refreshActionState();
             repaintAll();
         };
+        // The "O" badge arms THIS row through the same verb the lane menu's Arm uses (M11: one
+        // more member of the arm set, or one fewer). The verb refuses honestly without an input
+        // device; the badge simply stays unlit.
+        trackListInput.onArmToggled = [this] (int row) {
+            selectTrackLane (row);
+            if (row >= 0 && row < static_cast<int> (appModel.project().tracks.size()))
+                (void) appModel.toggleRecordingArmForTrack (static_cast<std::size_t> (row));
+            refreshActionState();
+            repaintAll();
+        };
         // N7: one click on a row's colour swatch commits ONE undo step, advancing THAT track
         // (not necessarily the selected one) to the next colour in the fixed cycle.
         trackListInput.onColourSwatchClicked = [this] (int row) {
@@ -6483,6 +6506,10 @@ public:
                 put ("lane." + juce::String (lane),
                      row.getIntersection (geometry.clipArea).translated (origin.x, origin.y));
                 put ("rail.row." + juce::String (lane), harnessPaintedRailRowBounds (lane));
+                // The row's painted M / S / O cells by name, so a drive clicks the badge, not a pixel.
+                put ("rail.row." + juce::String (lane) + ".mute", harnessPaintedRailCellBounds (lane, 0));
+                put ("rail.row." + juce::String (lane) + ".solo", harnessPaintedRailCellBounds (lane, 1));
+                put ("rail.row." + juce::String (lane) + ".arm",  harnessPaintedRailCellBounds (lane, 2));
             }
 
             std::array<yesdaw::ui::ElementRect, yesdaw::ui::UiTheme::Layout::timelineCanvasVisibleClipCapacity> visible {};
@@ -6846,6 +6873,16 @@ public:
     {
         return trackListInput.colourSwatchBounds (row)
             .translated (trackListInput.getX(), trackListInput.getY());
+    }
+
+    // The rail's three painted cells (M / S / O) in shell coordinates — the rects the rail's
+    // hit-test claims, so a test or a drive clicks the badge it sees.
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedRailCellBounds (int row, int cell) const
+    {
+        const juce::Rectangle<int> local = cell == 0 ? trackListInput.muteCellBounds (row)
+                                         : cell == 1 ? trackListInput.soloCellBounds (row)
+                                                     : trackListInput.armCellBounds (row);
+        return local.translated (trackListInput.getX(), trackListInput.getY());
     }
 
     // V2: the ACTUAL bar|beat the header paints — reads the same law drawTransportReadouts uses,
@@ -16120,6 +16157,13 @@ juce::Rectangle<int> mainComponentPaintedColourSwatchBounds (const juce::Compone
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->harnessPaintedColourSwatchBounds (row);
 
+    return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedRailCellBounds (const juce::Component& component, int row, int cell)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedRailCellBounds (row, cell);
     return {};
 }
 

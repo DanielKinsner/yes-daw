@@ -19736,3 +19736,59 @@ TEST_CASE ("tool strip paints the active tool's cell lit, not always the Pointer
         }
     }
 }
+
+// The rail's "O" badge was painted (lit red on an armed track) but dead to the mouse: no zone
+// claimed the third cell, so a click selected the track instead of arming it (found by the
+// 2026-09-04 dead-affordance sweep after the tool-strip bug). Pin: the click arms and disarms
+// through the lane menu's verb, and stays inert without an input device.
+TEST_CASE ("rail arm badge: a click on the O cell arms and disarms that track",
+           "[ui][input][shell][rail][arm-badge]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("rail-arm-badge");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const juce::Rectangle<int> armCell = yesdaw::ui::mainComponentPaintedRailCellBounds (*shell, 0, 2);
+    const juce::Rectangle<int> soloCell = yesdaw::ui::mainComponentPaintedRailCellBounds (*shell, 0, 1);
+    REQUIRE_FALSE (armCell.isEmpty());
+    REQUIRE (armCell.getX() >= soloCell.getRight());   // the third cell sits right of S
+    REQUIRE (armCell.getWidth() == soloCell.getWidth());
+
+    // No input device yet: the verb refuses, the track stays unarmed (and still gets selected).
+    mouseDownAt (*rail, armCell.getCentre() - rail->getPosition());
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.recordingTrackArmed);
+
+    // The 2-input harness device (G0.8 harness-only verb) makes the track armable.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);
+    mouseDownAt (*rail, armCell.getCentre() - rail->getPosition());
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.recordingTrackArmed);
+    REQUIRE (snapshot.armedRecordingTrackInputs.size() == 1u);
+
+    // Second click on the badge drops that track from the arm set (M11).
+    mouseDownAt (*rail, armCell.getCentre() - rail->getPosition());
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.recordingTrackArmed);
+    REQUIRE (snapshot.armedRecordingTrackInputs.empty());
+
+    // The probe names the three cells so a drive clicks "rail.row.0.arm", never a pixel.
+    juce::var probe;
+    REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+    for (const char* name : { "rail.row.0.mute", "rail.row.0.solo", "rail.row.0.arm" })
+    {
+        INFO (name);
+        REQUIRE (probe["layout"].hasProperty (name));
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
