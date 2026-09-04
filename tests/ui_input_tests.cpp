@@ -16168,7 +16168,7 @@ TEST_CASE ("the painted SNAP caption clears the snap chooser and the painted too
     REQUIRE (labelInShell.getRight() <= snapChooser->getBounds().getX());
     const juce::Rectangle<int> toolCellsInShell =
         geometry.toolbarArea.withTrimmedLeft (yesdaw::ui::UiTheme::Space::xl)
-            .withWidth (5 * L::timelineCanvasToolCellWidth)
+            .withWidth (L::timelineCanvasToolbarWidth)   // the whole seven-cell strip
             .translated (timeline.getX(), timeline.getY());
     REQUIRE_FALSE (toolCellsInShell.intersects (labelInShell));
 
@@ -19844,3 +19844,30 @@ TEST_CASE ("header gear: a click toggles the settings row and the icon lights wh
     REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
     REQUIRE (probe["layout"].hasProperty ("header"));
 }
+
+// The toolbar band used to paint a "Bar" snap field after the SNAP caption: a hardcoded value
+// (the real default is Beat) with no click handler — a mockup left in the paint. Pin: the band
+// right of the caption is plain toolbar background; the real chooser is the shell's child.
+TEST_CASE ("toolbar paints no fake snap field after the SNAP caption", "[ui][timeline][snap-label][paint]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Rectangle<int> area (0, 0, 900, 400);
+    yesdaw::ui::TimelineCanvasState state;
+    const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (area, state);
+    juce::Image image (juce::Image::ARGB, area.getWidth(), area.getHeight(), true);
+    {
+        juce::Graphics g (image);   // scoped: the renderer flushes on destruction before we read pixels
+        (void) yesdaw::ui::paintTimelineCanvas (g, area, state);
+    }
+
+    const juce::Colour band = yesdaw::ui::UiTheme::Color::timelineToolbar();
+    const int captionRight = geometry.toolbarArea.getX() + L::timelineCanvasSnapLabelX + L::timelineCanvasSnapLabelWidth;
+    const int y = geometry.toolbarArea.getCentreY();
+    // Every column from the caption's right edge to the band's right edge is background.
+    for (int x = captionRight + 1; x < geometry.toolbarArea.getRight() - 1; ++x)
+    {
+        INFO ("x " << x);
+        REQUIRE (image.getPixelAt (x, y) == band);
+    }
+}
+

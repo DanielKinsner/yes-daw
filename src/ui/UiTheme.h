@@ -48,7 +48,6 @@ struct UiTheme
         static juce::Colour controlInsetDeep() noexcept { return juce::Colour (0xff04070a); }
         static juce::Colour controlInsetBlack() noexcept { return juce::Colour (0xff070b10); }
         static juce::Colour toolButton() noexcept { return juce::Colour (0xff151c23); }
-        static juce::Colour snapField() noexcept { return juce::Colour (0xff070b0f); }
         static juce::Colour buttonSurface() noexcept { return juce::Colour (0xff192129); }
         static juce::Colour buttonSurfaceTop() noexcept { return juce::Colour (0xff222c35); }
         static juce::Colour buttonPressed() noexcept { return juce::Colour (0xff0f151a); }
@@ -1015,12 +1014,6 @@ struct UiTheme
         // Caption sits in the gap between the repeat-paste chooser and the snap chooser (B41).
         static constexpr int timelineCanvasSnapLabelX = 266;
         static constexpr int timelineCanvasSnapLabelWidth = 42;
-        static constexpr int timelineCanvasSnapFieldX = 316;
-        static constexpr int timelineCanvasSnapFieldWidth = 80;
-        static constexpr int timelineCanvasSnapFieldInsetX = 0;
-        static constexpr int timelineCanvasSnapFieldInsetY = Space::sm + Space::hairline;
-        static constexpr int timelineCanvasSnapValueX = 324;
-        static constexpr int timelineCanvasSnapValueWidth = 54;
         static constexpr float timelineCanvasOutlineInset = 0.5f;
         static constexpr float timelineCanvasOutlineStrokeWidth = 1.0f;
         static constexpr int timelineCanvasWaveformInsetX = 7;

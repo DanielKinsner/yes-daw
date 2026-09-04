@@ -816,20 +816,9 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar, Timeli
                     toolbar.withTrimmedLeft (UiTheme::Layout::timelineCanvasSnapLabelX)
                            .withWidth (UiTheme::Layout::timelineCanvasSnapLabelWidth),
                     juce::Justification::centred);
-    g.setColour (UiTheme::Color::snapField());
-    g.fillRoundedRectangle (toolbar.withTrimmedLeft (UiTheme::Layout::timelineCanvasSnapFieldX)
-                                   .withWidth (UiTheme::Layout::timelineCanvasSnapFieldWidth)
-                                   .reduced (UiTheme::Layout::timelineCanvasSnapFieldInsetX,
-                                             UiTheme::Layout::timelineCanvasSnapFieldInsetY)
-                                   .toFloat(),
-                            UiTheme::Radius::sm);
-    g.setColour (kText);
-    g.setFont (UiTheme::Type::font (UiTheme::Type::body, juce::Font::bold));
-    g.drawText ("Bar",
-                toolbar.withTrimmedLeft (UiTheme::Layout::timelineCanvasSnapValueX)
-                       .withWidth (UiTheme::Layout::timelineCanvasSnapValueWidth),
-                juce::Justification::centredLeft,
-                false);
+    // The caption labels the shell's real snap chooser (timeline.snap.chooser), which sits to
+    // its right. The painted "Bar" field that used to follow it was a mockup left in the paint:
+    // a hardcoded value (the real default is Beat) with no click handler — removed 2026-09-04.
 }
 
 // G0.7 cp3: the time row's label — minutes:seconds, tenths once a second is wider than the
