@@ -389,6 +389,23 @@ enum class TimelineTool : std::uint8_t
     Velocity    // G3.2: a vertical drag on a note sets its velocity (roll); the Pointer elsewhere
 };
 
+// The select action for a tool — the tool strip's click dispatches the same action the key does,
+// so a mouse pick and a key pick are one code path (probe lastAction, undo-neutral, all of it).
+[[nodiscard]] constexpr UiActionId timelineToolSelectAction (TimelineTool tool) noexcept
+{
+    switch (tool)
+    {
+        case TimelineTool::Pointer:  return UiActionId::TimelineToolSelectPointer;
+        case TimelineTool::Pencil:   return UiActionId::TimelineToolSelectPencil;
+        case TimelineTool::Scissors: return UiActionId::TimelineToolSelectScissors;
+        case TimelineTool::Hand:     return UiActionId::TimelineToolSelectHand;
+        case TimelineTool::Zoom:     return UiActionId::TimelineToolSelectZoom;
+        case TimelineTool::Eraser:   return UiActionId::TimelineToolSelectEraser;
+        case TimelineTool::Velocity: return UiActionId::TimelineToolSelectVelocity;
+    }
+    return UiActionId::TimelineToolSelectPointer;
+}
+
 enum class UiRecordingMonitoringPolicy : std::uint8_t
 {
     Unselected = 0,

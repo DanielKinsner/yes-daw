@@ -544,6 +544,7 @@ public:
     std::function<void (double)> onHandToolScrolled;             // secondsDelta from a Hand drag — E3
     std::function<void (int)> onClipErased;                      // G3.2: the Eraser tool's click (layout clip id)
     std::function<void (int, double)> onPencilEmptyLane;         // lane, seconds: pencil a MIDI clip — E3
+    std::function<void (yesdaw::ui::TimelineTool)> onToolSelected;   // a click on a tool-strip cell
     std::function<void (int)> onVerticalScrollRows;              // +1 down / -1 up, plain wheel — E5
 
     // Loop brace editing (E6): drag either handle to resize, drag the band to move.
@@ -809,6 +810,15 @@ public:
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
         const yesdaw::ui::TimelineCanvasGeometry geometry =
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+        if (const std::optional<yesdaw::ui::TimelineTool> tool =
+                yesdaw::ui::timelineToolAtPoint (getLocalBounds(), state, position))
+        {
+            // G1.6: nothing blind — the strip cell names its tool like every other hovered zone.
+            const auto* descriptor = yesdaw::ui::descriptorFor (yesdaw::ui::timelineToolSelectAction (*tool));
+            return descriptor != nullptr
+                ? juce::String (descriptor->label) + ": " + descriptor->accessibleName
+                : juce::String ("Tool");
+        }
         if (geometry.rulerArea.contains (position))
         {
             for (int markerIndex = 0; markerIndex < state.markerCount; ++markerIndex)
@@ -949,6 +959,17 @@ public:
         handDragActive = false;
         marqueeState = {};
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
+
+        // The tool strip: a click on a cell picks that tool and nothing else (the strip was
+        // paint-only before — clicks fell through as a click on nothing).
+        if (const std::optional<yesdaw::ui::TimelineTool> picked =
+                yesdaw::ui::timelineToolAtPoint (getLocalBounds(), state, event.getPosition()))
+        {
+            if (onToolSelected)
+                onToolSelected (*picked);
+            return;
+        }
+
         const yesdaw::ui::TimelineHitTestResult hit =
             yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, event.getPosition());
 
@@ -4592,6 +4613,11 @@ public:
         timelineInput.activeToolProvider = [this] {
             return appModel.context().activeTimelineTool;
         };
+        timelineInput.onToolSelected = [this] (yesdaw::ui::TimelineTool tool) {
+            handleAction (yesdaw::ui::timelineToolSelectAction (tool));
+            refreshActionState();
+            repaintAll();
+        };
         timelineInput.onZoomToolClicked = [this] (double anchorSeconds, bool zoomOut) {
             const double factor = yesdaw::ui::UiTheme::Layout::timelineZoomToolClickFactor;
             zoomTimelineAtAnchor (anchorSeconds, zoomOut ? 1.0 / factor : factor);
@@ -6440,6 +6466,10 @@ public:
             const juce::Point<int> origin = timelineInput.getPosition();
             put ("ruler", geometry.rulerArea.translated (origin.x, origin.y));
             put ("clipArea", geometry.clipArea.translated (origin.x, origin.y));
+            // The tool strip's cells by name (tool.pointer … tool.hand): drives click by NAME.
+            for (std::size_t index = 0; index < yesdaw::ui::kTimelineToolStripOrder.size(); ++index)
+                put ("tool." + juce::String (probeToolName (yesdaw::ui::kTimelineToolStripOrder[index])).toLowerCase(),
+                     yesdaw::ui::timelineToolStripCell (geometry.toolbarArea, index).translated (origin.x, origin.y));
 
             for (int lane = 0; lane < state.trackCount; ++lane)
             {
@@ -13280,6 +13310,7 @@ private:
         rebuildTimelineClipViews();
 
         yesdaw::ui::TimelineCanvasState state;
+        state.activeTool = appModel.context().activeTimelineTool;   // the strip lights this cell
         if (! appModel.context().projectLoaded)
         {
             state.tracks = nullptr;

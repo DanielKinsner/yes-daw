@@ -19633,3 +19633,103 @@ TEST_CASE ("G3.2 piano roll key window: legible rows at the default dock, the fu
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// The tool strip was paint-only: it always lit the Pointer and no click reached it (found by hand
+// on 2026-09-04 — "the tools buttons don't work"). Two pins: a click on each cell selects that
+// tool through the same action the key dispatches, and the paint lights the ACTIVE tool's cell.
+TEST_CASE ("tool strip: a click on each cell selects that tool (mouse, not keys)",
+           "[ui][input][shell][timeline][tool-strip]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("tool-strip-click");
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer);
+
+    const yesdaw::ui::TimelineCanvasGeometry geometry =
+        yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {});
+    REQUIRE (! geometry.toolbarArea.isEmpty());
+
+    // Every cell, in strip order, then back to the Pointer: seven distinct picks by mouse alone.
+    for (std::size_t index = 0; index < yesdaw::ui::kTimelineToolStripOrder.size(); ++index)
+    {
+        const yesdaw::ui::TimelineTool expected = yesdaw::ui::kTimelineToolStripOrder[index];
+        const juce::Rectangle<int> cell = yesdaw::ui::timelineToolStripCell (geometry.toolbarArea, index);
+        REQUIRE (geometry.toolbarArea.contains (cell));
+        REQUIRE (yesdaw::ui::timelineToolAtPoint (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {}, cell.getCentre())
+                 == expected);
+        mouseDownAt (timeline, cell.getCentre());
+        const MainComponentSnapshot after = snapshotMainComponent (*shell);
+        INFO ("strip cell " << index);
+        REQUIRE (after.context.activeTimelineTool == expected);
+        // One code path with the keys: the probe's lastAction is the tool's select action.
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        REQUIRE (probe["lastAction"].toString().toStdString()
+                 == std::string (yesdaw::ui::descriptorFor (yesdaw::ui::timelineToolSelectAction (expected))->stableId));
+    }
+    mouseDownAt (timeline, yesdaw::ui::timelineToolStripCell (geometry.toolbarArea, 0).getCentre());
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pointer);
+
+    // The strip is the whole seven-cell band: the gap after the last cell picks nothing, and the
+    // ruler below it still is not a tool pick.
+    const juce::Rectangle<int> lastCell =
+        yesdaw::ui::timelineToolStripCell (geometry.toolbarArea, yesdaw::ui::kTimelineToolStripOrder.size() - 1);
+    REQUIRE (! yesdaw::ui::timelineToolAtPoint (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {},
+                                                { lastCell.getRight() + yesdaw::ui::UiTheme::Layout::timelineCanvasToolCellWidth,
+                                                  lastCell.getCentreY() }).has_value());
+    REQUIRE (! yesdaw::ui::timelineToolAtPoint (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {},
+                                                geometry.rulerArea.getCentre()).has_value());
+
+    // The probe publishes every cell by name so a drive clicks "tool.pencil", never a pixel.
+    juce::var probe;
+    REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+    for (const char* name : { "tool.pointer", "tool.pencil", "tool.scissors", "tool.eraser", "tool.velocity", "tool.zoom", "tool.hand" })
+    {
+        INFO (name);
+        REQUIRE (probe["layout"].hasProperty (name));
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("tool strip paints the active tool's cell lit, not always the Pointer",
+           "[ui][timeline][tool-strip][paint]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Rectangle<int> area (0, 0, 900, 400);
+    yesdaw::ui::TimelineCanvasState state;
+    const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (area, state);
+
+    // A probe point inside a cell's fill, clear of the rounded corner, the outline and the icon.
+    const auto fillProbe = [] (juce::Rectangle<int> cell) {
+        return juce::Point<int> (cell.getX() + L::controlIconInset - 2, cell.getCentreY());
+    };
+    const auto paintWith = [&] (yesdaw::ui::TimelineTool active) {
+        state.activeTool = active;
+        juce::Image image (juce::Image::ARGB, area.getWidth(), area.getHeight(), true);
+        juce::Graphics g (image);
+        (void) yesdaw::ui::paintTimelineCanvas (g, area, state);
+        return image;
+    };
+
+    const juce::Colour lit = yesdaw::ui::UiTheme::Color::accentPurpleDeep();
+    const juce::Colour idle = yesdaw::ui::UiTheme::Color::toolButton();
+    REQUIRE (lit != idle);
+
+    for (std::size_t activeIndex = 0; activeIndex < yesdaw::ui::kTimelineToolStripOrder.size(); ++activeIndex)
+    {
+        const juce::Image image = paintWith (yesdaw::ui::kTimelineToolStripOrder[activeIndex]);
+        for (std::size_t index = 0; index < yesdaw::ui::kTimelineToolStripOrder.size(); ++index)
+        {
+            const juce::Point<int> p = fillProbe (yesdaw::ui::timelineToolStripCell (geometry.toolbarArea, index));
+            INFO ("active " << activeIndex << " cell " << index);
+            REQUIRE (image.getPixelAt (p.x, p.y) == (index == activeIndex ? lit : idle));
+        }
+    }
+}

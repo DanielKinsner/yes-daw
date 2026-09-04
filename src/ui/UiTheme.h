@@ -983,10 +983,14 @@ struct UiTheme
         static constexpr float pianoRollExpressionPointDiameter = 5.0f;
         static constexpr float pianoRollExpressionPathStrokeWidth = 1.5f;
 
-        static constexpr int timelineCanvasToolbarWidth = 190;
+        // The tool strip: seven cells — the six keyed tools in key order (1–6), then the
+        // mouse-only Hand — so every tool the keys reach is a click and a lit cell too. It ends
+        // at Space::xl + 238 = 254, before the SNAP label at timelineCanvasSnapLabelX (266).
+        static constexpr int timelineCanvasToolCellWidth = 34;
+        static constexpr int timelineCanvasToolStripCells = 7;
+        static constexpr int timelineCanvasToolbarWidth = timelineCanvasToolCellWidth * timelineCanvasToolStripCells;
         static constexpr int timelineCanvasToolbarInsetX = 0;
         static constexpr int timelineCanvasToolbarInsetY = Space::sm;
-        static constexpr int timelineCanvasToolCellWidth = 34;
         static constexpr int timelineCanvasToolCellInsetX = Space::xxs + Space::hairline;
         static constexpr int timelineCanvasToolCellInsetY = 0;
         static constexpr int timelineCanvasOuterInset = 1;

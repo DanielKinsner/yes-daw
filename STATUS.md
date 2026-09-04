@@ -47,6 +47,13 @@ all ten jobs (the intermediate run `33668863266` failed only on the macOS GPU fr
 twice — parking lot; never weakened). The G3.2 drive is 31 / 31 on the real exe; the §7.4 rubric is
 below. **The loop is STOPPED at Dan's request** ("stop the loop on the next logical point"). When it
 resumes: G3.3, per the plan's order.
+**G3.2 follow-up (2026-09-04, found by Dan's hand-test on the office PC):** the timeline tool strip was
+paint-only — it always lit the Pointer and no click reached it (the keys 1–6 worked; every drive picked
+tools by key, so the buttons were never exercised). Fixed as one checkpoint: the strip is seven cells in
+key order (1 Pointer · 2 Pencil · 3 Scissors · 4 Eraser · 5 Velocity · 6 Zoom) plus the mouse-only Hand;
+a click dispatches the same select action the key does; the active tool's cell is lit; the hover hint
+names the tool; the probe publishes `tool.<name>` cells. Pins: `[tool-strip]` in `YesDawUiInputCheck`
+(a click on each cell selects that tool; the paint lights the active cell) and ss5 Step 10 (drive 38/38).
 **Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
@@ -114,7 +121,8 @@ certified by exact-head run `33641728768` on `dba562f` (green on all ten jobs).
 G2.15 ✅ — tempo and meter map editing (`8beb692`); G2.16 ✅ — zoom and navigation (`a8f609c`); certified by run `33645105611` on `a8f609c` after a rerun of its macOS job (GPU frame-budget noise, parking lot) — every job green on the same head.
 G2.17 ✅ — track headers v2 (`a5b2dbe`); G2.18 ✅ — the undo history window (`6f46a5e`); certified by exact-head run `33649032858` on `2eddd07` (the label fix for GCC/Clang -Wswitch, D51's lesson again — the engine label switch is now covered by the checker) — green on all ten jobs. **G2 headless work complete**; SS-3 pending Dan's go (D14).
 G3.2 ✅ — piano roll dock v2: cp1 `bdf0c36`+`e770d23`, cp2 `c5be1f8`, the UI checkpoint `71efc63` /
-`f20be6a` / `fabb781` (head run `33672370057` green on all ten jobs); drive ss5 31/31.
+`f20be6a` / `fabb781` (head run `33672370057` green on all ten jobs); drive ss5 31/31 — 38/38 with the
+tool-strip follow-up of 2026-09-04 (see **Now**).
 G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `33652552912`), cp2 `fa6c67e` (run
 `33654084069`), cp3 `4c26a17` (run `33655909259`), the UI checkpoint `dc60b42` (run `33660679423`) —
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on

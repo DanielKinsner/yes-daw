@@ -5,7 +5,8 @@
 # draws three notes (each auditions); the pointer (1) presses a note (auditions) and Left / Right
 # walk the selection; the keyboard column auditions its key; the scissors (3) Ctrl-click split a note;
 # the eraser (4) deletes one; the velocity tool (5) drags a note's velocity as one undoable edit and
-# Ctrl+Z restores it; a double-click on the empty grid adds a note; screenshots at the three sizes.
+# Ctrl+Z restores it; a double-click on the empty grid adds a note; screenshots at the three sizes;
+# the tool strip: a click on each cell selects that tool.
 #
 # Geometry comes from the probe's view.pianoRoll (the roll's window, grid and painted notes), so the
 # drive aims at what is painted instead of guessing.
@@ -155,4 +156,13 @@ Step 9 'Screenshots at the three rubric sizes with the roll open'
 Resize 1280 720;  Start-Sleep -Milliseconds 400; Shot 'ss5-1280x720'
 Resize 1920 1080; Start-Sleep -Milliseconds 400; Shot 'ss5-1920x1080'
 Resize 2560 1440; Start-Sleep -Milliseconds 400; Shot 'ss5-2560x1440'
+
+Step 10 'The tool strip: a click on each cell selects that tool (mouse, not keys)'
+foreach ($pair in @(@('tool.pencil','Pencil'), @('tool.scissors','Scissors'), @('tool.eraser','Eraser'),
+                    @('tool.velocity','Velocity'), @('tool.zoom','Zoom'), @('tool.hand','Hand'), @('tool.pointer','Pointer'))) {
+  $cell = $pair[0]; $name = $pair[1]
+  Click $cell
+  [void](Assert (WaitProbe { param($q) "$($q.view.tool)" -eq $name } -TimeoutMs 1000) ("clicking " + $cell + " selects the " + $name))
+}
+Shot 'ss5-tool-strip-pointer'
 Close

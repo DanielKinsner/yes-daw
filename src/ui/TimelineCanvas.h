@@ -20,6 +20,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace yesdaw::persistence {
@@ -229,6 +230,11 @@ struct TimelineCanvasState
     // canvas so a moving playhead never re-renders the clips. Default true keeps every
     // headless consumer (frame check, screenshot gates) byte-identical.
     bool paintPlayhead = true;
+
+    // The tool strip lights the ACTIVE tool's cell (the strip was paint-only before: it always
+    // lit the Pointer, whatever the keys had selected). Pointer keeps every headless paint
+    // byte-identical.
+    TimelineTool activeTool = TimelineTool::Pointer;
 };
 
 struct TimelineCanvasPaintStats
@@ -411,6 +417,32 @@ struct RulerBarLabel
     }
 
     return points;
+}
+
+// The tool strip's cells, in the order the strip paints them: the six keyed tools in key order
+// (1 Pointer · 2 Pencil · 3 Scissors · 4 Eraser · 5 Velocity · 6 Zoom), then the mouse-only Hand.
+// ONE law for the paint, the click hit-test, the hover hint and the probe's layout entries.
+inline constexpr std::array<TimelineTool, UiTheme::Layout::timelineCanvasToolStripCells> kTimelineToolStripOrder {{
+    TimelineTool::Pointer,
+    TimelineTool::Pencil,
+    TimelineTool::Scissors,
+    TimelineTool::Eraser,
+    TimelineTool::Velocity,
+    TimelineTool::Zoom,
+    TimelineTool::Hand
+}};
+
+// The painted rect of strip cell `index` inside the toolbar band (geometry.toolbarArea).
+inline juce::Rectangle<int> timelineToolStripCell (juce::Rectangle<int> toolbar, std::size_t index)
+{
+    auto tools = toolbar.withTrimmedLeft (UiTheme::Space::xl)
+                        .withWidth (UiTheme::Layout::timelineCanvasToolbarWidth)
+                        .reduced (UiTheme::Layout::timelineCanvasToolbarInsetX,
+                                  UiTheme::Layout::timelineCanvasToolbarInsetY);
+    tools.removeFromLeft (static_cast<int> (index) * UiTheme::Layout::timelineCanvasToolCellWidth);
+    return tools.removeFromLeft (UiTheme::Layout::timelineCanvasToolCellWidth)
+                .reduced (UiTheme::Layout::timelineCanvasToolCellInsetX,
+                          UiTheme::Layout::timelineCanvasToolCellInsetY);
 }
 
 namespace timeline_canvas_detail {
@@ -756,28 +788,17 @@ inline void drawClipFadeOverlays (juce::Graphics& g, juce::Rectangle<int> area,
     }
 }
 
-inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
+inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar, TimelineTool activeTool)
 {
     g.setColour (kToolbarBack);
     g.fillRect (toolbar);
 
-    auto tools = toolbar.withTrimmedLeft (UiTheme::Space::xl)
-                         .withWidth (UiTheme::Layout::timelineCanvasToolbarWidth)
-                         .reduced (UiTheme::Layout::timelineCanvasToolbarInsetX,
-                                   UiTheme::Layout::timelineCanvasToolbarInsetY);
-    const std::array<TimelineTool, 5> toolsInOrder {{
-        TimelineTool::Pointer,
-        TimelineTool::Pencil,
-        TimelineTool::Scissors,
-        TimelineTool::Hand,
-        TimelineTool::Zoom
-    }};
-    for (std::size_t index = 0; index < toolsInOrder.size(); ++index)
+    for (std::size_t index = 0; index < kTimelineToolStripOrder.size(); ++index)
     {
-        auto cell = tools.removeFromLeft (UiTheme::Layout::timelineCanvasToolCellWidth)
-                         .reduced (UiTheme::Layout::timelineCanvasToolCellInsetX,
-                                   UiTheme::Layout::timelineCanvasToolCellInsetY);
-        g.setColour (index == 0u ? UiTheme::Color::accentPurpleDeep() : UiTheme::Color::toolButton());
+        const TimelineTool tool = kTimelineToolStripOrder[index];
+        const bool lit = tool == activeTool;
+        const juce::Rectangle<int> cell = timelineToolStripCell (toolbar, index);
+        g.setColour (lit ? UiTheme::Color::accentPurpleDeep() : UiTheme::Color::toolButton());
         g.fillRoundedRectangle (cell.toFloat(), UiTheme::Radius::sm);
         g.setColour (UiTheme::Color::buttonBorder());
         g.drawRoundedRectangle (cell.toFloat().reduced (UiTheme::Layout::controlOutlineInset),
@@ -785,9 +806,9 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar)
                                 UiTheme::Layout::controlOutlineStrokeWidth);
         drawTimelineToolIcon (
             g,
-            toolsInOrder[index],
+            tool,
             cell.toFloat().reduced (static_cast<float> (UiTheme::Layout::controlIconInset)),
-            index == 0u ? UiTheme::Color::text() : UiTheme::Color::buttonTextMuted());
+            lit ? UiTheme::Color::text() : UiTheme::Color::buttonTextMuted());
     }
 
     drawSmallLabel (g,
@@ -1267,6 +1288,21 @@ inline TimelineLoopBraceRects timelineLoopBraceRects (juce::Rectangle<int> area,
     return rects;
 }
 
+// The strip cell under `position`, if any — the mouse half of tool selection (the keys are the
+// other half). A click here is a tool pick, never a lane / ruler gesture.
+inline std::optional<TimelineTool> timelineToolAtPoint (juce::Rectangle<int> area,
+                                                       const TimelineCanvasState& state,
+                                                       juce::Point<int> position)
+{
+    const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
+    if (! geometry.toolbarArea.contains (position))
+        return std::nullopt;
+    for (std::size_t index = 0; index < kTimelineToolStripOrder.size(); ++index)
+        if (timelineToolStripCell (geometry.toolbarArea, index).contains (position))
+            return kTimelineToolStripOrder[index];
+    return std::nullopt;
+}
+
 inline TimelineHitTestResult hitTestTimelineCanvas (juce::Rectangle<int> area,
                                                     const TimelineCanvasState& state,
                                                     juce::Point<int> position)
@@ -1305,7 +1341,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     // takes the plain `vp` since none of them lay out individual clips by lane index.
     const Viewport clipVp = viewportForClipLayout (geometry);
 
-    drawToolbar (g, geometry.toolbarArea);
+    drawToolbar (g, geometry.toolbarArea, state.activeTool);
     drawRuler (g, ruler, clipArea, state, vp);
     drawGrid (g, clipArea, state, geometry);
     drawRangeSelection (g, ruler, clipArea, state, vp);
