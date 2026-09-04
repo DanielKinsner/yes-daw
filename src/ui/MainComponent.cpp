@@ -6472,6 +6472,7 @@ public:
         };
 
         put ("header", getLocalBounds().withHeight (headerHeightNow()));
+        put ("header.gear", headerLayout().gear);   // the settings-row toggle, clickable since 2026-09-04
         put ("rail", leftRailPanelBounds());
         put ("timeline", timelineBounds());
         put ("inspector", inspectorBounds());

@@ -170,7 +170,31 @@ $before = [int](Probe).view.clipCount
 Key 'Ctrl+Shift+T'
 [void](Assert (WaitProbe { param($q) [int]$q.view.clipCount -eq $before + 1 } -TimeoutMs 2000) 'the rebound chord Ctrl+Shift+T splits after a relaunch (the override persisted)')
 
-Step 8 'Screenshots at the three rubric sizes'
+Step 8 'Painted cells by mouse: the rail M cell, the header gear, the mixer M cell'
+# 2026-09-04: painted-on-canvas controls sit outside the child-Component dead-affordance
+# tests, so the drive clicks them by NAME (the probe's layout entries) and reads the model.
+$before = [int](Probe).commandDispatchCount
+Click 'rail.row.0.mute'
+[void](Assert (WaitProbe { param($q) [int]$q.commandDispatchCount -ge $before + 1 } -TimeoutMs 1500) 'the rail M cell dispatches a mute toggle')
+Click 'rail.row.0.mute'   # restore
+[void](WaitProbe { param($q) [int]$q.commandDispatchCount -ge $before + 2 } -TimeoutMs 1500)
+Click 'header.gear'
+[void](Assert (WaitProbe { param($q) [bool]$q.view.settingsRow } -TimeoutMs 1500) 'the header gear shows the settings row')
+Click 'header.gear'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.view.settingsRow } -TimeoutMs 1500) 'a second gear click hides it')
+# The cluster's X shows the Mixer tab, or hides the dock when the Mixer already shows (the
+# relaunch restored the dock): click until the Mixer is the dock's tab.
+Click 'widget.timeline.mixer_dock.toggle'
+if (-not (WaitProbe { param($q) "$($q.view.dock)" -eq 'Mixer' } -TimeoutMs 1000)) { Click 'widget.timeline.mixer_dock.toggle' }
+[void](Assert (WaitProbe { param($q) "$($q.view.dock)" -eq 'Mixer' } -TimeoutMs 2000) 'the view cluster X shows the mixer dock')
+[void](Assert ($null -ne (LayoutRect 'mixer.strip.0.mute')) 'the probe names the mixer strip cells')
+$before = [int](Probe).commandDispatchCount
+Click 'mixer.strip.0.mute'
+[void](Assert (WaitProbe { param($q) [int]$q.commandDispatchCount -ge $before + 1 } -TimeoutMs 1500) 'the mixer M cell dispatches a mute toggle')
+Click 'mixer.strip.0.mute'   # restore
+Click 'widget.timeline.mixer_dock.toggle'    # and close the dock for the screenshots
+
+Step 9 'Screenshots at the three rubric sizes'
 Resize 1280 720;  Start-Sleep -Milliseconds 400; Shot 'ss2-1280x720'
 Resize 1920 1080; Start-Sleep -Milliseconds 400; Shot 'ss2-1920x1080'
 Resize 2560 1440; Start-Sleep -Milliseconds 400; Shot 'ss2-2560x1440'
