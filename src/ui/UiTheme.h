@@ -645,7 +645,11 @@ struct UiTheme
         // anchored viewport math as Ctrl+wheel.
         static constexpr double timelineZoomToolClickFactor = 2.0;
         static constexpr double timelineZoomMin = 1.0;
+        // G2.19: the zoom CEILING is one sample per pixel (the shell computes it from the project
+        // rate and the fit width); timelineZoomMax is the floor of that ceiling — what a shell
+        // with no project / no rate can reach, and the old 64x cap Dan found too restrictive.
         static constexpr double timelineZoomMax = 64.0;
+        static constexpr double timelineZoomSamplesPerPixelCeiling = 1.0;
         // G2.16: the vertical (row) zoom multiplies every auto-height row; the zoom history depth.
         static constexpr double timelineRowZoomMin = 0.5;
         static constexpr double timelineRowZoomMax = 3.0;

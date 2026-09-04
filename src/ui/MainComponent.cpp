@@ -6899,6 +6899,8 @@ public:
             .translated (trackListInput.getX(), trackListInput.getY());
     }
 
+    [[nodiscard]] double harnessTimelineZoomCeiling() const noexcept { return timelineZoomCeiling(); }   // G2.19
+
     // The source window the canvas was handed for a painted clip (the waveform painter's law).
     [[nodiscard]] yesdaw::ui::TimelineClipSourceWindow harnessTimelineClipSourceWindow (int layoutClipId) const
     {
@@ -7409,7 +7411,7 @@ private:
         timelineZoomSlider.setTextBoxStyle (juce::Slider::NoTextBox, false,
                                             yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
                                             yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
-        timelineZoomSlider.setRange (0.0, std::log2 (yesdaw::ui::UiTheme::Layout::timelineZoomMax), 0.01);
+        timelineZoomSlider.setRange (0.0, std::log2 (timelineZoomCeiling()), 0.01);
         timelineZoomSlider.setValue (0.0, juce::dontSendNotification);
         timelineZoomSlider.onValueChange = [this] {
             if (refreshingZoomSlider)
@@ -10365,8 +10367,9 @@ private:
         timelineZoomReadout.setText (juce::String (timelineZoomFactor, 1) + "x",
                                      juce::dontSendNotification);
         refreshingZoomSlider = true;   // G2.16: the slider follows the factor (log scale)
+        timelineZoomSlider.setRange (0.0, std::log2 (timelineZoomCeiling()), 0.01);   // G2.19: to the ceiling
         timelineZoomSlider.setValue (std::log2 (std::clamp (timelineZoomFactor, yesdaw::ui::UiTheme::Layout::timelineZoomMin,
-                                                             yesdaw::ui::UiTheme::Layout::timelineZoomMax)),
+                                                             timelineZoomCeiling())),
                                      juce::dontSendNotification);
         refreshingZoomSlider = false;
         refreshTimelineScrollBars();
@@ -10389,7 +10392,7 @@ private:
             return false;
         const ZoomView view = zoomHistory.back();
         zoomHistory.pop_back();
-        timelineZoomFactor = std::clamp (view.zoom, yesdaw::ui::UiTheme::Layout::timelineZoomMin, yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+        timelineZoomFactor = std::clamp (view.zoom, yesdaw::ui::UiTheme::Layout::timelineZoomMin, timelineZoomCeiling());
         timelineScrollSeconds = std::max (0.0, view.scroll);
         refreshTimelineZoomReadout();
         return true;
@@ -10430,13 +10433,28 @@ private:
         repaintAll();
     }
 
+    // G2.19: the zoom ceiling — one sample per pixel at the project's rate (never below the old
+    // 64x floor). It follows the fit width, so it is a function, not a token.
+    [[nodiscard]] double timelineZoomCeiling() const noexcept
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const double width = static_cast<double> (juce::jmax (L::timelineViewportMinPixelWidth,
+                                                              timelineInput.getWidth() - L::timelineViewportRightGutter));
+        const double fitPixelsPerSecond = width / std::max (L::timelineMinVisibleSeconds, timelineTotalSeconds);
+        const double rate = appModel.context().projectLoaded && appModel.project().sampleRate.isValid()
+                              ? appModel.project().sampleRate.hz : 0.0;
+        if (fitPixelsPerSecond <= 0.0 || rate <= 0.0)
+            return L::timelineZoomMax;
+        return std::max (L::timelineZoomMax, (rate / L::timelineZoomSamplesPerPixelCeiling) / fitPixelsPerSecond);
+    }
+
     void zoomTimelineAtAnchor (double anchorSeconds, double factor)
     {
         pushZoomHistory();   // G2.16
         const double previousZoom = timelineZoomFactor;
         timelineZoomFactor = std::clamp (timelineZoomFactor * factor,
                                          yesdaw::ui::UiTheme::Layout::timelineZoomMin,
-                                         yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+                                         timelineZoomCeiling());
         if (timelineZoomFactor != previousZoom)
         {
             const double zoomRatio = previousZoom / timelineZoomFactor;
@@ -11512,7 +11530,7 @@ private:
                                       timelineTotalSeconds)
                                 / loopDurationSeconds,
                             yesdaw::ui::UiTheme::Layout::timelineZoomMin,
-                            yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+                            timelineZoomCeiling());
                         timelineScrollSeconds = static_cast<double> (loopStart) / sampleRateHz;
                         refreshTimelineZoomReadout();
                     }
@@ -11574,7 +11592,7 @@ private:
                     timelineZoomFactor = std::clamp (
                                                      (view.widthPixels / wanted) / view.fitPixelsPerSecond,
                                                      yesdaw::ui::UiTheme::Layout::timelineZoomMin,
-                                                     yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+                                                     timelineZoomCeiling());
                     timelineScrollSeconds = std::max (0.0, view.rangeStartSeconds - margin);
                     refreshTimelineZoomReadout();
                     lastSelectionZoom = ZoomView { timelineZoomFactor, timelineScrollSeconds };
@@ -13483,6 +13501,18 @@ private:
                 return appModel.waveformService().tryGetReady (
                     timelineClipAssetHashes[static_cast<std::size_t> (layoutClipId)]);
             };
+            // G2.19: decoded samples for the zoomed-in paint — the same buffers playback reads.
+            state.waveformSampleLookup = [this] (int layoutClipId) -> yesdaw::ui::WaveformSampleSource
+            {
+                if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipAssetIds.size()))
+                    return {};
+                const yesdaw::ui::UiDecodedAsset* decoded =
+                    appModel.findDecodedAsset (timelineClipAssetIds[static_cast<std::size_t> (layoutClipId)]);
+                if (decoded == nullptr)
+                    return {};
+                return { std::span<const float> (decoded->interleavedSamples.data(), decoded->interleavedSamples.size()),
+                         decoded->channels, decoded->frames };
+            };
             state.totalSeconds = timelineTotalSeconds;
             state.rowZoom = timelineRowZoom;   // G2.16
             state.playheadSeconds = appModel.project().sampleRate.isValid()
@@ -13624,6 +13654,7 @@ private:
         timelineClipStyles.clear();
         timelineClipIds.clear();
         timelineClipAssetHashes.clear();
+        timelineClipAssetIds.clear();
         projectTimelineTracks.clear();
 
         const yesdaw::engine::Project& project = appModel.project();
@@ -13687,6 +13718,7 @@ private:
                                             clip.reversed });   // G2.13
             timelineClipIds.push_back (clip.id);
             timelineClipAssetHashes.push_back (asset->contentHash);
+            timelineClipAssetIds.push_back (asset->id);
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
         }
 
@@ -15420,6 +15452,7 @@ private:
     std::vector<TimelineClipStyle> timelineClipStyles;
     std::vector<yesdaw::engine::EntityId> timelineClipIds;
     std::vector<yesdaw::engine::AssetContentHash> timelineClipAssetHashes;
+    std::vector<yesdaw::engine::EntityId> timelineClipAssetIds;   // G2.19: the decoded audio for the zoomed-in paint
     double timelineTotalSeconds = yesdaw::ui::UiTheme::Layout::timelineDefaultTotalSeconds;
     std::vector<std::string> timelineMarkerLabels;
     std::vector<yesdaw::ui::TimelineMarker> timelineMarkerViews;
@@ -16289,6 +16322,13 @@ TimelineClipSourceWindow mainComponentTimelineClipSourceWindow (const juce::Comp
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->harnessTimelineClipSourceWindow (layoutClipId);
     return {};
+}
+
+double mainComponentTimelineZoomCeiling (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessTimelineZoomCeiling();
+    return 0.0;
 }
 
 juce::Colour mainComponentTimelineClipColour (juce::Component& component, yesdaw::engine::EntityId clipId)

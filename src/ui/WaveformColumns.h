@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <span>
 #include <vector>
 
 namespace yesdaw::ui {
@@ -29,6 +30,21 @@ struct WaveformColumns
     std::vector<WaveformColumn> columns;
 
     friend bool operator== (const WaveformColumns&, const WaveformColumns&) noexcept = default;
+};
+
+// G2.19: decoded audio for the zoomed-in paint — the frames the peak cache's finest tier cannot
+// resolve (below kWaveformPeakTier0Frames frames per pixel). Interleaved, `channels` wide.
+struct WaveformSampleSource
+{
+    std::span<const float> interleavedSamples;
+    std::uint16_t channels = 0;
+    std::uint64_t frames = 0;
+
+    [[nodiscard]] bool valid() const noexcept
+    {
+        return channels != 0u && frames != 0u
+            && interleavedSamples.size() >= static_cast<std::size_t> (frames) * channels;
+    }
 };
 
 struct WaveformColumnViewport
@@ -190,6 +206,64 @@ namespace waveform_columns_detail {
         result.columns.push_back (out);
     }
 
+    return result;
+}
+
+// G2.19: the same column law as computeWaveformColumns, fed by the decoded samples instead of a
+// peak tier — every column's min / max / rms over exactly the frames it covers. At one sample per
+// pixel (the zoom ceiling) each column IS one sample, so the painted tops trace the wave itself.
+[[nodiscard]] inline WaveformColumns computeWaveformColumnsFromSamples (const WaveformSampleSource& source,
+                                                                        const WaveformColumnViewport& viewport)
+{
+    WaveformColumns result;
+    if (! source.valid()
+        || viewport.sourceFrameCount == 0u
+        || viewport.sourceFrameOffset >= source.frames
+        || viewport.widthPixels <= 0)
+    {
+        return result;
+    }
+
+    const std::uint64_t availableFrames = source.frames - viewport.sourceFrameOffset;
+    const std::uint64_t visibleFrames = std::min (viewport.sourceFrameCount, availableFrames);
+    if (visibleFrames == 0u)
+        return result;
+
+    result.tierIndex = 0;
+    result.framesPerPeak = 1;
+    result.columns.reserve (static_cast<std::size_t> (viewport.widthPixels));
+    const std::uint64_t sourceEnd = viewport.sourceFrameOffset + visibleFrames;
+    for (int column = 0; column < viewport.widthPixels; ++column)
+    {
+        const std::uint64_t columnStart = std::min (
+            waveform_columns_detail::columnStartFrame (viewport.sourceFrameOffset, visibleFrames, viewport.widthPixels, column),
+            sourceEnd);
+        std::uint64_t columnEnd = std::min (
+            waveform_columns_detail::columnEndFrame (viewport.sourceFrameOffset, visibleFrames, viewport.widthPixels, column),
+            sourceEnd);
+        // Finer than one frame per column: the column shows the frame it sits on.
+        if (columnEnd <= columnStart)
+            columnEnd = std::min (columnStart + 1u, sourceEnd);
+        if (columnStart >= columnEnd)
+            continue;
+
+        WaveformColumn out { std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(), 0.0f };
+        double sumSq = 0.0;
+        std::uint64_t counted = 0u;
+        for (std::uint64_t frame = columnStart; frame < columnEnd; ++frame)
+            for (std::uint16_t channel = 0; channel < source.channels; ++channel)
+            {
+                const float v = source.interleavedSamples[static_cast<std::size_t> (frame) * source.channels + channel];
+                out.min = std::min (out.min, v);
+                out.max = std::max (out.max, v);
+                sumSq += static_cast<double> (v) * static_cast<double> (v);
+                ++counted;
+            }
+        if (counted == 0u)
+            continue;
+        out.rms = static_cast<float> (std::sqrt (sumSq / static_cast<double> (counted)));
+        result.columns.push_back (out);
+    }
     return result;
 }
 

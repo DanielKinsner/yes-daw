@@ -13456,7 +13456,7 @@ TEST_CASE ("Options toggles default-on playhead paging without changing Project 
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey, juce::ModifierKeys::ctrlModifier, 0)));
 
     const MainComponentSnapshot before = snapshotMainComponent (*shell);
-    REQUIRE (before.timelineZoomFactor == yesdaw::ui::UiTheme::Layout::timelineZoomMax);
+    REQUIRE (before.timelineZoomFactor == Catch::Approx (yesdaw::ui::mainComponentTimelineZoomCeiling (*shell)).epsilon (1e-9));   // G2.19: clamps at the sample-level ceiling, not 64x
     REQUIRE (before.timelineScrollSeconds == 0.0);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
@@ -20081,6 +20081,81 @@ TEST_CASE ("timeline clips carry their source window to the painter: a split's h
     REQUIRE (b.frameCount > 0u);
     REQUIRE (b.startFrame == a.startFrame + a.frameCount);   // the right half starts where the left stops
     REQUIRE (a.frameCount + b.frameCount == whole.frameCount);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G2.19: the zoom ceiling is one sample per pixel, not 64x. Pin: Ctrl+wheel climbs past 64x and
+// clamps at the ceiling the shell computes from the project rate and the fit width; at the
+// ceiling the timeline paints one sample per pixel; Ctrl+0 returns to the fit.
+TEST_CASE ("timeline zoom reaches one sample per pixel and clamps there, not at 64x",
+           "[ui][input][shell][timeline][sample-zoom]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("sample-zoom");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    REQUIRE (yesdaw::ui::mainComponentTimelineZoomCeiling (*shell) == L::timelineZoomMax);   // no project: the floor
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    // The 0.09 s fixture alone fits at ~1000 px/s, where 64x is already past one sample per
+    // pixel and the ceiling honestly stays at the floor. A MIDI clip forty bars out makes the
+    // project long enough for the ceiling to climb.
+    REQUIRE (yesdaw::ui::mainComponentTimelineZoomCeiling (*shell) == L::timelineZoomMax);
+    clickButton (requireButtonForAction (*shell, UiActionId::TrackAdd));
+    for (int bar = 0; bar < 40; ++bar)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportLocateNextBar);
+    {
+        const MainComponentSnapshot located = snapshotMainComponent (*shell);
+        INFO ("playhead " << located.context.playheadFrame << " status '" << located.statusLineText << "'");
+        CHECK (located.context.playheadFrame > 0);
+    }
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    {
+        const MainComponentSnapshot added = snapshotMainComponent (*shell);
+        INFO ("after add: status '" << added.statusLineText << "' clips " << added.visibleTimelineClipCount);
+        CHECK (added.visibleTimelineClipCount == 2);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomFitProject);
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (snapshotMainComponent (*shell).visibleTimelineClipCount == 2);
+
+    const double ceiling = yesdaw::ui::mainComponentTimelineZoomCeiling (*shell);
+    REQUIRE (ceiling > L::timelineZoomMax);
+    // The ceiling's law: ceiling x fit pixels-per-second == the project rate (one sample per pixel).
+    const MainComponentSnapshot fit = snapshotMainComponent (*shell);
+    const double fitWidth = static_cast<double> (juce::jmax (L::timelineViewportMinPixelWidth,
+                                                             timeline.getWidth() - L::timelineViewportRightGutter));
+    const double fitPixelsPerSecond = fitWidth / std::max (L::timelineMinVisibleSeconds, fit.visibleTimelineTotalSeconds);
+    REQUIRE (ceiling * fitPixelsPerSecond == Catch::Approx (project.sampleRate.hz).epsilon (1e-6));
+
+    // Ctrl+wheel far past the old cap: the factor climbs and clamps at the ceiling.
+    juce::MouseWheelDetails wheelUp {};
+    wheelUp.deltaY = 0.4f;
+    const juce::Point<int> anchor = projectRulerPointAtTick (timeline, fit, project, 0);
+    const juce::MouseEvent ctrlWheel = makeMouseEvent (timeline, anchor, anchor, false, 1,
+                                                       juce::ModifierKeys (juce::ModifierKeys::ctrlModifier));
+    for (int i = 0; i < 80; ++i)
+        timeline.mouseWheelMove (ctrlWheel, wheelUp);
+    const MainComponentSnapshot zoomed = snapshotMainComponent (*shell);
+    REQUIRE (zoomed.timelineZoomFactor > L::timelineZoomMax);
+    REQUIRE (zoomed.timelineZoomFactor == Catch::Approx (ceiling).epsilon (1e-9));
+
+    // The probe agrees: view.zoom is the factor, and the canvas paints one sample per pixel.
+    const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+    REQUIRE (static_cast<double> (probe.getProperty ("view", juce::var()).getProperty ("zoom", 0.0))
+             == Catch::Approx (ceiling).epsilon (1e-9));
+
+    // Back to the fit.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('0', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).timelineZoomFactor == 1.0);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

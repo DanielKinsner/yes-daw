@@ -180,6 +180,9 @@ struct TimelineCanvasState
     int clipNoteCount = 0;
 
     std::function<std::shared_ptr<const persistence::WaveformPeakCache> (int clipId)> waveformCacheLookup;
+    // G2.19: the clip's decoded audio for the zoomed-in paint (empty = none; the peak cache
+    // alone paints, exactly as before). Read only when the zoom is finer than the cache's tier 0.
+    std::function<WaveformSampleSource (int clipId)> waveformSampleLookup;
 
     Viewport viewport {};
     double totalSeconds = UiTheme::Layout::timelineCanvasDefaultTotalSeconds;
@@ -246,6 +249,7 @@ struct TimelineCanvasPaintStats
     int pendingWaveformClips = 0;
     int readyWaveformColumns = 0;
     int placeholderWaveformClips = 0;
+    int sampleWaveformClips = 0;   // G2.19: clips painted from decoded samples (zoomed past the cache)
 };
 
 struct TimelineCanvasGeometry
@@ -624,8 +628,12 @@ inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area,
                                    float amplitude, const Clip& clip,
                                    const persistence::WaveformPeakCache& cache,
                                    const Viewport& vp,
-                                   bool reversed = false)   // G2.13: mirror the window
+                                   bool reversed = false,   // G2.13: mirror the window
+                                   const WaveformSampleSource& samples = {},   // G2.19: the zoomed-in source
+                                   bool* paintedFromSamples = nullptr)
 {
+    if (paintedFromSamples != nullptr)
+        *paintedFromSamples = false;
     area.reduce (UiTheme::Layout::timelineCanvasWaveformInsetX,
                  UiTheme::Layout::timelineCanvasWaveformInsetY);
     if (area.isEmpty()
@@ -673,9 +681,18 @@ inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area,
         vp.pixelsPerSecond,
         area.getWidth()
     };
-    const WaveformColumns columns = computeWaveformColumns (cache, columnViewport);
+    // G2.19: past the cache's finest tier (fewer frames per pixel than tier 0 holds), the peak
+    // columns go blocky; the decoded samples paint the columns instead when the shell has them.
+    const double framesPerPixel = sampleRate / vp.pixelsPerSecond;
+    const bool finerThanCache = ! cache.tiers.empty()
+                             && framesPerPixel < static_cast<double> (cache.tiers.front().framesPerPeak);
+    const bool useSamples = finerThanCache && samples.valid() && samples.frames == cache.sourceFrames;
+    const WaveformColumns columns = useSamples ? computeWaveformColumnsFromSamples (samples, columnViewport)
+                                               : computeWaveformColumns (cache, columnViewport);
     if (columns.columns.empty())
         return 0;
+    if (paintedFromSamples != nullptr)
+        *paintedFromSamples = useSamples;
 
     const float midY = static_cast<float> (area.getCentreY());
     const float half = static_cast<float> (area.getHeight())
@@ -693,8 +710,15 @@ inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area,
     for (std::size_t n = 0; n < columnCount; ++n)
     {
         const auto& column = columns.columns[reversed ? columnCount - 1u - n : n];
-        const float top = midY - half * std::clamp (column.max, minValue, maxValue);
-        const float bottom = midY - half * std::clamp (column.min, minValue, maxValue);
+        float top = midY - half * std::clamp (column.max, minValue, maxValue);
+        float bottom = midY - half * std::clamp (column.min, minValue, maxValue);
+        // G2.19: at sample level a column is ONE sample (min == max) — give it one whole pixel
+        // row so the wave's trace stays visible and crisp; the cache path is untouched (goldens).
+        if (useSamples && bottom - top < 1.0f)
+        {
+            top = std::floor (top);
+            bottom = top + 1.0f;
+        }
         const float rms = half * std::clamp (column.rms, UiTheme::Layout::timelineCanvasWaveformMinAmplitude,
                                             UiTheme::Layout::timelineCanvasWaveformMaxAmplitude);
 
@@ -1393,9 +1417,16 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
                 const Clip* clip = clipForId (state, rect.id);
                 if (clip != nullptr)
                 {
+                    const WaveformSampleSource samples = state.waveformSampleLookup
+                                                           ? state.waveformSampleLookup (rect.id)
+                                                           : WaveformSampleSource {};
+                    bool fromSamples = false;
                     stats.readyWaveformColumns += drawClipCachedWaveform (g, clipRect, style.colour,
                                                                            style.amplitude, *clip,
-                                                                           *readyCache, vp, style.reversed);
+                                                                           *readyCache, vp, style.reversed,
+                                                                           samples, &fromSamples);
+                    if (fromSamples)
+                        ++stats.sampleWaveformClips;
                 }
             }
         }

@@ -694,4 +694,98 @@ TEST_CASE ("timeline paint reads each clip's OWN source window, not the whole fi
     REQUIRE_FALSE (same (whole, secondHalf));                         // and the whole source is not the second half squeezed
 }
 
+// G2.19: zoom to sample level. Past the peak cache's finest tier the painter reads the decoded
+// samples; at one sample per pixel each column is one sample, so a rising ramp paints tops that
+// climb monotonically. Without a sample source the cache path paints exactly as before.
+TEST_CASE ("zoomed past the peak cache, the paint reads decoded samples: a ramp's tops climb", "[ui][waveform-cache][sample-zoom]")
+{
+    constexpr std::uint64_t kFrames = 512;
+    Asset asset = makeColumnAsset();
+    asset.frames = kFrames;
+    asset.sampleRate = SampleRate { 512.0 };   // a 1 s source
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::size_t i = 0; i < samples.size(); ++i)
+        samples[i] = -1.0f + 2.0f * static_cast<float> (i) / static_cast<float> (kFrames - 1);   // a ramp
+    const auto built = buildWaveformPeakCache (asset, std::span<const float> (samples.data(), samples.size()));
+    INFO (built.message);
+    REQUIRE (built.ok());
+    const auto ready = std::make_shared<const yesdaw::persistence::WaveformPeakCache> (built.cache);
+    const yesdaw::ui::WaveformSampleSource source { std::span<const float> (samples.data(), samples.size()), 1, kFrames };
+    REQUIRE (source.valid());
+
+    // The column law at one sample per pixel: column n IS sample n.
+    const yesdaw::ui::WaveformColumnViewport oneToOne { 0, kFrames, 512.0, 512.0, static_cast<int> (kFrames) };
+    const yesdaw::ui::WaveformColumns columns = yesdaw::ui::computeWaveformColumnsFromSamples (source, oneToOne);
+    REQUIRE (columns.columns.size() == kFrames);
+    for (std::size_t n = 0; n < columns.columns.size(); n += 37)
+    {
+        INFO ("column " << n);
+        REQUIRE (columns.columns[n].min == samples[n]);
+        REQUIRE (columns.columns[n].max == samples[n]);
+    }
+    // Finer than one frame per pixel (two pixels per sample): every column shows the frame it sits on.
+    const yesdaw::ui::WaveformColumnViewport twoPerSample { 0, kFrames / 2, 512.0, 1024.0, static_cast<int> (kFrames) };
+    const yesdaw::ui::WaveformColumns doubled = yesdaw::ui::computeWaveformColumnsFromSamples (source, twoPerSample);
+    REQUIRE (doubled.columns.size() == kFrames);
+    REQUIRE (doubled.columns[10].max == doubled.columns[11].max);
+    REQUIRE (doubled.columns[10].max == samples[5]);
+
+    const Clip clip { 0, 0, 0.0, 1.0, nullptr, 0, kFrames };
+    const TimelineCanvasClipStyle style { juce::Colour { 0xff7c5cff }, 0.65f };
+    const juce::Colour peak = style.colour.brighter (yesdaw::ui::UiTheme::Tone::timelineCanvasWaveformBrightness);
+
+    const auto paint = [&] (bool withSamples, TimelineCanvasPaintStats& stats) {
+        TimelineCanvasState state = makePaintState (&clip, &style, 1);
+        state.viewport.pixelsPerSecond = 512.0;   // one sample per pixel: past the cache's 256-frame tier 0
+        state.waveformCacheLookup = [ready] (int) -> std::shared_ptr<const yesdaw::persistence::WaveformPeakCache> { return ready; };
+        if (withSamples)
+            state.waveformSampleLookup = [source] (int) { return source; };
+        juce::Image image (juce::Image::ARGB, 640, 400, true);   // tall enough for the whole lane
+        {
+            juce::Graphics graphics (image);
+            stats = paintTimelineCanvas (graphics, image.getBounds(), state);
+        }
+        return image;
+    };
+
+    TimelineCanvasPaintStats cacheStats, sampleStats;
+    const juce::Image fromCache = paint (false, cacheStats);
+    const juce::Image fromSamples = paint (true, sampleStats);
+    REQUIRE (cacheStats.readyWaveformClips == 1);
+    REQUIRE (cacheStats.sampleWaveformClips == 0);
+    REQUIRE (sampleStats.readyWaveformClips == 1);
+    REQUIRE (sampleStats.sampleWaveformClips == 1);
+
+    // The ramp: the topmost peak pixel climbs (y shrinks) as x advances across the clip.
+    const auto topAt = [&] (const juce::Image& image, int x) {
+        for (int y = 0; y < image.getHeight(); ++y)
+            if (image.getPixelAt (x, y) == peak)
+                return y;
+        return -1;
+    };
+    // The waveform body starts a few pixels in from the clip's edge (the clip and waveform insets).
+    int climbs = 0, falls = 0, previous = -1;
+    for (int x = 40; x < 500; x += 20)
+    {
+        const int top = topAt (fromSamples, x);
+        INFO ("x " << x);
+        REQUIRE (top >= 0);
+        if (previous >= 0)
+        {
+            if (top < previous) ++climbs;
+            if (top > previous) ++falls;
+        }
+        previous = top;
+    }
+    INFO ("climbs " << climbs << " falls " << falls);
+    REQUIRE (climbs >= 10);
+    REQUIRE (falls == 0);
+    // And the cache path at this zoom is the old blocky picture: it differs from the sample paint.
+    bool differs = false;
+    for (int y = 0; y < fromCache.getHeight() && ! differs; ++y)
+        for (int x = 0; x < fromCache.getWidth(); ++x)
+            if (fromCache.getPixelAt (x, y) != fromSamples.getPixelAt (x, y)) { differs = true; break; }
+    REQUIRE (differs);
+}
+
 #endif

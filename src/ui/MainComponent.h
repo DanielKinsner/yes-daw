@@ -336,6 +336,10 @@ struct TimelineClipSourceWindow
 [[nodiscard]] TimelineClipSourceWindow mainComponentTimelineClipSourceWindow (const juce::Component& component,
                                                                              int layoutClipId);
 
+// G2.19: the zoom ceiling the shell clamps to — one sample per pixel at the project's rate over
+// the fit width (never below UiTheme's timelineZoomMax).
+[[nodiscard]] double mainComponentTimelineZoomCeiling (const juce::Component& component);
+
 // N7: the ACTUAL colour the timeline canvas paints for one clip (by id) — reads the same cached
 // style array the paint code reads from, so it can never drift from what is on screen.
 [[nodiscard]] juce::Colour mainComponentTimelineClipColour (juce::Component& component,
