@@ -19994,3 +19994,37 @@ TEST_CASE ("mixer track strip: a double-click renames the track inline; the prob
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// The piano roll's keyboard column auditions its key on a press (G3.2) but named nothing on
+// hover — a G1.6 "nothing blind" gap found by the 2026-09-04 sweep. Pin: hovering a key names
+// the keyboard; the grid and the velocity lane keep their own hints.
+TEST_CASE ("piano roll keyboard column: hovering a key names it in the status line",
+           "[ui][input][shell][piano-roll][hover-hint]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("roll-keyboard-hint");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::TrackAdd));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // opens the roll
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+
+    const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+    const juce::var roll = probe.getProperty ("view", juce::var()).getProperty ("pianoRoll", juce::var());
+    REQUIRE (roll.isObject());
+    const int gridX = static_cast<int> (roll.getProperty ("gridX", 0));
+    const int gridY = static_cast<int> (roll.getProperty ("gridY", 0));
+    const double rowHeight = static_cast<double> (roll.getProperty ("rowHeight", 0.0));
+    REQUIRE (gridX > 8);
+    REQUIRE (rowHeight > 0.0);
+
+    const juce::Point<int> key = pianoRoll.getPosition() + juce::Point<int> (gridX - 6, gridY + static_cast<int> (rowHeight * 3.5));
+    const juce::Point<int> grid = pianoRoll.getPosition() + juce::Point<int> (gridX + 40, gridY + static_cast<int> (rowHeight * 3.5));
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, key).contains ("Keyboard"));
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, grid).contains ("Grid"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

@@ -2237,6 +2237,10 @@ public:
             return {};
         const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
         const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+        // G1.6: the keyboard column IS interactive (a press auditions its key, G3.2), so it is
+        // named like every other hovered zone — it was blind until 2026-09-04.
+        if (geometry.keyboard.contains (position))
+            return "Keyboard: press a key to hear it through the track's instrument · release to stop";
         if (surface.midiClipSelected && pianoRollVelocityLaneArea (geometry).contains (position))
             return "Velocity lane: drag to paint velocities";
         if (const auto hit = noteAt (surface, position))
