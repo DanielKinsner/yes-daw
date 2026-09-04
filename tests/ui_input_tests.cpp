@@ -19940,3 +19940,57 @@ TEST_CASE ("Transport menu: a Locate Points submenu reaches the ten store / reca
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// A double-click on a mixer TRACK strip did nothing (only bus strips renamed inline) — found by
+// the 2026-09-04 dead-affordance sweep. Pin: the rail's rename editor opens over the strip's
+// name band, Enter commits the new name, Ctrl+Z undoes it. The same shell now also publishes
+// the mixer's painted zones by name for the drives.
+TEST_CASE ("mixer track strip: a double-click renames the track inline; the probe names the mixer's zones",
+           "[ui][input][shell][mixer][strip-rename]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-strip-rename");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    auto* renameEditor = dynamic_cast<juce::TextEditor*> (findChildWithComponentId (*shell, "shell.tracklist.rename"));
+    REQUIRE (renameEditor != nullptr);
+    REQUIRE_FALSE (renameEditor->isVisible());
+
+    const std::string before = readProjectSnapshot (bundlePath).tracks.front().strip.name;
+    const juce::Rectangle<int> strip = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+    REQUIRE_FALSE (strip.isEmpty());
+    const juce::Point<int> nameBand = strip.withHeight (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight).getCentre();
+    doubleClickAt (*strips, nameBand - strips->getPosition());
+    REQUIRE (renameEditor->isVisible());
+    REQUIRE (strip.contains (renameEditor->getBounds().getCentre()));   // over the strip, not the rail
+    REQUIRE (renameEditor->getText().toStdString() == before);
+
+    renameEditor->setText ("Vox", juce::dontSendNotification);
+    renameEditor->onReturnKey();
+    REQUIRE_FALSE (renameEditor->isVisible());
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.name == "Vox");
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.name == before);
+
+    juce::var probe;
+    REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+    for (const char* name : { "mixer.strip.0", "mixer.strip.0.solo", "mixer.strip.0.mute",
+                              "mixer.strip.0.fader", "mixer.strip.0.insert.0" })
+    {
+        INFO (name);
+        REQUIRE (probe["layout"].hasProperty (name));
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

@@ -6472,7 +6472,26 @@ public:
         put ("timeline", timelineBounds());
         put ("inspector", inspectorBounds());
         if (appModel.context().mixerDockVisible)
+        {
             put ("dock", mixerPanelBounds());
+            // The mixer's painted zones by name (mixer.strip.N, .solo, .mute, .fader,
+            // .insert.K, .send.K) so a drive clicks the strip it sees — nothing about the mixer
+            // was clickable by name before 2026-09-04, which is where the mouse-only bugs hid.
+            const auto surface = currentMixerSurface();
+            const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
+            for (int strip = 0; strip < stripTotal; ++strip)
+            {
+                const juce::String base = "mixer.strip." + juce::String (strip);
+                put (base, harnessPaintedMixerStripBounds (strip));
+                put (base + ".solo", harnessPaintedMuteSoloCellBounds (strip, 0));
+                put (base + ".mute", harnessPaintedMuteSoloCellBounds (strip, 1));
+                put (base + ".fader", harnessPaintedFaderRailBounds (strip));
+                for (int slot = 0; slot < yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount; ++slot)
+                    put (base + ".insert." + juce::String (slot), harnessPaintedInsertSlotBounds (strip, slot));
+                for (int send = 0; send < yesdaw::ui::UiTheme::Layout::mixerPaintedSendRowCount; ++send)
+                    put (base + ".send." + juce::String (send), harnessPaintedSendRowBounds (strip, send));
+            }
+        }
 
         // Every visible identified child by its component id — toolbar buttons carry their
         // action's stable id (configureActionComponent), choosers their shell ids.
@@ -7867,13 +7886,21 @@ private:
             repaintAll();
         };
         // E17: double-clicking a BUS strip opens the inline rename editor over its header.
+        // A double-click on a strip's name band renames it inline: a bus through its own editor,
+        // a track through the rail's editor placed over the strip (until 2026-09-04 only buses
+        // renamed here; a track strip's double-click did nothing).
         mixerStripsInput.onStripDoubleClicked = [this] (int stripIndex) {
             const auto surface = currentMixerSurface();
             const int trackCount = static_cast<int> (surface.tracks.size());
             const int busCount = static_cast<int> (surface.buses.size());
-            if (stripIndex < trackCount || stripIndex >= trackCount + busCount)
+            if (stripIndex < 0 || stripIndex >= trackCount + busCount)
                 return;
 
+            if (stripIndex < trackCount)
+            {
+                openTrackRenameEditorOverStrip (stripIndex);
+                return;
+            }
             openBusRenameEditor (stripIndex - trackCount, stripIndex);
         };
         mixerStripsInput.meterStripAtPosition = [this] (juce::Point<int> positionInShell) {
@@ -9015,6 +9042,30 @@ private:
                                         .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::trackListIconLeftInset)
                                         .withHeight (yesdaw::ui::UiTheme::Layout::trackListRenameEditorHeight));
         trackRenameEditor.setText (juce::String (tracks[static_cast<std::size_t> (selectedTrackLane)].strip.name),
+                                   juce::dontSendNotification);
+        trackRenameEditor.setVisible (true);
+        trackRenameEditor.grabKeyboardFocus();
+    }
+
+    // The same editor and commit path as the rail's rename, placed over the mixer strip's name
+    // band (the bus editor's law) — the strip's track becomes the selected lane first, since
+    // commitTrackRenameEditor renames selectedTrackLane.
+    void openTrackRenameEditorOverStrip (int stripOrdinal)
+    {
+        dismissClipRenameEditor();
+        const auto& tracks = appModel.project().tracks;
+        if (stripOrdinal < 0 || stripOrdinal >= static_cast<int> (tracks.size()))
+            return;
+        selectTrackLane (stripOrdinal);
+        (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripOrdinal));
+
+        const juce::Rectangle<int> band =
+            mixerStripBounds (stripOrdinal).removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight);
+        if (band.isEmpty())
+            return;
+
+        trackRenameEditor.setBounds (band);
+        trackRenameEditor.setText (juce::String (tracks[static_cast<std::size_t> (stripOrdinal)].strip.name),
                                    juce::dontSendNotification);
         trackRenameEditor.setVisible (true);
         trackRenameEditor.grabKeyboardFocus();
