@@ -20263,3 +20263,55 @@ TEST_CASE ("mixer strips: the painted fader and pan on an unselected strip drag 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G2.15 painted tempo / meter change labels were not clickable (2026-09-04 sweep): a click just
+// located to the nearest snap. Pin: a click on the label lands the playhead EXACTLY on the change,
+// so the ruler menu's "remove at the playhead" verb removes it; the hint names it; the probe
+// publishes the label rect by name.
+TEST_CASE ("ruler tempo change label: a click locates exactly on the change so the change verbs find it",
+           "[ui][input][shell][timeline][map-label]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("map-label-click");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+
+    // A tempo change four bars in, then back home: the label is painted away from the playhead.
+    for (int bar = 0; bar < 4; ++bar)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportLocateNextBar);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineTempoChangeAdd);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tempoMap.size() == 2u);
+    const auto changeTick = project.tempoMap[1].tick;
+    REQUIRE (changeTick > 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
+
+    juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+    const juce::var labelVar = probe.getProperty ("layout", juce::var()).getProperty ("ruler.map.0", juce::var());
+    REQUIRE (labelVar.isArray());
+    const juce::Rectangle<int> label (static_cast<int> (labelVar[0]), static_cast<int> (labelVar[1]),
+                                      static_cast<int> (labelVar[2]), static_cast<int> (labelVar[3]));
+    REQUIRE_FALSE (label.isEmpty());
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, label.getCentre()).contains ("change"));
+
+    // The click lands the playhead on the change's own frame: four bars at the head tempo and
+    // meter (the change was added after four Locate Next Bar steps), not the nearest snap.
+    const double beatsPerBar = project.meterMap.empty() ? 4.0
+                             : static_cast<double> (project.meterMap.front().numerator) * 4.0
+                                   / static_cast<double> (project.meterMap.front().denominator);
+    const double secondsPerBeat = 60.0 / project.tempoMap.front().bpm;
+    const long long expectedFrame = std::llround (4.0 * beatsPerBar * secondsPerBeat * project.sampleRate.hz);
+    mouseDownAt (timeline, label.getCentre() - timeline.getPosition());
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == expectedFrame);
+
+    // And the ruler menu's verb at the playhead removes exactly that change.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineTempoChangeRemove);
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tempoMap.size() == 1u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

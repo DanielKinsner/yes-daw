@@ -1278,6 +1278,36 @@ inline juce::Rectangle<int> timelineMarkerLabelRect (juce::Rectangle<int> area,
              UiTheme::Layout::timelineCanvasRulerMarkerLabelHeight };
 }
 
+// G2.15 labels, clickable (2026-09-04): the painted tempo / meter change label's rect — the SAME
+// placement drawRuler uses (right of the change's tick, in the bars row) — so a click on a label
+// and the picture cannot drift.
+inline juce::Rectangle<int> timelineMapLabelRect (juce::Rectangle<int> area,
+                                                  const TimelineCanvasState& state,
+                                                  int mapIndex)
+{
+    if (state.mapLabels == nullptr || mapIndex < 0 || mapIndex >= state.mapLabelCount)
+        return {};
+
+    const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
+    const int x = geometry.clipArea.getX()
+                + juce::roundToInt ((state.mapLabels[mapIndex].seconds - geometry.viewport.scrollSeconds)
+                                    * geometry.viewport.pixelsPerSecond);
+    const timeline_canvas_detail::RulerRows rows = timeline_canvas_detail::rulerRows (geometry.rulerArea);
+    return { x + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,
+             rows.bars.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
+             UiTheme::Layout::timelineCanvasRulerMarkerLabelWidth,
+             UiTheme::Layout::timelineCanvasRulerLabelHeight };
+}
+
+// The tempo / meter change label under `position`, or -1.
+inline int timelineMapLabelAt (juce::Rectangle<int> area, const TimelineCanvasState& state, juce::Point<int> position)
+{
+    for (int i = 0; state.mapLabels != nullptr && i < state.mapLabelCount; ++i)
+        if (timelineMapLabelRect (area, state, i).contains (position))
+            return i;
+    return -1;
+}
+
 // Transport loop brace (E6): one geometry law shared by the painter and the ruler gesture
 // hit-test, so the drag handles can never drift from the painted brace.
 struct TimelineLoopBraceRects

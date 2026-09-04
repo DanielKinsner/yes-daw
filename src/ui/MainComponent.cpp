@@ -555,6 +555,10 @@ public:
     // Marker editing (E7): drag a ruler marker label to move it; double-click to rename.
     std::function<void (int, double, bool)> onMarkerDragged;      // markerIndex, seconds, snapInvert
     std::function<void (int)> onMarkerRenameRequested;            // markerIndex
+    // G2.15 labels, clickable (2026-09-04): a click on a painted tempo / meter change label
+    // locates the playhead exactly to that change, so the ruler menu's "at the playhead" verbs
+    // (remove, toggle ramp) act on it. mapIndex into the canvas state's mapLabels.
+    std::function<void (int)> onMapLabelClicked;
 
     // E9: double-click on a clip, fired before the split path; returning true consumes the
     // gesture (a MIDI clip opens its piano roll instead of attempting the audio split).
@@ -821,6 +825,8 @@ public:
         }
         if (geometry.rulerArea.contains (position))
         {
+            if (yesdaw::ui::timelineMapLabelAt (getLocalBounds(), state, position) >= 0)
+                return "Tempo / meter change: click to locate the playhead on it \u00b7 right-click to edit or remove";
             for (int markerIndex = 0; markerIndex < state.markerCount; ++markerIndex)
                 if (yesdaw::ui::timelineMarkerLabelRect (getLocalBounds(), state, markerIndex).contains (position))
                     return "Marker: drag to move \u00b7 double-click to rename \u00b7 Alt-click removes";
@@ -904,6 +910,15 @@ public:
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
         if (geometry.rulerArea.contains (position))
         {
+            // A tempo / meter change label: the ruler menu's change verbs act at the playhead, so
+            // the right-click locates there first (the marker law below, for changes).
+            if (const int mapIndex = yesdaw::ui::timelineMapLabelAt (getLocalBounds(), state, position); mapIndex >= 0)
+            {
+                if (onMapLabelClicked)
+                    onMapLabelClicked (mapIndex);
+                onContextMenuRequested (yesdaw::ui::ContextMenuTarget::Ruler, -1, position);
+                return;
+            }
             for (int markerIndex = 0; markerIndex < state.markerCount; ++markerIndex)
             {
                 if (yesdaw::ui::timelineMarkerLabelRect (getLocalBounds(), state, markerIndex).contains (position))
@@ -1131,6 +1146,17 @@ public:
                         return;
                     }
                 }
+            }
+
+            // A tempo / meter change label (G2.15, clickable since 2026-09-04): the press locates
+            // the playhead exactly on the change — not the nearest snap — so the change verbs
+            // find it.
+            if (const int mapIndex = yesdaw::ui::timelineMapLabelAt (getLocalBounds(), state, event.getPosition());
+                mapIndex >= 0)
+            {
+                if (onMapLabelClicked)
+                    onMapLabelClicked (mapIndex);
+                return;
             }
 
             // Marker editing (E7): a press on a painted marker label starts a marker drag
@@ -4958,6 +4984,13 @@ public:
             refreshActionState();
             repaintAll();
         };
+        timelineInput.onMapLabelClicked = [this] (int mapIndex) {
+            if (mapIndex < 0 || mapIndex >= static_cast<int> (timelineMapLabelFrames.size()))
+                return;
+            (void) appModel.locatePlaybackFrame (timelineMapLabelFrames[static_cast<std::size_t> (mapIndex)]);
+            refreshActionState();
+            repaintAll();
+        };
         timelineInput.onTimelineLocated = [this] (double seconds) {
             if (const std::optional<yesdaw::engine::Tick> frame = timelineTickFromSeconds (seconds))
             {
@@ -6593,6 +6626,9 @@ public:
             const juce::Point<int> origin = timelineInput.getPosition();
             put ("ruler", geometry.rulerArea.translated (origin.x, origin.y));
             put ("clipArea", geometry.clipArea.translated (origin.x, origin.y));
+            for (int mapIndex = 0; mapIndex < state.mapLabelCount; ++mapIndex)   // the tempo / meter change labels
+                put ("ruler.map." + juce::String (mapIndex),
+                     yesdaw::ui::timelineMapLabelRect (timelineInput.getLocalBounds(), state, mapIndex).translated (origin.x, origin.y));
             // The tool strip's cells by name (tool.pointer … tool.hand): drives click by NAME.
             for (std::size_t index = 0; index < yesdaw::ui::kTimelineToolStripOrder.size(); ++index)
                 put ("tool." + juce::String (probeToolName (yesdaw::ui::kTimelineToolStripOrder[index])).toLowerCase(),
@@ -13742,6 +13778,7 @@ private:
         // puts the next change where it really lands), labelled "120" / "120~" / "3/4".
         timelineMapLabelTexts.clear();
         timelineMapLabelViews.clear();
+        timelineMapLabelFrames.clear();
         {
             yesdaw::engine::CompiledTempoMap compiled;
             if (appModel.context().projectLoaded && appModel.project().sampleRate.isValid()
@@ -13760,6 +13797,7 @@ private:
                     timelineMapLabelTexts.push_back (juce::String (juce::roundToInt (tempoMap[i].bpm)).toStdString()
                                                      + (tempoMap[i].curveToNext == yesdaw::engine::TempoCurve::LinearRamp ? "~" : ""));
                     timelineMapLabelViews.push_back ({ frame / sampleRateHz, timelineMapLabelTexts.back().c_str() });
+                    timelineMapLabelFrames.push_back (static_cast<std::int64_t> (std::llround (frame)));
                 }
                 for (std::size_t i = 1; i < meterMap.size(); ++i)
                 {
@@ -13768,6 +13806,7 @@ private:
                         continue;
                     timelineMapLabelTexts.push_back (std::to_string (meterMap[i].numerator) + "/" + std::to_string (meterMap[i].denominator));
                     timelineMapLabelViews.push_back ({ frame / sampleRateHz, timelineMapLabelTexts.back().c_str() });
+                    timelineMapLabelFrames.push_back (static_cast<std::int64_t> (std::llround (frame)));
                 }
             }
         }
@@ -15643,6 +15682,7 @@ private:
     std::vector<yesdaw::ui::TimelineMarker> timelineMarkerViews;
     std::vector<std::string> timelineMapLabelTexts;                // G2.15
     std::vector<yesdaw::ui::TimelineMapLabel> timelineMapLabelViews;
+    std::vector<std::int64_t> timelineMapLabelFrames;   // the change's exact frame per label (a click locates there)
     double timelineZoomFactor = 1.0;   // 1.0 == whole timeline fits the window
     double timelineRowZoom = 1.0;      // G2.16: multiplies every auto-height row
     std::optional<ZoomView> lastSelectionZoom;   // G2.16: the view Z produced (Z again goes back)
