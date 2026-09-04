@@ -19792,3 +19792,55 @@ TEST_CASE ("rail arm badge: a click on the O cell arms and disarms that track",
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// The header's gear was painted (G0.7) and dead to the mouse: nothing hit-tested its rect, and
+// the settings row it implies was reachable only from the View menu (found by the 2026-09-04
+// dead-affordance sweep). Pin: a click toggles the settings row through the menu's action, the
+// shell re-lays out, and the icon lights while the row shows.
+TEST_CASE ("header gear: a click toggles the settings row and the icon lights while it shows",
+           "[ui][input][shell][header][gear]")
+{
+    auto shell = makeShell();
+    const juce::Rectangle<int> gear = yesdaw::ui::mainComponentPaintedHeaderGearBounds (*shell);
+    REQUIRE_FALSE (gear.isEmpty());
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.settingsRowVisible);
+
+    const auto renderGear = [&] {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics g (image);
+        shell->paintEntireComponent (g, false);
+        return image.getClippedImage (gear).createCopy();
+    };
+    const auto countColour = [] (const juce::Image& image, juce::Colour colour) {
+        int n = 0;
+        for (int y = 0; y < image.getHeight(); ++y)
+            for (int x = 0; x < image.getWidth(); ++x)
+                if (image.getPixelAt (x, y) == colour)
+                    ++n;
+        return n;
+    };
+    const juce::Colour lit = yesdaw::ui::UiTheme::Color::text();
+    const juce::Colour muted = yesdaw::ui::UiTheme::Color::mutedText();
+    const juce::Image before = renderGear();
+
+    const int headerBefore = findChildWithComponentId (*shell, "shell.tracklist.input")->getY();
+    mouseDownAt (*shell, gear.getCentre());
+    MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.settingsRowVisible);
+    // The whole shell re-lays out: the rail moves down by the settings row's height.
+    REQUIRE (findChildWithComponentId (*shell, "shell.tracklist.input")->getY()
+             == headerBefore + yesdaw::ui::UiTheme::Layout::settingsRowHeight);
+    const juce::Image after = renderGear();
+    REQUIRE (countColour (after, lit) > countColour (before, lit));
+    REQUIRE (countColour (after, muted) < countColour (before, muted));
+
+    mouseDownAt (*shell, gear.getCentre());
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.settingsRowVisible);
+    REQUIRE (findChildWithComponentId (*shell, "shell.tracklist.input")->getY() == headerBefore);
+
+    // A click on the time readout still cycles the counter, not the row (the two share mouseDown).
+    juce::var probe;
+    REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+    REQUIRE (probe["layout"].hasProperty ("header"));
+}

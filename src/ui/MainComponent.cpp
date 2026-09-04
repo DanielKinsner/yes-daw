@@ -12802,10 +12802,20 @@ private:
 
     void mouseDown (const juce::MouseEvent& event) override
     {
-        if (headerLayout().timeReadout.contains (event.getPosition()))
+        const HeaderLayout header = headerLayout();
+        if (header.timeReadout.contains (event.getPosition()))
         {
             timeDisplayMode = (timeDisplayMode + 1) % (yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples + 1);   // G2.2: bars → min:sec → SMPTE → samples
             repaintAll();   // the ruler's time row follows
+            return;
+        }
+        // The header's gear: painted since G0.7, dead to the mouse until 2026-09-04. It is the
+        // settings row's toggle — the same action the View menu carries — and lights while the
+        // row shows.
+        if (header.gear.contains (event.getPosition()))
+        {
+            handleAction (yesdaw::ui::UiActionId::ViewToggleSettingsRow);
+            refreshActionState();
         }
     }
 
@@ -13053,7 +13063,7 @@ private:
             yesdaw::ui::drawSettingsIcon (
                 g,
                 headerLayout().gear.toFloat(),
-                kMutedText);
+                appModel.context().settingsRowVisible ? kText : kMutedText);
             return;
         }
 
@@ -13069,7 +13079,7 @@ private:
         yesdaw::ui::drawSettingsIcon (
             g,
             headerLayout().gear.toFloat(),
-            kMutedText);
+            appModel.context().settingsRowVisible ? kText : kMutedText);
     }
 
     void drawTrackList (juce::Graphics& g, juce::Rectangle<int> area) const
@@ -16164,6 +16174,13 @@ juce::Rectangle<int> mainComponentPaintedRailCellBounds (const juce::Component& 
 {
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->harnessPaintedRailCellBounds (row, cell);
+    return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedHeaderGearBounds (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->headerLayout().gear;
     return {};
 }
 

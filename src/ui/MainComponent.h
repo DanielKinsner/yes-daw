@@ -322,6 +322,9 @@ void mainComponentRevealSettingsRowFor (juce::Component& component, UiActionId a
 [[nodiscard]] juce::Rectangle<int> mainComponentPaintedRailCellBounds (const juce::Component& component,
                                                                         int row, int cell);
 
+// The header's painted gear rect (shell coordinates) — the settings-row toggle's click target.
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedHeaderGearBounds (const juce::Component& component);
+
 // N7: the ACTUAL colour the timeline canvas paints for one clip (by id) — reads the same cached
 // style array the paint code reads from, so it can never drift from what is on screen.
 [[nodiscard]] juce::Colour mainComponentTimelineClipColour (juce::Component& component,
