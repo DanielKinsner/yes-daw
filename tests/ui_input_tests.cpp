@@ -20160,3 +20160,106 @@ TEST_CASE ("timeline zoom reaches one sample per pixel and clamps there, not at 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// 2026-09-04 sweep: the painted fader rail and pan knob on an UNSELECTED mixer strip looked
+// draggable and were not — only the selected strip carried live controls. Pin: a drag on strip
+// 2's painted rail retargets the mixer to strip 2 and sets ITS gain by the rail's own law;
+// Alt-click returns it to unity; a press on strip 1's pan knob pans strip 1; Alt-click recentres;
+// the probe names the knob.
+TEST_CASE ("mixer strips: the painted fader and pan on an unselected strip drag that strip's value",
+           "[ui][input][shell][mixer][strip-fader]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-strip-fader");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::windowMaxHeight);
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+
+    // No strip is the mixer target yet; strip 2 is unselected and paints a rail.
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal != 2);
+    const juce::Rectangle<int> rail = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 2);
+    REQUIRE (rail.getHeight() > 20);
+    yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 3u);
+    REQUIRE (project.tracks[2].strip.linearGain == 1.0f);
+
+    // Grab the painted THUMB (it sits at unity) and drag down to a third of the rail: the gain
+    // follows the rail's law (bottom = silence, top = the slider's max), the strip becomes the
+    // target, one undo step. The rail away from the thumb stays a plain strip-select click.
+    const int unityY = rail.getBottom() - juce::roundToInt (static_cast<float> (rail.getHeight())
+                                                              / static_cast<float> (L::mixerFaderSliderMax));
+    const juce::Point<int> pressAt (rail.getCentreX(), unityY);
+    const juce::Point<int> dragTo (rail.getCentreX(), rail.getBottom() - rail.getHeight() / 3);
+    mouseDownAt (*strips, juce::Point<int> (rail.getCentreX(), rail.getBottom() - 3) - strips->getPosition());   // far from the thumb
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[2].strip.linearGain == 1.0f);
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 2);   // a select, not a jump
+    const float expected = static_cast<float> (rail.getBottom() - dragTo.y) / static_cast<float> (rail.getHeight())
+                         * static_cast<float> (L::mixerFaderSliderMax);
+    dragFromTo (*strips, pressAt - strips->getPosition(), dragTo - strips->getPosition());
+    project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks[2].strip.linearGain == Catch::Approx (expected).margin (0.02f));
+    REQUIRE (project.tracks[0].strip.linearGain == 1.0f);   // the old target is untouched
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 2);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[2].strip.linearGain == 1.0f);   // one step undoes the whole drag
+
+    // Strip 1 (unselected, at unity): grab its thumb, drag to a fifth; it becomes the target.
+    const juce::Rectangle<int> rail1 = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 1);
+    const int unityY1 = rail1.getBottom() - juce::roundToInt (static_cast<float> (rail1.getHeight())
+                                                                / static_cast<float> (L::mixerFaderSliderMax));
+    const juce::Point<int> fifth (rail1.getCentreX(), rail1.getBottom() - rail1.getHeight() / 5);
+    dragFromTo (*strips, juce::Point<int> (rail1.getCentreX(), unityY1) - strips->getPosition(), fifth - strips->getPosition());
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[1].strip.linearGain < 0.9f);
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 1);
+    // Strip 2 is unselected again, its thumb painted where ITS gain sits: Alt-click it resets strip 2.
+    const juce::Rectangle<int> rail2 = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 2);
+    const float gain2 = readProjectSnapshot (bundlePath).tracks[2].strip.linearGain;
+    const int thumb2Y = rail2.getBottom() - juce::roundToInt (gain2 / static_cast<float> (L::mixerFaderSliderMax)
+                                                                * static_cast<float> (rail2.getHeight()));
+    mouseDownAt (*strips, juce::Point<int> (rail2.getCentreX(), thumb2Y) - strips->getPosition(),
+                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[2].strip.linearGain == 1.0f);
+
+    // A BUS strip drags the same way (the 2026-09-04 crash path: a bus fader gesture).
+    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+    const juce::Rectangle<int> railBus = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 3);
+    REQUIRE (railBus.getHeight() > 20);
+    const int unityBus = railBus.getBottom() - juce::roundToInt (static_cast<float> (railBus.getHeight())
+                                                                   / static_cast<float> (L::mixerFaderSliderMax));
+    dragFromTo (*strips, juce::Point<int> (railBus.getCentreX(), unityBus) - strips->getPosition(),
+                juce::Point<int> (railBus.getCentreX(), railBus.getBottom() - railBus.getHeight() / 5) - strips->getPosition());
+    REQUIRE (readProjectSnapshot (bundlePath).buses.front().strip.linearGain < 0.9f);
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 3);
+
+    // Pan: strip 0 is unselected now; a press at its knob's right edge pans right, Alt-click recentres.
+    const juce::Rectangle<int> knob = yesdaw::ui::mainComponentPaintedPanKnobBounds (*shell, 0);
+    REQUIRE (knob.getWidth() > 8);
+    mouseDownAt (*strips, juce::Point<int> (knob.getRight() - 2, knob.getCentreY()) - strips->getPosition());
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[0].strip.pan > 0.5f);
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 0);
+    mouseDownAt (*strips, juce::Point<int> (knob.getCentreX(), knob.getCentreY()) - strips->getPosition(),
+                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[0].strip.pan == 0.0f);
+
+    // Hints name both zones (strip 2's thumb sits at unity again); the probe names the knob.
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, { rail2.getCentreX(), unityY1 }).contains ("Fader"));
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, knob.getCentre()).contains ("Pan"));
+    juce::var probe;
+    REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+    REQUIRE (probe["layout"].hasProperty ("mixer.strip.1.pan"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

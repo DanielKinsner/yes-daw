@@ -3833,6 +3833,16 @@ public:
     // N1: painted Mute/Solo cells — a click toggles THAT strip without stealing the selection.
     std::function<std::pair<int, int> (juce::Point<int>)> muteSoloCellAtPosition;
     std::function<void (int, int)> onMuteSoloCellClicked;
+    // 2026-09-04 sweep: the painted fader rail and pan knob on an UNSELECTED strip looked
+    // draggable and were not (only the selected strip carried live controls). A press on either
+    // selects that strip and drags ITS value through the same verbs the control lane uses;
+    // Alt-click resets (unity / centre). `ended` closes the one-undo-step gesture.
+    std::function<int (juce::Point<int>)> faderRailAtPosition;             // shell position -> strip, -1 none
+    std::function<float (int, juce::Point<int>)> faderGainForPosition;     // strip, shell position -> linear gain
+    std::function<void (int, float, bool)> onFaderDragged;                 // strip, gain, ended
+    std::function<int (juce::Point<int>)> panKnobAtPosition;
+    std::function<float (int, juce::Point<int>)> panForPosition;           // strip, shell position -> pan -1..1
+    std::function<void (int, float, bool)> onPanDragged;                   // strip, pan, ended
 
     // G1.6: the gesture hint for the hovered zone — the status line shows it while no status
     // message is active. hintAt() is the one law mouseMove and the harness share.
@@ -3856,6 +3866,10 @@ public:
                 return filled ? "Insert slot: click to edit \u00b7 right-click to bypass, remove or move"
                               : "Empty insert: right-click to add an effect";
             }
+        if (faderRailAtPosition && faderRailAtPosition (shellPosition) >= 0)
+            return "Fader: drag the knob to set the level \u00b7 Alt-click resets to unity";
+        if (panKnobAtPosition && panKnobAtPosition (shellPosition) >= 0)
+            return "Pan: drag \u00b7 Alt-click recentres";
         if (meterStripAtPosition && meterStripAtPosition (shellPosition) >= 0)
             return "Meter: click clears the clip light";
         if (stripAtPosition && stripAtPosition (shellPosition) >= 0)
@@ -3950,6 +3964,38 @@ public:
             }
         }
 
+        if (faderRailAtPosition && faderGainForPosition && onFaderDragged)
+        {
+            const int strip = faderRailAtPosition (shellPosition);
+            if (strip >= 0)
+            {
+                if (event.mods.isAltDown())
+                {
+                    onFaderDragged (strip, 1.0f, true);   // Alt-click: unity, one step
+                    return;
+                }
+                draggingFaderStrip = strip;
+                onFaderDragged (strip, faderGainForPosition (strip, shellPosition), false);
+                return;
+            }
+        }
+
+        if (panKnobAtPosition && panForPosition && onPanDragged)
+        {
+            const int strip = panKnobAtPosition (shellPosition);
+            if (strip >= 0)
+            {
+                if (event.mods.isAltDown())
+                {
+                    onPanDragged (strip, 0.0f, true);   // Alt-click: centre, one step
+                    return;
+                }
+                draggingPanStrip = strip;
+                onPanDragged (strip, panForPosition (strip, shellPosition), false);
+                return;
+            }
+        }
+
         if (meterStripAtPosition && onMeterClicked)
         {
             const int meterStrip = meterStripAtPosition (shellPosition);
@@ -3970,17 +4016,39 @@ public:
 
     void mouseDrag (const juce::MouseEvent& event) override
     {
+        const juce::Point<int> shellPosition =
+            event.getEventRelativeTo (getParentComponent()).getPosition();
+        if (draggingFaderStrip >= 0 && faderGainForPosition && onFaderDragged)
+        {
+            onFaderDragged (draggingFaderStrip, faderGainForPosition (draggingFaderStrip, shellPosition), false);
+            return;
+        }
+        if (draggingPanStrip >= 0 && panForPosition && onPanDragged)
+        {
+            onPanDragged (draggingPanStrip, panForPosition (draggingPanStrip, shellPosition), false);
+            return;
+        }
         if (draggingSendStrip < 0 || ! sendLevelForPosition || ! onSendRowDragged)
             return;
 
-        const juce::Point<int> shellPosition =
-            event.getEventRelativeTo (getParentComponent()).getPosition();
         onSendRowDragged (draggingSendStrip, draggingSendIndex,
                           sendLevelForPosition (draggingSendStrip, draggingSendIndex, shellPosition), false);
     }
 
     void mouseUp (const juce::MouseEvent& event) override
     {
+        if (draggingFaderStrip >= 0 || draggingPanStrip >= 0)
+        {
+            const juce::Point<int> shellPosition =
+                event.getEventRelativeTo (getParentComponent()).getPosition();
+            if (draggingFaderStrip >= 0 && faderGainForPosition && onFaderDragged)
+                onFaderDragged (draggingFaderStrip, faderGainForPosition (draggingFaderStrip, shellPosition), true);
+            if (draggingPanStrip >= 0 && panForPosition && onPanDragged)
+                onPanDragged (draggingPanStrip, panForPosition (draggingPanStrip, shellPosition), true);
+            draggingFaderStrip = -1;
+            draggingPanStrip = -1;
+            return;
+        }
         if (draggingSendStrip < 0 || ! sendLevelForPosition || ! onSendRowDragged)
             return;
 
@@ -4006,6 +4074,8 @@ public:
 
 private:
     int draggingSendStrip = -1;
+    int draggingFaderStrip = -1;   // the painted fader being dragged (2026-09-04)
+    int draggingPanStrip = -1;
     int draggingSendIndex = -1;
 };
 
@@ -6388,6 +6458,15 @@ public:
         return paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)));
     }
 
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedPanKnobBounds (int stripIndex) const
+    {
+        const auto surface = currentMixerSurface();
+        const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
+        if (stripIndex < 0 || stripIndex >= stripTotal)
+            return {};
+        return paintedPanKnobForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)));
+    }
+
     [[nodiscard]] int harnessPaintedFaderThumbY (int stripIndex, float linearGain) const
     {
         const auto rail = harnessPaintedFaderRailBounds (stripIndex);
@@ -6491,6 +6570,7 @@ public:
                 put (base + ".solo", harnessPaintedMuteSoloCellBounds (strip, 0));
                 put (base + ".mute", harnessPaintedMuteSoloCellBounds (strip, 1));
                 put (base + ".fader", harnessPaintedFaderRailBounds (strip));
+                put (base + ".pan", harnessPaintedPanKnobBounds (strip));
                 for (int slot = 0; slot < yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount; ++slot)
                     put (base + ".insert." + juce::String (slot), harnessPaintedInsertSlotBounds (strip, slot));
                 for (int send = 0; send < yesdaw::ui::UiTheme::Layout::mixerPaintedSendRowCount; ++send)
@@ -7950,6 +8030,87 @@ private:
                         return std::pair<int, int> { static_cast<int> (i), static_cast<int> (cell) };
             }
             return std::pair<int, int> { -1, -1 };
+        };
+        // 2026-09-04 sweep: every strip's painted fader and pan drag their OWN strip (the selected
+        // strip carries the live controls; the others only looked draggable). The press retargets
+        // the mixer to that strip, then the drag rides the same scalar verbs the control lane
+        // uses, coalesced into one undo step (beginStripGesture ... endStripGesture).
+        mixerStripsInput.faderRailAtPosition = [this] (juce::Point<int> positionInShell) {
+            const auto surface = currentMixerSurface();
+            const std::size_t trackCount = surface.tracks.size();
+            const std::size_t stripTotal = trackCount + surface.buses.size();
+            for (std::size_t i = 0; i < stripTotal; ++i)
+            {
+                const float gain = i < trackCount ? surface.tracks[i].linearGain
+                                                  : surface.buses[i - trackCount].linearGain;
+                if (paintedFaderThumbForLane (paintedMixerLaneBounds (i), gain)
+                        .expanded (0, yesdaw::ui::UiTheme::Layout::trackListLevelHitSlopX)
+                        .contains (positionInShell))
+                    return static_cast<int> (i);
+            }
+            return -1;
+        };
+        mixerStripsInput.faderGainForPosition = [this] (int stripIndex, juce::Point<int> positionInShell) {
+            const auto rail = paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)));
+            if (rail.getHeight() <= 0)
+                return 1.0f;
+            const float fraction = juce::jlimit (0.0f, 1.0f,
+                                                 static_cast<float> (rail.getBottom() - positionInShell.y)
+                                                     / static_cast<float> (rail.getHeight()));
+            return fraction * static_cast<float> (yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax);
+        };
+        mixerStripsInput.panKnobAtPosition = [this] (juce::Point<int> positionInShell) {
+            const auto surface = currentMixerSurface();
+            const std::size_t stripTotal = surface.tracks.size() + surface.buses.size();
+            for (std::size_t i = 0; i < stripTotal; ++i)
+                if (paintedPanKnobForLane (paintedMixerLaneBounds (i)).contains (positionInShell))
+                    return static_cast<int> (i);
+            return -1;
+        };
+        mixerStripsInput.panForPosition = [this] (int stripIndex, juce::Point<int> positionInShell) {
+            const auto knob = paintedPanKnobForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)));
+            if (knob.getWidth() <= 0)
+                return 0.0f;
+            const float normalized = static_cast<float> (positionInShell.x - knob.getX())
+                                   / static_cast<float> (knob.getWidth());
+            return juce::jlimit (-1.0f, 1.0f, normalized + normalized - 1.0f);
+        };
+        const auto retargetMixerStrip = [this] (int stripIndex) {
+            const auto surface = currentMixerSurface();
+            const int trackCount = static_cast<int> (surface.tracks.size());
+            if (stripIndex < trackCount)
+            {
+                selectedTrackLane = stripIndex;   // the rail follows, as a strip click does
+                return appModel.selectMixerTrack (static_cast<std::size_t> (stripIndex), false);
+            }
+            return appModel.selectMixerBus (static_cast<std::size_t> (stripIndex - trackCount), false);
+        };
+        mixerStripsInput.onFaderDragged = [this, retargetMixerStrip] (int stripIndex, float linearGain, bool ended) {
+            appModel.beginStripGesture();
+            if (retargetMixerStrip (stripIndex))
+            {
+                (void) appModel.setSelectedMixerFader (linearGain);
+                showDragDbReadout (paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex))),
+                                   linearGain);
+            }
+            if (ended)
+            {
+                appModel.endStripGesture();
+                hideDragDbReadout();
+            }
+            refreshActionState();
+            resized();   // the control lane follows the retargeted strip
+            repaintAll();
+        };
+        mixerStripsInput.onPanDragged = [this, retargetMixerStrip] (int stripIndex, float pan, bool ended) {
+            appModel.beginStripGesture();
+            if (retargetMixerStrip (stripIndex))
+                (void) appModel.setSelectedMixerPan (pan);
+            if (ended)
+                appModel.endStripGesture();
+            refreshActionState();
+            resized();
+            repaintAll();
         };
         mixerStripsInput.onMuteSoloCellClicked = [this] (int stripIndex, int cellIndex) {
             const auto& tracks = appModel.project().tracks;
@@ -9561,6 +9722,31 @@ private:
                         .withCentre ({ lane.getCentreX()
                                            - yesdaw::ui::UiTheme::Layout::mixerPaintedRailCenterOffsetX,
                                        faderArea.getCentreY() });
+    }
+
+    // The painted pan knob's disc for a strip lane — the SAME rect the strip paint fills, so the
+    // drag hit-test and the picture cannot drift.
+    [[nodiscard]] static juce::Rectangle<int> paintedPanKnobForLane (juce::Rectangle<int> lane)
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const auto knob = lane.withTrimmedTop (L::mixerPaintedPanTop).withHeight (L::mixerPaintedPanHeight);
+        return juce::Rectangle<int> (knob.getCentreX() - L::mixerPaintedPanRadius,
+                                     knob.getY() + L::mixerPaintedPanTopInset,
+                                     L::mixerPaintedPanRadius * 2, L::mixerPaintedPanRadius * 2);
+    }
+
+    // The painted fader THUMB for a strip lane at a gain — the grab target (the rail itself stays a
+    // strip-select click: it overlaps the strip's centre line, which every strip click lands on).
+    [[nodiscard]] static juce::Rectangle<int> paintedFaderThumbForLane (juce::Rectangle<int> lane, float linearGain)
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const auto rail = paintedFaderRailForLane (lane);
+        if (rail.isEmpty())
+            return {};
+        return juce::Rectangle<int> (rail.getX() - L::mixerPaintedThumbWidthOverhang / 2,
+                                     mixerFaderThumbYForGain (rail, linearGain) - L::mixerPaintedThumbCenterInset,
+                                     rail.getWidth() + L::mixerPaintedThumbWidthOverhang,
+                                     L::mixerPaintedThumbHeight);
     }
 
     [[nodiscard]] static int mixerFaderThumbYForGain (juce::Rectangle<int> rail, float linearGain) noexcept
@@ -14914,11 +15100,10 @@ private:
 
             if (! interactiveStrip)
             {
-                auto knob = lane.withTrimmedTop (yesdaw::ui::UiTheme::Layout::mixerPaintedPanTop)
-                                .withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedPanHeight);
-                const int panDiameter = yesdaw::ui::UiTheme::Layout::mixerPaintedPanRadius * 2;
-                const int panX = knob.getCentreX() - yesdaw::ui::UiTheme::Layout::mixerPaintedPanRadius;
-                const int panY = knob.getY() + yesdaw::ui::UiTheme::Layout::mixerPaintedPanTopInset;
+                const juce::Rectangle<int> panDisc = paintedPanKnobForLane (lane);
+                const int panDiameter = panDisc.getWidth();
+                const int panX = panDisc.getX();
+                const int panY = panDisc.getY();
                 g.setColour (yesdaw::ui::UiTheme::Color::panelShadow().withAlpha (
                     yesdaw::ui::UiTheme::Tone::shadowAlpha));
                 g.fillEllipse (static_cast<float> (panX),
@@ -15978,6 +16163,13 @@ juce::Rectangle<int> mainComponentPaintedFaderRailBounds (const juce::Component&
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->harnessPaintedFaderRailBounds (stripIndex);
 
+    return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedPanKnobBounds (const juce::Component& component, int stripIndex)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedPanKnobBounds (stripIndex);
     return {};
 }
 

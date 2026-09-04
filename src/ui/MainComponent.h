@@ -180,6 +180,9 @@ struct MainComponentSnapshot
 // the paint, so gates can pin that unity is at half travel and boost lives above it.
 [[nodiscard]] juce::Rectangle<int> mainComponentPaintedFaderRailBounds (const juce::Component& component,
                                                                         int stripIndex);
+// 2026-09-04: the painted pan knob's disc for a strip (shell coordinates) — the drag's hit rect.
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedPanKnobBounds (const juce::Component& component,
+                                                                       int stripIndex);
 [[nodiscard]] int mainComponentPaintedFaderThumbY (const juce::Component& component,
                                                    int stripIndex,
                                                    float linearGain);
