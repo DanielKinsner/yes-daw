@@ -56,10 +56,11 @@ chooser or the import chooser did not take the typed path on the first try (ss2 
 index into a null array" cascading); the same scripts pass launched alone a few seconds later — a launch
 transient, not a shell defect; batch drives with a pause between scripts. ss1's B2 paint p95 read 8.54 ms once
 while other work ran, 7.x alone — the budget holds on an idle machine. **Next:** the G3.3 docs-evidence commit
-once CI is green on the head. **G3.4 — Quantize v2 is under way:** cp1 (the engine half — `QuantizeSettings`,
-the swing / strength / note-ends / humanize laws, the widened `QuantizeNote` verb, `YesDawQuantizeCheck`)
-is in this commit; cp2 (the inspector quantize panel, Q applying the current setting, `[quantize-panel]`)
-is next. Rules in force: HEADLESS by default, the macOS GPU
+once CI is green on the head. **G3.4 — Quantize v2:** cp1 `d139cb3` (the engine half — `QuantizeSettings`,
+the swing / strength / note-ends / humanize laws, the widened `QuantizeNote` verb, `YesDawQuantizeCheck`);
+cp2 (this commit) — the inspector quantize panel on the MIDI clip's CLIP tab, Q and Apply applying the
+current settings, `[quantize-panel]`, ss5 Step 12 authored. Next: the G3.4 drive (ss5 Steps 1–12) and
+rubric shots in a drive window, then the docs-evidence commit, then **G3.5 — MIDI clips at arrange level**. Rules in force: HEADLESS by default, the macOS GPU
 frame-budget red is noise, the local suite + drives are the working gate.
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
@@ -210,6 +211,61 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.4 cp2 — The quantize panel (2026-09-05)
+
+**Story.** cp1 gave the engine strength, swing, note ends and humanize; nothing in the shell could set
+them, and a selected MIDI clip's inspector said "No clip selected". The CLIP tab now shows the MIDI
+clip's card: a quantize panel with the grid chooser, strength, swing, note ends, humanize and an Apply
+button; Q applies the same settings from the keyboard. The settings are session state in the context
+(like the nudge value), not Project data — Logic keeps them per region, but that is a schema question
+for a later item (parking lot), and SS-4 needs only "quantize 80 % with swing" on the selection.
+
+**Precedent.** Logic's region inspector (Quantize / Q-Strength / Q-Swing / Q-Length rows on the
+selected region); Logic re-rolls Humanize on every apply (the seed advances per humanized Q).
+
+**Build.** Context: `quantizeGridChoice` (0 follows the snap chooser; 1/8, 1/16, 1/32 through the head
+tempo / meter law), `quantizeStrengthPercent`, `quantizeSwingPercent`, `quantizeNoteEnds`,
+`quantizeHumanizePercent`. Actions (no chords): `QuantizeGridSelect`, `QuantizeStrengthSet`,
+`QuantizeSwingSet`, `QuantizeNoteEndsToggle` (a registry toggle), `QuantizeHumanizeSet`. Model:
+`selectQuantizeGrid` / `setQuantizeStrength` / `setQuantizeSwing` / `toggleQuantizeNoteEnds` /
+`setQuantizeHumanize`, `quantizeGridTicks()`, `currentQuantizeSettings()` (the seed the next Q uses;
+`quantizeSeed_` advances per humanized apply); `quantizeSelectedPianoRollNotesToCurrentGrid` applies
+the settings — plain settings keep the E12 law exactly (already-on-the-grid notes skipped, all-on-grid
+a no-op), anything else goes through `quantizeNoteWith` for every selected note as one undo group.
+Shell: `inspectorShowsQuantizePanel()` (CLIP tab, a MIDI clip selected, no audio clip selected),
+`quantizeInspectorRows` (six rows below the title — ONE law for `drawMidiClipInspector`'s labels and
+`layoutInspectorControls`' controls), `clip.inspector.quantize.{grid,strength,swing,ends,humanize,apply}`,
+the refresh follows the context; probe `view.quantize` {gridChoice, gridTicks, strength, swing, noteEnds,
+humanize, seed, panel} and layout `inspector.quantize.*`. Tokens `inspectorQuantize*`. `docs/keymap-v2.md`
+regenerated.
+
+**Gates.** `[quantize-panel]` in `YesDawUiInputCheck` (156 assertions): the six controls are
+visible on the CLIP tab with their defaults and the probe's grid is the snap grid; two raw notes off the
+beat grid; strength 50 posts to the context, names its action and Q lands exactly where the engine's
+`quantizeNoteWith` puts a copy of the project (the same law, the same settings from the probe), undo
+restores; swing 50 likewise; the Note ends toggle flips the context and Q changes lengths; humanize 25
+uses the probe's seed, the apply advances it and the next seed gives another feel; Apply by mouse equals
+Q; the 1/16 grid is a quarter of the beat grid and names its action; the TRACK tab hides the panel and the
+CLIP tab brings it back with the settings intact. `YesDawUiActionCheck` (the registry) green with the five
+actions. Local suite 374 / 374 (the child-count pin re-pinned 157 → 163 for the six panel controls).
+
+**See-it.** ss5 Step 12: the panel shows for the MIDI clip, the strength slider is laid out, a click
+toggles Note ends on (probe `view.quantize.noteEnds`, `lastAction quantize.note_ends`) and off — ss5
+**48 / 48** on the real exe (2026-09-05). One run before it failed seven asserts from Step 3 on and
+another died at Step 0; both were the launch / timing transient of this PC (two clean runs bracket them),
+recorded, not fixed.
+
+**Rubric (§7.4, the ss5 1920×1080 shot with the panel).** 1 PASS (the six rows sit in the inspector column;
+nothing overlaps the dock). 2 n/a. 3 PASS with a FIX: the Note-ends row read "Note ends" twice — the
+painted label and the toggle's own text — so the toggle's text is blank (its accessible name stays
+"Quantize Note Ends"); every other control has a painted label and a tooltip. 4 PASS (labels at the
+inspector's small size, the values in the labels). 5 PASS. 6 PASS (the card matches the audio clip's
+card: accent square, bold title). 7 PASS (the values shown are the context's).
+
+**Deviation log.** (1) Settings are session state, not per-Clip Project data (Logic: per region) —
+parking lot, with the schema note. (2) The grid choice offers Snap / 1/8 / 1/16 / 1/32 — no triplets or
+dotted values yet (Logic has them); a later pass widens the chooser. (3) Groove templates parked by the plan.
 
 ### G3.4 cp1 — Quantize v2: the engine half (2026-09-05)
 

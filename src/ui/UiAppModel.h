@@ -2774,9 +2774,88 @@ public:
                                        source->startTick + (gridStepTicks > 0 ? gridStepTicks : source->lengthTicks));   // G3.2 checkpoint: 0 = right after the note (Logic's Repeat)
     }
 
-    // Quantize the whole note selection to the current snap grid as one atomic undo group (B36).
-    // Notes already on the grid are skipped so mixed selections quantize the rest; a selection
-    // entirely on the grid is an honest no-op.
+    // ---------------------------------------------------------------------------------------
+    // G3.4: the quantize panel's settings live in the context; Q applies them.
+
+    [[nodiscard]] UiActionDispatchResult selectQuantizeGrid (int choice)
+    {
+        const UiActionId id = UiActionId::QuantizeGridSelect;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        context_.quantizeGridChoice = std::clamp (choice, 0, 3);
+        return registry_.dispatch (id, context_);
+    }
+
+    [[nodiscard]] UiActionDispatchResult setQuantizeStrength (int percent)
+    {
+        const UiActionId id = UiActionId::QuantizeStrengthSet;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        context_.quantizeStrengthPercent = std::clamp (percent, 0, 100);
+        return registry_.dispatch (id, context_);
+    }
+
+    [[nodiscard]] UiActionDispatchResult setQuantizeSwing (int percent)
+    {
+        const UiActionId id = UiActionId::QuantizeSwingSet;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        context_.quantizeSwingPercent = std::clamp (percent, 0, static_cast<int> (engine::kQuantizeSwingMaxPercent));
+        return registry_.dispatch (id, context_);
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleQuantizeNoteEnds()
+    {
+        return dispatch (UiActionId::QuantizeNoteEndsToggle);
+    }
+
+    [[nodiscard]] UiActionDispatchResult setQuantizeHumanize (int percent)
+    {
+        const UiActionId id = UiActionId::QuantizeHumanizeSet;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        context_.quantizeHumanizePercent = std::clamp (percent, 0, 100);
+        return registry_.dispatch (id, context_);
+    }
+
+    // The grid Q quantizes to: choice 0 follows the snap chooser (a beat when snap is off), the
+    // others are their own unit through the same head tempo / meter law the snap grid uses.
+    [[nodiscard]] engine::Tick quantizeGridTicks() const noexcept
+    {
+        switch (context_.quantizeGridChoice)
+        {
+            case 1: return std::max<engine::Tick> (1, snapFramesForUnit (UiSnapUnit::Beat) / 2);
+            case 2: return std::max<engine::Tick> (1, snapFramesForUnit (UiSnapUnit::Sixteenth));
+            case 3: return std::max<engine::Tick> (1, snapFramesForUnit (UiSnapUnit::Sixteenth) / 2);
+            default: break;
+        }
+        return std::max<engine::Tick> (1, context_.snapEnabled ? static_cast<engine::Tick> (context_.snapGridTicks)
+                                                               : snapFramesForUnit (UiSnapUnit::Beat));
+    }
+
+    // The settings Q applies right now. The humanize seed advances per apply so a repeated Q with
+    // humanize re-rolls (Logic's Humanize does); the probe publishes the seed the NEXT apply uses.
+    [[nodiscard]] engine::QuantizeSettings currentQuantizeSettings() const noexcept
+    {
+        engine::QuantizeSettings settings;
+        settings.grid = engine::SnapGrid { quantizeGridTicks() };
+        settings.strengthPercent = static_cast<std::uint8_t> (std::clamp (context_.quantizeStrengthPercent, 0, 100));
+        settings.swingPercent = static_cast<std::uint8_t> (std::clamp (context_.quantizeSwingPercent, 0, static_cast<int> (engine::kQuantizeSwingMaxPercent)));
+        settings.noteEnds = context_.quantizeNoteEnds;
+        settings.humanizePercent = static_cast<std::uint8_t> (std::clamp (context_.quantizeHumanizePercent, 0, 100));
+        settings.humanizeSeed = quantizeSeed_;
+        return settings;
+    }
+
+    [[nodiscard]] std::uint32_t quantizeSeed() const noexcept { return quantizeSeed_; }
+
+    // Quantize the whole note selection as one atomic undo group (B36). G3.4: the grid, strength,
+    // swing, note ends and humanize come from the panel's settings; with the plain settings the
+    // E12 law holds exactly (notes already on the grid are skipped; all on the grid = a no-op).
     [[nodiscard]] UiActionDispatchResult quantizeSelectedPianoRollNotesToCurrentGrid()
     {
         const UiActionId id = UiActionId::PianoRollNoteQuantizeSelection;
@@ -2788,7 +2867,8 @@ public:
         if (midiClip == nullptr)
             return { id, { false, "MIDI clip missing" }, false };
 
-        const engine::SnapGrid grid { std::max<engine::Tick> (1, context_.snapGridTicks) };
+        const engine::QuantizeSettings settings = currentQuantizeSettings();
+        const engine::SnapGrid grid = settings.grid;
         const std::vector<engine::EntityId> targets = selectedMidiNoteIds_.empty()
             ? std::vector<engine::EntityId> { selectedMidiNoteId_ }
             : selectedMidiNoteIds_;
@@ -2803,13 +2883,13 @@ public:
             engine::Tick snapped = 0;
             if (note == nullptr
                 || ! engine::snapTick (note->startTick, grid, snapped)
-                || snapped == note->startTick)
-                continue;   // already on the grid: nothing to quantize for this note
+                || (settings.isPlainGrid() && snapped == note->startTick))
+                continue;   // already on the grid (plain settings): nothing to quantize for this note
 
             if (! nextUndo.apply (nextProject,
-                                  engine::ProjectEditCommand::quantizeNote (selectedMidiClipId_,
-                                                                            noteId,
-                                                                            grid)).applied())
+                                  settings.isPlainGrid()
+                                      ? engine::ProjectEditCommand::quantizeNote (selectedMidiClipId_, noteId, grid)
+                                      : engine::ProjectEditCommand::quantizeNoteWith (selectedMidiClipId_, noteId, settings)).applied())
             {
                 if (grouped)
                     (void) nextUndo.endTransactionGroup();
@@ -2826,6 +2906,8 @@ public:
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "note edit did not persist" }, false };
 
+        if (settings.humanizePercent > 0)
+            ++quantizeSeed_;   // the next Q re-rolls the feel
         ++context_.commandDispatchCount;
         ++context_.midiEditCount;
         return { id, state, true };
@@ -7299,6 +7381,11 @@ public:
             case UiActionId::TimelineToolSelectEraser:   // G3.2
             case UiActionId::TimelineToolSelectVelocity:
             case UiActionId::PianoRollControlLaneSelect:   // G3.3 (the shell sets the choice first)
+            case UiActionId::QuantizeGridSelect:          // G3.4 (likewise; the toggle flips in the registry)
+            case UiActionId::QuantizeStrengthSet:
+            case UiActionId::QuantizeSwingSet:
+            case UiActionId::QuantizeNoteEndsToggle:
+            case UiActionId::QuantizeHumanizeSet:
             case UiActionId::TimelineZoomFitProject:
             case UiActionId::TimelineZoomFitLoop:
             case UiActionId::TimelineZoomIn:
@@ -10242,6 +10329,7 @@ private:
     engine::EntityId selectedMidiClipId_;
     engine::EntityId selectedMidiNoteId_;
     engine::EntityId lastControlPointId_;   // G3.3: the control lane's last created / moved point
+    std::uint32_t quantizeSeed_ = 1;   // G3.4: the humanize seed the next Q uses (advances per humanized apply)
     std::vector<engine::EntityId> selectedMidiNoteIds_;   // multi-note selection (B34)
     // Edits since the last explicit Save (B37): every project mutation bumps the serial; Save and
     // a fresh bundle attach mark the session clean. Data is never at risk — the bundle persists

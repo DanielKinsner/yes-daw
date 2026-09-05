@@ -844,6 +844,12 @@ struct UiTheme
         static constexpr int instrumentPanelKindWidth = 160;
         static constexpr int inspectorInstrumentChooserWidth = 120;
         static constexpr int inspectorInstrumentEditWidth = 48;
+        // G3.4: the quantize panel (the CLIP tab of a MIDI clip): five rows of the fade-row height
+        // below the title, each a painted label on the left and one control on the right.
+        static constexpr int inspectorQuantizeRowHeight = 30;
+        static constexpr int inspectorQuantizeControlWidth = 132;
+        static constexpr int inspectorQuantizeApplyWidth = 88;
+        static constexpr int inspectorQuantizeSwingMax = 66;   // == engine::kQuantizeSwingMaxPercent (the theme audit's slider law)
         static constexpr int keymapEditorRestoreWidth = 140;
         static constexpr int keymapEditorUnbindWidth = 80;
         static constexpr int keymapEditorChordWidth = 220;

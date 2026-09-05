@@ -1092,7 +1092,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 157u));   // G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 163u));   // G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -20028,6 +20028,200 @@ TEST_CASE ("piano roll keyboard column: hovering a key names it in the status li
     const juce::Point<int> grid = pianoRoll.getPosition() + juce::Point<int> (gridX + 40, gridY + static_cast<int> (rowHeight * 3.5));
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, key).contains ("Keyboard"));
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, grid).contains ("Grid"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G3.4: the quantize panel — the inspector's CLIP tab for a MIDI clip carries the grid chooser,
+// strength, swing, note ends, humanize and Apply; every control posts to the context and names its
+// action; Q (and Apply) quantize the selection with those settings, matched against the engine's
+// own law on a copy of the project; the humanize seed advances per apply; the TRACK tab hides it.
+TEST_CASE ("G3.4 quantize panel: grid, strength, swing, note ends, humanize and Apply on the MIDI clip's CLIP tab; Q applies them",
+           "[ui][input][shell][g3][quantize-panel]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("quantize-panel");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    // The default dock height: a maxed dock leaves the inspector too short for the panel's rows,
+    // which then drop whole (the E24 law) — the gate exercises the panel at the plan's 300 px dock.
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+
+    auto* grid = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "clip.inspector.quantize.grid"));
+    auto* strength = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "clip.inspector.quantize.strength"));
+    auto* swing = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "clip.inspector.quantize.swing"));
+    auto* ends = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "clip.inspector.quantize.ends"));
+    auto* humanize = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "clip.inspector.quantize.humanize"));
+    auto* apply = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "clip.inspector.quantize.apply"));
+    REQUIRE (grid != nullptr);
+    REQUIRE (strength != nullptr);
+    REQUIRE (swing != nullptr);
+    REQUIRE (ends != nullptr);
+    REQUIRE (humanize != nullptr);
+    REQUIRE (apply != nullptr);
+    for (juce::Component* c : { static_cast<juce::Component*> (grid), static_cast<juce::Component*> (strength), static_cast<juce::Component*> (swing),
+                                static_cast<juce::Component*> (ends), static_cast<juce::Component*> (humanize), static_cast<juce::Component*> (apply) })
+    {
+        REQUIRE (c->isVisible());
+        REQUIRE (c->getWidth() > 0);
+    }
+    REQUIRE (grid->getText() == juce::String ("Snap grid"));
+    REQUIRE (strength->getValue() == 100.0);
+    REQUIRE (swing->getValue() == 0.0);
+    REQUIRE (humanize->getValue() == 0.0);
+    REQUIRE_FALSE (ends->getToggleState());
+
+    const auto probeQuantize = [&] {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return probe.getProperty ("view", juce::var()).getProperty ("quantize", juce::var());
+    };
+    const auto lastAction = [&] {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return probe.getProperty ("lastAction", juce::var()).toString();
+    };
+    REQUIRE (static_cast<bool> (probeQuantize().getProperty ("panel", false)));
+    REQUIRE (static_cast<juce::int64> (probeQuantize().getProperty ("gridTicks", 0)) == snapshotMainComponent (*shell).context.snapGridTicks);
+
+    // Two raw notes (chooser Off), then Snap: Beat so the grid displaces both.
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
+    mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 3, pianoRoll.getHeight() / 3 });
+    mouseDownAt (pianoRoll, { (pianoRoll.getWidth() * 2) / 3, pianoRoll.getHeight() / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    snapChooser->setSelectedId (3, juce::sendNotificationSync);
+    REQUIRE (snapshotMainComponent (*shell).context.snapEnabled);
+    const yesdaw::engine::Project seeded = readProjectSnapshot (bundlePath);
+    REQUIRE (seeded.midiClips.front().notes.size() == 2u);
+    const yesdaw::engine::EntityId clipId = seeded.midiClips.front().id;
+    for (const yesdaw::engine::Note& note : seeded.midiClips.front().notes)
+    {
+        yesdaw::engine::Tick snapped = 0;
+        REQUIRE (yesdaw::engine::snapTick (note.startTick, yesdaw::engine::SnapGrid { snapshotMainComponent (*shell).context.snapGridTicks }, snapped));
+        REQUIRE (snapped != note.startTick);
+    }
+
+    // The settings the shell will apply, read back from the probe, and the engine's own law applied
+    // to a copy of the project: the shell's Q must land exactly there.
+    const auto settingsFromProbe = [&] {
+        const juce::var q = probeQuantize();
+        yesdaw::engine::QuantizeSettings settings;
+        settings.grid = yesdaw::engine::SnapGrid { static_cast<yesdaw::engine::Tick> (static_cast<juce::int64> (q.getProperty ("gridTicks", 0))) };
+        settings.strengthPercent = static_cast<std::uint8_t> (static_cast<int> (q.getProperty ("strength", 100)));
+        settings.swingPercent = static_cast<std::uint8_t> (static_cast<int> (q.getProperty ("swing", 0)));
+        settings.noteEnds = static_cast<bool> (q.getProperty ("noteEnds", false));
+        settings.humanizePercent = static_cast<std::uint8_t> (static_cast<int> (q.getProperty ("humanize", 0)));
+        settings.humanizeSeed = static_cast<std::uint32_t> (static_cast<juce::int64> (q.getProperty ("seed", 0)));
+        return settings;
+    };
+    const auto expectedNotes = [&] (const yesdaw::engine::Project& from, const yesdaw::engine::QuantizeSettings& settings) {
+        yesdaw::engine::Project copy = from;
+        for (const yesdaw::engine::Note& note : from.midiClips.front().notes)
+            REQUIRE (yesdaw::engine::quantizeNoteWith (copy, clipId, note.id, settings) == yesdaw::engine::ProjectEditStatus::Applied);
+        return copy.midiClips.front().notes;
+    };
+    const auto currentNotes = [&] { return readProjectSnapshot (bundlePath).midiClips.front().notes; };
+    const auto undo = [&] {
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (currentNotes() == seeded.midiClips.front().notes);
+    };
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));   // select both notes (PianoRoll context)
+
+    // Strength 50: the slider posts to the context and names its action; Q lands halfway.
+    strength->setValue (50.0, juce::sendNotificationSync);
+    REQUIRE (snapshotMainComponent (*shell).context.quantizeStrengthPercent == 50);
+    REQUIRE (lastAction() == juce::String ("quantize.strength"));
+    REQUIRE (static_cast<int> (probeQuantize().getProperty ("strength", 0)) == 50);
+    {
+        const std::vector<yesdaw::engine::Note> expected = expectedNotes (seeded, settingsFromProbe());
+        REQUIRE (shell->keyPressed (juce::KeyPress ('q')));
+        REQUIRE (currentNotes() == expected);
+        REQUIRE (expected != seeded.midiClips.front().notes);
+        undo();
+    }
+
+    // Swing 50 at full strength: the swung slots.
+    strength->setValue (100.0, juce::sendNotificationSync);
+    swing->setValue (50.0, juce::sendNotificationSync);
+    REQUIRE (snapshotMainComponent (*shell).context.quantizeSwingPercent == 50);
+    REQUIRE (lastAction() == juce::String ("quantize.swing"));
+    {
+        const std::vector<yesdaw::engine::Note> expected = expectedNotes (seeded, settingsFromProbe());
+        REQUIRE (shell->keyPressed (juce::KeyPress ('q')));
+        REQUIRE (currentNotes() == expected);
+        undo();
+    }
+
+    // Note ends: the toggle flips the context and names its action; Q quantizes the ends too.
+    swing->setValue (0.0, juce::sendNotificationSync);
+    clickButton (*ends);
+    REQUIRE (snapshotMainComponent (*shell).context.quantizeNoteEnds);
+    REQUIRE (lastAction() == juce::String ("quantize.note_ends"));
+    REQUIRE (ends->getToggleState());
+    {
+        const std::vector<yesdaw::engine::Note> expected = expectedNotes (seeded, settingsFromProbe());
+        REQUIRE (shell->keyPressed (juce::KeyPress ('q')));
+        REQUIRE (currentNotes() == expected);
+        bool lengthChanged = false;
+        for (std::size_t i = 0; i < expected.size(); ++i)
+            lengthChanged = lengthChanged || expected[i].lengthTicks != seeded.midiClips.front().notes[i].lengthTicks;
+        REQUIRE (lengthChanged);
+        undo();
+    }
+    clickButton (*ends);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.quantizeNoteEnds);
+
+    // Humanize 25: the seed the probe publishes is the one Q uses; the apply advances it, so the
+    // next Q re-rolls; the offsets are the engine's law.
+    humanize->setValue (25.0, juce::sendNotificationSync);
+    REQUIRE (lastAction() == juce::String ("quantize.humanize"));
+    {
+        const yesdaw::engine::QuantizeSettings first = settingsFromProbe();
+        const std::vector<yesdaw::engine::Note> expected = expectedNotes (seeded, first);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('q')));
+        REQUIRE (currentNotes() == expected);
+        REQUIRE (static_cast<juce::int64> (probeQuantize().getProperty ("seed", 0)) == static_cast<juce::int64> (first.humanizeSeed) + 1);
+        undo();
+        const yesdaw::engine::QuantizeSettings second = settingsFromProbe();
+        REQUIRE (second.humanizeSeed == first.humanizeSeed + 1);
+        REQUIRE (expectedNotes (seeded, second) != expected);   // another seed, another feel
+    }
+    humanize->setValue (0.0, juce::sendNotificationSync);
+
+    // Apply is Q by mouse: with strength 50 the click lands the same halfway result.
+    strength->setValue (50.0, juce::sendNotificationSync);
+    {
+        const std::vector<yesdaw::engine::Note> expected = expectedNotes (seeded, settingsFromProbe());
+        clickButton (*apply);
+        REQUIRE (currentNotes() == expected);
+        undo();
+    }
+    strength->setValue (100.0, juce::sendNotificationSync);
+
+    // The grid chooser: 1/16 is a quarter of the beat grid in force; it names its action.
+    const juce::int64 beatTicks = snapshotMainComponent (*shell).context.snapGridTicks;
+    grid->setSelectedId (3, juce::sendNotificationSync);
+    REQUIRE (snapshotMainComponent (*shell).context.quantizeGridChoice == 2);
+    REQUIRE (lastAction() == juce::String ("quantize.grid"));
+    REQUIRE (static_cast<juce::int64> (probeQuantize().getProperty ("gridTicks", 0)) == beatTicks / 4);
+    grid->setSelectedId (1, juce::sendNotificationSync);
+    REQUIRE (static_cast<juce::int64> (probeQuantize().getProperty ("gridTicks", 0)) == beatTicks);
+
+    // The TRACK tab hides the panel; the CLIP tab brings it back with the settings intact.
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowTrackTab));
+    REQUIRE_FALSE (grid->isVisible());
+    REQUIRE_FALSE (static_cast<bool> (probeQuantize().getProperty ("panel", true)));
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+    REQUIRE (grid->isVisible());
+    REQUIRE (strength->getValue() == 100.0);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

@@ -191,4 +191,13 @@ Shot 'ss5-control-lane-painted'
 Key 'Ctrl+Z'
 [void](Assert (WaitProbe { param($q) [int]$q.view.pianoRoll.controlPointCount -eq $c0 } -TimeoutMs 2000) 'one Ctrl+Z clears the whole sweep')
 Click 'tool.pointer'
+
+Step 12 'G3.4 the quantize panel: the inspector shows it for the MIDI clip; Note ends toggles by click; Apply quantizes'
+[void](Assert ([bool](Probe).view.quantize.panel) 'the CLIP tab shows the quantize panel for the MIDI clip')
+[void](Assert ((LayoutRect 'inspector.quantize.strength')[2] -gt 0) 'the strength slider is laid out')
+Click 'inspector.quantize.ends'
+[void](Assert (WaitProbe { param($q) [bool]$q.view.quantize.noteEnds } -TimeoutMs 1500) 'a click toggles Note ends on')
+[void](Assert ((Probe).lastAction -eq 'quantize.note_ends') 'the toggle names its action')
+Click 'inspector.quantize.ends'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.view.quantize.noteEnds } -TimeoutMs 1500) 'a second click toggles it off')
 Close

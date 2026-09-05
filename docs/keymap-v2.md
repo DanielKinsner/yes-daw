@@ -233,3 +233,8 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Move Controller Point (`piano_roll.control_point.move`)
 - Delete Controller Point (`piano_roll.control_point.delete`)
 - Paint Controller Lane (`piano_roll.control_lane.paint`)
+- Quantize Grid (`quantize.grid`)
+- Quantize Strength (`quantize.strength`)
+- Quantize Swing (`quantize.swing`)
+- Quantize Note Ends (`quantize.note_ends`)
+- Quantize Humanize (`quantize.humanize`)

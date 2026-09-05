@@ -357,6 +357,14 @@ frame.
 _Avoid_: automation (that targets a Node parameter, not the instrument's MIDI input), CC message (when
 you mean the edit object)
 
+**Quantize settings** (G3.4):
+The session's quantize recipe — the grid (the snap grid, or 1/8, 1/16, 1/32), strength %, swing % (odd
+grid slots land this much of the interval late; 0 straight, 66 the cap), note ends (the end quantizes to
+the straight grid too) and humanize % (a deterministic offset within that share of the interval, from a
+seed that advances per humanized apply). Set in the inspector's quantize panel (the MIDI clip's CLIP tab);
+applied by Q or Apply to the note selection as one undo step. Session state, not Project data.
+_Avoid_: groove (a template, parked), swing 50 % = straight (that is Logic's scale, not ours)
+
 **Control lane** (G3.3):
 The piano roll's expression lane for ONE kind + number of control event (CC1 Mod, CC64 Sustain, Pitch
 Bend, Aftertouch, Program), chosen by the lane's chooser; the pointer places, drags and erases points,

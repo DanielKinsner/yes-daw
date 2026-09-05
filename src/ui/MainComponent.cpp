@@ -5862,6 +5862,74 @@ public:
         };
         addChildComponent (inspectorInstrumentEdit);
 
+        // G3.4: the quantize panel — the CLIP tab's content for a MIDI clip (Logic's region
+        // inspector: Quantize, Q-Strength, Q-Swing, Q-Length; humanize). Settings, not edits:
+        // each control posts its value to the context and Q (or Apply) applies them.
+        configureActionComponent (inspectorQuantizeGrid, yesdaw::ui::UiActionId::QuantizeGridSelect, "Quantize grid");
+        inspectorQuantizeGrid.setComponentID ("clip.inspector.quantize.grid");
+        inspectorQuantizeGrid.addItem ("Snap grid", 1);
+        inspectorQuantizeGrid.addItem ("1/8", 2);
+        inspectorQuantizeGrid.addItem ("1/16", 3);
+        inspectorQuantizeGrid.addItem ("1/32", 4);
+        inspectorQuantizeGrid.setSelectedId (1, juce::dontSendNotification);
+        inspectorQuantizeGrid.onChange = [this] {
+            if (refreshingInspectorControls || inspectorQuantizeGrid.getSelectedId() <= 0)
+                return;
+            (void) appModel.selectQuantizeGrid (inspectorQuantizeGrid.getSelectedId() - 1);
+            recordLastAction (yesdaw::ui::UiActionId::QuantizeGridSelect);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (inspectorQuantizeGrid);
+        const auto setUpQuantizeSlider = [this] (juce::Slider& slider, yesdaw::ui::UiActionId action, const char* id,
+                                                 double maximum, double initial, std::function<void (int)> post) {
+            configureActionComponent (slider, action, "Quantize");
+            slider.setComponentID (id);
+            slider.setSliderStyle (juce::Slider::LinearHorizontal);
+            slider.setTextBoxStyle (juce::Slider::NoTextBox, false,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
+            slider.setRange (0.0, maximum, 1.0);
+            slider.setValue (initial, juce::dontSendNotification);
+            slider.onValueChange = [this, &slider, action, post] {
+                if (refreshingInspectorControls || ! slider.isEnabled())
+                    return;
+                post (juce::roundToInt (slider.getValue()));
+                recordLastAction (action);
+                refreshActionState();
+                repaintAll();
+            };
+            addChildComponent (slider);
+        };
+        setUpQuantizeSlider (inspectorQuantizeStrength, yesdaw::ui::UiActionId::QuantizeStrengthSet, "clip.inspector.quantize.strength",
+                             100.0, 100.0, [this] (int v) { (void) appModel.setQuantizeStrength (v); });
+        setUpQuantizeSlider (inspectorQuantizeSwing, yesdaw::ui::UiActionId::QuantizeSwingSet, "clip.inspector.quantize.swing",
+                             static_cast<double> (yesdaw::ui::UiTheme::Layout::inspectorQuantizeSwingMax), 0.0,
+                             [this] (int v) { (void) appModel.setQuantizeSwing (v); });
+        setUpQuantizeSlider (inspectorQuantizeHumanize, yesdaw::ui::UiActionId::QuantizeHumanizeSet, "clip.inspector.quantize.humanize",
+                             100.0, 0.0, [this] (int v) { (void) appModel.setQuantizeHumanize (v); });
+        configureActionComponent (inspectorQuantizeEnds, yesdaw::ui::UiActionId::QuantizeNoteEndsToggle, "Quantize note ends");
+        inspectorQuantizeEnds.setComponentID ("clip.inspector.quantize.ends");
+        inspectorQuantizeEnds.setButtonText ("");   // the painted row label names it (rubric: no double "Note ends")
+        inspectorQuantizeEnds.onClick = [this] {
+            if (refreshingInspectorControls)
+                return;
+            (void) appModel.toggleQuantizeNoteEnds();
+            recordLastAction (yesdaw::ui::UiActionId::QuantizeNoteEndsToggle);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (inspectorQuantizeEnds);
+        configureActionComponent (inspectorQuantizeApply, yesdaw::ui::UiActionId::PianoRollNoteQuantizeSelection, "Quantize");
+        inspectorQuantizeApply.setComponentID ("clip.inspector.quantize.apply");
+        inspectorQuantizeApply.setButtonText ("Apply (Q)");
+        inspectorQuantizeApply.onClick = [this] {
+            handleAction (yesdaw::ui::UiActionId::PianoRollNoteQuantizeSelection);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (inspectorQuantizeApply);
+
         // G2.18: the undo history window rides the same overlay law.
         undoHistory.rowsProvider = [this] {
             std::vector<juce::String> rows;
@@ -6950,6 +7018,15 @@ public:
         put ("rail", leftRailPanelBounds());
         put ("timeline", timelineBounds());
         put ("inspector", inspectorBounds());
+        if (inspectorShowsQuantizePanel())   // G3.4: the panel's controls by name
+        {
+            put ("inspector.quantize.grid", inspectorQuantizeGrid.getBounds());
+            put ("inspector.quantize.strength", inspectorQuantizeStrength.getBounds());
+            put ("inspector.quantize.swing", inspectorQuantizeSwing.getBounds());
+            put ("inspector.quantize.ends", inspectorQuantizeEnds.getBounds());
+            put ("inspector.quantize.humanize", inspectorQuantizeHumanize.getBounds());
+            put ("inspector.quantize.apply", inspectorQuantizeApply.getBounds());
+        }
         if (appModel.context().mixerDockVisible)
         {
             put ("dock", mixerPanelBounds());
@@ -7282,6 +7359,20 @@ public:
             }
             view->setProperty ("snapEnabled", context.snapEnabled);
             view->setProperty ("snapGridTicks", static_cast<juce::int64> (context.snapGridTicks));
+            {
+                // G3.4: the quantize settings Q applies, and whether the panel is up.
+                auto* quantize = new juce::DynamicObject();
+                const yesdaw::engine::QuantizeSettings settings = appModel.currentQuantizeSettings();
+                quantize->setProperty ("gridChoice", context.quantizeGridChoice);
+                quantize->setProperty ("gridTicks", static_cast<juce::int64> (settings.grid.intervalTicks));
+                quantize->setProperty ("strength", context.quantizeStrengthPercent);
+                quantize->setProperty ("swing", context.quantizeSwingPercent);
+                quantize->setProperty ("noteEnds", context.quantizeNoteEnds);
+                quantize->setProperty ("humanize", context.quantizeHumanizePercent);
+                quantize->setProperty ("seed", static_cast<juce::int64> (settings.humanizeSeed));
+                quantize->setProperty ("panel", inspectorShowsQuantizePanel());
+                view->setProperty ("quantize", juce::var (quantize));
+            }
             view->setProperty ("playheadFollow", context.playheadFollowEnabled);
             view->setProperty ("playheadFollowContinuous", context.playheadFollowContinuous);   // G2.16
             view->setProperty ("rowZoom", timelineRowZoom);
@@ -10264,6 +10355,29 @@ private:
                                   yesdaw::ui::UiTheme::Layout::mixerPaintedMeterInsetY);
     }
 
+    // G3.4: the quantize panel shows on the CLIP tab when a MIDI clip is selected and no audio clip
+    // is (an audio clip's own card wins; the TRACK tab is the track's).
+    [[nodiscard]] bool inspectorShowsQuantizePanel() const
+    {
+        return ! appModel.context().inspectorTrackTabActive
+            && appModel.context().projectLoaded
+            && appModel.selectedMidiClipId().isValid()
+            && findProjectClipById (appModel.selectedTimelineClipId()) == nullptr;
+    }
+
+    // The six rows (grid, strength, swing, note ends, humanize, apply) below the title — ONE law
+    // for the paint (labels on the left) and the controls (on the right).
+    [[nodiscard]] static std::array<juce::Rectangle<int>, 6> quantizeInspectorRows (juce::Rectangle<int> content) noexcept
+    {
+        std::array<juce::Rectangle<int>, 6> rows {};
+        auto body = content.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop);
+        for (juce::Rectangle<int>& row : rows)
+            row = body.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorQuantizeRowHeight)
+                      .reduced (yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetX,
+                                yesdaw::ui::UiTheme::Layout::inspectorFadeRowInsetY);
+        return rows;
+    }
+
     [[nodiscard]] juce::Rectangle<int> inspectorBounds() const
     {
         auto work = getLocalBounds().withTrimmedTop (headerHeightNow());
@@ -10291,6 +10405,12 @@ private:
         // control drops WHOLE (the same empty-bounds law the section-fit drop already uses).
         if (appModel.context().inspectorTrackTabActive)
         {
+            inspectorQuantizeGrid.setBounds ({});   // G3.4: the panel is CLIP-tab content
+            inspectorQuantizeStrength.setBounds ({});
+            inspectorQuantizeSwing.setBounds ({});
+            inspectorQuantizeEnds.setBounds ({});
+            inspectorQuantizeHumanize.setBounds ({});
+            inspectorQuantizeApply.setBounds ({});
             inspectorStart.setBounds ({});
             inspectorEnd.setBounds ({});
             inspectorLength.setBounds ({});
@@ -10315,6 +10435,22 @@ private:
         }
         inspectorInstrumentEdit.setBounds ({});
         inspectorInstrumentChooser.setBounds ({});
+        // G3.4: the CLIP tab of a MIDI clip (no audio clip selected) is the quantize panel; its
+        // rows share one law with drawMidiClipInspector (quantizeInspectorRows).
+        {
+            const bool showQuantize = inspectorShowsQuantizePanel();
+            const std::array<juce::Rectangle<int>, 6> rows = quantizeInspectorRows (area);
+            const auto control = [&] (std::size_t row, int width) {
+                juce::Rectangle<int> rect = rows[row];
+                return showQuantize && area.contains (rect) ? rect.removeFromRight (width) : juce::Rectangle<int> {};
+            };
+            inspectorQuantizeGrid.setBounds (control (0, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeStrength.setBounds (control (1, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeSwing.setBounds (control (2, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeEnds.setBounds (control (3, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeHumanize.setBounds (control (4, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeApply.setBounds (control (5, yesdaw::ui::UiTheme::Layout::inspectorQuantizeApplyWidth));
+        }
         // E24/E27: ONE law for paint and controls — an inspector section that no longer fits
         // the column is dropped WHOLE (card, labels, and controls), never split across the
         // panel edge or bled over the bottom mixer panel.
@@ -12933,6 +13069,28 @@ private:
                                                                            appModel.context()).enabled);   // G2.10
 
         refreshingInspectorControls = true;
+        {
+            // G3.4: the quantize panel follows the context's settings; it shows only for a MIDI clip on the CLIP tab.
+            const bool showQuantize = inspectorShowsQuantizePanel();
+            const auto& context = appModel.context();
+            inspectorQuantizeGrid.setSelectedId (context.quantizeGridChoice + 1, juce::dontSendNotification);
+            inspectorQuantizeStrength.setValue (context.quantizeStrengthPercent, juce::dontSendNotification);
+            inspectorQuantizeSwing.setValue (context.quantizeSwingPercent, juce::dontSendNotification);
+            inspectorQuantizeEnds.setToggleState (context.quantizeNoteEnds, juce::dontSendNotification);
+            inspectorQuantizeHumanize.setValue (context.quantizeHumanizePercent, juce::dontSendNotification);
+            for (juce::Component* component : { static_cast<juce::Component*> (&inspectorQuantizeGrid),
+                                                static_cast<juce::Component*> (&inspectorQuantizeStrength),
+                                                static_cast<juce::Component*> (&inspectorQuantizeSwing),
+                                                static_cast<juce::Component*> (&inspectorQuantizeEnds),
+                                                static_cast<juce::Component*> (&inspectorQuantizeHumanize),
+                                                static_cast<juce::Component*> (&inspectorQuantizeApply) })
+            {
+                component->setVisible (showQuantize);
+                component->setEnabled (showQuantize);
+            }
+            inspectorQuantizeApply.setEnabled (showQuantize
+                && appModel.registry().stateFor (yesdaw::ui::UiActionId::PianoRollNoteQuantizeSelection, context).enabled);
+        }
         if (selected && appModel.project().sampleRate.isValid())
         {
             const double sampleRate = appModel.project().sampleRate.hz;
@@ -15234,6 +15392,43 @@ private:
         }
     }
 
+    // G3.4: the MIDI clip's inspector card — the title and the quantize panel's row labels with
+    // the values in force (the controls themselves are children placed by layoutInspectorControls).
+    void drawMidiClipInspector (juce::Graphics& g, juce::Rectangle<int> area) const
+    {
+        g.setColour (kCyan);
+        g.fillRoundedRectangle (static_cast<float> (area.getX()),
+                                static_cast<float> (area.getY() + yesdaw::ui::UiTheme::Layout::inspectorTitleAccentTopInset),
+                                static_cast<float> (yesdaw::ui::UiTheme::Layout::inspectorTitleAccentSize),
+                                static_cast<float> (yesdaw::ui::UiTheme::Layout::inspectorTitleAccentSize),
+                                yesdaw::ui::UiTheme::Radius::sm);
+        g.setColour (kText);
+        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::title, juce::Font::bold));
+        g.drawText ("MIDI Clip  |  Quantize",
+                    area.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorTitleTextLeftInset)
+                        .withHeight (yesdaw::ui::UiTheme::Layout::inspectorTitleTextHeight),
+                    juce::Justification::centredLeft, false);
+
+        const auto& context = appModel.context();
+        const std::array<juce::Rectangle<int>, 6> rows = quantizeInspectorRows (area);
+        const std::array<juce::String, 6> labels {
+            juce::String ("Grid"),
+            "Strength " + juce::String (context.quantizeStrengthPercent) + " %",
+            "Swing " + juce::String (context.quantizeSwingPercent) + " %",
+            juce::String ("Note ends"),
+            "Humanize " + juce::String (context.quantizeHumanizePercent) + " %",
+            juce::String ("Q applies to the selected notes") };
+        for (std::size_t i = 0; i < rows.size(); ++i)
+        {
+            if (! area.contains (rows[i]))
+                break;
+            drawSmallLabel (g, labels[i],
+                            rows[i].withTrimmedRight (i == 5 ? yesdaw::ui::UiTheme::Layout::inspectorQuantizeApplyWidth
+                                                             : yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth),
+                            juce::Justification::centredLeft);
+        }
+    }
+
     void drawInspector (juce::Graphics& g, juce::Rectangle<int> area) const
     {
         fillPanel (g, area);
@@ -15254,6 +15449,11 @@ private:
         const yesdaw::engine::Clip* const selectedClip = findProjectClipById (appModel.selectedTimelineClipId());
         if (selectedClip == nullptr)
         {
+            if (inspectorShowsQuantizePanel())
+            {
+                drawMidiClipInspector (g, area);
+                return;
+            }
             drawSmallLabel (g, "No clip selected", area, juce::Justification::centred);
             return;
         }
@@ -16121,6 +16321,13 @@ private:
     PlayheadLayerComponent playheadLayer;   // G0.4: above the buffered canvas
     PianoRollInputComponent pianoRollInput;
     juce::ComboBox pianoRollLaneChooser;   // G3.3: the control lane's chooser (a child over the lane's gutter)
+    // G3.4: the quantize panel's controls (the inspector's CLIP tab for a MIDI clip)
+    juce::ComboBox inspectorQuantizeGrid;
+    FineDragSlider inspectorQuantizeStrength;
+    FineDragSlider inspectorQuantizeSwing;
+    juce::ToggleButton inspectorQuantizeEnds;
+    FineDragSlider inspectorQuantizeHumanize;
+    juce::TextButton inspectorQuantizeApply;
     TrackListInputComponent trackListInput;
     MixerStripsInputComponent mixerStripsInput;
     FineDragSlider headerTempoControl;

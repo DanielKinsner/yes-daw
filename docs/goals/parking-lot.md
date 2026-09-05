@@ -79,3 +79,7 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 - **Pitch-bend range is fixed at ±2 st (2026-09-04, G3.3 cp1).** `SimpleSynthNode::kPitchBendSemitones`; Logic's synths expose a range knob. A `ParamSpec` on the instrument (id 10) once the panel has room. Owner: G3.9 (the Sampler ADR revisits the instrument panel).
 
 - **No live preview while dragging in the control lane (2026-09-04, G3.3 cp2).** `MainComponent.cpp` `PianoRollInputComponent::finishControlLaneGesture` — the point / paint lands on the release (the velocity lane's E13 law); Logic shows the path under the pencil as it moves. A G2.3-style ghost (paint from `controlDragState.samples`, model untouched, Esc cancels). Owner: the roll polish pass at G3 close.
+
+- **Quantize settings are session state, not per-Clip data (2026-09-05, G3.4 cp2).** `UiActions.h` `UiActionContext::quantize*` — Logic keeps Quantize / Q-Strength / Q-Swing per region and re-applies them non-destructively; ours apply destructively to the selection and forget nothing per Clip. A per-MidiClip quantize block would be schema v29 (additive). Owner: G3.5 (MIDI clips at arrange level: the clip inspector's transpose / velocity offset sit in the same block) or later.
+
+- **Quantize grid has no triplet / dotted values (2026-09-05, G3.4 cp2).** `UiAppModel.h` `quantizeGridTicks` — Snap / 1/8 / 1/16 / 1/32 only; Logic's chooser lists 1/8T, 1/16T, dotted. A chooser widening with the same head tempo / meter law. Owner: the roll header pass (G3.6 step input shares the note-length chooser).

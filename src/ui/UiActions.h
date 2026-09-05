@@ -240,6 +240,12 @@ enum class UiActionId : std::uint8_t
     PianoRollControlPointMove,
     PianoRollControlPointDelete,
     PianoRollControlLanePaint,
+    // G3.4: the quantize panel's settings (session state in the context; Q applies them; no chords)
+    QuantizeGridSelect,
+    QuantizeStrengthSet,
+    QuantizeSwingSet,
+    QuantizeNoteEndsToggle,
+    QuantizeHumanizeSet,
     Count
 };
 
@@ -476,6 +482,13 @@ struct UiActionContext
     UiPanel activePanel = UiPanel::Timeline;
     TimelineTool activeTimelineTool = TimelineTool::Pointer;
     int pianoRollControlLaneChoice = 0;   // G3.3: the roll's control lane (kPianoRollControlLaneChoices index)
+    // G3.4: Quantize v2 settings (Logic's region inspector): the grid choice (0 follows the snap
+    // chooser, 1 = 1/8, 2 = 1/16, 3 = 1/32), strength %, swing % (0..66), note ends, humanize %.
+    int quantizeGridChoice = 0;
+    int quantizeStrengthPercent = 100;
+    int quantizeSwingPercent = 0;
+    bool quantizeNoteEnds = false;
+    int quantizeHumanizePercent = 0;
     bool snapEnabled = true;
     std::int64_t snapGridTicks = 512;
     bool clipboardHasClip = false;
@@ -1028,7 +1041,18 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::PianoRollControlPointDelete, "piano_roll.control_point.delete", "Delete Controller Point", "", "Remove a controller point from the control lane",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true },
     { UiActionId::PianoRollControlLanePaint, "piano_roll.control_lane.paint", "Paint Controller Lane", "", "Paint controller points with the pencil (freehand, or a line with Shift)",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true },
+    // G3.4: the quantize panel (the inspector's CLIP tab for a MIDI clip). Settings, not edits: Q applies them.
+    { UiActionId::QuantizeGridSelect, "quantize.grid", "Quantize Grid", "", "The grid Q quantizes to: the snap grid, 1/8, 1/16 or 1/32",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    { UiActionId::QuantizeStrengthSet, "quantize.strength", "Quantize Strength", "", "How far Q moves a note toward the grid (100 % = onto it)",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    { UiActionId::QuantizeSwingSet, "quantize.swing", "Quantize Swing", "", "How late the off-beat grid lands (0 % straight)",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    { UiActionId::QuantizeNoteEndsToggle, "quantize.note_ends", "Quantize Note Ends", "", "Q also quantizes each note's end to the grid",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
+    { UiActionId::QuantizeHumanizeSet, "quantize.humanize", "Quantize Humanize", "", "A repeatable offset within this much of the grid after Q",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -1748,6 +1772,16 @@ public:
                 break;
 
             case UiActionId::PianoRollControlLaneSelect:   // G3.3: the model sets the choice, then dispatches
+                break;
+
+            case UiActionId::QuantizeGridSelect:   // G3.4: the model sets the value, then dispatches
+            case UiActionId::QuantizeStrengthSet:
+            case UiActionId::QuantizeSwingSet:
+            case UiActionId::QuantizeHumanizeSet:
+                break;
+
+            case UiActionId::QuantizeNoteEndsToggle:
+                context.quantizeNoteEnds = ! context.quantizeNoteEnds;
                 break;
 
             case UiActionId::TimelineZoomFitProject:
