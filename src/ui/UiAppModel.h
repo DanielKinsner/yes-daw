@@ -7617,6 +7617,10 @@ public:
             case UiActionId::PianoRollNoteSetVelocity:
             case UiActionId::PianoRollNoteDuplicate:
             case UiActionId::PianoRollReadExpressionLanes:
+            case UiActionId::PianoRollControlPointAdd:      // G3.3: the lane's verbs carry a payload (the shell's gestures)
+            case UiActionId::PianoRollControlPointMove:
+            case UiActionId::PianoRollControlPointDelete:
+            case UiActionId::PianoRollControlLanePaint:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
                 if (! currentState.enabled)

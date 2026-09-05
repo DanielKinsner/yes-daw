@@ -1678,6 +1678,10 @@ public:
             case UiActionId::PianoRollNoteOctaveDown:
             case UiActionId::PianoRollNoteDuplicate:
             case UiActionId::PianoRollNoteQuantizeSelection:
+            case UiActionId::PianoRollControlPointAdd:      // G3.3: the lane's gestures are MIDI edits
+            case UiActionId::PianoRollControlPointMove:
+            case UiActionId::PianoRollControlPointDelete:
+            case UiActionId::PianoRollControlLanePaint:
                 context.activePanel = UiPanel::PianoRoll;
                 context.canUndo = true;
                 context.canRedo = false;
