@@ -56,7 +56,10 @@ chooser or the import chooser did not take the typed path on the first try (ss2 
 index into a null array" cascading); the same scripts pass launched alone a few seconds later — a launch
 transient, not a shell defect; batch drives with a pause between scripts. ss1's B2 paint p95 read 8.54 ms once
 while other work ran, 7.x alone — the budget holds on an idle machine. **Next:** the G3.3 docs-evidence commit
-once CI is green on the head, then **G3.4 — Quantize v2** per the plan's order. Rules in force: HEADLESS by default, the macOS GPU
+once CI is green on the head. **G3.4 — Quantize v2 is under way:** cp1 (the engine half — `QuantizeSettings`,
+the swing / strength / note-ends / humanize laws, the widened `QuantizeNote` verb, `YesDawQuantizeCheck`)
+is in this commit; cp2 (the inspector quantize panel, Q applying the current setting, `[quantize-panel]`)
+is next. Rules in force: HEADLESS by default, the macOS GPU
 frame-budget red is noise, the local suite + drives are the working gate.
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
@@ -200,6 +203,44 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.4 cp1 — Quantize v2: the engine half (2026-09-05)
+
+**Story.** Q snaps a note's start onto the snap grid and nothing else — every note lands dead on the
+line, no swing, no feel, ends untouched. A real quantize has a strength, a swing, an option to quantize
+the ends, and a humanize; SS-4 asks for "quantize 80 % with swing". cp1 is the law and the verb; the
+panel is cp2.
+
+**Precedent.** Logic's region inspector: Quantize (the grid), Q-Strength (%), Q-Swing, Q-Length (the
+ends); humanize as a deterministic per-note offset (Logic's "Humanize" MIDI transform, but repeatable
+so a gate can state it). Logic's swing runs 50 % (straight) to 75 %; ours is 0 % straight up to 66 %
+of the interval, the plan's wireframe number line ("swing 12 %").
+
+**Build.** `engine::QuantizeSettings` (grid, strength %, swing %, note ends, humanize %, humanize seed;
+`isValid`, `isPlainGrid`). Laws in `Time.h`: `quantizeSlotTick` (odd slots land swing % of the interval
+late), `quantizeTargetTick` (the nearest swung slot, ties later; swing 0 is exactly `snapTick`),
+`quantizeTowards` (strength % of the way, rounded half away from zero), `quantizeHumanizeOffset` (an
+FNV-1a of the seed and the note's id bytes, within ± humanize % of the interval; 0 % is exactly 0).
+`quantizeNoteWith` in `Project.h`: the start toward its swung target by strength, the end toward the
+straight grid when note ends (a collapsing note keeps one grid step; a zero-length note stays zero),
+then the humanize offset (clamped at 0), then the Clip fit; `InvalidQuantizeSettings` for a percentage
+out of range. `ProjectEditCommand::quantizeNoteWith` / `quantizeSettings()`; the `QuantizeNote` apply
+routes plain settings to the original `quantizeNote` (byte-for-byte the old law) and anything else to
+v2 — one verb, one label, undo as before.
+
+**Gates.** `YesDawQuantizeCheck` (new, `[quantize-v2]`, 6 cases / 3627 assertions): plain settings ≡
+the original over a sweep of starts; strength 50 / 80 / 0 closed forms and the rounding law; the swung
+slots (700 → 720, 500 → 720, 300 → 0, 1300 → 960, the 1320 tie → 1680), swing 0 ≡ `snapTick` over a
+sweep, the cap refused; note ends (100..800 → 0..1024, a collapsing note keeps 512, zero stays zero,
+strength halves the end's travel too); humanize (same seed same feel, another seed another, every
+offset within ± range and equal to the public law, 0 % on the grid); refusals leave the note untouched,
+the plain and v2 commands route and undo under "Quantize". `YesDawProjectCheck` and
+`YesDawMidiTimingCheck` (the `Time.h` users) unchanged and green.
+
+**Not built (recorded → cp2).** The settings in the shell (context state like the nudge value), the
+inspector quantize panel (grid chooser, strength, swing, note ends, humanize, Apply), Q applying the
+current setting, the probe's `view.quantize`, `[quantize-panel]`, the ss5 step. Groove templates are
+parked by the plan.
 
 ### G3.3 cp2 — The control lane in the piano roll (2026-09-04)
 

@@ -987,6 +987,7 @@ enum class ProjectEditStatus : std::uint8_t
     NoteNotFound,
     InvalidNoteWindow,
     InvalidNoteValue,
+    InvalidQuantizeSettings,     // G3.4: strength / swing / humanize outside their ranges
     InvalidMidiControlEventId,   // G3.3
     MidiControlEventNotFound,
     InvalidMidiControlEvent,
@@ -2491,6 +2492,68 @@ namespace detail {
 
     Note edited = *note;
     edited.startTick = snappedStart;
+    if (! detail::noteFitsMidiClip (*midiClip, edited))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    *note = edited;
+    return ProjectEditStatus::Applied;
+}
+
+// G3.4: quantize one Note with the v2 settings — start toward its swung target by strength %, the
+// end toward the straight grid when noteEnds, then a deterministic humanize offset. Plain settings
+// (100 / 0 / off / 0) reproduce quantizeNote exactly; the command apply routes them there.
+[[nodiscard]] inline ProjectEditStatus quantizeNoteWith (Project& project,
+                                                         EntityId midiClipId,
+                                                         EntityId noteId,
+                                                         const QuantizeSettings& settings) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! noteId.isValid())
+        return ProjectEditStatus::InvalidNoteId;
+
+    if (! settings.grid.isValid())
+        return ProjectEditStatus::InvalidSnapGrid;
+
+    if (! settings.isValid())
+        return ProjectEditStatus::InvalidQuantizeSettings;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    Note* const note = detail::findNote (*midiClip, noteId);
+    if (note == nullptr)
+        return ProjectEditStatus::NoteNotFound;
+
+    Tick target = 0;
+    if (! quantizeTargetTick (note->startTick, settings, target))
+        return ProjectEditStatus::InvalidNoteWindow;
+
+    Note edited = *note;
+    edited.startTick = quantizeTowards (note->startTick, target, settings.strengthPercent);
+
+    if (settings.noteEnds && note->lengthTicks > 0)
+    {
+        Tick end = 0;
+        if (! detail::addTickChecked (note->startTick, note->lengthTicks, end))
+            return ProjectEditStatus::InvalidNoteWindow;
+        Tick endTarget = 0;
+        if (! snapTick (end, settings.grid, endTarget))
+            return ProjectEditStatus::InvalidNoteWindow;
+        const Tick movedEnd = quantizeTowards (end, endTarget, settings.strengthPercent);
+        // A note never collapses: an end that lands at or before its start keeps one grid step.
+        edited.lengthTicks = movedEnd > edited.startTick ? movedEnd - edited.startTick : settings.grid.intervalTicks;
+    }
+
+    edited.startTick += quantizeHumanizeOffset (settings, note->id.bytes.data(), note->id.bytes.size());
+    if (edited.startTick < 0)
+        edited.startTick = 0;
+
     if (! detail::noteFitsMidiClip (*midiClip, edited))
         return ProjectEditStatus::InvalidNoteWindow;
 

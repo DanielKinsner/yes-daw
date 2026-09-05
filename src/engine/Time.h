@@ -94,6 +94,117 @@ struct SnapGrid
     return detail::scaleTick (quotient, interval, snapped);
 }
 
+// G3.4 — Quantize v2 (Logic's region inspector: Quantize, Q-Strength, Q-Swing, Q-Length; humanize).
+// The settings are plain percentages so a gate can state each law in closed form:
+//   strength   how far a note travels toward its target (100 = onto it, 50 = halfway);
+//   swing      every ODD grid slot lands this much of the interval late (0 = straight; 50 = the
+//              classic maximum; capped at kQuantizeSwingMaxPercent — Logic's 50..75 % scale maps
+//              to this 0..50 % one);
+//   noteEnds   the note's END quantizes to the straight grid too (Logic's Q-Length off / on);
+//   humanize   a deterministic offset within ± this much of the interval, drawn from the seed and
+//              the note's id (the same seed reproduces the same feel; 0 = none).
+inline constexpr std::uint8_t kQuantizeSwingMaxPercent = 66;
+
+struct QuantizeSettings
+{
+    SnapGrid      grid;
+    std::uint8_t  strengthPercent = 100;
+    std::uint8_t  swingPercent = 0;
+    bool          noteEnds = false;
+    std::uint8_t  humanizePercent = 0;
+    std::uint32_t humanizeSeed = 0;
+
+    [[nodiscard]] constexpr bool isValid() const noexcept
+    {
+        return grid.isValid()
+            && strengthPercent <= 100
+            && swingPercent <= kQuantizeSwingMaxPercent
+            && humanizePercent <= 100;
+    }
+
+    // The plain grid quantize every earlier verb meant: onto the grid, straight, no humanize.
+    [[nodiscard]] constexpr bool isPlainGrid() const noexcept
+    {
+        return strengthPercent == 100 && swingPercent == 0 && ! noteEnds && humanizePercent == 0;
+    }
+
+    friend constexpr bool operator== (const QuantizeSettings&, const QuantizeSettings&) noexcept = default;
+};
+
+// The swung grid: slot k sits at k * interval, plus swing % of the interval when k is odd.
+[[nodiscard]] constexpr bool quantizeSlotTick (Tick slot, SnapGrid grid, std::uint8_t swingPercent, Tick& tick) noexcept
+{
+    Tick base = 0;
+    if (! detail::scaleTick (slot, grid.intervalTicks, base))
+        return false;
+    const Tick late = (slot % 2 != 0) ? (grid.intervalTicks * static_cast<Tick> (swingPercent)) / 100 : 0;
+    if (late > 0 && base > std::numeric_limits<Tick>::max() - late)
+        return false;
+    tick = base + late;
+    return true;
+}
+
+// The nearest swung slot to a tick (a tie goes to the later slot, the snapTick law). With swing 0
+// this is exactly snapTick.
+[[nodiscard]] constexpr bool quantizeTargetTick (Tick tick, const QuantizeSettings& settings, Tick& target) noexcept
+{
+    if (! settings.isValid() || tick < 0)
+        return false;
+    if (settings.swingPercent == 0)
+        return snapTick (tick, settings.grid, target);
+
+    const Tick slot0 = tick / settings.grid.intervalTicks;
+    bool found = false;
+    Tick bestDistance = 0;
+    for (Tick slot = slot0 > 0 ? slot0 - 1 : 0; slot <= slot0 + 2; ++slot)
+    {
+        Tick candidate = 0;
+        if (! quantizeSlotTick (slot, settings.grid, settings.swingPercent, candidate))
+            break;
+        const Tick distance = candidate >= tick ? candidate - tick : tick - candidate;
+        if (! found || distance < bestDistance || (distance == bestDistance && candidate > target))
+        {
+            found = true;
+            bestDistance = distance;
+            target = candidate;
+        }
+    }
+    return found;
+}
+
+// A note moves strength % of the way from where it is to its target (rounded half away from zero).
+[[nodiscard]] constexpr Tick quantizeTowards (Tick from, Tick target, std::uint8_t strengthPercent) noexcept
+{
+    const Tick delta = target - from;
+    const Tick scaled = delta * static_cast<Tick> (strengthPercent);
+    const Tick moved = scaled >= 0 ? (scaled + 50) / 100 : -((-scaled + 50) / 100);
+    return from + moved;
+}
+
+// Humanize: a deterministic offset in [-range, +range] where range = humanize % of the interval,
+// from an FNV-1a hash of the seed and the note's id bytes. 0 % is exactly 0.
+[[nodiscard]] constexpr Tick quantizeHumanizeOffset (const QuantizeSettings& settings,
+                                                     const std::uint8_t* idBytes,
+                                                     std::size_t idByteCount) noexcept
+{
+    const Tick range = (settings.grid.intervalTicks * static_cast<Tick> (settings.humanizePercent)) / 100;
+    if (range <= 0)
+        return 0;
+    std::uint32_t h = 2166136261u;
+    for (int shift = 0; shift < 32; shift += 8)
+    {
+        h ^= static_cast<std::uint32_t> ((settings.humanizeSeed >> shift) & 0xFFu);
+        h *= 16777619u;
+    }
+    for (std::size_t i = 0; i < idByteCount; ++i)
+    {
+        h ^= static_cast<std::uint32_t> (idBytes[i]);
+        h *= 16777619u;
+    }
+    const Tick span = 2 * range + 1;
+    return static_cast<Tick> (h % static_cast<std::uint32_t> (span)) - range;
+}
+
 [[nodiscard]] constexpr bool gridIndexForTick (Tick tick, SnapGrid grid, Tick& index) noexcept
 {
     if (! grid.isValid() || tick % grid.intervalTicks != 0)

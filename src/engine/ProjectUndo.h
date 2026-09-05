@@ -223,6 +223,12 @@ struct ProjectEditCommand
     Tick noteLengthTicks = 0;
     Tick snapGridTicks = 0;
     std::int32_t semitones = 0;
+    // G3.4: Quantize v2 settings (defaults = the plain grid quantize every older command meant)
+    std::uint8_t quantizeStrength = 100;
+    std::uint8_t quantizeSwing = 0;
+    bool quantizeNoteEnds = false;
+    std::uint8_t quantizeHumanize = 0;
+    std::uint32_t quantizeSeed = 0;
     EntityId firstCompSegmentId;
     EntityId firstCompTakeId;
     Tick firstCompTimelineStart = 0;
@@ -483,6 +489,32 @@ struct ProjectEditCommand
         command.noteId = noteId;
         command.snapGridTicks = grid.intervalTicks;
         return command;
+    }
+
+    // G3.4: the same verb with the v2 settings (strength, swing, note ends, humanize).
+    [[nodiscard]] static constexpr ProjectEditCommand quantizeNoteWith (EntityId midiClipId,
+                                                                        EntityId noteId,
+                                                                        const QuantizeSettings& settings) noexcept
+    {
+        ProjectEditCommand command = quantizeNote (midiClipId, noteId, settings.grid);
+        command.quantizeStrength = settings.strengthPercent;
+        command.quantizeSwing = settings.swingPercent;
+        command.quantizeNoteEnds = settings.noteEnds;
+        command.quantizeHumanize = settings.humanizePercent;
+        command.quantizeSeed = settings.humanizeSeed;
+        return command;
+    }
+
+    [[nodiscard]] constexpr QuantizeSettings quantizeSettings() const noexcept
+    {
+        QuantizeSettings settings;
+        settings.grid = SnapGrid { snapGridTicks };
+        settings.strengthPercent = quantizeStrength;
+        settings.swingPercent = quantizeSwing;
+        settings.noteEnds = quantizeNoteEnds;
+        settings.humanizePercent = quantizeHumanize;
+        settings.humanizeSeed = quantizeSeed;
+        return settings;
     }
 
     [[nodiscard]] static constexpr ProjectEditCommand transposeNote (EntityId midiClipId,
@@ -1555,7 +1587,13 @@ namespace detail {
             return cutNote (project, command.midiClipId, command.noteId);
 
         case ProjectEditVerb::QuantizeNote:
-            return quantizeNote (project, command.midiClipId, command.noteId, SnapGrid { command.snapGridTicks });
+        {
+            // G3.4: plain settings keep the original law byte-for-byte; anything else is v2.
+            const QuantizeSettings settings = command.quantizeSettings();
+            if (settings.isPlainGrid())
+                return quantizeNote (project, command.midiClipId, command.noteId, settings.grid);
+            return quantizeNoteWith (project, command.midiClipId, command.noteId, settings);
+        }
 
         case ProjectEditVerb::TransposeNote:
             return transposeNote (project, command.midiClipId, command.noteId, command.semitones);

@@ -830,6 +830,13 @@ endif()
 yesdaw_harden(YesDawTrackInstrumentCheck)
 add_test(NAME YesDawTrackInstrumentCheck COMMAND $<TARGET_FILE:YesDawTrackInstrumentCheck>)
 
+# --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
+add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
+target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawQuantizeCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawQuantizeCheck)
+add_test(NAME YesDawQuantizeCheck COMMAND $<TARGET_FILE:YesDawQuantizeCheck>)
+
 # --- MIDI control check (G3.3: CC / pitch bend / aftertouch / program change - storage, flatten, render, undo) ---
 add_executable(YesDawMidiControlCheck tests/midi_control_tests.cpp)
 target_include_directories(YesDawMidiControlCheck PRIVATE ${YESDAW_SRC_DIR})
