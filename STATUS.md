@@ -64,8 +64,11 @@ rubric is recorded; the docs-evidence commit waits for CI on `603faa0`. **G3.5 �
 level:** cp1 `a58391a` (the engine half — mute / transpose / velocity offset / loop length at the flatten,
 split and join, six verbs, schema v29, `YesDawMidiClipOpsCheck`); cp2 (this commit) — the arrangement's
 split, heal, mute, copy / paste / repeat on MIDI clips, the four inspector rows, the muted wash,
-`[midi-clip-ops]` in the shell, ss5 Step 13 authored. Next: the ss5 drive (Steps 1–13) and rubric shots,
-the G3.4 / G3.5 docs-evidence commits once CI is green, then **G3.6 — Step input and musical typing**. Rules in force: HEADLESS by default, the macOS GPU
+`[midi-clip-ops]` in the shell, ss5 Step 13 authored. ss5 51 / 51 with Step 13; the G3.5
+docs-evidence commit waits for CI on `2f9571b`. **G3.6 — Step input and musical typing** (this commit):
+Ctrl+K musical typing on Logic's letter layout, the roll header's Step toggle entering notes at the
+playhead; `[step-input]`; ss5 Step 14 authored. Next: the ss5 drive (Steps 1–14) and rubric shots, the
+evidence commits, then **G3.7 — MIDI file import / export**. Rules in force: HEADLESS by default, the macOS GPU
 frame-budget red is noise, the local suite + drives are the working gate.
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
@@ -220,6 +223,82 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.6 — Step input and musical typing (2026-09-05)
+
+**Story.** With no MIDI keyboard on the desk (G3.10 is later), the only way to play the instrument was
+the roll's keyboard column by mouse, and the only way to enter notes was the pencil. Logic's musical
+typing (Cmd+K) turns the computer keyboard into a two-octave keyboard; its step input keyboard enters
+notes one step at a time at the playhead. Both are now here: Ctrl+K toggles typing, the roll header's
+Step button toggles step entry; while typing is on, A W S E D F T G Y H U J K O L P ; play C4 up, Z / X
+shift the octave, C / V the velocity, and the status line says so.
+
+**Precedent.** Logic's Musical Typing window (the letter layout, Z / X octave, C / V velocity; Cmd+K —
+the plan's §4 maps Cmd to Ctrl) and its Step Input Keyboard (the note length from the toolbar — here the
+snap chooser's grid, "advance by grid"; Right = rest and Left = back are Logic's step-input arrows).
+Musical typing has no window: the roll header's Typing button and the status line carry the state.
+
+**Build.** Actions `PianoRollMusicalTypingToggle` (Ctrl+K, Global, Toggle) and `PianoRollStepInputToggle`
+(no chord; requires a MIDI clip; Toggle) flip `UiActionContext::musicalTypingOn` / `stepInputOn`
+(`typingBaseKey` 60, `typingVelocityPercent` 80). Pure laws `musicalTypingSemitoneForChar` /
+`musicalTypingControlForChar` (`UiActions.h`). Model: `musicalTypingPress (char)` — a control key
+adjusts the octave (0..108) or velocity (10..100 %), a note key auditions through the live note lane
+(the G3.2 audition law, at the typing velocity) and, with step input on, `stepInputEnter` first:
+the note is added at the playhead's clip-relative tick with the step length (`stepInputTicks`: the
+snap grid, a beat when snap is off; cut at the clip's end) through `addPianoRollNoteAt` (undoable),
+then the playhead advances one step (`locatePlaybackRelative`); `stepInputRest` / `stepInputBack`;
+the playhead outside the clip refuses with a status message. `musicalTypingRelease` /
+`releaseAllTypedNotes` (typing off releases everything held). Shell: `keyPressed` hands a plain letter
+to typing BEFORE the keymap and swallows only the keys typing owns (Space, the tool digits, Ctrl+K
+itself still reach the keymap); with step input on, Right / Left are rest / back; `keyStateChanged`
+releases a typed note when its key lifts (`typedKeyCodes`; the harness has `mainComponentReleaseTypedKeys`);
+the header buttons `pianoroll.typing` / `pianoroll.step` light with the modes; `hoverHintOrModeHint`
+names the mode in the status line whenever nothing is hovered (a swallowed key is never a dead one).
+Probe `view.musicalTyping` {on, baseKey, velocity, lastKey, heldCount}, `view.stepInput` {on, stepTicks};
+layout `pianoroll.typing` / `pianoroll.step`. Tokens `pianoRollHeaderButton*`. `docs/keymap-v2.md`
+regenerated (Ctrl+K was free).
+
+**Gates.** `[step-input]` in `YesDawUiInputCheck` (139 assertions): off, A is no note; Ctrl+K on
+lights the header button; A plays 60 and holds, the key-up releases; W 61, K 72, ; 76; Z → 48, X X →
+72, V → 90, C C → 70; the digit 2 still picks the pencil while typing is on; the Step button turns
+step input on with the snap grid as the step; Home, A enters C4 at 0 with the step length and the
+playhead advances a step, D enters E4 on the next, Right rests, Left steps back, two Ctrl+Z remove the
+two notes; past the clip's end a typed note is refused and the status line says "Step input"; the
+Step button off; typing off releases the held note and unlights. `YesDawUiActionCheck` green (the two
+toggles; no chord conflict). Local suite 375 / 375.
+
+**See-it.** ss5 Step 14: Ctrl+K on, A plays 60, Z + A plays 48, the Step button, Home, A enters a
+note and the playhead moves, a shot, Ctrl+Z, both modes off — ss5 **59 / 59** on the real exe
+(2026-09-05, first run).
+
+**Rubric (§7.4, the ss5 step-input shot at 1920×1080).** 1 PASS (the two header toggles sit after the
+"PIANO ROLL" label; nothing overlaps). 2 n/a. 3 PASS (Typing / Step are labelled, lit while on, with
+tooltips; the status line names the mode and its keys). 4 PASS. 5 PASS (the entered note paints selected
+and spans one beat; the roll's playhead sits at the same quarter of the clip as the arrangement's — the
+unit fix, visible). 6 PASS. 7 PASS. Note (no FIX item): the long typing hint truncates in the status
+field at 1080p, the same status-line law noted at G3.3.
+
+**Found while gating (fixed, in-item).** The step gate's second note landed at 15360 where the snap grid
+said 24000: the shell's MIDI clips are SampleLocked (tick == frame), but `playheadTick()` converts the
+transport frame through the tempo map into MUSICAL ticks, and the roll had used that for its playhead
+since G3.2 — and `kTicksPerQuarter` for its beat lines — so on a 120 BPM / 48 kHz clip the roll's
+playhead ran at 0.64× and its beat lines sat 0.32 s apart. One law now: `midiClipTicksForFrames`,
+`playheadTickForClip`, `midiClipBeatTicks` / `BarTicks` honour the clip's time base; the roll's surface
+and step input use them; the G3.2 grid pin is re-pinned to the clip's beat (it had asserted the wrong
+unit), and the step gate pins the roll's playhead against the transport frame.
+
+**Re-pins in this commit (each with its rationale in the test).** The child-count pin (167 → 169, the two
+header toggles); the dock's stray-widget list admits the roll's own header toggles; the G3.2 copy-drag
+pin travels 160 px (the pencil's sixteenth is now the clip's true 6000-frame sixteenth, not the tempo
+map's 3840); the G3.2 grid pin asserts the clip's beat; the "every chorded verb sits in a menu" law puts
+Musical Typing and Step Input in the MIDI menu. CI: the G3.5 cp2 head `2f9571b` was red on macOS on the
+Clang exhaustive-switch class (the four MIDI clip setting ids missing from the registry's dispatch
+switch — MSVC is silent) — closed here; the G3.5 cp1 head `a58391a` is green (`33944717371`).
+
+**Deviation log.** (1) No Musical Typing window (Logic's floating keyboard picture): the header button
+and the status line carry the state; the picture is G6 polish (parking lot). (2) The step length is the
+snap grid, not a separate note-length chooser (Logic's step input keyboard has its own) — the same
+"no second chooser" line as G3.4's quantize grid; parked with the note-length pass.
 
 ### G3.5 cp2 — MIDI clips in the arrangement (2026-09-05)
 

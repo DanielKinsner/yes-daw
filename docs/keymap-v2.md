@@ -58,6 +58,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `X` | Mixer Dock | `timeline.mixer_dock.toggle` |
 | `Space` | Play/Stop | `transport.toggle_play_stop` |
 | `I` | Inspector | `view.toggle_inspector` |
+| `Ctrl+K` | Musical Typing | `piano_roll.musical_typing` |
 
 ## Arrange
 
@@ -242,3 +243,4 @@ the numpad's digits and operators spell the same chords as the main keys.
 - MIDI Clip Velocity (`midi_clip.velocity_offset`)
 - MIDI Clip Loop (`midi_clip.loop`)
 - Mute MIDI Clip (`midi_clip.mute`)
+- Step Input (`piano_roll.step_input`)

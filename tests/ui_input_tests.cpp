@@ -1092,7 +1092,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 167u));   // G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 169u));   // G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -15827,7 +15827,10 @@ TEST_CASE ("Ctrl+drag copy-drags a note and Ctrl+D duplicates it one grid step l
     // from the source that the second hit audibly changes the rendered playback.
     const juce::Point<int> notePoint = pianoRollNoteCenterPoint (
         pianoRoll, project.midiClips.front(), project.midiClips.front().notes.front());
-    dragFromTo (pianoRoll, notePoint, notePoint.translated (80, 0),
+    // G3.6 re-pin: the pencil's sixteenth is a quarter of the clip's beat in the clip's OWN unit
+    // (6000 frames at 120 BPM / 48 kHz — G3.2 had painted a 3840-tick note, the tempo map's unit),
+    // so the copy-drag travels 160 px to clear the note's end as the law intends.
+    dragFromTo (pianoRoll, notePoint, notePoint.translated (160, 0),
                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier
                                     | juce::ModifierKeys::ctrlModifier));
     project = readProjectSnapshot (bundlePath);
@@ -16575,7 +16578,8 @@ TEST_CASE ("G2.1 dock tabs: the mixer and the piano roll are Editor-dock tabs (X
                 continue;
             // G3.3: the control lane's chooser is the roll's own widget (it sits in the lane's gutter and
             // shows only with the roll) — not a stray over it.
-            if (id == "pianoroll.lane.chooser" && allowedId == kPianoRollComponentId)
+            if ((id == "pianoroll.lane.chooser" || id == "pianoroll.typing" || id == "pianoroll.step")   // G3.6: the header toggles too
+                && allowedId == kPianoRollComponentId)
                 continue;
             strays.add (id.isEmpty() ? child->getName() : id);
         }
@@ -18798,10 +18802,16 @@ TEST_CASE ("G3.2 piano roll v2: grid, names, playhead + follow, adjacent notes, 
         const yesdaw::ui::MainComponentPianoRollGrid grid = yesdaw::ui::mainComponentPianoRollGrid (*shell);
         REQUIRE (! grid.lines.empty());
         int bars = 0, beats = 0, snaps = 0;
+        // G3.6 re-pin: the clip is SampleLocked (tick == frame), so its beat is the head tempo's beat
+        // in frames — the Beat snap in force — not the tempo map's 15360-tick quarter (G3.2's pin had
+        // painted the roll's grid in the wrong unit; the playhead followed the same wrong law).
+        REQUIRE (snapshotMainComponent (*shell).context.snapEnabled);
+        const yesdaw::engine::Tick beatTicks = static_cast<yesdaw::engine::Tick> (snapshotMainComponent (*shell).context.snapGridTicks);
+        REQUIRE (beatTicks != yesdaw::engine::kTicksPerQuarter);
         for (const auto& [tick, x, kind] : grid.lines)
         {
-            if (kind == 0) { ++bars; REQUIRE (tick % (4 * yesdaw::engine::kTicksPerQuarter) == 0); }
-            else if (kind == 1) { ++beats; REQUIRE (tick % yesdaw::engine::kTicksPerQuarter == 0); }
+            if (kind == 0) { ++bars; REQUIRE (tick % (4 * beatTicks) == 0); }
+            else if (kind == 1) { ++beats; REQUIRE (tick % beatTicks == 0); }
             else ++snaps;
         }
         REQUIRE (bars >= 1);
@@ -20039,6 +20049,151 @@ TEST_CASE ("piano roll keyboard column: hovering a key names it in the status li
     const juce::Point<int> grid = pianoRoll.getPosition() + juce::Point<int> (gridX + 40, gridY + static_cast<int> (rowHeight * 3.5));
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, key).contains ("Keyboard"));
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, grid).contains ("Grid"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G3.6: musical typing (Ctrl+K: Logic's letter layout plays the track's instrument; Z / X octave,
+// C / V velocity; the keys are swallowed before the keymap, every other chord still works; a key-up
+// releases the note) and step input (the header's Step button: a typed note enters at the playhead
+// with the snap length and the playhead advances; Right = rest, Left = back; undoable; the playhead
+// outside the clip refuses with a status message).
+TEST_CASE ("G3.6 musical typing and step input: Ctrl+K, the letter layout, octave and velocity, swallow law, release, Step entry and advance",
+           "[ui][input][shell][g3][step-input]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("step-input");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (requirePianoRollComponent (*shell).isVisible());
+    const auto project = [&] { return readProjectSnapshot (bundlePath); };
+    const auto probe = [&] {
+        juce::var doc;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), doc).wasOk());
+        return doc;
+    };
+    const auto typing = [&] { return probe().getProperty ("view", juce::var()).getProperty ("musicalTyping", juce::var()); };
+    const auto stepInput = [&] { return probe().getProperty ("view", juce::var()).getProperty ("stepInput", juce::var()); };
+    const auto playheadFrame = [&] { return static_cast<juce::int64> (probe().getProperty ("transport", juce::var()).getProperty ("playheadFrame", 0)); };
+    auto* typingButton = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "pianoroll.typing"));
+    auto* stepButton = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "pianoroll.step"));
+    REQUIRE (typingButton != nullptr);
+    REQUIRE (stepButton != nullptr);
+    REQUIRE (typingButton->isVisible());
+    REQUIRE (stepButton->isVisible());
+    REQUIRE (typingButton->getWidth() > 0);
+    REQUIRE_FALSE (static_cast<bool> (typing().getProperty ("on", true)));
+
+    // Off: the A key is no chord in the PianoRoll context, nothing sounds.
+    (void) shell->keyPressed (juce::KeyPress ('a'));
+    REQUIRE (static_cast<int> (typing().getProperty ("lastKey", 0)) == -1);
+
+    // Ctrl+K turns typing on; the header button lights; the status line names the mode.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (snapshotMainComponent (*shell).context.musicalTypingOn);
+    REQUIRE (static_cast<bool> (typing().getProperty ("on", false)));
+    REQUIRE (typingButton->getToggleState());
+
+    // A plays C4 and holds; the harness's key-up releases it.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a')));
+    REQUIRE (static_cast<int> (typing().getProperty ("lastKey", 0)) == 60);
+    REQUIRE (static_cast<int> (typing().getProperty ("heldCount", 0)) == 1);
+    yesdaw::ui::mainComponentReleaseTypedKeys (*shell);
+    REQUIRE (static_cast<int> (typing().getProperty ("heldCount", 1)) == 0);
+
+    // The layout: W is C#4, K is C5, ; is E5; Z / X move the octave, C / V the velocity.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('w')));
+    REQUIRE (static_cast<int> (typing().getProperty ("lastKey", 0)) == 61);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
+    REQUIRE (static_cast<int> (typing().getProperty ("lastKey", 0)) == 72);
+    REQUIRE (shell->keyPressed (juce::KeyPress (';')));
+    REQUIRE (static_cast<int> (typing().getProperty ("lastKey", 0)) == 76);
+    yesdaw::ui::mainComponentReleaseTypedKeys (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z')));
+    REQUIRE (static_cast<int> (typing().getProperty ("baseKey", 0)) == 48);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a')));
+    REQUIRE (static_cast<int> (typing().getProperty ("lastKey", 0)) == 48);
+    yesdaw::ui::mainComponentReleaseTypedKeys (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('x')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('x')));
+    REQUIRE (static_cast<int> (typing().getProperty ("baseKey", 0)) == 72);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+    REQUIRE (static_cast<int> (typing().getProperty ("velocity", 0)) == 90);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('c')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('c')));
+    REQUIRE (static_cast<int> (typing().getProperty ("velocity", 0)) == 70);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z')));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z')));
+    REQUIRE (static_cast<int> (typing().getProperty ("baseKey", 0)) == 48);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('x')));
+    REQUIRE (static_cast<int> (typing().getProperty ("baseKey", 0)) == 60);
+
+    // Typing swallows ITS keys only: the tool keys still reach the keymap, and so does Ctrl+K.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pencil);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+
+    // Step input: the header button turns it on; Home puts the playhead at the clip's start; a
+    // typed note enters there with the snap length and the playhead advances one step; Right rests;
+    // Left steps back; the entries are undoable one by one.
+    clickButton (*stepButton);
+    REQUIRE (snapshotMainComponent (*shell).context.stepInputOn);
+    REQUIRE (static_cast<bool> (stepInput().getProperty ("on", false)));
+    REQUIRE (stepButton->getToggleState());
+    const yesdaw::engine::Tick step = static_cast<yesdaw::engine::Tick> (static_cast<juce::int64> (stepInput().getProperty ("stepTicks", 0)));
+    REQUIRE (step == snapshotMainComponent (*shell).context.snapGridTicks);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (playheadFrame() == 0);
+    const std::size_t notesBefore = project().midiClips.front().notes.size();
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a')));
+    yesdaw::ui::mainComponentReleaseTypedKeys (*shell);
+    {
+        const std::vector<yesdaw::engine::Note> notes = project().midiClips.front().notes;
+        REQUIRE (notes.size() == notesBefore + 1u);
+        REQUIRE (notes.back().key == 60);
+        REQUIRE (notes.back().startTick == 0);
+        REQUIRE (notes.back().lengthTicks == step);
+    }
+    REQUIRE (playheadFrame() == static_cast<juce::int64> (step));
+    // The roll's playhead sits where the clip counts it (the clip is SampleLocked: frames), one step in.
+    REQUIRE (yesdaw::ui::mainComponentPianoRollGrid (*shell).playheadTick == static_cast<std::int64_t> (step) - static_cast<std::int64_t> (project().midiClips.front().timelineStart));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('d')));   // E4 on the second step
+    yesdaw::ui::mainComponentReleaseTypedKeys (*shell);
+    REQUIRE (project().midiClips.front().notes.back().key == 64);
+    REQUIRE (project().midiClips.front().notes.back().startTick == step);
+    REQUIRE (playheadFrame() == static_cast<juce::int64> (2 * step));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));   // a rest
+    REQUIRE (playheadFrame() == static_cast<juce::int64> (3 * step));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::leftKey)));    // back
+    REQUIRE (playheadFrame() == static_cast<juce::int64> (2 * step));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (project().midiClips.front().notes.size() == notesBefore + 1u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (project().midiClips.front().notes.size() == notesBefore);
+
+    // The playhead past the clip: a typed note is refused with a status message, nothing enters.
+    const yesdaw::engine::Tick clipLength = project().midiClips.front().timelineLength;
+    for (yesdaw::engine::Tick tick = 0; tick < clipLength + step; tick += step)
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+    REQUIRE (playheadFrame() >= static_cast<juce::int64> (clipLength));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a')));
+    yesdaw::ui::mainComponentReleaseTypedKeys (*shell);
+    REQUIRE (project().midiClips.front().notes.size() == notesBefore);
+    REQUIRE (snapshotMainComponent (*shell).statusLineText.find ("Step input") != std::string::npos);
+
+    // Off again: the Step button and Ctrl+K; typing off releases anything held.
+    clickButton (*stepButton);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.stepInputOn);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a')));
+    REQUIRE (static_cast<int> (typing().getProperty ("heldCount", 0)) == 1);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('k', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.musicalTypingOn);
+    REQUIRE (static_cast<int> (typing().getProperty ("heldCount", 1)) == 0);
+    REQUIRE_FALSE (typingButton->getToggleState());
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

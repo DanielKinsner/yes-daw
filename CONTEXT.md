@@ -357,6 +357,20 @@ frame.
 _Avoid_: automation (that targets a Node parameter, not the instrument's MIDI input), CC message (when
 you mean the edit object)
 
+**Musical typing** (G3.6):
+The computer keyboard as a two-octave keyboard (Logic's layout: A W S E D F T G Y H U J K O L P ; from
+the base key, Z / X an octave down / up, C / V velocity down / up), toggled by Ctrl+K or the roll
+header's Typing button. A typed note plays through the live note lane (the audition law) and holds until
+its key lifts. Typing takes only the keys it owns; every other chord still reaches the keymap.
+_Avoid_: virtual keyboard, QWERTY piano
+
+**Step input** (G3.6):
+A mode (the roll header's Step button) in which each typed or clicked note is ENTERED into the MIDI
+clip at the playhead with the step length — the snap chooser's grid, a beat when snap is off — and the
+playhead advances one step; Right is a rest, Left steps back; every entry is one undo step. The playhead
+must sit inside the clip.
+_Avoid_: step sequencer (a grid of pads; not this), record
+
 **MIDI Clip settings** (G3.5):
 A MIDI Clip's own playback settings, applied at render and persisted with the Clip: mute (a valid,
 silent source), transpose in semitones (±48; a note pushed off the keyboard drops), a velocity offset

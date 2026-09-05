@@ -3021,6 +3021,173 @@ public:
     }
 
     // ---------------------------------------------------------------------------------------
+    // G3.6: musical typing and step input. A typed note key plays the Track's instrument through
+    // the live note lane (the audition law) and, with step input on, is ENTERED at the playhead with
+    // the step length before the playhead advances by it. Both modes live in the context.
+
+    struct MusicalTypingPress
+    {
+        bool handled = false;      // the key belonged to typing (the shell swallows it)
+        std::int16_t key = -1;     // the note sounded (the shell releases it on key-up), -1 for a control key
+    };
+
+    // Every path to the toggle (the Ctrl+K chord, the header button, the harness) comes through here,
+    // so turning typing off always releases what it holds.
+    [[nodiscard]] UiActionDispatchResult toggleMusicalTyping()
+    {
+        const UiActionId id = UiActionId::PianoRollMusicalTypingToggle;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const UiActionDispatchResult result = registry_.dispatch (id, context_);
+        if (result.dispatched && ! context_.musicalTypingOn)
+            releaseAllTypedNotes();
+        return result;
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleStepInput()
+    {
+        return dispatch (UiActionId::PianoRollStepInputToggle);
+    }
+
+    // A typing key went down. Note keys sound (and enter, with step input on); Z / X / C / V adjust.
+    [[nodiscard]] MusicalTypingPress musicalTypingPress (char c)
+    {
+        if (! context_.musicalTypingOn)
+            return {};
+        const char lower = static_cast<char> (std::tolower (static_cast<unsigned char> (c)));
+        switch (musicalTypingControlForChar (lower))
+        {
+            case MusicalTypingControl::OctaveDown: context_.typingBaseKey = std::max (0, context_.typingBaseKey - 12); return { true, -1 };
+            case MusicalTypingControl::OctaveUp:   context_.typingBaseKey = std::min (108, context_.typingBaseKey + 12); return { true, -1 };
+            case MusicalTypingControl::VelocityDown: context_.typingVelocityPercent = std::max (10, context_.typingVelocityPercent - 10); return { true, -1 };
+            case MusicalTypingControl::VelocityUp:   context_.typingVelocityPercent = std::min (100, context_.typingVelocityPercent + 10); return { true, -1 };
+            case MusicalTypingControl::None: break;
+        }
+        const int semitone = musicalTypingSemitoneForChar (lower);
+        if (semitone < 0)
+            return {};
+        const int key = context_.typingBaseKey + semitone;
+        if (key > 127)
+            return { true, -1 };
+        const auto note = static_cast<std::int16_t> (key);
+        if (context_.stepInputOn)
+            (void) stepInputEnter (note);
+        if (std::find (typedHeldKeys_.begin(), typedHeldKeys_.end(), note) == typedHeldKeys_.end())
+        {
+            (void) auditionNote (note, true, static_cast<double> (context_.typingVelocityPercent) / 100.0);
+            typedHeldKeys_.push_back (note);
+        }
+        lastTypedKey_ = note;
+        return { true, note };
+    }
+
+    void musicalTypingRelease (std::int16_t key) noexcept
+    {
+        const auto held = std::find (typedHeldKeys_.begin(), typedHeldKeys_.end(), key);
+        if (held == typedHeldKeys_.end())
+            return;
+        typedHeldKeys_.erase (held);
+        (void) auditionNote (key, false);
+    }
+
+    void releaseAllTypedNotes() noexcept
+    {
+        while (! typedHeldKeys_.empty())
+            musicalTypingRelease (typedHeldKeys_.back());
+    }
+
+    [[nodiscard]] int typedHeldCount() const noexcept { return static_cast<int> (typedHeldKeys_.size()); }
+    [[nodiscard]] int lastTypedKey() const noexcept { return lastTypedKey_; }
+
+    // G3.6 (found by the step gate): a MIDI clip's ticks are in ITS time base — every shell-made clip is
+    // SampleLocked (tick == frame), while the tempo map speaks musical ticks (15360 a quarter). One law
+    // converts project frames into a clip's ticks, and the beat / bar / step follow it.
+    [[nodiscard]] engine::Tick midiClipTicksForFrames (const engine::MidiClip& midiClip, std::int64_t frames) const
+    {
+        if (midiClip.timeBase == engine::TimeBase::SampleLocked)
+            return static_cast<engine::Tick> (std::max<std::int64_t> (0, frames));
+        engine::CompiledTempoMap compiled;
+        engine::Tick tick = 0;
+        if (! project_.sampleRate.isValid() || ! compiledTempoMap (compiled)
+            || ! compiled.tickForFrame (static_cast<double> (std::max<std::int64_t> (0, frames)), tick))
+            return 0;
+        return tick;
+    }
+
+    // The playhead as the clip counts ticks (absolute in the project; subtract the clip's start).
+    [[nodiscard]] std::optional<engine::Tick> playheadTickForClip (const engine::MidiClip& midiClip) const
+    {
+        if (midiClip.timeBase == engine::TimeBase::SampleLocked)
+            return static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame));
+        return playheadTick();
+    }
+
+    [[nodiscard]] engine::Tick midiClipBeatTicks (const engine::MidiClip& midiClip) const noexcept
+    {
+        if (midiClip.timeBase == engine::TimeBase::SampleLocked)
+            return std::max<engine::Tick> (1, snapFramesForUnit (UiSnapUnit::Beat));
+        const int denominator = ! project_.meterMap.empty() ? std::max<int> (1, project_.meterMap.front().denominator) : 4;
+        return std::max<engine::Tick> (1, engine::kTicksPerQuarter * 4 / denominator);
+    }
+
+    [[nodiscard]] engine::Tick midiClipBarTicks (const engine::MidiClip& midiClip) const noexcept
+    {
+        if (midiClip.timeBase == engine::TimeBase::SampleLocked)
+            return std::max<engine::Tick> (1, snapFramesForUnit (UiSnapUnit::Bar));
+        const int numerator = ! project_.meterMap.empty() ? std::max<int> (1, project_.meterMap.front().numerator) : 4;
+        return midiClipBeatTicks (midiClip) * numerator;
+    }
+
+    // The step: the snap grid in force (a beat when snap is off) — "note length from the toolbar" —
+    // in the selected clip's ticks.
+    [[nodiscard]] engine::Tick stepInputTicks() const noexcept
+    {
+        const std::int64_t stepFrames = context_.snapEnabled ? context_.snapGridTicks : snapFramesForUnit (UiSnapUnit::Beat);
+        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+        if (midiClip == nullptr || midiClip->timeBase == engine::TimeBase::SampleLocked)
+            return std::max<engine::Tick> (1, static_cast<engine::Tick> (stepFrames));
+        return std::max<engine::Tick> (1, midiClipTicksForFrames (*midiClip, stepFrames));
+    }
+
+    // Enter a note at the playhead into THE MIDI clip and advance one step. The playhead must sit
+    // inside the clip; a note running past the clip's end is cut there.
+    [[nodiscard]] UiActionDispatchResult stepInputEnter (std::int16_t key)
+    {
+        const UiActionId id = UiActionId::PianoRollNoteAdd;
+        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+        const std::optional<engine::Tick> playhead = midiClip != nullptr ? playheadTickForClip (*midiClip) : std::nullopt;
+        if (midiClip == nullptr || ! playhead)
+        {
+            reportStatus ("Step input: open a MIDI clip in the piano roll first", true);
+            return { id, { false, "no MIDI clip for step input" }, false };
+        }
+        const engine::Tick clipTick = *playhead - midiClip->timelineStart;
+        if (clipTick < 0 || clipTick >= midiClip->timelineLength)
+        {
+            reportStatus ("Step input: move the playhead inside the MIDI clip", true);
+            return { id, { false, "the playhead is outside the MIDI clip" }, false };
+        }
+        const engine::Tick step = stepInputTicks();
+        const engine::Tick length = std::min (step, midiClip->timelineLength - clipTick);
+        const UiActionDispatchResult added = addPianoRollNoteAt (clipTick, length, key);
+        if (! added.dispatched)
+            return added;
+        (void) locatePlaybackRelative (UiActionId::TransportLocateNextGrid, step);
+        return added;
+    }
+
+    [[nodiscard]] UiActionDispatchResult stepInputRest()
+    {
+        return locatePlaybackRelative (UiActionId::TransportLocateNextGrid, stepInputTicks());
+    }
+
+    [[nodiscard]] UiActionDispatchResult stepInputBack()
+    {
+        return locatePlaybackRelative (UiActionId::TransportLocatePreviousGrid, -stepInputTicks());
+    }
+
+    // ---------------------------------------------------------------------------------------
     // G3.5: the selected MIDI clip's settings (the inspector's CLIP tab rows) — undoable edits.
 
     [[nodiscard]] UiActionDispatchResult editSelectedMidiClip (UiActionId id, const engine::ProjectEditCommand& command)
@@ -7287,6 +7454,9 @@ public:
             case UiActionId::ProjectNew:
                 return { id, { false, "new project not wired" }, false };
 
+            case UiActionId::PianoRollMusicalTypingToggle:   // G3.6: the toggle releases held notes when it turns off
+                return toggleMusicalTyping();
+
             case UiActionId::ProjectOpen:
                 return { id, { false, "open path required" }, false };
 
@@ -7515,6 +7685,7 @@ public:
             case UiActionId::QuantizeSwingSet:
             case UiActionId::QuantizeNoteEndsToggle:
             case UiActionId::QuantizeHumanizeSet:
+            case UiActionId::PianoRollStepInputToggle:   // G3.6: the registry flips the mode
             case UiActionId::TimelineZoomFitProject:
             case UiActionId::TimelineZoomFitLoop:
             case UiActionId::TimelineZoomIn:
@@ -10466,6 +10637,8 @@ private:
     engine::EntityId selectedMidiNoteId_;
     engine::EntityId lastControlPointId_;   // G3.3: the control lane's last created / moved point
     std::uint32_t quantizeSeed_ = 1;   // G3.4: the humanize seed the next Q uses (advances per humanized apply)
+    std::vector<std::int16_t> typedHeldKeys_;   // G3.6: the notes musical typing holds down
+    int lastTypedKey_ = -1;                     // G3.6: the probe's record of the last typed note
     std::vector<engine::EntityId> selectedMidiNoteIds_;   // multi-note selection (B34)
     // Edits since the last explicit Save (B37): every project mutation bumps the serial; Save and
     // a fresh bundle attach mark the session clean. Data is never at risk — the bundle persists

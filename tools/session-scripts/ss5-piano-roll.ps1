@@ -208,4 +208,26 @@ Click 'inspector.midi.mute'
 Shot 'ss5-midi-clip-muted'
 Key 'Ctrl+Z'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.view.midiClip.muted } -TimeoutMs 1500) 'Ctrl+Z unmutes it')
+
+Step 14 'G3.6 musical typing and step input: Ctrl+K, the A key plays C4, Step enters a note at the playhead'
+Key 'Ctrl+K'
+[void](Assert (WaitProbe { param($q) [bool]$q.view.musicalTyping.on } -TimeoutMs 1500) 'Ctrl+K turns musical typing on')
+Key 'A'
+[void](Assert (WaitProbe { param($q) [int]$q.view.musicalTyping.lastKey -eq 60 } -TimeoutMs 1500) 'the A key plays C4 (60)')
+Key 'Z'
+Key 'A'
+[void](Assert (WaitProbe { param($q) [int]$q.view.musicalTyping.lastKey -eq 48 } -TimeoutMs 1500) 'Z drops an octave: A plays C3 (48)')
+Click 'pianoroll.step'
+[void](Assert (WaitProbe { param($q) [bool]$q.view.stepInput.on } -TimeoutMs 1500) 'the Step button turns step input on')
+Key 'Home'
+$n0 = [int](Probe).view.noteCount
+Key 'A'
+[void](Assert (WaitProbe { param($q) [int]$q.view.noteCount -eq $n0 + 1 } -TimeoutMs 1500) 'a typed note enters the clip at the playhead')
+[void](Assert ([int](Probe).transport.playheadFrame -gt 0) 'the playhead advanced one step')
+Shot 'ss5-step-input'
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) [int]$q.view.noteCount -eq $n0 } -TimeoutMs 1500) 'Ctrl+Z removes the entered note')
+Click 'pianoroll.step'
+Key 'Ctrl+K'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.view.musicalTyping.on -and -not [bool]$q.view.stepInput.on } -TimeoutMs 1500) 'both modes off again')
 Close

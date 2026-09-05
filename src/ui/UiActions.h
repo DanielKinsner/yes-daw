@@ -251,6 +251,9 @@ enum class UiActionId : std::uint8_t
     MidiClipVelocityOffsetSet,
     MidiClipLoopSelect,
     MidiClipMuteToggle,   // the inspector row: mutes the MIDI clip the rows show (Ctrl+M stays the timeline selection's)
+    // G3.6: musical typing (Logic's Cmd+K -> Ctrl+K) and step input (the roll header's Step button)
+    PianoRollMusicalTypingToggle,
+    PianoRollStepInputToggle,
     Count
 };
 
@@ -388,6 +391,38 @@ enum class UiFocusContext : std::uint8_t
     }
 }
 
+// G3.6: Logic's musical typing layout — the home row is the white keys from C, the row above the
+// black keys; K / O / L / P / ; continue into the next octave. -1 = not a note key.
+[[nodiscard]] constexpr int musicalTypingSemitoneForChar (char c) noexcept
+{
+    switch (c)
+    {
+        case 'a': return 0;   case 'w': return 1;   case 's': return 2;   case 'e': return 3;
+        case 'd': return 4;   case 'f': return 5;   case 't': return 6;   case 'g': return 7;
+        case 'y': return 8;   case 'h': return 9;   case 'u': return 10;  case 'j': return 11;
+        case 'k': return 12;  case 'o': return 13;  case 'l': return 14;  case 'p': return 15;
+        case ';': return 16;
+        default: break;
+    }
+    return -1;
+}
+
+// The typing keys that are not notes: Z / X move the octave, C / V the velocity.
+enum class MusicalTypingControl : std::uint8_t { None, OctaveDown, OctaveUp, VelocityDown, VelocityUp };
+
+[[nodiscard]] constexpr MusicalTypingControl musicalTypingControlForChar (char c) noexcept
+{
+    switch (c)
+    {
+        case 'z': return MusicalTypingControl::OctaveDown;
+        case 'x': return MusicalTypingControl::OctaveUp;
+        case 'c': return MusicalTypingControl::VelocityDown;
+        case 'v': return MusicalTypingControl::VelocityUp;
+        default: break;
+    }
+    return MusicalTypingControl::None;
+}
+
 [[nodiscard]] constexpr UiFocusContext focusContextForPanel (UiPanel panel) noexcept
 {
     switch (panel)
@@ -487,6 +522,13 @@ struct UiActionContext
     UiPanel activePanel = UiPanel::Timeline;
     TimelineTool activeTimelineTool = TimelineTool::Pointer;
     int pianoRollControlLaneChoice = 0;   // G3.3: the roll's control lane (kPianoRollControlLaneChoices index)
+    // G3.6: musical typing (the computer keyboard plays the Track's instrument on Logic's letter
+    // layout; Z / X shift the octave, C / V the velocity) and step input (a typed or clicked note is
+    // entered at the playhead with the step length, then the playhead advances by it).
+    bool musicalTypingOn = false;
+    bool stepInputOn = false;
+    int typingBaseKey = 60;            // the key the A key plays (C4); Z / X move it an octave
+    int typingVelocityPercent = 80;    // C / V move it by ten
     // G3.4: Quantize v2 settings (Logic's region inspector): the grid choice (0 follows the snap
     // chooser, 1 = 1/8, 2 = 1/16, 3 = 1/32), strength %, swing % (0..66), note ends, humanize %.
     int quantizeGridChoice = 0;
@@ -1066,6 +1108,12 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MidiClipLoopSelect, "midi_clip.loop", "MIDI Clip Loop", "", "Repeat the selected MIDI clip's content every beat, bar, two or four bars to fill the clip",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true },
     { UiActionId::MidiClipMuteToggle, "midi_clip.mute", "Mute MIDI Clip", "", "Silence the selected MIDI clip in the mix (the row's toggle; Ctrl+M mutes the timeline selection)",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, true },
+    // G3.6: musical typing is Logic's Cmd+K (Ctrl+K here, Global: it plays wherever you are); step input
+    // has no default chord in Logic either — the roll header's Step button is the control.
+    { UiActionId::PianoRollMusicalTypingToggle, "piano_roll.musical_typing", "Musical Typing", "Ctrl+K", "Play the track's instrument from the computer keyboard (A-; = C4 up; Z / X octave; C / V velocity)",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
+    { UiActionId::PianoRollStepInputToggle, "piano_roll.step_input", "Step Input", "", "Enter notes at the playhead one step at a time: each typed or clicked note lands with the snap length and the playhead advances (Right = rest, Left = back)",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, true }
 }};
 
@@ -1720,6 +1768,10 @@ public:
             case UiActionId::PianoRollControlPointMove:
             case UiActionId::PianoRollControlPointDelete:
             case UiActionId::PianoRollControlLanePaint:
+            case UiActionId::MidiClipTransposeSet:          // G3.5: the clip's settings are MIDI edits too
+            case UiActionId::MidiClipVelocityOffsetSet:
+            case UiActionId::MidiClipLoopSelect:
+            case UiActionId::MidiClipMuteToggle:
                 context.activePanel = UiPanel::PianoRoll;
                 context.canUndo = true;
                 context.canRedo = false;
@@ -1796,6 +1848,14 @@ public:
 
             case UiActionId::QuantizeNoteEndsToggle:
                 context.quantizeNoteEnds = ! context.quantizeNoteEnds;
+                break;
+
+            case UiActionId::PianoRollMusicalTypingToggle:   // G3.6
+                context.musicalTypingOn = ! context.musicalTypingOn;
+                break;
+
+            case UiActionId::PianoRollStepInputToggle:
+                context.stepInputOn = ! context.stepInputOn;
                 break;
 
             case UiActionId::TimelineZoomFitProject:

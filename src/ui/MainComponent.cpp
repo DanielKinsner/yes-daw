@@ -6346,6 +6346,28 @@ public:
         };
         addChildComponent (pianoRollLaneChooser);
 
+        // G3.6: the roll header's Typing and Step toggles (plan §3.2 "[step ⏺]"); Ctrl+K is Typing's chord.
+        configureActionComponent (pianoRollTypingButton, yesdaw::ui::UiActionId::PianoRollMusicalTypingToggle, "Musical typing");
+        pianoRollTypingButton.setComponentID ("pianoroll.typing");
+        pianoRollTypingButton.setButtonText ("Typing");
+        pianoRollTypingButton.setClickingTogglesState (false);
+        pianoRollTypingButton.onClick = [this] {
+            handleAction (yesdaw::ui::UiActionId::PianoRollMusicalTypingToggle);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (pianoRollTypingButton);
+        configureActionComponent (pianoRollStepButton, yesdaw::ui::UiActionId::PianoRollStepInputToggle, "Step input");
+        pianoRollStepButton.setComponentID ("pianoroll.step");
+        pianoRollStepButton.setButtonText ("Step");
+        pianoRollStepButton.setClickingTogglesState (false);
+        pianoRollStepButton.onClick = [this] {
+            handleAction (yesdaw::ui::UiActionId::PianoRollStepInputToggle);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (pianoRollStepButton);
+
         menuBar.setModel (this);
         menuBar.setComponentID ("shell.menubar");
         menuBar.setName ("Menu bar");
@@ -6615,7 +6637,7 @@ public:
     void refreshStatusLine()
     {
         // G1.6: a status message wins; otherwise the hovered zone's gesture hint.
-        statusLine.setText (appModel.statusLineText().empty() ? hoverHint : juce::String (appModel.statusLineText()),
+        statusLine.setText (appModel.statusLineText().empty() ? hoverHintOrModeHint() : juce::String (appModel.statusLineText()),
                             juce::dontSendNotification);
         statusLine.setColour (juce::Label::textColourId,
                               appModel.statusLineIsError()
@@ -6823,6 +6845,23 @@ public:
     [[nodiscard]] long long harnessPlaybackLoopStartFrame() const noexcept { return appModel.playbackLoopStartFrame(); }
     [[nodiscard]] long long harnessPlaybackLoopEndFrame() const noexcept { return appModel.playbackLoopEndFrame(); }
     [[nodiscard]] std::string harnessStatusLineText() const { return appModel.statusLineText(); }
+
+    // G3.6: while a keyboard mode is on and nothing is hovered, the status line says so — the mode
+    // is never silent (a swallowed key would otherwise look like a dead one).
+    [[nodiscard]] juce::String hoverHintOrModeHint() const
+    {
+        if (! hoverHint.isEmpty())
+            return hoverHint;
+        const auto& context = appModel.context();
+        if (context.musicalTypingOn)
+            return "Musical typing ON: A W S E D F T G Y H U J K O L P ; play "
+                 + juce::String (yesdaw::ui::pianoRollKeyName (context.typingBaseKey)) + " up \u00b7 Z / X octave \u00b7 C / V velocity ("
+                 + juce::String (context.typingVelocityPercent) + " %)" + (context.stepInputOn ? " \u00b7 step input: notes enter at the playhead" : "") + " \u00b7 Ctrl+K off";
+        if (context.stepInputOn)
+            return "Step input ON: a typed or clicked note enters at the playhead with the snap length, Right = rest, Left = back";
+        return {};
+    }
+    void harnessReleaseTypedKeysForTest() { harnessReleaseTypedKeys(); }
     [[nodiscard]] bool harnessStatusLineIsError() const noexcept { return appModel.statusLineIsError(); }
     [[nodiscard]] long long harnessTimelineRangeStartFrame() const noexcept { return appModel.timelineRangeStartFrame(); }
     [[nodiscard]] long long harnessTimelineRangeEndFrame() const noexcept { return appModel.timelineRangeEndFrame(); }
@@ -7101,6 +7140,8 @@ public:
                 const PianoRollCanvasGeometry rollGeometry = pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin());
                 put ("pianoroll.lane", pianoRollControlLaneDataArea (rollGeometry).translated (pianoRollInput.getX(), pianoRollInput.getY()));
                 put ("pianoroll.lane.chooser", pianoRollLaneChooser.getBounds());
+                put ("pianoroll.typing", pianoRollTypingButton.getBounds());   // G3.6
+                put ("pianoroll.step", pianoRollStepButton.getBounds());
             }
             // The mixer's painted zones by name (mixer.strip.N, .solo, .mute, .fader,
             // .insert.K, .send.K) so a drive clicks the strip it sees — nothing about the mixer
@@ -7437,6 +7478,20 @@ public:
                 quantize->setProperty ("seed", static_cast<juce::int64> (settings.humanizeSeed));
                 quantize->setProperty ("panel", inspectorShowsQuantizePanel());
                 view->setProperty ("quantize", juce::var (quantize));
+            }
+            {
+                // G3.6: the keyboard modes.
+                auto* typing = new juce::DynamicObject();
+                typing->setProperty ("on", context.musicalTypingOn);
+                typing->setProperty ("baseKey", context.typingBaseKey);
+                typing->setProperty ("velocity", context.typingVelocityPercent);
+                typing->setProperty ("lastKey", appModel.lastTypedKey());
+                typing->setProperty ("heldCount", appModel.typedHeldCount());
+                view->setProperty ("musicalTyping", juce::var (typing));
+                auto* step = new juce::DynamicObject();
+                step->setProperty ("on", context.stepInputOn);
+                step->setProperty ("stepTicks", static_cast<juce::int64> (appModel.stepInputTicks()));
+                view->setProperty ("stepInput", juce::var (step));
             }
             if (const yesdaw::engine::MidiClip* const midiClip = appModel.selectedMidiClip())
             {
@@ -7895,6 +7950,16 @@ public:
         pianoRollInput.setBounds (mixerPanelBounds());   // G2.1 cp2: the piano roll is a dock tab
         pianoRollLaneChooser.setBounds (pianoRollControlLaneChooserArea (pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin()))
                                             .translated (pianoRollInput.getX(), pianoRollInput.getY()));   // G3.3
+        {
+            // G3.6: the header toggles sit after the "PIANO ROLL" label on the header row.
+            using L = yesdaw::ui::UiTheme::Layout;
+            auto header = pianoRollInput.getBounds().withHeight (L::pianoRollHeaderHeight)
+                              .withTrimmedLeft (L::pianoRollHeaderButtonLeft)
+                              .reduced (L::pianoRollHeaderButtonInsetX, L::pianoRollHeaderButtonInsetY);
+            pianoRollTypingButton.setBounds (header.removeFromLeft (L::pianoRollHeaderButtonWidth));
+            header.removeFromLeft (L::pianoRollHeaderButtonGap);
+            pianoRollStepButton.setBounds (header.removeFromLeft (L::pianoRollHeaderButtonWidth));
+        }
         instrumentPanel.setBounds (mixerPanelBounds());   // G3.1: so is the instrument panel
         trackListInput.setBounds (leftRailPanelBounds());
         {
@@ -10992,6 +11057,32 @@ private:
         if (key.getKeyCode() == juce::KeyPress::escapeKey && cancelInProgressEdit())
             return true;
 
+        // G3.6: musical typing takes its note and control keys BEFORE the keymap (a plain letter,
+        // no Ctrl / Alt); everything else — Space, the tools, Ctrl+K itself — still reaches the keymap.
+        if (appModel.context().musicalTypingOn
+            && ! key.getModifiers().isCtrlDown() && ! key.getModifiers().isCommandDown() && ! key.getModifiers().isAltDown())
+        {
+            const int code = key.getKeyCode();
+            if (code > 32 && code < 127)
+            {
+                const auto press = appModel.musicalTypingPress (static_cast<char> (code));
+                if (press.handled)
+                {
+                    if (press.key >= 0)
+                        typedKeyCodes[code] = press.key;
+                    refreshActionState();
+                    repaintAll();
+                    return true;
+                }
+            }
+        }
+        // G3.6: with step input on, Right is a rest and Left steps back (the roll's note walk waits).
+        if (appModel.context().stepInputOn && key.getModifiers().isAnyModifierKeyDown() == false)
+        {
+            if (key.getKeyCode() == juce::KeyPress::rightKey) { (void) appModel.stepInputRest(); refreshActionState(); repaintAll(); return true; }
+            if (key.getKeyCode() == juce::KeyPress::leftKey)  { (void) appModel.stepInputBack(); refreshActionState(); repaintAll(); return true; }
+        }
+
         const std::string chord = chordForKeyPress (key);
         if (chord.empty())
             return false;
@@ -11098,7 +11189,30 @@ private:
     bool keyStateChanged (bool, juce::Component*) override { return false; }
     // Declared alongside the KeyListener overload so neither hides the other (Clang's
     // -Woverloaded-virtual is an error here); the Component half keeps its default behaviour.
-    bool keyStateChanged (bool isKeyDown) override { return juce::Component::keyStateChanged (isKeyDown); }
+    bool keyStateChanged (bool isKeyDown) override
+    {
+        // G3.6: a typed note holds while its key is down and releases when it lifts (JUCE reports
+        // the state change, not the key: every held code is checked).
+        for (auto it = typedKeyCodes.begin(); it != typedKeyCodes.end();)
+        {
+            if (! juce::KeyPress::isKeyCurrentlyDown (it->first))
+            {
+                appModel.musicalTypingRelease (it->second);
+                it = typedKeyCodes.erase (it);
+            }
+            else
+                ++it;
+        }
+        return juce::Component::keyStateChanged (isKeyDown);
+    }
+
+    // G3.6: the harness's key-up (the headless run has no real keyboard for isKeyCurrentlyDown).
+    void harnessReleaseTypedKeys()
+    {
+        for (const auto& [code, note] : typedKeyCodes)
+            appModel.musicalTypingRelease (note);
+        typedKeyCodes.clear();
+    }
 
     [[nodiscard]] bool cancelInProgressEdit()
     {
@@ -11432,9 +11546,10 @@ private:
             UiActionId::TimelineClipReverse, UiActionId::TimelineClipNormalize, UiActionId::TimelineClipStripSilence,   // G2.13
             UiActionId::TimelineMidiClipAdd,
         };
-        static constexpr std::array<UiActionId, 12> kMidiMenu {
+        static constexpr std::array<UiActionId, 14> kMidiMenu {
             UiActionId::PianoRollNoteAdd,  UiActionId::PianoRollNoteDelete, UiActionId::PianoRollNoteSelectAll,
             UiActionId::PianoRollNoteQuantizeSelection, UiActionId::PianoRollNoteTranspose,
+            UiActionId::PianoRollMusicalTypingToggle, UiActionId::PianoRollStepInputToggle,   // G3.6
             UiActionId::PianoRollNoteOctaveUp, UiActionId::PianoRollNoteOctaveDown,
             UiActionId::PianoRollNoteDuplicate, UiActionId::PianoRollNoteSetLength,
             UiActionId::PianoRollNoteSetVelocity,
@@ -11811,7 +11926,7 @@ private:
             return;
         hoverHint = hint;
         if (appModel.statusLineText().empty())
-            statusLine.setText (hoverHint, juce::dontSendNotification);
+            statusLine.setText (hoverHintOrModeHint(), juce::dontSendNotification);
     }
 
     // G1.6: every action-backed control's tooltip quotes its LIVE chord (a rebind in the keymap
@@ -12528,6 +12643,11 @@ private:
         pianoRollInput.setVisible (dockShowsPianoRoll());
         pianoRollLaneChooser.setVisible (dockShowsPianoRoll());   // G3.3
         pianoRollLaneChooser.setSelectedId (appModel.context().pianoRollControlLaneChoice + 1, juce::dontSendNotification);
+        pianoRollTypingButton.setVisible (dockShowsPianoRoll());   // G3.6
+        pianoRollTypingButton.setToggleState (appModel.context().musicalTypingOn, juce::dontSendNotification);
+        pianoRollStepButton.setVisible (dockShowsPianoRoll());
+        pianoRollStepButton.setToggleState (appModel.context().stepInputOn, juce::dontSendNotification);
+        pianoRollStepButton.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::PianoRollStepInputToggle, appModel.context()).enabled);
         mixerStripsInput.setVisible (dockShowsMixer());
         instrumentPanel.setVisible (dockShowsInstrument());   // G3.1
         if (dockShowsInstrument())
@@ -16353,16 +16473,21 @@ private:
             // G3.2: the grid follows the meter in force at the clip (bars / beats) and the snap; the
             // shared playhead is published clip-relative (-1 when it has no tick).
             {
-                const yesdaw::engine::MeterChange* meter = nullptr;
-                for (const yesdaw::engine::MeterChange& change : appModel.project().meterMap)
-                    if (change.tick <= surface.timelineStart && (meter == nullptr || change.tick >= meter->tick))
-                        meter = &change;
-                const int numerator = meter != nullptr ? std::max<int> (1, meter->numerator) : 4;
-                const int denominator = meter != nullptr ? std::max<int> (1, meter->denominator) : 4;
-                surface.beatTicks = std::max<yesdaw::engine::Tick> (1, yesdaw::engine::kTicksPerQuarter * 4 / denominator);
-                surface.barTicks = surface.beatTicks * numerator;
-                if (const std::optional<yesdaw::engine::Tick> playhead = appModel.playheadTick())
-                    surface.playheadTick = *playhead - surface.timelineStart;
+                // G3.6 (found by the step gate): the grid and the playhead speak the CLIP's ticks — every
+                // shell-made MIDI clip is SampleLocked (tick == frame), so a beat is the head tempo's
+                // beat in frames and the playhead is the transport frame; G3.2 had used the tempo map's
+                // musical ticks for both, which ran 0.64x slow on a 120 BPM / 48 kHz clip.
+                const yesdaw::engine::MidiClip* clip = nullptr;
+                for (const yesdaw::engine::MidiClip& candidate : appModel.project().midiClips)
+                    if (candidate.id == midiClipId)
+                        clip = &candidate;
+                if (clip != nullptr)
+                {
+                    surface.beatTicks = appModel.midiClipBeatTicks (*clip);
+                    surface.barTicks = appModel.midiClipBarTicks (*clip);
+                    if (const std::optional<yesdaw::engine::Tick> playhead = appModel.playheadTickForClip (*clip))
+                        surface.playheadTick = *playhead - surface.timelineStart;
+                }
             }
             return surface;
         }
@@ -16432,6 +16557,9 @@ private:
     PlayheadLayerComponent playheadLayer;   // G0.4: above the buffered canvas
     PianoRollInputComponent pianoRollInput;
     juce::ComboBox pianoRollLaneChooser;   // G3.3: the control lane's chooser (a child over the lane's gutter)
+    juce::TextButton pianoRollTypingButton;   // G3.6: the roll header's Typing toggle (Ctrl+K)
+    juce::TextButton pianoRollStepButton;     // G3.6: the roll header's Step toggle
+    std::map<int, std::int16_t> typedKeyCodes;   // G3.6: key code -> the note it holds
     // G3.5: the MIDI clip's settings rows (the inspector's CLIP tab)
     juce::ToggleButton inspectorMidiMute;
     FineDragSlider inspectorMidiTranspose;
@@ -17230,6 +17358,12 @@ MainComponentPianoRollControlLane mainComponentPianoRollControlLane (juce::Compo
         }
     }
     return out;
+}
+
+void mainComponentReleaseTypedKeys (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessReleaseTypedKeysForTest();
 }
 
 void mainComponentSelectPianoRollControlLane (juce::Component& component, int choice)

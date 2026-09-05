@@ -853,6 +853,11 @@ struct UiTheme
         static constexpr int inspectorMidiClipTransposeMax = 48;      // G3.5: == engine::MidiClip::kMaxTransposeSemitones
         static constexpr int inspectorMidiClipVelocityOffsetMax = 100;   // G3.5: the offset slider in percent
         static constexpr int inspectorMidiClipRowCount = 4;              // G3.5: mute, transpose, velocity, loop — above the quantize rows
+        static constexpr int pianoRollHeaderButtonLeft = 118;    // G3.6: the Typing / Step toggles after the "PIANO ROLL" label
+        static constexpr int pianoRollHeaderButtonWidth = 72;
+        static constexpr int pianoRollHeaderButtonGap = 6;
+        static constexpr int pianoRollHeaderButtonInsetY = 7;
+        static constexpr int pianoRollHeaderButtonInsetX = 0;
         static constexpr int keymapEditorRestoreWidth = 140;
         static constexpr int keymapEditorUnbindWidth = 80;
         static constexpr int keymapEditorChordWidth = 220;

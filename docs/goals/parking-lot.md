@@ -87,3 +87,5 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 - **MIDI clip loop length is a chooser of musical lengths (2026-09-05, G3.5 cp2).** `UiAppModel.h` `midiClipLoopTicksForChoice` — beat / bar / 2 / 4 bars; the engine takes any tick length and the loop is invisible on the canvas (no repeat markers). Owner: the roll header / inspector-numeric pass (G3.6 shares the note-length chooser) — a numeric field and a painted loop boundary in the clip body.
 
 - **A MIDI clip has no colour or name of its own (2026-09-05, G3.5 cp2).** `Project.h` `MidiClip` — the audio Clip carries `colour` / `name` (G2.12 / rename); the MIDI clip paints "MIDI" in the track colour. Two additive columns and the same verbs. Owner: G3 close (SS-4 names nothing) or G6 visual identity.
+
+- **No Musical Typing picture (2026-09-05, G3.6).** Logic shows a floating keyboard picture with the letters on the keys; ours is the header's Typing button plus the status line's letter list. Owner: G6 visual identity — a keyboard picture in the roll header or the keyboard column with the letters painted while typing is on.
