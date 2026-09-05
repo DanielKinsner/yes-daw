@@ -134,7 +134,10 @@ per pixel: column n is sample n, the painted tops climb monotonically, the cache
 `YesDawUiInputCheck` (Ctrl+wheel climbs past 64x and clamps at the ceiling; ceiling x fit px/s == the
 project rate; Ctrl+0 returns to 1x; a 0.09 s project honestly stays at the 64 floor). Frame-budget gate
 untouched (no sample lookup in the headless checks).
-**Done:** G3.6 ✅ — Step input and musical typing: `234bfcd`; certified by exact-head run `33946774937`
+**Done:** G3.7 ✅ — MIDI file import / export: `6c4473e`; certified by exact-head run `33947932021` (green
+on all ten jobs). ss5 63 / 63 on the real exe (twice) with the G3.7 Step 15; rubric PASS with one FIX
+applied (the audio-only inspector controls under a MIDI clip's rows).
+G3.6 ✅ — Step input and musical typing: `234bfcd`; certified by exact-head run `33946774937`
 (green on all ten jobs). ss5 59 / 59 on the real exe with the G3.6 Step 14 (the whole roll script, Steps
 1–14, in one launch); rubric PASS.
 G3.5 ✅ — MIDI clips at arrange level: cp1 `a58391a` (the engine half; run `33944717371` green), cp2
