@@ -1881,6 +1881,10 @@ namespace detail {
         for (const Note& note : midiClip.notes)
             if (note.id == id)
                 return true;
+
+        for (const MidiControlEvent& control : midiClip.controlEvents)   // G3.3
+            if (control.id == id)
+                return true;
     }
 
     for (const RecordingTake& take : project.recordingTakes)

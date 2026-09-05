@@ -234,6 +234,12 @@ enum class UiActionId : std::uint8_t
     EditNudgeValueMs10,
     EditNudgeValueFrame,
     EditNudgeValueSample,
+    // G3.3: the piano roll's control lane — the chooser and the point verbs (mouse gestures; no chords)
+    PianoRollControlLaneSelect,
+    PianoRollControlPointAdd,
+    PianoRollControlPointMove,
+    PianoRollControlPointDelete,
+    PianoRollControlLanePaint,
     Count
 };
 
@@ -361,6 +367,10 @@ enum class UiFocusContext : std::uint8_t
         case UiActionId::PianoRollNoteSelectAll:
         case UiActionId::PianoRollNoteSelectPrevious:   // G3.2
         case UiActionId::PianoRollNoteSelectNext:
+        case UiActionId::PianoRollControlPointAdd:      // G3.3
+        case UiActionId::PianoRollControlPointMove:
+        case UiActionId::PianoRollControlPointDelete:
+        case UiActionId::PianoRollControlLanePaint:
             return UiFocusContext::PianoRoll;
         default:
             return UiFocusContext::Global;
@@ -465,6 +475,7 @@ struct UiActionContext
     bool undoHistoryVisible = false;   // G2.18
     UiPanel activePanel = UiPanel::Timeline;
     TimelineTool activeTimelineTool = TimelineTool::Pointer;
+    int pianoRollControlLaneChoice = 0;   // G3.3: the roll's control lane (kPianoRollControlLaneChoices index)
     bool snapEnabled = true;
     std::int64_t snapGridTicks = 512;
     bool clipboardHasClip = false;
@@ -1005,7 +1016,19 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::EditNudgeValueFrame, "edit.nudge.value.frame", "Nudge: 1 Frame", "", "Nudge by one SMPTE frame (30 fps)",
       AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
     { UiActionId::EditNudgeValueSample, "edit.nudge.value.sample", "Nudge: 1 Sample", "", "Nudge by one sample",
-      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    // G3.3: the control lane. The chooser is a Button-shaped control (a combo box); the point verbs
+    // are the lane's mouse gestures — the pointer places / drags, the eraser removes, the pencil paints.
+    { UiActionId::PianoRollControlLaneSelect, "piano_roll.control_lane.select", "Control Lane", "", "Choose which controller the piano roll's control lane shows",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true },
+    { UiActionId::PianoRollControlPointAdd, "piano_roll.control_point.add", "Add Controller Point", "", "Place a controller point in the control lane",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true },
+    { UiActionId::PianoRollControlPointMove, "piano_roll.control_point.move", "Move Controller Point", "", "Drag a controller point in time and value",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true },
+    { UiActionId::PianoRollControlPointDelete, "piano_roll.control_point.delete", "Delete Controller Point", "", "Remove a controller point from the control lane",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true },
+    { UiActionId::PianoRollControlLanePaint, "piano_roll.control_lane.paint", "Paint Controller Lane", "", "Paint controller points with the pencil (freehand, or a line with Shift)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, false, true }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -1718,6 +1741,9 @@ public:
 
             case UiActionId::TimelineToolSelectVelocity:
                 context.activeTimelineTool = TimelineTool::Velocity;
+                break;
+
+            case UiActionId::PianoRollControlLaneSelect:   // G3.3: the model sets the choice, then dispatches
                 break;
 
             case UiActionId::TimelineZoomFitProject:

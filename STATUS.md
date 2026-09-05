@@ -42,15 +42,15 @@ is linear while the UI law is equal-power.
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
 **Now:** **G3.3 — MIDI CC, pitch bend, aftertouch, program change** (plan §6 G3; resumed 2026-09-04 per
-Dan's call). **cp1 ✅ (engine half, this commit):** the edit model (`MidiControlEvent` on the `MidiClip`),
-schema v28, the flatten onto the note timeline, the wire form (`EventType::Midi1`), `SimpleSynth` honouring
-CC64 / CC1 / pitch bend, the three undoable Clip verbs — story, precedent, gates and deviations in
-"G3.3 cp1" below. **Next: cp2 — the control lane in the piano roll** (the second expression lane becomes a
-CC lane with a chooser — CC1 Mod, CC64 Sustain, Pitch Bend, Aftertouch, Program — the pointer places /
-drags / erases points, the pencil paints freehand, Shift+pencil draws a line; hover hints; the probe names
-the lane; `[control-lane]` in `YesDawUiInputCheck`; an ss5 step authored for the next drive window).
-Rules in force from the 2026-09-04 sweep: HEADLESS by default (no drive, no launch, no screenshot without
-Dan's yes — cp1 needed none; cp2's see-it step and rubric shots wait for a drive window), the macOS GPU
+Dan's call). **cp1 ✅** `17e3802` (the engine half — the edit model, schema v28, the flatten, the wire form,
+`SimpleSynth` honouring CC64 / CC1 / bend, the three Clip verbs). **cp2 ✅ (this commit) — the control lane
+in the piano roll**: the roll's second expression lane is a CC lane with a chooser (CC1 Mod · CC64 Sustain ·
+Pitch Bend · Aftertouch · Program); the pointer places / drags / erases points, the pencil paints one point
+per snap step, Shift+pencil draws a line; hover hint; the probe names the lane; `[control-lane]` in
+`YesDawUiInputCheck`; ss5 Step 11 authored. **Headless so far (Dan's 2026-09-04 rule):** the ss5 drive (Steps
+1–11) and the §7.4 rubric shots have NOT run — they need a drive window (Dan says "run drives"). **Next:**
+run ss5 + the rubric shots when Dan opens a window, then the G3.3 docs-evidence commit with the CI run id;
+then **G3.4 — Quantize v2** per the plan's order. Rules in force: HEADLESS by default, the macOS GPU
 frame-budget red is noise, the local suite + drives are the working gate.
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
@@ -194,6 +194,60 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.3 cp2 — The control lane in the piano roll (2026-09-04)
+
+**Story.** cp1 stored and rendered controllers; nothing in the shell could draw one. The roll's expression
+area held Velocity and an H11 "Pitch" readout lane that only restated each note's pitch (decorative —
+deleted before adding, plan §8.2). The second lane is now the **control lane** (plan §3.2 "CC1 Mod ▾"):
+a chooser in the keyboard gutter names the controller, and the lane's data area spans exactly the grid's
+x range so a point sits under the note it belongs to.
+
+**Precedent.** Logic's MIDI Draw: a click places a point at the grid, a drag moves it, the pencil paints
+freehand and REPLACES what it sweeps, one value per tick per controller. Pro Tools' pencil carries a Line
+mode; here Shift on the pencil is the line (a modifier on the existing tool — no invented chord, no new
+tool cell). The eraser (4) removes a point like it removes a note.
+
+**Build.** `UiPianoRollExpressionLaneKind::Control` replaces `Pitch`; `kPianoRollControlLaneChoices`
+(five lanes; the Program lane's value is the program number over 127; `makePianoRollControlPoint` is the
+one inverse law, wildcard port / channel); the surface snapshot carries `controlLaneChoice` and the lane's
+points by tick with `valueMin` (−1 for a bend). Context: `pianoRollControlLaneChoice`. Actions (no chords):
+`PianoRollControlLaneSelect` (the chooser, `pianoroll.lane.chooser`), `PianoRollControlPointAdd` / `Move` /
+`Delete`, `PianoRollControlLanePaint`. Model verbs: `addPianoRollControlPoint`, `movePianoRollControlPoint`
+(a Program point moves as remove + add in one group), `deletePianoRollControlPoint`,
+`paintPianoRollControlLane` (removes the lane's points in the swept range, adds the painted ones, ONE undo
+step), `selectPianoRollControlLane`. Shell: `pianoRollControlLaneArea` / `ChooserArea` / `DataArea`, the
+value ↔ y law (the velocity lane's pixel law over the lane's range), `PianoRollInputComponent`'s
+`ControlDragState` (Point / Pencil / Line; every edit lands on the release, the E13 law; the pencil samples
+the path and emits one point per snap step — chooser Off: one per pixel — the line interpolates the press
+and the release); the paint draws the lane's data area, a bend's centre line, the path and its points; the
+hover hint names the lane and its three tools; the gestures record their action for the probe
+(`recordLastAction`). Probe: `view.pianoRoll.controlLane` / `controlPointCount` / `controlLane{X,Y,Width,Height}`,
+layout `pianoroll.lane` and `pianoroll.lane.chooser`. Tokens `pianoRollControlLaneChooserGap`,
+`pianoRollControlPointHitRadius`. `docs/keymap-v2.md` regenerated.
+
+**Gates.** `[control-lane]` in `YesDawUiInputCheck` (185 assertions): the chooser is a visible
+child in the gutter named CC1 Mod and the data area spans the grid; a pointer click places a CC1 point at
+the snapped tick with the y's value (wildcard channel) and names its action; a drag moves it, one Ctrl+Z
+restores, Ctrl+Shift+Z redoes; the eraser removes it and Ctrl+Z brings it back; the pencil paints one point
+per snap step across the sweep, ticks ascending on the grid and values rising, as one undo step, leaving the
+point outside the sweep alone; Shift+pencil's points lie on the line between press and release and replace
+the point they sweep; the Pitch Bend lane is −1..1 with a centre click at 0, the probe names it and counts
+its points and lays out the lane and chooser, the dispatch is recorded; the Program lane's mid click is
+program 64 and its readout is number / 127; back on CC1 the first point is alone; the hover hint names the
+lane, the controller and the pencil. `YesDawUiActionCheck` re-pinned: the second lane is Control (empty on
+the default CC1). Local suite 373 / 373 (the input check re-pinned twice: child count 156 → 157 for the lane chooser; the dock’s stray-widget list admits the roll’s own chooser).
+
+**See-it.** ss5 Step 11 authored: the pencil paints a CC1 sweep in the lane (`controlPointCount` rises),
+a shot, Ctrl+Z clears it. **Not run** — the drive needs Dan's window (headless rule); rubric shots likewise.
+
+**Deviation log.** (1) No live preview during a lane drag — the edit lands on the release, as the velocity
+lane does (E13); a ghost path is a G2.3-style preview for a later roll pass (parking lot). (2) The lane
+shows every channel's points of the chosen controller in one row; points the roll creates carry the
+wildcard channel. (3) Pitch bend paints as a line path like the CCs (Logic paints bend the same way).
+
+**Not built (recorded).** The Note context menu's Velocity… / lane entries (plan §3.3 lists Velocity…,
+not a lane entry); CC recording (G7 by the plan); the key / time scrollbars on the roll (parking lot, G3.4).
 
 ### G3.3 cp1 — MIDI control events: the engine half (2026-09-04)
 

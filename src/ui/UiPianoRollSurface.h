@@ -9,6 +9,8 @@
 #include "ui/UiActions.h"
 #include "ui/UiThemeLayout.h"
 
+#include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -18,11 +20,95 @@
 
 namespace yesdaw::ui {
 
+// The roll's two expression lanes: velocity (a Note property, painted as bars) and the control lane
+// (G3.3: the control events of ONE chosen kind + number — the H11 "Pitch" readout lane, which only
+// restated each note's pitch, is gone: delete before you add).
 enum class UiPianoRollExpressionLaneKind : std::uint8_t
 {
     Velocity,
-    Pitch
+    Control
 };
+
+// G3.3: the control lanes the roll offers (plan §3.2 "CC1 Mod ▾"): a kind, a number and a name. The
+// Program lane's value is the program NUMBER over 127 (a program change carries no value).
+struct UiPianoRollControlLaneChoice
+{
+    engine::MidiControlKind kind = engine::MidiControlKind::ControlChange;
+    std::int16_t number = 0;
+    const char* name = "";
+};
+
+inline constexpr std::array<UiPianoRollControlLaneChoice, 5> kPianoRollControlLaneChoices {{
+    { engine::MidiControlKind::ControlChange, 1, "CC1 Mod" },
+    { engine::MidiControlKind::ControlChange, 64, "CC64 Sustain" },
+    { engine::MidiControlKind::PitchBend, 0, "Pitch Bend" },
+    { engine::MidiControlKind::ChannelPressure, 0, "Aftertouch" },
+    { engine::MidiControlKind::ProgramChange, 0, "Program" }
+}};
+
+[[nodiscard]] inline int clampPianoRollControlLaneChoice (int choice) noexcept
+{
+    return std::clamp (choice, 0, static_cast<int> (kPianoRollControlLaneChoices.size()) - 1);
+}
+
+[[nodiscard]] inline const UiPianoRollControlLaneChoice& pianoRollControlLaneChoice (int choice) noexcept
+{
+    return kPianoRollControlLaneChoices[static_cast<std::size_t> (clampPianoRollControlLaneChoice (choice))];
+}
+
+// The lane's value range: -1..1 for a bend (0 = centre), 0..1 otherwise.
+[[nodiscard]] inline double pianoRollControlLaneValueMin (int choice) noexcept
+{
+    return engine::midiControlValueMin (pianoRollControlLaneChoice (choice).kind);
+}
+
+// Does a stored control event belong to the chosen lane? Kind and number match (kinds without a
+// number match on the kind); every channel / port shows in the one lane.
+[[nodiscard]] inline bool controlEventOnLane (const engine::MidiControlEvent& control, int choice) noexcept
+{
+    const UiPianoRollControlLaneChoice& lane = pianoRollControlLaneChoice (choice);
+    if (control.kind != lane.kind)
+        return false;
+    return ! engine::midiControlKindHasNumber (lane.kind)
+        || lane.kind == engine::MidiControlKind::ProgramChange
+        || control.number == lane.number;
+}
+
+// The value the lane paints for a stored event (a program change paints its number over 127).
+[[nodiscard]] inline double controlEventLaneValue (const engine::MidiControlEvent& control) noexcept
+{
+    return control.kind == engine::MidiControlKind::ProgramChange
+        ? static_cast<double> (control.number) / 127.0
+        : control.value;
+}
+
+// Build the stored event for a lane value at a tick (the inverse of controlEventLaneValue): the
+// value clamps to the lane's range; a Program lane rounds it to the program number.
+[[nodiscard]] inline engine::MidiControlEvent makePianoRollControlPoint (int choice,
+                                                                         engine::EntityId id,
+                                                                         engine::Tick tick,
+                                                                         double value) noexcept
+{
+    const UiPianoRollControlLaneChoice& lane = pianoRollControlLaneChoice (choice);
+    engine::MidiControlEvent control;
+    control.id = id;
+    control.tick = tick;
+    control.kind = lane.kind;
+    control.portIndex = -1;
+    control.channel = -1;
+    const double clamped = std::clamp (value, pianoRollControlLaneValueMin (choice), 1.0);
+    if (lane.kind == engine::MidiControlKind::ProgramChange)
+    {
+        control.number = static_cast<std::int16_t> (std::clamp<long> (std::lround (clamped * 127.0), 0L, 127L));
+        control.value = 0.0;
+    }
+    else
+    {
+        control.number = lane.number;
+        control.value = clamped;
+    }
+    return control;
+}
 
 enum class UiPianoRollActionStatus : std::uint8_t
 {
@@ -46,7 +132,7 @@ struct UiPianoRollNoteView
 
 struct UiPianoRollExpressionPoint
 {
-    engine::EntityId noteId {};
+    engine::EntityId entityId {};   // the Note (velocity lane) or the control event (control lane)
     engine::Tick tick = 0;
     double value = 0.0;
 };
@@ -56,6 +142,9 @@ struct UiPianoRollExpressionLaneReadout
     UiPianoRollExpressionLaneKind kind = UiPianoRollExpressionLaneKind::Velocity;
     std::vector<UiPianoRollExpressionPoint> points;
     bool valid = false;
+    int controlLaneChoice = -1;   // G3.3: the control lane's chooser index (-1 for the velocity lane)
+    double valueMin = 0.0;
+    double valueMax = 1.0;
 };
 
 struct UiPianoRollSurfaceSnapshot
@@ -85,6 +174,7 @@ struct UiPianoRollSurfaceSnapshot
     engine::Tick beatTicks = 15360;
     engine::Tick barTicks = 4 * 15360;
     engine::Tick playheadTick = -1;
+    int controlLaneChoice = 0;   // G3.3: which control lane the roll shows (kPianoRollControlLaneChoices)
 };
 
 // G3.2: a grid line the roll paints (and the gate counts).
@@ -213,14 +303,35 @@ inline void appendExpressionLane (UiPianoRollSurfaceSnapshot& snapshot,
     snapshot.expressionLanes.push_back (std::move (lane));
 }
 
+// G3.3: the control lane — the Clip's control events of the chosen kind + number, by tick.
+inline void appendControlLane (UiPianoRollSurfaceSnapshot& snapshot,
+                               const engine::MidiClip& midiClip,
+                               int controlLaneChoice)
+{
+    UiPianoRollExpressionLaneReadout lane;
+    lane.kind = UiPianoRollExpressionLaneKind::Control;
+    lane.valid = true;
+    lane.controlLaneChoice = clampPianoRollControlLaneChoice (controlLaneChoice);
+    lane.valueMin = pianoRollControlLaneValueMin (lane.controlLaneChoice);
+    lane.valueMax = 1.0;
+    for (const engine::MidiControlEvent& control : midiClip.controlEvents)
+        if (controlEventOnLane (control, lane.controlLaneChoice))
+            lane.points.push_back ({ control.id, control.tick, controlEventLaneValue (control) });
+    std::stable_sort (lane.points.begin(), lane.points.end(),
+                      [] (const UiPianoRollExpressionPoint& a, const UiPianoRollExpressionPoint& b) { return a.tick < b.tick; });
+    snapshot.expressionLanes.push_back (std::move (lane));
+}
+
 } // namespace detail
 
 inline UiPianoRollSurfaceSnapshot projectUiPianoRollSurface (const engine::Project& project,
                                                              engine::EntityId selectedMidiClipId = {},
                                                              engine::EntityId selectedNoteId = {},
-                                                             std::span<const engine::EntityId> selectedNoteIds = {})
+                                                             std::span<const engine::EntityId> selectedNoteIds = {},
+                                                             int controlLaneChoice = 0)
 {
     UiPianoRollSurfaceSnapshot snapshot;
+    snapshot.controlLaneChoice = clampPianoRollControlLaneChoice (controlLaneChoice);
     snapshot.projectLoaded = project.hasValidAssetClipIndirection();
     if (! snapshot.projectLoaded || ! selectedMidiClipId.isValid())
         return snapshot;
@@ -260,10 +371,7 @@ inline UiPianoRollSurfaceSnapshot projectUiPianoRollSurface (const engine::Proje
         snapshot,
         UiPianoRollExpressionLaneKind::Velocity,
         std::span<const engine::Note> (midiClip->notes.data(), midiClip->notes.size()));
-    detail::appendExpressionLane (
-        snapshot,
-        UiPianoRollExpressionLaneKind::Pitch,
-        std::span<const engine::Note> (midiClip->notes.data(), midiClip->notes.size()));
+    detail::appendControlLane (snapshot, *midiClip, snapshot.controlLaneChoice);   // G3.3
     return snapshot;
 }
 

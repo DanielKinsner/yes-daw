@@ -2154,6 +2154,59 @@ struct PianoRollCanvasGeometry
                std::llround (normalized * static_cast<double> (pianoRollVisibleTicks (surface))));
 }
 
+// G3.3: the control lane is the SECOND expression lane. Its chooser sits in the keyboard gutter and
+// its data area spans exactly the grid's x range, so a tick maps to the same x as a note above it.
+// One inset chain with the paint loop (like the velocity lane's).
+[[nodiscard]] juce::Rectangle<int> pianoRollControlLaneArea (const PianoRollCanvasGeometry& geometry) noexcept
+{
+    juce::Rectangle<int> expression = geometry.expression.reduced (
+        yesdaw::ui::UiTheme::Layout::pianoRollExpressionInsetX,
+        yesdaw::ui::UiTheme::Layout::pianoRollExpressionInsetY);
+    expression.removeFromTop (yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneHeight);
+    return expression.removeFromTop (yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneHeight)
+        .reduced (yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneInsetX,
+                  yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneInsetY);
+}
+
+[[nodiscard]] juce::Rectangle<int> pianoRollControlLaneChooserArea (const PianoRollCanvasGeometry& geometry) noexcept
+{
+    const juce::Rectangle<int> lane = pianoRollControlLaneArea (geometry);
+    return lane.withWidth (juce::jmax (1, geometry.grid.getX() - lane.getX()
+                                          - yesdaw::ui::UiTheme::Layout::pianoRollControlLaneChooserGap));
+}
+
+[[nodiscard]] juce::Rectangle<int> pianoRollControlLaneDataArea (const PianoRollCanvasGeometry& geometry) noexcept
+{
+    const juce::Rectangle<int> lane = pianoRollControlLaneArea (geometry);
+    return lane.withLeft (geometry.grid.getX()).withRight (geometry.grid.getRight());
+}
+
+// The lane's value law: the velocity lane's pixel law stretched over [valueMin, valueMax].
+[[nodiscard]] double pianoRollControlValueForLaneY (juce::Rectangle<int> lane, int y, double valueMin, double valueMax) noexcept
+{
+    return valueMin + pianoRollVelocityForLaneY (lane, y) * (valueMax - valueMin);
+}
+
+[[nodiscard]] int pianoRollControlLaneYForValue (juce::Rectangle<int> lane, double value, double valueMin, double valueMax) noexcept
+{
+    const double span = valueMax > valueMin ? valueMax - valueMin : 1.0;
+    const double normalized = juce::jlimit (0.0, 1.0, (value - valueMin) / span);
+    const double usable = static_cast<double> (
+        juce::jmax (1, lane.getHeight() - yesdaw::ui::UiTheme::Layout::pianoRollExpressionPathVerticalInset));
+    const double bottom = static_cast<double> (
+        lane.getBottom() - yesdaw::ui::UiTheme::Layout::pianoRollExpressionPathBottomInset);
+    return juce::roundToInt (bottom - normalized * usable);
+}
+
+[[nodiscard]] const yesdaw::ui::UiPianoRollExpressionLaneReadout* pianoRollControlLaneOf (
+    const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface) noexcept
+{
+    for (const yesdaw::ui::UiPianoRollExpressionLaneReadout& lane : surface.expressionLanes)
+        if (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Control)
+            return &lane;
+    return nullptr;
+}
+
 class PianoRollInputComponent final : public juce::Component,
                                       public juce::SettableTooltipClient
 {
@@ -2186,6 +2239,15 @@ public:
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId)> onNoteDeleted;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteSplit;   // G3.2: the Scissors tool
     std::function<void (std::int16_t, bool)> onKeyAuditioned;   // G3.2: audition - key, on / off (keyboard column, note press, drawn note)
+    // G3.3: the control lane's gestures — every edit lands on the release (the E13 velocity-lane law):
+    // clip, tick, value / clip, point id, tick, value / clip, point id / clip, points, first tick, last tick.
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::Tick, double)> onControlPointAdded;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick, double)> onControlPointMoved;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId)> onControlPointDeleted;
+    std::function<void (yesdaw::engine::EntityId,
+                        std::span<const std::pair<yesdaw::engine::Tick, double>>,
+                        yesdaw::engine::Tick,
+                        yesdaw::engine::Tick)> onControlLanePainted;
     [[nodiscard]] int heldAuditionKey() const noexcept { return auditionKey; }   // G3.2: -1 = none
     [[nodiscard]] int lastAuditionKey() const noexcept { return lastAuditioned; }   // G3.2: the probe's record of the last press; -1 = never
     // Piano-roll viewport (E10): plain wheel scrolls keys, Shift+wheel scrolls time, Ctrl+wheel
@@ -2267,6 +2329,15 @@ public:
         // named like every other hovered zone — it was blind until 2026-09-04.
         if (geometry.keyboard.contains (position))
             return "Keyboard: press a key to hear it through the track's instrument · release to stop";
+        if (surface.midiClipSelected && pianoRollControlLaneDataArea (geometry).contains (position))
+        {
+            // G3.3: the control lane names its controller and its three tools.
+            juce::String hint ("Control lane");
+            if (const auto* lane = pianoRollControlLaneOf (surface))
+                hint << " (" << yesdaw::ui::pianoRollControlLaneChoice (lane->controlLaneChoice).name << ")";
+            hint << ": the pointer (1) places or drags a point \u00b7 the pencil (2) paints \u00b7 Shift+pencil draws a line \u00b7 the eraser (4) removes";
+            return hint;
+        }
         if (surface.midiClipSelected && pianoRollVelocityLaneArea (geometry).contains (position))
             return "Velocity lane: drag to paint velocities";
         if (const auto hit = noteAt (surface, position))
@@ -2343,7 +2414,15 @@ public:
             dragState = {};
             marqueeState = {};
             velocityDragState = {};
+            controlDragState = {};
             const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+            // G3.3: a press in the control lane — the eraser removes the point under it, the pencil
+            // starts a paint (Shift: a line), the pointer grabs a point or places one on release.
+            if (surface.midiClipSelected && pianoRollControlLaneDataArea (geometry).contains (event.getPosition()))
+            {
+                beginControlLaneGesture (surface, geometry, event);
+                return;
+            }
             // E13: a press in the velocity lane starts a velocity paint drag.
             if (surface.midiClipSelected
                 && pianoRollVelocityLaneArea (geometry).contains (event.getPosition()))
@@ -2491,12 +2570,13 @@ public:
     [[nodiscard]] bool cancelInProgressEdit()
     {
         if (! dragState.active && ! marqueeState.active && ! velocityDragState.active
-            && ! pendingShiftToggleNoteId.isValid())
+            && ! controlDragState.active && ! pendingShiftToggleNoteId.isValid())
             return false;
 
         dragState = {};
         marqueeState = {};
         velocityDragState = {};
+        controlDragState = {};
         pendingShiftToggleNoteId = {};
         repaint();
         return true;
@@ -2504,6 +2584,24 @@ public:
 
     void mouseDrag (const juce::MouseEvent& event) override
     {
+        if (controlDragState.active)
+        {
+            if (! stateProvider)
+                return;
+            const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+            const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+            controlDragState.currentTick = controlLaneTickAt (surface, geometry, event.getPosition().x, controlDragState.kind != ControlDragKind::Pencil);
+            controlDragState.currentValue = controlLaneValueAt (surface, geometry, event.getPosition().y);
+            const int deltaX = event.getPosition().x - controlDragState.downPosition.x;
+            const int deltaY = event.getPosition().y - controlDragState.downPosition.y;
+            controlDragState.moved = controlDragState.moved
+                || std::abs (deltaX) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels
+                || std::abs (deltaY) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels;
+            if (controlDragState.kind == ControlDragKind::Pencil)
+                controlDragState.samples.emplace_back (controlDragState.currentTick, controlDragState.currentValue);
+            return;
+        }
+
         if (velocityDragState.active)
         {
             if (! stateProvider)
@@ -2540,6 +2638,14 @@ public:
     void mouseUp (const juce::MouseEvent& event) override
     {
         endAudition();   // G3.2: the audition ends with the press
+
+        if (controlDragState.active)
+        {
+            const ControlDragState drag = controlDragState;
+            controlDragState = {};
+            finishControlLaneGesture (drag);
+            return;
+        }
 
         if (velocityDragState.active)
         {
@@ -2850,6 +2956,197 @@ private:
         }
 
         return PianoDragMode::Move;
+    }
+
+    // G3.3: an in-flight control-lane gesture — a point placed / dragged, or a pencil paint
+    // (freehand samples, or the straight line from the press to the release).
+    enum class ControlDragKind { Point, Pencil, Line };
+    struct ControlDragState
+    {
+        bool active = false;
+        bool moved = false;
+        ControlDragKind kind = ControlDragKind::Point;
+        yesdaw::engine::EntityId midiClipId {};
+        yesdaw::engine::EntityId pointId {};   // the grabbed point; invalid = placing a new one
+        juce::Point<int> downPosition;
+        yesdaw::engine::Tick downTick = 0;
+        double downValue = 0.0;
+        yesdaw::engine::Tick currentTick = 0;
+        double currentValue = 0.0;
+        std::vector<std::pair<yesdaw::engine::Tick, double>> samples;
+    };
+    ControlDragState controlDragState;
+
+    // The lane's tick under an x: snapped to the chooser's grid (the roll's note law: Ctrl is not an
+    // inversion here) unless the caller asks for the raw tick (the freehand pencil samples raw).
+    [[nodiscard]] static yesdaw::engine::Tick controlLaneTickAt (const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+                                                                  const PianoRollCanvasGeometry& geometry,
+                                                                  int x,
+                                                                  bool snap) noexcept
+    {
+        yesdaw::engine::Tick tick = pianoRollTickForX (geometry, surface, x);
+        if (snap && surface.snapEnabled && surface.snapGridTicks > 0)
+            tick -= tick % surface.snapGridTicks;
+        return std::clamp<yesdaw::engine::Tick> (tick, 0, juce::jmax<yesdaw::engine::Tick> (0, surface.timelineLength));
+    }
+
+    [[nodiscard]] static double controlLaneValueAt (const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+                                                    const PianoRollCanvasGeometry& geometry,
+                                                    int y) noexcept
+    {
+        const auto* lane = pianoRollControlLaneOf (surface);
+        const double valueMin = lane != nullptr ? lane->valueMin : 0.0;
+        const double valueMax = lane != nullptr ? lane->valueMax : 1.0;
+        return pianoRollControlValueForLaneY (pianoRollControlLaneDataArea (geometry), y, valueMin, valueMax);
+    }
+
+    // The painted point under a position (the last-painted wins, like notes).
+    [[nodiscard]] static std::optional<yesdaw::ui::UiPianoRollExpressionPoint> controlPointAt (
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+        const PianoRollCanvasGeometry& geometry,
+        juce::Point<int> position) noexcept
+    {
+        const auto* lane = pianoRollControlLaneOf (surface);
+        if (lane == nullptr)
+            return std::nullopt;
+        const juce::Rectangle<int> area = pianoRollControlLaneDataArea (geometry);
+        const int radius = yesdaw::ui::UiTheme::Layout::pianoRollControlPointHitRadius;
+        for (auto it = lane->points.rbegin(); it != lane->points.rend(); ++it)
+        {
+            const int x = pianoRollTickX (geometry, surface, it->tick);
+            const int y = pianoRollControlLaneYForValue (area, it->value, lane->valueMin, lane->valueMax);
+            if (std::abs (x - position.x) <= radius && std::abs (y - position.y) <= radius)
+                return *it;
+        }
+        return std::nullopt;
+    }
+
+    void beginControlLaneGesture (const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface,
+                                  const PianoRollCanvasGeometry& geometry,
+                                  const juce::MouseEvent& event)
+    {
+        const yesdaw::ui::TimelineTool tool =
+            activeToolProvider ? activeToolProvider() : yesdaw::ui::TimelineTool::Pointer;
+        const auto point = controlPointAt (surface, geometry, event.getPosition());
+
+        if (tool == yesdaw::ui::TimelineTool::Eraser)
+        {
+            if (point && onControlPointDeleted)
+                onControlPointDeleted (surface.midiClipId, point->entityId);
+            return;
+        }
+
+        controlDragState = {};
+        controlDragState.active = true;
+        controlDragState.midiClipId = surface.midiClipId;
+        controlDragState.downPosition = event.getPosition();
+        if (tool == yesdaw::ui::TimelineTool::Pencil)
+        {
+            controlDragState.kind = event.mods.isShiftDown() ? ControlDragKind::Line : ControlDragKind::Pencil;
+            controlDragState.downTick = controlLaneTickAt (surface, geometry, event.getPosition().x, controlDragState.kind == ControlDragKind::Line);
+            controlDragState.downValue = controlLaneValueAt (surface, geometry, event.getPosition().y);
+            controlDragState.samples.emplace_back (controlDragState.downTick, controlDragState.downValue);
+        }
+        else
+        {
+            controlDragState.kind = ControlDragKind::Point;
+            if (point)
+            {
+                controlDragState.pointId = point->entityId;
+                controlDragState.downTick = point->tick;
+                controlDragState.downValue = point->value;
+            }
+            else
+            {
+                controlDragState.downTick = controlLaneTickAt (surface, geometry, event.getPosition().x, true);
+                controlDragState.downValue = controlLaneValueAt (surface, geometry, event.getPosition().y);
+            }
+        }
+        controlDragState.currentTick = controlDragState.downTick;
+        controlDragState.currentValue = controlDragState.downValue;
+    }
+
+    void finishControlLaneGesture (const ControlDragState& drag)
+    {
+        if (! stateProvider)
+            return;
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
+        const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+
+        if (drag.kind == ControlDragKind::Point)
+        {
+            if (drag.pointId.isValid())
+            {
+                if (drag.moved && onControlPointMoved)
+                    onControlPointMoved (drag.midiClipId, drag.pointId, drag.currentTick, drag.currentValue);
+            }
+            else if (onControlPointAdded)
+            {
+                // A click places a point; a press-and-drag places it where the drag ends.
+                onControlPointAdded (drag.midiClipId, drag.currentTick, drag.currentValue);
+            }
+            return;
+        }
+
+        if (! drag.moved)
+        {
+            // A pencil click is a single point (Logic's pencil).
+            if (onControlPointAdded)
+                onControlPointAdded (drag.midiClipId, controlLaneTickAt (surface, geometry, drag.downPosition.x, true), drag.downValue);
+            return;
+        }
+
+        // The pencil paints one point per grid step across the sweep (chooser Off: one per pixel,
+        // never more): freehand takes the sampled path's value at each step, a line interpolates
+        // the press and the release.
+        const yesdaw::engine::Tick lo = juce::jmin (drag.downTick, drag.currentTick);
+        const yesdaw::engine::Tick hi = juce::jmax (drag.downTick, drag.currentTick);
+        const yesdaw::engine::Tick pixelTicks = juce::jmax<yesdaw::engine::Tick> (
+            1, pianoRollTickDeltaForPixels (geometry, surface, 1));
+        const yesdaw::engine::Tick step = surface.snapEnabled && surface.snapGridTicks > 0
+            ? surface.snapGridTicks
+            : pixelTicks;
+
+        std::vector<std::pair<yesdaw::engine::Tick, double>> samples = drag.samples;
+        std::stable_sort (samples.begin(), samples.end(),
+                          [] (const auto& a, const auto& b) { return a.first < b.first; });
+        const auto valueAt = [&] (yesdaw::engine::Tick tick)
+        {
+            if (drag.kind == ControlDragKind::Line || samples.size() < 2u)
+            {
+                if (drag.currentTick == drag.downTick)
+                    return drag.currentValue;
+                const double t = juce::jlimit (0.0, 1.0,
+                    static_cast<double> (tick - drag.downTick) / static_cast<double> (drag.currentTick - drag.downTick));
+                return drag.downValue + t * (drag.currentValue - drag.downValue);
+            }
+            if (tick <= samples.front().first)
+                return samples.front().second;
+            for (std::size_t i = 1; i < samples.size(); ++i)
+            {
+                if (tick <= samples[i].first)
+                {
+                    const auto& a = samples[i - 1];
+                    const auto& b = samples[i];
+                    if (b.first == a.first)
+                        return b.second;
+                    const double t = static_cast<double> (tick - a.first) / static_cast<double> (b.first - a.first);
+                    return a.second + t * (b.second - a.second);
+                }
+            }
+            return samples.back().second;
+        };
+
+        std::vector<std::pair<yesdaw::engine::Tick, double>> points;
+        const yesdaw::engine::Tick first = ((lo + step - 1) / step) * step;
+        for (yesdaw::engine::Tick tick = first; tick <= hi; tick += step)
+            points.emplace_back (tick, valueAt (tick));
+        if (points.empty())
+            points.emplace_back (lo, valueAt (lo));
+        if (onControlLanePainted)
+            onControlLanePainted (drag.midiClipId,
+                                  std::span<const std::pair<yesdaw::engine::Tick, double>> (points.data(), points.size()),
+                                  lo, hi);
     }
 
     // E13: an in-flight velocity-lane paint drag.
@@ -5846,6 +6143,40 @@ public:
                 refreshActionState();
                 repaintAll();
             };
+        // G3.3: the control lane's gestures land on the model's Clip verbs (each one undo step).
+        pianoRollInput.onControlPointAdded = [this] (yesdaw::engine::EntityId midiClipId,
+                                                     yesdaw::engine::Tick tick,
+                                                     double value) {
+            (void) appModel.addPianoRollControlPoint (midiClipId, appModel.context().pianoRollControlLaneChoice, tick, value);
+            recordLastAction (yesdaw::ui::UiActionId::PianoRollControlPointAdd);
+            refreshActionState();
+            repaintAll();
+        };
+        pianoRollInput.onControlPointMoved = [this] (yesdaw::engine::EntityId midiClipId,
+                                                     yesdaw::engine::EntityId pointId,
+                                                     yesdaw::engine::Tick tick,
+                                                     double value) {
+            (void) appModel.movePianoRollControlPoint (midiClipId, pointId, tick, value);
+            recordLastAction (yesdaw::ui::UiActionId::PianoRollControlPointMove);
+            refreshActionState();
+            repaintAll();
+        };
+        pianoRollInput.onControlPointDeleted = [this] (yesdaw::engine::EntityId midiClipId,
+                                                       yesdaw::engine::EntityId pointId) {
+            (void) appModel.deletePianoRollControlPoint (midiClipId, pointId);
+            recordLastAction (yesdaw::ui::UiActionId::PianoRollControlPointDelete);
+            refreshActionState();
+            repaintAll();
+        };
+        pianoRollInput.onControlLanePainted = [this] (yesdaw::engine::EntityId midiClipId,
+                                                      std::span<const std::pair<yesdaw::engine::Tick, double>> points,
+                                                      yesdaw::engine::Tick firstTick,
+                                                      yesdaw::engine::Tick lastTick) {
+            (void) appModel.paintPianoRollControlLane (midiClipId, appModel.context().pianoRollControlLaneChoice, points, firstTick, lastTick);
+            recordLastAction (yesdaw::ui::UiActionId::PianoRollControlLanePaint);
+            refreshActionState();
+            repaintAll();
+        };
         pianoRollInput.onNoteCopyDragged = [this] (yesdaw::engine::EntityId midiClipId,
                                                    yesdaw::engine::EntityId noteId,
                                                    yesdaw::engine::Tick newStartTick) {
@@ -5854,6 +6185,24 @@ public:
             repaintAll();
         };
         addAndMakeVisible (pianoRollInput);
+
+        // G3.3: the control lane's chooser sits in the lane's keyboard gutter (plan §3.2 "CC1 Mod ▾").
+        pianoRollLaneChooser.setComponentID ("pianoroll.lane.chooser");
+        pianoRollLaneChooser.setName ("Control lane");
+        pianoRollLaneChooser.setTooltip ("Which controller the piano roll's control lane shows: CC1 Mod, CC64 Sustain, Pitch Bend, Aftertouch, Program");
+        for (std::size_t i = 0; i < yesdaw::ui::kPianoRollControlLaneChoices.size(); ++i)
+            pianoRollLaneChooser.addItem (yesdaw::ui::kPianoRollControlLaneChoices[i].name, static_cast<int> (i) + 1);
+        pianoRollLaneChooser.setSelectedId (1, juce::dontSendNotification);
+        pianoRollLaneChooser.onChange = [this] {
+            const int selected = pianoRollLaneChooser.getSelectedId();
+            if (selected <= 0 || selected - 1 == appModel.context().pianoRollControlLaneChoice)
+                return;
+            (void) appModel.selectPianoRollControlLane (selected - 1);
+            recordLastAction (yesdaw::ui::UiActionId::PianoRollControlLaneSelect);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (pianoRollLaneChooser);
 
         menuBar.setModel (this);
         menuBar.setComponentID ("shell.menubar");
@@ -6591,6 +6940,13 @@ public:
         if (appModel.context().mixerDockVisible)
         {
             put ("dock", mixerPanelBounds());
+            if (dockShowsPianoRoll())
+            {
+                // G3.3: the control lane's data area and its chooser, so a drive draws where the lane is.
+                const PianoRollCanvasGeometry rollGeometry = pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin());
+                put ("pianoroll.lane", pianoRollControlLaneDataArea (rollGeometry).translated (pianoRollInput.getX(), pianoRollInput.getY()));
+                put ("pianoroll.lane.chooser", pianoRollLaneChooser.getBounds());
+            }
             // The mixer's painted zones by name (mixer.strip.N, .solo, .mute, .fader,
             // .insert.K, .send.K) so a drive clicks the strip it sees — nothing about the mixer
             // was clickable by name before 2026-09-04, which is where the mouse-only bugs hid.
@@ -6886,6 +7242,17 @@ public:
                 roll->setProperty ("gridHeight", rollGeometry.grid.getHeight());
                 roll->setProperty ("keyboardX", rollGeometry.keyboard.getX());
                 roll->setProperty ("keyboardWidth", rollGeometry.keyboard.getWidth());
+                {
+                    // G3.3: the control lane — its name, its data area (roll-local) and its point count.
+                    const juce::Rectangle<int> laneData = pianoRollControlLaneDataArea (rollGeometry);
+                    roll->setProperty ("controlLane", juce::String (yesdaw::ui::pianoRollControlLaneChoice (rollSurface.controlLaneChoice).name));
+                    roll->setProperty ("controlLaneX", laneData.getX());
+                    roll->setProperty ("controlLaneY", laneData.getY());
+                    roll->setProperty ("controlLaneWidth", laneData.getWidth());
+                    roll->setProperty ("controlLaneHeight", laneData.getHeight());
+                    const auto* lane = pianoRollControlLaneOf (rollSurface);
+                    roll->setProperty ("controlPointCount", lane != nullptr ? static_cast<int> (lane->points.size()) : 0);
+                }
                 juce::Array<juce::var> rollNotes;
                 for (const yesdaw::ui::UiPianoRollNoteView& note : rollSurface.notes)
                 {
@@ -6994,6 +7361,7 @@ public:
     [[nodiscard]] yesdaw::ui::UiPianoRollSurfaceSnapshot harnessPianoRollSurface() const { return currentPianoRollSurface(); }   // G3.2
     [[nodiscard]] juce::Rectangle<int> harnessPianoRollBounds() const { return pianoRollInput.getBounds(); }
     [[nodiscard]] int harnessPianoRollAuditionKey() const { return pianoRollInput.heldAuditionKey(); }   // G3.2
+    void harnessSelectPianoRollControlLane (int choice) { pianoRollLaneChooser.setSelectedId (choice + 1, juce::sendNotificationSync); }   // G3.3
     void harnessServiceUiTick() { serviceUiTick(); }   // G3.2 checkpoint: the timer's own refresh path
     [[nodiscard]] bool harnessAuditionNote (std::int16_t key, bool on) { return appModel.auditionNote (key, on); }   // G3.2
     [[nodiscard]] std::vector<float> harnessRenderPlayback (std::uint64_t frames, int blockSize)   // G3.2: the engine's own blocks
@@ -7343,6 +7711,8 @@ public:
             undoHistory.setBounds (work.withSizeKeepingCentre (std::max (L::keymapEditorMinWidth, historyWidth), std::max (L::keymapEditorMinHeight, historyHeight)));
         }
         pianoRollInput.setBounds (mixerPanelBounds());   // G2.1 cp2: the piano roll is a dock tab
+        pianoRollLaneChooser.setBounds (pianoRollControlLaneChooserArea (pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin()))
+                                            .translated (pianoRollInput.getX(), pianoRollInput.getY()));   // G3.3
         instrumentPanel.setBounds (mixerPanelBounds());   // G3.1: so is the instrument panel
         trackListInput.setBounds (leftRailPanelBounds());
         {
@@ -10520,6 +10890,14 @@ private:
         return cancelled;
     }
 
+    // G3.3: a mouse gesture that lands on a model verb without passing handleAction still names
+    // itself to the probe (a drive asserts on lastAction; nothing is blind).
+    void recordLastAction (yesdaw::ui::UiActionId action)
+    {
+        if (const auto* descriptor = appModel.registry().descriptor (action))
+            lastActionStableId = descriptor->stableId;
+    }
+
     void handleAction (yesdaw::ui::UiActionId action)
     {
         // G0.1 probe: the last dispatched action by stable id, and the stamp the B1
@@ -11910,6 +12288,8 @@ private:
         timelineInput.setVisible (true);
         playheadLayer.setVisible (true);
         pianoRollInput.setVisible (dockShowsPianoRoll());
+        pianoRollLaneChooser.setVisible (dockShowsPianoRoll());   // G3.3
+        pianoRollLaneChooser.setSelectedId (appModel.context().pianoRollControlLaneChoice + 1, juce::dontSendNotification);
         mixerStripsInput.setVisible (dockShowsMixer());
         instrumentPanel.setVisible (dockShowsInstrument());   // G3.1
         if (dockShowsInstrument())
@@ -14665,13 +15045,30 @@ private:
                                           yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneInsetY);
             g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
             g.fillRect (laneArea);
-            drawSmallLabel (g,
-                            lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? "Velocity" : "Pitch",
-                            laneArea.reduced (yesdaw::ui::UiTheme::Layout::pianoRollExpressionLabelInsetX,
-                                              yesdaw::ui::UiTheme::Layout::pianoRollExpressionLabelInsetY));
+            // G3.3: the control lane's name is its chooser (a child in the gutter); the velocity lane keeps its label.
+            if (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity)
+                drawSmallLabel (g,
+                                "Velocity",
+                                laneArea.reduced (yesdaw::ui::UiTheme::Layout::pianoRollExpressionLabelInsetX,
+                                                  yesdaw::ui::UiTheme::Layout::pianoRollExpressionLabelInsetY));
 
-            const double minValue = lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? 0.0 : 48.0;
-            const double maxValue = lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Velocity ? 1.0 : 76.0;
+            const double minValue = lane.valueMin;
+            const double maxValue = lane.valueMax;
+
+            if (lane.kind == yesdaw::ui::UiPianoRollExpressionLaneKind::Control)
+            {
+                // The lane's data area (the grid's x span) and, for a bend, its centre line at 0.
+                const juce::Rectangle<int> data = pianoRollControlLaneDataArea (geometry);
+                g.setColour (yesdaw::ui::UiTheme::Color::controlInsetBlack());
+                g.fillRect (data);
+                if (minValue < 0.0)
+                {
+                    const int centreY = pianoRollControlLaneYForValue (data, 0.0, minValue, maxValue);
+                    g.setColour (kPanelStroke.withAlpha (0.72f));
+                    g.fillRect (juce::Rectangle<int> (data.getX(), centreY, data.getWidth(),
+                                                     yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth));
+                }
+            }
 
             // M8: velocity is a BAR per note, anchored at the note's start and rising from the lane
             // floor — the joined line read as an automation curve between notes that never existed.
@@ -15602,7 +15999,8 @@ private:
                 appModel.project(),
                 midiClipId,
                 appModel.selectedMidiNoteId(),
-                appModel.selectedMidiNoteIds());
+                appModel.selectedMidiNoteIds(),
+                appModel.context().pianoRollControlLaneChoice);   // G3.3
 
             // Piano-roll viewport (E10): the surface publishes the CLAMPED view so every paint,
             // hit-test, and gesture consumer shares one law.
@@ -15708,6 +16106,7 @@ private:
     TimelineInputComponent timelineInput;
     PlayheadLayerComponent playheadLayer;   // G0.4: above the buffered canvas
     PianoRollInputComponent pianoRollInput;
+    juce::ComboBox pianoRollLaneChooser;   // G3.3: the control lane's chooser (a child over the lane's gutter)
     TrackListInputComponent trackListInput;
     MixerStripsInputComponent mixerStripsInput;
     FineDragSlider headerTempoControl;
@@ -16470,6 +16869,48 @@ void mainComponentServiceUiTick (juce::Component& component)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         mainComponent->harnessServiceUiTick();
+}
+
+MainComponentPianoRollControlLane mainComponentPianoRollControlLane (juce::Component& component)
+{
+    MainComponentPianoRollControlLane out;
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = mainComponent->harnessPianoRollSurface();
+        const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (mainComponent->harnessPianoRollBounds().withZeroOrigin());
+        out.lane = pianoRollControlLaneDataArea (geometry);
+        out.chooser = pianoRollControlLaneChooserArea (geometry);
+        out.name = yesdaw::ui::pianoRollControlLaneChoice (surface.controlLaneChoice).name;
+        if (const auto* lane = pianoRollControlLaneOf (surface))
+        {
+            out.valueMin = lane->valueMin;
+            out.valueMax = lane->valueMax;
+            for (const yesdaw::ui::UiPianoRollExpressionPoint& point : lane->points)
+            {
+                out.points.emplace_back (static_cast<std::int64_t> (point.tick), point.value);
+                out.pointIds.push_back (juce::String (entityIdHex (point.entityId)));
+            }
+        }
+    }
+    return out;
+}
+
+void mainComponentSelectPianoRollControlLane (juce::Component& component, int choice)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessSelectPianoRollControlLane (choice);
+}
+
+double mainComponentPianoRollControlValueForY (juce::Component& component, int rollLocalY)
+{
+    const MainComponentPianoRollControlLane lane = mainComponentPianoRollControlLane (component);
+    return pianoRollControlValueForLaneY (lane.lane, rollLocalY, lane.valueMin, lane.valueMax);
+}
+
+int mainComponentPianoRollControlYForValue (juce::Component& component, double value)
+{
+    const MainComponentPianoRollControlLane lane = mainComponentPianoRollControlLane (component);
+    return pianoRollControlLaneYForValue (lane.lane, value, lane.valueMin, lane.valueMax);
 }
 
 bool mainComponentAuditionNote (juce::Component& component, std::int16_t key, bool on)

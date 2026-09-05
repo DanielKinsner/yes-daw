@@ -1077,8 +1077,11 @@ TEST_CASE ("H11 piano roll actions dispatch to Project MIDI edit commands and ex
     REQUIRE (snapshot.expressionLanes.size() == 2u);
     REQUIRE (snapshot.expressionLanes[0].kind == UiPianoRollExpressionLaneKind::Velocity);
     REQUIRE (snapshot.expressionLanes[0].points[0].value == 0.5);
-    REQUIRE (snapshot.expressionLanes[1].kind == UiPianoRollExpressionLaneKind::Pitch);
-    REQUIRE (snapshot.expressionLanes[1].points[0].value == 60.25);
+    // G3.3 re-pin: the second lane is the CONTROL lane (the H11 "Pitch" readout, which restated each
+    // note's pitch, is gone — delete before you add). The default lane is CC1 Mod, empty here.
+    REQUIRE (snapshot.expressionLanes[1].kind == UiPianoRollExpressionLaneKind::Control);
+    REQUIRE (snapshot.expressionLanes[1].controlLaneChoice == 0);
+    REQUIRE (snapshot.expressionLanes[1].points.empty());
 
     result = model.dispatch (
         UiActionId::PianoRollNoteMove,
@@ -1118,7 +1121,7 @@ TEST_CASE ("H11 piano roll actions dispatch to Project MIDI edit commands and ex
     REQUIRE (snapshot.notes[0].key == 67);
     REQUIRE (snapshot.expressionLanes[0].points[0].tick == 512);
     REQUIRE (snapshot.expressionLanes[0].points[0].value == 0.5);
-    REQUIRE (snapshot.expressionLanes[1].points[0].value == 67.25);
+    REQUIRE (snapshot.expressionLanes[1].points.empty());   // G3.3: no control points were added
 
     result = model.dispatch (UiActionId::PianoRollReadExpressionLanes);
     REQUIRE (result.dispatched);

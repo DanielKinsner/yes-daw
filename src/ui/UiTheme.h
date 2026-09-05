@@ -985,6 +985,8 @@ struct UiTheme
         static constexpr float pianoRollExpressionPointRadius = 2.5f;
         static constexpr float pianoRollExpressionPointDiameter = 5.0f;
         static constexpr float pianoRollExpressionPathStrokeWidth = 1.5f;
+        static constexpr int pianoRollControlLaneChooserGap = 6;    // G3.3: between the lane chooser and the lane's data
+        static constexpr int pianoRollControlPointHitRadius = 6;    // G3.3: a control point grabs within this many px
 
         // The tool strip: seven cells — the six keyed tools in key order (1–6), then the
         // mouse-only Hand — so every tool the keys reach is a click and a lit cell too. It ends

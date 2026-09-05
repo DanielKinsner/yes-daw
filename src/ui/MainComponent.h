@@ -279,6 +279,24 @@ struct MainComponentPianoRollAudition
     int gridRight = 0;
 };
 [[nodiscard]] MainComponentPianoRollAudition mainComponentPianoRollAudition (juce::Component& component, int key);
+// G3.3: the roll's control lane as painted — roll-local rects (the data area right of the chooser
+// gutter, and the chooser), the lane's name and value range, and its points (tick, value) with
+// their ids (hex) — so a gate can place, drag and erase what the user sees.
+struct MainComponentPianoRollControlLane
+{
+    juce::Rectangle<int> lane;
+    juce::Rectangle<int> chooser;
+    juce::String name;
+    double valueMin = 0.0;
+    double valueMax = 1.0;
+    std::vector<std::pair<std::int64_t, double>> points;
+    std::vector<juce::String> pointIds;
+};
+[[nodiscard]] MainComponentPianoRollControlLane mainComponentPianoRollControlLane (juce::Component& component);
+void mainComponentSelectPianoRollControlLane (juce::Component& component, int choice);   // through the real chooser
+// The lane's value <-> y law, shared with the paint and the hit-test (roll-local y).
+[[nodiscard]] double mainComponentPianoRollControlValueForY (juce::Component& component, int rollLocalY);
+[[nodiscard]] int mainComponentPianoRollControlYForValue (juce::Component& component, double value);
 [[nodiscard]] bool mainComponentAuditionNote (juce::Component& component, std::int16_t key, bool on);
 void mainComponentServiceUiTick (juce::Component& component);   // G3.2 checkpoint: one UI tick (the timer's refresh path)
 [[nodiscard]] std::vector<float> mainComponentRenderPlaybackFrames (juce::Component& component, std::uint64_t frames, int blockSize);

@@ -228,3 +228,8 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Nudge: 10 ms (`edit.nudge.value.ms10`)
 - Nudge: 1 Frame (`edit.nudge.value.frame`)
 - Nudge: 1 Sample (`edit.nudge.value.sample`)
+- Control Lane (`piano_roll.control_lane.select`)
+- Add Controller Point (`piano_roll.control_point.add`)
+- Move Controller Point (`piano_roll.control_point.move`)
+- Delete Controller Point (`piano_roll.control_point.delete`)
+- Paint Controller Lane (`piano_roll.control_lane.paint`)

@@ -17,6 +17,7 @@
 #include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/UiActions.h"
+#include "ui/UiPianoRollSurface.h"
 #include "ui/UiThemeLayout.h"
 #include "ui/WaveformPeakService.h"
 
@@ -2920,6 +2921,184 @@ public:
         ++context_.commandDispatchCount;
         ++context_.midiEditCount;
         return { id, state, true };
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // G3.3: the control lane's chooser — the choice lives in the context (the probe and the paint
+    // read it there); the registry counts the dispatch like every other view verb.
+    [[nodiscard]] UiActionDispatchResult selectPianoRollControlLane (int choice)
+    {
+        const UiActionId id = UiActionId::PianoRollControlLaneSelect;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        context_.pianoRollControlLaneChoice = clampPianoRollControlLaneChoice (choice);
+        return registry_.dispatch (id, context_);
+    }
+
+    // G3.3: the control lane's verbs. Every point the roll creates carries the wildcard voice
+    // address (port -1, channel -1); the lane shows every channel's points together. A Program lane
+    // point stores its value as the program number (makePianoRollControlPoint is the one law).
+
+    [[nodiscard]] UiActionDispatchResult addPianoRollControlPoint (engine::EntityId midiClipId,
+                                                                   int controlLaneChoice,
+                                                                   engine::Tick tick,
+                                                                   double value)
+    {
+        const UiActionId id = UiActionId::PianoRollControlPointAdd;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        if (findMidiClip (midiClipId) == nullptr)
+            return { id, { false, "no such MIDI Clip" }, false };
+
+        engine::Project nextProject = project_;
+        const engine::MidiControlEvent control = makePianoRollControlPoint (
+            controlLaneChoice, allocateSessionEntityId (0xB3u, nextProject), tick, value);
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addMidiControlEvent (midiClipId, control)).applied())
+            return { id, { false, "the controller point is outside the Clip or its lane's range" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "controller edit did not persist" }, false };
+
+        lastControlPointId_ = control.id;
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
+    // A drag's release: the point lands at (tick, value). On the Program lane the number is the
+    // value, which SetMidiControlEvent cannot change, so a move there is a remove + add in one group.
+    [[nodiscard]] UiActionDispatchResult movePianoRollControlPoint (engine::EntityId midiClipId,
+                                                                    engine::EntityId eventId,
+                                                                    engine::Tick tick,
+                                                                    double value)
+    {
+        const UiActionId id = UiActionId::PianoRollControlPointMove;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::MidiClip* const midiClip = findMidiClip (midiClipId);
+        const engine::MidiControlEvent* const existing = midiClip != nullptr ? findControlEvent (*midiClip, eventId) : nullptr;
+        if (existing == nullptr)
+            return { id, { false, "no such controller point" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        bool applied = false;
+        if (existing->kind == engine::MidiControlKind::ProgramChange)
+        {
+            const int choice = controlLaneChoiceFor (*existing);
+            const engine::MidiControlEvent replacement = makePianoRollControlPoint (
+                choice, allocateSessionEntityId (0xB3u, nextProject), tick, value);
+            applied = nextUndo.beginTransactionGroup()
+                   && nextUndo.apply (nextProject, engine::ProjectEditCommand::removeMidiControlEvent (midiClipId, eventId)).applied()
+                   && nextUndo.apply (nextProject, engine::ProjectEditCommand::addMidiControlEvent (midiClipId, replacement)).applied()
+                   && nextUndo.endTransactionGroup();
+            if (applied)
+                lastControlPointId_ = replacement.id;
+        }
+        else
+        {
+            const double clamped = std::clamp (value, engine::midiControlValueMin (existing->kind), 1.0);
+            applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::setMidiControlEvent (midiClipId, eventId, tick, clamped)).applied();
+            if (applied)
+                lastControlPointId_ = eventId;
+        }
+        if (! applied)
+            return { id, { false, "the controller point cannot move there" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "controller edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult deletePianoRollControlPoint (engine::EntityId midiClipId,
+                                                                      engine::EntityId eventId)
+    {
+        const UiActionId id = UiActionId::PianoRollControlPointDelete;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::removeMidiControlEvent (midiClipId, eventId)).applied())
+            return { id, { false, "no such controller point" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "controller edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
+    // The pencil: replace the lane's points inside [firstTick, lastTick] with the painted ones, as
+    // ONE undo transaction (Logic's MIDI Draw replaces what the pencil sweeps).
+    [[nodiscard]] UiActionDispatchResult paintPianoRollControlLane (engine::EntityId midiClipId,
+                                                                    int controlLaneChoice,
+                                                                    std::span<const std::pair<engine::Tick, double>> points,
+                                                                    engine::Tick firstTick,
+                                                                    engine::Tick lastTick)
+    {
+        const UiActionId id = UiActionId::PianoRollControlLanePaint;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const engine::MidiClip* const midiClip = findMidiClip (midiClipId);
+        if (midiClip == nullptr || points.empty() || lastTick < firstTick)
+            return { id, { false, "a lane paint needs a MIDI Clip and at least one point" }, false };
+
+        std::vector<engine::EntityId> swept;
+        for (const engine::MidiControlEvent& control : midiClip->controlEvents)
+            if (controlEventOnLane (control, controlLaneChoice) && control.tick >= firstTick && control.tick <= lastTick)
+                swept.push_back (control.id);
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        for (const engine::EntityId eventId : swept)
+            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::removeMidiControlEvent (midiClipId, eventId)).applied())
+                return { id, state, false };
+        for (const auto& [tick, value] : points)
+        {
+            const engine::MidiControlEvent control = makePianoRollControlPoint (
+                controlLaneChoice, allocateSessionEntityId (0xB3u, nextProject), tick, value);
+            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addMidiControlEvent (midiClipId, control)).applied())
+                return { id, { false, "a painted point is outside the Clip" }, false };
+        }
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "lane paint did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
+    // The last point a control-lane verb created or moved (the harness reads it).
+    [[nodiscard]] engine::EntityId lastControlPointId() const noexcept { return lastControlPointId_; }
+
+    [[nodiscard]] static const engine::MidiControlEvent* findControlEvent (const engine::MidiClip& midiClip,
+                                                                           engine::EntityId eventId) noexcept
+    {
+        for (const engine::MidiControlEvent& control : midiClip.controlEvents)
+            if (control.id == eventId)
+                return &control;
+        return nullptr;
+    }
+
+    // The chooser index a stored event belongs to (0 when none matches — the CC1 lane).
+    [[nodiscard]] static int controlLaneChoiceFor (const engine::MidiControlEvent& control) noexcept
+    {
+        for (std::size_t i = 0; i < kPianoRollControlLaneChoices.size(); ++i)
+            if (controlEventOnLane (control, static_cast<int> (i)))
+                return static_cast<int> (i);
+        return 0;
     }
 
     [[nodiscard]] UiActionDispatchResult quantizeSelectedPianoRollNoteTo (engine::SnapGrid grid)
@@ -7119,6 +7298,7 @@ public:
             case UiActionId::TimelineToolSelectZoom:
             case UiActionId::TimelineToolSelectEraser:   // G3.2
             case UiActionId::TimelineToolSelectVelocity:
+            case UiActionId::PianoRollControlLaneSelect:   // G3.3 (the shell sets the choice first)
             case UiActionId::TimelineZoomFitProject:
             case UiActionId::TimelineZoomFitLoop:
             case UiActionId::TimelineZoomIn:
@@ -10057,6 +10237,7 @@ private:
     engine::EntityId selectedTimelineClipId_;
     engine::EntityId selectedMidiClipId_;
     engine::EntityId selectedMidiNoteId_;
+    engine::EntityId lastControlPointId_;   // G3.3: the control lane's last created / moved point
     std::vector<engine::EntityId> selectedMidiNoteIds_;   // multi-note selection (B34)
     // Edits since the last explicit Save (B37): every project mutation bumps the serial; Save and
     // a fresh bundle attach mark the session clean. Data is never at risk — the bundle persists

@@ -1092,7 +1092,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 156u));   // G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 157u));   // G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -16562,6 +16562,10 @@ TEST_CASE ("G2.1 dock tabs: the mixer and the piano roll are Editor-dock tabs (X
             if (id == allowedId || id == "shell.splitter.dock" || id == "timeline.mixer_dock.toggle"
                 || id == "view.mixer" || id == "view.piano_roll" || id == "view.toggle_inspector")
                 continue;
+            // G3.3: the control lane's chooser is the roll's own widget (it sits in the lane's gutter and
+            // shows only with the roll) — not a stray over it.
+            if (id == "pianoroll.lane.chooser" && allowedId == kPianoRollComponentId)
+                continue;
             strays.add (id.isEmpty() ? child->getName() : id);
         }
         return strays;
@@ -20024,6 +20028,231 @@ TEST_CASE ("piano roll keyboard column: hovering a key names it in the status li
     const juce::Point<int> grid = pianoRoll.getPosition() + juce::Point<int> (gridX + 40, gridY + static_cast<int> (rowHeight * 3.5));
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, key).contains ("Keyboard"));
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, grid).contains ("Grid"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G3.3: the piano roll's control lane — the chooser (CC1 Mod by default), pointer clicks that place
+// a point at the snapped tick with the y's value, a point drag (one undo step), the eraser, the
+// pencil's freehand paint (one point per snap step, one undo step) and Shift+pencil's straight
+// line, the Pitch Bend and Program lanes' value laws, the hover hint, and the probe's names.
+TEST_CASE ("G3.3 control lane: chooser, pointer points and drags, eraser, pencil and line, bend and program lanes, hint, probe",
+           "[ui][input][shell][g3][control-lane]")
+{
+    using yesdaw::engine::MidiControlKind;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("control-lane");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+
+    const auto lane = [&] { return yesdaw::ui::mainComponentPianoRollControlLane (*shell); };
+    const auto controls = [&] { return readProjectSnapshot (bundlePath).midiClips.front().controlEvents; };
+    const yesdaw::engine::MidiClip midi = readProjectSnapshot (bundlePath).midiClips.front();
+    // A sixteenth grid: the default beat grid would give a 45 % sweep of a four-bar clip two points.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapSetSixteenth);
+    const yesdaw::engine::Tick snap = static_cast<yesdaw::engine::Tick> (snapshotMainComponent (*shell).context.snapGridTicks);
+    REQUIRE (snap > 0);
+    REQUIRE (snap * 8 < midi.timelineLength);
+    REQUIRE (snapshotMainComponent (*shell).context.snapEnabled);
+
+    // The lane and its chooser are real: the chooser is a visible child named by id, sitting in the
+    // lane's gutter, and the data area spans the grid's x range.
+    REQUIRE (lane().name == juce::String ("CC1 Mod"));
+    REQUIRE (lane().valueMin == 0.0);
+    REQUIRE (lane().lane.getWidth() > 200);
+    const juce::Rectangle<int> data = lane().lane;
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+    REQUIRE (data.getX() == grid.getX());
+    REQUIRE (data.getRight() == grid.getRight());
+    {
+        juce::Component* const chooser = findChildWithComponentId (*shell, "pianoroll.lane.chooser");
+        REQUIRE (chooser != nullptr);
+        REQUIRE (chooser->isVisible());
+        REQUIRE (chooser->getBounds() == lane().chooser.translated (pianoRoll.getX(), pianoRoll.getY()));
+        REQUIRE (chooser->getRight() < pianoRoll.getX() + data.getX());
+        REQUIRE (dynamic_cast<juce::ComboBox*> (chooser)->getText() == juce::String ("CC1 Mod"));
+    }
+
+    const auto laneX = [&] (double fraction) { return data.getX() + static_cast<int> (data.getWidth() * fraction); };
+    const auto laneY = [&] (double value) { return yesdaw::ui::mainComponentPianoRollControlYForValue (*shell, value); };
+    const auto snappedTick = [&] (int x) {
+        const yesdaw::engine::Tick tick = pianoRollTickForLaneX (pianoRoll, midi, x);
+        return tick - tick % snap;
+    };
+    const auto clickAt = [&] (juce::Point<int> point, juce::ModifierKeys modifiers = juce::ModifierKeys::leftButtonModifier) {
+        mouseDownAt (pianoRoll, point, modifiers);
+        releaseDragAt (pianoRoll, point, point, modifiers);
+    };
+    constexpr double kValueTolerance = 0.06;   // the lane is 32 px tall: one pixel is ~0.045
+    const auto lastAction = [&] {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        return probe.getProperty ("lastAction", juce::var()).toString();
+    };
+
+    // Pointer (1): a click places one CC1 point at the snapped tick with the y's value.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    const juce::Point<int> firstPoint (laneX (0.25), laneY (0.5));
+    clickAt (firstPoint);
+    REQUIRE (controls().size() == 1u);
+    REQUIRE (controls()[0].kind == MidiControlKind::ControlChange);
+    REQUIRE (controls()[0].number == 1);
+    REQUIRE (controls()[0].tick == snappedTick (firstPoint.x));
+    REQUIRE (controls()[0].value == Catch::Approx (0.5).margin (kValueTolerance));
+    REQUIRE (controls()[0].channel == -1);
+    REQUIRE (lane().points.size() == 1u);
+    REQUIRE (lastAction() == juce::String ("piano_roll.control_point.add"));
+    const yesdaw::engine::EntityId firstId = controls()[0].id;
+    // Where the lane PAINTS a stored point (zoom 1, no scroll): its snapped tick sits up to a snap
+    // cell left of the click that placed it, so a grab aims at the painted point, not the click.
+    const auto paintedPointAt = [&] (const yesdaw::engine::MidiControlEvent& point) {
+        const int x = data.getX() + juce::roundToInt (static_cast<float> (static_cast<double> (point.tick) / static_cast<double> (midi.timelineLength)) * static_cast<float> (data.getWidth()));
+        return juce::Point<int> (x, laneY (point.value));
+    };
+
+    // A drag moves the point in time and value; ONE Ctrl+Z restores it; Ctrl+Shift+Z redoes.
+    const juce::Point<int> movedTo (laneX (0.75), laneY (1.0));
+    dragFromTo (pianoRoll, paintedPointAt (controls()[0]), movedTo);
+    REQUIRE (controls().size() == 1u);
+    REQUIRE (controls()[0].id == firstId);
+    REQUIRE (controls()[0].tick == snappedTick (movedTo.x));
+    REQUIRE (controls()[0].value == Catch::Approx (1.0).margin (kValueTolerance));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (controls()[0].tick == snappedTick (firstPoint.x));
+    REQUIRE (controls()[0].value == Catch::Approx (0.5).margin (kValueTolerance));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (controls()[0].tick == snappedTick (movedTo.x));
+
+    // The eraser (4): a click on the point removes it; Ctrl+Z brings it back.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('4')));
+    clickAt (paintedPointAt (controls()[0]));
+    REQUIRE (controls().empty());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (controls().size() == 1u);
+
+    // The pencil (2): a freehand drag from low-left to high-right paints one point per snap step
+    // across the sweep, ticks ascending on the grid, values rising — and it is ONE undo step.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
+    const juce::Point<int> paintFrom (laneX (0.10), laneY (0.2));
+    const juce::Point<int> paintTo (laneX (0.55), laneY (0.9));
+    dragFromTo (pianoRoll, paintFrom, paintTo);
+    {
+        const std::vector<yesdaw::engine::MidiControlEvent> painted = controls();
+        REQUIRE (painted.size() >= 4u);   // several sixteenths across the sweep, plus the first point
+        std::vector<yesdaw::engine::MidiControlEvent> onLane;
+        for (const yesdaw::engine::MidiControlEvent& control : painted)
+            if (control.kind == MidiControlKind::ControlChange && control.number == 1 && control.id != firstId)
+                onLane.push_back (control);
+        std::sort (onLane.begin(), onLane.end(), [] (const auto& a, const auto& b) { return a.tick < b.tick; });
+        const yesdaw::engine::Tick lo = pianoRollTickForLaneX (pianoRoll, midi, paintFrom.x);
+        const yesdaw::engine::Tick hi = pianoRollTickForLaneX (pianoRoll, midi, paintTo.x);
+        REQUIRE (onLane.size() == static_cast<std::size_t> (hi / snap - (lo + snap - 1) / snap + 1));
+        for (std::size_t i = 0; i < onLane.size(); ++i)
+        {
+            INFO ("painted point " << i);
+            REQUIRE (onLane[i].tick % snap == 0);
+            REQUIRE (onLane[i].tick >= lo);
+            REQUIRE (onLane[i].tick <= hi);
+            if (i > 0)
+            {
+                REQUIRE (onLane[i].tick > onLane[i - 1].tick);
+                REQUIRE (onLane[i].value >= onLane[i - 1].value);
+            }
+        }
+        REQUIRE (onLane.front().value == Catch::Approx (0.2).margin (kValueTolerance + 0.05));
+        REQUIRE (onLane.back().value == Catch::Approx (0.9).margin (kValueTolerance + 0.05));
+        // The pencil replaced what it swept: the first point sat at 0.75 of the lane, outside the sweep, and stays.
+        REQUIRE (painted.size() == onLane.size() + 1u);
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (controls().size() == 1u);
+
+    // Shift+pencil draws a LINE: the middle point's value is the midpoint of the ends (a freehand
+    // path would follow the mouse; the harness's drag is one straight step, so the line law is
+    // pinned on a sweep that crosses the existing point — which the line replaces).
+    const juce::Point<int> lineFrom (laneX (0.60), laneY (0.0));
+    const juce::Point<int> lineTo (laneX (0.95), laneY (1.0));
+    dragFromTo (pianoRoll, lineFrom, lineTo, juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier);
+    {
+        std::vector<yesdaw::engine::MidiControlEvent> onLane = controls();
+        std::sort (onLane.begin(), onLane.end(), [] (const auto& a, const auto& b) { return a.tick < b.tick; });
+        REQUIRE (onLane.size() >= 3u);
+        for (const yesdaw::engine::MidiControlEvent& control : onLane)
+            REQUIRE (control.id != firstId);   // the sweep replaced the point at 0.75
+        const yesdaw::engine::Tick lo = snappedTick (lineFrom.x);
+        const yesdaw::engine::Tick hi = snappedTick (lineTo.x);
+        const double yLo = static_cast<double> (lineFrom.y);
+        const double yHi = static_cast<double> (lineTo.y);
+        for (const yesdaw::engine::MidiControlEvent& control : onLane)
+        {
+            INFO ("line point at " << control.tick);
+            const double t = static_cast<double> (control.tick - lo) / static_cast<double> (hi - lo);
+            const double expectedY = yLo + t * (yHi - yLo);
+            REQUIRE (control.value == Catch::Approx (yesdaw::ui::mainComponentPianoRollControlValueForY (*shell, static_cast<int> (std::lround (expectedY)))).margin (kValueTolerance));
+        }
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (controls().size() == 1u);
+
+    // The chooser: Pitch Bend shows an empty lane whose range is -1..1; a click at the centre is a
+    // bend of 0; the probe names the lane and counts its points; the dispatch is recorded.
+    yesdaw::ui::mainComponentSelectPianoRollControlLane (*shell, 2);
+    REQUIRE (lane().name == juce::String ("Pitch Bend"));
+    REQUIRE (lane().valueMin == -1.0);
+    REQUIRE (lane().points.empty());
+    REQUIRE (snapshotMainComponent (*shell).context.pianoRollControlLaneChoice == 2);
+    REQUIRE (lastAction() == juce::String ("piano_roll.control_lane.select"));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    clickAt (juce::Point<int> (laneX (0.30), laneY (0.0)));
+    {
+        const std::vector<yesdaw::engine::MidiControlEvent> all = controls();
+        REQUIRE (all.size() == 2u);
+        const yesdaw::engine::MidiControlEvent& bend = all.back();
+        REQUIRE (bend.kind == MidiControlKind::PitchBend);
+        REQUIRE (bend.value == Catch::Approx (0.0).margin (kValueTolerance * 2.0));
+        REQUIRE (lane().points.size() == 1u);
+    }
+    {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+        const juce::var roll = probe.getProperty ("view", juce::var()).getProperty ("pianoRoll", juce::var());
+        REQUIRE (roll.getProperty ("controlLane", juce::var()).toString() == juce::String ("Pitch Bend"));
+        REQUIRE (static_cast<int> (roll.getProperty ("controlPointCount", 0)) == 1);
+        REQUIRE (static_cast<int> (roll.getProperty ("controlLaneX", 0)) == data.getX());
+        REQUIRE (static_cast<int> (roll.getProperty ("controlLaneWidth", 0)) == data.getWidth());
+        const juce::var layout = probe.getProperty ("layout", juce::var());
+        REQUIRE (layout.getProperty ("pianoroll.lane", juce::var()).isArray());
+        REQUIRE (layout.getProperty ("pianoroll.lane.chooser", juce::var()).isArray());
+    }
+
+    // The Program lane: the value is the program number over 127 — a click at mid height is program 64.
+    yesdaw::ui::mainComponentSelectPianoRollControlLane (*shell, 4);
+    REQUIRE (lane().name == juce::String ("Program"));
+    clickAt (juce::Point<int> (laneX (0.40), laneY (0.5)));
+    {
+        const yesdaw::engine::MidiControlEvent& program = controls().back();
+        REQUIRE (program.kind == MidiControlKind::ProgramChange);
+        REQUIRE (program.value == 0.0);
+        REQUIRE (std::abs (static_cast<int> (program.number) - 64) <= 8);
+        REQUIRE (lane().points.size() == 1u);
+        REQUIRE (lane().points[0].second == Catch::Approx (static_cast<double> (program.number) / 127.0));
+    }
+    // Back on CC1 the first point is still there, alone.
+    yesdaw::ui::mainComponentSelectPianoRollControlLane (*shell, 0);
+    REQUIRE (lane().points.size() == 1u);
+
+    // The hover hint names the lane and its tools.
+    const juce::String hint = yesdaw::ui::mainComponentHoverHintAt (*shell, pianoRoll.getPosition() + juce::Point<int> (laneX (0.5), data.getCentreY()));
+    REQUIRE (hint.contains ("Control lane"));
+    REQUIRE (hint.contains ("CC1 Mod"));
+    REQUIRE (hint.contains ("pencil"));
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
