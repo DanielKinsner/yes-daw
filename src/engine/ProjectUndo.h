@@ -105,7 +105,11 @@ enum class ProjectEditVerb : std::uint8_t
     SetPunchRegion,
     // G3.1 / ADR-0047: the Track's instrument slot — its kind, and one normalized parameter
     SetTrackInstrument,
-    SetTrackInstrumentParam
+    SetTrackInstrumentParam,
+    // G3.3: MIDI control events (CC / pitch bend / aftertouch / program change) on a MIDI Clip
+    AddMidiControlEvent,
+    SetMidiControlEvent,
+    RemoveMidiControlEvent
 };
 
 // G2.18: the plain-English label of a verb for the undo history window (Logic's "Undo History").
@@ -185,6 +189,9 @@ enum class ProjectEditVerb : std::uint8_t
         case ProjectEditVerb::SetPunchRegion: return "Punch Region";
         case ProjectEditVerb::SetTrackInstrument: return "Track Instrument";
         case ProjectEditVerb::SetTrackInstrumentParam: return "Instrument Parameter";
+        case ProjectEditVerb::AddMidiControlEvent: return "Add Controller Point";
+        case ProjectEditVerb::SetMidiControlEvent: return "Controller Point";
+        case ProjectEditVerb::RemoveMidiControlEvent: return "Remove Controller Point";
     }
     return "Edit";
 }
@@ -260,6 +267,12 @@ struct ProjectEditCommand
     double noteVelocity = 1.0;
     std::int16_t notePort = -1;
     std::int16_t noteChannel = -1;
+    // G3.3: a MIDI control point (the voice address rides notePort / noteChannel)
+    EntityId midiControlEventId;
+    MidiControlKind midiControlKind = MidiControlKind::ControlChange;
+    std::int16_t midiControlNumber = 0;
+    Tick midiControlTick = 0;
+    double midiControlValue = 0.0;
 
     double tempoBpm = 120.0;
     std::uint16_t meterNumerator = 4;
@@ -798,6 +811,47 @@ struct ProjectEditCommand
         command.midiClipId = midiClipId;
         command.noteId = noteId;
         command.noteVelocity = normalizedVelocity;
+        return command;
+    }
+
+    // G3.3: control points. The add carries the whole event; set moves / revalues one by id.
+    [[nodiscard]] static constexpr ProjectEditCommand addMidiControlEvent (EntityId midiClipId,
+                                                                           const MidiControlEvent& control) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::AddMidiControlEvent;
+        command.midiClipId = midiClipId;
+        command.midiControlEventId = control.id;
+        command.midiControlKind = control.kind;
+        command.midiControlNumber = control.number;
+        command.midiControlTick = control.tick;
+        command.midiControlValue = control.value;
+        command.notePort = control.portIndex;
+        command.noteChannel = control.channel;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setMidiControlEvent (EntityId midiClipId,
+                                                                           EntityId eventId,
+                                                                           Tick tick,
+                                                                           double value) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetMidiControlEvent;
+        command.midiClipId = midiClipId;
+        command.midiControlEventId = eventId;
+        command.midiControlTick = tick;
+        command.midiControlValue = value;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand removeMidiControlEvent (EntityId midiClipId,
+                                                                              EntityId eventId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::RemoveMidiControlEvent;
+        command.midiClipId = midiClipId;
+        command.midiControlEventId = eventId;
         return command;
     }
 
@@ -1345,7 +1399,10 @@ namespace detail {
            || verb == ProjectEditVerb::SetNoteVelocity
            || verb == ProjectEditVerb::MoveMidiClip
            || verb == ProjectEditVerb::MoveMidiClipToTrack
-           || verb == ProjectEditVerb::RemoveMidiClip;
+           || verb == ProjectEditVerb::RemoveMidiClip
+           || verb == ProjectEditVerb::AddMidiControlEvent      // G3.3
+           || verb == ProjectEditVerb::SetMidiControlEvent
+           || verb == ProjectEditVerb::RemoveMidiControlEvent;
 }
 
 [[nodiscard]] constexpr bool isTrackEditVerb (ProjectEditVerb verb) noexcept
@@ -1782,6 +1839,26 @@ namespace detail {
 
         case ProjectEditVerb::SetNoteVelocity:
             return setNoteVelocity (project, command.midiClipId, command.noteId, command.noteVelocity);
+
+        case ProjectEditVerb::AddMidiControlEvent:   // G3.3
+        {
+            MidiControlEvent control;
+            control.id = command.midiControlEventId;
+            control.tick = command.midiControlTick;
+            control.kind = command.midiControlKind;
+            control.number = command.midiControlNumber;
+            control.value = command.midiControlValue;
+            control.portIndex = command.notePort;
+            control.channel = command.noteChannel;
+            return addMidiControlEvent (project, command.midiClipId, control);
+        }
+
+        case ProjectEditVerb::SetMidiControlEvent:
+            return setMidiControlEvent (project, command.midiClipId, command.midiControlEventId,
+                                        command.midiControlTick, command.midiControlValue);
+
+        case ProjectEditVerb::RemoveMidiControlEvent:
+            return removeMidiControlEvent (project, command.midiClipId, command.midiControlEventId);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -2355,6 +2432,7 @@ namespace detail {
            || verb == ProjectEditVerb::SetClipFadeShapes   // G2.10: a curve drag coalesces like a fade
            || verb == ProjectEditVerb::MoveNote
            || verb == ProjectEditVerb::SetNoteLength
+           || verb == ProjectEditVerb::SetMidiControlEvent   // G3.3: a point drag coalesces like a note drag
            // E21: continuous strip-scalar gestures (fader/pan drags) coalesce inside a group.
            || verb == ProjectEditVerb::SetTrackMixScalars
            || verb == ProjectEditVerb::SetBusMixScalars
@@ -2375,6 +2453,7 @@ namespace detail {
     {
         return older.command.midiClipId == newer.command.midiClipId
                && older.command.noteId == newer.command.noteId
+               && older.command.midiControlEventId == newer.command.midiControlEventId   // G3.3
                && older.midiDiff.firstMidiClipIndex == newer.midiDiff.firstMidiClipIndex
                && older.midiDiff.before.size() == 1u
                && older.midiDiff.after.size() == 1u

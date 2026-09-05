@@ -20,6 +20,13 @@
 // before this node had parameters. Deterministic by construction: no randomness, no time queries;
 // the same event stream renders bit-identically. NOT block-parallel-safe: voice state spans Blocks.
 //
+// G3.3 - the MIDI 1.0 control messages it honours (EventType::Midi1 on the regular stream):
+//   CC64 sustain   >= 64 holds every released voice until the pedal lifts (Logic's ES synths);
+//   CC1 mod wheel  opens the filter by up to kModWheelOctaves above the cutoff parameter - at the
+//                  bypass cutoff (the default) it has nothing to open, so the default sound is untouched;
+//   pitch bend     +/- kPitchBendSemitones (2) across the 14-bit range, centre 8192 = no bend.
+//   Aftertouch and program change pass through the stream untouched (a hosted plugin reads them).
+//
 // Pure C++ — no JUCE — so RTSan/TSan cover process().
 
 #pragma once
@@ -59,6 +66,8 @@ public:
     static constexpr ParameterId kParameterCount = 9;
 
     static constexpr double kCutoffMaxHz = 20000.0;   // the bypass point
+    static constexpr double kPitchBendSemitones = 2.0;   // G3.3: the bend range (the GM default)
+    static constexpr double kModWheelOctaves = 4.0;      // G3.3: CC1 at 127 lifts the cutoff four octaves
 
     [[nodiscard]] static ParamSpec parameterSpec (ParameterId parameterId) noexcept
     {
@@ -184,7 +193,9 @@ public:
                 if (event.payload.parameter.targetNode != id_ || ! acceptsParameterId (event.payload.parameter.parameterId))
                     continue;
             }
-            else if (! useRegular || (event.type != EventType::NoteOn && event.type != EventType::NoteOff))
+            else if (! useRegular
+                     || (event.type != EventType::NoteOn && event.type != EventType::NoteOff
+                         && event.type != EventType::Midi1))
             {
                 continue;
             }
@@ -201,8 +212,10 @@ public:
                                                    event.payload.parameter.normalizedValue));
             else if (event.type == EventType::NoteOn)
                 noteOn (event);
-            else
+            else if (event.type == EventType::NoteOff)
                 noteOff (event);
+            else
+                applyMidi1 (event.payload.midi1);
         }
 
         renderRange (args, static_cast<int> (cursor), args.numFrames, channels);
@@ -214,7 +227,16 @@ public:
             voice = Voice {};
         voiceAge_ = 0;
         lastKey_ = -1;
+        sustainPedal_ = false;
+        modWheel_ = 0.0;
+        bendRatio_ = 1.0f;
+        recomputeDerived();
     }
+
+    // G3.3: the control state the synth holds (read by the gates; audio-thread written).
+    [[nodiscard]] bool sustainPedalDown() const noexcept { return sustainPedal_; }
+    [[nodiscard]] double modWheel() const noexcept { return modWheel_; }
+    [[nodiscard]] float pitchBendRatio() const noexcept { return bendRatio_; }
 
     void release() override
     {
@@ -261,6 +283,7 @@ private:
     {
         VoiceStage stage = VoiceStage::Idle;
         std::int16_t key = -1;
+        bool heldByPedal = false;   // G3.3: released while CC64 was down; the lift releases it
         float phase = 0.0f;
         float phaseIncrement = 0.0f;
         float phaseIncrementTarget = 0.0f;   // glide: the increment slides toward this
@@ -302,11 +325,15 @@ private:
         volumeGain_ = volumeDb_ == 0.0 ? 1.0f : static_cast<float> (std::pow (10.0, volumeDb_ / 20.0));
 
         // The filter is bypassed at the top of its range — bit-exact transparency for the default.
-        filterEnabled_ = cutoffHz_ < kCutoffMaxHz;
+        // G3.3: the mod wheel opens it from the parameter's cutoff (2^0 == 1 at rest: bit-exact).
+        const double effectiveCutoffHz = modWheel_ > 0.0
+            ? std::min (kCutoffMaxHz, cutoffHz_ * std::pow (2.0, kModWheelOctaves * modWheel_))
+            : cutoffHz_;
+        filterEnabled_ = effectiveCutoffHz < kCutoffMaxHz;
         if (filterEnabled_)
         {
             constexpr double kPi = 3.14159265358979323846;
-            const double fc = std::min (cutoffHz_, sampleRate_ * 0.49);
+            const double fc = std::min (effectiveCutoffHz, sampleRate_ * 0.49);
             const double g = std::tan (kPi * fc / sampleRate_);
             const double k = 1.0 / std::max (resonanceQ_, 0.5);
             const double a1 = 1.0 / (1.0 + g * (g + k));
@@ -345,6 +372,7 @@ private:
         const float increment = phaseIncrementForKey_[static_cast<std::size_t> (key)];
         target->stage = VoiceStage::Attack;
         target->key = static_cast<std::int16_t> (key);
+        target->heldByPedal = false;
         target->phase = 0.0f;
         target->phaseIncrementTarget = increment;
         if (glideFrames_ > 0.0f && lastKey_ >= 0)
@@ -374,7 +402,49 @@ private:
             if (voice.stage != VoiceStage::Idle
                 && voice.stage != VoiceStage::Release
                 && voice.key == static_cast<std::int16_t> (event.voice.key))
-                voice.stage = VoiceStage::Release;
+            {
+                // G3.3: with the sustain pedal down the release waits for the pedal.
+                if (sustainPedal_)
+                    voice.heldByPedal = true;
+                else
+                    voice.stage = VoiceStage::Release;
+            }
+    }
+
+    // G3.3: a MIDI 1.0 channel message (a handful of transcendental calls at most, never per frame).
+    void applyMidi1 (const Midi1Payload& midi) noexcept YESDAW_RT_HOT
+    {
+        const std::uint8_t status = static_cast<std::uint8_t> (midi.status & 0xF0);
+        if (status == kMidiStatusControlChange)
+        {
+            if (midi.data1 == kMidiControllerSustain)
+            {
+                const bool down = midi.data2 >= 64;
+                if (sustainPedal_ && ! down)
+                    for (Voice& voice : voices_)
+                        if (voice.heldByPedal)
+                        {
+                            voice.heldByPedal = false;
+                            if (voice.stage != VoiceStage::Idle)
+                                voice.stage = VoiceStage::Release;
+                        }
+                sustainPedal_ = down;
+            }
+            else if (midi.data1 == kMidiControllerModWheel)
+            {
+                modWheel_ = static_cast<double> (midi.data2 & 0x7F) / 127.0;
+                recomputeDerived();
+            }
+        }
+        else if (status == kMidiStatusPitchBend)
+        {
+            const int bend14 = static_cast<int> (midi.data1 & 0x7F) | (static_cast<int> (midi.data2 & 0x7F) << 7);
+            const double bend = static_cast<double> (bend14 - 8192) / 8192.0;   // -1..~1, 0 = centre
+            bendRatio_ = bend14 == 8192 ? 1.0f
+                       : static_cast<float> (std::pow (2.0, bend * kPitchBendSemitones / 12.0));
+        }
+        // Aftertouch (channel / poly) and program change: nothing to do here; they stay on the
+        // stream for an instrument that reads them.
     }
 
     void renderRange (const ProcessArgs& args, int beginFrame, int endFrame, int channels) noexcept YESDAW_RT_HOT
@@ -390,6 +460,7 @@ private:
         const bool filtered = filterEnabled_;
         const float a1 = filterA1_, a2 = filterA2_, a3 = filterA3_;
         const float outGain = static_cast<float> (kOutputGain) * widenGain_ * volumeGain_;
+        const float bend = bendRatio_;   // G3.3: 1.0f at rest, so x * bend == x bit-for-bit
 
         for (Voice& voice : voices_)
         {
@@ -458,7 +529,7 @@ private:
                         voice.phaseIncrementStep = 0.0f;
                     }
                 }
-                voice.phase += voice.phaseIncrement;
+                voice.phase += voice.phaseIncrement * bend;
                 while (voice.phase >= tableSize)
                     voice.phase -= tableSize;
             }
@@ -498,6 +569,11 @@ private:
     float volumeGain_ = 1.0f;
     bool filterEnabled_ = false;
     float filterA1_ = 0.0f, filterA2_ = 0.0f, filterA3_ = 0.0f;
+
+    // G3.3: the control state (audio-thread owned; reset() clears it).
+    bool sustainPedal_ = false;
+    double modWheel_ = 0.0;
+    float bendRatio_ = 1.0f;
 };
 
 } // namespace yesdaw::engine

@@ -638,6 +638,77 @@ struct Note
     friend constexpr bool operator== (const Note&, const Note&) noexcept = default;
 };
 
+// G3.3: the MIDI channel messages that are not notes, stored per MIDI Clip as editable points in
+// clip-relative ticks (the edit object; the wire bytes exist only at render - the Note law).
+enum class MidiControlKind : std::uint8_t
+{
+    ControlChange   = 0,   // number = controller 0..127; value 0..1 (CC64 sustain, CC1 mod, ...)
+    PitchBend       = 1,   // value -1..1, 0 = centre; number unused (0)
+    ChannelPressure = 2,   // value 0..1 (aftertouch); number unused (0)
+    PolyPressure    = 3,   // number = key 0..127; value 0..1
+    ProgramChange   = 4    // number = program 0..127; value unused (0)
+};
+
+[[nodiscard]] constexpr bool midiControlKindIsValid (MidiControlKind kind) noexcept
+{
+    return kind == MidiControlKind::ControlChange
+        || kind == MidiControlKind::PitchBend
+        || kind == MidiControlKind::ChannelPressure
+        || kind == MidiControlKind::PolyPressure
+        || kind == MidiControlKind::ProgramChange;
+}
+
+// Does the kind carry a number (controller / key / program)? Bend and channel pressure do not.
+[[nodiscard]] constexpr bool midiControlKindHasNumber (MidiControlKind kind) noexcept
+{
+    return kind == MidiControlKind::ControlChange
+        || kind == MidiControlKind::PolyPressure
+        || kind == MidiControlKind::ProgramChange;
+}
+
+[[nodiscard]] constexpr double midiControlValueMin (MidiControlKind kind) noexcept
+{
+    return kind == MidiControlKind::PitchBend ? -1.0 : 0.0;
+}
+
+struct MidiControlEvent
+{
+    EntityId        id;
+    Tick            tick = 0;                          // clip-relative
+    MidiControlKind kind = MidiControlKind::ControlChange;
+    std::int16_t    number = 0;                        // controller / key / program; 0 where the kind has none
+    double          value = 0.0;                       // normalized: 0..1, or -1..1 for a bend
+    std::int16_t    portIndex = -1;
+    std::int16_t    channel = -1;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return id.isValid()
+            && tick >= 0
+            && midiControlKindIsValid (kind)
+            && number >= 0
+            && number <= 127
+            && (midiControlKindHasNumber (kind) || number == 0)
+            && std::isfinite (value)
+            && value >= midiControlValueMin (kind)
+            && value <= 1.0
+            && (kind != MidiControlKind::ProgramChange || value == 0.0)
+            && portIndex >= -1
+            && channel >= -1
+            && channel <= 15;
+    }
+
+    // Two events address the same LANE when kind, number, port and channel agree (one value per
+    // tick per lane is the edit law: adding at an occupied tick replaces).
+    [[nodiscard]] constexpr bool sameLane (const MidiControlEvent& other) const noexcept
+    {
+        return kind == other.kind && number == other.number
+            && portIndex == other.portIndex && channel == other.channel;
+    }
+
+    friend constexpr bool operator== (const MidiControlEvent&, const MidiControlEvent&) noexcept = default;
+};
+
 struct MidiClip
 {
     EntityId          id;
@@ -646,6 +717,7 @@ struct MidiClip
     Tick              timelineLength = 0;
     TimeBase          timeBase = TimeBase::TempoLocked;
     std::vector<Note> notes;
+    std::vector<MidiControlEvent> controlEvents;   // G3.3: CC / bend / pressure / program points
 
     [[nodiscard]] bool isValid() const noexcept
     {
@@ -664,6 +736,10 @@ struct MidiClip
             if (note.lengthTicks > maxLength)
                 return false;
         }
+
+        for (const MidiControlEvent& control : controlEvents)
+            if (! control.isValid() || control.tick > timelineLength)
+                return false;
 
         return true;
     }
@@ -911,6 +987,9 @@ enum class ProjectEditStatus : std::uint8_t
     NoteNotFound,
     InvalidNoteWindow,
     InvalidNoteValue,
+    InvalidMidiControlEventId,   // G3.3
+    MidiControlEventNotFound,
+    InvalidMidiControlEvent,
     InvalidSnapGrid,
     InvalidRecordingTakeId,
     RecordingTakeNotFound,
@@ -2480,6 +2559,150 @@ namespace detail {
 
     note->normalizedVelocity = normalizedVelocity;
     return ProjectEditStatus::Applied;
+}
+
+// --- G3.3: MIDI control events (CC / pitch bend / aftertouch / program change) per MIDI Clip.
+// --- One value per tick per lane: an add at an occupied tick REPLACES that point (Logic's MIDI
+// --- Draw law); the id must be fresh. Same contract as every edit helper: validate, mutate, Applied.
+
+namespace detail {
+
+[[nodiscard]] inline MidiControlEvent* findMidiControlEvent (MidiClip& midiClip, EntityId eventId) noexcept
+{
+    for (MidiControlEvent& control : midiClip.controlEvents)
+        if (control.id == eventId)
+            return &control;
+
+    return nullptr;
+}
+
+[[nodiscard]] inline const MidiControlEvent* findMidiControlEvent (const MidiClip& midiClip, EntityId eventId) noexcept
+{
+    for (const MidiControlEvent& control : midiClip.controlEvents)
+        if (control.id == eventId)
+            return &control;
+
+    return nullptr;
+}
+
+} // namespace detail
+
+[[nodiscard]] inline ProjectEditStatus addMidiControlEvent (Project& project,
+                                                            EntityId midiClipId,
+                                                            const MidiControlEvent& control) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! control.id.isValid())
+        return ProjectEditStatus::InvalidMidiControlEventId;
+
+    if (! control.isValid())
+        return ProjectEditStatus::InvalidMidiControlEvent;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    if (control.tick > midiClip->timelineLength)
+        return ProjectEditStatus::InvalidMidiControlEvent;
+
+    if (detail::findMidiControlEvent (*midiClip, control.id) != nullptr)
+        return ProjectEditStatus::DuplicateEntityId;
+
+    // The lane holds one value per tick: an existing point at this tick is replaced.
+    for (std::size_t i = 0; i < midiClip->controlEvents.size(); ++i)
+    {
+        const MidiControlEvent& existing = midiClip->controlEvents[i];
+        if (existing.tick == control.tick && existing.sameLane (control))
+        {
+            midiClip->controlEvents[i] = control;
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    midiClip->controlEvents.push_back (control);
+    return ProjectEditStatus::Applied;
+}
+
+// Move a point in time and / or set its value (a drag; the kind, number and voice address stay).
+// Moving onto another point of the same lane replaces that point.
+[[nodiscard]] inline ProjectEditStatus setMidiControlEvent (Project& project,
+                                                            EntityId midiClipId,
+                                                            EntityId eventId,
+                                                            Tick tick,
+                                                            double value) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! eventId.isValid())
+        return ProjectEditStatus::InvalidMidiControlEventId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    MidiControlEvent* const control = detail::findMidiControlEvent (*midiClip, eventId);
+    if (control == nullptr)
+        return ProjectEditStatus::MidiControlEventNotFound;
+
+    MidiControlEvent edited = *control;
+    edited.tick = tick;
+    edited.value = value;
+    if (! edited.isValid() || edited.tick > midiClip->timelineLength)
+        return ProjectEditStatus::InvalidMidiControlEvent;
+
+    for (std::size_t i = 0; i < midiClip->controlEvents.size(); ++i)
+    {
+        const MidiControlEvent& other = midiClip->controlEvents[i];
+        if (other.id != eventId && other.tick == edited.tick && other.sameLane (edited))
+        {
+            midiClip->controlEvents.erase (midiClip->controlEvents.begin() + static_cast<std::ptrdiff_t> (i));
+            break;
+        }
+    }
+
+    MidiControlEvent* const target = detail::findMidiControlEvent (*midiClip, eventId);
+    if (target == nullptr)
+        return ProjectEditStatus::MidiControlEventNotFound;
+    *target = edited;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus removeMidiControlEvent (Project& project,
+                                                               EntityId midiClipId,
+                                                               EntityId eventId) noexcept
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    if (! eventId.isValid())
+        return ProjectEditStatus::InvalidMidiControlEventId;
+
+    MidiClip* const midiClip = detail::findMidiClip (project, midiClipId);
+    if (midiClip == nullptr)
+        return ProjectEditStatus::MidiClipNotFound;
+
+    for (std::size_t i = 0; i < midiClip->controlEvents.size(); ++i)
+    {
+        if (midiClip->controlEvents[i].id == eventId)
+        {
+            midiClip->controlEvents.erase (midiClip->controlEvents.begin() + static_cast<std::ptrdiff_t> (i));
+            return ProjectEditStatus::Applied;
+        }
+    }
+
+    return ProjectEditStatus::MidiControlEventNotFound;
 }
 
 // --- Arrangement verbs (usable-DAW P0, 2026-08-09): clip delete / cross-track move, note add, and

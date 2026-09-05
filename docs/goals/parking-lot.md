@@ -74,3 +74,6 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 
 - **The velocity drive step counts dispatches (2026-09-02, D57).** The probe has no undo-depth field, so the drive proves "the drag dispatches" and the one-undo law stays headless. Owner: the next probe pass — publish `undoDepth` and re-pin the drive step to one undo.
 
+- **No controller chase on locate (2026-09-04, G3.3 cp1).** `DecodedMidiClipNode.h` `firstEventIndexAtOrAfter` seeks each Block to the first event at or after the transport frame, so a transport started after a CC64 pedal-down, a bend or a program change does not see it (Logic chases the last value of every controller on locate). Storage and render are right from bar 1; this is a transport feature. Owner: G3.10 (the live MIDI lane / thru pass) or G7 — a per-lane "last value before frame" replay on a seek, gated by a render that starts mid-pedal.
+
+- **Pitch-bend range is fixed at ±2 st (2026-09-04, G3.3 cp1).** `SimpleSynthNode::kPitchBendSemitones`; Logic's synths expose a range knob. A `ParamSpec` on the instrument (id 10) once the panel has room. Owner: G3.9 (the Sampler ADR revisits the instrument panel).

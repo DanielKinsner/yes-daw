@@ -104,6 +104,66 @@ struct MpeVoiceAllocationResult
     return event;
 }
 
+// G3.3: the render-side wire form of a control event - the edit model's normalized value becomes
+// the MIDI 1.0 message's 7-bit (14-bit for a bend) data. This is the ONE law that quantizes.
+[[nodiscard]] inline std::uint8_t midiSevenBit (double normalized) noexcept
+{
+    const double clamped = normalized < 0.0 ? 0.0 : (normalized > 1.0 ? 1.0 : normalized);
+    return static_cast<std::uint8_t> (std::lround (clamped * 127.0));
+}
+
+[[nodiscard]] inline std::uint16_t midiFourteenBitBend (double bend) noexcept
+{
+    const double clamped = bend < -1.0 ? -1.0 : (bend > 1.0 ? 1.0 : bend);
+    const long value = std::lround ((clamped + 1.0) * 0.5 * 16383.0);
+    return static_cast<std::uint16_t> (value < 0 ? 0 : (value > 16383 ? 16383 : value));
+}
+
+[[nodiscard]] inline Event makeMidiControlEvent (std::uint32_t timeInBlock,
+                                                 const MidiControlEvent& control) noexcept
+{
+    const std::uint8_t channelNibble = static_cast<std::uint8_t> (control.channel >= 0 ? (control.channel & 0x0F) : 0);
+    std::uint8_t status = 0;
+    std::uint8_t data1 = 0;
+    std::uint8_t data2 = 0;
+    switch (control.kind)
+    {
+        case MidiControlKind::ControlChange:
+            status = kMidiStatusControlChange;
+            data1 = static_cast<std::uint8_t> (control.number & 0x7F);
+            data2 = midiSevenBit (control.value);
+            break;
+        case MidiControlKind::PitchBend:
+        {
+            status = kMidiStatusPitchBend;
+            const std::uint16_t bend = midiFourteenBitBend (control.value);
+            data1 = static_cast<std::uint8_t> (bend & 0x7F);
+            data2 = static_cast<std::uint8_t> ((bend >> 7) & 0x7F);
+            break;
+        }
+        case MidiControlKind::ChannelPressure:
+            status = kMidiStatusChannelPressure;
+            data1 = midiSevenBit (control.value);
+            break;
+        case MidiControlKind::PolyPressure:
+            status = kMidiStatusPolyPressure;
+            data1 = static_cast<std::uint8_t> (control.number & 0x7F);
+            data2 = midiSevenBit (control.value);
+            break;
+        case MidiControlKind::ProgramChange:
+            status = kMidiStatusProgramChange;
+            data1 = static_cast<std::uint8_t> (control.number & 0x7F);
+            break;
+    }
+
+    Event event = makeMidi1Event (timeInBlock,
+                                  static_cast<std::uint8_t> (status | channelNibble),
+                                  data1, data2, control.portIndex, control.channel);
+    if (control.kind == MidiControlKind::PolyPressure)
+        event.voice.key = control.number;
+    return event;
+}
+
 namespace detail {
 
 [[nodiscard]] inline bool addMidiTickChecked (Tick a, Tick b, Tick& out) noexcept
@@ -423,6 +483,23 @@ struct ScheduledMidiEvent
 {
     if (a.frame != b.frame)
         return a.frame < b.frame;
+    // G3.3: at one frame a control message (Midi1) precedes every note event - a program change or
+    // a sustain pedal at a note's tick is in force when the note sounds. Control ties order by their
+    // wire bytes, so the flatten is deterministic whatever the edit order.
+    const bool aControl = a.event.type == EventType::Midi1;
+    const bool bControl = b.event.type == EventType::Midi1;
+    if (aControl != bControl)
+        return aControl;
+    if (aControl)
+    {
+        const Midi1Payload& x = a.event.payload.midi1;
+        const Midi1Payload& y = b.event.payload.midi1;
+        if (x.status != y.status)
+            return x.status < y.status;
+        if (x.data1 != y.data1)
+            return x.data1 < y.data1;
+        return x.data2 < y.data2;
+    }
     if (a.event.voice.noteId != b.event.voice.noteId)
         return a.event.voice.noteId < b.event.voice.noteId;
     // Same frame + same note: On (1) before Off (2) so a zero-length Note never leaves a hung voice.
@@ -470,6 +547,23 @@ template <typename TickToFrame>
 
         if (! append (onTick, EventType::NoteOn) || ! append (offTick, EventType::NoteOff))
             return MidiFlattenStatus::InvalidInput;
+    }
+
+    // G3.3: the Clip's control events ride the same timeline as its notes.
+    for (const MidiControlEvent& control : clip.controlEvents)
+    {
+        Tick absoluteTick = 0;
+        if (! control.isValid() || control.tick > clip.timelineLength
+            || ! detail::addMidiTickChecked (clip.timelineStart, control.tick, absoluteTick))
+            return MidiFlattenStatus::InvalidInput;
+
+        double frame = 0.0;
+        if (! tickToFrameFn (absoluteTick, frame) || ! std::isfinite (frame) || frame < 0.0)
+            return MidiFlattenStatus::InvalidInput;
+
+        outTimeline.push_back (ScheduledMidiEvent {
+            static_cast<std::int64_t> (std::floor (frame)),
+            makeMidiControlEvent (0u, control) });
     }
 
     std::sort (outTimeline.begin(), outTimeline.end(), scheduledMidiEventLess);

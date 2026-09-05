@@ -830,6 +830,17 @@ endif()
 yesdaw_harden(YesDawTrackInstrumentCheck)
 add_test(NAME YesDawTrackInstrumentCheck COMMAND $<TARGET_FILE:YesDawTrackInstrumentCheck>)
 
+# --- MIDI control check (G3.3: CC / pitch bend / aftertouch / program change - storage, flatten, render, undo) ---
+add_executable(YesDawMidiControlCheck tests/midi_control_tests.cpp)
+target_include_directories(YesDawMidiControlCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawMidiControlCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawMidiControlCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawMidiControlCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawMidiControlCheck)
+add_test(NAME YesDawMidiControlCheck COMMAND $<TARGET_FILE:YesDawMidiControlCheck>)
+
 add_executable(YesDawSchedulerCheck tests/scheduler_tests.cpp)
 target_include_directories(YesDawSchedulerCheck PRIVATE ${YESDAW_SRC_DIR})
 target_include_directories(YesDawSchedulerCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})

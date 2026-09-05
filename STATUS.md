@@ -41,15 +41,22 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
+**Now:** **G3.3 — MIDI CC, pitch bend, aftertouch, program change** (plan §6 G3; resumed 2026-09-04 per
+Dan's call). **cp1 ✅ (engine half, this commit):** the edit model (`MidiControlEvent` on the `MidiClip`),
+schema v28, the flatten onto the note timeline, the wire form (`EventType::Midi1`), `SimpleSynth` honouring
+CC64 / CC1 / pitch bend, the three undoable Clip verbs — story, precedent, gates and deviations in
+"G3.3 cp1" below. **Next: cp2 — the control lane in the piano roll** (the second expression lane becomes a
+CC lane with a chooser — CC1 Mod, CC64 Sustain, Pitch Bend, Aftertouch, Program — the pointer places /
+drags / erases points, the pencil paints freehand, Shift+pencil draws a line; hover hints; the probe names
+the lane; `[control-lane]` in `YesDawUiInputCheck`; an ss5 step authored for the next drive window).
+Rules in force from the 2026-09-04 sweep: HEADLESS by default (no drive, no launch, no screenshot without
+Dan's yes — cp1 needed none; cp2's see-it step and rubric shots wait for a drive window), the macOS GPU
+frame-budget red is noise, the local suite + drives are the working gate.
+G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
 all ten jobs (the intermediate run `33668863266` failed only on the macOS GPU frame-budget flake,
 twice — parking lot; never weakened). The G3.2 drive is 31 / 31 on the real exe; the §7.4 rubric is
-below. **The loop is STOPPED at Dan's request** ("stop the loop on the next logical point"). **Dan's call
-(2026-09-04): Codex resumes the plan at G3.3** (MIDI CC / pitch bend / aftertouch / program change), per the
-plan's order and §8 process rules, after the 2026-09-04 sweep below closed. The next agent starts by reading
-this file, then the plan's G3.3 entry; every rule that changed today (headless by default, the parked macOS
-flake, the per-machine drive setup) is in the block below.
+below.
 **G3.2 follow-up (2026-09-04, found by Dan's hand-test on the office PC):** the timeline tool strip was
 paint-only — it always lit the Pointer and no click reached it (the keys 1–6 worked; every drive picked
 tools by key, so the buttons were never exercised). Fixed as one checkpoint: the strip is seven cells in
@@ -187,6 +194,67 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.3 cp1 — MIDI control events: the engine half (2026-09-04)
+
+**Story.** A MIDI Clip can hold more than notes: a sustain pedal, a mod-wheel sweep, a pitch bend, an
+aftertouch curve, a program change — the messages every keyboard sends and every DAW records into the
+region. Today the Clip stored only Notes, so a bundle could not carry them, the render never saw them,
+and SS-4's "draw a filter sweep in a CC lane" had nowhere to go. cp1 is everything BELOW the UI.
+
+**Precedent.** Logic's MIDI Draw (one value per tick per controller lane; a new point on an occupied
+tick replaces it), the GM bend range (±2 st), the MIDI 1.0 sustain law (CC64 ≥ 64 = down), and the
+"mod wheel opens the filter" routing of the common synths (Massive / Serum's default macro). Where
+Logic's ES synths route the wheel to vibrato by default, the filter was chosen because SS-4 asks for a
+filter sweep from a CC lane and the synth's only continuous timbre control is its cutoff — recorded as
+a deviation below. Aftertouch and program change are stored, persisted, flattened and delivered to
+the instrument stream; `SimpleSynth` has no use for them (a hosted plugin, G4.8, will).
+
+**Build.** `engine::MidiControlKind` (ControlChange 0 · PitchBend 1 · ChannelPressure 2 · PolyPressure
+3 · ProgramChange 4) and `MidiControlEvent` (id, clip-relative tick, kind, number, normalized value —
+0..1, or −1..1 for a bend — port, channel; `isValid` per kind; `sameLane`). `MidiClip::controlEvents`;
+the Clip refuses a point past its end. Schema **v28**: `midi_control_events` (FK → `midi_clips`,
+cascade; CHECKs mirror the enum; additive — a v27 bundle opens with no rows; the read re-validates every
+row). Wire form: `EventType::Midi1` gains `Midi1Payload { status, data1, data2 }` and
+`makeMidi1Event`; `makeMidiControlEvent` is the ONE quantizing law (7-bit, 14-bit for a bend, the
+channel nibble from the voice address, poly pressure carries its key). `flattenMidiClipToTimeline`
+appends the Clip's control points to the note timeline; at one frame a control message precedes every
+note event (a program change or a pedal at a note's tick is in force when the note sounds), and control
+ties order by their bytes so the flatten is deterministic. `MidiMerge` and the MIDI FX pass `Midi1`
+through untouched (the FX edit only note-like events). `SimpleSynthNode`: CC64 ≥ 64 holds every
+released voice (`Voice::heldByPedal`) until the lift; CC1 lifts the cutoff by up to four octaves above
+the cutoff parameter, clamped at bypass (`kModWheelOctaves`; at the default cutoff there is nothing to
+open, so the default sound is bit-identical); pitch bend scales every voice's phase increment by
+2^(bend·2/12) (`kPitchBendSemitones`; 8192 = ratio 1.0f exactly, so the centre is bit-identical);
+`reset()` clears the three. Verbs `AddMidiControlEvent` (an add at an occupied tick of the same lane
+replaces), `SetMidiControlEvent` (tick + value; coalesces inside a drag group; landing on another point
+of the lane replaces it), `RemoveMidiControlEvent`; the undo rides the existing MIDI Clip row diff.
+`UiAppModel::sameMidiClips` compares control events, so a controller edit rebuilds the engine (the
+timeline is baked into the Clip's source node). CONTEXT: "Control event", "Control lane".
+
+**Gates.** `YesDawMidiControlCheck` (new, `[midi-control]`, 7 cases / 210 assertions): the edit model's
+refusals per kind; the flatten's order and bytes (program → bends 0 / 8192 / 16383 → CC64 127 before the
+note-on at the same frame → pressure 64 → poly pressure before the note-off; the wildcard channel; the
+SampleLocked path; a point past the end refused); CC64 holds a released note at its held level and the
+lift releases it, an early lift or a 63 changes nothing; a +1 / −1 bend moves a pure A4 to 493.9 / 392.0
+Hz by zero-crossing count, the centre is bit-identical, a mid-note bend differs only after it; CC1 at the
+bypass cutoff is bit-identical, at 300 Hz the wheel lifts the RMS (0 < half < full ≤ unfiltered) and 0 is
+the parameter exactly; aftertouch / program / CC7 leave the render bit-identical; add-replaces, the
+refusals leave the Clip untouched, a three-set drag group is ONE undo step, a set onto another point
+replaces it, remove / undo / redo, the history label. `YesDawPersistenceCheck`: the bring-up sees the
+v28 table; the MIDI round-trip carries one point of every kind byte-equal, a point past the Clip is refused
+on write, a kind 9 row and a CC below 0 are refused on open; the v10 simulation drops v28. Suite: 371 +
+`YesDawMidiControlCheck`.
+
+**Deviation log.** (1) Mod wheel → filter cutoff (opens, +4 octaves at 127), not vibrato: SS-4 needs a
+filter sweep from a CC lane; say "vibrato" to change it. (2) The bend range is fixed at ±2 st (GM); a
+per-instrument range knob is a `ParamSpec` for later (parking lot, not needed for SS-4). (3) No
+controller chase on locate: `DecodedMidiClipNode` seeks to the first event at or after the block, so a
+transport started after a pedal-down does not know the pedal is down (parking lot with file:line —
+Logic chases; it is a transport feature, not a storage one).
+
+**Not built (recorded → cp2).** The lane in the roll (chooser, points, pencil / line / point tools,
+hover hints, the probe's names, `[control-lane]`, the ss5 step); the Note / lane context menu entries.
 
 ### G3.2 UI checkpoint — the real exe, the roll drive, the rubric (2026-09-02)
 

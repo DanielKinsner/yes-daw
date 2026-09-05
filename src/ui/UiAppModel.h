@@ -8513,7 +8513,8 @@ private:
             const engine::MidiClip& x = a[i];
             const engine::MidiClip& y = b[i];
             if (! (x.id == y.id) || ! (x.trackId == y.trackId) || x.timelineStart != y.timelineStart
-                || x.timelineLength != y.timelineLength || x.timeBase != y.timeBase || ! sameNotes (x.notes, y.notes))
+                || x.timelineLength != y.timelineLength || x.timeBase != y.timeBase || ! sameNotes (x.notes, y.notes)
+                || ! (x.controlEvents == y.controlEvents))   // G3.3: a controller edit re-flattens the Clip
                 return false;
         }
         return true;

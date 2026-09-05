@@ -347,6 +347,22 @@ Sounding a key through the Track's Instrument on a press — the roll's keyboard
 pencil-drawn note — held while the mouse is, released on mouse-up; not an edit (nothing to undo).
 The Track is the roll's Clip's Track, else the selected strip.
 
+**Control event** (G3.3):
+An editable non-note MIDI message stored in a MIDI Clip in clip-relative ticks with a stable Entity ID:
+a kind (control change, pitch bend, channel pressure, poly pressure, program change), a number
+(controller / key / program, where the kind has one), a normalized value (0..1, or −1..1 for a bend)
+and the voice address the Notes carry. One value per tick per lane. It becomes a `Midi1` Event (the
+three wire bytes; 7-bit, 14-bit for a bend) only at render, ordered BEFORE any note event at the same
+frame.
+_Avoid_: automation (that targets a Node parameter, not the instrument's MIDI input), CC message (when
+you mean the edit object)
+
+**Control lane** (G3.3):
+The piano roll's expression lane for ONE kind + number of control event (CC1 Mod, CC64 Sustain, Pitch
+Bend, Aftertouch, Program), chosen by the lane's chooser; the pointer places, drags and erases points,
+the pencil paints freehand, Shift+pencil draws a line. Velocity stays its own lane (a Note property).
+_Avoid_: automation lane, MIDI Draw (Logic's name)
+
 **Key window** (G3.2 checkpoint):
 The keys the piano roll shows: as many as fit its grid at the legible row target (11 px), never fewer
 than ten nor more than the widest window (25), scrolled by the wheel and clamped at the keyboard's

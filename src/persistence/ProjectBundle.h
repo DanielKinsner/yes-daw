@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 27;   // G3.1: the Track instrument slot
+inline constexpr int          kCodeSchemaVersion = 28;   // G3.3: MIDI control events (CC / bend / pressure / program)
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -57,6 +57,11 @@ static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::SendLeve
 static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::BusFader) == 3u);
 static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::BusPan) == 4u);
 static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::FxInsertParam) == 5u);
+static_assert (static_cast<std::uint8_t> (engine::MidiControlKind::ControlChange) == 0u);   // G3.3: the kind column
+static_assert (static_cast<std::uint8_t> (engine::MidiControlKind::PitchBend) == 1u);
+static_assert (static_cast<std::uint8_t> (engine::MidiControlKind::ChannelPressure) == 2u);
+static_assert (static_cast<std::uint8_t> (engine::MidiControlKind::PolyPressure) == 3u);
+static_assert (static_cast<std::uint8_t> (engine::MidiControlKind::ProgramChange) == 4u);
 static_assert (static_cast<std::uint8_t> (engine::RecordingMonitoringPolicy::Off) == 0u);
 static_assert (static_cast<std::uint8_t> (engine::RecordingMonitoringPolicy::DirectInput) == 1u);
 static_assert (static_cast<std::uint8_t> (engine::RecordingMonitoringPolicy::LatencyCompensated) == 2u);
@@ -1394,13 +1399,31 @@ ALTER TABLE tracks ADD COLUMN instrument_kind INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE tracks ADD COLUMN instrument_state BLOB NOT NULL DEFAULT X'';
 )SQL";
 
+// v28 (G3.3): MIDI control events per MIDI Clip - CC / pitch bend / aftertouch / program change
+// points in clip-relative ticks (kind 0..4, the engine enum), a normalized value (0..1, or -1..1
+// for a bend) and the voice address the notes carry. Additive: a v27 bundle opens with no rows.
+inline constexpr std::string_view kSchemaV28Sql = R"SQL(
+CREATE TABLE midi_control_events (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  clip_id BLOB NOT NULL,
+  tick INTEGER NOT NULL CHECK (tick >= 0),
+  kind INTEGER NOT NULL CHECK (kind >= 0 AND kind <= 4),
+  number INTEGER NOT NULL CHECK (number >= 0 AND number <= 127),
+  value REAL NOT NULL CHECK (value >= -1 AND value <= 1),
+  port_index INTEGER NOT NULL CHECK (port_index >= -1),
+  channel INTEGER NOT NULL CHECK (channel >= -1 AND channel <= 15),
+  FOREIGN KEY (clip_id) REFERENCES midi_clips(id) ON UPDATE RESTRICT ON DELETE CASCADE
+);
+CREATE INDEX midi_control_events_clip_id_idx ON midi_control_events(clip_id);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 27> kMigrations {
+inline constexpr std::array<SchemaMigration, 28> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1428,6 +1451,7 @@ inline constexpr std::array<SchemaMigration, 27> kMigrations {
     SchemaMigration { 25, kSchemaV25Sql },
     SchemaMigration { 26, kSchemaV26Sql },
     SchemaMigration { 27, kSchemaV27Sql },
+    SchemaMigration { 28, kSchemaV28Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2484,6 +2508,10 @@ public:
                 db_,
                 "INSERT INTO midi_notes(id, clip_id, start_tick, length_ticks, key, pitch_note, normalized_velocity, port_index, channel) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
+            detail::Statement controlStmt (
+                db_,
+                "INSERT INTO midi_control_events(id, clip_id, tick, kind, number, value, port_index, channel) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
 
             for (const engine::MidiClip& midiClip : project.midiClips)
             {
@@ -2508,6 +2536,20 @@ public:
                     if (auto result = noteStmt.bindInt64 (8, note.portIndex); ! result.ok()) { rollback(); return result; }
                     if (auto result = noteStmt.bindInt64 (9, note.channel); ! result.ok()) { rollback(); return result; }
                     if (auto result = detail::expectDone (db_, noteStmt); ! result.ok()) { rollback(); return result; }
+                }
+
+                for (const engine::MidiControlEvent& control : midiClip.controlEvents)   // G3.3
+                {
+                    controlStmt.reset();
+                    if (auto result = controlStmt.bindBlob (1, control.id.bytes); ! result.ok()) { rollback(); return result; }
+                    if (auto result = controlStmt.bindBlob (2, midiClip.id.bytes); ! result.ok()) { rollback(); return result; }
+                    if (auto result = controlStmt.bindInt64 (3, control.tick); ! result.ok()) { rollback(); return result; }
+                    if (auto result = controlStmt.bindInt64 (4, static_cast<sqlite3_int64> (control.kind)); ! result.ok()) { rollback(); return result; }
+                    if (auto result = controlStmt.bindInt64 (5, control.number); ! result.ok()) { rollback(); return result; }
+                    if (auto result = controlStmt.bindDouble (6, control.value); ! result.ok()) { rollback(); return result; }
+                    if (auto result = controlStmt.bindInt64 (7, control.portIndex); ! result.ok()) { rollback(); return result; }
+                    if (auto result = controlStmt.bindInt64 (8, control.channel); ! result.ok()) { rollback(); return result; }
+                    if (auto result = detail::expectDone (db_, controlStmt); ! result.ok()) { rollback(); return result; }
                 }
             }
         }
@@ -3349,6 +3391,51 @@ public:
                     note.portIndex = static_cast<std::int16_t> (portIndex);
                     note.channel = static_cast<std::int16_t> (channel);
                     midiClip.notes.push_back (note);
+                }
+
+                // G3.3: the Clip's control events (the semantic checks mirror MidiControlEvent::isValid so
+                // a hand-edited row is refused here, not deep in the render).
+                detail::Statement controlStmt;
+                if (auto result = controlStmt.prepare (
+                        db_,
+                        "SELECT id, tick, kind, number, value, port_index, channel "
+                        "FROM midi_control_events WHERE clip_id = ? ORDER BY rowid;");
+                    ! result.ok())
+                    return result;
+                if (auto result = controlStmt.bindBlob (1, midiClip.id.bytes); ! result.ok())
+                    return result;
+
+                while (true)
+                {
+                    const int controlStep = controlStmt.step();
+                    if (controlStep == SQLITE_DONE)
+                        break;
+                    if (controlStep != SQLITE_ROW)
+                        return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+
+                    engine::MidiControlEvent control;
+                    if (auto result = detail::columnBlob (controlStmt.get(), 0, control.id.bytes, "midi_control_events.id"); ! result.ok())
+                        return result;
+
+                    control.tick = sqlite3_column_int64 (controlStmt.get(), 1);
+                    const sqlite3_int64 kind = sqlite3_column_int64 (controlStmt.get(), 2);
+                    const sqlite3_int64 number = sqlite3_column_int64 (controlStmt.get(), 3);
+                    const sqlite3_int64 portIndex = sqlite3_column_int64 (controlStmt.get(), 5);
+                    const sqlite3_int64 channel = sqlite3_column_int64 (controlStmt.get(), 6);
+                    if (kind < 0 || kind > static_cast<sqlite3_int64> (engine::MidiControlKind::ProgramChange)
+                        || number < 0 || number > 127
+                        || portIndex < -1 || portIndex > std::numeric_limits<std::int16_t>::max()
+                        || channel < -1 || channel > 15)
+                        return detail::semanticInvalid ("midi_control_events row is outside the Project value range");
+
+                    control.kind = static_cast<engine::MidiControlKind> (kind);
+                    control.number = static_cast<std::int16_t> (number);
+                    control.value = sqlite3_column_double (controlStmt.get(), 4);
+                    control.portIndex = static_cast<std::int16_t> (portIndex);
+                    control.channel = static_cast<std::int16_t> (channel);
+                    if (! control.isValid())
+                        return detail::semanticInvalid ("midi_control_events row is not a valid control event");
+                    midiClip.controlEvents.push_back (control);
                 }
 
                 project.midiClips.push_back (std::move (midiClip));

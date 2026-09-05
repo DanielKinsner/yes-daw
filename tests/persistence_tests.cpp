@@ -505,6 +505,8 @@ TEST_CASE ("SQLite bundle bring-up applies ADR-0012 pragmas and schema identity"
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'midi_notes';", value).ok());
     REQUIRE (value == 1);
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'midi_control_events';", value).ok());   // G3.3: v28
+    REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'locate_points';", value).ok());
     REQUIRE (value == 1);
     REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'tracks';", value).ok());
@@ -970,6 +972,31 @@ TEST_CASE ("Project MIDI Clips and Notes round-trip through a reopened bundle",
     Project project = makeProject();
     project.tracks.push_back (makeTrack (idFromLowByte (71), "MIDI Track"));
     project.midiClips = { makeMidiClip (idFromLowByte (70), idFromLowByte (71)) };
+    // G3.3: one control point of every kind rides the Clip (schema v28).
+    {
+        using yesdaw::engine::MidiControlEvent;
+        using yesdaw::engine::MidiControlKind;
+        const auto control = [] (std::uint8_t id, yesdaw::engine::Tick tick, MidiControlKind kind, std::int16_t number, double value)
+        {
+            MidiControlEvent event;
+            event.id = idFromLowByte (id);
+            event.tick = tick;
+            event.kind = kind;
+            event.number = number;
+            event.value = value;
+            event.portIndex = 0;
+            event.channel = 1;
+            return event;
+        };
+        project.midiClips[0].controlEvents = {
+            control (80, 0, MidiControlKind::ControlChange, 64, 1.0),
+            control (81, 256, MidiControlKind::PitchBend, 0, -0.5),
+            control (82, 300, MidiControlKind::ChannelPressure, 0, 0.25),
+            control (83, 400, MidiControlKind::PolyPressure, 60, 0.75),
+            control (84, 512, MidiControlKind::ProgramChange, 7, 0.0),
+        };
+        REQUIRE (project.midiClips[0].isValid());
+    }
 
     {
         ProjectBundleDb db = openFreshBundle (path);
@@ -981,6 +1008,8 @@ TEST_CASE ("Project MIDI Clips and Notes round-trip through a reopened bundle",
         REQUIRE (count == 1);
         REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM midi_notes;", count).ok());
         REQUIRE (count == 3);
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM midi_control_events;", count).ok());
+        REQUIRE (count == 5);
     }
 
     ProjectBundleDb reopened;
@@ -993,10 +1022,34 @@ TEST_CASE ("Project MIDI Clips and Notes round-trip through a reopened bundle",
     REQUIRE (readback.midiClips[0].trackId == idFromLowByte (71));
     REQUIRE (readback.midiClips[0].notes[1].pitchNote == Approx (67.25));
     REQUIRE (readback.midiClips[0].notes[2].lengthTicks == 0);
+    REQUIRE (readback.midiClips[0].controlEvents == project.midiClips[0].controlEvents);
+    REQUIRE (readback.midiClips[0].controlEvents[1].kind == yesdaw::engine::MidiControlKind::PitchBend);
+    REQUIRE (readback.midiClips[0].controlEvents[1].value == -0.5);
 
     Project mutatedNote = project;
     mutatedNote.midiClips[0].notes[1].normalizedVelocity = 0.5;
     REQUIRE_FALSE (readback.midiClips == mutatedNote.midiClips);
+
+    // G3.3 negative controls: a control point past the Clip's end is refused on write; a row whose
+    // kind or value is outside the engine's range is refused on open (a hand-edited bundle).
+    {
+        Project controlPastClip = project;
+        controlPastClip.midiClips[0].controlEvents[0].tick = controlPastClip.midiClips[0].timelineLength + 1;
+        ProjectBundleDb invalidControlDb = openFreshBundle (makeTempBundlePath ("midi-control-invalid"));
+        REQUIRE (invalidControlDb.writeProjectSnapshot (controlPastClip).status == BundleStatus::SemanticInvalid);
+
+        REQUIRE (reopened.executeSql ("PRAGMA ignore_check_constraints = ON; UPDATE midi_control_events SET kind = 9 WHERE number = 7; PRAGMA ignore_check_constraints = OFF;").ok());
+        Project refusedKind;
+        REQUIRE_FALSE (reopened.readProjectSnapshot (refusedKind).ok());   // the CHECK trips before the semantic read does
+        REQUIRE (reopened.executeSql ("UPDATE midi_control_events SET kind = 4 WHERE number = 7;").ok());
+        REQUIRE (reopened.executeSql ("UPDATE midi_control_events SET value = -0.5 WHERE number = 64;").ok());   // a CC below 0
+        Project refusedValue;
+        REQUIRE (reopened.readProjectSnapshot (refusedValue).status == BundleStatus::SemanticInvalid);
+        REQUIRE (reopened.executeSql ("UPDATE midi_control_events SET value = 1.0 WHERE number = 64;").ok());
+        Project restored;
+        REQUIRE (reopened.readProjectSnapshot (restored).ok());
+        REQUIRE (restored.midiClips[0].controlEvents == project.midiClips[0].controlEvents);
+    }
 
     Project noteExtendsPastClip = project;
     noteExtendsPastClip.midiClips[0].notes[0].startTick = noteExtendsPastClip.midiClips[0].timelineLength;
@@ -1833,6 +1886,8 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "DELETE FROM schema_migrations WHERE version = 26; "
             "ALTER TABLE tracks DROP COLUMN instrument_kind; ALTER TABLE tracks DROP COLUMN instrument_state; "   // G3.1: v27
             "DELETE FROM schema_migrations WHERE version = 27; "
+            "DROP TABLE midi_control_events; "   // G3.3: v28
+            "DELETE FROM schema_migrations WHERE version = 28; "
             "PRAGMA user_version = 10;").ok());
     }
 

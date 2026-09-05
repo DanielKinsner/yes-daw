@@ -96,11 +96,23 @@ struct SysExPayload
     std::uint64_t reserved = 0;
 };
 
+// G3.3: a MIDI 1.0 channel message on the wire - control change, pitch bend, pressure, program
+// change - carried as its three bytes so a built-in instrument and a hosted plugin read the SAME
+// event (the format-neutral node contract). The status byte carries the message kind in its high
+// nibble and the channel (0..15, 0 when the voice address is a wildcard) in its low nibble.
+struct Midi1Payload
+{
+    std::uint8_t status = 0;
+    std::uint8_t data1  = 0;
+    std::uint8_t data2  = 0;
+};
+
 union EventPayload
 {
     ParameterChangePayload parameter;
     NotePayload            note;
     SysExPayload           sysex;
+    Midi1Payload           midi1;
     std::uint64_t          raw[2];
 };
 
@@ -133,6 +145,33 @@ static_assert (sizeof (Event) <= 64, "Event must stay cache-small and fixed-size
     event.payload.parameter.normalizedValue = normalizedValue;
     return event;
 }
+
+[[nodiscard]] inline Event makeMidi1Event (std::uint32_t timeInBlock,
+                                           std::uint8_t status,
+                                           std::uint8_t data1,
+                                           std::uint8_t data2,
+                                           std::int16_t portIndex = -1,
+                                           std::int16_t channel = -1) noexcept
+{
+    Event event {};
+    event.timeInBlock          = timeInBlock;
+    event.type                 = EventType::Midi1;
+    event.voice.portIndex      = portIndex;
+    event.voice.channel        = channel;
+    event.payload.midi1.status = status;
+    event.payload.midi1.data1  = data1;
+    event.payload.midi1.data2  = data2;
+    return event;
+}
+
+// The MIDI 1.0 status nibbles and controller numbers the engine speaks (G3.3).
+inline constexpr std::uint8_t kMidiStatusPolyPressure    = 0xA0;
+inline constexpr std::uint8_t kMidiStatusControlChange   = 0xB0;
+inline constexpr std::uint8_t kMidiStatusProgramChange   = 0xC0;
+inline constexpr std::uint8_t kMidiStatusChannelPressure = 0xD0;
+inline constexpr std::uint8_t kMidiStatusPitchBend       = 0xE0;
+inline constexpr std::uint8_t kMidiControllerModWheel    = 1;
+inline constexpr std::uint8_t kMidiControllerSustain     = 64;
 
 // A non-owning per-Block view. The producer owns/sorts storage; Nodes read this view on the audio thread.
 class EventStream
