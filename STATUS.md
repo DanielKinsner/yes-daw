@@ -308,9 +308,9 @@ Everything else stays parked: the roll's fold / scroll-to-notes, the pad inspect
 tempo law, the live lane's CC thru, the MIDI device chooser, the key / scale undo step, the DAWproject
 menu item, the CI classifier (Dan's `ci.yml`), the undone-import selection — none serves SS-5.
 
-**Deviation log (G3 close).** The G3.10 tick waits on its head run (`25fc379`); the close-out is
-committed as a code + docs commit (the export-law amendment, the SS-4 script, the montage, the probe's
-`drumMode` field) rather than the plan's docs-only commit, so the amendment rides a CI run.
+**Deviation log (G3 close).** The close-out is committed as a code + docs commit `b0882b2` (the
+export-law amendment, the SS-4 script, the montage, the probe's `drumMode` field) rather than the plan's
+docs-only commit, so the amendment rides a CI run — exact-head run `33952867343`, green on all ten jobs.
 
 ### G3.10 — RT-safe MIDI input and thru (2026-09-05)
 
