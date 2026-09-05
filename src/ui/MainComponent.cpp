@@ -12746,6 +12746,10 @@ private:
                     case yesdaw::engine::FxKind::Delay:      label = "Delay"; break;
                     case yesdaw::engine::FxKind::Reverb:     label = "Reverb"; break;
                     case yesdaw::engine::FxKind::Limiter:    label = "Limiter"; break;
+                    case yesdaw::engine::FxKind::MidiTranspose:   label = "Transpose"; break;   // G3.8
+                    case yesdaw::engine::FxKind::MidiScaleMap:    label = "Scale"; break;
+                    case yesdaw::engine::FxKind::MidiArpeggiator: label = "Arp"; break;
+                    case yesdaw::engine::FxKind::MidiChord:       label = "Chord"; break;
                 }
                 mixerFxSlotToggles[slot].setButtonText (insert.enabled ? label : label + " (byp)");
                 mixerFxSlotEdits[slot].setToggleState (selectedFxParamSlot == static_cast<int> (slot),
@@ -13728,6 +13732,10 @@ private:
             case yesdaw::engine::FxKind::Delay: return "Delay";
             case yesdaw::engine::FxKind::Reverb: return "Reverb";
             case yesdaw::engine::FxKind::Limiter: return "Limiter";
+            case yesdaw::engine::FxKind::MidiTranspose: return "Transpose";   // G3.8
+            case yesdaw::engine::FxKind::MidiScaleMap: return "Scale";
+            case yesdaw::engine::FxKind::MidiArpeggiator: return "Arp";
+            case yesdaw::engine::FxKind::MidiChord: return "Chord";
         }
 
         return "FX";
@@ -13742,6 +13750,10 @@ private:
             case yesdaw::engine::FxKind::Delay: return "Delay";
             case yesdaw::engine::FxKind::Reverb: return "Reverb";
             case yesdaw::engine::FxKind::Limiter: return "Limiter";
+            case yesdaw::engine::FxKind::MidiTranspose: return "MIDI Transpose";   // G3.8
+            case yesdaw::engine::FxKind::MidiScaleMap: return "MIDI Scale";
+            case yesdaw::engine::FxKind::MidiArpeggiator: return "Arpeggiator";
+            case yesdaw::engine::FxKind::MidiChord: return "Chord Trigger";
         }
 
         return "Unknown";

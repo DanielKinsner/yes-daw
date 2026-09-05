@@ -847,6 +847,17 @@ target_link_libraries(YesDawSmfCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawSmfCheck)
 add_test(NAME YesDawSmfCheck COMMAND $<TARGET_FILE:YesDawSmfCheck>)
 
+# --- MIDI FX check (G3.8: transpose / scale / arpeggiator / chord inserts on the Track's MIDI path) ---
+add_executable(YesDawMidiFxCheck tests/midi_fx_tests.cpp)
+target_include_directories(YesDawMidiFxCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawMidiFxCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawMidiFxCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawMidiFxCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawMidiFxCheck)
+add_test(NAME YesDawMidiFxCheck COMMAND $<TARGET_FILE:YesDawMidiFxCheck>)
+
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
 target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})

@@ -3026,8 +3026,8 @@ public:
                         return result;
 
                     const sqlite3_int64 kind = sqlite3_column_int64 (insertStmt.get(), 1);
-                    if (kind < static_cast<sqlite3_int64> (engine::FxKind::Eq)
-                        || kind > static_cast<sqlite3_int64> (engine::FxKind::Limiter))
+                    // G3.8: the MIDI kinds (5..8) are additive — the same column, no migration.
+                    if (kind < 0 || kind > 255 || ! engine::fxKindIsKnown (static_cast<engine::FxKind> (kind)))
                         return detail::semanticInvalid ("fx_inserts.kind is outside the Project value range");
                     insert.kind = static_cast<engine::FxKind> (kind);
                     insert.enabled = sqlite3_column_int64 (insertStmt.get(), 2) != 0;
@@ -3806,7 +3806,7 @@ public:
         bool fxUnknownKindProblem = false;
         if (auto result = detail::hasAnyRow (
                 db_,
-                "SELECT 1 FROM fx_inserts WHERE kind NOT IN (0, 1, 2, 3, 4) LIMIT 1;",
+                "SELECT 1 FROM fx_inserts WHERE kind NOT IN (0, 1, 2, 3, 4, 5, 6, 7, 8) LIMIT 1;",   // G3.8: + the four MIDI kinds
                 fxUnknownKindProblem);
             ! result.ok())
             return result;
@@ -4381,7 +4381,7 @@ private:
                 "UNION ALL SELECT 1 FROM clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR src_offset < 0 OR src_len < 0 OR gain < 0 OR fade_in < 0 OR fade_out < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM recording_takes WHERE id = zeroblob(16) OR asset_id = zeroblob(16) OR track_id = zeroblob(16) OR clip_id = zeroblob(16) OR timeline_start < 0 OR frame_count <= 0 OR take_ordinal < 0 OR input_channel < 0 OR device_stable_id < 0 OR monitoring_policy NOT IN (0, 1, 2) "
                 "UNION ALL SELECT 1 FROM recording_comp_segments WHERE id = zeroblob(16) OR take_id = zeroblob(16) OR sort_index < 0 OR timeline_start < 0 OR timeline_length <= 0 OR source_offset < 0 "
-                "UNION ALL SELECT 1 FROM fx_inserts WHERE id = zeroblob(16) OR owner_entity = zeroblob(16) OR position < 0 OR kind NOT IN (0, 1, 2, 3, 4) OR enabled NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM fx_inserts WHERE id = zeroblob(16) OR owner_entity = zeroblob(16) OR position < 0 OR kind NOT IN (0, 1, 2, 3, 4, 5, 6, 7, 8) OR enabled NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM fx_insert_params WHERE insert_id = zeroblob(16) OR param_id < 0 OR value < 0 OR value > 1 "
                 "UNION ALL SELECT 1 FROM automation_lanes WHERE id = zeroblob(16) OR owner_entity = zeroblob(16) OR target_role NOT IN (0, 1, 2, 3, 4, 5, 6) OR param_id < 0 "
                 "UNION ALL SELECT 1 FROM automation_breakpoints WHERE lane_id = zeroblob(16) OR tick < 0 OR value < 0 OR value > 1 OR curve_type NOT IN (0, 1, 2, 3) "

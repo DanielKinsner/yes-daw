@@ -48,11 +48,19 @@ file's tracks as SampleLocked MIDI clips at the project's tempo (the first on th
 new tracks named from the file with the synth on); File > Export MIDI File writes the selection (else every
 MIDI clip) as a format-1 file at 960 PPQ. Gates `[smf]` (`YesDawSmfCheck`: byte golden, round-trip, the
 tolerant reader, the bridge) and `[midi-file]` in `YesDawUiInputCheck`; ss5 Step 15 authored (the real
-chooser by path). Drive + rubric: see the G3.7 story. **Next:** the G3.7 docs-evidence commit once CI is
-green on the head, then **G3.8 — MIDI FX reachable + Arpeggiator + Chord**. Rules in force: HEADLESS by
-default (drives on Dan's go — given 2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the
-local suite + drives are the working gate; drive scripts launched back-to-back flake at Step 0 (pause
-between scripts).
+chooser by path). ss5 63 / 63 (twice), rubric PASS with one FIX applied; the G3.7 docs-evidence commit
+waits for CI on `6c4473e`. **G3.8 — MIDI FX reachable + Arpeggiator + Chord: cp1 (this commit) — the engine
+half**: `FxKind` gains `MidiTranspose` / `MidiScaleMap` / `MidiArpeggiator` / `MidiChord`; a Track's
+MIDI-kind inserts sit on the MIDI path between its merged clips and its instrument in chain order; the
+Arpeggiator (rate / order / octaves / gate) and Chord Trigger (three intervals / velocity) nodes; every
+MIDI FX addressed by ParamSpec like the audio inserts; Track-only (`MidiFxNeedsTrack`); the bundle takes
+kinds 5–8 in the same column. `YesDawMidiFxCheck` `[midi-fx]` (render goldens by equivalence). **Next:**
+cp2 — the shell: the two choosers list the MIDI kinds (the strip's Add FX and the slot menu, Track strips
+only), the param rows render the choice specs, the piano roll's scale assist from a project key / scale
+(schema v30), `[midi-fx-shell]`, the ss4 / ss5 drive step; then the G3.8 evidence commit and **G3.9 —
+Sampler instrument** (an ADR first). Rules in force: HEADLESS by default (drives on Dan's go — given
+2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the local suite + drives are the working
+gate; drive scripts launched back-to-back flake at Step 0 (pause between scripts).
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
 all ten jobs (the intermediate run `33668863266` failed only on the macOS GPU frame-budget flake,
@@ -213,6 +221,61 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.8 cp1 — MIDI FX reachable + Arpeggiator + Chord: the engine half (2026-09-05)
+
+**Story.** H4 built two MIDI-effect nodes (Transpose, ScaleMap) that no Project could reach: the insert
+chain knew five audio kinds and the Track's MIDI path ran straight from its merged clips into the
+instrument. Logic's MIDI FX slot (Arpeggiator, Chord Trigger, Transposer, Scale Quantizer …) sits above
+the instrument on an instrument channel strip. Now a Track's FX chain can hold MIDI kinds, and the
+engine routes them where Logic does: on the MIDI path, before the instrument, in chain order.
+
+**Precedent.** Logic's MIDI FX: Arpeggiator (rate as a note value, order Up / Down / Up-Down / As Played,
+octave range, gate %), Chord Trigger (intervals above the played note), Transposer (semitones), Scale
+Quantizer (root + scale). A MIDI FX exists only on an instrument channel — here, a Track (a Bus or the
+master has no MIDI path).
+
+**Build.** `Project.h`: `FxKind::MidiTranspose` / `MidiScaleMap` / `MidiArpeggiator` / `MidiChord` (5–8,
+additive); `fxKindIsMidi`; `fxParamSpecForKind` answers for them; `addFxInsert` refuses a MIDI kind on a
+non-Track owner with the new `ProjectEditStatus::MidiFxNeedsTrack` (the undo verb inherits it).
+`MidiEffectNode.h`: Transpose gains `transpose.semitones` (±24) and ScaleMap `scale.root` (a 12-way
+choice) / `scale.scale` (Chromatic · Major · Minor) as ParamSpecs; new `MidiChordNode` (three intervals
+0–24 st, 0 = off, default a major triad with the third interval off; the copies' velocity as a % of the
+original; derived note ids; a copy past 127 drops) and `MidiArpeggiatorNode` (rate 1/4 · 1/8 · 1/16 ·
+1/32 of a quarter, order Up · Down · Up-Down · As Played, octaves 1–4, gate 10–100 %; the held set from
+the incoming NoteOn / NoteOff, which it consumes; every other event passes through; one note per step on
+an ABSOLUTE frame grid — step k at k × stepFrames — so playback is deterministic and a loop or locate
+lands on the same notes; a transport jump or a silenced transport releases the sounding step first).
+Both own a fixed scratch buffer sized in `prepare` and hand it back through `EventStream::replaceEvents`
+(nothing allocates in `process`; the block stays sorted and half-open). `ProjectMixerProjection.h`:
+`appendProjectMidiFxChainNodes` builds the Track's MIDI FX chain (enabled MIDI-kind inserts, chain order,
+each fed by the one before, the first by the MidiMerge) and the instrument takes the chain's end; the
+arpeggiator's grid takes frames per quarter at the head tempo; `appendProjectFxChainNodes` skips MIDI
+kinds (they are not audio inserts); `applyFxInsertParams` / `makeProjectFxInsertNode` know the four
+nodes. `GraphBuilder.h` classes both new nodes as `MidiEffect`. Persistence: the read range and the two
+integrity queries take kinds 5–8 (no migration). Shell: the three exhaustive `FxKind` switches (the slot
+label, the strip name, the menu name) name the kinds — the choosers list them in cp2.
+
+**Gates.** `[midi-fx]` — `YesDawMidiFxCheck` (1107 assertions): every MIDI kind's ParamSpecs (named,
+usable, choice names; normalized → real on the node); the Chord node at event level (the triad at the
+same tick, derived ids, the off finds its on, scaled velocity, interval 0 off, a copy past 127 drops, a
+Midi1 passes through, the block valid); the Arpeggiator at event level (two held keys step on the 1/16
+grid in Up order with the gate's off, the input notes consumed, Down, Up-Down over two octaves, a
+released key stops, a locate releases the sounding step at the new block's top, a silenced transport
+clears, the grid absolute across block boundaries); the projection (a transpose insert renders
+BIT-IDENTICALLY to the note written a fifth up; a disabled insert and a default-param insert are the
+identity; a C# under C Major renders as the D written out; the chord insert renders as the four notes
+written out; the arpeggiator renders as its steps written out as notes; an EQ beside a MIDI kind is the
+only insert node while the chord sits on the MIDI path); Track-only (a Bus refuses `MidiFxNeedsTrack`,
+the verb refuses, an EQ on the Bus still lands) and the bundle round-trips a MIDI kind with its param.
+Local suite 377 / 377 (`YesDawMidiFxCheck` is the 377th).
+
+**Deviation log.** (1) The arpeggiator's grid follows the HEAD tempo only (the projection bakes frames
+per quarter; the transport carries no tempo map) — a tempo change mid-song is not followed; parking lot.
+(2) Live audition / typing notes bypass the MIDI FX (the G3.2 live lane goes straight to the instrument
+by design) — Logic arpeggiates live input; parking lot for G3.10 (MIDI input) to decide. (3) No swing /
+latch / note-length "as played" on the arpeggiator, no chord memory on Chord Trigger — the plan's list is
+(rate, order, octaves) and (intervals); the rest is the MIDI FX polish pass.
 
 ### G3.7 — MIDI file import / export (2026-09-05)
 

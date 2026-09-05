@@ -120,6 +120,13 @@ _Avoid_: effect slot (UI word), plugin (unless it is specifically a hosted Plugi
 **FX chain**:
 The ordered list of Insert nodes on a Track or Bus strip. Saved as strip state; order is audible
 and preserved.
+
+**MIDI FX**:
+An Insert of a MIDI `FxKind` (Transpose, Scale, Arpeggiator, Chord — G3.8) on a TRACK's FX chain. It sits
+on the Track's MIDI path between the merged MIDI Clips and the Track's instrument, in chain order, before
+every audio Insert; a disabled one is not in the path. Track-only: a Bus or the master strip has no MIDI
+path and refuses it (`MidiFxNeedsTrack`).
+_Avoid_: MIDI plugin, MIDI insert (say MIDI FX), "effect" for the instrument itself
 _Avoid_: rack (a deferred UI concept), chain (when the routing branches)
 
 **Mute**:

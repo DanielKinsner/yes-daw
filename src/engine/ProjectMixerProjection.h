@@ -17,6 +17,7 @@
 #include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/ReverbNode.h"
 #include "engine/nodes/SimpleSynthNode.h"
+#include "engine/nodes/MidiEffectNode.h"   // G3.8
 #include "engine/nodes/MidiMergeNode.h"
 #include "engine/nodes/SumNode.h"
 
@@ -185,7 +186,25 @@ inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
             reverb->setNormalizedParameter (paramId, normalizedValue);
         else if (auto* limiter = dynamic_cast<LimiterNode*> (&node))
             limiter->setNormalizedParameter (paramId, normalizedValue);
+        else if (auto* transpose = dynamic_cast<MidiTransposeNode*> (&node))   // G3.8
+            transpose->setNormalizedParameter (paramId, normalizedValue);
+        else if (auto* scale = dynamic_cast<MidiScaleMapNode*> (&node))
+            scale->setNormalizedParameter (paramId, normalizedValue);
+        else if (auto* arp = dynamic_cast<MidiArpeggiatorNode*> (&node))
+            arp->setNormalizedParameter (paramId, normalizedValue);
+        else if (auto* chord = dynamic_cast<MidiChordNode*> (&node))
+            chord->setNormalizedParameter (paramId, normalizedValue);
     }
+}
+
+// G3.8: the MIDI FX nodes share one input law (one event input, set after construction).
+inline bool setMidiEffectInput (Node& node, Node* input) noexcept
+{
+    if (auto* transpose = dynamic_cast<MidiTransposeNode*> (&node)) { transpose->setInput (input); return true; }
+    if (auto* scale = dynamic_cast<MidiScaleMapNode*> (&node)) { scale->setInput (input); return true; }
+    if (auto* arp = dynamic_cast<MidiArpeggiatorNode*> (&node)) { arp->setInput (input); return true; }
+    if (auto* chord = dynamic_cast<MidiChordNode*> (&node)) { chord->setInput (input); return true; }
+    return false;
 }
 
 [[nodiscard]] inline std::unique_ptr<Node> makeProjectFxInsertNode (const FxInsert& insert, NodeId nodeId)
@@ -208,11 +227,59 @@ inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
         case FxKind::Limiter:
             node = std::make_unique<LimiterNode> (nodeId);
             break;
+        case FxKind::MidiTranspose:   // G3.8
+            node = std::make_unique<MidiTransposeNode> (nodeId);
+            break;
+        case FxKind::MidiScaleMap:
+            node = std::make_unique<MidiScaleMapNode> (nodeId);
+            break;
+        case FxKind::MidiArpeggiator:
+            node = std::make_unique<MidiArpeggiatorNode> (nodeId);
+            break;
+        case FxKind::MidiChord:
+            node = std::make_unique<MidiChordNode> (nodeId);
+            break;
     }
 
     if (node != nullptr)
         applyFxInsertParams (*node, insert);
     return node;
+}
+
+// G3.8: the Track's MIDI FX chain — every MIDI-kind insert of the strip's chain, in chain order, each
+// fed by the one before (the first by `source`, the Track's merged clips); a disabled insert is left
+// out (bypass = not in the path). Returns the chain's last node (or `source` when there is none).
+// The arpeggiator's grid takes the head tempo in frames per quarter.
+[[nodiscard]] inline bool appendProjectMidiFxChainNodes (const std::vector<FxInsert>& chain,
+                                                         Node* source,
+                                                         double framesPerQuarter,
+                                                         std::vector<NodeId>& usedIds,
+                                                         std::vector<std::unique_ptr<Node>>& out,
+                                                         std::size_t ownerIndex,
+                                                         ProjectMixerProjectionError* error,
+                                                         Node*& lastOut)
+{
+    lastOut = source;
+    for (const FxInsert& insert : chain)
+    {
+        if (! fxKindIsMidi (insert.kind) || ! insert.enabled)
+            continue;
+        const NodeId fxNodeId = projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx);
+        if (! registerProjectMixerNodeId (usedIds, fxNodeId, ownerIndex, ProjectMixerNodeRole::Fx, error))
+            return false;
+        std::unique_ptr<Node> node = makeProjectFxInsertNode (insert, fxNodeId);
+        if (node == nullptr || ! setMidiEffectInput (*node, lastOut))
+        {
+            if (error != nullptr)
+                *error = { ProjectMixerProjectionError::Code::FxNodeFactoryFailed, ownerIndex, fxNodeId, ProjectMixerNodeRole::Fx };
+            return false;
+        }
+        if (auto* arp = dynamic_cast<MidiArpeggiatorNode*> (node.get()))
+            arp->setFramesPerQuarter (framesPerQuarter);
+        lastOut = node.get();
+        out.push_back (std::move (node));
+    }
+    return true;
 }
 
 [[nodiscard]] inline bool appendProjectFxChainNodes (const std::vector<FxInsert>& chain,
@@ -224,6 +291,8 @@ inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
     out.reserve (out.size() + chain.size());
     for (const FxInsert& insert : chain)
     {
+        if (fxKindIsMidi (insert.kind))   // G3.8: the MIDI FX sit on the MIDI path, not the audio chain
+            continue;
         const NodeId fxNodeId = projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx);
         if (! registerProjectMixerNodeId (usedIds, fxNodeId, ownerIndex, ProjectMixerNodeRole::Fx, error))
             return false;
@@ -577,11 +646,19 @@ template <typename ClipSourceProvider>
                 return false;
 
             auto merge = std::make_unique<MidiMergeNode> (mergeId, std::move (trackMidiSources));
+            // G3.8: the Track's MIDI FX (transpose / scale / arpeggiator / chord inserts of its chain)
+            // sit between the merged clips and the instrument, in chain order.
+            const double headBpm = ! project.tempoMap.empty() && project.tempoMap.front().hasValidBpm() ? project.tempoMap.front().bpm : 120.0;
+            const double framesPerQuarter = (project.sampleRate.isValid() ? project.sampleRate.hz : 48000.0) * 60.0 / headBpm;
+            Node* midiPathEnd = merge.get();
+            if (! detail::appendProjectMidiFxChainNodes (owningTrack.strip.fxChain, merge.get(), framesPerQuarter,
+                                                         usedIds, clipSources, trackIndex, error, midiPathEnd))
+                return false;
             // ADR-0043: the built-in SimpleSynth is the production instrument (the impulse node
             // stays the H4 timing-gate instrument). ADR-0047: TrackInstrumentKind::None resolves
             // to it too, so pre-slot bundles render unchanged.
             auto instrument = std::make_unique<SimpleSynthNode> (instrumentId, stripChannels);
-            instrument->setEventInput (merge.get());
+            instrument->setEventInput (midiPathEnd);
             // The Track's persisted parameter overrides (an unset id keeps the spec default, which
             // is the ADR-0043 sound bit-for-bit).
             for (const auto& [paramId, normalizedValue] : owningTrack.instrumentParams())

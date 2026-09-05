@@ -17,6 +17,7 @@
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/FxDelayNode.h"
 #include "engine/nodes/LimiterNode.h"
+#include "engine/nodes/MidiEffectNode.h"   // G3.8
 #include "engine/nodes/PanNode.h"
 #include "engine/nodes/ReverbNode.h"
 
@@ -210,7 +211,14 @@ enum class FxKind : std::uint8_t
     Compressor,
     Delay,
     Reverb,
-    Limiter
+    Limiter,
+    // G3.8: the MIDI FX — inserts on a TRACK's chain that sit on the MIDI path between the Track's
+    // merged clips and its instrument (in chain order, before every audio insert). Track-only: a Bus
+    // or the master has no MIDI path (addFxInsert refuses).
+    MidiTranspose,
+    MidiScaleMap,
+    MidiArpeggiator,
+    MidiChord
 };
 
 [[nodiscard]] constexpr bool fxKindIsKnown (FxKind kind) noexcept
@@ -219,7 +227,19 @@ enum class FxKind : std::uint8_t
            || kind == FxKind::Compressor
            || kind == FxKind::Delay
            || kind == FxKind::Reverb
-           || kind == FxKind::Limiter;
+           || kind == FxKind::Limiter
+           || kind == FxKind::MidiTranspose
+           || kind == FxKind::MidiScaleMap
+           || kind == FxKind::MidiArpeggiator
+           || kind == FxKind::MidiChord;
+}
+
+[[nodiscard]] constexpr bool fxKindIsMidi (FxKind kind) noexcept
+{
+    return kind == FxKind::MidiTranspose
+           || kind == FxKind::MidiScaleMap
+           || kind == FxKind::MidiArpeggiator
+           || kind == FxKind::MidiChord;
 }
 
 [[nodiscard]] inline ParamSpec fxParamSpecForKind (FxKind kind, std::uint32_t paramId) noexcept
@@ -236,6 +256,14 @@ enum class FxKind : std::uint8_t
             return ReverbNode::parameterSpec (paramId);
         case FxKind::Limiter:
             return LimiterNode::parameterSpec (paramId);
+        case FxKind::MidiTranspose:
+            return MidiTransposeNode::parameterSpec (paramId);
+        case FxKind::MidiScaleMap:
+            return MidiScaleMapNode::parameterSpec (paramId);
+        case FxKind::MidiArpeggiator:
+            return MidiArpeggiatorNode::parameterSpec (paramId);
+        case FxKind::MidiChord:
+            return MidiChordNode::parameterSpec (paramId);
     }
 
     return {};
@@ -1019,6 +1047,7 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidFxInsertId,
     FxInsertNotFound,
     InvalidFxKind,
+    MidiFxNeedsTrack,   // G3.8: a MIDI FX insert on a Bus or the master strip
     InvalidFxPosition,
     InvalidFxParamValue,
     InvalidAutomationLaneId,
@@ -4282,6 +4311,10 @@ namespace detail {
 
     if (! fxKindIsKnown (insert.kind))
         return ProjectEditStatus::InvalidFxKind;
+
+    // G3.8: a MIDI FX needs a MIDI path — only a Track has one.
+    if (fxKindIsMidi (insert.kind) && project.findTrack (ownerId) == nullptr)
+        return ProjectEditStatus::MidiFxNeedsTrack;
 
     if (! insert.isValid())
         return ProjectEditStatus::InvalidFxParamValue;
