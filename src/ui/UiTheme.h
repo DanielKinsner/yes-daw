@@ -64,6 +64,9 @@ struct UiTheme
         // M8: a piano roll needs to READ as a keyboard. The white keys were painted in the panel's
         // raised grey, so the column looked like striped rows rather than keys.
         static juce::Colour pianoWhiteKey() noexcept { return juce::Colour (0xffd8dde6); }
+        // G3.8: the scale assist — the grid rows of keys INSIDE the project's scale lift off the black
+        // grid so the keys outside it read as the dark ones (Logic's shaded non-scale keys).
+        static juce::Colour pianoRollInScaleRow() noexcept { return juce::Colour (0x16ffffff); }
         static juce::Colour pianoWhiteKeyText() noexcept { return juce::Colour (0xff2a3038); }
         static juce::Colour pianoGridStrong() noexcept { return juce::Colour (0xff344150); }
         static juce::Colour pianoGridWeak() noexcept { return juce::Colour (0xff202a34); }
@@ -856,6 +859,7 @@ struct UiTheme
         static constexpr int pianoRollHeaderButtonLeft = 118;    // G3.6: the Typing / Step toggles after the "PIANO ROLL" label
         static constexpr int pianoRollHeaderButtonWidth = 72;
         static constexpr int pianoRollHeaderButtonGap = 6;
+        static constexpr int pianoRollHeaderChooserWidth = 64;   // G3.8: the Key / Scale choosers after the toggles
         static constexpr int pianoRollHeaderButtonInsetY = 7;
         static constexpr int pianoRollHeaderButtonInsetX = 0;
         static constexpr int keymapEditorRestoreWidth = 140;

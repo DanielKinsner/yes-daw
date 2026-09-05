@@ -54,11 +54,16 @@ half**: `FxKind` gains `MidiTranspose` / `MidiScaleMap` / `MidiArpeggiator` / `M
 MIDI-kind inserts sit on the MIDI path between its merged clips and its instrument in chain order; the
 Arpeggiator (rate / order / octaves / gate) and Chord Trigger (three intervals / velocity) nodes; every
 MIDI FX addressed by ParamSpec like the audio inserts; Track-only (`MidiFxNeedsTrack`); the bundle takes
-kinds 5–8 in the same column. `YesDawMidiFxCheck` `[midi-fx]` (render goldens by equivalence). **Next:**
-cp2 — the shell: the two choosers list the MIDI kinds (the strip's Add FX and the slot menu, Track strips
-only), the param rows render the choice specs, the piano roll's scale assist from a project key / scale
-(schema v30), `[midi-fx-shell]`, the ss4 / ss5 drive step; then the G3.8 evidence commit and **G3.9 —
-Sampler instrument** (an ADR first). Rules in force: HEADLESS by default (drives on Dan's go — given
+kinds 5–8 in the same column. `YesDawMidiFxCheck` `[midi-fx]` (render goldens by equivalence); cp1
+`317211b`. **cp2 (this commit) — the shell**: the strip's Add FX chooser and the slot menu list the four
+MIDI FX (a Bus refuses by name on the status line); the slot names them; the param rows render their
+choice specs as real choosers (E15's law, unchanged); the roll header's Key / Scale choosers set the
+project's key / scale (schema v30, one row), the in-scale rows lift off the grid and the pencil lands on
+the nearest in-scale key; the live lane posts a MIDI FX param to the running node through the new
+`MidiEffectNode` contract. `[midi-fx-shell]`; ss5 Step 16 authored. Drive + rubric: see the G3.8 cp2
+story. **Next:** the G3.8 evidence commit once CI is green on the head, then **G3.9 — Sampler
+instrument** (an ADR first: ADR-0048), then **G3.10 — RT-safe MIDI input and thru**; Dan's word
+(2026-09-05): run G3 to its end and stop when confident. Rules in force: HEADLESS by default (drives on Dan's go — given
 2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the local suite + drives are the working
 gate; drive scripts launched back-to-back flake at Step 0 (pause between scripts).
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
@@ -221,6 +226,71 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.8 cp2 — MIDI FX reachable + Arpeggiator + Chord: the shell half (2026-09-05)
+
+**Story.** cp1 let a Project hold MIDI FX; nothing in the shell offered them, and the roll had no idea
+of a key. Now the strip's "+ FX" chooser and the slot's Add Insert menu list MIDI Transpose, MIDI Scale,
+Arpeggiator and Chord Trigger; a slot names them (Transpose / Scale / Arp / Chord); their parameters
+show in the same rows every audio insert uses — the arpeggiator's rate and order and the scale's root
+and scale as real choosers; a live edit reaches the running node without a rebuild. The roll header
+gains Key and Scale choosers: with a scale on, the rows of the keys inside it lift off the grid (Logic
+shades the keys outside the key signature) and the pencil lands on the nearest key inside it.
+
+**Precedent.** Logic's MIDI FX slot menu on an instrument strip; Logic's key signature (the signature
+list; the piano roll's shaded non-scale keys); Ableton's Scale mode (fold / highlight) for the "pencil
+lands in the scale" half. The choosers follow the roll's own lane chooser (G3.3) and the header toggles
+(G3.6) — no chords (ADR-0046 §2).
+
+**Build.** `Project.h` `ProjectScale` (`rootKey` 0–11, `scale` Off / Major / Minor) on the Project;
+persistence v30 — `project_scale` (one row, missing = off; the loop-region law; written only when on),
+the reset list, `kCodeSchemaVersion` 30, `kMigrations` 30. `UiActions.h` `PianoRollScaleRootSelect` /
+`PianoRollScaleSelect` (the model sets, then dispatches) and the context mirrors `pianoRollScaleRoot` /
+`pianoRollScaleChoice` (synced from the Project on every edit). `UiAppModel.h` `setProjectScale` (the
+loop-region persistence law — a project setting written straight to the bundle, not an undo step:
+deviation) and the named refusal when a MIDI FX is added to a Bus. `UiPianoRollSurface.h`:
+`scaleRoot` / `scaleChoice` on the snapshot; the laws `pianoRollKeyInScale` / `pianoRollScaleSnappedKey`
+(the ScaleMap node's masks and `mapKeyToScale` — one law with the MIDI Scale insert).
+`MidiEffectNode.h`: the `MidiEffectNode` base (virtual `setInput` / `setNormalizedParameter`) the four
+nodes derive from; `CompiledGraph::applySetFxParam` posts to it (the R12 live lane), the projection and
+the GraphBuilder use it. Shell: `pianoroll.key` (12 names) and `pianoroll.scale` (Scale: Off / Major /
+Minor) after the header toggles (`pianoRollHeaderChooserWidth`); the in-scale row wash
+(`pianoRollInScaleRow`); the pencil's snap in `onNoteAdded`; the probe's `view.pianoRoll.scaleRoot` /
+`scaleChoice`; the layout ids; the harness `mainComponentSelectPianoRollScale`; the Add FX chooser's four
+items and `kContextMenuAddInsertKindCount` 9. `docs/keymap-v2.md` regenerated (two chord-less rows).
+
+**Gates.** `[midi-fx-shell]` in `YesDawUiInputCheck` (81 assertions): the Add FX chooser lists nine kinds
+with Arpeggiator eighth; picking it puts a `MidiArpeggiator` insert on the track and the slot button says
+Arp; the param panel's order chooser lists Up-Down and picking it stores the exact choice normalization
+(2/3) and the row reads "arp.order Up-Down"; the roll header's Key (12) and Scale (3) choosers are laid
+out with the roll; the scale starts Off (no row); D Major through the real choosers persists (a v30 row
+read back), mirrors into the context and the header, and the probe names it; the law (F# in, F out, F
+snaps to F#); the pencil on the F row lands on F#; Off again clears the row and the pencil lands where it
+clicks. Re-pins (each with its rationale in the test): the child-count pin (169 → 171, the two choosers);
+the dock's stray-widget list admits them; the persistence v10 migration pin reverses v30 too.
+`YesDawUiActionCheck` green (two chord-less verbs); `YesDawPersistenceCheck` green; `YesDawMidiFxCheck`
+green. Local suite 377 / 377.
+
+**See-it.** ss5 Step 16: the Key / Scale choosers laid out; the Scale chooser by mouse picks Major
+(the in-scale rows lift — a shot), then Off — ss5 **68 / 68** on the real exe (2026-09-05; the first
+run's Step 16 red was the drive's own keystroke law: a combo popup opens on its current item, so one
+Down picks Major — fixed in the script, rerun green). Local suite **377 / 377**.
+
+**Rubric (§7.4, the ss5 scale-assist shot at 1920×1080).** 1 PASS (Key / Scale sit after Typing / Step;
+nothing overlaps). 2 n/a. 3 PASS (the choosers read "C" and "Major" with tooltips; the in-scale rows
+lift off the grid — the wash is visible at 1080p). 4 PASS. 5 PASS. 6 PASS. 7 PASS. Finding (no FIX
+item, parked): after the Ctrl+Z that removes an imported MIDI file the roll header says "No MIDI Clip
+selected" while the CLIP tab still shows the MIDI clip rows — the selected MIDI clip id outlives the
+undone clip (`selectedMidiClipId_` is valid but names no clip); a G3.7 undo-selection seam.
+
+**Found while gating (fixed, in-item).** The live lane's FX-param post (`CompiledGraph::applySetFxParam`)
+knew the five audio kinds only — a MIDI FX param edit persisted but the running node kept its old value
+until the next rebuild. The `MidiEffectNode` contract closes it (the same post reaches every MIDI FX).
+
+**Deviation log.** (1) The key / scale is not an undo step (the loop-region law); Logic's key signature
+is undoable — parking lot. (2) The Add FX chooser lists the MIDI FX on every strip and the model refuses
+on a Bus by name; Logic hides the MIDI FX slot on non-instrument strips — parking lot (a per-strip item
+list). (3) No scale "fold" (hide the out-of-scale rows) — Ableton's other half; the wash is the assist.
 
 ### G3.8 cp1 — MIDI FX reachable + Arpeggiator + Chord: the engine half (2026-09-05)
 

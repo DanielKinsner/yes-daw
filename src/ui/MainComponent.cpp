@@ -6259,9 +6259,11 @@ public:
             (void) midiClipId;
             // G3.2 checkpoint FIX 2: a sixteenth of the beat in force (Logic's default division), not
             // the pre-G3.2 512-tick grid step, which drew a dot. The roll's own division chooser is G3.4.
+            const yesdaw::ui::UiPianoRollSurfaceSnapshot rollSurface = currentPianoRollSurface();
             const yesdaw::engine::Tick sixteenth =
-                std::max<yesdaw::engine::Tick> (1, currentPianoRollSurface().beatTicks / 4);
-            (void) appModel.addPianoRollNoteAt (tick, sixteenth, key);
+                std::max<yesdaw::engine::Tick> (1, rollSurface.beatTicks / 4);
+            // G3.8: scale assist — the pencil lands on the nearest key inside the project's scale.
+            (void) appModel.addPianoRollNoteAt (tick, sixteenth, yesdaw::ui::pianoRollScaleSnappedKey (key, rollSurface.scaleRoot, rollSurface.scaleChoice));
             refreshActionState();
             repaintAll();
         };
@@ -6358,6 +6360,44 @@ public:
             repaintAll();
         };
         addChildComponent (pianoRollLaneChooser);
+
+        // G3.8: the roll header's Key / Scale choosers — the project's scale assist.
+        pianoRollKeyChooser.setComponentID ("pianoroll.key");
+        pianoRollKeyChooser.setName ("Key");
+        pianoRollKeyChooser.setTooltip ("The project's key: the root of the scale assist");
+        {
+            static constexpr const char* kKeyNames[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+            for (int i = 0; i < 12; ++i)
+                pianoRollKeyChooser.addItem (kKeyNames[i], i + 1);
+        }
+        pianoRollKeyChooser.setSelectedId (1, juce::dontSendNotification);
+        pianoRollKeyChooser.onChange = [this] {
+            const int selected = pianoRollKeyChooser.getSelectedId();
+            if (selected <= 0)
+                return;
+            (void) appModel.setProjectScale (selected - 1, appModel.context().pianoRollScaleChoice, true);
+            recordLastAction (yesdaw::ui::UiActionId::PianoRollScaleRootSelect);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (pianoRollKeyChooser);
+        pianoRollScaleChooser.setComponentID ("pianoroll.scale");
+        pianoRollScaleChooser.setName ("Scale");
+        pianoRollScaleChooser.setTooltip ("Scale assist: Off shows every key; Major / Minor lift the keys inside the project's scale and the pencil lands on them");
+        pianoRollScaleChooser.addItem ("Scale: Off", 1);
+        pianoRollScaleChooser.addItem ("Major", 2);
+        pianoRollScaleChooser.addItem ("Minor", 3);
+        pianoRollScaleChooser.setSelectedId (1, juce::dontSendNotification);
+        pianoRollScaleChooser.onChange = [this] {
+            const int selected = pianoRollScaleChooser.getSelectedId();
+            if (selected <= 0)
+                return;
+            (void) appModel.setProjectScale (appModel.context().pianoRollScaleRoot, selected - 1, false);
+            recordLastAction (yesdaw::ui::UiActionId::PianoRollScaleSelect);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (pianoRollScaleChooser);
 
         // G3.6: the roll header's Typing and Step toggles (plan §3.2 "[step ⏺]"); Ctrl+K is Typing's chord.
         configureActionComponent (pianoRollTypingButton, yesdaw::ui::UiActionId::PianoRollMusicalTypingToggle, "Musical typing");
@@ -7153,6 +7193,8 @@ public:
                 const PianoRollCanvasGeometry rollGeometry = pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin());
                 put ("pianoroll.lane", pianoRollControlLaneDataArea (rollGeometry).translated (pianoRollInput.getX(), pianoRollInput.getY()));
                 put ("pianoroll.lane.chooser", pianoRollLaneChooser.getBounds());
+            put ("pianoroll.key", pianoRollKeyChooser.getBounds());     // G3.8
+            put ("pianoroll.scale", pianoRollScaleChooser.getBounds());
                 put ("pianoroll.typing", pianoRollTypingButton.getBounds());   // G3.6
                 put ("pianoroll.step", pianoRollStepButton.getBounds());
             }
@@ -7441,6 +7483,8 @@ public:
                 const yesdaw::ui::UiPianoRollSurfaceSnapshot rollSurface = currentPianoRollSurface();
                 const PianoRollCanvasGeometry rollGeometry = pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin());
                 roll->setProperty ("viewLowKey", rollSurface.viewLowKey);
+                roll->setProperty ("scaleRoot", rollSurface.scaleRoot);       // G3.8
+                roll->setProperty ("scaleChoice", rollSurface.scaleChoice);
                 roll->setProperty ("viewHighKey", pianoRollViewHighKey (rollSurface));
                 roll->setProperty ("rowHeight", static_cast<double> (rollGeometry.rowHeight));
                 roll->setProperty ("viewScrollTicks", static_cast<juce::int64> (rollSurface.viewScrollTicks));
@@ -7612,6 +7656,11 @@ public:
     [[nodiscard]] juce::Rectangle<int> harnessPianoRollBounds() const { return pianoRollInput.getBounds(); }
     [[nodiscard]] int harnessPianoRollAuditionKey() const { return pianoRollInput.heldAuditionKey(); }   // G3.2
     void harnessSelectPianoRollControlLane (int choice) { pianoRollLaneChooser.setSelectedId (choice + 1, juce::sendNotificationSync); }   // G3.3
+    void harnessSelectPianoRollScale (int rootKey, int scaleChoice)   // G3.8: through the real choosers
+    {
+        pianoRollKeyChooser.setSelectedId (rootKey + 1, juce::sendNotificationSync);
+        pianoRollScaleChooser.setSelectedId (scaleChoice + 1, juce::sendNotificationSync);
+    }
     void harnessServiceUiTick() { serviceUiTick(); }   // G3.2 checkpoint: the timer's own refresh path
     [[nodiscard]] bool harnessAuditionNote (std::int16_t key, bool on) { return appModel.auditionNote (key, on); }   // G3.2
     [[nodiscard]] std::vector<float> harnessRenderPlayback (std::uint64_t frames, int blockSize)   // G3.2: the engine's own blocks
@@ -7972,6 +8021,11 @@ public:
             pianoRollTypingButton.setBounds (header.removeFromLeft (L::pianoRollHeaderButtonWidth));
             header.removeFromLeft (L::pianoRollHeaderButtonGap);
             pianoRollStepButton.setBounds (header.removeFromLeft (L::pianoRollHeaderButtonWidth));
+            // G3.8: the Key / Scale choosers follow the toggles.
+            header.removeFromLeft (L::pianoRollHeaderButtonGap);
+            pianoRollKeyChooser.setBounds (header.removeFromLeft (L::pianoRollHeaderChooserWidth));
+            header.removeFromLeft (L::pianoRollHeaderButtonGap);
+            pianoRollScaleChooser.setBounds (header.removeFromLeft (L::pianoRollHeaderChooserWidth));
         }
         instrumentPanel.setBounds (mixerPanelBounds());   // G3.1: so is the instrument panel
         trackListInput.setBounds (leftRailPanelBounds());
@@ -8927,6 +8981,11 @@ private:
         mixerFxAddChooser.addItem ("Delay", static_cast<int> (yesdaw::engine::FxKind::Delay) + 1);
         mixerFxAddChooser.addItem ("Reverb", static_cast<int> (yesdaw::engine::FxKind::Reverb) + 1);
         mixerFxAddChooser.addItem ("Limiter", static_cast<int> (yesdaw::engine::FxKind::Limiter) + 1);
+        // G3.8: the MIDI FX (Track strips only — the model names the refusal on a Bus).
+        mixerFxAddChooser.addItem ("MIDI Transpose", static_cast<int> (yesdaw::engine::FxKind::MidiTranspose) + 1);
+        mixerFxAddChooser.addItem ("MIDI Scale", static_cast<int> (yesdaw::engine::FxKind::MidiScaleMap) + 1);
+        mixerFxAddChooser.addItem ("Arpeggiator", static_cast<int> (yesdaw::engine::FxKind::MidiArpeggiator) + 1);
+        mixerFxAddChooser.addItem ("Chord Trigger", static_cast<int> (yesdaw::engine::FxKind::MidiChord) + 1);
         mixerFxAddChooser.onChange = [this] {
             const int selected = mixerFxAddChooser.getSelectedId();
             if (selected <= 0)
@@ -11800,7 +11859,7 @@ private:
     static constexpr int kContextMenuMoveDownId = 2002;
     static constexpr int kContextMenuAddInsertBase = 3001;      // + FxKind
     static constexpr int kContextMenuTimeDisplayBase = 3100;    // + time display mode (G2.2)
-    static constexpr int kContextMenuAddInsertKindCount = 5;    // Eq … Limiter
+    static constexpr int kContextMenuAddInsertKindCount = 9;    // Eq … Limiter, the four MIDI FX (G3.8)
 
     // The one path a picked context-menu item takes (the popup's callback and the harness): the
     // insert-slot verbs act on the clicked slot through the shell's per-slot handlers; every
@@ -12689,6 +12748,10 @@ private:
         playheadLayer.setVisible (true);
         pianoRollInput.setVisible (dockShowsPianoRoll());
         pianoRollLaneChooser.setVisible (dockShowsPianoRoll());   // G3.3
+        pianoRollKeyChooser.setVisible (dockShowsPianoRoll());    // G3.8
+        pianoRollScaleChooser.setVisible (dockShowsPianoRoll());
+        pianoRollKeyChooser.setSelectedId (appModel.context().pianoRollScaleRoot + 1, juce::dontSendNotification);
+        pianoRollScaleChooser.setSelectedId (appModel.context().pianoRollScaleChoice + 1, juce::dontSendNotification);
         pianoRollLaneChooser.setSelectedId (appModel.context().pianoRollControlLaneChoice + 1, juce::dontSendNotification);
         pianoRollTypingButton.setVisible (dockShowsPianoRoll());   // G3.6
         pianoRollTypingButton.setToggleState (appModel.context().musicalTypingOn, juce::dontSendNotification);
@@ -15410,6 +15473,13 @@ private:
             // sitting on top from the left edge exactly as they do on a piano.
             const auto keyBody = keyRow.reduced (yesdaw::ui::UiTheme::Layout::pianoRollKeyRowInsetX,
                                                  yesdaw::ui::UiTheme::Layout::pianoRollKeyRowInsetY);
+            // G3.8: scale assist — a grid row inside the project's scale lifts off the black grid.
+            if (surface.scaleChoice != yesdaw::engine::ProjectScale::kScaleOff
+                && yesdaw::ui::pianoRollKeyInScale (key, surface.scaleRoot, surface.scaleChoice))
+            {
+                g.setColour (yesdaw::ui::UiTheme::Color::pianoRollInScaleRow());
+                g.fillRect (juce::Rectangle<int> (geometry.grid.getX(), y, geometry.grid.getWidth(), keyRow.getHeight()));
+            }
             g.setColour (yesdaw::ui::UiTheme::Color::pianoWhiteKey());
             g.fillRect (keyBody);
             g.setColour (kPanelStroke);
@@ -16616,6 +16686,8 @@ private:
     PlayheadLayerComponent playheadLayer;   // G0.4: above the buffered canvas
     PianoRollInputComponent pianoRollInput;
     juce::ComboBox pianoRollLaneChooser;   // G3.3: the control lane's chooser (a child over the lane's gutter)
+    juce::ComboBox pianoRollKeyChooser;    // G3.8: the roll header's Key chooser (the project's key)
+    juce::ComboBox pianoRollScaleChooser;  // G3.8: the roll header's Scale chooser (Off / Major / Minor)
     juce::TextButton pianoRollTypingButton;   // G3.6: the roll header's Typing toggle (Ctrl+K)
     juce::TextButton pianoRollStepButton;     // G3.6: the roll header's Step toggle
     std::map<int, std::int16_t> typedKeyCodes;   // G3.6: key code -> the note it holds
@@ -17442,6 +17514,12 @@ void mainComponentReleaseTypedKeys (juce::Component& component)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         mainComponent->harnessReleaseTypedKeysForTest();
+}
+
+void mainComponentSelectPianoRollScale (juce::Component& component, int rootKey, int scaleChoice)   // G3.8
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessSelectPianoRollScale (rootKey, scaleChoice);
 }
 
 void mainComponentSelectPianoRollControlLane (juce::Component& component, int choice)

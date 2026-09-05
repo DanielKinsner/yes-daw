@@ -246,3 +246,5 @@ the numpad's digits and operators spell the same chords as the main keys.
 - MIDI Clip Loop (`midi_clip.loop`)
 - Mute MIDI Clip (`midi_clip.mute`)
 - Step Input (`piano_roll.step_input`)
+- Key (`piano_roll.scale.root`)
+- Scale (`piano_roll.scale.select`)

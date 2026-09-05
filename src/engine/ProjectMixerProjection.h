@@ -186,24 +186,19 @@ inline void applyFxInsertParams (Node& node, const FxInsert& insert) noexcept
             reverb->setNormalizedParameter (paramId, normalizedValue);
         else if (auto* limiter = dynamic_cast<LimiterNode*> (&node))
             limiter->setNormalizedParameter (paramId, normalizedValue);
-        else if (auto* transpose = dynamic_cast<MidiTransposeNode*> (&node))   // G3.8
-            transpose->setNormalizedParameter (paramId, normalizedValue);
-        else if (auto* scale = dynamic_cast<MidiScaleMapNode*> (&node))
-            scale->setNormalizedParameter (paramId, normalizedValue);
-        else if (auto* arp = dynamic_cast<MidiArpeggiatorNode*> (&node))
-            arp->setNormalizedParameter (paramId, normalizedValue);
-        else if (auto* chord = dynamic_cast<MidiChordNode*> (&node))
-            chord->setNormalizedParameter (paramId, normalizedValue);
+        else if (auto* midiFx = dynamic_cast<MidiEffectNode*> (&node))   // G3.8: the four MIDI FX, one contract
+            midiFx->setNormalizedParameter (paramId, normalizedValue);
     }
 }
 
 // G3.8: the MIDI FX nodes share one input law (one event input, set after construction).
 inline bool setMidiEffectInput (Node& node, Node* input) noexcept
 {
-    if (auto* transpose = dynamic_cast<MidiTransposeNode*> (&node)) { transpose->setInput (input); return true; }
-    if (auto* scale = dynamic_cast<MidiScaleMapNode*> (&node)) { scale->setInput (input); return true; }
-    if (auto* arp = dynamic_cast<MidiArpeggiatorNode*> (&node)) { arp->setInput (input); return true; }
-    if (auto* chord = dynamic_cast<MidiChordNode*> (&node)) { chord->setInput (input); return true; }
+    if (auto* midiFx = dynamic_cast<MidiEffectNode*> (&node))
+    {
+        midiFx->setInput (input);
+        return true;
+    }
     return false;
 }
 

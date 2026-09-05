@@ -918,6 +918,27 @@ struct PunchRegion
 // R3: the persisted transport loop region — the punch region's twin (raw sample frames, same
 // Tick-as-int64 reuse). Disabled (the default, a missing row) reproduces the historical
 // behaviour: the loop lived only in the PlaybackEngine and died on save/reopen.
+// G3.8: the project's key and scale (Logic's key signature; the roll's scale assist shades the keys
+// outside it and the pencil lands on the nearest key inside it). scale 0 = off (every key). Persisted
+// like the loop region: one row, a missing row means off.
+struct ProjectScale
+{
+    static constexpr int kScaleOff = 0;
+    static constexpr int kScaleMajor = 1;
+    static constexpr int kScaleMinor = 2;
+    static constexpr int kScaleCount = 3;
+
+    int rootKey = 0;   // 0..11, C = 0
+    int scale = kScaleOff;
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        return rootKey >= 0 && rootKey < 12 && scale >= 0 && scale < kScaleCount;
+    }
+
+    friend bool operator== (const ProjectScale&, const ProjectScale&) = default;
+};
+
 struct LoopRegion
 {
     bool enabled = false;
@@ -1121,6 +1142,7 @@ struct Project
     // R3: persisted transport loop region (schema v18, locate-points pattern: a missing row
     // means disabled — not undoable, exactly like locate points).
     LoopRegion loopRegion;
+    ProjectScale scale;   // G3.8: schema v30, one row, missing = off
 
     [[nodiscard]] const Asset* findAsset (EntityId assetId) const noexcept
     {

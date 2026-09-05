@@ -1093,7 +1093,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 169u));   // G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 171u));   // G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -16579,7 +16579,8 @@ TEST_CASE ("G2.1 dock tabs: the mixer and the piano roll are Editor-dock tabs (X
                 continue;
             // G3.3: the control lane's chooser is the roll's own widget (it sits in the lane's gutter and
             // shows only with the roll) — not a stray over it.
-            if ((id == "pianoroll.lane.chooser" || id == "pianoroll.typing" || id == "pianoroll.step")   // G3.6: the header toggles too
+            if ((id == "pianoroll.lane.chooser" || id == "pianoroll.typing" || id == "pianoroll.step"   // G3.6: the header toggles too
+                 || id == "pianoroll.key" || id == "pianoroll.scale")   // G3.8: the Key / Scale choosers
                 && allowedId == kPianoRollComponentId)
                 continue;
             strays.add (id.isEmpty() ? child->getName() : id);
@@ -20050,6 +20051,137 @@ TEST_CASE ("piano roll keyboard column: hovering a key names it in the status li
     const juce::Point<int> grid = pianoRoll.getPosition() + juce::Point<int> (gridX + 40, gridY + static_cast<int> (rowHeight * 3.5));
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, key).contains ("Keyboard"));
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, grid).contains ("Grid"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G3.8: MIDI FX reachable in the shell — the strip's Add FX chooser lists the four MIDI kinds; adding
+// an Arpeggiator on a Track puts it in the chain and its slot names it; the param rows render its
+// choice specs as choosers; the roll header's Key / Scale choosers set the project's scale (persisted
+// as a v30 row), the roll shades the keys inside it and the pencil lands on the nearest key inside it.
+TEST_CASE ("G3.8 MIDI FX in the shell: the Add FX chooser lists them, the slot names them, the params are choosers, the roll's Key / Scale assist",
+           "[ui][input][shell][g3][midi-fx-shell]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("midi-fx-shell");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    const auto project = [&] { return readProjectSnapshot (bundlePath); };
+
+    // The strip: select the first track in the rail, open the mixer dock.
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    auto* addChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+    REQUIRE (addChooser != nullptr);
+    REQUIRE (addChooser->getNumItems() == 9);   // five audio kinds + the four MIDI FX
+    REQUIRE (addChooser->getItemText (7) == "Arpeggiator");
+    addChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::MidiArpeggiator) + 1, juce::sendNotificationSync);
+    REQUIRE (project().tracks.front().strip.fxChain.size() == 1u);
+    REQUIRE (project().tracks.front().strip.fxChain[0].kind == yesdaw::engine::FxKind::MidiArpeggiator);
+    auto* slotToggle = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.toggle"));
+    REQUIRE (slotToggle != nullptr);
+    REQUIRE (slotToggle->getButtonText().contains ("Arp"));
+
+    // The param rows: the arpeggiator's order is a choice spec — a real chooser with the four names.
+    auto* edit = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.slot.0.edit"));
+    REQUIRE (edit != nullptr);
+    if (! edit->getToggleState())   // a fresh insert may already show its panel; the click toggles
+        clickButton (*edit);
+    REQUIRE (edit->getToggleState());
+    bool orderChooserSeen = false;
+    for (int index = 0; index < 8 && ! orderChooserSeen; ++index)
+    {
+        auto* choice = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.param." + juce::String (index) + ".choice"));
+        if (choice == nullptr || ! choice->isVisible())
+            continue;
+        for (int item = 0; item < choice->getNumItems(); ++item)
+            if (choice->getItemText (item) == "Up-Down")
+            {
+                orderChooserSeen = true;
+                choice->setSelectedId (item + 1, juce::sendNotificationSync);
+            }
+    }
+    REQUIRE (orderChooserSeen);
+    {
+        const yesdaw::engine::Project edited = project();   // a copy: the snapshot is a temporary
+        const yesdaw::engine::FxInsert& insert = edited.tracks.front().strip.fxChain[0];
+        bool orderStored = false;
+        for (const auto& [paramId, value] : insert.normalizedParams)
+            if (paramId == yesdaw::engine::MidiArpeggiatorNode::kOrderParamId)
+                orderStored = std::abs (value - 2.0 / 3.0) < 1.0e-6;   // Up-Down is choice 2 of 0..3
+        REQUIRE (orderStored);
+        auto* orderLabel = dynamic_cast<juce::Label*> (findChildWithComponentId (*shell, "mixer.fx.param.1.label"));
+        REQUIRE (orderLabel != nullptr);
+        REQUIRE (orderLabel->getText() == "arp.order Up-Down");   // the row names the choice
+    }
+
+    // The roll: a MIDI clip, the header's Key / Scale choosers; Off by default (no row persisted).
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (requirePianoRollComponent (*shell).isVisible());
+    auto* keyChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "pianoroll.key"));
+    auto* scaleChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "pianoroll.scale"));
+    REQUIRE (keyChooser != nullptr);
+    REQUIRE (scaleChooser != nullptr);
+    REQUIRE (keyChooser->isVisible());
+    REQUIRE (scaleChooser->getWidth() > 0);
+    REQUIRE (keyChooser->getNumItems() == 12);
+    REQUIRE (scaleChooser->getNumItems() == 3);
+    REQUIRE (project().scale.scale == yesdaw::engine::ProjectScale::kScaleOff);
+    REQUIRE (yesdaw::ui::pianoRollKeyInScale (61, 0, yesdaw::engine::ProjectScale::kScaleOff));
+
+    // D Major through the real choosers: persisted (a v30 row), the header mirrors it, the probe names it.
+    yesdaw::ui::mainComponentSelectPianoRollScale (*shell, 2, yesdaw::engine::ProjectScale::kScaleMajor);
+    REQUIRE (project().scale.rootKey == 2);
+    REQUIRE (project().scale.scale == yesdaw::engine::ProjectScale::kScaleMajor);
+    REQUIRE (snapshotMainComponent (*shell).context.pianoRollScaleRoot == 2);
+    REQUIRE (snapshotMainComponent (*shell).context.pianoRollScaleChoice == yesdaw::engine::ProjectScale::kScaleMajor);
+    REQUIRE (keyChooser->getSelectedId() == 3);
+    {
+        juce::var doc;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), doc).wasOk());
+        const juce::var roll = doc.getProperty ("view", juce::var()).getProperty ("pianoRoll", juce::var());
+        REQUIRE (static_cast<int> (roll.getProperty ("scaleRoot", -1)) == 2);
+        REQUIRE (static_cast<int> (roll.getProperty ("scaleChoice", -1)) == yesdaw::engine::ProjectScale::kScaleMajor);
+    }
+    // The law: F# (66) is in D Major, F (65) is not; the pencil's snap lifts F to F#.
+    REQUIRE (yesdaw::ui::pianoRollKeyInScale (66, 2, yesdaw::engine::ProjectScale::kScaleMajor));
+    REQUIRE_FALSE (yesdaw::ui::pianoRollKeyInScale (65, 2, yesdaw::engine::ProjectScale::kScaleMajor));
+    REQUIRE (yesdaw::ui::pianoRollScaleSnappedKey (65, 2, yesdaw::engine::ProjectScale::kScaleMajor) == 66);
+    REQUIRE (yesdaw::ui::pianoRollScaleSnappedKey (65, 0, yesdaw::engine::ProjectScale::kScaleOff) == 65);
+
+    // The pencil on an F row lands on F#: a click on the empty grid at key 65.
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+    const auto keyCentreY = [&] (int key)
+    {
+        const int lowKey = snapshotMainComponent (*shell).pianoRollViewLowKey;
+        const double rowHeight = static_cast<double> (grid.getHeight()) / yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight());
+        return grid.getBottom() - static_cast<int> ((key - lowKey + 0.5) * rowHeight);
+    };
+    {
+        const int lowKey = snapshotMainComponent (*shell).pianoRollViewLowKey;
+        const int highKey = lowKey + yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight()) - 1;
+        INFO ("view " << lowKey << ".." << highKey);
+        REQUIRE (lowKey <= 65);
+        REQUIRE (highKey >= 65);
+    }
+    mouseDownAt (pianoRoll, { grid.getX() + grid.getWidth() / 2, keyCentreY (65) });
+    REQUIRE (project().midiClips.front().notes.size() == 1u);
+    REQUIRE (project().midiClips.front().notes.front().key == 66);
+
+    // Scale Off again: the row is gone from the bundle; the pencil lands where it clicks.
+    yesdaw::ui::mainComponentSelectPianoRollScale (*shell, 2, yesdaw::engine::ProjectScale::kScaleOff);
+    REQUIRE (project().scale.scale == yesdaw::engine::ProjectScale::kScaleOff);
+    mouseDownAt (pianoRoll, { grid.getX() + grid.getWidth() / 4, keyCentreY (65) });
+    REQUIRE (project().midiClips.front().notes.size() == 2u);
+    REQUIRE (project().midiClips.front().notes.back().key == 65);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

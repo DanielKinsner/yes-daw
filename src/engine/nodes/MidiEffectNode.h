@@ -17,7 +17,17 @@
 
 namespace yesdaw::engine {
 
-class MidiTransposeNode final : public Node
+// G3.8: the one contract every MIDI FX shares — one event input set after construction, and the
+// insert chain's parameter law — so the projection wires them and the live lane posts to them
+// (CompiledGraph::applySetFxParam) without knowing which of the four they are.
+class MidiEffectNode : public Node
+{
+public:
+    virtual void setInput (Node* input) noexcept = 0;
+    virtual void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept = 0;
+};
+
+class MidiTransposeNode final : public MidiEffectNode
 {
 public:
     explicit MidiTransposeNode (NodeId id, std::int32_t semitones = 0) noexcept
@@ -49,14 +59,14 @@ public:
     void reset() noexcept override {}
     void release() override {}
 
-    void setInput (Node* input) noexcept { input_ = input; }
+    void setInput (Node* input) noexcept override { input_ = input; }
     void setSemitones (std::int32_t semitones) noexcept { semitones_ = semitones; }
     [[nodiscard]] std::int32_t semitones() const noexcept { return semitones_; }
 
     // G3.8: the insert chain's parameter law (one ParamSpec per id, normalized 0..1 in the Project).
     static constexpr ParameterId kSemitonesParamId = 1;
     static constexpr double kMaxSemitones = 24.0;
-    void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept
+    void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept override
     {
         if (parameterId == kSemitonesParamId)
             semitones_ = static_cast<std::int32_t> (std::lround (mapNormalized (parameterSpec (parameterId), normalizedValue)));
@@ -108,7 +118,7 @@ private:
     Node*        input_ = nullptr;
 };
 
-class MidiScaleMapNode final : public Node
+class MidiScaleMapNode final : public MidiEffectNode
 {
 public:
     static constexpr std::uint16_t kChromaticMask = 0x0FFFu;
@@ -150,7 +160,7 @@ public:
     void reset() noexcept override {}
     void release() override {}
 
-    void setInput (Node* input) noexcept { input_ = input; }
+    void setInput (Node* input) noexcept override { input_ = input; }
     void setScale (std::int16_t rootKey, std::uint16_t scaleMask) noexcept
     {
         rootKey_ = normalizeRoot (rootKey);
@@ -172,7 +182,7 @@ public:
             default: return kNaturalMinorMask;
         }
     }
-    void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept
+    void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept override
     {
         const long real = std::lround (mapNormalized (parameterSpec (parameterId), normalizedValue));
         if (parameterId == kRootParamId)
@@ -293,7 +303,7 @@ private:
 // Chord Trigger (Logic's Chord Trigger, the simple form): every NoteOn / NoteOff is followed by copies at
 // up to three intervals above it (0 = that interval is off; a copy pushed past 127 drops). The copies
 // carry the original's channel / port, a derived noteId, and the original velocity scaled.
-class MidiChordNode final : public Node
+class MidiChordNode final : public MidiEffectNode
 {
 public:
     static constexpr ParameterId kInterval1ParamId = 1;
@@ -358,7 +368,7 @@ public:
     void reset() noexcept override {}
     void release() override { scratch_.clear(); scratch_.shrink_to_fit(); }
 
-    void setInput (Node* input) noexcept { input_ = input; }
+    void setInput (Node* input) noexcept override { input_ = input; }
     void setIntervals (int first, int second, int third) noexcept
     {
         interval1_ = std::clamp (first, 0, kMaxInterval);
@@ -370,7 +380,7 @@ public:
     [[nodiscard]] int interval2() const noexcept { return interval2_; }
     [[nodiscard]] int interval3() const noexcept { return interval3_; }
 
-    void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept
+    void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept override
     {
         const double real = mapNormalized (parameterSpec (parameterId), normalizedValue);
         switch (parameterId)
@@ -437,7 +447,7 @@ private:
 // NoteOn / NoteOff are consumed (they only change the held set); every other event passes through.
 // The grid is absolute (step k starts at frame k × stepFrames), so playback is deterministic and a
 // loop or locate lands on the same notes; a transport jump releases the sounding step first.
-class MidiArpeggiatorNode final : public Node
+class MidiArpeggiatorNode final : public MidiEffectNode
 {
 public:
     static constexpr ParameterId kRateParamId = 1;      // choice: 1/4, 1/8, 1/16, 1/32
@@ -580,7 +590,7 @@ public:
     }
     void release() override { scratch_.clear(); scratch_.shrink_to_fit(); }
 
-    void setInput (Node* input) noexcept { input_ = input; }
+    void setInput (Node* input) noexcept override { input_ = input; }
     // The projection's tempo law: frames per quarter note at the head tempo (the grid is in frames).
     void setFramesPerQuarter (double framesPerQuarter) noexcept
     {
@@ -596,7 +606,7 @@ public:
     [[nodiscard]] int octaves() const noexcept { return octaves_; }
     [[nodiscard]] std::size_t heldCount() const noexcept { return heldCount_; }
 
-    void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept
+    void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept override
     {
         const double real = mapNormalized (parameterSpec (parameterId), normalizedValue);
         switch (parameterId)

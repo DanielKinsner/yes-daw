@@ -3543,6 +3543,38 @@ public:
         return registry_.dispatch (id, context_);
     }
 
+    // G3.8: the project's key / scale (the roll header's choosers). The loop-region law: a project
+    // setting written straight to the bundle (not an undo step — Logic's key signature is in the
+    // signature list; parked), mirrored into the context for the header.
+    [[nodiscard]] UiActionDispatchResult setProjectScale (int rootKey, int scale, bool rootChanged)
+    {
+        const UiActionId id = rootChanged ? UiActionId::PianoRollScaleRootSelect : UiActionId::PianoRollScaleSelect;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        engine::ProjectScale next;
+        next.rootKey = std::clamp (rootKey, 0, 11);
+        next.scale = std::clamp (scale, 0, engine::ProjectScale::kScaleCount - 1);
+        if (next != project_.scale)
+        {
+            engine::Project nextProject = project_;
+            nextProject.scale = next;
+            if (bundleDb_.isOpen())
+            {
+                const persistence::BundleResult written = bundleDb_.writeProjectSnapshot (nextProject);
+                if (! written.ok())
+                {
+                    reportStatus ("Key / scale did not persist: " + written.message, true);
+                    return { id, { false, "scale did not persist" }, false };
+                }
+            }
+            project_ = std::move (nextProject);
+        }
+        context_.pianoRollScaleRoot = next.rootKey;
+        context_.pianoRollScaleChoice = next.scale;
+        return registry_.dispatch (id, context_);
+    }
+
     // G3.3: the control lane's verbs. Every point the roll creates carries the wildcard voice
     // address (port -1, channel -1); the lane shows every channel's points together. A Program lane
     // point stores its value as the program number (makePianoRollControlPoint is the one law).
@@ -4194,8 +4226,14 @@ public:
         command.fxPosition = strip->fxChain.size();
 
         engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.apply (nextProject, command).applied())
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (nextProject, command);
+        if (! applied.applied())
+        {
+            // G3.8: a MIDI FX needs a Track's MIDI path — the refusal is named, never silent.
+            if (applied.editStatus == engine::ProjectEditStatus::MidiFxNeedsTrack)
+                reportStatus ("MIDI FX (Transpose, Scale, Arpeggiator, Chord) need a Track: a Bus has no MIDI path", true);
             return { id, state, false };
+        }
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "FX edit did not persist" }, false };
@@ -7954,6 +7992,8 @@ public:
             case UiActionId::TimelineToolSelectEraser:   // G3.2
             case UiActionId::TimelineToolSelectVelocity:
             case UiActionId::PianoRollControlLaneSelect:   // G3.3 (the shell sets the choice first)
+            case UiActionId::PianoRollScaleRootSelect:     // G3.8 (setProjectScale carries the values)
+            case UiActionId::PianoRollScaleSelect:
             case UiActionId::QuantizeGridSelect:          // G3.4 (likewise; the toggle flips in the registry)
             case UiActionId::QuantizeStrengthSet:
             case UiActionId::QuantizeSwingSet:
@@ -9263,6 +9303,8 @@ private:
     {
         static_assert (engine::Project::kLocatePointCount == kTransportLocatePointCount);
         context_.projectLoaded = project_.hasValidAssetClipIndirection();
+        context_.pianoRollScaleRoot = project_.scale.isValid() ? project_.scale.rootKey : 0;   // G3.8
+        context_.pianoRollScaleChoice = project_.scale.isValid() ? project_.scale.scale : 0;
         context_.canUndo = undo_.canUndo();
         context_.canRedo = undo_.canRedo();
         for (std::size_t index = 0; index < project_.locatePoints.size(); ++index)

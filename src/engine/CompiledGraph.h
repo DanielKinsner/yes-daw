@@ -31,6 +31,7 @@
 #include "engine/nodes/TrackClipScheduleNode.h"
 #include "engine/nodes/FxDelayNode.h"
 #include "engine/nodes/LimiterNode.h"
+#include "engine/nodes/MidiEffectNode.h"   // G3.8
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/PanNode.h"
 #include "engine/nodes/ReverbNode.h"
@@ -653,6 +654,9 @@ public:
                 return true;
             case CompiledNodeKind::Limiter:
                 static_cast<LimiterNode*> (node->node)->setNormalizedParameter (parameterId, normalizedValue);
+                return true;
+            case CompiledNodeKind::MidiEffect:   // G3.8: every MIDI FX through its one contract
+                static_cast<MidiEffectNode*> (node->node)->setNormalizedParameter (parameterId, normalizedValue);
                 return true;
             default:
                 return false;

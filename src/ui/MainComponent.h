@@ -297,6 +297,7 @@ struct MainComponentPianoRollControlLane
 };
 [[nodiscard]] MainComponentPianoRollControlLane mainComponentPianoRollControlLane (juce::Component& component);
 void mainComponentSelectPianoRollControlLane (juce::Component& component, int choice);   // through the real chooser
+void mainComponentSelectPianoRollScale (juce::Component& component, int rootKey, int scaleChoice);   // G3.8: through the header's two choosers
 // G3.6: the harness's key-up for musical typing (a headless run has no real key state to poll).
 void mainComponentReleaseTypedKeys (juce::Component& component);
 // The lane's value <-> y law, shared with the paint and the hit-test (roll-local y).

@@ -404,10 +404,7 @@ private:
             return CompiledNodeKind::Sidechain;
         if (dynamic_cast<PlaceholderNode*> (&node) != nullptr)
             return CompiledNodeKind::Placeholder;
-        if (dynamic_cast<MidiTransposeNode*> (&node) != nullptr
-            || dynamic_cast<MidiScaleMapNode*> (&node) != nullptr
-            || dynamic_cast<MidiArpeggiatorNode*> (&node) != nullptr   // G3.8
-            || dynamic_cast<MidiChordNode*> (&node) != nullptr)
+        if (dynamic_cast<MidiEffectNode*> (&node) != nullptr)   // G3.8: Transpose, ScaleMap, Arpeggiator, Chord
             return CompiledNodeKind::MidiEffect;
         if (dynamic_cast<DecodedMidiClipNode*> (&node) != nullptr)
             return CompiledNodeKind::MidiSource;

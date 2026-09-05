@@ -177,7 +177,35 @@ struct UiPianoRollSurfaceSnapshot
     engine::Tick barTicks = 4 * 15360;
     engine::Tick playheadTick = -1;
     int controlLaneChoice = 0;   // G3.3: which control lane the roll shows (kPianoRollControlLaneChoices)
+    int scaleRoot = 0;           // G3.8: the project's key / scale (scale 0 = off: every key is in)
+    int scaleChoice = 0;
 };
+
+// G3.8: the scale assist's laws — is a key inside the project's scale, and where the pencil lands.
+[[nodiscard]] inline std::uint16_t pianoRollScaleMask (int scaleChoice) noexcept
+{
+    switch (scaleChoice)
+    {
+        case engine::ProjectScale::kScaleMajor: return engine::MidiScaleMapNode::kMajorMask;
+        case engine::ProjectScale::kScaleMinor: return engine::MidiScaleMapNode::kNaturalMinorMask;
+        default: return engine::MidiScaleMapNode::kChromaticMask;
+    }
+}
+
+[[nodiscard]] inline bool pianoRollKeyInScale (int key, int scaleRoot, int scaleChoice) noexcept
+{
+    if (scaleChoice == engine::ProjectScale::kScaleOff || key < 0)
+        return true;
+    const int degree = ((key - scaleRoot) % 12 + 12) % 12;
+    return (pianoRollScaleMask (scaleChoice) & (1u << static_cast<unsigned> (degree))) != 0u;
+}
+
+[[nodiscard]] inline std::int16_t pianoRollScaleSnappedKey (std::int16_t key, int scaleRoot, int scaleChoice) noexcept
+{
+    if (scaleChoice == engine::ProjectScale::kScaleOff)
+        return key;
+    return engine::MidiScaleMapNode::mapKeyToScale (key, static_cast<std::int16_t> (scaleRoot), pianoRollScaleMask (scaleChoice));
+}
 
 // G3.2: a grid line the roll paints (and the gate counts).
 enum class PianoRollGridLineKind : std::uint8_t { Bar, Beat, Snap };
@@ -335,6 +363,11 @@ inline UiPianoRollSurfaceSnapshot projectUiPianoRollSurface (const engine::Proje
     UiPianoRollSurfaceSnapshot snapshot;
     snapshot.controlLaneChoice = clampPianoRollControlLaneChoice (controlLaneChoice);
     snapshot.projectLoaded = project.hasValidAssetClipIndirection();
+    if (project.scale.isValid())   // G3.8
+    {
+        snapshot.scaleRoot = project.scale.rootKey;
+        snapshot.scaleChoice = project.scale.scale;
+    }
     if (! snapshot.projectLoaded || ! selectedMidiClipId.isValid())
         return snapshot;
 

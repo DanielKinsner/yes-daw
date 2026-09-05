@@ -256,6 +256,8 @@ enum class UiActionId : std::uint8_t
     // G3.6: musical typing (Logic's Cmd+K -> Ctrl+K) and step input (the roll header's Step button)
     PianoRollMusicalTypingToggle,
     PianoRollStepInputToggle,
+    PianoRollScaleRootSelect,   // G3.8: the roll header's Key chooser (the project's key)
+    PianoRollScaleSelect,       // G3.8: the roll header's Scale chooser (Off / Major / Minor: scale assist)
     Count
 };
 
@@ -524,6 +526,8 @@ struct UiActionContext
     UiPanel activePanel = UiPanel::Timeline;
     TimelineTool activeTimelineTool = TimelineTool::Pointer;
     int pianoRollControlLaneChoice = 0;   // G3.3: the roll's control lane (kPianoRollControlLaneChoices index)
+    int pianoRollScaleRoot = 0;           // G3.8: the project's key (0..11) and scale (0 off, 1 major, 2 minor) — mirrors of Project::scale
+    int pianoRollScaleChoice = 0;
     // G3.6: musical typing (the computer keyboard plays the Track's instrument on Logic's letter
     // layout; Z / X shift the octave, C / V the velocity) and step input (a typed or clicked note is
     // entered at the playhead with the step length, then the playhead advances by it).
@@ -1123,7 +1127,14 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::PianoRollMusicalTypingToggle, "piano_roll.musical_typing", "Musical Typing", "Ctrl+K", "Play the track's instrument from the computer keyboard (A-; = C4 up; Z / X octave; C / V velocity)",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::PianoRollStepInputToggle, "piano_roll.step_input", "Step Input", "", "Enter notes at the playhead one step at a time: each typed or clicked note lands with the snap length and the playhead advances (Right = rest, Left = back)",
-      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, true }
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, true },
+    // G3.8: the project's key / scale — choosers in the roll header (no chords; Logic's key signature
+    // lives in the signature list). The roll shades the keys outside the scale and the pencil lands on
+    // the nearest key inside it.
+    { UiActionId::PianoRollScaleRootSelect, "piano_roll.scale.root", "Key", "", "Choose the project's key (the root of the scale assist)",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    { UiActionId::PianoRollScaleSelect, "piano_roll.scale.select", "Scale", "", "Choose the project's scale for the roll's scale assist (Off, Major, Minor)",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -1873,6 +1884,10 @@ public:
 
             case UiActionId::PianoRollStepInputToggle:
                 context.stepInputOn = ! context.stepInputOn;
+                break;
+
+            case UiActionId::PianoRollScaleRootSelect:   // G3.8: the model sets the project's scale, then dispatches
+            case UiActionId::PianoRollScaleSelect:
                 break;
 
             case UiActionId::TimelineZoomFitProject:

@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 29;   // G3.5: MIDI Clip mute / transpose / velocity offset / loop length
+inline constexpr int          kCodeSchemaVersion = 30;   // G3.8: the project's key / scale (one row, missing = off)
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1426,13 +1426,23 @@ ALTER TABLE midi_clips ADD COLUMN velocity_offset REAL NOT NULL DEFAULT 0.0;
 ALTER TABLE midi_clips ADD COLUMN loop_length INTEGER NOT NULL DEFAULT 0;
 )SQL";
 
+// v30 (G3.8): the project's key / scale for the roll's scale assist (the loop-region pattern: one
+// row, a missing row means off). Additive: a v29 bundle opens unchanged.
+inline constexpr std::string_view kSchemaV30Sql = R"SQL(
+CREATE TABLE project_scale (
+  slot INTEGER PRIMARY KEY CHECK (slot = 1),
+  root INTEGER NOT NULL CHECK (root BETWEEN 0 AND 11),
+  scale INTEGER NOT NULL CHECK (scale BETWEEN 1 AND 2)
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 29> kMigrations {
+inline constexpr std::array<SchemaMigration, 30> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1462,6 +1472,7 @@ inline constexpr std::array<SchemaMigration, 29> kMigrations {
     SchemaMigration { 27, kSchemaV27Sql },
     SchemaMigration { 28, kSchemaV28Sql },
     SchemaMigration { 29, kSchemaV29Sql },
+    SchemaMigration { 30, kSchemaV30Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2068,7 +2079,7 @@ public:
                 "DELETE FROM sends; DELETE FROM track_outputs; DELETE FROM bus_sends; DELETE FROM bus_outputs; "
                 "DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
-                "DELETE FROM master_strip; DELETE FROM automation_mode; DELETE FROM punch_region; DELETE FROM loop_region; "
+                "DELETE FROM master_strip; DELETE FROM automation_mode; DELETE FROM punch_region; DELETE FROM loop_region; DELETE FROM project_scale; "
                 "DELETE FROM assets; DELETE FROM project;");
             ! result.ok())
         {
@@ -2645,6 +2656,20 @@ public:
             if (auto result = punchStmt.bindInt64 (1, static_cast<sqlite3_int64> (project.punchRegion.startFrame)); ! result.ok()) { rollback(); return result; }
             if (auto result = punchStmt.bindInt64 (2, static_cast<sqlite3_int64> (project.punchRegion.endFrame)); ! result.ok()) { rollback(); return result; }
             if (auto result = detail::expectDone (db_, punchStmt); ! result.ok()) { rollback(); return result; }
+        }
+
+        // G3.8: the key / scale row follows the same law — written only when a scale is on.
+        if (project.scale.scale != engine::ProjectScale::kScaleOff)
+        {
+            if (! project.scale.isValid())
+            {
+                rollback();
+                return detail::semanticInvalid ("project scale is outside the Project value range");
+            }
+            detail::Statement scaleStmt (db_, "INSERT INTO project_scale(slot, root, scale) VALUES (1, ?, ?);");
+            if (auto result = scaleStmt.bindInt64 (1, static_cast<sqlite3_int64> (project.scale.rootKey)); ! result.ok()) { rollback(); return result; }
+            if (auto result = scaleStmt.bindInt64 (2, static_cast<sqlite3_int64> (project.scale.scale)); ! result.ok()) { rollback(); return result; }
+            if (auto result = detail::expectDone (db_, scaleStmt); ! result.ok()) { rollback(); return result; }
         }
 
         // R3: the loop-region row follows the punch law — written only when enabled.
@@ -3638,6 +3663,27 @@ public:
                 if (! region.isValid())
                     return detail::semanticInvalid ("punch_region is outside the Project value range");
                 project.punchRegion = region;
+            }
+            else if (step != SQLITE_DONE)
+            {
+                return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+            }
+        }
+
+        // G3.8: the key / scale row — a missing row means off.
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT root, scale FROM project_scale WHERE slot = 1;"); ! result.ok())
+                return result;
+            const int step = stmt.step();
+            if (step == SQLITE_ROW)
+            {
+                engine::ProjectScale scale;
+                scale.rootKey = static_cast<int> (sqlite3_column_int64 (stmt.get(), 0));
+                scale.scale = static_cast<int> (sqlite3_column_int64 (stmt.get(), 1));
+                if (! scale.isValid() || scale.scale == engine::ProjectScale::kScaleOff)
+                    return detail::semanticInvalid ("project_scale is outside the Project value range");
+                project.scale = scale;
             }
             else if (step != SQLITE_DONE)
             {
