@@ -71,10 +71,17 @@ verbs (set / clear, undoable as Track row edits). `YesDawSamplerCheck` `[sampler
 equivalence); cp1 `0fe4fad`. **cp2 (this commit) — the shell**: Sampler in both kind choosers; the
 instrument panel's pad grid (two rows of eight, C2–D#3) — a click loads a WAV through the chooser seam,
 a WAV dropped on a cell loads it, Shift+click toggles one-shot / pitched, Ctrl+click clears, every pad
-edit one undo step; the drum-mode roll names a pad's key; `[sampler-shell]`; ss4 Step 5 authored. Drive
-+ rubric: see the G3.9 cp2 story. **Next:** the G3.8 + G3.9 evidence commits once CI is green on the
-heads, then **G3.10 — RT-safe MIDI input and thru** (the last G3 item); Dan's word (2026-09-05): run G3
-to its end and stop when confident. Rules in force: HEADLESS by default (drives on Dan's go — given
+edit one undo step; the drum-mode roll names a pad's key; `[sampler-shell]`; ss4 15 / 15; cp2 `2998374`.
+**G3.10 — RT-safe MIDI input and thru (this commit; the last G3 item)**: `MidiInputQueue` — the lock-free
+device→engine lane the model owns and every live engine drains at block top (no message-thread hop),
+its thru target the selected Track's Instrument (an atomic the control thread keeps current); the
+shell's MIDI callback posts straight into it; the header's MIDI lamp; `YesDawMidiInputCheck`
+`[midi-input]` (the one-block latency law, the target law, the SPSC stress; on the RTSan leg) and
+`[midi-input]` in the shell; ss4 Step 6. Drive + rubric: see the G3.10 story. **Next:** the evidence
+commits for G3.8 / G3.9 / G3.10 as their heads certify (cp1 `0fe4fad` is green on nine jobs — macOS red
+only on the parked GPU frame-budget flake), then the **G3 close** (the SS-4 drive end to end, the
+phase's rubric and parking-lot sweep) — Dan's word (2026-09-05): run G3 to its end and stop when
+confident. Rules in force: HEADLESS by default (drives on Dan's go — given
 2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the local suite + drives are the working
 gate; drive scripts launched back-to-back flake at Step 0 (pause between scripts).
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
@@ -240,6 +247,70 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.10 — RT-safe MIDI input and thru (2026-09-05)
+
+**Story.** A keyboard on the desk played nothing: E34 opened every MIDI input for CAPTURE (a recorded
+take) through a message-thread hop, and G3.2's live lane carried only the roll's audition. Now a played
+note goes from the device's callback thread straight into the engine's lane and sounds on the selected
+Track's instrument in the next audio block — transport stopped or rolling — and the header's MIDI lamp
+blinks with it. The synth, the Sampler, the MIDI FX chain's instrument: whatever the Track plays.
+
+**Precedent.** Every DAW's "MIDI thru to the selected / armed track" (Logic: the selected instrument
+track receives input; Live: Monitor Auto on the selected track); Logic's MIDI activity display in the
+LCD. The plan's law: device → SPSC queue → engine, no message-thread hop (ADR-0002 — the audio thread
+never allocates, locks or does I/O — and the RTSan leg proves it).
+
+**Build.** `engine/MidiInputQueue.h`: a bounded SPSC of Events (choc's FIFO, 512) — the device thread
+pushes NoteOn / NoteOff (anything else refused; every push counted for the lamp), the audio thread pops
+at block top; an atomic thru target the control thread sets; a popped event with no target is dropped
+and counted, one that names its own target keeps it. `OfflineRenderOptions::midiInput` (null for offline
+renders): `PlaybackEngine::create` keeps the pointer and `drainLiveEvents` pops the queue after the
+control lane — the same block-top stamp and held-note accounting, so a stopped transport keeps
+rendering while a played note or its release sounds; `midiInputDrained` counts what reached the graph.
+The lamp sits INSIDE the time readout's top-right corner (Logic's LCD carries its MIDI activity the
+same way): the first cut put it after the loop button, which widened the centred cluster and dropped
+the master card whole at 1152 px (the screenshot gate's overlap / card pins caught both); the header
+rect list excludes it (it is a sub-element of the time box, not a control beside it).
+`UiAppModel.h`: the model OWNS the queue (it outlives every engine; `playbackBuildOptions` attaches it
+to each build); `postMidiInputNote` (the DEVICE thread's entry — touches the queue and nothing else);
+`updateMidiThruTarget` (the control thread, every UI tick: the selected Track's Instrument node id or
+0). `MainComponent.cpp`: `handleIncomingMidiMessage` posts to the lane FIRST (the E34 capture hop stays
+as it was, additive); `HeaderLayout::midiIn` in the time readout's corner (`headerMidiInLamp*` tokens; no
+width added to the centred cluster); the lamp lit for `headerMidiInLampHoldMs` after the seen count moves
+(`drawHeader`); the probe's `transport.midiInSeen` / `midiInDrained` / `midiInLit` / `midiThruTarget`;
+the layout id `header.midi.in`; the harness `mainComponentPostMidiInput` (the callback's own path).
+
+**Gates.** `[midi-input]` — `YesDawMidiInputCheck` (pure C++: the RTSan leg runs it): the queue's laws
+(notes only, counted, bounded without blocking, the thru stamp, the drop with no target, a named target
+kept); latency — a NoteOn pushed to a stopped engine is audible in the VERY NEXT block and the drained
+count reads 1, the playhead holds, a NoteOff's release rings then exact silence; the target law (target
+0 → dropped and silent; the second Track's Instrument → THAT synth, a different render); the queue
+outlives an engine (engine A destroyed, engine B on the same queue plays the next note); an SPSC stress
+(a device thread pushing 20 000 notes while the consumer pops: order kept, none lost). `[midi-input]` in
+`YesDawUiInputCheck`: the lamp laid out and unlit; a note with no Track selected is seen (lamp lit) and
+dropped (thru target 0); a rail click + a MIDI clip make the thru target the Track's Instrument; with
+the transport stopped a held note renders energy through the device path and `midiInDrained` counts it;
+the NoteOff's release falls back to exact silence. Re-pin: none (the pixel pin at (960, 44) holds
+once the lamp lives in the LCD); the screenshot gate's header-rect overlap law excludes the lamp (a
+sub-element of the time box). Local suite 379 / 379.
+
+**See-it.** ss4 Step 6: the MIDI lamp is laid out in the time readout and unlit with nothing played
+(a drive cannot play a device) — ss4 **17 / 17** on the real exe (2026-09-05). Local suite **379 / 379**
+(`YesDawMidiInputCheck` is the 379th).
+
+**Rubric (§7.4, the ss4 1920×1080 shot).** 1 PASS (the lamp is a small "MIDI" pill in the LCD's
+top-right corner; nothing moved, nothing overlaps — the first placement after the loop button widened
+the cluster and dropped the master card at 1152 px; caught by the screenshot gate, fixed). 2 n/a.
+3 PASS (it reads "MIDI"; the probe carries seen / drained / lit / target). 4 PASS. 5 PASS. 6 PASS.
+7 PASS. Note: unlit it is faint by design (the LCD's off-lamp); lit it goes green.
+
+**Deviation log.** (1) Only notes ride the thru lane — CC / bend / aftertouch from a device are not
+carried (the live lane is a note lane by G3.2's law; the synth's CC64 / CC1 / bend answer scheduled
+Midi1 events only); parking lot. (2) The capture path (E34) still hops through the message thread —
+recording is a control-thread act by design; only THRU is real-time. (3) No MIDI input device chooser:
+every input is opened (E34's law); parking lot with the Options-row device choosers. (4) Live input
+bypasses the Track's MIDI FX (G3.8's parking-lot finding stands).
 
 ### G3.9 cp2 — Sampler instrument: the shell half (2026-09-05)
 

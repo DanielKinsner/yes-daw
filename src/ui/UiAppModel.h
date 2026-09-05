@@ -4698,6 +4698,35 @@ public:
         return playback_->postLiveEvent (event);
     }
 
+    // G3.10: MIDI input and thru. postMidiInputNote runs on the DEVICE thread: it touches nothing but
+    // the queue (no model state, no allocation, no lock); the queue stamps the thru target the control
+    // thread keeps current (updateMidiThruTarget — the selected Track's Instrument, or 0).
+    [[nodiscard]] bool postMidiInputNote (bool on, int key, double normalizedVelocity, int channel = 0) noexcept
+    {
+        if (key < 0 || key > 127)
+            return false;
+        engine::Event event;
+        event.type = on ? engine::EventType::NoteOn : engine::EventType::NoteOff;
+        event.voice.key = static_cast<std::int16_t> (key);
+        event.voice.channel = static_cast<std::int16_t> (std::clamp (channel, 0, 15));
+        event.voice.noteId = key;
+        event.payload.note.normalizedVelocity = on ? std::clamp (normalizedVelocity, 0.0, 1.0) : 0.0;
+        event.payload.note.pitchNote = static_cast<double> (key);
+        event.payload.note.targetNode = 0;   // the queue stamps the thru target on the audio thread
+        return midiInput_.push (event);
+    }
+
+    void updateMidiThruTarget() noexcept
+    {
+        const engine::Track* const track = selectedTrackForInstrument();
+        midiInput_.setThruTarget (track != nullptr && context_.projectLoaded
+                                      ? engine::projectMixerNodeIdForTrack (track->id, engine::ProjectMixerNodeRole::Instrument)
+                                      : 0u);
+    }
+
+    [[nodiscard]] const engine::MidiInputQueue& midiInputQueue() const noexcept { return midiInput_; }
+    [[nodiscard]] std::uint32_t midiInputDrained() const noexcept { return playback_ != nullptr ? playback_->midiInputDrained() : 0u; }
+
     [[nodiscard]] UiActionDispatchResult setInstrumentOnSelectedTrack (engine::TrackInstrumentKind kind)
     {
         const UiActionId id = UiActionId::TrackSetInstrument;
@@ -10968,6 +10997,7 @@ private:
         // so the live placement lane's schedules can keep it alive without copying.
         options.assetOwners = makeDecodedOwners (decodedAssets_);
         options.stretchOwners = refreshStretchOwners (project_, options.assetOwners);   // G2.9
+        options.midiInput = &midiInput_;   // G3.10: every live engine drains the one device lane
         return options;
     }
 
@@ -11384,6 +11414,7 @@ private:
     std::atomic<bool> captureActive_ { false };
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;
+    mutable engine::MidiInputQueue midiInput_;   // G3.10: the device→engine lane; outlives every engine (attached at build)
     std::atomic<engine::PlaybackEngine*> audioPlayback_ { nullptr };
     int playbackMaxBlockSize_ = 128;
     UiExportBitDepth exportBitDepth_ = UiExportBitDepth::Float32;

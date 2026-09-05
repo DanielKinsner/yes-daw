@@ -90,6 +90,10 @@ Shot 'ss4-sampler-pads'
 Key 'Ctrl+Z'
 [void](Assert (WaitProbe { param($q) "$($q.view.instrument)" -eq 'SimpleSynth' } -TimeoutMs 3000) 'Ctrl+Z returns the SimpleSynth')
 
+Step 6 'G3.10 the header''s MIDI input lamp is laid out in the time readout (unlit with no device playing)'
+[void](Assert ((LayoutRect 'header.midi.in')[2] -gt 0) 'the MIDI lamp is laid out in the time readout')
+[void](Assert (-not [bool](Probe).transport.midiInLit) 'the lamp is unlit with nothing played')
+
 Step 4 'Screenshots at the three rubric sizes with the panel open'
 Resize 1280 720;  Start-Sleep -Milliseconds 400; Shot 'ss4-1280x720'
 Resize 1920 1080; Start-Sleep -Milliseconds 400; Shot 'ss4-1920x1080'

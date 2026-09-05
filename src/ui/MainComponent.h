@@ -267,6 +267,8 @@ struct MainComponentInstrumentPanel
 // G3.9: the pad cell's mouse verbs through the panel itself — a plain click loads (the chooser seam),
 // Shift+click toggles one-shot / pitched, Ctrl+click clears; a file dropped on a cell loads it.
 void mainComponentInstrumentPanelClickPad (juce::Component& component, int key, bool shift, bool ctrl);
+// G3.10: a MIDI input note as the device callback posts it (the same lane, no message-thread hop).
+[[nodiscard]] bool mainComponentPostMidiInput (juce::Component& component, bool on, int key, double velocity);
 void mainComponentInstrumentPanelDropFileOnPad (juce::Component& component, int key, const juce::String& path);
 [[nodiscard]] MainComponentInstrumentPanel mainComponentInstrumentPanel (juce::Component& component);
 void mainComponentInstrumentPanelSetRow (juce::Component& component, int row, double normalized);

@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "engine/MidiInputQueue.h"   // G3.10
 #include "engine/OfflineRenderer.h"
 #include "engine/ProjectMixerProjection.h"
 #include "engine/Recording.h"
@@ -65,6 +66,7 @@ public:
 
         std::unique_ptr<PlaybackEngine> engine (
             new PlaybackEngine (built.sampleRate, built.channels, built.frames, built.maxBlockSize));
+        engine->midiInput_ = options.midiInput;   // G3.10: the device lane this engine's audio thread drains
 
         // Harvest the per-track MeterNode taps before the graph moves into the Runtime. The engine
         // publishes exactly this one graph and owns the Runtime that owns it, so these control-side
@@ -250,6 +252,10 @@ public:
     // NoteOn / NoteOff addressed to one Instrument (NotePayload::targetNode != 0); the audio thread hands
     // it to the graph at the top of its next Block, transport playing or stopped. Bounded SPSC: false when
     // the lane is full or the event is not an addressed note - never blocks, never allocates.
+    // G3.10: the device lane this engine drains (null = none) and how many of its notes reached the graph.
+    [[nodiscard]] MidiInputQueue* midiInput() const noexcept { return midiInput_; }
+    [[nodiscard]] std::uint32_t midiInputDrained() const noexcept { return midiInputDrained_.load (std::memory_order_relaxed); }
+
     [[nodiscard]] bool postLiveEvent (const Event& event) noexcept
     {
         if (event.type != EventType::NoteOn && event.type != EventType::NoteOff)
@@ -522,6 +528,26 @@ private:
             }
             liveEventStorage_[count++] = event;
         }
+        // G3.10: the device lane — the MIDI input queue's notes, stamped with the thru Instrument by
+        // the queue, block-top like the control lane's. The same held-note accounting keeps the
+        // stopped transport rendering while a played note (or its release) sounds.
+        if (MidiInputQueue* const input = midiInput_)
+        {
+            while (count < liveEventStorage_.size() && input->pop (event))
+            {
+                event.timeInBlock = 0;
+                if (event.type == EventType::NoteOn)
+                    ++heldLiveNotes_;
+                else
+                {
+                    heldLiveNotes_ = std::max (0, heldLiveNotes_ - 1);
+                    if (heldLiveNotes_ == 0)
+                        auditionTailFrames_ = static_cast<std::int64_t> (kAuditionTailSeconds * sampleRate_.hz);
+                }
+                midiInputDrained_.fetch_add (1u, std::memory_order_relaxed);
+                liveEventStorage_[count++] = event;
+            }
+        }
         return count;
     }
 
@@ -704,6 +730,8 @@ private:
     std::vector<std::pair<EntityId, const MeterNode*>> busMeters_;     // harvested at create() (E22)
     choc::fifo::SingleReaderSingleWriterFIFO<TransportCommand> transportCommands_;
     choc::fifo::SingleReaderSingleWriterFIFO<Event> liveEvents_;                  // G3.2: the live note lane
+    MidiInputQueue* midiInput_ = nullptr;                                         // G3.10: set at create, read by the audio thread
+    std::atomic<std::uint32_t> midiInputDrained_ { 0 };                           // G3.10: audio thread counts, the shell reads
     std::array<Event, kMaxLiveEventsPerBlock> liveEventStorage_ {};             // audio-thread block storage
     int          heldLiveNotes_ = 0;                                              // audio thread
     std::int64_t auditionTailFrames_ = 0;                                         // audio thread

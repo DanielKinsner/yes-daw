@@ -20056,6 +20056,72 @@ TEST_CASE ("piano roll keyboard column: hovering a key names it in the status li
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// G3.10: MIDI input and thru in the shell — a note from the device callback's path reaches the selected
+// Track's instrument through the engine's lane (no message-thread hop) and sounds with the transport
+// stopped; the header's MIDI lamp lights and the probe counts it; with no Track selected the note is
+// counted and dropped; the lamp is laid out in the transport cluster.
+TEST_CASE ("G3.10 MIDI input and thru: a played note sounds on the selected track, the lamp lights, no selection drops it",
+           "[ui][input][shell][g3][midi-input]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("midi-input");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    const auto probe = [&] {
+        juce::var doc;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), doc).wasOk());
+        return doc;
+    };
+    const auto transport = [&] { return probe().getProperty ("transport", juce::var()); };
+    const auto tick = [&] { yesdaw::ui::mainComponentServiceUiTick (*shell); };
+
+    // The lamp is laid out in the header, unlit; nothing seen yet.
+    tick();
+    REQUIRE (probe().getProperty ("layout", juce::var()).getProperty ("header.midi.in", juce::var()).isArray());
+    REQUIRE_FALSE (static_cast<bool> (transport().getProperty ("midiInLit", true)));
+    REQUIRE (static_cast<int> (transport().getProperty ("midiInSeen", -1)) == 0);
+
+    // No Track selected: a played note is seen (the lamp lights) and dropped — the thru target is 0.
+    REQUIRE (yesdaw::ui::mainComponentPostMidiInput (*shell, true, 60, 0.8));
+    tick();
+    REQUIRE (static_cast<int> (transport().getProperty ("midiInSeen", -1)) == 1);
+    REQUIRE (static_cast<bool> (transport().getProperty ("midiInLit", false)));
+    REQUIRE (static_cast<juce::int64> (transport().getProperty ("midiThruTarget", 1)) == 0);
+    REQUIRE (yesdaw::ui::mainComponentPostMidiInput (*shell, false, 60, 0.0));
+
+    // Select the track (a rail click) and give it a MIDI clip so it has an Instrument in the graph.
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    tick();
+    REQUIRE (static_cast<juce::int64> (transport().getProperty ("midiThruTarget", 0)) != 0);
+
+    // Stopped transport: a held played note sounds through the selected track's synth (the live-only
+    // block law) — energy in the device render; its release then falls back to silence.
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (yesdaw::ui::mainComponentPostMidiInput (*shell, true, 64, 0.9));
+    const std::vector<float> held = renderMainComponentPlayback (*shell, 48'000, 512);
+    double energy = 0.0;
+    for (const float sample : held)
+        energy += static_cast<double> (sample) * static_cast<double> (sample);
+    REQUIRE (energy > 1.0e-3);
+    tick();
+    REQUIRE (static_cast<int> (transport().getProperty ("midiInDrained", 0)) >= 1);
+    REQUIRE (yesdaw::ui::mainComponentPostMidiInput (*shell, false, 64, 0.0));
+    (void) renderMainComponentPlayback (*shell, 96'000, 512);   // the release rings out
+    const std::vector<float> after = renderMainComponentPlayback (*shell, 24'000, 512);
+    double tail = 0.0;
+    for (const float sample : after)
+        tail += static_cast<double> (sample) * static_cast<double> (sample);
+    REQUIRE (tail == 0.0);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // G3.9 / ADR-0048: the Sampler in the shell — the kind choosers list it; the instrument panel shows a
 // pad grid for a Sampler track; a click on a pad cell loads a WAV through the chooser seam (the file
 // becomes a Project Asset, the pad a row named from the file, one-shot at its key); a WAV dropped on a

@@ -6812,6 +6812,23 @@ public:
                                         && desktopAudioOpen.load (std::memory_order_acquire));
         appModel.reclaimRetiredAudioObjects();
         appModel.refreshTransportSnapshot();
+        // G3.10: the thru target follows the selection every tick; the input lamp holds for a moment
+        // after the last played note (the counter is the device thread's, read relaxed).
+        appModel.updateMidiThruTarget();
+        {
+            const std::uint32_t seen = appModel.midiInputQueue().seen();
+            if (seen != midiInSeenLast)
+            {
+                midiInSeenLast = seen;
+                midiInLitUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds (yesdaw::ui::UiTheme::Layout::headerMidiInLampHoldMs);
+                repaint (headerLayout().midiIn);
+            }
+            else if (midiInLitUntil != std::chrono::steady_clock::time_point {} && std::chrono::steady_clock::now() >= midiInLitUntil)
+            {
+                midiInLitUntil = {};
+                repaint (headerLayout().midiIn);
+            }
+        }
         appModel.serviceRecordingCountIn();
         if (appModel.realRecordingCaptureActive())
             appModel.drainRealRecordingCapture();
@@ -6885,11 +6902,20 @@ public:
         const bool noteOn = message.isNoteOn();
         const int note = message.getNoteNumber();
         const float velocity = message.getFloatVelocity();
+        // G3.10: MIDI thru — straight from this (device) thread into the engine's lane, no message-
+        // thread hop; the selected Track's Instrument plays it. The capture path below stays as it was.
+        (void) postMidiInputFromDevice (noteOn, note, static_cast<double> (velocity), message.getChannel() - 1);
         juce::Component::SafePointer<MainComponent> safeThis (this);
         juce::MessageManager::callAsync ([safeThis, frame, noteOn, note, velocity] {
             if (safeThis != nullptr)
                 safeThis->handleCapturedMidiNote (frame, noteOn, note, velocity);
         });
+    }
+
+    // G3.10: the one entry every played note takes (the device callback and the harness alike).
+    [[nodiscard]] bool postMidiInputFromDevice (bool noteOn, int note, double velocity, int channel) noexcept
+    {
+        return appModel.postMidiInputNote (noteOn, note, velocity, channel);
     }
 
     void handleCapturedMidiNote (std::int64_t frame, bool noteOn, int note, float velocity)
@@ -7359,6 +7385,7 @@ public:
             put ("inspector.quantize.humanize", inspectorQuantizeHumanize.getBounds());
             put ("inspector.quantize.apply", inspectorQuantizeApply.getBounds());
         }
+        put ("header.midi.in", headerLayout().midiIn);   // G3.10: the input lamp
         if (appModel.context().mixerDockVisible)
         {
             put ("dock", mixerPanelBounds());
@@ -7521,6 +7548,11 @@ public:
                                               / appModel.project().sampleRate.hz
                                         : 0.0);
             transport->setProperty ("rate", context.shuttlePlaybackRate);
+            transport->setProperty ("midiInSeen", static_cast<int> (appModel.midiInputQueue().seen()));   // G3.10
+            transport->setProperty ("midiInDrained", static_cast<int> (appModel.midiInputDrained()));
+            transport->setProperty ("midiInLit", midiInLitUntil != std::chrono::steady_clock::time_point {}
+                                                     && std::chrono::steady_clock::now() < midiInLitUntil);
+            transport->setProperty ("midiThruTarget", static_cast<juce::int64> (appModel.midiInputQueue().thruTarget()));
             transport->setProperty ("metronome", context.metronomeEnabled);
             auto* loop = new juce::DynamicObject();
             loop->setProperty ("enabled", context.loopEnabled);
@@ -7837,6 +7869,10 @@ public:
     [[nodiscard]] juce::Rectangle<int> harnessPianoRollBounds() const { return pianoRollInput.getBounds(); }
     [[nodiscard]] int harnessPianoRollAuditionKey() const { return pianoRollInput.heldAuditionKey(); }   // G3.2
     void harnessSelectPianoRollControlLane (int choice) { pianoRollLaneChooser.setSelectedId (choice + 1, juce::sendNotificationSync); }   // G3.3
+    [[nodiscard]] bool harnessPostMidiInput (bool on, int key, double velocity) noexcept   // G3.10: the device callback's path
+    {
+        return postMidiInputFromDevice (on, key, velocity, 0);
+    }
     void harnessSelectPianoRollScale (int rootKey, int scaleChoice)   // G3.8: through the real choosers
     {
         pianoRollKeyChooser.setSelectedId (rootKey + 1, juce::sendNotificationSync);
@@ -14286,6 +14322,17 @@ private:
             { meter, "TIME SIG" }
         }};
 
+        // G3.10: the MIDI input lamp in the time readout's corner — lit while a played note is fresh.
+        if (! h.midiIn.isEmpty())
+        {
+            const bool lit = midiInLitUntil != std::chrono::steady_clock::time_point {}
+                          && std::chrono::steady_clock::now() < midiInLitUntil;
+            g.setColour (lit ? yesdaw::ui::UiTheme::Color::midiInLampLit() : yesdaw::ui::UiTheme::Color::midiInLampOff());
+            g.fillRoundedRectangle (h.midiIn.toFloat(), yesdaw::ui::UiTheme::Layout::headerMidiInLampCornerRadius);
+            g.setColour (lit ? yesdaw::ui::UiTheme::Color::pianoWhiteKeyText() : yesdaw::ui::UiTheme::Color::mutedText());
+            g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny, juce::Font::bold));
+            g.drawText ("MIDI", h.midiIn, juce::Justification::centred, false);
+        }
         auto box = h.tempoMeterBox;
         for (const auto& readout : readouts)
         {
@@ -14319,6 +14366,7 @@ public:
         juce::Rectangle<int> newButton, openButton, saveButton, importButton, undoButton, redoButton;
         juce::Rectangle<int> exportButton, exportProgress, exportCancel;
         juce::Rectangle<int> locateStart, play, stop, record, timeReadout, tempoMeterBox, loop;
+        juce::Rectangle<int> midiIn;   // G3.10: the MIDI input lamp
         juce::Rectangle<int> masterCard, gear;
         juce::Rectangle<int> bitDepth, range, outputDevice, inputDevice, inputChannel;
         juce::Rectangle<int> arm, monitor, comp;
@@ -14397,6 +14445,11 @@ public:
         h.tempoMeterBox = big (L::headerTransportBoxWidth);
         x += L::headerClusterGap - L::headerButtonGap;
         h.loop = big (L::headerLoopButtonWidth);
+        // G3.10: the MIDI input lamp lives in the time readout's top-right corner (Logic's LCD carries
+        // its MIDI activity the same way) — no width added to the centred cluster.
+        h.midiIn = juce::Rectangle<int> (h.timeReadout.getRight() - L::headerMidiInLampInset - L::headerMidiInLampWidth,
+                                         h.timeReadout.getY() + L::headerMidiInLampInset,
+                                         L::headerMidiInLampWidth, L::headerMidiInLampHeight);
         h.transportSection = juce::Rectangle<int> (cx, bigY, centreWidth, L::headerTransportButtonSize)
                                  .expanded (L::headerSectionPad);
         if (! h.masterCard.isEmpty())
@@ -17092,6 +17145,8 @@ private:
     std::vector<yesdaw::ui::UiClipTakeView> inspectorTakeViews;
     // E34: open MIDI inputs + the message-thread note-on pairing map (note -> frame, velocity).
     std::vector<std::unique_ptr<juce::MidiInput>> midiInputs;
+    std::uint32_t midiInSeenLast = 0;                                   // G3.10: the lamp's last seen count
+    std::chrono::steady_clock::time_point midiInLitUntil {};            // G3.10: lit until this instant
     std::map<int, std::pair<std::int64_t, float>> pendingMidiNoteOns;
     FineDragSlider inspectorStart;
     FineDragSlider inspectorEnd;
@@ -17494,7 +17549,7 @@ std::vector<juce::Rectangle<int>> mainComponentHeaderRects (const juce::Componen
         const MainComponent::HeaderLayout h = mainComponent->headerLayout();
         for (const juce::Rectangle<int>& r : { h.menuBar, h.newButton, h.openButton, h.saveButton, h.importButton,
                                                h.undoButton, h.redoButton, h.exportButton, h.locateStart, h.play,
-                                               h.stop, h.record, h.timeReadout, h.tempoMeterBox, h.loop,
+                                               h.stop, h.record, h.timeReadout, h.tempoMeterBox, h.loop,   // G3.10: the MIDI lamp sits INSIDE the time readout, not beside it
                                                h.masterCard, h.gear, h.bitDepth, h.range, h.outputDevice,
                                                h.inputDevice, h.inputChannel, h.arm, h.monitor, h.comp })
             if (! r.isEmpty())
@@ -17791,6 +17846,13 @@ MainComponentInstrumentPanel mainComponentInstrumentPanel (juce::Component& comp
             out.pads.emplace_back (pad.key, pad.name);
     }
     return out;
+}
+
+bool mainComponentPostMidiInput (juce::Component& component, bool on, int key, double velocity)   // G3.10
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessPostMidiInput (on, key, velocity);
+    return false;
 }
 
 void mainComponentInstrumentPanelClickPad (juce::Component& component, int key, bool shift, bool ctrl)   // G3.9

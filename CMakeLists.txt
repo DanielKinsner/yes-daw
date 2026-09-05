@@ -869,6 +869,17 @@ endif()
 yesdaw_harden(YesDawSamplerCheck)
 add_test(NAME YesDawSamplerCheck COMMAND $<TARGET_FILE:YesDawSamplerCheck>)
 
+# --- MIDI input check (G3.10: the device→engine lane, thru, the one-block latency law; runs on the RTSan leg) ---
+add_executable(YesDawMidiInputCheck tests/midi_input_tests.cpp)
+target_include_directories(YesDawMidiInputCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawMidiInputCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawMidiInputCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawMidiInputCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawMidiInputCheck)
+add_test(NAME YesDawMidiInputCheck COMMAND $<TARGET_FILE:YesDawMidiInputCheck>)
+
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
 target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})

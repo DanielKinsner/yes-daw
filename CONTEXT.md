@@ -471,6 +471,15 @@ fail with explicit statuses rather than degrade silently (ADR-0029) — e.g. a M
 unassigned channel (`-1`) is rejected because DAWproject `channel` is `0..15`.
 _Avoid_: backup, native project file
 
+**MIDI thru**:
+A played note from a MIDI input device reaching the selected Track's Instrument through the engine's
+device lane (`MidiInputQueue`, G3.10): the device callback thread pushes, the live engine's audio
+thread pops at block top — no message-thread hop, no allocation, no lock. The thru target is the
+selected Track's Instrument (an atomic the control thread sets; 0 = nothing selected, the note is
+counted for the header lamp and dropped). Distinct from CAPTURE (E34), which records a take through the
+control thread.
+_Avoid_: "MIDI monitoring" (ambiguous with audio input monitoring), echo
+
 **Sampler**:
 The second built-in instrument kind in the Track's instrument slot (ADR-0047 / ADR-0048, G3.9): pads on
 keys, each a Project Asset, one-shot (ignores NoteOff, never answers to other keys) or pitched (follows

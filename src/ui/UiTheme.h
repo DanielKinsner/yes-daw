@@ -69,6 +69,9 @@ struct UiTheme
         static juce::Colour pianoRollInScaleRow() noexcept { return juce::Colour (0x16ffffff); }
         // G3.9: the Sampler's pad cells — loaded (a sample on the key) and empty.
         static juce::Colour samplerPadLoaded() noexcept { return juce::Colour (0xff2b4d6e); }
+        // G3.10: the header's MIDI input lamp — lit while a played note is fresh.
+        static juce::Colour midiInLampLit() noexcept { return juce::Colour (0xff4fd66b); }
+        static juce::Colour midiInLampOff() noexcept { return juce::Colour (0xff1c2632); }   // distinct from panel(): visible when off
         static juce::Colour samplerPadEmpty() noexcept { return juce::Colour (0xff1a2230); }
         static juce::Colour pianoWhiteKeyText() noexcept { return juce::Colour (0xff2a3038); }
         static juce::Colour pianoGridStrong() noexcept { return juce::Colour (0xff344150); }
@@ -239,6 +242,11 @@ struct UiTheme
         static constexpr int headerExportCancelWidth = 28;
         static constexpr int headerTransportButtonSize = 44;
         static constexpr int headerLoopButtonWidth = 56;
+        static constexpr int headerMidiInLampWidth = 30;   // G3.10: the MIDI input lamp in the time readout's corner
+        static constexpr int headerMidiInLampHeight = 12;
+        static constexpr int headerMidiInLampInset = 3;
+        static constexpr int headerMidiInLampHoldMs = 150;   // G3.10: how long a played note keeps the lamp lit
+        static constexpr float headerMidiInLampCornerRadius = 4.0f;
         static constexpr int settingsBitDepthWidth = 108;
         static constexpr int settingsRangeWidth = 112;
         static constexpr int settingsDeviceWidth = 150;

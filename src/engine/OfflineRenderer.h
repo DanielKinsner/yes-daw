@@ -70,6 +70,7 @@ struct OfflineRenderOptions
     std::vector<ProjectMixerSendRoute> sendRoutes;
     std::vector<AssetOwnership> assetOwners;   // G0.5: optional shared storage per asset id
     std::vector<StretchedOwnership> stretchOwners;   // G2.9: optional prepared stretches per clip
+    class MidiInputQueue* midiInput = nullptr;   // G3.10: the device→engine lane a PlaybackEngine drains (null for offline renders; the type lives in MidiInputQueue.h)
 };
 
 enum class OfflineRenderStatus : std::uint8_t
