@@ -4427,10 +4427,19 @@ private:
 // Every committed slider value is one undoable SetTrackInstrumentParam through the model; a drag
 // rides Touch / Latch automation exactly like an FX parameter drag (the InstrumentParam lane law).
 class InstrumentPanelComponent final : public juce::Component,
-                                       public juce::SettableTooltipClient
+                                       public juce::SettableTooltipClient,
+                                       public juce::FileDragAndDropTarget   // G3.9: a WAV onto a pad cell
 {
 public:
     static constexpr std::size_t kMaxRows = 12;
+    // G3.9: one Sampler pad as the panel paints it (a loaded pad has a name; an empty cell none).
+    struct Pad
+    {
+        int key = -1;
+        juce::String name;
+        bool oneShot = true;
+        bool loaded = false;
+    };
 
     struct Row
     {
@@ -4448,6 +4457,10 @@ public:
     std::function<void (std::uint32_t)> onRowDragStart;
     std::function<void()> onRowDragEnd;
     std::function<void (std::uint32_t, double)> onRowValue;
+    std::function<bool()> padsProvider;                          // G3.9: true when the kind is the Sampler
+    std::function<std::vector<Pad>()> padRowsProvider;           // G3.9: the loaded pads
+    std::function<void (int, bool, bool)> onPadClicked;          // G3.9: key, shift, ctrl
+    std::function<void (int, const juce::StringArray&)> onPadFilesDropped;   // G3.9: key, files
 
     InstrumentPanelComponent()
     {
@@ -4509,6 +4522,8 @@ public:
         if (kindIndex >= 0)
             kindChooser.setSelectedId (kindIndex + 1, juce::dontSendNotification);
         rows = rowsProvider ? rowsProvider() : std::vector<Row> {};
+        showPads = padsProvider && padsProvider();   // G3.9
+        pads = showPads && padRowsProvider ? padRowsProvider() : std::vector<Pad> {};
         for (std::size_t i = 0; i < kMaxRows; ++i)
         {
             const bool used = i < rows.size();
@@ -4532,6 +4547,92 @@ public:
 
     [[nodiscard]] const std::vector<Row>& currentRows() const noexcept { return rows; }
     [[nodiscard]] juce::String currentKind() const { return kindProvider ? kindProvider() : juce::String(); }
+    [[nodiscard]] bool padsShown() const noexcept { return showPads && ! padGrid.isEmpty(); }   // G3.9
+    [[nodiscard]] const std::vector<Pad>& currentPads() const noexcept { return pads; }
+    [[nodiscard]] juce::Rectangle<int> currentPadGrid() const noexcept { return padGrid; }
+
+    // G3.9: the pad grid's cells — two rows of eight from instrumentPanelPadFirstKey, left to right,
+    // bottom row first (the lower keys nearer the keyboard's bottom, as Logic's Drum Machine Designer).
+    [[nodiscard]] juce::Rectangle<int> padCellBounds (int key) const noexcept
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const int index = key - L::instrumentPanelPadFirstKey;
+        if (padGrid.isEmpty() || index < 0 || index >= L::instrumentPanelPadCount)
+            return {};
+        const int column = index % L::instrumentPanelPadColumns;
+        const int rowFromBottom = index / L::instrumentPanelPadColumns;
+        const int row = L::instrumentPanelPadRows - 1 - rowFromBottom;
+        const int cellWidth = (padGrid.getWidth() - L::instrumentPanelPadGap * (L::instrumentPanelPadColumns - 1)) / L::instrumentPanelPadColumns;
+        return juce::Rectangle<int> (padGrid.getX() + column * (cellWidth + L::instrumentPanelPadGap),
+                                     padGrid.getY() + row * (padCellHeight + L::instrumentPanelPadGap),
+                                     cellWidth, padCellHeight);
+    }
+    [[nodiscard]] int padKeyAt (juce::Point<int> point) const noexcept
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        for (int index = 0; index < L::instrumentPanelPadCount; ++index)
+            if (padCellBounds (L::instrumentPanelPadFirstKey + index).contains (point))
+                return L::instrumentPanelPadFirstKey + index;
+        return -1;
+    }
+    void mouseDown (const juce::MouseEvent& event) override
+    {
+        if (! padsShown() || ! onPadClicked)
+            return;
+        const int key = padKeyAt (event.getPosition());
+        if (key >= 0)
+            onPadClicked (key, event.mods.isShiftDown(), event.mods.isCtrlDown());
+    }
+    bool isInterestedInFileDrag (const juce::StringArray& files) override
+    {
+        if (! padsShown())
+            return false;
+        for (const juce::String& file : files)
+            if (juce::File (file).hasFileExtension ("wav;wave"))
+                return true;
+        return false;
+    }
+    void filesDropped (const juce::StringArray& files, int x, int y) override
+    {
+        const int key = padKeyAt ({ x, y });
+        if (key >= 0 && onPadFilesDropped)
+            onPadFilesDropped (key, files);
+    }
+    void harnessClickPad (int key, bool shift, bool ctrl) { if (onPadClicked) onPadClicked (key, shift, ctrl); }
+    void harnessDropOnPad (int key, const juce::StringArray& files) { if (onPadFilesDropped) onPadFilesDropped (key, files); }
+    void paintOverChildren (juce::Graphics& g) override
+    {
+        if (! padsShown())
+            return;
+        using L = yesdaw::ui::UiTheme::Layout;
+        g.setColour (yesdaw::ui::UiTheme::Color::mutedText());
+        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+        g.drawText ("PADS  click: load  \u00b7  shift+click: one-shot / pitched  \u00b7  ctrl+click: clear  \u00b7  drop a WAV on a pad",
+                    padCaption, juce::Justification::centredLeft, true);
+        for (int index = 0; index < L::instrumentPanelPadCount; ++index)
+        {
+            const int key = L::instrumentPanelPadFirstKey + index;
+            const juce::Rectangle<int> cell = padCellBounds (key);
+            const Pad* pad = nullptr;
+            for (const Pad& candidate : pads)
+                if (candidate.key == key)
+                    pad = &candidate;
+            g.setColour (pad != nullptr ? yesdaw::ui::UiTheme::Color::samplerPadLoaded() : yesdaw::ui::UiTheme::Color::samplerPadEmpty());
+            g.fillRect (cell);
+            g.setColour (yesdaw::ui::UiTheme::Color::panelStroke());
+            g.drawRect (cell, 1);
+            g.setColour (pad != nullptr ? yesdaw::ui::UiTheme::Color::text() : yesdaw::ui::UiTheme::Color::mutedText());
+            g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny, pad != nullptr ? juce::Font::bold : juce::Font::plain));
+            const juce::Rectangle<int> inner = cell.reduced (L::instrumentPanelPadLabelInset);
+            g.drawText (juce::String (yesdaw::ui::pianoRollKeyName (key)), inner, juce::Justification::topLeft, false);
+            if (pad != nullptr)
+            {
+                g.drawFittedText (pad->name, inner, juce::Justification::centred, padCellHeight >= L::instrumentPanelPadCellHeight ? 2 : 1);
+                if (padCellHeight >= L::instrumentPanelPadCellModeMinHeight)
+                    g.drawText (pad->oneShot ? "1-shot" : "pitched", inner, juce::Justification::bottomRight, false);
+            }
+        }
+    }
     void harnessSetRow (int row, double normalized)
     {
         if (row < 0 || static_cast<std::size_t> (row) >= rows.size())
@@ -4569,6 +4670,29 @@ public:
         auto title = area.removeFromTop (L::instrumentPanelTitleHeight);
         kindChooser.setBounds (title.removeFromRight (L::instrumentPanelKindWidth));
         area.removeFromTop (yesdaw::ui::UiTheme::Space::sm);
+        // G3.9: the pad grid takes the panel's bottom when the Sampler is shown — whole or not at all
+        // (the section-fit law) and BEFORE the parameter rows: a kit's pads matter more than its ADSR
+        // (ss4 found the default dock height dropping the grid); the rows take what is left, each
+        // dropping whole when it no longer fits.
+        padGrid = {};
+        padCaption = {};
+        if (showPads)
+        {
+            // The cell height adapts to the dock (the minimum dock still shows the whole grid): from
+            // instrumentPanelPadCellMinHeight up to instrumentPanelPadCellHeight.
+            const int spare = area.getHeight() - L::instrumentPanelPadCaptionHeight - yesdaw::ui::UiTheme::Space::sm
+                            - (L::instrumentPanelPadRows - 1) * L::instrumentPanelPadGap;
+            padCellHeight = juce::jlimit (L::instrumentPanelPadCellMinHeight, L::instrumentPanelPadCellHeight,
+                                          spare / L::instrumentPanelPadRows);
+            const int gridHeight = L::instrumentPanelPadRows * padCellHeight + (L::instrumentPanelPadRows - 1) * L::instrumentPanelPadGap;
+            const int needed = L::instrumentPanelPadCaptionHeight + gridHeight + yesdaw::ui::UiTheme::Space::sm;
+            if (area.getHeight() >= needed)
+            {
+                padGrid = area.removeFromBottom (gridHeight);
+                padCaption = area.removeFromBottom (L::instrumentPanelPadCaptionHeight);
+                area.removeFromBottom (yesdaw::ui::UiTheme::Space::sm);
+            }
+        }
         for (std::size_t i = 0; i < kMaxRows; ++i)
         {
             if (! sliders[i].isVisible())
@@ -4594,6 +4718,11 @@ private:
     std::array<juce::Slider, kMaxRows> sliders;
     std::array<juce::Label, kMaxRows> readouts;
     std::vector<Row> rows;
+    std::vector<Pad> pads;               // G3.9
+    bool showPads = false;
+    juce::Rectangle<int> padGrid;
+    juce::Rectangle<int> padCaption;
+    int padCellHeight = yesdaw::ui::UiTheme::Layout::instrumentPanelPadCellHeight;
     bool refreshing = false;
 };
 
@@ -5818,7 +5947,52 @@ public:
             const yesdaw::engine::Track* const track = appModel.selectedTrackForInstrument();
             return track != nullptr ? juce::String (instrumentKindName (track->instrumentKind)) : juce::String ("No track");
         };
-        instrumentPanel.kindChoicesProvider = [] { return std::vector<juce::String> { "None (auto)", "SimpleSynth" }; };
+        instrumentPanel.kindChoicesProvider = [] { return std::vector<juce::String> { "None (auto)", "SimpleSynth", "Sampler" }; };   // G3.9
+        // G3.9: the Sampler's pad grid and its verbs.
+        instrumentPanel.padsProvider = [this] {
+            const yesdaw::engine::Track* const track = appModel.selectedTrackForInstrument();
+            return track != nullptr && track->instrumentKind == yesdaw::engine::TrackInstrumentKind::Sampler;
+        };
+        instrumentPanel.padRowsProvider = [this] {
+            std::vector<InstrumentPanelComponent::Pad> pads;
+            if (const yesdaw::engine::Track* const track = appModel.selectedTrackForInstrument())
+                for (const yesdaw::engine::SamplerPad& pad : track->samplerPads)
+                    pads.push_back ({ static_cast<int> (pad.key), juce::String (std::string (pad.nameView())), pad.oneShot, true });
+            return pads;
+        };
+        instrumentPanel.onPadClicked = [this] (int key, bool shift, bool ctrl) {
+            const std::int16_t padKey = static_cast<std::int16_t> (key);
+            if (ctrl)
+            {
+                (void) appModel.clearSamplerPadOnSelectedTrack (padKey);
+                recordLastAction (yesdaw::ui::UiActionId::SamplerPadClear);
+            }
+            else if (shift)
+            {
+                (void) appModel.toggleSamplerPadModeOnSelectedTrack (padKey);
+                recordLastAction (yesdaw::ui::UiActionId::SamplerPadModeToggle);
+            }
+            else if (fileChoices.chooseSamplerPadFile)
+            {
+                const std::filesystem::path path = fileChoices.chooseSamplerPadFile();
+                if (! path.empty())
+                    loadSamplerPadFromPath (padKey, path);
+            }
+            refreshActionState();
+            resized();
+            repaintAll();
+        };
+        instrumentPanel.onPadFilesDropped = [this] (int key, const juce::StringArray& files) {
+            for (const juce::String& file : files)
+                if (juce::File (file).hasFileExtension ("wav;wave"))
+                {
+                    loadSamplerPadFromPath (static_cast<std::int16_t> (key), std::filesystem::path (file.toStdString()));
+                    break;   // one file, one pad
+                }
+            refreshActionState();
+            resized();
+            repaintAll();
+        };
         instrumentPanel.kindIndexProvider = [this] {
             const yesdaw::engine::Track* const track = appModel.selectedTrackForInstrument();
             return track != nullptr ? static_cast<int> (track->instrumentKind) : -1;
@@ -5853,6 +6027,7 @@ public:
         inspectorInstrumentChooser.setComponentID ("track.inspector.instrument");
         inspectorInstrumentChooser.addItem ("None (auto)", 1);
         inspectorInstrumentChooser.addItem ("SimpleSynth", 2);
+        inspectorInstrumentChooser.addItem ("Sampler", 3);   // G3.9
         inspectorInstrumentChooser.onChange = [this] {
             if (refreshingInspectorControls)
                 return;
@@ -7193,11 +7368,14 @@ public:
                 const PianoRollCanvasGeometry rollGeometry = pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin());
                 put ("pianoroll.lane", pianoRollControlLaneDataArea (rollGeometry).translated (pianoRollInput.getX(), pianoRollInput.getY()));
                 put ("pianoroll.lane.chooser", pianoRollLaneChooser.getBounds());
-            put ("pianoroll.key", pianoRollKeyChooser.getBounds());     // G3.8
-            put ("pianoroll.scale", pianoRollScaleChooser.getBounds());
+                put ("pianoroll.key", pianoRollKeyChooser.getBounds());     // G3.8
+                put ("pianoroll.scale", pianoRollScaleChooser.getBounds());
                 put ("pianoroll.typing", pianoRollTypingButton.getBounds());   // G3.6
                 put ("pianoroll.step", pianoRollStepButton.getBounds());
             }
+            // G3.9: the Sampler's pad grid, when the Instrument tab shows one (panel-local → shell).
+            if (instrumentPanel.isVisible() && instrumentPanel.padsShown())
+                put ("instrument.panel.pads", instrumentPanel.currentPadGrid().translated (instrumentPanel.getX(), instrumentPanel.getY()));
             // The mixer's painted zones by name (mixer.strip.N, .solo, .mute, .fader,
             // .insert.K, .send.K) so a drive clicks the strip it sees — nothing about the mixer
             // was clickable by name before 2026-09-04, which is where the mouse-only bugs hid.
@@ -7441,7 +7619,10 @@ public:
                                            ? juce::String ("Instrument")   // G3.1
                                            : juce::String ("Mixer"));
             if (const yesdaw::engine::Track* const instrumentTrack = appModel.selectedTrackForInstrument())
+            {
                 view->setProperty ("instrument", juce::String (instrumentKindName (instrumentTrack->instrumentKind)));   // G3.1
+                view->setProperty ("samplerPadCount", static_cast<int> (instrumentTrack->samplerPads.size()));   // G3.9
+            }
             view->setProperty ("dockHeight", dockedMixerHeight());
             view->setProperty ("settingsRow", context.settingsRowVisible);
             view->setProperty ("headerHeight", headerHeightNow());
@@ -9864,6 +10045,20 @@ private:
         refreshActionState();
         resized();   // G3.1: the inspector's TRACK tab lays out per selected Track (the instrument row)
         repaintAll();
+    }
+
+    // G3.9: a WAV onto a Sampler pad — the WAV reader's refusal is the shell's to name (R6), every
+    // other refusal the model's (R7).
+    void loadSamplerPadFromPath (std::int16_t key, const std::filesystem::path& path)
+    {
+        auto decoded = decodeProjectWav (path);
+        if (! decoded)
+        {
+            appModel.reportStatus ("Sampler pad refused (WAV only, stereo max): " + path.filename().string(), true);
+            return;
+        }
+        if (appModel.importSamplerPadFromSource (path, std::move (*decoded), key).ok())
+            recordLastAction (yesdaw::ui::UiActionId::SamplerPadLoad);
     }
 
     // G3.1: the instrument kind's name (the probe, the panel title, the inspector row).
@@ -15498,13 +15693,26 @@ private:
                                              geometry.grid.getWidth(),
                                              yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth));
 
+            // G3.9: drum mode — a Sampler's pad names its key (bold, over the key body); a key
+            // without a pad keeps the note name, dimmed.
+            const std::string* const padName = surface.drumMode ? surface.padNameForKey (key) : nullptr;
+            if (padName != nullptr)
+            {
+                g.setColour (yesdaw::ui::UiTheme::Color::pianoWhiteKeyText());
+                g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::caption, juce::Font::bold));
+                g.drawText (juce::String (*padName),
+                            keyRow.reduced (yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetX,
+                                            yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetY),
+                            juce::Justification::centredLeft, true);
+            }
             // G3.2: every white key names itself once its row is tall enough; C keeps its bold octave
             // label at any height (the landmark Logic paints).
-            if (key % 12 == 0
+            else if (key % 12 == 0
                 || (! isBlackMidiKey (key)
                     && juce::roundToInt (geometry.rowHeight) >= yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelMinRowHeight))
             {
-                g.setColour (yesdaw::ui::UiTheme::Color::pianoWhiteKeyText());
+                g.setColour (surface.drumMode ? yesdaw::ui::UiTheme::Color::pianoWhiteKeyText().withAlpha (0.5f)
+                                              : yesdaw::ui::UiTheme::Color::pianoWhiteKeyText());
                 g.setFont (yesdaw::ui::UiTheme::Type::font (
                     yesdaw::ui::UiTheme::Type::caption,
                     key % 12 == 0 ? juce::Font::bold : juce::Font::plain));
@@ -17057,6 +17265,16 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
         return pathFromJuceFile (chooser.getResult());
     };
 
+    // G3.9: the Sampler pad's WAV chooser.
+    choices.chooseSamplerPadFile = [] {
+        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+        juce::FileChooser chooser ("Load Sample onto Pad", documents, "*.wav;*.wave", true);
+        if (! chooser.browseForFileToOpen())
+            return std::filesystem::path {};
+
+        return pathFromJuceFile (chooser.getResult());
+    };
+
     choices.chooseExportMidiFile = [] {
         const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
         juce::FileChooser chooser ("Export MIDI File", documents.getChildFile ("YES DAW.mid"), "*.mid", true);
@@ -17566,8 +17784,25 @@ MainComponentInstrumentPanel mainComponentInstrumentPanel (juce::Component& comp
         out.kind = panel.currentKind();
         for (const InstrumentPanelComponent::Row& row : panel.currentRows())
             out.rows.emplace_back (row.label, row.normalized);
+        panel.resized();   // G3.9: the pad grid is laid out in resized(); the readout reports what is painted
+        out.padsVisible = panel.padsShown();
+        out.padGrid = panel.currentPadGrid();
+        for (const InstrumentPanelComponent::Pad& pad : panel.currentPads())
+            out.pads.emplace_back (pad.key, pad.name);
     }
     return out;
+}
+
+void mainComponentInstrumentPanelClickPad (juce::Component& component, int key, bool shift, bool ctrl)   // G3.9
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessInstrumentPanel().harnessClickPad (key, shift, ctrl);
+}
+
+void mainComponentInstrumentPanelDropFileOnPad (juce::Component& component, int key, const juce::String& path)   // G3.9
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessInstrumentPanel().harnessDropOnPad (key, juce::StringArray { path });
 }
 
 void mainComponentInstrumentPanelSetRow (juce::Component& component, int row, double normalized)

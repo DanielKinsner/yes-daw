@@ -32,6 +32,8 @@ struct MainComponentFileChoices
     // G3.7: the MIDI file choosers (the native shell opens a file box; the harness injects a path).
     std::function<std::filesystem::path()> chooseImportMidiFile;
     std::function<std::filesystem::path()> chooseExportMidiFile;
+    // G3.9: the Sampler pad's WAV chooser (a click on a pad cell; the harness injects a path).
+    std::function<std::filesystem::path()> chooseSamplerPadFile;
     std::function<engine::Project()> makeNewProject;
     // Audio device seams (usable-DAW P1 real device chooser): the native shell defaults these to the
     // JUCE device manager; the harness injects deterministic fakes so the chooser is gate-testable.
@@ -258,7 +260,14 @@ struct MainComponentInstrumentPanel
     bool visible = false;
     juce::String kind;
     std::vector<std::pair<juce::String, double>> rows;   // label, normalized value
+    bool padsVisible = false;                            // G3.9: the Sampler's pad grid is laid out
+    std::vector<std::pair<int, juce::String>> pads;      // G3.9: key, name (loaded pads only)
+    juce::Rectangle<int> padGrid;                        // G3.9: panel-local
 };
+// G3.9: the pad cell's mouse verbs through the panel itself — a plain click loads (the chooser seam),
+// Shift+click toggles one-shot / pitched, Ctrl+click clears; a file dropped on a cell loads it.
+void mainComponentInstrumentPanelClickPad (juce::Component& component, int key, bool shift, bool ctrl);
+void mainComponentInstrumentPanelDropFileOnPad (juce::Component& component, int key, const juce::String& path);
 [[nodiscard]] MainComponentInstrumentPanel mainComponentInstrumentPanel (juce::Component& component);
 void mainComponentInstrumentPanelSetRow (juce::Component& component, int row, double normalized);
 void mainComponentInstrumentPanelDragRow (juce::Component& component, int row, double first, double second);   // one drag, two values

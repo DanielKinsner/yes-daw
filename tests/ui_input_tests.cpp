@@ -20056,6 +20056,152 @@ TEST_CASE ("piano roll keyboard column: hovering a key names it in the status li
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// G3.9 / ADR-0048: the Sampler in the shell — the kind choosers list it; the instrument panel shows a
+// pad grid for a Sampler track; a click on a pad cell loads a WAV through the chooser seam (the file
+// becomes a Project Asset, the pad a row named from the file, one-shot at its key); a WAV dropped on a
+// cell loads it; Shift+click toggles pitched; Ctrl+click clears; every pad edit is one undo step; the
+// piano roll names the pad's key (drum mode) and a pencilled note on it sounds through the sampler.
+TEST_CASE ("G3.9 Sampler in the shell: the kind, the pad grid, load by click and by drop, mode and clear, drum-mode key names, it sounds",
+           "[ui][input][shell][g3][sampler-shell]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("sampler-shell");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseSamplerPadFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    const auto project = [&] { return readProjectSnapshot (bundlePath); };
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+
+    // The inspector's chooser lists the Sampler (third); choosing it sets the kind.
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowTrackTab));
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "track.inspector.instrument"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->getNumItems() == 3);
+    REQUIRE (chooser->getItemText (2) == "Sampler");
+    chooser->setSelectedId (3, juce::sendNotificationSync);
+    REQUIRE (project().tracks[0].instrumentKind == yesdaw::engine::TrackInstrumentKind::Sampler);
+
+    // The instrument panel: the five ADSR / gain rows and the pad grid, empty.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewInstrument);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    {
+        const yesdaw::ui::MainComponentInstrumentPanel panel = yesdaw::ui::mainComponentInstrumentPanel (*shell);
+        REQUIRE (panel.visible);
+        REQUIRE (panel.kind == "Sampler");
+        REQUIRE (panel.rows.size() == 5u);
+        REQUIRE (panel.rows[0].first == "attack");
+        REQUIRE (panel.padsVisible);
+        REQUIRE (panel.pads.empty());
+        REQUIRE (panel.padGrid.getWidth() > 0);
+    }
+
+    // A click on the C2 (36) cell loads the fixture through the chooser: a Project Asset, a one-shot pad
+    // named from the file at its own key; the status line names the pad.
+    const int dispatches = snapshotMainComponent (*shell).context.commandDispatchCount;
+    yesdaw::ui::mainComponentInstrumentPanelClickPad (*shell, 36, false, false);
+    {
+        const yesdaw::engine::Project loaded = project();
+        REQUIRE (loaded.assets.size() == 1u);
+        REQUIRE (loaded.tracks[0].samplerPads.size() == 1u);
+        REQUIRE (loaded.tracks[0].samplerPads[0].key == 36);
+        REQUIRE (loaded.tracks[0].samplerPads[0].rootKey == 36);
+        REQUIRE (loaded.tracks[0].samplerPads[0].oneShot);
+        REQUIRE (loaded.tracks[0].samplerPads[0].assetId == loaded.assets[0].id);
+        REQUIRE (loaded.tracks[0].samplerPads[0].nameView() == fixturePath.stem().string());
+        REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatches + 1);
+        REQUIRE (snapshotMainComponent (*shell).statusLineText.find ("Pad C2") != std::string::npos);
+        const yesdaw::ui::MainComponentInstrumentPanel panel = yesdaw::ui::mainComponentInstrumentPanel (*shell);
+        REQUIRE (panel.pads.size() == 1u);
+        REQUIRE (panel.pads[0].first == 36);
+    }
+
+    // A WAV dropped on the D2 (38) cell loads it too (the same Asset — content-hashed — a second pad).
+    yesdaw::ui::mainComponentInstrumentPanelDropFileOnPad (*shell, 38, juce::String (fixturePath.string()));
+    REQUIRE (project().tracks[0].samplerPads.size() == 2u);
+    REQUIRE (project().tracks[0].samplerPads[1].key == 38);
+    REQUIRE (project().assets.size() == 1u);   // the same bytes, one Asset
+
+    // Shift+click toggles pitched; Ctrl+click clears; each is one undo step.
+    yesdaw::ui::mainComponentInstrumentPanelClickPad (*shell, 38, true, false);
+    REQUIRE_FALSE (project().tracks[0].samplerPads[1].oneShot);
+    yesdaw::ui::mainComponentInstrumentPanelClickPad (*shell, 38, false, true);
+    REQUIRE (project().tracks[0].samplerPads.size() == 1u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (project().tracks[0].samplerPads.size() == 2u);
+    REQUIRE_FALSE (project().tracks[0].samplerPads[1].oneShot);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (project().tracks[0].samplerPads[1].oneShot);
+    {
+        juce::var doc;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), doc).wasOk());
+        const juce::var view = doc.getProperty ("view", juce::var());
+        REQUIRE (view.getProperty ("instrument", juce::var()).toString() == "Sampler");
+        REQUIRE (static_cast<int> (view.getProperty ("samplerPadCount", 0)) == 2);
+    }
+
+    // Drum mode: a MIDI clip on the Sampler track; the roll's surface names key 36 by the pad and knows
+    // the mode; a pencilled note on 36 (C2) renders energy through the sampler.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (requirePianoRollComponent (*shell).isVisible());
+    {
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = yesdaw::ui::projectUiPianoRollSurface (project(), project().midiClips.front().id);
+        REQUIRE (surface.drumMode);
+        REQUIRE (surface.padNames.size() == 2u);
+        REQUIRE (surface.padNameForKey (36) != nullptr);
+        REQUIRE (*surface.padNameForKey (36) == fixturePath.stem().string());
+        REQUIRE (surface.padNameForKey (37) == nullptr);
+    }
+    // A note on C2 by the pencil, then play from the top: the sampler sounds.
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));   // the pencil
+    const juce::Rectangle<int> grid = pianoRollGridBounds (pianoRoll);
+    const auto keyCentreY = [&] (int key)
+    {
+        const int lowKey = snapshotMainComponent (*shell).pianoRollViewLowKey;
+        const double rowHeight = static_cast<double> (grid.getHeight()) / yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight());
+        return grid.getBottom() - static_cast<int> ((key - lowKey + 0.5) * rowHeight);
+    };
+    // Scroll the key window down to C2 (the E10 wheel law: plain wheel scrolls the keys, clamped at 0;
+    // then up until C1 sits in the window).
+    {
+        juce::MouseWheelDetails wheelDown {};
+        wheelDown.deltaY = -0.4f;
+        juce::MouseWheelDetails wheelUp {};
+        wheelUp.deltaY = 0.4f;
+        const juce::MouseEvent plainWheel = makeMouseEvent (pianoRoll, grid.getCentre(), grid.getCentre(), false, 1, juce::ModifierKeys {});
+        for (int i = 0; i < 80 && snapshotMainComponent (*shell).pianoRollViewLowKey > 0; ++i)
+            pianoRoll.mouseWheelMove (plainWheel, wheelDown);
+        for (int i = 0; i < 80 && snapshotMainComponent (*shell).pianoRollViewLowKey < 30; ++i)
+            pianoRoll.mouseWheelMove (plainWheel, wheelUp);
+    }
+    {
+        const int lowKey = snapshotMainComponent (*shell).pianoRollViewLowKey;
+        INFO ("view low key " << lowKey);
+        REQUIRE (lowKey <= 36);
+        REQUIRE (lowKey + yesdaw::ui::UiTheme::Layout::pianoRollVisibleKeys (grid.getHeight()) - 1 >= 36);
+    }
+    mouseDownAt (pianoRoll, { grid.getX() + grid.getWidth() / 8, keyCentreY (36) });
+    REQUIRE (project().midiClips.front().notes.size() == 1u);
+    REQUIRE (project().midiClips.front().notes.front().key == 36);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+    const std::vector<float> rendered = renderMainComponentPlayback (*shell, 96'000, 512);
+    double energy = 0.0;
+    for (const float sample : rendered)
+        energy += static_cast<double> (sample) * static_cast<double> (sample);
+    REQUIRE (energy > 1.0e-3);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // G3.8: MIDI FX reachable in the shell — the strip's Add FX chooser lists the four MIDI kinds; adding
 // an Arpeggiator on a Track puts it in the chain and its slot names it; the param rows render its
 // choice specs as choosers; the roll header's Key / Scale choosers set the project's scale (persisted

@@ -72,6 +72,24 @@ if ($null -ne $panel) {
   [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'edit.undo' -and [int]$q.commandDispatchCount -ge $d1 + 1 } -TimeoutMs 2000) 'Ctrl+Z undoes the knob drag')
 }
 
+Step 5 'G3.9 the Sampler: the inspector chooser lists it; choosing it shows the pad grid in the panel'
+# The chooser popup opens on its current item (SimpleSynth, the second): one Down + Enter picks Sampler.
+Click 'widget.track.inspector.instrument'
+Start-Sleep -Milliseconds 350
+Key 'Down'
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) "$($q.view.instrument)" -eq 'Sampler' } -TimeoutMs 3000) ('the chooser sets the Sampler (probe view.instrument=' + (Probe).view.instrument + ')'))
+# The dock at its default height holds the parameter rows only; a user drags the dock splitter up for
+# the kit (the section-fit law drops the grid whole when it does not fit) — 160 px is plenty.
+DragWithin 'widget.shell.splitter.dock' 0 0 0 -160
+Start-Sleep -Milliseconds 300
+$panelNow = LayoutRect 'widget.instrument.panel'
+[void](Assert (WaitProbe { param($q) $null -ne $q.layout.'instrument.panel.pads' } -TimeoutMs 3000) ('the pad grid is laid out in the instrument panel (panel h=' + $panelNow[3] + ')'))
+[void](Assert ([int](Probe).view.samplerPadCount -eq 0) 'no pads yet (an empty grid)')
+Shot 'ss4-sampler-pads'
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) "$($q.view.instrument)" -eq 'SimpleSynth' } -TimeoutMs 3000) 'Ctrl+Z returns the SimpleSynth')
+
 Step 4 'Screenshots at the three rubric sizes with the panel open'
 Resize 1280 720;  Start-Sleep -Milliseconds 400; Shot 'ss4-1280x720'
 Resize 1920 1080; Start-Sleep -Milliseconds 400; Shot 'ss4-1920x1080'

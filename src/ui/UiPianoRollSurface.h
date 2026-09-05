@@ -179,6 +179,17 @@ struct UiPianoRollSurfaceSnapshot
     int controlLaneChoice = 0;   // G3.3: which control lane the roll shows (kPianoRollControlLaneChoices)
     int scaleRoot = 0;           // G3.8: the project's key / scale (scale 0 = off: every key is in)
     int scaleChoice = 0;
+    // G3.9: drum mode — the clip's Track is a Sampler: its pads name the keys (key, name).
+    bool drumMode = false;
+    std::vector<std::pair<int, std::string>> padNames;
+
+    [[nodiscard]] const std::string* padNameForKey (int key) const noexcept
+    {
+        for (const auto& [padKey, name] : padNames)
+            if (padKey == key)
+                return &name;
+        return nullptr;
+    }
 };
 
 // G3.8: the scale assist's laws — is a key inside the project's scale, and where the pencil lands.
@@ -376,6 +387,14 @@ inline UiPianoRollSurfaceSnapshot projectUiPianoRollSurface (const engine::Proje
         return snapshot;
 
     snapshot.midiClipSelected = true;
+    // G3.9: drum mode — the clip's Track is a Sampler; its pads name the keys.
+    if (const engine::Track* const track = project.findTrack (midiClip->trackId))
+        if (track->instrumentKind == engine::TrackInstrumentKind::Sampler)
+        {
+            snapshot.drumMode = true;
+            for (const engine::SamplerPad& pad : track->samplerPads)
+                snapshot.padNames.emplace_back (static_cast<int> (pad.key), std::string (pad.nameView()));
+        }
     snapshot.midiClipId = midiClip->id;
     snapshot.timelineStart = midiClip->timelineStart;
     snapshot.timelineLength = midiClip->timelineLength;

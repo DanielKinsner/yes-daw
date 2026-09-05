@@ -4721,6 +4721,134 @@ public:
         return { id, state, true };
     }
 
+    // G3.9 / ADR-0048: a WAV onto a Sampler pad of the selected Track — the file becomes a Project Asset
+    // exactly like a Clip import (the bundle's content-hashed copy, the model's decoded table), then the
+    // pad row is set (one-shot at its own key, named from the file) as the one undoable act.
+    [[nodiscard]] UiAppImportResult importSamplerPadFromSource (const std::filesystem::path& sourcePath,
+                                                                UiDecodedAsset decoded,
+                                                                std::int16_t padKey)
+    {
+        UiAppImportResult result;
+        engine::EntityId trackId;
+        const engine::Track* const track = selectedSendOwnerId (trackId) ? project_.findTrack (trackId) : nullptr;
+        if (track == nullptr)
+        {
+            reportStatus ("Sampler pad: select a Track first", true);
+            result.status = UiAppImportStatus::InvalidDecodedAudio;
+            return result;
+        }
+        if (! bundleDb_.isOpen())
+        {
+            reportStatus ("Sampler pad: no project is open", true);
+            result.status = UiAppImportStatus::NoBundleOpen;
+            return result;
+        }
+        if (! decodedAudioIsValid (decoded))
+        {
+            reportStatus ("Sampler pad refused: " + sourcePath.filename().string() + " is not usable audio", true);
+            result.status = UiAppImportStatus::InvalidDecodedAudio;
+            return result;
+        }
+        if (decoded.sampleRate.hz != project_.sampleRate.hz)
+        {
+            reportStatus ("Sampler pad refused: " + sourcePath.filename().string() + " is "
+                              + std::to_string (static_cast<long long> (decoded.sampleRate.hz)) + " Hz but this project is "
+                              + std::to_string (static_cast<long long> (project_.sampleRate.hz)) + " Hz (no resampling yet)",
+                          true);
+            result.status = UiAppImportStatus::SampleRateMismatch;
+            return result;
+        }
+        engine::Asset imported;
+        const persistence::AssetImportRequest request { sourcePath, allocateSessionEntityId (0xA7u), decoded.frames, decoded.sampleRate, decoded.channels };
+        result.bundleResult = bundleDb_.importAssetBytes (request, imported);
+        if (! result.bundleResult.ok())
+        {
+            reportStatus ("Sampler pad failed: could not copy " + sourcePath.filename().string() + " into the project bundle", true);
+            result.status = UiAppImportStatus::AssetImportFailed;
+            return result;
+        }
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (nextProject.findAsset (imported.id) == nullptr)
+            nextProject.assets.push_back (imported);
+        engine::SamplerPad pad;
+        pad.key = std::clamp<std::int16_t> (padKey, 0, 127);
+        pad.assetId = imported.id;
+        pad.rootKey = pad.key;
+        pad.oneShot = true;
+        pad.gain = 1.0;
+        pad.setName (sourcePath.stem().string());
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setSamplerPad (trackId, pad)).applied()
+            || ! nextProject.hasValidAssetClipIndirection())
+        {
+            reportStatus ("Sampler pad failed: " + sourcePath.filename().string() + " produced an invalid project", true);
+            result.status = UiAppImportStatus::InvalidDecodedAudio;
+            return result;
+        }
+        decoded.assetId = imported.id;
+        std::vector<UiDecodedAsset> previousDecoded = decodedAssets_;
+        upsertDecodedAsset (decodedAssets_, std::move (decoded));
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        {
+            decodedAssets_ = std::move (previousDecoded);
+            reportStatus ("Sampler pad failed: the project could not be saved or rebuilt", true);
+            result.status = UiAppImportStatus::ProjectWriteFailed;
+            return result;
+        }
+        enqueueWaveformBuildsForDecodedAssets();
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        reportStatus ("Pad " + std::string (yesdaw::ui::pianoRollKeyName (pad.key)) + ": " + std::string (pad.nameView()), false);
+        result.status = UiAppImportStatus::Ok;
+        return result;
+    }
+
+    [[nodiscard]] UiActionDispatchResult clearSamplerPadOnSelectedTrack (std::int16_t padKey)
+    {
+        const UiActionId id = UiActionId::SamplerPadClear;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        engine::EntityId trackId;
+        const engine::Track* const track = selectedSendOwnerId (trackId) ? project_.findTrack (trackId) : nullptr;
+        if (track == nullptr || track->findSamplerPad (padKey) == nullptr)
+            return { id, { false, "no sampler pad on that key" }, false };
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::clearSamplerPad (trackId, padKey)).applied())
+            return { id, { false, "sampler pad refused" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "sampler pad did not persist" }, false };
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    [[nodiscard]] UiActionDispatchResult toggleSamplerPadModeOnSelectedTrack (std::int16_t padKey)
+    {
+        const UiActionId id = UiActionId::SamplerPadModeToggle;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        engine::EntityId trackId;
+        const engine::Track* const track = selectedSendOwnerId (trackId) ? project_.findTrack (trackId) : nullptr;
+        const engine::SamplerPad* const existing = track != nullptr ? track->findSamplerPad (padKey) : nullptr;
+        if (existing == nullptr)
+            return { id, { false, "no sampler pad on that key" }, false };
+        engine::SamplerPad pad = *existing;
+        pad.oneShot = ! pad.oneShot;
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setSamplerPad (trackId, pad)).applied())
+            return { id, { false, "sampler pad refused" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "sampler pad did not persist" }, false };
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        reportStatus ("Pad " + std::string (yesdaw::ui::pianoRollKeyName (pad.key)) + ": " + (pad.oneShot ? "one-shot" : "pitched"), false);
+        return { id, state, true };
+    }
+
     [[nodiscard]] UiActionDispatchResult setInstrumentParamOnSelectedTrack (std::uint32_t paramId, double normalizedValue)
     {
         const UiActionId id = UiActionId::TrackInstrumentParamSet;
@@ -7777,6 +7905,11 @@ public:
 
             case UiActionId::ProjectImportMidi:   // G3.7: the shell's chooser / drop supplies the path
                 return { id, { false, "MIDI import path required" }, false };
+
+            case UiActionId::SamplerPadLoad:      // G3.9: the panel's pad verbs carry a key (and a file)
+            case UiActionId::SamplerPadClear:
+            case UiActionId::SamplerPadModeToggle:
+                return { id, { false, "sampler pad key required" }, false };
 
             case UiActionId::ProjectExportMidi:
                 return { id, { false, "MIDI export path required" }, false };

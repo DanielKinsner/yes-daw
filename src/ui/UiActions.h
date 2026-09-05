@@ -258,6 +258,9 @@ enum class UiActionId : std::uint8_t
     PianoRollStepInputToggle,
     PianoRollScaleRootSelect,   // G3.8: the roll header's Key chooser (the project's key)
     PianoRollScaleSelect,       // G3.8: the roll header's Scale chooser (Off / Major / Minor: scale assist)
+    SamplerPadLoad,             // G3.9: a WAV onto a Sampler pad (the panel's chooser or a drop)
+    SamplerPadClear,            // G3.9: Ctrl+click a pad cell
+    SamplerPadModeToggle,       // G3.9: Shift+click a pad cell — one-shot <-> pitched
     Count
 };
 
@@ -1134,6 +1137,13 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::PianoRollScaleRootSelect, "piano_roll.scale.root", "Key", "", "Choose the project's key (the root of the scale assist)",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::PianoRollScaleSelect, "piano_roll.scale.select", "Scale", "", "Choose the project's scale for the roll's scale assist (Off, Major, Minor)",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    // G3.9 / ADR-0048: the Sampler's pad cells in the instrument panel (mouse verbs; no chords).
+    { UiActionId::SamplerPadLoad, "sampler.pad.load", "Load Sample", "", "Load a WAV onto the Sampler pad (click a pad cell, or drop a file on it)",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    { UiActionId::SamplerPadClear, "sampler.pad.clear", "Clear Pad", "", "Clear the Sampler pad (Ctrl+click a pad cell)",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    { UiActionId::SamplerPadModeToggle, "sampler.pad.mode", "One-shot / Pitched", "", "Toggle the Sampler pad between one-shot and pitched (Shift+click a pad cell)",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -1888,6 +1898,11 @@ public:
 
             case UiActionId::PianoRollScaleRootSelect:   // G3.8: the model sets the project's scale, then dispatches
             case UiActionId::PianoRollScaleSelect:
+                break;
+
+            case UiActionId::SamplerPadLoad:     // G3.9: the model applies the pad edit, then dispatches
+            case UiActionId::SamplerPadClear:
+            case UiActionId::SamplerPadModeToggle:
                 break;
 
             case UiActionId::TimelineZoomFitProject:

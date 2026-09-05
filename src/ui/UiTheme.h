@@ -67,6 +67,9 @@ struct UiTheme
         // G3.8: the scale assist — the grid rows of keys INSIDE the project's scale lift off the black
         // grid so the keys outside it read as the dark ones (Logic's shaded non-scale keys).
         static juce::Colour pianoRollInScaleRow() noexcept { return juce::Colour (0x16ffffff); }
+        // G3.9: the Sampler's pad cells — loaded (a sample on the key) and empty.
+        static juce::Colour samplerPadLoaded() noexcept { return juce::Colour (0xff2b4d6e); }
+        static juce::Colour samplerPadEmpty() noexcept { return juce::Colour (0xff1a2230); }
         static juce::Colour pianoWhiteKeyText() noexcept { return juce::Colour (0xff2a3038); }
         static juce::Colour pianoGridStrong() noexcept { return juce::Colour (0xff344150); }
         static juce::Colour pianoGridWeak() noexcept { return juce::Colour (0xff202a34); }
@@ -845,6 +848,18 @@ struct UiTheme
         static constexpr int instrumentPanelLabelWidth = 96;
         static constexpr int instrumentPanelReadoutWidth = 72;
         static constexpr int instrumentPanelKindWidth = 160;
+        // G3.9: the Sampler's pad grid — two rows of eight cells (keys 36..51, the GM drum range) under
+        // the parameter rows; a cell paints its pad's name.
+        static constexpr int instrumentPanelPadColumns = 8;
+        static constexpr int instrumentPanelPadRows = 2;
+        static constexpr int instrumentPanelPadCellHeight = 44;      // the tallest cell (name on two lines + mode)
+        static constexpr int instrumentPanelPadCellMinHeight = 24;   // the minimum dock still shows the whole grid
+        static constexpr int instrumentPanelPadCellModeMinHeight = 40;   // the mode label needs this much
+        static constexpr int instrumentPanelPadGap = 4;
+        static constexpr int instrumentPanelPadFirstKey = 36;
+        static constexpr int instrumentPanelPadCount = 16;
+        static constexpr int instrumentPanelPadLabelInset = 4;
+        static constexpr int instrumentPanelPadCaptionHeight = 16;
         static constexpr int inspectorInstrumentChooserWidth = 120;
         static constexpr int inspectorInstrumentEditWidth = 48;
         // G3.4: the quantize panel (the CLIP tab of a MIDI clip): five rows of the fade-row height

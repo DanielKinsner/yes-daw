@@ -248,3 +248,6 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Step Input (`piano_roll.step_input`)
 - Key (`piano_roll.scale.root`)
 - Scale (`piano_roll.scale.select`)
+- Load Sample (`sampler.pad.load`)
+- Clear Pad (`sampler.pad.clear`)
+- One-shot / Pitched (`sampler.pad.mode`)

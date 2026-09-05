@@ -68,10 +68,13 @@ pads as Track rows referencing Project Assets (`SamplerPad`, schema v31 `sampler
 keys); `SamplerNode` (one-shot + pitched, sixteen voices, ADSR + gain as ParamSpecs); the projection's
 `assetSamplesProvider` seam hands a pad its Asset's samples through the G0.5 ownership law; the pad
 verbs (set / clear, undoable as Track row edits). `YesDawSamplerCheck` `[sampler]` (render goldens by
-equivalence). **Next:** cp2 — the shell: Sampler in the kind choosers, the instrument panel's pad grid
-(load by chooser, a WAV dropped on a pad), the drum-mode roll (pad names on the keys), `[sampler-shell]`,
-the ss4 drive step; then the G3.8 + G3.9 evidence commits and **G3.10 — RT-safe MIDI input and thru**;
-Dan's word (2026-09-05): run G3 to its end and stop when confident. Rules in force: HEADLESS by default (drives on Dan's go — given
+equivalence); cp1 `0fe4fad`. **cp2 (this commit) — the shell**: Sampler in both kind choosers; the
+instrument panel's pad grid (two rows of eight, C2–D#3) — a click loads a WAV through the chooser seam,
+a WAV dropped on a cell loads it, Shift+click toggles one-shot / pitched, Ctrl+click clears, every pad
+edit one undo step; the drum-mode roll names a pad's key; `[sampler-shell]`; ss4 Step 5 authored. Drive
++ rubric: see the G3.9 cp2 story. **Next:** the G3.8 + G3.9 evidence commits once CI is green on the
+heads, then **G3.10 — RT-safe MIDI input and thru** (the last G3 item); Dan's word (2026-09-05): run G3
+to its end and stop when confident. Rules in force: HEADLESS by default (drives on Dan's go — given
 2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the local suite + drives are the working
 gate; drive scripts launched back-to-back flake at Step 0 (pause between scripts).
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
@@ -237,6 +240,69 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.9 cp2 — Sampler instrument: the shell half (2026-09-05)
+
+**Story.** cp1 gave the engine a Sampler nobody could reach: no chooser listed it, no panel showed a
+pad, no way to put a WAV on a key. Now the TRACK tab's chooser and the instrument panel's chooser list
+"Sampler"; the panel grows a pad grid — sixteen cells, C2 to D#3, the GM drum range — and a click on a
+cell opens the WAV chooser (a drop from Explorer does the same), the file becomes a Project Asset and
+the pad a named one-shot at its key; Shift+click makes it pitched, Ctrl+click clears it; the piano roll
+in drum mode names the pad's key and dims the rest.
+
+**Precedent.** Logic's Drum Machine Designer (a grid of pads, a sample dropped on a pad, the drum
+editor naming the pads' rows) and Live's Drum Rack (drop a sample on a pad; the roll's fold to pads).
+The cell verbs follow the G2 mouse laws (a plain click acts, Shift widens, Ctrl removes — the same
+modifiers the roll's tools use) since a pad has no keyboard chord (ADR-0046 §2).
+
+**Build.** `UiActions.h`: `SamplerPadLoad` / `SamplerPadClear` / `SamplerPadModeToggle` (mouse verbs,
+no chords; the model applies, then dispatches). `UiAppModel.h`: `importSamplerPadFromSource` (the
+Clip import's asset half — the R6 / R7 refusals, the content-hashed bundle copy, the decoded table —
+then `SetSamplerPad` as the one undoable act: one-shot at its own key, named from the file's stem, the
+status line names the pad), `clearSamplerPadOnSelectedTrack`, `toggleSamplerPadModeOnSelectedTrack`.
+`UiPianoRollSurface.h`: `drumMode` and `padNames` on the snapshot (the clip's Track is a Sampler),
+`padNameForKey`. `MainComponent.cpp`: the instrument panel is a `FileDragAndDropTarget`; the pad grid
+(`padCellBounds` / `padKeyAt` — two rows of eight from `instrumentPanelPadFirstKey`, the lower keys on
+the bottom row) laid out under the parameter rows whole-or-not-at-all (the section-fit law), painted
+in `paintOverChildren` with the key name, the pad's name and its mode; `mouseDown` on a cell → load /
+toggle / clear; `filesDropped` on a cell → load; `loadSamplerPadFromPath` (the WAV reader's refusal is
+the shell's to name, R6); `chooseSamplerPadFile` on `MainComponentFileChoices` (native "Load Sample onto
+Pad"); the kind lists gain "Sampler"; the roll's keyboard column paints a pad's name bold on its key and
+dims the note names in drum mode; the probe's `view.samplerPadCount`; the layout id
+`instrument.panel.pads`; harness `mainComponentInstrumentPanelClickPad` / `DropFileOnPad` and the panel
+readout's `padsVisible` / `pads` / `padGrid`. Tokens `instrumentPanelPad*`, colours `samplerPad*`.
+`docs/keymap-v2.md` regenerated (three chord-less rows).
+
+**Gates.** `[sampler-shell]` in `YesDawUiInputCheck` (the run: 188 assertions across the three related
+gates): the TRACK tab's chooser lists three kinds with Sampler third and sets the kind; the panel shows
+"Sampler", five rows (attack first) and an empty pad grid; a click on the C2 cell loads the fixture — one
+Asset, one pad at 36 (root 36, one-shot, named `sine_440_48k_mono`), one dispatch, the status line
+"Pad C2 …", the panel's readout lists the pad; a drop on the D2 cell adds a second pad on the SAME Asset
+(content-hashed, one row); Shift+click makes it pitched, Ctrl+click clears it, two Ctrl+Z restore both in
+order; the probe says Sampler / 2 pads; a MIDI clip on the track puts the roll in drum mode (the surface
+names 36 by the pad, not 37); the wheel scrolls the key window to C2 and the pencil lands a note on 36;
+Home + Space renders energy through the sampler. `[track-instrument]` and `[file-drop]` stay green
+beside it; `YesDawUiActionCheck` green.
+
+**See-it.** ss4 Step 5: the TRACK tab's chooser by mouse picks the Sampler (one Down from SimpleSynth),
+the pad grid is laid out in the panel (an empty grid — a shot), Ctrl+Z returns the SimpleSynth — ss4
+**15 / 15** on the real exe (2026-09-05). Two drive reds on the way, both real: (1) the default dock
+dropped the grid whole (the section-fit law) — the grid now claims its space BEFORE the parameter rows
+and its cell height adapts to the dock (24–44 px; the mode label only when tall enough), and the step
+drags the dock splitter up as a user would; (2) the grid's layout id was published inside the piano
+roll's block, so the Instrument tab never published it — moved to the dock level. Local suite 378 / 378
+(before the two layout edits; the shell gates and the screenshot goldens rerun green after them).
+
+**Rubric (§7.4, the ss4 pad-grid shot at 1920×1080).** 1 PASS (title, kind chooser, five rows, the
+caption and two rows of eight cells; nothing overlaps). 2 n/a. 3 PASS (every cell names its key; the
+caption states the three mouse verbs and the drop). 4 PASS. 5 PASS. 6 PASS. 7 PASS. Note (no FIX
+item): the caption is set in the tiny face and reads faint at 1080p; the pad inspector pass (parking
+lot) will carry the verbs as tooltips per cell.
+
+**Deviation log.** (1) No per-pad gain or root-key control in the panel (the row is the model's; the
+panel shows name + mode) — the pad inspector is the instrument polish pass. (2) No "fold to pads" in
+the drum-mode roll (Live's) — the roll keeps every key, names the pads, dims the rest; the key window
+does not jump to the pads on its own (parking lot with the roll's scroll-to-notes finding).
 
 ### G3.9 cp1 — Sampler instrument: ADR-0048 and the engine half (2026-09-05)
 
