@@ -230,4 +230,33 @@ Key 'Ctrl+Z'
 Click 'pianoroll.step'
 Key 'Ctrl+K'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.view.musicalTyping.on -and -not [bool]$q.view.stepInput.on } -TimeoutMs 1500) 'both modes off again')
+
+Step 15 'G3.7 File > Import MIDI File through the real chooser: a two-track file adds a track and its clips'
+# A two-track Standard MIDI File written by the drive itself (the [smf] golden's law: a "Keys" track
+# with a C4 quarter and a "Bass" track with a C2 half note), fed to the native chooser by path.
+$mid = Join-Path ([System.IO.Path]::GetTempPath()) ('ss5-import-' + (Get-Date).ToString('HHmmss') + '.mid')
+[byte[]]$midBytes = @(
+  0x4D,0x54,0x68,0x64, 0,0,0,6, 0,1, 0,3, 0x01,0xE0,                                    # MThd, format 1, 3 tracks, 480 PPQ
+  0x4D,0x54,0x72,0x6B, 0,0,0,11, 0x00,0xFF,0x51,0x03,0x07,0xA1,0x20, 0x00,0xFF,0x2F,0x00,  # tempo 120, EOT
+  0x4D,0x54,0x72,0x6B, 0,0,0,21, 0x00,0xFF,0x03,0x04,0x4B,0x65,0x79,0x73,                 # "Keys"
+                                  0x00,0x90,0x3C,0x64, 0x83,0x60,0x80,0x3C,0x40, 0x00,0xFF,0x2F,0x00,   # C4 on @0, off @480
+  0x4D,0x54,0x72,0x6B, 0,0,0,21, 0x00,0xFF,0x03,0x04,0x42,0x61,0x73,0x73,                 # "Bass"
+                                  0x00,0x90,0x24,0x6E, 0x87,0x40,0x80,0x24,0x40, 0x00,0xFF,0x2F,0x00    # C2 on @0, off @960
+)
+[System.IO.File]::WriteAllBytes($mid, $midBytes)
+$t0 = [int](Probe).view.trackCount
+$menubar = LayoutRect 'widget.shell.menubar'
+Click 'widget.shell.menubar' -OffsetX (20 - [int]($menubar[2] / 2))
+# File (a project loaded, every item enabled): New, Open, Save, Save As, Import WAV, Export Audio, Import MIDI File -> 7th.
+MenuPick 7
+$dlg = WaitDialog 'Import MIDI File' 4000
+[void](Assert ($dlg -ne [IntPtr]::Zero) 'File > Import MIDI File opens the native chooser')
+if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $mid }
+[void](Assert (WaitProbe { param($q) [int]$q.view.trackCount -eq $t0 + 1 } -TimeoutMs 8000) 'the file''s second track ("Bass") adds a track')
+[void](Assert ((Probe).status.text -like 'Imported 2 MIDI clips*') ('the status line names the import (' + (Probe).status.text + ')'))
+Shot 'ss5-midi-file-imported'
+Focus
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) [int]$q.view.trackCount -eq $t0 } -TimeoutMs 3000) 'one Ctrl+Z removes the import (the added track goes too)')
+Remove-Item -LiteralPath $mid -ErrorAction SilentlyContinue
 Close

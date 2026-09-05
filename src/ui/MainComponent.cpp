@@ -5083,7 +5083,7 @@ public:
                 return false;
 
             for (const juce::String& file : files)
-                if (juce::File (file).hasFileExtension ("wav"))
+                if (juce::File (file).hasFileExtension ("wav") || juce::File (file).hasFileExtension ("mid;midi"))   // G3.7
                     return true;
 
             return false;
@@ -5104,6 +5104,19 @@ public:
             for (const juce::String& file : files)
             {
                 const std::filesystem::path path (file.toStdString());
+                // G3.7: a .mid lands on the lane under the pointer as MIDI clips (the model names
+                // its own refusals on the status line; further file tracks add lanes below).
+                if (juce::File (file).hasFileExtension ("mid;midi"))
+                {
+                    const int midiLane = std::min (lane + laneOffset, static_cast<int> (appModel.project().tracks.size()) - 1);
+                    const yesdaw::engine::EntityId midiTrackId = appModel.project().tracks[static_cast<std::size_t> (midiLane)].id;
+                    if (appModel.importMidiFileAt (path, midiTrackId, start).dispatched)
+                    {
+                        anyImported = true;
+                        ++laneOffset;
+                    }
+                    continue;
+                }
                 auto decoded = decodeProjectWav (path);
                 if (! decoded)
                 {
@@ -10626,16 +10639,22 @@ private:
         inspectorEnd.setBounds (statsFit ? endCell : juce::Rectangle<int>());
         inspectorLength.setBounds (statsFit ? lengthCell : juce::Rectangle<int>());
 
+        // G3.7 rubric FIX (a G3.5 defect the MIDI-import shot exposed): the audio clip's gain, stretch
+        // and fade controls are audio-only — with a MIDI clip in the CLIP tab they stayed laid out under
+        // the MIDI rows and overlapped the loop chooser and Apply (Q). One law: they exist only when the
+        // tab shows an audio clip.
+        const bool audioClipControls = ! inspectorShowsQuantizePanel();
+        const auto audioSectionFits = [&] (juce::Rectangle<int> section) { return audioClipControls && sectionFits (section); };
         const auto gainSection = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorGainSectionTop)
                                      .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainSectionHeight);
         auto gain = gainSection;
         gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlTopInset);
-        inspectorGain.setBounds (sectionFits (gainSection)
+        inspectorGain.setBounds (audioSectionFits (gainSection)
             ? gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlHeight)
                   .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainControlLeftInset)
             : juce::Rectangle<int>());
         gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorStretchControlTopGap);   // G2.9b
-        inspectorStretch.setBounds (sectionFits (gainSection)
+        inspectorStretch.setBounds (audioSectionFits (gainSection)
             ? gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlHeight)
                   .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainControlLeftInset)
             : juce::Rectangle<int>());
@@ -10644,7 +10663,7 @@ private:
                                       .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
         auto fades = fadesSection;
         fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadesControlTopInset);
-        const bool fadesFit = sectionFits (fadesSection);
+        const bool fadesFit = audioSectionFits (fadesSection);
         inspectorFadeIn.setBounds (fadesFit
             ? fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeControlHeight)
                   .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset)
@@ -11506,9 +11525,10 @@ private:
     [[nodiscard]] static std::span<const yesdaw::ui::UiActionId> menuActionsForIndex (int topLevelMenuIndex)
     {
         using yesdaw::ui::UiActionId;
-        static constexpr std::array<UiActionId, 8> kFileMenu {
+        static constexpr std::array<UiActionId, 10> kFileMenu {
             UiActionId::ProjectNew,        UiActionId::ProjectOpen,        UiActionId::ProjectSave,
             UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
+            UiActionId::ProjectImportMidi, UiActionId::ProjectExportMidi,   // G3.7
             UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
         };
         static constexpr std::array<UiActionId, 33> kEditMenu {
@@ -12266,6 +12286,33 @@ private:
                     const std::filesystem::path path = fileChoices.chooseExportAudioFile();
                     if (! path.empty())
                         (void) appModel.exportAudioFile (path);
+                }
+                return;
+
+            // G3.7: a MIDI file lands on the SELECTED track (else the first) at the playhead; the
+            // export takes the selection, else the whole project. The model names every refusal.
+            case yesdaw::ui::UiActionId::ProjectImportMidi:
+                if (fileChoices.chooseImportMidiFile)
+                {
+                    const std::filesystem::path path = fileChoices.chooseImportMidiFile();
+                    const auto& tracks = appModel.project().tracks;
+                    if (! path.empty() && ! tracks.empty())
+                    {
+                        const std::size_t lane = selectedTrackLane >= 0 && selectedTrackLane < static_cast<int> (tracks.size())
+                            ? static_cast<std::size_t> (selectedTrackLane) : std::size_t {};
+                        (void) appModel.importMidiFileAt (
+                            path, tracks[lane].id,
+                            static_cast<yesdaw::engine::Tick> (std::max<std::int64_t> (0, appModel.context().playheadFrame)));
+                    }
+                }
+                return;
+
+            case yesdaw::ui::UiActionId::ProjectExportMidi:
+                if (fileChoices.chooseExportMidiFile)
+                {
+                    const std::filesystem::path path = fileChoices.chooseExportMidiFile();
+                    if (! path.empty())
+                        (void) appModel.exportMidiFile (path);
                 }
                 return;
 
@@ -16913,6 +16960,25 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
             return std::filesystem::path {};
 
         return withExtension (pathFromJuceFile (chooser.getResult()), ".wav");
+    };
+
+    // G3.7: the MIDI file choosers.
+    choices.chooseImportMidiFile = [] {
+        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+        juce::FileChooser chooser ("Import MIDI File", documents, "*.mid;*.midi", true);
+        if (! chooser.browseForFileToOpen())
+            return std::filesystem::path {};
+
+        return pathFromJuceFile (chooser.getResult());
+    };
+
+    choices.chooseExportMidiFile = [] {
+        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+        juce::FileChooser chooser ("Export MIDI File", documents.getChildFile ("YES DAW.mid"), "*.mid", true);
+        if (! chooser.browseForFileToSave (true))
+            return std::filesystem::path {};
+
+        return withExtension (pathFromJuceFile (chooser.getResult()), ".mid");
     };
 
     return choices;

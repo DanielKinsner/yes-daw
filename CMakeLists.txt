@@ -841,6 +841,12 @@ endif()
 yesdaw_harden(YesDawMidiClipOpsCheck)
 add_test(NAME YesDawMidiClipOpsCheck COMMAND $<TARGET_FILE:YesDawMidiClipOpsCheck>)
 
+add_executable(YesDawSmfCheck tests/smf_tests.cpp)
+target_include_directories(YesDawSmfCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawSmfCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawSmfCheck)
+add_test(NAME YesDawSmfCheck COMMAND $<TARGET_FILE:YesDawSmfCheck>)
+
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
 target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})

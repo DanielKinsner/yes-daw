@@ -1,5 +1,6 @@
 // YES DAW - H12 real-shell UI input harness skeleton.
 
+#include "interchange/Smf.h"   // G3.7: the [midi-file] gate writes and reads back a Standard MIDI File
 #include "ui/MainComponent.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
@@ -4641,8 +4642,8 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model != nullptr);
     // G1.2: Logic's menu order.
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
-    // Eight action items + the B39 Open Recent submenu.
-    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 9);
+    // Ten action items + the B39 Open Recent submenu (G3.7 re-pin: + Import MIDI File / Export MIDI File).
+    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 11);
     REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 34);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes; G2.18: + Undo History…
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
 
@@ -20051,6 +20052,215 @@ TEST_CASE ("piano roll keyboard column: hovering a key names it in the status li
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, grid).contains ("Grid"));
 
     std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G3.7: MIDI file import / export. A .mid dropped on a lane lands as MIDI clips at the tick under the
+// pointer — the file's first musical track on that lane, every further track on a NEW track named from
+// the file with the synth on it; quarter notes become frames at the project's head tempo (Logic's law:
+// the file plays at the project tempo); notes and control points come through; one Ctrl+Z removes it
+// all. File > Import MIDI File lands on the selected track at the playhead. File > Export MIDI File
+// writes the selection (else every MIDI clip) as a format-1 SMF that reads back to the same notes.
+// Refusals name their reason on the status line.
+TEST_CASE ("G3.7 MIDI file: a .mid drop lands as clips and tracks, the menu import, the export reads back, refusals are named",
+           "[ui][input][shell][g3][midi-file]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("midi-file");
+    const std::filesystem::path midiPath = bundlePath.parent_path() / "yesdaw-midi-file-gate.mid";
+    const std::filesystem::path exportPath = bundlePath.parent_path() / "yesdaw-midi-file-gate-export.mid";
+    const std::filesystem::path junkPath = bundlePath.parent_path() / "yesdaw-midi-file-gate-junk.mid";
+    {
+        // Two musical tracks at 480 PPQ (the file's tempo 100 BPM is NOT adopted): "Keys" (C4 for a
+        // quarter, E4 for an eighth after a quarter, CC1 = 64 at the eighth) and "Bass" (C2, two quarters).
+        namespace smf = yesdaw::interchange;
+        smf::SmfFile file;
+        file.ticksPerQuarter = 480;
+        smf::SmfTrack head;
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::Tempo; e.tempoMicrosPerQuarter = 600000; head.events.push_back (e); }
+        file.tracks.push_back (head);
+        smf::SmfTrack keys;
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::TrackName; e.text = "Keys"; keys.events.push_back (e); }
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::NoteOn; e.tick = 0; e.data1 = 60; e.data2 = 100; keys.events.push_back (e); }
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::ControlChange; e.tick = 240; e.data1 = 1; e.data2 = 64; keys.events.push_back (e); }
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::NoteOff; e.tick = 480; e.data1 = 60; keys.events.push_back (e); }
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::NoteOn; e.tick = 480; e.data1 = 64; e.data2 = 80; keys.events.push_back (e); }
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::NoteOff; e.tick = 720; e.data1 = 64; keys.events.push_back (e); }
+        file.tracks.push_back (keys);
+        smf::SmfTrack bass;
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::TrackName; e.text = "Bass"; bass.events.push_back (e); }
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::NoteOn; e.tick = 0; e.data1 = 36; e.data2 = 110; bass.events.push_back (e); }
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::NoteOff; e.tick = 960; e.data1 = 36; bass.events.push_back (e); }
+        file.tracks.push_back (bass);
+        const std::vector<std::uint8_t> bytes = smf::writeSmf (file);
+        std::ofstream out (midiPath, std::ios::binary | std::ios::trunc);
+        REQUIRE (out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size())));
+        std::ofstream junk (junkPath, std::ios::binary | std::ios::trunc);
+        junk << "not a midi file";
+    }
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportMidiFile = [midiPath] { return midiPath; };
+    choices.chooseExportMidiFile = [exportPath] { return exportPath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    const auto project = [&] { return readProjectSnapshot (bundlePath); };
+    REQUIRE (project().tracks.size() == 2u);
+    REQUIRE (project().midiClips.empty());
+    const double sampleRateHz = project().sampleRate.hz;
+    const double bpm = project().tempoMap.front().bpm;
+    const double framesPerQuarter = sampleRateHz * 60.0 / bpm;
+    const auto frames = [&] (double quarters) { return static_cast<yesdaw::engine::Tick> (quarters * framesPerQuarter + 0.5); };
+
+    // The File menu lists both verbs.
+    {
+        auto* bar = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (*shell, "shell.menubar"));
+        REQUIRE (bar != nullptr);
+        juce::PopupMenu fileMenu = bar->getModel()->getMenuForIndex (0, "File");
+        bool importSeen = false, exportSeen = false;
+        for (juce::PopupMenu::MenuItemIterator it (fileMenu); it.next();)
+        {
+            importSeen = importSeen || it.getItem().text == "Import MIDI File";
+            exportSeen = exportSeen || it.getItem().text == "Export MIDI File";
+        }
+        REQUIRE (importSeen);
+        REQUIRE (exportSeen);
+    }
+
+    // A .mid is interesting to the drop target.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    auto* dropTarget = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (dropTarget != nullptr);
+    const juce::StringArray midOnly { juce::String (midiPath.string()) };
+    REQUIRE (dropTarget->isInterestedInFileDrag (midOnly));
+
+    // Drop on the SECOND lane, a third of the way across: "Keys" lands there at the snapped tick under
+    // the pointer; "Bass" adds a third track named from the file, with the synth on it, same tick.
+    const yesdaw::ui::TimelineCanvasGeometry geometry = timelineGeometryForProject (timeline, project());
+    const int dropX = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 3;
+    const int laneHeight = juce::jmax (1, geometry.laneHeight);
+    const int secondLaneY = geometry.clipArea.getY() + laneHeight + laneHeight / 2;
+    dropTarget->filesDropped (midOnly, dropX, secondLaneY);
+    {
+        const yesdaw::engine::Project dropped = project();
+        REQUIRE (dropped.tracks.size() == 3u);
+        REQUIRE (dropped.tracks[2].strip.name == "Bass");
+        REQUIRE (dropped.tracks[2].instrumentKind == yesdaw::engine::TrackInstrumentKind::SimpleSynth);
+        REQUIRE (dropped.midiClips.size() == 2u);
+        const yesdaw::engine::MidiClip& keys = dropped.midiClips[0];
+        const yesdaw::engine::MidiClip& bass = dropped.midiClips[1];
+        REQUIRE (keys.trackId == dropped.tracks[1].id);
+        REQUIRE (bass.trackId == dropped.tracks[2].id);
+        REQUIRE (keys.timelineStart > 0);   // the tick under the pointer, not the playhead
+        REQUIRE (keys.timelineStart == bass.timelineStart);
+        REQUIRE (keys.timeBase == yesdaw::engine::TimeBase::SampleLocked);
+        // Whole bars at the head meter: 1.5 quarters of content → one 4/4 bar.
+        REQUIRE (keys.timelineLength == frames (4.0));
+        REQUIRE (bass.timelineLength == frames (4.0));
+        REQUIRE (keys.notes.size() == 2u);
+        REQUIRE (keys.notes[0].key == 60);
+        REQUIRE (keys.notes[0].startTick == 0);
+        REQUIRE (keys.notes[0].lengthTicks == frames (1.0));
+        REQUIRE (keys.notes[0].normalizedVelocity == Catch::Approx (100.0 / 127.0));
+        REQUIRE (keys.notes[1].key == 64);
+        REQUIRE (keys.notes[1].startTick == frames (1.0));
+        REQUIRE (keys.notes[1].lengthTicks == frames (0.5));
+        REQUIRE (keys.controlEvents.size() == 1u);
+        REQUIRE (keys.controlEvents[0].kind == yesdaw::engine::MidiControlKind::ControlChange);
+        REQUIRE (keys.controlEvents[0].number == 1);
+        REQUIRE (keys.controlEvents[0].tick == frames (0.5));
+        REQUIRE (keys.controlEvents[0].value == Catch::Approx (64.0 / 127.0));
+        REQUIRE (bass.notes.size() == 1u);
+        REQUIRE (bass.notes[0].key == 36);
+        REQUIRE (bass.notes[0].lengthTicks == frames (2.0));
+        // The status line says what landed; the roll follows the first clip.
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE (snapshot.statusLineText.find ("Imported 2 MIDI clips") != std::string::npos);
+        REQUIRE (snapshot.context.midiClipSelected);
+        juce::var doc;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), doc).wasOk());
+        REQUIRE (static_cast<int> (doc.getProperty ("view", juce::var()).getProperty ("noteCount", 0)) == 2);   // the roll shows "Keys"
+        // G3.7 rubric FIX: with a MIDI clip in the CLIP tab the audio-only controls (gain, stretch, fades,
+        // curve) have no bounds — they had stayed laid out under the MIDI rows and overlapped the loop
+        // chooser and Apply (Q); the MIDI rows themselves are laid out.
+        clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+        for (const char* id : { "clip.inspector.stretch", "clip.inspector.fade_in", "clip.inspector.fade_out", "clip.inspector.fade_curve", "clip.inspector.fade_curve_amount" })
+        {
+            juce::Component* const control = findChildWithComponentId (*shell, id);
+            INFO (id);
+            REQUIRE (control != nullptr);
+            REQUIRE (control->getBounds().isEmpty());
+        }
+        REQUIRE_FALSE (findChildWithComponentId (*shell, "clip.inspector.midi.loop")->getBounds().isEmpty());
+    }
+
+    // One Ctrl+Z removes the whole import (clips and the added track).
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (project().tracks.size() == 2u);
+    REQUIRE (project().midiClips.empty());
+
+    // File > Import MIDI File: the selected track (lane 1 after the drop) at the playhead (Home = 0).
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportMidi);
+    {
+        const yesdaw::engine::Project imported = project();
+        REQUIRE (imported.tracks.size() == 3u);
+        REQUIRE (imported.midiClips.size() == 2u);
+        REQUIRE (imported.midiClips[0].timelineStart == 0);
+        REQUIRE (imported.midiClips[0].trackId == imported.tracks[1].id);
+    }
+
+    // Export the selection (both imported clips are selected): the file reads back to the same
+    // notes and points in quarter notes, one file track per project track, the head tempo on track 0.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectExportMidi);
+    {
+        REQUIRE (snapshotMainComponent (*shell).statusLineText.find ("Exported 2 MIDI clips") != std::string::npos);
+        std::ifstream in (exportPath, std::ios::binary);
+        REQUIRE (in.good());
+        const std::vector<std::uint8_t> bytes ((std::istreambuf_iterator<char> (in)), std::istreambuf_iterator<char>());
+        namespace smf = yesdaw::interchange;
+        smf::SmfFile back;
+        REQUIRE (smf::readSmf (bytes, back) == smf::SmfStatus::Ok);
+        REQUIRE (back.format == 1);
+        REQUIRE (smf::smfHead (back).bpm == Catch::Approx (bpm));
+        const std::vector<smf::SmfMusicalTrack> musical = smf::smfMusicalTracks (back);
+        REQUIRE (musical.size() == 2u);
+        REQUIRE (musical[0].name == project().tracks[1].strip.name);
+        REQUIRE (musical[1].name == "Bass");
+        REQUIRE (musical[0].notes.size() == 2u);
+        REQUIRE (musical[0].notes[0].key == 60);
+        REQUIRE (musical[0].notes[0].startQuarters == Catch::Approx (0.0).margin (1.0 / 960.0));
+        REQUIRE (musical[0].notes[0].lengthQuarters == Catch::Approx (1.0).margin (1.0 / 960.0));
+        REQUIRE (musical[0].notes[1].key == 64);
+        REQUIRE (musical[0].notes[1].startQuarters == Catch::Approx (1.0).margin (1.0 / 960.0));
+        REQUIRE (musical[0].notes[1].lengthQuarters == Catch::Approx (0.5).margin (1.0 / 960.0));
+        REQUIRE (musical[0].controls.size() == 1u);
+        REQUIRE (musical[0].controls[0].number == 1);
+        REQUIRE (musical[0].controls[0].quarters == Catch::Approx (0.5).margin (1.0 / 960.0));
+        REQUIRE (musical[1].notes.size() == 1u);
+        REQUIRE (musical[1].notes[0].key == 36);
+        REQUIRE (musical[1].notes[0].lengthQuarters == Catch::Approx (2.0).margin (1.0 / 960.0));
+    }
+
+    // Refusals: a file that is not MIDI, and a path that does not exist — nothing changes, the status
+    // line names the reason.
+    {
+        const yesdaw::engine::Project before = project();
+        dropTarget->filesDropped (juce::StringArray { juce::String (junkPath.string()) }, dropX, secondLaneY);
+        REQUIRE (project().midiClips.size() == before.midiClips.size());
+        REQUIRE (project().tracks.size() == before.tracks.size());
+        REQUIRE (snapshotMainComponent (*shell).statusLineText.find ("MIDI import refused (not a MIDI file)") != std::string::npos);
+        dropTarget->filesDropped (juce::StringArray { "C:/does/not/exist.mid" }, dropX, secondLaneY);
+        REQUIRE (project().midiClips.size() == before.midiClips.size());
+        REQUIRE (snapshotMainComponent (*shell).statusLineText.find ("MIDI import refused (cannot read)") != std::string::npos);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove (midiPath, ec);
+    std::filesystem::remove (exportPath, ec);
+    std::filesystem::remove (junkPath, ec);
     std::filesystem::remove_all (bundlePath, ec);
 }
 

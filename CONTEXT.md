@@ -464,6 +464,14 @@ fail with explicit statuses rather than degrade silently (ADR-0029) — e.g. a M
 unassigned channel (`-1`) is rejected because DAWproject `channel` is `0..15`.
 _Avoid_: backup, native project file
 
+**Standard MIDI File (SMF)**:
+The `.mid` interchange file (formats 0 and 1, ticks per quarter note) that YES DAW reads and writes through
+`src/interchange/Smf.h` (G3.7). Import lands a file's tracks as MIDI Clips at the PROJECT's tempo (quarter
+notes become frames at the head tempo — the file's own tempo is named, not adopted); export writes the
+selected MIDI Clips, else every MIDI Clip, as a format-1 file at 960 PPQ with the head tempo and meter
+on track 0. Malformed files fail with a named `SmfStatus`, never a half-import.
+_Avoid_: MIDI file (as a synonym for a MIDI Clip), "MIDI export" when you mean DAWproject
+
 **Device hot-swap**:
 Changing the active audio device while a Project is open without corrupting engine state or losing the
 Transport position. H10's gate is a deterministic fake-device survival check, not a subjective hardware

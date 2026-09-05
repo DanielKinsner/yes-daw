@@ -12,6 +12,7 @@
 #include "engine/ProjectMixerProjection.h"   // M13: the shared FX-insert node factory
 #include "engine/ProjectUndo.h"
 #include "engine/Recording.h"
+#include "interchange/Smf.h"   // G3.7
 #include "io/WavFile.h"
 #include "persistence/AutosaveRecovery.h"
 #include "persistence/PlaybackAutosave.h"
@@ -26,8 +27,10 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -1696,6 +1699,271 @@ public:
         }
 
         return result;
+    }
+
+    // G3.7: frames per quarter note at the project's head tempo — the unit bridge between a Standard
+    // MIDI File (quarter notes) and the shell's SampleLocked MIDI clips (tick == frame).
+    [[nodiscard]] double framesPerQuarterAtHeadTempo() const noexcept
+    {
+        const double sampleRateHz = project_.sampleRate.isValid() ? project_.sampleRate.hz : 48000.0;
+        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
+        return sampleRateHz * 60.0 / std::clamp (bpm, 20.0, 400.0);
+    }
+
+    [[nodiscard]] double headBarQuarters() const noexcept
+    {
+        const int numerator = ! project_.meterMap.empty() ? std::max<int> (1, project_.meterMap.front().numerator) : 4;
+        const int denominator = ! project_.meterMap.empty() ? std::max<int> (1, project_.meterMap.front().denominator) : 4;
+        return static_cast<double> (numerator) * 4.0 / static_cast<double> (denominator);
+    }
+
+    // G3.7: import a Standard MIDI File (formats 0 / 1) at a tick on a track. Logic's law: the file's
+    // notes land on the PROJECT's beats — quarter notes become frames at the head tempo (the file's
+    // own tempo is reported, not adopted). The file's first musical track goes on the given track;
+    // every further track adds a track named from the file with the synth on it. Each clip is
+    // SampleLocked, whole bars long (the content rounded up to the head meter's bar), and carries
+    // the notes and the control points (CC / bend / pressure / program). One undo group; the first
+    // clip becomes the MIDI clip in the roll. Refusals name their reason on the status line.
+    [[nodiscard]] UiActionDispatchResult importMidiFileAt (const std::filesystem::path& sourcePath,
+                                                           engine::EntityId targetTrackId,
+                                                           engine::Tick timelineStart)
+    {
+        const UiActionId id = UiActionId::ProjectImportMidi;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        if (findTrack (targetTrackId) == nullptr || timelineStart < 0)
+            return { id, { false, "no track for the MIDI file" }, false };
+
+        std::vector<std::uint8_t> bytes;
+        {
+            std::ifstream in (sourcePath, std::ios::binary);
+            if (! in)
+            {
+                reportStatus ("MIDI import refused (cannot read): " + sourcePath.filename().string(), true);
+                return { id, { false, "MIDI file unreadable" }, false };
+            }
+            bytes.assign (std::istreambuf_iterator<char> (in), std::istreambuf_iterator<char>());
+        }
+        interchange::SmfFile file;
+        const interchange::SmfStatus parsed = interchange::readSmf (bytes, file);
+        if (parsed != interchange::SmfStatus::Ok)
+        {
+            const char* reason = parsed == interchange::SmfStatus::InvalidHeader ? "not a MIDI file"
+                : parsed == interchange::SmfStatus::UnsupportedFormat ? "format 0 / 1 with a PPQ division only"
+                : "damaged file";
+            reportStatus (std::string ("MIDI import refused (") + reason + "): " + sourcePath.filename().string(), true);
+            return { id, { false, "MIDI file refused" }, false };
+        }
+        const std::vector<interchange::SmfMusicalTrack> musical = interchange::smfMusicalTracks (file);
+        if (musical.empty())
+        {
+            reportStatus ("MIDI import refused (no notes): " + sourcePath.filename().string(), true);
+            return { id, { false, "MIDI file has no notes" }, false };
+        }
+
+        const double framesPerQuarter = framesPerQuarterAtHeadTempo();
+        const double barQuarters = std::max (1.0, headBarQuarters());
+        const auto frames = [framesPerQuarter] (double quarters) {
+            return static_cast<engine::Tick> (std::max (0.0, quarters) * framesPerQuarter + 0.5);
+        };
+        const engine::Tick tickMax = std::numeric_limits<engine::Tick>::max();
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+
+        std::vector<engine::EntityId> clipIds;
+        int tracksAdded = 0;
+        for (std::size_t index = 0; index < musical.size(); ++index)
+        {
+            const interchange::SmfMusicalTrack& source = musical[index];
+            engine::EntityId trackId = targetTrackId;
+            if (index > 0)
+            {
+                trackId = allocateSessionEntityId (0xB1u, nextProject);
+                std::string name = source.name.empty() ? "MIDI " + std::to_string (index + 1) : source.name;
+                if (name.size() > engine::ProjectEditCommand::kMaxTrackNameLength)
+                    name.resize (engine::ProjectEditCommand::kMaxTrackNameLength);
+                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addTrack (trackId, name)).applied())
+                    return { id, { false, "track for the MIDI file refused" }, false };
+                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setTrackInstrument (trackId, engine::TrackInstrumentKind::SimpleSynth)).applied())
+                    return { id, { false, "instrument for the MIDI file refused" }, false };
+                ++tracksAdded;
+            }
+
+            double contentQuarters = source.lengthQuarters;
+            for (const interchange::SmfNote& note : source.notes)
+                contentQuarters = std::max (contentQuarters, note.startQuarters + note.lengthQuarters);
+            for (const interchange::SmfControl& control : source.controls)
+                contentQuarters = std::max (contentQuarters, control.quarters);
+            const double bars = std::max (1.0, std::ceil (contentQuarters / barQuarters - 1.0e-9));
+            const engine::Tick clipLength = std::max<engine::Tick> (1, frames (bars * barQuarters));
+            if (timelineStart > tickMax - clipLength)
+                return { id, { false, "MIDI file lands past the timeline's end" }, false };
+
+            const engine::EntityId midiClipId = allocateSessionEntityId (0xD5u, nextProject);
+            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addMidiClip (
+                    midiClipId, trackId, timelineStart, clipLength, engine::TimeBase::SampleLocked)).applied())
+                return { id, { false, "MIDI clip for the file refused" }, false };
+            for (const interchange::SmfNote& note : source.notes)
+            {
+                const engine::Tick start = std::min (clipLength, frames (note.startQuarters));
+                const engine::Tick length = std::min (clipLength - start, frames (note.lengthQuarters));
+                engine::ProjectEditCommand add = engine::ProjectEditCommand::addNote (
+                    midiClipId, allocateSessionEntityId (0xB2u, nextProject), start, length,
+                    static_cast<std::int16_t> (std::clamp<int> (note.key, 0, 127)),
+                    std::clamp (note.normalizedVelocity, 0.0, 1.0));
+                add.notePitch = static_cast<double> (std::clamp<int> (note.key, 0, 127));
+                add.noteChannel = static_cast<std::int16_t> (std::clamp<int> (note.channel, -1, 15));
+                if (! nextUndo.apply (nextProject, add).applied())
+                    return { id, { false, "note from the MIDI file refused" }, false };
+            }
+            for (const interchange::SmfControl& control : source.controls)
+            {
+                engine::MidiControlEvent event;
+                event.id = allocateSessionEntityId (0xB3u, nextProject);
+                event.tick = std::min (clipLength, frames (control.quarters));
+                event.kind = control.kind;
+                event.number = static_cast<std::int16_t> (std::clamp<int> (control.number, 0, 127));
+                event.value = std::clamp (control.value, engine::midiControlValueMin (control.kind), 1.0);
+                event.channel = static_cast<std::int16_t> (std::clamp<int> (control.channel, -1, 15));
+                if (! event.isValid())
+                    continue;   // a point the model cannot hold is dropped, never a refusal of the file
+                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addMidiControlEvent (midiClipId, event)).applied())
+                    return { id, { false, "control point from the MIDI file refused" }, false };
+            }
+            clipIds.push_back (midiClipId);
+        }
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "MIDI import did not persist" }, false };
+
+        selectedMidiClipId_ = clipIds.front();
+        selectedMidiNoteId_ = {};
+        selectedMidiNoteIds_.clear();
+        selectedTimelineClipIds_ = clipIds;
+        selectedTimelineClipId_ = clipIds.front();
+        context_.timelineClipSelected = true;
+        context_.midiClipSelected = true;
+        context_.midiNoteSelected = false;
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        ++context_.midiImportCount;
+        const interchange::SmfHead head = interchange::smfHead (file);
+        char tempo[32];
+        std::snprintf (tempo, sizeof (tempo), "%.1f", head.bpm);
+        reportStatus ("Imported " + std::to_string (clipIds.size()) + (clipIds.size() == 1u ? " MIDI clip" : " MIDI clips")
+                          + (tracksAdded > 0 ? " on " + std::to_string (tracksAdded + 1) + " tracks" : "")
+                          + " from " + sourcePath.filename().string() + " (file tempo " + tempo + " BPM, placed at the project tempo)",
+                      false);
+        return { id, state, true };
+    }
+
+    // G3.7: export MIDI clips as a format-1 Standard MIDI File at 960 PPQ: the selected MIDI clips
+    // (the arrangement's selection, else the roll's clip), or every MIDI clip when nothing is
+    // selected; one file track per project track, named after it; the head tempo and meter on
+    // track 0. A clip's transpose and velocity offset are baked in (the file plays what the mix
+    // plays); a muted clip is left out; a clip's loop is not unrolled (deviation, logged).
+    [[nodiscard]] UiActionDispatchResult exportMidiFile (const std::filesystem::path& destinationPath)
+    {
+        const UiActionId id = UiActionId::ProjectExportMidi;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        std::vector<const engine::MidiClip*> clips;
+        for (const engine::EntityId clipId : selectedTimelineClipIds_)
+            if (const engine::MidiClip* const clip = findMidiClip (clipId))
+                clips.push_back (clip);
+        if (clips.empty())
+            if (const engine::MidiClip* const clip = findMidiClip (selectedMidiClipId_))
+                clips.push_back (clip);
+        const bool wholeProject = clips.empty();
+        if (wholeProject)
+            for (const engine::MidiClip& clip : project_.midiClips)
+                clips.push_back (&clip);
+        if (clips.empty())
+        {
+            reportStatus ("MIDI export: no MIDI clips to export", true);
+            return { id, { false, "no MIDI clips" }, false };
+        }
+
+        const double framesPerQuarter = framesPerQuarterAtHeadTempo();
+        std::vector<interchange::SmfMusicalTrack> tracks;
+        std::size_t exportedClips = 0;
+        for (const engine::Track& track : project_.tracks)
+        {
+            interchange::SmfMusicalTrack musical;
+            musical.name = track.strip.name;
+            bool any = false;
+            for (const engine::MidiClip* const clip : clips)
+            {
+                if (clip->trackId != track.id || clip->muted)
+                    continue;
+                any = true;
+                ++exportedClips;
+                const bool sampleLocked = clip->timeBase == engine::TimeBase::SampleLocked;
+                const double quartersPerTick = sampleLocked ? 1.0 / framesPerQuarter : 1.0 / static_cast<double> (engine::kTicksPerQuarter);
+                const double offsetQuarters = static_cast<double> (clip->timelineStart) * (sampleLocked ? 1.0 / framesPerQuarter : 1.0 / static_cast<double> (engine::kTicksPerQuarter));
+                for (const engine::Note& note : clip->notes)
+                {
+                    const int key = note.key + clip->transposeSemitones;
+                    if (key < 0 || key > 127)
+                        continue;   // the flatten drops it too
+                    interchange::SmfNote out;
+                    out.startQuarters = offsetQuarters + static_cast<double> (note.startTick) * quartersPerTick;
+                    out.lengthQuarters = static_cast<double> (note.lengthTicks) * quartersPerTick;
+                    out.key = static_cast<std::int16_t> (key);
+                    out.normalizedVelocity = std::clamp (note.normalizedVelocity + clip->velocityOffset, 0.0, 1.0);
+                    out.channel = static_cast<std::int16_t> (std::max<int> (0, note.channel));
+                    musical.notes.push_back (out);
+                    musical.lengthQuarters = std::max (musical.lengthQuarters, out.startQuarters + out.lengthQuarters);
+                }
+                for (const engine::MidiControlEvent& control : clip->controlEvents)
+                {
+                    interchange::SmfControl out;
+                    out.quarters = offsetQuarters + static_cast<double> (control.tick) * quartersPerTick;
+                    out.kind = control.kind;
+                    out.number = control.number;
+                    out.value = control.value;
+                    out.channel = static_cast<std::int16_t> (std::max<int> (0, control.channel));
+                    musical.controls.push_back (out);
+                    musical.lengthQuarters = std::max (musical.lengthQuarters, out.quarters);
+                }
+                musical.lengthQuarters = std::max (musical.lengthQuarters, offsetQuarters + static_cast<double> (clip->timelineLength) * quartersPerTick);
+            }
+            if (any)
+                tracks.push_back (std::move (musical));
+        }
+        if (exportedClips == 0)
+        {
+            reportStatus ("MIDI export: every chosen MIDI clip is muted", true);
+            return { id, { false, "only muted MIDI clips" }, false };
+        }
+
+        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
+        const int numerator = ! project_.meterMap.empty() ? project_.meterMap.front().numerator : 4;
+        const int denominator = ! project_.meterMap.empty() ? project_.meterMap.front().denominator : 4;
+        const std::vector<std::uint8_t> bytes = interchange::writeSmf (
+            interchange::smfFromMusicalTracks (tracks, bpm, numerator, denominator, 960, bundlePath_.empty() ? "YES DAW" : bundlePath_.stem().string()));
+        {
+            std::ofstream out (destinationPath, std::ios::binary | std::ios::trunc);
+            if (! out || ! out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size())))
+            {
+                reportStatus ("MIDI export failed (cannot write): " + destinationPath.filename().string(), true);
+                return { id, { false, "MIDI file unwritable" }, false };
+            }
+        }
+        ++context_.commandDispatchCount;
+        ++context_.midiExportCount;
+        reportStatus ("Exported " + std::to_string (exportedClips) + (exportedClips == 1u ? " MIDI clip" : " MIDI clips")
+                          + (wholeProject ? " (whole project)" : " (selection)") + " to " + destinationPath.filename().string(),
+                      false);
+        return { id, state, true };
     }
 
     [[nodiscard]] UiAppRecordResult recordDeterministicTestAudioTake (
@@ -7468,6 +7736,12 @@ public:
 
             case UiActionId::ProjectExportDawproject:
                 return { id, { false, "DAWproject export path required" }, false };
+
+            case UiActionId::ProjectImportMidi:   // G3.7: the shell's chooser / drop supplies the path
+                return { id, { false, "MIDI import path required" }, false };
+
+            case UiActionId::ProjectExportMidi:
+                return { id, { false, "MIDI export path required" }, false };
 
             case UiActionId::ProjectSaveAs:
                 return { id, { false, "save-as path required" }, false };

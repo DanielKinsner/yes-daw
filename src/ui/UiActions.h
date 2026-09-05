@@ -26,6 +26,8 @@ enum class UiActionId : std::uint8_t
     ProjectExportAudio,
     ProjectExportAudioCancel,
     ProjectExportDawproject,
+    ProjectImportMidi,    // G3.7: a Standard MIDI File onto the selected track at the playhead
+    ProjectExportMidi,    // G3.7: the selected MIDI clips (else every MIDI clip) as a format-1 SMF
     TransportPlay,
     TransportStop,
     TransportLocateStart,
@@ -574,6 +576,8 @@ struct UiActionContext
     bool audioExportCancelRequested = false;
     int audioExportCancelCount = 0;
     int dawprojectExportCount = 0;
+    int midiImportCount = 0;    // G3.7
+    int midiExportCount = 0;    // G3.7
     int deviceRefreshCount = 0;
     int deviceSelectCount = 0;
     std::uint32_t recordingDeviceGeneration = 0;
@@ -680,6 +684,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::ProjectExportAudioCancel, "project.export_audio.cancel", "Cancel / Pointer", "Esc", "Cancel an active audio export or return to the Pointer tool",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectExportDawproject, "project.export_dawproject", "Export DAWproject", "", "Export DAWproject package",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    // G3.7: no default chords (Logic's File > Import / Export MIDI File items carry none; ADR-0046 §2).
+    { UiActionId::ProjectImportMidi, "project.import_midi", "Import MIDI File", "", "Import a Standard MIDI File",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::ProjectExportMidi, "project.export_midi", "Export MIDI File", "", "Export MIDI clips as a Standard MIDI File",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     // G0.2: no default chord — Space is the toggle; the Play button is this verb's path
     // (ADR-0046 §2: no invented chords; a chord-less action is reached by mouse).
@@ -1527,6 +1536,14 @@ public:
 
             case UiActionId::ProjectExportDawproject:
                 ++context.dawprojectExportCount;
+                break;
+
+            case UiActionId::ProjectImportMidi:
+                ++context.midiImportCount;
+                break;
+
+            case UiActionId::ProjectExportMidi:
+                ++context.midiExportCount;
                 break;
 
             case UiActionId::TransportPlay:

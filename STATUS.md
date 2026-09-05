@@ -41,35 +41,18 @@ is linear while the UI law is equal-power.
 **The 2026-08-25 reality-run backlog is closed as a list.** R1–R17 are certified (below); R18–R34
 are mapped into phases by the plan §9. Do not work R-items from that document any more.
 
-**Now:** **G3.3 — MIDI CC, pitch bend, aftertouch, program change** (plan §6 G3; resumed 2026-09-04 per
-Dan's call). **cp1 ✅** `17e3802` (the engine half — the edit model, schema v28, the flatten, the wire form,
-`SimpleSynth` honouring CC64 / CC1 / bend, the three Clip verbs). **cp2 ✅ (this commit) — the control lane
-in the piano roll**: the roll's second expression lane is a CC lane with a chooser (CC1 Mod · CC64 Sustain ·
-Pitch Bend · Aftertouch · Program); the pointer places / drags / erases points, the pencil paints one point
-per snap step, Shift+pencil draws a line; hover hint; the probe names the lane; `[control-lane]` in
-`YesDawUiInputCheck`; the switch fix `63b06ab` (GCC / Clang -Werror=switch). **Drive window (Dan's go,
-2026-09-05, a different PC):** ss5 (Steps 1–11) is **43 / 43** on the real exe; the rubric shots are judged
-below (PASS on every line; one note). Earlier phases' drives on this PC: ss1 **41 / 42** (D3, the known
-empty-project-at-launch line), ss2 **29 / 29**, ss3 **51 / 51**, ss4 **11 / 11**. **Drive-machine finding
-(2026-09-05):** launched back-to-back (one script's `Close` straight into the next's `Launch`), Step 0's New
-chooser or the import chooser did not take the typed path on the first try (ss2 / ss3 red at Step 0, "Cannot
-index into a null array" cascading); the same scripts pass launched alone a few seconds later — a launch
-transient, not a shell defect; batch drives with a pause between scripts. ss1's B2 paint p95 read 8.54 ms once
-while other work ran, 7.x alone — the budget holds on an idle machine. **Next:** the G3.3 docs-evidence commit
-once CI is green on the head. **G3.4 — Quantize v2:** cp1 `d139cb3` (the engine half — `QuantizeSettings`,
-the swing / strength / note-ends / humanize laws, the widened `QuantizeNote` verb, `YesDawQuantizeCheck`);
-cp2 (this commit) — the inspector quantize panel on the MIDI clip's CLIP tab, Q and Apply applying the
-current settings, `[quantize-panel]`, ss5 Step 12 authored. The G3.4 drive ran (ss5 48 / 48) and the
-rubric is recorded; the docs-evidence commit waits for CI on `603faa0`. **G3.5 — MIDI clips at arrange
-level:** cp1 `a58391a` (the engine half — mute / transpose / velocity offset / loop length at the flatten,
-split and join, six verbs, schema v29, `YesDawMidiClipOpsCheck`); cp2 (this commit) — the arrangement's
-split, heal, mute, copy / paste / repeat on MIDI clips, the four inspector rows, the muted wash,
-`[midi-clip-ops]` in the shell, ss5 Step 13 authored. ss5 51 / 51 with Step 13; the G3.5
-docs-evidence commit waits for CI on `2f9571b`. **G3.6 — Step input and musical typing** (this commit):
-Ctrl+K musical typing on Logic's letter layout, the roll header's Step toggle entering notes at the
-playhead; `[step-input]`; ss5 Step 14 authored. Next: the ss5 drive (Steps 1–14) and rubric shots, the
-evidence commits, then **G3.7 — MIDI file import / export**. Rules in force: HEADLESS by default, the macOS GPU
-frame-budget red is noise, the local suite + drives are the working gate.
+**Now:** **G3.7 — MIDI file import / export** (plan §6 G3; this commit). `src/interchange/Smf.h` reads and
+writes Standard MIDI Files (formats 0 / 1, running status, the tempo / meter / name metas) and bridges
+them to the edit model in quarter notes; File > Import MIDI File and a `.mid` dropped on a lane land the
+file's tracks as SampleLocked MIDI clips at the project's tempo (the first on the target lane, the rest on
+new tracks named from the file with the synth on); File > Export MIDI File writes the selection (else every
+MIDI clip) as a format-1 file at 960 PPQ. Gates `[smf]` (`YesDawSmfCheck`: byte golden, round-trip, the
+tolerant reader, the bridge) and `[midi-file]` in `YesDawUiInputCheck`; ss5 Step 15 authored (the real
+chooser by path). Drive + rubric: see the G3.7 story. **Next:** the G3.7 docs-evidence commit once CI is
+green on the head, then **G3.8 — MIDI FX reachable + Arpeggiator + Chord**. Rules in force: HEADLESS by
+default (drives on Dan's go — given 2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the
+local suite + drives are the working gate; drive scripts launched back-to-back flake at Step 0 (pause
+between scripts).
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
 all ten jobs (the intermediate run `33668863266` failed only on the macOS GPU frame-budget flake,
@@ -230,6 +213,85 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.7 — MIDI file import / export (2026-09-05)
+
+**Story.** A MIDI clip could only be born in this DAW (Ctrl+M, the pencil, recording) and could only die
+here: no way to bring a MIDI file from another program or a download onto a lane, no way to hand a part
+to another DAW. Logic's File > Import > MIDI File and Export > Selection as MIDI File are both here now,
+and a `.mid` dragged from Explorer onto a lane lands like a WAV does: on THAT lane at the tick under the
+pointer.
+
+**Precedent.** Logic: an imported MIDI file plays at the PROJECT tempo (its own tempo is not adopted
+unless you say so — here it is named on the status line); a multi-track file makes one track per file
+track, named from the file; export writes the selected regions, else everything, as a format-1 file at
+960 PPQ with the tempo and meter on track 0. The drop follows the M10 file-drop law (lane + tick under
+the pointer; further files on the lanes below).
+
+**Build.** `src/interchange/Smf.h` (no JUCE): `writeSmf` (deterministic — tick-sorted, explicit status
+bytes, one End of Track per track, VLQ deltas) and `readSmf` (formats 0 / 1, PPQ division only; running
+status; a NoteOn at velocity 0 is a NoteOff; SysEx and unknown metas kept as `Other` at their tick;
+alien chunks skipped; every malformed shape a `SmfStatus` refusal); the bridge `smfMusicalTracks` (notes
+paired per channel + key, a re-struck key ends the earlier note, an open note ends at the track's end;
+CC / program / pressure / bend as the Clip's normalized `MidiControlKind` values; a track with neither
+notes nor controls — format 1's tempo track — dropped), `smfHead` (the first tempo / meter), and
+`smfFromMusicalTracks` (track 0 = name + tempo + meter; ticks rounded at the given PPQ). Model
+(`UiAppModel.h`): `importMidiFileAt (path, trackId, tick)` — quarter notes → frames at the head tempo
+(`framesPerQuarterAtHeadTempo`), each clip SampleLocked and whole bars long at the head meter, notes and
+control points through `addNote` / `addMidiControlEvent`, further file tracks through `addTrack` +
+`setTrackInstrument (SimpleSynth)`, all in ONE undo group; the first clip becomes the roll's clip and the
+arrangement's selection; the status line names what landed and the file's tempo. `exportMidiFile (path)`
+— the arrangement's selected MIDI clips, else the roll's clip, else every MIDI clip; one file track per
+project track (named from the strip); a clip's transpose and velocity offset baked in (the file plays what
+the mix plays); a muted clip left out; SampleLocked clips at the head tempo, TempoLocked at 15360 ticks a
+quarter. Actions `ProjectImportMidi` / `ProjectExportMidi` (no chords — Logic's items carry none) in the
+File menu after Export Audio; the registry counts `midiImportCount` / `midiExportCount`. Shell: the
+choosers `chooseImportMidiFile` / `chooseExportMidiFile` on `MainComponentFileChoices` (native
+`juce::FileChooser` "Import MIDI File" `*.mid;*.midi` / "Export MIDI File" `YES DAW.mid`); the menu import
+lands on the selected track (else the first) at the playhead; `filesAreImportable` takes `.mid` / `.midi`
+and `onFilesDropped` routes them to the model (the model names its own refusals; a WAV in the same drop
+still lands). `docs/keymap-v2.md` regenerated (two chord-less rows).
+
+**Gates.** `[smf]` — `YesDawSmfCheck` (121 assertions): the byte golden (a two-track format-1 file is the
+spec's exact bytes, chunk lengths and VLQ deltas included); the VLQ worked values; write → read → the same
+file → the same bytes; a hand-written file with running status, velocity-0 offs, SysEx and a sequencer
+meta; the refusals (bad header, format 2, SMPTE division, a cut-short track, a five-byte VLQ); the bridge
+(pairing, the re-strike, the open note, the normalized values, the head, the dropped tempo track, and
+musical → file → musical the identity at 960 PPQ). `[midi-file]` in `YesDawUiInputCheck` (121 assertions):
+the File menu lists both verbs; a `.mid` is interesting to the drop target; a two-track file dropped on
+lane 2 a third of the way across lands "Keys" there at the tick under the pointer and adds a third track
+"Bass" with the synth, both clips SampleLocked and one bar long, the notes at quarter → frame positions
+with their velocities and the CC1 point; the status line says "Imported 2 MIDI clips"; the roll shows the
+first clip; ONE Ctrl+Z removes clips and track; File > Import MIDI File lands on the selected track at the
+playhead; File > Export MIDI File writes the selection and the file reads back to the same notes, points,
+names and tempo; a non-MIDI `.mid` and a missing path are refused by name and change nothing.
+`[menubar]` re-pinned (File: 9 → 11 items, with its rationale). `YesDawUiActionCheck` green.
+
+**See-it.** ss5 Step 15: File > Import MIDI File from the menu bar by mouse, the real chooser fed a
+two-track `.mid` the drive writes itself, the track count rises by one, the status line names the import,
+a shot, Ctrl+Z removes it all — ss5 **63 / 63** on the real exe (2026-09-05, twice: before and after the
+rubric FIX below). Local suite **376 / 376** (`YesDawSmfCheck` is the 376th).
+
+**Rubric (§7.4, the ss5 MIDI-import shot at 1920×1080).** 1 **FAIL → FIX applied**: with a MIDI clip in
+the CLIP tab the audio clip's gain / stretch / fade sliders and the fade-curve chooser stayed laid out
+under the MIDI rows and overlapped the Loop chooser and Apply (Q) — a G3.5 defect (the rows were added
+over the audio controls without hiding them) that this shot exposed. One law now (`MainComponent.cpp`
+`resized`: `audioSectionFits` = audio clip in the tab AND the section fits); `[midi-file]` pins the four
+audio controls empty and the loop chooser laid out with a MIDI clip selected; the whole
+`YesDawUiInputCheck` (216 cases) and the screenshot goldens stay green. After the FIX: PASS (nothing
+overlaps; the second drive's shot). 2 n/a. 3 PASS (the new "Bass" track carries the synth icon and its
+name from the file; the status line names the import). 4 PASS. 5 PASS (both clips land at the playhead
+bar, one bar long, notes painted in the clip bodies). 6 PASS. 7 PASS. Notes (no FIX item): the status
+line truncates "Imported 2 MIDI clips on 2 tracks from …" at 1080p (the status-line law noted since G3.3);
+the roll opens on the imported "Keys" clip but its key window stays at C3–B3 so the C4 note sits one row
+above the view — the roll does not scroll to a new clip's notes (parking lot).
+
+**Deviation log.** (1) A clip's loop is not unrolled into the file (Logic writes the looped repeats) —
+the export writes the content window once; parking lot. (2) The file's tempo is never adopted, only named
+(Logic asks "import tempo?" on an empty project); parking lot. (3) A file's tempo CHANGES after the first
+are ignored (the project's tempo map is untouched) — the same "project tempo wins" law; parking lot with (2).
+(4) The export takes MIDI clips only — audio clips never had a MIDI form; DAWproject remains the
+whole-project interchange (its own menu item is a dead affordance today — parking lot).
 
 ### G3.6 — Step input and musical typing (2026-09-05)
 

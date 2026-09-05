@@ -107,6 +107,8 @@ the numpad's digits and operators spell the same chords as the main keys.
 ## No default chord
 
 - Export DAWproject (`project.export_dawproject`)
+- Import MIDI File (`project.import_midi`)
+- Export MIDI File (`project.export_midi`)
 - Play (`transport.play`)
 - Stop (`transport.stop`)
 - Refresh Device (`device.refresh_audio`)

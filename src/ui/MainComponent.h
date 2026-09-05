@@ -29,6 +29,9 @@ struct MainComponentFileChoices
     std::function<std::filesystem::path()> chooseSaveAsProjectBundle;
     std::function<std::filesystem::path()> chooseImportAudioFile;
     std::function<std::filesystem::path()> chooseExportAudioFile;
+    // G3.7: the MIDI file choosers (the native shell opens a file box; the harness injects a path).
+    std::function<std::filesystem::path()> chooseImportMidiFile;
+    std::function<std::filesystem::path()> chooseExportMidiFile;
     std::function<engine::Project()> makeNewProject;
     // Audio device seams (usable-DAW P1 real device chooser): the native shell defaults these to the
     // JUCE device manager; the harness injects deterministic fakes so the chooser is gate-testable.
