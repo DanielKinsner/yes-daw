@@ -106,6 +106,8 @@ enum class ProjectEditVerb : std::uint8_t
     // G3.1 / ADR-0047: the Track's instrument slot — its kind, and one normalized parameter
     SetTrackInstrument,
     SetTrackInstrumentParam,
+    SetSamplerPad,     // G3.9 / ADR-0048
+    ClearSamplerPad,
     // G3.3: MIDI control events (CC / pitch bend / aftertouch / program change) on a MIDI Clip
     AddMidiControlEvent,
     SetMidiControlEvent,
@@ -196,6 +198,8 @@ enum class ProjectEditVerb : std::uint8_t
         case ProjectEditVerb::SetPunchRegion: return "Punch Region";
         case ProjectEditVerb::SetTrackInstrument: return "Track Instrument";
         case ProjectEditVerb::SetTrackInstrumentParam: return "Instrument Parameter";
+        case ProjectEditVerb::SetSamplerPad: return "Sampler Pad";   // G3.9
+        case ProjectEditVerb::ClearSamplerPad: return "Clear Sampler Pad";
         case ProjectEditVerb::AddMidiControlEvent: return "Add Controller Point";
         case ProjectEditVerb::SetMidiControlEvent: return "Controller Point";
         case ProjectEditVerb::RemoveMidiControlEvent: return "Remove Controller Point";
@@ -271,6 +275,7 @@ struct ProjectEditCommand
     int trackHeightPx = 0;
     std::uint32_t trackColour = 0;
     TrackInstrumentKind trackInstrumentKind = TrackInstrumentKind::None;   // G3.1 (the param rides fxParamId / fxParamValue)
+    SamplerPad samplerPad;   // G3.9: SetSamplerPad's pad; ClearSamplerPad reads its key
     // N8: punch region payload — startFrame/endFrame are raw sample frames, not musical ticks.
     bool punchEnabled = false;
     Tick punchStartFrame = 0;
@@ -1161,6 +1166,25 @@ struct ProjectEditCommand
         return command;
     }
 
+    // G3.9 / ADR-0048: a Sampler pad set (replace or add by key) / cleared on a Track.
+    [[nodiscard]] static constexpr ProjectEditCommand setSamplerPad (EntityId trackId, const SamplerPad& pad) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetSamplerPad;
+        command.trackId = trackId;
+        command.samplerPad = pad;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand clearSamplerPad (EntityId trackId, std::int16_t key) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::ClearSamplerPad;
+        command.trackId = trackId;
+        command.samplerPad.key = key;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand setTrackInstrument (EntityId trackId,
                                                                             TrackInstrumentKind kind) noexcept
     {
@@ -1524,7 +1548,9 @@ namespace detail {
            || verb == ProjectEditVerb::SetTrackHeight
            || verb == ProjectEditVerb::SetTrackColour
            || verb == ProjectEditVerb::SetTrackInstrument   // G3.1
-           || verb == ProjectEditVerb::SetTrackInstrumentParam;
+           || verb == ProjectEditVerb::SetTrackInstrumentParam
+           || verb == ProjectEditVerb::SetSamplerPad         // G3.9: a Track row edit
+           || verb == ProjectEditVerb::ClearSamplerPad;
 }
 
 // R13: the routing verbs take a Track OR a Bus owner, so their inverse may live in either
@@ -1913,6 +1939,12 @@ namespace detail {
 
         case ProjectEditVerb::SetTrackInstrumentParam:
             return setTrackInstrumentParam (project, command.trackId, command.fxParamId, command.fxParamValue);
+
+        case ProjectEditVerb::SetSamplerPad:   // G3.9
+            return setSamplerPad (project, command.trackId, command.samplerPad);
+
+        case ProjectEditVerb::ClearSamplerPad:
+            return clearSamplerPad (project, command.trackId, command.samplerPad.key);
 
         case ProjectEditVerb::SetMasterGain:
             return setMasterGain (project, command.gain);

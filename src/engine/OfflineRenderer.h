@@ -633,6 +633,45 @@ namespace detail {
     // resolver, so what the engine plays after a live edit is exactly what a rebuild would bake.
     std::vector<std::pair<EntityId, std::shared_ptr<const AssetSamples>>> copiedAssets;
     std::vector<StretchedOwnership> preparedStretches;   // G2.9: prepared once per stretched Clip per build
+    // G3.9 / ADR-0048: a Sampler pad's samples through the SAME ownership law as a Clip's — the G0.5
+    // owner when the build has one for the asset, else the build's one copy (shared by every pad and
+    // Clip of that asset in this build).
+    config.assetSamplesProvider = [&decodedAssets, &copiedAssets, &options, &project] (EntityId assetId, SamplerNodePad& padOut) -> bool
+    {
+        const Asset* const asset = project.findAsset (assetId);
+        const DecodedAssetAudio* const decoded = detail::findDecodedAsset (decodedAssets, assetId);
+        if (asset == nullptr || decoded == nullptr || ! detail::decodedAssetMetadataMatches (*decoded, *asset)
+            || asset->channels == 0u || asset->channels > 2u)
+            return false;
+        std::shared_ptr<const AssetSamples> owner;
+        for (const AssetOwnership& ownership : options.assetOwners)
+            if (ownership.assetId == assetId && ownership.samples != nullptr
+                && ownership.samples->frames == decoded->frames
+                && ownership.samples->channels == static_cast<int> (decoded->channels))
+                owner = ownership.samples;
+        if (owner == nullptr)
+            for (const auto& copied : copiedAssets)
+                if (copied.first == assetId)
+                    owner = copied.second;
+        if (owner == nullptr)
+        {
+            const std::uint64_t total = decoded->frames * static_cast<std::uint64_t> (asset->channels);
+            if (total > static_cast<std::uint64_t> (decoded->interleavedSamples.size()))
+                return false;
+            auto copy = std::make_shared<AssetSamples>();
+            copy->channels = static_cast<int> (asset->channels);
+            copy->frames = decoded->frames;
+            copy->interleaved.assign (decoded->interleavedSamples.begin(),
+                                      decoded->interleavedSamples.begin() + static_cast<std::ptrdiff_t> (total));
+            owner = copy;
+            copiedAssets.emplace_back (assetId, owner);
+        }
+        padOut.owner = owner;
+        padOut.interleaved = std::span<const float> (owner->interleaved.data(), owner->interleaved.size());
+        padOut.channels = owner->channels;
+        padOut.frames = owner->frames;
+        return true;
+    };
     const bool projected = projectToMixerProjectionInputs (
         project,
         config,

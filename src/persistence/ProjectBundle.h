@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 30;   // G3.8: the project's key / scale (one row, missing = off)
+inline constexpr int          kCodeSchemaVersion = 31;   // G3.9: Sampler pads (Track rows referencing Assets, ADR-0048)
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1436,13 +1436,31 @@ CREATE TABLE project_scale (
 );
 )SQL";
 
+// v31 (G3.9 / ADR-0048): the Sampler's pads — Track rows referencing Project Assets (foreign keys to
+// both, so a pad's sample is never swept from under it). Additive: a v30 bundle opens with no rows.
+inline constexpr std::string_view kSchemaV31Sql = R"SQL(
+CREATE TABLE sampler_pads (
+  track_id BLOB NOT NULL,
+  pad_key INTEGER NOT NULL CHECK (pad_key >= 0 AND pad_key <= 127),
+  asset_id BLOB NOT NULL,
+  root_key INTEGER NOT NULL CHECK (root_key >= 0 AND root_key <= 127),
+  one_shot INTEGER NOT NULL CHECK (one_shot IN (0, 1)),
+  gain REAL NOT NULL CHECK (gain >= 0 AND gain <= 2),
+  name TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (track_id, pad_key),
+  FOREIGN KEY (track_id) REFERENCES tracks(id) ON UPDATE RESTRICT ON DELETE CASCADE,
+  FOREIGN KEY (asset_id) REFERENCES assets(id) ON UPDATE RESTRICT ON DELETE RESTRICT
+);
+CREATE INDEX sampler_pads_asset_id_idx ON sampler_pads(asset_id);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 30> kMigrations {
+inline constexpr std::array<SchemaMigration, 31> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1473,6 +1491,7 @@ inline constexpr std::array<SchemaMigration, 30> kMigrations {
     SchemaMigration { 28, kSchemaV28Sql },
     SchemaMigration { 29, kSchemaV29Sql },
     SchemaMigration { 30, kSchemaV30Sql },
+    SchemaMigration { 31, kSchemaV31Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2077,7 +2096,7 @@ public:
                 "DELETE FROM fx_insert_params; DELETE FROM fx_inserts; "
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
                 "DELETE FROM sends; DELETE FROM track_outputs; DELETE FROM bus_sends; DELETE FROM bus_outputs; "
-                "DELETE FROM buses; DELETE FROM tracks; "
+                "DELETE FROM sampler_pads; DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
                 "DELETE FROM master_strip; DELETE FROM automation_mode; DELETE FROM punch_region; DELETE FROM loop_region; DELETE FROM project_scale; "
                 "DELETE FROM assets; DELETE FROM project;");
@@ -2171,6 +2190,24 @@ public:
             if (auto result = trackStmt.bindInt64 (10, static_cast<std::int64_t> (track.instrumentKind)); ! result.ok()) { rollback(); return result; }   // G3.1
             if (auto result = trackStmt.bindBlob (11, std::span<const std::uint8_t> (track.instrumentState.data(), track.instrumentState.size())); ! result.ok()) { rollback(); return result; }
             if (auto result = detail::expectDone (db_, trackStmt); ! result.ok()) { rollback(); return result; }
+        }
+
+        // G3.9 / ADR-0048: the Sampler pads, one row per (track, key).
+        {
+            detail::Statement padStmt (db_, "INSERT INTO sampler_pads(track_id, pad_key, asset_id, root_key, one_shot, gain, name) VALUES (?, ?, ?, ?, ?, ?, ?);");
+            for (const engine::Track& track : project.tracks)
+                for (const engine::SamplerPad& pad : track.samplerPads)
+                {
+                    padStmt.reset();
+                    if (auto result = padStmt.bindBlob (1, track.id.bytes); ! result.ok()) { rollback(); return result; }
+                    if (auto result = padStmt.bindInt64 (2, pad.key); ! result.ok()) { rollback(); return result; }
+                    if (auto result = padStmt.bindBlob (3, pad.assetId.bytes); ! result.ok()) { rollback(); return result; }
+                    if (auto result = padStmt.bindInt64 (4, pad.rootKey); ! result.ok()) { rollback(); return result; }
+                    if (auto result = padStmt.bindInt64 (5, pad.oneShot ? 1 : 0); ! result.ok()) { rollback(); return result; }
+                    if (auto result = padStmt.bindDouble (6, pad.gain); ! result.ok()) { rollback(); return result; }
+                    if (auto result = padStmt.bindText (7, std::string (pad.nameView())); ! result.ok()) { rollback(); return result; }
+                    if (auto result = detail::expectDone (db_, padStmt); ! result.ok()) { rollback(); return result; }
+                }
         }
 
         detail::Statement busStmt (
@@ -3670,6 +3707,42 @@ public:
             }
         }
 
+        // G3.9 / ADR-0048: the Sampler pads onto their Tracks (the tracks are read by now).
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT track_id, pad_key, asset_id, root_key, one_shot, gain, name FROM sampler_pads ORDER BY track_id, pad_key;"); ! result.ok())
+                return result;
+            for (;;)
+            {
+                const int step = stmt.step();
+                if (step == SQLITE_DONE)
+                    break;
+                if (step != SQLITE_ROW)
+                    return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
+                engine::EntityId trackId;
+                if (auto result = detail::columnBlob (stmt.get(), 0, trackId.bytes, "sampler_pads.track_id"); ! result.ok())
+                    return result;
+                engine::SamplerPad pad;
+                pad.key = static_cast<std::int16_t> (sqlite3_column_int64 (stmt.get(), 1));
+                if (auto result = detail::columnBlob (stmt.get(), 2, pad.assetId.bytes, "sampler_pads.asset_id"); ! result.ok())
+                    return result;
+                pad.rootKey = static_cast<std::int16_t> (sqlite3_column_int64 (stmt.get(), 3));
+                pad.oneShot = sqlite3_column_int64 (stmt.get(), 4) != 0;
+                pad.gain = sqlite3_column_double (stmt.get(), 5);
+                const unsigned char* const nameText = sqlite3_column_text (stmt.get(), 6);
+                pad.setName (nameText != nullptr ? std::string_view (reinterpret_cast<const char*> (nameText)) : std::string_view {});
+                if (! pad.isValid())
+                    return detail::semanticInvalid ("sampler_pads row is outside the Project value range");
+                engine::Track* owner = nullptr;
+                for (engine::Track& track : project.tracks)
+                    if (track.id == trackId)
+                        owner = &track;
+                if (owner == nullptr)
+                    return detail::semanticInvalid ("sampler_pads row names a Track the Project does not hold");
+                owner->samplerPads.push_back (pad);
+            }
+        }
+
         // G3.8: the key / scale row — a missing row means off.
         {
             detail::Statement stmt;
@@ -4422,7 +4495,7 @@ private:
                 db_,
                 "SELECT 1 FROM project WHERE sample_rate_hz <= 0 "
                 "UNION ALL SELECT 1 FROM assets WHERE frames <= 0 OR sample_rate_hz <= 0 OR channels <= 0 "
-                "UNION ALL SELECT 1 FROM tracks WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) OR (height_px != 0 AND (height_px < 56 OR height_px > 400)) OR (colour != 0 AND (colour >> 24) != 255) OR instrument_kind NOT IN (0, 1) "
+                "UNION ALL SELECT 1 FROM tracks WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) OR (height_px != 0 AND (height_px < 56 OR height_px > 400)) OR (colour != 0 AND (colour >> 24) != 255) OR instrument_kind NOT IN (0, 1, 2) "
                 "UNION ALL SELECT 1 FROM buses WHERE id = zeroblob(16) OR linear_gain < 0 OR linear_gain > 1000.0 OR pan < -1.0 OR pan > 1.0 OR muted NOT IN (0, 1) OR soloed NOT IN (0, 1) OR solo_safe NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM clips WHERE track_id = zeroblob(16) OR timeline_length < 0 OR src_offset < 0 OR src_len < 0 OR gain < 0 OR fade_in < 0 OR fade_out < 0 OR time_base NOT IN (0, 1) "
                 "UNION ALL SELECT 1 FROM recording_takes WHERE id = zeroblob(16) OR asset_id = zeroblob(16) OR track_id = zeroblob(16) OR clip_id = zeroblob(16) OR timeline_start < 0 OR frame_count <= 0 OR take_ordinal < 0 OR input_channel < 0 OR device_stable_id < 0 OR monitoring_policy NOT IN (0, 1, 2) "

@@ -471,6 +471,20 @@ fail with explicit statuses rather than degrade silently (ADR-0029) — e.g. a M
 unassigned channel (`-1`) is rejected because DAWproject `channel` is `0..15`.
 _Avoid_: backup, native project file
 
+**Sampler**:
+The second built-in instrument kind in the Track's instrument slot (ADR-0047 / ADR-0048, G3.9): pads on
+keys, each a Project Asset, one-shot (ignores NoteOff, never answers to other keys) or pitched (follows
+the key from its root, releases on NoteOff), an ADSR and a gain as its ParamSpecs. The engine reads a
+pad's samples through the same ownership law as a Clip's — never a copy on the audio thread.
+_Avoid_: sample player, drum machine (the kit is a Sampler with one-shot pads), "sampler" for the
+instrument that plays hosted plugins (G4.8)
+
+**Sampler pad**:
+One row on a Track (`sampler_pads`, schema v31): the trigger key, the Asset it plays, the root key, the
+one-shot flag, a gain, a name (the drum-mode roll's key label). One pad per key; an unclaimed key plays
+the nearest lower pitched pad transposed.
+_Avoid_: zone (no ranges or velocity layers yet), slot (the Track's instrument slot is a different thing)
+
 **Standard MIDI File (SMF)**:
 The `.mid` interchange file (formats 0 and 1, ticks per quarter note) that YES DAW reads and writes through
 `src/interchange/Smf.h` (G3.7). Import lands a file's tracks as MIDI Clips at the PROJECT's tempo (quarter

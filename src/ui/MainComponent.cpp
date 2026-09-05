@@ -9873,6 +9873,7 @@ private:
         {
             case yesdaw::engine::TrackInstrumentKind::None: return "None (auto)";
             case yesdaw::engine::TrackInstrumentKind::SimpleSynth: return "SimpleSynth";
+            case yesdaw::engine::TrackInstrumentKind::Sampler: return "Sampler";   // G3.9
         }
         return "?";
     }

@@ -1908,6 +1908,8 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "ALTER TABLE midi_clips DROP COLUMN muted; ALTER TABLE midi_clips DROP COLUMN transpose; "   // G3.5: v29
             "ALTER TABLE midi_clips DROP COLUMN velocity_offset; ALTER TABLE midi_clips DROP COLUMN loop_length; "
             "DELETE FROM schema_migrations WHERE version = 29; "
+            "DROP TABLE sampler_pads; "   // G3.9 re-pin: v31 (the Sampler's pads)
+            "DELETE FROM schema_migrations WHERE version = 31; "
             "DROP TABLE project_scale; "   // G3.8 re-pin: v30 (the project's key / scale row)
             "DELETE FROM schema_migrations WHERE version = 30; "
             "PRAGMA user_version = 10;").ok());

@@ -858,6 +858,17 @@ endif()
 yesdaw_harden(YesDawMidiFxCheck)
 add_test(NAME YesDawMidiFxCheck COMMAND $<TARGET_FILE:YesDawMidiFxCheck>)
 
+# --- Sampler check (G3.9 / ADR-0048: pads on the Track referencing Assets; one-shot + pitched; render goldens) ---
+add_executable(YesDawSamplerCheck tests/sampler_tests.cpp)
+target_include_directories(YesDawSamplerCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawSamplerCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawSamplerCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawSamplerCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawSamplerCheck)
+add_test(NAME YesDawSamplerCheck COMMAND $<TARGET_FILE:YesDawSamplerCheck>)
+
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
 target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})

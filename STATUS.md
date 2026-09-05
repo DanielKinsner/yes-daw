@@ -60,10 +60,18 @@ MIDI FX (a Bus refuses by name on the status line); the slot names them; the par
 choice specs as real choosers (E15's law, unchanged); the roll header's Key / Scale choosers set the
 project's key / scale (schema v30, one row), the in-scale rows lift off the grid and the pencil lands on
 the nearest in-scale key; the live lane posts a MIDI FX param to the running node through the new
-`MidiEffectNode` contract. `[midi-fx-shell]`; ss5 Step 16 authored. Drive + rubric: see the G3.8 cp2
-story. **Next:** the G3.8 evidence commit once CI is green on the head, then **G3.9 — Sampler
-instrument** (an ADR first: ADR-0048), then **G3.10 — RT-safe MIDI input and thru**; Dan's word
-(2026-09-05): run G3 to its end and stop when confident. Rules in force: HEADLESS by default (drives on Dan's go — given
+`MidiEffectNode` contract. `[midi-fx-shell]`; ss5 68 / 68; cp2 `3e56c7d` (its push carried the G3.7
+evidence commit on top, so CI classified the head docs-only and ran nothing on cp2's code — the G3.9
+cp1 head below is the first full run over it; a finding for the parking lot). **G3.9 — Sampler
+instrument: ADR-0048 (Proposed) + cp1 (this commit) — the engine half**: `TrackInstrumentKind::Sampler`;
+pads as Track rows referencing Project Assets (`SamplerPad`, schema v31 `sampler_pads` with foreign
+keys); `SamplerNode` (one-shot + pitched, sixteen voices, ADSR + gain as ParamSpecs); the projection's
+`assetSamplesProvider` seam hands a pad its Asset's samples through the G0.5 ownership law; the pad
+verbs (set / clear, undoable as Track row edits). `YesDawSamplerCheck` `[sampler]` (render goldens by
+equivalence). **Next:** cp2 — the shell: Sampler in the kind choosers, the instrument panel's pad grid
+(load by chooser, a WAV dropped on a pad), the drum-mode roll (pad names on the keys), `[sampler-shell]`,
+the ss4 drive step; then the G3.8 + G3.9 evidence commits and **G3.10 — RT-safe MIDI input and thru**;
+Dan's word (2026-09-05): run G3 to its end and stop when confident. Rules in force: HEADLESS by default (drives on Dan's go — given
 2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the local suite + drives are the working
 gate; drive scripts launched back-to-back flake at Step 0 (pause between scripts).
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
@@ -229,6 +237,54 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.9 cp1 — Sampler instrument: ADR-0048 and the engine half (2026-09-05)
+
+**Story.** SS-4 opens with "pencil an 8-bar drum pattern in drum mode on the Sampler with the
+fixture's one-shots" — and the slot ADR-0047 built had one instrument, a synth. Every reference DAW
+ships a sampler (Logic's Quick Sampler / Drum Machine Designer, Live's Simpler / Drum Rack, Cubase's
+Sampler Track). Now a Track can be a Sampler: pads on keys, each a Project Asset, one-shot (a drum
+hit that ignores NoteOff) or pitched (follows the key, releases on NoteOff), with an ADSR and a gain.
+
+**Precedent.** Logic's Quick Sampler (one-shot / classic modes, root key) and Drum Machine Designer
+(a kit of one-shots on keys); Live's Simpler (one-shot / classic) and Drum Rack (pads on keys). The
+ADR's mapping law — the pad's own key at its root, an unclaimed key on the nearest LOWER pitched pad
+transposed, a one-shot never answering to other keys — is the EXS "zone" idea reduced to one pad.
+
+**Build.** [ADR-0048](docs/adr/0048-sampler-instrument.md) (Proposed: pads on the Track, samples as
+Project Assets, the G0.5 ownership law for the engine's bytes). `Project.h`: `TrackInstrumentKind::Sampler`
+(2); `SamplerPad` {key, assetId, rootKey, oneShot, gain, a fixed 63-char name} on `Track::samplerPads`
+(sorted, one per key; `findSamplerPad`); `samplerPadsReferenceAssets` in the Project's validity law;
+`setSamplerPad` (replace-or-add by key) / `clearSamplerPad` with `InvalidSamplerPad` /
+`SamplerPadNotFound` / `SamplerPadAssetNotFound`; `instrumentParamSpecForKind` answers for the Sampler.
+`ProjectUndo.h`: verbs `SetSamplerPad` / `ClearSamplerPad` (Track row edits — the row diff is the undo).
+`nodes/SamplerNode.h`: pads with an opaque owner + sample span (never a copy on the audio thread),
+sixteen voices (the oldest stolen), the ADSR (attack / decay / sustain / release) and gain as
+ParamSpecs 1–5, linear-interpolated reads at 2^((key − root) / 12), the live lane honoured (audition
+addressed to the instrument), automation parameter events honoured. `ProjectMixerProjection.h`: the
+instrument by kind (Sampler → `SamplerNode` fed by the config's new `assetSamplesProvider`; else the
+synth); `OfflineRenderer.h`: the provider — the G0.5 owner for the asset when the build has one, else
+the build's one copy, shared by every pad and Clip of that asset. `GraphBuilder.h` classes the node a
+Source. Persistence v31: `sampler_pads` (FK to tracks ON DELETE CASCADE, to assets ON DELETE RESTRICT —
+a referenced Asset cannot be swept), the write / read, the reset list, the integrity clause takes kind 2.
+Shell: the kind-name switch names it (the choosers list it in cp2).
+
+**Gates.** `[sampler]` — `YesDawSamplerCheck` (483 assertions): pads as rows (set replaces-or-adds by
+key in key order, clear removes, the refusals, the verbs undo as Track row edits, a pad naming a missing
+Asset breaks validity, the 63-char name law); the one-shot golden (a one-frame note renders the sample
+VERBATIM from the note's frame after the 1 ms attack, silence past the sample's end, two strikes stack
+sample-exactly); the pitched golden (an octave up reads sample[2i] exactly — linear interpolation at
+rate 2; the voice ends at half the frames while the root voice goes on; NoteOff releases within the
+20 ms release; an unclaimed key plays the nearest lower pitched pad at 2^(7/12) — checked against the
+same interpolation from the asset; a one-shot below never answers); the five specs, gain 0.5× exact, a
+padless Sampler is silent where the synth is not; persistence (v31 round-trip, a missing-Asset pad
+refused on write, the foreign key refuses deleting the Asset). Re-pin: the persistence v10 migration pin
+reverses v31. Local suite 378 / 378 (`YesDawSamplerCheck` is the 378th).
+
+**Deviation log.** (1) No velocity layers, round-robin, per-pad envelope / filter, or choke groups —
+the plan's list is one-shot + pitched + ADSR + per-pad file; parking lot. (2) A pad's sample must share
+the project sample rate (the import law) — G5.1's resampler lifts it. (3) The pad name is a fixed
+63-char field on the row (the edit command stays flat, the drum-mode roll reads it).
 
 ### G3.8 cp2 — MIDI FX reachable + Arpeggiator + Chord: the shell half (2026-09-05)
 

@@ -17,6 +17,7 @@
 #include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/ReverbNode.h"
 #include "engine/nodes/SimpleSynthNode.h"
+#include "engine/nodes/SamplerNode.h"   // G3.9
 #include "engine/nodes/MidiEffectNode.h"   // G3.8
 #include "engine/nodes/MidiMergeNode.h"
 #include "engine/nodes/SumNode.h"
@@ -26,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <functional>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -61,6 +63,10 @@ struct ProjectMixerProjectionConfig
     int maxBlockSize = 512;
     const CompiledGraph* previousForCarryOver = nullptr;
     std::vector<ProjectMixerSendRoute> sendRoutes;
+    // G3.9 / ADR-0048: the asset-samples seam — the build hands a Sampler pad its Asset's samples through
+    // the same ownership law the Clips use (the G0.5 owner, else the build's one copy). Control side.
+    // Returns false when the Asset's audio is not available to this build.
+    std::function<bool (EntityId assetId, SamplerNodePad& padOut)> assetSamplesProvider;
 };
 
 struct ProjectMixerProjectionError
@@ -652,12 +658,44 @@ template <typename ClipSourceProvider>
             // ADR-0043: the built-in SimpleSynth is the production instrument (the impulse node
             // stays the H4 timing-gate instrument). ADR-0047: TrackInstrumentKind::None resolves
             // to it too, so pre-slot bundles render unchanged.
-            auto instrument = std::make_unique<SimpleSynthNode> (instrumentId, stripChannels);
-            instrument->setEventInput (midiPathEnd);
-            // The Track's persisted parameter overrides (an unset id keeps the spec default, which
-            // is the ADR-0043 sound bit-for-bit).
-            for (const auto& [paramId, normalizedValue] : owningTrack.instrumentParams())
-                instrument->setNormalizedParameter (paramId, normalizedValue);
+            std::unique_ptr<Node> instrument;
+            if (effectiveTrackInstrumentKind (owningTrack.instrumentKind) == TrackInstrumentKind::Sampler)
+            {
+                // G3.9 / ADR-0048: the Sampler — its pads' samples through the config's asset seam.
+                auto sampler = std::make_unique<SamplerNode> (instrumentId, stripChannels);
+                sampler->setEventInput (midiPathEnd);
+                std::vector<SamplerNodePad> pads;
+                for (const SamplerPad& pad : owningTrack.samplerPads)
+                {
+                    SamplerNodePad nodePad;
+                    nodePad.key = pad.key;
+                    nodePad.rootKey = pad.rootKey;
+                    nodePad.oneShot = pad.oneShot;
+                    nodePad.gain = static_cast<float> (pad.gain);
+                    if (! config.assetSamplesProvider || ! config.assetSamplesProvider (pad.assetId, nodePad))
+                    {
+                        if (error != nullptr)
+                            *error = { ProjectMixerProjectionError::Code::MidiProjectionFailed, trackIndex, instrumentId,
+                                       ProjectMixerNodeRole::Instrument };
+                        return false;
+                    }
+                    pads.push_back (std::move (nodePad));
+                }
+                sampler->setPads (std::move (pads));
+                for (const auto& [paramId, normalizedValue] : owningTrack.instrumentParams())
+                    sampler->setNormalizedParameter (paramId, normalizedValue);
+                instrument = std::move (sampler);
+            }
+            else
+            {
+                auto synth = std::make_unique<SimpleSynthNode> (instrumentId, stripChannels);
+                synth->setEventInput (midiPathEnd);
+                // The Track's persisted parameter overrides (an unset id keeps the spec default, which
+                // is the ADR-0043 sound bit-for-bit).
+                for (const auto& [paramId, normalizedValue] : owningTrack.instrumentParams())
+                    synth->setNormalizedParameter (paramId, normalizedValue);
+                instrument = std::move (synth);
+            }
             // ADR-0047: the instrument's parameters are automation targets by Track id.
             automationTargets.push_back ({ owningTrack.id, AutomationTargetRole::InstrumentParam, instrumentId });
 

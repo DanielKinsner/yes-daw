@@ -14,6 +14,7 @@
 #include "engine/InstrumentState.h"
 #include "engine/nodes/EqNode.h"
 #include "engine/nodes/SimpleSynthNode.h"
+#include "engine/nodes/SamplerNode.h"   // G3.9 / ADR-0048
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/FxDelayNode.h"
 #include "engine/nodes/LimiterNode.h"
@@ -397,13 +398,63 @@ inline constexpr std::uint32_t kTrackColourUnset = 0;
 enum class TrackInstrumentKind : std::uint8_t
 {
     None = 0,
-    SimpleSynth = 1
+    SimpleSynth = 1,
+    Sampler = 2   // G3.9 / ADR-0048: pads on the Track referencing Project Assets
 };
 
 [[nodiscard]] constexpr bool trackInstrumentKindIsValid (std::uint8_t raw) noexcept
 {
-    return raw <= static_cast<std::uint8_t> (TrackInstrumentKind::SimpleSynth);
+    return raw <= static_cast<std::uint8_t> (TrackInstrumentKind::Sampler);
 }
+
+// G3.9 / ADR-0048: one Sampler pad — a trigger key, the Project Asset it plays, the root key (the key
+// at which the sample plays at unity rate), one-shot (ignores NoteOff, never answers to other keys)
+// or pitched (releases on NoteOff, the nearest lower pitched pad answers to unclaimed keys), a gain,
+// and a display name (the drum-mode roll's key label; a fixed field so the edit command stays flat).
+struct SamplerPad
+{
+    static constexpr std::size_t kNameCapacity = 64;   // holds kMaxNameLength + NUL
+    static constexpr std::size_t kMaxNameLength = 63;
+
+    std::int16_t key = -1;
+    EntityId     assetId;
+    std::int16_t rootKey = 60;
+    bool         oneShot = true;
+    double       gain = 1.0;
+    char         name[kNameCapacity] = {};
+
+    [[nodiscard]] bool isValid() const noexcept
+    {
+        if (key < 0 || key > 127 || rootKey < 0 || rootKey > 127 || ! assetId.isValid()
+            || ! std::isfinite (gain) || gain < 0.0 || gain > 2.0)
+            return false;
+        for (std::size_t i = 0; i < kNameCapacity; ++i)
+            if (name[i] == '\0')
+                return true;
+        return false;   // no terminator
+    }
+
+    [[nodiscard]] std::string_view nameView() const noexcept
+    {
+        std::size_t length = 0;
+        while (length < kNameCapacity && name[length] != '\0')
+            ++length;
+        return std::string_view (name, length);
+    }
+
+    void setName (std::string_view text) noexcept
+    {
+        const std::size_t length = text.size() < kMaxNameLength ? text.size() : kMaxNameLength;
+        for (std::size_t i = 0; i < kNameCapacity; ++i)
+            name[i] = i < length ? text[i] : '\0';
+    }
+
+    friend bool operator== (const SamplerPad& a, const SamplerPad& b) noexcept
+    {
+        return a.key == b.key && a.assetId == b.assetId && a.rootKey == b.rootKey && a.oneShot == b.oneShot
+            && a.gain == b.gain && a.nameView() == b.nameView();
+    }
+};
 
 // ADR-0047: None resolves to the built-in synth for a Track holding MIDI — the kind that actually plays.
 [[nodiscard]] constexpr TrackInstrumentKind effectiveTrackInstrumentKind (TrackInstrumentKind kind) noexcept
@@ -417,6 +468,8 @@ enum class TrackInstrumentKind : std::uint8_t
     {
         case TrackInstrumentKind::SimpleSynth:
             return SimpleSynthNode::parameterSpec (paramId);
+        case TrackInstrumentKind::Sampler:   // G3.9
+            return SamplerNode::parameterSpec (paramId);
         case TrackInstrumentKind::None:
             break;
     }
@@ -449,6 +502,16 @@ struct Track
     // opaque, kind-versioned parameter blob; empty = the kind's defaults).
     TrackInstrumentKind instrumentKind = TrackInstrumentKind::None;
     std::vector<std::uint8_t> instrumentState;
+    // G3.9 / ADR-0048: the Sampler's pads (sorted by key, one per key); inert unless the kind is Sampler.
+    std::vector<SamplerPad> samplerPads;
+
+    [[nodiscard]] const SamplerPad* findSamplerPad (std::int16_t key) const noexcept
+    {
+        for (const SamplerPad& pad : samplerPads)
+            if (pad.key == key)
+                return &pad;
+        return nullptr;
+    }
 
     // G3.1: the decoded instrument parameter overrides (empty = every ParamSpec default).
     [[nodiscard]] InstrumentParamValues instrumentParams() const
@@ -1093,7 +1156,10 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidSendLevel,
     InvalidClipName,
     InvalidTrackMixState,
-    RoutingCycle   // R13: a bus send/output that would loop signal back into its own path
+    RoutingCycle,   // R13: a bus send/output that would loop signal back into its own path
+    InvalidSamplerPad,        // G3.9: a pad outside the value range
+    SamplerPadNotFound,       // G3.9: no pad on that key to clear
+    SamplerPadAssetNotFound   // G3.9: the pad names an Asset the Project does not hold
 };
 
 struct Project
@@ -1618,6 +1684,21 @@ struct Project
         return true;
     }
 
+    // G3.9 / ADR-0048: every Sampler pad is valid, one per key in key order, and names an Asset.
+    [[nodiscard]] bool samplerPadsReferenceAssets() const noexcept
+    {
+        for (const Track& track : tracks)
+            for (std::size_t i = 0; i < track.samplerPads.size(); ++i)
+            {
+                const SamplerPad& pad = track.samplerPads[i];
+                if (! pad.isValid() || findAsset (pad.assetId) == nullptr)
+                    return false;
+                if (i > 0 && track.samplerPads[i - 1].key >= pad.key)
+                    return false;
+            }
+        return true;
+    }
+
     // M3: a Track's main output either goes to master (invalid id, the default) or names a real Bus.
     [[nodiscard]] bool trackOutputsReferenceBuses() const noexcept
     {
@@ -1759,6 +1840,7 @@ struct Project
                && busesAreValid()
                && hasUniqueEntityIds()
                && clipsReferenceAssets()
+               && samplerPadsReferenceAssets()
                && clipsReferenceTracks()
                && trackOutputsReferenceBuses()
                && recordingTakesReferenceProjectRows()
@@ -3891,6 +3973,56 @@ namespace detail {
 
 // G3.1 / ADR-0047: the instrument slot's edits. Changing the kind keeps the state blob only when the
 // new kind accepts every stored id (otherwise the state resets to the defaults).
+// G3.9 / ADR-0048: set (replace or add) a Sampler pad on a Track by its key; clear one by key.
+[[nodiscard]] inline ProjectEditStatus setSamplerPad (Project& project, EntityId trackId, const SamplerPad& pad)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+    if (! pad.isValid())
+        return ProjectEditStatus::InvalidSamplerPad;
+    if (project.findAsset (pad.assetId) == nullptr)
+        return ProjectEditStatus::SamplerPadAssetNotFound;
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+        for (SamplerPad& existing : track.samplerPads)
+            if (existing.key == pad.key)
+            {
+                existing = pad;
+                return ProjectEditStatus::Applied;
+            }
+        const auto at = std::lower_bound (track.samplerPads.begin(), track.samplerPads.end(), pad.key,
+                                          [] (const SamplerPad& a, std::int16_t key) { return a.key < key; });
+        track.samplerPads.insert (at, pad);
+        return ProjectEditStatus::Applied;
+    }
+    return ProjectEditStatus::TrackNotFound;
+}
+
+[[nodiscard]] inline ProjectEditStatus clearSamplerPad (Project& project, EntityId trackId, std::int16_t key)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+    if (! trackId.isValid())
+        return ProjectEditStatus::InvalidTrackId;
+    for (Track& track : project.tracks)
+    {
+        if (track.id != trackId)
+            continue;
+        for (auto it = track.samplerPads.begin(); it != track.samplerPads.end(); ++it)
+            if (it->key == key)
+            {
+                track.samplerPads.erase (it);
+                return ProjectEditStatus::Applied;
+            }
+        return ProjectEditStatus::SamplerPadNotFound;
+    }
+    return ProjectEditStatus::TrackNotFound;
+}
+
 [[nodiscard]] inline ProjectEditStatus setTrackInstrument (Project& project,
                                                            EntityId trackId,
                                                            TrackInstrumentKind kind)
