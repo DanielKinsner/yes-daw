@@ -77,11 +77,14 @@ device→engine lane the model owns and every live engine drains at block top (n
 its thru target the selected Track's Instrument (an atomic the control thread keeps current); the
 shell's MIDI callback posts straight into it; the header's MIDI lamp; `YesDawMidiInputCheck`
 `[midi-input]` (the one-block latency law, the target law, the SPSC stress; on the RTSan leg) and
-`[midi-input]` in the shell; ss4 Step 6. Drive + rubric: see the G3.10 story. **Next:** the evidence
-commits for G3.8 / G3.9 / G3.10 as their heads certify (cp1 `0fe4fad` is green on nine jobs — macOS red
-only on the parked GPU frame-budget flake), then the **G3 close** (the SS-4 drive end to end, the
-phase's rubric and parking-lot sweep) — Dan's word (2026-09-05): run G3 to its end and stop when
-confident. Rules in force: HEADLESS by default (drives on Dan's go — given
+`[midi-input]` in the shell; ss4 17 / 17; G3.10 `25fc379`. **G3 close-out (this commit):** the exit
+drive **SS-4 "Write a beat and a chord progression"** (`tools/session-scripts/ss6-write-a-beat.ps1`)
+is **46 / 46** on the real exe; the montage is `docs/evidence/2026-09-05-g3.png`; the parking-lot
+promotion is decided (one item into G4.1); the G3.7 export law is amended (found by SS-4: the roll's
+clip no longer stands in for "everything" — selection-else-all, Logic's law). **Next:** the G3.10
+evidence commit once CI is green on `25fc379`, then **G4 — The mixer and routing**, starting at
+**G4.1 — Mixer dock v2** (plan §6; the exit is SS-5 "Mix the song"). Dan's word (2026-09-05): run G3
+to its end and stop when confident — G3 is closed here; the loop stops for Dan's read before G4. Rules in force: HEADLESS by default (drives on Dan's go — given
 2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the local suite + drives are the working
 gate; drive scripts launched back-to-back flake at Step 0 (pause between scripts).
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
@@ -255,6 +258,55 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3 close-out (2026-09-05)
+
+**Exit.** Every G3 item (G3.1–G3.10) is built, gated, driven and ticked (G3.10's tick waits on its head
+run). The exit's **SS-4 "Write a beat and a chord progression"** is a real drive on the real exe —
+`tools/session-scripts/ss6-write-a-beat.ps1`, fourteen steps, **46 / 46** (2026-09-05): New; Ctrl+Shift+N
+and the TRACK tab's chooser make a Sampler track; the fixture's one-shot lands on the C3 and D3 pads
+through the panel's native chooser; the roll opens in drum mode on that track and the pencil lays a
+kick / snare bar; a third Track becomes the SimpleSynth keys and the pencil draws four three-note
+chords; the CLIP tab's quantize panel is dragged to 80 % strength and a swing and applied to every
+note; the pencil paints a CC1 sweep in the control lane; the mixer's Add FX chooser puts the
+Arpeggiator on the keys strip; C loops and Space auditions for two and a half seconds; File > Export
+MIDI File writes a three-track SMF (tempo + drums + keys); Ctrl+B renders the mix; Save / Close /
+relaunch reopens the project and a second Ctrl+B renders **byte-identical** bytes — the render golden by
+equivalence; File > Import MIDI File brings the exported file back (a track added, the status line names
+it). Screenshots at the three sizes; the montage of four (the pads, the drum pattern, the arpeggiator on
+the strip, the finished 1080p frame) is `docs/evidence/2026-09-05-g3.png` (185 KB). MIDI CC round-trips
+(G3.3 + G3.7's gates) and renders (the control-lane sweep is in the exported file and in the mix); a
+track instrument with parameters exists (G3.1's synth, G3.9's sampler). *For Dan: you can write music
+in it — a beat on pads, chords on a synth, an arpeggio, a CC sweep, a MIDI file out and back.*
+
+**Rubric (§7.4, the ss6 1080p frame).** 1 PASS (four lanes of clips, the dock's mixer, the CLIP tab;
+nothing overlaps). 2 n/a. 3 PASS (the Arp slot names itself on the keys strip; the loop is lit; the
+status line names the import). 4 PASS. 5 PASS (the loop range, the selected strip and the playhead
+read as distinct states). 6 PASS. 7 PASS (every clip is the drive's own work). Note (parking lot): the
+reimported second track keeps the FILE's track name, so two tracks read "Audio 3".
+
+**Found while closing (fixed, in-item).** The G3.7 export law "the arrangement's selection, else the
+roll's clip, else everything" never exported a whole project from the arrangement: the roll always
+shows a clip, so with no clip selected the file carried one track. SS-4 caught it (ntrks = 2); the law
+is now selection-else-all (Logic's) — `[midi-file]` stays green (it exports the selection).
+
+**SS-4 deviations from the plan text (logged in the script's header too).** (1) "a MIDI track" is a
+Track whose instrument is set — there is no MIDI track kind. (2) "8-bar drum pattern": the Create MIDI
+Clip law makes a one-bar clip; the bar is looped by the transport loop in the audition step (a longer
+clip is a drag on its edge — SS-3's law — that the drive does not need). (3) "the fixture's one-shots"
+is the drive's `-Fixture` WAV on two pads at C3 / D3 (inside the roll's default key window). (4) "render
+equals golden": the golden is the render itself — the mix before the save / close / relaunch and the
+mix after it are byte-identical. (5) "reopen it": the exported MIDI file is imported back.
+
+**Parking-lot promotions decided.** One promoted into G4: *MIDI FX are offered on Bus strips and
+refused by name* (G3.8 cp2) — G4.1's strip law (a per-strip Add FX list) is exactly where it lands.
+Everything else stays parked: the roll's fold / scroll-to-notes, the pad inspector, the arpeggiator's
+tempo law, the live lane's CC thru, the MIDI device chooser, the key / scale undo step, the DAWproject
+menu item, the CI classifier (Dan's `ci.yml`), the undone-import selection — none serves SS-5.
+
+**Deviation log (G3 close).** The G3.10 tick waits on its head run (`25fc379`); the close-out is
+committed as a code + docs commit (the export-law amendment, the SS-4 script, the montage, the probe's
+`drumMode` field) rather than the plan's docs-only commit, so the amendment rides a CI run.
 
 ### G3.10 — RT-safe MIDI input and thru (2026-09-05)
 

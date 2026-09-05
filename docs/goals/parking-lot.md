@@ -121,3 +121,7 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 - **Only notes ride the MIDI thru lane (2026-09-05, G3.10).** `engine/MidiInputQueue.h` `push` refuses everything but NoteOn / NoteOff, and `PlaybackEngine::drainLiveEvents` counts held notes by them; a device's CC64 / CC1 / bend never reach the live instrument (the synth answers Midi1 events on the scheduled stream only). Carry Midi1 on the lane (the held-note accounting ignores them) and hand the live lane's Midi1 to the instrument. Owner: G4 / the MIDI input polish pass.
 
 - **No MIDI input device chooser (2026-09-05, G3.10).** `MainComponent.cpp` opens every `juce::MidiInput` (E34's law); Logic and Live list inputs per track / globally. A seam pair (`listMidiInputDevices` / `selectMidiInputDevice`) beside the audio device seams and an Options-row chooser. Owner: the device pass (G5 / the settings row).
+
+- **A MIDI file's added track keeps the file's track name — duplicates possible (2026-09-05, G3 close / SS-4).** `UiAppModel.h` `importMidiFileAt` names further tracks from the file's track-name meta; a file exported from this project and imported back yields a second "Audio 3". Dedupe with the Track add law's numbering ("Audio 3 (2)") or Logic's ": 2" suffix. Owner: the interchange pass.
+
+- **PROMOTED to G4.1 (2026-09-05, G3 close):** *MIDI FX are offered on Bus strips and refused by name* — the strip's Add FX list becomes per-strip-kind in G4.1's mixer dock v2.

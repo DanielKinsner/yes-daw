@@ -7697,6 +7697,7 @@ public:
                 const PianoRollCanvasGeometry rollGeometry = pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin());
                 roll->setProperty ("viewLowKey", rollSurface.viewLowKey);
                 roll->setProperty ("scaleRoot", rollSurface.scaleRoot);       // G3.8
+                roll->setProperty ("drumMode", rollSurface.drumMode);         // G3.9: the clip's Track is a Sampler
                 roll->setProperty ("scaleChoice", rollSurface.scaleChoice);
                 roll->setProperty ("viewHighKey", pianoRollViewHighKey (rollSurface));
                 roll->setProperty ("rowHeight", static_cast<double> (rollGeometry.rowHeight));

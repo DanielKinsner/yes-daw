@@ -1863,9 +1863,11 @@ public:
         return { id, state, true };
     }
 
-    // G3.7: export MIDI clips as a format-1 Standard MIDI File at 960 PPQ: the selected MIDI clips
-    // (the arrangement's selection, else the roll's clip), or every MIDI clip when nothing is
-    // selected; one file track per project track, named after it; the head tempo and meter on
+    // G3.7: export MIDI clips as a format-1 Standard MIDI File at 960 PPQ: the arrangement's selected
+    // MIDI clips, or every MIDI clip when none is selected (the G3 close's SS-4 found the earlier
+    // "else the roll's clip" rule exporting one clip of a two-track song: the roll always shows a
+    // clip, so nothing ever exported the whole project — Logic's law is selection-else-all);
+    // one file track per project track, named after it; the head tempo and meter on
     // track 0. A clip's transpose and velocity offset are baked in (the file plays what the mix
     // plays); a muted clip is left out; a clip's loop is not unrolled (deviation, logged).
     [[nodiscard]] UiActionDispatchResult exportMidiFile (const std::filesystem::path& destinationPath)
@@ -1878,9 +1880,6 @@ public:
         std::vector<const engine::MidiClip*> clips;
         for (const engine::EntityId clipId : selectedTimelineClipIds_)
             if (const engine::MidiClip* const clip = findMidiClip (clipId))
-                clips.push_back (clip);
-        if (clips.empty())
-            if (const engine::MidiClip* const clip = findMidiClip (selectedMidiClipId_))
                 clips.push_back (clip);
         const bool wholeProject = clips.empty();
         if (wholeProject)
