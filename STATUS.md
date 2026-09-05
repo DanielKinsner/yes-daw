@@ -152,7 +152,15 @@ per pixel: column n is sample n, the painted tops climb monotonically, the cache
 `YesDawUiInputCheck` (Ctrl+wheel climbs past 64x and clamps at the ceiling; ceiling x fit px/s == the
 project rate; Ctrl+0 returns to 1x; a 0.09 s project honestly stays at the 64 floor). Frame-budget gate
 untouched (no sample lookup in the headless checks).
-**Done:** G3.7 ✅ — MIDI file import / export: `6c4473e`; certified by exact-head run `33947932021` (green
+**Done:** G3.9 ✅ — Sampler instrument (ADR-0048 Proposed): cp1 `0fe4fad` (run `33950273738` green on nine
+jobs, macOS red only on the parked GPU frame-budget flake — `YesDawTimelineGpuCheck` alone), cp2 `2998374`;
+certified by exact-head run `33951039513` (green on all ten jobs). ss4 15 / 15 (then 17 / 17 with G3.10's
+step) on the real exe; rubric PASS.
+G3.8 ✅ — MIDI FX reachable + Arpeggiator + Chord: cp1 `317211b` (run `33948586824` green on all ten jobs),
+cp2 `3e56c7d` (its own push ran the docs-only fast path — the parking-lot CI finding — so cp2's code is
+certified by the next code heads' full runs: `0fe4fad` on nine jobs and `2998374` on all ten). ss5 68 / 68;
+rubric PASS.
+G3.7 ✅ — MIDI file import / export: `6c4473e`; certified by exact-head run `33947932021` (green
 on all ten jobs). ss5 63 / 63 on the real exe (twice) with the G3.7 Step 15; rubric PASS with one FIX
 applied (the audio-only inspector controls under a MIDI clip's rows).
 G3.6 ✅ — Step input and musical typing: `234bfcd`; certified by exact-head run `33946774937`
