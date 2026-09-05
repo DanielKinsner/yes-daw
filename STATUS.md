@@ -47,10 +47,16 @@ Dan's call). **cp1 ✅** `17e3802` (the engine half — the edit model, schema v
 in the piano roll**: the roll's second expression lane is a CC lane with a chooser (CC1 Mod · CC64 Sustain ·
 Pitch Bend · Aftertouch · Program); the pointer places / drags / erases points, the pencil paints one point
 per snap step, Shift+pencil draws a line; hover hint; the probe names the lane; `[control-lane]` in
-`YesDawUiInputCheck`; ss5 Step 11 authored. **Headless so far (Dan's 2026-09-04 rule):** the ss5 drive (Steps
-1–11) and the §7.4 rubric shots have NOT run — they need a drive window (Dan says "run drives"). **Next:**
-run ss5 + the rubric shots when Dan opens a window, then the G3.3 docs-evidence commit with the CI run id;
-then **G3.4 — Quantize v2** per the plan's order. Rules in force: HEADLESS by default, the macOS GPU
+`YesDawUiInputCheck`; the switch fix `63b06ab` (GCC / Clang -Werror=switch). **Drive window (Dan's go,
+2026-09-05, a different PC):** ss5 (Steps 1–11) is **43 / 43** on the real exe; the rubric shots are judged
+below (PASS on every line; one note). Earlier phases' drives on this PC: ss1 **41 / 42** (D3, the known
+empty-project-at-launch line), ss2 **29 / 29**, ss3 **51 / 51**, ss4 **11 / 11**. **Drive-machine finding
+(2026-09-05):** launched back-to-back (one script's `Close` straight into the next's `Launch`), Step 0's New
+chooser or the import chooser did not take the typed path on the first try (ss2 / ss3 red at Step 0, "Cannot
+index into a null array" cascading); the same scripts pass launched alone a few seconds later — a launch
+transient, not a shell defect; batch drives with a pause between scripts. ss1's B2 paint p95 read 8.54 ms once
+while other work ran, 7.x alone — the budget holds on an idle machine. **Next:** the G3.3 docs-evidence commit
+once CI is green on the head, then **G3.4 — Quantize v2** per the plan's order. Rules in force: HEADLESS by default, the macOS GPU
 frame-budget red is noise, the local suite + drives are the working gate.
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
@@ -238,8 +244,24 @@ program 64 and its readout is number / 127; back on CC1 the first point is alone
 lane, the controller and the pencil. `YesDawUiActionCheck` re-pinned: the second lane is Control (empty on
 the default CC1). Local suite 373 / 373 (the input check re-pinned twice: child count 156 → 157 for the lane chooser; the dock’s stray-widget list admits the roll’s own chooser).
 
-**See-it.** ss5 Step 11 authored: the pencil paints a CC1 sweep in the lane (`controlPointCount` rises),
-a shot, Ctrl+Z clears it. **Not run** — the drive needs Dan's window (headless rule); rubric shots likewise.
+**See-it.** ss5 Step 11: the pencil paints a CC1 sweep in the lane (`controlPointCount` 0 → 3 at the beat
+grid, `laneGesture` "up:paint 3"), a shot, one Ctrl+Z clears it — **43 / 43** on the real exe (2026-09-05).
+Two drive findings on the way, both fixed in the script, not the shell: (1) after Step 10's tool-cell clicks
+the keyboard focus sits on the strip, so `Key '2'` never reached the roll and the pointer placed ONE point —
+the step now clicks `tool.pencil` and asserts the tool; (2) after Step 9's 2560×1440 resize the lane (the
+dock's lowest 84 px) sat under the Windows taskbar, so SendInput's press went to the taskbar, never to the
+roll — the step resizes to 1920×1080 first. Neither is a shell defect; both are now written into the script.
+The probe gained `view.pianoRoll.laneGesture` (the lane's last gesture phase) so a drive sees where a sweep
+stopped instead of guessing. The lane names are short — Mod · Sustain · Bend · Touch · Program — because
+"CC1 Mod" wrapped onto two lines in the 70 px gutter at 150 % (the tooltip and the hint carry the numbers).
+
+**Rubric (§7.4, ss5 shots at 1280×720 / 1920×1080 / 2560×1440 and the painted-lane shot).** 1 PASS (nothing
+overlaps; the chooser sits in the gutter, the points on the grid's x range). 2 n/a (the dock is open on the
+roll). 3 PASS (the chooser is named "Mod" with a tooltip; the lane's hover hint names the controller and the
+three tools). 4 PASS (the chooser text is the control font, one line). 5 PASS (points and path in the accent
+purple, distinct from the velocity bars). 6 PASS. 7 PASS. Note (no FIX item): the lane's hover hint is long
+and the status line truncates it with an ellipsis at 1080p — the existing status-line law; a shorter hint or
+a wider status field is a G6 polish question.
 
 **Deviation log.** (1) No live preview during a lane drag — the edit lands on the release, as the velocity
 lane does (E13); a ghost path is a G2.3-style preview for a later roll pass (parking lot). (2) The lane

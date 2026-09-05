@@ -20064,7 +20064,7 @@ TEST_CASE ("G3.3 control lane: chooser, pointer points and drags, eraser, pencil
 
     // The lane and its chooser are real: the chooser is a visible child named by id, sitting in the
     // lane's gutter, and the data area spans the grid's x range.
-    REQUIRE (lane().name == juce::String ("CC1 Mod"));
+    REQUIRE (lane().name == juce::String ("Mod"));
     REQUIRE (lane().valueMin == 0.0);
     REQUIRE (lane().lane.getWidth() > 200);
     const juce::Rectangle<int> data = lane().lane;
@@ -20077,7 +20077,7 @@ TEST_CASE ("G3.3 control lane: chooser, pointer points and drags, eraser, pencil
         REQUIRE (chooser->isVisible());
         REQUIRE (chooser->getBounds() == lane().chooser.translated (pianoRoll.getX(), pianoRoll.getY()));
         REQUIRE (chooser->getRight() < pianoRoll.getX() + data.getX());
-        REQUIRE (dynamic_cast<juce::ComboBox*> (chooser)->getText() == juce::String ("CC1 Mod"));
+        REQUIRE (dynamic_cast<juce::ComboBox*> (chooser)->getText() == juce::String ("Mod"));
     }
 
     const auto laneX = [&] (double fraction) { return data.getX() + static_cast<int> (data.getWidth() * fraction); };
@@ -20204,7 +20204,7 @@ TEST_CASE ("G3.3 control lane: chooser, pointer points and drags, eraser, pencil
     // The chooser: Pitch Bend shows an empty lane whose range is -1..1; a click at the centre is a
     // bend of 0; the probe names the lane and counts its points; the dispatch is recorded.
     yesdaw::ui::mainComponentSelectPianoRollControlLane (*shell, 2);
-    REQUIRE (lane().name == juce::String ("Pitch Bend"));
+    REQUIRE (lane().name == juce::String ("Bend"));
     REQUIRE (lane().valueMin == -1.0);
     REQUIRE (lane().points.empty());
     REQUIRE (snapshotMainComponent (*shell).context.pianoRollControlLaneChoice == 2);
@@ -20223,7 +20223,7 @@ TEST_CASE ("G3.3 control lane: chooser, pointer points and drags, eraser, pencil
         juce::var probe;
         REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
         const juce::var roll = probe.getProperty ("view", juce::var()).getProperty ("pianoRoll", juce::var());
-        REQUIRE (roll.getProperty ("controlLane", juce::var()).toString() == juce::String ("Pitch Bend"));
+        REQUIRE (roll.getProperty ("controlLane", juce::var()).toString() == juce::String ("Bend"));
         REQUIRE (static_cast<int> (roll.getProperty ("controlPointCount", 0)) == 1);
         REQUIRE (static_cast<int> (roll.getProperty ("controlLaneX", 0)) == data.getX());
         REQUIRE (static_cast<int> (roll.getProperty ("controlLaneWidth", 0)) == data.getWidth());
@@ -20237,7 +20237,7 @@ TEST_CASE ("G3.3 control lane: chooser, pointer points and drags, eraser, pencil
     REQUIRE (lane().name == juce::String ("Program"));
     clickAt (juce::Point<int> (laneX (0.40), laneY (0.5)));
     {
-        const yesdaw::engine::MidiControlEvent& program = controls().back();
+        const yesdaw::engine::MidiControlEvent program = controls().back();   // a copy: controls() returns a temporary
         REQUIRE (program.kind == MidiControlKind::ProgramChange);
         REQUIRE (program.value == 0.0);
         REQUIRE (std::abs (static_cast<int> (program.number) - 64) <= 8);
@@ -20251,7 +20251,7 @@ TEST_CASE ("G3.3 control lane: chooser, pointer points and drags, eraser, pencil
     // The hover hint names the lane and its tools.
     const juce::String hint = yesdaw::ui::mainComponentHoverHintAt (*shell, pianoRoll.getPosition() + juce::Point<int> (laneX (0.5), data.getCentreY()));
     REQUIRE (hint.contains ("Control lane"));
-    REQUIRE (hint.contains ("CC1 Mod"));
+    REQUIRE (hint.contains ("Mod"));
     REQUIRE (hint.contains ("pencil"));
 
     std::error_code ec;

@@ -168,17 +168,27 @@ foreach ($pair in @(@('tool.pencil','Pencil'), @('tool.scissors','Scissors'), @(
 Shot 'ss5-tool-strip-pointer'
 
 Step 11 'G3.3 the control lane: the pencil (2) paints a CC1 sweep, Ctrl+Z clears it'
-[void](Assert ("$((Probe).view.pianoRoll.controlLane)" -eq 'CC1 Mod') 'the control lane opens on CC1 Mod')
+[void](Assert ("$((Probe).view.pianoRoll.controlLane)" -eq 'Mod') 'the control lane opens on Mod (CC1)')
 [void](Assert ((LayoutRect 'pianoroll.lane.chooser')[2] -gt 0) 'the lane chooser is laid out')
-Key '2'
+# By the strip cell, not the key: after Step 10's cell clicks the keyboard focus is on the strip,
+# and a key the roll never sees would leave the pointer in charge (it places ONE point on release).
+Click 'tool.pencil'
+[void](Assert (WaitProbe { param($q) "$($q.view.tool)" -eq 'Pencil' } -TimeoutMs 1000) 'the pencil is in charge for the lane sweep')
+# Back to a window that fits ABOVE the taskbar: after Step 9's 2560x1440 the lane (the dock's lowest
+# 84 px) sits under it, and a press there goes to the taskbar, never to the roll (found 2026-09-05).
+Resize 1920 1080; Start-Sleep -Milliseconds 500
 $roll = (Probe).view.pianoRoll
-$laneFrom = RollOffset ([int]([double]$roll.controlLaneX + [double]$roll.controlLaneWidth * 0.15)) ([int]([double]$roll.controlLaneY + [double]$roll.controlLaneHeight - 6))
-$laneTo   = RollOffset ([int]([double]$roll.controlLaneX + [double]$roll.controlLaneWidth * 0.55)) ([int]([double]$roll.controlLaneY + 6))
+# The sweep spans most of the clip: the new clip is one bar and the default snap a beat, so a
+# short sweep would paint a single point — the per-step law is the headless gate's pin.
+$laneFrom = RollOffset ([int]([double]$roll.controlLaneX + [double]$roll.controlLaneWidth * 0.05)) ([int]([double]$roll.controlLaneY + [double]$roll.controlLaneHeight - 6))
+$laneTo   = RollOffset ([int]([double]$roll.controlLaneX + [double]$roll.controlLaneWidth * 0.95)) ([int]([double]$roll.controlLaneY + 6))
 $c0 = [int](Probe).view.pianoRoll.controlPointCount
 DragWithin 'widget.piano-roll.canvas' $laneFrom[0] $laneFrom[1] $laneTo[0] $laneTo[1]
-[void](Assert (WaitProbe { param($q) [int]$q.view.pianoRoll.controlPointCount -gt $c0 + 1 } -TimeoutMs 2000) 'the pencil paints CC1 points across the sweep')
+$painted = WaitProbe { param($q) [int]$q.view.pianoRoll.controlPointCount -gt $c0 + 1 } -TimeoutMs 2000
+$q = Probe
+[void](Assert $painted ('the pencil paints CC1 points across the sweep (count ' + $q.view.pianoRoll.controlPointCount + ' from ' + $c0 + '; gesture ' + $q.view.pianoRoll.laneGesture + '; last ' + $q.lastAction + ')'))
 Shot 'ss5-control-lane-painted'
 Key 'Ctrl+Z'
 [void](Assert (WaitProbe { param($q) [int]$q.view.pianoRoll.controlPointCount -eq $c0 } -TimeoutMs 2000) 'one Ctrl+Z clears the whole sweep')
-Key '1'
+Click 'tool.pointer'
 Close

@@ -39,10 +39,12 @@ struct UiPianoRollControlLaneChoice
 };
 
 inline constexpr std::array<UiPianoRollControlLaneChoice, 5> kPianoRollControlLaneChoices {{
-    { engine::MidiControlKind::ControlChange, 1, "CC1 Mod" },
-    { engine::MidiControlKind::ControlChange, 64, "CC64 Sustain" },
-    { engine::MidiControlKind::PitchBend, 0, "Pitch Bend" },
-    { engine::MidiControlKind::ChannelPressure, 0, "Aftertouch" },
+    // Short names: the chooser lives in the 70 px keyboard gutter (it wrapped "CC1 Mod" at 150 %);
+    // the tooltip and the hover hint carry the controller numbers.
+    { engine::MidiControlKind::ControlChange, 1, "Mod" },
+    { engine::MidiControlKind::ControlChange, 64, "Sustain" },
+    { engine::MidiControlKind::PitchBend, 0, "Bend" },
+    { engine::MidiControlKind::ChannelPressure, 0, "Touch" },
     { engine::MidiControlKind::ProgramChange, 0, "Program" }
 }};
 

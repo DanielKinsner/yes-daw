@@ -2249,6 +2249,9 @@ public:
                         yesdaw::engine::Tick,
                         yesdaw::engine::Tick)> onControlLanePainted;
     [[nodiscard]] int heldAuditionKey() const noexcept { return auditionKey; }   // G3.2: -1 = none
+    // G3.3: the control lane's last gesture phase, for the probe ("down:pencil", "drag", "up:paint 7", "miss 12,34") —
+    // a drive can see where a lane sweep stopped instead of guessing.
+    [[nodiscard]] juce::String lastLaneGesture() const { return laneGesture; }
     [[nodiscard]] int lastAuditionKey() const noexcept { return lastAuditioned; }   // G3.2: the probe's record of the last press; -1 = never
     // Piano-roll viewport (E10): plain wheel scrolls keys, Shift+wheel scrolls time, Ctrl+wheel
     // zooms time anchored at the pointer tick. Alt+wheel keeps the B33 velocity law.
@@ -2423,6 +2426,8 @@ public:
                 beginControlLaneGesture (surface, geometry, event);
                 return;
             }
+            laneGesture = "miss " + juce::String (event.getPosition().x) + "," + juce::String (event.getPosition().y)
+                        + (surface.midiClipSelected ? "" : " (no clip)") + " lane " + pianoRollControlLaneDataArea (geometry).toString();
             // E13: a press in the velocity lane starts a velocity paint drag.
             if (surface.midiClipSelected
                 && pianoRollVelocityLaneArea (geometry).contains (event.getPosition()))
@@ -2599,6 +2604,7 @@ public:
                 || std::abs (deltaY) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels;
             if (controlDragState.kind == ControlDragKind::Pencil)
                 controlDragState.samples.emplace_back (controlDragState.currentTick, controlDragState.currentValue);
+            laneGesture = controlDragState.moved ? "drag" : "drag (dead zone)";
             return;
         }
 
@@ -2976,6 +2982,7 @@ private:
         std::vector<std::pair<yesdaw::engine::Tick, double>> samples;
     };
     ControlDragState controlDragState;
+    juce::String laneGesture;
 
     // The lane's tick under an x: snapped to the chooser's grid (the roll's note law: Ctrl is not an
     // inversion here) unless the caller asks for the raw tick (the freehand pencil samples raw).
@@ -3040,6 +3047,7 @@ private:
         controlDragState.active = true;
         controlDragState.midiClipId = surface.midiClipId;
         controlDragState.downPosition = event.getPosition();
+        laneGesture = tool == yesdaw::ui::TimelineTool::Pencil ? "down:pencil" : "down:point";
         if (tool == yesdaw::ui::TimelineTool::Pencil)
         {
             controlDragState.kind = event.mods.isShiftDown() ? ControlDragKind::Line : ControlDragKind::Pencil;
@@ -3077,12 +3085,14 @@ private:
         {
             if (drag.pointId.isValid())
             {
+                laneGesture = drag.moved ? "up:move" : "up:point click";
                 if (drag.moved && onControlPointMoved)
                     onControlPointMoved (drag.midiClipId, drag.pointId, drag.currentTick, drag.currentValue);
             }
             else if (onControlPointAdded)
             {
                 // A click places a point; a press-and-drag places it where the drag ends.
+                laneGesture = "up:add";
                 onControlPointAdded (drag.midiClipId, drag.currentTick, drag.currentValue);
             }
             return;
@@ -3091,6 +3101,7 @@ private:
         if (! drag.moved)
         {
             // A pencil click is a single point (Logic's pencil).
+            laneGesture = "up:pencil click";
             if (onControlPointAdded)
                 onControlPointAdded (drag.midiClipId, controlLaneTickAt (surface, geometry, drag.downPosition.x, true), drag.downValue);
             return;
@@ -3143,6 +3154,8 @@ private:
             points.emplace_back (tick, valueAt (tick));
         if (points.empty())
             points.emplace_back (lo, valueAt (lo));
+        laneGesture = "up:paint " + juce::String (static_cast<int> (points.size())) + " step " + juce::String (static_cast<juce::int64> (step))
+                    + " " + juce::String (static_cast<juce::int64> (lo)) + ".." + juce::String (static_cast<juce::int64> (hi));
         if (onControlLanePainted)
             onControlLanePainted (drag.midiClipId,
                                   std::span<const std::pair<yesdaw::engine::Tick, double>> (points.data(), points.size()),
@@ -6189,7 +6202,7 @@ public:
         // G3.3: the control lane's chooser sits in the lane's keyboard gutter (plan §3.2 "CC1 Mod ▾").
         pianoRollLaneChooser.setComponentID ("pianoroll.lane.chooser");
         pianoRollLaneChooser.setName ("Control lane");
-        pianoRollLaneChooser.setTooltip ("Which controller the piano roll's control lane shows: CC1 Mod, CC64 Sustain, Pitch Bend, Aftertouch, Program");
+        pianoRollLaneChooser.setTooltip ("Which controller the piano roll's control lane shows: Mod (CC1), Sustain (CC64), Bend (pitch bend), Touch (aftertouch), Program (program change)");
         for (std::size_t i = 0; i < yesdaw::ui::kPianoRollControlLaneChoices.size(); ++i)
             pianoRollLaneChooser.addItem (yesdaw::ui::kPianoRollControlLaneChoices[i].name, static_cast<int> (i) + 1);
         pianoRollLaneChooser.setSelectedId (1, juce::dontSendNotification);
@@ -7252,6 +7265,7 @@ public:
                     roll->setProperty ("controlLaneHeight", laneData.getHeight());
                     const auto* lane = pianoRollControlLaneOf (rollSurface);
                     roll->setProperty ("controlPointCount", lane != nullptr ? static_cast<int> (lane->points.size()) : 0);
+                    roll->setProperty ("laneGesture", pianoRollInput.lastLaneGesture());
                 }
                 juce::Array<juce::var> rollNotes;
                 for (const yesdaw::ui::UiPianoRollNoteView& note : rollSurface.notes)
