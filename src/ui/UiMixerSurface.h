@@ -152,6 +152,8 @@ struct UiMixerStrip
     // N7: the owning Track's persisted colour (kTrackColourUnset for buses — Bus carries no
     // colour field, so a bus strip always falls back to the historical index-based tint).
     std::uint32_t colour = 0;
+    // G4.1: the strip's output route (an invalid id = Master) — the OUTPUT slot paints it.
+    engine::EntityId outputBusId {};
 };
 
 struct UiMixerSurfaceSnapshot
@@ -401,6 +403,7 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.soloSafe = control != nullptr ? control->soloSafe : trackRow.strip.soloSafe;
         strip.sidechainVisible = control != nullptr && control->sidechainVisible;
         strip.colour = trackRow.colour;
+        strip.outputBusId = trackRow.outputBusId;   // G4.1
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
         strip.sends = detail::sendReadoutsForTrack (project, trackRow.id);
         strip.fxSlots = detail::fxSlotReadoutsForStrip (
@@ -439,6 +442,7 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
         if (bus != nullptr)
         {
+            strip.outputBusId = bus->outputBusId;   // G4.1
             strip.fxSlots = detail::fxSlotReadoutsForStrip (bus->strip);
             // R13: bus strips paint their own send rows through the same owner-generic law.
             strip.sends = detail::sendReadoutsForTrack (project, bus->id);

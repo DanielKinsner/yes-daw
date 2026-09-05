@@ -228,8 +228,33 @@ struct MainComponentContextMenu
     ContextMenuTarget target = ContextMenuTarget::Clip;
     int index = -1;   // lane / row / strip / marker index the click resolved to, when any
     std::vector<UiActionId> actions;
+    // G4.1: the FX kinds the Add Insert submenu offered (a Track: every kind; a Bus / the master: the
+    // audio kinds) — the promoted parking-lot item's pin.
+    std::vector<int> addInsertKinds;
 };
 [[nodiscard]] MainComponentContextMenu mainComponentRequestContextMenu (juce::Component& component, juce::Point<int> shellPoint);
+// G4.1: the LAST menu the shell built — a left-click on a strip's input / output slot opens one too
+// (targets MixerStripInput / MixerStripOutput), so a gate reads it back the way the right-click law's
+// caller does.
+[[nodiscard]] MainComponentContextMenu mainComponentLastContextMenu (const juce::Component& component);
+// G4.1: the ids above the action range for the strip menus' choices — an input (mono channel, or the
+// pair starting at it), an output (0 = Master, n = bus n-1), a send destination (the bus index).
+[[nodiscard]] int mainComponentMixerInputMenuId (int channel, bool stereoPair);
+[[nodiscard]] int mainComponentMixerOutputMenuId (int choice);
+[[nodiscard]] int mainComponentMixerSendMenuId (int busIndex);
+// G4.1: the painted I/O row rect for a strip (shell coordinates): row 0 the input slot (Track strips
+// only), row 1 the output slot (Track and Bus strips). Empty where the strip has none or the strip is
+// too short to carry it — the same law the paint and the click read.
+[[nodiscard]] juce::Rectangle<int> mainComponentPaintedIoRowBounds (const juce::Component& component, int stripIndex, int row);
+// G4.1: the two slots' texts as painted ("In: 1+2" / "In: —", "Out: Master" / "Out: <bus>").
+struct MainComponentMixerStripIo
+{
+    juce::String input;
+    juce::String output;
+};
+[[nodiscard]] MainComponentMixerStripIo mainComponentMixerStripIo (const juce::Component& component, int stripIndex);
+// G4.1: the view-state record the shell would write now (rail / inspector / dock / narrow).
+[[nodiscard]] juce::String mainComponentViewStateRecord (const juce::Component& component);
 // G1.3 cp2: invoke an item of the LAST requested context menu the way the popup's callback
 // would — the insert-slot verbs route through the shell's per-slot handlers with the clicked
 // slot; every other target dispatches the action. `direction` picks Move Up (-1) / Move Down

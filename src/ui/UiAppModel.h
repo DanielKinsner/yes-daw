@@ -4160,6 +4160,62 @@ public:
         return { id, state, true };
     }
 
+    // G4.1: the strip's INPUT slot — pick the input ONE Track records from. The model's input pick is
+    // per ARMED Track (M11), so an unarmed Track is armed on the pick (one gesture: "record from In
+    // 2"); an armed one re-picks. Transient like the arm itself; the status line names the pick.
+    [[nodiscard]] UiActionDispatchResult setRecordingInputForTrack (std::size_t trackIndex,
+                                                                    std::uint16_t baseChannel,
+                                                                    bool stereoPair)
+    {
+        syncRecordingContext();
+        const UiActionId id = UiActionId::MixerTrackSetInput;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        if (trackIndex >= project_.tracks.size())
+            return { id, { false, "track missing" }, false };
+        if (! isRecordingTrackIndexArmed (trackIndex))
+        {
+            const UiActionDispatchResult armed = toggleRecordingArmForTrack (trackIndex);
+            if (! armed.dispatched)
+                return { id, armed.state, false };
+        }
+        if (! setRecordingInputChannelForTrack (trackIndex, baseChannel, stereoPair))
+            return { id, { false, "input refused" }, false };
+        const std::string name = project_.tracks[trackIndex].strip.name.empty()
+                                     ? "Track " + std::to_string (trackIndex + 1)
+                                     : project_.tracks[trackIndex].strip.name;
+        reportStatus (name + " records from In " + std::to_string (baseChannel + 1)
+                          + (stereoPair ? "+" + std::to_string (baseChannel + 2) : std::string {}),
+                      false);
+        return { id, state, true };
+    }
+
+    // G4.1 (the promoted parking-lot item): the FX kinds the SELECTED strip takes — a Track every
+    // kind (its MIDI path carries the MIDI FX), a Bus or the master the audio kinds only. Logic hides
+    // the MIDI FX slot on non-instrument strips; the engine refused them by name — now they are never
+    // offered. Every chooser and menu that adds an insert reads this one list.
+    [[nodiscard]] std::vector<engine::FxKind> fxKindsForSelectedStrip() const
+    {
+        std::vector<engine::FxKind> kinds;
+        const bool track = context_.mixerTargetSelected && selectedMixerTarget_.kind == MixerTargetKind::Track;
+        for (std::uint8_t k = 0; k <= static_cast<std::uint8_t> (engine::FxKind::MidiChord); ++k)
+        {
+            const auto kind = static_cast<engine::FxKind> (k);
+            if (track || ! engine::fxKindIsMidi (kind))
+                kinds.push_back (kind);
+        }
+        return kinds;
+    }
+
+    [[nodiscard]] bool selectedMixerTargetIsBus() const noexcept
+    {
+        return context_.mixerTargetSelected && selectedMixerTarget_.kind == MixerTargetKind::Bus;
+    }
+
+    // G4.1: the view state's load — the narrow flag lives in the context (the registry toggles it).
+    void setMixerStripsNarrow (bool narrow) noexcept { context_.mixerStripsNarrow = narrow; }
+
     // FX insert chain on the SELECTED strip (usable-DAW P0): add/remove/bypass are undoable engine
     // commands; the audible graph rebuilds through the same adopt path as every other edit.
     [[nodiscard]] bool selectedMixerOwnerId (engine::EntityId& out) const noexcept
@@ -8176,6 +8232,7 @@ public:
             case UiActionId::TransportToggleReturnToStartOnStop:
             case UiActionId::TransportToggleRecordCountIn:
             case UiActionId::ViewToggleSettingsRow:
+            case UiActionId::MixerStripsNarrowToggle:   // G4.1: the flag lives in the context (the shell persists it)
             case UiActionId::ViewToggleInspector:
             case UiActionId::TimelineAutomationToggleTrackLane:
             case UiActionId::TimelineToggleMixerDock:
@@ -8340,6 +8397,9 @@ public:
 
             case UiActionId::MixerTrackSetOutput:
                 return { id, { false, "track output payload required" }, false };
+
+            case UiActionId::MixerTrackSetInput:   // G4.1: setRecordingInputForTrack carries the channel
+                return { id, { false, "track input payload required" }, false };
 
             case UiActionId::TrackSetInstrument:   // G3.1: setInstrumentOnSelectedTrack carries the kind
             case UiActionId::TrackInstrumentParamSet:   // setInstrumentParamOnSelectedTrack carries the value

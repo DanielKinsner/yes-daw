@@ -38,6 +38,7 @@ struct UiTheme
         static juce::Colour meterGreen() noexcept { return juce::Colour (0xff74df35); }
         static juce::Colour meterYellow() noexcept { return juce::Colour (0xffe2c832); }
         static juce::Colour dangerRed() noexcept { return juce::Colour (0xffff5757); }
+        static juce::Colour recordArm() noexcept { return juce::Colour (0xffe8503c); }   // G4.1: the strip's lit R cell
 
         static juce::Colour timelineGrid() noexcept { return juce::Colour (0xff202a33); }
         static juce::Colour timelineCanvas() noexcept { return juce::Colour (0xff090e12); }
@@ -582,6 +583,18 @@ struct UiTheme
         static constexpr int mixerPaintedSendRowPitch = mixerPaintedSendRowHeight + mixerPaintedSendRowGap;
         static constexpr int mixerPaintedSendLevelInsetX = 3;
         static constexpr int mixerPaintedSendTapWidth = 22;
+        // G4.1: the strip's I/O slots — the input row LEADS the slot column (Track strips), the output
+        // row CLOSES it (Track and Bus strips); Logic's order. Priority when the strip is short: the
+        // fader's minimum, then the inserts, then the I/O rows, then the sends.
+        static constexpr int mixerPaintedIoRowHeight = 15;
+        static constexpr int mixerPaintedIoRowGap = 2;
+        static constexpr int mixerPaintedIoRowPitch = mixerPaintedIoRowHeight + mixerPaintedIoRowGap;
+        static constexpr int mixerPaintedIoLabelInsetX = 5;
+        // G4.1: narrow strips (View > Narrow Strips, Logic's view option) — one fixed lane width; the
+        // S / M / R cells shrink to fit it side by side.
+        static constexpr int mixerPaintedStripNarrowWidth = 64;
+        static constexpr int mixerPaintedButtonNarrowWidth = 18;
+        static constexpr int mixerPaintedButtonsNarrowInsetX = 2;
         static constexpr int mixerPaintedFaderTop = mixerPaintedInsertsTop;
         static constexpr int mixerPaintedFaderBottomInset = 28;
         static constexpr int mixerPaintedMeterWidth = 16;

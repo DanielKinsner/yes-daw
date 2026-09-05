@@ -251,3 +251,5 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Load Sample (`sampler.pad.load`)
 - Clear Pad (`sampler.pad.clear`)
 - One-shot / Pitched (`sampler.pad.mode`)
+- Narrow Strips (`mixer.strips.narrow`)
+- Track Input (`mixer.track.input`)

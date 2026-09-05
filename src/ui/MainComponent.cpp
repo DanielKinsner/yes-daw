@@ -82,6 +82,10 @@ constexpr int kInspectorLogFadeCurveId = 4;
 constexpr const char* kAutomationLaneRowComponentId = "timeline.automation.track.0.lane";
 // N1: a mixer strip carries exactly two painted toggle cells — Solo then Mute, left to right.
 constexpr std::size_t kMixerPaintedMuteSoloCellCount = 2;
+// G4.1: the strip's cell row is S / M / R on a Track strip, S / M on a Bus; the I/O slot rows.
+constexpr std::size_t kMixerPaintedTrackCellCount = 3;
+constexpr int kMixerIoInputRow = 0;
+constexpr int kMixerIoOutputRow = 1;
 constexpr const char* kExportAudioProgressComponentId = "project.export_audio.progress";
 constexpr int kInspectorEqualPowerFadeCurveId = 1;
 
@@ -4169,6 +4173,9 @@ public:
     // N1: painted Mute/Solo cells — a click toggles THAT strip without stealing the selection.
     std::function<std::pair<int, int> (juce::Point<int>)> muteSoloCellAtPosition;
     std::function<void (int, int)> onMuteSoloCellClicked;
+    // G4.1: the painted I/O slots — a click opens THAT slot's choices (a menu of inputs / outputs).
+    std::function<std::pair<int, int> (juce::Point<int>)> ioRowAtPosition;   // strip, row (kMixerIo*Row)
+    std::function<void (int, int, juce::Point<int>)> onIoRowClicked;         // strip, row, position (strips-local)
     // 2026-09-04 sweep: the painted fader rail and pan knob on an UNSELECTED strip looked
     // draggable and were not (only the selected strip carried live controls). A press on either
     // selects that strip and drags ITS value through the same verbs the control lane uses;
@@ -4191,7 +4198,13 @@ public:
         const juce::Point<int> shellPosition = position + getPosition();
         if (muteSoloCellAtPosition)
             if (const auto [cellStrip, cellIndex] = muteSoloCellAtPosition (shellPosition); cellStrip >= 0 && cellIndex >= 0)
-                return cellIndex == 0 ? "Solo: click toggles" : "Mute: click toggles";
+                return cellIndex == 0 ? "Solo: click toggles"
+                     : cellIndex == 1 ? "Mute: click toggles"
+                                      : "Arm: click toggles record arm";   // G4.1
+        if (ioRowAtPosition)
+            if (const auto [ioStrip, ioRow] = ioRowAtPosition (shellPosition); ioStrip >= 0 && ioRow >= 0)
+                return ioRow == kMixerIoInputRow ? "Input: click to pick the input this track records from"
+                                                 : "Output: click to route the strip to Master or a bus";
         if (sendRowAtPosition)
             if (const auto [sendStrip, sendIndex] = sendRowAtPosition (shellPosition); sendStrip >= 0 && sendIndex >= 0)
                 return "Send: drag to set its level";
@@ -4229,6 +4242,7 @@ public:
     // strip has none; insert slots come with their own list in the next checkpoint).
     std::function<void (yesdaw::ui::ContextMenuTarget, int, juce::Point<int>)> onContextMenuRequested;
     std::function<int ()> stripCountProvider;   // track + bus strips (the master is the next index)
+    std::function<int ()> trackCountProvider;   // G4.1: the strips before it are Tracks, then Buses
 
     void requestContextMenu (juce::Point<int> position)
     {
@@ -4249,11 +4263,16 @@ public:
         }
         const int strip = stripAtPosition (shellPosition);
         const int stripCount = stripCountProvider ? stripCountProvider() : 0;
-        if (strip < 0 || strip >= stripCount)
+        const int trackCount = trackCountProvider ? trackCountProvider() : stripCount;
+        // G4.1: the menu is per strip kind — the Tracks, then the Buses, then the master's lane.
+        if (strip < 0 || strip > stripCount)
             return;
         if (onStripClicked)
             onStripClicked (strip);
-        onContextMenuRequested (yesdaw::ui::ContextMenuTarget::MixerStrip, strip, position);
+        onContextMenuRequested (strip < trackCount ? yesdaw::ui::ContextMenuTarget::MixerStrip
+                                : strip < stripCount ? yesdaw::ui::ContextMenuTarget::MixerBusStrip
+                                                     : yesdaw::ui::ContextMenuTarget::MixerMasterStrip,
+                                strip, position);
     }
 
     void mouseDown (const juce::MouseEvent& event) override
@@ -4273,6 +4292,17 @@ public:
             if (cellStrip >= 0 && cellIndex >= 0)
             {
                 onMuteSoloCellClicked (cellStrip, cellIndex);
+                return;
+            }
+        }
+
+        // G4.1: the I/O slots open their choices — before the slot rows they sit among.
+        if (ioRowAtPosition && onIoRowClicked)
+        {
+            const auto [ioStrip, ioRow] = ioRowAtPosition (shellPosition);
+            if (ioStrip >= 0 && ioRow >= 0)
+            {
+                onIoRowClicked (ioStrip, ioRow, event.getPosition());
                 return;
             }
         }
@@ -7228,13 +7258,46 @@ public:
     {
         const auto surface = currentMixerSurface();
         const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
-        if (stripIndex < 0 || stripIndex >= stripTotal
-            || cellIndex < 0 || cellIndex >= static_cast<int> (kMixerPaintedMuteSoloCellCount))
+        if (stripIndex < 0 || stripIndex >= stripTotal || cellIndex < 0)
             return {};
 
         return paintedMuteSoloCellBoundsForLane (
             paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
-            static_cast<std::size_t> (cellIndex));
+            static_cast<std::size_t> (cellIndex),
+            stripCellCount (static_cast<std::size_t> (stripIndex)));
+    }
+
+    // G4.1: the painted I/O row rect for a strip (shell coordinates) — the same law the paint and the
+    // click read; empty where the strip has no such slot or is too short to carry it.
+    [[nodiscard]] juce::Rectangle<int> harnessPaintedIoRowBounds (int stripIndex, int row) const
+    {
+        const auto surface = currentMixerSurface();
+        const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
+        if (stripIndex < 0 || stripIndex >= stripTotal)
+            return {};
+        const auto lane = paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex));
+        const int ioRows = stripIoRows (static_cast<std::size_t> (stripIndex));
+        if (row == kMixerIoInputRow)
+            return paintedInputRowBoundsForLane (lane, ioRows);
+        if (row == kMixerIoOutputRow)
+            return paintedOutputRowBoundsForLane (lane, ioRows);
+        return {};
+    }
+
+    // G4.1: the two slots' texts as painted.
+    [[nodiscard]] yesdaw::ui::MainComponentMixerStripIo harnessMixerStripIo (int stripIndex) const
+    {
+        yesdaw::ui::MainComponentMixerStripIo io;
+        const auto surface = currentMixerSurface();
+        const std::size_t trackCount = surface.tracks.size();
+        const int stripTotal = static_cast<int> (trackCount + surface.buses.size());
+        if (stripIndex < 0 || stripIndex >= stripTotal)
+            return io;
+        const auto index = static_cast<std::size_t> (stripIndex);
+        if (index < trackCount)
+            io.input = stripInputText (index);
+        io.output = stripOutputText (index < trackCount ? surface.tracks[index] : surface.buses[index - trackCount]);
+        return io;
     }
 
     // M4: the painted insert-slot rect for a strip, in SHELL coordinates — the same law the paint
@@ -7248,7 +7311,8 @@ public:
             return {};
 
         return paintedInsertRowBoundsForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
-                                              static_cast<std::size_t> (slotIndex));
+                                              static_cast<std::size_t> (slotIndex),
+                                              stripIoRows (static_cast<std::size_t> (stripIndex)));
     }
 
     // M5: the painted send-row rect for a strip, in SHELL coordinates.
@@ -7260,7 +7324,8 @@ public:
             return {};
 
         return paintedSendRowBoundsForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
-                                            static_cast<std::size_t> (sendIndex));
+                                            static_cast<std::size_t> (sendIndex),
+                                            stripIoRows (static_cast<std::size_t> (stripIndex)));
     }
 
     // M6: the painted fader rail and the y the thumb sits at for a given gain — the same law the
@@ -7272,7 +7337,8 @@ public:
         if (stripIndex < 0 || stripIndex >= stripTotal)
             return {};
 
-        return paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)));
+        return paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
+                                        stripIoRows (static_cast<std::size_t> (stripIndex)));
     }
 
     [[nodiscard]] juce::Rectangle<int> harnessPaintedPanKnobBounds (int stripIndex) const
@@ -7414,6 +7480,9 @@ public:
                 put (base, harnessPaintedMixerStripBounds (strip));
                 put (base + ".solo", harnessPaintedMuteSoloCellBounds (strip, 0));
                 put (base + ".mute", harnessPaintedMuteSoloCellBounds (strip, 1));
+                put (base + ".arm", harnessPaintedMuteSoloCellBounds (strip, 2));   // G4.1: Track strips only
+                put (base + ".input", harnessPaintedIoRowBounds (strip, kMixerIoInputRow));
+                put (base + ".output", harnessPaintedIoRowBounds (strip, kMixerIoOutputRow));
                 put (base + ".fader", harnessPaintedFaderRailBounds (strip));
                 put (base + ".pan", harnessPaintedPanKnobBounds (strip));
                 for (int slot = 0; slot < yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount; ++slot)
@@ -7656,6 +7725,7 @@ public:
                 view->setProperty ("samplerPadCount", static_cast<int> (instrumentTrack->samplerPads.size()));   // G3.9
             }
             view->setProperty ("dockHeight", dockedMixerHeight());
+            view->setProperty ("mixerNarrow", context.mixerStripsNarrow);   // G4.1
             view->setProperty ("settingsRow", context.settingsRowVisible);
             view->setProperty ("headerHeight", headerHeightNow());
             view->setProperty ("nudgeValue", context.nudgeValue);
@@ -7847,7 +7917,32 @@ public:
             recording->setProperty ("deviceGeneration", static_cast<juce::int64> (device.generation));
             recording->setProperty ("selectedInputChannel", context.selectedRecordingInputChannel);
             recording->setProperty ("chooserGeneration", static_cast<juce::int64> (recordingChannelChooserGeneration));
+            recording->setProperty ("armedTrackCount", static_cast<int> (appModel.armedRecordingTrackInputs().size()));   // G4.1
             root->setProperty ("recording", juce::var (recording));
+        }
+        {
+            // G4.1: the mixer's strips as painted — name, the two I/O slots' texts, the arm — so a
+            // drive asserts what it sees on the strip after a slot pick.
+            auto* mixer = new juce::DynamicObject();
+            const auto surface = currentMixerSurface();
+            const std::size_t trackCount = surface.tracks.size();
+            mixer->setProperty ("trackCount", static_cast<int> (trackCount));
+            mixer->setProperty ("busCount", static_cast<int> (surface.buses.size()));
+            mixer->setProperty ("narrow", context.mixerStripsNarrow);
+            juce::Array<juce::var> strips;
+            for (std::size_t i = 0; i < trackCount + surface.buses.size(); ++i)
+            {
+                const yesdaw::ui::UiMixerStrip& state = i < trackCount ? surface.tracks[i] : surface.buses[i - trackCount];
+                auto* strip = new juce::DynamicObject();
+                strip->setProperty ("name", juce::String (state.name));
+                strip->setProperty ("kind", i < trackCount ? "Track" : "Bus");
+                strip->setProperty ("input", i < trackCount ? stripInputText (i) : juce::String());
+                strip->setProperty ("output", stripOutputText (state));
+                strip->setProperty ("armed", i < trackCount && appModel.isRecordingTrackIndexArmed (i));
+                strips.add (juce::var (strip));
+            }
+            mixer->setProperty ("strips", strips);
+            root->setProperty ("mixer", juce::var (mixer));
         }
         return juce::JSON::toString (rootVar, true);
     }
@@ -8866,19 +8961,8 @@ private:
 
     void configureMixerControls()
     {
-        mixerTrackSelect.setButtonText ("Audio 1");
-        mixerTrackSelect.setComponentID ("mixer.track.0.select");
-        mixerTrackSelect.setName ("Select first mixer track");
-        mixerTrackSelect.setTooltip ("Select the first mixer track strip");
-        mixerTrackSelect.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-        mixerTrackSelect.setColour (juce::TextButton::textColourOffId, kText);
-        mixerTrackSelect.onClick = [this] {
-            (void) appModel.selectMixerTrack (0);
-            layoutMixerControls();
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerTrackSelect);
+        // G4.1: no "select first track" button — the strip's header IS the name (a click selects,
+        // a double-click renames), as on every reference mixer.
 
         // Every mixer strip is selectable (usable-DAW P0): clicking a Track strip retargets the shared
         // fader/pan/mute/solo controls and moves them onto that strip.
@@ -8892,6 +8976,9 @@ private:
         mixerStripsInput.stripCountProvider = [this] {
             const auto surface = currentMixerSurface();
             return static_cast<int> (surface.tracks.size() + surface.buses.size());
+        };
+        mixerStripsInput.trackCountProvider = [this] {   // G4.1
+            return static_cast<int> (currentMixerSurface().tracks.size());
         };
         mixerStripsInput.onStripClicked = [this] (int stripIndex) {
             const auto surface = currentMixerSurface();
@@ -8944,7 +9031,7 @@ private:
                                                      + appModel.project().buses.size()
                                                : 0u;
             for (std::size_t i = 0; i < stripTotal; ++i)
-                if (paintedMeterBoundsForLane (paintedMixerLaneBounds (i)).contains (positionInShell))
+                if (paintedMeterBoundsForLane (paintedMixerLaneBounds (i), stripIoRows (i)).contains (positionInShell))
                     return static_cast<int> (i);
             return -1;
         };
@@ -8963,8 +9050,9 @@ private:
             for (std::size_t i = 0; i < stripTotal; ++i)
             {
                 const auto lane = paintedMixerLaneBounds (i);
-                for (std::size_t cell = 0; cell < kMixerPaintedMuteSoloCellCount; ++cell)
-                    if (paintedMuteSoloCellBoundsForLane (lane, cell).contains (positionInShell))
+                const std::size_t cellCount = stripCellCount (i);   // G4.1: S / M / R on a Track, S / M on a Bus
+                for (std::size_t cell = 0; cell < cellCount; ++cell)
+                    if (paintedMuteSoloCellBoundsForLane (lane, cell, cellCount).contains (positionInShell))
                         return std::pair<int, int> { static_cast<int> (i), static_cast<int> (cell) };
             }
             return std::pair<int, int> { -1, -1 };
@@ -8981,7 +9069,7 @@ private:
             {
                 const float gain = i < trackCount ? surface.tracks[i].linearGain
                                                   : surface.buses[i - trackCount].linearGain;
-                if (paintedFaderThumbForLane (paintedMixerLaneBounds (i), gain)
+                if (paintedFaderThumbForLane (paintedMixerLaneBounds (i), gain, stripIoRows (i))
                         .expanded (0, yesdaw::ui::UiTheme::Layout::trackListLevelHitSlopX)
                         .contains (positionInShell))
                     return static_cast<int> (i);
@@ -8989,7 +9077,8 @@ private:
             return -1;
         };
         mixerStripsInput.faderGainForPosition = [this] (int stripIndex, juce::Point<int> positionInShell) {
-            const auto rail = paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)));
+            const auto rail = paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
+                                                       stripIoRows (static_cast<std::size_t> (stripIndex)));
             if (rail.getHeight() <= 0)
                 return 1.0f;
             const float fraction = juce::jlimit (0.0f, 1.0f,
@@ -9028,7 +9117,8 @@ private:
             if (retargetMixerStrip (stripIndex))
             {
                 (void) appModel.setSelectedMixerFader (linearGain);
-                showDragDbReadout (paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex))),
+                showDragDbReadout (paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
+                                                            stripIoRows (static_cast<std::size_t> (stripIndex))),
                                    linearGain);
             }
             if (ended)
@@ -9060,6 +9150,14 @@ private:
             const bool solo = cellIndex == 0;
             if (strip < tracks.size())
             {
+                if (cellIndex == static_cast<int> (kMixerPaintedTrackCellCount) - 1)
+                {
+                    // G4.1: the R cell — the arm set (M11), on THAT track; transient like the rail's badge.
+                    (void) appModel.toggleRecordingArmForTrack (strip);
+                    refreshActionState();
+                    repaintAll();
+                    return;
+                }
                 const yesdaw::engine::EntityId trackId = tracks[strip].id;
                 (void) (solo ? appModel.toggleTrackSolo (trackId) : appModel.toggleTrackMute (trackId));
             }
@@ -9081,10 +9179,33 @@ private:
                 const auto lane = paintedMixerLaneBounds (i);
                 for (std::size_t slot = 0; slot < static_cast<std::size_t> (
                          paintedInsertRowCountForLane (lane)); ++slot)
-                    if (paintedInsertRowBoundsForLane (lane, slot).contains (positionInShell))
+                    if (paintedInsertRowBoundsForLane (lane, slot, stripIoRows (i)).contains (positionInShell))
                         return std::pair<int, int> { static_cast<int> (i), static_cast<int> (slot) };
             }
             return std::pair<int, int> { -1, -1 };
+        };
+        // G4.1: the I/O slots — the click selects the strip and opens the slot's choices as a menu
+        // (headless: the record the harness reads, like every other menu).
+        mixerStripsInput.ioRowAtPosition = [this] (juce::Point<int> positionInShell) {
+            const auto surface = currentMixerSurface();
+            const std::size_t stripTotal = surface.tracks.size() + surface.buses.size();
+            for (std::size_t i = 0; i < stripTotal; ++i)
+            {
+                const auto lane = paintedMixerLaneBounds (i);
+                const int ioRows = stripIoRows (i);
+                if (paintedInputRowBoundsForLane (lane, ioRows).contains (positionInShell))
+                    return std::pair<int, int> { static_cast<int> (i), kMixerIoInputRow };
+                if (paintedOutputRowBoundsForLane (lane, ioRows).contains (positionInShell))
+                    return std::pair<int, int> { static_cast<int> (i), kMixerIoOutputRow };
+            }
+            return std::pair<int, int> { -1, -1 };
+        };
+        mixerStripsInput.onIoRowClicked = [this] (int stripIndex, int row, juce::Point<int> positionInStrips) {
+            if (mixerStripsInput.onStripClicked)
+                mixerStripsInput.onStripClicked (stripIndex);
+            openContextMenu (row == kMixerIoInputRow ? yesdaw::ui::ContextMenuTarget::MixerStripInput
+                                                     : yesdaw::ui::ContextMenuTarget::MixerStripOutput,
+                             stripIndex, mixerStripsInput, positionInStrips);
         };
         mixerStripsInput.insertSlotFilled = [this] (int strip, int slot) {
             const auto surface = currentMixerSurface();
@@ -9104,10 +9225,11 @@ private:
             for (std::size_t i = 0; i < stripTotal; ++i)
             {
                 const auto lane = paintedMixerLaneBounds (i);
+                const int ioRows = stripIoRows (i);
                 for (std::size_t sendIndex = 0;
-                     sendIndex < static_cast<std::size_t> (paintedSendRowCountForLane (lane));
+                     sendIndex < static_cast<std::size_t> (paintedSendRowCountForLane (lane, ioRows));
                      ++sendIndex)
-                    if (paintedSendRowBoundsForLane (lane, sendIndex).contains (positionInShell))
+                    if (paintedSendRowBoundsForLane (lane, sendIndex, ioRows).contains (positionInShell))
                         return std::pair<int, int> { static_cast<int> (i), static_cast<int> (sendIndex) };
             }
             return std::pair<int, int> { -1, -1 };
@@ -9115,7 +9237,8 @@ private:
         mixerStripsInput.sendLevelForPosition = [this] (int stripIndex, int sendIndex, juce::Point<int> positionInShell) {
             const auto row = paintedSendRowBoundsForLane (
                 paintedMixerLaneBounds (static_cast<std::size_t> (juce::jmax (0, stripIndex))),
-                static_cast<std::size_t> (juce::jmax (0, sendIndex)));
+                static_cast<std::size_t> (juce::jmax (0, sendIndex)),
+                stripIoRows (static_cast<std::size_t> (juce::jmax (0, stripIndex))));
             const auto bar = row.reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedSendLevelInsetX,
                                           yesdaw::ui::UiTheme::Layout::mixerPaintedSendLevelInsetX);
             if (bar.getWidth() <= 0)
@@ -9694,83 +9817,6 @@ private:
         };
         addAndMakeVisible (mixerPan);
 
-        configureActionComponent (mixerMetersReadout, yesdaw::ui::UiActionId::MixerReadMeters, "Mixer meters");
-        mixerMetersReadout.setButtonText ("Meters");
-        mixerMetersReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-        mixerMetersReadout.setColour (juce::TextButton::textColourOffId, kText);
-        mixerMetersReadout.onClick = [this] {
-            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadMeters);
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerMetersReadout);
-
-        configureActionComponent (mixerSendsReadout, yesdaw::ui::UiActionId::MixerReadSends, "Mixer sends");
-        mixerSendsReadout.setButtonText ("Sends");
-        mixerSendsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-        mixerSendsReadout.setColour (juce::TextButton::textColourOffId, kText);
-        mixerSendsReadout.onClick = [this] {
-            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadSends);
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerSendsReadout);
-
-        configureActionComponent (mixerSendLevelEdit, yesdaw::ui::UiActionId::MixerSetFirstSendLevel, "Mixer send level");
-        mixerSendLevelEdit.setButtonText ("Set send");
-        mixerSendLevelEdit.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-        mixerSendLevelEdit.setColour (juce::TextButton::textColourOffId, kText);
-        mixerSendLevelEdit.onClick = [this] {
-            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerSetFirstSendLevel);
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerSendLevelEdit);
-
-        configureActionComponent (mixerFxSlotsReadout, yesdaw::ui::UiActionId::MixerReadFxSlots, "Mixer FX slots");
-        mixerFxSlotsReadout.setButtonText ("Track FX");
-        mixerFxSlotsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-        mixerFxSlotsReadout.setColour (juce::TextButton::textColourOffId, kText);
-        mixerFxSlotsReadout.onClick = [this] {
-            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadFxSlots);
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerFxSlotsReadout);
-
-        configureActionComponent (mixerGainReductionReadout, yesdaw::ui::UiActionId::MixerReadGainReduction, "Mixer gain reduction");
-        mixerGainReductionReadout.setButtonText ("Gain reduction");
-        mixerGainReductionReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-        mixerGainReductionReadout.setColour (juce::TextButton::textColourOffId, kText);
-        mixerGainReductionReadout.onClick = [this] {
-            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadGainReduction);
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerGainReductionReadout);
-
-        configureActionComponent (mixerBusFxSlotsReadout, yesdaw::ui::UiActionId::MixerReadBusFxSlots, "Mixer Bus FX slots");
-        mixerBusFxSlotsReadout.setButtonText ("Bus FX");
-        mixerBusFxSlotsReadout.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-        mixerBusFxSlotsReadout.setColour (juce::TextButton::textColourOffId, kText);
-        mixerBusFxSlotsReadout.onClick = [this] {
-            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerReadBusFxSlots);
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerBusFxSlotsReadout);
-
-        configureActionComponent (mixerFxSlotToggle, yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled, "Mixer FX slot toggle");
-        mixerFxSlotToggle.setButtonText ("Bypass FX");
-        mixerFxSlotToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-        mixerFxSlotToggle.setColour (juce::TextButton::textColourOffId, kText);
-        mixerFxSlotToggle.onClick = [this] {
-            (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled);
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerFxSlotToggle);
-
         configureActionComponent (mixerMute, yesdaw::ui::UiActionId::MixerTargetToggleMute, "Mixer mute");
         mixerMute.setButtonText ("M");
         mixerMute.setColour (juce::TextButton::buttonColourId,
@@ -9806,27 +9852,10 @@ private:
             repaintAll();
         };
         addAndMakeVisible (mixerSolo);
-
-        // R10: solo-safe on the selected strip — a real labelled toggle, so the flag that
-        // decides whether a solo elsewhere silences this strip is visible and clickable.
-        configureActionComponent (mixerSoloSafe, yesdaw::ui::UiActionId::MixerTargetToggleSoloSafe,
-                                  "Mixer solo safe");
-        mixerSoloSafe.setButtonText ("Safe");
-        mixerSoloSafe.setColour (juce::TextButton::buttonColourId,
-                                 yesdaw::ui::UiTheme::Color::buttonSurface());
-        mixerSoloSafe.setColour (juce::TextButton::buttonOnColourId,
-                                 yesdaw::ui::UiTheme::Color::accentPurpleDeep());
-        mixerSoloSafe.setColour (juce::TextButton::textColourOffId, kText);
-        mixerSoloSafe.setColour (juce::TextButton::textColourOnId, kText);
-        mixerSoloSafe.onClick = [this] {
-            if (refreshingMixerControls || ! mixerSoloSafe.isEnabled())
-                return;
-
-            (void) appModel.toggleSelectedMixerSoloSafe();
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerSoloSafe);
+        // G4.1: the seven readout rows ("Audio 1 meters: peak n/a" …), the solo-safe button and the
+        // first-track select button are gone — the strip carries every one of those as a painted
+        // section or a menu verb (plan §8.2: delete before you add). The read verbs stay registered
+        // for the harness.
     }
 
     // G1.4: the inspector's width right now — the token, or nothing while it is hidden (I).
@@ -9869,6 +9898,7 @@ private:
             return;
         viewStateBundle = bundle;
         viewState = {};
+        appModel.setMixerStripsNarrow (false);   // G4.1: the record's default
         for (const juce::String& line : juce::StringArray::fromLines (juce::String (appModel.readViewStateRecord())))
         {
             const juce::String key = line.upToFirstOccurrenceOf ("\t", false, false);
@@ -9881,6 +9911,8 @@ private:
                                                          yesdaw::ui::UiTheme::Layout::inspectorMaxWidth, value);
             else if (key == "dock")
                 viewState.dockHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::editorDockMinHeight, value);
+            else if (key == "narrow")
+                appModel.setMixerStripsNarrow (value != 0);   // G4.1
         }
         resized();
     }
@@ -9930,9 +9962,7 @@ private:
         std::vector<juce::Component*> controls {
             &mixerStripsInput, &mixerFxAddChooser, &mixerFxParamPageChooser, &mixerMasterFader,
             &mixerBusAddButton, &mixerBusRemoveButton, &mixerSendAddChooser, &mixerTrackOutputChooser,
-            &mixerTrackSelect, &mixerFader, &mixerPan, &mixerMetersReadout, &mixerSendsReadout,
-            &mixerSendLevelEdit, &mixerFxSlotsReadout, &mixerGainReductionReadout, &mixerBusFxSlotsReadout,
-            &mixerFxSlotToggle, &mixerMute, &mixerSolo, &mixerSoloSafe };
+            &mixerFader, &mixerPan, &mixerMute, &mixerSolo };
         for (auto& c : mixerFxSlotToggles) controls.push_back (&c);
         for (auto& c : mixerFxSlotRemoves) controls.push_back (&c);
         for (auto& c : mixerFxSlotEdits) controls.push_back (&c);
@@ -9967,11 +9997,17 @@ private:
         }
     }
 
+    [[nodiscard]] std::string viewStateRecordText() const
+    {
+        return "rail\t" + std::to_string (viewState.railWidth)
+             + "\ninspector\t" + std::to_string (viewState.inspectorWidth)
+             + "\ndock\t" + std::to_string (viewState.dockHeight)
+             + "\nnarrow\t" + std::string (appModel.context().mixerStripsNarrow ? "1" : "0") + "\n";   // G4.1
+    }
+
     void saveViewState()
     {
-        appModel.writeViewStateRecord ("rail\t" + std::to_string (viewState.railWidth)
-                                       + "\ninspector\t" + std::to_string (viewState.inspectorWidth)
-                                       + "\ndock\t" + std::to_string (viewState.dockHeight) + "\n");
+        appModel.writeViewStateRecord (viewStateRecordText());
     }
 
     // G2.5: what Zoom to Selection needs from the view, in one place.
@@ -10632,12 +10668,15 @@ private:
 
         const auto surface = currentMixerSurface();
         const std::size_t stripCount = surface.tracks.size() + surface.buses.size();
-        const int stripWidth = std::clamp (
-            area.getWidth() / (juce::jmax (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount,
-                                           static_cast<int> (stripCount))
-                               + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount),
-            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
-            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMaxWidth);
+        // G4.1: View > Narrow Strips is ONE fixed width for every lane (the master's too).
+        const int stripWidth = appModel.context().mixerStripsNarrow
+            ? yesdaw::ui::UiTheme::Layout::mixerPaintedStripNarrowWidth
+            : std::clamp (
+                area.getWidth() / (juce::jmax (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount,
+                                               static_cast<int> (stripCount))
+                                   + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount),
+                yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
+                yesdaw::ui::UiTheme::Layout::mixerPaintedStripMaxWidth);
         return juce::Rectangle<int> (area.getX() + static_cast<int> (stripIndex) * stripWidth,
                                      area.getY(),
                                      stripWidth,
@@ -10658,6 +10697,75 @@ private:
         return std::clamp (available / L::mixerPaintedInsertRowPitch, 0, L::mixerPaintedInsertRowCount);
     }
 
+    // G4.1: how many I/O slot rows a strip's KIND carries — a Track two (input and output), a Bus one
+    // (output), the master none — and how many cells its S / M / R row has.
+    [[nodiscard]] int stripIoRows (std::size_t stripIndex) const noexcept
+    {
+        if (! appModel.context().projectLoaded)
+            return 0;
+        const auto& project = appModel.project();
+        if (stripIndex < project.tracks.size())
+            return 2;
+        if (stripIndex < project.tracks.size() + project.buses.size())
+            return 1;
+        return 0;
+    }
+
+    [[nodiscard]] std::size_t stripCellCount (std::size_t stripIndex) const noexcept
+    {
+        if (! appModel.context().projectLoaded)
+            return 0;
+        const auto& project = appModel.project();
+        if (stripIndex < project.tracks.size())
+            return kMixerPaintedTrackCellCount;
+        if (stripIndex < project.tracks.size() + project.buses.size())
+            return kMixerPaintedMuteSoloCellCount;
+        return 0;
+    }
+
+    // G4.1: how many of the strip's I/O rows the lane can afford — after the inserts, before the sends.
+    [[nodiscard]] static int paintedIoRowsShownForLane (juce::Rectangle<int> lane, int ioRows) noexcept
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        const int available = lane.getHeight() - L::mixerPaintedInsertsTop
+                            - L::mixerPaintedFaderBottomInset - L::mixerPaintedFaderMinHeight
+                            - L::mixerPaintedInsertsFaderGap
+                            - paintedInsertRowCountForLane (lane) * L::mixerPaintedInsertRowPitch;
+        return available >= ioRows * L::mixerPaintedIoRowPitch ? ioRows : 0;
+    }
+
+    // The input row (a Track's) leads the slot column; the output row closes it.
+    [[nodiscard]] static int paintedInputRowsForLane (juce::Rectangle<int> lane, int ioRows) noexcept
+    {
+        return paintedIoRowsShownForLane (lane, ioRows) == 2 ? 1 : 0;
+    }
+
+    [[nodiscard]] static juce::Rectangle<int> paintedIoRowRect (juce::Rectangle<int> lane, int top)
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        return juce::Rectangle<int> (lane.getX() + L::mixerPaintedInsertsInsetX,
+                                     top,
+                                     juce::jmax (0, lane.getWidth() - 2 * L::mixerPaintedInsertsInsetX),
+                                     L::mixerPaintedIoRowHeight);
+    }
+
+    [[nodiscard]] static juce::Rectangle<int> paintedInputRowBoundsForLane (juce::Rectangle<int> lane, int ioRows)
+    {
+        if (paintedInputRowsForLane (lane, ioRows) == 0)
+            return {};
+        return paintedIoRowRect (lane, lane.getY() + yesdaw::ui::UiTheme::Layout::mixerPaintedInsertsTop);
+    }
+
+    [[nodiscard]] static juce::Rectangle<int> paintedOutputRowBoundsForLane (juce::Rectangle<int> lane, int ioRows)
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        if (paintedIoRowsShownForLane (lane, ioRows) == 0)
+            return {};
+        const int top = lane.getY() + paintedSendsTopForLane (lane, ioRows)
+                      + paintedSendRowCountForLane (lane, ioRows) * L::mixerPaintedSendRowPitch;
+        return paintedIoRowRect (lane, top);
+    }
+
     // M6: ONE fader mapping. The sliders travel 0..mixerFaderSliderMax in LINEAR gain, so the
     // painted thumb, the unity mark and every dB tick must read the same law — before M6 the paint
     // put unity at the TOP of the rail while the live slider put it at half travel.
@@ -10672,9 +10780,9 @@ private:
         return mixerFaderFractionForGain (std::pow (10.0f, db / 20.0f));
     }
 
-    [[nodiscard]] static juce::Rectangle<int> paintedFaderRailForLane (juce::Rectangle<int> lane)
+    [[nodiscard]] static juce::Rectangle<int> paintedFaderRailForLane (juce::Rectangle<int> lane, int ioRows)
     {
-        const auto faderArea = lane.withTrimmedTop (paintedFaderTopForLane (lane))
+        const auto faderArea = lane.withTrimmedTop (paintedFaderTopForLane (lane, ioRows))
                                    .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
         return faderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerPaintedRailWidth)
                         .withCentre ({ lane.getCentreX()
@@ -10695,10 +10803,10 @@ private:
 
     // The painted fader THUMB for a strip lane at a gain — the grab target (the rail itself stays a
     // strip-select click: it overlaps the strip's centre line, which every strip click lands on).
-    [[nodiscard]] static juce::Rectangle<int> paintedFaderThumbForLane (juce::Rectangle<int> lane, float linearGain)
+    [[nodiscard]] static juce::Rectangle<int> paintedFaderThumbForLane (juce::Rectangle<int> lane, float linearGain, int ioRows)
     {
         using L = yesdaw::ui::UiTheme::Layout;
-        const auto rail = paintedFaderRailForLane (lane);
+        const auto rail = paintedFaderRailForLane (lane, ioRows);
         if (rail.isEmpty())
             return {};
         return juce::Rectangle<int> (rail.getX() - L::mixerPaintedThumbWidthOverhang / 2,
@@ -10715,31 +10823,34 @@ private:
 
     // M5: the send rows follow the inserts, and take space only after the inserts have taken
     // theirs — a short strip drops sends first, then inserts, and never starves the fader.
-    [[nodiscard]] static int paintedSendRowCountForLane (juce::Rectangle<int> lane) noexcept
+    [[nodiscard]] static int paintedSendRowCountForLane (juce::Rectangle<int> lane, int ioRows) noexcept
     {
         using L = yesdaw::ui::UiTheme::Layout;
-        const int used = paintedInsertRowCountForLane (lane) * L::mixerPaintedInsertRowPitch;
+        const int used = paintedInsertRowCountForLane (lane) * L::mixerPaintedInsertRowPitch
+                       + paintedIoRowsShownForLane (lane, ioRows) * L::mixerPaintedIoRowPitch;   // G4.1
         const int available = lane.getHeight() - L::mixerPaintedInsertsTop - used
                             - L::mixerPaintedFaderBottomInset - L::mixerPaintedFaderMinHeight
                             - L::mixerPaintedInsertsFaderGap;
         return std::clamp (available / L::mixerPaintedSendRowPitch, 0, L::mixerPaintedSendRowCount);
     }
 
-    [[nodiscard]] static int paintedSendsTopForLane (juce::Rectangle<int> lane) noexcept
+    [[nodiscard]] static int paintedSendsTopForLane (juce::Rectangle<int> lane, int ioRows) noexcept
     {
         using L = yesdaw::ui::UiTheme::Layout;
         return L::mixerPaintedInsertsTop
+             + paintedInputRowsForLane (lane, ioRows) * L::mixerPaintedIoRowPitch   // G4.1
              + paintedInsertRowCountForLane (lane) * L::mixerPaintedInsertRowPitch;
     }
 
     [[nodiscard]] static juce::Rectangle<int> paintedSendRowBoundsForLane (juce::Rectangle<int> lane,
-                                                                           std::size_t sendIndex)
+                                                                           std::size_t sendIndex,
+                                                                           int ioRows)
     {
         using L = yesdaw::ui::UiTheme::Layout;
-        if (static_cast<int> (sendIndex) >= paintedSendRowCountForLane (lane))
+        if (static_cast<int> (sendIndex) >= paintedSendRowCountForLane (lane, ioRows))
             return {};
 
-        const int top = lane.getY() + paintedSendsTopForLane (lane)
+        const int top = lane.getY() + paintedSendsTopForLane (lane, ioRows)
                       + static_cast<int> (sendIndex) * L::mixerPaintedSendRowPitch;
         return juce::Rectangle<int> (lane.getX() + L::mixerPaintedInsertsInsetX,
                                      top,
@@ -10747,11 +10858,12 @@ private:
                                      L::mixerPaintedSendRowHeight);
     }
 
-    [[nodiscard]] static int paintedFaderTopForLane (juce::Rectangle<int> lane) noexcept
+    [[nodiscard]] static int paintedFaderTopForLane (juce::Rectangle<int> lane, int ioRows) noexcept
     {
         using L = yesdaw::ui::UiTheme::Layout;
         const int rows = paintedInsertRowCountForLane (lane) * L::mixerPaintedInsertRowPitch
-                       + paintedSendRowCountForLane (lane) * L::mixerPaintedSendRowPitch;
+                       + paintedIoRowsShownForLane (lane, ioRows) * L::mixerPaintedIoRowPitch   // G4.1
+                       + paintedSendRowCountForLane (lane, ioRows) * L::mixerPaintedSendRowPitch;
         return rows == 0
             ? L::mixerPaintedFaderTop
             : L::mixerPaintedFaderTop + rows + L::mixerPaintedInsertsFaderGap;
@@ -10760,18 +10872,24 @@ private:
     // N1: ONE Mute/Solo cell law — the paint, the click hit-test, the SELECTED strip's live
     // buttons and the gates all read it, so the control you see is exactly the control you hit,
     // on every strip. Cell 0 is Solo, cell 1 is Mute (left to right, as painted).
-    [[nodiscard]] static juce::Rectangle<int> paintedMuteSoloCellBoundsForLane (juce::Rectangle<int> lane,
-                                                                                std::size_t cellIndex)
+    // G4.1: the row is S / M / R on a Track strip (cellCount 3), S / M on a Bus (2); a narrow strip
+    // shrinks the cells so they still sit side by side inside the lane.
+    [[nodiscard]] juce::Rectangle<int> paintedMuteSoloCellBoundsForLane (juce::Rectangle<int> lane,
+                                                                         std::size_t cellIndex,
+                                                                         std::size_t cellCount) const
     {
         using L = yesdaw::ui::UiTheme::Layout;
-        if (cellIndex >= kMixerPaintedMuteSoloCellCount)
+        if (cellIndex >= cellCount)
             return {};
 
+        const bool narrow = appModel.context().mixerStripsNarrow;
+        const int cellWidth = narrow ? L::mixerPaintedButtonNarrowWidth : L::mixerPaintedButtonWidth;
         auto buttonsRow = lane.withTrimmedTop (L::mixerPaintedButtonsTop)
                               .withHeight (L::mixerPaintedButtonsHeight)
-                              .reduced (L::mixerPaintedButtonsInsetX, L::mixerPaintedButtonsInsetY);
-        buttonsRow.removeFromLeft (static_cast<int> (cellIndex) * L::mixerPaintedButtonWidth);
-        return buttonsRow.removeFromLeft (L::mixerPaintedButtonWidth)
+                              .reduced (narrow ? L::mixerPaintedButtonsNarrowInsetX : L::mixerPaintedButtonsInsetX,
+                                        L::mixerPaintedButtonsInsetY);
+        buttonsRow.removeFromLeft (static_cast<int> (cellIndex) * cellWidth);
+        return buttonsRow.removeFromLeft (cellWidth)
                          .reduced (L::mixerPaintedButtonInsetX, L::mixerPaintedButtonInsetY);
     }
 
@@ -10779,13 +10897,15 @@ private:
     // painted slot can never drift from the slot a click selects. An empty rect means the strip has
     // no room for that row.
     [[nodiscard]] static juce::Rectangle<int> paintedInsertRowBoundsForLane (juce::Rectangle<int> lane,
-                                                                             std::size_t slotIndex)
+                                                                             std::size_t slotIndex,
+                                                                             int ioRows)
     {
         using L = yesdaw::ui::UiTheme::Layout;
         if (static_cast<int> (slotIndex) >= paintedInsertRowCountForLane (lane))
             return {};
 
         const int top = lane.getY() + L::mixerPaintedInsertsTop
+                      + paintedInputRowsForLane (lane, ioRows) * L::mixerPaintedIoRowPitch   // G4.1: below the input row
                       + static_cast<int> (slotIndex) * L::mixerPaintedInsertRowPitch;
         return juce::Rectangle<int> (lane.getX() + L::mixerPaintedInsertsInsetX,
                                      top,
@@ -10793,9 +10913,9 @@ private:
                                      L::mixerPaintedInsertRowHeight);
     }
 
-    [[nodiscard]] static juce::Rectangle<int> paintedMeterBoundsForLane (juce::Rectangle<int> lane)
+    [[nodiscard]] static juce::Rectangle<int> paintedMeterBoundsForLane (juce::Rectangle<int> lane, int ioRows)
     {
-        auto faderArea = lane.withTrimmedTop (paintedFaderTopForLane (lane))
+        auto faderArea = lane.withTrimmedTop (paintedFaderTopForLane (lane, ioRows))
                              .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
         return faderArea.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterWidth)
                         .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterInsetX,
@@ -11039,21 +11159,7 @@ private:
             component.setBounds (utility.removeFromTop (height));
             return true;
         };
-        const std::array<juce::Button*, 7> utilityButtons {
-            &mixerMetersReadout,
-            &mixerSendsReadout,
-            &mixerSendLevelEdit,
-            &mixerFxSlotsReadout,
-            &mixerFxSlotToggle,
-            &mixerGainReductionReadout,
-            &mixerBusFxSlotsReadout
-        };
-        for (juce::Button* button : utilityButtons)
-        {
-            (void) placeUtilityRow (*button, yesdaw::ui::UiTheme::Layout::mixerUtilityHeight);
-            utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityGap);
-        }
-
+        // G4.1: the seven readout rows are gone; the column starts at the Solo / Mute row.
         // N1: the selected target's Solo/Mute verbs share one utility row, split in half. They are
         // real labelled buttons here; on the strips themselves Mute/Solo are painted cells driven
         // by the click law, on EVERY strip.
@@ -11073,10 +11179,6 @@ private:
                 mixerMute.setBounds ({});
             }
         }
-
-        // R10: solo-safe rides its own utility row below Solo/Mute.
-        (void) placeUtilityRow (mixerSoloSafe, yesdaw::ui::UiTheme::Layout::mixerUtilityHeight);
-        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityGap);
 
         (void) placeUtilityRow (mixerFxAddChooser, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
         utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
@@ -11185,8 +11287,9 @@ private:
         auto lane = mixerStripBounds (selectedStrip > 0 ? selectedStrip : 0)
                         .reduced (yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetX,
                                   yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetY);
-        mixerTrackSelect.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight));
-        lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
+        // G4.1: the header band is the painted name (no live button); the live pan keeps its place.
+        lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight
+                            + yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
         mixerPan.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerPanHeight)
                                 .reduced (yesdaw::ui::UiTheme::Layout::mixerPanInsetX,
                                           yesdaw::ui::UiTheme::Layout::mixerPanInsetY));
@@ -11200,7 +11303,8 @@ private:
         // M4: reserve exactly the painted insert block on the SELECTED strip, so the live fader
         // starts where the painted one does instead of sitting on top of the slot rows.
         lane.removeFromTop (juce::jmax (yesdaw::ui::UiTheme::Space::none,
-                                        paintedFaderTopForLane (mixerStripBounds (selectedStrip > 0 ? selectedStrip : 0))
+                                        paintedFaderTopForLane (mixerStripBounds (selectedStrip > 0 ? selectedStrip : 0),
+                                                                stripIoRows (static_cast<std::size_t> (selectedStrip > 0 ? selectedStrip : 0)))
                                             - yesdaw::ui::UiTheme::Layout::mixerPaintedFaderTop));
         auto faderArea = lane.removeFromTop (
             juce::jmax (yesdaw::ui::UiTheme::Layout::mixerFaderMinHeight,
@@ -11867,11 +11971,12 @@ private:
             UiActionId::PianoRollNoteSetVelocity,
             UiActionId::PianoRollNoteSelectPrevious, UiActionId::PianoRollNoteSelectNext,   // G3.2
         };
-        static constexpr std::array<UiActionId, 31> kViewMenu {
+        static constexpr std::array<UiActionId, 32> kViewMenu {
             UiActionId::ViewTimeline,      UiActionId::ViewMixer,          UiActionId::ViewPianoRoll,
             UiActionId::ViewInstrument,   // G3.1
             UiActionId::ViewToggleInspector,
-            UiActionId::TimelineToggleMixerDock, UiActionId::InspectorShowClipTab, UiActionId::InspectorShowTrackTab,
+            UiActionId::TimelineToggleMixerDock, UiActionId::MixerStripsNarrowToggle,   // G4.1
+            UiActionId::InspectorShowClipTab, UiActionId::InspectorShowTrackTab,
             UiActionId::TimelineAutomationToggleTrackLane,
             UiActionId::TimelineZoomIn,    UiActionId::TimelineZoomOut,
             UiActionId::TimelineZoomTracksIn, UiActionId::TimelineZoomTracksOut, UiActionId::TimelineZoomBack,   // G2.16
@@ -11936,6 +12041,7 @@ private:
             case UiActionId::TransportToggleReturnToStartOnStop: return c.returnToStartOnStopEnabled;
             case UiActionId::TransportToggleRecordCountIn:      return c.recordCountInEnabled;
             case UiActionId::ViewToggleSettingsRow:             return c.settingsRowVisible;
+            case UiActionId::MixerStripsNarrowToggle:           return c.mixerStripsNarrow;   // G4.1
             case UiActionId::ViewToggleInspector:               return c.inspectorVisible;
             case UiActionId::EditNudgeValueGrid:                return c.nudgeValue == 0;
             case UiActionId::EditNudgeValueBar:                 return c.nudgeValue == 1;
@@ -11988,6 +12094,19 @@ private:
         yesdaw::ui::ContextMenuTarget target = yesdaw::ui::ContextMenuTarget::Clip;
         int index = -1;
         std::vector<yesdaw::ui::UiActionId> actions;
+        std::vector<int> addInsertKinds;   // G4.1: the kinds the Add Insert submenu offered
+
+        [[nodiscard]] yesdaw::ui::MainComponentContextMenu toPublic (const juce::String& route = "none") const
+        {
+            yesdaw::ui::MainComponentContextMenu out;
+            out.route = route;
+            out.shown = shown;
+            out.target = target;
+            out.index = index;
+            out.actions = actions;
+            out.addInsertKinds = addInsertKinds;
+            return out;
+        }
     };
     LastContextMenu lastContextMenu;
 
@@ -12019,12 +12138,106 @@ private:
                 menu.addSeparator();
             if (entry.action == yesdaw::ui::UiActionId::MixerFxInsertAdd)
             {
+                // G4.1: the kinds THIS strip takes (a Bus / the master: the audio kinds only).
                 juce::PopupMenu kinds;
-                for (int kind = 0; kind < kContextMenuAddInsertKindCount; ++kind)
-                    kinds.addItem (kContextMenuAddInsertBase + kind,
-                                   fxKindName (static_cast<yesdaw::engine::FxKind> (kind)));
+                for (const yesdaw::engine::FxKind kind : appModel.fxKindsForSelectedStrip())
+                {
+                    kinds.addItem (kContextMenuAddInsertBase + static_cast<int> (kind), fxKindName (kind));
+                    lastContextMenu.addInsertKinds.push_back (static_cast<int> (kind));
+                }
                 menu.addSubMenu ("Add Insert", kinds,
                                  appModel.registry().stateFor (entry.action, appModel.context()).enabled);
+                lastContextMenu.actions.push_back (entry.action);
+                continue;
+            }
+            // G4.1: the routing verbs carry their choices — a submenu on the strip menu, the items
+            // themselves on the I/O slot's menu (one verb, expanded inline).
+            if (entry.action == yesdaw::ui::UiActionId::MixerSendAdd
+                || entry.action == yesdaw::ui::UiActionId::MixerTrackSetOutput
+                || entry.action == yesdaw::ui::UiActionId::MixerTrackSetInput)
+            {
+                const bool inline_ = target == yesdaw::ui::ContextMenuTarget::MixerStripInput
+                                  || target == yesdaw::ui::ContextMenuTarget::MixerStripOutput;
+                const bool enabled = appModel.registry().stateFor (entry.action, appModel.context()).enabled;
+                juce::PopupMenu choices;
+                int choiceCount = 0;
+                const auto& project = appModel.project();
+                const yesdaw::engine::EntityId self = appModel.selectedSendOwnerEntityId();
+                if (entry.action == yesdaw::ui::UiActionId::MixerSendAdd)
+                {
+                    for (std::size_t busIndex = 0; busIndex < project.buses.size() && busIndex < kContextMenuChoiceRange; ++busIndex)
+                    {
+                        if (project.buses[busIndex].id == self)
+                            continue;   // R13: never a self-route
+                        choices.addItem (kContextMenuAddSendBase + static_cast<int> (busIndex),
+                                         juce::String (project.buses[busIndex].strip.name));
+                        ++choiceCount;
+                    }
+                }
+                else if (entry.action == yesdaw::ui::UiActionId::MixerTrackSetOutput)
+                {
+                    const yesdaw::engine::EntityId routed = appModel.selectedTrackOutputBusId();
+                    juce::PopupMenu::Item master ("Master");
+                    master.itemID = kContextMenuOutputBase;
+                    master.isTicked = ! routed.isValid();
+                    choices.addItem (std::move (master));
+                    ++choiceCount;
+                    for (std::size_t busIndex = 0; busIndex < project.buses.size() && busIndex + 1 < kContextMenuChoiceRange; ++busIndex)
+                    {
+                        if (project.buses[busIndex].id == self)
+                            continue;
+                        juce::PopupMenu::Item item (juce::String (project.buses[busIndex].strip.name));
+                        item.itemID = kContextMenuOutputBase + 1 + static_cast<int> (busIndex);
+                        item.isTicked = project.buses[busIndex].id == routed;
+                        choices.addItem (std::move (item));
+                        ++choiceCount;
+                    }
+                }
+                else
+                {
+                    const auto& device = appModel.recordingDeviceSelection();
+                    const int inputs = device.selected ? static_cast<int> (device.inputChannels) : 0;
+                    const yesdaw::ui::UiRecordingTrackInputSelection* picked = nullptr;
+                    const int ordinal = appModel.selectedMixerStripOrdinal();
+                    for (const yesdaw::ui::UiRecordingTrackInputSelection& armed : appModel.armedRecordingTrackInputs())
+                        if (armed.armed && ordinal >= 0 && armed.trackIndex == static_cast<std::size_t> (ordinal))
+                            picked = &armed;
+                    for (int channel = 0; channel < inputs && channel < static_cast<int> (kContextMenuChoiceRange); ++channel)
+                    {
+                        juce::PopupMenu::Item item ("In " + juce::String (channel + 1));
+                        item.itemID = kContextMenuInputMonoBase + channel;
+                        item.isTicked = picked != nullptr && ! picked->stereoPair && picked->inputChannel == channel;
+                        choices.addItem (std::move (item));
+                        ++choiceCount;
+                    }
+                    for (int channel = 0; channel + 1 < inputs && channel < static_cast<int> (kContextMenuChoiceRange); ++channel)
+                    {
+                        juce::PopupMenu::Item item ("In " + juce::String (channel + 1) + "+" + juce::String (channel + 2));
+                        item.itemID = kContextMenuInputPairBase + channel;
+                        item.isTicked = picked != nullptr && picked->stereoPair && picked->inputChannel == channel;
+                        choices.addItem (std::move (item));
+                        ++choiceCount;
+                    }
+                    if (choiceCount == 0)
+                    {
+                        juce::PopupMenu::Item none ("No inputs (Options > Audio Device)");
+                        none.isEnabled = false;
+                        choices.addItem (std::move (none));
+                    }
+                }
+                if (inline_)
+                {
+                    menu.addSectionHeader (entry.action == yesdaw::ui::UiActionId::MixerTrackSetInput ? "Input" : "Output");
+                    juce::PopupMenu::MenuItemIterator it (choices);
+                    while (it.next())
+                        menu.addItem (juce::PopupMenu::Item (it.getItem()));
+                }
+                else
+                {
+                    menu.addSubMenu (entry.action == yesdaw::ui::UiActionId::MixerSendAdd ? "Add Send"
+                                     : entry.action == yesdaw::ui::UiActionId::MixerTrackSetOutput ? "Output" : "Input",
+                                     choices, enabled && choiceCount > 0);
+                }
                 lastContextMenu.actions.push_back (entry.action);
                 continue;
             }
@@ -12093,6 +12306,13 @@ private:
     static constexpr int kContextMenuAddInsertBase = 3001;      // + FxKind
     static constexpr int kContextMenuTimeDisplayBase = 3100;    // + time display mode (G2.2)
     static constexpr int kContextMenuAddInsertKindCount = 9;    // Eq … Limiter, the four MIDI FX (G3.8)
+    // G4.1: the routing choices — a send destination (+ bus index), an output (0 Master, 1 + bus
+    // index), an input (mono + channel; the pair starting at + channel). One range each.
+    static constexpr int kContextMenuAddSendBase = 3200;
+    static constexpr int kContextMenuOutputBase = 3300;
+    static constexpr int kContextMenuInputMonoBase = 3400;
+    static constexpr int kContextMenuInputPairBase = 3500;
+    static constexpr std::size_t kContextMenuChoiceRange = 100;
 
     // The one path a picked context-menu item takes (the popup's callback and the harness): the
     // insert-slot verbs act on the clicked slot through the shell's per-slot handlers; every
@@ -12110,6 +12330,40 @@ private:
         {
             (void) appModel.addFxInsertToSelectedStrip (
                 static_cast<yesdaw::engine::FxKind> (itemId - kContextMenuAddInsertBase));
+            refreshActionState();
+            resized();
+            repaintAll();
+            return;
+        }
+        // G4.1: the routing choices act on the SELECTED strip (the click that opened the menu selected it).
+        const auto inChoiceRange = [itemId] (int base) {
+            return itemId >= base && itemId < base + static_cast<int> (kContextMenuChoiceRange);
+        };
+        if (inChoiceRange (kContextMenuAddSendBase) || inChoiceRange (kContextMenuOutputBase)
+            || inChoiceRange (kContextMenuInputMonoBase) || inChoiceRange (kContextMenuInputPairBase))
+        {
+            if (inChoiceRange (kContextMenuAddSendBase))
+            {
+                (void) appModel.addSendOnSelectedTrack (static_cast<std::size_t> (itemId - kContextMenuAddSendBase));
+            }
+            else if (inChoiceRange (kContextMenuOutputBase))
+            {
+                const int choice = itemId - kContextMenuOutputBase;
+                const auto& buses = appModel.project().buses;
+                if (choice == 0)
+                    (void) appModel.setOutputOnSelectedTrack ({});
+                else if (static_cast<std::size_t> (choice - 1) < buses.size())
+                    (void) appModel.setOutputOnSelectedTrack (buses[static_cast<std::size_t> (choice - 1)].id);
+            }
+            else
+            {
+                const bool stereo = inChoiceRange (kContextMenuInputPairBase);
+                const int channel = itemId - (stereo ? kContextMenuInputPairBase : kContextMenuInputMonoBase);
+                const int ordinal = appModel.selectedMixerStripOrdinal();
+                if (ordinal >= 0 && static_cast<std::size_t> (ordinal) < appModel.project().tracks.size())
+                    (void) appModel.setRecordingInputForTrack (static_cast<std::size_t> (ordinal),
+                                                               static_cast<std::uint16_t> (channel), stereo);
+            }
             refreshActionState();
             resized();
             repaintAll();
@@ -12182,6 +12436,15 @@ public:
     }
     void harnessInvokeContextMenuId (int itemId) { invokeContextMenuItem (itemId); }   // G2.2
     [[nodiscard]] static constexpr int harnessTimeDisplayMenuId (int mode) noexcept { return kContextMenuTimeDisplayBase + mode; }
+    // G4.1: the routing choices' ids, the last menu built, the view-state record.
+    [[nodiscard]] static constexpr int harnessMixerInputMenuId (int channel, bool stereoPair) noexcept
+    {
+        return (stereoPair ? kContextMenuInputPairBase : kContextMenuInputMonoBase) + channel;
+    }
+    [[nodiscard]] static constexpr int harnessMixerOutputMenuId (int choice) noexcept { return kContextMenuOutputBase + choice; }
+    [[nodiscard]] static constexpr int harnessMixerSendMenuId (int busIndex) noexcept { return kContextMenuAddSendBase + busIndex; }
+    [[nodiscard]] yesdaw::ui::MainComponentContextMenu harnessLastContextMenu() const { return lastContextMenu.toPublic(); }
+    [[nodiscard]] juce::String harnessViewStateRecord() const { return juce::String (viewStateRecordText()); }
 
     void harnessInvokeContextMenuItem (yesdaw::ui::UiActionId action, int direction)
     {
@@ -12221,13 +12484,7 @@ public:
             route = "strips";
             mixerStripsInput.requestContextMenu (shellPoint - mixerStripsInput.getPosition());
         }
-        yesdaw::ui::MainComponentContextMenu out;
-        out.route = route;
-        out.shown = lastContextMenu.shown;
-        out.target = lastContextMenu.target;
-        out.index = lastContextMenu.index;
-        out.actions = lastContextMenu.actions;
-        return out;
+        return lastContextMenu.toPublic (route);
     }
 
 private:
@@ -12730,6 +12987,34 @@ private:
                 toggleSelectedTrackKey (action);
                 return;
 
+            // G4.1: the strip menus' target verbs act on the SELECTED mixer target (a Bus's menu used
+            // to reach the rail's track through the Track verbs); the bus verbs need the shell too.
+            case yesdaw::ui::UiActionId::MixerTargetToggleMute:
+                (void) appModel.toggleSelectedMixerMute();
+                return;
+            case yesdaw::ui::UiActionId::MixerTargetToggleSolo:
+                (void) appModel.toggleSelectedMixerSolo();
+                return;
+            case yesdaw::ui::UiActionId::MixerTargetToggleSoloSafe:
+                (void) appModel.toggleSelectedMixerSoloSafe();
+                return;
+            case yesdaw::ui::UiActionId::MixerBusRemove:
+                (void) appModel.removeSelectedBus();
+                layoutMixerControls();
+                return;
+            case yesdaw::ui::UiActionId::MixerBusRename:
+                if (appModel.selectedMixerTargetIsBus())
+                {
+                    const int ordinal = appModel.selectedMixerStripOrdinal();
+                    openBusRenameEditor (ordinal - static_cast<int> (appModel.project().tracks.size()), ordinal);
+                }
+                return;
+            case yesdaw::ui::UiActionId::MixerStripsNarrowToggle:
+                (void) appModel.dispatch (action);
+                saveViewState();   // the view state follows the project, like the splitters
+                resized();
+                return;
+
             case yesdaw::ui::UiActionId::TrackSelectPrevious:
             case yesdaw::ui::UiActionId::TrackSelectNext:
                 // Context-sensitive (B34): in the Piano Roll with a note selected, Up/Down
@@ -13019,6 +13304,16 @@ private:
             const bool chooserEnabled =
                 appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerFxInsertAdd, appModel.context()).enabled;
             mixerFxAddChooser.setEnabled (chooserEnabled);
+            {
+                // G4.1: the chooser lists the kinds THIS strip takes (the same list the menus read).
+                const std::vector<yesdaw::engine::FxKind> kinds = appModel.fxKindsForSelectedStrip();
+                if (static_cast<int> (kinds.size()) != mixerFxAddChooser.getNumItems())
+                {
+                    mixerFxAddChooser.clear (juce::dontSendNotification);
+                    for (const yesdaw::engine::FxKind kind : kinds)
+                        mixerFxAddChooser.addItem (fxKindName (kind), static_cast<int> (kind) + 1);
+                }
+            }
             for (std::size_t slot = 0; slot < mixerFxSlotToggles.size(); ++slot)
             {
                 const bool present = slot < chain.size();
@@ -13832,22 +14127,8 @@ private:
         const bool projectHasTrack = appModel.context().projectLoaded && ! project.tracks.empty();
         const bool selected = appModel.context().mixerTargetSelected;
 
-        for (juce::Component* control : std::array<juce::Component*, 12> {
-                 &mixerTrackSelect,
-                 &mixerFader,
-                 &mixerPan,
-                 &mixerMetersReadout,
-                 &mixerSendsReadout,
-                 &mixerSendLevelEdit,
-                 &mixerFxSlotsReadout,
-                 &mixerGainReductionReadout,
-                 &mixerBusFxSlotsReadout,
-                 &mixerFxSlotToggle,
-                 &mixerMute,
-                 &mixerSolo })
-        {
+        for (juce::Component* control : std::array<juce::Component*, 4> { &mixerFader, &mixerPan, &mixerMute, &mixerSolo })
             control->setVisible (projectHasTrack);
-        }
 
         const float interactiveAlpha = selected
                                            ? yesdaw::ui::UiTheme::Tone::componentVisibleAlpha
@@ -13857,36 +14138,14 @@ private:
         mixerMute.setAlpha (interactiveAlpha);
         mixerSolo.setAlpha (interactiveAlpha);
 
-        mixerTrackSelect.setEnabled (projectHasTrack);
         mixerFader.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetSetFader,
                                                              appModel.context()).enabled);
         mixerPan.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetSetPan,
                                                            appModel.context()).enabled);
         mixerMute.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleMute,
                                                             appModel.context()).enabled);
-        mixerSoloSafe.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleSoloSafe,
-                                                                appModel.context()).enabled);
         mixerSolo.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleSolo,
                                                             appModel.context()).enabled);
-        mixerMetersReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadMeters,
-                                                                     appModel.context()).enabled);
-        mixerSendsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadSends,
-                                                                    appModel.context()).enabled);
-        // G0.8: the registry state carries the "no send / no FX" reason itself (no dead affordance).
-        mixerSendLevelEdit.setEnabled (
-            appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSetFirstSendLevel,
-                                          appModel.context()).enabled);
-        mixerFxSlotsReadout.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadFxSlots,
-                                                                      appModel.context()).enabled);
-        mixerGainReductionReadout.setEnabled (
-            appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadGainReduction,
-                                          appModel.context()).enabled);
-        mixerBusFxSlotsReadout.setEnabled (
-            appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadBusFxSlots,
-                                          appModel.context()).enabled);
-        mixerFxSlotToggle.setEnabled (
-            appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerToggleFirstFxSlotEnabled,
-                                          appModel.context()).enabled);
         refreshingMixerControls = true;
         // E19: the master fader reflects the persisted master gain and enables with a project.
         mixerMasterFader.setEnabled (
@@ -13904,121 +14163,41 @@ private:
             if (stripView == nullptr)
                 stripView = &project.tracks.front().strip;
             const auto& strip = *stripView;
-            // R11: the master strip has no stored name — label it directly.
-            mixerTrackSelect.setButtonText (appModel.selectedMixerTargetIsMaster()
-                                                ? juce::String ("Master")
-                                                : (strip.name.empty() ? "Track 1"
-                                                                      : juce::String (strip.name)));
             mixerFader.setValue (strip.linearGain, juce::dontSendNotification);
             mixerPan.setValue (strip.pan, juce::dontSendNotification);
             mixerMute.setToggleState (selected && strip.muted, juce::dontSendNotification);
             mixerSolo.setToggleState (selected && strip.soloed, juce::dontSendNotification);
-            mixerSoloSafe.setToggleState (selected && strip.soloSafe, juce::dontSendNotification);
-            mixerMetersReadout.setButtonText (mixerMetersReadoutText());
-            mixerSendsReadout.setButtonText (mixerSendsReadoutText());
-            mixerSendLevelEdit.setButtonText ("Send");
-            mixerFxSlotsReadout.setButtonText (mixerFxSlotsReadoutText());
-            mixerGainReductionReadout.setButtonText (mixerGainReductionReadoutText());
-            mixerBusFxSlotsReadout.setButtonText (mixerBusFxSlotsReadoutText());
-            mixerFxSlotToggle.setButtonText ("FX");
-            // E23: this readout is the FIRST-track FX bypass tool — it must read track 0's
-            // chain, not the selected strip's (found by the cross-strip gate: selecting a
-            // chain-less third track while track 0 had FX dereferenced an empty vector).
-            mixerFxSlotToggle.setToggleState (appModel.context().firstTrackFxSlotAvailable
-                                                  && project.tracks.front().strip.fxChain.front().enabled,
-                                              juce::dontSendNotification);
         }
         else
         {
-            mixerTrackSelect.setButtonText ("No Track");
             mixerFader.setValue (yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
                                  juce::dontSendNotification);
             mixerPan.setValue (yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault,
                                juce::dontSendNotification);
             mixerMute.setToggleState (false, juce::dontSendNotification);
             mixerSolo.setToggleState (false, juce::dontSendNotification);
-            mixerSoloSafe.setToggleState (false, juce::dontSendNotification);
-            mixerMetersReadout.setButtonText ("Meters");
-            mixerSendsReadout.setButtonText ("Sends");
-            mixerSendLevelEdit.setButtonText ("Set send");
-            mixerFxSlotsReadout.setButtonText ("Track FX");
-            mixerFxSlotToggle.setButtonText ("Bypass FX");
-            mixerGainReductionReadout.setButtonText ("Gain reduction");
-            mixerBusFxSlotsReadout.setButtonText ("Bus FX");
-            mixerFxSlotToggle.setToggleState (false, juce::dontSendNotification);
         }
         refreshingMixerControls = false;
     }
 
-    // N2: the strip every readout describes — the one the user SELECTED (tracks first, then
-    // buses), falling back to the first strip when nothing is selected. Before N2 they all read
-    // surface.tracks.front() regardless, so selecting track 3 left the panel reporting track 1.
-    // Every readout NAMES the strip it describes, so it can never claim to be about another one.
-    [[nodiscard]] static const yesdaw::ui::UiMixerStrip* readoutStripFor (
-        const yesdaw::ui::UiMixerSurfaceSnapshot& surface, int selectedOrdinal) noexcept
+    // G4.1: the I/O slots' texts — ONE law for the paint and the harness.
+    [[nodiscard]] juce::String stripInputText (std::size_t trackIndex) const
     {
-        const std::size_t trackCount = surface.tracks.size();
-        const std::size_t stripTotal = trackCount + surface.buses.size();
-        if (stripTotal == 0)
-            return nullptr;
-
-        const std::size_t ordinal =
-            selectedOrdinal >= 0 && static_cast<std::size_t> (selectedOrdinal) < stripTotal
-                ? static_cast<std::size_t> (selectedOrdinal)
-                : 0;
-        return ordinal < trackCount ? &surface.tracks[ordinal]
-                                    : &surface.buses[ordinal - trackCount];
+        for (const yesdaw::ui::UiRecordingTrackInputSelection& armed : appModel.armedRecordingTrackInputs())
+            if (armed.armed && armed.trackIndex == trackIndex)
+                return "In: " + juce::String (static_cast<int> (armed.inputChannel) + 1)
+                     + (armed.stereoPair ? "+" + juce::String (static_cast<int> (armed.inputChannel) + 2) : juce::String());
+        return juce::String::fromUTF8 ("In: \xe2\x80\x94");
     }
 
-    [[nodiscard]] static juce::String readoutStripName (const yesdaw::ui::UiMixerStrip& strip)
+    [[nodiscard]] juce::String stripOutputText (const yesdaw::ui::UiMixerStrip& strip) const
     {
-        if (! strip.name.empty())
-            return juce::String (strip.name);
-
-        return strip.kind == yesdaw::ui::UiMixerTargetKind::Bus ? "Bus 1" : "Track 1";
+        if (strip.outputBusId.isValid())
+            if (const yesdaw::engine::Bus* const bus = appModel.project().findBus (strip.outputBusId))
+                return "Out: " + juce::String (bus->strip.name);
+        return "Out: Master";
     }
 
-    [[nodiscard]] juce::String mixerMetersReadoutText() const
-    {
-        const auto surface = currentMixerSurface();
-        const auto* strip = readoutStripFor (surface, appModel.selectedMixerStripOrdinal());
-        if (strip == nullptr)
-            return "Meters: no Track";
-
-        // E24: a shipped readout speaks user language — no raw engine node ids.
-        juce::String text = readoutStripName (*strip) + " meters:";
-
-        if (! strip->meter.valid)
-            return text + " peak n/a";
-
-        return text
-            + " L " + juce::String (strip->meter.peakLeft, 2)
-            + " R " + juce::String (strip->meter.peakRight, 2);
-    }
-
-    [[nodiscard]] juce::String mixerSendsReadoutText() const
-    {
-        const auto surface = currentMixerSurface();
-        const auto* strip = readoutStripFor (surface, appModel.selectedMixerStripOrdinal());
-        if (strip == nullptr)
-            return "Sends: no Track";
-
-        // A Bus carries no sends in this model — say so instead of reporting some Track's.
-        if (strip->kind == yesdaw::ui::UiMixerTargetKind::Bus)
-            return readoutStripName (*strip) + " sends: n/a";
-
-        if (strip->sends.empty())
-            return readoutStripName (*strip) + " sends: none";
-
-        const yesdaw::ui::UiMixerSendReadout& send = strip->sends.front();
-        return readoutStripName (*strip)
-             + " Send " + juce::String (static_cast<int> (send.sendOrdinal))
-             + " level " + juce::String (send.normalizedLevel, 2)
-             + " points " + juce::String (static_cast<int> (send.breakpointCount));
-    }
-
-    // M4: the strip-width name. "Compressor" does not fit a mixer strip — the slot rows use the
-    // same short labels the control lane's slot buttons already use.
     [[nodiscard]] static const char* fxKindStripName (yesdaw::engine::FxKind kind) noexcept
     {
         switch (kind)
@@ -14053,78 +14232,6 @@ private:
         }
 
         return "Unknown";
-    }
-
-    [[nodiscard]] juce::String mixerFxSlotsReadoutText() const
-    {
-        const auto surface = currentMixerSurface();
-        const auto* strip = readoutStripFor (surface, appModel.selectedMixerStripOrdinal());
-        if (strip == nullptr)
-            return "FX: no Track";
-
-        if (strip->fxSlots.empty())
-            return readoutStripName (*strip) + " FX: none";
-
-        const yesdaw::ui::UiMixerFxSlotReadout& slot = strip->fxSlots.front();
-        return readoutStripName (*strip)
-             + " FX " + juce::String (static_cast<int> (slot.slotOrdinal))
-             + " " + juce::String (fxKindName (slot.kind))
-             + " params " + juce::String (static_cast<int> (slot.parameterCount))
-             + (slot.enabled ? " on" : " off");
-    }
-
-    [[nodiscard]] juce::String mixerGainReductionReadoutText() const
-    {
-        const auto surface = currentMixerSurface();
-        const auto* strip = readoutStripFor (surface, appModel.selectedMixerStripOrdinal());
-        if (strip == nullptr)
-            return "GR: no Track";
-
-        const yesdaw::ui::UiMixerFxSlotReadout* readout = nullptr;
-        for (const yesdaw::ui::UiMixerFxSlotReadout& slot : strip->fxSlots)
-        {
-            if (slot.gainReductionValid || slot.gainReductionAvailable)
-            {
-                readout = &slot;
-                break;
-            }
-        }
-
-        if (readout == nullptr)
-            return readoutStripName (*strip) + " GR: none";
-
-        juce::String text = readoutStripName (*strip)
-            + " GR " + juce::String (static_cast<int> (readout->slotOrdinal))
-            + " " + juce::String (fxKindName (readout->kind));
-
-        if (readout->gainReductionValid)
-            return text + " " + juce::String (readout->gainReductionDb, 2) + " dB";
-
-        return text + " n/a";
-    }
-
-    [[nodiscard]] juce::String mixerBusFxSlotsReadoutText() const
-    {
-        const auto surface = currentMixerSurface();
-        if (surface.buses.empty())
-            return "Bus FX: no Bus";
-
-        // N2: this one is Bus-specific by design — it follows the SELECTED bus, and falls back to
-        // the first bus only when the selection is not a bus at all.
-        const auto* selected = readoutStripFor (surface, appModel.selectedMixerStripOrdinal());
-        const yesdaw::ui::UiMixerStrip& bus =
-            selected != nullptr && selected->kind == yesdaw::ui::UiMixerTargetKind::Bus
-                ? *selected
-                : surface.buses.front();
-        if (bus.fxSlots.empty())
-            return readoutStripName (bus) + " FX: none";
-
-        const yesdaw::ui::UiMixerFxSlotReadout& slot = bus.fxSlots.front();
-        return readoutStripName (bus)
-             + " FX " + juce::String (static_cast<int> (slot.slotOrdinal))
-             + " " + juce::String (fxKindName (slot.kind))
-             + " params " + juce::String (static_cast<int> (slot.parameterCount))
-             + (slot.enabled ? " on" : " off");
     }
 
     [[nodiscard]] juce::String masterLoudnessReadoutText() const
@@ -16306,15 +16413,10 @@ private:
                                       yesdaw::ui::UiTheme::Space::none),
                         juce::Justification::centredLeft);
 
-        const int stripWidth = std::clamp (
-            area.getWidth() / (juce::jmax (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount,
-                                           static_cast<int> (stripCount))
-                               + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount),
-            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
-            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMaxWidth);
         for (std::size_t stripIndex = 0; stripIndex < stripCount; ++stripIndex)
         {
             const bool isBus = stripIndex >= surface.tracks.size();
+            const int ioRows = stripIoRows (stripIndex);   // G4.1
             const auto& state = isBus ? surface.buses[stripIndex - surface.tracks.size()]
                                       : surface.tracks[stripIndex];
             // N7: a Track strip's own persisted colour overrides the historical index-cycled
@@ -16330,9 +16432,9 @@ private:
                                && stripIndex == static_cast<std::size_t> (selectedOrdinal);
             const bool interactiveStrip = selected;
 
-            auto lane = area.removeFromLeft (stripWidth)
-                            .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
-                                      yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
+            // G4.1: the lane from the ONE geometry law (paintedMixerLaneBounds) — the paint, the
+            // hit-tests and the harness can never disagree on where a strip is (narrow or wide).
+            auto lane = paintedMixerLaneBounds (stripIndex);
             g.setColour (yesdaw::ui::UiTheme::Color::panelShadow().withAlpha (
                 yesdaw::ui::UiTheme::Tone::shadowAlpha));
             g.fillRoundedRectangle (
@@ -16416,17 +16518,25 @@ private:
             // the one whose controls looked broken. The selected strip's live buttons now sit on
             // exactly these rects (paintedMuteSoloCellBoundsForLane), so the two agree by law.
             {
-                const std::array<const char*, kMixerPaintedMuteSoloCellCount> cellLabels { "S", "M" };
-                for (std::size_t cellIndex = 0; cellIndex < cellLabels.size(); ++cellIndex)
+                // G4.1: S / M / R on a Track strip (the R cell lit while the track is in the arm set),
+                // S / M on a Bus — the cell count is the strip kind's.
+                const std::array<const char*, kMixerPaintedTrackCellCount> cellLabels { "S", "M", "R" };
+                const std::size_t cellCount = stripCellCount (stripIndex);
+                for (std::size_t cellIndex = 0; cellIndex < cellCount && cellIndex < cellLabels.size(); ++cellIndex)
                 {
-                    const auto cell = paintedMuteSoloCellBoundsForLane (lane, cellIndex);
+                    const auto cell = paintedMuteSoloCellBoundsForLane (lane, cellIndex, cellCount);
                     if (cell.isEmpty())
                         continue;
 
-                    g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+                    const bool armCell = cellIndex == kMixerPaintedTrackCellCount - 1;
+                    const bool on = cellIndex == 0 ? state.soloed
+                                  : cellIndex == 1 ? state.muted
+                                                   : (! isBus && appModel.isRecordingTrackIndexArmed (stripIndex));
+                    g.setColour (armCell && on ? yesdaw::ui::UiTheme::Color::recordArm()
+                                               : yesdaw::ui::UiTheme::Color::controlInset());
                     g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
-                    const bool on = cellIndex == 0 ? state.soloed : state.muted;
-                    g.setColour (on ? stripColour.brighter (0.55f) : kText);
+                    g.setColour (on && ! armCell ? stripColour.brighter (0.55f) : kText);
+                    g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small, juce::Font::bold));
                     g.drawText (cellLabels[cellIndex], cell, juce::Justification::centred, false);
                 }
             }
@@ -16456,7 +16566,7 @@ private:
                      slot < static_cast<std::size_t> (paintedInsertRowCountForLane (lane));
                      ++slot)
                 {
-                    const auto row = paintedInsertRowBoundsForLane (lane, slot);
+                    const auto row = paintedInsertRowBoundsForLane (lane, slot, ioRows);
                     const bool filled = slot < chain.size();
                     const bool slotSelected = selected && selectedFxParamSlot >= 0
                                            && static_cast<std::size_t> (selectedFxParamSlot) == slot;
@@ -16507,10 +16617,10 @@ private:
             {
                 const std::vector<yesdaw::ui::UiMixerSendReadout>& sends = state.sends;
                 for (std::size_t sendIndex = 0;
-                     sendIndex < static_cast<std::size_t> (paintedSendRowCountForLane (lane));
+                     sendIndex < static_cast<std::size_t> (paintedSendRowCountForLane (lane, ioRows));
                      ++sendIndex)
                 {
-                    const auto row = paintedSendRowBoundsForLane (lane, sendIndex);
+                    const auto row = paintedSendRowBoundsForLane (lane, sendIndex, ioRows);
                     const bool routed = sendIndex < sends.size();
                     g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
                     g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
@@ -16554,9 +16664,35 @@ private:
                 }
             }
 
+            // G4.1: the I/O slots — the input row leads the slot column (Track strips: the input the
+            // track records from, "—" until one is picked), the output row closes it (Master or a bus).
+            // Both are wells like the slot rows; a click opens the slot's choices.
+            {
+                const auto drawIoSlot = [&g, this] (juce::Rectangle<int> row, const juce::String& text, bool picked)
+                {
+                    g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
+                    g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
+                    g.setColour (kPanelStroke);
+                    g.drawRoundedRectangle (row.toFloat().reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripOutlineInset),
+                                            yesdaw::ui::UiTheme::Radius::sm,
+                                            yesdaw::ui::UiTheme::Layout::mixerPaintedStripStrokeWidth);
+                    g.setColour (picked ? kText : kMutedText);
+                    g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+                    g.drawFittedText (text,
+                                      row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::mixerPaintedIoLabelInsetX),
+                                      juce::Justification::centredLeft, 1);
+                };
+                const auto input = paintedInputRowBoundsForLane (lane, ioRows);
+                if (! input.isEmpty())
+                    drawIoSlot (input, stripInputText (stripIndex), ! isBus && appModel.isRecordingTrackIndexArmed (stripIndex));
+                const auto output = paintedOutputRowBoundsForLane (lane, ioRows);
+                if (! output.isEmpty())
+                    drawIoSlot (output, stripOutputText (state), state.outputBusId.isValid());
+            }
+
             // M6: the rail and the meter each derive from the shared lane laws now — there is no
             // local fader rect left to keep in sync.
-            const auto meter = paintedMeterBoundsForLane (lane);
+            const auto meter = paintedMeterBoundsForLane (lane, ioRows);
             if (! isBus && stripIndex < trackMeterHold.size())
             {
                 const MeterHoldState& hold = trackMeterHold[stripIndex];
@@ -16573,7 +16709,7 @@ private:
                 drawMeter (g, meter, state.meter.valid ? state.meter.peakLeft : 0.0f);
             }
 
-            auto rail = paintedFaderRailForLane (lane);
+            auto rail = paintedFaderRailForLane (lane, ioRows);
             if (! interactiveStrip)
             {
                 g.setColour (yesdaw::ui::UiTheme::Color::controlInsetDeep());
@@ -16641,12 +16777,13 @@ private:
                 yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor,
                 state.linearGain));
             // M6: a bare "0.0" is not a level. Silence reads as -inf, everything else carries dB.
-            g.drawText (state.linearGain <= yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor
-                            ? juce::String ("-inf dB")
-                            : juce::String (gainDb, 1) + " dB",
-                        readout,
-                        juce::Justification::centred,
-                        false);
+            // G4.1: fitted, so a narrow strip's readout shrinks instead of clipping.
+            g.drawFittedText (state.linearGain <= yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor
+                                  ? juce::String ("-inf dB")
+                                  : juce::String (gainDb, 1) + " dB",
+                              readout,
+                              juce::Justification::centred,
+                              1);
         }
 
         // N3: master's lane comes from the SAME single law as every track/bus strip
@@ -16696,6 +16833,8 @@ private:
             yesdaw::ui::UiTheme::Space::none);
         masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterContentTop);
 
+        // G4.1 rubric FIX: the master's card texts are FITTED — a narrow master pane shrinks them
+        // instead of clipping "INTEGRATED" to "INTEGRA".
         auto loudnessCard = masterContent.removeFromTop (
             yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessCardHeight);
         g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
@@ -16704,10 +16843,10 @@ private:
         g.setFont (yesdaw::ui::UiTheme::Type::font (
             yesdaw::ui::UiTheme::Type::tiny,
             juce::Font::bold));
-        g.drawText ("INTEGRATED", loudnessCard.withHeight (
+        g.drawFittedText ("INTEGRATED", loudnessCard.withHeight (
                         yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessValueTop),
                     juce::Justification::centred,
-                    false);
+                    1);
         g.setColour (kText);
         g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
             yesdaw::ui::UiTheme::Type::readout,
@@ -16715,23 +16854,23 @@ private:
         const juce::String integrated = surface.loudness.valid
             ? juce::String (surface.loudness.integratedLufs, 1)
             : juce::String ("--");
-        g.drawText (integrated,
+        g.drawFittedText (integrated,
                     loudnessCard.withTrimmedTop (
                         yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessValueTop)
                         .withHeight (
                             yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessValueHeight),
                     juce::Justification::centred,
-                    false);
+                    1);
         g.setColour (kMutedText);
         g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
-        g.drawText ("LUFS-I",
+        g.drawFittedText ("LUFS-I",
                     loudnessCard.withTrimmedTop (
                         yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessValueTop
                         + yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessValueHeight)
                         .withHeight (
                             yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessUnitHeight),
                     juce::Justification::centred,
-                    false);
+                    1);
 
         masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterSectionGap);
         auto peakCard = masterContent.removeFromTop (
@@ -16742,11 +16881,11 @@ private:
         g.setFont (yesdaw::ui::UiTheme::Type::font (
             yesdaw::ui::UiTheme::Type::tiny,
             juce::Font::bold));
-        g.drawText ("TRUE PEAK",
+        g.drawFittedText ("TRUE PEAK",
                     peakCard.withHeight (
                         yesdaw::ui::UiTheme::Layout::mixerMasterPeakValueTop),
                     juce::Justification::centred,
-                    false);
+                    1);
         g.setColour (surface.loudness.valid && surface.loudness.truePeakDbtp > 0.0
                          ? yesdaw::ui::UiTheme::Color::dangerRed()
                          : kText);
@@ -16756,13 +16895,13 @@ private:
         const juce::String truePeak = surface.loudness.valid
             ? juce::String (surface.loudness.truePeakDbtp, 1) + " dBTP"
             : juce::String ("-- dBTP");
-        g.drawText (truePeak,
+        g.drawFittedText (truePeak,
                     peakCard.withTrimmedTop (
                         yesdaw::ui::UiTheme::Layout::mixerMasterPeakValueTop)
                         .withHeight (
                             yesdaw::ui::UiTheme::Layout::mixerMasterPeakValueHeight),
                     juce::Justification::centred,
-                    false);
+                    1);
 
         const float masterPeakLeft = liveMasterPeakLeft.load (std::memory_order_acquire);
         const float masterPeakRight = liveMasterPeakRight.load (std::memory_order_acquire);
@@ -17028,7 +17167,6 @@ private:
     juce::ComboBox exportRangeChooser;
     juce::Label exportAudioProgress;
     juce::TextButton exportAudioCancelButton;
-    juce::TextButton mixerTrackSelect;
     FineDragSlider mixerFader;
     FineDragSlider mixerPan;
     juce::Label dragDbReadout;
@@ -17036,18 +17174,11 @@ private:
     std::vector<std::array<MeterHoldState, 2>> trackMeterHoldLR;   // V5: rail L/R columns
     std::vector<MeterHoldState> busMeterHold;     // by Bus index; same tick law (E22)
     juce::String lastPushedWindowTitle;           // dirty-title push dedupe (B38)
-    juce::TextButton mixerMetersReadout;
-    juce::TextButton mixerSendsReadout;
-    juce::TextButton mixerSendLevelEdit;
-    juce::TextButton mixerFxSlotsReadout;
-    juce::TextButton mixerGainReductionReadout;
-    juce::TextButton mixerBusFxSlotsReadout;
-    juce::TextButton mixerFxSlotToggle;
     // N1: TextButtons, not ToggleButtons — the strip's Mute/Solo are labelled cells, and a
     // ToggleButton ignores the TextButton colour ids this code configures and paints a check box.
+    // (G4.1: the seven readout buttons and the solo-safe button are gone — the strip and its menu.)
     juce::TextButton mixerMute;
     juce::TextButton mixerSolo;
-    juce::TextButton mixerSoloSafe;   // R10
     juce::TextButton masterLoudnessReadout;
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
@@ -17653,6 +17784,50 @@ void mainComponentInvokeContextMenuId (juce::Component& component, int itemId)
 int mainComponentTimeDisplayMenuId (int mode)
 {
     return MainComponent::harnessTimeDisplayMenuId (mode);
+}
+
+// G4.1: the strip menus' routing choices, the last menu, the I/O rows, the slot texts, the view state.
+int mainComponentMixerInputMenuId (int channel, bool stereoPair)
+{
+    return MainComponent::harnessMixerInputMenuId (channel, stereoPair);
+}
+
+int mainComponentMixerOutputMenuId (int choice)
+{
+    return MainComponent::harnessMixerOutputMenuId (choice);
+}
+
+int mainComponentMixerSendMenuId (int busIndex)
+{
+    return MainComponent::harnessMixerSendMenuId (busIndex);
+}
+
+MainComponentContextMenu mainComponentLastContextMenu (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessLastContextMenu();
+    return {};
+}
+
+juce::Rectangle<int> mainComponentPaintedIoRowBounds (const juce::Component& component, int stripIndex, int row)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedIoRowBounds (stripIndex, row);
+    return {};
+}
+
+MainComponentMixerStripIo mainComponentMixerStripIo (const juce::Component& component, int stripIndex)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessMixerStripIo (stripIndex);
+    return {};
+}
+
+juce::String mainComponentViewStateRecord (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessViewStateRecord();
+    return {};
 }
 
 void mainComponentInvokeContextMenuItem (juce::Component& component, yesdaw::ui::UiActionId action, int direction)

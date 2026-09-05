@@ -84,7 +84,18 @@ promotion is decided (one item into G4.1); the G3.7 export law is amended (found
 clip no longer stands in for "everything" — selection-else-all, Logic's law). **Next:** the G3.10
 evidence commit once CI is green on `25fc379`, then **G4 — The mixer and routing**, starting at
 **G4.1 — Mixer dock v2** (plan §6; the exit is SS-5 "Mix the song"). Dan's word (2026-09-05): run G3
-to its end and stop when confident — G3 is closed here; the loop stops for Dan's read before G4. Rules in force: HEADLESS by default (drives on Dan's go — given
+to its end and stop when confident — G3 is closed here (ADR-0048 Accepted `b28b2a9`). **G4 — The mixer
+and routing (Dan's go 2026-09-05: "pickup at g4"). G4.1 — Mixer dock v2, cp1 (this commit): the strip's
+anatomy** — an INPUT slot and an OUTPUT slot on the strip (Logic's I/O rows: input above the inserts, output
+below the sends; a click opens the choice), the R cell beside S / M on Track strips (record arm, lit while
+armed), narrow / wide strips (View > Narrow Strips; the strip menu; persisted with the view state), the
+strip menu per strip kind (Track / Bus / master — three lists, the Add Insert / Add Send / Output / Input
+submenus real), the promoted parking-lot item (a Bus or the master is offered the five audio FX only —
+`fxKindsForStrip`), and the tools lane's dead readout rows deleted (plan §8.2 "delete before you add").
+`[mixer-v2]` in `YesDawUiInputCheck`. **cp2 (next):** the lane's remaining controls fold into the strip
+(the send rows' tap / destination / add on the strip, a generic FX editor window on a slot double-click,
+the live fader / pan retired for the painted drags) and the lane column is deleted with its tokens; the
+tests that reach the lane's widgets are re-pinned to the strip. Rules in force: HEADLESS by default (drives on Dan's go — given
 2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the local suite + drives are the working
 gate; drive scripts launched back-to-back flake at Step 0 (pause between scripts).
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
@@ -262,6 +273,91 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G4.1 cp1 — Mixer dock v2: the strip's anatomy (2026-09-05)
+
+**Story.** Dan opens the mixer and it is a mixer: every strip reads top to bottom like Logic's — the
+name on its colour, the input it records from, the inserts, the sends, the output it feeds, the pan, S / M /
+R, the fader on its dB scale beside a held-peak meter, the level. He clicks the input slot and picks "In
+1+2"; the track is armed on that pair. He clicks the output slot and routes the vocal to the bus. He
+right-clicks a strip and the menu is that strip's — a Track's (rename, add insert, add send, output, input,
+mute / solo / safe / arm, narrow, add bus, remove track), a Bus's (rename, add insert, add send, output,
+mute / solo / safe, narrow, add bus, remove bus), the master's (add insert, narrow, add bus). A Bus is
+never offered a MIDI FX. View > Narrow Strips halves the strips so a big session fits. The left column's
+readout rows ("Audio 1 meters: peak n/a" …) are gone.
+
+**Precedent.** Logic's channel strip (input slot above the audio FX inserts, sends, output slot, pan, M / S
+/ R, fader + meter, name); Logic's "Narrow channel strips" view option; Logic hides the MIDI FX slot on
+non-instrument strips; Logic's strip context menu is per kind. Pro Tools' I/O view is the same pair of
+slots (the reference rule, ADR-0046 §1).
+
+**Build.** `UiActions.h`: `MixerStripsNarrowToggle` ("mixer.strips.narrow", View menu, ticked from
+`context.mixerStripsNarrow`, no chord — Logic has none), `MixerTrackSetInput` ("mixer.track.input", a
+payload verb: the strip's input slot). `UiAppModel.h`: `setRecordingInputForTrack` (arms the Track on the
+picked input when it is not armed — one gesture, "record from In 2" — else re-picks; the status line
+names it), `fxKindsForStrip` (the promoted item: a Track takes every kind, a Bus / the master the audio
+kinds). `ContextMenus.h`: `ContextMenuTarget::MixerBusStrip` / `MixerMasterStrip` beside `MixerStrip`
+(the Track's; the existing pin holds) with their lists; `MixerStripInput` / `MixerStripOutput` (the slot
+click's menu: one verb whose choices are the menu's items). `MainComponent.cpp`: the slot column gains
+I/O rows — `stripIoRows` (Track 2, Bus 1, master 0) and `paintedIoRowsShownForLane` (when the strip is
+short the priority is the fader's minimum, the inserts, then the I/O rows, then the sends),
+`paintedInputRowBoundsForLane` / `paintedOutputRowBoundsForLane`, the
+insert and send rows shift below the input row; the S / M / R cell law takes a cell count (`mixer.strip.N.arm`,
+Track only; lit `Color::recordArm`); `paintedMixerLaneBounds` reads `mixerStripsNarrow`
+(`mixerPaintedStripNarrowWidth`, the cells `mixerPaintedButtonNarrowWidth`); the strips-input's
+`ioRowAtPosition` / `onIoRowClicked` (input → the device's mono channels and pairs; output → Master and
+every bus but the strip itself; ids above the action range `kContextMenuInputBase` / `kContextMenuOutputBase`,
+Add Send `kContextMenuAddSendBase`); `openContextMenu` builds the four submenus and records the kinds it
+offered (`MainComponentContextMenu::addInsertKinds`); `invokeContextMenuItem` routes the new ids; the
+strip menu's mute / solo verbs act on the SELECTED target (a Bus's cells were already right; its menu
+used the rail's track); `saveViewState` / `loadViewStateIfBundleChanged` carry `narrow`; the probe's
+`view.mixerNarrow` and layout ids `mixer.strip.N.input` / `.output` / `.arm`; harness
+`mainComponentMixerStripIo` (the two slots' texts), `mainComponentMixerMenuId` (input / output / send /
+insert ids). Deleted: `mixerMetersReadout`, `mixerSendsReadout`, `mixerSendLevelEdit`, `mixerFxSlotsReadout`,
+`mixerGainReductionReadout`, `mixerBusFxSlotsReadout`, `mixerFxSlotToggle`, `mixerSoloSafe`, `mixerTrackSelect`
+(the strip's header is the name; a double-click renames) — the read verbs stay registered (harness reads).
+Tokens `mixerPaintedIoRow*`, `mixerPaintedStripNarrowWidth`, `mixerPaintedButtonNarrowWidth`,
+`mixerPaintedButtonsNarrowInsetX`; colour `recordArm`. `docs/keymap-v2.md` regenerated.
+
+**Gates.** `[mixer-v2]` in `YesDawUiInputCheck` — three tracks and a bus, the dock grown: (geometry) at
+the three rubric sizes every Track strip's input row sits above its first insert row and its output row
+below its last send row and above the fader top, inside the lane; the Bus has no input row; the master
+none; (arm) a Track strip has three cells, the Bus two; with the test device, a click on strip 1's R cell
+arms track 1 (the arm set says so), a second click disarms; (input) a click on strip 0's input row records
+the `MixerStripInput` menu; invoking "In 1+2" arms track 0 on channel 0 stereo and the slot reads "In 1+2";
+(output) a click on strip 0's output row records `MixerStripOutput`; invoking the bus routes the track
+(`outputBusId`), the slot reads the bus's name, Ctrl+Z restores Master; (menus) a right-click on the Bus
+strip records `MixerBusStrip` with its list, on the master `MixerMasterStrip`; the Track menu's Add Send ▸
+bus 0 adds a send; (FX kinds) the Track menu offers nine kinds, the Bus and master five, and the lane's
+chooser agrees; (narrow) `MixerStripsNarrowToggle` sets every lane to the narrow width (the master too),
+the View menu ticks it, the view-state record carries `narrow 1`, toggling back restores the wide law;
+(deleted) the readout ids resolve to nothing; the child-count pin re-pinned with the reason. `[context-menu]`
+(strip 0 → `MixerStrip`, Rename first) stays green; `[strip-mute-solo]`, `[strip-inserts]`, `[strip-sends]`
+re-read the shifted rows through the geometry harness (no pixel pins move).
+
+**See-it.** `tools/session-scripts/ss7-mix-the-song.ps1` opened (SS-5's script, grown across G4) — eight
+steps, **21 / 21** on the real exe (2026-09-05): New; three tracks; the mixer dock grown by the splitter;
+the strip lays out its INPUT / OUTPUT slots and R cell; Add Bus from the strip's right-click menu; the
+OUTPUT slot's popup routes track 1 to the bus ("Out: Bus 1" on the strip); Narrow Strips from the Bus
+strip's menu (58 px lanes, the R cell still fits) and wide again from a Track strip's menu; the INPUT
+slot's popup picks In 1 for track 2 (the arm set has it, the slot reads "In: 1", the status line "Audio 2
+records from In 1"); the R cell arms track 3 and a second click disarms it; Save; Close. Two drive
+findings, both drive-side: JUCE's popup keyboard law skips DISABLED items (a count from the top picked
+Remove Track when Add Send ▸ was disabled — the script counts UP from the bottom, where the structural
+verbs always sit), and a slot's popup needs ~600 ms before it takes the keyboard. Shots
+`build-ci/session-shots/ss7/`.
+
+**Rubric (§7.4, the ss7 shots at 1920×1080).** 1 PASS after one FIX (narrow: the master pane clipped
+"INTEGRATED" to "INTEGRA" — the master's card texts are fitted now). 2 n/a. 3 PASS (every slot names its
+route or input; the R cell reads lit; the status line names the pick). 4 PASS. 5 PASS (the armed R cell,
+the selected strip, the routed slot read as distinct states). 6 PASS. 7 PASS. Note (parking lot): the
+I/O slot text is the tiny face — legible at 1080p, a G6 type-scale call.
+
+**Deviation log.** (1) The lane column stays for cp2 (the FX params, the send rows and the add choosers
+still live there); cp1 deletes only the rows with a strip home and no test pin. (2) No colour picker on the
+strip header (the rail's swatch cycles the colour; a strip palette is G6's token pass). (3) The input slot
+arms the Track when it picks an input (the model's input pick is per armed Track) — logged as a law, not
+Logic's (whose input slot is independent of arm).
 
 ### G3 close-out (2026-09-05)
 

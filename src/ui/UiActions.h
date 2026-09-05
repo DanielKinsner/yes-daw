@@ -261,6 +261,8 @@ enum class UiActionId : std::uint8_t
     SamplerPadLoad,             // G3.9: a WAV onto a Sampler pad (the panel's chooser or a drop)
     SamplerPadClear,            // G3.9: Ctrl+click a pad cell
     SamplerPadModeToggle,       // G3.9: Shift+click a pad cell — one-shot <-> pitched
+    MixerStripsNarrowToggle,    // G4.1: View > Narrow Strips — every mixer strip at the narrow width (Logic's view option)
+    MixerTrackSetInput,         // G4.1: the strip's INPUT slot — a payload verb (channel + mono / pair); arms the Track on it
     Count
 };
 
@@ -551,6 +553,7 @@ struct UiActionContext
     bool metronomeEnabled = false;
     bool recordCountInEnabled = false;
     bool settingsRowVisible = false;   // G0.7: the collapsible Audio & Export settings row
+    bool mixerStripsNarrow = false;    // G4.1: View > Narrow Strips (persisted with the view state)
     bool inspectorVisible = true;      // G1.4: I shows / hides the inspector
     int nudgeValue = 0;                // G1.4: 0 grid, 1 bar, 2 beat, 3 sixteenth
     bool recordCountInActive = false;
@@ -1144,7 +1147,12 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::SamplerPadClear, "sampler.pad.clear", "Clear Pad", "", "Clear the Sampler pad (Ctrl+click a pad cell)",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::SamplerPadModeToggle, "sampler.pad.mode", "One-shot / Pitched", "", "Toggle the Sampler pad between one-shot and pitched (Shift+click a pad cell)",
-      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    // G4.1: Mixer dock v2 — the strip's anatomy.
+    { UiActionId::MixerStripsNarrowToggle, "mixer.strips.narrow", "Narrow Strips", "", "Show the mixer's strips at the narrow width (View menu; the strip menu)",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::MixerTrackSetInput, "mixer.track.input", "Track Input", "", "Pick the input the selected Track records from (arms it on that input)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -2139,6 +2147,16 @@ public:
 
             case UiActionId::ViewToggleSettingsRow:
                 context.settingsRowVisible = ! context.settingsRowVisible;
+                break;
+
+            case UiActionId::MixerStripsNarrowToggle:   // G4.1
+                context.mixerStripsNarrow = ! context.mixerStripsNarrow;
+                break;
+
+            case UiActionId::MixerTrackSetInput:   // G4.1: the pick arms the Track on the input (never disarms)
+                context.recordingTrackArmed = true;
+                context.recordingInputSelected = true;
+                ++context.recordingArmCount;
                 break;
 
             case UiActionId::ViewToggleInspector:

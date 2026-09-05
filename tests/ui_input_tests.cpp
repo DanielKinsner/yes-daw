@@ -1093,7 +1093,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 171u));   // G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 162u));   // G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -2217,21 +2217,15 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track send through an action-ba
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 
-    juce::Button& sends = requireButtonForAction (*shell, UiActionId::MixerReadSends);
-    REQUIRE (sends.isEnabled());
-    REQUIRE (sends.getButtonText().contains ("Send 0"));
-
+    // G4.1 re-pin: the tools lane's readout button is gone (the strip paints what it described; plan
+    // §8.2 "delete before you add"). The read verb stays a registry action the harness dispatches, so
+    // the pin is the dispatch and its count, not a button's text.
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.automationLanes.size() == 1u);
-    const auto sendFaderNodeId = projectMixerSendLevelNodeIdForTrack (project.tracks.front().id, 0);
-    // N2 re-pin: the readout no longer prints the engine node id at the user.
-    REQUIRE_FALSE (sends.getButtonText().contains (juce::String (static_cast<int> (sendFaderNodeId))));
-    REQUIRE_FALSE (sends.getButtonText().contains (" node "));
-    REQUIRE (sends.getButtonText().contains ("level 0.60"));
-    REQUIRE (sends.getButtonText().contains ("points 2"));
+    REQUIRE (yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 0, 0).getWidth() > 0);   // the send is ON the strip
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
-    clickButton (sends);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerReadSends);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
@@ -2254,19 +2248,15 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track meter through an action-b
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 
-    // E24 re-pin: the shipped readout speaks user language — no raw engine node ids.
-    juce::Button& meters = requireButtonForAction (*shell, UiActionId::MixerReadMeters);
-    REQUIRE (meters.isEnabled());
-    REQUIRE (meters.getButtonText().contains ("Audio 1"));
-    REQUIRE (meters.getButtonText().contains ("meters:"));
-    REQUIRE (meters.getButtonText().contains ("peak n/a"));
-    REQUIRE_FALSE (meters.getButtonText().contains ("meter node"));
-
+    // G4.1 re-pin: the tools lane's readout button is gone (the strip paints what it described; plan
+    // §8.2 "delete before you add"). The read verb stays a registry action the harness dispatches, so
+    // the pin is the dispatch and its count, not a button's text.
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.size() == 1u);
+    REQUIRE (yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 0).getHeight() > 0);   // the meter is ON the strip
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
-    clickButton (meters);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerReadMeters);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
@@ -2290,12 +2280,9 @@ TEST_CASE ("H16 CP6 UI input harness edits first Track send level through Projec
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 
-    juce::Button& sends = requireButtonForAction (*shell, UiActionId::MixerReadSends);
-    juce::Button& sendLevel = requireButtonForAction (*shell, UiActionId::MixerSetFirstSendLevel);
-    REQUIRE (sendLevel.isEnabled());
-    REQUIRE (sendLevel.getButtonText() == "Send");
-    REQUIRE (sends.getButtonText().contains ("level 0.60"));
-
+    // G4.1 re-pin: the tools lane's readout button is gone (the strip paints what it described; plan
+    // §8.2 "delete before you add"). The read verb stays a registry action the harness dispatches, so
+    // the pin is the dispatch and its count, not a button's text.
     const yesdaw::engine::Project before = readProjectSnapshot (bundlePath);
     REQUIRE (before.automationLanes.size() == 1u);
     REQUIRE (before.automationLanes.front().role == AutomationTargetRole::SendLevel);
@@ -2304,7 +2291,7 @@ TEST_CASE ("H16 CP6 UI input harness edits first Track send level through Projec
     REQUIRE (before.automationLanes.front().points.back().value == Catch::Approx (0.60));
 
     const int beforeEditCount = snapshot.context.mixerEditCount;
-    clickButton (sendLevel);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerSetFirstSendLevel);
 
     const yesdaw::engine::Project edited = readProjectSnapshot (bundlePath);
     REQUIRE (edited.automationLanes.size() == before.automationLanes.size());
@@ -2320,8 +2307,6 @@ TEST_CASE ("H16 CP6 UI input harness edits first Track send level through Projec
     REQUIRE (snapshot.context.mixerEditCount == beforeEditCount + 1);
     REQUIRE (snapshot.context.canUndo);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
-    REQUIRE (sendLevel.getButtonText() == "Send");
-    REQUIRE (sends.getButtonText().contains ("level 0.80"));
 
     juce::Button& undo = requireButtonForAction (*shell, UiActionId::EditUndo);
     juce::Button& redo = requireButtonForAction (*shell, UiActionId::EditRedo);
@@ -2332,7 +2317,6 @@ TEST_CASE ("H16 CP6 UI input harness edits first Track send level through Projec
     REQUIRE (undone.automationLanes == before.automationLanes);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.canRedo);
-    REQUIRE (sends.getButtonText().contains ("level 0.60"));
 
     REQUIRE (redo.isEnabled());
     clickButton (redo);
@@ -2341,7 +2325,6 @@ TEST_CASE ("H16 CP6 UI input harness edits first Track send level through Projec
     REQUIRE (redone.automationLanes == edited.automationLanes);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.canRedo);
-    REQUIRE (sends.getButtonText().contains ("level 0.80"));
 }
 
 TEST_CASE ("H16 CP6 UI input harness reads first Track FX slot through an action-backed mixer component",
@@ -2362,23 +2345,15 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track FX slot through an action
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 
-    juce::Button& fxSlots = requireButtonForAction (*shell, UiActionId::MixerReadFxSlots);
-    REQUIRE (fxSlots.isEnabled());
-    REQUIRE (fxSlots.getButtonText().contains ("FX 0"));
-    REQUIRE (fxSlots.getButtonText().contains ("EQ"));
-
+    // G4.1 re-pin: the tools lane's readout button is gone (the strip paints what it described; plan
+    // §8.2 "delete before you add"). The read verb stays a registry action the harness dispatches, so
+    // the pin is the dispatch and its count, not a button's text.
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
-    const auto fxNodeId = projectMixerNodeIdForEntity (project.tracks.front().strip.fxChain.front().id,
-                                                       ProjectMixerNodeRole::Fx);
-    // N2 re-pin: the readout no longer prints the engine node id at the user.
-    REQUIRE_FALSE (fxSlots.getButtonText().contains (juce::String (static_cast<int> (fxNodeId))));
-    REQUIRE_FALSE (fxSlots.getButtonText().contains (" node "));
-    REQUIRE (fxSlots.getButtonText().contains ("params 1"));
-    REQUIRE (fxSlots.getButtonText().contains ("on"));
+    REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 1).getWidth() > 0);   // both inserts are ON the strip
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
-    clickButton (fxSlots);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerReadFxSlots);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
@@ -2402,19 +2377,15 @@ TEST_CASE ("H16 CP6 UI input harness toggles first Track FX slot enabled state t
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 
-    juce::Button& fxSlots = requireButtonForAction (*shell, UiActionId::MixerReadFxSlots);
-    juce::Button& fxToggle = requireButtonForAction (*shell, UiActionId::MixerToggleFirstFxSlotEnabled);
-    REQUIRE (fxToggle.isEnabled());
-    REQUIRE (fxToggle.getButtonText() == "FX");
-    REQUIRE (fxToggle.getToggleState());
-    REQUIRE (fxSlots.getButtonText().contains ("on"));
-
+    // G4.1 re-pin: the tools lane's readout button is gone (the strip paints what it described; plan
+    // §8.2 "delete before you add"). The read verb stays a registry action the harness dispatches, so
+    // the pin is the dispatch and its count, not a button's text.
     const yesdaw::engine::Project before = readProjectSnapshot (bundlePath);
     REQUIRE (before.tracks.front().strip.fxChain.size() == 2u);
     REQUIRE (before.tracks.front().strip.fxChain.front().enabled);
 
     const int beforeEditCount = snapshot.context.mixerEditCount;
-    clickButton (fxToggle);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerToggleFirstFxSlotEnabled);
 
     yesdaw::engine::Project toggled = readProjectSnapshot (bundlePath);
     REQUIRE (toggled.tracks.front().strip.fxChain.size() == before.tracks.front().strip.fxChain.size());
@@ -2426,9 +2397,6 @@ TEST_CASE ("H16 CP6 UI input harness toggles first Track FX slot enabled state t
     REQUIRE (snapshot.context.mixerEditCount == beforeEditCount + 1);
     REQUIRE (snapshot.context.canUndo);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
-    REQUIRE (fxToggle.getButtonText() == "FX");
-    REQUIRE_FALSE (fxToggle.getToggleState());
-    REQUIRE (fxSlots.getButtonText().contains ("off"));
 
     juce::Button& undo = requireButtonForAction (*shell, UiActionId::EditUndo);
     juce::Button& redo = requireButtonForAction (*shell, UiActionId::EditRedo);
@@ -2439,8 +2407,6 @@ TEST_CASE ("H16 CP6 UI input harness toggles first Track FX slot enabled state t
     REQUIRE (undone.tracks.front().strip.fxChain == before.tracks.front().strip.fxChain);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.canRedo);
-    REQUIRE (fxToggle.getButtonText() == "FX");
-    REQUIRE (fxToggle.getToggleState());
 
     REQUIRE (redo.isEnabled());
     clickButton (redo);
@@ -2449,8 +2415,6 @@ TEST_CASE ("H16 CP6 UI input harness toggles first Track FX slot enabled state t
     REQUIRE (redone.tracks.front().strip.fxChain == toggled.tracks.front().strip.fxChain);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.canRedo);
-    REQUIRE (fxToggle.getButtonText() == "FX");
-    REQUIRE_FALSE (fxToggle.getToggleState());
 }
 
 TEST_CASE ("H16 CP6 UI input harness reads first Track GR meter through an action-backed mixer component",
@@ -2471,23 +2435,15 @@ TEST_CASE ("H16 CP6 UI input harness reads first Track GR meter through an actio
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 
-    juce::Button& gr = requireButtonForAction (*shell, UiActionId::MixerReadGainReduction);
-    REQUIRE (gr.isEnabled());
-    REQUIRE (gr.getButtonText().contains ("GR 1"));
-    REQUIRE (gr.getButtonText().contains ("Compressor"));
-    REQUIRE (gr.getButtonText().contains ("n/a"));
-
+    // G4.1 re-pin: the tools lane's readout button is gone (the strip paints what it described; plan
+    // §8.2 "delete before you add"). The read verb stays a registry action the harness dispatches, so
+    // the pin is the dispatch and its count, not a button's text.
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.front().strip.fxChain.size() == 2u);
     REQUIRE (project.tracks.front().strip.fxChain[1].kind == yesdaw::engine::FxKind::Compressor);
-    const auto compressorNodeId = projectMixerNodeIdForEntity (project.tracks.front().strip.fxChain[1].id,
-                                                               ProjectMixerNodeRole::Fx);
-    // N2 re-pin: the readout no longer prints the engine node id at the user.
-    REQUIRE_FALSE (gr.getButtonText().contains (juce::String (static_cast<int> (compressorNodeId))));
-    REQUIRE_FALSE (gr.getButtonText().contains (" node "));
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
-    clickButton (gr);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerReadGainReduction);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
@@ -2511,25 +2467,16 @@ TEST_CASE ("H16 CP6 UI input harness reads first Bus FX slot through an action-b
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 
-    juce::Button& busFxSlots = requireButtonForAction (*shell, UiActionId::MixerReadBusFxSlots);
-    REQUIRE (busFxSlots.isEnabled());
-    REQUIRE (busFxSlots.getButtonText().contains ("Room Bus"));
-    REQUIRE (busFxSlots.getButtonText().contains ("FX 0"));
-    REQUIRE (busFxSlots.getButtonText().contains ("Reverb"));
-    REQUIRE (busFxSlots.getButtonText().contains ("params 0"));
-    REQUIRE (busFxSlots.getButtonText().contains ("on"));
-
+    // G4.1 re-pin: the tools lane's readout button is gone (the strip paints what it described; plan
+    // §8.2 "delete before you add"). The read verb stays a registry action the harness dispatches, so
+    // the pin is the dispatch and its count, not a button's text.
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.buses.size() == 1u);
     REQUIRE (project.buses.front().strip.fxChain.size() == 1u);
-    const auto busFxNodeId = projectMixerNodeIdForEntity (project.buses.front().strip.fxChain.front().id,
-                                                         ProjectMixerNodeRole::Fx);
-    // N2 re-pin: the readout no longer prints the engine node id at the user.
-    REQUIRE_FALSE (busFxSlots.getButtonText().contains (juce::String (static_cast<int> (busFxNodeId))));
-    REQUIRE_FALSE (busFxSlots.getButtonText().contains (" node "));
+    REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 1, 0).getWidth() > 0);   // the Bus strip paints its insert
 
     const int beforeReadCount = snapshot.context.mixerReadCount;
-    clickButton (busFxSlots);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerReadBusFxSlots);
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerReadCount == beforeReadCount + 1);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
@@ -3637,7 +3584,15 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     const std::uint64_t mixerRenderFrames =
         static_cast<std::uint64_t> (std::max<yesdaw::engine::Tick> (512, mixerTimelineEnd));
 
-    clickButton (requireButtonWithComponentId (*shell, "mixer.track.0.select"));
+    {   // G4.1 re-pin: the "select first track" button is gone — a click on the painted strip's name band selects it.
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+        juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+        REQUIRE (strips != nullptr);
+        const juce::Rectangle<int> strip0 = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+        REQUIRE_FALSE (strip0.isEmpty());
+        mouseDownAt (*strips, juce::Point<int> { strip0.getCentreX(), strip0.getY() + yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight / 2 }
+                                  - strips->getPosition());
+    }
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerTargetSelected);
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
@@ -3833,7 +3788,15 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
 
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
-    clickButton (requireButtonWithComponentId (*shell, "mixer.track.0.select"));
+    {   // G4.1 re-pin: the "select first track" button is gone — a click on the painted strip's name band selects it.
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+        juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+        REQUIRE (strips != nullptr);
+        const juce::Rectangle<int> strip0 = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+        REQUIRE_FALSE (strip0.isEmpty());
+        mouseDownAt (*strips, juce::Point<int> { strip0.getCentreX(), strip0.getY() + yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight / 2 }
+                                  - strips->getPosition());
+    }
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerTargetSelected);
     REQUIRE (std::fabs (fader.getValue() - static_cast<double> (mixed.tracks.front().strip.linearGain)) < 0.0001);
@@ -5778,127 +5741,10 @@ TEST_CASE ("every mixer strip paints its sends and a painted send row sets its l
     REQUIRE (yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 2, 0).isEmpty());
 }
 
-// N2 — the mixer's readouts describe the strip you SELECTED. Before N2 all five read
-// surface.tracks.front() no matter what was selected, so selecting track 3 left the panel
-// reporting "Audio 1 …", and three of them printed a raw engine node id at the user.
-TEST_CASE ("N2 every mixer readout names the selected strip and prints no engine node ids",
-           "[ui][input][shell][mixer][mixer-readouts]")
-{
-    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-readouts");
-    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
-
-    MainComponentFileChoices choices;
-    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
-    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
-
-    auto shell = makeShell (std::move (choices));
-    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
-    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
-    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
-
-    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
-    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
-    clickButton (requireButtonForAction (*shell, UiActionId::MixerBusAdd));
-    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
-
-    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
-    REQUIRE (strips != nullptr);
-    auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
-    REQUIRE (fxChooser != nullptr);
-
-    juce::Button& meters = requireButtonForAction (*shell, UiActionId::MixerReadMeters);
-    juce::Button& sends = requireButtonForAction (*shell, UiActionId::MixerReadSends);
-    juce::Button& fxSlots = requireButtonForAction (*shell, UiActionId::MixerReadFxSlots);
-    juce::Button& gainReduction = requireButtonForAction (*shell, UiActionId::MixerReadGainReduction);
-    juce::Button& busFxSlots = requireButtonForAction (*shell, UiActionId::MixerReadBusFxSlots);
-
-    // Distinct FX per strip, so a readout that follows the wrong strip cannot accidentally agree.
-    const int stripTotal = 4;   // three tracks plus the bus
-    mouseDownAt (*strips, paintedStripCentre (*strips, 1, stripTotal));
-    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1, juce::sendNotificationSync);
-    mouseDownAt (*strips, paintedStripCentre (*strips, 2, stripTotal));
-    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
-                              juce::sendNotificationSync);
-    mouseDownAt (*strips, paintedStripCentre (*strips, 3, stripTotal));
-    fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Reverb) + 1,
-                              juce::sendNotificationSync);
-    {
-        const yesdaw::engine::Project seeded = readProjectSnapshot (bundlePath);
-        REQUIRE (seeded.tracks[0].strip.fxChain.empty());
-        REQUIRE (seeded.tracks[1].strip.fxChain.size() == 1u);
-        REQUIRE (seeded.tracks[2].strip.fxChain.size() == 1u);
-        REQUIRE (seeded.buses.front().strip.fxChain.size() == 1u);
-    }
-
-    const auto readoutTexts = [&] {
-        return std::array<juce::String, 5> { meters.getButtonText(), sends.getButtonText(),
-                                             fxSlots.getButtonText(), gainReduction.getButtonText(),
-                                             busFxSlots.getButtonText() };
-    };
-
-    // The THIRD track: every strip-following readout names it, and none names track 1.
-    mouseDownAt (*strips, paintedStripCentre (*strips, 2, stripTotal));
-    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 2);
-    {
-        const auto texts = readoutTexts();
-        for (std::size_t i = 0; i < 4u; ++i)   // meters, sends, fx, GR follow the selection
-        {
-            INFO ("readout " << i << ": " << texts[i]);
-            REQUIRE (texts[i].contains ("Audio 3"));
-            REQUIRE_FALSE (texts[i].contains ("Audio 1"));
-        }
-        REQUIRE (texts[2].contains ("Compressor"));   // the third track's insert, not the second's
-        REQUIRE_FALSE (texts[2].contains ("EQ"));
-    }
-
-    // The SECOND track.
-    mouseDownAt (*strips, paintedStripCentre (*strips, 1, stripTotal));
-    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 1);
-    {
-        const auto texts = readoutTexts();
-        for (std::size_t i = 0; i < 4u; ++i)
-        {
-            INFO ("readout " << i << ": " << texts[i]);
-            REQUIRE (texts[i].contains ("Audio 2"));
-            REQUIRE_FALSE (texts[i].contains ("Audio 3"));
-        }
-        REQUIRE (texts[2].contains ("EQ"));
-    }
-
-    // A BUS selection: the readouts describe the bus, and say honestly that a bus has no sends.
-    mouseDownAt (*strips, paintedStripCentre (*strips, 3, stripTotal));
-    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 3);
-    {
-        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
-        const juce::String busName (project.buses.front().strip.name);
-        REQUIRE_FALSE (busName.isEmpty());
-        const auto texts = readoutTexts();
-        REQUIRE (texts[0].contains (busName));            // meters
-        REQUIRE (texts[1].contains (busName));            // sends
-        REQUIRE (texts[1].contains ("n/a"));              // a Bus has no sends in this model
-        REQUIRE (texts[2].contains (busName));            // FX
-        REQUIRE (texts[2].contains ("Reverb"));
-        REQUIRE (texts[4].contains (busName));            // the Bus FX readout
-        for (const juce::String& text : texts)
-            REQUIRE_FALSE (text.contains ("Audio 1"));
-    }
-
-    // No readout, in any selection, prints an engine node id at the user.
-    for (int stripIndex = 0; stripIndex < stripTotal; ++stripIndex)
-    {
-        mouseDownAt (*strips, paintedStripCentre (*strips, stripIndex, stripTotal));
-        for (const juce::String& text : readoutTexts())
-        {
-            INFO ("strip " << stripIndex << " readout: " << text);
-            REQUIRE_FALSE (text.contains (" node "));
-        }
-    }
-
-    std::error_code ec;
-    std::filesystem::remove_all (bundlePath, ec);
-}
+// N2 — the mixer's readouts named the selected strip and printed no engine node ids. G4.1 (2026-09-05)
+// deleted the readouts themselves (the tools lane's "Audio 1 meters: peak n/a" rows — plan §8.2, the
+// 2026-09-02 parking-lot finding): the strip paints what they described, so the test of their text
+// went with them. The selection law they pinned lives on in [strip-inserts] / [strip-sends] / [mixer-v2].
 
 // N1 — Mute and Solo are real controls on EVERY strip. Before N1 the painted S/M cells were drawn
 // only on the strips you were NOT working on (`if (! interactiveStrip)`), and the selected strip
@@ -8451,13 +8297,17 @@ TEST_CASE ("solo never silences the soloed signal's own path through a bus",
 
     // R10 law 3: the real Solo Safe toggle on the BUS strip removes the protection — the same
     // solo now honestly silences the path — and one undo restores it.
-    mouseDownAt (*strips, paintedStripCentre (*strips, 1, 2));
-    juce::Button& soloSafeButton = requireButtonForAction (*shell, UiActionId::MixerTargetToggleSoloSafe);
-    REQUIRE (soloSafeButton.isEnabled());
-    REQUIRE (soloSafeButton.getToggleState());   // painted state follows the safe bus
-    clickButton (soloSafeButton);
+    // G4.1 re-pin: the lane's Safe button is gone — Solo Safe is the BUS strip's menu verb (Logic's
+    // "solo-safe in context menus", plan G4.5's law landing here); the right-click selects the bus.
+    {
+        const juce::Rectangle<int> busLane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 1);
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (
+            *shell, { busLane.getCentreX(), busLane.getY() + yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight / 2 });
+        REQUIRE (menu.target == yesdaw::ui::ContextMenuTarget::MixerBusStrip);
+        REQUIRE (std::find (menu.actions.begin(), menu.actions.end(), UiActionId::MixerTargetToggleSoloSafe) != menu.actions.end());
+        yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerTargetToggleSoloSafe);
+    }
     REQUIRE_FALSE (readProjectSnapshot (bundlePath).buses.front().strip.soloSafe);
-    REQUIRE_FALSE (soloSafeButton.getToggleState());
     const std::vector<float> unsafeSolo = renderFromStart();
     REQUIRE (peakAbs (std::span<const float> (unsafeSolo.data(), unsafeSolo.size())) < 1.0e-6);
 
@@ -18744,7 +18594,7 @@ TEST_CASE ("G3.1 track instrument: chooser, panel rows, undoable knob, lane choo
     REQUIRE (probeView().getProperty ("dock", {}).toString() == "None");
     REQUIRE_FALSE (yesdaw::ui::mainComponentInstrumentPanel (*shell).visible);
     juce::MenuBarModel& menus = requireMenuBarModel (*shell);
-    REQUIRE (menus.getMenuForIndex (5, "View").getNumItems() == 31);   // G3.2: + the Eraser and Velocity tools
+    REQUIRE (menus.getMenuForIndex (5, "View").getNumItems() == 32);   // G4.1: + Narrow Strips; G3.2: + the Eraser and Velocity tools
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
@@ -21655,6 +21505,233 @@ TEST_CASE ("ruler tempo change label: a click locates exactly on the change so t
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineTempoChangeRemove);
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tempoMap.size() == 1u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G4.1 cp1 — Mixer dock v2: the strip's anatomy. The strip reads like Logic's — input slot, inserts,
+// sends, output slot, pan, S / M / R, fader + meter — and its menu is per strip kind. Every rect
+// below comes from the SAME geometry law the paint and the click read (plan §8.2: one law).
+TEST_CASE ("mixer v2: I/O slots, the R cell, per-kind strip menus, per-kind FX lists, narrow strips",
+           "[ui][input][shell][mixer][mixer-v2]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-v2");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    using L = yesdaw::ui::UiTheme::Layout;
+    constexpr int kTrackCount = 3;
+    constexpr int kBusStrip = 3;
+    constexpr int kMasterStrip = 4;
+    constexpr int kInputRow = 0;
+    constexpr int kOutputRow = 1;
+    constexpr int kArmCell = 2;
+    const auto stripLocal = [&strips] (juce::Rectangle<int> shellRect) {
+        return shellRect.getCentre() - strips->getPosition();
+    };
+
+    // (geometry) Track strips carry an input row above the first insert and an output row below the
+    // sends, above the fader; the Bus has an output row only; the master has neither.
+    for (const auto& [width, height] : std::array<std::pair<int, int>, 3> {
+             std::pair { 1152, 720 }, std::pair { 1536, 960 }, std::pair { 1920, 1080 } })
+    {
+        shell->setSize (width, height);
+        for (int strip = 0; strip < kTrackCount; ++strip)
+        {
+            const juce::Rectangle<int> lane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, strip);
+            const juce::Rectangle<int> input = yesdaw::ui::mainComponentPaintedIoRowBounds (*shell, strip, kInputRow);
+            const juce::Rectangle<int> output = yesdaw::ui::mainComponentPaintedIoRowBounds (*shell, strip, kOutputRow);
+            const juce::Rectangle<int> insert0 = yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, strip, 0);
+            const juce::Rectangle<int> send0 = yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, strip, 0);
+            const juce::Rectangle<int> rail = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, strip);
+            REQUIRE_FALSE (input.isEmpty());
+            REQUIRE_FALSE (output.isEmpty());
+            REQUIRE (input.getHeight() == L::mixerPaintedIoRowHeight);
+            REQUIRE (output.getHeight() == L::mixerPaintedIoRowHeight);
+            REQUIRE (lane.contains (input));
+            REQUIRE (lane.contains (output));
+            REQUIRE (input.getBottom() <= insert0.getY());        // input above the inserts
+            REQUIRE (output.getY() >= send0.getBottom());          // output below the sends
+            REQUIRE (output.getBottom() <= rail.getY());           // and above the fader
+        }
+        REQUIRE (yesdaw::ui::mainComponentPaintedIoRowBounds (*shell, kBusStrip, kInputRow).isEmpty());
+        REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedIoRowBounds (*shell, kBusStrip, kOutputRow).isEmpty());
+        REQUIRE (yesdaw::ui::mainComponentPaintedIoRowBounds (*shell, kMasterStrip, kOutputRow).isEmpty());
+    }
+    shell->setSize (1536, 960);
+
+    // (arm) three cells on a Track strip, two on the Bus; the R cell arms THAT track with the test device.
+    REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 0, kArmCell).isEmpty());
+    REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, kBusStrip, 1).isEmpty());
+    REQUIRE (yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, kBusStrip, kArmCell).isEmpty());
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);
+    mouseDownAt (*strips, stripLocal (yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 1, kArmCell)));
+    {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE (snapshot.armedRecordingTrackInputs.size() == 1u);
+        REQUIRE (snapshot.armedRecordingTrackInputs[0].trackIndex == 1u);
+    }
+    mouseDownAt (*strips, stripLocal (yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 1, kArmCell)));
+    REQUIRE (snapshotMainComponent (*shell).armedRecordingTrackInputs.empty());
+
+    // (input) the input slot's click is a menu of the device's inputs; the pick arms the track on it.
+    REQUIRE (yesdaw::ui::mainComponentMixerStripIo (*shell, 0).input == juce::String::fromUTF8 ("In: \xe2\x80\x94"));   // an em dash: no input picked yet
+    mouseDownAt (*strips, stripLocal (yesdaw::ui::mainComponentPaintedIoRowBounds (*shell, 0, kInputRow)));
+    {
+        const auto menu = yesdaw::ui::mainComponentLastContextMenu (*shell);
+        REQUIRE (menu.shown);
+        REQUIRE (menu.target == yesdaw::ui::ContextMenuTarget::MixerStripInput);
+        REQUIRE (menu.index == 0);
+        REQUIRE (menu.actions.size() == 1u);
+        REQUIRE (menu.actions[0] == UiActionId::MixerTrackSetInput);
+    }
+    yesdaw::ui::mainComponentInvokeContextMenuId (*shell, yesdaw::ui::mainComponentMixerInputMenuId (0, true));
+    {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE (snapshot.armedRecordingTrackInputs.size() == 1u);
+        REQUIRE (snapshot.armedRecordingTrackInputs[0].trackIndex == 0u);
+        REQUIRE (snapshot.armedRecordingTrackInputs[0].inputChannel == 0u);
+        REQUIRE (snapshot.armedRecordingTrackInputs[0].stereoPair);
+        REQUIRE (yesdaw::ui::mainComponentMixerStripIo (*shell, 0).input == "In: 1+2");
+    }
+
+    // (output) the output slot's click is a menu of Master and every bus; the pick routes the track.
+    REQUIRE (yesdaw::ui::mainComponentMixerStripIo (*shell, 0).output == "Out: Master");
+    mouseDownAt (*strips, stripLocal (yesdaw::ui::mainComponentPaintedIoRowBounds (*shell, 0, kOutputRow)));
+    {
+        const auto menu = yesdaw::ui::mainComponentLastContextMenu (*shell);
+        REQUIRE (menu.shown);
+        REQUIRE (menu.target == yesdaw::ui::ContextMenuTarget::MixerStripOutput);
+        REQUIRE (menu.index == 0);
+        REQUIRE (menu.actions.size() == 1u);
+        REQUIRE (menu.actions[0] == UiActionId::MixerTrackSetOutput);
+    }
+    yesdaw::ui::mainComponentInvokeContextMenuId (*shell, yesdaw::ui::mainComponentMixerOutputMenuId (1));
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.tracks[0].outputBusId == project.buses[0].id);
+        REQUIRE (yesdaw::ui::mainComponentMixerStripIo (*shell, 0).output
+                 == "Out: " + juce::String (project.buses[0].strip.name));
+    }
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks[0].outputBusId.isValid());
+    REQUIRE (yesdaw::ui::mainComponentMixerStripIo (*shell, 0).output == "Out: Master");
+    // The Bus's output slot exists too and reads Master.
+    REQUIRE (yesdaw::ui::mainComponentMixerStripIo (*shell, kBusStrip).output == "Out: Master");
+
+    // (menus) the strip menu is per kind: Track / Bus / master lists, and the Track's Add Send ▸ is real.
+    const auto headerPoint = [&shell] (int strip) {
+        const juce::Rectangle<int> lane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, strip);
+        return juce::Point<int> { lane.getCentreX(), lane.getY() + L::mixerPaintedHeaderHeight / 2 };
+    };
+    const auto masterHeaderPoint = [&shell] {
+        const juce::Rectangle<int> lane = yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell);
+        return juce::Point<int> { lane.getCentreX(), lane.getY() + L::mixerPaintedHeaderHeight / 2 };
+    };
+    const auto expectList = [] (const yesdaw::ui::MainComponentContextMenu& menu, yesdaw::ui::ContextMenuTarget target)
+    {
+        REQUIRE (menu.shown);
+        REQUIRE (menu.target == target);
+        const auto entries = yesdaw::ui::contextMenuEntries (target);
+        REQUIRE (menu.actions.size() == entries.size());
+        for (std::size_t i = 0; i < entries.size(); ++i)
+            REQUIRE (menu.actions[i] == entries[i].action);
+    };
+    {
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, headerPoint (kBusStrip));
+        expectList (menu, yesdaw::ui::ContextMenuTarget::MixerBusStrip);
+        REQUIRE (menu.index == kBusStrip);
+        REQUIRE (menu.addInsertKinds.size() == 5u);   // the promoted item: no MIDI FX on a Bus
+        REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == kBusStrip);
+    }
+    {
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, masterHeaderPoint());
+        expectList (menu, yesdaw::ui::ContextMenuTarget::MixerMasterStrip);
+        REQUIRE (menu.addInsertKinds.size() == 5u);
+        REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == kMasterStrip);
+    }
+    {
+        const auto menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, headerPoint (0));
+        expectList (menu, yesdaw::ui::ContextMenuTarget::MixerStrip);
+        REQUIRE (menu.index == 0);
+        REQUIRE (menu.addInsertKinds.size() == 9u);   // a Track takes the MIDI FX too
+        yesdaw::ui::mainComponentInvokeContextMenuId (*shell, yesdaw::ui::mainComponentMixerSendMenuId (0));
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.tracks[0].sends.size() == 1u);
+        REQUIRE (project.tracks[0].sends[0].busId == project.buses[0].id);
+    }
+    // The Bus menu's mute acts on the BUS (the selected mixer target), not the rail's track.
+    {
+        (void) yesdaw::ui::mainComponentRequestContextMenu (*shell, headerPoint (kBusStrip));
+        yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerTargetToggleMute);
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.buses[0].strip.muted);
+        REQUIRE_FALSE (project.tracks[0].strip.muted);
+        yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerTargetToggleMute);
+        REQUIRE_FALSE (readProjectSnapshot (bundlePath).buses[0].strip.muted);
+    }
+
+    // (FX kinds) the lane's chooser lists the same per-kind set the menus offer.
+    {
+        auto* fxChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.insert.add"));
+        REQUIRE (fxChooser != nullptr);
+        mouseDownAt (*strips, paintedStripCentre (*strips, kBusStrip, kTrackCount + 1));
+        REQUIRE (fxChooser->getNumItems() == 5);
+        mouseDownAt (*strips, paintedStripCentre (*strips, 0, kTrackCount + 1));
+        REQUIRE (fxChooser->getNumItems() == 9);
+    }
+
+    // (narrow) View > Narrow Strips: every lane (the master too) takes the narrow width; the flag ticks,
+    // persists with the view state, and the toggle restores the wide law.
+    {
+        const int wideWidth = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0).getWidth();
+        REQUIRE (wideWidth > L::mixerPaintedStripNarrowWidth);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerStripsNarrowToggle);
+        REQUIRE (snapshotMainComponent (*shell).context.mixerStripsNarrow);
+        for (int strip = 0; strip <= kBusStrip; ++strip)
+            REQUIRE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, strip).getWidth()
+                     == L::mixerPaintedStripNarrowWidth - 2 * L::mixerPaintedStripInsetX);
+        REQUIRE (yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell).getWidth()
+                 == L::mixerPaintedStripNarrowWidth - 2 * L::mixerPaintedStripInsetX);
+        // The three cells still fit inside the narrow lane, side by side.
+        const juce::Rectangle<int> lane0 = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+        for (int cell = 0; cell <= kArmCell; ++cell)
+        {
+            const juce::Rectangle<int> rect = yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 0, cell);
+            REQUIRE_FALSE (rect.isEmpty());
+            REQUIRE (lane0.contains (rect));
+        }
+        REQUIRE (yesdaw::ui::mainComponentViewStateRecord (*shell).contains ("narrow\t1"));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerStripsNarrowToggle);
+        REQUIRE_FALSE (snapshotMainComponent (*shell).context.mixerStripsNarrow);
+        REQUIRE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0).getWidth() == wideWidth);
+        REQUIRE (yesdaw::ui::mainComponentViewStateRecord (*shell).contains ("narrow\t0"));
+    }
+
+    // (deleted) the lane's readout rows and the duplicate verbs are gone — the strip is the mixer.
+    for (const char* gone : { "mixer.meters.read", "mixer.sends.read", "mixer.sends.first.set_level",
+                              "mixer.fx_slots.read", "mixer.fx_slots.first.toggle_enabled", "mixer.gr.read",
+                              "mixer.fx_slots.bus.read", "mixer.target.toggle_solo_safe", "mixer.track.0.select" })
+    {
+        INFO (gone);
+        REQUIRE (findChildWithComponentId (*shell, gone) == nullptr);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
