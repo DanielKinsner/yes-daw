@@ -16668,7 +16668,7 @@ private:
             // track records from, "—" until one is picked), the output row closes it (Master or a bus).
             // Both are wells like the slot rows; a click opens the slot's choices.
             {
-                const auto drawIoSlot = [&g, this] (juce::Rectangle<int> row, const juce::String& text, bool picked)
+                const auto drawIoSlot = [&g] (juce::Rectangle<int> row, const juce::String& text, bool picked)
                 {
                     g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
                     g.fillRoundedRectangle (row.toFloat(), yesdaw::ui::UiTheme::Radius::sm);

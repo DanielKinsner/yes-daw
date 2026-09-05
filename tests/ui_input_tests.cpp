@@ -395,18 +395,7 @@ juce::Slider& requireSliderForAction (juce::Component& shell, UiActionId action)
     return *slider;
 }
 
-juce::Button& requireButtonWithComponentId (juce::Component& shell, const juce::String& componentId)
-{
-    juce::Component* component = findChildWithComponentId (shell, componentId);
-    REQUIRE (component != nullptr);
-
-    auto* button = dynamic_cast<juce::Button*> (component);
-    REQUIRE (button != nullptr);
-    REQUIRE (button->isVisible());
-    REQUIRE (button->getWidth() > 0);
-    REQUIRE (button->getHeight() > 0);
-    return *button;
-}
+// (G4.1: requireButtonWithComponentId went with its last caller, the mixer's first-track select button.)
 
 // G1.7: the repeat-paste count lives in Edit ▸ Repeat Count (ticked 2× / 3× / 4× / 8×), not in a
 // toolbar combo. These walk the REAL menu model.
