@@ -519,51 +519,99 @@ template <typename TickToFrame>
     if (! clip.isValid())
         return MidiFlattenStatus::InvalidInput;
 
-    for (const Note& note : clip.notes)
+    // G3.5: a muted Clip is a valid, silent source (the render's mute law, like an audio Clip's).
+    if (clip.muted)
+        return MidiFlattenStatus::Ok;
+
+    // G3.5: the loop — the content window [0, loop) repeats every loop ticks to fill the Clip; a
+    // repeat that would run past the Clip's end is cut there. loop 0 = the content plays once.
+    const bool looping = clip.loopLengthTicks > 0 && clip.loopLengthTicks < clip.timelineLength;
+    const Tick cycleTicks = looping ? clip.loopLengthTicks : clip.timelineLength;
+    const Tick cycleCount = looping ? (clip.timelineLength + cycleTicks - 1) / cycleTicks : 1;
+
+    for (const Note& sourceNote : clip.notes)
     {
-        if (! note.isValid())
+        if (! sourceNote.isValid())
             return MidiFlattenStatus::InvalidInput;
 
-        Tick noteEnd = 0;
-        Tick onTick = 0;
-        Tick offTick = 0;
-        if (! detail::addMidiTickChecked (note.startTick, note.lengthTicks, noteEnd)
-            || noteEnd > clip.timelineLength
-            || ! detail::addMidiTickChecked (clip.timelineStart, note.startTick, onTick)
-            || ! detail::addMidiTickChecked (clip.timelineStart, noteEnd, offTick))
-            return MidiFlattenStatus::InvalidInput;
+        // G3.5: the Clip's transpose and velocity offset apply at render; a note pushed off the
+        // keyboard drops (it never sounded — Logic does the same).
+        Note note = sourceNote;
+        const int key = static_cast<int> (sourceNote.key) + static_cast<int> (clip.transposeSemitones);
+        if (key < 0 || key > 127)
+            continue;
+        note.key = static_cast<std::int16_t> (key);
+        note.pitchNote = sourceNote.pitchNote + static_cast<double> (clip.transposeSemitones);
+        note.normalizedVelocity = std::clamp (sourceNote.normalizedVelocity + clip.velocityOffset, 0.0, 1.0);
 
-        const auto append = [&] (Tick tick, EventType type) -> bool
+        if (looping && note.startTick >= cycleTicks)
+            continue;   // outside the content window: the loop never reaches it
+
+        for (Tick cycle = 0; cycle < cycleCount; ++cycle)
         {
+            const Tick cycleOffset = cycle * cycleTicks;
+            const Tick start = note.startTick + cycleOffset;
+            if (start >= clip.timelineLength)
+                break;
+            Tick noteEnd = 0;
+            Tick onTick = 0;
+            Tick offTick = 0;
+            if (! detail::addMidiTickChecked (start, note.lengthTicks, noteEnd))
+                return MidiFlattenStatus::InvalidInput;
+            if (noteEnd > clip.timelineLength)
+            {
+                if (! looping)
+                    return MidiFlattenStatus::InvalidInput;
+                noteEnd = clip.timelineLength;   // the repeat is cut at the Clip's end
+            }
+            if (! detail::addMidiTickChecked (clip.timelineStart, start, onTick)
+                || ! detail::addMidiTickChecked (clip.timelineStart, noteEnd, offTick))
+                return MidiFlattenStatus::InvalidInput;
+
+            // A repeated note keeps its id, so the ScheduledMidiEvent order law (frame, noteId, type)
+            // still pairs each On with its Off: repeats never overlap themselves (one per cycle).
+            const auto append = [&] (Tick tick, EventType type) -> bool
+            {
+                double frame = 0.0;
+                if (! tickToFrameFn (tick, frame) || ! std::isfinite (frame) || frame < 0.0)
+                    return false;
+
+                outTimeline.push_back (ScheduledMidiEvent {
+                    static_cast<std::int64_t> (std::floor (frame)),
+                    makeNoteEvent (0u, type, note) });
+                return true;
+            };
+
+            if (! append (onTick, EventType::NoteOn) || ! append (offTick, EventType::NoteOff))
+                return MidiFlattenStatus::InvalidInput;
+        }
+    }
+
+    // G3.3: the Clip's control events ride the same timeline as its notes (G3.5: looped too).
+    for (const MidiControlEvent& control : clip.controlEvents)
+    {
+        if (! control.isValid() || control.tick > clip.timelineLength)
+            return MidiFlattenStatus::InvalidInput;
+        if (looping && control.tick >= cycleTicks)
+            continue;
+
+        for (Tick cycle = 0; cycle < cycleCount; ++cycle)
+        {
+            const Tick tick = control.tick + cycle * cycleTicks;
+            if (tick > clip.timelineLength || (cycle > 0 && tick >= clip.timelineLength))
+                break;
+            Tick absoluteTick = 0;
+            if (! detail::addMidiTickChecked (clip.timelineStart, tick, absoluteTick))
+                return MidiFlattenStatus::InvalidInput;
+
             double frame = 0.0;
-            if (! tickToFrameFn (tick, frame) || ! std::isfinite (frame) || frame < 0.0)
-                return false;
+            if (! tickToFrameFn (absoluteTick, frame) || ! std::isfinite (frame) || frame < 0.0)
+                return MidiFlattenStatus::InvalidInput;
 
             outTimeline.push_back (ScheduledMidiEvent {
                 static_cast<std::int64_t> (std::floor (frame)),
-                makeNoteEvent (0u, type, note) });
-            return true;
-        };
-
-        if (! append (onTick, EventType::NoteOn) || ! append (offTick, EventType::NoteOff))
-            return MidiFlattenStatus::InvalidInput;
-    }
-
-    // G3.3: the Clip's control events ride the same timeline as its notes.
-    for (const MidiControlEvent& control : clip.controlEvents)
-    {
-        Tick absoluteTick = 0;
-        if (! control.isValid() || control.tick > clip.timelineLength
-            || ! detail::addMidiTickChecked (clip.timelineStart, control.tick, absoluteTick))
-            return MidiFlattenStatus::InvalidInput;
-
-        double frame = 0.0;
-        if (! tickToFrameFn (absoluteTick, frame) || ! std::isfinite (frame) || frame < 0.0)
-            return MidiFlattenStatus::InvalidInput;
-
-        outTimeline.push_back (ScheduledMidiEvent {
-            static_cast<std::int64_t> (std::floor (frame)),
-            makeMidiControlEvent (0u, control) });
+                makeMidiControlEvent (0u, control) });
+        }
     }
 
     std::sort (outTimeline.begin(), outTimeline.end(), scheduledMidiEventLess);

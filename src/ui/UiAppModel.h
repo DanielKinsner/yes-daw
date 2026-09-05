@@ -8785,7 +8785,9 @@ private:
             const engine::MidiClip& y = b[i];
             if (! (x.id == y.id) || ! (x.trackId == y.trackId) || x.timelineStart != y.timelineStart
                 || x.timelineLength != y.timelineLength || x.timeBase != y.timeBase || ! sameNotes (x.notes, y.notes)
-                || ! (x.controlEvents == y.controlEvents))   // G3.3: a controller edit re-flattens the Clip
+                || ! (x.controlEvents == y.controlEvents)   // G3.3: a controller edit re-flattens the Clip
+                || x.muted != y.muted || x.transposeSemitones != y.transposeSemitones   // G3.5: so does a setting
+                || x.velocityOffset != y.velocityOffset || x.loopLengthTicks != y.loopLengthTicks)
                 return false;
         }
         return true;

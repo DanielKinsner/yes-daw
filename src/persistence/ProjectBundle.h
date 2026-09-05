@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 28;   // G3.3: MIDI control events (CC / bend / pressure / program)
+inline constexpr int          kCodeSchemaVersion = 29;   // G3.5: MIDI Clip mute / transpose / velocity offset / loop length
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1417,13 +1417,22 @@ CREATE TABLE midi_control_events (
 CREATE INDEX midi_control_events_clip_id_idx ON midi_control_events(clip_id);
 )SQL";
 
+// v29 (G3.5): the MIDI Clip's own settings — mute, transpose (semitones), velocity offset (-1..1)
+// and loop length (ticks; 0 = the content plays once). Additive: a v28 bundle opens unchanged.
+inline constexpr std::string_view kSchemaV29Sql = R"SQL(
+ALTER TABLE midi_clips ADD COLUMN muted INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE midi_clips ADD COLUMN transpose INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE midi_clips ADD COLUMN velocity_offset REAL NOT NULL DEFAULT 0.0;
+ALTER TABLE midi_clips ADD COLUMN loop_length INTEGER NOT NULL DEFAULT 0;
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 28> kMigrations {
+inline constexpr std::array<SchemaMigration, 29> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1452,6 +1461,7 @@ inline constexpr std::array<SchemaMigration, 28> kMigrations {
     SchemaMigration { 26, kSchemaV26Sql },
     SchemaMigration { 27, kSchemaV27Sql },
     SchemaMigration { 28, kSchemaV28Sql },
+    SchemaMigration { 29, kSchemaV29Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2502,8 +2512,8 @@ public:
         {
             detail::Statement midiClipStmt (
                 db_,
-                "INSERT INTO midi_clips(id, track_id, timeline_start, timeline_length, time_base) "
-                "VALUES (?, ?, ?, ?, ?);");
+                "INSERT INTO midi_clips(id, track_id, timeline_start, timeline_length, time_base, muted, transpose, velocity_offset, loop_length) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);");
             detail::Statement noteStmt (
                 db_,
                 "INSERT INTO midi_notes(id, clip_id, start_tick, length_ticks, key, pitch_note, normalized_velocity, port_index, channel) "
@@ -2521,6 +2531,10 @@ public:
                 if (auto result = midiClipStmt.bindInt64 (3, midiClip.timelineStart); ! result.ok()) { rollback(); return result; }
                 if (auto result = midiClipStmt.bindInt64 (4, midiClip.timelineLength); ! result.ok()) { rollback(); return result; }
                 if (auto result = midiClipStmt.bindInt64 (5, static_cast<sqlite3_int64> (midiClip.timeBase)); ! result.ok()) { rollback(); return result; }
+                if (auto result = midiClipStmt.bindInt64 (6, midiClip.muted ? 1 : 0); ! result.ok()) { rollback(); return result; }   // G3.5
+                if (auto result = midiClipStmt.bindInt64 (7, midiClip.transposeSemitones); ! result.ok()) { rollback(); return result; }
+                if (auto result = midiClipStmt.bindDouble (8, midiClip.velocityOffset); ! result.ok()) { rollback(); return result; }
+                if (auto result = midiClipStmt.bindInt64 (9, midiClip.loopLengthTicks); ! result.ok()) { rollback(); return result; }
                 if (auto result = detail::expectDone (db_, midiClipStmt); ! result.ok()) { rollback(); return result; }
 
                 for (const engine::Note& note : midiClip.notes)
@@ -3325,7 +3339,7 @@ public:
             detail::Statement clipStmt;
             if (auto result = clipStmt.prepare (
                     db_,
-                    "SELECT id, track_id, timeline_start, timeline_length, time_base FROM midi_clips ORDER BY rowid;");
+                    "SELECT id, track_id, timeline_start, timeline_length, time_base, muted, transpose, velocity_offset, loop_length FROM midi_clips ORDER BY rowid;");
                 ! result.ok())
                 return result;
 
@@ -3351,6 +3365,18 @@ public:
                     && timeBase != static_cast<sqlite3_int64> (engine::TimeBase::SampleLocked))
                     return detail::semanticInvalid ("midi_clips.time_base is outside the Project value range");
                 midiClip.timeBase = static_cast<engine::TimeBase> (timeBase);
+
+                // G3.5: the Clip's settings (validated against the engine's ranges on read).
+                midiClip.muted = sqlite3_column_int64 (clipStmt.get(), 5) != 0;
+                const sqlite3_int64 transpose = sqlite3_column_int64 (clipStmt.get(), 6);
+                if (transpose < -engine::MidiClip::kMaxTransposeSemitones || transpose > engine::MidiClip::kMaxTransposeSemitones)
+                    return detail::semanticInvalid ("midi_clips.transpose is outside the Project value range");
+                midiClip.transposeSemitones = static_cast<std::int8_t> (transpose);
+                midiClip.velocityOffset = sqlite3_column_double (clipStmt.get(), 7);
+                midiClip.loopLengthTicks = sqlite3_column_int64 (clipStmt.get(), 8);
+                if (! std::isfinite (midiClip.velocityOffset) || midiClip.velocityOffset < -1.0 || midiClip.velocityOffset > 1.0
+                    || midiClip.loopLengthTicks < 0 || midiClip.loopLengthTicks > midiClip.timelineLength)
+                    return detail::semanticInvalid ("midi_clips velocity_offset / loop_length is outside the Project value range");
 
                 detail::Statement noteStmt;
                 if (auto result = noteStmt.prepare (

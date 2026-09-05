@@ -109,7 +109,14 @@ enum class ProjectEditVerb : std::uint8_t
     // G3.3: MIDI control events (CC / pitch bend / aftertouch / program change) on a MIDI Clip
     AddMidiControlEvent,
     SetMidiControlEvent,
-    RemoveMidiControlEvent
+    RemoveMidiControlEvent,
+    // G3.5: the MIDI Clip's own settings and shape
+    SetMidiClipMuted,
+    SetMidiClipTranspose,
+    SetMidiClipVelocityOffset,
+    SetMidiClipLoopLength,
+    SplitMidiClip,
+    JoinMidiClips
 };
 
 // G2.18: the plain-English label of a verb for the undo history window (Logic's "Undo History").
@@ -192,6 +199,12 @@ enum class ProjectEditVerb : std::uint8_t
         case ProjectEditVerb::AddMidiControlEvent: return "Add Controller Point";
         case ProjectEditVerb::SetMidiControlEvent: return "Controller Point";
         case ProjectEditVerb::RemoveMidiControlEvent: return "Remove Controller Point";
+        case ProjectEditVerb::SetMidiClipMuted: return "Mute MIDI Clip";
+        case ProjectEditVerb::SetMidiClipTranspose: return "Transpose MIDI Clip";
+        case ProjectEditVerb::SetMidiClipVelocityOffset: return "MIDI Clip Velocity";
+        case ProjectEditVerb::SetMidiClipLoopLength: return "MIDI Clip Loop";
+        case ProjectEditVerb::SplitMidiClip: return "Split MIDI Clip";
+        case ProjectEditVerb::JoinMidiClips: return "Join MIDI Clips";
     }
     return "Edit";
 }
@@ -887,6 +900,64 @@ struct ProjectEditCommand
         return command;
     }
 
+    // G3.5: the MIDI Clip's settings (mute rides clipMuted, transpose rides semitones, the velocity
+    // offset rides noteVelocity, the loop length rides timelineLength) and its shape (split: the
+    // right Clip id rides rightClipId and the left length rides timelineLength; join: the right id).
+    [[nodiscard]] static constexpr ProjectEditCommand setMidiClipMuted (EntityId midiClipId, bool muted) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetMidiClipMuted;
+        command.midiClipId = midiClipId;
+        command.clipMuted = muted;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setMidiClipTranspose (EntityId midiClipId, std::int32_t semitones) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetMidiClipTranspose;
+        command.midiClipId = midiClipId;
+        command.semitones = semitones;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setMidiClipVelocityOffset (EntityId midiClipId, double offset) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetMidiClipVelocityOffset;
+        command.midiClipId = midiClipId;
+        command.noteVelocity = offset;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setMidiClipLoopLength (EntityId midiClipId, Tick loopLengthTicks) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetMidiClipLoopLength;
+        command.midiClipId = midiClipId;
+        command.timelineLength = loopLengthTicks;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand splitMidiClip (EntityId midiClipId, EntityId rightClipId, Tick leftLengthTicks) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SplitMidiClip;
+        command.midiClipId = midiClipId;
+        command.rightClipId = rightClipId;
+        command.timelineLength = leftLengthTicks;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand joinMidiClips (EntityId leftClipId, EntityId rightClipId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::JoinMidiClips;
+        command.midiClipId = leftClipId;
+        command.rightClipId = rightClipId;
+        return command;
+    }
+
     [[nodiscard]] static constexpr ProjectEditCommand setTrackMixScalars (EntityId trackId,
                                                                           float linearGain,
                                                                           float pan,
@@ -1434,7 +1505,13 @@ namespace detail {
            || verb == ProjectEditVerb::RemoveMidiClip
            || verb == ProjectEditVerb::AddMidiControlEvent      // G3.3
            || verb == ProjectEditVerb::SetMidiControlEvent
-           || verb == ProjectEditVerb::RemoveMidiControlEvent;
+           || verb == ProjectEditVerb::RemoveMidiControlEvent
+           || verb == ProjectEditVerb::SetMidiClipMuted           // G3.5
+           || verb == ProjectEditVerb::SetMidiClipTranspose
+           || verb == ProjectEditVerb::SetMidiClipVelocityOffset
+           || verb == ProjectEditVerb::SetMidiClipLoopLength
+           || verb == ProjectEditVerb::SplitMidiClip
+           || verb == ProjectEditVerb::JoinMidiClips;
 }
 
 [[nodiscard]] constexpr bool isTrackEditVerb (ProjectEditVerb verb) noexcept
@@ -1897,6 +1974,19 @@ namespace detail {
 
         case ProjectEditVerb::RemoveMidiControlEvent:
             return removeMidiControlEvent (project, command.midiClipId, command.midiControlEventId);
+
+        case ProjectEditVerb::SetMidiClipMuted:   // G3.5
+            return setMidiClipMuted (project, command.midiClipId, command.clipMuted);
+        case ProjectEditVerb::SetMidiClipTranspose:
+            return setMidiClipTranspose (project, command.midiClipId, command.semitones);
+        case ProjectEditVerb::SetMidiClipVelocityOffset:
+            return setMidiClipVelocityOffset (project, command.midiClipId, command.noteVelocity);
+        case ProjectEditVerb::SetMidiClipLoopLength:
+            return setMidiClipLoopLength (project, command.midiClipId, command.timelineLength);
+        case ProjectEditVerb::SplitMidiClip:
+            return splitMidiClip (project, command.midiClipId, command.rightClipId, command.timelineLength);
+        case ProjectEditVerb::JoinMidiClips:
+            return joinMidiClips (project, command.midiClipId, command.rightClipId);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -1994,6 +2084,36 @@ namespace detail {
     std::size_t index = 0;
     if (! findMidiClipIndex (before, command.midiClipId, index))
         return false;
+
+    // G3.5: a split turns one row into two (the right sits right after the left); a join turns
+    // the two back into one. The row diff is the contiguous window either way.
+    if (command.verb == ProjectEditVerb::SplitMidiClip)
+    {
+        if (after.midiClips.size() != before.midiClips.size() + 1u
+            || index + 1u >= after.midiClips.size()
+            || after.midiClips[index].id != command.midiClipId
+            || after.midiClips[index + 1u].id != command.rightClipId)
+            return false;
+        out = {};
+        out.firstMidiClipIndex = index;
+        out.before = { before.midiClips[index] };
+        out.after = { after.midiClips[index], after.midiClips[index + 1u] };
+        return true;
+    }
+    if (command.verb == ProjectEditVerb::JoinMidiClips)
+    {
+        if (after.midiClips.size() + 1u != before.midiClips.size()
+            || index + 1u >= before.midiClips.size()
+            || before.midiClips[index + 1u].id != command.rightClipId
+            || index >= after.midiClips.size()
+            || after.midiClips[index].id != command.midiClipId)
+            return false;
+        out = {};
+        out.firstMidiClipIndex = index;
+        out.before = { before.midiClips[index], before.midiClips[index + 1u] };
+        out.after = { after.midiClips[index] };
+        return true;
+    }
 
     if (after.midiClips.size() != before.midiClips.size()
         || index >= after.midiClips.size()

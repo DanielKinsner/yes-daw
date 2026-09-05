@@ -59,8 +59,12 @@ while other work ran, 7.x alone — the budget holds on an idle machine. **Next:
 once CI is green on the head. **G3.4 — Quantize v2:** cp1 `d139cb3` (the engine half — `QuantizeSettings`,
 the swing / strength / note-ends / humanize laws, the widened `QuantizeNote` verb, `YesDawQuantizeCheck`);
 cp2 (this commit) — the inspector quantize panel on the MIDI clip's CLIP tab, Q and Apply applying the
-current settings, `[quantize-panel]`, ss5 Step 12 authored. Next: the G3.4 drive (ss5 Steps 1–12) and
-rubric shots in a drive window, then the docs-evidence commit, then **G3.5 — MIDI clips at arrange level**. Rules in force: HEADLESS by default, the macOS GPU
+current settings, `[quantize-panel]`, ss5 Step 12 authored. The G3.4 drive ran (ss5 48 / 48) and the
+rubric is recorded; the docs-evidence commit waits for CI on `603faa0`. **G3.5 — MIDI clips at arrange
+level is under way:** cp1 (this commit) is the engine half — the Clip's mute / transpose / velocity offset /
+loop length at the flatten, split and join, six verbs, schema v29, `YesDawMidiClipOpsCheck`; cp2 (the
+arrangement: split / join / mute / Ctrl+R for MIDI clips, the inspector rows, `[midi-clip-ops]` in the
+shell) is next. Rules in force: HEADLESS by default, the macOS GPU
 frame-budget red is noise, the local suite + drives are the working gate.
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
@@ -211,6 +215,51 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.5 cp1 — MIDI clips at arrange level: the engine half (2026-09-05)
+
+**Story.** A MIDI clip in the arrangement could be moved, dragged across tracks and duplicated (M-era), but
+not muted, split, joined, transposed or looped — split and trim "honestly refused" by design, and a MIDI
+clip had no settings of its own. SS-4's beat and chord progression need a clip you can chop, loop and
+transpose without opening the roll. cp1 is the storage, the render and the verbs; the arrangement's
+gestures are cp2.
+
+**Precedent.** Logic's region inspector (Mute, Transpose, Velocity, Loop) and its region loop (the
+content repeats to the region's end); Logic's split of a looped region yields plain regions; a note
+crossing a split is cut in two (Logic's "split at playhead" on MIDI regions). "Loop-length aware" in the
+plan is read as Logic's region loop: a loop length in ticks, 0 = the content plays once.
+
+**Build.** `MidiClip` gains `muted`, `transposeSemitones` (±48), `velocityOffset` (−1..1) and
+`loopLengthTicks` (0, or 1..timelineLength); `isValid` bounds them. The flatten
+(`flattenMidiClipToTimeline`): a muted Clip is a valid silent source; every note carries the transpose
+(a note pushed off 0..127 drops — it never sounded) and the velocity offset (clamped); a loop repeats the
+content window [0, loop) to fill the Clip, the last repeat cut at the Clip's end, notes and control
+points alike; plain settings flatten byte-for-byte as before. Helpers `setMidiClipMuted` / `Transpose` /
+`VelocityOffset` / `LoopLength` (`InvalidMidiClipValue` out of range), `splitMidiClip` (the right Clip
+takes a fresh id and sits right after the left in the rows; notes and points re-base; a crossing note
+becomes a head with the old id and a tail with a derived id — deterministic, so undo / redo rebuild the
+same rows; both halves lose the loop), `joinMidiClips` (the right must start where the left ends, on the
+same track, in the next row; its notes and points append re-based with the right's transpose and
+velocity offset baked in so the render does not change; the left's settings win; the loop drops). Verbs
+`SetMidiClipMuted` / `Transpose` / `VelocityOffset` / `LoopLength` / `SplitMidiClip` / `JoinMidiClips`
+ride the MIDI Clip row diff (widened for the one-row-to-two split and back). Schema **v29**: four
+additive `midi_clips` columns, validated on read. `UiAppModel::sameMidiClips` compares the settings so
+an edit re-flattens.
+
+**Gates.** `YesDawMidiClipOpsCheck` (new, `[midi-clip-ops]`, 6 cases / 169 assertions): mute emits
+nothing; transpose ±5 / −12 with the drop; velocity +0.3 / −0.6 clamped; a 1000-tick loop in a 4000-tick
+Clip (four repeats of a note and a point, a note beyond the window never sounds, the last repeat cut at
+the end), a whole-Clip loop ≡ plain; split re-bases notes and points, cuts the crossing note into head +
+derived tail, drops the loop, carries the settings, derives the same tail id twice, refuses the edges and
+a taken id; join bakes +3 / −0.3, drops the off-keyboard note, refuses a gap / another track / the wrong
+order; a join renders exactly what the two Clips rendered; all six verbs undo and redo (a split's undo
+restores one row, a join's two); the render honours mute (silence) and transpose (≡ the note's).
+`YesDawPersistenceCheck`: the four settings round-trip, a transpose past ±48 and a loop longer than the
+Clip are refused on open, the v10 simulation drops v29.
+
+**Not built (recorded → cp2).** The arrangement's verbs on a MIDI clip (split at playhead / scissors,
+join, mute, Ctrl+R repeat via a clipboard that carries MIDI clips), the CLIP tab rows (transpose,
+velocity offset, loop length, mute), the muted paint, `[midi-clip-ops]` in the shell, the ss step.
 
 ### G3.4 cp2 — The quantize panel (2026-09-05)
 

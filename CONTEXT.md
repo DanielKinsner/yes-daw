@@ -357,6 +357,14 @@ frame.
 _Avoid_: automation (that targets a Node parameter, not the instrument's MIDI input), CC message (when
 you mean the edit object)
 
+**MIDI Clip settings** (G3.5):
+A MIDI Clip's own playback settings, applied at render and persisted with the Clip: mute (a valid,
+silent source), transpose in semitones (±48; a note pushed off the keyboard drops), a velocity offset
+(−1..1, added and clamped) and a loop length in ticks (0 = the content plays once; else the content
+window repeats to fill the Clip, the last repeat cut at the end). A split yields two plain (unlooped)
+Clips; a join bakes the right Clip's transpose and offset into its notes and keeps the left's settings.
+_Avoid_: region parameters (Logic's name), clip gain (the audio Clip's)
+
 **Quantize settings** (G3.4):
 The session's quantize recipe — the grid (the snap grid, or 1/8, 1/16, 1/32), strength %, swing % (odd
 grid slots land this much of the interval late; 0 straight, 66 the cap), note ends (the end quantizes to

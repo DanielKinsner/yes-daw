@@ -718,13 +718,30 @@ struct MidiClip
     TimeBase          timeBase = TimeBase::TempoLocked;
     std::vector<Note> notes;
     std::vector<MidiControlEvent> controlEvents;   // G3.3: CC / bend / pressure / program points
+    // G3.5: the Clip's own playback settings (Logic's region inspector): silent in the mix; every
+    // note shifted by semitones at render (a note pushed past 0..127 drops); a velocity offset added
+    // to every note's normalized velocity (clamped); and a loop length in ticks — 0 = the content
+    // plays once, else the content window [0, loop) repeats to fill the Clip (Logic's region loop).
+    bool         muted = false;
+    std::int8_t  transposeSemitones = 0;
+    double       velocityOffset = 0.0;
+    Tick         loopLengthTicks = 0;
+
+    static constexpr std::int8_t kMaxTransposeSemitones = 48;
 
     [[nodiscard]] bool isValid() const noexcept
     {
         if (! id.isValid()
             || ! trackId.isValid()
             || timelineLength < 0
-            || (timeBase != TimeBase::TempoLocked && timeBase != TimeBase::SampleLocked))
+            || (timeBase != TimeBase::TempoLocked && timeBase != TimeBase::SampleLocked)
+            || transposeSemitones < -kMaxTransposeSemitones
+            || transposeSemitones > kMaxTransposeSemitones
+            || ! std::isfinite (velocityOffset)
+            || velocityOffset < -1.0
+            || velocityOffset > 1.0
+            || loopLengthTicks < 0
+            || loopLengthTicks > timelineLength)
             return false;
 
         for (const Note& note : notes)
@@ -988,6 +1005,7 @@ enum class ProjectEditStatus : std::uint8_t
     InvalidNoteWindow,
     InvalidNoteValue,
     InvalidQuantizeSettings,     // G3.4: strength / swing / humanize outside their ranges
+    InvalidMidiClipValue,        // G3.5: a Clip setting (transpose / velocity offset / loop length) out of range, or a join that does not fit
     InvalidMidiControlEventId,   // G3.3
     MidiControlEventNotFound,
     InvalidMidiControlEvent,
@@ -2852,6 +2870,241 @@ namespace detail {
     }
 
     return ProjectEditStatus::MidiClipNotFound;
+}
+
+// --- G3.5: MIDI Clip settings and shape verbs. Same contract as every helper: validate, mutate, Applied.
+
+namespace detail {
+
+[[nodiscard]] inline MidiClip* findMidiClipForSetting (Project& project, EntityId midiClipId, ProjectEditStatus& status) noexcept
+{
+    if (! projectCanApplyMidiEdit (project))
+    {
+        status = ProjectEditStatus::InvalidProject;
+        return nullptr;
+    }
+    if (! midiClipId.isValid())
+    {
+        status = ProjectEditStatus::InvalidMidiClipId;
+        return nullptr;
+    }
+    MidiClip* const midiClip = findMidiClip (project, midiClipId);
+    status = midiClip == nullptr ? ProjectEditStatus::MidiClipNotFound : ProjectEditStatus::Applied;
+    return midiClip;
+}
+
+// The right half's id for a note the split cuts: the left note's bytes folded with the right
+// Clip's — deterministic (undo / redo rebuild the same ids) and unique in practice; a collision is
+// refused, never silently overwritten.
+[[nodiscard]] inline EntityId derivedSplitEntityId (EntityId source, EntityId rightClipId) noexcept
+{
+    EntityId::StorageBytes bytes = source.bytes;
+    for (std::size_t i = 0; i < bytes.size(); ++i)
+        bytes[i] = static_cast<std::uint8_t> (bytes[i] ^ rightClipId.bytes[(i * 7 + 3) % rightClipId.bytes.size()]);
+    return EntityId::fromBytes (bytes);
+}
+
+} // namespace detail
+
+[[nodiscard]] inline ProjectEditStatus setMidiClipMuted (Project& project, EntityId midiClipId, bool muted) noexcept
+{
+    ProjectEditStatus status = ProjectEditStatus::Applied;
+    MidiClip* const midiClip = detail::findMidiClipForSetting (project, midiClipId, status);
+    if (midiClip == nullptr)
+        return status;
+    midiClip->muted = muted;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setMidiClipTranspose (Project& project, EntityId midiClipId, std::int32_t semitones) noexcept
+{
+    ProjectEditStatus status = ProjectEditStatus::Applied;
+    MidiClip* const midiClip = detail::findMidiClipForSetting (project, midiClipId, status);
+    if (midiClip == nullptr)
+        return status;
+    if (semitones < -MidiClip::kMaxTransposeSemitones || semitones > MidiClip::kMaxTransposeSemitones)
+        return ProjectEditStatus::InvalidMidiClipValue;
+    midiClip->transposeSemitones = static_cast<std::int8_t> (semitones);
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setMidiClipVelocityOffset (Project& project, EntityId midiClipId, double offset) noexcept
+{
+    ProjectEditStatus status = ProjectEditStatus::Applied;
+    MidiClip* const midiClip = detail::findMidiClipForSetting (project, midiClipId, status);
+    if (midiClip == nullptr)
+        return status;
+    if (! std::isfinite (offset) || offset < -1.0 || offset > 1.0)
+        return ProjectEditStatus::InvalidMidiClipValue;
+    midiClip->velocityOffset = offset;
+    return ProjectEditStatus::Applied;
+}
+
+[[nodiscard]] inline ProjectEditStatus setMidiClipLoopLength (Project& project, EntityId midiClipId, Tick loopLengthTicks) noexcept
+{
+    ProjectEditStatus status = ProjectEditStatus::Applied;
+    MidiClip* const midiClip = detail::findMidiClipForSetting (project, midiClipId, status);
+    if (midiClip == nullptr)
+        return status;
+    if (loopLengthTicks < 0 || loopLengthTicks > midiClip->timelineLength)
+        return ProjectEditStatus::InvalidMidiClipValue;
+    midiClip->loopLengthTicks = loopLengthTicks;
+    return ProjectEditStatus::Applied;
+}
+
+// Split at leftLengthTicks (clip-relative, strictly inside): the right Clip (a fresh id, inserted
+// right after the left in the row order) takes every note and control point from the split on,
+// re-based; a note crossing the split is cut in two (the left half keeps the id, the right half
+// gets a derived one). Both halves lose the loop (Logic splits a looped region into plain ones).
+[[nodiscard]] inline ProjectEditStatus splitMidiClip (Project& project,
+                                                      EntityId midiClipId,
+                                                      EntityId rightClipId,
+                                                      Tick leftLengthTicks)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+    if (! midiClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+    if (! rightClipId.isValid())
+        return ProjectEditStatus::InvalidMidiClipId;
+    if (detail::projectContainsEntityId (project, rightClipId))
+        return ProjectEditStatus::DuplicateEntityId;
+
+    std::size_t index = project.midiClips.size();
+    for (std::size_t i = 0; i < project.midiClips.size(); ++i)
+        if (project.midiClips[i].id == midiClipId)
+            index = i;
+    if (index == project.midiClips.size())
+        return ProjectEditStatus::MidiClipNotFound;
+
+    const MidiClip original = project.midiClips[index];
+    if (leftLengthTicks <= 0 || leftLengthTicks >= original.timelineLength)
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    MidiClip left = original;
+    left.timelineLength = leftLengthTicks;
+    left.loopLengthTicks = 0;
+    left.notes.clear();
+    left.controlEvents.clear();
+
+    MidiClip right = original;
+    right.id = rightClipId;
+    right.timelineStart = original.timelineStart + leftLengthTicks;
+    right.timelineLength = original.timelineLength - leftLengthTicks;
+    right.loopLengthTicks = 0;
+    right.notes.clear();
+    right.controlEvents.clear();
+
+    for (const Note& note : original.notes)
+    {
+        const Tick end = note.startTick + note.lengthTicks;
+        if (note.startTick >= leftLengthTicks)
+        {
+            Note moved = note;
+            moved.startTick = note.startTick - leftLengthTicks;
+            right.notes.push_back (moved);
+        }
+        else if (end <= leftLengthTicks)
+        {
+            left.notes.push_back (note);
+        }
+        else
+        {
+            Note head = note;
+            head.lengthTicks = leftLengthTicks - note.startTick;
+            left.notes.push_back (head);
+            Note tail = note;
+            tail.id = detail::derivedSplitEntityId (note.id, rightClipId);
+            tail.startTick = 0;
+            tail.lengthTicks = end - leftLengthTicks;
+            if (! tail.id.isValid() || detail::projectContainsEntityId (project, tail.id))
+                return ProjectEditStatus::DuplicateEntityId;
+            for (const Note& other : right.notes)
+                if (other.id == tail.id)
+                    return ProjectEditStatus::DuplicateEntityId;
+            right.notes.push_back (tail);
+        }
+    }
+    for (const MidiControlEvent& control : original.controlEvents)
+    {
+        if (control.tick >= leftLengthTicks)
+        {
+            MidiControlEvent moved = control;
+            moved.tick = control.tick - leftLengthTicks;
+            right.controlEvents.push_back (moved);
+        }
+        else
+        {
+            left.controlEvents.push_back (control);
+        }
+    }
+
+    if (! left.isValid() || ! right.isValid())
+        return ProjectEditStatus::InvalidTimelineWindow;
+
+    project.midiClips[index] = left;
+    project.midiClips.insert (project.midiClips.begin() + static_cast<std::ptrdiff_t> (index + 1u), right);
+    return ProjectEditStatus::Applied;
+}
+
+// Join the right Clip onto the left: same track, the right starts exactly where the left ends, the
+// right sits right after the left in the row order (a split's shape). The right's notes carry its
+// transpose and velocity offset baked in, so the render does not change; the left's settings win;
+// the loop is dropped.
+[[nodiscard]] inline ProjectEditStatus joinMidiClips (Project& project, EntityId leftClipId, EntityId rightClipId)
+{
+    if (! detail::projectCanApplyMidiEdit (project))
+        return ProjectEditStatus::InvalidProject;
+    if (! leftClipId.isValid() || ! rightClipId.isValid() || leftClipId == rightClipId)
+        return ProjectEditStatus::InvalidMidiClipId;
+
+    std::size_t leftIndex = project.midiClips.size();
+    std::size_t rightIndex = project.midiClips.size();
+    for (std::size_t i = 0; i < project.midiClips.size(); ++i)
+    {
+        if (project.midiClips[i].id == leftClipId) leftIndex = i;
+        if (project.midiClips[i].id == rightClipId) rightIndex = i;
+    }
+    if (leftIndex == project.midiClips.size() || rightIndex == project.midiClips.size())
+        return ProjectEditStatus::MidiClipNotFound;
+    if (rightIndex != leftIndex + 1u)
+        return ProjectEditStatus::InvalidMidiClipValue;
+
+    const MidiClip& left = project.midiClips[leftIndex];
+    const MidiClip& right = project.midiClips[rightIndex];
+    if (left.trackId != right.trackId
+        || right.timelineStart != left.timelineStart + left.timelineLength)
+        return ProjectEditStatus::InvalidMidiClipValue;
+
+    MidiClip joined = left;
+    joined.timelineLength = left.timelineLength + right.timelineLength;
+    joined.loopLengthTicks = 0;
+    const int transposeDelta = static_cast<int> (right.transposeSemitones) - static_cast<int> (left.transposeSemitones);
+    const double velocityDelta = right.velocityOffset - left.velocityOffset;
+    for (const Note& note : right.notes)
+    {
+        Note moved = note;
+        moved.startTick = note.startTick + left.timelineLength;
+        const int key = static_cast<int> (note.key) + transposeDelta;
+        if (key < 0 || key > 127)
+            continue;   // a note the right's transpose pushed off the keyboard never sounded
+        moved.key = static_cast<std::int16_t> (key);
+        moved.pitchNote = note.pitchNote + static_cast<double> (transposeDelta);
+        moved.normalizedVelocity = std::clamp (note.normalizedVelocity + velocityDelta, 0.0, 1.0);
+        joined.notes.push_back (moved);
+    }
+    for (const MidiControlEvent& control : right.controlEvents)
+    {
+        MidiControlEvent moved = control;
+        moved.tick = control.tick + left.timelineLength;
+        joined.controlEvents.push_back (moved);
+    }
+    if (! joined.isValid())
+        return ProjectEditStatus::InvalidMidiClipValue;
+
+    project.midiClips[leftIndex] = joined;
+    project.midiClips.erase (project.midiClips.begin() + static_cast<std::ptrdiff_t> (rightIndex));
+    return ProjectEditStatus::Applied;
 }
 
 [[nodiscard]] inline ProjectEditStatus removeMidiClip (Project& project, EntityId midiClipId)

@@ -830,6 +830,17 @@ endif()
 yesdaw_harden(YesDawTrackInstrumentCheck)
 add_test(NAME YesDawTrackInstrumentCheck COMMAND $<TARGET_FILE:YesDawTrackInstrumentCheck>)
 
+# --- MIDI clip ops check (G3.5: mute / transpose / velocity offset / loop at the flatten; split / join; undo; v29) ---
+add_executable(YesDawMidiClipOpsCheck tests/midi_clip_ops_tests.cpp)
+target_include_directories(YesDawMidiClipOpsCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawMidiClipOpsCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawMidiClipOpsCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawMidiClipOpsCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawMidiClipOpsCheck)
+add_test(NAME YesDawMidiClipOpsCheck COMMAND $<TARGET_FILE:YesDawMidiClipOpsCheck>)
+
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
 target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})

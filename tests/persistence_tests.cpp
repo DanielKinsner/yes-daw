@@ -995,6 +995,11 @@ TEST_CASE ("Project MIDI Clips and Notes round-trip through a reopened bundle",
             control (83, 400, MidiControlKind::PolyPressure, 60, 0.75),
             control (84, 512, MidiControlKind::ProgramChange, 7, 0.0),
         };
+        // G3.5: the Clip's own settings ride the row (schema v29).
+        project.midiClips[0].muted = true;
+        project.midiClips[0].transposeSemitones = -7;
+        project.midiClips[0].velocityOffset = 0.25;
+        project.midiClips[0].loopLengthTicks = 15360;
         REQUIRE (project.midiClips[0].isValid());
     }
 
@@ -1025,6 +1030,18 @@ TEST_CASE ("Project MIDI Clips and Notes round-trip through a reopened bundle",
     REQUIRE (readback.midiClips[0].controlEvents == project.midiClips[0].controlEvents);
     REQUIRE (readback.midiClips[0].controlEvents[1].kind == yesdaw::engine::MidiControlKind::PitchBend);
     REQUIRE (readback.midiClips[0].controlEvents[1].value == -0.5);
+    REQUIRE (readback.midiClips[0].muted);   // G3.5
+    REQUIRE (readback.midiClips[0].transposeSemitones == -7);
+    REQUIRE (readback.midiClips[0].velocityOffset == 0.25);
+    REQUIRE (readback.midiClips[0].loopLengthTicks == 15360);
+    // G3.5 negative controls: a transpose past the range and a loop longer than the Clip are refused on open.
+    REQUIRE (reopened.executeSql ("UPDATE midi_clips SET transpose = 60;").ok());
+    Project refusedTranspose;
+    REQUIRE (reopened.readProjectSnapshot (refusedTranspose).status == BundleStatus::SemanticInvalid);
+    REQUIRE (reopened.executeSql ("UPDATE midi_clips SET transpose = -7, loop_length = timeline_length + 1;").ok());
+    Project refusedLoop;
+    REQUIRE (reopened.readProjectSnapshot (refusedLoop).status == BundleStatus::SemanticInvalid);
+    REQUIRE (reopened.executeSql ("UPDATE midi_clips SET loop_length = 15360;").ok());
 
     Project mutatedNote = project;
     mutatedNote.midiClips[0].notes[1].normalizedVelocity = 0.5;
@@ -1888,6 +1905,9 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "DELETE FROM schema_migrations WHERE version = 27; "
             "DROP TABLE midi_control_events; "   // G3.3: v28
             "DELETE FROM schema_migrations WHERE version = 28; "
+            "ALTER TABLE midi_clips DROP COLUMN muted; ALTER TABLE midi_clips DROP COLUMN transpose; "   // G3.5: v29
+            "ALTER TABLE midi_clips DROP COLUMN velocity_offset; ALTER TABLE midi_clips DROP COLUMN loop_length; "
+            "DELETE FROM schema_migrations WHERE version = 29; "
             "PRAGMA user_version = 10;").ok());
     }
 
