@@ -155,7 +155,11 @@ per pixel: column n is sample n, the painted tops climb monotonically, the cache
 `YesDawUiInputCheck` (Ctrl+wheel climbs past 64x and clamps at the ceiling; ceiling x fit px/s == the
 project rate; Ctrl+0 returns to 1x; a 0.09 s project honestly stays at the 64 floor). Frame-budget gate
 untouched (no sample lookup in the headless checks).
-**Done:** G3.9 ✅ — Sampler instrument (ADR-0048 Proposed): cp1 `0fe4fad` (run `33950273738` green on nine
+**Done:** G3.10 ✅ — RT-safe MIDI input and thru: `25fc379`; run `33952079484` green on nine jobs (the RTSan
+leg included), macOS red only on the parked GPU frame-budget flake (`YesDawTimelineGpuCheck` alone). ss4
+17 / 17; rubric PASS. **G3 closed** on SS-4 46 / 46 (`ss6-write-a-beat.ps1`), the montage
+`docs/evidence/2026-09-05-g3.png`, the rubric and the promotion decision (the G3 close-out section).
+G3.9 ✅ — Sampler instrument (ADR-0048 Proposed): cp1 `0fe4fad` (run `33950273738` green on nine
 jobs, macOS red only on the parked GPU frame-budget flake — `YesDawTimelineGpuCheck` alone), cp2 `2998374`;
 certified by exact-head run `33951039513` (green on all ten jobs). ss4 15 / 15 (then 17 / 17 with G3.10's
 step) on the real exe; rubric PASS.
