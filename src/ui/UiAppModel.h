@@ -2193,13 +2193,28 @@ public:
         selectedTimelineClipId_ = clipId;
         context_.timelineClipSelected = true;
         context_.activePanel = UiPanel::Timeline;
+        followMidiClipSelection (clipId);
         return true;
+    }
+
+    // G3.5: a MIDI clip picked in the arrangement is also THE MIDI clip — the CLIP tab's rows and
+    // the roll follow it (the note selection belongs to the previous clip and clears).
+    void followMidiClipSelection (engine::EntityId clipId) noexcept
+    {
+        if (findMidiClip (clipId) == nullptr || clipId == selectedMidiClipId_)
+            return;
+        selectedMidiClipId_ = clipId;
+        selectedMidiNoteId_ = {};
+        selectedMidiNoteIds_.clear();
+        context_.midiClipSelected = true;
+        context_.midiNoteSelected = false;
     }
 
     [[nodiscard]] bool selectTimelineClipForGesture (engine::EntityId clipId, bool toggle) noexcept
     {
         if (! timelineEntityExists (clipId))
             return false;
+        followMidiClipSelection (clipId);
 
         const auto selected = std::find (selectedTimelineClipIds_.begin(), selectedTimelineClipIds_.end(), clipId);
         if (toggle)
@@ -3004,6 +3019,81 @@ public:
         ++context_.midiEditCount;
         return { id, state, true };
     }
+
+    // ---------------------------------------------------------------------------------------
+    // G3.5: the selected MIDI clip's settings (the inspector's CLIP tab rows) — undoable edits.
+
+    [[nodiscard]] UiActionDispatchResult editSelectedMidiClip (UiActionId id, const engine::ProjectEditCommand& command)
+    {
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        if (findMidiClip (selectedMidiClipId_) == nullptr)
+            return { id, { false, "no MIDI clip selected" }, false };
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, command).applied())
+            return { id, { false, "the MIDI clip setting is out of range" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "MIDI clip edit did not persist" }, false };
+        syncProjectEditContext();
+        ++context_.commandDispatchCount;
+        ++context_.midiEditCount;
+        return { id, state, true };
+    }
+
+    // The inspector's Mute row mutes THE MIDI clip the rows show (the roll's clip), whether or not it
+    // is also the timeline selection; Ctrl+M stays the timeline selection's verb.
+    [[nodiscard]] UiActionDispatchResult toggleSelectedMidiClipMute()
+    {
+        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
+        if (midiClip == nullptr)
+            return { UiActionId::MidiClipMuteToggle, { false, "no MIDI clip selected" }, false };
+        return editSelectedMidiClip (UiActionId::MidiClipMuteToggle,
+                                     engine::ProjectEditCommand::setMidiClipMuted (selectedMidiClipId_, ! midiClip->muted));
+    }
+
+    [[nodiscard]] UiActionDispatchResult setSelectedMidiClipTranspose (int semitones)
+    {
+        return editSelectedMidiClip (UiActionId::MidiClipTransposeSet,
+                                     engine::ProjectEditCommand::setMidiClipTranspose (selectedMidiClipId_, semitones));
+    }
+
+    [[nodiscard]] UiActionDispatchResult setSelectedMidiClipVelocityOffset (double offset)
+    {
+        return editSelectedMidiClip (UiActionId::MidiClipVelocityOffsetSet,
+                                     engine::ProjectEditCommand::setMidiClipVelocityOffset (selectedMidiClipId_, offset));
+    }
+
+    // The loop chooser: 0 off, 1 a beat, 2 a bar, 3 two bars, 4 four bars (the head tempo / meter law).
+    [[nodiscard]] engine::Tick midiClipLoopTicksForChoice (int choice) const noexcept
+    {
+        switch (choice)
+        {
+            case 1: return snapFramesForUnit (UiSnapUnit::Beat);
+            case 2: return snapFramesForUnit (UiSnapUnit::Bar);
+            case 3: return snapFramesForUnit (UiSnapUnit::Bar) * 2;
+            case 4: return snapFramesForUnit (UiSnapUnit::Bar) * 4;
+            default: break;
+        }
+        return 0;
+    }
+
+    [[nodiscard]] int midiClipLoopChoiceFor (const engine::MidiClip& midiClip) const noexcept
+    {
+        for (int choice = 1; choice <= 4; ++choice)
+            if (midiClipLoopTicksForChoice (choice) == midiClip.loopLengthTicks)
+                return choice;
+        return midiClip.loopLengthTicks == 0 ? 0 : -1;   // -1: a loop length the chooser has no word for
+    }
+
+    [[nodiscard]] UiActionDispatchResult setSelectedMidiClipLoopChoice (int choice)
+    {
+        return editSelectedMidiClip (UiActionId::MidiClipLoopSelect,
+                                     engine::ProjectEditCommand::setMidiClipLoopLength (selectedMidiClipId_, midiClipLoopTicksForChoice (choice)));
+    }
+
+    [[nodiscard]] const engine::MidiClip* selectedMidiClip() const noexcept { return findMidiClip (selectedMidiClipId_); }
 
     // ---------------------------------------------------------------------------------------
     // G3.3: the control lane's chooser — the choice lives in the context (the probe and the paint
@@ -5519,6 +5609,18 @@ public:
 
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
+            // G3.5: a MIDI clip splits through its own verb (notes and points re-base; a crossing
+            // note is cut in two; the loop drops on both halves).
+            if (const engine::MidiClip* const midiClip = findMidiClip (clipId))
+            {
+                if (timelineTick <= midiClip->timelineStart || timelineTick >= midiClip->timelineStart + midiClip->timelineLength)
+                    return { id, { false, "split must be inside every selected clip" }, false };
+                const engine::EntityId rightId = allocateSessionEntityId (0xC5u, nextProject);
+                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::splitMidiClip (
+                        clipId, rightId, timelineTick - midiClip->timelineStart)).applied())
+                    return { id, state, false };
+                continue;
+            }
             const engine::Clip* const clip = findClip (clipId);
             if (clip == nullptr || timelineTick <= clip->timelineStart)
                 return { id, { false, "split must be inside every selected clip" }, false };
@@ -5558,6 +5660,29 @@ public:
 
         if (selectedTimelineClipIds_.size() != 2u)
             return { id, { false, "select exactly two clips" }, false };
+
+        // G3.5: two MIDI clips join through their own verb — the later one onto the earlier.
+        if (const engine::MidiClip* const midiA = findMidiClip (selectedTimelineClipIds_[0]))
+        {
+            const engine::MidiClip* const midiB = findMidiClip (selectedTimelineClipIds_[1]);
+            if (midiB == nullptr)
+                return { id, { false, "clips must share a track and asset" }, false };
+            const engine::EntityId leftId = midiA->timelineStart <= midiB->timelineStart ? midiA->id : midiB->id;
+            const engine::EntityId rightId = leftId == midiA->id ? midiB->id : midiA->id;
+            engine::Project nextProject = project_;
+            engine::ProjectUndoStack nextUndo = undo_;
+            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::joinMidiClips (leftId, rightId)).applied())
+                return { id, { false, "MIDI clips must sit end to start on one track" }, false };
+            if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+                return { id, { false, "timeline edit did not persist" }, false };
+            selectedTimelineClipIds_ = { leftId };
+            selectedTimelineClipId_ = leftId;
+            selectedMidiClipId_ = leftId;
+            syncProjectEditContext();
+            ++context_.commandDispatchCount;
+            ++context_.timelineEditCount;
+            return { id, state, true };
+        }
 
         const engine::Clip* first = findClip (selectedTimelineClipIds_[0]);
         const engine::Clip* second = findClip (selectedTimelineClipIds_[1]);
@@ -6112,7 +6237,7 @@ public:
             return { id, state, false };
 
         UiClipClipboard clipboard = makeClipboardForSelection();
-        if (clipboard.clips.empty())
+        if (clipboard.empty())
             return { id, { false, "timeline clip missing" }, false };
 
         clipClipboard_ = std::move (clipboard);
@@ -6162,7 +6287,7 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        if (clipClipboard_.clips.empty())
+        if (clipClipboard_.empty())   // G3.5: MIDI entries count too
             return { id, { false, "clipboard has no clip" }, false };
 
         // Target: the selected mixer/rail Track, else the copied Clip's own Track family, else first.
@@ -6189,7 +6314,7 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        if (clipClipboard_.clips.empty())
+        if (clipClipboard_.empty())   // G3.5: MIDI entries count too
             return { id, { false, "clipboard has no clip" }, false };
 
         engine::EntityId targetTrackId;
@@ -6552,11 +6677,15 @@ public:
         if (! state.enabled)
             return { id, state, false };
         const engine::Clip* const clip = findClip (selectedTimelineClipId_);
-        if (clip == nullptr)
+        const engine::MidiClip* const midiClip = clip == nullptr ? findMidiClip (selectedTimelineClipId_) : nullptr;   // G3.5
+        if (clip == nullptr && midiClip == nullptr)
             return { id, { false, "timeline clip missing" }, false };
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setClipMuted (selectedTimelineClipId_, ! clip->muted)).applied())
+        const engine::ProjectEditCommand command = clip != nullptr
+            ? engine::ProjectEditCommand::setClipMuted (selectedTimelineClipId_, ! clip->muted)
+            : engine::ProjectEditCommand::setMidiClipMuted (selectedTimelineClipId_, ! midiClip->muted);
+        if (! nextUndo.apply (nextProject, command).applied())
             return { id, state, false };
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "timeline edit did not persist" }, false };
@@ -7708,6 +7837,10 @@ public:
             case UiActionId::PianoRollControlPointMove:
             case UiActionId::PianoRollControlPointDelete:
             case UiActionId::PianoRollControlLanePaint:
+            case UiActionId::MidiClipTransposeSet:          // G3.5: the inspector rows carry the value
+            case UiActionId::MidiClipVelocityOffsetSet:
+            case UiActionId::MidiClipLoopSelect:
+            case UiActionId::MidiClipMuteToggle:
             {
                 const UiActionState currentState = registry_.stateFor (id, context_);
                 if (! currentState.enabled)
@@ -8699,7 +8832,8 @@ private:
         context_.timelineClipSelected = ! selectedTimelineClipIds_.empty();
         {
             const engine::Clip* const selectedClip = context_.projectLoaded ? findClip (selectedTimelineClipId_) : nullptr;   // G2.12
-            context_.timelineClipMuted = selectedClip != nullptr && selectedClip->muted;
+            const engine::MidiClip* const selectedMidi = context_.projectLoaded && selectedClip == nullptr ? findMidiClip (selectedTimelineClipId_) : nullptr;   // G3.5
+            context_.timelineClipMuted = (selectedClip != nullptr && selectedClip->muted) || (selectedMidi != nullptr && selectedMidi->muted);
             context_.timelineClipReversed = selectedClip != nullptr && selectedClip->reversed;   // G2.13
         }
         {
@@ -10399,10 +10533,19 @@ private:
         engine::TimeBase timeBase = engine::TimeBase::SampleLocked;
         engine::ClipName name;
     };
+    // G3.5: a copied MIDI clip rides the clipboard whole (notes, control points and settings); the
+    // paste gives the clip, its notes and its points fresh ids.
+    struct UiMidiClipClipboardEntry
+    {
+        engine::MidiClip clip;
+        engine::Tick timelineOffset = 0;
+    };
     struct UiClipClipboard
     {
         bool keepTracks = false;   // G2.5: a range copy keeps every fragment on its own track
         std::vector<UiClipClipboardEntry> clips;
+        std::vector<UiMidiClipClipboardEntry> midiClips;   // G3.5
+        [[nodiscard]] bool empty() const noexcept { return clips.empty() && midiClips.empty(); }
     };
     UiClipClipboard clipClipboard_;
     std::filesystem::path sessionStateDirectory_;
@@ -10435,16 +10578,24 @@ private:
         UiClipClipboard clipboard;
         engine::Tick anchorStart = std::numeric_limits<engine::Tick>::max();
         for (engine::EntityId clipId : selectedTimelineClipIds_)
+        {
             if (const engine::Clip* const clip = findClip (clipId))
                 anchorStart = std::min (anchorStart, clip->timelineStart);
+            else if (const engine::MidiClip* const midiClip = findMidiClip (clipId))   // G3.5
+                anchorStart = std::min (anchorStart, midiClip->timelineStart);
+        }
 
         if (anchorStart == std::numeric_limits<engine::Tick>::max())
             return clipboard;
 
         clipboard.clips.reserve (selectedTimelineClipIds_.size());
         for (engine::EntityId clipId : selectedTimelineClipIds_)
+        {
             if (const engine::Clip* const clip = findClip (clipId))
                 clipboard.clips.push_back (clipboardEntryForClip (*clip, anchorStart));
+            else if (const engine::MidiClip* const midiClip = findMidiClip (clipId))
+                clipboard.midiClips.push_back ({ *midiClip, midiClip->timelineStart - anchorStart });
+        }
         return clipboard;
     }
 
@@ -10460,7 +10611,7 @@ private:
                                                                 engine::Tick timelineStart,
                                                                 int repeatCount)
     {
-        if (clipClipboard_.clips.empty()
+        if (clipClipboard_.empty()
             || repeatCount < 1
             || timelineStart < 0)
             return { id, state, false };
@@ -10474,6 +10625,13 @@ private:
                 || entry.timelineOffset > tickMax - entry.timelineLength)
                 return { id, state, false };
             clipboardSpan = std::max (clipboardSpan, entry.timelineOffset + entry.timelineLength);
+        }
+        for (const UiMidiClipClipboardEntry& entry : clipClipboard_.midiClips)   // G3.5
+        {
+            if (entry.timelineOffset < 0 || entry.clip.timelineLength <= 0
+                || entry.timelineOffset > tickMax - entry.clip.timelineLength)
+                return { id, state, false };
+            clipboardSpan = std::max (clipboardSpan, entry.timelineOffset + entry.clip.timelineLength);
         }
         const engine::Tick repeatCountTicks = static_cast<engine::Tick> (repeatCount);
         if (clipboardSpan <= 0 || clipboardSpan > (tickMax - timelineStart) / repeatCountTicks)
@@ -10520,6 +10678,49 @@ private:
                 if (! applyEditModeAfterPlacement (nextProject, nextUndo, clip.id))
                     return { id, { false, "edit mode refused the paste" }, false };   // G2.6
                 pastedClipIds.push_back (clip.id);
+            }
+            // G3.5: MIDI clips paste whole — the shape, then every note and point, then the settings —
+            // inside the same undo group; every id is fresh.
+            for (const UiMidiClipClipboardEntry& entry : clipClipboard_.midiClips)
+            {
+                const bool sourceTrackExists = trackExists (nextProject, entry.clip.trackId);
+                const engine::EntityId midiClipId = allocateSessionEntityId (0xC4u, nextProject);
+                const engine::EntityId trackId = (clipClipboard_.clips.size() + clipClipboard_.midiClips.size()) > 1u && sourceTrackExists
+                    ? entry.clip.trackId
+                    : (keepTracks && sourceTrackExists ? entry.clip.trackId : targetTrackId);
+                const engine::Tick start = timelineStart + repeatOffset + entry.timelineOffset;
+                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addMidiClip (
+                        midiClipId, trackId, start, entry.clip.timelineLength, entry.clip.timeBase)).applied())
+                    return { id, state, false };
+                for (const engine::Note& note : entry.clip.notes)
+                {
+                    engine::ProjectEditCommand add = engine::ProjectEditCommand::addNote (
+                        midiClipId, allocateSessionEntityId (0xB2u, nextProject), note.startTick, note.lengthTicks, note.key, note.normalizedVelocity);
+                    add.notePitch = note.pitchNote;
+                    add.notePort = note.portIndex;
+                    add.noteChannel = note.channel;
+                    if (! nextUndo.apply (nextProject, add).applied())
+                        return { id, state, false };
+                }
+                for (const engine::MidiControlEvent& control : entry.clip.controlEvents)
+                {
+                    engine::MidiControlEvent copy = control;
+                    copy.id = allocateSessionEntityId (0xB3u, nextProject);
+                    if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addMidiControlEvent (midiClipId, copy)).applied())
+                        return { id, state, false };
+                }
+                if (entry.clip.muted && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setMidiClipMuted (midiClipId, true)).applied())
+                    return { id, state, false };
+                if (entry.clip.transposeSemitones != 0
+                    && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setMidiClipTranspose (midiClipId, entry.clip.transposeSemitones)).applied())
+                    return { id, state, false };
+                if (entry.clip.velocityOffset != 0.0
+                    && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setMidiClipVelocityOffset (midiClipId, entry.clip.velocityOffset)).applied())
+                    return { id, state, false };
+                if (entry.clip.loopLengthTicks != 0
+                    && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setMidiClipLoopLength (midiClipId, entry.clip.loopLengthTicks)).applied())
+                    return { id, state, false };
+                pastedClipIds.push_back (midiClipId);
             }
         }
         if (! nextUndo.endTransactionGroup())

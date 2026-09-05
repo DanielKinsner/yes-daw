@@ -246,6 +246,11 @@ enum class UiActionId : std::uint8_t
     QuantizeSwingSet,
     QuantizeNoteEndsToggle,
     QuantizeHumanizeSet,
+    // G3.5: the MIDI clip's own settings (the inspector's CLIP tab rows; mute rides TimelineClipToggleMute)
+    MidiClipTransposeSet,
+    MidiClipVelocityOffsetSet,
+    MidiClipLoopSelect,
+    MidiClipMuteToggle,   // the inspector row: mutes the MIDI clip the rows show (Ctrl+M stays the timeline selection's)
     Count
 };
 
@@ -1052,7 +1057,16 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::QuantizeNoteEndsToggle, "quantize.note_ends", "Quantize Note Ends", "", "Q also quantizes each note's end to the grid",
       AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false },
     { UiActionId::QuantizeHumanizeSet, "quantize.humanize", "Quantize Humanize", "", "A repeatable offset within this much of the grid after Q",
-      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    // G3.5: the MIDI clip's settings — edits on the selected MIDI clip (undoable), set from the inspector.
+    { UiActionId::MidiClipTransposeSet, "midi_clip.transpose", "MIDI Clip Transpose", "", "Shift every note of the selected MIDI clip by semitones at playback",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true },
+    { UiActionId::MidiClipVelocityOffsetSet, "midi_clip.velocity_offset", "MIDI Clip Velocity", "", "Add this much to every note's velocity of the selected MIDI clip at playback",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true },
+    { UiActionId::MidiClipLoopSelect, "midi_clip.loop", "MIDI Clip Loop", "", "Repeat the selected MIDI clip's content every beat, bar, two or four bars to fill the clip",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false, false, true },
+    { UiActionId::MidiClipMuteToggle, "midi_clip.mute", "Mute MIDI Clip", "", "Silence the selected MIDI clip in the mix (the row's toggle; Ctrl+M mutes the timeline selection)",
+      AccessibilityRole::ToggleButton, UiActionKind::Toggle, true, false, false, false, false, true }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the

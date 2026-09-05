@@ -238,3 +238,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Quantize Swing (`quantize.swing`)
 - Quantize Note Ends (`quantize.note_ends`)
 - Quantize Humanize (`quantize.humanize`)
+- MIDI Clip Transpose (`midi_clip.transpose`)
+- MIDI Clip Velocity (`midi_clip.velocity_offset`)
+- MIDI Clip Loop (`midi_clip.loop`)
+- Mute MIDI Clip (`midi_clip.mute`)

@@ -1092,7 +1092,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 163u));   // G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 167u));   // G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -11464,12 +11464,23 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     REQUIRE (edited.clips.size() == 1u);
     REQUIRE (edited.midiClips.size() == 1u);
 
-    // Trim and split honestly refuse on MIDI clips (no verb exists yet by design).
+    // A double-click on a MIDI clip opens the roll on it (E9), never a split: one clip stays.
     mouseDownAt (timeline, pointAt (midiMid, 1));
     doubleClickAt (timeline, pointAt (midiMid, 1));
     edited = readProjectSnapshot (bundlePath);
     REQUIRE (edited.midiClips.size() == 1u);
     REQUIRE (edited.clips.size() == 1u);
+    // G3.5 re-pin: the scissors (3) SPLIT a MIDI clip now (they honestly refused before G3.5, when no
+    // verb existed); one Ctrl+Z restores the single clip. The audio clip is untouched.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('3')));
+    mouseDownAt (timeline, pointAt (midiMid, 1));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.size() == 2u);
+    REQUIRE (edited.clips.size() == 1u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    edited = readProjectSnapshot (bundlePath);
+    REQUIRE (edited.midiClips.size() == 1u);
 
     // DELETE: Del removes the selected MIDI clip; the audio clip survives; undo restores audio.
     mouseDownAt (timeline, pointAt (midiMid, 1));
@@ -20028,6 +20039,207 @@ TEST_CASE ("piano roll keyboard column: hovering a key names it in the status li
     const juce::Point<int> grid = pianoRoll.getPosition() + juce::Point<int> (gridX + 40, gridY + static_cast<int> (rowHeight * 3.5));
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, key).contains ("Keyboard"));
     REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, grid).contains ("Grid"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G3.5: MIDI clips at arrange level — the CLIP tab's rows (mute, transpose, velocity offset, loop)
+// edit the selected MIDI clip undoably and name their actions; Ctrl+M mutes it (the canvas dims it);
+// a split at the playhead cuts it (a crossing note in two); Ctrl+J heals the halves; Ctrl+C / Ctrl+V
+// / Ctrl+R carry a MIDI clip whole (notes, points, settings) with fresh ids; the probe shows the
+// clip's settings.
+TEST_CASE ("G3.5 MIDI clip ops: inspector rows, mute, split, heal, copy / paste / repeat, the probe",
+           "[ui][input][shell][g3][midi-clip-ops]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("midi-clip-ops");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+
+    // Two raw notes, the second crossing the clip's middle so a split has a note to cut.
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
+    mouseDownAt (pianoRoll, { pianoRoll.getWidth() / 4, pianoRoll.getHeight() / 3 });
+    mouseDownAt (pianoRoll, { (pianoRoll.getWidth() * 3) / 4, pianoRoll.getHeight() / 2 });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    snapChooser->setSelectedId (3, juce::sendNotificationSync);
+    const auto project = [&] { return readProjectSnapshot (bundlePath); };
+    REQUIRE (project().midiClips.size() == 1u);
+    REQUIRE (project().midiClips.front().notes.size() == 2u);
+    const yesdaw::engine::EntityId clipId = project().midiClips.front().id;
+    const yesdaw::engine::Tick clipLength = project().midiClips.front().timelineLength;
+
+    // The arrangement's geometry (the [midi-clip] pin's law) so the gate clicks the painted clip.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const double sampleRateHz = project().sampleRate.hz;
+    const auto geometryNow = [&] {
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = static_cast<int> (project().tracks.size());
+        state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+        const double fitPixelsPerSecond = static_cast<double> (juce::jmax (
+                                                  yesdaw::ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+                                                  timeline.getWidth() - yesdaw::ui::UiTheme::Layout::timelineViewportRightGutter))
+                                        / std::max (yesdaw::ui::UiTheme::Layout::timelineMinVisibleSeconds, state.totalSeconds);
+        state.viewport.pixelsPerSecond = fitPixelsPerSecond * snapshot.timelineZoomFactor;
+        state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+        return yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    };
+    const auto pointAt = [&] (yesdaw::engine::Tick tick, int lane) {
+        const yesdaw::ui::TimelineCanvasGeometry geometry = geometryNow();
+        const double pixelsPerSecond = std::max (yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
+                                                 geometry.viewport.pixelsPerSecond);
+        return juce::Point<int> {
+            geometry.clipArea.getX() + juce::roundToInt ((static_cast<double> (tick) / sampleRateHz - geometry.viewport.scrollSeconds) * pixelsPerSecond),
+            geometry.clipArea.getY() + lane * geometry.laneHeight + geometry.laneHeight / 2 };
+    };
+    int midiLane = 0;
+    for (std::size_t i = 0; i < project().tracks.size(); ++i)
+        if (project().tracks[i].id == project().midiClips.front().trackId)
+            midiLane = static_cast<int> (i);
+    // A click on the painted MIDI clip makes it the timeline selection (the arrangement's verbs act on it).
+    mouseDownAt (timeline, pointAt (clipLength / 4, midiLane));
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+
+    const auto probe = [&] {
+        juce::var doc;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), doc).wasOk());
+        return doc;
+    };
+    const auto midiClipView = [&] { return probe().getProperty ("view", juce::var()).getProperty ("midiClip", juce::var()); };
+    const auto lastAction = [&] { return probe().getProperty ("lastAction", juce::var()).toString(); };
+
+    // The rows are up with the clip's defaults.
+    auto* mute = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "clip.inspector.midi.mute"));
+    auto* transpose = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "clip.inspector.midi.transpose"));
+    auto* velocity = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "clip.inspector.midi.velocity"));
+    auto* loop = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "clip.inspector.midi.loop"));
+    REQUIRE (mute != nullptr);
+    REQUIRE (transpose != nullptr);
+    REQUIRE (velocity != nullptr);
+    REQUIRE (loop != nullptr);
+    for (juce::Component* c : { static_cast<juce::Component*> (mute), static_cast<juce::Component*> (transpose),
+                                static_cast<juce::Component*> (velocity), static_cast<juce::Component*> (loop) })
+    {
+        REQUIRE (c->isVisible());
+        REQUIRE (c->getWidth() > 0);
+    }
+    REQUIRE_FALSE (mute->getToggleState());
+    REQUIRE (transpose->getValue() == 0.0);
+    REQUIRE (velocity->getValue() == 0.0);
+    REQUIRE (loop->getText() == juce::String ("Off"));
+    REQUIRE (midiClipView().isObject());
+    REQUIRE_FALSE (static_cast<bool> (midiClipView().getProperty ("muted", true)));
+
+    // Transpose +7: the slider posts an undoable Clip edit and names it; the probe follows.
+    transpose->setValue (7.0, juce::sendNotificationSync);
+    REQUIRE (project().midiClips.front().transposeSemitones == 7);
+    REQUIRE (lastAction() == juce::String ("midi_clip.transpose"));
+    REQUIRE (static_cast<int> (midiClipView().getProperty ("transpose", 0)) == 7);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (project().midiClips.front().transposeSemitones == 0);
+    REQUIRE (transpose->getValue() == 0.0);   // the row follows the undo
+
+    // Velocity -25 %.
+    velocity->setValue (-25.0, juce::sendNotificationSync);
+    REQUIRE (project().midiClips.front().velocityOffset == Catch::Approx (-0.25));
+    REQUIRE (lastAction() == juce::String ("midi_clip.velocity_offset"));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (project().midiClips.front().velocityOffset == 0.0);
+
+    // Loop: one beat — the loop length is the beat grid in force; Off again clears it.
+    loop->setSelectedId (2, juce::sendNotificationSync);
+    REQUIRE (project().midiClips.front().loopLengthTicks == snapshotMainComponent (*shell).context.snapGridTicks);
+    REQUIRE (lastAction() == juce::String ("midi_clip.loop"));
+    REQUIRE (static_cast<int> (midiClipView().getProperty ("loopChoice", -1)) == 1);
+    loop->setSelectedId (1, juce::sendNotificationSync);
+    REQUIRE (project().midiClips.front().loopLengthTicks == 0);
+
+    // Mute: the row's toggle and Ctrl+M are the same verb; the context's Mute Clip tick follows.
+    clickButton (*mute);
+    REQUIRE (project().midiClips.front().muted);
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipMuted);
+    REQUIRE (static_cast<bool> (midiClipView().getProperty ("muted", false)));
+    REQUIRE (mute->getToggleState());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (project().midiClips.front().muted);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.timelineClipMuted);
+
+    // Split by the shell's own gesture — the scissors (3) on the painted MIDI clip at its middle (a
+    // double-click opens the roll, E9): the halves abut and the crossing note is cut in two; one
+    // Ctrl+Z restores the single clip.
+    const auto scissorsAt = [&] (yesdaw::engine::Tick tick) {
+        REQUIRE (shell->keyPressed (juce::KeyPress ('3')));
+        mouseDownAt (timeline, pointAt (tick, midiLane));
+        REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    };
+    {
+        const yesdaw::engine::Project before = project();
+        scissorsAt (clipLength / 2);
+        const yesdaw::engine::Project split = project();
+        REQUIRE (split.midiClips.size() == 2u);
+        REQUIRE (split.midiClips[0].id == clipId);
+        REQUIRE (split.midiClips[0].timelineLength > 0);
+        REQUIRE (split.midiClips[0].timelineLength < clipLength);
+        REQUIRE (split.midiClips[1].timelineStart == split.midiClips[0].timelineStart + split.midiClips[0].timelineLength);
+        REQUIRE (split.midiClips[0].timelineLength + split.midiClips[1].timelineLength == clipLength);
+        REQUIRE (split.midiClips[0].notes.size() + split.midiClips[1].notes.size() >= before.midiClips[0].notes.size());
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (project().midiClips == before.midiClips);
+
+        // Heal (Ctrl+J) joins the halves back: split again, select both, heal — the notes are whole again.
+        scissorsAt (clipLength / 2);
+        REQUIRE (project().midiClips.size() == 2u);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));   // select all clips (Arrange context)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipHeal);
+        const yesdaw::engine::Project healed = project();
+        REQUIRE (healed.midiClips.size() == 1u);
+        REQUIRE (healed.midiClips[0].timelineLength == clipLength);
+        REQUIRE (healed.midiClips[0].notes.size() >= before.midiClips[0].notes.size());   // a cut note stays two notes that abut
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (project().midiClips.size() == 2u);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (project().midiClips == before.midiClips);
+    }
+
+    // Copy / paste / repeat carry the MIDI clip whole with fresh ids: Ctrl+C, then Ctrl+V pastes one
+    // (notes included), Ctrl+R pastes the repeat count more; every id is new.
+    {
+        transpose->setValue (3.0, juce::sendNotificationSync);   // a setting rides the clipboard too
+        const yesdaw::engine::Project before = project();
+        REQUIRE (shell->keyPressed (juce::KeyPress ('c', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (snapshotMainComponent (*shell).context.clipboardHasClip);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
+        const yesdaw::engine::Project pasted = project();
+        REQUIRE (pasted.midiClips.size() == 2u);
+        const yesdaw::engine::MidiClip& copy = pasted.midiClips.back();
+        REQUIRE (copy.id != clipId);
+        REQUIRE (copy.notes.size() == before.midiClips[0].notes.size());
+        REQUIRE (copy.transposeSemitones == 3);
+        REQUIRE (copy.timelineLength == clipLength);
+        for (std::size_t i = 0; i < copy.notes.size(); ++i)
+        {
+            REQUIRE (copy.notes[i].id != before.midiClips[0].notes[i].id);
+            REQUIRE (copy.notes[i].startTick == before.midiClips[0].notes[i].startTick);
+            REQUIRE (copy.notes[i].key == before.midiClips[0].notes[i].key);
+        }
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (project().midiClips.size() == 1u);
+        REQUIRE (shell->keyPressed (juce::KeyPress ('r', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (project().midiClips.size() >= 2u);   // the repeat count's worth of copies
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+        REQUIRE (project().midiClips.size() == 1u);
+        transpose->setValue (0.0, juce::sendNotificationSync);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

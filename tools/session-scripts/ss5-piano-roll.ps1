@@ -200,4 +200,12 @@ Click 'inspector.quantize.ends'
 [void](Assert ((Probe).lastAction -eq 'quantize.note_ends') 'the toggle names its action')
 Click 'inspector.quantize.ends'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.view.quantize.noteEnds } -TimeoutMs 1500) 'a second click toggles it off')
+
+Step 13 'G3.5 the MIDI clip rows: Mute by click (the clip dims), the loop chooser is laid out; Ctrl+Z restores'
+[void](Assert ((LayoutRect 'inspector.midi.loop')[2] -gt 0) 'the loop chooser is laid out')
+Click 'inspector.midi.mute'
+[void](Assert (WaitProbe { param($q) [bool]$q.view.midiClip.muted } -TimeoutMs 1500) 'a click mutes the MIDI clip')
+Shot 'ss5-midi-clip-muted'
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.view.midiClip.muted } -TimeoutMs 1500) 'Ctrl+Z unmutes it')
 Close

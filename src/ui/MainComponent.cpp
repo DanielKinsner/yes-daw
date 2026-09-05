@@ -5862,6 +5862,67 @@ public:
         };
         addChildComponent (inspectorInstrumentEdit);
 
+        // G3.5: the MIDI clip's settings rows (Logic's region inspector: Mute, Transpose, Velocity, Loop)
+        // sit above the quantize rows on the same CLIP tab; every control is an undoable Clip edit.
+        configureActionComponent (inspectorMidiMute, yesdaw::ui::UiActionId::MidiClipMuteToggle, "Mute MIDI clip");
+        inspectorMidiMute.setComponentID ("clip.inspector.midi.mute");
+        inspectorMidiMute.setButtonText ("");
+        inspectorMidiMute.onClick = [this] {
+            if (refreshingInspectorControls)
+                return;
+            // The row mutes the clip the rows show (not the timeline selection, which may be empty).
+            (void) appModel.toggleSelectedMidiClipMute();
+            recordLastAction (yesdaw::ui::UiActionId::MidiClipMuteToggle);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (inspectorMidiMute);
+        const auto setUpMidiClipSlider = [this] (juce::Slider& slider, yesdaw::ui::UiActionId action, const char* id,
+                                                 double minimum, double maximum, std::function<void (int)> post) {
+            configureActionComponent (slider, action, "MIDI clip");
+            slider.setComponentID (id);
+            slider.setSliderStyle (juce::Slider::LinearHorizontal);
+            slider.setTextBoxStyle (juce::Slider::NoTextBox, false,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
+                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
+            slider.setRange (minimum, maximum, 1.0);
+            slider.setValue (0.0, juce::dontSendNotification);
+            slider.onValueChange = [this, &slider, action, post] {
+                if (refreshingInspectorControls || ! slider.isEnabled())
+                    return;
+                post (juce::roundToInt (slider.getValue()));
+                recordLastAction (action);
+                refreshActionState();
+                repaintAll();
+            };
+            addChildComponent (slider);
+        };
+        setUpMidiClipSlider (inspectorMidiTranspose, yesdaw::ui::UiActionId::MidiClipTransposeSet, "clip.inspector.midi.transpose",
+                             -static_cast<double> (yesdaw::ui::UiTheme::Layout::inspectorMidiClipTransposeMax),
+                             static_cast<double> (yesdaw::ui::UiTheme::Layout::inspectorMidiClipTransposeMax),
+                             [this] (int v) { (void) appModel.setSelectedMidiClipTranspose (v); });
+        setUpMidiClipSlider (inspectorMidiVelocity, yesdaw::ui::UiActionId::MidiClipVelocityOffsetSet, "clip.inspector.midi.velocity",
+                             -static_cast<double> (yesdaw::ui::UiTheme::Layout::inspectorMidiClipVelocityOffsetMax),
+                             static_cast<double> (yesdaw::ui::UiTheme::Layout::inspectorMidiClipVelocityOffsetMax),
+                             [this] (int v) { (void) appModel.setSelectedMidiClipVelocityOffset (static_cast<double> (v) / 100.0); });
+        configureActionComponent (inspectorMidiLoop, yesdaw::ui::UiActionId::MidiClipLoopSelect, "MIDI clip loop");
+        inspectorMidiLoop.setComponentID ("clip.inspector.midi.loop");
+        inspectorMidiLoop.addItem ("Off", 1);
+        inspectorMidiLoop.addItem ("1 beat", 2);
+        inspectorMidiLoop.addItem ("1 bar", 3);
+        inspectorMidiLoop.addItem ("2 bars", 4);
+        inspectorMidiLoop.addItem ("4 bars", 5);
+        inspectorMidiLoop.setSelectedId (1, juce::dontSendNotification);
+        inspectorMidiLoop.onChange = [this] {
+            if (refreshingInspectorControls || inspectorMidiLoop.getSelectedId() <= 0)
+                return;
+            (void) appModel.setSelectedMidiClipLoopChoice (inspectorMidiLoop.getSelectedId() - 1);
+            recordLastAction (yesdaw::ui::UiActionId::MidiClipLoopSelect);
+            refreshActionState();
+            repaintAll();
+        };
+        addChildComponent (inspectorMidiLoop);
+
         // G3.4: the quantize panel — the CLIP tab's content for a MIDI clip (Logic's region
         // inspector: Quantize, Q-Strength, Q-Swing, Q-Length; humanize). Settings, not edits:
         // each control posts its value to the context and Q (or Apply) applies them.
@@ -7020,6 +7081,10 @@ public:
         put ("inspector", inspectorBounds());
         if (inspectorShowsQuantizePanel())   // G3.4: the panel's controls by name
         {
+            put ("inspector.midi.mute", inspectorMidiMute.getBounds());   // G3.5
+            put ("inspector.midi.transpose", inspectorMidiTranspose.getBounds());
+            put ("inspector.midi.velocity", inspectorMidiVelocity.getBounds());
+            put ("inspector.midi.loop", inspectorMidiLoop.getBounds());
             put ("inspector.quantize.grid", inspectorQuantizeGrid.getBounds());
             put ("inspector.quantize.strength", inspectorQuantizeStrength.getBounds());
             put ("inspector.quantize.swing", inspectorQuantizeSwing.getBounds());
@@ -7372,6 +7437,18 @@ public:
                 quantize->setProperty ("seed", static_cast<juce::int64> (settings.humanizeSeed));
                 quantize->setProperty ("panel", inspectorShowsQuantizePanel());
                 view->setProperty ("quantize", juce::var (quantize));
+            }
+            if (const yesdaw::engine::MidiClip* const midiClip = appModel.selectedMidiClip())
+            {
+                // G3.5: the selected MIDI clip's settings as the inspector shows them.
+                auto* clipView = new juce::DynamicObject();
+                clipView->setProperty ("id", juce::String (entityIdHex (midiClip->id)));
+                clipView->setProperty ("muted", midiClip->muted);
+                clipView->setProperty ("transpose", static_cast<int> (midiClip->transposeSemitones));
+                clipView->setProperty ("velocityOffset", midiClip->velocityOffset);
+                clipView->setProperty ("loopLength", static_cast<juce::int64> (midiClip->loopLengthTicks));
+                clipView->setProperty ("loopChoice", appModel.midiClipLoopChoiceFor (*midiClip));
+                view->setProperty ("midiClip", juce::var (clipView));
             }
             view->setProperty ("playheadFollow", context.playheadFollowEnabled);
             view->setProperty ("playheadFollowContinuous", context.playheadFollowContinuous);   // G2.16
@@ -10365,11 +10442,13 @@ private:
             && findProjectClipById (appModel.selectedTimelineClipId()) == nullptr;
     }
 
-    // The six rows (grid, strength, swing, note ends, humanize, apply) below the title — ONE law
-    // for the paint (labels on the left) and the controls (on the right).
-    [[nodiscard]] static std::array<juce::Rectangle<int>, 6> quantizeInspectorRows (juce::Rectangle<int> content) noexcept
+    // The MIDI clip's inspector rows below the title — G3.5's four (mute, transpose, velocity, loop)
+    // then G3.4's six (grid, strength, swing, note ends, humanize, apply) — ONE law for the paint
+    // (labels on the left) and the controls (on the right).
+    static constexpr std::size_t kMidiClipInspectorRows = static_cast<std::size_t> (yesdaw::ui::UiTheme::Layout::inspectorMidiClipRowCount) + 6u;
+    [[nodiscard]] static std::array<juce::Rectangle<int>, kMidiClipInspectorRows> midiClipInspectorRows (juce::Rectangle<int> content) noexcept
     {
-        std::array<juce::Rectangle<int>, 6> rows {};
+        std::array<juce::Rectangle<int>, kMidiClipInspectorRows> rows {};
         auto body = content.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop);
         for (juce::Rectangle<int>& row : rows)
             row = body.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorQuantizeRowHeight)
@@ -10405,6 +10484,10 @@ private:
         // control drops WHOLE (the same empty-bounds law the section-fit drop already uses).
         if (appModel.context().inspectorTrackTabActive)
         {
+            inspectorMidiMute.setBounds ({});   // G3.5: CLIP-tab content
+            inspectorMidiTranspose.setBounds ({});
+            inspectorMidiVelocity.setBounds ({});
+            inspectorMidiLoop.setBounds ({});
             inspectorQuantizeGrid.setBounds ({});   // G3.4: the panel is CLIP-tab content
             inspectorQuantizeStrength.setBounds ({});
             inspectorQuantizeSwing.setBounds ({});
@@ -10439,17 +10522,22 @@ private:
         // rows share one law with drawMidiClipInspector (quantizeInspectorRows).
         {
             const bool showQuantize = inspectorShowsQuantizePanel();
-            const std::array<juce::Rectangle<int>, 6> rows = quantizeInspectorRows (area);
+            const std::array<juce::Rectangle<int>, kMidiClipInspectorRows> rows = midiClipInspectorRows (area);
             const auto control = [&] (std::size_t row, int width) {
                 juce::Rectangle<int> rect = rows[row];
                 return showQuantize && area.contains (rect) ? rect.removeFromRight (width) : juce::Rectangle<int> {};
             };
-            inspectorQuantizeGrid.setBounds (control (0, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
-            inspectorQuantizeStrength.setBounds (control (1, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
-            inspectorQuantizeSwing.setBounds (control (2, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
-            inspectorQuantizeEnds.setBounds (control (3, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
-            inspectorQuantizeHumanize.setBounds (control (4, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
-            inspectorQuantizeApply.setBounds (control (5, yesdaw::ui::UiTheme::Layout::inspectorQuantizeApplyWidth));
+            // G3.5: the clip's own rows first, then G3.4's quantize rows.
+            inspectorMidiMute.setBounds (control (0, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorMidiTranspose.setBounds (control (1, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorMidiVelocity.setBounds (control (2, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorMidiLoop.setBounds (control (3, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeGrid.setBounds (control (4, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeStrength.setBounds (control (5, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeSwing.setBounds (control (6, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeEnds.setBounds (control (7, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeHumanize.setBounds (control (8, yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth));
+            inspectorQuantizeApply.setBounds (control (9, yesdaw::ui::UiTheme::Layout::inspectorQuantizeApplyWidth));
         }
         // E24/E27: ONE law for paint and controls — an inspector section that no longer fits
         // the column is dropped WHOLE (card, labels, and controls), never split across the
@@ -13078,7 +13166,20 @@ private:
             inspectorQuantizeSwing.setValue (context.quantizeSwingPercent, juce::dontSendNotification);
             inspectorQuantizeEnds.setToggleState (context.quantizeNoteEnds, juce::dontSendNotification);
             inspectorQuantizeHumanize.setValue (context.quantizeHumanizePercent, juce::dontSendNotification);
-            for (juce::Component* component : { static_cast<juce::Component*> (&inspectorQuantizeGrid),
+            // G3.5: the clip's own rows follow the selected MIDI clip.
+            if (const yesdaw::engine::MidiClip* const midiClip = appModel.selectedMidiClip())
+            {
+                inspectorMidiMute.setToggleState (midiClip->muted, juce::dontSendNotification);
+                inspectorMidiTranspose.setValue (midiClip->transposeSemitones, juce::dontSendNotification);
+                inspectorMidiVelocity.setValue (juce::roundToInt (midiClip->velocityOffset * 100.0), juce::dontSendNotification);
+                const int loopChoice = appModel.midiClipLoopChoiceFor (*midiClip);
+                inspectorMidiLoop.setSelectedId (loopChoice >= 0 ? loopChoice + 1 : 0, juce::dontSendNotification);
+            }
+            for (juce::Component* component : { static_cast<juce::Component*> (&inspectorMidiMute),
+                                                static_cast<juce::Component*> (&inspectorMidiTranspose),
+                                                static_cast<juce::Component*> (&inspectorMidiVelocity),
+                                                static_cast<juce::Component*> (&inspectorMidiLoop),
+                                                static_cast<juce::Component*> (&inspectorQuantizeGrid),
                                                 static_cast<juce::Component*> (&inspectorQuantizeStrength),
                                                 static_cast<juce::Component*> (&inspectorQuantizeSwing),
                                                 static_cast<juce::Component*> (&inspectorQuantizeEnds),
@@ -14549,7 +14650,10 @@ private:
                                             appModel.isTimelineClipSelected (midiClip.id),
                                             static_cast<long long> (midiClip.timelineLength),
                                             0,
-                                            0 });
+                                            0,
+                                            1, 1, 0.0f, 0.0f,
+                                            midiClip.muted,   // G3.5: the same dim wash an audio clip gets
+                                            false });
             timelineClipIds.push_back (midiClip.id);
             timelineClipAssetHashes.push_back ({});
             endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
@@ -15404,15 +15508,22 @@ private:
                                 yesdaw::ui::UiTheme::Radius::sm);
         g.setColour (kText);
         g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::title, juce::Font::bold));
-        g.drawText ("MIDI Clip  |  Quantize",
+        g.drawText ("MIDI Clip",
                     area.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorTitleTextLeftInset)
                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorTitleTextHeight),
                     juce::Justification::centredLeft, false);
 
         const auto& context = appModel.context();
-        const std::array<juce::Rectangle<int>, 6> rows = quantizeInspectorRows (area);
-        const std::array<juce::String, 6> labels {
-            juce::String ("Grid"),
+        const yesdaw::engine::MidiClip* const midiClip = appModel.selectedMidiClip();
+        const int transpose = midiClip != nullptr ? static_cast<int> (midiClip->transposeSemitones) : 0;
+        const int velocity = midiClip != nullptr ? juce::roundToInt (midiClip->velocityOffset * 100.0) : 0;
+        const std::array<juce::Rectangle<int>, kMidiClipInspectorRows> rows = midiClipInspectorRows (area);
+        const std::array<juce::String, kMidiClipInspectorRows> labels {
+            juce::String (midiClip != nullptr && midiClip->muted ? "Mute (muted)" : "Mute"),
+            "Transpose " + juce::String (transpose > 0 ? "+" : "") + juce::String (transpose) + " st",
+            "Velocity " + juce::String (velocity > 0 ? "+" : "") + juce::String (velocity) + " %",
+            juce::String ("Loop"),
+            juce::String ("Quantize grid"),
             "Strength " + juce::String (context.quantizeStrengthPercent) + " %",
             "Swing " + juce::String (context.quantizeSwingPercent) + " %",
             juce::String ("Note ends"),
@@ -15423,8 +15534,8 @@ private:
             if (! area.contains (rows[i]))
                 break;
             drawSmallLabel (g, labels[i],
-                            rows[i].withTrimmedRight (i == 5 ? yesdaw::ui::UiTheme::Layout::inspectorQuantizeApplyWidth
-                                                             : yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth),
+                            rows[i].withTrimmedRight (i == rows.size() - 1u ? yesdaw::ui::UiTheme::Layout::inspectorQuantizeApplyWidth
+                                                                            : yesdaw::ui::UiTheme::Layout::inspectorQuantizeControlWidth),
                             juce::Justification::centredLeft);
         }
     }
@@ -16321,6 +16432,11 @@ private:
     PlayheadLayerComponent playheadLayer;   // G0.4: above the buffered canvas
     PianoRollInputComponent pianoRollInput;
     juce::ComboBox pianoRollLaneChooser;   // G3.3: the control lane's chooser (a child over the lane's gutter)
+    // G3.5: the MIDI clip's settings rows (the inspector's CLIP tab)
+    juce::ToggleButton inspectorMidiMute;
+    FineDragSlider inspectorMidiTranspose;
+    FineDragSlider inspectorMidiVelocity;
+    juce::ComboBox inspectorMidiLoop;
     // G3.4: the quantize panel's controls (the inspector's CLIP tab for a MIDI clip)
     juce::ComboBox inspectorQuantizeGrid;
     FineDragSlider inspectorQuantizeStrength;

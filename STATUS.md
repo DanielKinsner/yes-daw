@@ -61,10 +61,11 @@ the swing / strength / note-ends / humanize laws, the widened `QuantizeNote` ver
 cp2 (this commit) — the inspector quantize panel on the MIDI clip's CLIP tab, Q and Apply applying the
 current settings, `[quantize-panel]`, ss5 Step 12 authored. The G3.4 drive ran (ss5 48 / 48) and the
 rubric is recorded; the docs-evidence commit waits for CI on `603faa0`. **G3.5 — MIDI clips at arrange
-level is under way:** cp1 (this commit) is the engine half — the Clip's mute / transpose / velocity offset /
-loop length at the flatten, split and join, six verbs, schema v29, `YesDawMidiClipOpsCheck`; cp2 (the
-arrangement: split / join / mute / Ctrl+R for MIDI clips, the inspector rows, `[midi-clip-ops]` in the
-shell) is next. Rules in force: HEADLESS by default, the macOS GPU
+level:** cp1 `a58391a` (the engine half — mute / transpose / velocity offset / loop length at the flatten,
+split and join, six verbs, schema v29, `YesDawMidiClipOpsCheck`); cp2 (this commit) — the arrangement's
+split, heal, mute, copy / paste / repeat on MIDI clips, the four inspector rows, the muted wash,
+`[midi-clip-ops]` in the shell, ss5 Step 13 authored. Next: the ss5 drive (Steps 1–13) and rubric shots,
+the G3.4 / G3.5 docs-evidence commits once CI is green, then **G3.6 — Step input and musical typing**. Rules in force: HEADLESS by default, the macOS GPU
 frame-budget red is noise, the local suite + drives are the working gate.
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
 note lane), the UI checkpoint (`71efc63`, `f20be6a`, `fabb781`); the head run `33672370057` is green on
@@ -134,7 +135,11 @@ per pixel: column n is sample n, the painted tops climb monotonically, the cache
 `YesDawUiInputCheck` (Ctrl+wheel climbs past 64x and clamps at the ceiling; ceiling x fit px/s == the
 project rate; Ctrl+0 returns to 1x; a 0.09 s project honestly stays at the 64 floor). Frame-budget gate
 untouched (no sample lookup in the headless checks).
-**Done:** G3.3 ✅ — MIDI CC, pitch bend, aftertouch, program change: cp1 `17e3802` (the engine half), cp2
+**Done:** G3.4 ✅ — Quantize v2: cp1 `d139cb3` (the engine half), cp2 `603faa0` (the quantize panel);
+head run `33944162506` green on nine jobs, macOS red only on the parked GPU frame-budget flake
+(`YesDawTimelineGpuCheck` alone, 21.7 ms vs 16.6 — Dan's 2026-09-04 rule: noise, no rerun). ss5 48 / 48
+on the real exe with the G3.4 Step 12; rubric PASS with the one FIX applied.
+G3.3 ✅ — MIDI CC, pitch bend, aftertouch, program change: cp1 `17e3802` (the engine half), cp2
 `b0a1c2f` (the control lane), the switch fix `63b06ab`, the drive-window fixes `e9d2c38`; certified by
 exact-head run `33942955586` (green on all ten jobs) for `e9d2c38`. Earlier heads were red only on the
 parked macOS GPU frame-budget flake (`33939222022`), the GCC / Clang switch warning (`33940220844`) and
@@ -215,6 +220,63 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G3.5 cp2 — MIDI clips in the arrangement (2026-09-05)
+
+**Story.** cp1 gave a MIDI clip settings and shape verbs; the arrangement still refused to split it,
+Ctrl+J and Ctrl+M only knew audio, the clipboard dropped it, and the CLIP tab had no rows for it. Now a
+MIDI clip splits by the same double-click and Ctrl+T law an audio clip does (a crossing note cut in
+two), two halves heal with Ctrl+J, Ctrl+M mutes it and the canvas dims it, Ctrl+C / Ctrl+V / Ctrl+R carry
+it whole with fresh ids, and the CLIP tab's card carries Mute, Transpose, Velocity and Loop rows above
+the quantize rows.
+
+**Precedent.** Logic's region inspector rows (Mute, Transpose, Velocity, Loop) and its Split / Join
+on MIDI regions; Logic's loop as a chooser of musical lengths here (a beat, a bar, two, four — the
+inspector numeric is a later pass).
+
+**Build.** Model: the clipboard carries `UiMidiClipClipboardEntry` (the whole `MidiClip` plus its
+offset) and pastes it as the shape, then every note and point, then the non-default settings, in the
+one undo group with fresh ids (`addClipsFromClipboard`); `splitSelectedTimelineClipAt` and
+`healSelectedTimelineClips` branch to `splitMidiClip` / `joinMidiClips` (a MIDI heal orders the pair by
+start; the selection lands on the joined clip); `toggleSelectedTimelineClipMute` and the context's
+`timelineClipMuted` know MIDI clips; `editSelectedMidiClip` + `setSelectedMidiClipTranspose` /
+`VelocityOffset` / `LoopChoice` (`midiClipLoopTicksForChoice`: beat / bar / 2 / 4 bars through the head
+tempo / meter law; `midiClipLoopChoiceFor` reads a clip back, −1 for a length the chooser has no word
+for). Actions (no chords): `MidiClipTransposeSet`, `MidiClipVelocityOffsetSet`, `MidiClipLoopSelect`
+(mute rides `TimelineClipToggleMute`). Shell: `midiClipInspectorRows` (ten rows: the clip's four, then
+G3.4's six — ONE law for `drawMidiClipInspector`'s labels and `layoutInspectorControls`),
+`clip.inspector.midi.{mute,transpose,velocity,loop}`, the refresh follows the selected clip; the canvas
+style carries `midiClip.muted` so the G2.12 wash dims it; probe `view.midiClip` {id, muted, transpose,
+velocityOffset, loopLength, loopChoice} and layout `inspector.midi.*`. Tokens `inspectorMidiClip*`.
+`docs/keymap-v2.md` regenerated. A timeline pick of a MIDI clip now also makes it THE MIDI clip
+(`followMidiClipSelection`: the rows and the roll follow it; the old note selection clears).
+
+**Gates.** `[midi-clip-ops]` in `YesDawUiInputCheck` (185 assertions): the four rows up with
+the defaults; transpose +7 / velocity −25 % / loop one beat post undoable edits, name their actions, the
+probe and the rows follow the undo; the row's Mute and Ctrl+M are one verb and the Mute Clip tick
+follows; a double-click on the painted clip splits it into abutting halves and one Ctrl+Z restores it;
+split again + Ctrl+A + Heal joins the halves (undo restores two, undo again one); Ctrl+C / Ctrl+V pastes
+the clip whole (fresh ids, the notes and the transpose ride along), Ctrl+R pastes the repeat count.
+The `[midi-clip]` pin re-pinned: the old "split honestly refuses" block now splits and undoes.
+`YesDawUiActionCheck` green with the three actions. Local suite 375 / 375 (the child-count pin re-pinned 163 → 167 for the four rows).
+
+**See-it.** ss5 Step 13: the loop chooser is laid out, a click on the Mute row mutes the clip (probe
+`view.midiClip.muted`), a shot, Ctrl+Z unmutes — ss5 **51 / 51** on the real exe (2026-09-05). **Drive
+finding, fixed in the shell:** the first run's Mute click did nothing on the exe while the headless gate
+passed — the row went through `TimelineClipToggleMute`, whose enable law needs a TIMELINE selection, and
+at Step 13 none was selected (the gate had clicked the clip first). The row now has its own chord-less
+action `MidiClipMuteToggle` (requires a MIDI clip only) and mutes the clip the rows show; Ctrl+M stays
+the timeline selection's verb. The gate's mute step is unchanged (both paths hold).
+
+**Rubric (§7.4, the ss5 muted-clip shot at 1920×1080).** 1 PASS (ten rows fit the column; nothing
+overlaps the dock). 2 n/a. 3 PASS (every row has a painted label with its value and a tooltip). 4 PASS.
+5 PASS (the muted clip paints under the G2.12 wash, plainly dimmer than a live one; the row reads
+"Mute (muted)"). 6 PASS (the card matches the audio clip's). 7 PASS. Process note: the G3.4 tick in the
+Done list rode this cp2 commit rather than its own docs-only commit (both heads' CI was known by then).
+
+**Deviation log.** (1) The loop chooser offers musical lengths only (beat / bar / 2 / 4 bars); a free
+tick length is the inspector-numeric pass (parking lot). (2) A MIDI clip has no colour or name of its
+own yet (the plan's G3.5 list does not ask for them; G2.12's audio law is the template) — parking lot.
 
 ### G3.5 cp1 — MIDI clips at arrange level: the engine half (2026-09-05)
 
