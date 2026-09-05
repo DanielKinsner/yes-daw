@@ -138,7 +138,14 @@ per pixel: column n is sample n, the painted tops climb monotonically, the cache
 `YesDawUiInputCheck` (Ctrl+wheel climbs past 64x and clamps at the ceiling; ceiling x fit px/s == the
 project rate; Ctrl+0 returns to 1x; a 0.09 s project honestly stays at the 64 floor). Frame-budget gate
 untouched (no sample lookup in the headless checks).
-**Done:** G3.4 ✅ — Quantize v2: cp1 `d139cb3` (the engine half), cp2 `603faa0` (the quantize panel);
+**Done:** G3.6 ✅ — Step input and musical typing: `234bfcd`; certified by exact-head run `33946774937`
+(green on all ten jobs). ss5 59 / 59 on the real exe with the G3.6 Step 14 (the whole roll script, Steps
+1–14, in one launch); rubric PASS.
+G3.5 ✅ — MIDI clips at arrange level: cp1 `a58391a` (the engine half; run `33944717371` green), cp2
+`2f9571b` (the arrangement's split / heal / mute / copy / paste / repeat, the four inspector rows; its
+run `33945749306` was red only on the Clang exhaustive-switch class, closed in `234bfcd`, whose run
+`33946774937` is green on all ten jobs — the certifying run for cp2's content). ss5 51 / 51 with Step 13.
+G3.4 ✅ — Quantize v2: cp1 `d139cb3` (the engine half), cp2 `603faa0` (the quantize panel);
 head run `33944162506` green on nine jobs, macOS red only on the parked GPU frame-budget flake
 (`YesDawTimelineGpuCheck` alone, 21.7 ms vs 16.6 — Dan's 2026-09-04 rule: noise, no rerun). ss5 48 / 48
 on the real exe with the G3.4 Step 12; rubric PASS with the one FIX applied.
