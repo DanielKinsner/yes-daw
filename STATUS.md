@@ -129,7 +129,14 @@ per pixel: column n is sample n, the painted tops climb monotonically, the cache
 `YesDawUiInputCheck` (Ctrl+wheel climbs past 64x and clamps at the ceiling; ceiling x fit px/s == the
 project rate; Ctrl+0 returns to 1x; a 0.09 s project honestly stays at the 64 floor). Frame-budget gate
 untouched (no sample lookup in the headless checks).
-**Done:** G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
+**Done:** G3.3 ✅ — MIDI CC, pitch bend, aftertouch, program change: cp1 `17e3802` (the engine half), cp2
+`b0a1c2f` (the control lane), the switch fix `63b06ab`, the drive-window fixes `e9d2c38`; certified by
+exact-head run `33942955586` (green on all ten jobs) for `e9d2c38`. Earlier heads were red only on the
+parked macOS GPU frame-budget flake (`33939222022`), the GCC / Clang switch warning (`33940220844`) and
+a Clang dangling-reference warning in the gate (`33941926652`), each fixed in the next commit. Drives on
+the real exe: ss5 43 / 43 (with the G3.3 Step 11), ss1 41 / 42 (D3), ss2 29 / 29, ss3 51 / 51, ss4 11 / 11.
+Rubric PASS on every line (the long lane hint truncates in the status line — noted).
+G0.1 ✅ — certified: exact-head GitHub Actions run `33587446396` green on all ten jobs for
 full SHA `a6a5cf8807874347ada80b8919190cac37a3022c` (first try). Local suite 363/363.
 G0.2 ✅ — certified by exact-head run `33589636898` (green on all ten jobs) for full SHA
 `ea4dfea9351773eaca732cc79f3cb2996ef4f5a1`; its own commit's run `33588671718` was red on macOS
