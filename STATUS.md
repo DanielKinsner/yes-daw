@@ -159,7 +159,7 @@ untouched (no sample lookup in the headless checks).
 leg included), macOS red only on the parked GPU frame-budget flake (`YesDawTimelineGpuCheck` alone). ss4
 17 / 17; rubric PASS. **G3 closed** on SS-4 46 / 46 (`ss6-write-a-beat.ps1`), the montage
 `docs/evidence/2026-09-05-g3.png`, the rubric and the promotion decision (the G3 close-out section).
-G3.9 ✅ — Sampler instrument (ADR-0048 Proposed): cp1 `0fe4fad` (run `33950273738` green on nine
+G3.9 ✅ — Sampler instrument (ADR-0048 Accepted, Dan 2026-09-05): cp1 `0fe4fad` (run `33950273738` green on nine
 jobs, macOS red only on the parked GPU frame-budget flake — `YesDawTimelineGpuCheck` alone), cp2 `2998374`;
 certified by exact-head run `33951039513` (green on all ten jobs). ss4 15 / 15 (then 17 / 17 with G3.10's
 step) on the real exe; rubric PASS.

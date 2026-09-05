@@ -1,6 +1,6 @@
 # 0048. The Sampler instrument: pads on the Track, samples as Project Assets
 
-- **Status:** Proposed (built under the plan's G3.9 "Build (ADR)" line; Dan accepts or amends) <!-- Proposed | Accepted | Superseded by NNNN | Deprecated -->
+- **Status:** Accepted (Dan, 2026-09-05: "accept the adr") <!-- Proposed | Accepted | Superseded by NNNN | Deprecated -->
 - **Date:** 2026-09-05
 - **Deciders:** Dan (the Real-DAW arc's G3.9 item), build agent (proposer)
 - **Related:** ADR-0047 (one persisted instrument per Track — the slot this fills), ADR-0043
