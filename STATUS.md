@@ -92,7 +92,10 @@ armed), narrow / wide strips (View > Narrow Strips; the strip menu; persisted wi
 strip menu per strip kind (Track / Bus / master — three lists, the Add Insert / Add Send / Output / Input
 submenus real), the promoted parking-lot item (a Bus or the master is offered the five audio FX only —
 `fxKindsForStrip`), and the tools lane's dead readout rows deleted (plan §8.2 "delete before you add").
-`[mixer-v2]` in `YesDawUiInputCheck`. **cp2 (next):** the lane's remaining controls fold into the strip
+`[mixer-v2]` in `YesDawUiInputCheck`; ss7 21 / 21; cp1 `36bb3f5` + the Clang / GCC fix `7547e41` — run
+`33984907368` green on nine jobs (macOS red = the parked GPU frame-budget flake; the `36bb3f5` run also
+hit that flake on WINDOWS and an sccache outage on Alpha-verify Linux — both noise, both parking-lot).
+G4.1 cp1 ✅. **cp2 (next):** the lane's remaining controls fold into the strip
 (the send rows' tap / destination / add on the strip, a generic FX editor window on a slot double-click,
 the live fader / pan retired for the painted drags) and the lane column is deleted with its tokens; the
 tests that reach the lane's widgets are re-pinned to the strip. Rules in force: HEADLESS by default (drives on Dan's go — given
@@ -352,6 +355,11 @@ verbs always sit), and a slot's popup needs ~600 ms before it takes the keyboard
 route or input; the R cell reads lit; the status line names the pick). 4 PASS. 5 PASS (the armed R cell,
 the selected strip, the routed slot read as distinct states). 6 PASS. 7 PASS. Note (parking lot): the
 I/O slot text is the tiny face — legible at 1080p, a G6 type-scale call.
+
+**Certified.** cp1 `36bb3f5` (run `33984023366`: Linux and macOS red on two warnings-as-errors — an
+unused test helper, an unused lambda capture — MSVC is silent on both; Windows red on the parked GPU
+flake; Alpha-verify Linux red on an sccache cache-storage outage) → the fix `7547e41` (run
+`33984907368`: nine green, macOS = the parked flake). Local suite 379 / 379; ss7 21 / 21 twice.
 
 **Deviation log.** (1) The lane column stays for cp2 (the FX params, the send rows and the add choosers
 still live there); cp1 deletes only the rows with a strip home and no test pin. (2) No colour picker on the

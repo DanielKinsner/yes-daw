@@ -125,3 +125,12 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 - **A MIDI file's added track keeps the file's track name — duplicates possible (2026-09-05, G3 close / SS-4).** `UiAppModel.h` `importMidiFileAt` names further tracks from the file's track-name meta; a file exported from this project and imported back yields a second "Audio 3". Dedupe with the Track add law's numbering ("Audio 3 (2)") or Logic's ": 2" suffix. Owner: the interchange pass.
 
 - **PROMOTED to G4.1 (2026-09-05, G3 close):** *MIDI FX are offered on Bus strips and refused by name* — the strip's Add FX list becomes per-strip-kind in G4.1's mixer dock v2.
+
+- **The GPU frame-budget flake fires on WINDOWS too (2026-09-05, G4.1 cp1, run 33984023366).** `tests/timeline_gpu_tests.cpp:84` — the same parked `YesDawTimelineGpuCheck` red Dan ruled noise on macOS hit the Windows runner once; the next run was green. The rule stays (no reruns); if it recurs on Windows the budget wants a runner-class law. Owner: the CI pass (Dan's `ci.yml`).
+
+- **Alpha-verify Linux: sccache cache-storage outage (2026-09-05, run 33984023366).** `sccache: Server startup failed: cache storage failed to read` — an Actions cache blob fetch; infra, not code; the next run was green. Owner: the CI pass.
+
+- **The strip's I/O slot text is the tiny face (2026-09-05, G4.1 cp1 rubric note).** `MainComponent.cpp` `drawIoSlot` — "In: 1+2" / "Out: Bus 1" read at 1080p but small; Logic's slot text is a size up. Owner: G6's type-scale pass (with the pad caption note).
+
+- **A slot's popup needs ~600 ms before it takes the keyboard in a drive (2026-09-05, ss7).** `tools/session-scripts/ss7-mix-the-song.ps1` — the strip menu takes keys after 350 ms, the I/O slot popup dropped the first Up at 350 ms. Owner: the drive tooling (a WaitPopup primitive that polls for the menu window).
+
