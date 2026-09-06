@@ -131,7 +131,16 @@ juce_add_gui_app(YesDaw
   PRODUCT_NAME "YesDaw"
   COMPANY_NAME "YesDaw")
 
-target_sources(YesDaw PRIVATE src/Main.cpp src/ui/MainComponent.cpp)
+# Plan §5.1 cp2: the shell is one class declared in src/ui/MainComponentShell.h and defined by domain.
+set(YESDAW_SHELL_SOURCES
+  src/ui/MainComponent.cpp
+  src/ui/MainComponentArrange.cpp
+  src/ui/MainComponentCommands.cpp
+  src/ui/MainComponentInspector.cpp
+  src/ui/MainComponentMixer.cpp
+  src/ui/MainComponentPianoRoll.cpp
+  src/ui/MainComponentProbe.cpp)
+target_sources(YesDaw PRIVATE src/Main.cpp ${YESDAW_SHELL_SOURCES})
 target_include_directories(YesDaw PRIVATE ${YESDAW_SRC_DIR})
 target_include_directories(YesDaw SYSTEM PRIVATE ${choc_SOURCE_DIR})
 
@@ -395,7 +404,7 @@ add_test(NAME YesDawAccessibilityCheck COMMAND $<TARGET_FILE:YesDawAccessibility
 if (YESDAW_BUILD_APPS)
   # --- UI input harness (H12; shipped MainComponent real-Component activation) ---
   juce_add_console_app(YesDawUiInputCheck PRODUCT_NAME "YesDawUiInputCheck")
-  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp src/ui/MainComponent.cpp)
+  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp ${YESDAW_SHELL_SOURCES})
   target_include_directories(YesDawUiInputCheck PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawUiInputCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawUiInputCheck PRIVATE
@@ -419,7 +428,7 @@ if (YESDAW_BUILD_APPS)
   # element ids in the layout map (widgets by id, lanes, clips by hex id), and the "never in a
   # normal launch" law. Built the same way as the UI input harness (real MainComponent).
   juce_add_console_app(YesDawStateProbeCheck PRODUCT_NAME "YesDawStateProbeCheck")
-  target_sources(YesDawStateProbeCheck PRIVATE tests/state_probe_tests.cpp src/ui/MainComponent.cpp)
+  target_sources(YesDawStateProbeCheck PRIVATE tests/state_probe_tests.cpp ${YESDAW_SHELL_SOURCES})
   target_include_directories(YesDawStateProbeCheck PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawStateProbeCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawStateProbeCheck PRIVATE
@@ -440,7 +449,7 @@ if (YESDAW_BUILD_APPS)
 
   # --- UI screenshot harness (H16 CP8; mechanical nonblank PNG proof) ---
   juce_add_console_app(YesDawUiScreenshotCheck PRODUCT_NAME "YesDawUiScreenshotCheck")
-  target_sources(YesDawUiScreenshotCheck PRIVATE tests/ui_screenshot_tests.cpp src/ui/MainComponent.cpp)
+  target_sources(YesDawUiScreenshotCheck PRIVATE tests/ui_screenshot_tests.cpp ${YESDAW_SHELL_SOURCES})
   target_include_directories(YesDawUiScreenshotCheck PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawUiScreenshotCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawUiScreenshotCheck PRIVATE
@@ -461,7 +470,7 @@ if (YESDAW_BUILD_APPS)
 
   # --- Recording UX harness (H13; shipped MainComponent recording/device skeleton) ---
   juce_add_console_app(YesDawRecordingUxCheck PRODUCT_NAME "YesDawRecordingUxCheck")
-  target_sources(YesDawRecordingUxCheck PRIVATE tests/recording_ux_tests.cpp src/ui/MainComponent.cpp)
+  target_sources(YesDawRecordingUxCheck PRIVATE tests/recording_ux_tests.cpp ${YESDAW_SHELL_SOURCES})
   target_include_directories(YesDawRecordingUxCheck PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawRecordingUxCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawRecordingUxCheck PRIVATE

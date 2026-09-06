@@ -33,6 +33,14 @@ bool isThemeDefinitionFile (const std::filesystem::path& path)
         || path.filename() == "UiThemeLayout.h";
 }
 
+// Plan §5.1 cp2: the shell class is defined across MainComponent*.cpp; every law that used to key on
+// "MainComponent.cpp" keys on the whole set so a body cannot escape its law by moving file.
+bool isShellTranslationUnit (const std::filesystem::path& path)
+{
+    const std::string name = path.filename().string();
+    return name.rfind ("MainComponent", 0) == 0 && path.extension() == ".cpp";
+}
+
 std::string trimCopy (std::string_view text)
 {
     while (! text.empty() && std::isspace (static_cast<unsigned char> (text.front())) != 0)
@@ -619,7 +627,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideResizedLayout && resizedLayoutUsesRawButtonGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (entry.path().filename() == "MainComponent.cpp"
+            if (isShellTranslationUnit (entry.path())
                 && line.find ("void paint") != std::string::npos)
             {
                 insideShellPaintLayout = true;
@@ -776,7 +784,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideTimelineCanvasPaintTone && timelineCanvasPaintToneUsesRawDefault (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (entry.path().filename() == "MainComponent.cpp"
+            if (isShellTranslationUnit (entry.path())
                 && line.find ("rebuildTimelineClipViews") != std::string::npos)
             {
                 insideMainComponentTimelineClipStyle = true;
@@ -786,7 +794,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideMainComponentTimelineClipStyle && mainComponentTimelineClipStyleUsesRawTone (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (entry.path().filename() == "MainComponent.cpp"
+            if (isShellTranslationUnit (entry.path())
                 && line.find ("kClipStyles") != std::string::npos)
             {
                 insideMainComponentDemoClipStyle = true;
@@ -796,7 +804,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideMainComponentDemoClipStyle && mainComponentDemoClipStyleUsesRawTone (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (entry.path().filename() == "MainComponent.cpp"
+            if (isShellTranslationUnit (entry.path())
                 && line.find ("kClips") != std::string::npos)
             {
                 insideMainComponentDemoClipPlacement = true;
@@ -806,7 +814,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideMainComponentDemoClipPlacement && mainComponentDemoClipPlacementUsesRawDefault (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (entry.path().filename() == "MainComponent.cpp"
+            if (isShellTranslationUnit (entry.path())
                 && line.find ("kTimelineMarkers") != std::string::npos)
             {
                 insideMainComponentDemoMarkerPlacement = true;
@@ -816,7 +824,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideMainComponentDemoMarkerPlacement && mainComponentDemoMarkerPlacementUsesRawDefault (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (entry.path().filename() == "MainComponent.cpp"
+            if (isShellTranslationUnit (entry.path())
                 && line.find ("kTracks {{") != std::string::npos)
             {
                 insideMainComponentDemoTrackDefaults = true;
@@ -826,7 +834,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideMainComponentDemoTrackDefaults && mainComponentDemoTrackDefaultsUseRawDefault (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (entry.path().filename() == "MainComponent.cpp"
+            if (isShellTranslationUnit (entry.path())
                 && (line.find ("kMixer {{") != std::string::npos
                     || line.find ("makeDemoMixerSurface") != std::string::npos))
             {
@@ -837,7 +845,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideMainComponentDemoMixerDefaults && mainComponentDemoMixerDefaultsUseRawDefault (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (entry.path().filename() == "MainComponent.cpp"
+            if (isShellTranslationUnit (entry.path())
                 && line.find ("makeDemoPianoRollSurface") != std::string::npos)
             {
                 insideMainComponentDemoPianoRollNoteDefaults = true;
@@ -859,7 +867,7 @@ std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& ro
             if (insideTimelineLayoutHitTest && timelineLayoutHitTestUsesRawGeometry (line))
                 findings.push_back ({ entry.path(), lineNumber, line });
 
-            if (entry.path().filename() == "MainComponent.cpp"
+            if (isShellTranslationUnit (entry.path())
                 && line.find ("void fillPanel") != std::string::npos)
             {
                 insidePanelChromeLayout = true;
@@ -1488,7 +1496,7 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     bool foundTimelineLayoutHitTest = false;
     for (const auto& finding : findings)
     {
-        if (finding.path.filename() == "MainComponent.cpp")
+        if (isShellTranslationUnit (finding.path))
             mainComponentLines.push_back (finding.line);
         else if (finding.path.filename() == "TimelineCanvas.h" && finding.line == 1)
             foundTimelineCanvasOutline = true;
@@ -1609,21 +1617,54 @@ std::vector<std::string> readLines (const std::filesystem::path& path)
 
 } // namespace
 
-TEST_CASE ("plan §5.1 cp1: the shell's helper components live in their own headers", "[ui][shell-topology]")
+TEST_CASE ("plan \u00a75.1: the shell topology — helper components in their own headers, the shell class declared and split by domain", "[ui][shell-topology]")
 {
     const std::filesystem::path uiDir = std::filesystem::path { YESDAW_SOURCE_DIR } / "src" / "ui";
-    const auto shellLines = readLines (uiDir / "MainComponent.cpp");
 
-    // The pin: 18 000 before the carve; the ten helper classes were 4 737 lines of it.
-    REQUIRE (shellLines.size() <= 13400u);
+    // cp2: the declaration is one header; the bodies are the domain translation units. Pins only tighten.
+    const char* shellUnits[] = { "MainComponent.cpp", "MainComponentArrange.cpp", "MainComponentCommands.cpp",
+                                 "MainComponentInspector.cpp", "MainComponentMixer.cpp", "MainComponentPianoRoll.cpp",
+                                 "MainComponentProbe.cpp" };
+    std::vector<std::string> allShellLines;
+    for (const char* unit : shellUnits)
+    {
+        INFO (unit);
+        REQUIRE (std::filesystem::exists (uiDir / unit));
+        const auto lines = readLines (uiDir / unit);
+        REQUIRE (lines.size() <= 3000u);
+        bool includesDeclaration = false;
+        for (const auto& line : lines)
+        {
+            if (line.rfind ("#include \"ui/MainComponentShell.h\"", 0) == 0) includesDeclaration = true;
+            // no class body in a translation unit: the shell's members are MainComponent::name definitions
+            REQUIRE (line.find (": public juce::Component") == std::string::npos);
+            REQUIRE (line.rfind ("class MainComponent", 0) != 0);
+        }
+        REQUIRE (includesDeclaration);
+        allShellLines.insert (allShellLines.end(), lines.begin(), lines.end());
+    }
 
-    // Exactly one juce::Component class remains defined in the shell's translation unit — the shell.
-    int componentClassesInShell = 0;
-    for (const auto& line : shellLines)
-        if (line.rfind ("class ", 0) == 0 && line.find (": public juce::Component") != std::string::npos)
-            ++componentClassesInShell;
-    REQUIRE (componentClassesInShell == 1);
+    REQUIRE (std::filesystem::exists (uiDir / "MainComponentShell.h"));
+    const auto declLines = readLines (uiDir / "MainComponentShell.h");
+    REQUIRE (declLines.size() <= 2400u);
+    int componentClassesDeclared = 0;
+    bool pragmaOnce = false, inNamespace = false;
+    for (const auto& line : declLines)
+    {
+        if (line.rfind ("#pragma once", 0) == 0) pragmaOnce = true;
+        if (line.rfind ("namespace yesdaw::ui", 0) == 0) inNamespace = true;
+        if (line.rfind ("class MainComponent", 0) == 0 && line.find (": public juce::Component") != std::string::npos)
+            ++componentClassesDeclared;
+    }
+    REQUIRE (pragmaOnce);
+    REQUIRE (inNamespace);
+    REQUIRE (componentClassesDeclared == 1);
+    REQUIRE (std::filesystem::exists (uiDir / "MainComponentInternal.h"));
+    const auto internalLines = readLines (uiDir / "MainComponentInternal.h");
+    allShellLines.insert (allShellLines.end(), declLines.begin(), declLines.end());
+    allShellLines.insert (allShellLines.end(), internalLines.begin(), internalLines.end());
 
+    // cp1: the helper components, one class per header, in yesdaw::ui, included by the shell by name.
     struct CarvedHeader { const char* file; const char* className; };
     const CarvedHeader carved[] = {
         { "TimelineInputComponent.h",        "class TimelineInputComponent final" },
@@ -1643,24 +1684,23 @@ TEST_CASE ("plan §5.1 cp1: the shell's helper components live in their own head
         INFO (entry.file);
         REQUIRE (std::filesystem::exists (uiDir / entry.file));
         const auto lines = readLines (uiDir / entry.file);
-        bool pragmaOnce = false, inNamespace = false, definesClass = false;
+        bool carvedPragmaOnce = false, carvedInNamespace = false, definesClass = false;
         for (const auto& line : lines)
         {
-            if (line.rfind ("#pragma once", 0) == 0) pragmaOnce = true;
-            if (line.rfind ("namespace yesdaw::ui", 0) == 0) inNamespace = true;
+            if (line.rfind ("#pragma once", 0) == 0) carvedPragmaOnce = true;
+            if (line.rfind ("namespace yesdaw::ui", 0) == 0) carvedInNamespace = true;
             if (line.find (entry.className) != std::string::npos) definesClass = true;
         }
-        REQUIRE (pragmaOnce);
-        REQUIRE (inNamespace);
+        REQUIRE (carvedPragmaOnce);
+        REQUIRE (carvedInNamespace);
         REQUIRE (definesClass);
 
-        // The shell includes each carved header by name and defines none of its classes any more.
         bool included = false;
-        for (const auto& line : shellLines)
+        for (const auto& line : allShellLines)
             if (line.find (std::string { "#include \"ui/" } + entry.file + "\"") != std::string::npos)
                 included = true;
         REQUIRE (included);
-        for (const auto& line : shellLines)
+        for (const auto& line : allShellLines)
             REQUIRE (line.find (entry.className) == std::string::npos);
     }
 }
