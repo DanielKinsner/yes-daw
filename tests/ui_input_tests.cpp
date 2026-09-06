@@ -567,19 +567,7 @@ void dragFromTo (juce::Component& component,
     releaseDragAt (component, start, end, modifiers);
 }
 
-void dragVerticalSliderToNormalizedValue (juce::Slider& slider, double normalizedFromMin)
-{
-    REQUIRE (slider.isEnabled());
-    auto bounds = slider.getLocalBounds().reduced (3);
-    REQUIRE (bounds.getWidth() > 0);
-    REQUIRE (bounds.getHeight() > 0);
-
-    const double clamped = std::clamp (normalizedFromMin, 0.0, 1.0);
-    const int y = bounds.getBottom() - 1
-                - static_cast<int> (std::llround (clamped * static_cast<double> (bounds.getHeight() - 1)));
-    dragFromTo (slider, bounds.getCentre(), { bounds.getCentreX(), std::clamp (y, bounds.getY(), bounds.getBottom() - 1) });
-}
-
+// (G4.1 cp2: the vertical variant went with the lane's live fader — the painted rail's drags are in dragPaintedFaderTo.)
 void dragHorizontalSliderToNormalizedValue (juce::Slider& slider, double normalizedFromMin)
 {
     REQUIRE (slider.isEnabled());
