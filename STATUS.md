@@ -98,8 +98,12 @@ hit that flake on WINDOWS and an sccache outage on Alpha-verify Linux — both n
 G4.1 cp1 ✅, **cp2 ✅ (the tools lane folded into the strip: empty-slot / send-well clicks are the add
 menus, a slot's double-click the FX editor, the send row's menu, Shift-fine + Touch rides on the painted
 drags, the lane column and 79 widgets deleted; `[mixer-v2-fold]`; ss7 30 / 30, ss6 46 / 46; cp2 `51184b9` + the Clang / GCC fix `7b126af`, run
-`34002327473` green on nine jobs; `tools/session-scripts/README.md` opened).** **Next:** the deferred §5 carve of `MainComponent.cpp`
-(~17.9k lines — the handover blocker), then G4.2 (FX editors: per-kind faces in the cp2 frame, bypass /
+`34002327473` green on nine jobs; `tools/session-scripts/README.md` opened).** **Plan §5.1 carve cp1 ✅**
+(the ten helper classes out of `MainComponent.cpp` into their own headers, 18 000 → 13 305 lines;
+`1e80e52`, run `34004677311`) **and cp2 ✅** (the shell class declared in `MainComponentShell.h`, its
+304 member bodies in seven `MainComponent*.cpp` by domain, none over 2 600 lines; `[shell-topology]`
+re-pinned; behaviour unchanged; `53fe6d3`, run `34005526151`). The handover blocker is cleared: no shell file is over 2 600 lines
+and the declaration is the map. **Next:** G4.2 (FX editors: per-kind faces in the cp2 frame, bypass /
 reorder / remove exist, presets). Rules in force: HEADLESS by default (drives on Dan's go — given
 2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the local suite + drives are the working
 gate; drive scripts launched back-to-back flake at Step 0 (pause between scripts).
@@ -278,6 +282,103 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### Plan §5.1 cp2 — the shell topology: the shell class declared and split by domain (2026-09-05)
+
+**Story.** After cp1 `MainComponent.cpp` was still one 13 305-line file: a 11 900-line class defined
+inline (no declaration anywhere — a reader had to scroll the bodies to learn the fields) over a
+900-line harness tail. cp2 is the second mechanical half, scripted end to end (the script parses
+the class body into items — nested types, fields, one-line accessors, member bodies — and writes
+every output; nothing hand-edited, so every rule is one place): **`MainComponentShell.h`** (1 376
+lines) is the class's declaration in `yesdaw::ui` — the fields with their comments, the eleven nested
+types, every member's signature (defaults, `override`, `[[nodiscard]]` kept), the forty one-line
+accessors and the two `constexpr` / template members inline; **`MainComponentInternal.h`** (486) is
+the former anonymous namespace as `yesdaw::ui::shell` (inline linkage: the colours, the small
+painters, the menu-id bases, the asset decode, `TooltippedMenuBar`); the **304 member bodies** become
+`MainComponent::name` definitions in seven translation units by domain — `MainComponent.cpp`
+(2 594: the constructor, the destructor, the tick, layout, paint, the header, the device
+callbacks), `MainComponentArrange.cpp` (2 082), `MainComponentCommands.cpp` (2 064: menus, actions,
+the keymap, project lifecycle, devices), `MainComponentMixer.cpp` (2 026: the dock, the strips,
+inserts, sends, the FX editor, the instrument panel), `MainComponentProbe.cpp` (2 114: the state
+probe, the harness accessors and the harness entry points that were the tail),
+`MainComponentInspector.cpp` (1 150), `MainComponentPianoRoll.cpp` (364). The domain is the member's
+name (a regex table in the script, Probe → Inspector → PianoRoll → Mixer → Arrange → Commands →
+Shell); the constructor is the largest single body (1 751 lines — G6's concern, not this carve's).
+Out-of-line definitions drop `explicit / static / virtual / override / [[nodiscard]]` and the
+default arguments, keep `const / noexcept`, and qualify a nested return type
+(`MainComponent::HeaderLayout MainComponent::headerLayout() const`). The class moved into
+`yesdaw::ui` (it was global); the cp1 using-declarations are gone with it. CMake has one
+`YESDAW_SHELL_SOURCES` list the app and the four shell harnesses share. **Behaviour unchanged** —
+no test re-pinned, no id, token or law moved, zero build warnings.
+
+**Precedent.** Every JUCE app of size: the declaration is the map, the bodies are grouped by what
+they serve. The plan §5.1 tree's boxes (`TransportBar`, `ArrangeView`, `EditorDock`, `Inspector`,
+`ContextMenus`, `StateProbe`) are now the seven files' names; the next carve makes them classes.
+
+**Gates.** `[shell-topology]` re-pinned (red first: `MainComponentShell.h` absent): every
+`MainComponent*.cpp` ≤ 3 000 lines, includes the declaration, defines no `juce::Component` class and
+no `class MainComponent`; the declaration ≤ 2 400 lines, `#pragma once`, in `yesdaw::ui`, exactly one
+`class MainComponent : public juce::Component`; `MainComponentInternal.h` exists; the cp1 header
+checks hold across the whole shell set. The theme audit's file-name-gated laws (the shell's
+`paint` geometry, `rebuildTimelineClipViews` tones, the demo clip / marker placement) key on
+`isShellTranslationUnit` (every `MainComponent*.cpp`) so a body cannot escape its law by moving
+file. The whole suite unchanged.
+
+**See-it.** None owed (no pixel, no gesture moved); the suite is the proof.
+
+**Certified.** cp2 `53fe6d3`, run `34005526151` green on nine jobs (macOS red = the parked
+`YesDawTimelineGpuCheck` frame-budget flake, `timeline_gpu_tests.cpp:84`; the local suite hit the same test
+once under `-j 6` and it passes alone).
+
+**Deviation log.** (1) The declaration is `MainComponentShell.h`, not `MainComponent.h` — the latter
+is the harness API the tests include (`MainComponentFileChoices`, `createMainComponent`, the
+`mainComponent*` accessors) and stays that; the class declaration would drag JUCE audio into
+every test TU. (2) The split is by domain regex over member names, not by hand — three members
+land where a reader might not look first (`headTempoMeter` in Mixer for its `Meter`; `configure…`
+widget setup rides with its domain); the declaration is the index. (3) The former anonymous
+namespace is an inline-linkage `yesdaw::ui::shell` namespace with a using-directive in each `.cpp`
+(never in a header); the declaration names the four types it needs as `shell::…`.
+
+### Plan §5.1 cp1 — the shell topology: the helper components leave `MainComponent.cpp` (2026-09-05)
+
+**Story.** `MainComponent.cpp` was 18 000 lines: ten helper classes (the five input overlays, the
+instrument panel, the undo history, the keymap editor, the FX editor, the toolbar widgets) stacked
+ABOVE a 11 900-line shell class defined inline with no declaration anywhere. The plan's §5.1 carve
+was deferred through G0–G4.1 by design ("extracted when the phase that needs it starts — never as a
+big-bang refactor"); it is now the handover blocker (a new agent cannot read a 18k-line file). cp1 is
+the mechanical half: every class above the shell moves verbatim into its own header under `src/ui/`,
+in `yesdaw::ui`, one class per file — `TimelineInputComponent.h` (1 493 lines), `PianoRollInputComponent.h`
+(1 244: the geometry struct, its nineteen free functions now `inline`, the component, the snap-grid
+constant), `TrackListInputComponent.h` (610), `MixerStripsInputComponent.h` (384, with the I/O row
+constants), `InstrumentPanelComponent.h` (310), `KeymapEditorComponent.h` (169), `AutomationLaneCanvasComponent.h`
+(151), `UndoHistoryComponent.h` (95), `FxEditorComponent.h` (85), `ShellWidgets.h` (187: `ToolbarActionButton`,
+`FineDragSlider`, `PlayheadLayerComponent`). The shell keeps the anonymous-namespace helpers it alone
+uses and names the carved symbols with using-declarations (no using-directive). The five
+anonymous-namespace colours the carved code touched are the theme calls they aliased. **Behaviour
+unchanged** — no test re-pinned, no id, token or law moved. `MainComponent.cpp` is 13 305 lines.
+
+**Precedent.** JUCE's own demo runner and every JUCE app of size: one component per header, the shell
+composes them. The plan §5.1 tree names these boxes (`Overlays`, `Inspector`, `EditorDock` tabs).
+
+**Gates.** `[shell-topology]` in `YesDawThemeAuditCheck` (red first: 18 000 > 13 400): the shell's
+line count ≤ 13 400 (a pin that only tightens), exactly ONE `juce::Component` class defined in the
+shell's translation unit, each of the ten headers exists with `#pragma once`, sits in `yesdaw::ui`,
+defines its named class, is included by the shell by name, and the shell defines none of those
+classes any more. The whole suite unchanged (no behaviour moved). The theme audit's generic rules now
+read the ten headers as UI sources — green.
+
+**See-it.** None owed (no pixel, no gesture moved); the suite is the proof.
+
+**Certified.** cp1 `1e80e52`, run `34004677311` green on nine jobs (macOS red = the parked
+`YesDawTimelineGpuCheck` frame-budget flake, `timeline_gpu_tests.cpp:84`).
+
+**Deviation log.** (1) Header-only classes (the repo's `UiMixerSurface.h` / `TimelineCanvas.h` style),
+not `.h/.cpp` pairs as the plan's tree draws them — the bodies are the classes' own, nothing else
+includes them, and one file per class is the unit that matters for reading; a `.cpp` split is one
+move away if compile time asks. (2) `kMixerIoInputRow / kMixerIoOutputRow` and `kPianoRollSnapGridTicks`
+travel with the component that owns them (both are `inline constexpr` in `yesdaw::ui`; the shell names
+them). (3) The piano roll's free functions become `inline` in the header — the same definitions,
+header linkage.
 
 ### G4.1 cp2 — Mixer dock v2: the lane folds into the strip (2026-09-05)
 
