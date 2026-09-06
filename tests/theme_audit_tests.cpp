@@ -1589,3 +1589,78 @@ TEST_CASE ("H16 theme audit negative control catches inline raw tokens", "[ui][t
     REQUIRE (mainComponentLines[49] == 58);
     REQUIRE (mainComponentLines[50] == 59);
 }
+
+// Plan §5.1 (the shell topology) checkpoint 1 (2026-09-05): the helper components that used to sit
+// ABOVE the shell class in MainComponent.cpp — the five input overlays, the dock panels, the floating
+// editors, the toolbar widgets — live in their own headers under src/ui/, one class per file, in the
+// yesdaw::ui namespace. MainComponent.cpp holds the shell class and its harness; the line-count pin
+// only ever tightens (the next checkpoints carve the shell class itself).
+namespace {
+
+std::vector<std::string> readLines (const std::filesystem::path& path)
+{
+    std::ifstream in { path };
+    REQUIRE (in.is_open());
+    std::vector<std::string> lines;
+    for (std::string line; std::getline (in, line);)
+        lines.push_back (line);
+    return lines;
+}
+
+} // namespace
+
+TEST_CASE ("plan §5.1 cp1: the shell's helper components live in their own headers", "[ui][shell-topology]")
+{
+    const std::filesystem::path uiDir = std::filesystem::path { YESDAW_SOURCE_DIR } / "src" / "ui";
+    const auto shellLines = readLines (uiDir / "MainComponent.cpp");
+
+    // The pin: 18 000 before the carve; the ten helper classes were 4 737 lines of it.
+    REQUIRE (shellLines.size() <= 13400u);
+
+    // Exactly one juce::Component class remains defined in the shell's translation unit — the shell.
+    int componentClassesInShell = 0;
+    for (const auto& line : shellLines)
+        if (line.rfind ("class ", 0) == 0 && line.find (": public juce::Component") != std::string::npos)
+            ++componentClassesInShell;
+    REQUIRE (componentClassesInShell == 1);
+
+    struct CarvedHeader { const char* file; const char* className; };
+    const CarvedHeader carved[] = {
+        { "TimelineInputComponent.h",        "class TimelineInputComponent final" },
+        { "PianoRollInputComponent.h",       "class PianoRollInputComponent final" },
+        { "TrackListInputComponent.h",       "class TrackListInputComponent final" },
+        { "AutomationLaneCanvasComponent.h", "class AutomationLaneCanvasComponent final" },
+        { "MixerStripsInputComponent.h",     "class MixerStripsInputComponent final" },
+        { "InstrumentPanelComponent.h",      "class InstrumentPanelComponent final" },
+        { "UndoHistoryComponent.h",          "class UndoHistoryComponent final" },
+        { "KeymapEditorComponent.h",         "class KeymapEditorComponent final" },
+        { "FxEditorComponent.h",             "class FxEditorComponent final" },
+        { "ShellWidgets.h",                  "class FineDragSlider" },
+    };
+
+    for (const auto& entry : carved)
+    {
+        INFO (entry.file);
+        REQUIRE (std::filesystem::exists (uiDir / entry.file));
+        const auto lines = readLines (uiDir / entry.file);
+        bool pragmaOnce = false, inNamespace = false, definesClass = false;
+        for (const auto& line : lines)
+        {
+            if (line.rfind ("#pragma once", 0) == 0) pragmaOnce = true;
+            if (line.rfind ("namespace yesdaw::ui", 0) == 0) inNamespace = true;
+            if (line.find (entry.className) != std::string::npos) definesClass = true;
+        }
+        REQUIRE (pragmaOnce);
+        REQUIRE (inNamespace);
+        REQUIRE (definesClass);
+
+        // The shell includes each carved header by name and defines none of its classes any more.
+        bool included = false;
+        for (const auto& line : shellLines)
+            if (line.find (std::string { "#include \"ui/" } + entry.file + "\"") != std::string::npos)
+                included = true;
+        REQUIRE (included);
+        for (const auto& line : shellLines)
+            REQUIRE (line.find (entry.className) == std::string::npos);
+    }
+}
