@@ -329,13 +329,20 @@ function TypeText([string] $text) {
 # A native file chooser is up (WaitDialog found it): let it settle (it selects its default name
 # a beat after opening), replace the name with `path`, confirm. Returns nothing; assert on the
 # probe afterwards.
-function FileDialogEnter([string] $path) {
-  Start-Sleep -Milliseconds 800
-  Key 'Ctrl+A'
-  Start-Sleep -Milliseconds 100
-  TypeText $path
-  Start-Sleep -Milliseconds 300
-  Key 'Enter'
+function FileDialogEnter([string] $path, [string] $DialogTitle = '') {
+  # The native chooser drops keys typed before it has settled (slower on a busy machine): give it a
+  # second, type, and if the dialog is STILL up afterwards type once more (G4.1 cp2 drive lesson).
+  Start-Sleep -Milliseconds 1200
+  for ($attempt = 0; $attempt -lt 2; $attempt++) {
+    Key 'Ctrl+A'
+    Start-Sleep -Milliseconds 100
+    TypeText $path
+    Start-Sleep -Milliseconds 300
+    Key 'Enter'
+    Start-Sleep -Milliseconds 900
+    $still = [YesDawDrive]::FindTopWindow([uint32]$script:Proc.Id, $(if ($DialogTitle) { $DialogTitle } else { 'YES DAW' }))
+    if ($still -eq [IntPtr]::Zero -or $still -eq $script:Hwnd) { return }
+  }
 }
 
 function Focus {

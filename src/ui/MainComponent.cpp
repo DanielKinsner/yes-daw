@@ -4165,11 +4165,21 @@ public:
     std::function<std::pair<int, int> (juce::Point<int>)> insertSlotAtPosition;
     std::function<bool (int, int)> insertSlotFilled;   // G1.7: an empty slot hints and menus "add"
     std::function<void (int, int)> onInsertSlotClicked;
+    // G4.1 cp2: the lane is gone — a filled slot's double-click opens the effect's editor; an EMPTY
+    // slot's left-click opens the add menu (the same list the right-click offers).
+    std::function<void (int, int)> onInsertSlotDoubleClicked;
     // M5: painted send rows — press picks the row, drag sets the level, release commits ONE
     // undoable edit (a per-pixel commit would bury the undo stack).
     std::function<std::pair<int, int> (juce::Point<int>)> sendRowAtPosition;
     std::function<double (int, int, juce::Point<int>)> sendLevelForPosition;
     std::function<void (int, int, double, bool)> onSendRowDragged;
+    // G4.1 cp2: an EMPTY send well's left-click opens the add menu (the buses); a routed row's
+    // right-click is the send's menu (tap, destination, remove).
+    std::function<bool (int, int)> sendRowFilled;
+    // G4.1 cp2: the values the painted controls hold now — the anchor a Shift-fine drag starts from.
+    std::function<float (int)> faderGainForStrip;
+    std::function<float (int)> panForStrip;
+    std::function<float (int, int)> sendLevelForRow;
     // N1: painted Mute/Solo cells — a click toggles THAT strip without stealing the selection.
     std::function<std::pair<int, int> (juce::Point<int>)> muteSoloCellAtPosition;
     std::function<void (int, int)> onMuteSoloCellClicked;
@@ -4207,18 +4217,22 @@ public:
                                                  : "Output: click to route the strip to Master or a bus";
         if (sendRowAtPosition)
             if (const auto [sendStrip, sendIndex] = sendRowAtPosition (shellPosition); sendStrip >= 0 && sendIndex >= 0)
-                return "Send: drag to set its level";
+            {
+                const bool routed = sendRowFilled == nullptr || sendRowFilled (sendStrip, sendIndex);
+                return routed ? "Send: drag to set its level \u00b7 Shift for fine \u00b7 right-click for tap, destination, remove"
+                              : "Empty send: click to add a send to a bus";   // G4.1 cp2
+            }
         if (insertSlotAtPosition)
             if (const auto [slotStrip, slotIndex] = insertSlotAtPosition (shellPosition); slotStrip >= 0 && slotIndex >= 0)
             {
                 const bool filled = insertSlotFilled == nullptr || insertSlotFilled (slotStrip, slotIndex);
-                return filled ? "Insert slot: click to edit \u00b7 right-click to bypass, remove or move"
-                              : "Empty insert: right-click to add an effect";
+                return filled ? "Insert slot: double-click to open its editor \u00b7 right-click to bypass, remove or move"
+                              : "Empty insert: click to add an effect";   // G4.1 cp2
             }
         if (faderRailAtPosition && faderRailAtPosition (shellPosition) >= 0)
-            return "Fader: drag the knob to set the level \u00b7 Alt-click resets to unity";
+            return "Fader: drag the knob to set the level \u00b7 Shift for fine \u00b7 Alt-click resets to unity";
         if (panKnobAtPosition && panKnobAtPosition (shellPosition) >= 0)
-            return "Pan: drag \u00b7 Alt-click recentres";
+            return "Pan: drag \u00b7 Shift for fine \u00b7 Alt-click recentres";
         if (meterStripAtPosition && meterStripAtPosition (shellPosition) >= 0)
             return "Meter: click clears the clip light";
         if (stripAtPosition && stripAtPosition (shellPosition) >= 0)
@@ -4258,6 +4272,19 @@ public:
             {
                 onInsertSlotClicked (slotStrip, slotIndex);
                 onContextMenuRequested (yesdaw::ui::ContextMenuTarget::InsertSlot, slotIndex, position);
+                return;
+            }
+        }
+        // G4.1 cp2: a send row — routed: the send's menu; empty: Add Send (the buses). The click
+        // selects the strip first, like every strip gesture.
+        if (sendRowAtPosition)
+        {
+            const auto [sendStrip, sendIndex] = sendRowAtPosition (shellPosition);
+            if (sendStrip >= 0 && sendIndex >= 0)
+            {
+                if (onStripClicked)
+                    onStripClicked (sendStrip);
+                onContextMenuRequested (yesdaw::ui::ContextMenuTarget::MixerSendRow, sendIndex, position);
                 return;
             }
         }
@@ -4312,10 +4339,26 @@ public:
             const auto [sendStrip, sendIndex] = sendRowAtPosition (shellPosition);
             if (sendStrip >= 0 && sendIndex >= 0)
             {
+                // G4.1 cp2: an EMPTY well is the add menu (the lane's + Send chooser is gone).
+                if (sendRowFilled && ! sendRowFilled (sendStrip, sendIndex))
+                {
+                    if (onStripClicked)
+                        onStripClicked (sendStrip);
+                    if (onContextMenuRequested)
+                        onContextMenuRequested (yesdaw::ui::ContextMenuTarget::MixerSendRow, sendIndex, event.getPosition());
+                    return;
+                }
+                if (event.mods.isAltDown())
+                {
+                    onSendRowDragged (sendStrip, sendIndex, 1.0, true);   // Alt-click: unity, one step (the live slider's reset)
+                    return;
+                }
                 draggingSendStrip = sendStrip;
                 draggingSendIndex = sendIndex;
+                const float plain = static_cast<float> (sendLevelForPosition (sendStrip, sendIndex, shellPosition));
+                const float current = sendLevelForRow ? sendLevelForRow (sendStrip, sendIndex) : plain;
                 onSendRowDragged (sendStrip, sendIndex,
-                                  sendLevelForPosition (sendStrip, sendIndex, shellPosition), false);
+                                  static_cast<double> (fineDragValue (event.mods, plain, current, sendFine)), false);
                 return;
             }
         }
@@ -4326,6 +4369,9 @@ public:
             if (slotStrip >= 0 && slotIndex >= 0)
             {
                 onInsertSlotClicked (slotStrip, slotIndex);
+                // G4.1 cp2: an EMPTY slot's click is the add menu (the lane's Add FX chooser is gone).
+                if (insertSlotFilled && ! insertSlotFilled (slotStrip, slotIndex) && onContextMenuRequested)
+                    onContextMenuRequested (yesdaw::ui::ContextMenuTarget::InsertSlot, slotIndex, event.getPosition());
                 return;
             }
         }
@@ -4341,7 +4387,9 @@ public:
                     return;
                 }
                 draggingFaderStrip = strip;
-                onFaderDragged (strip, faderGainForPosition (strip, shellPosition), false);
+                const float plain = faderGainForPosition (strip, shellPosition);
+                const float current = faderGainForStrip ? faderGainForStrip (strip) : plain;
+                onFaderDragged (strip, fineDragValue (event.mods, plain, current, faderFine), false);
                 return;
             }
         }
@@ -4357,7 +4405,9 @@ public:
                     return;
                 }
                 draggingPanStrip = strip;
-                onPanDragged (strip, panForPosition (strip, shellPosition), false);
+                const float plain = panForPosition (strip, shellPosition);
+                const float current = panForStrip ? panForStrip (strip) : plain;
+                onPanDragged (strip, fineDragValue (event.mods, plain, current, panFine), false);
                 return;
             }
         }
@@ -4384,65 +4434,102 @@ public:
     {
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
-        if (draggingFaderStrip >= 0 && faderGainForPosition && onFaderDragged)
-        {
-            onFaderDragged (draggingFaderStrip, faderGainForPosition (draggingFaderStrip, shellPosition), false);
-            return;
-        }
-        if (draggingPanStrip >= 0 && panForPosition && onPanDragged)
-        {
-            onPanDragged (draggingPanStrip, panForPosition (draggingPanStrip, shellPosition), false);
-            return;
-        }
-        if (draggingSendStrip < 0 || ! sendLevelForPosition || ! onSendRowDragged)
-            return;
-
-        onSendRowDragged (draggingSendStrip, draggingSendIndex,
-                          sendLevelForPosition (draggingSendStrip, draggingSendIndex, shellPosition), false);
+        forwardDrag (event.mods, shellPosition, false);
     }
 
     void mouseUp (const juce::MouseEvent& event) override
     {
-        if (draggingFaderStrip >= 0 || draggingPanStrip >= 0)
-        {
-            const juce::Point<int> shellPosition =
-                event.getEventRelativeTo (getParentComponent()).getPosition();
-            if (draggingFaderStrip >= 0 && faderGainForPosition && onFaderDragged)
-                onFaderDragged (draggingFaderStrip, faderGainForPosition (draggingFaderStrip, shellPosition), true);
-            if (draggingPanStrip >= 0 && panForPosition && onPanDragged)
-                onPanDragged (draggingPanStrip, panForPosition (draggingPanStrip, shellPosition), true);
-            draggingFaderStrip = -1;
-            draggingPanStrip = -1;
-            return;
-        }
-        if (draggingSendStrip < 0 || ! sendLevelForPosition || ! onSendRowDragged)
-            return;
-
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
-        onSendRowDragged (draggingSendStrip, draggingSendIndex,
-                          sendLevelForPosition (draggingSendStrip, draggingSendIndex, shellPosition), true);
+        forwardDrag (event.mods, shellPosition, true);
+        draggingFaderStrip = -1;
+        draggingPanStrip = -1;
         draggingSendStrip = -1;
         draggingSendIndex = -1;
+        faderFine = {};
+        panFine = {};
+        sendFine = {};
     }
 
     void mouseDoubleClick (const juce::MouseEvent& event) override
     {
-        if (! stripAtPosition || ! onStripDoubleClicked)
+        if (getParentComponent() == nullptr)
             return;
-
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
+        // G4.1 cp2: a FILLED insert slot's double-click opens the effect's editor; an empty slot's
+        // double-click is nothing (its first click already opened the add menu) — never a rename.
+        if (insertSlotAtPosition)
+        {
+            const auto [slotStrip, slotIndex] = insertSlotAtPosition (shellPosition);
+            if (slotStrip >= 0 && slotIndex >= 0)
+            {
+                const bool filled = insertSlotFilled == nullptr || insertSlotFilled (slotStrip, slotIndex);
+                if (filled && onInsertSlotDoubleClicked)
+                    onInsertSlotDoubleClicked (slotStrip, slotIndex);
+                return;
+            }
+        }
+        if (! stripAtPosition || ! onStripDoubleClicked)
+            return;
         const int strip = stripAtPosition (shellPosition);
         if (strip >= 0)
             onStripDoubleClicked (strip);
     }
 
 private:
+    // G4.1 cp2: Shift while dragging is ten times finer (fineDragScale, the FineDragSlider law the
+    // lane's live sliders had): the value is anchored where Shift ARRIVED — the control's value then
+    // and the pointer's plain value then — so a Shift press that does not move never jumps, and
+    // releasing Shift mid-drag returns to the plain law.
+    struct FineAnchor
+    {
+        bool active = false;
+        float value = 0.0f;        // the control's value when Shift arrived
+        float plainAtAnchor = 0.0f;   // the pointer's plain value when Shift arrived
+    };
+    static float fineDragValue (juce::ModifierKeys mods, float plain, float current, FineAnchor& anchor) noexcept
+    {
+        if (! mods.isShiftDown())
+        {
+            anchor.active = false;
+            return plain;
+        }
+        if (! anchor.active)
+            anchor = { true, current, plain };
+        return anchor.value
+             + (plain - anchor.plainAtAnchor) * static_cast<float> (yesdaw::ui::UiTheme::Layout::fineDragScale);
+    }
+    // One forward for the drag and the release: the fader, the pan, or the send being dragged.
+    void forwardDrag (juce::ModifierKeys mods, juce::Point<int> shellPosition, bool ended)
+    {
+        if (draggingFaderStrip >= 0 && faderGainForPosition && onFaderDragged)
+        {
+            const float plain = faderGainForPosition (draggingFaderStrip, shellPosition);
+            const float current = faderGainForStrip ? faderGainForStrip (draggingFaderStrip) : plain;
+            onFaderDragged (draggingFaderStrip, fineDragValue (mods, plain, current, faderFine), ended);
+            return;
+        }
+        if (draggingPanStrip >= 0 && panForPosition && onPanDragged)
+        {
+            const float plain = panForPosition (draggingPanStrip, shellPosition);
+            const float current = panForStrip ? panForStrip (draggingPanStrip) : plain;
+            onPanDragged (draggingPanStrip, fineDragValue (mods, plain, current, panFine), ended);
+            return;
+        }
+        if (draggingSendStrip < 0 || ! sendLevelForPosition || ! onSendRowDragged)
+            return;
+        const float plain = static_cast<float> (sendLevelForPosition (draggingSendStrip, draggingSendIndex, shellPosition));
+        const float current = sendLevelForRow ? sendLevelForRow (draggingSendStrip, draggingSendIndex) : plain;
+        onSendRowDragged (draggingSendStrip, draggingSendIndex,
+                          static_cast<double> (fineDragValue (mods, plain, current, sendFine)), ended);
+    }
+
     int draggingSendStrip = -1;
     int draggingFaderStrip = -1;   // the painted fader being dragged (2026-09-04)
     int draggingPanStrip = -1;
     int draggingSendIndex = -1;
+    FineAnchor faderFine, panFine, sendFine;
 };
 
 // G0.4 (ADR-0046 §6 "nothing is blind", plan §5.2 layered rendering): the playhead lives on its
@@ -5020,6 +5107,92 @@ private:
     juce::TextButton unbindButton, restoreButton, closeButton;
     juce::Label status;
     std::vector<yesdaw::ui::UiActionId> rows;
+};
+
+// G4.1 cp2: the FX editor — the floating panel a filled insert slot's double-click (or its menu's
+// Open Editor) opens over the arrangement, the keymap editor's placement law. It hosts the effect's
+// parameter rows (the shell owns those widgets and lays them out in the content area — their ids are
+// unchanged from the lane they left) under a title band naming the effect, the strip and the slot,
+// with Bypass and Close. G4.2 gives each built-in its own face (EQ curve, GR meter …) in this frame.
+class FxEditorComponent final : public juce::Component,
+                                public juce::SettableTooltipClient
+{
+public:
+    std::function<void()> onClose;
+    std::function<void()> onBypass;
+
+    FxEditorComponent()
+    {
+        setName ("FX editor");
+        setComponentID ("mixer.fx.editor");
+        setTooltip ("The insert's parameters: drag a row (rides Touch / Latch automation); Escape closes");
+        bypassButton.setComponentID ("mixer.fx.editor.bypass");
+        bypassButton.setName ("Bypass");
+        bypassButton.setButtonText ("Bypass");
+        bypassButton.setTooltip ("Bypass this insert (the slot's dot goes grey)");
+        bypassButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
+        bypassButton.setColour (juce::TextButton::buttonOnColourId, yesdaw::ui::UiTheme::Color::accentPurpleDeep());
+        bypassButton.setColour (juce::TextButton::textColourOffId, yesdaw::ui::UiTheme::Color::text());
+        bypassButton.setColour (juce::TextButton::textColourOnId, yesdaw::ui::UiTheme::Color::text());
+        bypassButton.onClick = [this] { if (onBypass) onBypass(); };
+        addAndMakeVisible (bypassButton);
+        closeButton.setComponentID ("mixer.fx.editor.close");
+        closeButton.setName ("Close");
+        closeButton.setButtonText ("Close");
+        closeButton.setTooltip ("Close the editor (Escape)");
+        closeButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
+        closeButton.setColour (juce::TextButton::textColourOffId, yesdaw::ui::UiTheme::Color::text());
+        closeButton.onClick = [this] { if (onClose) onClose(); };
+        addAndMakeVisible (closeButton);
+    }
+
+    void setTitleText (const juce::String& text)
+    {
+        if (title == text)
+            return;
+        title = text;
+        repaint();
+    }
+    [[nodiscard]] const juce::String& titleText() const noexcept { return title; }
+    void setBypassed (bool bypassed) { bypassButton.setToggleState (bypassed, juce::dontSendNotification); }
+    [[nodiscard]] bool isBypassed() const noexcept { return bypassButton.getToggleState(); }
+
+    // The content area the shell lays the parameter rows into (editor-local).
+    [[nodiscard]] juce::Rectangle<int> contentArea() const
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        auto area = getLocalBounds().reduced (L::keymapEditorInset);
+        area.removeFromTop (L::keymapEditorTopRowHeight + L::keymapEditorGap);
+        return area;
+    }
+
+    void paint (juce::Graphics& g) override
+    {
+        g.fillAll (yesdaw::ui::UiTheme::Color::panelRaised());
+        g.setColour (yesdaw::ui::UiTheme::Color::separator());
+        g.drawRect (getLocalBounds(), yesdaw::ui::UiTheme::Space::hairline);
+        g.setColour (yesdaw::ui::UiTheme::Color::text());
+        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::title, juce::Font::bold));
+        g.drawFittedText (title,
+                          getLocalBounds().withTrimmedLeft (yesdaw::ui::UiTheme::Layout::keymapEditorInset)
+                              .withHeight (yesdaw::ui::UiTheme::Layout::keymapEditorTopRowHeight)
+                              .withTrimmedRight (yesdaw::ui::UiTheme::Layout::fxEditorTitleTrimRight),
+                          juce::Justification::centredLeft, 1);
+    }
+
+    void resized() override
+    {
+        using L = yesdaw::ui::UiTheme::Layout;
+        auto top = getLocalBounds().reduced (L::keymapEditorInset).removeFromTop (L::keymapEditorTopRowHeight)
+                       .reduced (yesdaw::ui::UiTheme::Space::none, L::keymapEditorSearchInsetY);
+        closeButton.setBounds (top.removeFromRight (L::keymapEditorCloseWidth));
+        top.removeFromRight (L::keymapEditorGap);
+        bypassButton.setBounds (top.removeFromRight (L::fxEditorBypassWidth));
+    }
+
+private:
+    juce::String title;
+    juce::TextButton bypassButton, closeButton;
 };
 
 class PlayheadLayerComponent final : public juce::Component
@@ -7492,6 +7665,15 @@ public:
             }
         }
 
+        // G4.1 cp2: the FX editor and its two buttons (grandchildren: the walk below sees children only).
+        if (fxEditor.isVisible())
+        {
+            put ("mixer.fx.editor", fxEditor.getBounds());
+            for (int i = 0; i < fxEditor.getNumChildComponents(); ++i)
+                if (const juce::Component* child = fxEditor.getChildComponent (i))
+                    if (child->isVisible() && child->getComponentID().startsWith ("mixer.fx.editor."))
+                        put (child->getComponentID(), child->getBounds().translated (fxEditor.getX(), fxEditor.getY()));
+        }
         // Every visible identified child by its component id — toolbar buttons carry their
         // action's stable id (configureActionComponent), choosers their shell ids.
         for (int i = 0; i < getNumChildComponents(); ++i)
@@ -7939,10 +8121,49 @@ public:
                 strip->setProperty ("input", i < trackCount ? stripInputText (i) : juce::String());
                 strip->setProperty ("output", stripOutputText (state));
                 strip->setProperty ("armed", i < trackCount && appModel.isRecordingTrackIndexArmed (i));
+                strip->setProperty ("muted", state.muted);     // G4.1 cp2: the S / M cells as painted
+                strip->setProperty ("soloed", state.soloed);
+                // G4.1 cp2: the painted inserts and sends, as the strip reads them.
+                juce::Array<juce::var> inserts;
+                for (const yesdaw::ui::UiMixerFxSlotReadout& insert : state.fxSlots)
+                {
+                    auto* row = new juce::DynamicObject();
+                    row->setProperty ("kind", fxKindName (insert.kind));
+                    row->setProperty ("enabled", insert.enabled);
+                    inserts.add (juce::var (row));
+                }
+                strip->setProperty ("inserts", inserts);
+                juce::Array<juce::var> sends;
+                for (const yesdaw::ui::UiMixerSendReadout& send : state.sends)
+                {
+                    auto* row = new juce::DynamicObject();
+                    row->setProperty ("bus", juce::String (send.busName));
+                    row->setProperty ("level", static_cast<double> (send.linearGain));
+                    row->setProperty ("pre", send.preFader);
+                    sends.add (juce::var (row));
+                }
+                strip->setProperty ("sends", sends);
                 strips.add (juce::var (strip));
             }
             mixer->setProperty ("strips", strips);
             root->setProperty ("mixer", juce::var (mixer));
+        }
+        {
+            // G4.1 cp2: the FX editor — what a drive sees after a slot's double-click.
+            const yesdaw::ui::MainComponentFxEditor editor = harnessFxEditor();
+            auto* fx = new juce::DynamicObject();
+            fx->setProperty ("visible", editor.visible);
+            fx->setProperty ("strip", editor.strip);
+            fx->setProperty ("slot", editor.slot);
+            fx->setProperty ("kind", editor.kind);
+            fx->setProperty ("bypassed", editor.bypassed);
+            fx->setProperty ("rows", editor.rows);
+            root->setProperty ("fxEditor", juce::var (fx));
+            // G4.1 cp2: the Touch / Latch ride a painted drag is buffering (N5) — what a drive sees mid-ride.
+            auto* ride = new juce::DynamicObject();
+            ride->setProperty ("active", automationTouchRideActive);
+            ride->setProperty ("samples", static_cast<int> (automationTouchRideSamples.size()));
+            root->setProperty ("ride", juce::var (ride));
         }
         return juce::JSON::toString (rootVar, true);
     }
@@ -8321,6 +8542,10 @@ public:
             const int historyWidth = std::min (L::undoHistoryMaxWidth, work.getWidth() - L::keymapEditorMargin);
             const int historyHeight = std::min (L::undoHistoryMaxHeight, work.getHeight() - L::keymapEditorMargin);
             undoHistory.setBounds (work.withSizeKeepingCentre (std::max (L::keymapEditorMinWidth, historyWidth), std::max (L::keymapEditorMinHeight, historyHeight)));
+            // G4.1 cp2: the FX editor — the same centred law, sized for its parameter rows.
+            const int fxWidth = std::min (L::fxEditorMaxWidth, work.getWidth() - L::keymapEditorMargin);
+            const int fxHeight = std::min (L::fxEditorMaxHeight, work.getHeight() - L::keymapEditorMargin);
+            fxEditor.setBounds (work.withSizeKeepingCentre (std::max (L::fxEditorMinWidth, fxWidth), std::max (L::fxEditorMinHeight, fxHeight)));
         }
         pianoRollInput.setBounds (mixerPanelBounds());   // G2.1 cp2: the piano roll is a dock tab
         pianoRollLaneChooser.setBounds (pianoRollControlLaneChooserArea (pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin()))
@@ -8342,11 +8567,7 @@ public:
         }
         instrumentPanel.setBounds (mixerPanelBounds());   // G3.1: so is the instrument panel
         trackListInput.setBounds (leftRailPanelBounds());
-        {
-            auto strips = mixerPanelBounds();
-            strips.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
-            mixerStripsInput.setBounds (strips);
-        }
+        mixerStripsInput.setBounds (mixerPanelBounds());   // G4.1 cp2: the strips are the whole dock
         {
             auto box = h.tempoMeterBox;
             auto tempoCell = box.removeFromLeft (yesdaw::ui::UiTheme::Layout::headerTransportCellWidth);
@@ -9112,30 +9333,61 @@ private:
             }
             return appModel.selectMixerBus (static_cast<std::size_t> (stripIndex - trackCount), false);
         };
+        // G4.1 cp2: the painted drags are THE fader and pan now (the lane's live sliders are gone), so
+        // they carry what those did: one undo step per drag, the dB readout, and the Touch / Latch ride
+        // (R15 / N5 — an armed ride buffers the points and commits ONE lane edit on release).
         mixerStripsInput.onFaderDragged = [this, retargetMixerStrip] (int stripIndex, float linearGain, bool ended) {
+            const bool pressed = paintedFaderDragStrip != stripIndex;
             appModel.beginStripGesture();
             if (retargetMixerStrip (stripIndex))
             {
-                (void) appModel.setSelectedMixerFader (linearGain);
+                if (pressed)
+                {
+                    paintedFaderDragStrip = stripIndex;
+                    beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::TrackFader,
+                                                     yesdaw::engine::FaderNode::kGainParameterId);
+                }
+                if (automationTouchRideActive)
+                    recordAutomationTouchSample (automationNormalizedForFaderGain (linearGain));
+                else
+                    (void) appModel.setSelectedMixerFader (linearGain);
                 showDragDbReadout (paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
                                                             stripIoRows (static_cast<std::size_t> (stripIndex))),
                                    linearGain);
             }
             if (ended)
             {
+                paintedFaderDragStrip = -1;
+                endAutomationTouchRideIfActive();
                 appModel.endStripGesture();
                 hideDragDbReadout();
             }
             refreshActionState();
-            resized();   // the control lane follows the retargeted strip
+            resized();
             repaintAll();
         };
         mixerStripsInput.onPanDragged = [this, retargetMixerStrip] (int stripIndex, float pan, bool ended) {
+            const bool pressed = paintedPanDragStrip != stripIndex;
             appModel.beginStripGesture();
             if (retargetMixerStrip (stripIndex))
-                (void) appModel.setSelectedMixerPan (pan);
+            {
+                if (pressed)
+                {
+                    paintedPanDragStrip = stripIndex;
+                    beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::TrackPan,
+                                                     yesdaw::engine::PanNode::kPanParameterId);
+                }
+                if (automationTouchRideActive)
+                    recordAutomationTouchSample (automationNormalizedForPan (pan));
+                else
+                    (void) appModel.setSelectedMixerPan (pan);
+            }
             if (ended)
+            {
+                paintedPanDragStrip = -1;
+                endAutomationTouchRideIfActive();
                 appModel.endStripGesture();
+            }
             refreshActionState();
             resized();
             repaintAll();
@@ -9217,8 +9469,56 @@ private:
                                                         : surface.buses[stripIndex - trackCount];
             return slot >= 0 && static_cast<std::size_t> (slot) < state.fxSlots.size();
         };
+        // G4.1 cp2: an empty send well is the add menu; the values the fine-drag anchors read.
+        mixerStripsInput.sendRowFilled = [this] (int strip, int row) {
+            const auto surface = currentMixerSurface();
+            const std::size_t trackCount = surface.tracks.size();
+            const auto stripIndex = static_cast<std::size_t> (strip);
+            if (strip < 0 || stripIndex >= trackCount + surface.buses.size())
+                return false;
+            const auto& state = stripIndex < trackCount ? surface.tracks[stripIndex]
+                                                        : surface.buses[stripIndex - trackCount];
+            return row >= 0 && static_cast<std::size_t> (row) < state.sends.size();
+        };
+        mixerStripsInput.faderGainForStrip = [this] (int strip) {
+            const auto surface = currentMixerSurface();
+            const std::size_t trackCount = surface.tracks.size();
+            const auto stripIndex = static_cast<std::size_t> (juce::jmax (0, strip));
+            if (stripIndex < trackCount)
+                return surface.tracks[stripIndex].linearGain;
+            if (stripIndex - trackCount < surface.buses.size())
+                return surface.buses[stripIndex - trackCount].linearGain;
+            return 1.0f;
+        };
+        mixerStripsInput.panForStrip = [this] (int strip) {
+            const auto surface = currentMixerSurface();
+            const std::size_t trackCount = surface.tracks.size();
+            const auto stripIndex = static_cast<std::size_t> (juce::jmax (0, strip));
+            if (stripIndex < trackCount)
+                return surface.tracks[stripIndex].pan;
+            if (stripIndex - trackCount < surface.buses.size())
+                return surface.buses[stripIndex - trackCount].pan;
+            return 0.0f;
+        };
+        mixerStripsInput.sendLevelForRow = [this] (int strip, int row) {
+            const auto surface = currentMixerSurface();
+            const std::size_t trackCount = surface.tracks.size();
+            const auto stripIndex = static_cast<std::size_t> (juce::jmax (0, strip));
+            const yesdaw::ui::UiMixerStrip* state = stripIndex < trackCount ? &surface.tracks[stripIndex]
+                                                  : stripIndex - trackCount < surface.buses.size() ? &surface.buses[stripIndex - trackCount]
+                                                                                                    : nullptr;
+            if (state == nullptr || row < 0 || static_cast<std::size_t> (row) >= state->sends.size())
+                return 1.0f;
+            return state->sends[static_cast<std::size_t> (row)].linearGain;
+        };
+        // G4.1 cp2: a filled slot's double-click opens the editor on THAT slot.
+        mixerStripsInput.onInsertSlotDoubleClicked = [this] (int stripIndex, int slotIndex) {
+            openFxEditor (stripIndex, slotIndex);
+        };
         // M5: painted send rows. The press selects the strip and previews the level; the release
         // commits ONE undoable SetSendLevel through the same model verb the control lane uses.
+        // G4.1 cp2: a Bus strip's rows drag too (R13: sends originate on Tracks AND Buses), and the
+        // drag rides Touch / Latch (R15: the SendLevel lane, the live slider's law).
         mixerStripsInput.sendRowAtPosition = [this] (juce::Point<int> positionInShell) {
             const auto surface = currentMixerSurface();
             const std::size_t stripTotal = surface.tracks.size() + surface.buses.size();
@@ -9252,29 +9552,51 @@ private:
         mixerStripsInput.onSendRowDragged = [this] (int stripIndex, int sendIndex, double level, bool commit) {
             const auto surface = currentMixerSurface();
             const int trackCount = static_cast<int> (surface.tracks.size());
-            if (stripIndex < 0 || stripIndex >= trackCount)
-                return;                                   // sends originate on TRACKS only (E16)
-
-            if (static_cast<std::size_t> (sendIndex) >= surface.tracks[static_cast<std::size_t> (stripIndex)].sends.size())
+            const int busCount = static_cast<int> (surface.buses.size());
+            if (stripIndex < 0 || stripIndex >= trackCount + busCount || sendIndex < 0)
+                return;
+            const yesdaw::ui::UiMixerStrip& state = stripIndex < trackCount
+                ? surface.tracks[static_cast<std::size_t> (stripIndex)]
+                : surface.buses[static_cast<std::size_t> (stripIndex - trackCount)];
+            if (static_cast<std::size_t> (sendIndex) >= state.sends.size())
                 return;                                   // an empty send well has nothing to set
 
-            (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripIndex));
-            selectedTrackLane = stripIndex;
+            const bool pressed = paintedSendDragPreview.stripIndex != stripIndex
+                              || paintedSendDragPreview.sendIndex != sendIndex;
+            if (stripIndex < trackCount)
+            {
+                (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripIndex));
+                selectedTrackLane = stripIndex;
+            }
+            else
+                (void) appModel.selectMixerBus (static_cast<std::size_t> (stripIndex - trackCount));
+            if (pressed)
+                beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::SendLevel,
+                                                 static_cast<std::uint32_t> (sendIndex));
             if (! commit)
             {
                 paintedSendDragPreview = { stripIndex, sendIndex, static_cast<float> (level) };
+                if (automationTouchRideActive)
+                    recordAutomationTouchSample (automationNormalizedForFaderGain (level));
                 repaintAll();
                 return;
             }
 
             paintedSendDragPreview = {};
-            (void) appModel.setSendLevelOnSelectedTrack (static_cast<std::size_t> (sendIndex),
-                                                        static_cast<float> (level));
+            if (automationTouchRideActive)
+            {
+                recordAutomationTouchSample (automationNormalizedForFaderGain (level));
+                endAutomationTouchRideIfActive();   // the ride is the edit (one undo step)
+            }
+            else
+                (void) appModel.setSendLevelOnSelectedTrack (static_cast<std::size_t> (sendIndex),
+                                                            static_cast<float> (level));
             layoutMixerControls();
             refreshActionState();
             repaintAll();
         };
         mixerStripsInput.onInsertSlotClicked = [this] (int stripIndex, int slotIndex) {
+            lastContextMenu = {};   // a slot click opens no menu of its own (the empty slot's add menu follows separately)
             const auto surface = currentMixerSurface();
             const int trackCount = static_cast<int> (surface.tracks.size());
             const int busCount = static_cast<int> (surface.buses.size());
@@ -9291,10 +9613,12 @@ private:
                 (void) appModel.selectMixerBus (static_cast<std::size_t> (stripIndex - trackCount));
             }
 
-            // An empty slot has nothing to edit — the param panel closes instead of lying.
+            // The click selects the slot (the strip paints it selected); an empty slot selects nothing.
+            // G4.1 cp2: the editor, when open, follows the selected slot of the selected strip.
             const std::size_t chainSize = appModel.selectedStripFxChain().size();
             selectedFxParamSlot = static_cast<std::size_t> (slotIndex) < chainSize ? slotIndex : -1;
             selectedFxParamPage = 0;
+            fxEditorStripOrdinal = appModel.selectedMixerStripOrdinal();
             layoutMixerControls();
             refreshActionState();
             resized();
@@ -9313,108 +9637,8 @@ private:
         addAndMakeVisible (mixerStripsInput);
         mixerStripsInput.toBack();   // the shared strip controls stay on top and keep their own clicks
 
-        // FX insert chain on the selected strip (usable-DAW P0): the chooser adds one of the five
-        // built-in FX; each visible slot row toggles bypass or removes the insert — all undoable.
-        configureActionComponent (mixerFxAddChooser, yesdaw::ui::UiActionId::MixerFxInsertAdd, "Add FX insert");
-        mixerFxAddChooser.setTextWhenNothingSelected ("+ FX");
-        mixerFxAddChooser.addItem ("EQ", static_cast<int> (yesdaw::engine::FxKind::Eq) + 1);
-        mixerFxAddChooser.addItem ("Compressor", static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1);
-        mixerFxAddChooser.addItem ("Delay", static_cast<int> (yesdaw::engine::FxKind::Delay) + 1);
-        mixerFxAddChooser.addItem ("Reverb", static_cast<int> (yesdaw::engine::FxKind::Reverb) + 1);
-        mixerFxAddChooser.addItem ("Limiter", static_cast<int> (yesdaw::engine::FxKind::Limiter) + 1);
-        // G3.8: the MIDI FX (Track strips only — the model names the refusal on a Bus).
-        mixerFxAddChooser.addItem ("MIDI Transpose", static_cast<int> (yesdaw::engine::FxKind::MidiTranspose) + 1);
-        mixerFxAddChooser.addItem ("MIDI Scale", static_cast<int> (yesdaw::engine::FxKind::MidiScaleMap) + 1);
-        mixerFxAddChooser.addItem ("Arpeggiator", static_cast<int> (yesdaw::engine::FxKind::MidiArpeggiator) + 1);
-        mixerFxAddChooser.addItem ("Chord Trigger", static_cast<int> (yesdaw::engine::FxKind::MidiChord) + 1);
-        mixerFxAddChooser.onChange = [this] {
-            const int selected = mixerFxAddChooser.getSelectedId();
-            if (selected <= 0)
-                return;
-
-            mixerFxAddChooser.setSelectedId (0, juce::dontSendNotification);
-            (void) appModel.addFxInsertToSelectedStrip (static_cast<yesdaw::engine::FxKind> (selected - 1));
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerFxAddChooser);
-
-        for (std::size_t slot = 0; slot < mixerFxSlotToggles.size(); ++slot)
-        {
-            auto& toggle = mixerFxSlotToggles[slot];
-            toggle.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".toggle");
-            toggle.setTooltip ("Bypass FX slot " + juce::String (static_cast<int> (slot) + 1));
-            toggle.setName ("Toggle FX slot " + juce::String (static_cast<int> (slot + 1)) + " bypass");
-            toggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
-            toggle.setColour (juce::TextButton::textColourOffId, kText);
-            toggle.onClick = [this, slot] {
-                (void) appModel.toggleFxInsertEnabledOnSelectedStrip (slot);
-                refreshActionState();
-                repaintAll();
-            };
-            addChildComponent (toggle);
-
-            auto& remove = mixerFxSlotRemoves[slot];
-            remove.setButtonText ("x");
-            remove.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".remove");
-            remove.setTooltip ("Remove FX slot " + juce::String (static_cast<int> (slot) + 1));
-            remove.setName ("Remove FX slot " + juce::String (static_cast<int> (slot + 1)));
-            remove.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-            remove.setColour (juce::TextButton::textColourOffId, kText);
-            remove.onClick = [this, slot] {
-                (void) appModel.removeFxInsertFromSelectedStrip (slot);
-                refreshActionState();
-                repaintAll();
-            };
-            addChildComponent (remove);
-
-            auto& edit = mixerFxSlotEdits[slot];
-            edit.setButtonText ("e");
-            edit.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".edit");
-            edit.setTooltip ("Edit FX slot " + juce::String (static_cast<int> (slot) + 1) + " parameters");
-            edit.setName ("Edit FX slot " + juce::String (static_cast<int> (slot + 1)) + " parameters");
-            edit.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-            edit.setColour (juce::TextButton::textColourOffId, kText);
-            edit.onClick = [this, slot] {
-                selectedFxParamSlot = selectedFxParamSlot == static_cast<int> (slot) ? -1
-                                                                                     : static_cast<int> (slot);
-                selectedFxParamPage = 0;   // E15: a fresh slot always opens on its first page
-                refreshActionState();
-                resized();
-                repaintAll();
-            };
-            addChildComponent (edit);
-
-            // E14: move the insert one position earlier or later in the chain, undoably.
-            auto& up = mixerFxSlotUps[slot];
-            up.setButtonText ("^");
-            up.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".up");
-            up.setTooltip ("Move FX slot " + juce::String (static_cast<int> (slot) + 1) + " earlier in the chain");
-            up.setName ("Move FX slot " + juce::String (static_cast<int> (slot + 1)) + " earlier");
-            up.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-            up.setColour (juce::TextButton::textColourOffId, kText);
-            up.onClick = [this, slot] {
-                (void) appModel.moveFxInsertOnSelectedStrip (slot, -1);
-                refreshActionState();
-                repaintAll();
-            };
-            addChildComponent (up);
-
-            auto& down = mixerFxSlotDowns[slot];
-            down.setButtonText ("v");
-            down.setComponentID ("mixer.fx.slot." + juce::String (static_cast<int> (slot)) + ".down");
-            down.setTooltip ("Move FX slot " + juce::String (static_cast<int> (slot) + 1) + " later in the chain");
-            down.setName ("Move FX slot " + juce::String (static_cast<int> (slot + 1)) + " later");
-            down.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-            down.setColour (juce::TextButton::textColourOffId, kText);
-            down.onClick = [this, slot] {
-                (void) appModel.moveFxInsertOnSelectedStrip (slot, 1);
-                refreshActionState();
-                repaintAll();
-            };
-            addChildComponent (down);
-        }
-
+        // G4.1 cp2: the lane's Add FX chooser and slot rows are gone — an empty painted slot's click is
+        // the add menu, a filled slot's double-click the editor, its right-click the slot menu.
         // Send routing (ADR-0044): + Bus creates a persisted Bus; the send chooser routes the
         // selected track to a bus; each visible send row edits its level and removes undoably.
         // E19: the master fader edits the persisted master gain undoably.
@@ -9446,31 +9670,7 @@ private:
         };
         addAndMakeVisible (mixerMasterFader);
 
-        configureActionComponent (mixerBusAddButton, yesdaw::ui::UiActionId::MixerBusAdd, "Add bus");
-        mixerBusAddButton.setButtonText ("+ Bus");
-        mixerBusAddButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
-        mixerBusAddButton.setColour (juce::TextButton::textColourOffId, kText);
-        mixerBusAddButton.onClick = [this] {
-            (void) appModel.addBusToMixer();
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerBusAddButton);
-
-        // E17: remove the SELECTED bus; the engine refuses while sends still route to it, and
-        // the refusal leaves the bus in place (the gate pins that honesty).
-        configureActionComponent (mixerBusRemoveButton, yesdaw::ui::UiActionId::MixerBusRemove, "Remove bus");
-        mixerBusRemoveButton.setButtonText ("- Bus");
-        mixerBusRemoveButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::warningButton());
-        mixerBusRemoveButton.setColour (juce::TextButton::textColourOffId, kText);
-        mixerBusRemoveButton.onClick = [this] {
-            (void) appModel.removeSelectedBus();
-            layoutMixerControls();
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerBusRemoveButton);
-
+        // G4.1 cp2: + Bus / - Bus are the strip menus' Add Bus / Remove Bus (cp1).
         // E17: inline bus rename editor, the marker/clip editor pattern on the mixer panel.
         busRenameEditor.setComponentID ("shell.mixer.bus.rename");
         busRenameEditor.setTooltip ("Rename bus: Enter commits, Escape cancels");
@@ -9481,139 +9681,19 @@ private:
         busRenameEditor.onFocusLost = [this] { dismissBusRenameEditor(); };
         addChildComponent (busRenameEditor);
 
-        configureActionComponent (mixerSendAddChooser, yesdaw::ui::UiActionId::MixerSendAdd, "Add send");
-        mixerSendAddChooser.setTextWhenNothingSelected ("+ Send");
-        mixerSendAddChooser.setTextWhenNoChoicesAvailable ("No Buses");
-        mixerSendAddChooser.onChange = [this] {
-            if (refreshingSendControls)
-                return;
+        // G4.1 cp2: + Send, Out: and the send rows are the strip's wells and slots (an empty send well's
+        // click adds; the routed row drags its level and right-clicks its menu; the OUTPUT slot routes).
 
-            const int selected = mixerSendAddChooser.getSelectedId();
-            if (selected <= 0)
+        // G4.1 cp2: the FX editor hosts the parameter rows; Bypass and Close act on the slot it shows.
+        fxEditor.onClose = [this] { closeFxEditor(); };
+        fxEditor.onBypass = [this] {
+            if (selectedFxParamSlot < 0)
                 return;
-
-            mixerSendAddChooser.setSelectedId (0, juce::dontSendNotification);
-            (void) appModel.addSendOnSelectedTrack (static_cast<std::size_t> (selected - 1));
+            (void) appModel.toggleFxInsertEnabledOnSelectedStrip (static_cast<std::size_t> (selectedFxParamSlot));
             refreshActionState();
             repaintAll();
         };
-        addAndMakeVisible (mixerSendAddChooser);
-
-        // M3: where the selected TRACK's main output lands — master (the default) or a bus. This is
-        // the submix/group route, not a parallel send: the whole strip moves.
-        configureActionComponent (mixerTrackOutputChooser, yesdaw::ui::UiActionId::MixerTrackSetOutput,
-                                  "Track output");
-        mixerTrackOutputChooser.setTextWhenNothingSelected ("Out: Master");
-        mixerTrackOutputChooser.setTextWhenNoChoicesAvailable ("Out: Master");
-        mixerTrackOutputChooser.onChange = [this] {
-            if (refreshingSendControls)
-                return;
-
-            const int selected = mixerTrackOutputChooser.getSelectedId();
-            if (selected <= 0)
-                return;
-
-            const auto& buses = appModel.project().buses;
-            const yesdaw::engine::EntityId target =
-                selected == 1 || static_cast<std::size_t> (selected - 2) >= buses.size()
-                    ? yesdaw::engine::EntityId {}
-                    : buses[static_cast<std::size_t> (selected - 2)].id;
-            (void) appModel.setOutputOnSelectedTrack (target);
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerTrackOutputChooser);
-
-        for (std::size_t row = 0; row < mixerSendLevelSliders.size(); ++row)
-        {
-            auto& label = mixerSendLabels[row];
-            label.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)) + ".label");
-            label.setTooltip ("Send " + juce::String (static_cast<int> (row) + 1) + " route");
-            label.setColour (juce::Label::textColourId, kText);
-            label.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
-            label.setInterceptsMouseClicks (false, false);
-            addChildComponent (label);
-
-            auto& slider = mixerSendLevelSliders[row];
-            configureActionComponent (slider, yesdaw::ui::UiActionId::MixerSendSetLevel, "Send level");
-            slider.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)));
-            slider.setSliderStyle (juce::Slider::LinearHorizontal);
-            slider.setTextBoxStyle (juce::Slider::NoTextBox,
-                                    false,
-                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
-                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
-            slider.setRange (0.0, 1.0, 0.0);
-            slider.setDoubleClickReturnValue (true, 1.0);   // Alt+click resets the send to unity
-            // R15: a send-level drag rides Touch/Latch exactly like the fader — the lane value
-            // is the FaderNode dB-law inverse of the dragged gain, so playback lands at the
-            // gain that was actually ridden (send lanes drive the send's own FaderNode).
-            slider.onDragStart = [this, row] {
-                beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::SendLevel,
-                                                 static_cast<std::uint32_t> (row));
-            };
-            slider.onDragEnd = [this] { endAutomationTouchRideIfActive(); };
-            slider.onValueChange = [this, row] {
-                if (refreshingSendControls)
-                    return;
-
-                if (automationTouchRideActive)
-                    recordAutomationTouchSample (
-                        automationNormalizedForFaderGain (mixerSendLevelSliders[row].getValue()));
-                else
-                    (void) appModel.setSendLevelOnSelectedTrack (
-                        row, static_cast<float> (mixerSendLevelSliders[row].getValue()));
-                refreshActionState();
-                repaintAll();
-            };
-            addChildComponent (slider);
-
-            auto& remove = mixerSendRemoves[row];
-            remove.setButtonText ("x");
-            remove.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)) + ".remove");
-            remove.setTooltip ("Remove send " + juce::String (static_cast<int> (row) + 1));
-            remove.setName ("Remove send " + juce::String (static_cast<int> (row + 1)));
-            remove.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-            remove.setColour (juce::TextButton::textColourOffId, kText);
-            remove.onClick = [this, row] {
-                (void) appModel.removeSendOnSelectedTrack (row);
-                refreshActionState();
-                repaintAll();
-            };
-            addChildComponent (remove);
-
-            // E18: per-row tap toggle (pre/post fader) through the undoable SetSendTap verb.
-            auto& tap = mixerSendTaps[row];
-            tap.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)) + ".tap");
-            tap.setTooltip ("Toggle send " + juce::String (static_cast<int> (row) + 1) + " pre/post fader tap");
-            tap.setName ("Toggle send " + juce::String (static_cast<int> (row + 1)) + " tap");
-            tap.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::darkControl());
-            tap.setColour (juce::TextButton::textColourOffId, kText);
-            tap.onClick = [this, row] {
-                (void) appModel.toggleSendTapOnSelectedTrack (row);
-                refreshActionState();
-                repaintAll();
-            };
-            addChildComponent (tap);
-
-            // E18: per-row destination chooser re-routes the send (remove+add, one undo group).
-            auto& destination = mixerSendDestinations[row];
-            destination.setComponentID ("mixer.send." + juce::String (static_cast<int> (row)) + ".dest");
-            destination.setTooltip ("Re-route send " + juce::String (static_cast<int> (row) + 1) + " to another bus");
-            destination.onChange = [this, row] {
-                if (refreshingSendControls)
-                    return;
-
-                const int selected = mixerSendDestinations[row].getSelectedId();
-                if (selected <= 0)
-                    return;
-
-                (void) appModel.setSendDestinationOnSelectedTrack (
-                    row, static_cast<std::size_t> (selected - 1));
-                refreshActionState();
-                repaintAll();
-            };
-            addChildComponent (destination);
-        }
+        addChildComponent (fxEditor);
 
         // FX parameter editing (usable-DAW P1): the selected slot's ParamSpecs become live sliders;
         // every committed value is one undoable SetFxInsertParam through the model.
@@ -9623,9 +9703,9 @@ private:
             label.setComponentID ("mixer.fx.param." + juce::String (static_cast<int> (index)) + ".label");
             label.setTooltip ("FX parameter " + juce::String (static_cast<int> (index) + 1) + " readout");
             label.setColour (juce::Label::textColourId, kText);
-            label.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+            label.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small));
             label.setInterceptsMouseClicks (false, false);
-            addChildComponent (label);
+            fxEditor.addChildComponent (label);   // G4.1 cp2: the rows live in the editor
 
             auto& slider = mixerFxParamSliders[index];
             configureActionComponent (slider, yesdaw::ui::UiActionId::MixerFxInsertParamSet, "FX parameter");
@@ -9663,7 +9743,7 @@ private:
                 refreshActionState();
                 repaintAll();
             };
-            addChildComponent (slider);
+            fxEditor.addChildComponent (slider);
 
             // E15: choice-shaped params (EQ band type, delay ping-pong) get a real chooser in
             // place of the raw slider.
@@ -9691,7 +9771,7 @@ private:
                 refreshActionState();
                 repaintAll();
             };
-            addChildComponent (choiceChooser);
+            fxEditor.addChildComponent (choiceChooser);
         }
 
         // E15: params beyond one panel's worth page through this chooser.
@@ -9711,55 +9791,10 @@ private:
             resized();
             repaintAll();
         };
-        addChildComponent (mixerFxParamPageChooser);
+        fxEditor.addChildComponent (mixerFxParamPageChooser);
 
-        configureActionComponent (mixerFader, yesdaw::ui::UiActionId::MixerTargetSetFader, "Mixer fader");
-        mixerFader.setSliderStyle (juce::Slider::LinearVertical);
-        mixerFader.setTextBoxStyle (juce::Slider::NoTextBox,
-                                    false,
-                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
-                                    yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
-        mixerFader.setRange (yesdaw::ui::UiTheme::Layout::mixerFaderSliderMin,
-                             yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax,
-                             yesdaw::ui::UiTheme::Layout::mixerFaderSliderInterval);
-        mixerFader.setValue (yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
-                             juce::dontSendNotification);
-        // Alt+click (or double-click) resets the fader to unity through the same persisted edit.
-        mixerFader.setDoubleClickReturnValue (true, yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault);
-        mixerFader.onValueChange = [this] {
-            if (refreshingMixerControls || ! mixerFader.isEnabled())
-                return;
-
-            // E21: a fader drag is ONE undo step — any mouse-down edit joins the gesture the
-            // drag-end closes (lazy so the very first mouse-down value change is included).
-            if (mixerFader.isMouseButtonDown())
-                appModel.beginStripGesture();
-            // N5: an armed Touch/Latch ride buffers the point instead of persisting it — see
-            // recordAutomationTouchSample for why persisting on every tick would break it.
-            if (automationTouchRideActive)
-                recordAutomationTouchSample (automationNormalizedForFaderGain (mixerFader.getValue()));
-            else
-                (void) appModel.setSelectedMixerFader (static_cast<float> (mixerFader.getValue()));
-            if (dragDbReadout.isVisible())
-                dragDbReadout.setText (dbReadoutText (mixerFader.getValue()), juce::dontSendNotification);
-            refreshActionState();
-            repaintAll();
-        };
-        // Live dB readout while the fader is dragged (B31); the rail VOL shares the same label.
-        mixerFader.onDragStart = [this] {
-            appModel.beginStripGesture();
-            beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::TrackFader,
-                                             yesdaw::engine::FaderNode::kGainParameterId);
-            showDragDbReadout (mixerFader.getBounds(), mixerFader.getValue());
-        };
-        // E21: the drag-end both closes the undo gesture and hides the dB readout.
-        mixerFader.onDragEnd = [this] {
-            endAutomationTouchRideIfActive();
-            appModel.endStripGesture();
-            hideDragDbReadout();
-        };
-        addAndMakeVisible (mixerFader);
-
+        // G4.1 cp2: the lane's live fader and pan are gone — the painted fader rail and pan knob on
+        // EVERY strip drag the same verbs (Shift fine, Alt-click resets, the Touch / Latch ride).
         dragDbReadout.setComponentID ("shell.drag.db");
         dragDbReadout.setTooltip ("Live gain in dB while dragging");
         dragDbReadout.setInterceptsMouseClicks (false, false);
@@ -9770,88 +9805,7 @@ private:
                                  yesdaw::ui::UiTheme::Color::darkControl());
         addChildComponent (dragDbReadout);
 
-        configureActionComponent (mixerPan, yesdaw::ui::UiActionId::MixerTargetSetPan, "Mixer pan");
-        mixerPan.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
-        mixerPan.setTextBoxStyle (juce::Slider::NoTextBox,
-                                  false,
-                                  yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxWidth,
-                                  yesdaw::ui::UiTheme::Layout::hiddenSliderTextBoxHeight);
-        mixerPan.setRange (yesdaw::ui::UiTheme::Layout::mixerPanSliderMin,
-                           yesdaw::ui::UiTheme::Layout::mixerPanSliderMax,
-                           yesdaw::ui::UiTheme::Layout::mixerPanSliderInterval);
-        mixerPan.setValue (yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault,
-                           juce::dontSendNotification);
-        // Alt+click (or double-click) recentres the pan through the same persisted edit.
-        mixerPan.setDoubleClickReturnValue (true, yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault);
-        // E21: a pan drag is ONE undo step.
-        mixerPan.onDragStart = [this] {
-            appModel.beginStripGesture();
-            beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::TrackPan,
-                                             yesdaw::engine::PanNode::kPanParameterId);
-        };
-        mixerPan.onDragEnd = [this] {
-            endAutomationTouchRideIfActive();
-            appModel.endStripGesture();
-        };
-        mixerPan.onValueChange = [this] {
-            if (refreshingMixerControls || ! mixerPan.isEnabled())
-                return;
-
-            if (mixerPan.isMouseButtonDown())
-                appModel.beginStripGesture();
-
-            // JUCE snaps values as `rangeStart + interval * n`; with the pan range starting at
-            // -1.0, ARM FMA contraction leaves ~2e-17 dust where x64 lands exactly on 0.0. Snap
-            // to the same interval grid with cancellation-free arithmetic so dead center
-            // persists as exactly 0 on every platform.
-            const double snapped = std::round (mixerPan.getValue()
-                                               / yesdaw::ui::UiTheme::Layout::mixerPanSliderInterval)
-                                 * yesdaw::ui::UiTheme::Layout::mixerPanSliderInterval;
-            // N5: an armed Touch/Latch ride buffers the point instead of persisting it.
-            if (automationTouchRideActive)
-                recordAutomationTouchSample (automationNormalizedForPan (snapped));
-            else
-                (void) appModel.setSelectedMixerPan (static_cast<float> (snapped));
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerPan);
-
-        configureActionComponent (mixerMute, yesdaw::ui::UiActionId::MixerTargetToggleMute, "Mixer mute");
-        mixerMute.setButtonText ("M");
-        mixerMute.setColour (juce::TextButton::buttonColourId,
-                             yesdaw::ui::UiTheme::Color::buttonSurface());
-        mixerMute.setColour (juce::TextButton::buttonOnColourId,
-                             yesdaw::ui::UiTheme::Color::accentPurpleDeep());
-        mixerMute.setColour (juce::TextButton::textColourOffId, kText);
-        mixerMute.setColour (juce::TextButton::textColourOnId, kText);
-        mixerMute.onClick = [this] {
-            if (refreshingMixerControls || ! mixerMute.isEnabled())
-                return;
-
-            (void) appModel.toggleSelectedMixerMute();
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerMute);
-
-        configureActionComponent (mixerSolo, yesdaw::ui::UiActionId::MixerTargetToggleSolo, "Mixer solo");
-        mixerSolo.setButtonText ("S");
-        mixerSolo.setColour (juce::TextButton::buttonColourId,
-                             yesdaw::ui::UiTheme::Color::buttonSurface());
-        mixerSolo.setColour (juce::TextButton::buttonOnColourId,
-                             yesdaw::ui::UiTheme::Color::accentPurpleDeep());
-        mixerSolo.setColour (juce::TextButton::textColourOffId, kText);
-        mixerSolo.setColour (juce::TextButton::textColourOnId, kText);
-        mixerSolo.onClick = [this] {
-            if (refreshingMixerControls || ! mixerSolo.isEnabled())
-                return;
-
-            (void) appModel.toggleSelectedMixerSolo();
-            refreshActionState();
-            repaintAll();
-        };
-        addAndMakeVisible (mixerSolo);
+        // G4.1 cp2: the lane's M / S buttons are gone — the painted cells on every strip (N1).
         // G4.1: the seven readout rows ("Audio 1 meters: peak n/a" …), the solo-safe button and the
         // first-track select button are gone — the strip carries every one of those as a painted
         // section or a menu verb (plan §8.2: delete before you add). The read verbs stay registered
@@ -9862,6 +9816,45 @@ private:
     [[nodiscard]] int inspectorWidthNow() const noexcept
     {
         return appModel.context().inspectorVisible ? viewState.inspectorWidth : 0;
+    }
+
+    // G4.1 cp2: the FX editor opens on ONE slot of ONE strip (the double-click, the slot menu's Open
+    // Editor, the harness) and closes on Close / Escape / the strip or slot going away (the refresh law).
+    void openFxEditor (int stripIndex, int slotIndex)
+    {
+        const auto surface = currentMixerSurface();
+        const int trackCount = static_cast<int> (surface.tracks.size());
+        const int busCount = static_cast<int> (surface.buses.size());
+        if (stripIndex < 0 || stripIndex > trackCount + busCount || slotIndex < 0)
+            return;
+        if (stripIndex < trackCount)
+        {
+            (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripIndex));
+            selectedTrackLane = stripIndex;
+        }
+        else if (stripIndex < trackCount + busCount)
+            (void) appModel.selectMixerBus (static_cast<std::size_t> (stripIndex - trackCount));
+        else
+            (void) appModel.selectMixerMaster();   // the lane past the buses (R11: the master's chain)
+        if (static_cast<std::size_t> (slotIndex) >= appModel.selectedStripFxChain().size())
+            return;   // an empty slot has nothing to edit
+        selectedFxParamSlot = slotIndex;
+        selectedFxParamPage = 0;
+        fxEditorStripOrdinal = appModel.selectedMixerStripOrdinal();
+        fxEditorOpen = true;
+        refreshActionState();
+        resized();
+        repaintAll();
+    }
+
+    void closeFxEditor()
+    {
+        if (! fxEditorOpen)
+            return;
+        fxEditorOpen = false;
+        refreshActionState();
+        resized();
+        repaintAll();
     }
 
     // G2.1: the splitters set these; each clamps to the plan's §3.4 ranges, lays out and repaints.
@@ -9959,24 +9952,9 @@ private:
     // the [dock-tabs] gate walks the dock rect and refuses any stray visible widget.
     [[nodiscard]] std::vector<juce::Component*> mixerLaneControls()
     {
-        std::vector<juce::Component*> controls {
-            &mixerStripsInput, &mixerFxAddChooser, &mixerFxParamPageChooser, &mixerMasterFader,
-            &mixerBusAddButton, &mixerBusRemoveButton, &mixerSendAddChooser, &mixerTrackOutputChooser,
-            &mixerFader, &mixerPan, &mixerMute, &mixerSolo };
-        for (auto& c : mixerFxSlotToggles) controls.push_back (&c);
-        for (auto& c : mixerFxSlotRemoves) controls.push_back (&c);
-        for (auto& c : mixerFxSlotEdits) controls.push_back (&c);
-        for (auto& c : mixerFxSlotUps) controls.push_back (&c);
-        for (auto& c : mixerFxSlotDowns) controls.push_back (&c);
-        for (auto& c : mixerFxParamSliders) controls.push_back (&c);
-        for (auto& c : mixerFxParamLabels) controls.push_back (&c);
-        for (auto& c : mixerFxParamChoosers) controls.push_back (&c);
-        for (auto& c : mixerSendLevelSliders) controls.push_back (&c);
-        for (auto& c : mixerSendLabels) controls.push_back (&c);
-        for (auto& c : mixerSendRemoves) controls.push_back (&c);
-        for (auto& c : mixerSendTaps) controls.push_back (&c);
-        for (auto& c : mixerSendDestinations) controls.push_back (&c);
-        return controls;
+        // G4.1 cp2: the strips' input surface, the master fader and the FX editor (its rows are its
+        // children, so hiding it hides them) — everything the mixer tab shows that another tab must not.
+        return { &mixerStripsInput, &mixerMasterFader, &fxEditor };
     }
 
     void restoreControlsHiddenByDockTab()
@@ -10644,8 +10622,6 @@ private:
         return paintedMixerLaneBounds (static_cast<std::size_t> (juce::jmax (0, stripIndex)));
     }
 
-    [[nodiscard]] juce::Rectangle<int> mixerFirstStripBounds() const { return mixerStripBounds (0); }
-
     // N3: the painted MASTER pane rect. Master is lane index stripCount in the SAME
     // paintedMixerLaneBounds law every track/bus strip uses — it is the strip immediately after
     // the last one, never a detached island computed from the far right of a stale area. Before
@@ -10663,8 +10639,7 @@ private:
     // exactly so a meter click can never drift from the painted meter.
     [[nodiscard]] juce::Rectangle<int> paintedMixerLaneBounds (std::size_t stripIndex) const
     {
-        auto area = mixerPanelBounds();
-        area.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth);
+        const auto area = mixerPanelBounds();   // G4.1 cp2: no tools column — the strips start at the panel's edge
 
         const auto surface = currentMixerSurface();
         const std::size_t stripCount = surface.tracks.size() + surface.buses.size();
@@ -11142,175 +11117,43 @@ private:
 
     void layoutMixerControls()
     {
-        auto utility = mixerPanelBounds().withWidth (yesdaw::ui::UiTheme::Layout::mixerToolsWidth)
-                           .reduced (yesdaw::ui::UiTheme::Layout::mixerUtilityInsetX,
-                                     yesdaw::ui::UiTheme::Space::none);
-        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityTop);
-        // M9: a row that does not fit the column DROPS (zero bounds) instead of being painted
-        // half-off the panel's bottom edge, which is what the shipped floor size did to the last
-        // chooser. Same law the send rows already used: hidden rows take no column space.
-        const auto placeUtilityRow = [&utility] (juce::Component& component, int height) {
-            if (utility.getHeight() < height)
-            {
-                component.setBounds ({});
-                return false;
-            }
-
-            component.setBounds (utility.removeFromTop (height));
-            return true;
-        };
-        // G4.1: the seven readout rows are gone; the column starts at the Solo / Mute row.
-        // N1: the selected target's Solo/Mute verbs share one utility row, split in half. They are
-        // real labelled buttons here; on the strips themselves Mute/Solo are painted cells driven
-        // by the click law, on EVERY strip.
+        // G4.1 cp2: the lane is gone. What is left to lay out live: the FX editor's parameter rows
+        // (inside the editor's content area — the pager, then label + slider / chooser per row) and
+        // the master pane's fader.
         {
-            const int soloMuteRowHeight = yesdaw::ui::UiTheme::Layout::mixerUtilityHeight;
-            if (utility.getHeight() >= soloMuteRowHeight)
+            using L = yesdaw::ui::UiTheme::Layout;
+            auto content = fxEditor.contentArea();
+            if (mixerFxParamPageChooser.isVisible())
             {
-                auto row = utility.removeFromTop (soloMuteRowHeight);
-                mixerSolo.setBounds (row.removeFromLeft (
-                    row.getWidth() / static_cast<int> (kMixerPaintedMuteSoloCellCount)));
-                mixerMute.setBounds (row);
-                utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerUtilityGap);
+                mixerFxParamPageChooser.setBounds (content.removeFromTop (L::mixerFxParamRowHeight));
+                content.removeFromTop (L::mixerFxParamRowGap);
             }
             else
+                mixerFxParamPageChooser.setBounds ({});
+            for (std::size_t index = 0; index < mixerFxParamSliders.size(); ++index)
             {
-                mixerSolo.setBounds ({});
-                mixerMute.setBounds ({});
+                if (! mixerFxParamLabels[index].isVisible() || content.getHeight() < L::mixerFxParamRowHeight)
+                {
+                    mixerFxParamSliders[index].setBounds ({});
+                    mixerFxParamChoosers[index].setBounds ({});
+                    mixerFxParamLabels[index].setBounds ({});
+                    continue;
+                }
+                auto paramRow = content.removeFromTop (L::mixerFxParamRowHeight);
+                mixerFxParamLabels[index].setBounds (paramRow.removeFromLeft (L::mixerFxParamLabelWidth));
+                if (mixerFxParamChoosers[index].isVisible())
+                {
+                    mixerFxParamChoosers[index].setBounds (paramRow);
+                    mixerFxParamSliders[index].setBounds ({});
+                }
+                else
+                {
+                    mixerFxParamSliders[index].setBounds (paramRow);
+                    mixerFxParamChoosers[index].setBounds ({});
+                }
+                content.removeFromTop (L::mixerFxParamRowGap);
             }
         }
-
-        (void) placeUtilityRow (mixerFxAddChooser, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
-        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        for (std::size_t slot = 0; slot < mixerFxSlotToggles.size(); ++slot)
-        {
-            if (! mixerFxSlotToggles[slot].isVisible())
-            {
-                mixerFxSlotToggles[slot].setBounds ({});
-                mixerFxSlotEdits[slot].setBounds ({});
-                mixerFxSlotRemoves[slot].setBounds ({});
-                mixerFxSlotUps[slot].setBounds ({});
-                mixerFxSlotDowns[slot].setBounds ({});
-                continue;
-            }
-
-            auto slotRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotHeight);
-            mixerFxSlotRemoves[slot].setBounds (
-                slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
-            mixerFxSlotEdits[slot].setBounds (
-                slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
-            mixerFxSlotDowns[slot].setBounds (
-                slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
-            mixerFxSlotUps[slot].setBounds (
-                slotRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
-            mixerFxSlotToggles[slot].setBounds (slotRow);
-            utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        }
-
-        // Hidden rows take no column space — the tools column would otherwise overflow. The refresh
-        // path calls resized() whenever a row-visibility count changes.
-        (void) placeUtilityRow (mixerBusAddButton, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
-        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        // E17: bus removal lives with the bus tools.
-        (void) placeUtilityRow (mixerBusRemoveButton, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
-        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        (void) placeUtilityRow (mixerTrackOutputChooser, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
-        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        (void) placeUtilityRow (mixerSendAddChooser, yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight);
-        utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        for (std::size_t row = 0; row < mixerSendLevelSliders.size(); ++row)
-        {
-            if (! mixerSendLevelSliders[row].isVisible())
-            {
-                mixerSendLevelSliders[row].setBounds ({});
-                mixerSendLabels[row].setBounds ({});
-                mixerSendRemoves[row].setBounds ({});
-                mixerSendTaps[row].setBounds ({});
-                mixerSendDestinations[row].setBounds ({});
-                continue;
-            }
-
-            // E18: the send grows a second row for its tap toggle and destination chooser.
-            auto sendRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerSendRowHeight);
-            mixerSendRemoves[row].setBounds (
-                sendRow.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerFxSlotRemoveWidth));
-            mixerSendLabels[row].setBounds (
-                sendRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerFxParamLabelWidth));
-            mixerSendLevelSliders[row].setBounds (sendRow);
-            auto sendRouteRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerSendRowHeight);
-            mixerSendTaps[row].setBounds (
-                sendRouteRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerFxParamLabelWidth));
-            mixerSendDestinations[row].setBounds (sendRouteRow);
-            utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        }
-
-        // E15: the pager row (when paging) sits above the param rows; a choice-shaped row puts
-        // its chooser where the slider would go.
-        if (mixerFxParamPageChooser.isVisible())
-        {
-            mixerFxParamPageChooser.setBounds (
-                utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxChooserHeight));
-            utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        }
-        else
-        {
-            mixerFxParamPageChooser.setBounds ({});
-        }
-        for (std::size_t index = 0; index < mixerFxParamSliders.size(); ++index)
-        {
-            if (! mixerFxParamLabels[index].isVisible())
-            {
-                mixerFxParamSliders[index].setBounds ({});
-                mixerFxParamChoosers[index].setBounds ({});
-                mixerFxParamLabels[index].setBounds ({});
-                continue;
-            }
-
-            auto paramRow = utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxParamRowHeight);
-            mixerFxParamLabels[index].setBounds (
-                paramRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerFxParamLabelWidth));
-            if (mixerFxParamChoosers[index].isVisible())
-            {
-                mixerFxParamChoosers[index].setBounds (paramRow);
-                mixerFxParamSliders[index].setBounds ({});
-            }
-            else
-            {
-                mixerFxParamSliders[index].setBounds (paramRow);
-                mixerFxParamChoosers[index].setBounds ({});
-            }
-            utility.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerFxSlotGap);
-        }
-
-        // E16: the control lane follows the selected strip's display ordinal (tracks, then buses).
-        const int selectedStrip = appModel.selectedMixerStripOrdinal();
-        auto lane = mixerStripBounds (selectedStrip > 0 ? selectedStrip : 0)
-                        .reduced (yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetX,
-                                  yesdaw::ui::UiTheme::Layout::mixerControlLaneInsetY);
-        // G4.1: the header band is the painted name (no live button); the live pan keeps its place.
-        lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight
-                            + yesdaw::ui::UiTheme::Layout::mixerTrackSelectBottomGap);
-        mixerPan.setBounds (lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerPanHeight)
-                                .reduced (yesdaw::ui::UiTheme::Layout::mixerPanInsetX,
-                                          yesdaw::ui::UiTheme::Layout::mixerPanInsetY));
-        // N1: NOTHING live sits on the strip's Mute/Solo cells any more. Every strip — selected or
-        // not — paints those cells and the click law drives them, so the strip you are working on
-        // looks and behaves exactly like the others. The Solo/Mute VERBS keep a home in the
-        // selected-target control lane (laid out with the other utility rows), where a labelled
-        // button has room to be a labelled button.
-        lane.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerButtonRowHeight
-                            + yesdaw::ui::UiTheme::Layout::mixerButtonBottomGap);
-        // M4: reserve exactly the painted insert block on the SELECTED strip, so the live fader
-        // starts where the painted one does instead of sitting on top of the slot rows.
-        lane.removeFromTop (juce::jmax (yesdaw::ui::UiTheme::Space::none,
-                                        paintedFaderTopForLane (mixerStripBounds (selectedStrip > 0 ? selectedStrip : 0),
-                                                                stripIoRows (static_cast<std::size_t> (selectedStrip > 0 ? selectedStrip : 0)))
-                                            - yesdaw::ui::UiTheme::Layout::mixerPaintedFaderTop));
-        auto faderArea = lane.removeFromTop (
-            juce::jmax (yesdaw::ui::UiTheme::Layout::mixerFaderMinHeight,
-                        lane.getHeight() - yesdaw::ui::UiTheme::Layout::mixerFaderBottomReserve));
-        mixerFader.setBounds (faderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerFaderWidth)
-                                  .withCentre ({ faderArea.getCentreX(), faderArea.getCentreY() }));
 
         // E19/E25: the master fader lives on the PAINTED MASTER pane, inside its METER region —
         // the same walk drawMixer uses (content top, loudness card, gap, peak card, meter gap) —
@@ -11453,6 +11296,11 @@ private:
     // Ctrl+Z undoes, Del deletes the selected Clip, and every binding stays mechanically listable.
     bool keyPressed (const juce::KeyPress& key) override
     {
+        if (key.getKeyCode() == juce::KeyPress::escapeKey && fxEditorOpen)   // G4.1 cp2
+        {
+            closeFxEditor();
+            return true;
+        }
         if (key.getKeyCode() == juce::KeyPress::escapeKey && appModel.context().undoHistoryVisible)   // G2.18
         {
             handleAction (yesdaw::ui::UiActionId::EditShowUndoHistory);
@@ -12126,9 +11974,16 @@ private:
         // reaches every effect without the dock's chooser.
         const bool emptySlot = target == yesdaw::ui::ContextMenuTarget::InsertSlot
                             && ! (index >= 0 && static_cast<std::size_t> (index) < appModel.selectedStripFxChain().size());
+        // G4.1 cp2: an EMPTY send well offers Add Send alone (the buses inline); a routed row its menu.
+        const std::vector<yesdaw::engine::SendRow> sendRows = appModel.selectedTrackSends();
+        const bool sendRowTarget = target == yesdaw::ui::ContextMenuTarget::MixerSendRow;
+        const bool emptySendWell = sendRowTarget
+                                && ! (index >= 0 && static_cast<std::size_t> (index) < sendRows.size());
         std::vector<yesdaw::ui::ContextMenuEntry> entries;
         if (emptySlot)
             entries.push_back ({ yesdaw::ui::UiActionId::MixerFxInsertAdd });
+        else if (emptySendWell)
+            entries.push_back ({ yesdaw::ui::UiActionId::MixerSendAdd });
         else
             for (const yesdaw::ui::ContextMenuEntry& entry : yesdaw::ui::contextMenuEntries (target))
                 entries.push_back (entry);
@@ -12138,15 +11993,24 @@ private:
                 menu.addSeparator();
             if (entry.action == yesdaw::ui::UiActionId::MixerFxInsertAdd)
             {
-                // G4.1: the kinds THIS strip takes (a Bus / the master: the audio kinds only).
+                // G4.1: the kinds THIS strip takes (a Bus / the master: the audio kinds only). G4.1 cp2: the
+                // slot's own click lists the kinds inline (Logic's plug-in menu); the strip menu keeps its submenu.
                 juce::PopupMenu kinds;
                 for (const yesdaw::engine::FxKind kind : appModel.fxKindsForSelectedStrip())
                 {
                     kinds.addItem (kContextMenuAddInsertBase + static_cast<int> (kind), fxKindName (kind));
                     lastContextMenu.addInsertKinds.push_back (static_cast<int> (kind));
                 }
-                menu.addSubMenu ("Add Insert", kinds,
-                                 appModel.registry().stateFor (entry.action, appModel.context()).enabled);
+                if (target == yesdaw::ui::ContextMenuTarget::InsertSlot)
+                {
+                    menu.addSectionHeader ("Add Insert");
+                    juce::PopupMenu::MenuItemIterator it (kinds);
+                    while (it.next())
+                        menu.addItem (juce::PopupMenu::Item (it.getItem()));
+                }
+                else
+                    menu.addSubMenu ("Add Insert", kinds,
+                                     appModel.registry().stateFor (entry.action, appModel.context()).enabled);
                 lastContextMenu.actions.push_back (entry.action);
                 continue;
             }
@@ -12157,7 +12021,8 @@ private:
                 || entry.action == yesdaw::ui::UiActionId::MixerTrackSetInput)
             {
                 const bool inline_ = target == yesdaw::ui::ContextMenuTarget::MixerStripInput
-                                  || target == yesdaw::ui::ContextMenuTarget::MixerStripOutput;
+                                  || target == yesdaw::ui::ContextMenuTarget::MixerStripOutput
+                                  || emptySendWell;   // G4.1 cp2: the well's click lists the buses
                 const bool enabled = appModel.registry().stateFor (entry.action, appModel.context()).enabled;
                 juce::PopupMenu choices;
                 int choiceCount = 0;
@@ -12227,7 +12092,14 @@ private:
                 }
                 if (inline_)
                 {
-                    menu.addSectionHeader (entry.action == yesdaw::ui::UiActionId::MixerTrackSetInput ? "Input" : "Output");
+                    menu.addSectionHeader (entry.action == yesdaw::ui::UiActionId::MixerTrackSetInput ? "Input"
+                                           : entry.action == yesdaw::ui::UiActionId::MixerSendAdd ? "Send to" : "Output");
+                    if (entry.action == yesdaw::ui::UiActionId::MixerSendAdd && choiceCount == 0)
+                    {
+                        juce::PopupMenu::Item none ("No buses (Add Bus on the strip menu)");
+                        none.isEnabled = false;
+                        choices.addItem (std::move (none));
+                    }
                     juce::PopupMenu::MenuItemIterator it (choices);
                     while (it.next())
                         menu.addItem (juce::PopupMenu::Item (it.getItem()));
@@ -12242,6 +12114,49 @@ private:
                 continue;
             }
             const auto& descriptor = yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (entry.action)];
+            // G4.1 cp2: the routed send row's verbs act on THAT row — the tap ticks when pre-fader, the
+            // destination is a submenu of the buses (the current one ticked, never the owner itself).
+            if (sendRowTarget && ! emptySendWell)
+            {
+                const yesdaw::engine::SendRow& send = sendRows[static_cast<std::size_t> (index)];
+                const bool enabled = appModel.registry().stateFor (entry.action, appModel.context()).enabled;
+                if (entry.action == yesdaw::ui::UiActionId::MixerSendSetTap)
+                {
+                    juce::PopupMenu::Item item ("Pre-fader");
+                    item.itemID = static_cast<int> (entry.action) + 1;
+                    item.isEnabled = enabled;
+                    item.isTicked = send.tap == yesdaw::engine::SendTap::PreFader;
+                    menu.addItem (std::move (item));
+                    lastContextMenu.actions.push_back (entry.action);
+                    continue;
+                }
+                if (entry.action == yesdaw::ui::UiActionId::MixerSendSetDestination)
+                {
+                    juce::PopupMenu destinations;
+                    int destinationCount = 0;
+                    const auto& project = appModel.project();
+                    const yesdaw::engine::EntityId self = appModel.selectedSendOwnerEntityId();
+                    for (std::size_t busIndex = 0; busIndex < project.buses.size() && busIndex < kContextMenuChoiceRange; ++busIndex)
+                    {
+                        if (project.buses[busIndex].id == self)
+                            continue;   // R13: never a self-route
+                        juce::PopupMenu::Item item (juce::String (project.buses[busIndex].strip.name));
+                        item.itemID = kContextMenuSendDestBase + static_cast<int> (busIndex);
+                        item.isTicked = project.buses[busIndex].id == send.busId;
+                        destinations.addItem (std::move (item));
+                        ++destinationCount;
+                    }
+                    menu.addSubMenu ("Destination", destinations, enabled && destinationCount > 0);
+                    lastContextMenu.actions.push_back (entry.action);
+                    continue;
+                }
+                juce::PopupMenu::Item item (juce::String (descriptor.label));
+                item.itemID = static_cast<int> (entry.action) + 1;
+                item.isEnabled = enabled;
+                menu.addItem (std::move (item));
+                lastContextMenu.actions.push_back (entry.action);
+                continue;
+            }
             const bool slotVerb = target == yesdaw::ui::ContextMenuTarget::InsertSlot;
             const bool slotEnabled = slotVerb && index >= 0
                                   && static_cast<std::size_t> (index) < appModel.selectedStripFxChain().size();
@@ -12312,6 +12227,7 @@ private:
     static constexpr int kContextMenuOutputBase = 3300;
     static constexpr int kContextMenuInputMonoBase = 3400;
     static constexpr int kContextMenuInputPairBase = 3500;
+    static constexpr int kContextMenuSendDestBase = 3600;      // G4.1 cp2: the send row's Destination (+ bus index)
     static constexpr std::size_t kContextMenuChoiceRange = 100;
 
     // The one path a picked context-menu item takes (the popup's callback and the harness): the
@@ -12340,11 +12256,19 @@ private:
             return itemId >= base && itemId < base + static_cast<int> (kContextMenuChoiceRange);
         };
         if (inChoiceRange (kContextMenuAddSendBase) || inChoiceRange (kContextMenuOutputBase)
-            || inChoiceRange (kContextMenuInputMonoBase) || inChoiceRange (kContextMenuInputPairBase))
+            || inChoiceRange (kContextMenuInputMonoBase) || inChoiceRange (kContextMenuInputPairBase)
+            || inChoiceRange (kContextMenuSendDestBase))
         {
             if (inChoiceRange (kContextMenuAddSendBase))
             {
                 (void) appModel.addSendOnSelectedTrack (static_cast<std::size_t> (itemId - kContextMenuAddSendBase));
+            }
+            else if (inChoiceRange (kContextMenuSendDestBase))
+            {
+                // G4.1 cp2: the send row's Destination — re-routes THAT row (one undo group).
+                if (lastContextMenu.target == yesdaw::ui::ContextMenuTarget::MixerSendRow && lastContextMenu.index >= 0)
+                    (void) appModel.setSendDestinationOnSelectedTrack (static_cast<std::size_t> (lastContextMenu.index),
+                                                                      static_cast<std::size_t> (itemId - kContextMenuSendDestBase));
             }
             else if (inChoiceRange (kContextMenuOutputBase))
             {
@@ -12385,9 +12309,29 @@ private:
                 (void) appModel.removeFxInsertFromSelectedStrip (slotIndex);
             else if (itemId == static_cast<int> (yesdaw::ui::UiActionId::MixerFxInsertParamSet) + 1)
             {
-                selectedFxParamSlot = selectedFxParamSlot == slot ? -1 : slot;
+                // G4.1 cp2: Open Editor — the slot's editor over the arrangement.
+                selectedFxParamSlot = slot;
                 selectedFxParamPage = 0;
+                fxEditorStripOrdinal = appModel.selectedMixerStripOrdinal();
+                fxEditorOpen = true;
             }
+            else
+                return;
+            refreshActionState();
+            resized();
+            repaintAll();
+            return;
+        }
+        // G4.1 cp2: the routed send row's verbs act on THAT row.
+        if (lastContextMenu.target == yesdaw::ui::ContextMenuTarget::MixerSendRow)
+        {
+            const int row = lastContextMenu.index;
+            if (row < 0)
+                return;
+            if (itemId == static_cast<int> (yesdaw::ui::UiActionId::MixerSendSetTap) + 1)
+                (void) appModel.toggleSendTapOnSelectedTrack (static_cast<std::size_t> (row));
+            else if (itemId == static_cast<int> (yesdaw::ui::UiActionId::MixerSendRemove) + 1)
+                (void) appModel.removeSendOnSelectedTrack (static_cast<std::size_t> (row));
             else
                 return;
             refreshActionState();
@@ -12443,6 +12387,25 @@ public:
     }
     [[nodiscard]] static constexpr int harnessMixerOutputMenuId (int choice) noexcept { return kContextMenuOutputBase + choice; }
     [[nodiscard]] static constexpr int harnessMixerSendMenuId (int busIndex) noexcept { return kContextMenuAddSendBase + busIndex; }
+    [[nodiscard]] static constexpr int harnessMixerSendDestinationMenuId (int busIndex) noexcept { return kContextMenuSendDestBase + busIndex; }
+    // G4.1 cp2: the FX editor as the harness reads it, and the open the double-click performs.
+    void harnessOpenFxEditor (int stripIndex, int slotIndex) { openFxEditor (stripIndex, slotIndex); }
+    [[nodiscard]] yesdaw::ui::MainComponentFxEditor harnessFxEditor() const
+    {
+        yesdaw::ui::MainComponentFxEditor out;
+        out.visible = fxEditor.isVisible();
+        out.strip = fxEditorOpen ? fxEditorStripOrdinal : -1;
+        out.slot = fxEditorOpen ? selectedFxParamSlot : -1;
+        const std::vector<yesdaw::engine::FxInsert> chain = appModel.selectedStripFxChain();
+        if (fxEditorOpen && selectedFxParamSlot >= 0 && static_cast<std::size_t> (selectedFxParamSlot) < chain.size())
+            out.kind = fxKindName (chain[static_cast<std::size_t> (selectedFxParamSlot)].kind);
+        out.bypassed = fxEditor.isBypassed();
+        out.page = selectedFxParamPage;
+        out.pageCount = mixerFxParamPageChooser.getNumItems();
+        out.rows = static_cast<int> (lastVisibleFxParamRows);
+        out.bounds = fxEditor.getBounds();
+        return out;
+    }
     [[nodiscard]] yesdaw::ui::MainComponentContextMenu harnessLastContextMenu() const { return lastContextMenu.toPublic(); }
     [[nodiscard]] juce::String harnessViewStateRecord() const { return juce::String (viewStateRecordText()); }
 
@@ -13301,60 +13264,33 @@ private:
         }
         {
             const std::vector<yesdaw::engine::FxInsert> chain = appModel.selectedStripFxChain();
-            const bool chooserEnabled =
-                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerFxInsertAdd, appModel.context()).enabled;
-            mixerFxAddChooser.setEnabled (chooserEnabled);
-            {
-                // G4.1: the chooser lists the kinds THIS strip takes (the same list the menus read).
-                const std::vector<yesdaw::engine::FxKind> kinds = appModel.fxKindsForSelectedStrip();
-                if (static_cast<int> (kinds.size()) != mixerFxAddChooser.getNumItems())
-                {
-                    mixerFxAddChooser.clear (juce::dontSendNotification);
-                    for (const yesdaw::engine::FxKind kind : kinds)
-                        mixerFxAddChooser.addItem (fxKindName (kind), static_cast<int> (kind) + 1);
-                }
-            }
-            for (std::size_t slot = 0; slot < mixerFxSlotToggles.size(); ++slot)
-            {
-                const bool present = slot < chain.size();
-                mixerFxSlotToggles[slot].setVisible (present);
-                mixerFxSlotRemoves[slot].setVisible (present);
-                mixerFxSlotEdits[slot].setVisible (present);
-                mixerFxSlotUps[slot].setVisible (present);
-                mixerFxSlotDowns[slot].setVisible (present);
-                if (! present)
-                    continue;
-
-                mixerFxSlotUps[slot].setEnabled (slot > 0);
-                mixerFxSlotDowns[slot].setEnabled (slot + 1 < chain.size());
-
-                const yesdaw::engine::FxInsert& insert = chain[slot];
-                juce::String label;
-                switch (insert.kind)
-                {
-                    case yesdaw::engine::FxKind::Eq:         label = "EQ"; break;
-                    case yesdaw::engine::FxKind::Compressor: label = "Comp"; break;
-                    case yesdaw::engine::FxKind::Delay:      label = "Delay"; break;
-                    case yesdaw::engine::FxKind::Reverb:     label = "Reverb"; break;
-                    case yesdaw::engine::FxKind::Limiter:    label = "Limiter"; break;
-                    case yesdaw::engine::FxKind::MidiTranspose:   label = "Transpose"; break;   // G3.8
-                    case yesdaw::engine::FxKind::MidiScaleMap:    label = "Scale"; break;
-                    case yesdaw::engine::FxKind::MidiArpeggiator: label = "Arp"; break;
-                    case yesdaw::engine::FxKind::MidiChord:       label = "Chord"; break;
-                }
-                mixerFxSlotToggles[slot].setButtonText (insert.enabled ? label : label + " (byp)");
-                mixerFxSlotEdits[slot].setToggleState (selectedFxParamSlot == static_cast<int> (slot),
-                                                       juce::dontSendNotification);
-            }
-
+            // G4.1 cp2: the editor follows the SELECTED strip's selected slot; a strip change, an empty
+            // selection or a removed insert closes it (it never shows another strip's effect by accident).
             if (selectedFxParamSlot >= 0 && static_cast<std::size_t> (selectedFxParamSlot) >= chain.size())
                 selectedFxParamSlot = -1;
-
-            const std::size_t visibleFxSlotRows = std::min (chain.size(), mixerFxSlotToggles.size());
-            if (visibleFxSlotRows != lastVisibleFxSlotRows)
+            if (fxEditorOpen && (selectedFxParamSlot < 0 || appModel.selectedMixerStripOrdinal() != fxEditorStripOrdinal))
+                fxEditorOpen = false;
+            const bool editorShown = fxEditorOpen && dockShowsMixer();
+            if (editorShown)
             {
-                lastVisibleFxSlotRows = visibleFxSlotRows;
-                resized();
+                const yesdaw::engine::FxInsert& insert = chain[static_cast<std::size_t> (selectedFxParamSlot)];
+                const yesdaw::ui::UiMixerStrip* strip = nullptr;
+                const auto surface = currentMixerSurface();
+                const int ordinal = appModel.selectedMixerStripOrdinal();
+                if (ordinal >= 0 && static_cast<std::size_t> (ordinal) < surface.tracks.size())
+                    strip = &surface.tracks[static_cast<std::size_t> (ordinal)];
+                else if (ordinal >= 0 && static_cast<std::size_t> (ordinal) - surface.tracks.size() < surface.buses.size())
+                    strip = &surface.buses[static_cast<std::size_t> (ordinal) - surface.tracks.size()];
+                fxEditor.setTitleText (juce::String (fxKindName (insert.kind))
+                                       + juce::String::fromUTF8 (" \xc2\xb7 ") + (strip != nullptr ? juce::String (strip->name) : juce::String ("Master"))
+                                       + juce::String::fromUTF8 (" \xc2\xb7 slot ") + juce::String (selectedFxParamSlot + 1));
+                fxEditor.setBypassed (! insert.enabled);
+            }
+            if (fxEditor.isVisible() != editorShown)
+            {
+                fxEditor.setVisible (editorShown);
+                if (editorShown)
+                    fxEditor.toFront (false);
             }
 
             refreshingFxParamControls = true;
@@ -13461,116 +13397,6 @@ private:
             {
                 lastVisibleFxParamRows = used;
                 lastFxParamPagerVisible = pagerVisible;
-                resized();
-            }
-        }
-        {
-            refreshingSendControls = true;
-            const auto& project = appModel.project();
-            mixerBusAddButton.setEnabled (
-                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerBusAdd, appModel.context()).enabled);
-            // E17: bus removal needs a selected BUS (the ordinal past the tracks says which).
-            mixerBusRemoveButton.setEnabled (
-                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerBusRemove, appModel.context()).enabled
-                && appModel.selectedMixerStripOrdinal()
-                       >= static_cast<int> (appModel.project().tracks.size())
-                && appModel.selectedMixerStripOrdinal() >= 0);
-
-            // R13: sends and outputs originate on TRACK and BUS strips (Master owns neither).
-            // A bus strip's choosers exclude the bus itself — a self-route is a cycle the verb
-            // would refuse anyway; the UI simply does not offer it. Item ids stay busIndex-keyed
-            // so the dispatch mapping is untouched by the exclusion.
-            const yesdaw::engine::EntityId sendOwnerId = appModel.selectedSendOwnerEntityId();
-            mixerSendAddChooser.clear (juce::dontSendNotification);
-            std::size_t sendTargetCount = 0;
-            for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
-            {
-                if (project.buses[busIndex].id == sendOwnerId)
-                    continue;
-                mixerSendAddChooser.addItem (juce::String (project.buses[busIndex].strip.name),
-                                             static_cast<int> (busIndex) + 1);
-                ++sendTargetCount;
-            }
-            const bool sendAddEnabled =
-                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendAdd, appModel.context()).enabled
-                && sendTargetCount > 0
-                && sendOwnerId.isValid();
-            mixerSendAddChooser.setEnabled (sendAddEnabled);
-
-            // M3: Master first, then every bus; the selection mirrors the strip's persisted route.
-            mixerTrackOutputChooser.clear (juce::dontSendNotification);
-            mixerTrackOutputChooser.addItem ("Out: Master", 1);
-            for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
-            {
-                if (project.buses[busIndex].id == sendOwnerId)
-                    continue;
-                mixerTrackOutputChooser.addItem ("Out: " + juce::String (project.buses[busIndex].strip.name),
-                                                 static_cast<int> (busIndex) + 2);
-            }
-
-            const yesdaw::engine::EntityId routedBusId = appModel.selectedTrackOutputBusId();
-            int routedItemId = 1;
-            for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
-                if (project.buses[busIndex].id == routedBusId)
-                    routedItemId = static_cast<int> (busIndex) + 2;
-            mixerTrackOutputChooser.setSelectedId (routedItemId, juce::dontSendNotification);
-            mixerTrackOutputChooser.setEnabled (
-                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTrackSetOutput,
-                                              appModel.context()).enabled
-                && sendOwnerId.isValid());
-
-            const std::vector<yesdaw::engine::SendRow> sends = appModel.selectedTrackSends();
-            const bool sendEditEnabled =
-                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendSetLevel,
-                                              appModel.context()).enabled;
-            const bool sendTapEnabled =
-                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendSetTap,
-                                              appModel.context()).enabled;
-            const bool sendDestinationEnabled =
-                appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendSetDestination,
-                                              appModel.context()).enabled;
-            for (std::size_t row = 0; row < mixerSendLevelSliders.size(); ++row)
-            {
-                const bool present = row < sends.size();
-                mixerSendLevelSliders[row].setVisible (present);
-                mixerSendLabels[row].setVisible (present);
-                mixerSendRemoves[row].setVisible (present);
-                mixerSendTaps[row].setVisible (present);
-                mixerSendDestinations[row].setVisible (present);
-                if (! present)
-                    continue;
-
-                juce::String busName ("Bus?");
-                for (const auto& bus : project.buses)
-                    if (bus.id == sends[row].busId)
-                        busName = juce::String (bus.strip.name);
-                mixerSendLabels[row].setText (busName, juce::dontSendNotification);
-                mixerSendLevelSliders[row].setValue (sends[row].linearGain, juce::dontSendNotification);
-                mixerSendLevelSliders[row].setEnabled (sendEditEnabled);
-                // E18: the tap toggle names the CURRENT tap; the chooser lists every bus with
-                // the current destination selected.
-                mixerSendTaps[row].setButtonText (
-                    sends[row].tap == yesdaw::engine::SendTap::PreFader ? "Pre" : "Post");
-                mixerSendTaps[row].setEnabled (sendTapEnabled);
-                mixerSendDestinations[row].clear (juce::dontSendNotification);
-                int currentBusId = 0;
-                for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
-                {
-                    if (project.buses[busIndex].id == sendOwnerId)   // R13: never offer a self-route
-                        continue;
-                    mixerSendDestinations[row].addItem (juce::String (project.buses[busIndex].strip.name),
-                                                        static_cast<int> (busIndex) + 1);
-                    if (project.buses[busIndex].id == sends[row].busId)
-                        currentBusId = static_cast<int> (busIndex) + 1;
-                }
-                mixerSendDestinations[row].setSelectedId (currentBusId, juce::dontSendNotification);
-                mixerSendDestinations[row].setEnabled (sendDestinationEnabled && project.buses.size() > 1);
-            }
-            refreshingSendControls = false;
-            const std::size_t visibleSendRows = std::min (sends.size(), mixerSendLevelSliders.size());
-            if (visibleSendRows != lastVisibleSendRows)
-            {
-                lastVisibleSendRows = visibleSendRows;
                 resized();
             }
         }
@@ -13805,7 +13631,6 @@ private:
     {
         automationTouchRideActive = false;
         automationTouchRideSamples.clear();
-
         if (! appModel.context().projectLoaded || ! appModel.context().isPlaying)
             return;
         const yesdaw::engine::AutomationMode mode = appModel.project().automationMode;
@@ -13848,6 +13673,13 @@ private:
 
         const yesdaw::engine::Tick tick = static_cast<yesdaw::engine::Tick> (
             std::max<std::int64_t> (0, appModel.context().playheadFrame));
+        // G4.1 cp2: one sample per tick — the painted drags sample on the release too (the live slider
+        // spoke only on a value change), and a second breakpoint at one tick refuses the whole commit.
+        if (! automationTouchRideSamples.empty() && automationTouchRideSamples.back().tick == tick)
+        {
+            automationTouchRideSamples.back().value = normalizedValue;
+            return;
+        }
         automationTouchRideSamples.push_back ({ tick, normalizedValue });
     }
 
@@ -14123,29 +13955,8 @@ private:
 
     void refreshMixerControls()
     {
-        const yesdaw::engine::Project& project = appModel.project();
-        const bool projectHasTrack = appModel.context().projectLoaded && ! project.tracks.empty();
-        const bool selected = appModel.context().mixerTargetSelected;
-
-        for (juce::Component* control : std::array<juce::Component*, 4> { &mixerFader, &mixerPan, &mixerMute, &mixerSolo })
-            control->setVisible (projectHasTrack);
-
-        const float interactiveAlpha = selected
-                                           ? yesdaw::ui::UiTheme::Tone::componentVisibleAlpha
-                                           : yesdaw::ui::UiTheme::Tone::componentHiddenAlpha;
-        mixerFader.setAlpha (interactiveAlpha);
-        mixerPan.setAlpha (interactiveAlpha);
-        mixerMute.setAlpha (interactiveAlpha);
-        mixerSolo.setAlpha (interactiveAlpha);
-
-        mixerFader.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetSetFader,
-                                                             appModel.context()).enabled);
-        mixerPan.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetSetPan,
-                                                           appModel.context()).enabled);
-        mixerMute.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleMute,
-                                                            appModel.context()).enabled);
-        mixerSolo.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTargetToggleSolo,
-                                                            appModel.context()).enabled);
+        // G4.1 cp2: the lane's live fader / pan / M / S are gone; the master fader is the one live
+        // strip control left, on the master pane.
         refreshingMixerControls = true;
         // E19: the master fader reflects the persisted master gain and enables with a project.
         mixerMasterFader.setEnabled (
@@ -14155,28 +13966,6 @@ private:
                                        ? static_cast<double> (appModel.project().masterLinearGain)
                                        : yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
                                    juce::dontSendNotification);
-        if (projectHasTrack)
-        {
-            // E16: the control lane reads the SELECTED strip (track or bus), falling back to the
-            // first track when nothing is targeted (the historical display).
-            const yesdaw::engine::MixerStripState* stripView = appModel.selectedMixerStripView();
-            if (stripView == nullptr)
-                stripView = &project.tracks.front().strip;
-            const auto& strip = *stripView;
-            mixerFader.setValue (strip.linearGain, juce::dontSendNotification);
-            mixerPan.setValue (strip.pan, juce::dontSendNotification);
-            mixerMute.setToggleState (selected && strip.muted, juce::dontSendNotification);
-            mixerSolo.setToggleState (selected && strip.soloed, juce::dontSendNotification);
-        }
-        else
-        {
-            mixerFader.setValue (yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
-                                 juce::dontSendNotification);
-            mixerPan.setValue (yesdaw::ui::UiTheme::Layout::mixerPanSliderDefault,
-                               juce::dontSendNotification);
-            mixerMute.setToggleState (false, juce::dontSendNotification);
-            mixerSolo.setToggleState (false, juce::dontSendNotification);
-        }
         refreshingMixerControls = false;
     }
 
@@ -16395,23 +16184,7 @@ private:
         g.setColour (yesdaw::ui::UiTheme::Color::mixerBack());
         g.fillRect (area);
 
-        auto leftTools = area.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerToolsWidth)
-                             .reduced (yesdaw::ui::UiTheme::Layout::mixerToolsInsetX,
-                                       yesdaw::ui::UiTheme::Layout::mixerToolsInsetY);
-        fillPanel (g, leftTools, yesdaw::ui::UiTheme::Radius::md);
-        // V3: a real, honest heading for the column instead of blank fill. The reference's
-        // SENDS/RACKS/VIEW/OPTIONS are literal view-switching tabs (Logic-style alternate control
-        // sets); this column has no alternate views to switch between — it is ONE unified control
-        // set — so painting fake tabs that switch nothing would be dishonest interactivity (D3).
-        // "MIXER" honestly names what the column holds, in the SAME band `mixerUtilityTop`
-        // already reserves above the first control row (no layout math changed, no risk to the
-        // dense existing row-visibility cascade below).
-        drawSmallLabel (g,
-                        "MIXER",
-                        leftTools.withHeight (yesdaw::ui::UiTheme::Layout::mixerUtilityTop)
-                            .reduced (yesdaw::ui::UiTheme::Layout::mixerUtilityInsetX,
-                                      yesdaw::ui::UiTheme::Space::none),
-                        juce::Justification::centredLeft);
+        // G4.1 cp2: no "MIXER" column — the strips are the mixer (plan §8.2: delete before you add).
 
         for (std::size_t stripIndex = 0; stripIndex < stripCount; ++stripIndex)
         {
@@ -16430,7 +16203,8 @@ private:
             const bool selected = appModel.context().mixerTargetSelected
                                && selectedOrdinal >= 0
                                && stripIndex == static_cast<std::size_t> (selectedOrdinal);
-            const bool interactiveStrip = selected;
+            // G4.1 cp2: EVERY strip paints its pan knob and fader rail — the selected strip used to leave
+            // those to the lane's live pan / fader, which are gone (the painted drags are the controls).
 
             // G4.1: the lane from the ONE geometry law (paintedMixerLaneBounds) — the paint, the
             // hit-tests and the harness can never disagree on where a strip is (narrow or wide).
@@ -16473,7 +16247,7 @@ private:
                               juce::Justification::centred,
                               1);
 
-            if (! interactiveStrip)
+            // (every strip, the selected one included — G4.1 cp2)
             {
                 const juce::Rectangle<int> panDisc = paintedPanKnobForLane (lane);
                 const int panDiameter = panDisc.getWidth();
@@ -16710,7 +16484,7 @@ private:
             }
 
             auto rail = paintedFaderRailForLane (lane, ioRows);
-            if (! interactiveStrip)
+            // (every strip, the selected one included — G4.1 cp2)
             {
                 g.setColour (yesdaw::ui::UiTheme::Color::controlInsetDeep());
                 g.fillRoundedRectangle (rail.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
@@ -17109,13 +16883,11 @@ private:
     MixerStripsInputComponent mixerStripsInput;
     FineDragSlider headerTempoControl;
     juce::ComboBox headerMeterChooser;
-    juce::ComboBox mixerFxAddChooser;
-    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotToggles;
-    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotRemoves;
-    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotEdits;
-    // E14: per-slot chain reorder — the first UI callers of the engine's ReorderFxInsert verb.
-    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotUps;
-    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerFxVisibleSlotCount> mixerFxSlotDowns;
+    // G4.1 cp2: the FX editor — the lane's parameter widgets live inside it now (their ids unchanged);
+    // it shows the SELECTED strip's selectedFxParamSlot while open and closes when that strip or slot goes.
+    FxEditorComponent fxEditor;
+    bool fxEditorOpen = false;
+    int fxEditorStripOrdinal = -1;
     std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliders;
     std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamLabels;
     std::array<std::uint32_t, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliderIds {};
@@ -17128,13 +16900,9 @@ private:
     bool refreshingFxParamControls = false;
     // E19: the interactive, undoable master fader on the master pane.
     FineDragSlider mixerMasterFader;
-    juce::TextButton mixerBusAddButton;
-    // E17: bus rename + remove
-    juce::TextButton mixerBusRemoveButton;
+    // E17: the inline bus rename editor (the strip header's double-click).
     juce::TextEditor busRenameEditor;
     int busRenameIndex = -1;
-    juce::ComboBox mixerSendAddChooser;
-    juce::ComboBox mixerTrackOutputChooser;   // M3: track main-output routing
 
     // M5: transient painted-send drag preview (strip, send, level). Nothing persists until the
     // release commits, so a drag is exactly one undo step.
@@ -17145,16 +16913,9 @@ private:
         float level = 0.0f;
     };
     PaintedSendDragPreview paintedSendDragPreview;
-    std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLevelSliders;
-    std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendLabels;
-    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendRemoves;
-    // E18: per-row send tap toggles + destination choosers
-    std::array<juce::TextButton, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendTaps;
-    std::array<juce::ComboBox, yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount> mixerSendDestinations;
-    bool refreshingSendControls = false;
+    int paintedFaderDragStrip = -1;   // G4.1 cp2: the strip whose painted fader / pan is mid-drag (the press begins the ride)
+    int paintedPanDragStrip = -1;
     std::size_t lastVisibleFxParamRows = 0;
-    std::size_t lastVisibleSendRows = 0;
-    std::size_t lastVisibleFxSlotRows = 0;
     juce::TextButton trackAddButton;
     juce::TextEditor trackRenameEditor;
     juce::TextEditor clipRenameEditor;
@@ -17167,18 +16928,13 @@ private:
     juce::ComboBox exportRangeChooser;
     juce::Label exportAudioProgress;
     juce::TextButton exportAudioCancelButton;
-    FineDragSlider mixerFader;
-    FineDragSlider mixerPan;
     juce::Label dragDbReadout;
     std::vector<MeterHoldState> trackMeterHold;   // by Track index; advanced per UI tick (B32)
     std::vector<std::array<MeterHoldState, 2>> trackMeterHoldLR;   // V5: rail L/R columns
     std::vector<MeterHoldState> busMeterHold;     // by Bus index; same tick law (E22)
     juce::String lastPushedWindowTitle;           // dirty-title push dedupe (B38)
-    // N1: TextButtons, not ToggleButtons — the strip's Mute/Solo are labelled cells, and a
-    // ToggleButton ignores the TextButton colour ids this code configures and paints a check box.
-    // (G4.1: the seven readout buttons and the solo-safe button are gone — the strip and its menu.)
-    juce::TextButton mixerMute;
-    juce::TextButton mixerSolo;
+    // (G4.1: the seven readout buttons and the solo-safe button are gone — the strip and its menu.
+    //  G4.1 cp2: the lane's live fader / pan / M / S went with the lane — the painted strip is the mixer.)
     juce::TextButton masterLoudnessReadout;
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
@@ -17795,6 +17551,24 @@ int mainComponentMixerInputMenuId (int channel, bool stereoPair)
 int mainComponentMixerOutputMenuId (int choice)
 {
     return MainComponent::harnessMixerOutputMenuId (choice);
+}
+
+int mainComponentMixerSendDestinationMenuId (int busIndex)
+{
+    return MainComponent::harnessMixerSendDestinationMenuId (busIndex);
+}
+
+MainComponentFxEditor mainComponentFxEditor (const juce::Component& component)
+{
+    if (const auto* shell = dynamic_cast<const MainComponent*> (&component))
+        return shell->harnessFxEditor();
+    return {};
+}
+
+void mainComponentOpenFxEditor (juce::Component& component, int stripIndex, int slotIndex)
+{
+    if (auto* shell = dynamic_cast<MainComponent*> (&component))
+        shell->harnessOpenFxEditor (stripIndex, slotIndex);
 }
 
 int mainComponentMixerSendMenuId (int busIndex)

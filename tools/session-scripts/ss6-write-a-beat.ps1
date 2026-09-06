@@ -90,6 +90,12 @@ Step 0 'Launch, New'
 Launch
 Click 'widget.project.new'
 $dlg = WaitDialog 'Create YES DAW Project' 6000
+if ($dlg -eq [IntPtr]::Zero) {   # the first click on a freshly launched window can only activate it: click once more
+  Focus
+  Start-Sleep -Milliseconds 300
+  Click 'widget.project.new'
+  $dlg = WaitDialog 'Create YES DAW Project' 6000
+}
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (D3: created through the real New chooser)')
 Resize 1920 1080
@@ -188,20 +194,27 @@ DragWithin 'widget.piano-roll.canvas' $laneFrom[0] $laneFrom[1] $laneTo[0] $lane
 Click 'tool.pointer'
 Shot 'ss6-cc-sweep'
 
-Step 7 'Arpeggiate with the MIDI FX (the strip''s Add FX chooser)'
+Step 7 'Arpeggiate with the MIDI FX (the keys strip''s menu: Add Insert > Arpeggiator)'
 # X is the mixer dock's toggle (timeline.mixer_dock.toggle): with the roll in the dock the first press
 # may only hide the dock; a second press shows the mixer.
 Focus
 Key 'X'
 if (-not (WaitProbe { param($q) "$($q.view.dock)" -eq 'Mixer' } -TimeoutMs 1200)) { Key 'X' }
 [void](Assert (WaitProbe { param($q) "$($q.view.dock)" -eq 'Mixer' } -TimeoutMs 2000) ('the dock shows the mixer (view.dock=' + (Probe).view.dock + ')'))
-$d0 = [int](Probe).commandDispatchCount
-Click 'widget.mixer.fx.insert.add'
+# G4.1 cp2: the tools lane (and its Add FX chooser) is gone — the strip header's right-click menu is the verb.
+# The Track strip's menu opens on Rename; Add Insert is the next item (always enabled); Right opens its
+# submenu on EQ, and the Arpeggiator is the eighth kind.
+$r = LayoutRect 'mixer.strip.2'
+Click 'mixer.strip.2' -Right -OffsetY (14 - [int]($r[3] / 2))
 Start-Sleep -Milliseconds 350
-Key 'Down' -Repeat 8   # EQ, Compressor, Delay, Reverb, Limiter, MIDI Transpose, MIDI Scale, Arpeggiator
+Key 'Down' -Repeat 2
+Start-Sleep -Milliseconds 80
+Key 'Right'
+Start-Sleep -Milliseconds 350
+Key 'Down' -Repeat 7   # EQ, Compressor, Delay, Reverb, Limiter, MIDI Transpose, MIDI Scale, Arpeggiator
 Start-Sleep -Milliseconds 80
 Key 'Enter'
-[void](Assert (WaitProbe { param($q) [int]$q.commandDispatchCount -gt $d0 } -TimeoutMs 2000) 'the Arpeggiator lands on the keys track (the Add FX chooser dispatches one undoable insert)')
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[2].inserts[0].kind)" -eq 'Arpeggiator' } -TimeoutMs 2000) ('the Arpeggiator lands on the keys track (the strip paints it: ' + (Probe).mixer.strips[2].inserts[0].kind + ')'))
 Shot 'ss6-arpeggiator'
 
 Step 8 'Loop and audition'

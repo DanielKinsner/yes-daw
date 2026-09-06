@@ -586,18 +586,19 @@ TEST_CASE ("Mixer renders honestly at laptop, default, and large window sizes wi
     // mixer would hide the very thing these screenshots are for.
     {
         auto* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
-        auto* fxChooser = dynamic_cast<juce::ComboBox*> (
-            findChildWithComponentId (*shell, "mixer.fx.insert.add"));
         REQUIRE (strips != nullptr);
-        REQUIRE (fxChooser != nullptr);
         mouseDownAtPoint (*strips, { strips->getWidth() / 8, strips->getHeight() / 2 });
-        REQUIRE (fxChooser->isEnabled());
-        fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Eq) + 1,
-                                  juce::sendNotificationSync);
-        fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Compressor) + 1,
-                                  juce::sendNotificationSync);
-        fxChooser->setSelectedId (static_cast<int> (yesdaw::engine::FxKind::Limiter) + 1,
-                                  juce::sendNotificationSync);
+        // G4.1 cp2: the lane's chooser is gone — the strip header's menu (Add Insert ▸) adds the EQ.
+        const juce::Rectangle<int> lane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+        REQUIRE_FALSE (lane.isEmpty());
+        for (const yesdaw::engine::FxKind kind : { yesdaw::engine::FxKind::Eq, yesdaw::engine::FxKind::Compressor,
+                                                    yesdaw::engine::FxKind::Limiter })
+        {
+            (void) yesdaw::ui::mainComponentRequestContextMenu (
+                *shell, lane.withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedHeaderHeight).getCentre());
+            yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, yesdaw::ui::UiActionId::MixerFxInsertAdd,
+                                                            static_cast<int> (kind));
+        }
     }
 
     const auto renderAtSize = [&shell] (int width, int height, const char* filename)
@@ -925,18 +926,10 @@ TEST_CASE ("the shell renders honestly at the resize-limit extremes",
             }
         }
 
-        // M9: no mixer utility row may hang past the panel's bottom edge — a row that does not
-        // fit drops to empty bounds instead of being painted half-off.
-        for (const char* id : { "mixer.bus.add", "mixer.bus.remove", "mixer.track.output",
-                                "mixer.send.add", "mixer.fx.insert.add" })
-        {
-            juce::Component* const control = controlById (id);
-            if (control == nullptr)
-                continue;
-
-            INFO ("utility row " << id << " bounds " << control->getBounds().toString().toStdString());
-            REQUIRE ((control->getBounds().isEmpty() || control->getBounds().getBottom() <= height));
-        }
+        // M9's utility rows are gone with the tools lane (G4.1 cp2); the master fader is the one live
+        // strip control left and it never hangs past the panel's bottom edge.
+        if (juce::Component* const masterFader = controlById ("mixer.master.fader"))
+            REQUIRE ((masterFader->getBounds().isEmpty() || masterFader->getBounds().getBottom() <= height));
 
         (void) captureShellPng (image, filename);
     };

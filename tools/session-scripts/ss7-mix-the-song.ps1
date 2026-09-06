@@ -4,11 +4,14 @@
 # The plan's text: route vocals to a new bus; EQ + compressor on it; send to a reverb bus; automate the
 # bus fader with Write while playing; solo-safe the reverb; export.
 #
-# G4.1 cp1 (2026-09-05) — the strip's anatomy: Steps 0–7 below. New; three tracks; the mixer dock grown;
+# G4.1 cp1 (2026-09-05) — the strip's anatomy: Steps 0–6 below. New; three tracks; the mixer dock grown;
 # a bus from the strip menu; the OUTPUT slot's popup routes a track to the bus (the strip reads "Out: Bus
 # 1"); View > Narrow Strips (a shot) and back through the strip menu; the INPUT slot's popup picks an
 # input when the device has one (the track is armed on it); the R cell arms the next track; save, close.
-# Later G4 items append their steps (EQ + compressor, the send, Write, solo-safe, export).
+# G4.1 cp2 (2026-09-05) — the lane folds into the strip: Steps 7–11. An empty insert slot's click lists
+# the kinds (EQ, then a Compressor, on the bus); a filled slot's double-click opens the FX editor (a
+# shot; Close); an empty send well's click lists the buses (track 1 sends to the bus); the send row's
+# right-click menu flips it pre-fader. Later G4 items append theirs (Write, solo-safe, export).
 #
 # Deviations from the plan text (logged in STATUS.md, the G4.1 cp1 story): the recording device on the
 # drive machine may have no inputs — the input-slot and R-cell steps then assert the honest refusal
@@ -47,6 +50,12 @@ Step 0 'Launch, New'
 Launch
 Click 'widget.project.new'
 $dlg = WaitDialog 'Create YES DAW Project' 6000
+if ($dlg -eq [IntPtr]::Zero) {   # the first click on a freshly launched window can only activate it: click once more
+  Focus
+  Start-Sleep -Milliseconds 300
+  Click 'widget.project.new'
+  $dlg = WaitDialog 'Create YES DAW Project' 6000
+}
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (D3: created through the real New chooser)')
 Resize 1920 1080
@@ -61,6 +70,7 @@ Key 'Ctrl+Shift+N'
 
 Step 2 'The mixer dock, grown; every Track strip carries its input, output and R cell'
 OpenMixer
+Start-Sleep -Milliseconds 400   # the dock settles after the tab switch; a drag that starts mid-layout is dropped
 DragWithin 'widget.shell.splitter.dock' 0 0 0 -260
 Start-Sleep -Milliseconds 300
 [void](Assert (WaitProbe { param($q) $null -ne $q.layout.'mixer.strip.0.input' -and $null -ne $q.layout.'mixer.strip.0.output' } -TimeoutMs 3000) 'strip 0 lays out its INPUT and OUTPUT slots')
@@ -131,7 +141,51 @@ if ($inputs -gt 0) {
   [void](Assert ([int](Probe).recording.armedTrackCount -eq 0) 'the R cell cannot arm without a device with inputs (the registry refuses)')
 }
 
-Step 7 'Save and close'
+Step 7 'EQ and a Compressor on the bus (the empty slot''s click lists the kinds)'
+# A Bus takes the five audio kinds; the slot's popup is a section header then the kinds, all enabled —
+# EQ is the first (Down once), the Compressor the second. A slot popup needs ~600 ms before it takes keys.
+Click 'mixer.strip.3.insert.0'
+Start-Sleep -Milliseconds 600
+Key 'Down'
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[3].inserts[0].kind)" -eq 'EQ' } -TimeoutMs 2000) ('the EQ lands in the bus''s slot 1 (' + (Probe).mixer.strips[3].inserts[0].kind + ')'))
+Click 'mixer.strip.3.insert.1'
+Start-Sleep -Milliseconds 600
+Key 'Down' -Repeat 2
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[3].inserts[1].kind)" -eq 'Compressor' } -TimeoutMs 2000) ('the Compressor lands in slot 2 (' + (Probe).mixer.strips[3].inserts[1].kind + ')'))
+[void](Assert ([bool](Probe).mixer.strips[3].inserts[0].enabled) 'the EQ is in (its dot is lit)')
+
+Step 8 'The EQ''s editor (double-click the slot); Close'
+Click 'mixer.strip.3.insert.0' -Double
+[void](Assert (WaitProbe { param($q) [bool]$q.fxEditor.visible -and "$($q.fxEditor.kind)" -eq 'EQ' } -TimeoutMs 2000) ('the double-click opens the EQ''s editor (fxEditor=' + (Probe).fxEditor.kind + ', strip ' + (Probe).fxEditor.strip + ')'))
+[void](Assert ([int](Probe).fxEditor.rows -gt 0) ('the editor lays out the EQ''s parameter rows (' + (Probe).fxEditor.rows + ')'))
+Shot 'ss7-fx-editor'
+Click 'mixer.fx.editor.close'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'Close hides the editor')
+
+Step 9 'Track 1 sends to the bus (the empty send well''s click lists the buses)'
+Click 'mixer.strip.0.send.0'
+Start-Sleep -Milliseconds 600
+Key 'Down'
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[0].sends[0].bus)" -eq 'Bus 1' } -TimeoutMs 2000) ('the send routes track 1 to the bus (the row reads ' + (Probe).mixer.strips[0].sends[0].bus + ')'))
+[void](Assert (-not [bool](Probe).mixer.strips[0].sends[0].pre) 'a new send is post-fader')
+
+Step 10 'The send row''s menu: Pre-fader'
+# The routed row's right-click menu: Pre-fader, Destination >, then Remove Send — Pre-fader is first.
+Click 'mixer.strip.0.send.0' -Right
+Start-Sleep -Milliseconds 350
+Key 'Down'
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) [bool]$q.mixer.strips[0].sends[0].pre } -TimeoutMs 2000) 'the row''s menu flips the send pre-fader (the strip paints PRE)')
+Shot 'ss7-send'
+
+Step 11 'Save and close'
 Focus
 Key 'Ctrl+S'
 Start-Sleep -Milliseconds 800

@@ -471,33 +471,18 @@ struct UiTheme
         static constexpr int hiddenSliderTextBoxWidth = 0;
         static constexpr int hiddenSliderTextBoxHeight = 0;
 
-        static constexpr int mixerToolsWidth = 180;
         static constexpr int mixerStripMinWidth = 84;
         static constexpr int mixerStripHorizontalInset = 3;
         static constexpr int mixerStripVerticalInset = 0;
-        static constexpr int mixerControlLaneInsetX = 8;
-        static constexpr int mixerControlLaneInsetY = 6;
+        // The strip's name band (the inline rename editors sit on it).
         static constexpr int mixerTrackSelectHeight = 26;
-        static constexpr int mixerTrackSelectBottomGap = 7;
-        static constexpr int mixerPanHeight = 34;
-        static constexpr int mixerPanInsetX = 2;
-        static constexpr int mixerPanInsetY = 6;
-        static constexpr int mixerButtonRowHeight = 30;
-        static constexpr int mixerButtonRowInsetX = 5;
-        static constexpr int mixerButtonRowInsetY = 4;
-        static constexpr int mixerButtonWidth = 30;
-        static constexpr int mixerButtonBottomGap = 4;
-        static constexpr int mixerFaderMinHeight = 72;
-        static constexpr int mixerFaderBottomReserve = 18;
-        static constexpr int mixerFaderWidth = 42;
+        static constexpr int mixerFaderWidth = 42;   // the master pane's live fader
+        // The painted fader's gain law (0 .. mixerFaderSliderMax linear, unity at half travel) and the
+        // master fader's slider range. G4.1 cp2: the lane's live fader / pan sliders are gone.
         static constexpr double mixerFaderSliderMin = 0.0;
         static constexpr double mixerFaderSliderMax = 2.0;
         static constexpr double mixerFaderSliderInterval = 0.01;
         static constexpr double mixerFaderSliderDefault = 1.0;
-        static constexpr double mixerPanSliderMin = -1.0;
-        static constexpr double mixerPanSliderMax = 1.0;
-        static constexpr double mixerPanSliderInterval = 0.01;
-        static constexpr double mixerPanSliderDefault = 0.0;
         // Shift-drag fine-adjust scale: pointer movement counts for exactly this fraction of its
         // plain effect on every slider, fader, knob, and rail mini (10x finer).
         static constexpr double fineDragScale = 0.1;
@@ -507,19 +492,6 @@ struct UiTheme
         // Alt+wheel velocity editing on a piano-roll note (B33): normalized velocity change per
         // unit of vertical wheel delta.
         static constexpr double pianoRollVelocityWheelScale = 0.5;
-        static constexpr int mixerToolsInsetX = 8;
-        static constexpr int mixerToolsInsetY = 0;
-        static constexpr int mixerToolsSendsLabelTop = 52;
-        static constexpr int mixerToolsViewLabelTop = 96;
-        static constexpr int mixerToolsModeLabelTop = 120;
-        static constexpr int mixerToolsLabelHeight = 24;
-        static constexpr int mixerToolsModeLabelHeight = 28;
-        static constexpr int mixerToolsLabelInsetX = 12;
-        static constexpr int mixerToolsLabelInsetY = 0;
-        static constexpr int mixerUtilityTop = 44;
-        static constexpr int mixerUtilityHeight = 24;
-        static constexpr int mixerUtilityGap = 3;
-        static constexpr int mixerUtilityInsetX = 10;
         // V3: the mixer dock show/hide toggle, anchored just above the dock's current top edge.
         static constexpr int mixerDockToggleWidth = 120;
         static constexpr int mixerDockToggleHeight = 24;
@@ -692,17 +664,13 @@ struct UiTheme
         static constexpr double headerTempoMaxBpm = 400.0;
         static constexpr double headerTempoStepBpm = 0.5;
         static constexpr double headerTempoDefaultBpm = 120.0;
-        static constexpr int mixerFxChooserHeight = 22;
-        static constexpr int mixerFxSlotHeight = 20;
-        static constexpr int mixerFxSlotGap = 2;
-        static constexpr int mixerFxSlotRemoveWidth = 20;
-        static constexpr std::size_t mixerFxVisibleSlotCount = 5;
-        static constexpr int mixerFxParamRowHeight = 18;
-        static constexpr int mixerFxParamLabelWidth = 64;
+        // G4.1 cp2: the FX editor's parameter rows (the lane's rows, moved into the editor).
+        static constexpr int mixerFxParamRowHeight = 22;
+        static constexpr int mixerFxParamRowGap = 2;
+        static constexpr int mixerFxParamLabelWidth = 120;
         static constexpr std::size_t mixerFxParamSliderCount = 8;
         // E15: high enough to reach every ParamSpec of every FxKind (EQ band 5 tops out at 83).
         static constexpr std::uint32_t mixerFxParamProbeLimit = 96;
-        static constexpr int mixerSendRowHeight = 18;
         // R17: aliases the JUCE-free UiThemeLayout token — the model's add-refusal cap and
         // this painted row count are ONE law.
         static constexpr std::size_t mixerSendVisibleRowCount = UiThemeLayout::mixerSendVisibleRowCount;
@@ -858,6 +826,13 @@ struct UiTheme
         static constexpr int keymapEditorBottomRowHeight = 28;
         static constexpr int keymapEditorTitleWidth = 90;
         static constexpr int keymapEditorCloseWidth = 72;
+        // G4.1 cp2: the FX editor — the keymap editor's centred law, sized for eight parameter rows.
+        static constexpr int fxEditorMaxWidth = 460;
+        static constexpr int fxEditorMaxHeight = 300;
+        static constexpr int fxEditorMinWidth = 300;
+        static constexpr int fxEditorMinHeight = 160;
+        static constexpr int fxEditorBypassWidth = 72;
+        static constexpr int fxEditorTitleTrimRight = 160;
         // G2.18: the undo history window (Alt+Z) — a narrower centred panel, the same law.
         static constexpr int undoHistoryMaxWidth = 420;
         static constexpr int undoHistoryMaxHeight = 480;

@@ -242,6 +242,22 @@ struct MainComponentContextMenu
 [[nodiscard]] int mainComponentMixerInputMenuId (int channel, bool stereoPair);
 [[nodiscard]] int mainComponentMixerOutputMenuId (int choice);
 [[nodiscard]] int mainComponentMixerSendMenuId (int busIndex);
+[[nodiscard]] int mainComponentMixerSendDestinationMenuId (int busIndex);   // G4.1 cp2: the send row's Destination submenu
+// G4.1 cp2: the FX editor — the floating panel a filled insert slot's double-click opens (its params).
+struct MainComponentFxEditor
+{
+    bool visible = false;
+    int strip = -1;            // the selected strip's ordinal (tracks, then buses, then the master)
+    int slot = -1;
+    juce::String kind;         // the insert's kind name ("EQ", "Compressor", ...)
+    bool bypassed = false;
+    int page = 0;
+    int pageCount = 0;
+    int rows = 0;              // parameter rows laid out on the current page
+    juce::Rectangle<int> bounds;   // shell-local
+};
+[[nodiscard]] MainComponentFxEditor mainComponentFxEditor (const juce::Component& component);
+void mainComponentOpenFxEditor (juce::Component& component, int stripIndex, int slotIndex);
 // G4.1: the painted I/O row rect for a strip (shell coordinates): row 0 the input slot (Track strips
 // only), row 1 the output slot (Track and Bus strips). Empty where the strip has none or the strip is
 // too short to carry it — the same law the paint and the click read.

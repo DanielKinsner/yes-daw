@@ -25,7 +25,8 @@ enum class ContextMenuTarget : std::uint8_t
     MixerBusStrip,       // G4.1
     MixerMasterStrip,    // G4.1
     MixerStripInput,     // G4.1: the strip's input slot — one verb whose choices are the menu's items
-    MixerStripOutput     // G4.1: the strip's output slot — likewise
+    MixerStripOutput,    // G4.1: the strip's output slot — likewise
+    MixerSendRow         // G4.1 cp2: a painted send row — empty: Add Send (the buses); routed: tap, destination, remove
 };
 
 [[nodiscard]] constexpr const char* contextMenuTargetName (ContextMenuTarget target) noexcept
@@ -44,6 +45,7 @@ enum class ContextMenuTarget : std::uint8_t
         case ContextMenuTarget::MixerMasterStrip: return "MixerMasterStrip";
         case ContextMenuTarget::MixerStripInput:  return "MixerStripInput";
         case ContextMenuTarget::MixerStripOutput: return "MixerStripOutput";
+        case ContextMenuTarget::MixerSendRow:     return "MixerSendRow";
     }
     return "Clip";
 }
@@ -128,6 +130,13 @@ inline constexpr std::array<ContextMenuEntry, 3> kMixerMasterStrip {{
 // The I/O slots: a left-click opens the slot's choices — one verb, expanded inline as the items.
 inline constexpr std::array<ContextMenuEntry, 1> kMixerStripInput {{ { UiActionId::MixerTrackSetInput } }};
 inline constexpr std::array<ContextMenuEntry, 1> kMixerStripOutput {{ { UiActionId::MixerTrackSetOutput } }};
+// G4.1 cp2: a ROUTED send row — the tap (ticked when pre-fader), the destination (a submenu of the
+// buses, the current one ticked), then Remove. An EMPTY well offers Add Send alone (the buses inline),
+// exactly as an empty insert slot offers Add Insert.
+inline constexpr std::array<ContextMenuEntry, 3> kMixerSendRow {{
+    { UiActionId::MixerSendSetTap }, { UiActionId::MixerSendSetDestination },
+    { UiActionId::MixerSendRemove, true },
+}};
 inline constexpr std::array<ContextMenuEntry, 4> kInsertSlot {{
     { UiActionId::MixerFxInsertToggle }, { UiActionId::MixerFxInsertRemove },
     { UiActionId::MixerFxInsertReorder, true },
@@ -153,6 +162,7 @@ inline constexpr std::array<ContextMenuEntry, 4> kInsertSlot {{
         case ContextMenuTarget::MixerMasterStrip: return kMixerMasterStrip;
         case ContextMenuTarget::MixerStripInput:  return kMixerStripInput;
         case ContextMenuTarget::MixerStripOutput: return kMixerStripOutput;
+        case ContextMenuTarget::MixerSendRow:     return kMixerSendRow;         // G4.1 cp2
     }
     return kClip;
 }
