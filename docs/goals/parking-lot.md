@@ -134,3 +134,9 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 
 - **A slot's popup needs ~600 ms before it takes the keyboard in a drive (2026-09-05, ss7).** `tools/session-scripts/ss7-mix-the-song.ps1` — the strip menu takes keys after 350 ms, the I/O slot popup dropped the first Up at 350 ms. Owner: the drive tooling (a WaitPopup primitive that polls for the menu window).
 
+
+- **The drive's New chooser still loses the typed path on a slow session (2026-09-05, G4.1 cp2).** `tools/session-drive.ps1` `FileDialogEnter` waits 1.2 s and re-types while the dialog is up, and the scripts click New again when no dialog appears — one ss7 run out of six still failed Step 0 (the dialog never appeared after two clicks). Drive the chooser through the harness pipe (a `newProject <path>` command the shell answers) instead of the native dialog's keyboard; the D3 claim ("created through the real New chooser") then needs one dedicated ss1 step, not every script's Step 0. Owner: the drive tooling pass.
+
+- **The FX editor's rows are raw ParamSpec names (2026-09-05, G4.1 cp2 rubric).** `MainComponent.cpp` `FxEditorComponent` hosts the lane's parameter rows as they were ("eq.band.freq 1000.0Hz", a page chooser for the EQ's 24). G4.2's per-kind faces (EQ curve, GR meter, named bands) replace them in the same frame. Owner: G4.2.
+
+- **Four capped strips are a hair under half the widened mixer panel at 1920 (2026-09-05, G4.1 cp2).** `UiTheme.h` `mixerPaintedStripMaxWidth` 220 — with the tools lane gone the panel is 180 px wider and the N3 "≥ half the panel" pin needed the "or every strip at its cap" clause. A strip width law that grows with the panel (Logic's strips are fixed-width; the room is honest empty space), or a higher cap at large windows. Owner: G6's type-scale / layout pass.

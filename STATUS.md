@@ -95,10 +95,12 @@ submenus real), the promoted parking-lot item (a Bus or the master is offered th
 `[mixer-v2]` in `YesDawUiInputCheck`; ss7 21 / 21; cp1 `36bb3f5` + the Clang / GCC fix `7547e41` — run
 `33984907368` green on nine jobs (macOS red = the parked GPU frame-budget flake; the `36bb3f5` run also
 hit that flake on WINDOWS and an sccache outage on Alpha-verify Linux — both noise, both parking-lot).
-G4.1 cp1 ✅. **cp2 (next):** the lane's remaining controls fold into the strip
-(the send rows' tap / destination / add on the strip, a generic FX editor window on a slot double-click,
-the live fader / pan retired for the painted drags) and the lane column is deleted with its tokens; the
-tests that reach the lane's widgets are re-pinned to the strip. Rules in force: HEADLESS by default (drives on Dan's go — given
+G4.1 cp1 ✅, **cp2 ✅ (the tools lane folded into the strip: empty-slot / send-well clicks are the add
+menus, a slot's double-click the FX editor, the send row's menu, Shift-fine + Touch rides on the painted
+drags, the lane column and 79 widgets deleted; `[mixer-v2-fold]`; ss7 30 / 30, ss6 46 / 46; cp2 `51184b9` + the Clang / GCC fix `7b126af`, run
+`34002327473` green on nine jobs; `tools/session-scripts/README.md` opened).** **Next:** the deferred §5 carve of `MainComponent.cpp`
+(~17.9k lines — the handover blocker), then G4.2 (FX editors: per-kind faces in the cp2 frame, bypass /
+reorder / remove exist, presets). Rules in force: HEADLESS by default (drives on Dan's go — given
 2026-09-05 for this PC), the macOS GPU frame-budget red is noise, the local suite + drives are the working
 gate; drive scripts launched back-to-back flake at Step 0 (pause between scripts).
 G3.2 ✅ — piano roll dock v2: cp1 (`bdf0c36` + `e770d23`), cp2 (`c5be1f8`, audition via the live
@@ -276,6 +278,114 @@ G3.1 ✅ — Track instrument (ADR-0047 Accepted): cp1 `381e8db` (run `336525529
 every run green on all ten jobs; SS-1 41/42 (D3), SS-2 23/23, SS-3 51/51, the G3.1 see-it 11/11 on
 the real exe.
 **Next:** see **Now** above (the Done list is in order; the plan is the map).
+
+### G4.1 cp2 — Mixer dock v2: the lane folds into the strip (2026-09-05)
+
+**Story.** The mixer is the strips and nothing else. The 180 px "MIXER" column on the left — the Add FX
+chooser, the slot rows with their e / ^ / v / x buttons, + Bus / - Bus, the Out: chooser, + Send and
+the send rows, the parameter sliders, the live fader / pan / M / S of the selected strip — is gone, and
+every one of its verbs lives where Dan's hand already is. He clicks an empty insert well and the kinds
+pop up; he double-clicks a filled slot and the effect's editor opens over the arrangement (its name and
+the strip's in the title band, Bypass, the parameter rows, Close; Escape closes it); right-click on the
+slot is the slot's menu (Bypass, Remove, Move Up / Down, Edit…). He clicks an empty send well and the
+buses pop up; he drags the routed row for its level; right-click on the row is the send's menu
+(Pre-fader ticked when pre, Destination ▸ the buses, Remove Send). Shift while dragging a painted fader,
+pan or send is ten times finer, Alt-click resets, and a Touch / Latch ride through a painted fader,
+pan or send writes its lane exactly as the live sliders did. The strips start at the dock's left edge.
+
+**Precedent.** Logic's mixer has no side column: the insert slot's click is the plug-in menu and its
+double-click the plug-in window; the send slot's click is the bus menu; the send's level is the knob
+on the slot; the plug-in window floats over the arrangement. Pro Tools' insert / send slots are the
+same pair of gestures (ADR-0046 §1).
+
+**Build.** `MainComponent.cpp`: `FxEditorComponent` — a floating panel centred over the work area
+(`mixer.fx.editor`, the keymap editor's placement law), the title band "<Kind> · <strip name> · slot N",
+`mixer.fx.editor.bypass` (MixerFxInsertToggle), `mixer.fx.editor.close`, the page chooser and the
+parameter rows (the existing `mixer.fx.param.*` widgets, reparented — their ids and the R15 Touch ride
+unchanged); shell state `fxEditorOpen` beside `selectedFxParamSlot`; opened by a double-click on a
+filled painted slot, the slot menu's Edit…, the harness; closed by Close, Escape, the slot's removal.
+The strips-input: `onInsertSlotDoubleClicked`; an empty slot's left-click opens the `InsertSlot` menu
+(the kinds); `sendRowFilled` + an empty send well's left-click opens the `MixerSendRow` menu (Add Send —
+the buses inline, `kContextMenuAddSendBase`); the right-click on a routed row is `MixerSendRow`
+(`kMixerSendRow`: SetTap ticked when pre, SetDestination ▸ `kContextMenuSendDestBase`, Remove); the
+painted fader / pan / send drags gain Shift-fine (a tenth of the travel from the press) and the
+Touch / Latch ride (`beginAutomationTouchRideIfArmed` — TrackFader / TrackPan / SendLevel, the same
+roles the live sliders rode). `ContextMenus.h`: `ContextMenuTarget::MixerSendRow` + `kMixerSendRow`.
+Deleted: the lane column (`mixerToolsWidth`, `mixerTools*`, `mixerUtility*`, `mixerControlLane*`,
+`mixerTrackSelect*`, `mixerPanHeight/Inset*`, `mixerButtonRow*`, `mixerFaderMinHeight/BottomReserve`,
+`mixerFaderSlider*`, `mixerPanSlider*`, `mixerFxChooserHeight`, `mixerFxSlotHeight/Gap/RemoveWidth`,
+`mixerSendRowHeight`, the "MIXER" heading), the widgets `mixerFxAddChooser`, `mixerFxSlot{Toggles,
+Removes, Edits, Ups, Downs}`, `mixerBusAddButton`, `mixerBusRemoveButton`, `mixerSendAddChooser`,
+`mixerTrackOutputChooser`, `mixerSend{LevelSliders, Labels, Removes, Taps, Destinations}`, `mixerFader`,
+`mixerPan`, `mixerMute`, `mixerSolo`, `mixerStripBounds`; `layoutMixerControls` keeps the master fader
+and places the editor. Harness: `mainComponentOpenFxEditor (strip, slot)`, `mainComponentFxEditor()`
+{visible, strip, slot, kind, bypassed, page, pageCount, rows}, `mainComponentMixerSendDestinationMenuId`.
+Probe: `fxEditor {visible, strip, slot, kind, bypassed, rows}`, `ride {active, samples}`,
+`mixer.strips[i].{muted, soloed}`, `.sends[{bus, level, pre}]` and `.inserts[{kind, enabled}]`, the layout
+ids `mixer.fx.editor` / `.close` / `.bypass` (the editor's buttons are grandchildren — exported by name).
+Laws that surfaced while re-pinning: the empty slot's click lists the kinds INLINE (a section header, then
+the items — the strip menu keeps its submenu); the editor opens on the master's chain too
+(`selectMixerMaster`); a painted send row Alt-clicks back to unity (the live slider's reset); the ride
+keeps ONE sample per tick (the painted drags sample on the release too, and a second breakpoint at one tick
+refused the whole commit — N5 / R15 would have gone red); every strip paints its pan knob and fader rail,
+the selected one included (the lane's live pan / fader used to sit there); the `[strip-mute-solo]`,
+`[mixer-dock]` and N3 pins are re-pointed (N3: "half the panel, or every strip at its legibility cap" — at
+1920 four capped strips are honestly a hair under half the widened panel). Tests: 46 cases that reached
+the lane's widgets by id are re-pinned to the strip through eleven helpers (`addInsertToStrip`,
+`invokeSlotMenu`, `addSendFromStrip`, `invokeSendRowMenu`, `setSendDestinationFromRow`,
+`routeStripOutput`, `fxEditorSlider`, `dragPaintedFaderTo` (from the THUMB: the rail's law is "grab the
+knob"), `dragPaintedPanTo`, `dragPaintedSendTo`, `selectedStripOrdinal`) — every re-pin carries its NOTE,
+the child-count pin is 84 (− the lane's 79 widgets + the editor). `ss6` Step 7 (the Arpeggiator) moves to
+the strip menu; `tools/session-scripts/README.md` opened (the drives' primitives, scripts and lessons — the
+handover Dan asked about). `docs/keymap-v2.md` unchanged (no new action).
+
+**Gates.** `[mixer-v2-fold]` in `YesDawUiInputCheck` — three tracks and a bus, the dock grown: (fold) the
+lane's ids resolve to nothing (`mixer.fx.insert.add`, `mixer.fx.slot.0.toggle`, `mixer.send.add`,
+`mixer.send.0`, `mixer.bus.add`, `mixer.track.output`, `mixer.target.set_fader`, `mixer.target.set_pan`,
+`mixer.target.toggle_mute`) and strip 0's lane starts at the panel's left inset; (slots) a left-click on
+strip 0's empty slot 0 records the `InsertSlot` menu with Add Insert and the Track's nine kinds; invoking
+EQ adds it; a double-click on the filled slot opens the editor (visible, strip 0, slot 0, "EQ"), the first
+param slider is laid out inside the editor's bounds and dragging it edits the insert (undoable);
+Bypass flips enabled; Close hides it; a re-open + Escape hides it; the slot menu's Edit… opens it;
+removing the insert closes it; (sends) a left-click on strip 0's empty send well 0 records
+`MixerSendRow` with Add Send; invoking bus 0 adds the send; a right-click on the routed row records
+`MixerSendRow` with [SetTap, SetDestination, Remove]; SetTap flips pre; with a second bus SetDestination
+re-routes; Remove removes; (fine) a Shift-drag on the painted fader moves a tenth of the plain drag's
+gain change, the pan and the send likewise; (ride) an armed Touch ride during playback through the
+painted fader writes one lane as one undo step (the N5 pin re-pointed); (hide) the editor hides behind
+the piano-roll dock tab and returns with the mixer. `[context-menu]` (the slot menu), `[strip-inserts]`,
+`[strip-sends]`, `[mixer-v2]` stay green on the re-pinned gestures. Local: `YesDawUiInputCheck` 220 / 220
+(66 054 assertions), the suite 379 / 379.
+
+**See-it.** `tools/session-scripts/ss7-mix-the-song.ps1` grown to twelve steps, **30 / 30** on the real exe
+(2026-09-05): the cp1 steps, then the bus's empty slot click lists the kinds and the EQ lands, the next
+slot the Compressor (the dot lit); the EQ slot's double-click opens the editor ("EQ · Bus 1 · slot 1",
+eight rows, a shot), Close hides it; track 1's empty send well lists the buses and the send lands
+post-fader; the send row's right-click menu flips it pre-fader (the strip paints PRE, a shot); Save;
+Close. `ss6` **46 / 46** with its Step 7 on the strip menu (Right opens the Add Insert submenu on EQ, the
+Arpeggiator is the eighth). Drive findings, all tooling: the dock splitter's drag is dropped when it starts
+before the tab switch settles (~400 ms); the New chooser drops the typed path on a slower session — the
+runner's `FileDialogEnter` now waits 1.2 s and types again while the dialog is still up, and the scripts
+click New once more when no dialog appeared (the first click on a fresh window can only activate it);
+one ss7 run still lost the chooser (parking lot). Shots `build-ci/session-shots/ss7/` (`ss7-fx-editor`,
+`ss7-send`).
+
+**Rubric (§7.4, the ss7 shots at 1920×1080).** 1 PASS after one FIX (the selected strip painted no pan
+knob and no fader rail — the lane's live pan / fader used to cover those; every strip paints both now).
+2 n/a. 3 PASS (the editor names the effect, the strip and the slot; the slot's dot and the send's PRE
+read). 4 PASS (no column, no dead space left of the strips). 5 PASS (the selected slot, the open editor
+and the pre-fader send are distinct states). 6 PASS. 7 PASS. Note (parking lot): the editor's rows are
+the raw `ParamSpec` names ("eq.band.freq 1000.0Hz") — G4.2's per-kind faces.
+
+**Certified.** cp2 `51184b9` (run `34001543319`: Linux and macOS red on one warning-as-error — an unused vertical-slider test helper MSVC is silent on — the cp1 class again; the other seven green) → the fix `7b126af` (run `34002327473`: nine green, macOS = the parked `YesDawTimelineGpuCheck` frame-budget flake alone). Local suite 379 / 379; `YesDawUiInputCheck` 220 / 220; ss7 30 / 30, ss6 46 / 46.
+
+**Deviation log.** (1) The FX editor is a floating panel INSIDE the shell (the keymap editor's placement
+law), not a native window — headless gates can drive it and G4.2 keeps the frame; a native window is
+G4.2's call if the per-kind faces want one. (2) The editor follows the selected strip's selected slot and
+closes when the strip changes (Logic keeps a plug-in window on its plug-in; ours never shows another
+strip's effect by accident — a pinned window is G4.2's). (3) The send row's Destination is the row's menu,
+not a chooser on the strip (Logic's is a click on the send slot — the same gesture, a menu). (4) The
+painted fader is grabbed at its knob (Logic's too); the old live slider jumped to the press.
 
 ### G4.1 cp1 — Mixer dock v2: the strip's anatomy (2026-09-05)
 
