@@ -2057,7 +2057,10 @@ void MainComponent::resized()
         inspectorSplitter.setBounds (getWidth() - inspectorWidthNow() - half, top, thickness, dockTop - top);
         inspectorSplitter.setVisible (inspectorWidthNow() > 0);
         for (yesdaw::ui::SplitterComponent* splitter : { &railSplitter, &inspectorSplitter, &dockSplitter })
-            splitter->toFront (false);
+        {
+            if (fxEditor.isVisible()) splitter->toBehind (&fxEditor);
+            else splitter->toFront (false);
+        }
     }
     // G1.5: the keymap editor floats over the arrangement, centred, at most 760×520.
     {
@@ -2071,9 +2074,12 @@ void MainComponent::resized()
         const int historyHeight = std::min (L::undoHistoryMaxHeight, work.getHeight() - L::keymapEditorMargin);
         undoHistory.setBounds (work.withSizeKeepingCentre (std::max (L::keymapEditorMinWidth, historyWidth), std::max (L::keymapEditorMinHeight, historyHeight)));
         // G4.1 cp2: the FX editor — the same centred law, sized for its parameter rows.
-        const int fxWidth = std::min (L::fxEditorMaxWidth, work.getWidth() - L::keymapEditorMargin);
-        const int fxHeight = std::min (L::fxEditorMaxHeight, work.getHeight() - L::keymapEditorMargin);
-        fxEditor.setBounds (work.withSizeKeepingCentre (std::max (L::fxEditorMinWidth, fxWidth), std::max (L::fxEditorMinHeight, fxHeight)));
+        // The EQ face needs its full parameter page even with the mixer grown at 720p.
+        // Like a plug-in window, it may float over the dock; keep it above the splitters too.
+        const auto fxWork = fxEditor.showsEqResponse() ? getLocalBounds().withTrimmedTop (headerHeightNow()) : work;
+        const int fxWidth = std::min (fxEditor.preferredWidth(), fxWork.getWidth() - L::keymapEditorMargin);
+        const int fxHeight = std::min (fxEditor.preferredHeight(), fxWork.getHeight() - L::keymapEditorMargin);
+        fxEditor.setBounds (fxWork.withSizeKeepingCentre (std::max (L::fxEditorMinWidth, fxWidth), std::max (L::fxEditorMinHeight, fxHeight)));
     }
     pianoRollInput.setBounds (mixerPanelBounds());   // G2.1 cp2: the piano roll is a dock tab
     pianoRollLaneChooser.setBounds (pianoRollControlLaneChooserArea (pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin()))

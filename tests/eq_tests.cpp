@@ -583,6 +583,125 @@ TEST_CASE ("EqNode measured frequency response matches the independent reference
     }
 }
 
+TEST_CASE ("EqNode display response matches rendered impulses for every filter shape and rate", "[eq][response][display]")
+{
+    const std::array<BandSetting, 6> settings {
+        BandSetting { BandType::Bell, 1000.0, 9.0, 1.2 },
+        BandSetting { BandType::LowShelf, 350.0, -9.0, 0.707 },
+        BandSetting { BandType::HighShelf, 5000.0, 9.0, 0.707 },
+        BandSetting { BandType::Hpf, 180.0, 0.0, 0.707 },
+        BandSetting { BandType::Lpf, 6000.0, 0.0, 0.707 },
+        BandSetting { BandType::Notch, 1350.0, 0.0, 0.6 },
+    };
+
+    for (const double sampleRate : { 44100.0, 48000.0, 96000.0 })
+    {
+        for (const BandSetting& setting : settings)
+        {
+            INFO ("sample rate " << sampleRate << ", band type " << static_cast<int> (setting.type));
+            EqNode node;
+            node.prepare (sampleRate, 512);
+            node.setBand (0, setting.type, setting.frequencyHz, setting.gainDb, setting.q);
+            std::vector<float> impulse (static_cast<std::size_t> (kImpulseSize) * 2u, 0.0f);
+            impulse[0] = 1.0f;
+            EventStream events;
+            for (int offset = 0; offset < kImpulseSize; offset += 512)
+                processBlock (node, impulse, offset, 512, events);
+
+            std::vector<std::complex<double>> spectrum (static_cast<std::size_t> (kImpulseSize));
+            for (std::size_t i = 0; i < spectrum.size(); ++i)
+                spectrum[i] = { impulse[i * 2u], 0.0 };
+            fft (spectrum);
+            for (const int bin : { 0, 4, 17, 64, 128, 512, 1024, 2048, 4000, 4096 })
+            {
+                const double frequency = static_cast<double> (bin) * sampleRate / kImpulseSize;
+                const double predicted = node.magnitudeAtFrequency (frequency);
+                const double measured = std::abs (spectrum[static_cast<std::size_t> (bin)]);
+                INFO ("probe Hz " << frequency << ", predicted " << predicted << ", measured " << measured);
+                REQUIRE (std::isfinite (predicted));
+                REQUIRE (std::fabs (predicted - measured) < 2.0e-6 * (1.0 + measured));
+            }
+        }
+    }
+}
+
+TEST_CASE ("EqNode display response combines all six normalized bands like the rendered sine", "[eq][response][display]")
+{
+    const std::array<BandSetting, EqNode::kBands> settings {
+        BandSetting { BandType::Bell, 1000.0, 9.0, 1.2 },
+        BandSetting { BandType::LowShelf, 350.0, -6.0, 0.707 },
+        BandSetting { BandType::HighShelf, 5000.0, 6.0, 0.707 },
+        BandSetting { BandType::Hpf, 80.0, 0.0, 0.707 },
+        BandSetting { BandType::Lpf, 12000.0, 0.0, 0.707 },
+        BandSetting { BandType::Notch, 2500.0, 0.0, 1.4 },
+    };
+    constexpr int measuredFrames = 16384;
+    constexpr int totalFrames = measuredFrames * 2;
+    for (const double sampleRate : { 44100.0, 48000.0, 96000.0 })
+    {
+        for (const int bin : { 43, 341, 2304 })
+        {
+            const double frequency = static_cast<double> (bin) * sampleRate / measuredFrames;
+            INFO ("sample rate " << sampleRate << ", probe Hz " << frequency);
+            EqNode node;
+            node.prepare (sampleRate, 512);
+            for (int band = 0; band < EqNode::kBands; ++band)
+            {
+                const BandSetting& setting = settings[static_cast<std::size_t> (band)];
+                const std::array<double, 4> values {
+                    static_cast<double> (setting.type), setting.frequencyHz, setting.gainDb, setting.q
+                };
+                for (std::size_t offset = 0; offset < values.size(); ++offset)
+                {
+                    const auto id = EqNode::parameterIdFor (band, static_cast<yesdaw::engine::ParameterId> (offset));
+                    node.setNormalizedParameter (id, unmapToNormalized (EqNode::parameterSpec (id), values[offset]));
+                }
+            }
+            const double predicted = node.magnitudeAtFrequency (frequency);
+            std::vector<float> sine (static_cast<std::size_t> (totalFrames) * 2u, 0.0f);
+            double inputEnergy = 0.0;
+            for (int frame = 0; frame < totalFrames; ++frame)
+            {
+                const auto sample = static_cast<float> (0.1 * std::sin (2.0 * kPi * frequency * frame / sampleRate));
+                sine[static_cast<std::size_t> (frame) * 2u] = sample;
+                if (frame >= measuredFrames)
+                    inputEnergy += static_cast<double> (sample) * sample;
+            }
+            EventStream events;
+            for (int offset = 0; offset < totalFrames; offset += 512)
+                processBlock (node, sine, offset, 512, events);
+            double outputEnergy = 0.0;
+            for (int frame = measuredFrames; frame < totalFrames; ++frame)
+            {
+                const double sample = sine[static_cast<std::size_t> (frame) * 2u];
+                outputEnergy += sample * sample;
+            }
+            const double measured = std::sqrt (outputEnergy / inputEnergy);
+            REQUIRE (std::fabs (predicted - measured) < 5.0e-6 * (1.0 + measured));
+        }
+    }
+}
+
+TEST_CASE ("EqNode display response is neutral by default and bounds invalid probe frequencies", "[eq][response][display]")
+{
+    EqNode node;
+    REQUIRE (node.magnitudeAtFrequency (0.0) == 1.0);
+    node.prepare (kSampleRate, 512);
+    for (const double frequency : { 0.0, 20.0, 1000.0, 20000.0, kSampleRate / 2.0 })
+        REQUIRE (node.magnitudeAtFrequency (frequency) == 1.0);
+
+    node.setBand (0, BandType::LowShelf, 350.0, 12.0, 0.707);
+    REQUIRE (std::fabs (node.magnitudeAtFrequency (0.0) - std::pow (10.0, 12.0 / 20.0)) < 1.0e-12);
+    REQUIRE (std::fabs (node.magnitudeAtFrequency (kSampleRate / 2.0) - 1.0) < 1.0e-12);
+    REQUIRE (node.magnitudeAtFrequency (-100.0) == node.magnitudeAtFrequency (0.0));
+    REQUIRE (node.magnitudeAtFrequency (kSampleRate) == node.magnitudeAtFrequency (kSampleRate / 2.0));
+    REQUIRE (node.magnitudeAtFrequency (std::numeric_limits<double>::quiet_NaN()) == node.magnitudeAtFrequency (0.0));
+    REQUIRE (node.magnitudeAtFrequency (std::numeric_limits<double>::infinity()) == node.magnitudeAtFrequency (0.0));
+
+    node.setBand (0, BandType::Notch, 1350.0, 0.0, 0.6);
+    REQUIRE (node.magnitudeAtFrequency (1350.0) < 1.0e-12);
+}
+
 TEST_CASE ("EqNode response negative control catches a one percent g detune", "[eq][response][negative]")
 {
     const std::vector<int> bins = responseProbeBins();

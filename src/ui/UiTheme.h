@@ -833,6 +833,14 @@ struct UiTheme
         static constexpr int fxEditorMinHeight = 160;
         static constexpr int fxEditorBypassWidth = 72;
         static constexpr int fxEditorTitleTrimRight = 160;
+        // G4.2: response above the eight-row parameter page, using the editor's existing spacing.
+        static constexpr int eqEditorMaxWidth = 660;
+        static constexpr int eqEditorMaxHeight = 460;
+        static constexpr int eqResponseHeight = 140;
+        static constexpr int eqParamLabelWidth = 200;
+        static constexpr int eqResponseLabelWidth = 40;
+        static constexpr int eqResponseLabelHeight = 18;
+        static constexpr float eqResponseStrokeWidth = 2.0f;
         // G2.18: the undo history window (Alt+Z) — a narrower centred panel, the same law.
         static constexpr int undoHistoryMaxWidth = 420;
         static constexpr int undoHistoryMaxHeight = 480;

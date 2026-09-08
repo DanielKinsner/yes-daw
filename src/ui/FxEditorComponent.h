@@ -7,6 +7,7 @@
 #pragma once
 
 #include "engine/Time.h"
+#include "ui/EqResponseComponent.h"
 #include "ui/ContextMenus.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
@@ -49,6 +50,7 @@ public:
 
     FxEditorComponent()
     {
+        addChildComponent (eqResponse);
         setName ("FX editor");
         setComponentID ("mixer.fx.editor");
         setTooltip ("The insert's parameters: drag a row (rides Touch / Latch automation); Escape closes");
@@ -83,12 +85,33 @@ public:
     void setBypassed (bool bypassed) { bypassButton.setToggleState (bypassed, juce::dontSendNotification); }
     [[nodiscard]] bool isBypassed() const noexcept { return bypassButton.getToggleState(); }
 
+    void setInsert (const engine::FxInsert& insert, double sampleRate)
+    {
+        const bool showEq = insert.kind == engine::FxKind::Eq;
+        if (showEq) eqResponse.setInsert (insert, sampleRate);
+        if (eqResponse.isVisible() != showEq)
+        {
+            eqResponse.setVisible (showEq);
+            resized();
+        }
+    }
+    [[nodiscard]] bool showsEqResponse() const noexcept { return eqResponse.isVisible(); }
+    [[nodiscard]] double eqResponseDb (double hz) const noexcept { return eqResponse.responseDb (hz); }
+    [[nodiscard]] int preferredWidth() const noexcept
+    {
+        return showsEqResponse() ? UiTheme::Layout::eqEditorMaxWidth : UiTheme::Layout::fxEditorMaxWidth;
+    }
+    [[nodiscard]] int preferredHeight() const noexcept
+    {
+        return showsEqResponse() ? UiTheme::Layout::eqEditorMaxHeight : UiTheme::Layout::fxEditorMaxHeight;
+    }
+
     // The content area the shell lays the parameter rows into (editor-local).
     [[nodiscard]] juce::Rectangle<int> contentArea() const
     {
         using L = yesdaw::ui::UiTheme::Layout;
-        auto area = getLocalBounds().reduced (L::keymapEditorInset);
-        area.removeFromTop (L::keymapEditorTopRowHeight + L::keymapEditorGap);
+        auto area = bodyArea();
+        if (showsEqResponse()) area.removeFromTop (L::eqResponseHeight + L::keymapEditorGap);
         return area;
     }
 
@@ -114,9 +137,20 @@ public:
         closeButton.setBounds (top.removeFromRight (L::keymapEditorCloseWidth));
         top.removeFromRight (L::keymapEditorGap);
         bypassButton.setBounds (top.removeFromRight (L::fxEditorBypassWidth));
+        auto content = bodyArea();
+        eqResponse.setBounds (showsEqResponse() ? content.removeFromTop (L::eqResponseHeight) : juce::Rectangle<int> {});
     }
 
 private:
+    [[nodiscard]] juce::Rectangle<int> bodyArea() const
+    {
+        using L = UiTheme::Layout;
+        auto area = getLocalBounds().reduced (L::keymapEditorInset);
+        area.removeFromTop (L::keymapEditorTopRowHeight + L::keymapEditorGap);
+        return area;
+    }
+
+    EqResponseComponent eqResponse;
     juce::String title;
     juce::TextButton bypassButton, closeButton;
 };

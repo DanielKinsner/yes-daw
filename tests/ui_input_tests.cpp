@@ -2,6 +2,7 @@
 
 #include "interchange/Smf.h"   // G3.7: the [midi-file] gate writes and reads back a Standard MIDI File
 #include "ui/MainComponent.h"
+#include "ui/EqResponseComponent.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
 #include "ui/UiPianoRollSurface.h"   // G3.2: pianoRollKeyName
@@ -21871,4 +21872,108 @@ TEST_CASE ("mixer v2: the tools lane is gone — well clicks, the FX editor, the
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("G4.2 EQ editor shows a response graph above reachable parameters",
+           "[ui][input][shell][mixer][fx-editors]")
+{
+    const auto bundlePath = makeTempBundlePath ("fx-editors-eq");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    openStripMenu (*shell, 0);
+    addInsertToSelectedStrip (*shell, yesdaw::engine::FxKind::Eq);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    auto* graph = findChildWithComponentId (*shell, "mixer.fx.editor.eq.response");
+    REQUIRE (graph != nullptr);
+    REQUIRE (graph->isVisible());
+    REQUIRE (graph->getParentComponent()->isVisible());
+    REQUIRE (graph->getWidth() > 300);
+    REQUIRE (graph->getHeight() >= 100);
+    auto* pager = findChildWithComponentId (*shell, "mixer.fx.param.page");
+    REQUIRE (pager != nullptr);
+    REQUIRE (pager->getY() >= graph->getBottom());
+    juce::var probe;
+    REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+    REQUIRE (probe["layout"].hasProperty ("mixer.fx.param.2"));
+    REQUIRE (probe["layout"].hasProperty ("mixer.fx.param.page"));
+    REQUIRE (static_cast<bool> (probe["fxEditor"]["eqResponseVisible"]));
+}
+
+TEST_CASE ("G4.2 EQ response follows edits undo bypass and slot changes", "[ui][input][shell][fx-editors]")
+{
+    const auto bundlePath = makeTempBundlePath ("fx-editors-response");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Eq);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    auto* graph = dynamic_cast<yesdaw::ui::EqResponseComponent*> (
+        findChildWithComponentId (*shell, "mixer.fx.editor.eq.response"));
+    REQUIRE (graph != nullptr);
+    REQUIRE (graph->responseDb (1000.0) == Catch::Approx (0.0).margin (1.0e-9));
+    auto* gain = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "mixer.fx.param.2"));
+    REQUIRE (gain != nullptr);
+    gain->setValue (0.75, juce::sendNotificationSync); // 1 kHz bell, +12 dB
+    REQUIRE (graph->responseDb (1000.0) == Catch::Approx (12.0).margin (1.0e-6));
+    REQUIRE (graph->curvePath().getBounds().getHeight() > 10.0f);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (graph->responseDb (1000.0) == Catch::Approx (0.0).margin (1.0e-9));
+    gain->setValue (0.75, juce::sendNotificationSync);
+    auto* bypass = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.editor.bypass"));
+    REQUIRE (bypass != nullptr);
+    clickButton (*bypass);
+    REQUIRE (graph->responseDb (1000.0) == 0.0);
+    REQUIRE (graph->curvePath().getBounds().getHeight() == 0.0f);
+    clickButton (*bypass);
+    REQUIRE (graph->responseDb (1000.0) == Catch::Approx (12.0).margin (1.0e-6));
+
+    // Opening another floating editor must preserve its foreground order through resized().
+    for (const auto& [action, id] : {
+             std::pair { UiActionId::HelpShowKeymap, "keymap.editor" },
+             std::pair { UiActionId::EditShowUndoHistory, "undo.history" } })
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, action);
+        auto* overlay = findChildWithComponentId (*shell, id);
+        REQUIRE (overlay != nullptr);
+        REQUIRE (overlay->isVisible());
+        REQUIRE (shell->getIndexOfChildComponent (overlay) > shell->getIndexOfChildComponent (graph->getParentComponent()));
+        yesdaw::ui::mainComponentDispatchAction (*shell, action);
+    }
+
+    for (const auto size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+    {
+        shell->setSize (size.x, size.y);
+        const auto editor = yesdaw::ui::mainComponentFxEditor (*shell);
+        REQUIRE (shell->getLocalBounds().contains (editor.bounds));
+        REQUIRE (graph->getHeight() == yesdaw::ui::UiTheme::Layout::eqResponseHeight);
+        auto* pager = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.param.page"));
+        REQUIRE (pager != nullptr);
+        REQUIRE (pager->getY() >= graph->getBottom());
+        for (int page = 1; page <= pager->getNumItems(); ++page)
+        {
+            pager->setSelectedId (page, juce::sendNotificationSync);
+            for (int row = 0; row < 8; ++row)
+            {
+                auto* label = findChildWithComponentId (*shell, "mixer.fx.param." + juce::String (row) + ".label");
+                REQUIRE (label != nullptr);
+                auto* readout = dynamic_cast<juce::Label*> (label);
+                REQUIRE (readout != nullptr);
+                REQUIRE (readout->getText().startsWith ("Band " + juce::String ((page - 1) * 2 + row / 4 + 1) + " "));
+                REQUIRE_FALSE (label->getBounds().isEmpty());
+                REQUIRE (label->getParentComponent()->getLocalBounds().contains (label->getBounds()));
+            }
+        }
+    }
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Eq);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 1);
+    REQUIRE (graph->responseDb (1000.0) == Catch::Approx (0.0).margin (1.0e-9));
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Delay);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 2);
+    REQUIRE_FALSE (graph->isVisible());
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).bounds.getHeight() == yesdaw::ui::UiTheme::Layout::fxEditorMaxHeight);
 }

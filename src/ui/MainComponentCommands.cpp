@@ -1844,6 +1844,7 @@ void MainComponent::refreshActionState()
                                    + juce::String::fromUTF8 (" \xc2\xb7 ") + (strip != nullptr ? juce::String (strip->name) : juce::String ("Master"))
                                    + juce::String::fromUTF8 (" \xc2\xb7 slot ") + juce::String (selectedFxParamSlot + 1));
             fxEditor.setBypassed (! insert.enabled);
+            fxEditor.setInsert (insert, appModel.project().sampleRate.hz);
         }
         if (fxEditor.isVisible() != editorShown)
         {
@@ -1884,10 +1885,12 @@ void MainComponent::refreshActionState()
                 const std::size_t firstParam = page * mixerFxParamSliders.size();
                 const std::size_t lastParam = std::min (firstParam + mixerFxParamSliders.size(),
                                                         acceptedIds.size());
-                mixerFxParamPageChooser.addItem (
-                    "Params " + juce::String (static_cast<int> (firstParam) + 1)
-                        + "-" + juce::String (static_cast<int> (lastParam)),
-                    static_cast<int> (page) + 1);
+                const auto pageName = kind == yesdaw::engine::FxKind::Eq
+                    ? "Bands " + juce::String (static_cast<int> (acceptedIds[firstParam] / yesdaw::engine::EqNode::kParamsPerBand) + 1)
+                        + "-" + juce::String (static_cast<int> (acceptedIds[lastParam - 1] / yesdaw::engine::EqNode::kParamsPerBand) + 1)
+                    : "Params " + juce::String (static_cast<int> (firstParam) + 1)
+                        + "-" + juce::String (static_cast<int> (lastParam));
+                mixerFxParamPageChooser.addItem (pageName, static_cast<int> (page) + 1);
             }
             mixerFxParamPageChooser.setSelectedId (selectedFxParamPage + 1, juce::dontSendNotification);
             mixerFxParamPageChooser.setEnabled (paramEditEnabled);
@@ -1900,6 +1903,13 @@ void MainComponent::refreshActionState()
             {
                 const std::uint32_t paramId = acceptedIds[i];
                 const yesdaw::engine::ParamSpec spec = yesdaw::engine::fxParamSpecForKind (kind, paramId);
+                juce::String parameterName (spec.name);
+                if (kind == yesdaw::engine::FxKind::Eq)
+                {
+                    static constexpr std::array<const char*, 4> names { "Type", "Frequency", "Gain", "Q" };
+                    parameterName = "Band " + juce::String (static_cast<int> (paramId / yesdaw::engine::EqNode::kParamsPerBand) + 1)
+                                  + " " + names[paramId % yesdaw::engine::EqNode::kParamsPerBand];
+                }
                 const double normalized = appModel.fxInsertParamValueOnSelectedStrip (
                     static_cast<std::size_t> (selectedFxParamSlot), paramId);
                 mixerFxParamSliderIds[used] = paramId;
@@ -1921,7 +1931,7 @@ void MainComponent::refreshActionState()
                     choiceChooser.setVisible (true);
                     mixerFxParamSliders[used].setVisible (false);
                     mixerFxParamLabels[used].setText (
-                        juce::String (spec.name) + " " + spec.choiceNames[currentChoice],
+                        parameterName + " " + spec.choiceNames[currentChoice],
                         juce::dontSendNotification);
                 }
                 else
@@ -1934,7 +1944,7 @@ void MainComponent::refreshActionState()
                     mixerFxParamSliders[used].setVisible (true);
                     mixerFxParamChoosers[used].setVisible (false);
                     mixerFxParamLabels[used].setText (
-                        juce::String (spec.name)
+                        parameterName
                             + " " + juce::String (yesdaw::engine::mapNormalized (spec, normalized), 1)
                             + spec.unit,
                         juce::dontSendNotification);

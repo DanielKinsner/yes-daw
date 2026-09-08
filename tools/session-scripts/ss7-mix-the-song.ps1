@@ -163,6 +163,26 @@ Click 'mixer.strip.3.insert.0' -Double
 [void](Assert (WaitProbe { param($q) [bool]$q.fxEditor.visible -and "$($q.fxEditor.kind)" -eq 'EQ' } -TimeoutMs 2000) ('the double-click opens the EQ''s editor (fxEditor=' + (Probe).fxEditor.kind + ', strip ' + (Probe).fxEditor.strip + ')'))
 [void](Assert ([int](Probe).fxEditor.rows -gt 0) ('the editor lays out the EQ''s parameter rows (' + (Probe).fxEditor.rows + ')'))
 Shot 'ss7-fx-editor'
+# G4.2 cp1: the response follows the actual EQ settings; a gain edit, bypass and undo.
+[void](Assert ($null -ne (Probe).layout.'mixer.fx.editor.eq.response') 'the EQ response display is laid out')
+[void](Assert ([Math]::Abs([double](Probe).fxEditor.eqResponseDb1000) -lt 0.01) 'the default EQ response is flat at 1 kHz')
+DragWithin 'mixer.fx.param.2' -35 0 60 0
+[void](Assert (WaitProbe { param($q) [double]$q.fxEditor.eqResponseDb1000 -gt 1.0 } -TimeoutMs 2000) 'band 1 gain lifts the 1 kHz response')
+Shot 'ss7-eq-boost'
+Click 'mixer.fx.editor.bypass'
+[void](Assert (WaitProbe { param($q) [bool]$q.fxEditor.bypassed -and [Math]::Abs([double]$q.fxEditor.eqResponseDb1000) -lt 0.01 } -TimeoutMs 2000) 'bypass shows the flat effective response')
+Click 'mixer.fx.editor.bypass'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.bypassed -and [double]$q.fxEditor.eqResponseDb1000 -gt 1.0 } -TimeoutMs 2000) 'unbypass restores the configured curve')
+foreach ($size in @(@(1280,720), @(1920,1080), @(2560,1440))) {
+  Resize $size[0] $size[1]
+  Start-Sleep -Milliseconds 250
+  $graph = LayoutRect 'mixer.fx.editor.eq.response'
+  $pager = LayoutRect 'mixer.fx.param.page'
+  [void](Assert ([int]$graph[1] + [int]$graph[3] -le [int]$pager[1]) ('graph above controls at ' + $size[0] + 'x' + $size[1]))
+  Shot ('ss7-eq-' + $size[0])
+}
+Resize 1920 1080
+
 Click 'mixer.fx.editor.close'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'Close hides the editor')
 

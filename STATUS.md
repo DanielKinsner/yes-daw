@@ -8,6 +8,66 @@ worklog.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-09-08 — G4.2 cp1: EQ response display
+
+**Now:** G4.2 cp1 implemented and locally verified. This checkpoint commits/pushes the EQ face;
+exact-head CI is pending the push. **Next:** G4.2 cp2 — compressor gain-reduction meter, then the
+remaining per-kind faces and presets. Stop here; G4.2 and the G4 phase are not closed.
+
+**Story / precedent.** Opening an EQ shows its six bands' combined configured response above the
+existing editable controls. Named Band 1–6 Type / Frequency / Gain / Q readouts and Bands 1–2 /
+3–4 / 5–6 pages replace raw ParamSpec names. The precedent is Logic Pro's Channel EQ display
+([Apple's guide](https://support.apple.com/guide/logicpro/channel-eq-overview-lgcef1edce5b/mac)).
+This is a response display; the parameter controls remain the editing surface (no spectrum-analyzer claim).
+
+**Implementation.** `EqNode::magnitudeAtFrequency()` evaluates the actual current TPT coefficients;
+processing and RT annotations are untouched. `EqResponseComponent` owns a separate message-thread
+EQ copy, prepared at the project rate and refreshed on settings changes. It caches a log-frequency
+path bounded by visible columns, 20 Hz to min(20 kHz, 0.49 x rate), with a +/-24 dB view. Bypass
+shows the flat effective response; unbypass restores the configured curve. No live audio-node state
+is read. The EQ frame is 660 x 460 max and can float over the mixer dock to keep all eight rows
+reachable at 720p. Splitters stay behind it without raising it over Keymap / Undo History. The probe
+exports the parameter widgets and `fxEditor.eqResponseVisible` / `eqResponseDb1000` for real gestures.
+
+**Mechanical evidence.** Full final Release build and `ctest --preset ci`: **379 / 379**, 169.21 s.
+`[fx-editors]`: **435 assertions / 2 cases** (edits, undo, bypass, slot resets, non-EQ hiding,
+all 24 labeled controls at 720p/1080p/1440p, probe targets, overlay order). `YesDawEqCheck`:
+**17,600 assertions / 11 cases**; the three added display cases contribute 382 assertions comparing
+all six shapes and a combined normalized chain to FFT/settled-sine renders at 44.1/48/96 kHz,
+including DC/Nyquist and invalid-frequency bounds. Red first: missing response API; absent graph;
+missing probe slider; clipped 720p rows; Keymap behind EQ. Every corresponding final gate is green.
+
+**See-it.** Dan authorized the hands-off batch this session. Final `ss7-mix-the-song.ps1`:
+**38 / 38** on the rebuilt real exe, including a gain drag, bypass/unbypass and the three window
+sizes. `ss5-piano-roll`: **68 / 68**; `ss6-write-a-beat`: **46 / 46**; `ss4-track-instrument`:
+**17 / 17** on its spaced retry (first attempt missed the lane-menu dispatch, 16 / 17).
+
+**Earlier-drive limits — do not call the whole batch green.** Unchanged ss1/ss2/ss3 still failed
+in native New/Import setup, before exercising this EQ. First pass: ss1 21 passed/17 failed,
+ss2 0/5, ss3 1/2. One spaced retry: ss1 30/12, ss2 1/4, ss3 0/3. ss1 also retains D3 (no empty
+project at launch) and exceeded its 3 s startup budget (4.831 s initially; 7.729 s on the retry
+while rebuilding). No assertion or threshold was weakened. The New/Import behavior matches the
+already parked native-chooser reliability family; these failures are recorded, not fixed or
+claimed to be baseline-proven. The current checkpoint's local suite + ss7 are green; this is not
+full-arc session-drive certification. Keep the drive tooling issue parked per the phase rules.
+
+**Visual rubric.** Inspected the actual final EQ at logical 1280x720, 1920x1080 and 2560x1440
+against the arrangement reference and the existing tokens. PASS for EQ containment, no clipped
+rows/readouts, named controls/tooltips, readable 11.5 px graph/readout text and theme contrast,
+visible selected strip / bypass state, the existing shell structure, and honest calculated data.
+The three-track ss7 fixture with an intentionally enlarged mixer does not re-certify the global
+eight-track density requirement. The only display fixes needed were the row fit, numbered labels
+and axis type size; the layout/label regressions are pinned in `[fx-editors]`.
+
+**Review / handoff.** Compound simplification and six-lens code review complete; the overlay-order
+finding was fixed and tested. Receipt `20260908-141407-9409b0ef`: no remaining actionable findings.
+The attempted Claude peer did not run (missing jq); the local adversarial pass completed. Nonblocking
+coverage limit: no UI assertion yet varies project rate, although the engine response is measured
+at three rates and the shell passes the project rate explicitly. Per-checkpoint screenshots are local
+under `build-ci/session-shots/2026-09-08-g42-certified/ss7/`; earlier drive shots/logs and the review
+receipt are local too, not synced by git. Re-run the checked-in script to recreate them. HEADLESS
+remains the default for a new session; request a hands-off window before drives.
+
 ## 2026-09-01 the Real-DAW arc (G0–G8) — plan written, waiting for Dan's "go"
 
 **What happened.** Dan used the app for real on 2026-09-01 and reported: laggy, things not working

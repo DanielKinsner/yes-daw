@@ -415,7 +415,7 @@ juce::var MainComponent::buildProbeLayout()
         put ("mixer.fx.editor", fxEditor.getBounds());
         for (int i = 0; i < fxEditor.getNumChildComponents(); ++i)
             if (const juce::Component* child = fxEditor.getChildComponent (i))
-                if (child->isVisible() && child->getComponentID().startsWith ("mixer.fx.editor."))
+                if (child->isVisible() && child->getComponentID().startsWith ("mixer.fx."))
                     put (child->getComponentID(), child->getBounds().translated (fxEditor.getX(), fxEditor.getY()));
     }
     // Every visible identified child by its component id — toolbar buttons carry their
@@ -902,6 +902,8 @@ juce::String MainComponent::buildStateProbeJson()
         fx->setProperty ("kind", editor.kind);
         fx->setProperty ("bypassed", editor.bypassed);
         fx->setProperty ("rows", editor.rows);
+        fx->setProperty ("eqResponseVisible", editor.visible && fxEditor.showsEqResponse());
+        fx->setProperty ("eqResponseDb1000", fxEditor.eqResponseDb (1000.0));
         root->setProperty ("fxEditor", juce::var (fx));
         // G4.1 cp2: the Touch / Latch ride a painted drag is buffering (N5) — what a drive sees mid-ride.
         auto* ride = new juce::DynamicObject();

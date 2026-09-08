@@ -1263,7 +1263,7 @@ void MainComponent::layoutMixerControls()
                 continue;
             }
             auto paramRow = content.removeFromTop (L::mixerFxParamRowHeight);
-            mixerFxParamLabels[index].setBounds (paramRow.removeFromLeft (L::mixerFxParamLabelWidth));
+            mixerFxParamLabels[index].setBounds (paramRow.removeFromLeft (fxEditor.showsEqResponse() ? L::eqParamLabelWidth : L::mixerFxParamLabelWidth));
             if (mixerFxParamChoosers[index].isVisible())
             {
                 mixerFxParamChoosers[index].setBounds (paramRow);

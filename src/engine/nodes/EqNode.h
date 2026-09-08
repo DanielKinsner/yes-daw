@@ -141,6 +141,42 @@ public:
 
     void setInput (Node* in) noexcept { input_ = in; }
 
+    // Steady-state response of the current coefficients, with all six bands in series.
+    // Editors use their own prepared node: this does not synchronize with a live audio node.
+    // Probe frequencies are bounded to DC..Nyquist; non-finite probes use DC.
+    [[nodiscard]] double magnitudeAtFrequency (double frequencyHz) const noexcept
+    {
+        const double frequency = std::clamp (std::isfinite (frequencyHz) ? frequencyHz : 0.0,
+                                             0.0, sampleRate_ * 0.5);
+        const double angle = kPi * frequency / sampleRate_;
+        const double sine = std::sin (angle);
+        const double cosine = std::cos (angle);
+        const double sineSquared = sine * sine;
+        const double cosineSquared = cosine * cosine;
+        const double sineCosine = sine * cosine;
+        double magnitude = 1.0;
+        for (const Band& band : bands_)
+        {
+            const Coefficients& c = band.coeffs;
+            if (c.m1 == 0.0 && c.m2 == 0.0)
+            {
+                magnitude *= std::fabs (c.m0);
+                continue;
+            }
+
+            // The TPT transfer is m0 + (m1*g*s + m2*g*g)/(s*s + k*g*s + g*g),
+            // s = j*tan(angle). Multiplying by a1*cos(angle)^2 evaluates it directly
+            // from the processing coefficients and stays bounded at Nyquist.
+            const double denominatorReal = c.a3 * cosineSquared - c.a1 * sineSquared;
+            const double denominatorImag = (1.0 - c.a1 - c.a3) * sineCosine;
+            const double numeratorReal = c.m0 * denominatorReal + c.m2 * c.a3 * cosineSquared;
+            const double numeratorImag = c.m0 * denominatorImag + c.m1 * c.a2 * sineCosine;
+            magnitude *= std::hypot (numeratorReal, numeratorImag)
+                       / std::hypot (denominatorReal, denominatorImag);
+        }
+        return magnitude;
+    }
+
     void setBand (int band, BandType type, double frequencyHz, double gainDb, double q) noexcept
     {
         if (! isValidBand (band))
