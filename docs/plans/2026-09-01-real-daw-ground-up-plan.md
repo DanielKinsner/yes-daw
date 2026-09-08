@@ -654,6 +654,12 @@ with the MIDI FX; loop and audition; export the MIDI file; reopen it; render equ
 - **G4.2 — Insert slots and FX editors.** Build: click = add menu, double-click = editor window
   per built-in (EQ with curve display, compressor with GR meter, delay, reverb, limiter), bypass,
   drag reorder, remove, presets (save/load per FX). Gate: `[fx-editors]`.
+  **2026-09-08 cp1 complete:** EQ response display and named band controls, `93eea07`,
+  [run 34282374416](https://github.com/DanielKinsner/yes-daw/actions/runs/34282374416): nine jobs
+  green; macOS red only on the parked `YesDawTimelineGpuCheck` timing exception. Local suite
+  379/379; ss7 38/38. Earlier ss1–ss3 setup failures remain recorded in `STATUS.md`; this does
+  not certify the whole session-drive arc. **G4.2 remains open:** compressor meter, remaining
+  per-kind faces and presets still to come.
 - **G4.3 — Sends and buses.** Build: `+` adds a send with a bus chooser or "New Bus…", pre/post,
   level, destination; "Route to New Bus" from the header. Gate: `[sends-v2]`.
 - **G4.4 — Sidechain reachable.** Build: compressor sidechain source chooser (node exists).

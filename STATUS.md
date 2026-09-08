@@ -10,9 +10,18 @@ worklog.
 
 ## 2026-09-08 — G4.2 cp1: EQ response display
 
-**Now:** G4.2 cp1 implemented and locally verified. This checkpoint commits/pushes the EQ face;
-exact-head CI is pending the push. **Next:** G4.2 cp2 — compressor gain-reduction meter, then the
-remaining per-kind faces and presets. Stop here; G4.2 and the G4 phase are not closed.
+**Now:** G4.2 cp1 implemented, locally verified and pushed as `93eea07`. Exact-head CI is complete:
+nine jobs green; macOS red only on the parked GPU timing failure. **Next:** G4.2 cp2 — compressor
+gain-reduction meter, then the remaining per-kind faces and presets. Stop here; G4.2 and the G4
+phase are not closed.
+
+**Remote evidence.** Code SHA `93eea074666ce8740cf98efc64f326e4be9e6d3c`,
+[CI run 34282374416](https://github.com/DanielKinsner/yes-daw/actions/runs/34282374416).
+Windows, Linux, both sanitizer jobs, both packaging jobs, both verifier self-tests and classification passed.
+macOS passed 377 / 378 tests; only `YesDawTimelineGpuCheck` failed at
+`tests/timeline_gpu_tests.cpp:84` (19.4233 ms sustained vs 16.6 ms). This is the parked frame-budget
+exception under Dan's 2026-09-04 instruction; no rerun or threshold change. Overall GitHub conclusion
+is `failure`, not all-green. This docs-only evidence update does not replace that exact-code run.
 
 **Story / precedent.** Opening an EQ shows its six bands' combined configured response above the
 existing editable controls. Named Band 1–6 Type / Frequency / Gain / Q readouts and Bands 1–2 /
