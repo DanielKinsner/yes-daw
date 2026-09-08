@@ -1,12 +1,14 @@
-# Parking lot (the only place findings go during the G-arc)
+# Parking lot (unrelated findings and future scope during the G-arc)
 
-Per [ADR-0046](../adr/0046-feel-first-shell-arc.md) §13 and the
-[Real-DAW plan](../plans/2026-09-01-real-daw-ground-up-plan.md) §8.2: during the G0–G8 arc, no new
-adversarial audit carves happen and no finding becomes a backlog item on its own. Every finding —
-yours, a reviewer's, a tool's — is appended here with a `file:line` and a one-line "why it
-matters". Items are **promoted only at a phase close**, and only if they serve the *next* phase's
-exit. Promotion means: move the line into the plan's phase list in a docs commit and delete it
-here.
+Per [ADR-0049](../adr/0049-autonomous-delivery-and-usable-song-milestone.md), which amends ADR-0046
+§13, and the [active plan](../plans/2026-09-01-real-daw-ground-up-plan.md) §8.2: unrelated audits,
+feature ideas and future scope are parked here with a `file:line` and a one-line reason. Agents
+promote them at phase close only when they serve the next approved exit; broader product changes
+still need a decision. **Product regressions and broken verification required by the active
+milestone are repaired immediately**, including earlier-phase New/Import/session failures.
+Those are not held until a phase close that they themselves prevent. Record such repair work in
+STATUS and link its eventual evidence here if it already has a parked entry; never tick it fixed
+merely because it was promoted. Existing entries below retain their history.
 
 Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <phase or "later">`
 

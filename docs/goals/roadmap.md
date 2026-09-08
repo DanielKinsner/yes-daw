@@ -5,13 +5,15 @@
 > Full detail, architecture, and rationale live in the build plan:
 > [`docs/plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md`](../plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md).
 
-> **2026-09-01 — shell direction change.** Everything user-facing (arrangement editing, MIDI,
-> mixer UI, project lifecycle, polish, and the order recording comes in) is now governed by
-> [ADR-0046](../adr/0046-feel-first-shell-arc.md) and the
-> [Real-DAW plan G0–G8](../plans/2026-09-01-real-daw-ground-up-plan.md). H16/H17's shell scope is
-> absorbed by it; H18 (plugins) opens inside it at G4.8. The engine horizons and their exit
-> criteria below stay as recorded. **Arc pointer (2026-09-02):** G0–G2 headless work complete;
-> SS-1..SS-3 drives pending Dan's go; G3 waits on ADR-0047 (Proposed) — see `STATUS.md`.
+> **Active arc — amended 2026-09-08.** Everything user-facing is governed by
+> [ADR-0046](../adr/0046-feel-first-shell-arc.md),
+> [ADR-0049](../adr/0049-autonomous-delivery-and-usable-song-milestone.md), and the
+> [Real-DAW plan G0–G8](../plans/2026-09-01-real-daw-ground-up-plan.md). Current work starts at G4.0a:
+> restore SS-1–SS-3, then prove shared keyboard control navigation. The remaining order is the built-in
+> mixer (G4.2–G4.7), G5 lifecycle, G6 polish/accessibility, the **Usable-song milestone**, separate
+> G4.8/H18 plugin hosting (entered only after a recorded real-VST3 worker PASS), G7 recording, then G8
+> alpha. See `STATUS.md` for the exact live checkpoint. The engine horizons and recorded status below
+> remain history; where their ordering text differs, ADR-0049 and this active arc govern.
 
 Build order: **playable spine first**, then widen. **Editing-first** (recording is later). MIDI is
 co-equal in the *model* from H1, with its UI sequenced later. Hard rule (all three research reports):
@@ -259,6 +261,10 @@ recording/action/accessibility/input/smoke **5/5**, and full `ctest --preset ci 
 > ([`docs/reality-lane.md`](../reality-lane.md)) runs owner-machine hardware smokes outside the
 > horizon sequence; risks live in [`docs/goals/risk-register.md`](risk-register.md). Every H14–H17
 > plan carries a "Gates that must bite" section naming its negative controls up front.
+
+> **Later authority:** ADR-0046 amended the human-feel clause, and ADR-0049 amended owner-only operation
+> and H18 sequencing. The H14–H19 descriptions below record the decisions and completion evidence at the
+> time; use the active arc above for current execution order and milestone certification.
 
 ## H14 — Built-in FX suite
 Parametric EQ, compressor, delay, reverb, and lookahead limiter as built-in Nodes on Track/Bus

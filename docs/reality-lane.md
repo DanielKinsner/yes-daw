@@ -1,5 +1,12 @@
 # Reality lane — owner-machine smokes and their committed results
 
+> **2026-09-08 operating amendment:** [ADR-0049](adr/0049-autonomous-delivery-and-usable-song-milestone.md)
+> permits agents to run available self-asserting checks on a suitable real machine and commit the
+> genuine script-generated evidence. "Owner-machine" identifies the hardware, not a requirement
+> that Dan operate the command or judge its output. Ask only for missing physical/access actions.
+> Existing thresholds, test scope and result rows below are unchanged. No script run or new PASS
+> is implied by this documentation amendment; simulations never earn real-hardware credit.
+
 > **What this is.** The standing lane of one-command, self-asserting smokes that run on real
 > hardware on Dan's machine — the checks CI *cannot* run. Each prints `PASS` or `FAIL` and asserts
 > mechanically (exit 0/1); none asks a human to judge by ear or eye. Results are **committed to the

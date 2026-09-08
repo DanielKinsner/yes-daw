@@ -12,6 +12,12 @@ supersedes: the stem-centric framing in docs/goals/roadmap.md and CONTEXT.md "we
 
 # ✨ YES DAW — Architecture & Build Roadmap
 
+> **Active execution authority (2026-09-08):** this document retains the engine design and dated
+> H-horizon history. Current shell ordering, autonomous checkpoint advancement and verification
+> operation are governed by [ADR-0049](../adr/0049-autonomous-delivery-and-usable-song-milestone.md)
+> and the [Real-DAW plan](2026-09-01-real-daw-ground-up-plan.md). Historical human-boundary and
+> eyeball requirements below do not override those amended rules. `STATUS.md` names the live work.
+
 ## Overview
 
 YES DAW is a from-scratch, **full general-purpose multi-track DAW** (Logic / Pro Tools / Cubase /

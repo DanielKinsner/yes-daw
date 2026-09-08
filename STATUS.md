@@ -1,12 +1,59 @@
 # YES DAW — STATUS (live handoff)
 
 **Read this first on any machine.** This is the single source of truth for *where we are right now*.
-The [plan](docs/plans/2026-06-23-feat-yes-daw-architecture-roadmap-plan.md) and
-[roadmap](docs/goals/roadmap.md) are the stable reference; **this** file is the live, constantly-updated
-worklog.
+The [active plan](docs/plans/2026-09-01-real-daw-ground-up-plan.md) and
+[roadmap](docs/goals/roadmap.md) define the work; **this** file's newest entry is the live handoff.
+Older entries below are dated history, not competing "Now" instructions.
 
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
+
+## 2026-09-08 — Plan revised for autonomous delivery
+
+**Now:** Dan accepted the targeted plan revision and asked to keep human involvement minimal.
+[ADR-0049](docs/adr/0049-autonomous-delivery-and-usable-song-milestone.md) records that decision.
+This checkpoint changes documentation only; no new app behavior, hardware proof or workflow PASS
+is claimed. Document consistency/review and docs-only CI are the checks for this revision.
+
+**Revision checks:** separate agent reviews completed. Fixed the Enter activation/Return-to-zero
+priority conflict and labeled the recording alignment/result-emission harness as future work.
+The local document check passes: 14 documentation files, 90 local links, LF/UTF-8, byte-identical
+AGENTS/CLAUDE, preserved existing ADR text and unchanged hardware result history. The pushed
+revision's CI uses the documentation classifier; it runs no new app or hardware tests.
+
+**Current implementation milestone:** **Usable-song** — a packaged create/import → edit/MIDI →
+built-in mix → save/reopen → export/recovery path, with automated journeys, feel/rubric evidence
+and the required real hardware-playback result. It is not alpha. Execution order is G4.0a/G4.0b →
+G4.2–G4.7 → G5 → G6 → Usable-song close; separate G4.8/H18 plugins then G7 recording and G8 alpha.
+The full DAW scope and existing engine contracts are retained.
+
+**Next, in small commits:**
+1. **G4.0a — Restore SS-1–SS-3.** Diagnose New/Import, empty launch and startup failures from the
+   actual app/harness; preserve assertions and budgets. Unknown cause stays blocking. Restore
+   these earlier journeys before more FX faces; earlier "keep this parked" instructions are superseded.
+2. **G4.0b — Prove keyboard control navigation.** The Command router owns a Control target separate
+   from Focus context. Keyboard operation and global transport must coexist, with one dispatch per key.
+3. Resume G4.2 cp2 compressor meter, remaining faces, slot behavior and presets, then G4.3–G4.7.
+
+**Operating rule:** on a build/continue mandate, agents review, repair, test, commit/push and advance
+within the current named milestone without routine checkpoint approval. Stop at its finish line
+unless a broader mandate exists. Three failed corrective attempts trigger a separate agent critic,
+not a request for Dan to debug. Product regressions and required harness repairs take priority;
+unrelated scope remains parked. The exact macOS GPU-only timing exception remains narrowly recorded
+in the active plan; it does not excuse the missing SS-1–SS-3 proof.
+
+**Human dependencies only:** a consequential decision outside accepted contracts, inaccessible
+equipment/credentials/input surface, or actions outside authorization such as spending/publication
+or destructive user-data changes. Agents judge the visual rubric and run available self-asserting
+hardware commands; only scripts generate result rows. First verify a separate input session for
+unattended app drives; otherwise use an already-authorized hands-off window on the shared desktop.
+Older per-launch permission and owner-only operator wording yields to ADR-0049; this is not a
+blanket permission to take over Dan's mouse. No isolated-input setup is claimed present yet.
+
+**Handoff boundary:** this request authorizes revising and syncing the plan, not starting feature
+implementation, a scheduled automation or a new goal. The code remains `93eea07` (with its recorded
+CI result below); later docs-only green does not re-certify that code. New future scripts are
+explicitly marked planned in the session README; the old measurement rows remain unchanged.
 
 ## 2026-09-08 — G4.2 cp1: EQ response display
 

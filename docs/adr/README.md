@@ -66,6 +66,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0046](0046-feel-first-shell-arc.md) | The feel-first shell arc: reference-DAW parity is the UI law (amends 0032's keymap rule and 0037's feel-session clause) | Accepted |
 | [0047](0047-per-track-instrument-slot.md) | One persisted instrument per Track, shared by every MIDI Clip on it (supersedes 0045's Instrument-by-Clip identity law in part) | Accepted |
 | [0048](0048-sampler-instrument.md) | The Sampler instrument: pads on the Track, samples as Project Assets, the engine's bytes through the G0.5 ownership law | Accepted |
+| [0049](0049-autonomous-delivery-and-usable-song-milestone.md) | Autonomous delivery toward a usable-song milestone | Accepted |
 
 ## Decision status (the five research forks)
 

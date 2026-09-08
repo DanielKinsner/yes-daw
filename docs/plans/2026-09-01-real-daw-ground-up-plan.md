@@ -2,10 +2,43 @@
 
 **Making what we have feel like Logic Pro / Pro Tools, editing and MIDI first.**
 Written 2026-09-01 after Dan's first real session ("laggy, half-working, confusing — can you turn
-this around?"). Locked by [ADR-0046](../adr/0046-feel-first-shell-arc.md). Vocabulary in
+this around?"). Locked by [ADR-0046](../adr/0046-feel-first-shell-arc.md), with execution and ordering
+amended by [ADR-0049](../adr/0049-autonomous-delivery-and-usable-song-milestone.md) on 2026-09-08.
+Vocabulary in
 [`CONTEXT.md`](../../CONTEXT.md) (Arrange window, Editor dock, Focus context, Command router,
 Object/Time selection, Edit mode, Smart tool, Nudge value, Snap mode, Session script, Session
 drive, State probe, Feel budget, Reference-DAW rule).
+
+> **Current execution contract — 2026-09-08.** Dan selected a targeted plan revision with minimal
+> human involvement. Preserve the full DAW, engine and delivered work. Next: restore the earlier
+> user journeys, then finish a **Usable-song milestone** before deepening plugin hosting. Agents
+> review, test, repair and advance within the authorized milestone without checkpoint approvals.
+> This document revision is not a request to launch implementation or a background loop.
+
+### Execution order and finish lines
+
+Historical G/SS identifiers are stable; numeric G order is no longer the execution order at G4.8.
+
+| Order | Work | Exit / advancement |
+|---|---|---|
+| 1 | G4.0a recovery, G4.0b control navigation | Earlier SS-1–SS-3 pass again; keyboard contract proven before more FX faces |
+| 2 | G4 built-in mixer: G4.2–G4.7 (G4.1 already delivered) | Logical SS-5 mixes with built-ins; current and earlier journeys pass |
+| 3 | G5 project lifecycle, then G6 polish/accessibility | Logical SS-6, feel budgets and rubric pass; certify the Usable-song milestone below |
+| 4 | Separate G4.8 / H18 plugin milestone | Recorded real-VST3 smoke PASS before kickoff; plugin lifecycle journey and kickoff-ADR gates pass |
+| 5 | G7 recording | Logical SS-7 plus measured hardware recording proof |
+| 6 | G8 alpha distribution | Packaged whole-arc checks and hardware evidence; publication remains a separate authorized action |
+
+**Usable-song milestone:** on the packaged app, create/import a mixed audio/MIDI song, edit,
+mix using built-ins, save, close/reopen, export, and recover interrupted work. Pass logical SS-1
+through SS-6, all applicable feel budgets, the three-size/scaling rubric, packaged self-check and
+the required packaged hardware-playback check. Preserve existing playback timing targets. No
+manual listening or owner screenshot review is required. Retain versioned fixtures, exact code
+SHA/build identity, script results, exported-audio assertions and raw measurements in the evidence.
+This is an earlier product milestone, not an alpha declaration or proof of recording/plugins.
+
+**Missing infrastructure is not success.** Separate-input app automation and hardware evidence
+are capabilities to verify, not assumptions. A missing surface blocks the affected certification;
+independent preparation may continue within scope, but no dependent phase or milestone closes.
 
 > **Drift rule (read first).** If this plan contradicts code or docs reality, verify reality, log the
 > deviation in `STATUS.md`, and follow the plan's *intent* (the laws in §2), never its letter.
@@ -23,7 +56,8 @@ drive, State probe, Feel budget, Reference-DAW rule).
   the one-line exits in §6. Nothing here needs him to read code.
 - **Agents** execute §6 top to bottom under §7 (verification) and §8 (process). §5 tells them how
   the code has to move. §9 tells them where every old item went. §10 lists the risks.
-- Everything in this plan is a decision already made. The only reasons to contact Dan are in §8.4.
+- Accepted decisions govern execution; explicitly named kickoff ADRs remain future work. The only
+  reasons to contact Dan are concrete human dependencies in §8.4.
 
 ---
 
@@ -123,7 +157,8 @@ These are restated here because agents read the plan, not the ADR, at 3 a.m.
   Otherwise no default; reach it by mouse and the keymap editor. Never a three-modifier default.
 - **Focus contexts.** Arrange / Piano roll / Mixer. Same chord may differ per context. Transport
   chords are global.
-- **Keys go to the command router.** Widgets never own keys. Only an active text field does.
+- **Keys go to the command router.** Widgets never own DAW shortcuts. Active text entry and the
+  router-owned Control target have the ordered behavior in G4.0b; Focus context remains separate.
 - **Everything reachable by mouse.** Menu with shortcut, context menu on the object, or labeled
   toolbar control with a tooltip. **No dead affordances**: a visible control either works and is
   explained, or it is removed.
@@ -137,9 +172,9 @@ These are restated here because agents read the plan, not the ADR, at 3 a.m.
 - **Agent visual judgment at every UI checkpoint** (§7.4). Dan's sessions are optional and never
   gating.
 - **Editing and MIDI before recording.** G7 opens only after G6 closes.
-- **Anti-wander.** Current phase only, top to bottom. No new audit carves. Findings go to
-  `docs/goals/parking-lot.md`; promotion only at phase close. A phase closes on its session script,
-  gates, and rubric — never on a tick count.
+- **Anti-wander.** Follow the execution-order table within the authorized milestone. Repair
+  earlier product regressions and broken required verification immediately; park unrelated
+  features/audits. A phase closes on its session script, gates and rubric — never on a tick count.
 
 ---
 
@@ -246,7 +281,7 @@ roll, **M** Mixer.
 |---|---|---|---|
 | Play / Stop (toggle) | `Space` | Logic, Pro Tools, everyone | Play-only |
 | Play from selection start | `Shift+Space` | Cubase/Reaper (play from cursor/selection) | play from last locate |
-| Return to zero (go to beginning) | `Enter` | Logic Return; Pro Tools Return | same |
+| Return to zero (go to beginning) | `Enter` outside active text/control navigation (G4.0b owns control activation) | Logic Return; Pro Tools Return | same outside control navigation |
 | Go to project start / end | `Home` / `End` | Windows DAWs | Home only |
 | Record | `R` | Logic R | same |
 | Cycle (loop) on/off | `C` | Logic C | `Ctrl+Alt+Shift+L` |
@@ -408,7 +443,7 @@ Model side (`UiAppModel` stays the model; these are added, then the old fields d
 | Sidechain creation verb | G4.4 | node exists |
 | Automation Write mode, multi-lane view, region-follow | G4.6 | |
 | `FxKind::Plugin` + scanner UI + insert chooser + editor hosting | G4.8 | opens H18; ADR first |
-| Any-format import + sample-rate conversion | G5.1 | JUCE formats + resampler |
+| Any-format import + sample-rate conversion | G5.1 | Preserve original bytes; resample at read per ADR-0010 |
 | Threaded export with progress/cancel; stems | G5.3 | |
 | Decoded-asset sharing instead of deep copy | G5.4 | |
 | Prefs and view-state persistence | G5.6 (prefs), G2.1 (view state) | |
@@ -418,9 +453,10 @@ Model side (`UiAppModel` stays the model; these are added, then the old fields d
 ## 6. The phases (G0–G8)
 
 Each item is written as: **story** · build · precedent · gate · see-it (the Session-script step
-that proves it on the real exe). Items are ordered; work them top to bottom. An item is done when
-its gate is green in CI, its see-it step passes in the Session drive, and (for UI items) the visual
-rubric is recorded.
+that proves it on the real exe). Follow the execution-order table, then item order within each
+phase. Split large items into named committable steps in STATUS before implementation. An item is
+done when exact-code-SHA CI is complete under §8.1, required current/earlier Session drives pass,
+and (for UI items) the visual rubric is recorded. Named runner exceptions are reported explicitly.
 
 ### G0 — Stop the bleeding: the first minute
 
@@ -646,7 +682,30 @@ with the MIDI FX; loop and audition; export the MIDI file; reopen it; render equ
 
 ### G4 — The mixer and routing
 
-**Exit:** **SS-5 "Mix the song"** passes. *For Dan: it mixes like Logic's mixer, and plugins load.*
+**Built-in mixer exit:** logical **SS-5 "Mix the song"** passes using built-ins, with all earlier
+journeys restored. *For Dan: mix a complete song with EQ, compression, sends and automation.*
+G4.8 is a separate later milestone; it does not block G5/G6 or imply that plugins are delivered.
+
+- **G4.0a — Restore the basic journeys (next checkpoint).** Classify the current SS-1–SS-3
+  New/Import, empty-launch and startup failures from reproducible evidence. Repair app or harness
+  as indicated, preserving all assertions/thresholds. Run serially with no concurrent build/drive
+  load when measuring startup. Pin each confirmed product defect with an appropriate negative
+  control; repair synchronization/targeting if the harness is at fault. Unknown cause is not a
+  tooling exemption. Gate: current SS-1–SS-3 fully pass on the same built app, plus applicable
+  local/CI checks. No more editor features until this checkpoint restores the earlier proof.
+- **G4.0b — Keyboard operation without losing transport.** Implement ADR-0049's Control target,
+  separate from Focus context: Tab/Shift+Tab traverse visible enabled controls in a stable order;
+  Tab or accessibility targeting starts control navigation; returning to an editor canvas ends it.
+  Enter activates a button or enters/confirms a chooser/value interaction; arrows adjust only the active
+  control interaction; Esc cancels it and restores the prior editor context. A visible ring and
+  accessibility name/role/value/state identify the target. Priority: active text entry, Space
+  transport, Control-target Enter/Esc/Tab navigation, other global transport, active control
+  adjustment, then editor-context commands. Enter outside control navigation retains Return to zero.
+  One key dispatches once: Enter must not both activate and locate; a slider arrow must not nudge a Clip.
+  Hidden/removed controls leave no stale target. All changes use the existing command/undo path.
+  Gate: `[control-navigation]` covers transport, EQ, a mixer fader, chooser, text field and panel
+  closure, including keyboard-only journeys and cancellation. Extend ss7 with the same real
+  keyboard gestures. This is shared interaction behavior; G6 later audits complete coverage.
 
 - **G4.1 — Mixer dock v2** per §3.1: strips with name/colour, input, insert list, sends, pan,
   fader with dB scale, meter with peak-hold and clip, M/S/R, output chooser; bus and master
@@ -660,6 +719,10 @@ with the MIDI FX; loop and audition; export the MIDI file; reopen it; render equ
   379/379; ss7 38/38. Earlier ss1–ss3 setup failures remain recorded in `STATUS.md`; this does
   not certify the whole session-drive arc. **G4.2 remains open:** compressor meter, remaining
   per-kind faces and presets still to come.
+  Remaining committable steps: cp2 compressor meter; cp3 delay face; cp4 reverb face; cp5 limiter
+  face; cp6 slot reorder/remove/bypass behavior; cp7 presets save/load including malformed preset
+  refusal. Reuse already working behavior and tests; do not rebuild a completed step merely to
+  match this list. Every face adopts G4.0b's keyboard contract and grows the same mix journey.
 - **G4.3 — Sends and buses.** Build: `+` adds a send with a bus chooser or "New Bus…", pre/post,
   level, destination; "Route to New Bus" from the header. Gate: `[sends-v2]`.
 - **G4.4 — Sidechain reachable.** Build: compressor sidechain source chooser (node exists).
@@ -671,51 +734,167 @@ with the MIDI FX; loop and audition; export the MIDI file; reopen it; render equ
   render goldens; `[automation-v2]`.
 - **G4.7 — Master strip.** Build: dim/mute, loudness readout in the header (exists as a meter),
   limiter editor. Gate: tokens.
-- **G4.8 — Third-party plugins in strips (opens H18).** Build (ADR first): `FxKind::Plugin`,
-  scanner UI (Options ▸ Plugins), insert chooser lists scanned VST3, editor window through the
-  out-of-process host, blacklist UX. Gate: the synthetic host isolation gate stays; a real-plugin
-  smoke stays owner-lane.
+- **G4.8 — Separate plugin milestone (after Usable-song; opens H18).** Entry: a recorded PASS
+  from one named/versioned real VST3 through the worker smoke, under ADR-0037. Synthetic PASS or
+  setup exit 2 is not entry credit. An agent runs the available smoke with an approved fixture;
+  only unavailable access/fixture approval requires Dan. Then write the kickoff ADR before code.
+  It must define plugin identity/state persistence, missing/crashed plugin behavior, editor
+  lifecycle, latency changes and trust posture. Existing process isolation protects session
+  continuity, not user files; do not claim an OS sandbox that has not been built.
+  Planned slices: scan/blacklist; insert/process; save/reopen opaque state; editor/parameters;
+  crash/hang recovery and removal. The kickoff makes each slice independently testable. Keep
+  synthetic isolation gates and add a real-plugin journey: scan, insert, change state, save,
+  reopen, render, recover a failed instance, remove. Built-in and earlier journeys stay green.
 
 **SS-5**: route vocals to a new bus; EQ + compressor on it; send to a reverb bus; automate the
 bus fader with Write while playing; solo-safe the reverb; export.
 
 ### G5 — Project lifecycle, import, export
 
-**Exit:** **SS-6** passes. *For Dan: drop any file in, get a mix out, never lose work.*
+**Exit:** logical **SS-6 "Project lifecycle"** (`tools/session-scripts/ss8-project-lifecycle.ps1`)
+passes, with all earlier logical sessions and the existing feel budgets. *For Dan: import supported
+files, finish a mix, reopen it, and recover interrupted work without guessing what survived.*
 
-- **G5.1 — Import anything, at the drop point.** Build: JUCE formats (WAV/AIFF/FLAC/OGG; MP3 where
-  licensed), sample-rate conversion on import (windowed-sinc, replaces the 44.1 kHz refusal),
-  drop onto a lane at the pointer, multi-file drop to consecutive tracks, undoable. Gate: import
-  goldens per format.
-- **G5.2 — Media browser (`Y`).** Build: file browser with audition, project assets list, recent.
-- **G5.3 — Export v2.** Build: worker-thread render with real progress and cancel (R31), WAV
-  16/24/32 with dither, range options, stems per track/bus, normalize option. Gate: bit-exact
-  goldens; cancel mid-way leaves no partial file.
-- **G5.4 — Decoded-asset sharing.** Build: one decoded buffer per asset shared by reference (R30).
-  Gate: memory assertion on the fixture.
-- **G5.5 — New-project dialog and templates.** Build: sample rate, tempo, template; Save As /
-  Save a Copy.
-- **G5.6 — Prefs persist.** Build: `prefs.json` (keymap, view defaults, device, dock sizes) (R32).
-- **G5.7 — Missing-asset relink.** Build: the R5 report gains a relink chooser.
+- **G5.1 — Import formats and cross-rate audio.** JUCE formats: WAV/AIFF/FLAC/OGG, MP3 where
+  licensed; drop at the pointer on a lane, multiple files on consecutive tracks, undoable.
+  **ADR-0010 remains authoritative:** retain original, content-hashed asset bytes; resample at the
+  read boundary, using the live and high-quality offline tiers. Decoded/resampled caches are derived
+  data, never replacements for the original asset. Implement format decoding and then cross-rate
+  playback/export as separate checkpoints. Gate: per-format decode/import goldens, unchanged source
+  hashes, source-window and duration assertions, cross-rate RT/offline results against their declared
+  references; invalid/unsupported input leaves the project unchanged and reports its reason.
+- **G5.2 — Media browser (`Y`).** File browser with audition, project assets and recent files.
+  Reuse G5.1's format and rate policy. Gate: browser selection/audition/import reaches the same asset
+  and drop location as the ordinary import path; unavailable files give a visible reason.
+- **G5.3 — Export v2, in three checkpoints.** **cp1:** move rendering to a worker with real progress,
+  cancel and an immutable export snapshot: project, range/options, and owned decoded-audio lifetimes
+  are captured together. No worker reads mutable shell state or borrowed buffers that a project edit
+  can invalidate. Completion is posted to the originating job; a stale job cannot update a replacement
+  project. A second export is refused with a reason while one is active.
+  **cp2:** render/write to a temporary sibling of the destination and commit only on success.
+  Cancel before commit removes the temporary output and preserves any existing destination; failure
+  does the same and reports its cause. Close or project replacement requests cancellation, completes
+  worker shutdown without blocking the message thread, then destroys/replaces project state; teardown
+  never detaches a worker that retains shell pointers. Gate: cancel during render/write, destination
+  preservation, close/replacement during export, stale completion, and responsive progress/control input.
+  **cp3:** WAV 16/24/32, dither for integer output, range options, track/bus stems and normalize.
+  Gate: existing bit-exact float reference plus deterministic format/dither, range and stem reference
+  comparisons. Freeze each option into the same job snapshot; aborted jobs never report success.
+- **G5.4 — Decoded-asset sharing.** One decoded buffer per asset shared by reference (R30), while
+  preserving the immutable ownership/lifetime contract established for export. Gate: fixture memory
+  assertion and edit/export/project-close lifetime tests; no extra decode per clip referencing an asset.
+- **G5.5 — New project, templates and copies.** Sample rate, tempo and template in the new-project
+  dialog; Save As and Save a Copy. Gate: creation/copy/reopen retain assets and project state, a copy
+  leaves the source usable, and failure preserves the last valid project. Respect G5.3's active-job rule.
+- **G5.6 — Persistent preferences.** `prefs.json` owns keymap, view defaults, device and dock defaults
+  (R32); reuse existing project view state rather than overwriting it with defaults. Gate: relaunch
+  preserves settings, malformed preferences fail safely, and missing devices receive an honest reason.
+- **G5.7 — Missing-asset relink.** Add a relink chooser to the existing missing-asset report.
+  Validate replacement media against the project's asset/source-window requirements before adopting it;
+  cancellation or invalid replacement preserves the project and reports what remains missing.
+  Gate: relink, refusal, cancel and save/reopen through the real chooser and bundle validator.
 
-### G6 — Visual identity and polish
+**SS-6 "Project lifecycle" — logical journey; all failure fixtures stay in a scratch project.**
+1. Create from a template with an explicit rate/tempo; open the browser and audition a supported file.
+2. Drop several formats, including an asset at a different rate, at a chosen lane/time; assert track
+   placement, duration and original asset hashes; undo/redo and compare state.
+3. Import malformed/unsupported media; assert a specific refusal and unchanged project/asset references.
+4. Reopen a scratch copy with a deliberately missing asset; cancel relink, reject an incompatible file,
+   then relink successfully and assert the validator and render recover the intended content.
+5. Export a selected range and stems with the format options; verify outputs. Cancel a separate export
+   mid-job and assert no partial output or overwritten destination; exercise project replacement during
+   another active export and assert shutdown/completion belongs to the original job only.
+6. Save, make an edit, wait for a confirmed autosave, interrupt the scratch session, recover through the
+   shipped recovery path, and assert the recovered project equals the last confirmed autosave.
+7. Save As and Save a Copy; close/reopen the copies, verify assets and render, then relaunch and assert
+   preferences and per-project view state retain their separate values.
 
-**Exit:** the rubric passes at 100 %, 125 %, 150 %, 200 % Windows scaling and at three window
-sizes; every control is keyboard-reachable (a11y tree). Build: token pass (colour, type scale,
-spacing), one icon set, hover/pressed/focus states, playhead and meter ballistics, empty states
-("Drop audio here or press Ctrl+Shift+I"), first-run tips, min window 1280×720. Gate: tokens,
-a11y, screenshot montage committed at phase close.
+### G6 — Visual identity, keyboard access and polish
 
-### G7 — Recording (deferred, then done properly)
+**Exit:** all checkpoints below pass; rubric at 100 %, 125 %, 150 %, 200 % Windows scaling and
+1280×720, 1920×1080, 2560×1440; every operable control is keyboard-reachable through the command
+router and represented accurately in the accessibility tree. Commit the phase montage; Dan does
+not have to judge screenshots. Existing logical sessions SS-1–SS-6 and feel budgets remain gates.
 
-Opens only after G6 closes. Items are the parked R24–R29 verbatim plus: take lanes in the
-Arrange window, swipe comping, punch-on-the-fly, input monitoring UI, MIDI CC capture, and the
-owner hardware PASS. Exit: **SS-7 "Record a take"** passes and the loopback smoke has a PASS row.
+- **G6.1 — Tokens and icons.** One colour/type/spacing system and icon set, including readable labels
+  and tooltips. Gate: tokens, contrast/size assertions and agent rubric; no fake data or dead affordances.
+- **G6.2 — Layout and scaling.** Preserve reference density and the 1280×720 operating floor across
+  the stated window/scaling matrix. Gate: geometry, reachable controls and screenshot rubric at every
+  combination; each discovered clipping/overlap defect gains a mechanical regression assertion.
+- **G6.3 — Keyboard navigation and accessibility.** The command router owns a logical control target
+  distinct from Arrange/Piano roll/Mixer focus context. It routes control traversal, activation and
+  adjustment under ADR-0049; native buttons/choosers/sliders do not own
+  global shortcuts. Only active text editing consumes text keys. Global transport retains its law.
+  Expose the target, name, role, value, enabled state and supported actions to accessibility; clear or
+  restore the target predictably when a control disappears or an editor closes. Gate: traverse and
+  operate every visible control class, assert target/highlight/accessibility state, and verify transport
+  before/after control use and text editing. No action becomes mouse-only through this change.
+- **G6.4 — Interaction and motion states.** Hover, pressed and logical-target states; playhead and
+  meter ballistics from real state. Gate: state transitions and existing frame/action/audio budgets;
+  no animation or timer may make static controls lie or interrupt playback.
+- **G6.5 — Empty states and first-run tips.** Explain the next available action using its actual
+  current chord (for example, import audio); dismiss tips and preserve normal keyboard/mouse use.
+  Gate: empty-project and missing-selection paths expose valid actions, with no obscured controls.
+
+### G7 — Recording (after Usable-song and the separate G4.8 milestone)
+
+**Exit:** logical **SS-7 "Record a take"** (`tools/session-scripts/ss9-record-a-take.ps1`) passes,
+all earlier logical sessions remain green, and the shipped recording loopback checker records a
+hardware PASS. Existing recording alignment, zero-drop, Underrun and timing gates are unchanged.
+Recorded audio remains immutable WAV Assets plus Take/Comp metadata under ADR-0036.
+
+- **G7.1 — Honest device provenance and refusal (R24/R34).** Refresh adopts the real device profile;
+  deterministic profiles remain harness-only. Failed device switches retain the working device and
+  paint the cause. Gate: profile/provenance assertions and no synthetic take from a real-shell path.
+- **G7.2 — Continuous capture while operating the app (R25).** Keep harmless edits off callback
+  teardown; refuse or queue incompatible actions with a visible reason. Gate: committed frame
+  continuity during Save/zoom/edit operations and injected interruptions; never concatenate missing
+  blocks into an apparently continuous take or relax zero-drop/timing limits.
+- **G7.3 — Visible monitoring policy (R26).** Show the actual Off/DirectInput/LatencyCompensated
+  state and input monitoring controls. Gate: label, model and rendered monitoring route agree.
+- **G7.4 — Take lanes (R27).** Expand recorded take groups in Arrange; choosing an audible take is
+  visible and undoable. Gate: real take geometry, selected-source render and save/reopen parity.
+- **G7.5 — Swipe comping and live punch (R28).** Drag arbitrary comp regions across take lanes;
+  persist the source windows, one undo step per gesture; use the existing fixed seam-fade default.
+  Add punch-on-the-fly under the existing compensated timeline law. Gate: rendered regions come from
+  the selected takes; punch boundaries, undo and reopen are exact. No new seam-tuning feature.
+- **G7.6 — MIDI-only recording and CC capture (R29).** Record notes and supported G3 controller
+  events without an armed audio input, retaining count-in/start/stop and compensation rules.
+  Gate: MIDI-only placement, complete CC persistence/render and note/controller save/reopen parity.
+- **G7.7 — Shipped-path hardware proof, including the missing evidence harness.** The current
+  `tools/shipped-record-check.ps1` forwards its checker's correlation-based PASS/FAIL; it does not
+  yet measure alignment or emit a result row. Extend the checker/evidence wrapper to retain the
+  known output/capture reference, measure compensated placement under the existing calibrated
+  timing contract, validate committed WAV content, and emit a structured artifact plus a result
+  row only after all assertions pass. Preserve the existing deterministic alignment/zero-drop
+  gates; they do not substitute for measured hardware alignment. Run the completed command through
+  the actual shipped recording path with its required loopback route. Missing routing/reference/
+  device access is a named setup dependency, not PASS. Ask only for physical setup automation
+  cannot make; never ask Dan to judge sound, waveforms or timing. G7 stays open until proof exists.
+
+**SS-7 "Record a take" — seven steps, each with objective assertions.**
+1. Open the fixture, select the real input/device, refresh it and assert unchanged truthful provenance;
+   exercise a refused switch through the harness and assert the working device and visible reason.
+2. Select monitoring policy, arm an audio track and record the known loopback signal with count-in;
+   assert transport/capture state and the chosen monitoring route.
+3. Save, zoom and perform permitted edits during capture; stop and assert a contiguous committed take,
+   unchanged zero-drop/Underrun counters and compensated placement against the known reference.
+4. Record another pass with live punch; expand take lanes and choose the audible take; assert the
+   recorded/punch windows and selected-source render, then undo/redo the choice.
+5. Swipe a comp across the takes, undo/redo, and assert the rendered regions and fixed seam law.
+6. Record a MIDI-only pass with notes and CC into the G3 instrument; save/reopen and assert audio Take,
+   Comp, MIDI and controller state/render parity.
+7. Run the G7.7-completed shipped-path hardware checker and require its generated PASS evidence;
+   export the resulting song and
+   validate it mechanically. No step substitutes a human ear/eye judgment for an assertion.
 
 ### G8 — Alpha distribution
 
 Fold the existing H17 plan (packaging, self-check, installer later, crash reporting). Exit: the
-alpha gate in `docs/alpha-gate.md` with SS-1…SS-7 as its scripted session.
+alpha gate in `docs/alpha-gate.md` with logical SS-1…SS-7 plus the separate plugin journey, on the
+packaged build. Agents run the scripts, review the rubric and record measured hardware evidence.
+An alpha verification result does not itself authorize tags, publication, signing purchases or
+announcements. Those actions require their own existing authorization.
 
 ---
 
@@ -749,9 +928,19 @@ State probe JSON (written each UI tick when `YESDAW_STATE_PROBE` is set; never i
   "layout": { "toolbar.play": [412,40,48,40], "lane.0": [260,152,1700,72], "clip.01J…": [300,152,420,72] } }
 ```
 
-The drive runs **locally at every checkpoint** (all scripts of the current and earlier phases) and
-in CI on the Windows runner as a **non-blocking** job until it has been stable for a whole phase,
-then blocking. Linux/macOS keep ctest and the headless screenshot gate.
+The drive runs at every code checkpoint on a verified separate input session or an already-authorized
+hands-off window (all scripts of the current and earlier phases). CI currently builds the app and
+runs headless tests; **a real-app session-drive CI job is planned, not present**. Add it only after
+proving the runner has an interactive input surface: start non-blocking, then make it blocking
+after a full stable phase. Until then, recorded local/isolated real-app drives are mandatory.
+Linux/macOS keep ctest and the headless screenshot gate. Missing input access is pending evidence,
+not a silent skip or a substitute headless PASS.
+
+Logical session names are distinct from filenames. The checked-in mapping is in
+`tools/session-scripts/README.md`: SS-4 uses `ss6-write-a-beat.ps1`; SS-5 uses
+`ss7-mix-the-song.ps1`. Planned SS-6 uses `ss8-project-lifecycle.ps1`, SS-7 uses
+`ss9-record-a-take.ps1`, and the separate plugin journey uses `ss10-plugin-lifecycle.ps1`.
+These three later scripts are not yet built. Author each before implementing its first feature.
 
 ### 7.3 Feel budgets (gates; only tighten)
 
@@ -786,24 +975,46 @@ or in CI artifacts.
 
 ## 8. Process rules (how the loop runs without Dan)
 
-### 8.1 The loop per item (unchanged mechanics, new gates)
+### 8.1 The loop per checkpoint (agents own the routine work)
 
-1. Audit the code path first; write the story, precedent, and gate in `STATUS.md`.
-2. Author the gate (ctest) **and** the see-it step (Session script) red first.
-3. Build. Local ctest green (owner-file isolation ritual per the 2026-08-11 brief). Session drive
-   green for the current and earlier phases. Screenshots judged (§7.4) for UI items.
-4. One feature commit (story · precedent · gate names · SS step · rubric verdict in the message),
-   push, exact-head nine-job CI green (session-drive job non-blocking until promoted).
-5. Docs-only evidence commit ticking the item here with SHA + run id.
-6. Next item. **Never** skip ahead within a phase; never start the next phase before the exit.
+For a build/continue request, the current named milestone in STATUS is the default authorized
+scope unless Dan names a smaller one. A plan-edit request alone starts no build loop. No recurring
+automation, new goal, or background execution is inferred from this policy.
+
+1. Read STATUS and current code/CI. Select one coherent step in the execution-order table;
+   subdivide oversized items into plainly named steps before coding. Write story, precedent,
+   affected contracts and gates. Do not reopen settled product/stack decisions.
+2. Author the meaningful negative control and Session-script step before implementing behavior.
+   Preserve existing assertions. Docs-only checkpoints use document consistency/link checks.
+3. Build and run applicable local checks. For code checkpoints, current and earlier real-app
+   journeys must pass; agent judges UI screenshots against §7.4. Do not measure performance while
+   another build or drive competes for the machine. A separate agent critic reviews the scoped
+   change; the writer verifies findings and repairs confirmed issues.
+4. Update STATUS, commit small to main and push. CI requires the pushed commit: wait for every
+   expected job on that exact code SHA to finish, inspect any failures, and fix red in small
+   corrective commits. Never declare an in-progress run green or use a docs-only successor as
+   code evidence. The sole standing runner exception is listed in §8.2; report actual conclusions.
+5. Record code SHA, run id, local/drive results, rubric, fixture/build identity and any named
+   exception. Keep evidence portable (checked-in generator/script plus hashed artifact/CI location);
+   local-only screenshots/logs are explicitly named and are not assumed present on another machine.
+6. Complete the checkpoint and continue automatically within scope. A phase boundary is an
+   automated evidence check, not an owner-approval request. Report concise progress; stop only at
+   the authorized finish line, a real external dependency, or host execution/budget limits.
+
+A failed required gate means incomplete work. Capturing a failure or committing a repair is not
+certification. Continue to repair within the mandate; if execution must stop, leave an honest
+incomplete handoff. This does not require Dan to review code or judge the app.
 
 ### 8.2 Anti-wander rules
 
-- Work only the current phase's items, top to bottom. If an item is blocked, log why in
-  `STATUS.md`, leave it unticked, and continue with the next — do not invent a replacement item.
-- **No new adversarial audit carves during the arc.** Any finding (yours, a reviewer's, a tool's)
-  goes to `docs/goals/parking-lot.md` with file:line. Promotion into a phase happens only at that
-  phase's close, and only if it serves the *next* phase's exit.
+- Work within the authorized milestone and execution-order table. A blocked item stays unticked;
+  only independent preparation may proceed, with the dependency stated. A missing phase exit
+  never silently becomes optional. The explicit G4.8 reordering is not an ad-hoc skip.
+- **Restore required behavior and proof immediately.** Earlier product regressions, data-loss
+  risks and broken harnesses required by the active milestone take priority over new features.
+  G4.0a therefore interrupts the next FX face. Unrelated audits and feature ideas still go to
+  `docs/goals/parking-lot.md`; promotion is decided by an agent at phase close only when it serves
+  the next approved exit. Broader scope/product changes are decisions, not automatic promotions.
 - **Reference-DAW rule** for every UX question; write the precedent in the item. If Logic and
   Pro Tools disagree, prefer Logic for MIDI/arrangement, Pro Tools for audio editing gestures,
   and say which you chose.
@@ -815,32 +1026,73 @@ or in CI artifacts.
 - **Delete before you add.** Extracting a component from `MainComponent.cpp` means the old code
   is gone in the same commit; no parallel implementations.
 
+**Failure classification (evidence, not labels chosen for convenience):**
+
+| Class | Required response | Can dependent work be certified? |
+|---|---|---|
+| Product regression / unmet behavior | Reproduce, add a biting check, repair the product and rerun the journey | Only after the required checks pass |
+| Confirmed harness or environment failure | Show the cause, repair targeting/synchronization/setup, and rerun the real journey; keep assertions intact | No substitute headless result or unverified baseline earns credit |
+| Unknown cause | Keep raw evidence; investigate app, harness and environment | No; failure before the changed feature is not proof of tooling fault |
+| Accepted runner noise | Match the exact named exception and record raw outcome and evidence; do not rerun for luck | Only within the written exception's scope; never call the failing job green |
+| Missing hardware/input access | Verify available alternatives, record the unavailable capability | No hardware/real-app claim until measured on the required surface |
+
+**Standing exception:** macOS `YesDawTimelineGpuCheck` failing only its sustained-frame budget,
+with all other jobs/tests passing, is the owner-accepted runner-floor issue. No reruns, no widened
+threshold, no exception for crashes, wrong images or other failing tests. Preserve raw numbers,
+CI run and local real-app/frame evidence. Re-evaluate at G6.2 on a measured runner/machine baseline
+or earlier if the renderer/test/runner changes or the local check fails; no automatic renewal or
+extension to a different failure. Missing SS-1–SS-3 proof is **not** covered by this exception.
+
+**Bound retries, not investigation:** after three unsuccessful corrective attempts on the same
+failure, stop repeating that approach and require a separate agent critic. Resume only with a
+new evidence-backed hypothesis. If none exists, record a concrete blocker, finish independent
+safe preparation and stop dependent work. Ask Dan only if his decision/access can resolve it;
+do not hand him a red test as a debugging assignment.
+
 ### 8.3 Do-not-touch (absolute)
 
-ADRs, goldens, `[[clang::nonblocking]]` / `YESDAW_RT_HOT`, `.github/workflows/ci.yml` (except the
+Existing Accepted ADR text, goldens, `[[clang::nonblocking]]` / `YESDAW_RT_HOT`, `.github/workflows/ci.yml` (except the
 additive session-drive job, which is its own commit), the reference image, `docs/reality-lane.md`
-result rows, engine RT rules. Never weaken or delete a gate (re-pinning with rationale is
-expected). Never squash.
+existing result rows, engine RT rules. Never weaken or delete a gate (re-pinning with rationale is
+expected). New in-scope implementation ADRs already called for by the plan may be authored and
+accepted by the agent with critic review if they do not replace an owner-settled decision; an
+incompatible choice follows §8.4. Append only genuine measurement-generated hardware results;
+never edit a result into a PASS. Never squash.
 
-### 8.4 Stop-and-ask triggers (the only reasons to contact Dan)
+### 8.4 Human dependencies (rare; prepare a concrete recommendation first)
 
-1. An Accepted ADR must be superseded to proceed (write the superseding ADR as *Proposed*, stop).
-2. Three consecutive red CI rounds on one item.
-3. A phase exit cannot be met without changing the reference design or a §3.4 number by more
-   than 20 %.
-4. A schema change would break opening a bundle saved by the current `main` (additive migrations
-   never trigger this).
+1. A consequential product/architecture decision outside accepted scope: replacing an owner-settled
+   ADR, breaking existing bundles, changing the reference structure or a density token by more than
+   20 %, weakening a promised gate, or dropping a required capability. Prepare the proposed ADR or
+   exact alternative and its consequences first. This revision is already authorized by ADR-0049.
+2. Required access/equipment cannot be supplied by the agent: a physical loopback connection,
+   missing approved plugin fixture, credentials/license acceptance, or no verified isolated input
+   surface and no existing hands-off window. Check available resources and complete independent
+   preparation first; ask once for the smallest missing action. Missing evidence remains pending.
+3. An action needs authority not already granted: spending, public release/publishing/announcements,
+   or destructive user-data changes. This plan does not grant that authority by implication.
 
-Everything else: decide, log it in the deviation log in `STATUS.md`, continue. Dan's optional
-lane: at each phase close, run that phase's Session script by hand for ten minutes and write
-friction notes in `docs/dogfood/`. His notes go to the top of the *current* phase, ahead of every
-other item. Never wait for them.
+Everything else stays with agents: reversible implementation choices, repairs, code review,
+mechanical tests, visual-rubric judgment, evidence accounting and advancement within scope. Dan
+may volunteer friction notes; record and address them within the current mandate. No manual
+session, screenshot approval, listening test or recurring "continue?" is a gate.
+
+**App/hardware execution:** use a verified separate machine/VM/logon-input session for unattended
+input; prove it cannot steal Dan's focus/mouse. A Windows virtual desktop or hidden process alone
+does not establish this. On the shared desktop honor the current hands-off authorization/window;
+do not ask again per script within that window. Agents may run available one-command hardware
+checks and commit their genuine outputs. The measurement script owns PASS/FAIL, not the operator.
+Neither headless simulation nor a machine without the required real device earns hardware credit.
 
 ### 8.5 Phase close-out (one docs commit)
 
-Session scripts of all phases so far green; feel budgets green; rubric recorded; montage in
-`docs/evidence/<date>-gN.png`; `STATUS.md` "Now/Next" moved; parking-lot promotions decided (with
-reasons); the roadmap's pointer updated.
+Agent verifies current/earlier logical journeys, exact-code-SHA CI, feel budgets and rubric;
+records any strictly applicable §8.2 exception without changing its raw result; commits montage
+in `docs/evidence/<date>-gN.png`; updates STATUS and the roadmap pointer; decides in-scope parking-lot
+promotions with reasons. Advance automatically if the next phase is covered by the active mandate.
+At the named milestone exit, collect the packaged end-to-end evidence and required hardware result,
+report plainly and stop unless a broader existing mandate covers the next milestone. No owner
+approval is needed to certify an objectively met exit.
 
 ---
 

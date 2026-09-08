@@ -29,10 +29,30 @@ component (`widget.project.new`, `mixer.fx.editor.close` (the editor's buttons a
 | `ss5-piano-roll.ps1` | the piano roll checkpoint | G3.2 – G3.8 |
 | `ss6-write-a-beat.ps1` | SS-4 "write a beat and a chord progression" | G3 (the exit) |
 | `ss7-mix-the-song.ps1` | SS-5 "mix the song" | G4 (grown per item) |
+| `ss8-project-lifecycle.ps1` | SS-6 project lifecycle / Usable-song journey | G5–G6 (**planned; not built**) |
+| `ss9-record-a-take.ps1` | SS-7 recording journey | G7 (**planned; not built**) |
+| `ss10-plugin-lifecycle.ps1` | separate plugin lifecycle journey | G4.8/H18 (**planned; not built**) |
 
 A script is grown, never forked: each G-item appends its steps to the script of its exit session and
 the header comment logs the item and any deviation from the plan's text (the same deviations go in the
 STATUS story's **Deviation log**).
+
+SS-1 through SS-3 are current prerequisites, not historical decoration: G4.0a repairs their setup and
+startup paths before more editor work. The Usable-song milestone requires the applicable existing drives
+plus the future SS-6 lifecycle journey; planned filenames above are routing commitments, not evidence that
+the scripts or features already exist.
+
+## Keyboard navigation contract
+
+G4.0b proves ADR-0049's shared **Control target** before more FX editors extend the surface. Native
+widgets do not own DAW shortcuts. Tab and Shift+Tab traverse visible enabled controls in a stable order;
+Tab or accessibility targeting starts control navigation; returning to an editor canvas ends it.
+Enter activates or enters/confirms control interaction; arrows adjust only that interaction; Esc cancels
+it and restores the prior editor context. Priority is active text entry, Space transport, Control-target
+Enter/Esc/Tab navigation, other global transport, active control adjustment, then the editor command.
+Enter outside control navigation remains Return to zero. One key dispatches once; hiding/closing a control
+must leave no stale target. Drives assert the resulting probe/model state, including that Space still
+controls transport and a slider arrow does not also nudge a Clip.
 
 ## Lessons (each one cost a red drive)
 

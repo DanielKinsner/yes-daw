@@ -577,13 +577,22 @@ _Avoid_: modal view switch, bottom bar
 
 **Focus context**:
 Which editor currently receives non-global keys: Arrange, Piano roll, or Mixer. A chord may map to
-different actions in different contexts; transport chords work in every context (ADR-0046).
+different actions in different contexts; transport chords work in every context, with ADR-0049's
+text-entry and Control-target Enter exceptions.
 _Avoid_: keyboard focus (the JUCE widget notion), active panel
 
 **Command router**:
 The single control-thread entry that turns a key chord or a menu/context/toolbar activation into a
-UI action for the current Focus context. Widgets never own keys; only an active text field does.
+UI action for the current Focus context or Control target. Widgets never own DAW shortcuts;
+active text entry and control navigation follow ADR-0049's dispatch order.
 _Avoid_: per-widget shortcut, key listener on a button
+
+**Control target**:
+The visible, keyboard-operable control selected by the Command router, separate from the Focus context.
+Tab and Shift+Tab move it through enabled controls; activation, adjustment, cancellation and accessibility
+state follow ADR-0049. Space remains transport outside text entry; Enter activates the target
+during control navigation and returns to zero otherwise. Each key dispatches once.
+_Avoid_: keyboard focus (JUCE widget focus), selected object (timeline/MIDI selection)
 
 **Object selection**:
 The set of selected Clips, Notes, or Tracks that editing verbs act on. Exactly one object kind is
@@ -651,6 +660,13 @@ _Avoid_: house style, agent taste
 
 ### Product & AI
 
+**Usable-song milestone**:
+The ADR-0049 finish line before plugin deepening: a packaged app in which an agent can create or import
+an audio/MIDI song, edit and mix it with built-ins, save/reopen, export, recover interrupted work, and
+record the required mechanical journey, visual-rubric and hardware-playback evidence. It does not claim
+recording or third-party plugin support.
+_Avoid_: alpha, demo-only path, headless feature-complete
+
 **Stem**:
 An isolated part of a mix (drums, bass, vocals, other).
 
@@ -666,15 +682,17 @@ Models and data run on the user's machine — private, offline, no per-use cloud
 separate stem/mastering apps; YES DAW itself also runs fully local.)
 
 **Alpha**:
-The ADR-0037 dogfood milestone: one real song recorded, edited, mixed, and exported by the owner on
-a packaged portable Release build, with mechanical sub-asserts. Not public, not signed, no
-third-party plugins.
-_Avoid_: beta (that adds signing/installer/hosting), release
+The packaged, mechanically certified end-to-end milestone governed by ADR-0049: an agent executes the
+song journey and verification, including recording and the separately completed plugin lifecycle, with
+genuine hardware evidence. Public release still requires explicit authority; alpha certification itself
+does not depend on routine human operation, listening, or visual judgment.
+_Avoid_: beta, public release, or a merely runnable development build
 
 **Reality lane**:
-The standing set of one-command, self-asserting owner-machine hardware smokes whose dated PASS/FAIL
-results are committed to `docs/reality-lane.md`. CI cannot run them; they are still mechanical.
-_Avoid_: manual testing (they self-assert), CI gate (they are owner-machine, outside CI)
+The standing set of one-command, self-asserting hardware smokes whose dated PASS/FAIL results are
+committed to `docs/reality-lane.md`. An agent may run them when the required machine, device, routing and
+fixture access exist; only their own output earns credit. CI cannot run them; they are still mechanical.
+_Avoid_: manual testing (they self-assert), CI gate (they run on an equipped machine outside CI)
 
 **Packaged hardware verifier**:
 The H17 portable package's one-command Reality-lane entry point. It automatically runs packaged
