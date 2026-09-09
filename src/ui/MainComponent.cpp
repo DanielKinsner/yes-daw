@@ -5,6 +5,10 @@
 // ui/MainComponentShell.h; the other domains are MainComponent<Domain>.cpp beside this file.
 
 #include "ui/MainComponentShell.h"
+#include "ui/DesktopAudioStartup.h"
+
+#include <fstream>
+#include <sstream>
 
 using namespace yesdaw::ui::shell;
 
@@ -19,6 +23,18 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     // G0.1 State probe: debug-only; a normal launch leaves the path empty and writes nothing.
     stateProbePath = fileChoices.stateProbePath;
     launchStamp = std::chrono::steady_clock::now();
+    auto startupStageStamp = launchStamp;
+    std::optional<std::ostringstream> startupTimings;
+    if (! stateProbePath.empty())
+        startupTimings.emplace();
+    const auto recordStartupStage = [&] (const char* name) {
+        if (! startupTimings)
+            return;
+        const auto now = std::chrono::steady_clock::now();
+        *startupTimings << name << '\t'
+            << std::chrono::duration<double, std::milli> (now - startupStageStamp).count() << '\n';
+        startupStageStamp = now;
+    };
 
     setOpaque (true);
     setLookAndFeel (&lookAndFeel);
@@ -1669,7 +1685,12 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         repaintAll();
     };
     addAndMakeVisible (recordingInputChannelChooser);
-    refreshAudioDeviceChooser();
+    recordStartupStage ("configure-controls");
+    // The native audio initialiser already scans/selects the backend; publish its
+    // device lists once after that attempt. Injected shells still populate now.
+    if (! desktopAudioRequested)
+        refreshAudioDeviceChooser();
+    recordStartupStage ("initial-device-enumeration");
 
     configureInspectorControls();
     configureMixerControls();
@@ -1677,7 +1698,8 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     refreshActionState();
     hideMixerControlsBehindDockTab();   // G3.2 checkpoint FIX 1
 
-    if (desktopAudioRequested)
+    recordStartupStage ("configure-mixer-layout");
+    if (desktopAudioRequested || fileChoices.initialiseSessionAtLaunch)
     {
         // Native shell only: remember and reopen the last project so a crash-then-relaunch reaches
         // the autosave recovery prompt with no manual navigation (usable-DAW P1). The harness never
@@ -1690,8 +1712,9 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
                 juce::File::getSpecialLocation (juce::File::userApplicationDataDirectory)
                     .getChildFile ("YES DAW").getFullPathName().toStdString();
             const auto* sessionBytes = reinterpret_cast<const char8_t*> (sessionUtf8.data());
-            appModel.setSessionStateDirectory (
-                std::filesystem::path { std::u8string (sessionBytes, sessionBytes + sessionUtf8.size()) });
+            fileChoices.sessionStateDirectory =
+                std::filesystem::path { std::u8string (sessionBytes, sessionBytes + sessionUtf8.size()) };
+            appModel.setSessionStateDirectory (fileChoices.sessionStateDirectory);
         }
         // G0.1: a bundle named on the command line wins over the last-project record.
         const std::filesystem::path lastProject = ! fileChoices.openBundleAtLaunch.empty()
@@ -1714,12 +1737,36 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
                         + " (" + lastProject.filename().string() + ")",
                     true);
         }
+        else
+        {
+            // A fresh native launch is a real, recoverable session. Keep its backing bundle:
+            // edits already persist here, including across an interrupted first Save.
+            const auto directory = fileChoices.sessionStateDirectory / "Untitled"
+                / juce::Uuid().toString().toStdString();
+            std::error_code error;
+            std::filesystem::create_directories (directory, error);
+            std::ofstream marker (directory / unnamedMarkerName, std::ios::binary);
+            marker << unnamedBundleName << '\n';
+            marker.close();
+            if (error || ! marker)
+                appModel.reportStatus ("New project failed: cannot create the session backing directory", true);
+            else
+            {
+                const auto created = appModel.createProjectBundle (
+                    directory / unnamedBundleName, UiAppModel::makeDefaultSessionProject(), recordStartupStage);
+                if (! created.ok())
+                    appModel.reportStatus ("New project failed: " + created.message, true);
+            }
+        }
+    }
+    recordStartupStage ("open-or-create-session");
 
+    if (desktopAudioRequested)
+    {
         // Request stereo input so the shipped Record button can capture real audio (P0-1); fall
         // back to output-only when no input device exists so playback never regresses.
-        juce::String error = audioDeviceManager.initialiseWithDefaultDevices (2, 2);
-        if (! error.isEmpty() || audioDeviceManager.getCurrentAudioDevice() == nullptr)
-            error = audioDeviceManager.initialiseWithDefaultDevices (0, 2);
+        const juce::String error = initialiseDesktopAudio (audioDeviceManager, recordStartupStage);
+        recordStartupStage ("initialise-audio-device");
         if (error.isEmpty())
         {
             if (juce::AudioIODevice* device = audioDeviceManager.getCurrentAudioDevice())
@@ -1729,7 +1776,6 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
             desktopAudioCallbackRegistered = true;
             appModel.setDeviceCallbackLive (true);
             desktopAudioOpen.store (true, std::memory_order_release);
-            refreshAudioDeviceChooser();   // now the current device can be marked selected
         }
         else
         {
@@ -1737,6 +1783,10 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
             appModel.reportStatus (
                 "No audio device could be opened: " + error.toStdString(), true);
         }
+        // Also expose available choices when opening failed, so device selection
+        // remains a recovery path for a soundless launch.
+        refreshAudioDeviceChooser();
+        recordStartupStage ("adopt-and-enumerate-device");
     }
 
     // E34: open every MIDI input so played notes reach a live capture session (native
@@ -1752,6 +1802,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
             }
         }
     }
+    recordStartupStage ("open-midi-inputs");
 
     // H17 CP4: scheduled autosave is ON by default (policy lives in the headless app model, so the
     // default is covered by a headless test). The Timer fires on the message thread — which is this
@@ -1760,6 +1811,17 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
 
     // G0.2: keys go to the command router, not to widgets (ADR-0046 §4).
     applyKeyboardFocusLaw();
+    refreshActionState();
+    resized();
+    hideMixerControlsBehindDockTab();
+    recordStartupStage ("finish-constructor");
+    if (! stateProbePath.empty())
+    {
+        auto timingPath = stateProbePath;
+        timingPath += ".startup.tsv";
+        std::ofstream timingOutput (timingPath, std::ios::binary | std::ios::trunc);
+        timingOutput << startupTimings->str();
+    }
 }
 
 MainComponent::~MainComponent()
@@ -1918,8 +1980,7 @@ bool MainComponent::confirmClose()
 
     if (choice == yesdaw::ui::kCloseChoiceSave)
     {
-        (void) appModel.dispatch (yesdaw::ui::UiActionId::ProjectSave);
-        return ! appModel.hasUnsavedChanges();   // a failed save keeps the app open
+        return saveCurrentProject (false);   // canceled naming or a failed save keeps the app open
     }
 
     return choice == yesdaw::ui::kCloseChoiceClose;

@@ -133,6 +133,7 @@ juce_add_gui_app(YesDaw
 
 # Plan §5.1 cp2: the shell is one class declared in src/ui/MainComponentShell.h and defined by domain.
 set(YESDAW_SHELL_SOURCES
+  src/ui/DesktopAudioStartup.cpp
   src/ui/MainComponent.cpp
   src/ui/MainComponentArrange.cpp
   src/ui/MainComponentCommands.cpp
@@ -404,7 +405,7 @@ add_test(NAME YesDawAccessibilityCheck COMMAND $<TARGET_FILE:YesDawAccessibility
 if (YESDAW_BUILD_APPS)
   # --- UI input harness (H12; shipped MainComponent real-Component activation) ---
   juce_add_console_app(YesDawUiInputCheck PRODUCT_NAME "YesDawUiInputCheck")
-  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp ${YESDAW_SHELL_SOURCES})
+  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp tests/ui_saveas_tests.cpp ${YESDAW_SHELL_SOURCES})
   target_include_directories(YesDawUiInputCheck PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawUiInputCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawUiInputCheck PRIVATE
@@ -524,6 +525,9 @@ if (YESDAW_BUILD_APPS)
   # The PowerShell side of the lockstep, on the platform whose 5.1 host is the compatibility
   # floor. Uses powershell.exe (not pwsh) deliberately; the packaged owner command runs there.
   if (WIN32)
+    add_test(NAME YesDawSessionDriveChooserCheck
+             COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                     -File ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-session-drive-chooser.ps1)
     add_test(NAME YesDawVerifyHardwareSelfTest
              COMMAND powershell -NoProfile -ExecutionPolicy Bypass
                      -File ${CMAKE_CURRENT_SOURCE_DIR}/tools/verify-hardware.ps1 -SelfTest)

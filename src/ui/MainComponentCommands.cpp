@@ -4,6 +4,8 @@
 // verbatim from the inline class. The declaration is ui/MainComponentShell.h.
 
 #include "ui/MainComponentShell.h"
+#include "ui/DesktopAudioStartup.h"
+#include <fstream>
 
 using namespace yesdaw::ui::shell;
 
@@ -1185,27 +1187,6 @@ void MainComponent::menuItemSelected (int menuItemID, int /*topLevelMenuIndex*/)
 
 // Device chooser plumbing (usable-DAW P1): harness seams win when injected; the native shell
 // talks to the JUCE device manager.
-std::vector<std::string> MainComponent::enumerateAudioOutputDeviceNames()
-{
-    if (fileChoices.listAudioOutputDevices)
-        return fileChoices.listAudioOutputDevices();
-
-    std::vector<std::string> names;
-    if (! desktopAudioRequested)
-        return names;
-
-    for (juce::AudioIODeviceType* type : audioDeviceManager.getAvailableDeviceTypes())
-    {
-        if (type == nullptr)
-            continue;
-
-        type->scanForDevices();
-        for (const juce::String& name : type->getDeviceNames (false))
-            names.push_back (name.toStdString());
-    }
-    return names;
-}
-
 bool MainComponent::selectAudioOutputDeviceByName (const std::string& name)
 {
     if (fileChoices.selectAudioOutputDevice)
@@ -1217,29 +1198,6 @@ bool MainComponent::selectAudioOutputDeviceByName (const std::string& name)
     juce::AudioDeviceManager::AudioDeviceSetup setup = audioDeviceManager.getAudioDeviceSetup();
     setup.outputDeviceName = juce::String (name);
     return audioDeviceManager.setAudioDeviceSetup (setup, true).isEmpty();
-}
-
-// E29: input-side twins of the output plumbing. Switching the input device restarts the
-// JUCE device, which re-runs audioDeviceAboutToStart and re-adopts the E28 profile.
-std::vector<std::string> MainComponent::enumerateAudioInputDeviceNames()
-{
-    if (fileChoices.listAudioInputDevices)
-        return fileChoices.listAudioInputDevices();
-
-    std::vector<std::string> names;
-    if (! desktopAudioRequested)
-        return names;
-
-    for (juce::AudioIODeviceType* type : audioDeviceManager.getAvailableDeviceTypes())
-    {
-        if (type == nullptr)
-            continue;
-
-        type->scanForDevices();
-        for (const juce::String& name : type->getDeviceNames (true))
-            names.push_back (name.toStdString());
-    }
-    return names;
 }
 
 bool MainComponent::selectAudioInputDeviceByName (const std::string& name)
@@ -1259,7 +1217,12 @@ bool MainComponent::selectAudioInputDeviceByName (const std::string& name)
 void MainComponent::refreshAudioDeviceChooser()
 {
     refreshingAudioDeviceChooser = true;
-    audioDeviceChooserNames = enumerateAudioOutputDeviceNames();
+    AudioDeviceNames nativeNames;
+    if (desktopAudioRequested
+        && (! fileChoices.listAudioOutputDevices || ! fileChoices.listAudioInputDevices))
+        nativeNames = enumerateDesktopAudioDeviceNames (audioDeviceManager);
+    audioDeviceChooserNames = fileChoices.listAudioOutputDevices
+                                  ? fileChoices.listAudioOutputDevices() : std::move (nativeNames.outputs);
     audioDeviceChooser.clear (juce::dontSendNotification);
 
     juce::String current;
@@ -1277,7 +1240,8 @@ void MainComponent::refreshAudioDeviceChooser()
     audioDeviceChooser.setEnabled (! audioDeviceChooserNames.empty());
 
     // E29: rebuild the input device list the same way...
-    audioInputDeviceChooserNames = enumerateAudioInputDeviceNames();
+    audioInputDeviceChooserNames = fileChoices.listAudioInputDevices
+                                       ? fileChoices.listAudioInputDevices() : std::move (nativeNames.inputs);
     audioInputDeviceChooser.clear (juce::dontSendNotification);
     juce::String currentInput;
     if (desktopAudioRequested)
@@ -1319,6 +1283,32 @@ void MainComponent::refreshRecordingInputChannelChooser()
             juce::dontSendNotification);
     }
     recordingInputChannelChooser.setEnabled (device.selected && device.inputChannels > 0u);
+}
+
+bool MainComponent::isUnnamedLaunchProject() const
+{
+    const auto& path = appModel.bundlePath();
+    if (path.filename() != unnamedBundleName)
+        return false;
+    // Outside the bundle: Save As copies project content, never its unnamed-session intent.
+    std::ifstream marker (path.parent_path() / unnamedMarkerName);
+    std::string leaf;
+    return std::getline (marker, leaf) && leaf == unnamedBundleName;
+}
+
+bool MainComponent::saveCurrentProject (bool chooseDestination)
+{
+    if (! chooseDestination && ! isUnnamedLaunchProject())
+        return appModel.dispatch (UiActionId::ProjectSave).dispatched;
+    if (! fileChoices.chooseSaveAsProjectBundle)
+        return false;
+    const auto path = fileChoices.chooseSaveAsProjectBundle();
+    if (path.empty())
+        return false;
+    const auto saved = appModel.saveProjectBundleAs (path);
+    if (! saved.dispatched)
+        appModel.reportStatus (std::string ("Save As failed: ") + saved.state.disabledReason, true);
+    return saved.dispatched;
 }
 
 void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action)
@@ -1418,23 +1408,9 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
             }
             return;
 
+        case yesdaw::ui::UiActionId::ProjectSave:
         case yesdaw::ui::UiActionId::ProjectSaveAs:
-            if (fileChoices.chooseSaveAsProjectBundle)
-            {
-                const std::filesystem::path path = fileChoices.chooseSaveAsProjectBundle();
-                if (! path.empty())
-                {
-                    // R4: a failed Save As paints its refusal reason instead of vanishing.
-                    const yesdaw::ui::UiActionDispatchResult savedAs =
-                        appModel.saveProjectBundleAs (path);
-                    if (! savedAs.dispatched)
-                        appModel.reportStatus (
-                            savedAs.state.disabledReason[0] != '\0'
-                                ? std::string ("Save As failed: ") + savedAs.state.disabledReason
-                                : std::string ("Save As failed"),
-                            true);
-                }
-            }
+            (void) saveCurrentProject (action == UiActionId::ProjectSaveAs);
             return;
 
         case yesdaw::ui::UiActionId::TransportRecord:

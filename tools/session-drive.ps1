@@ -87,6 +87,123 @@ public static class YesDawDrive
     [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);
     [DllImport("user32.dll")] public static extern uint MapVirtualKeyW(uint code, uint mapType);
+    [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr h, EnumProc p, IntPtr l);
+    [DllImport("user32.dll")] static extern int GetDlgCtrlID(IntPtr h);
+    [DllImport("user32.dll")] static extern IntPtr GetParent(IntPtr h);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr h, StringBuilder s, int n);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr w, StringBuilder text, uint flags, uint timeout, out IntPtr result);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr w, IntPtr l, uint flags, uint timeout, out IntPtr result);
+    [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(POINT point);
+    [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr h, uint flags);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int width, int height, uint flags);
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)] static extern IntPtr GetWindowLongPtr(IntPtr h, int index);
+    [StructLayout(LayoutKind.Sequential)] struct GUITHREADINFO { public uint size, flags; public IntPtr active, focus, capture, menuOwner, moveSize, caret; public RECT caretRect; }
+    [DllImport("user32.dll")] static extern bool GetGUIThreadInfo(uint thread, ref GUITHREADINFO info);
+
+    public static bool DialogBelongsTo(IntPtr h, uint pid) {
+        uint owner; GetWindowThreadProcessId(h, out owner);
+        return h != IntPtr.Zero && IsWindowVisible(h) && owner == pid;
+    }
+    public static string CaptionDiagnostic = "not attempted";
+    public static bool WindowIsTopmost(IntPtr window) { return (GetWindowLongPtr(window, -20).ToInt64() & 8) != 0; }
+    public static bool SetTargetTopmost(IntPtr window, bool topmost) {
+        return SetWindowPos(window, new IntPtr(topmost ? -1 : -2), 0, 0, 0, 0, 0x0013); // NOMOVE|NOSIZE|NOACTIVATE
+    }
+    static string captionFrame = "";
+    static bool IsCaptionPoint(IntPtr window, POINT point) {
+        IntPtr hitChild = WindowFromPoint(point), hitWindow = GetAncestor(hitChild, 2); // GA_ROOT
+        CaptionDiagnostic = captionFrame + " point=" + point.X + "," + point.Y + " expected=" + window
+            + " hitHwnd=" + hitChild + " hitRoot=" + hitWindow + " hitTitle='" + WindowTitle(hitWindow) + "'";
+        if (hitWindow != window) { CaptionDiagnostic += " (occluded or outside app)"; return false; }
+        IntPtr hit;
+        long packed = (long)(uint)(((point.Y & 0xffff) << 16) | (point.X & 0xffff));
+        bool replied = SendMessageTimeout(window, 0x0084, IntPtr.Zero, new IntPtr(packed), 2, 250, out hit) != IntPtr.Zero;
+        CaptionDiagnostic += " hitTestReplied=" + replied + " hitCode=" + hit;
+        return replied && hit.ToInt64() == 2; // WM_NCHITTEST, HTCAPTION
+    }
+    public static bool ActivateCaption(IntPtr window) {
+        RECT frame; POINT client = new POINT();
+        CaptionDiagnostic = "window/client frame unavailable";
+        if (!GetWindowRect(window, out frame) || !ClientToScreen(window, ref client)) return false;
+        captionFrame = "frame=" + frame.Left + "," + frame.Top + "," + frame.Right + "," + frame.Bottom
+            + " clientOrigin=" + client.X + "," + client.Y;
+        if (client.Y <= frame.Top) { CaptionDiagnostic = "no native caption above client: clientY=" + client.Y + " frameTop=" + frame.Top; return false; }
+        var point = new POINT(); point.X = frame.Left + Math.Min(120, (frame.Right - frame.Left) / 4);
+        point.Y = frame.Top + (client.Y - frame.Top) / 2;
+        bool visibleCaption = false;
+        for (int attempt = 0; attempt < 10; ++attempt) {
+            if (IsCaptionPoint(window, point)) { visibleCaption = true; break; }
+            System.Threading.Thread.Sleep(50);
+        }
+        if (!visibleCaption) return false;
+        MouseMoveAbs(point.X, point.Y);
+        // Recheck immediately before down: refuse an occluded caption or any other app/control.
+        if (!IsCaptionPoint(window, point)) return false;
+        MouseButton(true, false);
+        try { System.Threading.Thread.Sleep(30); } finally { MouseButton(false, false); }
+        return true;
+    }
+    static string WindowClass(IntPtr h) { var text = new StringBuilder(256); GetClassName(h, text, text.Capacity); return text.ToString(); }
+    static IntPtr FileNameControl(IntPtr dialog) {
+        IntPtr found = IntPtr.Zero;
+        EnumChildWindows(dialog, delegate(IntPtr h, IntPtr unused) {
+            if (!IsWindowVisible(h) || WindowClass(h) != "Edit") return true;
+            // Observed Windows Common Item Dialog tree: its filename Edit is 1001 beneath
+            // ComboBox -> FloatNotifySink -> DirectUIHWND. Address/search edits have distinct
+            // ancestry; do not accept id 1001 alone (the address toolbar shares that id).
+            IntPtr combo = GetParent(h), sink = GetParent(combo), directUi = GetParent(sink);
+            if (GetDlgCtrlID(h) == 1001 && WindowClass(combo) == "ComboBox"
+                && WindowClass(sink) == "FloatNotifySink" && WindowClass(directUi) == "DirectUIHWND") {
+                found = h; return false;
+            }
+            // Common-dialog filename edit edt1 (1152), or an Edit under cmb13 (1148).
+            // Never accept an arbitrary Edit: the address/search fields are different controls.
+            for (IntPtr ancestor = h; ancestor != IntPtr.Zero && ancestor != dialog; ancestor = GetParent(ancestor)) {
+                int id = GetDlgCtrlID(ancestor);
+                if (id == 1152 || id == 1148) { found = h; return false; }
+            }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+    public static bool FileNameHasFocus(IntPtr dialog) {
+        uint pid; uint thread = GetWindowThreadProcessId(dialog, out pid);
+        var info = new GUITHREADINFO(); info.size = (uint)Marshal.SizeOf(typeof(GUITHREADINFO));
+        IntPtr edit = FileNameControl(dialog);
+        return edit != IntPtr.Zero && GetForegroundWindow() == dialog && GetGUIThreadInfo(thread, ref info) && info.focus == edit;
+    }
+    public static bool FocusFileName(IntPtr dialog) {
+        SetForegroundWindow(dialog);
+        if (GetForegroundWindow() != dialog) return false;
+        IntPtr edit = FileNameControl(dialog); RECT rect;
+        if (edit == IntPtr.Zero || !GetWindowRect(edit, out rect)) return false;
+        MouseMoveAbs((rect.Left + rect.Right) / 2, (rect.Top + rect.Bottom) / 2);
+        MouseButton(true, false); MouseButton(false, false);
+        return true; // caller waits for queued click, then verifies native focus before typing
+    }
+    public static string FileNameText(IntPtr dialog) {
+        IntPtr edit = FileNameControl(dialog), result;
+        if (edit == IntPtr.Zero) return null;
+        var text = new StringBuilder(32768);
+        if (SendMessageTimeout(edit, 0x000D, new IntPtr(text.Capacity), text, 2, 500, out result) == IntPtr.Zero) return null;
+        return text.ToString();
+    }
+    public static string DialogDiagnostic(IntPtr dialog) {
+        uint pid; uint thread = GetWindowThreadProcessId(dialog, out pid);
+        var info = new GUITHREADINFO(); info.size = (uint)Marshal.SizeOf(typeof(GUITHREADINFO)); GetGUIThreadInfo(thread, ref info);
+        var children = new StringBuilder(); int count = 0;
+        EnumChildWindows(dialog, delegate(IntPtr h, IntPtr unused) {
+            if (!IsWindowVisible(h)) return true;
+            children.Append(" [h=" + h + " parent=" + GetParent(h) + " id=" + GetDlgCtrlID(h) + " class=" + WindowClass(h) + " title='" + WindowTitle(h) + "']");
+            return ++count < 48;
+        }, IntPtr.Zero);
+        return "hwnd=" + dialog + " title='" + WindowTitle(dialog) + "' foreground=" + GetForegroundWindow()
+            + " focus=" + info.focus + " focusClass=" + WindowClass(info.focus) + " filename='" + FileNameText(dialog) + "' children=" + children;
+    }
+    static void Inject(INPUT[] inputs) {
+        uint sent = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf(typeof(INPUT)));
+        if (sent != inputs.Length) throw new InvalidOperationException("SendInput accepted " + sent + "/" + inputs.Length + " events; Win32=" + Marshal.GetLastWin32Error());
+    }
 
     public static void MakeDpiAware() { try { SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch (Exception) { } }
 
@@ -123,14 +240,14 @@ public static class YesDawDrive
         int nx = (int)Math.Round((x - vx) * 65535.0 / Math.Max(1, vw - 1));
         int ny = (int)Math.Round((y - vy) * 65535.0 / Math.Max(1, vh - 1));
         INPUT[] a = new INPUT[] { MouseInput(nx, ny, 0x0001 | 0x8000 | 0x4000) };   // MOVE|ABSOLUTE|VIRTUALDESK
-        SendInput(1, a, Marshal.SizeOf(typeof(INPUT)));
+        Inject(a);
     }
 
     public static void MouseButton(bool down, bool right)
     {
         uint flag = right ? (down ? 0x0008u : 0x0010u) : (down ? 0x0002u : 0x0004u);
         INPUT[] a = new INPUT[] { MouseInput(0, 0, flag) };
-        SendInput(1, a, Marshal.SizeOf(typeof(INPUT)));
+        Inject(a);
     }
 
     public static void KeyEvent(ushort vk, bool down, bool extended)
@@ -138,7 +255,7 @@ public static class YesDawDrive
         INPUT i = new INPUT(); i.type = 1; i.u.ki.wVk = vk; i.u.ki.wScan = (ushort)MapVirtualKeyW(vk, 0);
         i.u.ki.dwFlags = (down ? 0u : 0x0002u) | (extended ? 0x0001u : 0u);
         INPUT[] a = new INPUT[] { i };
-        SendInput(1, a, Marshal.SizeOf(typeof(INPUT)));
+        Inject(a);
     }
 
     public static void UnicodeChar(char c)
@@ -146,7 +263,7 @@ public static class YesDawDrive
         INPUT d = new INPUT(); d.type = 1; d.u.ki.wScan = c; d.u.ki.dwFlags = 0x0004u;
         INPUT u = new INPUT(); u.type = 1; u.u.ki.wScan = c; u.u.ki.dwFlags = 0x0004u | 0x0002u;
         INPUT[] a = new INPUT[] { d, u };
-        SendInput(2, a, Marshal.SizeOf(typeof(INPUT)));
+        Inject(a);
     }
 
     // Client-area PNG of a window. PrintWindow with PW_RENDERFULLCONTENT (2) renders
@@ -326,31 +443,71 @@ function TypeText([string] $text) {
   foreach ($ch in $text.ToCharArray()) { [YesDawDrive]::UnicodeChar($ch); Start-Sleep -Milliseconds 5 }
 }
 
-# A native file chooser is up (WaitDialog found it): let it settle (it selects its default name
-# a beat after opening), replace the name with `path`, confirm. Returns nothing; assert on the
-# probe afterwards.
+# Drive the exact native chooser observed by WaitDialog. Readback verifies input delivery;
+# the Session script still verifies the resulting app state independently.
 function FileDialogEnter([string] $path, [string] $DialogTitle = '') {
-  # The native chooser drops keys typed before it has settled (slower on a busy machine): give it a
-  # second, type, and if the dialog is STILL up afterwards type once more (G4.1 cp2 drive lesson).
+  $dialog = $script:LastDialog
+  if ($DialogTitle) { $dialog = WaitDialog $DialogTitle }
+  if (-not [YesDawDrive]::DialogBelongsTo($dialog, [uint32]$script:Proc.Id)) { throw 'The exact chooser returned by WaitDialog is no longer available' }
   Start-Sleep -Milliseconds 1200
-  for ($attempt = 0; $attempt -lt 2; $attempt++) {
-    Key 'Ctrl+A'
-    Start-Sleep -Milliseconds 100
-    TypeText $path
-    Start-Sleep -Milliseconds 300
-    Key 'Enter'
-    Start-Sleep -Milliseconds 900
-    $still = [YesDawDrive]::FindTopWindow([uint32]$script:Proc.Id, $(if ($DialogTitle) { $DialogTitle } else { 'YES DAW' }))
-    if ($still -eq [IntPtr]::Zero -or $still -eq $script:Hwnd) { return }
+  if (-not [YesDawDrive]::FocusFileName($dialog)) { throw ('Cannot focus native filename control: ' + [YesDawDrive]::DialogDiagnostic($dialog)) }
+  Start-Sleep -Milliseconds 100
+  if (-not [YesDawDrive]::FileNameHasFocus($dialog)) { throw ('Native filename focus was not established: ' + [YesDawDrive]::DialogDiagnostic($dialog)) }
+  Key 'Ctrl+A'
+  Start-Sleep -Milliseconds 100
+  TypeText $path
+  Start-Sleep -Milliseconds 300
+  if (-not [YesDawDrive]::FileNameHasFocus($dialog) -or [YesDawDrive]::FileNameText($dialog) -cne $path) {
+    throw ('Native filename readback did not match requested path: ' + [YesDawDrive]::DialogDiagnostic($dialog))
+  }
+  Write-Host ('  [dialog] verified filename focus/readback: hwnd=' + $dialog + ' title=' + [YesDawDrive]::WindowTitle($dialog) + ' path=' + $path)
+  Key 'Enter'
+  # Preserve the previous two 900 ms completion windows; never retype into an unknown control.
+  $deadline = (Get-Date).AddMilliseconds(1800)
+  do {
+    if (-not [YesDawDrive]::DialogBelongsTo($dialog, [uint32]$script:Proc.Id)) {
+      $script:LastDialog = [IntPtr]::Zero
+      Write-Host '  [dialog] exact chooser closed; app-state assertion follows'
+      return
+    }
+    Start-Sleep -Milliseconds 60
+  } while ((Get-Date) -lt $deadline)
+  throw ('Native chooser remained open after confirmed path input: ' + [YesDawDrive]::DialogDiagnostic($dialog))
+}
+
+function ActivateAppCaption {
+  # Only the app's own topmost bit changes, temporarily. Always restore it, including refused
+  # hit tests or rejected input. Other windows and system foreground settings are untouched.
+  $wasTopmost = [YesDawDrive]::WindowIsTopmost($script:Hwnd)
+  try {
+    if (-not [YesDawDrive]::SetTargetTopmost($script:Hwnd, $true)) { return $false }
+    return [YesDawDrive]::ActivateCaption($script:Hwnd)
+  } finally {
+    if (-not [YesDawDrive]::SetTargetTopmost($script:Hwnd, $wasTopmost) -or [YesDawDrive]::WindowIsTopmost($script:Hwnd) -ne $wasTopmost) {
+      throw 'Could not restore the YES DAW window topmost state after activation'
+    }
   }
 }
 
 function Focus {
-  if ($script:Hwnd -ne [IntPtr]::Zero) {
-    [void][YesDawDrive]::ShowWindow($script:Hwnd, 9)   # SW_RESTORE
+  if ($script:Hwnd -eq [IntPtr]::Zero) { throw 'Could not activate the YES DAW window: no window handle' }
+  [void][YesDawDrive]::ShowWindow($script:Hwnd, 9)   # SW_RESTORE
+  # Windows may initially deny foreground activation while a newly shown window settles.
+  # Retry only activation of the known app window. An exhausted retry is a harness/environment
+  # failure, not a lost app chord. A verified caption click below handles foreground-lock denial.
+  for ($attempt = 0; $attempt -lt 8; $attempt++) {
     [void][YesDawDrive]::SetForegroundWindow($script:Hwnd)
     Start-Sleep -Milliseconds 120
+    if ([YesDawDrive]::GetForegroundWindow() -eq $script:Hwnd) { return }
   }
+  if (ActivateAppCaption) {
+    Start-Sleep -Milliseconds 120
+    if ([YesDawDrive]::GetForegroundWindow() -eq $script:Hwnd) {
+      Write-Host '  [focus] activated the verified app caption after foreground-lock denial'
+      return
+    }
+  }
+  throw ('Could not activate the YES DAW window: expected hwnd=' + $script:Hwnd + ' actual foreground=' + [YesDawDrive]::GetForegroundWindow() + ' caption=' + [YesDawDrive]::CaptionDiagnostic)
 }
 
 function Click([string] $target, [switch] $Right, [switch] $Double, [string] $Modifiers = '', [int] $OffsetX = 0, [int] $OffsetY = 0) {
@@ -433,10 +590,11 @@ function Resize([int] $clientWidth, [int] $clientHeight) {
 }
 
 function WaitDialog([string] $titleContains, [int] $TimeoutMs = 4000) {
+  $script:LastDialog = [IntPtr]::Zero
   $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
   do {
     $h = [YesDawDrive]::FindTopWindow([uint32]$script:Proc.Id, $titleContains)
-    if ($h -ne [IntPtr]::Zero -and $h -ne $script:Hwnd) { return $h }
+    if ($h -ne [IntPtr]::Zero -and $h -ne $script:Hwnd) { $script:LastDialog = $h; return $h }
     Start-Sleep -Milliseconds 60
   } while ((Get-Date) -lt $deadline)
   return [IntPtr]::Zero
@@ -457,6 +615,9 @@ function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '') {
   }
   New-Item -ItemType Directory -Force -Path $script:SessionDir | Out-Null
   $script:ProbePath = Join-Path $script:SessionDir 'probe.json'
+  # Reusing session state preserves the keymap/last-project record, never an earlier process's
+  # probe. Otherwise WaitProbe can certify launch against stale geometry before this exe starts.
+  if (Test-Path -LiteralPath $script:ProbePath) { Remove-Item -LiteralPath $script:ProbePath -Force }
   $script:LastProbe = $null
   $env:YESDAW_STATE_PROBE = $script:ProbePath
   $env:YESDAW_SESSION_STATE_DIR = $script:SessionDir
@@ -478,7 +639,7 @@ function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '') {
   } while ((Get-Date) -lt $deadline)
   if ($script:Hwnd -eq [IntPtr]::Zero) { throw "the YES DAW window did not appear" }
   Focus
-  Write-Host ("  [launch] pid {0} probe {1} first-probe {2} ms renderer {3}" -f $script:Proc.Id, $script:ProbePath, (Elapsed), $script:LastProbe.renderer)
+  Write-Host ("  [launch] pid {0} probe {1} first-probe {2} ms renderer {3}" -f $script:Proc.Id, $script:ProbePath, $script:FirstProbeMs, $script:LastProbe.renderer)
 }
 
 function Close {

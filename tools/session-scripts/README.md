@@ -68,8 +68,9 @@ controls transport and a slider arrow does not also nudge a Clip.
   `Down` from there.
 - **A combo box's popup opens on its CURRENT item**, not the first — count relative to what is
   selected.
-- **Native file choosers sometimes drop the first typed path after a relaunch.** `FileDialogEnter`
-  retries; a script still waits on the probe (`projectLoaded`) rather than on the dialog closing.
+- **Native chooser input needs verified targeting.** `FileDialogEnter` verifies the exact dialog,
+  filename control, focus and path readback before one Enter; scripts then assert the requested
+  bundle path or imported clip in the probe, rather than treating dialog closure as success.
 - **Resize to 1920×1080 before dock work** (`Resize 1920 1080`) so the strips paint their full slot
   columns; grow the dock by dragging `widget.shell.splitter.dock` upward (the default dock is the
   mini-mixer and drops slot rows).

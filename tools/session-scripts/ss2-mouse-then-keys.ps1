@@ -8,8 +8,8 @@
 # from the shell's left edge (the menu bar is a shell child at the header's left).
 #
 # Deviations from the plan text, logged in STATUS.md:
-#  - a fresh launch has no project (SS-1's D3, owned by G5.5): step 0 creates one through the
-#    real New chooser and imports the fixture through the real Import chooser first.
+#  - G4.0a: step 0 replaces the empty startup project through the real New chooser, verifies
+#    the requested bundle path, and imports the fixture through the real Import chooser.
 #  - "Duplicate Track" and "Create MIDI Clip" have no chord in the plan's §4 table: the "same four
 #    by chord" step uses the two chords that exist (Ctrl+T split, M marker).
 
@@ -36,7 +36,9 @@ Step 0 'Launch, New, Import the fixture'
 Launch
 Click 'widget.project.new'
 $dlg = WaitDialog 'Create YES DAW Project' 6000
+[void](Assert ($dlg -ne [IntPtr]::Zero) 'New opens the native project chooser')
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
+[void](Assert (WaitProbe { param($q) [string]$q.bundlePath -eq $bundle } -TimeoutMs 6000) 'New opens the requested bundle, independent of the startup project')
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (created through the real New chooser; D3)')
 Focus
 Key 'Ctrl+Shift+I'

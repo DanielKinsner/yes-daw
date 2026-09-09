@@ -56,6 +56,8 @@ struct MainComponentFileChoices
     // G0.1 Session drive: open this bundle at launch instead of the last-project record (the
     // native shell fills it from the command line: `YesDaw.exe <path.yesdaw>`).
     std::filesystem::path openBundleAtLaunch;
+    // G4.0a: exercise native session startup independently of hardware in the input harness.
+    bool initialiseSessionAtLaunch = false;
 };
 
 inline constexpr int kCloseChoiceSave = 0;

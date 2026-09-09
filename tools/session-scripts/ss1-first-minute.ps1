@@ -8,10 +8,10 @@
 # and takes the shipped path (toolbar button, old chord) so the later steps still run.
 #
 # Deviations from the plan text, logged in STATUS.md:
-#  - the G0.6 fixture does not exist yet; the drive's -Fixture (tests/fixtures/sine_440_48k_mono.wav)
-#    stands in for "the fixture's first stem".
-#  - a fresh launch has NO project today (the shell paints "Create or open a Project"); step 1
-#    asserts the plan's empty project (red) and then creates one through the real Ctrl+N chooser.
+#  - The drive uses the generated G0.6 song's first stem when present; otherwise its documented
+#    sine fallback applies. Evidence must record the actual fixture used.
+#  - G4.0a requires a real empty startup project and names it through the first Save chooser.
+#    The New fallback retains diagnosis of a regressed empty launch without hiding its FAIL.
 
 $bundle = Join-Path ([System.IO.Path]::GetTempPath()) ('ss1-first-minute-' + (Get-Date).ToString('HHmmss') + '.yesdaw')
 if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $bundle }
@@ -178,6 +178,14 @@ foreach ($size in @(@(1280, 720), @(1920, 1080), @(2560, 1440))) {
 Step 14 'Save, relaunch with the bundle'
 Focus
 Key 'Ctrl+S'
+$saveDialog = WaitDialog 'Save YES DAW Project As' 2500
+if ([bool]$launchProbe.projectLoaded) {
+  [void](Assert ($saveDialog -ne [IntPtr]::Zero) 'first Save offers to name the startup project')
+}
+if ($saveDialog -ne [IntPtr]::Zero) {
+  FileDialogEnter $bundle
+  [void](Assert (WaitProbe { param($q) [string]$q.bundlePath -eq $bundle } -TimeoutMs 6000) 'first Save names the startup project')
+}
 Start-Sleep -Milliseconds 500
 $saved = Probe
 $bundlePath = [string]$saved.bundlePath
@@ -187,6 +195,7 @@ Close
 Start-Sleep -Milliseconds 500
 if (-not [string]::IsNullOrWhiteSpace($bundlePath)) {
   Launch -Bundle $bundlePath
+  [void](Assert ($script:FirstProbeMs -le 3000) ('saved-fixture launch to first interactive tick <= 3 s (B6): ' + $script:FirstProbeMs + ' ms'))
   $p = Probe
   [void](Assert ([bool]$p.projectLoaded) 'relaunch with the bundle opens it')
   [void](Assert ([int]$p.view.clipCount -eq $clipsBefore) ('same clip count after relaunch: ' + $p.view.clipCount))

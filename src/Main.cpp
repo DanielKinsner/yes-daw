@@ -39,6 +39,8 @@ public:
 
     void initialise (const juce::String&) override
     {
+        const auto probe = juce::SystemStats::getEnvironmentVariable ("YESDAW_STATE_PROBE", {});
+        const auto startUnixMs = probe.isNotEmpty() ? juce::Time::currentTimeMillis() : 0;
         // G0.1: `YesDaw.exe <path.yesdaw>` opens that bundle instead of the last-project record
         // (the Session drive's `Launch [bundle]`). Absolute paths only.
         std::filesystem::path openBundleAtLaunch;
@@ -55,8 +57,14 @@ public:
         }
 
         const juce::String title = "YES DAW " + getApplicationVersion();
-        mainWindow.reset (new MainWindow (
-            title, yesdaw::ui::createNativeMainComponent (std::move (openBundleAtLaunch)).release(), *this));
+        auto content = yesdaw::ui::createNativeMainComponent (std::move (openBundleAtLaunch));
+        const auto contentUnixMs = probe.isNotEmpty() ? juce::Time::currentTimeMillis() : 0;
+        mainWindow.reset (new MainWindow (title, content.release(), *this));
+        if (probe.isNotEmpty())
+            (void) juce::File (probe + ".application.tsv").replaceWithText (
+                "initialiseUnixMs\t" + juce::String (startUnixMs)
+                + "\ncontentReadyUnixMs\t" + juce::String (contentUnixMs)
+                + "\nwindowReadyUnixMs\t" + juce::String (juce::Time::currentTimeMillis()) + "\n");
     }
 
     void shutdown() override { mainWindow = nullptr; }
@@ -66,7 +74,7 @@ private:
     {
     public:
         MainWindow (juce::String name, juce::Component* content, JUCEApplication& a)
-            : DocumentWindow (name, juce::Colour (0xff0b0f14), DocumentWindow::allButtons), app (a)
+            : DocumentWindow (name, juce::Colour (0xff0b0f14), DocumentWindow::allButtons, false), app (a)
         {
             setUsingNativeTitleBar (true);
             setContentOwned (content, true);
@@ -78,6 +86,9 @@ private:
                              yesdaw::ui::UiTheme::Layout::windowMaxWidth,
                              yesdaw::ui::UiTheme::Layout::windowMaxHeight);
             centreWithSize (getWidth(), getHeight());
+            // Configure the final styles before creating the native peer. Changing the title
+            // bar and resizability on an existing peer recreates the Windows window repeatedly.
+            addToDesktop();
             setVisible (true);
         }
 

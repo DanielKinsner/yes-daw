@@ -1,0 +1,91 @@
+{
+  "checkpoint": "G4.0a",
+  "date": "2026-09-08",
+  "certification": "pending exact-code CI; Usable-song incomplete",
+  "platform": "Windows shared console; authorized hands-off test batch",
+  "buildPreset": "ci Release",
+  "executableSha256": "729A98D7A401BA9C922E84C8CE4267FCA9C84F7E6CDE07C1B500FEF43508E4D7",
+  "fixture": "generated G0.6 song stems/stem-01.wav",
+  "fixtureBytes": 69120044,
+  "fixtureSha256": "301EA501ADC8692AC7C04CEB82CE6ECD44EDE3E0B208E8C890BBCB30E9F58210",
+  "startupBudgetMs": 3000,
+  "journeys": [
+    {
+      "journey": "ss1",
+      "passedAssertions": 43,
+      "log": "build-ci/g40a-enumeration-ss1.log",
+      "logSha256": "C39354EC1E086EEB3382B9E27D8826A5C1D17585D1AB6D8B22E848A72A9CB005",
+      "firstProbeMs": [
+        2550,
+        2947
+      ]
+    },
+    {
+      "journey": "ss2-mouse-then-keys",
+      "passedAssertions": 31,
+      "log": "build-ci/g40a-enumeration-ss2-mouse-then-keys.log",
+      "logSha256": "ABA3A1F804652DCB9E6BA85956691E38212B404B88CA390B1E147DD9C26A241A",
+      "firstProbeMs": [
+        2478,
+        2994
+      ]
+    },
+    {
+      "journey": "ss3-edit-a-song",
+      "passedAssertions": 53,
+      "log": "build-ci/g40a-enumeration-ss3-edit-a-song.log",
+      "logSha256": "DABF1F9572913DDCB2EBFB47BDC575E3CA1DC0F5D78B1B41188AED236DC23AF8",
+      "firstProbeMs": [
+        2493,
+        2945
+      ]
+    },
+    {
+      "journey": "ss4-track-instrument",
+      "passedAssertions": 18,
+      "log": "build-ci/g40a-enumeration-ss4-track-instrument.log",
+      "logSha256": "726C6B56FDCCCFE915EB90308B2A55BC25563E79F1C9458CBC0184FA6A5630D3",
+      "firstProbeMs": [
+        2469
+      ]
+    },
+    {
+      "journey": "ss5-piano-roll",
+      "passedAssertions": 69,
+      "log": "build-ci/g40a-enumeration-ss5-piano-roll.log",
+      "logSha256": "358D8DB8D97B789A93675ED19AF3A651B9B053CF174A9813C07C2537BB3FF3B6",
+      "firstProbeMs": [
+        2473
+      ]
+    },
+    {
+      "journey": "ss6-write-a-beat",
+      "passedAssertions": 47,
+      "log": "build-ci/g40a-enumeration-ss6-write-a-beat.log",
+      "logSha256": "667D92E7A6E02F904A3C36E1F698520E82A2DD150C6E7119910846BD41A934C0",
+      "firstProbeMs": [
+        2459,
+        2923
+      ]
+    },
+    {
+      "journey": "ss7-mix-the-song",
+      "passedAssertions": 39,
+      "log": "build-ci/g40a-enumeration-ss7-mix-the-song.log",
+      "logSha256": "95320B775E39B26A9DD443BB6F3201904BC157715C75FD8141488AFB11FE41FA",
+      "firstProbeMs": [
+        2443
+      ]
+    }
+  ],
+  "artifactAvailability": "Logs and screenshots are local only; checked-in session-drive scripts reproduce them. Hashes identify measured artifacts, not uploaded copies.",
+  "rubric": "Rows 1-4 FIX for existing G6 label/font/density work; rows 5-7 scoped PASS. Not full visual certification.",
+  "localGate": {
+    "command": "ctest --preset ci",
+    "passed": 380,
+    "failed": 0,
+    "seconds": 199.88,
+    "log": "build-ci/g40a-enumeration-ctest.log",
+    "logSha256": "F09632109141E218C9087272E23F372B9AD71AFDAC864F5BD85C75743E973125"
+  }
+}

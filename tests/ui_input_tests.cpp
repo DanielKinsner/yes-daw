@@ -2,6 +2,7 @@
 
 #include "interchange/Smf.h"   // G3.7: the [midi-file] gate writes and reads back a Standard MIDI File
 #include "ui/MainComponent.h"
+#include "ui/DesktopAudioStartup.h"
 #include "ui/EqResponseComponent.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
@@ -49,6 +50,180 @@ using yesdaw::engine::AutomationTargetRole;
 using yesdaw::engine::ProjectMixerNodeRole;
 using yesdaw::engine::projectMixerNodeIdForEntity;
 using yesdaw::engine::projectMixerSendLevelNodeIdForTrack;
+
+TEST_CASE ("device chooser reads both directions from one fresh backend scan",
+           "[ui][input][shell][device][startup-audio]")
+{
+    struct Backend
+    {
+        int scans = 0;
+        void scanForDevices() { ++scans; }
+        juce::StringArray getDeviceNames (bool input) const
+        {
+            return { juce::String (input ? "Input " : "Output ") + juce::String (scans) };
+        }
+    } first, second;
+    struct Manager
+    {
+        std::array<Backend*, 3> types;
+        const auto& getAvailableDeviceTypes() { return types; }
+    } manager { { &first, nullptr, &second } };
+
+    const auto initial = yesdaw::ui::enumerateDesktopAudioDeviceNames (manager);
+    REQUIRE (initial.inputs == std::vector<std::string> { "Input 1", "Input 1" });
+    REQUIRE (initial.outputs == std::vector<std::string> { "Output 1", "Output 1" });
+    REQUIRE (first.scans == 1);
+    REQUIRE (second.scans == 1);
+
+    // A later refresh must actually rescan, rather than caching stale endpoints.
+    const auto refreshed = yesdaw::ui::enumerateDesktopAudioDeviceNames (manager);
+    REQUIRE (refreshed.inputs == std::vector<std::string> { "Input 2", "Input 2" });
+    REQUIRE (refreshed.outputs == std::vector<std::string> { "Output 2", "Output 2" });
+    REQUIRE (first.scans == 2);
+    REQUIRE (second.scans == 2);
+}
+
+TEST_CASE ("startup skips duplicate device probes only with matching default endpoint evidence",
+           "[ui][input][shell][device][startup-audio]")
+{
+    using yesdaw::ui::DefaultAudioPairProof;
+    using yesdaw::ui::verifiedDefaultAudioSetup;
+    DefaultAudioPairProof proof { "Microphone", "Speakers", 48000, 48000 };
+
+    SECTION ("equal native default rates preserve automatic JUCE configuration")
+    {
+        const auto setup = verifiedDefaultAudioSetup ("Windows Audio", "Microphone", "Speakers", proof);
+        REQUIRE (setup);
+        REQUIRE (setup->hasTagName ("DEVICESETUP"));
+        REQUIRE (setup->getStringAttribute ("deviceType") == "Windows Audio");
+        REQUIRE (setup->getStringAttribute ("audioInputDeviceName") == "Microphone");
+        REQUIRE (setup->getStringAttribute ("audioOutputDeviceName") == "Speakers");
+        REQUIRE_FALSE (setup->hasAttribute ("audioDeviceRate"));
+        REQUIRE_FALSE (setup->hasAttribute ("audioDeviceBufferSize"));
+        REQUIRE_FALSE (setup->hasAttribute ("audioDeviceInChans"));
+        REQUIRE_FALSE (setup->hasAttribute ("audioDeviceOutChans"));
+    }
+    SECTION ("missing native evidence keeps the compatibility search")
+    {
+        REQUIRE_FALSE (verifiedDefaultAudioSetup ("Windows Audio", "Microphone", "Speakers", std::nullopt));
+    }
+    SECTION ("different mix rates cannot prove the original first pair would win")
+    {
+        proof.inputMixRate = 44100;
+        REQUIRE_FALSE (verifiedDefaultAudioSetup ("Windows Audio", "Microphone", "Speakers", proof));
+    }
+    SECTION ("zero rates do not count as a match")
+    {
+        proof.inputMixRate = proof.outputMixRate = 0;
+        REQUIRE_FALSE (verifiedDefaultAudioSetup ("Windows Audio", "Microphone", "Speakers", proof));
+    }
+    SECTION ("changed or ambiguously numbered defaults cannot reuse another endpoint's evidence")
+    {
+        REQUIRE_FALSE (verifiedDefaultAudioSetup ("Windows Audio", "Other microphone", "Speakers", proof));
+        REQUIRE_FALSE (verifiedDefaultAudioSetup ("Windows Audio", "Microphone", "Speakers (1)", proof));
+        REQUIRE_FALSE (verifiedDefaultAudioSetup ("Windows Audio", "", "Speakers", proof));
+    }
+    SECTION ("the shared WASAPI proof cannot apply to another backend")
+    {
+        REQUIRE_FALSE (verifiedDefaultAudioSetup ("Windows Audio (Exclusive Mode)", "Microphone", "Speakers", proof));
+        REQUIRE_FALSE (verifiedDefaultAudioSetup ("Windows Audio (Low Latency Mode)", "Microphone", "Speakers", proof));
+        REQUIRE_FALSE (verifiedDefaultAudioSetup ("CoreAudio", "Microphone", "Speakers", proof));
+    }
+}
+
+TEST_CASE ("desktop audio opening preserves compatible-pair and output-only recovery",
+           "[ui][input][shell][device][startup-audio]")
+{
+    struct DeviceManager
+    {
+        struct Outcome { juce::String error; bool deviceOpen; };
+        Outcome verified { {}, true }, stereo { {}, true }, output { {}, true };
+        std::vector<std::pair<int, int>> channels;
+        std::vector<bool> explicitSetup;
+        const juce::XmlElement* receivedSetup = nullptr;
+        bool automaticFallback = true;
+        bool deviceOpen = false;
+        int device = 0;
+
+        juce::String initialise (int inputs, int outputs, const juce::XmlElement* setup,
+                                 bool fallback)
+        {
+            channels.emplace_back (inputs, outputs);
+            explicitSetup.push_back (true);
+            receivedSetup = setup;
+            automaticFallback = fallback;
+            deviceOpen = verified.deviceOpen;
+            return verified.error;
+        }
+        juce::String initialiseWithDefaultDevices (int inputs, int outputs)
+        {
+            channels.emplace_back (inputs, outputs);
+            explicitSetup.push_back (false);
+            const auto& result = inputs == 0 ? output : stereo;
+            deviceOpen = result.deviceOpen;
+            return result.error;
+        }
+        int* getCurrentAudioDevice() { return deviceOpen ? &device : nullptr; }
+    } manager;
+
+    juce::XmlElement setup ("DEVICESETUP");
+    const juce::XmlElement* requestedSetup = &setup;
+    std::vector<std::pair<int, int>> expectedChannels { { 2, 2 } };
+    std::vector<bool> expectedExplicit { true };
+    juce::String expectedError;
+    bool expectedDeviceOpen = true;
+
+    SECTION ("verified default pair succeeds without reopening") {}
+    SECTION ("failed verified pair recovers through JUCE compatibility search")
+    {
+        manager.verified = { "default pair unavailable", false };
+        expectedChannels.emplace_back (2, 2);
+        expectedExplicit.push_back (false);
+    }
+    SECTION ("a verified open with no device still runs the compatibility search")
+    {
+        manager.verified = { {}, false };
+        expectedChannels.emplace_back (2, 2);
+        expectedExplicit.push_back (false);
+    }
+    SECTION ("missing proof starts directly with the compatibility search")
+    {
+        requestedSetup = nullptr;
+        expectedExplicit = { false };
+    }
+    SECTION ("failed input opening preserves output-only playback")
+    {
+        manager.verified = { "default pair unavailable", false };
+        manager.stereo = { "input unavailable", false };
+        expectedChannels = { { 2, 2 }, { 2, 2 }, { 0, 2 } };
+        expectedExplicit = { true, false, false };
+    }
+    SECTION ("a stereo search with no device still tries output-only")
+    {
+        requestedSetup = nullptr;
+        manager.stereo = { {}, false };
+        expectedChannels = { { 2, 2 }, { 0, 2 } };
+        expectedExplicit = { false, false };
+    }
+    SECTION ("complete device failure reports the final error")
+    {
+        requestedSetup = nullptr;
+        manager.stereo = { "input unavailable", false };
+        manager.output = { "output unavailable", false };
+        expectedChannels = { { 2, 2 }, { 0, 2 } };
+        expectedExplicit = { false, false };
+        expectedError = "output unavailable";
+        expectedDeviceOpen = false;
+    }
+
+    REQUIRE (yesdaw::ui::initialiseDesktopAudioWithSetup (manager, requestedSetup) == expectedError);
+    REQUIRE (manager.channels == expectedChannels);
+    REQUIRE (manager.explicitSetup == expectedExplicit);
+    REQUIRE ((manager.getCurrentAudioDevice() != nullptr) == expectedDeviceOpen);
+    REQUIRE (manager.receivedSetup == requestedSetup);
+    if (requestedSetup != nullptr)
+        REQUIRE_FALSE (manager.automaticFallback);
+}
 
 namespace {
 
@@ -1230,6 +1405,25 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
     REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 84u));   // G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    // G4.0a restores SS-1's native empty project; it contains one empty audio track.
+    REQUIRE (snapshot.context.projectLoaded);
+    REQUIRE_FALSE (snapshot.context.isPlaying);
+    REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
+    REQUIRE (snapshot.visibleTimelineTrackCount == 1);
+    REQUIRE (snapshot.visibleTimelineClipCount == 0);
+    REQUIRE (snapshot.visibleMixerTrackCount == 1);
+    REQUIRE (snapshot.visibleMixerBusCount == 0);
+    REQUIRE_FALSE (snapshot.visibleMixerLoudnessValid);
+    REQUIRE (snapshot.visibleMasterPeakLeft == 0.0f);
+    REQUIRE (snapshot.visibleMasterPeakRight == 0.0f);
+    REQUIRE (snapshot.visiblePianoRollNoteCount == 0);
+}
+
+TEST_CASE ("Injected shell keeps its unloaded initial state", "[ui][input][shell][empty-startup]")
+{
+    auto shell = makeShell ({});
+    const auto snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.desktopAudioRequested);
     REQUIRE_FALSE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
     REQUIRE (snapshot.context.activePanel == UiPanel::Timeline);
@@ -4268,6 +4462,164 @@ TEST_CASE ("Save As copies the bundle and continues working in the copy", "[ui][
     auto reopened = makeShell (std::move (openChoices));
     clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
     REQUIRE (snapshotMainComponent (*reopened).playbackReady);
+}
+
+TEST_CASE ("fresh native session is backed, recoverable, and named on first Save",
+           "[ui][input][shell][empty-startup]")
+{
+    const auto stateDirectory = makeTempBundlePath ("startup-state");
+    const auto namedBundle = makeTempBundlePath ("startup-named");
+    int saveChoices = 0;
+    bool cancelNaming = true;
+    MainComponentFileChoices choices;
+    choices.initialiseSessionAtLaunch = true;
+    choices.sessionStateDirectory = stateDirectory;
+    choices.chooseImportAudioFile = [] { return std::filesystem::path { YESDAW_WAV_FIXTURE_PATH }; };
+    choices.chooseSaveAsProjectBundle = [&] {
+        ++saveChoices;
+        return cancelNaming ? std::filesystem::path {} : namedBundle;
+    };
+    choices.confirmCloseUnsavedChanges = [] { return yesdaw::ui::kCloseChoiceSave; };
+    auto shell = makeShell (choices);
+    auto initial = snapshotMainComponent (*shell);
+    REQUIRE (initial.context.projectLoaded);
+    REQUIRE (initial.visibleTimelineClipCount == 0);
+    REQUIRE (initial.visiblePianoRollNoteCount == 0);
+    REQUIRE (initial.windowTitle == "Untitled - YES DAW");
+    REQUIRE (readProjectSnapshot (initial.bundlePath).assets.empty());
+    REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*shell));
+    REQUIRE (saveChoices == 0);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (readProjectSnapshot (initial.bundlePath).clips.size() == 1u);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentConfirmsClose (*shell));
+    REQUIRE (saveChoices == 1);
+    REQUIRE (snapshotMainComponent (*shell).bundlePath == initial.bundlePath);
+    shell.reset();   // interrupted session: preserve the real backing bundle and unnamed intent
+    shell = makeShell (choices);
+    REQUIRE (snapshotMainComponent (*shell).bundlePath == initial.bundlePath);
+    REQUIRE (snapshotMainComponent (*shell).visibleTimelineClipCount == 1);
+    cancelNaming = false;
+    REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (saveChoices == 2);
+    REQUIRE (snapshotMainComponent (*shell).bundlePath == namedBundle);
+    REQUIRE (readProjectSnapshot (namedBundle).clips.size() == 1u);
+    REQUIRE (readProjectSnapshot (namedBundle).assets.size() == 1u);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (saveChoices == 2);
+    shell.reset();
+    shell = makeShell (choices);
+    REQUIRE (snapshotMainComponent (*shell).bundlePath == namedBundle);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (saveChoices == 2);
+}
+
+TEST_CASE ("native startup honors explicit paths and leaves failed opens unresolved",
+           "[ui][input][shell][empty-startup]")
+{
+    const auto stateDirectory = makeTempBundlePath ("startup-priority");
+    MainComponentFileChoices choices;
+    choices.initialiseSessionAtLaunch = true;
+    choices.sessionStateDirectory = stateDirectory;
+    auto shell = makeShell (choices);
+    const auto original = snapshotMainComponent (*shell).bundlePath;
+    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
+    shell.reset();
+
+    const auto explicitPath = makeTempBundlePath ("startup-explicit");
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (explicitPath).ok());
+    REQUIRE (model.addAudioTrack().dispatched);
+    choices.openBundleAtLaunch = explicitPath;
+    shell = makeShell (choices);
+    REQUIRE (snapshotMainComponent (*shell).bundlePath == explicitPath);
+    REQUIRE (snapshotMainComponent (*shell).visibleTimelineTrackCount == 2);
+    shell.reset();
+
+    choices.openBundleAtLaunch = makeTempBundlePath ("startup-missing");
+    shell = makeShell (choices);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.projectLoaded);
+    REQUIRE (std::filesystem::exists (original));
+    shell.reset();
+    choices.openBundleAtLaunch.clear();
+    shell = makeShell (choices);
+    REQUIRE (snapshotMainComponent (*shell).bundlePath == explicitPath);
+}
+
+TEST_CASE ("failed Save As retains dirty state and the original project",
+           "[ui][input][shell][empty-startup][saveas]")
+{
+    const auto original = makeTempBundlePath ("saveas-failure-source");
+    const auto blockedParent = makeTempBundlePath ("saveas-blocked-parent");
+    std::ofstream (blockedParent) << "a file cannot contain a bundle";
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (original).ok());
+    REQUIRE (model.addAudioTrack().dispatched);
+    REQUIRE (model.hasUnsavedChanges());
+    REQUIRE_FALSE (model.saveProjectBundleAs (blockedParent / "child.yesdaw").dispatched);
+    REQUIRE (model.hasUnsavedChanges());
+    REQUIRE (model.bundlePath() == original);
+    REQUIRE (readProjectSnapshot (original).tracks.size() == 2u);
+    REQUIRE (model.saveProjectBundle().ok());
+    REQUIRE_FALSE (model.hasUnsavedChanges());
+}
+
+TEST_CASE ("Save As rejects occupied and related destinations without changing either project",
+           "[ui][input][shell][empty-startup][saveas-safety]")
+{
+    const auto directory = makeTempBundlePath ("saveas-safety");
+    const auto original = directory / "source.yesdaw";
+    const auto occupied = directory / "occupied.yesdaw";
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (original).ok());
+    REQUIRE (model.addAudioTrack().dispatched);
+    std::filesystem::create_directories (occupied);
+    const auto sentinel = occupied / "preserve.txt";
+    std::ofstream (sentinel) << "keep this exact content";
+    REQUIRE_FALSE (model.saveProjectBundleAs (occupied).dispatched);
+    std::ifstream input (sentinel);
+    std::string content;
+    std::getline (input, content);
+    REQUIRE (content == "keep this exact content");
+    REQUIRE_FALSE (model.saveProjectBundleAs (sentinel).dispatched);
+    REQUIRE (std::filesystem::file_size (sentinel) == content.size());
+    REQUIRE (model.hasUnsavedChanges());
+    REQUIRE (model.bundlePath() == original);
+    REQUIRE_FALSE (model.saveProjectBundleAs (directory).dispatched);
+    const auto child = original / "child.yesdaw";
+    REQUIRE_FALSE (model.saveProjectBundleAs (child).dispatched);
+    REQUIRE_FALSE (std::filesystem::exists (child));
+    REQUIRE_FALSE (model.saveProjectBundleAs (original / ".." / "source.yesdaw" / "nested.yesdaw").dispatched);
+    REQUIRE_FALSE (std::filesystem::exists (original / "nested.yesdaw"));
+    REQUIRE (model.hasUnsavedChanges());
+    REQUIRE (readProjectSnapshot (original).tracks.size() == 2u);
+    REQUIRE (model.saveProjectBundle().ok());
+}
+
+TEST_CASE ("Close Save refuses an occupied first-name destination and preserves the unnamed session",
+           "[ui][input][shell][empty-startup][saveas-safety]")
+{
+    const auto stateDirectory = makeTempBundlePath ("close-save-state");
+    const auto occupied = makeTempBundlePath ("close-save-occupied");
+    std::filesystem::create_directories (occupied);
+    std::ofstream (occupied / "preserve.txt") << "keep";
+    MainComponentFileChoices choices;
+    choices.initialiseSessionAtLaunch = true;
+    choices.sessionStateDirectory = stateDirectory;
+    choices.chooseSaveAsProjectBundle = [occupied] { return occupied; };
+    choices.confirmCloseUnsavedChanges = [] { return yesdaw::ui::kCloseChoiceSave; };
+    auto shell = makeShell (choices);
+    const auto original = snapshotMainComponent (*shell).bundlePath;
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier
+        | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentConfirmsClose (*shell));
+    const auto failed = snapshotMainComponent (*shell);
+    REQUIRE (failed.bundlePath == original);
+    REQUIRE (failed.windowTitle == "Untitled* - YES DAW");
+    REQUIRE (failed.statusLineIsError);
+    REQUIRE (failed.statusLineText.find ("Save As failed") != std::string::npos);
+    REQUIRE (readProjectSnapshot (original).tracks.size() == 2u);
+    REQUIRE (std::filesystem::exists (occupied / "preserve.txt"));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentConfirmsClose (*shell));
 }
 
 TEST_CASE ("every mixer track strip is selectable and retargets the shared controls",

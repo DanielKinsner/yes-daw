@@ -265,6 +265,10 @@ public:
     // Save ask through the injectable seam (native three-way box otherwise). Closing never rolls
     // back the always-persisted bundle; Save records this state as the saved version.
     [[nodiscard]] bool confirmClose();
+    [[nodiscard]] bool isUnnamedLaunchProject() const;
+    static constexpr const char* unnamedBundleName = "Untitled.yesdaw";
+    static constexpr const char* unnamedMarkerName = ".yesdaw-untitled";
+    [[nodiscard]] bool saveCurrentProject (bool chooseDestination);
 
     // G0.1 probe: paint() opens the frame stamp and paintOverChildren() closes it — JUCE paints
     // this component, then every child, then paintOverChildren on the same component, so the
@@ -816,13 +820,11 @@ private:
 
     // Device chooser plumbing (usable-DAW P1): harness seams win when injected; the native shell
     // talks to the JUCE device manager.
-    [[nodiscard]] std::vector<std::string> enumerateAudioOutputDeviceNames();
 
     [[nodiscard]] bool selectAudioOutputDeviceByName (const std::string& name);
 
     // E29: input-side twins of the output plumbing. Switching the input device restarts the
     // JUCE device, which re-runs audioDeviceAboutToStart and re-adopts the E28 profile.
-    [[nodiscard]] std::vector<std::string> enumerateAudioInputDeviceNames();
 
     [[nodiscard]] bool selectAudioInputDeviceByName (const std::string& name);
 

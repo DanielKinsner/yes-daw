@@ -8,7 +8,8 @@
 # assume the exact state the preceding steps leave (which items are enabled is stated per pick).
 #
 # Deviations from the plan text, logged in STATUS.md:
-#  - a fresh launch has no project (D3, G5.5): step 0 creates one and imports the fixture.
+#  - G4.0a: step 0 creates a named project through New and imports the fixture, independently
+#    verifying the bundle path so the empty startup project cannot mask a failed New action.
 #  - "jump between markers" uses the table's Alt+, / Alt+. (Transport › Previous / Next Marker).
 #  - "the fixture" is the drive's -Fixture (the song stem when generated, else the sine).
 
@@ -48,7 +49,9 @@ Step 0 'Launch, New, Import the fixture'
 Launch
 Click 'widget.project.new'
 $dlg = WaitDialog 'Create YES DAW Project' 6000
+[void](Assert ($dlg -ne [IntPtr]::Zero) 'New opens the native project chooser')
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
+[void](Assert (WaitProbe { param($q) [string]$q.bundlePath -eq $bundle } -TimeoutMs 6000) 'New opens the requested bundle, independent of the startup project')
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (D3: created through the real New chooser)')
 Focus
 Key 'Ctrl+Shift+I'

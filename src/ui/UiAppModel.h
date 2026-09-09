@@ -1229,18 +1229,25 @@ public:
 
     [[nodiscard]] persistence::BundleResult createProjectBundle (
         const std::filesystem::path& bundlePath,
-        engine::Project project)
+        engine::Project project,
+        const std::function<void (const char*)>& recordStartupStage = {})
     {
         persistence::ProjectBundleDb opened;
         persistence::BundleResult result = persistence::ProjectBundleDb::openOrCreateBundle (bundlePath, opened);
+        if (recordStartupStage)
+            recordStartupStage ("create-project-database");
         if (! result.ok())
             return result;
 
         result = opened.writeProjectSnapshot (project);
+        if (recordStartupStage)
+            recordStartupStage ("write-initial-snapshot");
         if (! result.ok())
             return result;
 
         attachProjectBundle (std::move (opened), bundlePath, std::move (project));
+        if (recordStartupStage)
+            recordStartupStage ("attach-initial-project");
         ++context_.commandDispatchCount;
         return result;
     }
@@ -1485,7 +1492,9 @@ public:
     // Save-As (usable-DAW P0): persist the current Project, copy the whole bundle (SQLite + immutable
     // Assets) to the chosen path, and continue working in the copy. The original bundle stays intact
     // on disk. On any failure the model reopens the ORIGINAL bundle and reports the error.
-    [[nodiscard]] UiActionDispatchResult saveProjectBundleAs (const std::filesystem::path& newBundlePath)
+    [[nodiscard]] UiActionDispatchResult saveProjectBundleAs (
+        const std::filesystem::path& newBundlePath,
+        const std::function<void (const std::filesystem::path&)>& afterCopyBeforeReopen = {})
     {
         const UiActionId id = UiActionId::ProjectSaveAs;
         const UiActionState state = registry_.stateFor (id, context_);
@@ -1495,34 +1504,90 @@ public:
         if (newBundlePath.empty())
             return { id, { false, "save-as path required" }, false };
 
-        std::error_code equivalence;
-        if (bundlePath_ == newBundlePath
-            || (std::filesystem::exists (newBundlePath, equivalence)
-                && std::filesystem::equivalent (bundlePath_, newBundlePath, equivalence)))
-            return { id, { false, "save-as target is the current bundle" }, false };
+        // The chooser may append an extension AFTER its native overwrite check. Never replace
+        // an existing target here, and reject path aliases/containment before any write or close.
+        std::error_code pathError;
+        const auto targetStatus = std::filesystem::symlink_status (newBundlePath, pathError);
+        if (pathError && pathError != std::errc::no_such_file_or_directory)
+            return { id, { false, "save-as target could not be inspected" }, false };
+        if (targetStatus.type() != std::filesystem::file_type::not_found)
+            return { id, { false, "save-as target already exists" }, false };
 
-        if (! saveProjectBundle().ok())
+        pathError.clear();
+        const auto source = std::filesystem::canonical (bundlePath_, pathError);
+        if (pathError)
+            return { id, { false, "save-as source could not be resolved" }, false };
+        const auto absoluteTarget = std::filesystem::absolute (newBundlePath, pathError);
+        if (pathError)
+            return { id, { false, "save-as target could not be resolved" }, false };
+        const auto target = std::filesystem::weakly_canonical (absoluteTarget, pathError);
+        if (pathError)
+            return { id, { false, "save-as target could not be resolved" }, false };
+        bool comparisonFailed = false;
+        const auto liesWithin = [&] (std::filesystem::path candidate,
+                                    const std::filesystem::path& ancestor) {
+            for (;;)
+            {
+                std::error_code compareError;
+                // equivalent also catches Windows case aliases of an existing ancestor.
+                if (candidate == ancestor || std::filesystem::equivalent (candidate, ancestor, compareError))
+                    return true;
+                if (compareError && compareError != std::errc::no_such_file_or_directory
+                    && compareError != std::errc::not_a_directory)
+                    comparisonFailed = true;
+                const auto parent = candidate.parent_path();
+                if (parent.empty() || parent == candidate)
+                    return false;
+                candidate = parent;
+            }
+        };
+        if (liesWithin (target, source) || liesWithin (source, target))
+            return { id, { false, "save-as target overlaps the current bundle" }, false };
+        if (comparisonFailed)
+            return { id, { false, "save-as paths could not be compared" }, false };
+
+        // Copy preparation must not mark edits saved: a later copy/reopen can still fail.
+        if (! bundleDb_.writeProjectSnapshot (project_).ok())
             return { id, { false, "save before copy failed" }, false };
+
+        // Reserve only after the snapshot succeeds, so a failed write does not occupy the name.
+        // Reservation still prevents merging into a folder appearing after validation.
+        if (! std::filesystem::create_directory (target, pathError))
+            return { id, { false, "save-as target could not be created" }, false };
 
         // Release the SQLite handle so Windows lets the file copy; reopen (old or new) below.
         bundleDb_ = persistence::ProjectBundleDb {};
 
         std::error_code copyError;
-        std::filesystem::remove_all (newBundlePath, copyError);
-        copyError.clear();
-        std::filesystem::copy (bundlePath_, newBundlePath,
+        std::filesystem::copy (source, target,
                                std::filesystem::copy_options::recursive, copyError);
 
-        const std::filesystem::path reopenPath = copyError ? bundlePath_ : newBundlePath;
+        // Narrow filesystem-fault seam: tests can make a completed copy unopenable at this
+        // boundary, exercising the real database failure and source recovery without a race.
+        if (! copyError && afterCopyBeforeReopen)
+            afterCopyBeforeReopen (target);
+
+        const std::filesystem::path reopenPath = copyError ? bundlePath_ : target;
         persistence::ProjectBundleDb reopened;
         if (! persistence::ProjectBundleDb::openExistingBundle (reopenPath, reopened).ok())
+        {
+            // A copy can exist but fail to open. Restore the original handle before reporting
+            // failure so subsequent Save/recovery still operates on the retained source.
+            if (reopenPath != bundlePath_)
+            {
+                persistence::ProjectBundleDb original;
+                if (persistence::ProjectBundleDb::openExistingBundle (bundlePath_, original).ok())
+                    bundleDb_ = std::move (original);
+            }
             return { id, { false, "bundle reopen failed after save-as" }, false };
+        }
 
         bundleDb_ = std::move (reopened);
         if (copyError)
             return { id, { false, "bundle copy failed" }, false };
 
         bundlePath_ = newBundlePath;
+        lastSavedEditSerial_ = editSerial_;
         writeLastProjectRecord();
         waveformService_.start (bundlePath_);
         enqueueWaveformBuildsForDecodedAssets();

@@ -8,6 +8,78 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-09-08 — G4.0a recovery: local gates green, CI pending
+
+**Now:** implementing the authorized Usable-song milestone, beginning with restored SS-1–SS-3.
+G4.0a is not certified; G4.0b and later features have not started. Main was clean and safely
+fast-forward checked at `2f48962`; no pre-existing work was changed.
+
+**Confirmed causes and repairs under verification:**
+- Empty launch was missing app behavior. Native fresh sessions now get a real backed Untitled
+  project; first Save names it, canceled/failed naming preserves the working session, and reopen
+  retains its content. Injected test shells keep their existing unloaded default.
+- Missed early chords were a verified harness/environment focus failure: Explorer retained
+  foreground while the drive assumed the app had it. Exact foreground verification plus a guarded
+  app-caption click with temporary app-only elevation restored the normal New/Import path (6/6).
+  The original topmost state is restored; no other window or global setting is changed.
+- Chooser targeting assumed legacy control IDs and a fuzzy YES DAW title, which cannot identify
+  Import WAV Audio. The harness now targets the observed filename-control ancestry, verifies
+  native focus/path readback and exact chooser closure, and checks SendInput acceptance.
+- Startup baseline SS-1 measured 5,137 ms against the unchanged
+  3,000 ms budget. Instrumentation measured about 3,895 ms in audio initialization, versus about
+  143 ms in enumeration. A guarded Windows shared-audio path avoids JUCE's duplicate endpoint
+  capability construction only after proving its exact default pair shares a supported mix rate;
+  missing proof or failed opening retains the existing full search/output-only fallback.
+  The first integrated SS-1 reached 3,433 ms (still FAIL). Finer instrumentation then measured
+  1,331 ms creating the native window: native-titlebar/resizability changes recreated its peer.
+  Configuring styles before one peer creation reduced that stage to 490 ms and first probe to
+  2,643 ms (bounded diagnostic PASS). The full SS-1 subsequently passed 42 assertions but its
+  unasserted saved-fixture reopen measured 3,042 ms: still over B6. SS-1 now also asserts that
+  reopen budget. Removing redundant native device scans reduced final fresh/reopen results to
+  2,550 / 2,947 ms. SS-2 and SS-3 reopen measured 2,994 / 2,945 ms. All are below the unchanged
+  3,000 ms limit, with a narrow worst-case 6 ms margin on this machine; no broad timing guarantee.
+  Input/output chooser lists now share one backend scan and refresh after failed audio opening too.
+- Critic review found a touched Save As data-loss risk: recursive destination deletion accepted
+  occupied/related paths. The repair refuses them before mutation, preserves dirty state, and
+  attempts to restore the original DB if the copied destination cannot reopen.
+
+**Evidence so far:** original SS-1 30 passed/12 failed; SS-2 2/3; SS-3 1/2. Empty-startup red was
+observed before implementation; first lifecycle-focused green was 160 assertions in 6 cases.
+Both new Save As safety cases failed before their repair. Harness headless negative controls pass.
+Integrated SS-1 passed 41/42 (only B6 failed); SS-2 passed 31/31 and SS-3 passed 53/53.
+Full Release build passed. First full CTest passed 379/380; its sole failing native-startup test
+expected no project, contrary to G4.0a. It now asserts the real single empty track; a separate
+injected-shell test retains the old unloaded assertions. The corrected UI gate passed.
+Critic-requested tests exercise optimized audio failure/default/output-only recovery and a real
+SQLite reopen failure after Save As copy, proving the original still accepts edits and Save.
+After the final enumeration fix, all seven real-app scripts
+passed: SS1 **43**, SS2 **31**, SS3 **53**, instrument **18**, piano roll **69**, beat **47**, mixer
+**39** (300 assertions total). These include real New/Import, naming, playback/editing, unchanged
+database bytes after close/reopen and byte-identical MIDI-song render after reopen.
+Final full CTest passed **380/380** in 199.88 seconds. Exact-code CI remains pending.
+The first integrated audio-helper compile exposed a Windows `small` macro collision; native SDK
+headers were moved into a separate implementation file. No failed result is covered by the macOS
+exception, and no timing threshold or existing assertion has been relaxed.
+
+**Next:** commit/push and wait for every expected exact-code CI job.
+Only then advance to G4.0b. The user authorized one hands-off window for this test batch.
+The pre-existing density test proves seven complete lanes at 1080p, below the plan's eight;
+G6 layout certification must resolve this rather than claiming small-fixture screenshots prove it.
+**Rubric:** rows 1–4 remain FIX for existing truncated Scale/fade/master labels, unlabeled gain
+slider, font tokens below 11 px and missing eight-track proof (G6.1/G6.2/G6.3; master G4.7).
+Rows 5–7 PASS within the observed fixture states: distinct selection/playhead/loop/hover, reference
+shell structure, and actual project data. No full visual or Usable-song certification is claimed.
+Separate critic reviews found no blocking source findings after fixes; requested recovery tests
+passed in the UI gate. External Claude review was unavailable (missing jq), so only the completed
+local adversarial review receives credit. Review receipts are local under
+`build-ci/ce-code-review/g40a-20260908/`.
+All current logs/screenshots are local in `build-ci/g40a-*` and
+`build-ci/session-shots/2026-09-08-g40a-*`; generators/scripts are checked in, artifacts are not yet
+portable certification evidence.
+The checked-in [measurement index](docs/evidence/2026-09-08-g40a-recovery.json) records the final
+app/fixture/log hashes and all twelve measured startup times. It does not imply those local logs
+or screenshots are available on another machine.
+
 ## 2026-09-08 — Plan revised for autonomous delivery
 
 **Now:** Dan accepted the targeted plan revision and asked to keep human involvement minimal.
