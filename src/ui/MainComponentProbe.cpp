@@ -788,6 +788,9 @@ juce::String MainComponent::buildStateProbeJson()
     {
         auto* frame = new juce::DynamicObject();
         frame->setProperty ("paintMs", lastPaintMs);
+        frame->setProperty ("parentPaintMs", lastParentPaintMs);
+        frame->setProperty ("canvasPaintMs", timelineInput.lastCanvasPaintMs());
+        frame->setProperty ("canvasPaintCount", static_cast<juce::int64> (timelineInput.canvasPaintCount()));
         frame->setProperty ("paintP95Ms", probePaintP95Ms());
         frame->setProperty ("paintCount", static_cast<juce::int64> (paintCount));
         frame->setProperty ("tickMs", lastTickMs);

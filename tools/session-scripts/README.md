@@ -42,6 +42,16 @@ startup paths before more editor work. The Usable-song milestone requires the ap
 plus the future SS-6 lifecycle journey; planned filenames above are routing commitments, not evidence that
 the scripts or features already exist.
 
+Every `Launch`, including saved-project relaunches, asserts B6's unchanged 3,000 ms budget from
+process start to the first interactive probe. A script's other assertions cannot hide an over-budget
+launch. Run timing drives serially with no concurrent build or other drive; retain every raw result.
+
+For paint diagnosis, `frame.parentPaintMs` measures the shell's own drawing and
+`frame.canvasPaintMs` measures the latest static-canvas rebuild; use `canvasPaintCount` to tell
+whether that cache rebuilt. B2 still measures the whole shell through `paintOverChildren`, including
+cache preparation/compositing and children, over the same rolling 256 paints. These attribution
+fields never reset or replace its sample or threshold.
+
 ## Keyboard navigation contract
 
 G4.0b proves ADR-0049's shared **Control target** before more FX editors extend the surface. Native

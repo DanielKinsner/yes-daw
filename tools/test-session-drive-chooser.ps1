@@ -8,6 +8,8 @@ Add-Type @'
 using System;
 public static class YesDawDrive {
     public static bool FocusOk = true, Closed = false, ReadbackOk = true;
+    public static bool ReadbackAvailable = true, LoseFocusAfterTyping = false;
+    public static bool EmptyReadback = false;
     public static int Typed = 0, Confirmed = 0;
     public static string Text = "", LastSearch = "";
     public static int ActivationAttempts = 0, ActivateOnAttempt = 1;
@@ -27,8 +29,13 @@ public static class YesDawDrive {
     public static bool DialogBelongsTo(IntPtr h, uint pid) { return h == new IntPtr(20) && !Closed; }
     public static string WindowTitle(IntPtr h) { return "Import WAV Audio"; }
     public static bool FocusFileName(IntPtr h) { return FocusOk; }
-    public static string FileNameText(IntPtr h) { return ReadbackOk ? Text : "wrong path"; }
-    public static bool FileNameHasFocus(IntPtr h) { return FocusOk; }
+    public sealed class FileNameReadback {
+        public bool available;
+        public string text;
+        public override string ToString() { return available ? "text='"+text+"'" : "<unavailable>"; }
+    }
+    public static FileNameReadback ReadFileName(IntPtr h) { return new FileNameReadback { available = ReadbackAvailable, text = ReadbackAvailable ? (EmptyReadback ? "" : (ReadbackOk ? Text : "wrong path")) : null }; }
+    public static bool FileNameHasFocus(IntPtr h) { return FocusOk && !(LoseFocusAfterTyping && Typed > 0); }
     public static string DialogDiagnostic(IntPtr h) { return "test diagnostic"; }
 }
 '@
@@ -47,6 +54,7 @@ $script:Proc = [pscustomobject]@{ Id = 123 }
 $script:Hwnd = [IntPtr]10
 function Reset {
     [YesDawDrive]::FocusOk = $true; [YesDawDrive]::Closed = $false; [YesDawDrive]::ReadbackOk = $true
+    [YesDawDrive]::ReadbackAvailable = $true; [YesDawDrive]::EmptyReadback = $false; [YesDawDrive]::LoseFocusAfterTyping = $false
     [YesDawDrive]::Typed = 0; [YesDawDrive]::Confirmed = 0; [YesDawDrive]::Text = ''
     [void](WaitDialog 'Import WAV Audio')
 }
@@ -62,6 +70,23 @@ $refused = $false
 try { FileDialogEnter 'C:\fixture.wav' } catch { $refused = $_.Exception.Message -like '*readback did not match*' }
 if (-not $refused) { throw 'Missing explicit filename readback refusal' }
 if ([YesDawDrive]::Confirmed -ne 0) { throw 'Confirmed a filename without matching path readback' }
+foreach ($failure in @('empty', 'unavailable', 'focus-loss')) {
+    Reset
+    if ($failure -eq 'empty') { [YesDawDrive]::EmptyReadback = $true }
+    if ($failure -eq 'unavailable') { [YesDawDrive]::ReadbackAvailable = $false }
+    if ($failure -eq 'focus-loss') { [YesDawDrive]::LoseFocusAfterTyping = $true }
+    $message = ''
+    try { FileDialogEnter 'C:\fixture.wav' } catch { $message = $_.Exception.Message }
+    if ($message -notlike '*readback did not match*' -or [YesDawDrive]::Confirmed -ne 0) { throw "Missing unconfirmed refusal for $failure" }
+    if ($failure -eq 'empty' -and $message -notlike "*text=''*" ) { throw 'Valid empty readback was not distinguished' }
+    if ($failure -eq 'unavailable' -and $message -notlike '*<unavailable>*') { throw 'Unavailable readback was reported as empty' }
+    if ($failure -eq 'focus-loss' -and $message -notlike '*observedFocus=False*') { throw 'Condition-time focus loss was not recorded' }
+}
+Reset
+$refused = $false
+try { FileDialogEnter '' } catch { $refused = $_.Exception.Message -like '*nonempty requested path*' }
+if (-not $refused -or [YesDawDrive]::Typed -ne 0 -or [YesDawDrive]::Confirmed -ne 0) { throw 'Empty requested path was not refused before input' }
+Write-Host 'PASS: empty, unavailable and focus-loss readbacks stay distinct and refuse confirmation; empty request refuses input'
 Reset
 FileDialogEnter 'C:\fixture with spaces.wav'
 if ([YesDawDrive]::Typed -ne 1 -or [YesDawDrive]::Confirmed -ne 1 -or -not [YesDawDrive]::Closed) { throw 'Valid path was not entered and confirmed exactly once' }
@@ -90,6 +115,20 @@ if ([YesDawDrive]::Topmost -or [YesDawDrive]::TopmostWrites -ne 'TF') { throw 'S
 if (-not [YesDawDrive]::Topmost -or [YesDawDrive]::TopmostWrites -ne 'TT') { throw 'Originally topmost app state was not preserved' }
 Write-Host 'PASS: denied activation uses one safe caption fallback'
 Write-Host 'PASS: temporary app topmost state restored on success/refusal and originally topmost preserved'
+
+# Every Launch (including saved-project relaunches in later journeys) applies B6.
+# Pin both sides of the boundary and reject a missing measurement, without native input.
+$budgetFunction = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'AssertStartupBudget' }, $true)
+if ($null -eq $budgetFunction) { throw 'Every-launch startup budget gate is missing' }
+Invoke-Expression $budgetFunction.Extent.Text
+function Assert([bool] $condition, [string] $message) { $script:BudgetAccepted = $condition }
+foreach ($sample in @(@(2999, $true), @(3000, $true), @(3001, $false), @(3002, $false), @(-1, $false))) {
+    AssertStartupBudget ([int]$sample[0])
+    if ($script:BudgetAccepted -ne [bool]$sample[1]) { throw "Wrong B6 result for $($sample[0]) ms" }
+}
+$launchGate = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'Launch' }, $true)
+if ($launchGate.Extent.Text -notmatch 'AssertStartupBudget \$script:FirstProbeMs') { throw 'Launch omits the startup budget assertion' }
+Write-Host 'PASS: every Launch enforces B6 at the unchanged 3000 ms boundary'
 
 # Exercise Launch up to its process-start boundary using real temporary files. The previous
 # process's probe must be gone at that boundary while unrelated persistent session data survives.

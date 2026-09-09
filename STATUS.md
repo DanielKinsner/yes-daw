@@ -8,6 +8,82 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-09-08 — G4.0a: remove duplicate saved-song loading, assert every startup
+
+**Now:** G4.0a remains open. Dan authorized the shared desktop for the night; input access is no
+longer blocked. The corrective `9060aeb` app passed all seven journeys' 300 assertions, but the
+critic found an unasserted **3,002 ms** saved SS3 launch. Three diagnostic launches of that same
+saved song then measured **3,010 / 3,079 / 2,944 ms**, with the new common B6 gate correctly failing
+the first two. These are raw failures, not a tooling exception or certification reruns.
+
+**Current repair:** the shell decoded a validated bundle, then the model reopened it, rehashed its
+69 MB audio asset and copied the decoded audio. A move-only prepared bundle now carries the same
+validated DB/snapshot and owned audio into the existing adoption path. Full integrity checks,
+failed-load preservation, empty-project playback and recovery remain required. Every drive
+`Launch` now asserts the unchanged **3,000 ms** B6 budget; existing SS1 assertions stay intact.
+This implements the accepted G4.0a startup contract, with local tests and the same real-song
+journeys as its gates. Release build and CTest passed **380/380** (198.39 s), with separate
+correctness/adversarial/testing critics finding no actionable issue. Same-song diagnostic launches
+improved to **2,837 / 2,717 / 2,700 ms**. Exact-code CI is pending.
+
+**Current verification interruption:** the same repaired app passed SS2–SS7, but SS1 reported one
+ASUS input discontinuity during the edit burst (B5); startup and other budgets passed. Direct
+WASAPI capture outside YES DAW/JUCE independently measured three post-start discontinuities from
+the default ASUS virtual microphone in 30 seconds. That proves an environment contribution, not
+the cause of every extra JUCE counter increment. Its raw FAIL remains recorded.
+
+Realtek Stereo Mix was available but disabled. The agent enabled it through Windows Sound and
+verified a 30-second direct capture with zero post-start discontinuities. A temporary Stereo Mix
+default-input profile then passed SS1 B5 with **zero** underruns and B3 with **zero** callback
+removals, but failed B2 at **11.45 ms p95** against the unchanged **8 ms** budget. The batch stopped.
+An unchanged-script trace reproduced **11.75 ms**: full edit redraws were slow, and correctly
+remained in the rolling 256-paint sample during subsequent 1–2 ms playback paints. Attribution
+measured only ~1.7 ms inside canvas drawing; pinned JUCE's native offscreen context performs a
+full GPU-to-CPU image readback after that drawing finishes.
+
+**Paint repair:** Windows now keeps the same static canvas in an explicit software image cache,
+preserving logical invalidation, transparency, physical scaling and the separate playhead layer.
+Other platforms retain their existing cache. The unchanged traced SS1 passed **45/45**, with
+**7.65 ms** B2 p95 (0.35 ms margin), zero B5 underruns and **2,606 / 2,808 ms** startup. Independent
+cache critic and three-size visual comparison found no new defect. The final Release candidate
+passed **380/380** local tests (192.05 s). Its untraced batch passed **SS1 45, SS2 33, SS3 55,
+SS4 19, SS5 70 and SS6 49** assertions. **SS7 failed** at the native New filename readback,
+before confirmation or project creation. The original log conflated unavailable readback with
+empty text and sampled focus later; its cause remains **unknown**, so the batch is incomplete.
+
+**Chooser investigation:** a traced SS7 completed all 40 assertions, and 20 same-process New/type/
+cancel attempts delivered their paths correctly. These are diagnostic non-reproductions, not a
+repair or certification. A fresh-process comparison delivered eight exact paths, then stopped
+because its diagnostic Escape cleanup did not close the chooser; that separate failure is retained.
+Structured readback now captures the resolved Edit HWND, success, character count, elapsed time,
+last-error and text together. The exact gate-time focus/readback is reported, and tests distinguish
+empty text, unavailable readback and focus loss while refusing confirmation for every failure.
+The 500 ms readback timeout, all input timing, path equality and downstream assertions are unchanged.
+Separate critic review covers these diagnostics. Further native diagnosis and exact-code CI remain
+pending. No new feature work or G4.0a certification is claimed; all raw failures remain indexed.
+
+**Temporary host setup:** Stereo Mix is currently enabled/default for the coordinated test batch;
+the original default capture was ASUS AI Noise-Canceling Microphone in all three roles. Restore
+those roles and Stereo Mix's original disabled state when the batch ends. Render defaults remain
+the original Realtek Speakers. Metadata and both raw profile results are indexed in
+`docs/evidence/2026-09-08-g40a-single-open.json` (draft, CI pending).
+
+**Evidence:** `build-ci/g40a-corrective-*.log` and
+`build-ci/session-shots/2026-09-08-g40a-corrective/` retain the 300-assertion batch, including all
+**eleven** startup measurements. The earlier handoff incorrectly said twelve; its JSON contains
+eleven. `build-ci/g40a-saved-baseline-timing.log` retains the three diagnostic results. These
+artifacts are local only. No new visual regression was found; existing G6 rubric FIX rows remain.
+
+**Hardware preflight (not final package proof):** Realtek at 48 kHz granted **480 frames** on all
+three WASAPI modes, exceeding the locked **128-frame** playback limit. The measurement-generated
+result is FAIL (`playback_block_exceeds_target`); `build-ci/g40a-hardware-preflight/20260908-205959/`
+contains raw JSON/logs and checker identity. No hardware PASS is claimed. Software work can
+continue; Usable-song certification still requires a passing device/machine and final package proof.
+
+**Next:** finish this repair's local/real-app/critic/exact-code CI checkpoint, then proceed G4.0b,
+remaining G4.2–G4.7, G5, G6 and Usable-song certification. Later feature implementation remains
+unstarted while the required journey evidence is unresolved.
+
 ## 2026-09-08 — G4.0a handoff: code CI green, corrective native rerun awaits access
 
 **Now:** the authorized **Usable-song milestone is unfinished**. Current code is
@@ -32,7 +108,7 @@ certification**. None of those later implementations has started.
 
 The current local app SHA-256 is `AA73848280971F15B187C3AD75C9F243862E8DC95636288ED06093550CA8C916`.
 [Corrective evidence index](docs/evidence/2026-09-08-g40a-correction.json) binds CI and local logs to
-this code; the [earlier drive index](docs/evidence/2026-09-08-g40a-recovery.json) retains all twelve
+this code; the [earlier drive index](docs/evidence/2026-09-08-g40a-recovery.json) retains all eleven
 startup measurements (worst 2,994 ms, only 6 ms margin). Logs/screenshots under `build-ci/g40a-*`,
 `build-ci/session-shots/2026-09-08-g40a-*` and critic receipts under `build-ci/ce-code-review/` are
 local only. Existing G6 rubric FIX rows below remain open; no full visual/milestone proof is claimed.
@@ -133,7 +209,7 @@ All current logs/screenshots are local in `build-ci/g40a-*` and
 `build-ci/session-shots/2026-09-08-g40a-*`; generators/scripts are checked in, artifacts are not yet
 portable certification evidence.
 The checked-in [measurement index](docs/evidence/2026-09-08-g40a-recovery.json) records the final
-app/fixture/log hashes and all twelve measured startup times. It does not imply those local logs
+app/fixture/log hashes and all eleven measured startup times. It does not imply those local logs
 or screenshots are available on another machine.
 
 ## 2026-09-08 — Plan revised for autonomous delivery

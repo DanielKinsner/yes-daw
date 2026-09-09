@@ -243,14 +243,12 @@ void MainComponent::saveViewState()
 // Open a project bundle at a known path (B39): shared by File > Open and Open Recent.
 void MainComponent::openProjectBundleAtPath (const std::filesystem::path& path)
 {
-    const StoredProjectAssetsResult stored = decodeStoredProjectAssets (path);
+    StoredProjectAssetsResult stored = decodeStoredProjectAssets (path);
     if (stored.assets && ! stored.assets->empty())
-        (void) appModel.loadProjectBundle (
-            path,
-            std::span<const yesdaw::ui::UiDecodedAsset> (
-                stored.assets->data(), stored.assets->size()));
+        (void) appModel.loadPreparedProjectBundle (
+            std::move (stored.prepared), std::move (*stored.assets));
     else if (stored.assets)
-        (void) appModel.openProjectBundle (path);
+        (void) appModel.openPreparedProjectBundle (std::move (stored.prepared));
     else
         // R5: a project that cannot open says WHY (naming the bad audio file when one is
         // the cause) and refuses to half-open — the shell state stays untouched.

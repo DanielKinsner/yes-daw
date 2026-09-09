@@ -1366,6 +1366,7 @@ private:
     double lastActionToPaintMs = -1.0;
     std::chrono::steady_clock::time_point paintStartStamp {};
     double lastPaintMs = 0.0;
+    double lastParentPaintMs = 0.0;
     std::array<double, shell::kStateProbePaintRingSize> paintRing {};
     std::size_t paintRingIndex = 0;
     std::size_t paintRingCount = 0;

@@ -283,8 +283,13 @@ public:
         g.restoreState();
     }
 
+    // Read-only diagnostic: distinguish rebuilding the static canvas from compositing its cache.
+    [[nodiscard]] double lastCanvasPaintMs() const noexcept { return canvasPaintMs; }
+    [[nodiscard]] std::uint64_t canvasPaintCount() const noexcept { return canvasPaints; }
+
     void paint (juce::Graphics& g) override
     {
+        const auto paintStarted = std::chrono::steady_clock::now();
         if (stateProvider)
         {
             yesdaw::ui::TimelineCanvasState state = stateProvider();
@@ -360,6 +365,9 @@ public:
                 }
             }
         }
+        canvasPaintMs = std::chrono::duration<double, std::milli> (
+            std::chrono::steady_clock::now() - paintStarted).count();
+        ++canvasPaints;
     }
 
     // G1.6: the gesture hint for the hovered zone — the status line shows it while no status
@@ -1294,6 +1302,8 @@ public:
         Slip         // G2.11: Ctrl+Alt on the body slips the source under a fixed window (Logic slip)
     };
 private:
+    double canvasPaintMs = 0.0;
+    std::uint64_t canvasPaints = 0;
 
     // G2.4: one name per zone, for the hint, the harness and the gate.
     [[nodiscard]] static const char* dragModeName (TimelineDragMode mode) noexcept

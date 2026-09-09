@@ -93,6 +93,7 @@ public static class YesDawDrive
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr h, StringBuilder s, int n);
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr w, StringBuilder text, uint flags, uint timeout, out IntPtr result);
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr w, IntPtr l, uint flags, uint timeout, out IntPtr result);
+    [DllImport("kernel32.dll")] static extern void SetLastError(uint error);
     [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(POINT point);
     [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr h, uint flags);
     [DllImport("user32.dll", SetLastError = true)] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int width, int height, uint flags);
@@ -181,13 +182,35 @@ public static class YesDawDrive
         MouseButton(true, false); MouseButton(false, false);
         return true; // caller waits for queued click, then verifies native focus before typing
     }
-    public static string FileNameText(IntPtr dialog) {
-        IntPtr edit = FileNameControl(dialog), result;
-        if (edit == IntPtr.Zero) return null;
-        var text = new StringBuilder(32768);
-        if (SendMessageTimeout(edit, 0x000D, new IntPtr(text.Capacity), text, 2, 500, out result) == IntPtr.Zero) return null;
-        return text.ToString();
+    public sealed class FileNameReadback {
+        public IntPtr edit;
+        public bool available;
+        public string text;
+        public long characters, elapsedMs;
+        public int error;
+        public override string ToString() {
+            return "edit=" + edit + " available=" + available + " characters=" + characters
+                + " elapsedMs=" + elapsedMs + " error=" + error
+                + " text=" + (available ? "'" + text + "'" : "<unavailable>");
+        }
     }
+    public static FileNameReadback ReadFileName(IntPtr dialog) {
+        IntPtr edit = FileNameControl(dialog), result;
+        var observation = new FileNameReadback(); observation.edit = edit;
+        if (edit == IntPtr.Zero) return observation;
+        var text = new StringBuilder(32768);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        // SendMessageTimeout may fail without setting last-error (generic failure).
+        SetLastError(0);
+        observation.available = SendMessageTimeout(edit, 0x000D, new IntPtr(text.Capacity), text, 2, 500, out result) != IntPtr.Zero;
+        observation.error = Marshal.GetLastWin32Error();
+        if (observation.available) observation.error = 0; // last-error is meaningful only on failure
+        observation.elapsedMs = clock.ElapsedMilliseconds;
+        observation.characters = result.ToInt64();
+        observation.text = observation.available ? text.ToString() : null;
+        return observation;
+    }
+    public static string FileNameText(IntPtr dialog) { return ReadFileName(dialog).text; }
     public static string DialogDiagnostic(IntPtr dialog) {
         uint pid; uint thread = GetWindowThreadProcessId(dialog, out pid);
         var info = new GUITHREADINFO(); info.size = (uint)Marshal.SizeOf(typeof(GUITHREADINFO)); GetGUIThreadInfo(thread, ref info);
@@ -446,6 +469,7 @@ function TypeText([string] $text) {
 # Drive the exact native chooser observed by WaitDialog. Readback verifies input delivery;
 # the Session script still verifies the resulting app state independently.
 function FileDialogEnter([string] $path, [string] $DialogTitle = '') {
+  if ([string]::IsNullOrWhiteSpace($path)) { throw 'Native chooser requires a nonempty requested path' }
   $dialog = $script:LastDialog
   if ($DialogTitle) { $dialog = WaitDialog $DialogTitle }
   if (-not [YesDawDrive]::DialogBelongsTo($dialog, [uint32]$script:Proc.Id)) { throw 'The exact chooser returned by WaitDialog is no longer available' }
@@ -457,8 +481,10 @@ function FileDialogEnter([string] $path, [string] $DialogTitle = '') {
   Start-Sleep -Milliseconds 100
   TypeText $path
   Start-Sleep -Milliseconds 300
-  if (-not [YesDawDrive]::FileNameHasFocus($dialog) -or [YesDawDrive]::FileNameText($dialog) -cne $path) {
-    throw ('Native filename readback did not match requested path: ' + [YesDawDrive]::DialogDiagnostic($dialog))
+  $readbackFocus = [YesDawDrive]::FileNameHasFocus($dialog)
+  $readback = [YesDawDrive]::ReadFileName($dialog)
+  if (-not $readbackFocus -or -not $readback.available -or $readback.text -cne $path) {
+    throw ("Native filename readback did not match requested path: observedFocus=$readbackFocus observed=[$readback] expected='$path'; later state: " + [YesDawDrive]::DialogDiagnostic($dialog))
   }
   Write-Host ('  [dialog] verified filename focus/readback: hwnd=' + $dialog + ' title=' + [YesDawDrive]::WindowTitle($dialog) + ' path=' + $path)
   Key 'Enter'
@@ -600,6 +626,10 @@ function WaitDialog([string] $titleContains, [int] $TimeoutMs = 4000) {
   return [IntPtr]::Zero
 }
 
+function AssertStartupBudget([int] $Milliseconds) {
+  [void](Assert ($Milliseconds -ge 0 -and $Milliseconds -le 3000) ("launch to first interactive tick <= 3 s (B6): $Milliseconds ms"))
+}
+
 function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '') {
   if (-not (Test-Path -LiteralPath $Exe)) { throw "exe not found: $Exe (build first)" }
   $others = @(Get-Process -Name 'YesDaw' -ErrorAction SilentlyContinue)
@@ -631,6 +661,7 @@ function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '') {
   $ok = WaitProbe { param($q) $null -ne $q.window -and [int]$q.window[2] -gt 0 } -TimeoutMs 20000
   if (-not $ok) { throw "no State probe appeared at $($script:ProbePath) within 20 s (is YESDAW_STATE_PROBE honoured by this exe?)" }
   $script:FirstProbeMs = Elapsed   # B6: launch -> first interactive tick
+  AssertStartupBudget $script:FirstProbeMs
   $deadline = (Get-Date).AddSeconds(10)
   do {
     $script:Hwnd = [YesDawDrive]::FindTopWindow([uint32]$script:Proc.Id, 'YES DAW')

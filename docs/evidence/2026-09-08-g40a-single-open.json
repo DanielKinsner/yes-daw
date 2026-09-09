@@ -1,0 +1,719 @@
+{
+  "checkpoint": "G4.0a single-open saved-project repair",
+  "status": "G4.0a OPEN: startup and canvas repairs locally verified; original SS7 filename failure unresolved; exact-code CI pending",
+  "codeSha": null,
+  "sourceBaseSha": "0fa4af0f289c892d8eb5f9cc42bf2d2efe54d22c",
+  "sourceState": "Repair snapshot in the containing code commit; exact SHA and CI are recorded in the subsequent evidence update. The base SHA is not the tested changed-code SHA.",
+  "appSha256": "71C984D413BA1B8F943483A7C3CA8DFD1EA09CF3792B2E80C460EA116F0B1C72",
+  "local": {
+    "buildLog": "build-ci/g40a-single-open-integrated-build.log",
+    "command": "ctest --preset ci",
+    "passed": 380,
+    "failed": 0,
+    "seconds": 198.39,
+    "log": "build-ci/g40a-single-open-ctest.log"
+  },
+  "startup": {
+    "thresholdMs": 3000,
+    "measurement": "Launch to first interactive State probe, using the same saved SS3 fixture and the unchanged B6 assertion on every Launch.",
+    "baselineMs": [
+      3010,
+      3079,
+      2944
+    ],
+    "baselineResult": "FAIL: 2 failed, 4 passed",
+    "baselineLog": "build-ci/g40a-saved-baseline-timing.log",
+    "repairedMs": [
+      2837,
+      2717,
+      2700
+    ],
+    "repairedResult": "PASS: 6 assertions",
+    "repairedLog": "build-ci/g40a-single-open-timing.log",
+    "assertionsAndThresholdsPreserved": true
+  },
+  "asusProfile": {
+    "captureName": "AI Noise-Canceling Microphone (ASUS Utility)",
+    "captureId": "{0.0.1.00000000}.{daf4ce6c-c518-4a87-9ddc-be3061332a1e}",
+    "renderName": "Speakers (Realtek(R) Audio)",
+    "renderId": "{0.0.0.00000000}.{a2a2092d-43d5-4f2c-b2a4-225fb5758a21}",
+    "rate": 48000,
+    "inputChannels": 2,
+    "defaultsMetadata": "build-ci/g40a-default-endpoint-metadata.txt",
+    "sessions": [
+      {
+        "session": "ss1-first-minute",
+        "verdict": "FAIL",
+        "passed": 44,
+        "failed": 1,
+        "log": "build-ci/g40a-single-open-ss1-first-minute.log"
+      },
+      {
+        "session": "ss2-mouse-then-keys",
+        "verdict": "PASS",
+        "passed": 33,
+        "failed": 0,
+        "log": "build-ci/g40a-single-open-ss2-mouse-then-keys.log"
+      },
+      {
+        "session": "ss3-edit-a-song",
+        "verdict": "PASS",
+        "passed": 55,
+        "failed": 0,
+        "log": "build-ci/g40a-single-open-ss3-edit-a-song.log"
+      },
+      {
+        "session": "ss4-track-instrument",
+        "verdict": "PASS",
+        "passed": 19,
+        "failed": 0,
+        "log": "build-ci/g40a-single-open-ss4-track-instrument.log"
+      },
+      {
+        "session": "ss5-piano-roll",
+        "verdict": "PASS",
+        "passed": 70,
+        "failed": 0,
+        "log": "build-ci/g40a-single-open-ss5-piano-roll.log"
+      },
+      {
+        "session": "ss6-write-a-beat",
+        "verdict": "PASS",
+        "passed": 49,
+        "failed": 0,
+        "log": "build-ci/g40a-single-open-ss6-write-a-beat.log"
+      },
+      {
+        "session": "ss7-mix-the-song",
+        "verdict": "PASS",
+        "passed": 40,
+        "failed": 0,
+        "log": "build-ci/g40a-single-open-ss7-mix-the-song.log"
+      }
+    ],
+    "passed": 310,
+    "failed": 1,
+    "failingAssertion": "SS1 B5: underruns during the fifty-nudge burst must equal 0. Actual delta 1, since-launch count 14, callback deadline misses 0, maximum callback 0.16 ms, graph rebuilds 0.",
+    "callbackRemovalsB3": 0,
+    "screenshotDirectory": "build-ci/session-shots/2026-09-08-g40a-single-open"
+  },
+  "captureDiagnosis": {
+    "classification": "Confirmed endpoint/environment contribution; unexplained higher JUCE count remains unresolved",
+    "sourceObservation": "JUCE WASAPI getXRunCount counts input AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY flags. This counter does not establish an output underrun or callback deadline miss.",
+    "idleApp": {
+      "stoppedSeconds": 15,
+      "stoppedXruns": 14,
+      "playingSeconds": 15,
+      "playingXruns": 17,
+      "callbackDeadlineMisses": 0,
+      "maxCallbackMs": 0.0352,
+      "log": "build-ci/g40a-capture-idle-diagnostic.log"
+    },
+    "directAsus": {
+      "endpointId": "{0.0.1.00000000}.{daf4ce6c-c518-4a87-9ddc-be3061332a1e}",
+      "backend": "Direct WASAPI shared capture, no JUCE",
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 32,
+      "bufferFrames": 1056,
+      "packets": 3000,
+      "discontinuities": 4,
+      "silentPackets": 0,
+      "timestampErrorPackets": 0,
+      "eventTimeouts": 0,
+      "frames": 1438848,
+      "firstPacketDiscontinuous": true,
+      "measurementComplete": true,
+      "elapsedMs": 30010.2429,
+      "defaultPeriod100ns": 100000,
+      "minimumPeriod100ns": 30000,
+      "discontinuityMetadata": [
+        "elapsedMs=9.873 frames=480 flags=1 devicePosition=1219927200 qpc100ns=475567223241",
+        "elapsedMs=4420.194 frames=96 flags=1 devicePosition=1220139360 qpc100ns=475611426998",
+        "elapsedMs=5279.565 frames=96 flags=1 devicePosition=1220180640 qpc100ns=475620022381",
+        "elapsedMs=15909.231 frames=96 flags=1 devicePosition=1220690880 qpc100ns=475726319262"
+      ]
+    },
+    "directStereoMix": {
+      "endpointId": "{0.0.1.00000000}.{ea0888cd-1a0b-4350-b7a9-a14c12b9420d}",
+      "backend": "Direct WASAPI shared capture, no JUCE",
+      "sampleRate": 48000,
+      "channels": 2,
+      "bits": 32,
+      "bufferFrames": 1056,
+      "packets": 2999,
+      "discontinuities": 1,
+      "silentPackets": 0,
+      "timestampErrorPackets": 0,
+      "eventTimeouts": 0,
+      "frames": 1439520,
+      "firstPacketDiscontinuous": true,
+      "measurementComplete": true,
+      "elapsedMs": 30002.0275,
+      "defaultPeriod100ns": 100000,
+      "minimumPeriod100ns": 30000,
+      "discontinuityMetadata": [
+        "elapsedMs=11.691 frames=480 flags=1 devicePosition=0 qpc100ns=482397495607"
+      ]
+    },
+    "interpretation": "ASUS had three discontinuities after its first packet outside JUCE; Stereo Mix had none after its first packet. This does not establish the cause of all extra JUCE counts or repair ASUS.",
+    "privacyScope": "Direct diagnostics count packet metadata only; sample bytes were not read, copied, recorded or persisted.",
+    "counterAndThresholdChanges": "none"
+  },
+  "stereoMixProfile": {
+    "status": "Historical pre-cache batch: SS1 FAIL (44 passed, 1 failed); SS2-7 not run after that failure.",
+    "captureName": "Stereo Mix (Realtek(R) Audio)",
+    "captureId": "{0.0.1.00000000}.{ea0888cd-1a0b-4350-b7a9-a14c12b9420d}",
+    "rate": 48000,
+    "inputChannels": 2,
+    "inputBits": 32,
+    "setup": "Root enabled the previously disabled endpoint and selected it as temporary Windows default capture through supported Windows Sound UI before launching unchanged Session scripts.",
+    "duringDefaults": "build-ci/g40a-stereomix-profile-defaults.txt",
+    "duringInventory": "build-ci/g40a-stereomix-profile-capture-inventory.txt",
+    "verifiedDuring": "All three capture roles Stereo Mix; all three render roles original Realtek Speakers",
+    "intermediateRestoration": "After initial enable auto-promoted Stereo Mix, root restored ASUS; all six roles verified original in build-ci/g40a-post-enable-defaults.txt before explicitly applying the test profile",
+    "finalRestorationStatus": "pending end of authorized testing window: restore ASUS all roles and original Stereo Mix disabled state",
+    "critic": "build-ci/ce-code-review/g40a-single-open/stereomix-profile-critic.md",
+    "scopeLimit": "A passing comparison certifies only the tested Stereo Mix environment, not repaired ASUS capture.",
+    "sessions": [
+      {
+        "session": "ss1-first-minute",
+        "verdict": "FAIL",
+        "passed": 44,
+        "failed": 1,
+        "log": "build-ci/g40a-stereomix-ss1-first-minute.log",
+        "startupMs": [
+          2615,
+          2815
+        ],
+        "paintP95Ms": 11.45,
+        "paintThresholdMs": 8,
+        "underrunsBurst": 0,
+        "underrunsSinceLaunch": 0,
+        "callbackRemovals": 0
+      }
+    ],
+    "unresolvedPaintFailure": "Historical B2 failure: 11.45 ms, reproduced at 11.75 ms with unchanged SS1 plus metadata sampling. Attribution subsequently identified expensive native cache completion outside canvas paint. The software cache candidate later passed B2; all original failures remain recorded."
+  },
+  "critic": {
+    "status": "complete",
+    "actionableFindings": [],
+    "receipt": "build-ci/ce-code-review/g40a-single-open/review.json",
+    "mode": "ce-code-review agent",
+    "crossModelCredit": false,
+    "limitation": "External cross-model route unavailable because jq/bash prerequisites absent. Initial child dispatch capacity failures were later retried successfully for correctness/adversarial/testing."
+  },
+  "visual": {
+    "receipt": "build-ci/ce-code-review/g40a-single-open/visual-rubric.md",
+    "result": "No new rendering regression observed in reviewed current-build frames. Existing rubric rows1-4 remain FIX for G6/G4.7; rows5-7 observed PASS with stated coverage limits.",
+    "milestoneVisualCertification": false
+  },
+  "hardwarePlaybackPreflight": {
+    "classification": "Capability preflight only, not current packaged proof",
+    "result": {
+      "schema_version": 1,
+      "run_id": "g40a-preflight-20260908-205959",
+      "stage": "playback",
+      "checker_version": "2f48962-dirty",
+      "state": "fail",
+      "claim_level": "",
+      "started_at": "2026-09-08T20:59:59.866-07:00",
+      "completed_at": "2026-09-08T21:00:40.807-07:00",
+      "duration_ms": 40941.279399998486,
+      "measurements": {
+        "requested_sample_rate_hz": 48000.0,
+        "granted_sample_rate_hz": 48000.0,
+        "requested_block_frames": 128,
+        "granted_block_frames": 480,
+        "seconds": 30.0,
+        "xruns": -1,
+        "xrun_reporting_supported": false,
+        "deadline_misses_diagnostic": 0,
+        "max_callback_ms": 0.5199,
+        "block_budget_ms": 10.0,
+        "device_error": false,
+        "output_rms": 0.08999999848115,
+        "min_output_rms": 0.01,
+        "device": "Speakers (Realtek(R) Audio)",
+        "backend": "Windows Audio",
+        "backend_attempts": [
+          {
+            "backend": "Windows Audio (Low Latency Mode)",
+            "device": "Speakers (Realtek(R) Audio)",
+            "open_error": "",
+            "reason_code": "block_above_target",
+            "granted_sample_rate_hz": 48000.0,
+            "granted_block_frames": 480
+          },
+          {
+            "backend": "Windows Audio (Exclusive Mode)",
+            "device": "Speakers (Realtek(R) Audio)",
+            "open_error": "",
+            "reason_code": "block_above_target",
+            "granted_sample_rate_hz": 48000.0,
+            "granted_block_frames": 480
+          },
+          {
+            "backend": "Windows Audio",
+            "device": "Speakers (Realtek(R) Audio)",
+            "open_error": "",
+            "reason_code": "block_above_target",
+            "granted_sample_rate_hz": 48000.0,
+            "granted_block_frames": 480
+          }
+        ]
+      },
+      "failure_codes": [
+        "playback_block_exceeds_target"
+      ],
+      "detail": "real-Project playback violated the locked gate"
+    },
+    "processExitCode": 1,
+    "log": "build-ci/g40a-hardware-preflight/20260908-205959/playback.log",
+    "limitation": "Older local checker version2f48962-dirty. All attempted WASAPI backends granted480frames, above locked128 target. No hardware PASS or milestone credit."
+  },
+  "ci": {
+    "status": "pending exact changed-code commit and run",
+    "codeSha": null,
+    "runId": null,
+    "jobs": []
+  },
+  "macos": {
+    "status": "pending actual exact-code job",
+    "exceptionApplied": false,
+    "policy": "Only the active plan section8.2 narrowly documented timing exception is eligible; report raw result when available."
+  },
+  "milestoneCertified": false,
+  "artifactAvailability": "This committed index references local ignored logs, screenshots and review receipts. They are not uploaded or available on another machine merely because this index is in git.",
+  "artifacts": [
+    {
+      "path": "build-ci/ce-code-review/g40a-single-open/review.json",
+      "sha256": "5F06B203939D68666C45083A754D0B6C742B9C3CCD8828174E6055F3BDCB1BB8"
+    },
+    {
+      "path": "build-ci/ce-code-review/g40a-single-open/stereomix-profile-critic.md",
+      "sha256": "5CD7DE7402107300BD057FE6794EF7A268E861FCECE0F5381FC4689648AE3FC5"
+    },
+    {
+      "path": "build-ci/ce-code-review/g40a-single-open/visual-rubric.md",
+      "sha256": "77250737C054F1740A90587AC24E28FB2C961146A03065F16946D0EB6748BAC0"
+    },
+    {
+      "path": "build-ci/ce-code-review/g40a-software-cache/independent-cache-critic.md",
+      "sha256": "C189594957B076595A71A1473A36C14E374B8CBEA87E8E699ADC7FA3BE80FDCC"
+    },
+    {
+      "path": "build-ci/ce-code-review/g40a-software-cache/independent-ss7-delivery-trace-followup.md",
+      "sha256": "C0C5AB4D3AAB4FB41CD42A5B75DC02C0958F1E7D9DA49B8D08A79DFCB8527F81"
+    },
+    {
+      "path": "build-ci/ce-code-review/g40a-software-cache/independent-ss7-dialog-diagnostic-critic.md",
+      "sha256": "E5CCFBFCDB12D64842A1E8B9369E491C43BEE6397871EF3D74D9AB15513B0335"
+    },
+    {
+      "path": "build-ci/ce-code-review/g40a-software-cache/independent-structured-readback-resolution.md",
+      "sha256": "6B653BD62048A86FCE22223530D2003C61CC07E309BEA5B9C34DFC495D0129BC"
+    },
+    {
+      "path": "build-ci/ce-code-review/g40a-software-cache/independent-structured-readback-review.md",
+      "sha256": "2F392BB280AF23091447FDE8C8E7D4F35BE74089DF51EF9BC28928F48434CE0A"
+    },
+    {
+      "path": "build-ci/ce-code-review/g40a-software-cache/independent-token-fix-addendum.md",
+      "sha256": "1E2FB2311F28D714DAD22076F99D00B214466496F92F0B3F812DEE3CB9BCA718"
+    },
+    {
+      "path": "build-ci/ce-code-review/g40a-software-cache/visual-rubric.md",
+      "sha256": "795C6537A4E212838929239EF817817D4DD0D40620B0151A75B0431DCF7633DE"
+    },
+    {
+      "path": "build-ci/g40a-cache-token-build.log",
+      "sha256": "89952394113BD0AF8928B96BDDFCF5DF1987CF19D4FC5E89F64C89077B0AD93F"
+    },
+    {
+      "path": "build-ci/g40a-cache-token-ctest.log",
+      "sha256": "BCBD0F80AAAF7FCDB6C998B5D9A32FAF51115223C5B141192D13CEC3EEA1D0E9"
+    },
+    {
+      "path": "build-ci/g40a-capture-idle-diagnostic.log",
+      "sha256": "8F1F9680799E8C30B180D2C1878969FA21A3F64BC13E0C6B18D58280BF98EDAB"
+    },
+    {
+      "path": "build-ci/g40a-chooser-fresh-diagnostic-v2.log",
+      "sha256": "8AD1880C1B2BCEA0EBF57BFB55F860D2472077002DD0790C60B91957D45016E0"
+    },
+    {
+      "path": "build-ci/g40a-chooser-fresh-diagnostic-v2.ps1",
+      "sha256": "B5C558B9A17963D874127B57E1B60578B3CF9FEC319B3E4C2285C78AA083DF0A"
+    },
+    {
+      "path": "build-ci/g40a-chooser-fresh-diagnostic.log",
+      "sha256": "0B46230CBA240493B026028AFC9BEB30F8B7C4412943D15EB668D8FF5AB22A6A"
+    },
+    {
+      "path": "build-ci/g40a-chooser-observation-tests.log",
+      "sha256": "540091A52800575369C3883DB9B5DDFDDD63F75367AD9B5229D36804E74CD293"
+    },
+    {
+      "path": "build-ci/g40a-chooser-repeat-diagnostic.log",
+      "sha256": "8A6FAA00DE98A6E184399CAC0F82D5DC798372A219325512B70B86763B6C7ACF"
+    },
+    {
+      "path": "build-ci/g40a-default-endpoint-metadata.txt",
+      "sha256": "0831594A4CEB6533F99762EDEEAEC7EA2E7BE569C2CB2D17051307914D2AA0AE"
+    },
+    {
+      "path": "build-ci/g40a-direct-capture-20260908-212359/diagnostic.cs",
+      "sha256": "25119471B88002EF9C76B81EDD6E5D8EC130631E2A7A2DC7ABBC94BFB7EEBC3B"
+    },
+    {
+      "path": "build-ci/g40a-direct-capture-20260908-212359/result.json",
+      "sha256": "5B48E47E34ADF01BBCBB7209CBA0700330BB556FBD4714C156507FBCC2D553A3"
+    },
+    {
+      "path": "build-ci/g40a-direct-stereomix-20260908-213522/diagnostic.cs",
+      "sha256": "1E2D619A9BD768A7DF63F44820CB42DE0AE1A8B1F859C22F6FC9F8DF73A0DAF0"
+    },
+    {
+      "path": "build-ci/g40a-direct-stereomix-20260908-213522/result.json",
+      "sha256": "14F7454EC152A213DF3BACFBD63B1A0D853A2CEAFFDDF874E1C4C938546779D7"
+    },
+    {
+      "path": "build-ci/g40a-final-ss1-first-minute.log",
+      "sha256": "CA1A435B14C0C88BD7D4676086004BCA40D2DF398025E9B03246FB6B5528FC11"
+    },
+    {
+      "path": "build-ci/g40a-final-ss2-mouse-then-keys.log",
+      "sha256": "547B8D033ADF1367EF762E9CA02AB7B45E0C1CC486CE88294BFD67E8333C316A"
+    },
+    {
+      "path": "build-ci/g40a-final-ss3-edit-a-song.log",
+      "sha256": "71A0DF160E2B722BFB62B87842B8348F0F101BEF177AB9A4B3F2214115FE41E1"
+    },
+    {
+      "path": "build-ci/g40a-final-ss4-track-instrument.log",
+      "sha256": "72AF503F1E320010AE92B3FCE8635A00DDB6CEF70BD927A32FB094B950F13A33"
+    },
+    {
+      "path": "build-ci/g40a-final-ss5-piano-roll.log",
+      "sha256": "D9937E4C7BB4CAD194F2ABE826E4D1B270C3A691CFC1CD44867DF82B157F1FC8"
+    },
+    {
+      "path": "build-ci/g40a-final-ss6-write-a-beat.log",
+      "sha256": "D933C5FC55F28D8C5F38AD790561D1CC696B3515685B7B7111AF07758AAF4800"
+    },
+    {
+      "path": "build-ci/g40a-final-ss7-mix-the-song.log",
+      "sha256": "6B1F3B6D48915681B9DFCE50644A9CD3C57DBFA75FFDE67CF55A1D07084F95B7"
+    },
+    {
+      "path": "build-ci/g40a-hardware-preflight/20260908-205959/playback.json",
+      "sha256": "2C599C883BECD54303DC95ACE1FBA45B0F6480E45FE7F53EEFE6A08F36354087"
+    },
+    {
+      "path": "build-ci/g40a-paint-series.json",
+      "sha256": "C7DE27AFA16F48A6BAF9AC68D39BB71144A9263CF995A5C4C8AC56097C582D70"
+    },
+    {
+      "path": "build-ci/g40a-post-enable-defaults.txt",
+      "sha256": "66DD34D5794B7D96804DD7982767C341A6D4DDCF12ED5B4482916AEB44AD64DA"
+    },
+    {
+      "path": "build-ci/g40a-saved-baseline-timing.log",
+      "sha256": "1E0A30BC1FCE4405BB2B6CDCC59506709CA079CAB3C5153184B72C0052575234"
+    },
+    {
+      "path": "build-ci/g40a-single-open-ctest.log",
+      "sha256": "1A49BFC158A97A66525723B449A2E61E81313E95941C9030D8003A0722FBFCDC"
+    },
+    {
+      "path": "build-ci/g40a-single-open-integrated-build.log",
+      "sha256": "1983A13942348EFEE2F0E07456A9B09ADEDB8073860A3FE762B9689460052948"
+    },
+    {
+      "path": "build-ci/g40a-single-open-ss1-first-minute.log",
+      "sha256": "C66E462B711BE80C8E8BA4D4F56FF8EC4DE63999DED48AE19A0FF387984131EA"
+    },
+    {
+      "path": "build-ci/g40a-single-open-ss2-mouse-then-keys.log",
+      "sha256": "01151757B67ABF538E04368B69C5D62C7C7A746164E34C11DF40F4F5639909A3"
+    },
+    {
+      "path": "build-ci/g40a-single-open-ss3-edit-a-song.log",
+      "sha256": "BDC3801CC4E8FAD12205D23FD0CC6BE6BDA0151400CB23D325B9E5410D1774F0"
+    },
+    {
+      "path": "build-ci/g40a-single-open-ss4-track-instrument.log",
+      "sha256": "09C31489B389A547194D145D57E5ADCFD59B5BFD0AF78153797DC314964622F2"
+    },
+    {
+      "path": "build-ci/g40a-single-open-ss5-piano-roll.log",
+      "sha256": "681B14FCF4B391A99770A6667E03366E2126C23E0A3591E8A335EBCBD74C72C9"
+    },
+    {
+      "path": "build-ci/g40a-single-open-ss6-write-a-beat.log",
+      "sha256": "E2407452A8B13B0ECDF6FDA409767A9416CB91BA04A88F272F34F3EBEAECB55B"
+    },
+    {
+      "path": "build-ci/g40a-single-open-ss7-mix-the-song.log",
+      "sha256": "A577005ADC7E5C864DA3ECBBED31F5FC00559FE8E5BA5FDA258968FE2AF5E903"
+    },
+    {
+      "path": "build-ci/g40a-single-open-timing.log",
+      "sha256": "B08A51553B9813425A153EA590DD2903C268D9665AE8B9DC005AE6CB71DBD755"
+    },
+    {
+      "path": "build-ci/g40a-software-cache-ctest.log",
+      "sha256": "7FE54FD32222192DC3BDF8BDC166BF2935E2A491D5790D3A8F999DF417D960A8"
+    },
+    {
+      "path": "build-ci/g40a-software-cache-ss1-trace.log",
+      "sha256": "29DF8BCCB45902F7275B39AF42B8C320CC1FA9189382FA5A8C64D8F08FD53BB6"
+    },
+    {
+      "path": "build-ci/g40a-ss1-paint-attribution.log",
+      "sha256": "C1D02B5393B624633A3D92D9B6491528306C869114D29A63E970221B6E31CEAB"
+    },
+    {
+      "path": "build-ci/g40a-ss1-paint-trace-20260908-214525-556/probe-series.jsonl",
+      "sha256": "C96CE91AFA6D48343F911C72CE35AA42C11FB89E1AC8DFA187A4B1B077E4CBF3"
+    },
+    {
+      "path": "build-ci/g40a-ss1-paint-trace-20260908-215225-090/probe-series.jsonl",
+      "sha256": "A3B8FFFDD1CAD9EDAE5DB6D439FD3888DA879798B278185F932423C5301E5F39"
+    },
+    {
+      "path": "build-ci/g40a-ss1-paint-trace-20260908-215718-212/probe-series.jsonl",
+      "sha256": "0583F3BB212D646821D3F0850700596A07B11335F3D94E13DB8C1649E5A40230"
+    },
+    {
+      "path": "build-ci/g40a-ss1-paint-trace.log",
+      "sha256": "588B1CF75C6E162156C14545FC72271F4F17721B2C43174E9B24366414FB05DA"
+    },
+    {
+      "path": "build-ci/g40a-ss7-delivery-trace.log",
+      "sha256": "D93CBD5BCC20177139D85654C6E5D5EC798482A7060EC836C04953986484A6E9"
+    },
+    {
+      "path": "build-ci/g40a-stereomix-profile-capture-inventory.txt",
+      "sha256": "0BD52F783B8448091F87D5D06ADD746078D87FDF095C24949B9856981FAD7DB2"
+    },
+    {
+      "path": "build-ci/g40a-stereomix-profile-defaults.txt",
+      "sha256": "AF37BC714211D40C2C65A46A9200C5F02A3F6479C29235869487F49AD00C0D83"
+    },
+    {
+      "path": "build-ci/g40a-stereomix-ss1-first-minute.log",
+      "sha256": "EA3D260D28AE54F84AD963298D3551E6C92CF1D59FC459F252D58C1D9677385C"
+    },
+    {
+      "path": "build-ci/session-shots/2026-09-08-g40a-chooser-fresh-v2/chooser-cleanup-failure-1.png",
+      "sha256": "24CC62CB508432BC7FE8A23198D0136637BD1EB40765DBC59462046560CE728C"
+    }
+  ],
+  "paintTrace": {
+    "status": "Historical B2 failure reproduced; later software cache correction recorded separately.",
+    "log": "build-ci/g40a-ss1-paint-trace.log",
+    "series": "build-ci/g40a-ss1-paint-trace-20260908-214525-556/probe-series.jsonl",
+    "wrapper": "build-ci/g40a-ss1-paint-trace.ps1",
+    "sampleIntervalMs": 100,
+    "step10": {
+      "fullInvalidationsStart": 11,
+      "fullInvalidationsEnd": 63,
+      "maxObservedPaintMs": 12.2665
+    },
+    "step11": {
+      "fullInvalidationsStart": 63,
+      "fullInvalidationsEnd": 67,
+      "maxObservedPaintMs": 12.2877
+    },
+    "step12": {
+      "paintCountStart": 356,
+      "paintCountEnd": 512,
+      "maxObservedPaintMs": 2.7279,
+      "lastObservedP95Ms": 11.7503
+    },
+    "interpretation": "Five seconds of playback produced 156 paints and did not expire all 256 preceding samples. Earlier expensive full edit paints remained in the contractual p95. The test and threshold were preserved.",
+    "performanceHypothesis": "Waveform brush switching was disproved as the dominant cost: parent paint was about 0.8-1.1 ms and canvas paint about 1.6-1.75 ms versus whole-shell paint about 11.7 ms. Pinned JUCE native cached-image context destruction performs GPU-to-CPU readback outside canvas paint. The Windows software cache removes that readback while retaining the full-shell B2 measurement.",
+    "coverageNote": "Existing H11 fixture has no ready waveform cache source and does not directly exercise this hotspot."
+  },
+  "originalBuildScope": "Top-level appSha256 and local results describe the earlier single-open build, before paint attribution and software caching. finalCandidate holds the current build identity.",
+  "softwareCacheHistory": {
+    "attributionLog": "build-ci/g40a-ss1-paint-attribution.log",
+    "attributionSeries": "build-ci/g40a-ss1-paint-trace-20260908-215225-090/probe-series.jsonl",
+    "candidateTrace": {
+      "status": "PASS",
+      "passed": 45,
+      "failed": 0,
+      "log": "build-ci/g40a-software-cache-ss1-trace.log",
+      "series": "build-ci/g40a-ss1-paint-trace-20260908-215718-212/probe-series.jsonl",
+      "startupMs": [
+        2606,
+        2808
+      ],
+      "paintP95Ms": 7.65,
+      "paintThresholdMs": 8.0,
+      "measuredMarginMs": 0.35,
+      "underrunsBurst": 0,
+      "underrunsSinceLaunch": 0,
+      "appSha256": null,
+      "buildIdentityNote": "The trace preceded the value-identical theme-token correction. No distinct binary hash was recorded in this index; it is not exact final-candidate untraced proof."
+    },
+    "firstIntegratedLocal": {
+      "status": "FAIL",
+      "passed": 379,
+      "failed": 1,
+      "seconds": 191.89,
+      "log": "build-ci/g40a-software-cache-ctest.log",
+      "failure": "YesDawThemeAuditCheck: raw juce::Colours constants in SoftwareCanvasCache.h",
+      "newCacheTests": "Passed within YesDawUiInputCheck.",
+      "correction": "Replace raw transparentBlack/black with existing UiTheme Color::transparent() and Tone::componentVisibleAlpha. ARGB values, audit policy and thresholds are unchanged."
+    },
+    "independentCritic": "build-ci/ce-code-review/g40a-software-cache/independent-cache-critic.md",
+    "tokenCritic": "build-ci/ce-code-review/g40a-software-cache/independent-token-fix-addendum.md",
+    "visualReceipt": "build-ci/ce-code-review/g40a-software-cache/visual-rubric.md",
+    "nativeRenderScope": "Windows static timeline software image cache; Direct2D window renderer and original canvas drawing retained. Other platform cache selection unchanged."
+  },
+  "finalCandidate": {
+    "codeSha": null,
+    "status": "Full local suite PASS; native SS1-6 PASS; SS7 early FAIL. G4.0a remains open.",
+    "appSha256": "C253E6E85ACECBA95EAC32A229E1CEE364E68A15089BEC8DFBB298C4D0C98F8E",
+    "buildLog": "build-ci/g40a-cache-token-build.log",
+    "local": {
+      "status": "PASS",
+      "command": "ctest --preset ci",
+      "log": "build-ci/g40a-cache-token-ctest.log",
+      "passed": 380,
+      "failed": 0,
+      "seconds": 192.05
+    },
+    "newTestFile": "tests/ui_canvas_cache_tests.cpp",
+    "newTestCoverage": "Three cache-law tests cover unchanged reuse, partial valid-area retention, transparent clearing, invalidateAll, exact direct-software pixels at 100/125/150/200% with divisible bounds, resize, release, empty bounds and single alpha application.",
+    "native": {
+      "status": "FAIL: SS1-6 completed; SS7 failed at the first New filename readback before Enter.",
+      "profile": "Stereo Mix capture / Realtek Speakers render",
+      "sessions": [
+        {
+          "session": "ss1-first-minute",
+          "verdict": "PASS",
+          "passed": 45,
+          "failed": 0,
+          "log": "build-ci/g40a-final-ss1-first-minute.log"
+        },
+        {
+          "session": "ss2-mouse-then-keys",
+          "verdict": "PASS",
+          "passed": 33,
+          "failed": 0,
+          "log": "build-ci/g40a-final-ss2-mouse-then-keys.log"
+        },
+        {
+          "session": "ss3-edit-a-song",
+          "verdict": "PASS",
+          "passed": 55,
+          "failed": 0,
+          "log": "build-ci/g40a-final-ss3-edit-a-song.log"
+        },
+        {
+          "session": "ss4-track-instrument",
+          "verdict": "PASS",
+          "passed": 19,
+          "failed": 0,
+          "log": "build-ci/g40a-final-ss4-track-instrument.log"
+        },
+        {
+          "session": "ss5-piano-roll",
+          "verdict": "PASS",
+          "passed": 70,
+          "failed": 0,
+          "log": "build-ci/g40a-final-ss5-piano-roll.log"
+        },
+        {
+          "session": "ss6-write-a-beat",
+          "verdict": "PASS",
+          "passed": 49,
+          "failed": 0,
+          "log": "build-ci/g40a-final-ss6-write-a-beat.log"
+        },
+        {
+          "session": "ss7-mix-the-song",
+          "verdict": "FAIL",
+          "passed": 1,
+          "failed": 1,
+          "log": "build-ci/g40a-final-ss7-mix-the-song.log"
+        }
+      ],
+      "failureClassification": "Unknown: native filename readback empty despite verified filename Edit focus; expected path and dialog navigation/reset sequencing require diagnosis. No Enter was sent after mismatch. Existing refusal and assertions preserved.",
+      "screenshotDirectory": "build-ci/session-shots/2026-09-08-g40a-final"
+    },
+    "ci": {
+      "status": "Pending exact changed-code commit and all expected CI jobs.",
+      "runId": null,
+      "codeSha": null
+    },
+    "certified": false
+  },
+  "ss7FilenameDiagnostics": {
+    "status": "Original untraced SS7 filename failure remains unresolved.",
+    "originalLog": "build-ci/g40a-final-ss7-mix-the-song.log",
+    "tracedSession": {
+      "log": "build-ci/g40a-ss7-delivery-trace.log",
+      "result": "PASS",
+      "passed": 40,
+      "failed": 0,
+      "instrumentation": "TypeText wrapper logs the actual prefix every 10 Unicode characters. Every observed prefix matched exactly with focus true.",
+      "credit": "Diagnostic run only. It did not reproduce or explain the original empty/unavailable readback."
+    },
+    "repeatedDialogs": {
+      "log": "build-ci/g40a-chooser-repeat-diagnostic.log",
+      "trials": 20,
+      "failures": 0,
+      "confirmedProjects": 0,
+      "method": "One app process, original 1200/100/100 ms waits, 5 ms per typed character and 300 ms verification wait. New, type, read back and cancel without Enter.",
+      "observedModifiers": "Ctrl, Shift and Alt were all up in the logged trials.",
+      "credit": "20 non-reproductions only, not a Session pass or repaired-cause claim"
+    },
+    "evidenceLimit": "Original diagnostic concatenated null and empty filename alike and sampled focus/readback again after the refusal condition. The exact unavailable-versus-empty and condition-time focus are unknown.",
+    "next": "Structured observation is implemented and reviewed. Fresh-process diagnostics reproduced a distinct Escape cleanup failure, but did not reproduce or explain the original empty/unavailable filename readback. No timing extension or typing retry was applied.",
+    "critic": "build-ci/ce-code-review/g40a-software-cache/independent-ss7-dialog-diagnostic-critic.md",
+    "followupCritic": "build-ci/ce-code-review/g40a-software-cache/independent-ss7-delivery-trace-followup.md",
+    "freshProcessOriginal": {
+      "log": "build-ci/g40a-chooser-fresh-diagnostic.log",
+      "attemptsCompleted": 8,
+      "exactFilenameDeliveries": 8,
+      "processExitCode": 1,
+      "failure": "On attempt 8, Escape followed by the diagnostic 500 ms wait did not close the chooser. No cleanup failure-time screenshot was captured.",
+      "credit": "Eight non-reproductions of filename failure; separate cleanup failure, no Session certification."
+    },
+    "freshProcessV2": {
+      "log": "build-ci/g40a-chooser-fresh-diagnostic-v2.log",
+      "script": "build-ci/g40a-chooser-fresh-diagnostic-v2.ps1",
+      "attemptLimit": 10,
+      "attemptsCompleted": 1,
+      "exactFilenameDeliveries": 1,
+      "processExitCode": 1,
+      "startupMs": 2602,
+      "filenameCharacters": 67,
+      "initialReadbackMs": 0,
+      "available": true,
+      "win32Error": 0,
+      "cleanupGateMs": 500,
+      "lastAdditionalObservationMs": 1135,
+      "failure": "Escape did not close the chooser at the original 500 ms diagnostic gate. It remained open throughout later observations without further input.",
+      "observedState": "Filename Edit focused, exact path retained, Ctrl/Shift/Alt/Windows keys all up. Later reads took 0-8 ms. Screenshot showed the ordinary chooser with no autocomplete popup visible after Escape; earlier popup dismissal remains unproven.",
+      "screenshot": "build-ci/session-shots/2026-09-08-g40a-chooser-fresh-v2/chooser-cleanup-failure-1.png",
+      "confirmedProjects": 0,
+      "cleanup": "Test app closed by the drive finally block; no remaining YesDaw process observed.",
+      "credit": "Diagnostic FAIL preserved. No original filename failure reproduced, no repair claim and no Session certification."
+    },
+    "structuredObservation": {
+      "implementation": "One resolved filename Edit and one WM_GETTEXT result retain availability, text, character count, elapsed time and immediate Win32 error. Native SetLastError(0) precedes the call. Exact focus and readback are reused in the refusal message; later diagnostics are labeled separately.",
+      "timingAndAssertions": "Unchanged waits, 500 ms WM_GETTEXT timeout, exact path equality, focus requirement and refusal before Enter. No automatic retry.",
+      "headlessTests": "PASS",
+      "testLog": "build-ci/g40a-chooser-observation-tests.log",
+      "critic": "build-ci/ce-code-review/g40a-software-cache/independent-structured-readback-review.md",
+      "resolution": "build-ci/ce-code-review/g40a-software-cache/independent-structured-readback-resolution.md",
+      "actionableFindingsRemaining": []
+    }
+  }
+}

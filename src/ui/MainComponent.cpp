@@ -6,6 +6,7 @@
 
 #include "ui/MainComponentShell.h"
 #include "ui/DesktopAudioStartup.h"
+#include "ui/SoftwareCanvasCache.h"
 
 #include <fstream>
 #include <sstream>
@@ -159,7 +160,11 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         state.paintPlayhead = false;
         return state;
     };
+   #if JUCE_WINDOWS
+    timelineInput.setCachedComponentImage (new yesdaw::ui::SoftwareCanvasCache (timelineInput));
+   #else
     timelineInput.setBufferedToImage (true);
+   #endif
     playheadLayer.stateProvider = [this] { return makeTimelineState(); };
     // A paint layer, not a control: no component id (the tooltip / dead-affordance laws
     // enumerate identified children), a name for the render-budget gate.
@@ -1722,14 +1727,12 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
                                                       : appModel.readLastProjectRecord();
         if (! lastProject.empty())
         {
-            const StoredProjectAssetsResult stored = decodeStoredProjectAssets (lastProject);
+            StoredProjectAssetsResult stored = decodeStoredProjectAssets (lastProject);
             if (stored.assets && ! stored.assets->empty())
-                (void) appModel.loadProjectBundle (
-                    lastProject,
-                    std::span<const yesdaw::ui::UiDecodedAsset> (
-                        stored.assets->data(), stored.assets->size()));
+                (void) appModel.loadPreparedProjectBundle (
+                    std::move (stored.prepared), std::move (*stored.assets));
             else if (stored.assets)
-                (void) appModel.openProjectBundle (lastProject);
+                (void) appModel.openPreparedProjectBundle (std::move (stored.prepared));
             else
                 // R5: the last project failing to reopen is a fact, not a shrug.
                 appModel.reportStatus (
@@ -2039,6 +2042,8 @@ void MainComponent::paint (juce::Graphics& g)
         else if (! dockShowsInstrument())
             drawMixer (g, mixerPanelBounds());
     }
+    lastParentPaintMs = std::chrono::duration<double, std::milli> (
+        std::chrono::steady_clock::now() - paintStartStamp).count();
 }
 
 void MainComponent::resized()

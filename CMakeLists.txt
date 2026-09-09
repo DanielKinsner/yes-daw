@@ -405,7 +405,7 @@ add_test(NAME YesDawAccessibilityCheck COMMAND $<TARGET_FILE:YesDawAccessibility
 if (YESDAW_BUILD_APPS)
   # --- UI input harness (H12; shipped MainComponent real-Component activation) ---
   juce_add_console_app(YesDawUiInputCheck PRODUCT_NAME "YesDawUiInputCheck")
-  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp tests/ui_saveas_tests.cpp ${YESDAW_SHELL_SOURCES})
+  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp tests/ui_saveas_tests.cpp tests/ui_project_load_tests.cpp tests/ui_canvas_cache_tests.cpp ${YESDAW_SHELL_SOURCES})
   target_include_directories(YesDawUiInputCheck PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawUiInputCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawUiInputCheck PRIVATE

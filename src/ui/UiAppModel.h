@@ -69,6 +69,46 @@ struct UiAppLoadResult
     [[nodiscard]] bool ok() const noexcept { return status == UiAppLoadStatus::Ok; }
 };
 
+// A successfully opened bundle and its validated snapshot travel together until adoption.
+// The shell can decode the snapshot's assets without reopening and rehashing the same bundle.
+class UiPreparedProjectBundle final
+{
+public:
+    UiPreparedProjectBundle() = default;
+    UiPreparedProjectBundle (UiPreparedProjectBundle&&) = default;
+    UiPreparedProjectBundle& operator= (UiPreparedProjectBundle&&) = default;
+    UiPreparedProjectBundle (const UiPreparedProjectBundle&) = delete;
+    UiPreparedProjectBundle& operator= (const UiPreparedProjectBundle&) = delete;
+
+    [[nodiscard]] static UiAppLoadResult open (const std::filesystem::path& path,
+                                              UiPreparedProjectBundle& out)
+    {
+        UiAppLoadResult result;
+        UiPreparedProjectBundle prepared;
+        result.bundleResult = persistence::ProjectBundleDb::openExistingBundle (path, prepared.db_);
+        if (! result.bundleResult.ok())
+        {
+            result.status = UiAppLoadStatus::BundleOpenFailed;
+            return result;
+        }
+        result.bundleResult = prepared.db_.readProjectSnapshot (prepared.project_);
+        if (! result.bundleResult.ok())
+        {
+            result.status = UiAppLoadStatus::ProjectReadFailed;
+            return result;
+        }
+        out = std::move (prepared);
+        return result;
+    }
+
+    [[nodiscard]] const engine::Project& project() const noexcept { return project_; }
+
+private:
+    friend class UiAppModel;
+    persistence::ProjectBundleDb db_;
+    engine::Project project_;
+};
+
 enum class UiAppImportStatus : std::uint8_t
 {
     Ok = 0,
@@ -1254,20 +1294,22 @@ public:
 
     [[nodiscard]] persistence::BundleResult openProjectBundle (const std::filesystem::path& bundlePath)
     {
-        persistence::ProjectBundleDb opened;
-        persistence::BundleResult result = persistence::ProjectBundleDb::openExistingBundle (bundlePath, opened);
+        UiPreparedProjectBundle prepared;
+        const auto result = UiPreparedProjectBundle::open (bundlePath, prepared);
         if (! result.ok())
-            return result;
+            return result.bundleResult;
+        return openPreparedProjectBundle (std::move (prepared));
+    }
 
-        engine::Project loadedProject;
-        result = opened.readProjectSnapshot (loadedProject);
-        if (! result.ok())
-            return result;
-
-        attachProjectBundle (std::move (opened), bundlePath, std::move (loadedProject));
+    [[nodiscard]] persistence::BundleResult openPreparedProjectBundle (UiPreparedProjectBundle prepared)
+    {
+        if (! prepared.db_.isOpen())
+            return { persistence::BundleStatus::FilesystemError, SQLITE_OK, 0, "no validated project bundle" };
+        const auto bundlePath = prepared.db_.bundlePath();
+        attachProjectBundle (std::move (prepared.db_), bundlePath, std::move (prepared.project_));
         ++context_.commandDispatchCount;
         detectAutosaveRecoveryPrompt();
-        return result;
+        return persistence::detail::ok();
     }
 
     // Last-project record (usable-DAW P1): a one-line UTF-8 file in the shell-supplied session-state
@@ -8000,25 +8042,35 @@ public:
         std::span<const UiDecodedAsset> decodedAssets,
         engine::OfflineRenderOptions options)
     {
-        UiAppLoadResult result;
+        UiPreparedProjectBundle prepared;
+        const auto result = UiPreparedProjectBundle::open (bundlePath, prepared);
+        if (! result.ok())
+            return result;
+        return loadPreparedProjectBundle (std::move (prepared),
+                                         { decodedAssets.begin(), decodedAssets.end() }, std::move (options));
+    }
 
-        persistence::ProjectBundleDb opened;
-        result.bundleResult = persistence::ProjectBundleDb::openExistingBundle (bundlePath, opened);
-        if (! result.bundleResult.ok())
+    [[nodiscard]] UiAppLoadResult loadPreparedProjectBundle (
+        UiPreparedProjectBundle prepared, std::vector<UiDecodedAsset> ownedDecoded)
+    {
+        return loadPreparedProjectBundle (std::move (prepared), std::move (ownedDecoded), playbackBuildOptions());
+    }
+
+    [[nodiscard]] UiAppLoadResult loadPreparedProjectBundle (
+        UiPreparedProjectBundle prepared, std::vector<UiDecodedAsset> ownedDecoded,
+        engine::OfflineRenderOptions options)
+    {
+        UiAppLoadResult result;
+        if (! prepared.db_.isOpen())
         {
             result.status = UiAppLoadStatus::BundleOpenFailed;
+            result.bundleResult = { persistence::BundleStatus::FilesystemError, SQLITE_OK, 0,
+                                    "no validated project bundle" };
             return result;
         }
-
-        engine::Project loadedProject;
-        result.bundleResult = opened.readProjectSnapshot (loadedProject);
-        if (! result.bundleResult.ok())
-        {
-            result.status = UiAppLoadStatus::ProjectReadFailed;
-            return result;
-        }
-
-        std::vector<UiDecodedAsset> ownedDecoded (decodedAssets.begin(), decodedAssets.end());
+        const auto bundlePath = prepared.db_.bundlePath();
+        auto& loadedProject = prepared.project_;
+        result.bundleResult = persistence::detail::ok();
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (ownedDecoded);
 
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
@@ -8038,7 +8090,7 @@ public:
         (void) built.engine->stop();
         drainTransport (*built.engine);
 
-        attachProjectBundle (std::move (opened), bundlePath, std::move (loadedProject));
+        attachProjectBundle (std::move (prepared.db_), bundlePath, std::move (loadedProject));
         decodedAssets_ = std::move (ownedDecoded);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         replacePlayback (std::move (built.engine));

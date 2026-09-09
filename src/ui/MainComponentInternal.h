@@ -430,6 +430,7 @@ inline std::optional<yesdaw::ui::UiDecodedAsset> decodeProjectWav (const std::fi
 // empty-optional, and names the first bad audio file where one is the cause.
 struct StoredProjectAssetsResult
 {
+    yesdaw::ui::UiPreparedProjectBundle prepared;
     std::optional<std::vector<yesdaw::ui::UiDecodedAsset>> assets;
     std::string failureReason;
 };
@@ -438,27 +439,19 @@ inline StoredProjectAssetsResult decodeStoredProjectAssets (const std::filesyste
 {
     StoredProjectAssetsResult out;
 
-    yesdaw::persistence::ProjectBundleDb db;
-    const yesdaw::persistence::BundleResult opened =
-        yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundlePath, db);
+    const auto opened = yesdaw::ui::UiPreparedProjectBundle::open (bundlePath, out.prepared);
     if (! opened.ok())
     {
         // The bundle layer's own message is the most precise fact available — e.g.
         // "committed asset bytes are missing: <path>" from the open-time integrity check.
-        out.failureReason = opened.message.empty() ? "the project file could not be opened"
-                                                   : opened.message;
+        out.failureReason = opened.bundleResult.message.empty()
+            ? (opened.status == yesdaw::ui::UiAppLoadStatus::ProjectReadFailed
+                ? "the project data is invalid or corrupt" : "the project file could not be opened")
+            : opened.bundleResult.message;
         return out;
     }
 
-    yesdaw::engine::Project project;
-    const yesdaw::persistence::BundleResult read = db.readProjectSnapshot (project);
-    if (! read.ok())
-    {
-        out.failureReason = read.message.empty() ? "the project data is invalid or corrupt"
-                                                 : read.message;
-        return out;
-    }
-
+    const auto& project = out.prepared.project();
     std::vector<yesdaw::ui::UiDecodedAsset> decodedAssets;
     decodedAssets.reserve (project.assets.size());
     for (const yesdaw::engine::Asset& asset : project.assets)
