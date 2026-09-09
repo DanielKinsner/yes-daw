@@ -1526,15 +1526,41 @@ public:
         bool comparisonFailed = false;
         const auto liesWithin = [&] (std::filesystem::path candidate,
                                     const std::filesystem::path& ancestor) {
+            std::error_code inspectError;
+            const bool ancestorExists = std::filesystem::exists (ancestor, inspectError);
+            if (inspectError)
+            {
+                comparisonFailed = true;
+                return false;
+            }
             for (;;)
             {
-                std::error_code compareError;
-                // equivalent also catches Windows case aliases of an existing ancestor.
-                if (candidate == ancestor || std::filesystem::equivalent (candidate, ancestor, compareError))
+                if (candidate == ancestor)
                     return true;
-                if (compareError && compareError != std::errc::no_such_file_or_directory
-                    && compareError != std::errc::not_a_directory)
-                    comparisonFailed = true;
+                // equivalent requires two existing paths: libc++ reports not_supported for
+                // a missing path, including every valid new Save As destination. Keep lexical
+                // containment checks, and use identity only for existing paths/case aliases.
+                if (ancestorExists)
+                {
+                    const bool candidateExists = std::filesystem::exists (candidate, inspectError);
+                    if (inspectError)
+                    {
+                        comparisonFailed = true;
+                        return false;
+                    }
+                    if (candidateExists)
+                    {
+                        std::error_code compareError;
+                        const bool same = std::filesystem::equivalent (candidate, ancestor, compareError);
+                        if (compareError)
+                        {
+                            comparisonFailed = true;
+                            return false;
+                        }
+                        if (same)
+                            return true;
+                    }
+                }
                 const auto parent = candidate.parent_path();
                 if (parent.empty() || parent == candidate)
                     return false;

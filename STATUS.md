@@ -8,6 +8,33 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-09-08 — G4.0a corrective checkpoint: macOS Save As portability
+
+**Now:** G4.0a remains open; no G4.0b implementation. Code `3beeda21db172a9864913721d44eae4b9ea2f51e`
+was pushed after the local evidence below. [CI 34295697790](https://github.com/DanielKinsner/yes-daw/actions/runs/34295697790)
+found three macOS Save As failures in `YesDawUiInputCheck`. This is a product regression, not the
+macOS timing exception: `YesDawTimelineGpuCheck` actually **passed** (2.76 s test duration; successful
+CTest output does not publish its sustained-frame number). Other finished lanes passed; Windows
+is still running at this update.
+
+**Cause and correction:** libc++ `equivalent()` returns `not_supported` when either path is absent,
+whereas the new containment guard expected missing-path errors. Every valid new Save As path was
+therefore refused on macOS before destination creation. Identity comparison now runs only for two
+existing paths; canonical lexical containment, occupied-target refusal and real error handling remain.
+The separate critic verified the correction against [LLVM's implementation](https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-18.1.8/libcxx/src/filesystem/operations.cpp)
+and the three failing tests. Their assertions remain intact, with refusal diagnostics added.
+Corrective Release build and **380/380 local tests** passed (194.10 s); completed corrective CE
+review found no blocking issues (`build-ci/ce-code-review/g40a-libcpp-review/review.json`).
+Corrective exact-code CI and the new real-app batch are pending. No exception is applied.
+
+**Next:** push the reviewed correction for platform verification, complete the required real-app
+batch when input access is available, and wait for all jobs on the corrective SHA. This safe CI
+verification proceeds while native evidence remains explicitly pending; it does not certify the
+checkpoint. The previous shared-desktop batch was released; a new hands-off
+window has been requested, with safe build/headless work continuing meanwhile. Keep G4.0b and later
+features unstarted until G4.0a is verified. Raw macOS log: `build-ci/g40a-ci-macos-job.log`; corrective
+local artifacts use `build-ci/g40a-libcpp-*`.
+
 ## 2026-09-08 — G4.0a recovery: local gates green, CI pending
 
 **Now:** implementing the authorized Usable-song milestone, beginning with restored SS-1–SS-3.

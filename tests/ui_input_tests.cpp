@@ -4444,6 +4444,7 @@ TEST_CASE ("Save As copies the bundle and continues working in the copy", "[ui][
     // Ctrl+Shift+S copies the bundle; subsequent edits land in the COPY, not the original.
     REQUIRE (shell->keyPressed (juce::KeyPress ('s',
         juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    INFO (snapshotMainComponent (*shell).statusLineText);
     REQUIRE (std::filesystem::exists (saveAsPath));
     REQUIRE (snapshotMainComponent (*shell).bundlePath == saveAsPath);
 
@@ -4501,6 +4502,7 @@ TEST_CASE ("fresh native session is backed, recoverable, and named on first Save
     cancelNaming = false;
     REQUIRE (shell->keyPressed (juce::KeyPress ('s', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (saveChoices == 2);
+    INFO (snapshotMainComponent (*shell).statusLineText);
     REQUIRE (snapshotMainComponent (*shell).bundlePath == namedBundle);
     REQUIRE (readProjectSnapshot (namedBundle).clips.size() == 1u);
     REQUIRE (readProjectSnapshot (namedBundle).assets.size() == 1u);

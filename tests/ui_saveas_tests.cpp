@@ -35,6 +35,7 @@ TEST_CASE ("Save As restores the original database when the completed copy canno
         std::filesystem::create_directory (copied / "project.db");
     });
 
+    INFO (failed.state.disabledReason);
     REQUIRE (reachedCopyBoundary);
     REQUIRE_FALSE (failed.dispatched);
     REQUIRE (std::string (failed.state.disabledReason) == "bundle reopen failed after save-as");
