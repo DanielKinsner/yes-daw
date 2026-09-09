@@ -1,0 +1,93 @@
+{
+  "checkpoint": "G4.0a corrective handoff",
+  "codeSha": "9060aeb0407e2cec0ddfe2a5de1cb0031d8758b7",
+  "ci": {
+    "runId": 34297336345,
+    "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/34297336345",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "Classify diff (docs-only fast path)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "TSan (audio<->control data races)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Package (portable zip + packaged self-check)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Alpha-verify self-test (Linux)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Package (Windows zip + packaged hardware-verifier self-test)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Alpha-verify self-test (Windows)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "RTSan (audio thread no-alloc)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "macOS",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Windows",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Linux",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "local": {
+    "command": "ctest --preset ci",
+    "passed": 380,
+    "failed": 0,
+    "seconds": 194.1,
+    "log": "build-ci/g40a-libcpp-ctest.log",
+    "logSha256": "44D2716AA410A07E9F6CD93344F15B4BC577E5E2FB3F76085BBC9ABF31041D28",
+    "appSha256": "AA73848280971F15B187C3AD75C9F243862E8DC95636288ED06093550CA8C916"
+  },
+  "macos": {
+    "gpuCheck": "passed",
+    "gpuTestDurationSeconds": 2.61,
+    "sustainedFrameMs": null,
+    "exceptionApplied": false,
+    "log": "build-ci/g40a-libcpp-ci-macos.log",
+    "logSha256": "A4DAA30591548DE2953FCFB8A3BB8565665593F85E20B746FE6E64AA80FD53E3"
+  },
+  "realApp": {
+    "correctiveCodeResult": "pending authorized shared-desktop rerun",
+    "previousCodeSha": "3beeda21db172a9864913721d44eae4b9ea2f51e",
+    "previousAssertions": 300,
+    "previousIndex": "docs/evidence/2026-09-08-g40a-recovery.json",
+    "milestoneCertified": false
+  },
+  "critic": {
+    "status": "complete",
+    "findings": [],
+    "receipt": "build-ci/ce-code-review/g40a-libcpp-review/review.json",
+    "receiptSha256": "D7135875CF9E4FBD8C269485BE03209FB64A69AC9CC2CA958D2AB076CDF9CCF4"
+  },
+  "artifactAvailability": "Local logs, screenshots and review receipts are not uploaded. Source scripts and this index are in git; CI logs are accessible through the recorded run."
+}

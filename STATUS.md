@@ -8,6 +8,35 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-09-08 — G4.0a handoff: code CI green, corrective native rerun awaits access
+
+**Now:** the authorized **Usable-song milestone is unfinished**. Current code is
+`9060aeb0407e2cec0ddfe2a5de1cb0031d8758b7`. [CI 34297336345](https://github.com/DanielKinsner/yes-daw/actions/runs/34297336345)
+completed **success, all ten jobs** on that exact SHA. Corrective Release build and local CTest
+passed **380/380** (194.10 s). macOS passed all 378 tests, including the previously failing Save As
+cases and `YesDawTimelineGpuCheck` (2.61 s test duration, not a frame measurement). **No macOS timing
+exception was applied.** Separate corrective critic review completed with no blocking findings.
+
+**Concrete blocker:** the previous shared-desktop hands-off window was released after its native
+batch. A new window was requested for the macOS correction's required real-app rerun; no answer has
+arrived. No further mouse/keyboard input was sent. **G4.0a is not yet certified:** the prior code's
+seven scripts passed 300 assertions, but those results do not certify the changed corrective code.
+Build/headless checks and exact-code CI were completed while native input access remained pending.
+
+**Next when the window is available:** run `tools/session-drive.ps1` serially with each existing
+`tools/session-scripts/ss1-*.ps1` through `ss7-*.ps1`, with distinct output folders and no concurrent
+build. Preserve SS1's fresh and saved-fixture 3,000 ms assertions. Fix any failure from evidence;
+then record the same-build results, update STATUS, commit/push and verify the applicable CI.
+Only then proceed **G4.0b keyboard control navigation → remaining G4.2–G4.7 → G5 → G6 → Usable-song
+certification**. None of those later implementations has started.
+
+The current local app SHA-256 is `AA73848280971F15B187C3AD75C9F243862E8DC95636288ED06093550CA8C916`.
+[Corrective evidence index](docs/evidence/2026-09-08-g40a-correction.json) binds CI and local logs to
+this code; the [earlier drive index](docs/evidence/2026-09-08-g40a-recovery.json) retains all twelve
+startup measurements (worst 2,994 ms, only 6 ms margin). Logs/screenshots under `build-ci/g40a-*`,
+`build-ci/session-shots/2026-09-08-g40a-*` and critic receipts under `build-ci/ce-code-review/` are
+local only. Existing G6 rubric FIX rows below remain open; no full visual/milestone proof is claimed.
+
 ## 2026-09-08 — G4.0a corrective checkpoint: macOS Save As portability
 
 **Now:** G4.0a remains open; no G4.0b implementation. Code `3beeda21db172a9864913721d44eae4b9ea2f51e`
