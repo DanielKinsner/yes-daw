@@ -1,0 +1,276 @@
+{
+    "checkpoint":  "G4.0a remains OPEN",
+    "kind":  "One instrumented SS6 to SS7 predecessor diagnostic",
+    "codeSha":  "30bc84c6f2a8add75da18f0fbd18276aa3237cdf",
+    "appSha256":  "C253E6E85ACECBA95EAC32A229E1CEE364E68A15089BEC8DFBB298C4D0C98F8E",
+    "priorEvidence":  "docs/evidence/2026-09-08-g40a-single-open.json",
+    "hypothesis":  "The original SS7 filename refusal occurred after SS6 in the serial batch. Earlier isolated diagnostics omitted that preceding native-dialog history.",
+    "method":  "Run the exact tracked SS6 and SS7 scripts serially in separate PowerShell session-drive processes. Attach four out-of-context WinEvent hooks only to each actual app PID after the unchanged Launch/B6 gate and before chooser input. Callbacks enqueue bounded event metadata only. Original typing loops, waits, assertions and filename refusal are unchanged; no retries.",
+    "result":  "SS6 PASS 49 assertions, exit 0; SS7 PASS 40 assertions, exit 0. The original filename failure did not reproduce.",
+    "classification":  "One instrumented non-reproduction. No original-cause claim, repaired-cause claim, G4.0a completion, or Usable-song certification.",
+    "sequenceDirectory":  "build-ci/g40a-predecessor-sequence-20260908-224259-723",
+    "interProcessGapMs":  11.2732,
+    "profiles":  {
+                     "capture":  "Stereo Mix (Realtek(R) Audio)",
+                     "captureId":  "{0.0.1.00000000}.{ea0888cd-1a0b-4350-b7a9-a14c12b9420d}",
+                     "render":  "Speakers (Realtek(R) Audio)",
+                     "restoration":  "Verified after the diagnostic: all three render roles match the original Realtek Speakers ID, all three capture roles match the original ASUS microphone ID, ASUS is active at 48 kHz / 2 channels / 32-bit, and Stereo Mix is disabled (state 2)."
+                 },
+    "observerRuns":  [
+                         {
+                             "session":  "SS6",
+                             "directory":  "build-ci/g40a-predecessor-observer-ss6-write-a-beat-20260908-224300-113",
+                             "events":  4494,
+                             "dropped":  0,
+                             "hooks":  8,
+                             "registrationFailures":  0,
+                             "unhookFailures":  0,
+                             "pidAttachMs":  [
+                                                 7,
+                                                 0
+                                             ],
+                             "typingMarkers":  14,
+                             "filenameRefusals":  0
+                         },
+                         {
+                             "session":  "SS7",
+                             "directory":  "build-ci/g40a-predecessor-observer-ss7-mix-the-song-20260908-224410-870",
+                             "events":  787,
+                             "dropped":  0,
+                             "hooks":  4,
+                             "registrationFailures":  0,
+                             "unhookFailures":  0,
+                             "pidAttachMs":  [
+                                                 5
+                                             ],
+                             "typingMarkers":  2,
+                             "filenameRefusals":  0
+                         }
+                     ],
+    "limits":  [
+                   "Per-PID hooks miss app startup events before registration. Registration adds post-launch idle time and observation adds overhead that can perturb a race.",
+                   "VALUECHANGE events do not contain text. Event ordering and callback timing do not establish causal text state, even with zero recorded drops.",
+                   "The earlier original SS7 empty/unavailable readback and the distinct Escape cleanup failures remain unresolved and are preserved in prior evidence.",
+                   "Local observer source, event logs, screenshots and hashes are not uploaded merely because this index is in git."
+               ],
+    "inputReleased":  true,
+    "furtherNativeRuns":  "None scheduled by this observer task.",
+    "codeReview":  "Separate agent preflight found no blocking diagnostic defect; structured-readback resolution recorded in the prior evidence.",
+    "ciStatus":  "All ten expected jobs completed successfully on codeSha; this does not certify the unresolved native failure.",
+    "milestoneCertified":  false,
+    "artifacts":  [
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer.ps1",
+                          "sha256":  "0819345D86D3AE81D3B300F32966C9E19D6D559A45137732DD4E3ABB7A43227B"
+                      },
+                      {
+                          "path":  "build-ci/g40a-run-predecessor-diagnostic.ps1",
+                          "sha256":  "C1C0C347AE970ABFB3C9F1218865EFA464B5E912C4A3DF37ED06BF7CC0762B2D"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-sequence-console.log",
+                          "sha256":  "131B35DFCCA9E6E7A697CE021B308A13DBF33594CF22F10D8CD6F2A3148ACED6"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-sequence-20260908-224259-723/sequence.json",
+                          "sha256":  "D23442AB441C496856C420B8DBA2467144BE7ACC8449217AC3CC7C5D784637AE"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-sequence-20260908-224259-723/outer-source-hash.json",
+                          "sha256":  "B68BE49D37EDCC6842EE0FED64A71EE5D1C4EA0BFFCC76DD1D84979E3FFAD3AC"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-sequence-20260908-224259-723/ss6-write-a-beat.log",
+                          "sha256":  "9CDF9BD39280DC1411E991EC9AF30B4F4841F47D1513591A85167364838DE56E"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-sequence-20260908-224259-723/ss7-mix-the-song.log",
+                          "sha256":  "8FDD51E417772DCF9E52EDF64C0D23FB10DD7C962270086E3EDBE1E7F3C61875"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss6-write-a-beat-20260908-224300-113/observer.cs",
+                          "sha256":  "5F57654B07375BAB7DF35B619C5FF23A124851DC668B24D8099E2F62B1F0ED30"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss6-write-a-beat-20260908-224300-113/source-hashes.json",
+                          "sha256":  "80DA0721A4791251FDECA408DCD7C20ECBE3178696A122CB1F2C83E4D1CADBD5"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss6-write-a-beat-20260908-224300-113/summary.json",
+                          "sha256":  "3B218965A15010437428417D678B4D2976BD0E4BA7DA81D42E7C61C4C7770957"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss6-write-a-beat-20260908-224300-113/hooks.json",
+                          "sha256":  "DED49BF715CDB49C4D745431F769F02F02C6B039A356E669D9CA95FF2AD67FF4"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss6-write-a-beat-20260908-224300-113/identities.json",
+                          "sha256":  "5BB36049BA20FE483E1C305E110DBB99C8D9BB6219DA104A9EB0B12CB5A431AB"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss6-write-a-beat-20260908-224300-113/events.json",
+                          "sha256":  "211C41A1D2CCB73732BA1CC568C325E48D9D3C43562A8C0FA61E86BC747FD8F0"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss7-mix-the-song-20260908-224410-870/observer.cs",
+                          "sha256":  "5F57654B07375BAB7DF35B619C5FF23A124851DC668B24D8099E2F62B1F0ED30"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss7-mix-the-song-20260908-224410-870/source-hashes.json",
+                          "sha256":  "80DA0721A4791251FDECA408DCD7C20ECBE3178696A122CB1F2C83E4D1CADBD5"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss7-mix-the-song-20260908-224410-870/summary.json",
+                          "sha256":  "6A5F3BFDA219B474E2013EF6CD38C95DA6155749C88A031470EF7DDD2A9FE232"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss7-mix-the-song-20260908-224410-870/hooks.json",
+                          "sha256":  "D3A9729485EC370A0243E76227A1E1B0DECD4FFE826E1AC6D89C55C447C3F2DA"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss7-mix-the-song-20260908-224410-870/identities.json",
+                          "sha256":  "00F4C7EC023C7783C925A504BD59C9D3A8BC7BF16CD4A250B3B8C8B8FEDF88FA"
+                      },
+                      {
+                          "path":  "build-ci/g40a-predecessor-observer-ss7-mix-the-song-20260908-224410-870/events.json",
+                          "sha256":  "E6BB0B188DE77A6E8DD0B75ACF26DAF88D09A80B01A624C3563E174301A4CEAE"
+                      },
+                      {
+                          "path":  "build-ci/g40a-final-restored-defaults.txt",
+                          "sha256":  "66DD34D5794B7D96804DD7982767C341A6D4DDCF12ED5B4482916AEB44AD64DA"
+                      },
+                      {
+                          "path":  "build-ci/g40a-final-restored-capture-inventory.txt",
+                          "sha256":  "1B83A2044FA635DB964A42BCC33A46D2AF194D645683841B1344B6D92B2F1582"
+                      },
+                      {
+                          "path":  "build-ci/ce-code-review/g40a-software-cache/independent-predecessor-evidence-critic.md",
+                          "sha256":  "AE2CF9C168EEBF48BFC3624EA81FC229A31FE5098A993EEA6D40566ED58E2673"
+                      }
+                  ],
+    "restoredEnvironment":  {
+                                "status":  "PASS",
+                                "defaultsLog":  "build-ci/g40a-final-restored-defaults.txt",
+                                "captureInventoryLog":  "build-ci/g40a-final-restored-capture-inventory.txt",
+                                "renderId":  "{0.0.0.00000000}.{a2a2092d-43d5-4f2c-b2a4-225fb5758a21}",
+                                "captureId":  "{0.0.1.00000000}.{daf4ce6c-c518-4a87-9ddc-be3061332a1e}",
+                                "allSixRolesMatchOriginal":  true,
+                                "stereoMixState":  2,
+                                "asusState":  1,
+                                "asusSampleRate":  48000,
+                                "asusChannels":  2,
+                                "asusBits":  32,
+                                "method":  "Existing read-only IMMDevice metadata helper; no stream initialized or started."
+                            },
+    "finalCritic":  {
+                        "status":  "Complete",
+                        "actionableFindings":  [
+
+                                               ],
+                        "verification":  "Independent agent verified the 19 existing artifact hashes, current app hash, code HEAD, tracked source identity, raw PASS/exit results, event counts, hook success, zero drops, attachment timings and process gap.",
+                        "nextCorrectiveHypothesis":  "None supported by this successful observer run. No filename failure or reset was observed that explains the earlier refusal. Original cause remains unknown; G4.0a remains open.",
+                        "restorationScope":  "Restoration queried and asserted by hardware_readiness after root performed supported Windows UI changes; separate critic did not repeat the device query.",
+                        "receipt":  "build-ci/ce-code-review/g40a-software-cache/independent-predecessor-evidence-critic.md"
+                    },
+    "ci":  {
+               "status":  "completed",
+               "conclusion":  "success",
+               "codeSha":  "30bc84c6f2a8add75da18f0fbd18276aa3237cdf",
+               "runId":  34315558059,
+               "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059",
+               "expectedJobs":  10,
+               "jobs":  [
+                            {
+                                "name":  "Classify diff (docs-only fast path)",
+                                "databaseId":  102350906827,
+                                "status":  "completed",
+                                "conclusion":  "success",
+                                "startedAt":  "2026-09-09T05:36:26Z",
+                                "completedAt":  "2026-09-09T05:36:32Z",
+                                "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059/job/102350906827"
+                            },
+                            {
+                                "name":  "TSan (audio\u003c-\u003econtrol data races)",
+                                "databaseId":  102350932505,
+                                "status":  "completed",
+                                "conclusion":  "success",
+                                "startedAt":  "2026-09-09T05:36:34Z",
+                                "completedAt":  "2026-09-09T05:43:52Z",
+                                "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059/job/102350932505"
+                            },
+                            {
+                                "name":  "Package (portable zip + packaged self-check)",
+                                "databaseId":  102350932516,
+                                "status":  "completed",
+                                "conclusion":  "success",
+                                "startedAt":  "2026-09-09T05:36:34Z",
+                                "completedAt":  "2026-09-09T05:40:28Z",
+                                "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059/job/102350932516"
+                            },
+                            {
+                                "name":  "Package (Windows zip + packaged hardware-verifier self-test)",
+                                "databaseId":  102350932518,
+                                "status":  "completed",
+                                "conclusion":  "success",
+                                "startedAt":  "2026-09-09T05:36:34Z",
+                                "completedAt":  "2026-09-09T05:40:50Z",
+                                "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059/job/102350932518"
+                            },
+                            {
+                                "name":  "Linux",
+                                "databaseId":  102350932532,
+                                "status":  "completed",
+                                "conclusion":  "success",
+                                "startedAt":  "2026-09-09T05:36:34Z",
+                                "completedAt":  "2026-09-09T05:50:19Z",
+                                "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059/job/102350932532"
+                            },
+                            {
+                                "name":  "Windows",
+                                "databaseId":  102350932548,
+                                "status":  "completed",
+                                "conclusion":  "success",
+                                "startedAt":  "2026-09-09T05:36:34Z",
+                                "completedAt":  "2026-09-09T06:00:36Z",
+                                "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059/job/102350932548"
+                            },
+                            {
+                                "name":  "Alpha-verify self-test (Windows)",
+                                "databaseId":  102350932550,
+                                "status":  "completed",
+                                "conclusion":  "success",
+                                "startedAt":  "2026-09-09T05:36:34Z",
+                                "completedAt":  "2026-09-09T05:37:59Z",
+                                "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059/job/102350932550"
+                            },
+                            {
+                                "name":  "Alpha-verify self-test (Linux)",
+                                "databaseId":  102350932564,
+                                "status":  "completed",
+                                "conclusion":  "success",
+                                "startedAt":  "2026-09-09T05:36:34Z",
+                                "completedAt":  "2026-09-09T05:37:44Z",
+                                "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059/job/102350932564"
+                            },
+                            {
+                                "name":  "RTSan (audio thread no-alloc)",
+                                "databaseId":  102350932586,
+                                "status":  "completed",
+                                "conclusion":  "success",
+                                "startedAt":  "2026-09-09T05:36:34Z",
+                                "completedAt":  "2026-09-09T05:42:33Z",
+                                "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059/job/102350932586"
+                            },
+                            {
+                                "name":  "macOS",
+                                "databaseId":  102350932592,
+                                "status":  "completed",
+                                "conclusion":  "success",
+                                "startedAt":  "2026-09-09T05:36:39Z",
+                                "completedAt":  "2026-09-09T05:46:44Z",
+                                "url":  "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059/job/102350932592"
+                            }
+                        ],
+               "raw":  "build-ci/g40a-30bc84c-ci.json"
+           }
+}
