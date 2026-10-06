@@ -2,6 +2,7 @@
 
 #include "interchange/Smf.h"   // G3.7: the [midi-file] gate writes and reads back a Standard MIDI File
 #include "ui/MainComponent.h"
+#include "ui/ControlTarget.h"   // G4.0b: the pure Control-target rules
 #include "ui/DesktopAudioStartup.h"
 #include "ui/EqResponseComponent.h"
 #include "ui/TimelineCanvas.h"
@@ -22330,4 +22331,119 @@ TEST_CASE ("G4.2 EQ response follows edits undo bypass and slot changes", "[ui][
     yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 2);
     REQUIRE_FALSE (graph->isVisible());
     REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).bounds.getHeight() == yesdaw::ui::UiTheme::Layout::fxEditorMaxHeight);
+}
+
+// ---------------------------------------------------------------------------------------------------
+// G4.0b — the keyboard Control target (ADR-0049). The Command router owns one logical target, separate
+// from the Focus context: Tab / Shift+Tab walk the visible enabled controls in reading order, Enter
+// clicks or starts a choice / value / text interaction, arrows adjust only that interaction, Esc
+// restores what it started from (or ends navigation), Space stays transport, and one key dispatches
+// once. Each shell case below drives the shell's own keyPressed — the path every real key takes.
+namespace {
+
+yesdaw::ui::ControlTargetEntry makeControlEntry (std::string id, int region, int x, int y, int width, int height)
+{
+    yesdaw::ui::ControlTargetEntry entry;
+    entry.id = std::move (id);
+    entry.region = region;
+    entry.bounds.x = x;
+    entry.bounds.y = y;
+    entry.bounds.width = width;
+    entry.bounds.height = height;
+    return entry;
+}
+
+std::vector<std::string> controlIdsOf (const std::vector<yesdaw::ui::ControlTargetEntry>& entries)
+{
+    std::vector<std::string> ids;
+    for (const auto& entry : entries)
+        ids.push_back (entry.id);
+    return ids;
+}
+
+} // namespace
+
+TEST_CASE ("G4.0b control navigation: the pure rules — priority, reading order, traversal, stale targets, dB steps",
+           "[ui][control-navigation]")
+{
+    using yesdaw::ui::ControlKey;
+    using yesdaw::ui::ControlKeyRoute;
+    using yesdaw::ui::routeControlKey;
+
+    // ADR-0049's priority table. Space is transport in every state; Tab always navigates; an arrow
+    // that is a global transport chord stays transport even mid-interaction.
+    for (const auto& [navigating, interacting] : { std::pair { false, false }, std::pair { true, false }, std::pair { true, true } })
+    {
+        INFO ("navigating " << navigating << " interacting " << interacting);
+        REQUIRE (routeControlKey (ControlKey::Space, navigating, interacting, false) == ControlKeyRoute::Keymap);
+        REQUIRE (routeControlKey (ControlKey::Tab, navigating, interacting, false) == ControlKeyRoute::Next);
+        REQUIRE (routeControlKey (ControlKey::ShiftTab, navigating, interacting, false) == ControlKeyRoute::Previous);
+        REQUIRE (routeControlKey (ControlKey::Other, navigating, interacting, false) == ControlKeyRoute::Keymap);
+        REQUIRE (routeControlKey (ControlKey::Increase, navigating, interacting, true) == ControlKeyRoute::Keymap);
+    }
+    REQUIRE (routeControlKey (ControlKey::Enter, false, false, false) == ControlKeyRoute::Keymap);   // Return to zero
+    REQUIRE (routeControlKey (ControlKey::Enter, true, false, false) == ControlKeyRoute::Activate);
+    REQUIRE (routeControlKey (ControlKey::Enter, true, true, false) == ControlKeyRoute::Confirm);
+    REQUIRE (routeControlKey (ControlKey::Escape, false, false, false) == ControlKeyRoute::Keymap);
+    REQUIRE (routeControlKey (ControlKey::Escape, true, false, false) == ControlKeyRoute::EndNavigation);
+    REQUIRE (routeControlKey (ControlKey::Escape, true, true, false) == ControlKeyRoute::Cancel);
+    REQUIRE (routeControlKey (ControlKey::Decrease, true, false, false) == ControlKeyRoute::Keymap);   // the editor's
+    REQUIRE (routeControlKey (ControlKey::Decrease, true, true, false) == ControlKeyRoute::Adjust);
+
+    // Reading order: region first; a 24 px combo beside a 30 px button shares the button's row.
+    std::vector<yesdaw::ui::ControlTargetEntry> entries {
+        makeControlEntry ("dock.fader", 4, 10, 900, 40, 100), makeControlEntry ("header.combo", 0, 300, 7, 80, 24),
+        makeControlEntry ("header.b", 0, 100, 4, 30, 30),       makeControlEntry ("header.a", 0, 20, 4, 30, 30),
+        makeControlEntry ("header.row2", 0, 10, 40, 30, 30),    makeControlEntry ("rail.add", 1, 10, 200, 30, 30)
+    };
+    const std::vector<std::string> expected { "header.a", "header.b", "header.combo", "header.row2", "rail.add", "dock.fader" };
+    auto reversed = std::vector<yesdaw::ui::ControlTargetEntry> (entries.rbegin(), entries.rend());
+    yesdaw::ui::orderControlTargets (entries);
+    yesdaw::ui::orderControlTargets (reversed);
+    REQUIRE (controlIdsOf (entries) == expected);
+    REQUIRE (controlIdsOf (reversed) == expected);   // a pure function of the layout, not of discovery order
+
+    // Traversal: Tab starts at the first, Shift+Tab at the last; both wrap.
+    yesdaw::ui::ControlNavigator navigator;
+    REQUIRE_FALSE (navigator.navigating());
+    REQUIRE (navigator.step (entries, 1));
+    REQUIRE (navigator.targetId() == "header.a");
+    REQUIRE (navigator.step (entries, -1));
+    REQUIRE (navigator.targetId() == "dock.fader");
+    REQUIRE (navigator.step (entries, 1));
+    REQUIRE (navigator.targetId() == "header.a");
+    navigator.endNavigation();
+    REQUIRE (navigator.step (entries, -1));
+    REQUIRE (navigator.targetId() == "dock.fader");
+    REQUIRE (navigator.targetById (entries, "header.b"));
+    REQUIRE_FALSE (navigator.targetById (entries, "missing"));
+    REQUIRE (navigator.targetId() == "header.b");
+
+    // A vanished control leaves no stale target: the control now at its place takes over.
+    auto fewer = entries;
+    fewer.erase (fewer.begin() + 1);
+    navigator.beginInteraction (0.25);
+    REQUIRE (navigator.interacting());
+    REQUIRE (navigator.interactionOrigin() == 0.25);
+    REQUIRE (navigator.revalidate (fewer));
+    REQUIRE (navigator.targetId() == "header.combo");
+    REQUIRE_FALSE (navigator.interacting());
+    REQUIRE_FALSE (navigator.revalidate (fewer));   // a present target stays
+    REQUIRE (navigator.revalidate (std::vector<yesdaw::ui::ControlTargetEntry> {}));
+    REQUIRE_FALSE (navigator.navigating());
+    REQUIRE (navigator.targetId().empty());
+    REQUIRE_FALSE (navigator.step (std::vector<yesdaw::ui::ControlTargetEntry> {}, 1));
+    navigator.beginInteraction (1.0);   // no interaction without navigation
+    REQUIRE_FALSE (navigator.interacting());
+
+    // The painted fader's keyboard step: whole dB, Shift a tenth, -60 dB floor, rail ceiling.
+    using yesdaw::ui::stepFaderGainDb;
+    REQUIRE (stepFaderGainDb (1.0f, 1, 1.0, 2.0) == Catch::Approx (std::pow (10.0, 1.0 / 20.0)).epsilon (1e-6));
+    REQUIRE (stepFaderGainDb (1.0f, -3, 1.0, 2.0) == Catch::Approx (std::pow (10.0, -3.0 / 20.0)).epsilon (1e-6));
+    REQUIRE (stepFaderGainDb (1.0f, 1, 0.1, 2.0) == Catch::Approx (std::pow (10.0, 0.1 / 20.0)).epsilon (1e-6));
+    REQUIRE (stepFaderGainDb (0.0f, 1, 1.0, 2.0) == Catch::Approx (0.001).epsilon (1e-6));
+    REQUIRE (stepFaderGainDb (0.0f, -1, 1.0, 2.0) == 0.0f);
+    REQUIRE (stepFaderGainDb (0.001f, -1, 1.0, 2.0) == 0.0f);
+    REQUIRE (stepFaderGainDb (1.9f, 3, 1.0, 2.0) == 2.0f);
+    REQUIRE (stepFaderGainDb (0.5f, 0, 1.0, 2.0) == 0.5f);
 }
