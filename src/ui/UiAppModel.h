@@ -8362,6 +8362,37 @@ public:
         return { id, {}, true };
     }
 
+    // G4.6 / ADR-0052: the Eraser — a drag deletes the points a lane holds in [from, to] (ticks), one undo step.
+    [[nodiscard]] UiActionDispatchResult eraseAutomationPoints (engine::EntityId owner,
+                                                                engine::AutomationTargetRole role,
+                                                                std::uint32_t paramId,
+                                                                engine::Tick from,
+                                                                engine::Tick to)
+    {
+        constexpr UiActionId id = UiActionId::Count;
+        const engine::AutomationLaneData* const lane = automationLaneForTarget (owner, role, paramId);
+        if (! context_.projectLoaded || lane == nullptr || to < from)
+            return { id, { false, "no automation to erase" }, false };
+
+        std::vector<engine::AutomationBreakpoint> kept;
+        for (const engine::AutomationBreakpoint& point : lane->points)
+            if (point.tick < from || point.tick > to)
+                kept.push_back (point);
+        if (kept.size() == lane->points.size())
+            return { id, { false, "no points in the swept span" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.replaceAutomationLanePoints (nextProject, lane->id, std::move (kept)).applied())
+            return { id, { false, "automation erase refused" }, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "automation erase did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.timelineAutomationBreakpointEditCount;
+        return { id, {}, true };
+    }
+
     // G4.6 / ADR-0052: what a Write pass arms at play — every lane the selected strip owns (its fader, pan,
     // sends and instrument, and its inserts' parameters), each at the value it plays at the playhead.
     [[nodiscard]] std::vector<std::pair<AutomationRideTarget, double>> automationWriteTargetsAtPlayhead() const

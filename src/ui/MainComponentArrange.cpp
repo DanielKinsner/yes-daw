@@ -1733,6 +1733,71 @@ std::vector<MainComponent::AutomationTargetOption> MainComponent::automationTarg
 
 void MainComponent::wireAutomationCanvas (AutomationLaneCanvasComponent& canvas, std::function<AutomationTargetOption()> targetFor)
 {
+    // G4.6 / ADR-0052: the arrangement's tool picks the gesture on every lane.
+    canvas.toolProvider = [this] {
+        switch (appModel.context().activeTimelineTool)
+        {
+            case yesdaw::ui::TimelineTool::Pencil: return AutomationLaneCanvasComponent::Tool::Pencil;
+            case yesdaw::ui::TimelineTool::Eraser: return AutomationLaneCanvasComponent::Tool::Eraser;
+            default:                                return AutomationLaneCanvasComponent::Tool::Pointer;
+        }
+    };
+    // Pencil: the stroke REPLACES the span it sweeps (edges anchored) — one point per snap step, or by the
+    // ride density rule with snap off; Shift draws a straight two-point line. One undo step.
+    canvas.onPencilStroke = [this, targetFor] (const std::vector<AutomationLaneCanvasComponent::StrokePoint>& stroke, bool line) {
+        const AutomationTargetOption target = targetFor();
+        if (! target.ownerEntity.isValid() || stroke.empty() || ! appModel.project().sampleRate.isValid())
+            return;
+        const bool snapped = appModel.context().snapMode != yesdaw::ui::UiSnapMode::Off;
+        std::vector<std::pair<yesdaw::engine::Tick, double>> timed;   // (tick, value), in time order
+        for (const AutomationLaneCanvasComponent::StrokePoint& point : stroke)
+            if (const std::optional<yesdaw::engine::Tick> tick = automationTickForSeconds (point.seconds, snapped || line))
+                timed.push_back ({ *tick, std::clamp (point.value, 0.0, 1.0) });
+        std::stable_sort (timed.begin(), timed.end(), [] (const auto& a, const auto& b) { return a.first < b.first; });
+        if (timed.empty())
+            return;
+
+        const yesdaw::ui::AutomationRideTarget rideTarget { target.ownerEntity, target.role, target.paramId };
+        yesdaw::ui::AutomationRidePass pass { rideTarget, {} };
+        if (snapped || line)
+        {
+            for (const auto& [tick, value] : timed)   // one point per snap step: the last value at each tick
+                if (! pass.samples.empty() && pass.samples.back().tick == tick)
+                    pass.samples.back().value = value;
+                else
+                    pass.samples.push_back ({ tick, value });
+        }
+        else
+        {
+            yesdaw::ui::AutomationRideRecorder density;   // the ride density rule, applied to the stroke
+            density.start (yesdaw::engine::AutomationMode::Touch, appModel.project().sampleRate.hz);
+            const double framesPerSecond = appModel.project().sampleRate.hz;
+            for (const auto& [tick, value] : timed)
+                (void) density.touch (rideTarget, { tick, static_cast<std::int64_t> (std::llround (automationSecondsForTick (tick) * framesPerSecond)) }, value);
+            const std::vector<yesdaw::ui::AutomationRidePass> closed =
+                density.release (rideTarget, { timed.back().first,
+                                               static_cast<std::int64_t> (std::llround (automationSecondsForTick (timed.back().first) * framesPerSecond)) },
+                                 timed.back().second);
+            if (! closed.empty())
+                pass = closed.front();
+        }
+        if (pass.samples.empty())
+            return;
+        (void) appModel.commitAutomationPasses ({ pass }, false);
+        refreshActionState();
+        repaintAll();
+    };
+    // Eraser: a drag deletes the points in the span it sweeps. One undo step.
+    canvas.onEraseSpan = [this, targetFor] (double fromSeconds, double toSeconds) {
+        const AutomationTargetOption target = targetFor();
+        const std::optional<yesdaw::engine::Tick> from = automationTickForSeconds (fromSeconds, false);
+        const std::optional<yesdaw::engine::Tick> to = automationTickForSeconds (toSeconds, false);
+        if (! target.ownerEntity.isValid() || ! from || ! to)
+            return;
+        (void) appModel.eraseAutomationPoints (target.ownerEntity, target.role, target.paramId, *from, *to);
+        refreshActionState();
+        repaintAll();
+    };
     canvas.pointsProvider = [this, targetFor] {
         std::vector<AutomationLaneCanvasComponent::CanvasPoint> points;
         const AutomationTargetOption target = targetFor();

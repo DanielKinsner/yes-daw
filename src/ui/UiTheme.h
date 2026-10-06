@@ -639,6 +639,7 @@ struct UiTheme
         static constexpr int automationCanvasLabelInset = 4;    // G4.6: a stacked lane's name, top-left
         static constexpr int automationCanvasLabelHeight = 14;
         static constexpr int automationCanvasSeparatorHeight = 1;   // a stacked lane's top edge
+        static constexpr float automationCanvasEraseAlpha = 0.18f;  // G4.6: the span an Eraser sweeps
         static constexpr int timelineSnapChooserWidth = 96;
         static constexpr int timelineSnapChooserGap = 8;
         // Wide enough for the painted SNAP caption to sit between the repeat-paste and snap

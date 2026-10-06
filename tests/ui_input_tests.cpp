@@ -27,6 +27,7 @@
 #include "persistence/ProjectBundle.h"
 
 #include <algorithm>
+#include <numeric>   // std::gcd
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -24770,6 +24771,133 @@ TEST_CASE ("every lane a shown track owns stacks under its clips, each editing i
     // A off: the stacked lanes go with the chooser lane.
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     REQUIRE (findChildWithComponentId (*shell, "timeline.automation.lane.0.0") == nullptr);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G4.6 / ADR-0052: the lane tools. Pencil — a drag draws the swept span (snap off: the ride density rule);
+// Shift+Pencil — a straight two-point line from press to release; Eraser — a drag deletes the points it
+// sweeps. Each stroke replaces or erases its span as ONE undo step.
+TEST_CASE ("Pencil draws a lane span, Shift+Pencil draws a line, the Eraser sweeps points away", "[ui][input][shell][automation-v2][automation-tools]")
+{
+    const auto bundlePath = makeTempBundlePath ("automation-v2-tools");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path { YESDAW_WAV_FIXTURE_PATH }; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);   // Off: the stroke lands where drawn
+    auto* canvas = dynamic_cast<yesdaw::ui::AutomationLaneCanvasComponent*> (findChildWithComponentId (*shell, "timeline.automation.canvas"));
+    REQUIRE (canvas != nullptr);
+    REQUIRE (canvas->getWidth() > 200);
+
+    const auto at = [&canvas] (double fx, double fy) {
+        return juce::Point<int> { juce::roundToInt (canvas->getWidth() * fx), juce::roundToInt ((canvas->getHeight() - 1) * fy) };
+    };
+    const auto stroke = [&] (std::initializer_list<std::pair<double, double>> path, juce::ModifierKeys mods) {
+        const std::vector<std::pair<double, double>> points (path);
+        const juce::Point<int> down = at (points.front().first, points.front().second);
+        canvas->mouseDown (makeMouseEvent (*canvas, down, down, false, 1, mods));
+        for (std::size_t i = 1; i < points.size(); ++i)
+            canvas->mouseDrag (makeMouseEvent (*canvas, at (points[i].first, points[i].second), down, true, 1, mods));
+        canvas->mouseUp (makeMouseEvent (*canvas, at (points.back().first, points.back().second), down, true, 1, mods));
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (20);
+    };
+    const auto lanePoints = [&bundlePath] {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        return project.automationLanes.empty() ? std::vector<yesdaw::engine::AutomationBreakpoint> {}
+                                               : project.automationLanes.front().points;
+    };
+
+    // Pencil, freehand: a rising-then-falling stroke becomes the lane's points, in time order.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectPencil);
+    stroke ({ { 0.05, 0.9 }, { 0.12, 0.6 }, { 0.2, 0.3 }, { 0.28, 0.1 }, { 0.36, 0.4 }, { 0.44, 0.7 } },
+            juce::ModifierKeys::leftButtonModifier);
+    const std::vector<yesdaw::engine::AutomationBreakpoint> drawn = lanePoints();
+    REQUIRE (drawn.size() >= 4u);
+    for (std::size_t i = 1; i < drawn.size(); ++i)
+        REQUIRE (drawn[i].tick > drawn[i - 1u].tick);
+    double peak = 0.0;
+    for (const auto& point : drawn)
+        peak = std::max (peak, point.value);
+    REQUIRE (peak > 0.8);                        // the stroke's high point (y 0.1 from the top)
+    REQUIRE (drawn.front().value < 0.3);         // it started low
+
+    // Shift+Pencil: a straight line — exactly two points across its own span, left of the old stroke kept.
+    stroke ({ { 0.6, 0.95 }, { 0.7, 0.5 }, { 0.9, 0.05 } }, juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier);
+    const std::vector<yesdaw::engine::AutomationBreakpoint> withLine = lanePoints();
+    REQUIRE (withLine.size() == drawn.size() + 2u + 1u);   // + the line's two ends + the edge anchor before them
+    REQUIRE (withLine.back().value > 0.9);                   // the line ends high (y 0.05)
+    REQUIRE (withLine[withLine.size() - 2u].value < 0.1);   // and starts low (y 0.95)
+    REQUIRE (std::equal (drawn.begin(), drawn.end(), withLine.begin()));   // the earlier stroke is untouched
+
+    // Eraser: sweeping the middle of the freehand stroke deletes exactly the points under it.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectEraser);
+    stroke ({ { 0.15, 0.5 }, { 0.25, 0.5 }, { 0.33, 0.5 } }, juce::ModifierKeys::leftButtonModifier);
+    const std::vector<yesdaw::engine::AutomationBreakpoint> erased = lanePoints();
+    REQUIRE (erased.size() < withLine.size());
+    const double sweptFrom = canvas->secondsForLocalX (juce::roundToInt (canvas->getWidth() * 0.15));
+    const double sweptTo = canvas->secondsForLocalX (juce::roundToInt (canvas->getWidth() * 0.33));
+    REQUIRE (sweptTo > sweptFrom);
+    REQUIRE (withLine.size() - erased.size() == 2u);   // the two stroke points under the sweep
+    for (const auto& point : erased)
+        REQUIRE (std::find (withLine.begin(), withLine.end(), point) != withLine.end());   // nothing new appears
+
+    // One undo per stroke: the erase, then the line, then the freehand stroke.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (lanePoints() == withLine);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (lanePoints() == drawn);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.empty());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G4.6 / ADR-0052: with snap on, a Pencil stroke writes one point per snap step it crosses — every point on
+// the grid, none twice.
+TEST_CASE ("a snapped Pencil stroke writes one point per snap step", "[ui][input][shell][automation-v2][automation-tools]")
+{
+    const auto bundlePath = makeTempBundlePath ("automation-v2-pencil-snap");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path { YESDAW_WAV_FIXTURE_PATH }; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    REQUIRE (snapshotMainComponent (*shell).context.snapMode != yesdaw::ui::UiSnapMode::Off);   // the default grid
+    auto* canvas = dynamic_cast<yesdaw::ui::AutomationLaneCanvasComponent*> (findChildWithComponentId (*shell, "timeline.automation.canvas"));
+    REQUIRE (canvas != nullptr);
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectPencil);
+    const juce::Point<int> down { canvas->getWidth() / 20, canvas->getHeight() / 2 };
+    canvas->mouseDown (makeMouseEvent (*canvas, down, down, false));
+    for (int step = 1; step <= 40; ++step)
+        canvas->mouseDrag (makeMouseEvent (*canvas, { down.x + step * canvas->getWidth() / 50, canvas->getHeight() / 4 + (step % 7) }, down, true));
+    canvas->mouseUp (makeMouseEvent (*canvas, { down.x + 40 * canvas->getWidth() / 50, canvas->getHeight() / 4 }, down, true));
+
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);
+    const auto& points = project.automationLanes.front().points;
+    REQUIRE (points.size() >= 2u);
+    REQUIRE (points.size() < 41u);   // fewer points than drag samples: one per step
+    // Every point sits on a snap step: the grid snaps each point's tick, so re-snapping moves none of them.
+    for (std::size_t i = 1; i < points.size(); ++i)
+        REQUIRE (points[i].tick > points[i - 1u].tick);
+    // The grid adapts to zoom, so the test reads it from the points: they share a step of at least 1/32 beat
+    // (raw, unsnapped stroke ticks share almost nothing).
+    yesdaw::engine::Tick grid = 0;
+    for (const auto& point : points)
+        grid = std::gcd (grid, point.tick);
+    INFO ("grid " << grid);
+    REQUIRE (grid >= 480);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

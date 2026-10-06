@@ -62,6 +62,19 @@ public:
     // G4.6 / ADR-0052: a stacked lane names its target (top-left); the chooser lane's header names its own.
     juce::String laneLabel;
 
+    // G4.6 / ADR-0052: the arrangement's tool decides the gesture. Pointer: click adds, drag moves, double-click
+    // deletes. Pencil: a drag draws the swept span (Shift: a straight line from press to release). Eraser: a
+    // drag deletes the points it sweeps (a click on a point deletes it). Each stroke is one edit.
+    enum class Tool : std::uint8_t { Pointer, Pencil, Eraser };
+    struct StrokePoint
+    {
+        double seconds = 0.0;
+        double value = 0.0;
+    };
+    std::function<Tool()> toolProvider;
+    std::function<void (const std::vector<StrokePoint>&, bool)> onPencilStroke;   // points in drawing order, line
+    std::function<void (double, double)> onEraseSpan;                              // from, to seconds
+
     void paint (juce::Graphics& g) override
     {
         g.fillAll (yesdaw::ui::UiTheme::Color::controlInset());
@@ -112,6 +125,28 @@ public:
         }
         g.strokePath (line, juce::PathStrokeType (yesdaw::ui::UiTheme::Layout::automationCanvasLineWidth));
 
+        // G4.6: the stroke being drawn (Pencil) or the span being swept (Eraser).
+        if (stroke.size() > 1u && strokeTool == Tool::Pencil)
+        {
+            juce::Path preview;
+            preview.startNewSubPath (stroke.front().toFloat());
+            if (strokeLine)
+                preview.lineTo (stroke.back().toFloat());
+            else
+                for (std::size_t i = 1; i < stroke.size(); ++i)
+                    preview.lineTo (stroke[i].toFloat());
+            g.setColour (yesdaw::ui::UiTheme::Color::accentPurpleGlow());
+            g.strokePath (preview, juce::PathStrokeType (yesdaw::ui::UiTheme::Layout::automationCanvasLineWidth));
+        }
+        else if (stroke.size() > 1u && strokeTool == Tool::Eraser)
+        {
+            const int from = std::min (stroke.front().x, stroke.back().x);
+            const int to = std::max (stroke.front().x, stroke.back().x);
+            g.setColour (yesdaw::ui::UiTheme::Color::dangerRed().withAlpha (yesdaw::ui::UiTheme::Layout::automationCanvasEraseAlpha));
+            g.fillRect (juce::Rectangle<int> (from, 0, to - from, getHeight()));
+        }
+        g.setColour (yesdaw::ui::UiTheme::Color::accentPurple());
+
         for (const CanvasPoint& point : points)
         {
             const float radius = static_cast<float> (yesdaw::ui::UiTheme::Layout::automationCanvasHandleRadius);
@@ -125,6 +160,15 @@ public:
     void mouseDown (const juce::MouseEvent& event) override
     {
         dragOldSeconds.reset();
+        stroke.clear();
+        strokeTool = toolProvider ? toolProvider() : Tool::Pointer;
+        if (strokeTool == Tool::Pencil || strokeTool == Tool::Eraser)
+        {
+            stroke.push_back (event.getPosition());
+            strokeLine = event.mods.isShiftDown();
+            return;
+        }
+
         if (const std::optional<double> hit = handleSecondsAt (event.getPosition()))
         {
             // R16: Alt+click cycles the hit point's curve shape instead of starting a drag.
@@ -146,8 +190,25 @@ public:
             onAddPoint (secondsForLocalX (event.getPosition().x), valueForY (event.getPosition().y));
     }
 
+    void mouseDrag (const juce::MouseEvent& event) override
+    {
+        if (stroke.empty())
+            return;
+        if (event.getPosition().x != stroke.back().x)
+            stroke.push_back (event.getPosition());
+        else
+            stroke.back() = event.getPosition();
+        repaint();
+    }
+
     void mouseUp (const juce::MouseEvent& event) override
     {
+        if (! stroke.empty())
+        {
+            finishStroke (event);
+            return;
+        }
+
         if (! dragOldSeconds)
             return;
 
@@ -169,6 +230,50 @@ public:
     }
 
 private:
+    void finishStroke (const juce::MouseEvent& event)
+    {
+        std::vector<juce::Point<int>> swept;
+        swept.swap (stroke);
+        if (event.getPosition().x != swept.back().x)
+            swept.push_back (event.getPosition());
+        else
+            swept.back() = event.getPosition();
+        const bool line = strokeLine || event.mods.isShiftDown();
+        repaint();
+        if (! secondsForLocalX)
+            return;
+
+        if (strokeTool == Tool::Eraser)
+        {
+            if (swept.size() == 1u || ! event.mouseWasDraggedSinceMouseDown())
+            {
+                if (const std::optional<double> hit = handleSecondsAt (swept.front()); hit && onDeletePoint)
+                    onDeletePoint (*hit);   // a click on a point deletes it
+                return;
+            }
+            const int from = std::min (swept.front().x, swept.back().x);
+            const int to = std::max (swept.front().x, swept.back().x);
+            if (onEraseSpan)
+                onEraseSpan (secondsForLocalX (from), secondsForLocalX (to));
+            return;
+        }
+
+        if (! onPencilStroke)
+            return;
+        std::vector<StrokePoint> points;
+        if (line && swept.size() > 1u)
+        {
+            points.push_back ({ secondsForLocalX (swept.front().x), valueForY (swept.front().y) });
+            points.push_back ({ secondsForLocalX (swept.back().x), valueForY (swept.back().y) });
+        }
+        else
+        {
+            for (const juce::Point<int>& at : swept)
+                points.push_back ({ secondsForLocalX (at.x), valueForY (at.y) });
+        }
+        onPencilStroke (points, line);
+    }
+
     [[nodiscard]] float yForValue (double value) const
     {
         const float height = static_cast<float> (juce::jmax (1, getHeight()));
@@ -199,6 +304,9 @@ private:
     }
 
     std::optional<double> dragOldSeconds;
+    std::vector<juce::Point<int>> stroke;   // G4.6: a Pencil or Eraser stroke in progress
+    Tool strokeTool = Tool::Pointer;
+    bool strokeLine = false;
 };
 
 } // namespace yesdaw::ui
