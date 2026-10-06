@@ -207,6 +207,14 @@ Shot 'ss7-compressor-face'
 Click 'mixer.fx.editor.close'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'Close hides the compressor editor')
 
+# G4.2 cp6: drag the bus EQ below its Compressor with the mouse; one Ctrl+Z puts it back.
+Drag 'mixer.strip.3.insert.0' 'mixer.strip.3.insert.1'
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[3].inserts[0].kind)" -eq 'Compressor' -and "$($q.mixer.strips[3].inserts[1].kind)" -eq 'EQ' } -TimeoutMs 2000) ('dragging the EQ slot onto slot 2 reorders the chain (' + (Probe).mixer.strips[3].inserts[0].kind + ', ' + (Probe).mixer.strips[3].inserts[1].kind + ')'))
+[void](Assert ([int](Probe).mixer.insertCarry.landing -eq -1) 'the landing line is gone after the release')
+Focus
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[3].inserts[0].kind)" -eq 'EQ' -and "$($q.mixer.strips[3].inserts[1].kind)" -eq 'Compressor' } -TimeoutMs 2000) 'one Ctrl+Z restores the chain order')
+
 Step 9 'Track 1 sends to the bus (the empty send well''s click lists the buses)'
 Click 'mixer.strip.0.send.0'
 [void](WaitPopup)
