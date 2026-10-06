@@ -68,6 +68,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0048](0048-sampler-instrument.md) | The Sampler instrument: pads on the Track, samples as Project Assets, the engine's bytes through the G0.5 ownership law | Accepted |
 | [0049](0049-autonomous-delivery-and-usable-song-milestone.md) | Autonomous delivery toward a usable-song milestone | Accepted |
 | [0050](0050-fx-presets.md) | FX presets: per-user files of real values keyed by stable parameter names | Accepted |
+| [0051](0051-compressor-sidechain-source.md) | Compressor sidechain: one Track or Bus key, tapped pre-fader, stored per insert | Accepted |
 
 ## Decision status (the five research forks)
 

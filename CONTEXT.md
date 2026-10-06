@@ -128,6 +128,12 @@ every audio Insert; a disabled one is not in the path. Track-only: a Bus or the 
 path and refuses it (`MidiFxNeedsTrack`).
 _Avoid_: MIDI plugin, MIDI insert (say MIDI FX), "effect" for the instrument itself
 
+**Sidechain key**:
+The one Track or Bus whose pre-fader signal (after its inserts) a Compressor Insert listens to instead of
+its own audio (ADR-0051). Never audible; follows its source's mute and solo (ADR-0014); one per
+Compressor; a choice that would loop the routing is refused.
+_Avoid_: key input, trigger (say sidechain key), SC (the strip badge's label only)
+
 **FX preset**:
 A saved, named, complete setting of one built-in Insert kind, kept per user (not in the Project) as a
 `.yesfx` file of real values keyed by stable parameter names (ADR-0050). Loading one onto an Insert of the
