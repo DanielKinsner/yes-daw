@@ -1,0 +1,41 @@
+{
+  "checkpoint": "Repair (ADR-0057): a shell chord queued behind a busy UI keeps the modifiers held when its key went down",
+  "status": "Headless gate red-then-green; real-app SS-2 step 10 FAILs on the code without the fix and PASSes with it; quiet drive batch PASS 7/7 (420 assertions) on the fix; ctest 414/414; Clang clean. Exact-code CI is recorded in STATUS.",
+  "date": "2026-10-06",
+  "host": "DESKTOP-7LC339R (Windows 11 Pro 10.0.26200), shared desktop, owner-authorized for this run",
+  "finding": "2026-10-06 drive batch g46-final: Ctrl+Z sent right after a mixer knob drag (an edit that rebuilds the engine on the message thread) dispatched timeline.zoom.selection (a bare Z).",
+  "mechanism": {
+    "source": "JUCE 8.0.4 juce_gui_basics/native/juce_Windowing_windows.cpp",
+    "isKeyDown": "line 1948: GetAsyncKeyState (the physical state now)",
+    "updateKeyModifiers": "lines 1950-1964, called first in doKeyUp (3150), doKeyDown (3178) and doKeyChar (3270)",
+    "printableKeys": "TranslateMessage (juce_Messaging_windows.cpp 150) posts WM_CHAR from the synchronised state (0x1a for Ctrl+Z); doKeyChar builds the KeyPress with the physical modifiers",
+    "altChords": "WM_SYSKEYDOWN -> doKeyDown builds the KeyPress itself (no WM_SYSCHAR case in the window procedure)",
+    "conclusion": "a key read after its modifier was released (or before one was pressed) is dispatched with the wrong chord"
+  },
+  "fix": {
+    "files": ["src/ui/KeyTimeModifiers.h", "src/ui/KeyTimeModifiers.cpp", "src/ui/MainComponentShell.h", "src/ui/MainComponentCommands.cpp"],
+    "how": "a comctl32 subclass on the shell's native window publishes GetKeyState's Shift/Ctrl/Alt for each key message's dispatch; MainComponent::keyPressed rebuilds the KeyPress from them before any route; no JUCE patch"
+  },
+  "headlessGate": {
+    "tag": "[key-time-modifiers] in YesDawUiInputCheck (tests/key_time_modifier_tests.cpp)",
+    "redWithRouterLineReverted": "\"timeline.zoom.selection\" == \"edit.undo\" (both test cases)",
+    "green": "All tests passed (86 assertions in 2 test cases); 20/20 repeats",
+    "flakeFoundAndFixed": "the recreated-window case failed 7/8 before a settle pump: the new window's creation messages re-sync the thread's key state to the physical keyboard; the trace showed the bracket re-attached every time"
+  },
+  "realAppDrive": {
+    "primitive": "KeyWhileBusy (tools/session-drive.ps1): suspends the app's UI thread, sends the chord, releases every key (or presses the modifier after the key), always resumes",
+    "step": "tools/session-scripts/ss2-mouse-then-keys.ps1 step 10",
+    "beforeExe": "the rebased code with the one router line reverted",
+    "before": "ss2 FAIL 3 failed / 37 passed - exactly step 10: Ctrl+Z -> timeline.zoom.selection; Ctrl+Shift+Z -> timeline.zoom.selection; bare Z then Ctrl -> edit.undo",
+    "beforeAtBranchPoint": "dd439e8 exe: Ctrl+Z and Ctrl+Shift+Z -> timeline.zoom.selection (the then-vacuous third check was made discriminating in the next commit)",
+    "after": "ss2 PASS 40/40"
+  },
+  "quietBatchOnFix": {
+    "ss1": "PASS 45", "ss2": "PASS 40", "ss3": "PASS 55", "ss4": "PASS 19", "ss5": "PASS 71", "ss6": "PASS 49", "ss7": "PASS 141",
+    "total": "420 assertions, 7/7",
+    "launchesMs": [1126, 1139, 1149, 1151, 1154, 1395, 1427],
+    "notQuietRunsDiscarded": "three ss3 runs overlapped another session's ninja/cl build (started 14:04:55) and a foreground Acrobat window: B6 launch 6311 / 19095 / 8453 ms and one focus refusal, on both exes; the quiet re-run passed 55/55 with launches at 1.1-1.4 s"
+  },
+  "ctest": "414/414 (quiet). One earlier -j 6 run overlapped a clang-tidy pass and failed YesDawHostIsolationCheck and YesDawTimelineGpuCheck (neither links the shell); both passed alone and in the quiet full run.",
+  "clang": "tools/clang-warnings.ps1: 11 translation units clean"
+}

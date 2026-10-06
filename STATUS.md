@@ -8,6 +8,33 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (afternoon) — repair: a shortcut pressed while the app is busy means what you pressed (ADR-0057)
+
+**Now:** done, outside the G5 line (Dan asked for the product fix of the drive finding below). **Next:** unchanged —
+G5.2 cp2 per the entry below. [Evidence](docs/evidence/2026-10-06-key-time-modifiers.json).
+
+**What a user gets:** a quick Ctrl+Z, Ctrl+S or Alt+arrow tapped while the app is busy (an edit that rebuilds the
+engine, a project load) does what was pressed. Before, Windows' JUCE read Ctrl/Shift/Alt when the app got round to
+the key, so the tap could arrive as a bare Z (zoom) — or a bare Z followed by Ctrl became an accidental Undo.
+
+**How:** the shell's window publishes the modifiers Windows recorded with each key (its message-synchronised state)
+while that key is handled, and the Command router builds the chord from them. No JUCE patch. JUCE text fields,
+popup menus and Ctrl+click keep JUCE's own reading (out of scope, written in the ADR).
+
+**Gates:** `[key-time-modifiers]` (the real shell on a hidden native window; the thread's key state says "Ctrl
+held", the physical keyboard says "up"; a real key through JUCE's own message loop) — red with the router line
+reverted (`"timeline.zoom.selection" == "edit.undo"`), green with it, 20/20 repeats. Real app: the drive's new
+`KeyWhileBusy` holds the app's UI thread still while the chord goes in, so the whole chord waits in the queue every
+time; SS-2 step 10 fails on the code without the fix (Ctrl+Z -> zoom, Ctrl+Shift+Z -> zoom, Z then Ctrl -> Undo)
+and passes with it. Quiet batch on the fix: **ss1–ss7 PASS, 420 assertions**. ctest 414/414, Clang clean. The
+drive's `Key` keeps its idle wait and modifier holds.
+
+**Lessons:** a timing drive needs a quiet machine — another session's build pushed launches from 1.3 s to 6–19 s
+(SS-3's B6 FAIL), and a foreground app refused the drive focus; both re-ran clean. Recreating a window resets the
+thread's key state to the physical keyboard, so a test that sets that state must let the window settle first.
+
+**CI:** pending at writing; the code commits are pushed one at a time.
+
 ## 2026-10-06 (afternoon) — G5.2 cp1: the media browser (ADR-0056)
 
 **Now:** **G5.2 checkpoint 1** is in, headless-certified. **Next:** G5.2 cp2 — the **audition voice** (hear a file
