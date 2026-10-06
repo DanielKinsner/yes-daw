@@ -18,6 +18,8 @@
 # EQ editor is a Tab panel of its own (band 1 gain by keys; Enter on Close returns the target); the keymap
 # search field takes typed text (its Space types, never plays) and Tab leaves it; Esc ends navigation and
 # Enter is Return to zero again. Save and close is Step 12.
+# G4.2 cp2 (2026-10-05) — Step 8 also opens the bus Compressor's face: its gain-reduction meter is laid out
+# and reads the running node (zero in this silent song).
 #
 # Deviations from the plan text (logged in STATUS.md, the G4.1 cp1 story): the recording device on the
 # drive machine may have no inputs — the input-slot and R-cell steps then assert the honest refusal
@@ -192,6 +194,16 @@ Resize 1920 1080
 
 Click 'mixer.fx.editor.close'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'Close hides the editor')
+
+# G4.2 cp2: the Compressor's face carries the gain-reduction meter (the song is silent here, so its
+# honest reading is zero; the headless gate drives real reduction through the engine).
+Click 'mixer.strip.3.insert.1' -Double
+[void](Assert (WaitProbe { param($q) [bool]$q.fxEditor.visible -and "$($q.fxEditor.kind)" -eq 'Compressor' } -TimeoutMs 2000) ('the double-click opens the Compressor''s editor (' + (Probe).fxEditor.kind + ')'))
+[void](Assert ([bool](Probe).fxEditor.grVisible -and $null -ne (Probe).layout.'mixer.fx.editor.gr') 'the compressor face lays out its gain-reduction meter')
+[void](Assert ([bool](Probe).fxEditor.grReading -and [double](Probe).fxEditor.gainReductionDb -eq 0.0) ('the meter reads the running node: no reduction in silence (' + (Probe).fxEditor.gainReductionDb + ' dB)'))
+Shot 'ss7-compressor-face'
+Click 'mixer.fx.editor.close'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'Close hides the compressor editor')
 
 Step 9 'Track 1 sends to the bus (the empty send well''s click lists the buses)'
 Click 'mixer.strip.0.send.0'
