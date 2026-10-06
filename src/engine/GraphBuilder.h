@@ -372,6 +372,15 @@ private:
         return channels;
     }
 
+    static CompiledInstrument detectInstrument (Node& node) noexcept
+    {
+        if (dynamic_cast<SimpleSynthNode*> (&node) != nullptr)
+            return CompiledInstrument::SimpleSynth;
+        if (dynamic_cast<SamplerNode*> (&node) != nullptr)
+            return CompiledInstrument::Sampler;
+        return CompiledInstrument::None;
+    }
+
     static CompiledNodeKind detectKind (Node& node) noexcept
     {
         if (dynamic_cast<IdentityDcNode*> (&node) != nullptr)
@@ -716,6 +725,7 @@ private:
             cn.muteBit     = static_cast<std::uint32_t> (compiledIdx);   // every compiled node is mute-capable (ADR-0016)
             cn.kind        = item.kind;
             cn.aliasOk     = aliasOk;
+            cn.instrument  = item.node != nullptr ? detectInstrument (*item.node) : CompiledInstrument::None;   // G4.6
 
             if (item.props.producesEvents)
             {

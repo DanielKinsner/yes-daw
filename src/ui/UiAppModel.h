@@ -8224,8 +8224,8 @@ public:
                     return false;
                 return playback_->postLiveSetFxParam (node, parameter, value);
             }
-            case engine::AutomationTargetRole::InstrumentParam:
-                break;
+            case engine::AutomationTargetRole::InstrumentParam:   // G4.6: the Track's Instrument
+                return playback_->postLiveSetFxParam (node, parameter, value);
         }
         return false;
     }

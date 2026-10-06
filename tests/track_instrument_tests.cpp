@@ -770,3 +770,62 @@ TEST_CASE ("live note lane: a posted note sounds through the Track's Instrument 
         REQUIRE (engine->playheadFrame() == 256);
     }
 }
+
+// G4.6 / ADR-0052: a ride on an instrument parameter is heard while it lasts — its lane suspended on the
+// running graph, the ride's value set on the Track's Instrument (the node's own event law). Unsuspended, the
+// lane owns the parameter and the live set is refused.
+TEST_CASE ("a ride on an instrument parameter is heard while its lane is suspended", "[engine][instrument][automation][automation-v2]")
+{
+    using yesdaw::engine::AutomationBreakpoint;
+    using yesdaw::engine::AutomationCurveType;
+    using yesdaw::engine::AutomationLaneData;
+    using yesdaw::engine::AutomationTargetRole;
+
+    Project automated = makeOneNoteProject();
+    AutomationLaneData lane;
+    lane.id = idFromLowByte (90);
+    lane.ownerEntity = automated.tracks[0].id;
+    lane.role = AutomationTargetRole::InstrumentParam;
+    lane.paramId = SimpleSynthNode::kCutoffParamId;
+    lane.points = { AutomationBreakpoint { 0, 0.3, AutomationCurveType::Hold } };
+    automated.automationLanes = { lane };
+    const yesdaw::engine::NodeId instrument =
+        yesdaw::engine::projectMixerNodeIdForTrack (automated.tracks[0].id, yesdaw::engine::ProjectMixerNodeRole::Instrument);
+
+    const auto render = [&automated, instrument] (bool ride) {
+        OfflineRenderOptions options;
+        options.maxBlockSize = 64;
+        auto built = yesdaw::engine::buildProjectGraph (automated, std::span<const DecodedAssetAudio> {}, options);
+        REQUIRE (built.ok());
+        if (ride)
+        {
+            REQUIRE_FALSE (built.graph->applySetFxParam (instrument, SimpleSynthNode::kCutoffParamId, 1.0));   // the lane owns it
+            REQUIRE (built.graph->applySetAutomationSuspended (instrument, SimpleSynthNode::kCutoffParamId, true));
+            REQUIRE (built.graph->applySetFxParam (instrument, SimpleSynthNode::kCutoffParamId, 1.0));   // the ride is heard
+        }
+        const std::uint16_t channels = built.channels;
+        std::vector<float> out;
+        std::vector<float> storage (static_cast<std::size_t> (channels) * 64u, 0.0f);
+        std::vector<float*> outputs (channels, nullptr);
+        for (std::uint16_t c = 0; c < channels; ++c)
+            outputs[c] = storage.data() + static_cast<std::size_t> (c) * 64u;
+        for (std::uint64_t offset = 0; offset < built.frames; offset += 64u)
+        {
+            const int blockFrames = static_cast<int> (std::min<std::uint64_t> (built.frames - offset, 64u));
+            Transport transport;
+            transport.projectSampleRate = built.sampleRate;
+            transport.isPlaying = true;
+            transport.hasTimelineFrame = true;
+            transport.timelineFrame = static_cast<std::int64_t> (offset);
+            EventStream events;
+            built.graph->process (outputs.data(), channels, blockFrames, events, transport);
+            for (int i = 0; i < blockFrames; ++i)
+                out.push_back (outputs[0][i]);
+        }
+        return out;
+    };
+    const std::vector<float> lanePlays = render (false);
+    const std::vector<float> rideHeard = render (true);
+    REQUIRE (rideHeard != lanePlays);
+    REQUIRE (rmsOf (rideHeard, 512, 1536) > rmsOf (lanePlays, 512, 1536));   // the cutoff opened: brighter, louder
+}

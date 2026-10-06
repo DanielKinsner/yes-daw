@@ -149,7 +149,6 @@ struct ProjectMixerProjectionError
 // G4.6 / ADR-0052: the compiled target a ride on (owner, role, paramId) drives — the node and parameter
 // the projection below binds that role's lane to (its automation target table; the [automation-v2]
 // projection test cross-checks every role). A ride suspends that lane and posts its live value there.
-// False for an instrument parameter: its node takes no live set (the ride still records).
 [[nodiscard]] inline bool projectAutomationRideTarget (EntityId owner,
                                                        AutomationTargetRole role,
                                                        std::uint32_t paramId,
@@ -182,8 +181,10 @@ struct ProjectMixerProjectionError
             node = projectMixerNodeIdForEntity (owner, ProjectMixerNodeRole::Fx);
             parameter = static_cast<ParameterId> (paramId);
             return true;
-        case AutomationTargetRole::InstrumentParam:
-            break;
+        case AutomationTargetRole::InstrumentParam:   // the owner is the Track; its Instrument takes the set
+            node = projectMixerNodeIdForTrack (owner, ProjectMixerNodeRole::Instrument);
+            parameter = static_cast<ParameterId> (paramId);
+            return true;
     }
     node = 0;
     parameter = 0;

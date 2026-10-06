@@ -1689,10 +1689,12 @@ TEST_CASE ("A ride's live target is the node and parameter its lane compiles to,
         REQUIRE (parameter == projection.automationLanes[i].parameterId);
     }
 
+    // An instrument parameter's ride reaches the Track's Instrument (track_instrument_tests renders it).
     NodeId node = 7;
     yesdaw::engine::ParameterId parameter = 7;
-    REQUIRE_FALSE (yesdaw::engine::projectAutomationRideTarget (track.id, AutomationTargetRole::InstrumentParam, 0, node, parameter));
-    REQUIRE (node == 0u);
+    REQUIRE (yesdaw::engine::projectAutomationRideTarget (track.id, AutomationTargetRole::InstrumentParam, 3, node, parameter));
+    REQUIRE (node == projectMixerNodeIdForTrack (track.id, ProjectMixerNodeRole::Instrument));
+    REQUIRE (parameter == 3u);
 }
 
 // ADR-0039 / ADR-0052: the commit-time budget check — every stored lane compiled against the tempo map, each

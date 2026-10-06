@@ -25,6 +25,8 @@
 #include "engine/Automation.h"
 #include "engine/Node.h"
 #include "engine/nodes/CompressorNode.h"
+#include "engine/nodes/SamplerNode.h"   // G4.6: a ride's live instrument set
+#include "engine/nodes/SimpleSynthNode.h"
 #include "engine/nodes/DelayNode.h"
 #include "engine/nodes/EqNode.h"
 #include "engine/nodes/FaderNode.h"
@@ -106,6 +108,15 @@ struct InputSlot
     std::uint16_t producerNodeIdx = 0;
 };
 
+// G4.6 / ADR-0052: which instrument a compiled Source node is (decided once at build, on the control thread),
+// so a ride's live parameter set reaches it on the audio thread without a dynamic_cast.
+enum class CompiledInstrument : std::uint8_t
+{
+    None,
+    SimpleSynth,
+    Sampler
+};
+
 struct CompiledNode
 {
     Node*            node          = nullptr;
@@ -124,6 +135,7 @@ struct CompiledNode
     std::uint32_t    muteBit       = 0;   // == this node's compiled index; indexes the mute-mask words (ADR-0016)
     CompiledNodeKind kind          = CompiledNodeKind::IdentityDc;
     bool             aliasOk       = false;
+    CompiledInstrument instrument  = CompiledInstrument::None;   // G4.6: a ride's live set on an instrument
 };
 
 static_assert (sizeof (CompiledNode) <= 64, "CompiledNode must stay cache-small for the audio thread");
@@ -735,6 +747,18 @@ public:
                 static_cast<MidiEffectNode*> (node->node)->setNormalizedParameter (parameterId, normalizedValue);
                 return true;
             default:
+                // G4.6 / ADR-0052: an instrument's parameter — a ride on it while its lane is suspended. The
+                // node's own setter maps the value exactly as an automation event does.
+                if (node->instrument == CompiledInstrument::SimpleSynth)
+                {
+                    static_cast<SimpleSynthNode*> (node->node)->setNormalizedParameter (parameterId, normalizedValue);
+                    return true;
+                }
+                if (node->instrument == CompiledInstrument::Sampler)
+                {
+                    static_cast<SamplerNode*> (node->node)->setNormalizedParameter (parameterId, normalizedValue);
+                    return true;
+                }
                 return false;
         }
     }
