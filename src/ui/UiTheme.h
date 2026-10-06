@@ -860,6 +860,9 @@ struct UiTheme
         // G4.2 cp3: the delay's echo plot above its parameter page (the EQ editor's width).
         static constexpr int delayTapsHeight = 130;
         static constexpr int delayEditorMaxHeight = 450;
+        // G4.2 cp4: the reverb's decay plot, the same frame as the delay's.
+        static constexpr int reverbDecayHeight = 130;
+        static constexpr int reverbEditorMaxHeight = 450;
         static constexpr int grMeterValueInset = 4;
         // G2.18: the undo history window (Alt+Z) — a narrower centred panel, the same law.
         static constexpr int undoHistoryMaxWidth = 420;

@@ -6,6 +6,7 @@
 #include "ui/DesktopAudioStartup.h"
 #include "ui/EqResponseComponent.h"
 #include "ui/DelayTapsComponent.h"
+#include "ui/ReverbDecayComponent.h"
 #include "ui/FxParameterNames.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
@@ -23079,6 +23080,91 @@ TEST_CASE ("G4.2 cp3 the delay face draws the echoes the node produces", "[ui][i
     REQUIRE (face->windowMs() == Catch::Approx (yesdaw::ui::DelayTapsComponent::maxWindowMs()));
     REQUIRE (face->simulatedFrames() <= static_cast<std::size_t> (yesdaw::ui::DelayTapsComponent::maxWindowMs() * 48.0) + 2u);
     REQUIRE (tapsOn (*face, 0).size() >= 7u);
+
+    for (const auto size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+    {
+        shell->setSize (size.x, size.y);
+        REQUIRE (shell->getLocalBounds().contains (yesdaw::ui::mainComponentFxEditor (*shell).bounds));
+        REQUIRE (firstRow->getY() >= face->getBottom());
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G4.2 cp4 — the reverb face: the tail comes from a private copy of the real ReverbNode, so its measured
+// onset and 60 dB fall are checked against Pre-delay and Decay — the face proves the DSP keeps its word.
+namespace {
+
+double reverbNormalized (yesdaw::engine::ParameterId id, double real)
+{
+    return yesdaw::engine::unmapToNormalized (yesdaw::engine::fxParamSpecForKind (yesdaw::engine::FxKind::Reverb, id), real);
+}
+
+} // namespace
+
+TEST_CASE ("G4.2 cp4 the reverb face draws the tail the node rings", "[ui][input][shell][mixer][fx-editors]")
+{
+    using Reverb = yesdaw::engine::ReverbNode;
+    const auto bundlePath = makeTempBundlePath ("fx-editors-reverb");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Reverb);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    auto* face = dynamic_cast<yesdaw::ui::ReverbDecayComponent*> (findChildWithComponentId (*shell, "mixer.fx.editor.reverb.decay"));
+    REQUIRE (face != nullptr);
+    REQUIRE (face->isVisible());
+    REQUIRE (face->getHeight() == yesdaw::ui::UiTheme::Layout::reverbDecayHeight);
+    auto* firstRow = findChildWithComponentId (*shell, "mixer.fx.param.0");
+    REQUIRE (firstRow != nullptr);
+    REQUIRE (firstRow->getY() >= face->getBottom());
+
+    // The factory reverb (decay 1 s, no pre-delay): the tail starts at once and falls 60 dB in about the
+    // configured decay — measured from the node, so a DSP that drifted from its RT60 would fail here.
+    REQUIRE (face->onsetMs().has_value());
+    REQUIRE (*face->onsetMs() <= 20.0);
+    REQUIRE (face->fall60Ms().has_value());
+    INFO ("factory fall-60 " << *face->fall60Ms() << " ms");
+    REQUIRE (*face->fall60Ms() == Catch::Approx (1000.0).epsilon (0.25));
+
+    fxParamSliderLabelled (*shell, "Decay").setValue (reverbNormalized (Reverb::kRt60ParamId, 0.5), juce::sendNotificationSync);
+    REQUIRE (face->fall60Ms().has_value());
+    INFO ("0.5 s fall-60 " << *face->fall60Ms() << " ms");
+    REQUIRE (*face->fall60Ms() == Catch::Approx (500.0).epsilon (0.25));
+
+    fxParamSliderLabelled (*shell, "Pre-delay").setValue (reverbNormalized (Reverb::kPreDelayParamId, 100.0), juce::sendNotificationSync);
+    REQUIRE (face->onsetMs().has_value());
+    INFO ("pre-delay 100 ms onset " << *face->onsetMs() << " ms");
+    REQUIRE (*face->onsetMs() >= 90.0);
+    REQUIRE (*face->onsetMs() <= 130.0);
+
+    // Damping darkens the tail: with the highs gone sooner the whole falls 60 dB sooner.
+    const double undamped = *face->fall60Ms();
+    fxParamSliderLabelled (*shell, "Damping").setValue (reverbNormalized (Reverb::kDampingParamId, 500.0), juce::sendNotificationSync);
+    REQUIRE (face->fall60Ms().has_value());
+    INFO ("damped fall-60 " << *face->fall60Ms() << " ms vs " << undamped);
+    REQUIRE (*face->fall60Ms() < undamped);
+
+    // The face draws the wet tail: Mix scales what the listener hears, not the tail's shape.
+    const std::vector<float> beforeMix = face->envelopeDb();
+    fxParamSliderLabelled (*shell, "Mix").setValue (reverbNormalized (Reverb::kMixParamId, 0.25), juce::sendNotificationSync);
+    REQUIRE (face->envelopeDb() == beforeMix);
+
+    // A long decay: the work an edit pays is bounded by frames, and a fall past the window is not invented.
+    fxParamSliderLabelled (*shell, "Decay").setValue (reverbNormalized (Reverb::kRt60ParamId, 8.0), juce::sendNotificationSync);
+    REQUIRE (face->windowMs() == Catch::Approx (yesdaw::ui::ReverbDecayComponent::maxWindowMs()));
+    REQUIRE (face->simulatedFrames() <= static_cast<std::size_t> (yesdaw::ui::ReverbDecayComponent::maxWindowMs() * 48.0) + 2u);
+    REQUIRE_FALSE (face->fall60Ms().has_value());
+
+    auto* bypass = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.editor.bypass"));
+    REQUIRE (bypass != nullptr);
+    clickButton (*bypass);
+    REQUIRE (face->isBypassedFace());
+    clickButton (*bypass);
+    REQUIRE_FALSE (face->isBypassedFace());
 
     for (const auto size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
     {

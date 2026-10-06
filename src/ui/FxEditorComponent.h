@@ -10,6 +10,7 @@
 #include "ui/EqResponseComponent.h"
 #include "ui/DelayTapsComponent.h"
 #include "ui/GainReductionMeterComponent.h"
+#include "ui/ReverbDecayComponent.h"
 #include "ui/ContextMenus.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
@@ -55,6 +56,7 @@ public:
         addChildComponent (eqResponse);
         addChildComponent (gainReduction);   // G4.2 cp2: the compressor / limiter face
         addChildComponent (delayTaps);       // G4.2 cp3: the delay face
+        addChildComponent (reverbDecay);     // G4.2 cp4: the reverb face
         setName ("FX editor");
         setComponentID ("mixer.fx.editor");
         setTooltip ("The insert's parameters: drag a row (rides Touch / Latch automation); Escape closes");
@@ -94,18 +96,22 @@ public:
         const bool showEq = insert.kind == engine::FxKind::Eq;
         const bool showGr = insert.kind == engine::FxKind::Compressor || insert.kind == engine::FxKind::Limiter;
         const bool showDelay = insert.kind == engine::FxKind::Delay;
+        const bool showReverb = insert.kind == engine::FxKind::Reverb;
         if (showEq) eqResponse.setInsert (insert, sampleRate);
         if (showDelay) delayTaps.setInsert (insert, sampleRate);
+        if (showReverb) reverbDecay.setInsert (insert, sampleRate);
         if (insert.id != shownInsertId)
         {
             shownInsertId = insert.id;
             gainReduction.reset();   // another insert: nothing measured for it yet
         }
-        if (eqResponse.isVisible() != showEq || gainReduction.isVisible() != showGr || delayTaps.isVisible() != showDelay)
+        if (eqResponse.isVisible() != showEq || gainReduction.isVisible() != showGr || delayTaps.isVisible() != showDelay
+            || reverbDecay.isVisible() != showReverb)
         {
             eqResponse.setVisible (showEq);
             gainReduction.setVisible (showGr);
             delayTaps.setVisible (showDelay);
+            reverbDecay.setVisible (showReverb);
             resized();
         }
     }
@@ -117,18 +123,21 @@ public:
     [[nodiscard]] bool showsGainReduction() const noexcept { return gainReduction.isVisible(); }
     [[nodiscard]] bool showsDelayTaps() const noexcept { return delayTaps.isVisible(); }
     [[nodiscard]] const DelayTapsComponent& delayTapsFace() const noexcept { return delayTaps; }
+    [[nodiscard]] bool showsReverbDecay() const noexcept { return reverbDecay.isVisible(); }
     [[nodiscard]] const GainReductionMeterComponent& gainReductionMeter() const noexcept { return gainReduction; }
     [[nodiscard]] bool showsEqResponse() const noexcept { return eqResponse.isVisible(); }
     [[nodiscard]] double eqResponseDb (double hz) const noexcept { return eqResponse.responseDb (hz); }
     [[nodiscard]] int preferredWidth() const noexcept
     {
-        return showsEqResponse() || showsDelayTaps() ? UiTheme::Layout::eqEditorMaxWidth : UiTheme::Layout::fxEditorMaxWidth;
+        return showsEqResponse() || showsDelayTaps() || showsReverbDecay() ? UiTheme::Layout::eqEditorMaxWidth
+                                                                           : UiTheme::Layout::fxEditorMaxWidth;
     }
     [[nodiscard]] int preferredHeight() const noexcept
     {
         return showsEqResponse()     ? UiTheme::Layout::eqEditorMaxHeight
              : showsGainReduction() ? UiTheme::Layout::grEditorMaxHeight
              : showsDelayTaps()     ? UiTheme::Layout::delayEditorMaxHeight
+             : showsReverbDecay()   ? UiTheme::Layout::reverbEditorMaxHeight
                                     : UiTheme::Layout::fxEditorMaxHeight;
     }
 
@@ -140,6 +149,7 @@ public:
         if (showsEqResponse()) area.removeFromTop (L::eqResponseHeight + L::keymapEditorGap);
         if (showsGainReduction()) area.removeFromTop (L::grMeterHeight + L::keymapEditorGap);
         if (showsDelayTaps()) area.removeFromTop (L::delayTapsHeight + L::keymapEditorGap);
+        if (showsReverbDecay()) area.removeFromTop (L::reverbDecayHeight + L::keymapEditorGap);
         return area;
     }
 
@@ -169,6 +179,7 @@ public:
         eqResponse.setBounds (showsEqResponse() ? content.removeFromTop (L::eqResponseHeight) : juce::Rectangle<int> {});
         gainReduction.setBounds (showsGainReduction() ? content.removeFromTop (L::grMeterHeight) : juce::Rectangle<int> {});
         delayTaps.setBounds (showsDelayTaps() ? content.removeFromTop (L::delayTapsHeight) : juce::Rectangle<int> {});
+        reverbDecay.setBounds (showsReverbDecay() ? content.removeFromTop (L::reverbDecayHeight) : juce::Rectangle<int> {});
     }
 
 private:
@@ -183,6 +194,7 @@ private:
     EqResponseComponent eqResponse;
     GainReductionMeterComponent gainReduction;
     DelayTapsComponent delayTaps;
+    ReverbDecayComponent reverbDecay;
     engine::EntityId shownInsertId {};
     juce::String title;
     juce::TextButton bypassButton, closeButton;
