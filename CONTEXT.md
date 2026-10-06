@@ -311,7 +311,8 @@ _Avoid_: overdub (unless the mode actually merges into an existing Take)
 
 **Asset**:
 The underlying audio a clip points into. Copied into the project by default. Immutable and
-content-hashed; never edited in place.
+content-hashed; never edited in place. Imported from WAV, AIFF, FLAC, Ogg Vorbis or MP3 (ADR-0054), it keeps
+the file's original bytes whatever the format; its frame count is the pinned decoder's length for those bytes.
 _Avoid_: file, sample (when you mean the imported audio)
 
 **Recorded audio asset**:
