@@ -6355,6 +6355,54 @@ TEST_CASE ("ADR-0054 a multi-format drop lands on consecutive tracks as one undo
     std::filesystem::remove_all (scratch, ec);
 }
 
+// ADR-0054: a drop below the last track starts a new track there (the lane under the pointer is the track count,
+// not the last lane), and a MIDI file after the audio gets a track of its own rather than stacking on the last one.
+TEST_CASE ("ADR-0054 a drop below the tracks lands on new tracks; a MIDI file past the audio gets its own track",
+           "[ui][input][shell][timeline][file-drop][import-formats]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("drop-below");
+    const std::filesystem::path wavPath { YESDAW_WAV_FIXTURE_PATH };
+    const std::filesystem::path midiPath = bundlePath.parent_path() / (bundlePath.stem().string() + "-one-note.mid");
+    {
+        namespace smf = yesdaw::interchange;
+        smf::SmfFile file;
+        file.ticksPerQuarter = 480;
+        smf::SmfTrack head;
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::Tempo; e.tempoMicrosPerQuarter = 500000; head.events.push_back (e); }
+        file.tracks.push_back (head);
+        smf::SmfTrack keys;
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::NoteOn; e.tick = 0; e.data1 = 60; e.data2 = 100; keys.events.push_back (e); }
+        { smf::SmfEvent e; e.kind = smf::SmfEventKind::NoteOff; e.tick = 480; e.data1 = 60; keys.events.push_back (e); }
+        file.tracks.push_back (keys);
+        const std::vector<std::uint8_t> bytes = smf::writeSmf (file);
+        std::ofstream out (midiPath, std::ios::binary | std::ios::trunc);
+        REQUIRE (out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size())));
+    }
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    auto* dropTarget = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (dropTarget != nullptr);
+    const yesdaw::ui::TimelineCanvasGeometry geometry = timelineGeometryForProject (timeline, readProjectSnapshot (bundlePath));
+    const int dropX = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 4;
+    const int belowY = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) * 3 / 2;   // under the only lane
+    REQUIRE (belowY < geometry.clipArea.getBottom());
+    dropTarget->filesDropped (juce::StringArray { juce::String (wavPath.string()), juce::String (midiPath.string()) }, dropX, belowY);
+
+    const yesdaw::engine::Project dropped = readProjectSnapshot (bundlePath);
+    INFO ("status " << juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["status"]["text"].toString());
+    REQUIRE (dropped.tracks.size() == 3u);
+    REQUIRE (dropped.clips.size() == 1u);
+    REQUIRE (dropped.clips[0].trackId == dropped.tracks[1].id);       // the audio: a new track under the old one
+    REQUIRE (dropped.midiClips.size() == 1u);
+    REQUIRE (dropped.midiClips[0].trackId == dropped.tracks[2].id);   // the MIDI: its own new track after it
+}
+
 // M6 — the fader scale tells the truth. The sliders travel 0..2 in linear gain, but the painted
 // thumb multiplied the gain by the rail height, so unity painted at the TOP of the rail while the
 // live slider put it at half travel — the two disagreed by half a fader, and the rail's ticks were

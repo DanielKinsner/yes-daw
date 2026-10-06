@@ -10,6 +10,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -358,4 +359,44 @@ TEST_CASE ("ADR-0054 a bundle with MP3 and FLAC assets reopens: each decoded by 
         REQUIRE (asset.frames == row->frames);
         REQUIRE (asset.channels == row->channels);
     }
+}
+
+// A drop of many small files: every file gets its own Asset. The ids came from the project, the seed and the
+// millisecond — and the project does not change between the files of one drop, so two files copied within the same
+// millisecond got the same id and the second was refused (seen on CI's macOS runner, 2026-10-06).
+TEST_CASE ("ADR-0054 every file in one drop gets its own Asset, however fast the copies are", "[import-formats]")
+{
+    // The law itself, deterministically: back-to-back ids against an unchanged project all differ.
+    {
+        yesdaw::ui::UiAppModel idModel;
+        std::vector<yesdaw::engine::EntityId> ids;
+        for (int i = 0; i < 1'000; ++i)
+            ids.push_back (idModel.allocateSessionEntityIdForTest (0xA1u));
+        std::sort (ids.begin(), ids.end(), [] (const auto& a, const auto& b) { return a.bytes < b.bytes; });
+        REQUIRE (std::adjacent_find (ids.begin(), ids.end()) == ids.end());
+    }
+
+    const std::filesystem::path directory = scratchDirectory ("many-files");
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (directory / "many.yesdaw").ok());
+    constexpr int kFiles = 24;
+    std::vector<yesdaw::ui::UiAudioImportItem> items;
+    for (int i = 0; i < kFiles; ++i)
+    {
+        const std::vector<float> samples (32, 0.01f * static_cast<float> (i + 1));   // distinct bytes per file
+        const std::filesystem::path path = directory / ("tiny-" + std::to_string (i) + ".wav");
+        REQUIRE (yesdaw::io::writeFloat32WavFile (path, yesdaw::engine::SampleRate { 48'000.0 }, 1, samples.size(), samples).ok());
+        yesdaw::ui::shell::UiAudioDecodeResult decoded = yesdaw::ui::shell::decodeProjectAudio (path);
+        REQUIRE (decoded.decoded.has_value());
+        items.push_back ({ path, std::move (*decoded.decoded) });
+    }
+    const yesdaw::ui::UiAudioDropResult dropped = model.importAudioFilesAt (std::move (items), 0, 0);
+    INFO ((dropped.refusals.empty() ? std::string() : dropped.refusals.front()));
+    REQUIRE (dropped.refusals.empty());
+    REQUIRE (dropped.landed == static_cast<std::size_t> (kFiles));
+    const yesdaw::engine::Project& project = model.project();
+    REQUIRE (project.assets.size() == static_cast<std::size_t> (kFiles));
+    for (std::size_t a = 0; a < project.assets.size(); ++a)
+        for (std::size_t b = a + 1u; b < project.assets.size(); ++b)
+            REQUIRE_FALSE (project.assets[a].id == project.assets[b].id);
 }

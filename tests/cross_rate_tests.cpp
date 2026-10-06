@@ -323,3 +323,68 @@ TEST_CASE ("ADR-0055 a 44.1 kHz Sampler pad sounds at its own pitch in a 48 kHz 
     INFO ("crossings " << crossings);
     REQUIRE (std::abs (crossings - 300) <= 1);
 }
+
+TEST_CASE ("ADR-0055 a project with no cross-rate Asset is built from itself, unchanged", "[cross-rate]")
+{
+    CrossRateModel f ("same-rate-check", sineAt (kAssetRate, 4'410));
+    yesdaw::engine::Project sameRate = f.model.project();
+    for (yesdaw::engine::Asset& asset : sameRate.assets)
+        asset.sampleRate = sameRate.sampleRate;   // pretend every Asset matches the project
+    REQUIRE_FALSE (yesdaw::engine::projectHasCrossRateAssets (sameRate));
+    const yesdaw::engine::Project mapped = yesdaw::engine::projectInViewFrames (sameRate);
+    REQUIRE (mapped.clips.size() == sameRate.clips.size());
+    for (std::size_t i = 0; i < mapped.clips.size(); ++i)
+    {
+        REQUIRE (mapped.clips[i].srcOffset == sameRate.clips[i].srcOffset);
+        REQUIRE (mapped.clips[i].srcLen == sameRate.clips[i].srcLen);
+        REQUIRE (mapped.clips[i].timelineLength == sameRate.clips[i].timelineLength);
+    }
+    REQUIRE (yesdaw::engine::projectHasCrossRateAssets (f.model.project()));
+}
+
+TEST_CASE ("ADR-0055 trim and reverse on a 44.1 kHz clip keep the rate ratio", "[cross-rate]")
+{
+    std::vector<float> clicks (44'100, 0.0f);
+    clicks[11'025] = 0.9f;   // a quarter of the way in
+    CrossRateModel f ("trim-reverse", clicks);
+    REQUIRE (f.model.selectTimelineClip (f.clip().id));
+
+    // Reverse: the click at a quarter now sounds at three quarters of the clip (mirrored over the view window).
+    REQUIRE (f.model.dispatch (yesdaw::ui::UiActionId::TimelineClipReverse).dispatched);
+    const std::vector<float> reversed = f.playLeft (48'000);
+    const long long mirrored = 48'000 - 1 - static_cast<long long> (std::llround (11'025.0 * kRatio));
+    REQUIRE (std::abs (static_cast<long long> (peakIndex (reversed)) - mirrored) <= 1);
+    REQUIRE (f.model.dispatch (yesdaw::ui::UiActionId::TimelineClipReverse).dispatched);   // back to forward
+
+    // Trim the end to half: the source window is half the Asset frames; the click still lands at its ratio place.
+    REQUIRE (f.model.trimSelectedTimelineClipRightTo (24'000).dispatched);
+    REQUIRE (f.clip().timelineLength == 24'000);
+    REQUIRE (f.clip().srcLen == 22'050u);
+    const std::vector<float> trimmed = f.playLeft (24'000);
+    REQUIRE (std::abs (static_cast<long long> (peakIndex (trimmed)) - static_cast<long long> (std::llround (11'025.0 * kRatio))) <= 1);
+}
+
+TEST_CASE ("ADR-0055 a cross-rate project opens correctly after a project at another rate", "[cross-rate]")
+{
+    // A 44.1 kHz project is the current one...
+    const auto directory = crossRateDirectory ("open-order");
+    yesdaw::engine::Project previous = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
+    previous.sampleRate = yesdaw::engine::SampleRate { kAssetRate };
+    // ...then a 48 kHz project with a 44.1 kHz Asset. Its views must be built at 48 kHz, not the previous rate.
+    CrossRateModel f ("open-order-source", sineAt (kAssetRate, 22'050, 440.0));
+    const std::vector<float> expected = f.playLeft (24'000);
+    REQUIRE (f.model.saveProjectBundle().ok());
+
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (directory / "previous-44k.yesdaw", std::move (previous)).ok());
+    REQUIRE (model.project().sampleRate.hz == kAssetRate);
+    auto stored = yesdaw::ui::shell::decodeStoredProjectAssets (f.bundle);
+    REQUIRE (stored.assets.has_value());
+    const yesdaw::ui::UiAppLoadResult opened = model.loadPreparedProjectBundle (std::move (stored.prepared), std::move (*stored.assets));
+    REQUIRE (opened.ok());
+    REQUIRE (model.locatePlaybackFrame (0));
+    REQUIRE (model.dispatch (yesdaw::ui::UiActionId::TransportPlay).dispatched);
+    const std::vector<float> stereo = model.renderPlaybackFrames (24'000, 128);
+    for (std::size_t i = 0; i < expected.size(); ++i)
+        REQUIRE (stereo[i * 2u] == expected[i]);
+}

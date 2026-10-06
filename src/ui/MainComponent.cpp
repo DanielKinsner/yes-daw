@@ -284,6 +284,9 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         // G3.7: a .mid lands on the lane after the audio as MIDI clips (the model names its own refusals).
         for (const std::filesystem::path& path : midiFiles)
         {
+            // Past the last track a MIDI file gets a track of its own (never stacked on the last one).
+            if (nextLane >= appModel.project().tracks.size() && ! appModel.addAudioTrack().dispatched)
+                break;
             const auto& tracks = appModel.project().tracks;
             if (tracks.empty())
                 break;

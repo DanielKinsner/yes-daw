@@ -36,6 +36,20 @@ builds in 0.88 s (export view 3.2 s). 414/414 local, Clang clean.
 **CI:** a CI-only race in the G4.7 master-inserts gate (the Limiter face filled on the next UI tick) is fixed
 at the source in 130d184; macOS otherwise fails only on the standing GPU sustained-frame exception.
 
+**Fixed after the G5.1 critic and CI (2026-10-06 afternoon):**
+- **A multi-file drop could refuse a file** (macOS CI on 2665f20: 2 tracks, not 3). Every file in one drop took
+  its Asset id from the same project state in the same millisecond, so two fast copies got one id and the second
+  was refused. Session ids now carry a per-model serial; the gate makes 1000 ids back to back (all differ) and
+  drops 24 tiny files at once (24 Assets).
+- **Opening a cross-rate project while another rate's project was open** built its views at the old rate and
+  refused the open; views are now built at the opened project's rate (gate: open a 48 kHz bundle with a
+  44.1 kHz Asset over a 44.1 kHz project; it plays exactly as before). Views of Assets that left the project
+  are freed.
+- **A drop below the last track** landed on the last track; it now starts a new track there, and a MIDI file
+  after the audio gets its own track instead of stacking.
+- Trim and reverse on a 44.1 kHz clip keep the rate ratio (gated); the demo self-check renders through the
+  view-frame project.
+
 ## 2026-10-06 (late night) — G4 done: SS-5 "Mix the song" passes with built-ins
 
 **Now:** **G4 is certified** (plan §6 exit: logical SS-5 with built-ins, every earlier journey restored).

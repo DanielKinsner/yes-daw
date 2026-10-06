@@ -551,8 +551,8 @@ struct MakeDemoResult
     decoded.interleavedSamples = std::span<const float> (assetSamples.data(), assetSamples.size());
     const std::vector<engine::DecodedAssetAudio> decodedAssets { decoded };
 
-    const engine::OfflineRenderResult render = engine::renderOfflineProject (
-        project, std::span<const engine::DecodedAssetAudio> (decodedAssets.data(), decodedAssets.size()));
+    const engine::OfflineRenderResult render = engine::renderOfflineProject (   // ADR-0055: same-rate here, mapped all the same
+        engine::projectInViewFrames (project), std::span<const engine::DecodedAssetAudio> (decodedAssets.data(), decodedAssets.size()));
     if (! render.ok())
     {
         r.message = "render failed (status " + std::to_string (static_cast<int> (render.status)) + ")";
@@ -565,7 +565,7 @@ struct MakeDemoResult
     engine::Project audioOnly = project;
     audioOnly.midiClips.clear();
     const engine::OfflineRenderResult audioOnlyRender = engine::renderOfflineProject (
-        audioOnly, std::span<const engine::DecodedAssetAudio> (decodedAssets.data(), decodedAssets.size()));
+        engine::projectInViewFrames (audioOnly), std::span<const engine::DecodedAssetAudio> (decodedAssets.data(), decodedAssets.size()));
     if (! audioOnlyRender.ok())
     {
         r.message = "audio-only control render failed (status "

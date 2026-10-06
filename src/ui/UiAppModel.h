@@ -39,6 +39,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <span>
 #include <utility>
@@ -497,6 +498,10 @@ public:
     }
 
     [[nodiscard]] float monitorGainForTest() const noexcept { return monitorGain_; }   // harness: the device thread's gain
+    [[nodiscard]] engine::EntityId allocateSessionEntityIdForTest (std::uint8_t seed) const   // harness: the id law
+    {
+        return allocateSessionEntityId (seed);
+    }
 
     [[nodiscard]] bool processDeviceAudioBlock (float* const* outputChannels,
                                                 int numOutputChannels,
@@ -8842,7 +8847,9 @@ public:
         const auto bundlePath = prepared.db_.bundlePath();
         auto& loadedProject = prepared.project_;
         result.bundleResult = persistence::detail::ok();
-        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (ownedDecoded);
+        // ADR-0055: views at the OPENED project's rate (project_ is still the previous project here).
+        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (
+            ownedDecoded, engine::ResampleQuality::LivePlayback, nullptr, loadedProject.sampleRate);
 
         std::optional<engine::Project> engineStorage;   // ADR-0055: cross-rate windows in view frames
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
@@ -8864,7 +8871,7 @@ public:
 
         attachProjectBundle (std::move (prepared.db_), bundlePath, std::move (loadedProject));
         decodedAssets_ = std::move (ownedDecoded);
-        rateMatchedViews_.clear();   // ADR-0055: the old project's views go with its decodes
+        pruneRateMatchedViews();   // ADR-0055: the old project's views go; this one's (just built) stay
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         replacePlayback (std::move (built.engine));
         enqueueWaveformBuildsForDecodedAssets();
@@ -11146,32 +11153,35 @@ private:
     [[nodiscard]] std::vector<engine::DecodedAssetAudio> makeDecodedViews (
         const std::vector<UiDecodedAsset>& decodedAssets,
         engine::ResampleQuality quality = engine::ResampleQuality::LivePlayback,
-        std::vector<std::shared_ptr<const engine::AssetSamples>>* offlineViews = nullptr) const
+        std::vector<std::shared_ptr<const engine::AssetSamples>>* offlineViews = nullptr,
+        std::optional<engine::SampleRate> forProjectRate = std::nullopt) const
     {
+        // The rate of the project the engine is built for — the current one, or the one being opened.
+        const engine::SampleRate projectRate = forProjectRate.value_or (project_.sampleRate);
         std::vector<engine::DecodedAssetAudio> views;
         views.reserve (decodedAssets.size());
 
         for (const UiDecodedAsset& asset : decodedAssets)
         {
             std::shared_ptr<const engine::AssetSamples> view;
-            if (asset.sampleRate.hz != project_.sampleRate.hz && project_.sampleRate.isValid())
+            if (asset.sampleRate.hz != projectRate.hz && projectRate.isValid())
             {
                 if (quality == engine::ResampleQuality::OfflineRender && offlineViews != nullptr)
                 {
                     view = engine::buildRateMatchedSamples (asset.interleavedSamples, asset.channels, asset.sampleRate.hz,
-                                                            project_.sampleRate.hz, engine::ResampleQuality::OfflineRender);
+                                                            projectRate.hz, engine::ResampleQuality::OfflineRender);
                     offlineViews->push_back (view);
                 }
                 else
                 {
-                    view = liveRateMatchedView (asset);
+                    view = liveRateMatchedView (asset, projectRate);
                 }
             }
             if (view != nullptr)
             {
                 views.push_back (engine::DecodedAssetAudio {
                     asset.assetId,
-                    project_.sampleRate,
+                    projectRate,
                     view->frames,
                     asset.channels,
                     std::span<const float> (view->interleaved.data(), view->interleaved.size())
@@ -11193,11 +11203,14 @@ private:
     // ADR-0055: a cross-rate decode's live-tier rate-matched view (null for a same-rate one) — built once per Asset
     // and project rate and kept, so every engine rebuild after an edit reuses it. An Asset's content never changes
     // under its id (ADR-0011), so the id and the rates are the key.
-    [[nodiscard]] std::shared_ptr<const engine::AssetSamples> liveRateMatchedView (const UiDecodedAsset& asset) const
+    [[nodiscard]] std::shared_ptr<const engine::AssetSamples> liveRateMatchedView (
+        const UiDecodedAsset& asset, std::optional<engine::SampleRate> forProjectRate = std::nullopt) const
     {
-        const double projectRateHz = project_.sampleRate.hz;
-        if (! project_.sampleRate.isValid() || asset.sampleRate.hz == projectRateHz || asset.channels == 0u)
+        const engine::SampleRate projectRate = forProjectRate.value_or (project_.sampleRate);
+        const double projectRateHz = projectRate.hz;
+        if (! projectRate.isValid() || asset.sampleRate.hz == projectRateHz || asset.channels == 0u)
             return nullptr;
+        const std::lock_guard<std::mutex> lock (rateMatchedViewsMutex_);   // a future worker may build views too
         for (const OwnedRateMatchedView& cached : rateMatchedViews_)
             if (cached.assetId == asset.assetId && cached.assetRateHz == asset.sampleRate.hz
                 && cached.projectRateHz == projectRateHz && cached.frames == asset.frames && cached.channels == asset.channels)
@@ -11207,6 +11220,16 @@ private:
         std::erase_if (rateMatchedViews_, [&asset] (const OwnedRateMatchedView& cached) { return cached.assetId == asset.assetId; });
         rateMatchedViews_.push_back ({ asset.assetId, asset.sampleRate.hz, projectRateHz, asset.frames, asset.channels, view });
         return view;
+    }
+
+    // ADR-0055: drop the views of Assets no longer decoded (the project's Assets changed, or another opened).
+    void pruneRateMatchedViews() const
+    {
+        const std::lock_guard<std::mutex> lock (rateMatchedViewsMutex_);
+        std::erase_if (rateMatchedViews_, [this] (const OwnedRateMatchedView& cached) {
+            return std::none_of (decodedAssets_.begin(), decodedAssets_.end(),
+                                 [&cached] (const UiDecodedAsset& asset) { return asset.assetId == cached.assetId; });
+        });
     }
 
     // ADR-0055: the project an engine or a render is built from — every cross-rate window in its view's frames.
@@ -11325,6 +11348,13 @@ private:
         entropy[3] = seedByte;
         entropy[4] = static_cast<std::uint8_t> (project.assets.size() & 0xffu);
         entropy[5] = static_cast<std::uint8_t> (project.clips.size() & 0xffu);
+        // Every allocation in this model differs, even two in one millisecond against an unchanged project (the
+        // files of one drop are all allocated before the drop lands).
+        const std::uint32_t serial = ++sessionEntityIdSerial_;
+        entropy[6] = static_cast<std::uint8_t> ((serial >> 24u) & 0xffu);   // big-endian: same-millisecond ids sort
+        entropy[7] = static_cast<std::uint8_t> ((serial >> 16u) & 0xffu);   // in the order they were made
+        entropy[8] = static_cast<std::uint8_t> ((serial >> 8u) & 0xffu);
+        entropy[9] = static_cast<std::uint8_t> (serial & 0xffu);
 
         const auto now = std::chrono::system_clock::now().time_since_epoch();
         const auto millis = std::chrono::duration_cast<std::chrono::milliseconds> (now).count();
@@ -11499,7 +11529,7 @@ private:
         selectedMixerTarget_ = {};
         undo_ = {};
         decodedAssets_.clear();
-        rateMatchedViews_.clear();
+        pruneRateMatchedViews();
         decodedAssetViews_.clear();
         std::unique_ptr<engine::PlaybackEngine> transport =
             engine::PlaybackEngine::createTransportOnly (project_.sampleRate, playbackMaxBlockSize_);
@@ -12197,6 +12227,7 @@ private:
         options.maxBlockSize = playbackMaxBlockSize_;
         // G0.5: every engine build references the model's shared per-asset storage by asset id,
         // so the live placement lane's schedules can keep it alive without copying.
+        pruneRateMatchedViews();   // ADR-0055: a view goes with its Asset
         options.assetOwners = makeDecodedOwners (decodedAssets_);
         std::optional<engine::Project> engineStorage;   // ADR-0055: stretch from the views, in view frames
         options.stretchOwners = refreshStretchOwners (engineProjectFor (project_, engineStorage), options.assetOwners);   // G2.9
@@ -12668,6 +12699,8 @@ private:
         std::shared_ptr<const engine::AssetSamples> view;
     };
     mutable std::vector<OwnedRateMatchedView> rateMatchedViews_;   // filled from const build reads
+    mutable std::mutex rateMatchedViewsMutex_;
+    mutable std::uint32_t sessionEntityIdSerial_ = 0;   // mixed into every session id (allocateSessionEntityId)
     mutable std::vector<engine::StretchedOwnership> stretchedSamplesCache_;   // G2.9: prepared stretches per clip
     std::uint64_t livePlacementEdits_ = 0;
     std::vector<RetiredMonitorChain> retiredMonitorChains_;

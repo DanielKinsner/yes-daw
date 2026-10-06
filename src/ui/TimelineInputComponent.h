@@ -53,21 +53,31 @@ public:
 
     void filesDropped (const juce::StringArray& files, int x, int y) override
     {
-        if (! onFilesDropped || ! stateProvider)
+        if (! onFilesDropped)
             return;
+        if (const auto target = dropLaneAndSecondsAt ({ x, y }))
+            onFilesDropped (files, target->first, target->second);
+    }
 
+    // M10 / ADR-0054 / ADR-0056: the lane and time a drop at `position` lands at — the lane under it, or the track
+    // count itself when it is below the last lane (the drop starts a new track there); one law for an OS drop and a
+    // browser drag.
+    [[nodiscard]] std::optional<std::pair<int, double>> dropLaneAndSecondsAt (juce::Point<int> position) const
+    {
+        if (! stateProvider)
+            return std::nullopt;
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
         const yesdaw::ui::TimelineCanvasGeometry geometry =
             yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
         if (state.trackCount <= 0 || geometry.laneHeight <= 0)
-            return;
-
-        const juce::Point<int> position { x, y };
-        const int lane = std::clamp (
-            geometry.laneAtPixel (position.y - geometry.clipArea.getY() + geometry.viewport.laneScrollPixels),
-            0, state.trackCount - 1);
-        const double seconds = timelineSecondsAt (state, getLocalBounds(), position).value_or (0.0);
-        onFilesDropped (files, lane, seconds);
+            return std::nullopt;
+        const double scrolledY = position.y - geometry.clipArea.getY() + geometry.viewport.laneScrollPixels;
+        // laneAtPixel holds a point below the rows on the last one (the clip verbs want that); a drop there is a
+        // new track, so the rows' bottom edge (laneTop of the track count) decides first.
+        const int lane = scrolledY >= geometry.laneTop (state.trackCount)
+                             ? state.trackCount
+                             : std::clamp (geometry.laneAtPixel (scrolledY), 0, state.trackCount - 1);
+        return std::pair<int, double> { lane, timelineSecondsAt (state, getLocalBounds(), position).value_or (0.0) };
     }
 
     std::function<yesdaw::ui::TimelineCanvasState()> stateProvider;
