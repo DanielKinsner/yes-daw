@@ -19,7 +19,7 @@ if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $
 function MenuPick([int] $itemIndex) {
   # After a right-click (or a menu-title click): highlight item N (1-based, counting ENABLED items
   # only — JUCE's popup skips disabled ones when arrowing; separators never count) and fire it.
-  Start-Sleep -Milliseconds 350
+  [void](WaitPopup)
   Key 'Down' -Repeat $itemIndex
   Start-Sleep -Milliseconds 80
   Key 'Enter'

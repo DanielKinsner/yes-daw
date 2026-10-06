@@ -10,7 +10,7 @@ $bundle = Join-Path ([System.IO.Path]::GetTempPath()) ('ss4-track-instrument-' +
 if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $bundle }
 
 function MenuPick([int] $itemIndex) {
-  Start-Sleep -Milliseconds 350
+  [void](WaitPopup)
   Key 'Down' -Repeat $itemIndex
   Start-Sleep -Milliseconds 80
   Key 'Enter'
@@ -43,7 +43,7 @@ $chooser = LayoutRect 'widget.track.inspector.instrument'
 $d0 = [int](Probe).commandDispatchCount
 # The combo's popup pre-highlights the current item (None): one Down reaches SimpleSynth.
 Click 'widget.track.inspector.instrument'
-Start-Sleep -Milliseconds 350
+[void](WaitPopup)
 Shot 'ss4-evidence-instrument-popup'
 Key 'Down'
 Start-Sleep -Milliseconds 80
@@ -76,7 +76,7 @@ if ($null -ne $panel) {
 Step 5 'G3.9 the Sampler: the inspector chooser lists it; choosing it shows the pad grid in the panel'
 # The chooser popup opens on its current item (SimpleSynth, the second): one Down + Enter picks Sampler.
 Click 'widget.track.inspector.instrument'
-Start-Sleep -Milliseconds 350
+[void](WaitPopup)
 Key 'Down'
 Key 'Enter'
 [void](Assert (WaitProbe { param($q) "$($q.view.instrument)" -eq 'Sampler' } -TimeoutMs 3000) ('the chooser sets the Sampler (probe view.instrument=' + (Probe).view.instrument + ')'))

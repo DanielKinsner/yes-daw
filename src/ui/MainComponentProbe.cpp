@@ -622,6 +622,19 @@ juce::String MainComponent::buildStateProbeJson()
                                || markerRenameEditor.isVisible() || busRenameEditor.isVisible());
     }
     root->setProperty ("controlTarget", buildProbeControlTarget());   // G4.0b
+    {
+        // 2026-10-05: the JUCE popup menus running now (each menu / submenu is a modal "menu" window;
+        // while one is modal, keys route to it). A drive waits on this instead of a fixed sleep.
+        auto* modal = new juce::DynamicObject();
+        auto* modalManager = juce::ModalComponentManager::getInstance();
+        int menus = 0;
+        for (int i = 0; i < modalManager->getNumModalComponents(); ++i)
+            if (const juce::Component* component = modalManager->getModalComponent (i); component != nullptr && component->getName() == "menu")
+                ++menus;
+        modal->setProperty ("count", modalManager->getNumModalComponents());
+        modal->setProperty ("menus", menus);
+        root->setProperty ("modal", juce::var (modal));
+    }
     root->setProperty ("lastAction", juce::String (lastActionStableId));
     root->setProperty ("commandDispatchCount", context.commandDispatchCount);
     {

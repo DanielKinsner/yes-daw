@@ -16,7 +16,7 @@ $bundle = Join-Path ([System.IO.Path]::GetTempPath()) ('ss5-piano-roll-' + (Get-
 if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $bundle }
 
 function MenuPick([int] $itemIndex) {
-  Start-Sleep -Milliseconds 350
+  [void](WaitPopup)
   Key 'Down' -Repeat $itemIndex
   Start-Sleep -Milliseconds 80
   Key 'Enter'
@@ -268,14 +268,14 @@ Step 16 'G3.8 the roll header''s Key / Scale choosers are laid out; the strip''s
 # The Scale chooser by mouse: the popup opens with the current item (Off) highlighted, so one Down
 # + Enter picks Major (a combo popup, unlike a bare menu, starts on its selection); one Up brings Off back.
 Click 'pianoroll.scale'
-Start-Sleep -Milliseconds 350
+[void](WaitPopup)
 Key 'Down'
 Key 'Enter'
 [void](Assert (WaitProbe { param($q) [int]$q.view.pianoRoll.scaleChoice -eq 1 } -TimeoutMs 2000) ('the Scale chooser sets Major (the in-scale rows lift) (scaleChoice=' + (Probe).view.pianoRoll.scaleChoice + ')'))
 Shot 'ss5-scale-assist-major'
 $beforeOff = Probe
 Click 'pianoroll.scale'
-Start-Sleep -Milliseconds 350
+[void](WaitPopup)
 Key 'Up'
 Key 'Enter'
 $offAgain = WaitProbe { param($q) [int]$q.view.pianoRoll.scaleChoice -eq 0 } -TimeoutMs 2000

@@ -30,7 +30,7 @@ if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $
 # count from the top is not stable; the structural verbs sit at the BOTTOM of every strip menu and are
 # always enabled — pick them by counting UP from the end (a bare menu's first Up lands on the last item).
 function MenuPickFromEnd([int] $fromEnd) {
-  Start-Sleep -Milliseconds 350
+  [void](WaitPopup)
   Key 'Up' -Repeat $fromEnd
   Start-Sleep -Milliseconds 80
   Key 'Enter'
@@ -97,7 +97,7 @@ MenuPickFromEnd 2
 
 Step 4 'Route track 1 to the bus through its OUTPUT slot'
 Click 'mixer.strip.0.output'
-Start-Sleep -Milliseconds 600   # the slot's popup takes the keyboard once it is up
+[void](WaitPopup)   # the slot's popup takes the keyboard once it is modal
 # The slot's popup: a section header, Master, then the buses — the LAST item is the new bus.
 Key 'Up'
 Start-Sleep -Milliseconds 80
@@ -152,13 +152,13 @@ Step 7 'EQ and a Compressor on the bus (the empty slot''s click lists the kinds)
 # A Bus takes the five audio kinds; the slot's popup is a section header then the kinds, all enabled —
 # EQ is the first (Down once), the Compressor the second. A slot popup needs ~600 ms before it takes keys.
 Click 'mixer.strip.3.insert.0'
-Start-Sleep -Milliseconds 600
+[void](WaitPopup)
 Key 'Down'
 Start-Sleep -Milliseconds 80
 Key 'Enter'
 [void](Assert (WaitProbe { param($q) "$($q.mixer.strips[3].inserts[0].kind)" -eq 'EQ' } -TimeoutMs 2000) ('the EQ lands in the bus''s slot 1 (' + (Probe).mixer.strips[3].inserts[0].kind + ')'))
 Click 'mixer.strip.3.insert.1'
-Start-Sleep -Milliseconds 600
+[void](WaitPopup)
 Key 'Down' -Repeat 2
 Start-Sleep -Milliseconds 80
 Key 'Enter'
@@ -195,7 +195,7 @@ Click 'mixer.fx.editor.close'
 
 Step 9 'Track 1 sends to the bus (the empty send well''s click lists the buses)'
 Click 'mixer.strip.0.send.0'
-Start-Sleep -Milliseconds 600
+[void](WaitPopup)
 Key 'Down'
 Start-Sleep -Milliseconds 80
 Key 'Enter'
@@ -205,7 +205,7 @@ Key 'Enter'
 Step 10 'The send row''s menu: Pre-fader'
 # The routed row's right-click menu: Pre-fader, Destination >, then Remove Send — Pre-fader is first.
 Click 'mixer.strip.0.send.0' -Right
-Start-Sleep -Milliseconds 350
+[void](WaitPopup)
 Key 'Down'
 Start-Sleep -Milliseconds 80
 Key 'Enter'

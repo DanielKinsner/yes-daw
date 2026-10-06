@@ -17,7 +17,7 @@ $bundle = Join-Path ([System.IO.Path]::GetTempPath()) ('ss3-edit-a-song-' + (Get
 if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $bundle }
 
 function MenuPick([int] $itemIndex) {
-  Start-Sleep -Milliseconds 350
+  [void](WaitPopup)
   Key 'Down' -Repeat $itemIndex
   Start-Sleep -Milliseconds 80
   Key 'Enter'
@@ -115,7 +115,7 @@ $fadeIn = LayoutRect 'widget.clip.inspector.fade_in'
 $d0 = [int](Probe).commandDispatchCount
 if ($null -ne $fadeIn) { Click 'widget.clip.inspector.fade_in' -OffsetX ([int]($fadeIn[2] * 0.3) - [int]($fadeIn[2] / 2)) }
 $curve = LayoutRect 'widget.clip.inspector.fade_curve'
-if ($null -ne $curve) { Click 'widget.clip.inspector.fade_curve'; Start-Sleep -Milliseconds 350; Key 'Down'; Start-Sleep -Milliseconds 80; Key 'Enter'; Start-Sleep -Milliseconds 250 }
+if ($null -ne $curve) { Click 'widget.clip.inspector.fade_curve'; [void](WaitPopup); Key 'Down'; Start-Sleep -Milliseconds 80; Key 'Enter'; Start-Sleep -Milliseconds 250 }
 [void](Assert (WaitProbe { param($q) [int]$q.commandDispatchCount -ge $d0 + 2 } -TimeoutMs 2000) 'a fade-in length and a fade shape each dispatch an undoable edit')
 
 Step 7 'Crossfade two overlapping clips'
@@ -135,7 +135,7 @@ Click $dup -OffsetX ([int]($rd[2] * 0.4)) -Modifiers 'Shift'   # the copy's righ
 [void](Assert (WaitProbe { param($q) $q.selection.clips.Count -eq 2 } -TimeoutMs 1000) 'Shift+click selects both overlapping clips')
 $d0 = [int](Probe).commandDispatchCount
 Click $dup -Right -OffsetX ([int]($rd[2] * 0.4))
-Start-Sleep -Milliseconds 350; Shot 'ss3-evidence-clip-menu-two-selected'
+[void](WaitPopup); Shot 'ss3-evidence-clip-menu-two-selected'
 # Enabled (observed): Cut, Copy, Duplicate, Delete, Split, Heal, Crossfade (Paste disabled) -> 7th.
 MenuPick 7
 [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.clip.crossfade' } -TimeoutMs 2000) ('Crossfade from the clip menu dispatches (lastAction=' + (Probe).lastAction + ')'))
@@ -154,7 +154,7 @@ Step 9 'Stretch a clip to the loop (Clip menu)'
 Click $second
 $menubar = LayoutRect 'widget.shell.menubar'
 Click 'widget.shell.menubar' -OffsetX (190 - [int]($menubar[2] / 2))
-Start-Sleep -Milliseconds 350; Shot 'ss3-evidence-clip-menubar'
+[void](WaitPopup); Shot 'ss3-evidence-clip-menubar'
 # Clip menu enabled (observed, the pair still selected): Split, Heal, Apply Default Fades, Set Fades, Crossfade, Set Gain, Gain+, Gain-, Move, Trim, Time Stretch, Stretch to Loop -> 12th.
 MenuPick 12
 [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.clip.stretch_to_loop' } -TimeoutMs 2000) ('Stretch to Loop Length from the Clip menu dispatches (lastAction=' + (Probe).lastAction + ')'))
@@ -163,7 +163,7 @@ Step 10 'Colour and rename a clip'
 Click $second
 $d0 = [int](Probe).commandDispatchCount
 Click $second -Right
-Start-Sleep -Milliseconds 350; Shot 'ss3-evidence-clip-menu-one-selected'
+[void](WaitPopup); Shot 'ss3-evidence-clip-menu-one-selected'
 # Enabled (observed): Cut, Copy, Duplicate, Delete, Split, Heal, Crossfade, Rename, Gain, Fades, Stretch, Mute, Colour -> 13th.
 MenuPick 13
 [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.clip.colour_next' } -TimeoutMs 2000) ('Clip Colour: Next from the clip menu dispatches (lastAction=' + (Probe).lastAction + ')'))
@@ -197,7 +197,7 @@ Key 'Alt+.'
 Step 13 'Shuffle-delete a clip and see the neighbours close'
 $chooser = LayoutRect 'widget.timeline.edit_mode.chooser'
 [void](Assert ($null -ne $chooser) 'the edit-mode chooser is published at 1080p')
-if ($null -ne $chooser) { Click 'widget.timeline.edit_mode.chooser'; Start-Sleep -Milliseconds 350; Shot 'ss3-evidence-editmode-popup'; Key 'Down' -Repeat 2; Start-Sleep -Milliseconds 80; Key 'Enter'; Start-Sleep -Milliseconds 250 }   # the combo's popup pre-highlights the current item: Overlap -> No Overlap -> Shuffle
+if ($null -ne $chooser) { Click 'widget.timeline.edit_mode.chooser'; [void](WaitPopup); Shot 'ss3-evidence-editmode-popup'; Key 'Down' -Repeat 2; Start-Sleep -Milliseconds 80; Key 'Enter'; Start-Sleep -Milliseconds 250 }   # the combo's popup pre-highlights the current item: Overlap -> No Overlap -> Shuffle
 [void](Assert (WaitProbe { param($q) $q.view.editMode -eq 'Shuffle' } -TimeoutMs 2000) 'the chooser sets Shuffle (probe view.editMode)')
 $clips = @(ClipKeys)
 # Track 2 (lane.1) holds the moved clip, its duplicate and the crossfade pair: delete its LEFTMOST
@@ -234,7 +234,7 @@ Key 'Ctrl+E'
 Step 15 'Nudge by 10 ms'
 $nudge = LayoutRect 'widget.timeline.nudge.chooser'
 [void](Assert ($null -ne $nudge) 'the nudge chooser is published at 1080p')
-if ($null -ne $nudge) { Click 'widget.timeline.nudge.chooser'; Start-Sleep -Milliseconds 350; Key 'Down' -Repeat 5; Start-Sleep -Milliseconds 80; Key 'Enter'; Start-Sleep -Milliseconds 250 }   # Grid -> Bar -> Beat -> 16th -> 1 ms -> 10 ms
+if ($null -ne $nudge) { Click 'widget.timeline.nudge.chooser'; [void](WaitPopup); Key 'Down' -Repeat 5; Start-Sleep -Milliseconds 80; Key 'Enter'; Start-Sleep -Milliseconds 250 }   # Grid -> Bar -> Beat -> 16th -> 1 ms -> 10 ms
 [void](Assert (WaitProbe { param($q) "$($q.view.nudgeValue)" -eq '5' -or "$($q.view.nudgeValue)" -match '10' } -TimeoutMs 2000) ('the nudge chooser sets 10 ms (probe view.nudgeValue = ' + (Probe).view.nudgeValue + ')'))
 $clips = @(ClipKeys)
 Click $clips[0]
@@ -255,7 +255,7 @@ Step 17 'Add a tempo ramp and confirm the bar readout changes'
 Click 'ruler' -OffsetX (RulerOffsetForX ([int]($rect[0] + $rect[2] * 0.5))) -OffsetY (RulerTimeRowY)
 $readoutBefore = (Probe).view.counterPrimary
 Click 'ruler' -Right -OffsetY (RulerTimeRowY)
-Start-Sleep -Milliseconds 350; Shot 'ss3-evidence-ruler-menu'
+[void](WaitPopup); Shot 'ss3-evidence-ruler-menu'
 # Ruler menu at a playhead away from tick 0 with no change there yet: Add Marker, Set Tempo, Set Meter, Add Tempo Change (4th; Remove disabled).
 MenuPick 4
 [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.tempo.change_add' } -TimeoutMs 2000) ('Add Tempo Change at the playhead dispatches (lastAction=' + (Probe).lastAction + ')'))

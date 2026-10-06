@@ -27,6 +27,7 @@
 #   Shot "<name>"                      - PNG of the window's client area into -Shots
 #   Resize <clientWidth> <clientHeight>
 #   WaitDialog "<title contains>" [-TimeoutMs n] - a native dialog (file chooser) is up
+#   WaitPopup [-Depth n] [-TimeoutMs n] - n JUCE popup menus are modal (keys now reach the popup)
 #   Close                              - WM_CLOSE, then kill if a modal prompt holds it open
 #   Elapsed                            - ms since Launch; $script:FirstProbeMs = ms to the first probe tick (B6)
 #
@@ -624,6 +625,16 @@ function WaitDialog([string] $titleContains, [int] $TimeoutMs = 4000) {
     Start-Sleep -Milliseconds 60
   } while ((Get-Date) -lt $deadline)
   return [IntPtr]::Zero
+}
+
+# 2026-10-05: wait until the app runs $Depth JUCE popup menus (the probe's modal.menus; a submenu is
+# depth 2). Keys sent before a popup is modal land in the shell instead: the ss3 Clip-menu pick and the
+# ss5 scale pick each raced a fixed 350 ms sleep. Records a FAIL only when no popup opens in time.
+function WaitPopup([int] $Depth = 1, [int] $TimeoutMs = 2500) {
+  $ok = WaitProbe { param($q) [int]$q.modal.menus -ge $Depth } -TimeoutMs $TimeoutMs
+  if (-not $ok) { [void](Assert $false ('a popup menu opened (depth ' + $Depth + ') within ' + $TimeoutMs + ' ms')) }
+  Start-Sleep -Milliseconds 60
+  return $ok
 }
 
 function AssertStartupBudget([int] $Milliseconds) {

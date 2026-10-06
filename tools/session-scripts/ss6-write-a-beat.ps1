@@ -27,7 +27,7 @@ $wav2 = Join-Path ([System.IO.Path]::GetTempPath()) ('ss6-mix-after-' + $stamp +
 foreach ($f in @($midPath, $wav1, $wav2)) { if (Test-Path -LiteralPath $f) { Remove-Item -Force -LiteralPath $f } }
 
 function MenuPick([int] $itemIndex) {
-  Start-Sleep -Milliseconds 350
+  [void](WaitPopup)
   Key 'Down' -Repeat $itemIndex
   Start-Sleep -Milliseconds 80
   Key 'Enter'
@@ -70,7 +70,7 @@ function ChooseInstrument([int] $downs) {
   Click 'widget.inspector.tab.track'
   Start-Sleep -Milliseconds 250
   Click 'widget.track.inspector.instrument'
-  Start-Sleep -Milliseconds 350
+  [void](WaitPopup)
   Key 'Down' -Repeat $downs
   Start-Sleep -Milliseconds 80
   Key 'Enter'
@@ -207,11 +207,11 @@ if (-not (WaitProbe { param($q) "$($q.view.dock)" -eq 'Mixer' } -TimeoutMs 1200)
 # submenu on EQ, and the Arpeggiator is the eighth kind.
 $r = LayoutRect 'mixer.strip.2'
 Click 'mixer.strip.2' -Right -OffsetY (14 - [int]($r[3] / 2))
-Start-Sleep -Milliseconds 350
+[void](WaitPopup)
 Key 'Down' -Repeat 2
 Start-Sleep -Milliseconds 80
 Key 'Right'
-Start-Sleep -Milliseconds 350
+[void](WaitPopup -Depth 2)   # the submenu is the second modal menu
 Key 'Down' -Repeat 7   # EQ, Compressor, Delay, Reverb, Limiter, MIDI Transpose, MIDI Scale, Arpeggiator
 Start-Sleep -Milliseconds 80
 Key 'Enter'
