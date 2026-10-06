@@ -801,11 +801,17 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         CompressorNode* compressor = nullptr;
         for (const std::unique_ptr<Node>& node : inputs.nodes)
             if (node != nullptr && node->properties().id == key.compressorNodeId)
+            {
                 compressor = dynamic_cast<CompressorNode*> (node.get());
+                break;
+            }
         Node* tap = nullptr;
         for (const auto& [faderNodeId, preFader] : preFaderTaps)
             if (faderNodeId == key.sourceFaderNodeId)
+            {
                 tap = preFader;
+                break;
+            }
         if (compressor == nullptr || tap == nullptr)
         {
             if (error != nullptr)

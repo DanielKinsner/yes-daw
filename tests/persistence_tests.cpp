@@ -2854,4 +2854,9 @@ TEST_CASE ("Compressor sidechain keys round-trip through schema v32 and bad keys
                                   "UPDATE fx_insert_sidechain SET source_entity = X'00000000000000000000000000000063' "
                                   "WHERE insert_id = X'0000000000000000000000000000005d';").ok());
     REQUIRE_FALSE (reopened.readProjectSnapshot (refused).ok());
+
+    // A tampered row typed as TEXT (sixteen characters pass the length CHECK) is refused by the stored-type law.
+    REQUIRE (reopened.executeSql ("UPDATE fx_insert_sidechain SET source_entity = '0123456789abcdef' "
+                                  "WHERE insert_id = X'0000000000000000000000000000005d';").ok());
+    REQUIRE (reopened.validateStoredProjectSemantics().status == BundleStatus::SemanticInvalid);
 }
