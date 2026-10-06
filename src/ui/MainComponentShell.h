@@ -11,6 +11,8 @@
 #include "ui/MainComponentInternal.h"
 #include "ui/ControlTarget.h"
 
+#include <optional>
+
 namespace yesdaw::ui {
 
 class MainComponent : public juce::Component,
@@ -353,6 +355,14 @@ private:
     void openFxEditor (int stripIndex, int slotIndex);
 
     void closeFxEditor();
+    // G4.2 cp7 (ADR-0050): the editor's Presets menu lists this kind's presets, then Save Preset... (the
+    // name prompt). A load is one undo step; every refusal and result reaches the status line.
+    [[nodiscard]] std::optional<yesdaw::engine::FxInsert> fxEditorInsert() const;
+    void showFxPresetsMenu();
+    void invokeFxPresetsMenuItem (int itemId);
+    void promptFxPresetName();
+    bool saveFxPresetNamed (const juce::String& name);
+    bool loadFxPresetNamed (const juce::String& name);
     // G4.2 cp2: the open compressor / limiter face samples its insert's live gain reduction (UI tick).
     void pushFxEditorGainReduction();
     // G4.2 cp6: the insert a slot drag is carrying, and where it would land (-1: nowhere); painted as a
@@ -828,6 +838,13 @@ public:
     [[nodiscard]] static constexpr int harnessMixerSendDestinationMenuId (int busIndex) noexcept { return kContextMenuSendDestBase + busIndex; }
     // G4.1 cp2: the FX editor as the harness reads it, and the open the double-click performs.
     void harnessOpenFxEditor (int stripIndex, int slotIndex) { openFxEditor (stripIndex, slotIndex); }
+    static constexpr int kFxPresetSaveItemId = 10000;   // G4.2 cp7: the Presets menu's Save Preset... item
+    // G4.2 cp7: the Presets menu as last built (a load item's id is its index + 1), a pick, the prompt's
+    // Save path and how often the prompt was asked for (headless shells record instead of showing it).
+    [[nodiscard]] std::vector<juce::String> harnessFxPresetsMenu() { showFxPresetsMenu(); return lastFxPresetsMenu; }
+    void harnessInvokeFxPresetsMenuItem (int itemId) { invokeFxPresetsMenuItem (itemId); }
+    bool harnessSaveFxPreset (const juce::String& name) { return saveFxPresetNamed (name); }
+    [[nodiscard]] int harnessFxPresetPromptRequests() const noexcept { return fxPresetPromptRequests; }
     [[nodiscard]] yesdaw::ui::MainComponentFxEditor harnessFxEditor() const;
     [[nodiscard]] yesdaw::ui::MainComponentContextMenu harnessLastContextMenu() const { return lastContextMenu.toPublic(); }
     [[nodiscard]] juce::String harnessViewStateRecord() const { return juce::String (viewStateRecordText()); }
@@ -1234,6 +1251,10 @@ private:
     bool lastFxParamPagerVisible = false;
     int selectedFxParamSlot = -1;
     bool refreshingFxParamControls = false;
+    // G4.2 cp7: the last Presets menu (labels in order; preset i is item i + 1) and the name prompt.
+    std::vector<juce::String> lastFxPresetsMenu;
+    std::vector<std::string> lastFxPresetsMenuNames;
+    int fxPresetPromptRequests = 0;
     // E19: the interactive, undoable master fader on the master pane.
     FineDragSlider mixerMasterFader;
     // E17: the inline bus rename editor (the strip header's double-click).

@@ -4,6 +4,7 @@
 // verbatim from the inline class. The declaration is ui/MainComponentShell.h.
 
 #include "ui/MainComponentShell.h"
+#include "ui/FxPresets.h"
 
 using namespace yesdaw::ui::shell;
 
@@ -933,6 +934,18 @@ juce::String MainComponent::buildStateProbeJson()
         fx->setProperty ("grReading", editor.gainReductionReading);
         fx->setProperty ("gainReductionDb", editor.gainReductionDb);
         fx->setProperty ("gainReductionHeldDb", editor.gainReductionHeldDb);
+        // G4.2 cp7 (ADR-0050): the shown insert's setting as a preset writes it (real values by preset key),
+        // and this kind's saved presets — what a drive compares across a save, an edit and a load.
+        if (const std::optional<yesdaw::engine::FxInsert> insert = fxEditorInsert())
+        {
+            const juce::var setting = juce::JSON::parse (juce::String::fromUTF8 (
+                yesdaw::ui::encodeFxPreset (insert->kind, insert->normalizedParams).c_str()));
+            fx->setProperty ("params", setting.getProperty ("params", {}));
+            juce::Array<juce::var> presets;
+            for (const std::string& name : yesdaw::ui::listFxPresets (appModel.sessionStateDirectory(), insert->kind))
+                presets.add (juce::String::fromUTF8 (name.c_str()));
+            fx->setProperty ("presets", presets);
+        }
         root->setProperty ("fxEditor", juce::var (fx));
         // G4.1 cp2: the Touch / Latch ride a painted drag is buffering (N5) — what a drive sees mid-ride.
         auto* ride = new juce::DynamicObject();
@@ -1718,6 +1731,35 @@ void mainComponentOpenFxEditor (juce::Component& component, int stripIndex, int 
 {
     if (auto* shell = dynamic_cast<MainComponent*> (&component))
         shell->harnessOpenFxEditor (stripIndex, slotIndex);
+}
+
+std::vector<juce::String> mainComponentFxPresetsMenu (juce::Component& component)
+{
+    if (auto* shell = dynamic_cast<MainComponent*> (&component))
+        return shell->harnessFxPresetsMenu();
+    return {};
+}
+
+void mainComponentInvokeFxPresetsMenuItem (juce::Component& component, int itemId)
+{
+    if (auto* shell = dynamic_cast<MainComponent*> (&component))
+        shell->harnessInvokeFxPresetsMenuItem (itemId);
+}
+
+int mainComponentFxPresetSaveItemId() noexcept { return MainComponent::kFxPresetSaveItemId; }
+
+bool mainComponentSaveFxPreset (juce::Component& component, const juce::String& name)
+{
+    if (auto* shell = dynamic_cast<MainComponent*> (&component))
+        return shell->harnessSaveFxPreset (name);
+    return false;
+}
+
+int mainComponentFxPresetPromptRequests (const juce::Component& component)
+{
+    if (const auto* shell = dynamic_cast<const MainComponent*> (&component))
+        return shell->harnessFxPresetPromptRequests();
+    return 0;
 }
 
 int mainComponentMixerSendMenuId (int busIndex)

@@ -23573,3 +23573,104 @@ TEST_CASE ("G4.2 cp7 preset names are safe file stems and a save never overwrite
     std::filesystem::remove_all (stateDirectory, ec);
 }
 
+TEST_CASE ("G4.2 cp7 the FX editor saves and loads presets, a load one undo step", "[ui][input][shell][mixer][fx-editors][fx-presets]")
+{
+    using K = yesdaw::engine::FxKind;
+    const auto bundlePath = makeTempBundlePath ("fx-presets-shell");
+    const auto stateDirectory = makeTempBundlePath ("fx-presets-shell-state");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.sessionStateDirectory = stateDirectory;
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    addInsertToStrip (*shell, 0, K::Compressor);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).kind == "Compressor");
+
+    // The Presets button sits in the editor's title row, inside the editor.
+    auto* presetsButton = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.editor.presets"));
+    REQUIRE (presetsButton != nullptr);
+    REQUIRE (presetsButton->isVisible());
+    REQUIRE (presetsButton->getParentComponent() != nullptr);
+    REQUIRE (presetsButton->getParentComponent()->isVisible());   // the editor itself
+    REQUIRE (presetsButton->getWidth() > 0);
+    const juce::String save = juce::String::fromUTF8 ("Save Preset\xe2\x80\xa6");
+    REQUIRE (yesdaw::ui::mainComponentFxPresetsMenu (*shell) == std::vector<juce::String> { "No Compressor presets yet", save });
+    yesdaw::ui::mainComponentInvokeFxPresetsMenuItem (*shell, yesdaw::ui::mainComponentFxPresetSaveItemId());
+    REQUIRE (yesdaw::ui::mainComponentFxPresetPromptRequests (*shell) == 1);   // Save Preset... asks for a name
+
+    const auto probe = [&shell] { return juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell))); };
+    const auto realOf = [&probe] (const char* key) { return static_cast<double> (probe()["fxEditor"]["params"][key]); };
+    const auto statusOf = [&probe] { return probe()["status"]["text"].toString(); };
+    const auto statusIsError = [&probe] { return static_cast<bool> (probe()["status"]["isError"]); };
+    const yesdaw::engine::ParamSpec threshold =
+        yesdaw::engine::fxParamSpecForKind (K::Compressor, presetParamId (K::Compressor, "compressor.threshold"));
+    const yesdaw::engine::ParamSpec ratio =
+        yesdaw::engine::fxParamSpecForKind (K::Compressor, presetParamId (K::Compressor, "compressor.ratio"));
+    const auto set = [&shell] (const char* label, const yesdaw::engine::ParamSpec& spec, double real) {
+        fxParamSliderLabelled (*shell, label).setValue (yesdaw::engine::unmapToNormalized (spec, real), juce::sendNotificationSync);
+    };
+
+    // Save: the file appears under the kind; the menu and the probe list it; the status line says so.
+    set ("Threshold", threshold, -30.0);
+    set ("Ratio", ratio, 4.0);
+    REQUIRE (realOf ("compressor.threshold") == Catch::Approx (-30.0).margin (1e-6));
+    REQUIRE (yesdaw::ui::mainComponentSaveFxPreset (*shell, "Vocal comp"));
+    REQUIRE (statusOf() == "Saved preset \"Vocal comp\"");
+    REQUIRE_FALSE (statusIsError());
+    REQUIRE (std::filesystem::is_regular_file (stateDirectory / "presets" / "Compressor" / "Vocal comp.yesfx"));
+    REQUIRE (yesdaw::ui::mainComponentFxPresetsMenu (*shell) == std::vector<juce::String> { "Vocal comp", save });
+    REQUIRE (probe()["fxEditor"]["presets"].size() == 1);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentSaveFxPreset (*shell, "vocal COMP"));   // never overwrites
+    REQUIRE (statusIsError());
+    REQUIRE (statusOf().contains ("already exists"));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentSaveFxPreset (*shell, "a/b"));
+    REQUIRE (statusOf().startsWith ("Preset not saved: "));
+
+    // Load: picking the preset restores every value at once; one undo puts the whole edit back.
+    set ("Threshold", threshold, -10.0);
+    set ("Ratio", ratio, 2.0);
+    yesdaw::ui::mainComponentInvokeFxPresetsMenuItem (*shell, 1);
+    REQUIRE (realOf ("compressor.threshold") == Catch::Approx (-30.0).margin (1e-6));
+    REQUIRE (realOf ("compressor.ratio") == Catch::Approx (4.0).margin (1e-6));
+    REQUIRE (statusOf() == "Loaded preset \"Vocal comp\"");
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.at (0).strip.fxChain.at (0).kind == K::Compressor);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (realOf ("compressor.threshold") == Catch::Approx (-10.0).margin (1e-6));
+    REQUIRE (realOf ("compressor.ratio") == Catch::Approx (2.0).margin (1e-6));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (realOf ("compressor.threshold") == Catch::Approx (-30.0).margin (1e-6));
+
+    // A broken file is listed but refused whole: the insert and the undo history stay as they were.
+    {
+        std::ofstream broken (stateDirectory / "presets" / "Compressor" / "Broken.yesfx", std::ios::binary);
+        broken << "{ nope";
+    }
+    REQUIRE (yesdaw::ui::mainComponentFxPresetsMenu (*shell) == std::vector<juce::String> { "Broken", "Vocal comp", save });
+    set ("Threshold", threshold, -12.0);
+    yesdaw::ui::mainComponentInvokeFxPresetsMenuItem (*shell, 1);
+    REQUIRE (realOf ("compressor.threshold") == Catch::Approx (-12.0).margin (1e-6));
+    REQUIRE (statusIsError());
+    REQUIRE (statusOf().startsWith ("Preset not loaded: "));
+    REQUIRE (statusOf().contains ("not readable JSON"));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (realOf ("compressor.threshold") == Catch::Approx (-30.0).margin (1e-6));   // the threshold edit, not a load
+
+    // Another kind has its own presets, and a compressor preset copied there is refused by kind.
+    addInsertToStrip (*shell, 0, K::Eq);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 1);
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).kind == "EQ");
+    REQUIRE (yesdaw::ui::mainComponentFxPresetsMenu (*shell) == std::vector<juce::String> { "No EQ presets yet", save });
+    std::filesystem::create_directories (stateDirectory / "presets" / "EQ");
+    std::filesystem::copy_file (stateDirectory / "presets" / "Compressor" / "Vocal comp.yesfx", stateDirectory / "presets" / "EQ" / "Comp.yesfx");
+    REQUIRE (yesdaw::ui::mainComponentFxPresetsMenu (*shell) == std::vector<juce::String> { "Comp", save });
+    yesdaw::ui::mainComponentInvokeFxPresetsMenuItem (*shell, 1);
+    REQUIRE (statusOf().contains ("is for Compressor, not EQ"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove_all (stateDirectory, ec);
+}

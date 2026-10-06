@@ -266,6 +266,13 @@ struct MainComponentFxEditor
 };
 [[nodiscard]] MainComponentFxEditor mainComponentFxEditor (const juce::Component& component);
 void mainComponentOpenFxEditor (juce::Component& component, int stripIndex, int slotIndex);
+// G4.2 cp7 (ADR-0050): the FX editor's Presets menu as built (labels in order; preset i loads as item
+// i + 1), picking an item, the name prompt's Save path, and how often the prompt was asked for.
+[[nodiscard]] std::vector<juce::String> mainComponentFxPresetsMenu (juce::Component& component);
+void mainComponentInvokeFxPresetsMenuItem (juce::Component& component, int itemId);
+[[nodiscard]] int mainComponentFxPresetSaveItemId() noexcept;
+bool mainComponentSaveFxPreset (juce::Component& component, const juce::String& name);
+[[nodiscard]] int mainComponentFxPresetPromptRequests (const juce::Component& component);
 // G4.1: the painted I/O row rect for a strip (shell coordinates): row 0 the input slot (Track strips
 // only), row 1 the output slot (Track and Bus strips). Empty where the strip has none or the strip is
 // too short to carry it — the same law the paint and the click read.

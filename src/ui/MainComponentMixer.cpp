@@ -4,6 +4,7 @@
 // verbatim from the inline class. The declaration is ui/MainComponentShell.h.
 
 #include "ui/MainComponentShell.h"
+#include "ui/FxPresets.h"
 
 using namespace yesdaw::ui::shell;
 
@@ -569,6 +570,7 @@ void MainComponent::configureMixerControls()
         refreshActionState();
         repaintAll();
     };
+    fxEditor.onPresets = [this] { showFxPresetsMenu(); };   // G4.2 cp7 (ADR-0050)
     addChildComponent (fxEditor);
 
     // FX parameter editing (usable-DAW P1): the selected slot's ParamSpecs become live sliders;
@@ -753,6 +755,135 @@ void MainComponent::closeFxEditor()
     refreshActionState();
     resized();
     repaintAll();
+}
+
+// G4.2 cp7 (ADR-0050): the insert the open editor shows (the selected strip's selected slot).
+std::optional<yesdaw::engine::FxInsert> MainComponent::fxEditorInsert() const
+{
+    const std::vector<yesdaw::engine::FxInsert> chain = appModel.selectedStripFxChain();
+    if (! fxEditorOpen || selectedFxParamSlot < 0 || static_cast<std::size_t> (selectedFxParamSlot) >= chain.size())
+        return std::nullopt;
+    return chain[static_cast<std::size_t> (selectedFxParamSlot)];
+}
+
+// The Presets menu: this kind's presets (alphabetical; picking one loads it), then Save Preset...
+void MainComponent::showFxPresetsMenu()
+{
+    lastFxPresetsMenu.clear();
+    lastFxPresetsMenuNames.clear();
+    const std::optional<yesdaw::engine::FxInsert> insert = fxEditorInsert();
+    if (! insert.has_value())
+        return;
+
+    juce::PopupMenu menu;
+    lastFxPresetsMenuNames = yesdaw::ui::listFxPresets (appModel.sessionStateDirectory(), insert->kind);
+    for (std::size_t i = 0; i < lastFxPresetsMenuNames.size(); ++i)
+    {
+        const juce::String label = juce::String::fromUTF8 (lastFxPresetsMenuNames[i].c_str());
+        menu.addItem (static_cast<int> (i) + 1, label);
+        lastFxPresetsMenu.push_back (label);
+    }
+    if (lastFxPresetsMenuNames.empty())
+    {
+        const juce::String none = juce::String ("No ") + yesdaw::ui::fxPresetKindName (insert->kind) + " presets yet";
+        menu.addItem (juce::PopupMenu::Item (none).setEnabled (false));
+        lastFxPresetsMenu.push_back (none);
+    }
+    menu.addSeparator();
+    const juce::String save = juce::String::fromUTF8 ("Save Preset\xe2\x80\xa6");
+    menu.addItem (kFxPresetSaveItemId, save, ! appModel.sessionStateDirectory().empty());
+    lastFxPresetsMenu.push_back (save);
+    if (getPeer() == nullptr)
+        return;   // headless: the record is the menu
+    menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (&fxEditor.presetsAnchor()),
+                        [safeThis = juce::Component::SafePointer<MainComponent> (this)] (int itemId) {
+                            if (safeThis != nullptr)
+                                safeThis->invokeFxPresetsMenuItem (itemId);
+                        });
+}
+
+void MainComponent::invokeFxPresetsMenuItem (int itemId)
+{
+    if (itemId == kFxPresetSaveItemId)
+    {
+        promptFxPresetName();
+        return;
+    }
+    if (itemId >= 1 && static_cast<std::size_t> (itemId) <= lastFxPresetsMenuNames.size())
+        (void) loadFxPresetNamed (juce::String::fromUTF8 (lastFxPresetsMenuNames[static_cast<std::size_t> (itemId - 1)].c_str()));
+}
+
+// The name prompt: Enter saves, Escape cancels; a refused name keeps nothing and says why.
+void MainComponent::promptFxPresetName()
+{
+    const std::optional<yesdaw::engine::FxInsert> insert = fxEditorInsert();
+    if (! insert.has_value())
+        return;
+    ++fxPresetPromptRequests;
+    if (getPeer() == nullptr)
+        return;   // headless: the harness saves through saveFxPresetNamed, the prompt's own path
+
+    auto* prompt = new juce::AlertWindow ("Save Preset",
+                                          juce::String ("Name this ") + yesdaw::ui::fxPresetKindName (insert->kind) + " setting",
+                                          juce::MessageBoxIconType::NoIcon,
+                                          this);
+    prompt->setComponentID ("mixer.fx.preset.prompt");
+    prompt->addTextEditor ("name", {}, "Name");
+    if (juce::TextEditor* field = prompt->getTextEditor ("name"))
+    {
+        field->setComponentID ("mixer.fx.preset.name");
+        field->setInputRestrictions (static_cast<int> (yesdaw::ui::kFxPresetNameMaxLength) + 8);
+    }
+    prompt->addButton ("Save", 1, juce::KeyPress (juce::KeyPress::returnKey));
+    prompt->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+    prompt->enterModalState (true,
+                             juce::ModalCallbackFunction::create (
+                                 [safeThis = juce::Component::SafePointer<MainComponent> (this), prompt] (int result) {
+                                     if (safeThis == nullptr || result != 1)
+                                         return;
+                                     (void) safeThis->saveFxPresetNamed (prompt->getTextEditorContents ("name"));
+                                 }),
+                             true);
+}
+
+bool MainComponent::saveFxPresetNamed (const juce::String& name)
+{
+    const std::optional<yesdaw::engine::FxInsert> insert = fxEditorInsert();
+    if (! insert.has_value())
+        return false;
+    const yesdaw::ui::FxPresetWrite written = yesdaw::ui::saveFxPreset (
+        appModel.sessionStateDirectory(), insert->kind, name.toStdString(), insert->normalizedParams);
+    if (! written.ok)
+        appModel.reportStatus ("Preset not saved: " + written.reason, true);
+    else
+        appModel.reportStatus ("Saved preset \"" + yesdaw::ui::fxPresetTrimmedName (name.toStdString()) + "\"", false);
+    refreshActionState();
+    repaintAll();
+    return written.ok;
+}
+
+bool MainComponent::loadFxPresetNamed (const juce::String& name)
+{
+    const std::optional<yesdaw::engine::FxInsert> insert = fxEditorInsert();
+    if (! insert.has_value())
+        return false;
+    const yesdaw::ui::FxPresetDecode decoded =
+        yesdaw::ui::loadFxPreset (appModel.sessionStateDirectory(), insert->kind, name.toStdString());
+    bool loaded = false;
+    if (! decoded.ok)
+        appModel.reportStatus ("Preset not loaded: " + decoded.reason, true);
+    else if (const auto result = appModel.applyFxPresetOnSelectedStrip (static_cast<std::size_t> (selectedFxParamSlot),
+                                                                         decoded.normalizedParams);
+             ! result.dispatched)
+        appModel.reportStatus (std::string ("Preset not loaded: ") + result.state.disabledReason, true);
+    else
+    {
+        loaded = true;
+        appModel.reportStatus ("Loaded preset \"" + name.toStdString() + "\"", false);
+    }
+    refreshActionState();
+    repaintAll();
+    return loaded;
 }
 
 // G2.1 cp2: which editor tab the dock shows.

@@ -838,7 +838,8 @@ struct UiTheme
         static constexpr int fxEditorMinWidth = 300;
         static constexpr int fxEditorMinHeight = 160;
         static constexpr int fxEditorBypassWidth = 72;
-        static constexpr int fxEditorTitleTrimRight = 160;
+        static constexpr int fxEditorTitleTrimRight = 248;   // G4.2 cp7: Close, Bypass and Presets
+        static constexpr int fxEditorPresetsWidth = 80;
         // G4.2: response above the eight-row parameter page, using the editor's existing spacing.
         static constexpr int eqEditorMaxWidth = 660;
         static constexpr int eqEditorMaxHeight = 460;

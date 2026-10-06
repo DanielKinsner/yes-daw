@@ -51,6 +51,7 @@ class FxEditorComponent final : public juce::Component,
 public:
     std::function<void()> onClose;
     std::function<void()> onBypass;
+    std::function<void()> onPresets;   // G4.2 cp7: the Presets menu (ADR-0050)
 
     FxEditorComponent()
     {
@@ -80,6 +81,14 @@ public:
         closeButton.setColour (juce::TextButton::textColourOffId, yesdaw::ui::UiTheme::Color::text());
         closeButton.onClick = [this] { if (onClose) onClose(); };
         addAndMakeVisible (closeButton);
+        presetsButton.setComponentID ("mixer.fx.editor.presets");
+        presetsButton.setName ("Presets");
+        presetsButton.setButtonText ("Presets");
+        presetsButton.setTooltip ("Save this setting as a preset, or load one saved for this effect");
+        presetsButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
+        presetsButton.setColour (juce::TextButton::textColourOffId, yesdaw::ui::UiTheme::Color::text());
+        presetsButton.onClick = [this] { if (onPresets) onPresets(); };
+        addAndMakeVisible (presetsButton);
     }
 
     void setTitleText (const juce::String& text)
@@ -92,6 +101,7 @@ public:
     [[nodiscard]] const juce::String& titleText() const noexcept { return title; }
     void setBypassed (bool bypassed) { bypassButton.setToggleState (bypassed, juce::dontSendNotification); }
     [[nodiscard]] bool isBypassed() const noexcept { return bypassButton.getToggleState(); }
+    [[nodiscard]] juce::Component& presetsAnchor() noexcept { return presetsButton; }
 
     void setInsert (const engine::FxInsert& insert, double sampleRate)
     {
@@ -178,6 +188,8 @@ public:
         closeButton.setBounds (top.removeFromRight (L::keymapEditorCloseWidth));
         top.removeFromRight (L::keymapEditorGap);
         bypassButton.setBounds (top.removeFromRight (L::fxEditorBypassWidth));
+        top.removeFromRight (L::keymapEditorGap);
+        presetsButton.setBounds (top.removeFromRight (L::fxEditorPresetsWidth));
 
         const Faces faces = fittedFaces();
         eqResponse.setVisible (faces.eq);
@@ -256,7 +268,7 @@ private:
     ReverbDecayComponent reverbDecay;
     engine::EntityId shownInsertId {};
     juce::String title;
-    juce::TextButton bypassButton, closeButton;
+    juce::TextButton bypassButton, closeButton, presetsButton;
 };
 
 } // namespace yesdaw::ui
