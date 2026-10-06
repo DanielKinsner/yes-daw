@@ -11,6 +11,7 @@
 #include "ui/DelayTapsComponent.h"
 #include "ui/GainReductionMeterComponent.h"
 #include "ui/ReverbDecayComponent.h"
+#include "ui/TransferCurveComponent.h"
 #include "ui/ContextMenus.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
@@ -55,6 +56,7 @@ public:
     {
         addChildComponent (eqResponse);
         addChildComponent (gainReduction);   // G4.2 cp2: the compressor / limiter face
+        addChildComponent (transferCurve);   // G4.2 cp5: its transfer curve, above the meter
         addChildComponent (delayTaps);       // G4.2 cp3: the delay face
         addChildComponent (reverbDecay);     // G4.2 cp4: the reverb face
         setName ("FX editor");
@@ -93,25 +95,25 @@ public:
 
     void setInsert (const engine::FxInsert& insert, double sampleRate)
     {
-        const bool showEq = insert.kind == engine::FxKind::Eq;
-        const bool showGr = insert.kind == engine::FxKind::Compressor || insert.kind == engine::FxKind::Limiter;
-        const bool showDelay = insert.kind == engine::FxKind::Delay;
-        const bool showReverb = insert.kind == engine::FxKind::Reverb;
-        if (showEq) eqResponse.setInsert (insert, sampleRate);
-        if (showDelay) delayTaps.setInsert (insert, sampleRate);
-        if (showReverb) reverbDecay.setInsert (insert, sampleRate);
+        const bool eq = insert.kind == engine::FxKind::Eq;
+        const bool dynamics = insert.kind == engine::FxKind::Compressor || insert.kind == engine::FxKind::Limiter;
+        const bool delay = insert.kind == engine::FxKind::Delay;
+        const bool reverb = insert.kind == engine::FxKind::Reverb;
+        if (eq) eqResponse.setInsert (insert, sampleRate);
+        if (delay) delayTaps.setInsert (insert, sampleRate);
+        if (reverb) reverbDecay.setInsert (insert, sampleRate);
+        if (dynamics) transferCurve.setInsert (insert, sampleRate);
         if (insert.id != shownInsertId)
         {
             shownInsertId = insert.id;
             gainReduction.reset();   // another insert: nothing measured for it yet
         }
-        if (eqResponse.isVisible() != showEq || gainReduction.isVisible() != showGr || delayTaps.isVisible() != showDelay
-            || reverbDecay.isVisible() != showReverb)
+        if (eq != wantsEq || dynamics != wantsDynamics || delay != wantsDelay || reverb != wantsReverb)
         {
-            eqResponse.setVisible (showEq);
-            gainReduction.setVisible (showGr);
-            delayTaps.setVisible (showDelay);
-            reverbDecay.setVisible (showReverb);
+            wantsEq = eq;
+            wantsDynamics = dynamics;
+            wantsDelay = delay;
+            wantsReverb = reverb;
             resized();
         }
     }
@@ -120,36 +122,37 @@ public:
     {
         gainReduction.pushReading (gainReductionDb, bypassed);
     }
+    // What is on screen now: a face drops whole when the editor is too short to keep its rows (below).
     [[nodiscard]] bool showsGainReduction() const noexcept { return gainReduction.isVisible(); }
+    [[nodiscard]] bool showsTransferCurve() const noexcept { return transferCurve.isVisible(); }
     [[nodiscard]] bool showsDelayTaps() const noexcept { return delayTaps.isVisible(); }
-    [[nodiscard]] const DelayTapsComponent& delayTapsFace() const noexcept { return delayTaps; }
     [[nodiscard]] bool showsReverbDecay() const noexcept { return reverbDecay.isVisible(); }
-    [[nodiscard]] const GainReductionMeterComponent& gainReductionMeter() const noexcept { return gainReduction; }
     [[nodiscard]] bool showsEqResponse() const noexcept { return eqResponse.isVisible(); }
+    // What the shown effect asks for (its kind), independent of the space it got.
+    [[nodiscard]] bool isEqEditor() const noexcept { return wantsEq; }
+    [[nodiscard]] bool hasFace() const noexcept { return wantsEq || wantsDynamics || wantsDelay || wantsReverb; }
+    [[nodiscard]] const DelayTapsComponent& delayTapsFace() const noexcept { return delayTaps; }
+    [[nodiscard]] const GainReductionMeterComponent& gainReductionMeter() const noexcept { return gainReduction; }
+    [[nodiscard]] const TransferCurveComponent& transferCurveFace() const noexcept { return transferCurve; }
     [[nodiscard]] double eqResponseDb (double hz) const noexcept { return eqResponse.responseDb (hz); }
     [[nodiscard]] int preferredWidth() const noexcept
     {
-        return showsEqResponse() || showsDelayTaps() || showsReverbDecay() ? UiTheme::Layout::eqEditorMaxWidth
-                                                                           : UiTheme::Layout::fxEditorMaxWidth;
+        return wantsEq || wantsDelay || wantsReverb ? UiTheme::Layout::eqEditorMaxWidth : UiTheme::Layout::fxEditorMaxWidth;
     }
     [[nodiscard]] int preferredHeight() const noexcept
     {
-        return showsEqResponse()     ? UiTheme::Layout::eqEditorMaxHeight
-             : showsGainReduction() ? UiTheme::Layout::grEditorMaxHeight
-             : showsDelayTaps()     ? UiTheme::Layout::delayEditorMaxHeight
-             : showsReverbDecay()   ? UiTheme::Layout::reverbEditorMaxHeight
-                                    : UiTheme::Layout::fxEditorMaxHeight;
+        return wantsEq       ? UiTheme::Layout::eqEditorMaxHeight
+             : wantsDynamics ? UiTheme::Layout::grEditorMaxHeight
+             : wantsDelay    ? UiTheme::Layout::delayEditorMaxHeight
+             : wantsReverb   ? UiTheme::Layout::reverbEditorMaxHeight
+                             : UiTheme::Layout::fxEditorMaxHeight;
     }
 
     // The content area the shell lays the parameter rows into (editor-local).
     [[nodiscard]] juce::Rectangle<int> contentArea() const
     {
-        using L = yesdaw::ui::UiTheme::Layout;
         auto area = bodyArea();
-        if (showsEqResponse()) area.removeFromTop (L::eqResponseHeight + L::keymapEditorGap);
-        if (showsGainReduction()) area.removeFromTop (L::grMeterHeight + L::keymapEditorGap);
-        if (showsDelayTaps()) area.removeFromTop (L::delayTapsHeight + L::keymapEditorGap);
-        if (showsReverbDecay()) area.removeFromTop (L::reverbDecayHeight + L::keymapEditorGap);
+        area.removeFromTop (faceBandHeight (fittedFaces()));
         return area;
     }
 
@@ -175,14 +178,68 @@ public:
         closeButton.setBounds (top.removeFromRight (L::keymapEditorCloseWidth));
         top.removeFromRight (L::keymapEditorGap);
         bypassButton.setBounds (top.removeFromRight (L::fxEditorBypassWidth));
+
+        const Faces faces = fittedFaces();
+        eqResponse.setVisible (faces.eq);
+        transferCurve.setVisible (faces.curve);
+        gainReduction.setVisible (faces.meter);
+        delayTaps.setVisible (faces.delay);
+        reverbDecay.setVisible (faces.reverb);
         auto content = bodyArea();
-        eqResponse.setBounds (showsEqResponse() ? content.removeFromTop (L::eqResponseHeight) : juce::Rectangle<int> {});
-        gainReduction.setBounds (showsGainReduction() ? content.removeFromTop (L::grMeterHeight) : juce::Rectangle<int> {});
-        delayTaps.setBounds (showsDelayTaps() ? content.removeFromTop (L::delayTapsHeight) : juce::Rectangle<int> {});
-        reverbDecay.setBounds (showsReverbDecay() ? content.removeFromTop (L::reverbDecayHeight) : juce::Rectangle<int> {});
+        const auto place = [&content] (juce::Component& face, bool shown, int height) {
+            face.setBounds (shown ? content.removeFromTop (height) : juce::Rectangle<int> {});
+            if (shown)
+                content.removeFromTop (L::keymapEditorGap);
+        };
+        place (eqResponse, faces.eq, L::eqResponseHeight);
+        place (transferCurve, faces.curve, L::transferCurveHeight);
+        place (gainReduction, faces.meter, L::grMeterHeight);
+        place (delayTaps, faces.delay, L::delayTapsHeight);
+        place (reverbDecay, faces.reverb, L::reverbDecayHeight);
     }
 
 private:
+    struct Faces
+    {
+        bool eq = false, curve = false, meter = false, delay = false, reverb = false;
+    };
+
+    // The parameter rows are the controls; a face is their picture. A face shows only while the rows keep
+    // room for fxEditorRowsKeptUnderFaces of them beneath it, and drops whole otherwise (the codebase's
+    // section-fit law), least essential first: a dynamics editor keeps its meter longer than its curve.
+    // A squeezed editor once laid its first row out at 0 x 0 under the faces.
+    [[nodiscard]] Faces fittedFaces() const
+    {
+        using L = UiTheme::Layout;
+        int room = bodyArea().getHeight()
+                 - L::fxEditorRowsKeptUnderFaces * (L::mixerFxParamRowHeight + L::mixerFxParamRowGap);
+        const auto take = [&room] (bool wanted, int height) {
+            if (! wanted || room < height + L::keymapEditorGap)
+                return false;
+            room -= height + L::keymapEditorGap;
+            return true;
+        };
+        Faces faces;
+        faces.eq = take (wantsEq, L::eqResponseHeight);
+        faces.meter = take (wantsDynamics, L::grMeterHeight);
+        faces.curve = take (wantsDynamics, L::transferCurveHeight);
+        faces.delay = take (wantsDelay, L::delayTapsHeight);
+        faces.reverb = take (wantsReverb, L::reverbDecayHeight);
+        return faces;
+    }
+
+    [[nodiscard]] static int faceBandHeight (const Faces& faces) noexcept
+    {
+        using L = UiTheme::Layout;
+        int height = 0;
+        if (faces.eq) height += L::eqResponseHeight + L::keymapEditorGap;
+        if (faces.curve) height += L::transferCurveHeight + L::keymapEditorGap;
+        if (faces.meter) height += L::grMeterHeight + L::keymapEditorGap;
+        if (faces.delay) height += L::delayTapsHeight + L::keymapEditorGap;
+        if (faces.reverb) height += L::reverbDecayHeight + L::keymapEditorGap;
+        return height;
+    }
+
     [[nodiscard]] juce::Rectangle<int> bodyArea() const
     {
         using L = UiTheme::Layout;
@@ -193,6 +250,8 @@ private:
 
     EqResponseComponent eqResponse;
     GainReductionMeterComponent gainReduction;
+    TransferCurveComponent transferCurve;
+    bool wantsEq = false, wantsDynamics = false, wantsDelay = false, wantsReverb = false;
     DelayTapsComponent delayTaps;
     ReverbDecayComponent reverbDecay;
     engine::EntityId shownInsertId {};

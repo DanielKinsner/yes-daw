@@ -855,7 +855,9 @@ struct UiTheme
         static constexpr int grMeterHoldTicks = 45;
         static constexpr float grMeterFallDbPerTick = 0.5f;
         static constexpr float grMeterPeakStrokeWidth = 2.0f;
-        static constexpr int grEditorMaxHeight = 370;
+        static constexpr int grEditorMaxHeight = 500;   // G4.2 cp5: the transfer curve joins the meter
+        static constexpr int transferCurveHeight = 122;
+        static constexpr int fxEditorRowsKeptUnderFaces = 3;   // a face drops whole before the rows lose these
         static constexpr int grMeterTickLength = 3;
         // G4.2 cp3: the delay's echo plot above its parameter page (the EQ editor's width).
         static constexpr int delayTapsHeight = 130;

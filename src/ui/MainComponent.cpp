@@ -2153,9 +2153,10 @@ void MainComponent::resized()
         const int historyHeight = std::min (L::undoHistoryMaxHeight, work.getHeight() - L::keymapEditorMargin);
         undoHistory.setBounds (work.withSizeKeepingCentre (std::max (L::keymapEditorMinWidth, historyWidth), std::max (L::keymapEditorMinHeight, historyHeight)));
         // G4.1 cp2: the FX editor — the same centred law, sized for its parameter rows.
-        // The EQ face needs its full parameter page even with the mixer grown at 720p.
-        // Like a plug-in window, it may float over the dock; keep it above the splitters too.
-        const auto fxWork = fxEditor.showsEqResponse() ? getLocalBounds().withTrimmedTop (headerHeightNow()) : work;
+        // An editor with a face (EQ, dynamics, delay, reverb) needs its full parameter page even with the
+        // mixer grown at 720p. Like a plug-in window, it may float over the dock; keep it above the
+        // splitters too. Decided by the effect's kind, never by which faces fit (they follow the size).
+        const auto fxWork = fxEditor.hasFace() ? getLocalBounds().withTrimmedTop (headerHeightNow()) : work;
         const int fxWidth = std::min (fxEditor.preferredWidth(), fxWork.getWidth() - L::keymapEditorMargin);
         const int fxHeight = std::min (fxEditor.preferredHeight(), fxWork.getHeight() - L::keymapEditorMargin);
         fxEditor.setBounds (fxWork.withSizeKeepingCentre (std::max (L::fxEditorMinWidth, fxWidth), std::max (L::fxEditorMinHeight, fxHeight)));

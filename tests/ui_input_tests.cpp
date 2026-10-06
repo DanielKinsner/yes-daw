@@ -7,6 +7,7 @@
 #include "ui/EqResponseComponent.h"
 #include "ui/DelayTapsComponent.h"
 #include "ui/ReverbDecayComponent.h"
+#include "ui/TransferCurveComponent.h"
 #include "ui/FxParameterNames.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
@@ -23172,6 +23173,102 @@ TEST_CASE ("G4.2 cp4 the reverb face draws the tail the node rings", "[ui][input
         REQUIRE (shell->getLocalBounds().contains (yesdaw::ui::mainComponentFxEditor (*shell).bounds));
         REQUIRE (firstRow->getY() >= face->getBottom());
     }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G4.2 cp5 — the dynamics faces' transfer curve: the compressor's from the node's own closed-form gain law
+// (checked against the textbook threshold/ratio arithmetic), the limiter's measured from the real node
+// on steady levels (checked against its ceiling).
+TEST_CASE ("G4.2 cp5 the dynamics faces draw transfer curves from the DSP", "[ui][input][shell][mixer][fx-editors]")
+{
+    using Comp = yesdaw::engine::CompressorNode;
+    using Lim = yesdaw::engine::LimiterNode;
+    const auto normalizedFor = [] (yesdaw::engine::FxKind kind, yesdaw::engine::ParameterId id, double real) {
+        return yesdaw::engine::unmapToNormalized (yesdaw::engine::fxParamSpecForKind (kind, id), real);
+    };
+    const auto bundlePath = makeTempBundlePath ("fx-editors-transfer");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Compressor);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    auto* curve = dynamic_cast<yesdaw::ui::TransferCurveComponent*> (findChildWithComponentId (*shell, "mixer.fx.editor.transfer"));
+    auto* meter = findChildWithComponentId (*shell, "mixer.fx.editor.gr");
+    auto* firstRow = findChildWithComponentId (*shell, "mixer.fx.param.0");
+    REQUIRE (curve != nullptr);
+    REQUIRE (meter != nullptr);
+    REQUIRE (firstRow != nullptr);
+    REQUIRE (curve->isVisible());
+    REQUIRE (curve->getBottom() <= meter->getY());
+    REQUIRE (meter->getBottom() <= firstRow->getY());
+
+    // The factory compressor is transparent: unity across the whole range.
+    REQUIRE (curve->points().size() >= 40u);
+    for (const auto& point : curve->points())
+        REQUIRE (point.outputDb == Catch::Approx (point.inputDb).margin (1.0e-9));
+
+    // Threshold -20 dB, 4:1, hard knee: the textbook static curve.
+    fxParamSliderLabelled (*shell, "Threshold").setValue (normalizedFor (yesdaw::engine::FxKind::Compressor, Comp::kThresholdParamId, -20.0), juce::sendNotificationSync);
+    fxParamSliderLabelled (*shell, "Ratio").setValue (normalizedFor (yesdaw::engine::FxKind::Compressor, Comp::kRatioParamId, 4.0), juce::sendNotificationSync);
+    fxParamSliderLabelled (*shell, "Knee").setValue (normalizedFor (yesdaw::engine::FxKind::Compressor, Comp::kKneeParamId, 0.0), juce::sendNotificationSync);
+    REQUIRE (curve->outputDbAt (-30.0) == Catch::Approx (-30.0).margin (0.05));
+    REQUIRE (curve->outputDbAt (0.0) == Catch::Approx (-15.0).margin (0.05));
+    REQUIRE (curve->outputDbAt (12.0) == Catch::Approx (-12.0).margin (0.05));
+    fxParamSliderLabelled (*shell, "Makeup").setValue (normalizedFor (yesdaw::engine::FxKind::Compressor, Comp::kMakeupParamId, 6.0), juce::sendNotificationSync);
+    REQUIRE (curve->outputDbAt (-30.0) == Catch::Approx (-24.0).margin (0.1));
+
+    // The limiter, measured: a -6 dB ceiling holds every steady level above it and passes the rest.
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Limiter);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 1);
+    REQUIRE (curve->isVisible());
+    fxParamSliderLabelled (*shell, "Ceiling").setValue (normalizedFor (yesdaw::engine::FxKind::Limiter, Lim::kCeilingParamId, -6.0), juce::sendNotificationSync);
+    INFO ("limiter out at +12: " << curve->outputDbAt (12.0) << ", at 0: " << curve->outputDbAt (0.0) << ", at -24: " << curve->outputDbAt (-24.0));
+    REQUIRE (curve->outputDbAt (12.0) == Catch::Approx (-6.0).margin (0.3));
+    REQUIRE (curve->outputDbAt (0.0) == Catch::Approx (-6.0).margin (0.3));
+    REQUIRE (curve->outputDbAt (-24.0) == Catch::Approx (-24.0).margin (0.3));
+
+    // An EQ has no transfer curve; the dynamics editors fit at every rubric size with the rows below.
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Eq);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 2);
+    REQUIRE_FALSE (curve->isVisible());
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    for (const auto size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+    {
+        shell->setSize (size.x, size.y);
+        REQUIRE (shell->getLocalBounds().contains (yesdaw::ui::mainComponentFxEditor (*shell).bounds));
+        REQUIRE (curve->getBottom() <= meter->getY());
+        REQUIRE (meter->getBottom() <= firstRow->getY());
+        REQUIRE (firstRow->getBottom() <= firstRow->getParentComponent()->getHeight());
+    }
+
+    // Too short for everything: the faces drop whole, least essential first (curve, then meter), and the
+    // first rows keep real size — a squeezed editor once laid its first row out at 0 x 0 under the faces.
+    const auto firstRowsLaidOut = [&shell] {
+        for (int row = 0; row < yesdaw::ui::UiTheme::Layout::fxEditorRowsKeptUnderFaces; ++row)
+        {
+            auto* slider = findChildWithComponentId (*shell, "mixer.fx.param." + juce::String (row));
+            if (slider == nullptr || slider->getHeight() < yesdaw::ui::UiTheme::Layout::mixerFxParamRowHeight || slider->getWidth() <= 0)
+                return false;
+        }
+        return true;
+    };
+    bool sawMeterOnly = false, sawNoFace = false;
+    for (int height = 900; height >= 200; height -= 20)
+    {
+        shell->setSize (1536, height);
+        INFO ("shell height " << height << " editor " << yesdaw::ui::mainComponentFxEditor (*shell).bounds.toString());
+        REQUIRE (firstRowsLaidOut());
+        if (curve->isVisible())
+            REQUIRE (meter->isVisible());   // the curve never outlives the meter
+        sawMeterOnly = sawMeterOnly || (meter->isVisible() && ! curve->isVisible());
+        sawNoFace = sawNoFace || (! meter->isVisible() && ! curve->isVisible());
+    }
+    REQUIRE (sawMeterOnly);
+    REQUIRE (sawNoFace);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
