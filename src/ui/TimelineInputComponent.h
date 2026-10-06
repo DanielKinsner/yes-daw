@@ -393,32 +393,32 @@ public:
         if (geometry.rulerArea.contains (position))
         {
             if (yesdaw::ui::timelineMapLabelAt (getLocalBounds(), state, position) >= 0)
-                return "Tempo / meter change: click to locate the playhead on it \u00b7 right-click to edit or remove";
+                return juce::String::fromUTF8 ("Tempo / meter change: click to locate the playhead on it \xc2\xb7 right-click to edit or remove");
             for (int markerIndex = 0; markerIndex < state.markerCount; ++markerIndex)
                 if (yesdaw::ui::timelineMarkerLabelRect (getLocalBounds(), state, markerIndex).contains (position))
-                    return "Marker: drag to move \u00b7 double-click to rename \u00b7 Alt-click removes";
-            return "Ruler: click to locate \u00b7 drag to select a time range \u00b7 Shift-drag sets the loop \u00b7 Alt+Shift-drag sets the punch";
+                    return juce::String::fromUTF8 ("Marker: drag to move \xc2\xb7 double-click to rename \xc2\xb7 Alt-click removes");
+            return juce::String::fromUTF8 ("Ruler: click to locate \xc2\xb7 drag to select a time range \xc2\xb7 Shift-drag sets the loop \xc2\xb7 Alt+Shift-drag sets the punch");
         }
         if (! geometry.clipArea.contains (position))
             return {};
         const yesdaw::ui::TimelineHitTestResult hit =
             yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, position);
         if (! hit.hit)
-            return "Lane: click to select the track \u00b7 drag a marquee to select clips \u00b7 right-click for the lane menu";
+            return juce::String::fromUTF8 ("Lane: click to select the track \xc2\xb7 drag a marquee to select clips \xc2\xb7 right-click for the lane menu");
         switch (dragModeForPointer (state, getLocalBounds(), hit.id, position, modifiers))
         {
             case TimelineDragMode::TrimLeft:
-            case TimelineDragMode::TrimRight: return "Clip edge: drag to trim \u00b7 Alt on the right edge time-stretches \u00b7 Ctrl defeats snap";
-            case TimelineDragMode::StretchRight: return "Clip edge: Alt-drag to time-stretch \u00b7 the length changes, the source does not";
+            case TimelineDragMode::TrimRight: return juce::String::fromUTF8 ("Clip edge: drag to trim \xc2\xb7 Alt on the right edge time-stretches \xc2\xb7 Ctrl defeats snap");
+            case TimelineDragMode::StretchRight: return juce::String::fromUTF8 ("Clip edge: Alt-drag to time-stretch \xc2\xb7 the length changes, the source does not");
             case TimelineDragMode::FadeIn:
             case TimelineDragMode::FadeOut:   return "Fade: drag to set its length";
             case TimelineDragMode::Gain:      return "Clip: drag up or down to set gain";
-            case TimelineDragMode::TimeSelect: return "Clip: drag here to select a time range \u00b7 the body above moves";
+            case TimelineDragMode::TimeSelect: return juce::String::fromUTF8 ("Clip: drag here to select a time range \xc2\xb7 the body above moves");
             case TimelineDragMode::SnapMove:  return "Clip: drag to move without snap";
-            case TimelineDragMode::Slip:      return "Clip: Ctrl+Alt-drag slips the audio under the clip \u00b7 the clip stays put";
+            case TimelineDragMode::Slip:      return juce::String::fromUTF8 ("Clip: Ctrl+Alt-drag slips the audio under the clip \xc2\xb7 the clip stays put");
             case TimelineDragMode::Move:      break;
         }
-        return "Clip: drag to move \u00b7 Shift-drag sets gain \u00b7 Ctrl-drag defeats snap \u00b7 edges trim \u00b7 right-click for the clip menu";
+        return juce::String::fromUTF8 ("Clip: drag to move \xc2\xb7 Shift-drag sets gain \xc2\xb7 Ctrl-drag defeats snap \xc2\xb7 edges trim \xc2\xb7 right-click for the clip menu");
     }
 
     void mouseMove (const juce::MouseEvent& event) override

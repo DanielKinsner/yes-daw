@@ -170,8 +170,8 @@ juce::String MainComponent::hoverHintOrModeHint() const
     const auto& context = appModel.context();
     if (context.musicalTypingOn)
         return "Musical typing ON: A W S E D F T G Y H U J K O L P ; play "
-             + juce::String (yesdaw::ui::pianoRollKeyName (context.typingBaseKey)) + " up \u00b7 Z / X octave \u00b7 C / V velocity ("
-             + juce::String (context.typingVelocityPercent) + " %)" + (context.stepInputOn ? " \u00b7 step input: notes enter at the playhead" : "") + " \u00b7 Ctrl+K off";
+             + juce::String (yesdaw::ui::pianoRollKeyName (context.typingBaseKey)) + juce::String::fromUTF8 (" up \xc2\xb7 Z / X octave \xc2\xb7 C / V velocity (")
+             + juce::String (context.typingVelocityPercent) + " %)" + (context.stepInputOn ? juce::String::fromUTF8 (" \xc2\xb7 step input: notes enter at the playhead") : "") + juce::String::fromUTF8 (" \xc2\xb7 Ctrl+K off");
     if (context.stepInputOn)
         return "Step input ON: a typed or clicked note enters at the playhead with the snap length, Right = rest, Left = back";
     return {};

@@ -84,8 +84,8 @@ public:
             return {};
         switch (zoneAt (row, position))
         {
-            case MiniZone::Pan:    return "Pan: drag \u00b7 Alt-click or double-click recentres \u00b7 Shift for fine";
-            case MiniZone::Volume: return "Volume: drag \u00b7 Alt-click resets to unity \u00b7 Shift for fine";
+            case MiniZone::Pan:    return juce::String::fromUTF8 ("Pan: drag \xc2\xb7 Alt-click or double-click recentres \xc2\xb7 Shift for fine");
+            case MiniZone::Volume: return juce::String::fromUTF8 ("Volume: drag \xc2\xb7 Alt-click resets to unity \xc2\xb7 Shift for fine");
             case MiniZone::Mute:   return "Mute: click toggles";
             case MiniZone::Solo:   return "Solo: click toggles";
             case MiniZone::Arm:    return "Arm: click arms this track for recording (needs an input device)";
@@ -93,7 +93,7 @@ public:
             case MiniZone::Colour: return "Colour: click cycles the track colour";
             case MiniZone::None:   break;
         }
-        return "Track: click to select \u00b7 double-click to rename \u00b7 right-click for the track menu";
+        return juce::String::fromUTF8 ("Track: click to select \xc2\xb7 double-click to rename \xc2\xb7 right-click for the track menu");
     }
 
     void mouseExit (const juce::MouseEvent&) override

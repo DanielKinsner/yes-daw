@@ -117,24 +117,24 @@ public:
             if (const auto [sendStrip, sendIndex] = sendRowAtPosition (shellPosition); sendStrip >= 0 && sendIndex >= 0)
             {
                 const bool routed = sendRowFilled == nullptr || sendRowFilled (sendStrip, sendIndex);
-                return routed ? "Send: drag to set its level \u00b7 Shift for fine \u00b7 right-click for tap, destination, remove"
+                return routed ? juce::String::fromUTF8 ("Send: drag to set its level \xc2\xb7 Shift for fine \xc2\xb7 right-click for tap, destination, remove")
                               : "Empty send: click to add a send to a bus";   // G4.1 cp2
             }
         if (insertSlotAtPosition)
             if (const auto [slotStrip, slotIndex] = insertSlotAtPosition (shellPosition); slotStrip >= 0 && slotIndex >= 0)
             {
                 const bool filled = insertSlotFilled == nullptr || insertSlotFilled (slotStrip, slotIndex);
-                return filled ? "Insert slot: double-click to open its editor \u00b7 right-click to bypass, remove or move"
+                return filled ? juce::String::fromUTF8 ("Insert slot: double-click to open its editor \xc2\xb7 right-click to bypass, remove or move")
                               : "Empty insert: click to add an effect";   // G4.1 cp2
             }
         if (faderRailAtPosition && faderRailAtPosition (shellPosition) >= 0)
-            return "Fader: drag the knob to set the level \u00b7 Shift for fine \u00b7 Alt-click resets to unity";
+            return juce::String::fromUTF8 ("Fader: drag the knob to set the level \xc2\xb7 Shift for fine \xc2\xb7 Alt-click resets to unity");
         if (panKnobAtPosition && panKnobAtPosition (shellPosition) >= 0)
-            return "Pan: drag \u00b7 Shift for fine \u00b7 Alt-click recentres";
+            return juce::String::fromUTF8 ("Pan: drag \xc2\xb7 Shift for fine \xc2\xb7 Alt-click recentres");
         if (meterStripAtPosition && meterStripAtPosition (shellPosition) >= 0)
             return "Meter: click clears the clip light";
         if (stripAtPosition && stripAtPosition (shellPosition) >= 0)
-            return "Strip: click to select \u00b7 right-click for the strip menu";
+            return juce::String::fromUTF8 ("Strip: click to select \xc2\xb7 right-click for the strip menu");
         return {};
     }
 

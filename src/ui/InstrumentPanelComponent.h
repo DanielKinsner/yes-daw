@@ -227,7 +227,7 @@ public:
         using L = yesdaw::ui::UiTheme::Layout;
         g.setColour (yesdaw::ui::UiTheme::Color::mutedText());
         g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
-        g.drawText ("PADS  click: load  \u00b7  shift+click: one-shot / pitched  \u00b7  ctrl+click: clear  \u00b7  drop a WAV on a pad",
+        g.drawText (juce::String::fromUTF8 ("PADS  click: load  \xc2\xb7  shift+click: one-shot / pitched  \xc2\xb7  ctrl+click: clear  \xc2\xb7  drop a WAV on a pad"),
                     padCaption, juce::Justification::centredLeft, true);
         for (int index = 0; index < L::instrumentPanelPadCount; ++index)
         {

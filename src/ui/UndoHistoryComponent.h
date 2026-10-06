@@ -54,7 +54,7 @@ public:
         setTooltip ("Undo history (Alt+Z): every edit as a step; click a step to jump there");
         list.setComponentID ("undo.history.list");
         list.setName ("Undo history steps");
-        list.setTooltip ("The edits in order; the highlighted row is now — click a row to undo or redo to it");
+        list.setTooltip (juce::String::fromUTF8 ("The edits in order; the highlighted row is now \xe2\x80\x94 click a row to undo or redo to it"));
         list.setModel (this);
         list.setRowHeight (yesdaw::ui::UiTheme::Layout::undoHistoryRowHeight);
         addAndMakeVisible (list);

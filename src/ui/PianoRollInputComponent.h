@@ -400,14 +400,14 @@ public:
         // G1.6: the keyboard column IS interactive (a press auditions its key, G3.2), so it is
         // named like every other hovered zone — it was blind until 2026-09-04.
         if (geometry.keyboard.contains (position))
-            return "Keyboard: press a key to hear it through the track's instrument · release to stop";
+            return juce::String::fromUTF8 ("Keyboard: press a key to hear it through the track's instrument \xc2\xb7 release to stop");
         if (surface.midiClipSelected && pianoRollControlLaneDataArea (geometry).contains (position))
         {
             // G3.3: the control lane names its controller and its three tools.
             juce::String hint ("Control lane");
             if (const auto* lane = pianoRollControlLaneOf (surface))
                 hint << " (" << yesdaw::ui::pianoRollControlLaneChoice (lane->controlLaneChoice).name << ")";
-            hint << ": the pointer (1) places or drags a point \u00b7 the pencil (2) paints \u00b7 Shift+pencil draws a line \u00b7 the eraser (4) removes";
+            hint << juce::String::fromUTF8 (": the pointer (1) places or drags a point \xc2\xb7 the pencil (2) paints \xc2\xb7 Shift+pencil draws a line \xc2\xb7 the eraser (4) removes");
             return hint;
         }
         if (surface.midiClipSelected && pianoRollVelocityLaneArea (geometry).contains (position))
@@ -421,10 +421,10 @@ public:
                 case PianoDragMode::Move:      break;
                 case PianoDragMode::VelocityDrag: break;   // never a pointer verdict; the Velocity tool's own mode
             }
-            return "Note: drag to move \u00b7 up or down transposes \u00b7 Ctrl-drag copies \u00b7 Shift-drag sets length \u00b7 right-click for the note menu";
+            return juce::String::fromUTF8 ("Note: drag to move \xc2\xb7 up or down transposes \xc2\xb7 Ctrl-drag copies \xc2\xb7 Shift-drag sets length \xc2\xb7 right-click for the note menu");
         }
         if (surface.midiClipSelected && geometry.grid.contains (position))
-            return "Grid: the pencil (2) draws a note \u00b7 the pointer (1) drags a marquee";
+            return juce::String::fromUTF8 ("Grid: the pencil (2) draws a note \xc2\xb7 the pointer (1) drags a marquee");
         return {};
     }
 

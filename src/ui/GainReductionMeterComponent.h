@@ -85,9 +85,9 @@ public:
         g.fillAll (UiTheme::Color::controlInset());
         g.setFont (UiTheme::Type::font (UiTheme::Type::small));
         g.setColour (UiTheme::Color::mutedText());
-        const juce::String state = ! reading ? "Gain reduction (dB) — not running"
-                                 : bypassed  ? "Gain reduction (dB, bypassed)"
-                                             : "Gain reduction (dB)";
+        const juce::String state = ! reading ? juce::String::fromUTF8 ("Gain reduction (dB) \xe2\x80\x94 not running")
+                                 : bypassed  ? juce::String ("Gain reduction (dB, bypassed)")
+                                             : juce::String ("Gain reduction (dB)");
         g.drawText (state, getLocalBounds().withHeight (L::eqResponseLabelHeight), juce::Justification::centred);
 
         const auto bar = barBounds();
@@ -116,7 +116,7 @@ public:
         }
         // The number, left of the bar: what the bar is showing right now.
         g.setColour (UiTheme::Color::text());
-        g.drawText (reading ? juce::String (current > 0.0f ? -current : 0.0f, 1) : juce::String ("—"),
+        g.drawText (reading ? juce::String (current > 0.0f ? -current : 0.0f, 1) : juce::String::fromUTF8 ("\xe2\x80\x94"),
                     juce::Rectangle<int> (0, bar.getY(), L::eqResponseLabelWidth - L::grMeterValueInset, bar.getHeight()),
                     juce::Justification::centredRight);
     }

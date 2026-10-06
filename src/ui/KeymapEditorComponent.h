@@ -66,7 +66,7 @@ public:
         addAndMakeVisible (list);
         chord.setComponentID ("keymap.editor.chord");
         chord.setName ("Chord");
-        chord.setTooltip ("The chord for the selected verb, e.g. Ctrl+Shift+K — Enter binds it");
+        chord.setTooltip (juce::String::fromUTF8 ("The chord for the selected verb, e.g. Ctrl+Shift+K \xe2\x80\x94 Enter binds it"));
         chord.setTextToShowWhenEmpty ("Chord (Enter binds)", yesdaw::ui::UiTheme::Color::mutedText());
         chord.onReturnKey = [this] { applyChord(); };
         addAndMakeVisible (chord);
