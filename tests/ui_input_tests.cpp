@@ -24557,3 +24557,34 @@ TEST_CASE ("a playhead that jumps back mid-pass closes the pass; a latched fader
     ride.undo();   // the first pass
     REQUIRE (ride.project().automationLanes.empty());
 }
+
+// G4.6 / ADR-0052: an edit adopted mid-ride rebuilds the engine — fresh, nothing suspended, every node at its
+// stored value. A latched fader keeps sounding the value it holds: the writers are suspended again and post it.
+TEST_CASE ("a latched fader keeps its held value across an edit that rebuilds the engine", "[ui][input][shell][automation-v2]")
+{
+    RideShell ride ("automation-v2-latch-rebuild");
+    ride.setMode (3);   // Latch
+    ride.startPlaying();
+    const double baseline = ride.play (4'800);
+    ride.tick();
+    ride.press (ride.middle);
+    (void) ride.play (2'400);
+    ride.dragTo (ride.bottom, ride.middle);
+    (void) ride.play (2'400);
+    ride.release (ride.bottom, ride.middle);
+    (void) ride.play (4'800);
+    ride.tick();
+    REQUIRE (ride.play (4'800) < baseline * 0.05);
+
+    // An unrelated structural edit while playing: a new track (the engine is rebuilt; R2 keeps it rolling).
+    const std::size_t tracksBefore = ride.project().tracks.size();
+    REQUIRE (ride.shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (ride.project().tracks.size() == tracksBefore + 1u);
+    REQUIRE (snapshotMainComponent (*ride.shell).context.isPlaying);
+    ride.tick();
+    (void) ride.play (2'400);   // the declick ramp back down
+    REQUIRE (ride.play (4'800) < baseline * 0.05);   // still the held bottom value, not the stored unity gain
+
+    ride.stopPlaying();
+    REQUIRE (ride.project().automationLanes.size() == 1u);
+}

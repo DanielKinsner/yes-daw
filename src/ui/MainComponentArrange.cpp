@@ -948,6 +948,7 @@ void MainComponent::beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationT
     automationTouchRideRole = role;
     automationTouchRideParamId = paramId;
     automationTouchRideTrackId = ownerId;
+    resuspendAutomationWriters (false);   // an edit since the last ride event may have rebuilt the engine
     (void) appModel.setAutomationRideSuspended (ownerId, role, paramId, true);
 }
 
@@ -1021,11 +1022,8 @@ void MainComponent::startAutomationRecorderIfNeeded (yesdaw::ui::AutomationRideP
         return;
 
     for (const auto& [target, value] : appModel.automationWriteTargetsAtPlayhead())
-    {
         (void) automationRecorder.arm (target, at, value);
-        (void) appModel.setAutomationRideSuspended (target.owner, target.role, target.paramId, true);
-        (void) appModel.postAutomationRideValue (target.owner, target.role, target.paramId, value);
-    }
+    resuspendAutomationWriters (true);
 }
 
 // Closed passes commit as ONE undo step. The commit rebuilds the engine (which starts with nothing suspended),
@@ -1036,14 +1034,24 @@ void MainComponent::commitAutomationRidePasses (const std::vector<yesdaw::ui::Au
         return;
 
     (void) appModel.commitAutomationPasses (passes, returnToTouch);
+    resuspendAutomationWriters (true);
+    refreshActionState();
+    repaintAll();
+}
+
+void MainComponent::resuspendAutomationWriters (bool evenIfSameEngine)
+{
+    const std::uint64_t engine = appModel.playbackReplaceCount();
+    if (! evenIfSameEngine && engine == automationWritersSuspendedOnEngine)
+        return;
+
+    automationWritersSuspendedOnEngine = engine;
     for (const yesdaw::ui::AutomationRideTarget& target : automationRecorder.writingTargets())
     {
         (void) appModel.setAutomationRideSuspended (target.owner, target.role, target.paramId, true);
         (void) appModel.postAutomationRideValue (target.owner, target.role, target.paramId,
                                                  automationRecorder.latestValue (target, 0.0));
     }
-    refreshActionState();
-    repaintAll();
 }
 
 // The UI tick: while the transport rolls, held (Latch / Write) values keep writing and a loop wrap closes the
@@ -1059,7 +1067,10 @@ void MainComponent::serviceAutomationRide()
         startAutomationRecorderIfNeeded (*position);
         automationLastPlayingPosition = *position;
         if (automationRecorder.writing())
+        {
             commitAutomationRidePasses (automationRecorder.advance (*position), false);
+            resuspendAutomationWriters (false);
+        }
         return;
     }
 

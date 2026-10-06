@@ -955,6 +955,9 @@ private:
     void startAutomationRecorderIfNeeded (yesdaw::ui::AutomationRidePosition at);
     void commitAutomationRidePasses (const std::vector<yesdaw::ui::AutomationRidePass>& passes, bool returnToTouch);
     void serviceAutomationRide();
+    // Any engine rebuild (an edit adopted mid-ride) starts with nothing suspended and every node at its
+    // stored value: the targets still writing are suspended again and sound the value they hold.
+    void resuspendAutomationWriters (bool evenIfSameEngine);
 
     void refreshAutosaveRecoveryControls();
 
@@ -1380,6 +1383,7 @@ private:
     bool automationRecorderRunning = false;
     yesdaw::ui::AutomationRidePosition automationLastPlayingPosition;
     double automationTouchRideLastValue = 0.0;
+    std::uint64_t automationWritersSuspendedOnEngine = 0;   // the playbackReplaceCount they were suspended on
     juce::TextButton automationBreakpointAddButton;
     juce::TextButton automationBreakpointDeleteButton;
     // E26: whether the lane controls were last laid out with the band reserved.
