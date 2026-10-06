@@ -1,8 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <regex>
 #include <string>
 #include <string_view>
@@ -1703,4 +1706,176 @@ TEST_CASE ("plan \u00a75.1: the shell topology — helper components in their ow
         for (const auto& line : allShellLines)
             REQUIRE (line.find (entry.className) == std::string::npos);
     }
+}
+
+// 2026-10-06: UI text is ASCII or explicitly UTF-8. juce::String reads a plain `const char*` as ASCII, so a
+// literal holding "—" or "…" (raw, or as \xe2\x80\x94 escapes) passed straight to a String, a tooltip,
+// drawText or a menu item paints mojibake ("â€”"). The compressor face's "not running" label, two tooltips,
+// a piano-roll hint and the Edit menu's Undo History label all shipped that way. The law: in src/ui code
+// (comments skipped), a string literal holding any character above ASCII is a u8 literal or the argument of
+// juce::String::fromUTF8 / juce::CharPointer_UTF8 on the same line, spelled as \x byte escapes (a raw
+// character or a \u escape compiles to different bytes per compiler: MSVC uses the machine's code page).
+namespace {
+
+std::vector<ThemeAuditFinding> auditUtf8Literals (const std::filesystem::path& root)
+{
+    std::vector<ThemeAuditFinding> findings;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator (root))
+    {
+        if (! entry.is_regular_file() || ! isUiSourceFile (entry.path()))
+            continue;
+        std::ifstream in (entry.path(), std::ios::binary);
+        REQUIRE (in.is_open());
+        const std::string text { std::istreambuf_iterator<char> (in), std::istreambuf_iterator<char>() };
+
+        int line = 1;
+        std::size_t lineStart = 0;
+        const auto isIdent = [] (char c) { return std::isalnum (static_cast<unsigned char> (c)) != 0 || c == '_'; };
+        for (std::size_t i = 0; i < text.size(); ++i)
+        {
+            const char c = text[i];
+            if (c == '\n')
+            {
+                ++line;
+                lineStart = i + 1;
+                continue;
+            }
+            if (c == '/' && i + 1 < text.size() && text[i + 1] == '/')   // a line comment
+            {
+                while (i + 1 < text.size() && text[i + 1] != '\n')
+                    ++i;
+                continue;
+            }
+            if (c == '/' && i + 1 < text.size() && text[i + 1] == '*')   // a block comment
+            {
+                for (i += 2; i + 1 < text.size() && ! (text[i] == '*' && text[i + 1] == '/'); ++i)
+                    if (text[i] == '\n')
+                    {
+                        ++line;
+                        lineStart = i + 1;
+                    }
+                ++i;
+                continue;
+            }
+            if (c == '\'' && ! (i > 0 && isIdent (text[i - 1])))   // a char literal ('"' must not open a string)
+            {
+                for (++i; i < text.size() && text[i] != '\'' && text[i] != '\n'; ++i)
+                    if (text[i] == '\\')
+                        ++i;
+                continue;
+            }
+            if (c != '"')
+                continue;
+
+            // A string literal: its prefix, then its body up to the closing quote (raw literals to their delimiter).
+            std::size_t prefixStart = i;
+            while (prefixStart > lineStart && isIdent (text[prefixStart - 1]))
+                --prefixStart;
+            const std::string prefix = text.substr (prefixStart, i - prefixStart);
+            const bool raw = ! prefix.empty() && prefix.back() == 'R';
+            const int literalLine = line;
+            std::string body;
+            if (raw)
+            {
+                const std::size_t open = text.find ('(', i);
+                REQUIRE (open != std::string::npos);
+                const std::string close = ")" + text.substr (i + 1, open - i - 1) + "\"";
+                const std::size_t end = text.find (close, open);
+                REQUIRE (end != std::string::npos);
+                body = text.substr (open + 1, end - open - 1);
+                for (std::size_t k = i; k < end + close.size() - 1; ++k)
+                    if (text[k] == '\n')
+                    {
+                        ++line;
+                        lineStart = k + 1;
+                    }
+                i = end + close.size() - 1;
+            }
+            else
+            {
+                std::size_t k = i + 1;
+                for (; k < text.size() && text[k] != '"' && text[k] != '\n'; ++k)
+                    if (text[k] == '\\')
+                        ++k;
+                body = text.substr (i + 1, k - i - 1);
+                i = k;
+            }
+
+            // Raw bytes and \u escapes are charset-dependent: MSVC without /utf-8 reads the source and writes
+            // the literal in the machine's code page, Clang and GCC in UTF-8 — the same line paints differently
+            // per platform. \x80..\xFF (and octal \200..\377) are exact bytes: UTF-8 only by the reader's intent.
+            const auto isOctal = [] (char d) { return d >= '0' && d <= '7'; };
+            bool charsetDependent = false;
+            bool highEscapes = false;
+            for (std::size_t k = 0; k < body.size(); ++k)
+            {
+                if (static_cast<unsigned char> (body[k]) >= 0x80)
+                    charsetDependent = true;
+                else if (! raw && body[k] == '\\' && k + 1 < body.size())
+                {
+                    const char escape = body[k + 1];
+                    if (escape == 'u' || escape == 'U')
+                        charsetDependent = true;
+                    else if (escape == 'x' && k + 2 < body.size() && std::strchr ("89abcdefABCDEF", body[k + 2]) != nullptr)
+                        highEscapes = true;
+                    else if ((escape == '2' || escape == '3') && k + 3 < body.size() && isOctal (body[k + 2]) && isOctal (body[k + 3]))
+                        highEscapes = true;
+                    ++k;
+                }
+            }
+            if (! charsetDependent && ! highEscapes)
+                continue;
+            const std::string before = text.substr (lineStart, prefixStart - lineStart);
+            const bool readAsUtf8 = before.find ("fromUTF8") != std::string::npos
+                                 || before.find ("CharPointer_UTF8") != std::string::npos;
+            const bool sound = prefix.rfind ("u8", 0) == 0 || (readAsUtf8 && ! charsetDependent);
+            if (! sound)
+            {
+                const std::size_t lineEnd = text.find ('\n', lineStart);
+                findings.push_back ({ entry.path(), literalLine, text.substr (lineStart, lineEnd - lineStart) });
+            }
+        }
+    }
+    return findings;
+}
+
+} // namespace
+
+TEST_CASE ("UI text is ASCII or explicitly UTF-8 (no mojibake literals)", "[ui][theme][utf8]")
+{
+    const auto findings = auditUtf8Literals (std::filesystem::path { YESDAW_SOURCE_DIR } / "src" / "ui");
+    for (const auto& finding : findings)
+        UNSCOPED_INFO (finding.path.string() << ":" << finding.line << ": " << finding.text);
+    REQUIRE (findings.empty());
+}
+
+TEST_CASE ("UI text audit negative control catches a plain literal above ASCII", "[ui][theme][utf8]")
+{
+    const auto scratch = std::filesystem::temp_directory_path() / "yesdaw-utf8-audit-negative-control";
+    std::filesystem::remove_all (scratch);
+    std::filesystem::create_directories (scratch);
+    {
+        std::ofstream out (scratch / "Panel.h", std::ios::binary);
+        REQUIRE (out.is_open());
+        out << "void a (juce::Graphics& g) { g.drawText (\"Gain (dB) \xe2\x80\x94 off\", 0, 0, 9, 9, 0); }\n";   // 1 caught
+        out << "auto b = juce::String (\"\\xe2\\x80\\xa6\");\n";                                                  // 2 caught
+        out << "void c (juce::Button& x) { x.setTooltip (\"Save\\u2026\"); }\n";                                // 3 caught
+        out << "auto d = juce::String::fromUTF8 (\"\\xe2\\x80\\x94\");\n";
+        out << "auto e = juce::String (juce::CharPointer_UTF8 (\"\\xc2\\xb7\"));\n";
+        out << "auto f = u8\"\xc2\xb7\";\n";
+        out << "// a comment may say \xe2\x80\x94 anything\n";
+        out << "/* even \xe2\x80\x94 across\n   lines \"\xe2\x80\x94\" */\n";
+        out << "auto g = '\"'; auto h = \"plain ASCII\";\n";
+        out << "auto i = R\"(raw \xe2\x80\x94)\";\n";                                                          // 4 caught (line 11)
+        out << "auto j = juce::String::fromUTF8 (\"raw \xe2\x80\x94\");\n";                                     // 5 caught: raw bytes
+        out << "auto k = juce::String::fromUTF8 (\"\\u00b7\");\n";                                                // 6 caught: a \u escape
+    }
+    const auto findings = auditUtf8Literals (scratch);
+    REQUIRE (findings.size() == 6u);
+    std::vector<int> lines;
+    for (const auto& finding : findings)
+        lines.push_back (finding.line);
+    std::sort (lines.begin(), lines.end());
+    REQUIRE (lines == std::vector<int> { 1, 2, 3, 11, 12, 13 });
+    std::filesystem::remove_all (scratch);
 }
