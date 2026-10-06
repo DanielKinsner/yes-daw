@@ -158,10 +158,12 @@ TEST_CASE ("ADR-0058 opening another project retires a running export silently; 
     yesdaw::engine::OfflineRenderLatch latch;
     latch.holdAfterFrames = 48'000;
     yesdaw::engine::OfflineRenderLatch second;   // outlives the model (its job's worker reads it until joined)
-    second.holdAfterFrames = 0;
+    second.holdAfterFrames = 16'384;             // a write latch: one chunk into the temporary
     std::filesystem::path destination;
+    std::filesystem::path folder;
     {
         ExportModel f ("stale");
+        folder = f.directory;
         f.model.setExportLatchForTest (&latch);
         destination = f.directory / "stale.wav";
         REQUIRE (f.model.startAudioExport (destination).dispatched);
@@ -182,11 +184,21 @@ TEST_CASE ("ADR-0058 opening another project retires a running export silently; 
         REQUIRE (f.model.context().audioExportCount == 0);
         REQUIRE_FALSE (std::filesystem::exists (destination));
 
-        // A held job when the model goes away: cancelled and joined by its destructor.
-        f.model.setExportLatchForTest (&second);
+        // A job held mid-write when the model goes away: cancelled and joined by its destructor.
+        f.model.setExportLatchForTest (nullptr);
+        f.model.setExportWriteLatchForTest (&second);
         import (f.model, f.directory / "song.wav");
         REQUIRE (f.model.startAudioExport (f.directory / "at-exit.wav").dispatched);
         waitHeld (second);
+        bool writingTemporary = false;   // the job writes its temporary, never the destination, before the commit
+        for (const auto& entry : std::filesystem::directory_iterator (f.directory))
+            writingTemporary = writingTemporary || entry.path().extension() == ".partial";
+        REQUIRE (writingTemporary);
+        REQUIRE_FALSE (std::filesystem::exists (f.directory / "at-exit.wav"));
     }   // ~UiAppModel returns
     REQUIRE_FALSE (std::filesystem::exists (destination));
+    // ADR-0058 cp2: neither the replaced project's job nor the job cut off at exit left a temporary or a file.
+    for (const auto& entry : std::filesystem::directory_iterator (folder))
+        REQUIRE (entry.path().extension() != ".partial");
+    REQUIRE_FALSE (std::filesystem::exists (folder / "at-exit.wav"));
 }

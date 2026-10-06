@@ -347,6 +347,140 @@ inline bool sampleRateToUint32 (engine::SampleRate sampleRate, std::uint32_t& ou
     return {};
 }
 
+// ADR-0058 cp2: a WAV written in chunks, so an export job can check Cancel between them. The frame count is known
+// before the first sample, so the header carries the final sizes and the bytes equal writeFloat32WavFile's
+// (bitsPerSample 32) or writePcmWavFile's (16 / 24) exactly — the same header, the same per-sample conversion. One
+// writer for both: 32 means IEEE float here (writePcmWavFile itself takes only 16 and 24).
+class WavStreamWriter
+{
+public:
+    [[nodiscard]] WavResult open (const std::filesystem::path& path, engine::SampleRate sampleRate, std::uint16_t channels,
+                                  std::uint64_t frames, std::uint16_t bitsPerSample)
+    {
+        if (bitsPerSample != 16u && bitsPerSample != 24u && bitsPerSample != 32u)
+            return detail::invalidArgument ("WAV bit depth must be 16, 24 or 32 (float)");
+        if (channels == 0)
+            return detail::invalidArgument ("WAV channel count must be positive");
+        const std::uint32_t bytesPerSample = bitsPerSample / 8u;
+        if (static_cast<std::uint32_t> (channels) * bytesPerSample > static_cast<std::uint32_t> (std::numeric_limits<std::uint16_t>::max()))
+            return detail::invalidArgument ("WAV channel count overflows 16-bit block alignment");
+        std::uint32_t sampleRateHz = 0;
+        if (! detail::sampleRateToUint32 (sampleRate, sampleRateHz))
+            return detail::invalidArgument ("WAV sample rate must be a finite positive integer");
+        if (frames > std::numeric_limits<std::uint64_t>::max() / static_cast<std::uint64_t> (channels))
+            return detail::invalidArgument ("WAV frame/channel count overflows");
+        const std::uint64_t samples = frames * static_cast<std::uint64_t> (channels);
+        const std::uint32_t blockAlign = static_cast<std::uint32_t> (channels) * bytesPerSample;
+        constexpr std::uint32_t kFmtChunkSize = 16;
+        const std::uint64_t dataBytes64 = samples * bytesPerSample;
+        const std::uint64_t riffSize64 = 4u + (8u + kFmtChunkSize) + (8u + dataBytes64);
+        if (dataBytes64 > std::numeric_limits<std::uint32_t>::max() || riffSize64 > std::numeric_limits<std::uint32_t>::max())
+            return detail::invalidArgument ("WAV file exceeds RIFF32 size limit");
+
+        std::error_code ec;
+        if (path.has_parent_path())
+        {
+            std::filesystem::create_directories (path.parent_path(), ec);
+            if (ec)
+                return detail::filesystemError (ec.message());
+        }
+        out_.open (path, std::ios::binary | std::ios::trunc);
+        if (! out_)
+            return detail::filesystemError ("failed to open WAV for writing");
+
+        out_.write ("RIFF", 4);
+        detail::writeLe32 (out_, static_cast<std::uint32_t> (riffSize64));
+        out_.write ("WAVE", 4);
+        out_.write ("fmt ", 4);
+        detail::writeLe32 (out_, kFmtChunkSize);
+        detail::writeLe16 (out_, bitsPerSample == 32u ? std::uint16_t { 3 } : std::uint16_t { 1 });   // IEEE float / PCM
+        detail::writeLe16 (out_, channels);
+        detail::writeLe32 (out_, sampleRateHz);
+        detail::writeLe32 (out_, sampleRateHz * blockAlign);
+        detail::writeLe16 (out_, static_cast<std::uint16_t> (blockAlign));
+        detail::writeLe16 (out_, bitsPerSample);
+        out_.write ("data", 4);
+        detail::writeLe32 (out_, static_cast<std::uint32_t> (dataBytes64));
+        channels_ = channels;
+        bits_ = bitsPerSample;
+        framesExpected_ = frames;
+        framesWritten_ = 0;
+        return out_ ? WavResult {} : detail::filesystemError ("failed to write WAV header");
+    }
+
+    // Whole interleaved frames, in order.
+    [[nodiscard]] WavResult append (std::span<const float> interleaved)
+    {
+        if (! out_.is_open() || channels_ == 0u || interleaved.size() % channels_ != 0u)
+            return detail::invalidArgument ("WAV chunk must be whole frames of an open writer");
+        const std::uint64_t frames = interleaved.size() / channels_;
+        if (frames > framesExpected_ - framesWritten_)
+            return detail::invalidArgument ("WAV chunk runs past the declared frame count");
+        for (const float sample : interleaved)
+            if (! std::isfinite (sample))
+                return detail::invalidArgument ("WAV sample payload must be finite");
+        if (bits_ == 32u)
+        {
+            for (const float sample : interleaved)
+                detail::writeFloat32Le (out_, sample);
+        }
+        else
+        {
+            const double fullScale = bits_ == 16u ? 32767.0 : 8388607.0;
+            for (const float sample : interleaved)
+            {
+                const double scaled = std::round (static_cast<double> (sample) * fullScale);
+                const double clamped = std::clamp (scaled, -fullScale - 1.0, fullScale);
+                const std::int32_t quantized = static_cast<std::int32_t> (clamped);
+                if (bits_ == 16u)
+                {
+                    detail::writeLe16 (out_, static_cast<std::uint16_t> (static_cast<std::int16_t> (quantized)));
+                }
+                else
+                {
+                    const std::uint32_t bits = static_cast<std::uint32_t> (quantized);
+                    const std::array<char, 3> bytes {
+                        static_cast<char> (bits & 0xFFu),
+                        static_cast<char> ((bits >> 8u) & 0xFFu),
+                        static_cast<char> ((bits >> 16u) & 0xFFu),
+                    };
+                    out_.write (bytes.data(), static_cast<std::streamsize> (bytes.size()));
+                }
+            }
+        }
+        framesWritten_ += frames;
+        return out_ ? WavResult {} : detail::filesystemError ("failed to write WAV samples");
+    }
+
+    // Closes the file; every declared frame must have been written.
+    [[nodiscard]] WavResult finish()
+    {
+        if (framesWritten_ != framesExpected_)
+        {
+            abandon();
+            return detail::invalidArgument ("WAV finished before every frame was written");
+        }
+        out_.close();
+        if (! out_)
+            return detail::filesystemError ("failed to flush WAV file");
+        return {};
+    }
+
+    // Close without finishing (the caller removes the file).
+    void abandon() noexcept
+    {
+        if (out_.is_open())
+            out_.close();
+    }
+
+private:
+    std::ofstream out_;
+    std::uint16_t channels_ = 0;
+    std::uint16_t bits_ = 32;
+    std::uint64_t framesExpected_ = 0;
+    std::uint64_t framesWritten_ = 0;
+};
+
 [[nodiscard]] inline WavResult readFloat32WavFile (const std::filesystem::path& path, Float32Wav& out)
 {
     out = {};

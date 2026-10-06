@@ -8,6 +8,26 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (night) — G5.3 cp2: an export never destroys an earlier file (ADR-0058)
+
+**Now:** **G5.3 checkpoint 2** is in, headless-certified. **Next:** G5.3 cp3 — WAV 16/24/32 with TPDF dither, the
+range options (rendering only up to the range, which also refuses a range past the end before rendering), export
+stems and normalize.
+
+**What a user gets:** an export writes `<name>.<n>.partial` next to the destination and only renames it over the
+destination when the whole file is written. Cancel at any moment — or a failure, a project switch or quitting the
+app mid-export — leaves no partial file behind and an earlier export with the same name exactly as it was. A
+`.partial` a crash left behind is cleared the next time you export to that name. A failure names its cause.
+
+**Gates:** `[export-commit]` — the chunked writer's bytes equal the one-shot writers' (float, 24 and 16-bit, odd
+chunking); cancel during the render and during the write (held one chunk into the temporary, which exists while the
+destination is untouched) each leave no `.partial` and the earlier file byte for byte; success replaces the earlier
+file with the reference bytes; an unwritable destination fails with its cause and leaves nothing; stale temporaries
+of the destination go while another destination's stay; through the model, a replaced project's job and a job cut
+off mid-write at exit leave no temporary and no file; a still-running replaced job's temporary survives a new
+export's sweep. 416/416 local, Clang clean. The critic found no blockers; its hardening is in (the sweep skips live
+jobs' temporaries; an unexpected exception fails the job instead of the app).
+
 ## 2026-10-06 (evening) — G5.3 cp1: export runs as a worker job (ADR-0058)
 
 **Now:** **G5.3 checkpoint 1** is in, headless-certified. **Next:** G5.3 cp2 — the `.partial` sibling committed by

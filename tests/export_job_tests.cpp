@@ -9,6 +9,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -232,4 +233,137 @@ TEST_CASE ("ADR-0058 a held job is Rendering inside the render half; Cancel ends
         }   // ~ExportJob: cancel, join — returns
         REQUIRE_FALSE (std::filesystem::exists (destination));
     }
+}
+
+// ---- cp2: committing to disk ----
+
+namespace {
+
+std::vector<std::filesystem::path> partialsIn (const std::filesystem::path& folder)
+{
+    std::vector<std::filesystem::path> out;
+    for (const auto& entry : std::filesystem::directory_iterator (folder))
+        if (entry.path().extension() == ".partial")
+            out.push_back (entry.path());
+    return out;
+}
+
+void writeBytes (const std::filesystem::path& path, const std::string& bytes)
+{
+    std::ofstream out (path, std::ios::binary | std::ios::trunc);
+    out << bytes;
+}
+
+} // namespace
+
+TEST_CASE ("ADR-0058 the chunked WAV writer's bytes equal the one-shot writers'", "[export-commit]")
+{
+    const auto directory = scratch ("stream");
+    std::vector<float> samples (2u * 50'001u);
+    for (std::size_t i = 0; i < samples.size(); ++i)
+        samples[i] = static_cast<float> (std::sin (static_cast<double> (i) * 0.013)) * 0.9f;
+    for (const std::uint16_t bits : { std::uint16_t { 32 }, std::uint16_t { 24 }, std::uint16_t { 16 } })
+    {
+        const auto oneShot = directory / ("one-" + std::to_string (bits) + ".wav");
+        const auto streamed = directory / ("stream-" + std::to_string (bits) + ".wav");
+        REQUIRE ((bits == 32u ? io::writeFloat32WavFile (oneShot, engine::SampleRate { 48'000.0 }, 2, 50'001, samples)
+                              : io::writePcmWavFile (oneShot, engine::SampleRate { 48'000.0 }, 2, 50'001, samples, bits)).ok());
+        io::WavStreamWriter writer;
+        REQUIRE (writer.open (streamed, engine::SampleRate { 48'000.0 }, 2, 50'001, bits).ok());
+        for (std::size_t frame = 0; frame < 50'001u; frame += 7'000u)
+        {
+            const std::size_t count = std::min<std::size_t> (7'000u, 50'001u - frame);
+            REQUIRE (writer.append (std::span<const float> (samples).subspan (frame * 2u, count * 2u)).ok());
+        }
+        REQUIRE (writer.finish().ok());
+        REQUIRE (bytesOf (streamed) == bytesOf (oneShot));
+    }
+}
+
+TEST_CASE ("ADR-0058 cancel during render or write leaves no .partial and an earlier file byte for byte", "[export-commit]")
+{
+    const auto directory = scratch ("commit-cancel");
+    const Fixture f (96'000, 48'000.0);
+    const auto destination = directory / "mix.wav";
+    const std::string earlier = "an earlier export the user kept";
+
+    SECTION ("during render")
+    {
+        writeBytes (destination, earlier);
+        engine::OfflineRenderLatch latch;
+        latch.holdAfterFrames = 4'096;
+        app::ExportJob job (11, f.snapshot (destination), &latch);
+        job.start();
+        waitHeld (latch);
+        job.cancel();
+        waitTerminal (job);
+        job.join();
+        REQUIRE (job.state() == app::ExportJobState::Cancelled);
+        REQUIRE (partialsIn (directory).empty());
+        REQUIRE (bytesOf (destination) == earlier);
+    }
+
+    SECTION ("during write: the temporary exists, the destination is untouched, then neither changes")
+    {
+        writeBytes (destination, earlier);
+        engine::OfflineRenderLatch writeLatch;
+        writeLatch.holdAfterFrames = 16'384;   // one chunk written
+        app::ExportJob job (12, f.snapshot (destination), nullptr, &writeLatch);
+        job.start();
+        waitHeld (writeLatch);
+        REQUIRE (job.state() == app::ExportJobState::Writing);
+        REQUIRE (std::filesystem::exists (app::ExportJob::partialPathFor (destination, 12)));
+        REQUIRE (bytesOf (destination) == earlier);
+        REQUIRE (job.percent() >= 50);
+        job.cancel();
+        waitTerminal (job);
+        job.join();
+        REQUIRE (job.state() == app::ExportJobState::Cancelled);
+        REQUIRE (partialsIn (directory).empty());
+        REQUIRE (bytesOf (destination) == earlier);
+    }
+}
+
+TEST_CASE ("ADR-0058 success replaces an earlier file; an unwritable destination fails with its cause; stale temporaries go",
+           "[export-commit]")
+{
+    const auto directory = scratch ("commit");
+    const Fixture f (24'000, 48'000.0);
+
+    // Stale temporaries of this destination (a crash's) are removed; another destination's are not.
+    const auto destination = directory / "mix.wav";
+    writeBytes (destination, "an earlier export");
+    writeBytes (app::ExportJob::partialPathFor (destination, 77), "stale");
+    writeBytes (directory / "mix.wav.crashed.partial", "stale");
+    writeBytes (app::ExportJob::partialPathFor (directory / "other.wav", 5), "someone else's");
+    writeBytes (app::ExportJob::partialPathFor (destination, 9), "a replaced project's job, still winding down");
+    const auto reference = directory / "reference.wav";
+    f.writeReference (reference);
+
+    app::ExportSnapshot snapshot = f.snapshot (destination);
+    snapshot.liveJobIds = { 9 };
+    app::ExportJob job (21, std::move (snapshot));
+    job.start();
+    waitTerminal (job);
+    job.join();
+    INFO (job.message());
+    REQUIRE (job.state() == app::ExportJobState::Succeeded);
+    REQUIRE (bytesOf (destination) == bytesOf (reference));   // replaced
+    std::vector<std::string> left;
+    for (const auto& path : partialsIn (directory))
+        left.push_back (path.filename().string());
+    std::sort (left.begin(), left.end());
+    REQUIRE (left == std::vector<std::string> { "mix.wav.9.partial", "other.wav.5.partial" });   // the live job's and another's
+
+    // A destination whose folder cannot exist (its parent is a file): Failed, with the cause, and nothing left.
+    writeBytes (directory / "blocker", "a file, not a folder");
+    const auto unwritable = directory / "blocker" / "mix.wav";
+    app::ExportJob failing (22, f.snapshot (unwritable));
+    failing.start();
+    waitTerminal (failing);
+    failing.join();
+    REQUIRE (failing.state() == app::ExportJobState::Failed);
+    REQUIRE (failing.failure() == app::ExportFailure::Write);
+    REQUIRE (failing.message().find ("could not write mix.wav: ") != std::string::npos);
+    REQUIRE (bytesOf (directory / "blocker") == "a file, not a folder");
 }

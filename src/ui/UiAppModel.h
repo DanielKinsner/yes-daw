@@ -1951,10 +1951,13 @@ public:
             snapshot.assets.push_back (std::move (audio));
         }
 
+        for (const std::unique_ptr<app::ExportJob>& retiring : retiringExports_)   // still winding down: keep their files
+            snapshot.liveJobIds.push_back (retiring->id());
         context_.audioExportCancelRequested = false;
         context_.audioExportInProgress = true;
         context_.audioExportProgressPercent = 0;
-        activeExport_ = std::make_unique<app::ExportJob> (nextExportJobId_++, std::move (snapshot), exportLatchForTest_);
+        activeExport_ = std::make_unique<app::ExportJob> (nextExportJobId_++, std::move (snapshot), exportLatchForTest_,
+                                                          exportWriteLatchForTest_);
         activeExport_->start();
         ++context_.commandDispatchCount;
         return { id, state, true };
@@ -2011,6 +2014,7 @@ public:
     [[nodiscard]] std::size_t retiringExportCount() const noexcept { return retiringExports_.size(); }
     // The gates' hook (ADR-0058): jobs started from now on hold their render at the latch until it is released.
     void setExportLatchForTest (engine::OfflineRenderLatch* latch) noexcept { exportLatchForTest_ = latch; }
+    void setExportWriteLatchForTest (engine::OfflineRenderLatch* latch) noexcept { exportWriteLatchForTest_ = latch; }
 
     // The synchronous export (tests, the self-check, scripted callers): starts the job, waits for it, and reports it
     // exactly as the UI tick would.
@@ -13067,6 +13071,7 @@ private:
     app::ExportJobState lastExportState_ = app::ExportJobState::Succeeded;
     app::ExportFailure lastExportFailure_ = app::ExportFailure::None;
     engine::OfflineRenderLatch* exportLatchForTest_ = nullptr;
+    engine::OfflineRenderLatch* exportWriteLatchForTest_ = nullptr;
     std::atomic<std::uint64_t> deviceBlocksStarted_ { 0 };
     bool deviceCallbackLive_ = false;
     WaveformPeakService waveformService_;
