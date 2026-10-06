@@ -1882,6 +1882,9 @@ public:
     void setExportBitDepth (UiExportBitDepth depth) noexcept { exportBitDepth_ = depth; }
     [[nodiscard]] UiExportBitDepth exportBitDepth() const noexcept { return exportBitDepth_; }
     void setExportLoopRangeOnly (bool loopOnly) noexcept { exportLoopRangeOnly_ = loopOnly; }
+    // ADR-0058 cp3: TPDF dither for 16 / 24-bit export (on by default; float output is never dithered).
+    void setExportDither (bool dither) noexcept { exportDither_ = dither; }
+    [[nodiscard]] bool exportDither() const noexcept { return exportDither_; }
     [[nodiscard]] bool exportLoopRangeOnly() const noexcept { return exportLoopRangeOnly_; }
 
     // ADR-0058: start an export job — the render and the write run on a worker over a snapshot the job owns; the UI
@@ -1904,6 +1907,7 @@ public:
 
         app::ExportSnapshot snapshot;
         snapshot.destination = destinationPath;
+        snapshot.dither = exportDither_;
         snapshot.format = exportBitDepth_ == UiExportBitDepth::Float32 ? app::ExportFormat::Float32
                         : exportBitDepth_ == UiExportBitDepth::Int24   ? app::ExportFormat::Int24
                                                                          : app::ExportFormat::Int16;
@@ -13008,6 +13012,7 @@ private:
     int playbackMaxBlockSize_ = 128;
     UiExportBitDepth exportBitDepth_ = UiExportBitDepth::Float32;
     bool exportLoopRangeOnly_ = false;
+    bool exportDither_ = true;   // ADR-0058 cp3
     // Ruler range selection (parity item 25): transient, never persisted; -1 means no range.
     std::int64_t timelineRangeStartFrame_ = -1;
     std::int64_t timelineRangeEndFrame_ = -1;

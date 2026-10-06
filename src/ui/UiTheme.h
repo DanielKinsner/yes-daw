@@ -253,6 +253,7 @@ struct UiTheme
         static constexpr float headerMidiInLampCornerRadius = 4.0f;
         static constexpr int settingsBitDepthWidth = 108;
         static constexpr int settingsRangeWidth = 112;
+        static constexpr int settingsDitherWidth = 72;    // ADR-0058 cp3: the export Dither toggle
         static constexpr int settingsDeviceWidth = 150;
         static constexpr int settingsChannelWidth = 64;
         static constexpr int settingsRefreshWidth = 76;

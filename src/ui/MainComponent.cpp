@@ -115,6 +115,17 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     };
     addAndMakeVisible (exportRangeChooser);
 
+    // ADR-0058 cp3: TPDF dither for integer export (on by default).
+    exportDitherToggle.setComponentID ("shell.export.dither");
+    exportDitherToggle.setButtonText ("Dither");
+    exportDitherToggle.setTooltip ("TPDF dither for 16 / 24-bit export (float export is never dithered)");
+    exportDitherToggle.setTitle ("Export dither");
+    exportDitherToggle.setClickingTogglesState (true);
+    exportDitherToggle.setToggleState (appModel.exportDither(), juce::dontSendNotification);
+    exportDitherToggle.setWantsKeyboardFocus (false);
+    exportDitherToggle.onClick = [this] { appModel.setExportDither (exportDitherToggle.getToggleState()); };
+    addAndMakeVisible (exportDitherToggle);
+
     exportAudioProgress.setComponentID (kExportAudioProgressComponentId);
     exportAudioProgress.setTooltip ("Audio export progress");
     exportAudioProgress.setName ("Export audio progress");
@@ -2089,11 +2100,13 @@ void MainComponent::resized()
     exportAudioCancelButton.setBounds (h.exportCancel);
     exportBitDepthChooser.setBounds (h.bitDepth);
     exportRangeChooser.setBounds (h.range);
+    exportDitherToggle.setBounds (h.dither);   // ADR-0058 cp3
     for (juce::Component* settingsControl : { static_cast<juce::Component*> (&audioDeviceChooser),
                                               static_cast<juce::Component*> (&audioInputDeviceChooser),
                                               static_cast<juce::Component*> (&recordingInputChannelChooser),
                                               static_cast<juce::Component*> (&exportBitDepthChooser),
-                                              static_cast<juce::Component*> (&exportRangeChooser) })
+                                              static_cast<juce::Component*> (&exportRangeChooser),
+                                              static_cast<juce::Component*> (&exportDitherToggle) })
         settingsControl->setVisible (h.settingsVisible);
     menuBar.setBounds (h.menuBar);
     // M9: the LUFS readout rides the master card — it drops with it instead of being clipped.
@@ -2654,6 +2667,7 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
         };
         h.bitDepth = cell (L::settingsBitDepthWidth);
         h.range = cell (L::settingsRangeWidth);
+        h.dither = cell (L::settingsDitherWidth);   // ADR-0058 cp3
         h.outputDevice = cell (L::settingsDeviceWidth);
         h.inputDevice = cell (L::settingsDeviceWidth);
         h.inputChannel = cell (L::settingsChannelWidth);

@@ -1085,7 +1085,7 @@ public:
         juce::Rectangle<int> locateStart, play, stop, record, timeReadout, tempoMeterBox, loop, soloClear;
         juce::Rectangle<int> midiIn;   // G3.10: the MIDI input lamp
         juce::Rectangle<int> masterCard, gear;
-        juce::Rectangle<int> bitDepth, range, outputDevice, inputDevice, inputChannel;
+        juce::Rectangle<int> bitDepth, range, dither, outputDevice, inputDevice, inputChannel;
         juce::Rectangle<int> arm, monitor, comp;
         bool settingsVisible = false;
     };
@@ -1370,6 +1370,7 @@ private:
     juce::TextButton exportAudioButton;
     juce::ComboBox exportBitDepthChooser;
     juce::ComboBox exportRangeChooser;
+    juce::TextButton exportDitherToggle;   // ADR-0058 cp3
     juce::Label exportAudioProgress;
     juce::TextButton exportAudioCancelButton;
     juce::Label dragDbReadout;

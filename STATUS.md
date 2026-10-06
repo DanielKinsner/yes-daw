@@ -8,6 +8,16 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (night) — G5.3 cp3, step 1: dithered 16 / 24-bit export (ADR-0058)
+
+**Now:** cp3 lands in four small steps: **dither (in)**, then ranges (render only up to the range; a range past the
+end refused before rendering), normalize, and export stems. **What a user gets:** a 16 or 24-bit export is TPDF
+dithered (a "Dither" toggle in the settings row, on by default); float exports are never dithered and stay
+bit-exact. **Gates:** `[export-options]` — 16 and 24-bit files equal a reference built in the test by an
+independent implementation of the same TPDF law; dither off equals the one-shot writer's plain rounding; no two
+files or channels share noise. 416/416 local, Clang clean. **CI:** 6ccd0b6 (audition) fails only the standing
+macOS GPU exception (Windows green).
+
 ## 2026-10-06 (night) — G5.3 cp2: an export never destroys an earlier file (ADR-0058)
 
 **Now:** **G5.3 checkpoint 2** is in, headless-certified. **Next:** G5.3 cp3 — WAV 16/24/32 with TPDF dither, the

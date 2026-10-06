@@ -106,6 +106,28 @@ struct Fixture
         return out;
     }
 
+    // The synchronous render of the snapshot, on this thread.
+    engine::OfflineRenderResult renderReference() const
+    {
+        std::shared_ptr<const engine::AssetSamples> view;
+        if (sourceRate != 48'000.0)
+            view = engine::buildRateMatchedSamples (source, 1, sourceRate, 48'000.0, engine::ResampleQuality::OfflineRender);
+        else
+        {
+            auto samples = std::make_shared<engine::AssetSamples>();
+            samples->interleaved = source;
+            samples->channels = 1;
+            samples->frames = source.size();
+            view = samples;
+        }
+        const engine::DecodedAssetAudio decoded { project.assets[0].id, project.sampleRate, view->frames, 1,
+                                                  std::span<const float> (view->interleaved.data(), view->interleaved.size()) };
+        const engine::Project rendered = engine::projectHasCrossRateAssets (project) ? engine::projectInViewFrames (project) : project;
+        engine::OfflineRenderResult result = engine::renderOfflineProject (rendered, std::span<const engine::DecodedAssetAudio> (&decoded, 1));
+        REQUIRE (result.ok());
+        return result;
+    }
+
     // The synchronous reference: the same render and the same writer, on this thread.
     void writeReference (const std::filesystem::path& path) const
     {
@@ -366,4 +388,110 @@ TEST_CASE ("ADR-0058 success replaces an earlier file; an unwritable destination
     REQUIRE (failing.failure() == app::ExportFailure::Write);
     REQUIRE (failing.message().find ("could not write mix.wav: ") != std::string::npos);
     REQUIRE (bytesOf (directory / "blocker") == "a file, not a folder");
+}
+
+// ---- cp3: formats and options ----
+
+namespace {
+
+// The TPDF law, written out again here (not shared with the product): splitmix64 seeds, xorshift64 streams, two
+// uniforms in [-0.5, 0.5) per sample, added to sample * fullScale before rounding and clamping.
+std::uint64_t referenceSeed (std::uint64_t fileIndex, std::uint16_t channel)
+{
+    std::uint64_t z = (fileIndex << 16u) ^ static_cast<std::uint64_t> (channel) ^ 0x5945534441570000ull;
+    z += 0x9E3779B97F4A7C15ull;
+    z = (z ^ (z >> 30u)) * 0xBF58476D1CE4E5B9ull;
+    z = (z ^ (z >> 27u)) * 0x94D049BB133111EBull;
+    z ^= z >> 31u;
+    return z == 0u ? 1u : z;
+}
+
+double referenceUniform (std::uint64_t& x)
+{
+    x ^= x << 13u;
+    x ^= x >> 7u;
+    x ^= x << 17u;
+    return static_cast<double> (x >> 11u) / 9007199254740992.0 - 0.5;
+}
+
+// The data bytes an integer export of `samples` must hold, dithered or not.
+std::string referencePcmData (const std::vector<float>& samples, std::uint16_t channels, std::uint16_t bits, bool dither)
+{
+    std::vector<std::uint64_t> state;
+    for (std::uint16_t c = 0; c < channels; ++c)
+        state.push_back (referenceSeed (0u, c));
+    const double fullScale = bits == 16u ? 32767.0 : 8388607.0;
+    std::string out;
+    for (std::size_t i = 0; i < samples.size(); ++i)
+    {
+        const auto channel = static_cast<std::uint16_t> (i % channels);
+        double noise = 0.0;
+        if (dither)
+        {
+            const double first = referenceUniform (state[channel]);
+            noise = first + referenceUniform (state[channel]);
+        }
+        const double q = std::clamp (std::round (static_cast<double> (samples[i]) * fullScale + noise), -fullScale - 1.0, fullScale);
+        const auto bitsValue = static_cast<std::uint32_t> (static_cast<std::int32_t> (q));
+        out.push_back (static_cast<char> (bitsValue & 0xFFu));
+        out.push_back (static_cast<char> ((bitsValue >> 8u) & 0xFFu));
+        if (bits == 24u)
+            out.push_back (static_cast<char> ((bitsValue >> 16u) & 0xFFu));
+    }
+    return out;
+}
+
+} // namespace
+
+TEST_CASE ("ADR-0058 integer exports equal the TPDF law's reference; dither off is plain rounding; float is never dithered",
+           "[export-options]")
+{
+    const auto directory = scratch ("dither");
+    const Fixture f (30'000, 48'000.0);
+    const engine::OfflineRenderResult rendered = f.renderReference();
+    for (const auto format : { app::ExportFormat::Int16, app::ExportFormat::Int24 })
+        for (const bool dither : { true, false })
+        {
+            const std::uint16_t bits = format == app::ExportFormat::Int16 ? 16u : 24u;
+            const auto destination = directory / ("mix-" + std::to_string (bits) + (dither ? "-d" : "-n") + ".wav");
+            app::ExportSnapshot snapshot = f.snapshot (destination);
+            snapshot.format = format;
+            snapshot.dither = dither;
+            app::ExportJob job (31, std::move (snapshot));
+            job.start();
+            waitTerminal (job);
+            job.join();
+            REQUIRE (job.state() == app::ExportJobState::Succeeded);
+            const std::string file = bytesOf (destination);
+            REQUIRE (file.size() > 44u);
+            INFO ("bits " << bits << " dither " << dither);
+            REQUIRE (file.substr (44) == referencePcmData (rendered.interleavedSamples, rendered.channels, bits, dither));
+            if (! dither)   // and that equals the one-shot writer's plain rounding
+            {
+                const auto plain = directory / ("plain-" + std::to_string (bits) + ".wav");
+                REQUIRE (io::writePcmWavFile (plain, rendered.sampleRate, rendered.channels, rendered.frames,
+                                              rendered.interleavedSamples, bits).ok());
+                REQUIRE (bytesOf (plain) == file);
+            }
+        }
+}
+
+TEST_CASE ("ADR-0058 no two files or channels share dither noise", "[export-options]")
+{
+    io::TpdfDither mix (0, 2);
+    io::TpdfDither stem (1, 2);
+    int sameAcrossFiles = 0;
+    int sameAcrossChannels = 0;
+    for (int i = 0; i < 1'000; ++i)
+    {
+        const double m0 = mix.next (0);
+        const double m1 = mix.next (1);
+        const double s0 = stem.next (0);
+        sameAcrossFiles += m0 == s0 ? 1 : 0;
+        sameAcrossChannels += m0 == m1 ? 1 : 0;
+        REQUIRE (m0 > -1.0);
+        REQUIRE (m0 < 1.0);
+    }
+    REQUIRE (sameAcrossFiles == 0);
+    REQUIRE (sameAcrossChannels == 0);
 }

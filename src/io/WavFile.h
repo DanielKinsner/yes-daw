@@ -347,6 +347,50 @@ inline bool sampleRateToUint32 (engine::SampleRate sampleRate, std::uint32_t& ou
     return {};
 }
 
+// ADR-0058 cp3: TPDF dither for integer WAV output — per sample, the sum of two independent uniform values in
+// [-0.5, 0.5) LSB, added before rounding. One xorshift64 stream per channel, seeded (splitmix64) from the file's index
+// in its export and the channel index: an export is reproducible byte for byte, and no two files or channels share
+// noise. The law, exactly: quantized = clamp (round (sample * fullScale + next (channel)), -fullScale - 1, fullScale).
+class TpdfDither
+{
+public:
+    TpdfDither (std::uint64_t fileIndex, std::uint16_t channels)
+    {
+        state_.reserve (channels);
+        for (std::uint16_t channel = 0; channel < channels; ++channel)
+            state_.push_back (seedFor (fileIndex, channel));
+    }
+
+    [[nodiscard]] static std::uint64_t seedFor (std::uint64_t fileIndex, std::uint16_t channel) noexcept
+    {
+        std::uint64_t z = (fileIndex << 16u) ^ static_cast<std::uint64_t> (channel) ^ 0x5945534441570000ull;   // splitmix64
+        z += 0x9E3779B97F4A7C15ull;
+        z = (z ^ (z >> 30u)) * 0xBF58476D1CE4E5B9ull;
+        z = (z ^ (z >> 27u)) * 0x94D049BB133111EBull;
+        z ^= z >> 31u;
+        return z == 0u ? 1u : z;
+    }
+
+    // One sample's dither for `channel`, in LSB: (-1, 1).
+    [[nodiscard]] double next (std::uint16_t channel) noexcept
+    {
+        std::uint64_t& x = state_[channel];
+        const double first = uniform (x);
+        return first + uniform (x);
+    }
+
+private:
+    [[nodiscard]] static double uniform (std::uint64_t& x) noexcept   // xorshift64 -> [-0.5, 0.5)
+    {
+        x ^= x << 13u;
+        x ^= x >> 7u;
+        x ^= x << 17u;
+        return static_cast<double> (x >> 11u) * (1.0 / 9007199254740992.0) - 0.5;
+    }
+
+    std::vector<std::uint64_t> state_;
+};
+
 // ADR-0058 cp2: a WAV written in chunks, so an export job can check Cancel between them. The frame count is known
 // before the first sample, so the header carries the final sizes and the bytes equal writeFloat32WavFile's
 // (bitsPerSample 32) or writePcmWavFile's (16 / 24) exactly — the same header, the same per-sample conversion. One
@@ -408,8 +452,8 @@ public:
         return out_ ? WavResult {} : detail::filesystemError ("failed to write WAV header");
     }
 
-    // Whole interleaved frames, in order.
-    [[nodiscard]] WavResult append (std::span<const float> interleaved)
+    // Whole interleaved frames, in order; integer output adds `dither` (cp3) before rounding, float output never does.
+    [[nodiscard]] WavResult append (std::span<const float> interleaved, TpdfDither* dither = nullptr)
     {
         if (! out_.is_open() || channels_ == 0u || interleaved.size() % channels_ != 0u)
             return detail::invalidArgument ("WAV chunk must be whole frames of an open writer");
@@ -427,9 +471,12 @@ public:
         else
         {
             const double fullScale = bits_ == 16u ? 32767.0 : 8388607.0;
+            std::uint16_t channel = 0;
             for (const float sample : interleaved)
             {
-                const double scaled = std::round (static_cast<double> (sample) * fullScale);
+                const double noise = dither != nullptr ? dither->next (channel) : 0.0;
+                channel = static_cast<std::uint16_t> (channel + 1u == channels_ ? 0u : channel + 1u);
+                const double scaled = std::round (static_cast<double> (sample) * fullScale + noise);
                 const double clamped = std::clamp (scaled, -fullScale - 1.0, fullScale);
                 const std::int32_t quantized = static_cast<std::int32_t> (clamped);
                 if (bits_ == 16u)
