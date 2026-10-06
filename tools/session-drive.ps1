@@ -464,6 +464,16 @@ function Key([string] $chord, [int] $Repeat = 1) {
   # message. Hold it for a beat on both sides of the key or "Ctrl+N" arrives as "N".
   # A repeat burst holds the modifier ONCE across all presses (a user holds Alt and taps Right),
   # so fifty nudges take about a second, not a minute of modifier settling.
+  # A chord also waits for the app to be idle first (its UI tick advances twice): a key that sits in the queue
+  # while the app finishes the previous action (an engine rebuild after a knob drag) would otherwise be read
+  # after the modifier is up — batch 2026-10-06-g46-final saw "Ctrl+Z" arrive as "Z" (zoom to selection).
+  if ($mods.Count -gt 0) {
+    $before = Probe
+    if ($null -ne $before -and $null -ne $before.tick) {
+      $t0 = [int64]$before.tick
+      [void](WaitProbe { param($q) [int64]$q.tick -ge $t0 + 2 } -TimeoutMs 1500)
+    }
+  }
   foreach ($m in $mods) { [YesDawDrive]::KeyEvent([uint16]$m, $true, $false) }
   if ($mods.Count -gt 0) { Start-Sleep -Milliseconds 40 }
   for ($i = 0; $i -lt $Repeat; $i++) {
@@ -471,7 +481,7 @@ function Key([string] $chord, [int] $Repeat = 1) {
     [YesDawDrive]::KeyEvent([uint16]$vk, $false, $ext)
     Start-Sleep -Milliseconds 15
   }
-  if ($mods.Count -gt 0) { Start-Sleep -Milliseconds 40 }
+  if ($mods.Count -gt 0) { Start-Sleep -Milliseconds 80 }
   foreach ($m in ($mods | Sort-Object -Descending)) { [YesDawDrive]::KeyEvent([uint16]$m, $false, $false) }
 }
 
