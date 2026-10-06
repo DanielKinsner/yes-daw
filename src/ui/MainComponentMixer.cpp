@@ -762,6 +762,10 @@ void MainComponent::openFxEditor (int stripIndex, int slotIndex)
     fxEditorStripOrdinal = appModel.selectedMixerStripOrdinal();
     fxEditorOpen = true;
     refreshActionState();
+    // The gain-reduction face reads the running node from the moment it opens, not one UI tick later (a slow
+    // machine's first frame used to say "not running" for a node that was running).
+    if (fxEditor.showsGainReduction())
+        pushFxEditorGainReduction();
     resized();
     repaintAll();
 }
