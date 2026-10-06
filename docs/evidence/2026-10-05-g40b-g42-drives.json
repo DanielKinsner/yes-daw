@@ -1,0 +1,40 @@
+{
+  "checkpoint": "G4.0b keyboard Control target + G4.2 cp2-cp4 faces: real-app journeys",
+  "status": "Drive batch PASS on one build; exact-code CI recorded in STATUS when complete.",
+  "date": "2026-10-05",
+  "host": "DESKTOP-7LC339R (Windows 11 Pro 10.0.26200), shared desktop, owner-authorized for the night",
+  "codeSha": "765d2e6a974d66d29b86c5b76961b2c91fdf5c14",
+  "app": {
+    "path": "build-ci/YesDaw_artefacts/Release/YesDaw.exe",
+    "sha256": "C2D1E7DCAE5989756DD486DF84722B8F5FA9BFAAF6167D7AD9EC5F1B30AD13BF"
+  },
+  "localTests": { "passed": 380, "failed": 0, "log": "build-ci/g42-cp4-ctest.log" },
+  "batch": {
+    "tag": "2026-10-05-g42cp4",
+    "sessions": [
+      { "session": "ss1-first-minute", "assertions": 45, "result": "PASS" },
+      { "session": "ss2-mouse-then-keys", "assertions": 33, "result": "PASS" },
+      { "session": "ss3-edit-a-song", "assertions": 55, "result": "PASS" },
+      { "session": "ss4-track-instrument", "assertions": 19, "result": "PASS" },
+      { "session": "ss5-piano-roll", "assertions": 70, "result": "PASS" },
+      { "session": "ss6-write-a-beat", "assertions": 49, "result": "PASS" },
+      { "session": "ss7-mix-the-song", "assertions": 78, "result": "PASS", "covers": "G4.0b Step 11 keyboard-only journey; G4.2 cp2 compressor face" }
+    ],
+    "totalAssertions": 349,
+    "failedAssertions": 0,
+    "B6WorstMs": 1379,
+    "B6LimitMs": 3000,
+    "B2PaintP95Ms": 4.0
+  },
+  "rawFailuresBeforeCertification": [
+    { "batch": "2026-10-05-g40b", "session": "ss5", "failure": "scale chooser Off again", "cause": "keys raced a late popup under a fixed 350 ms sleep", "repair": "de7dd3f WaitPopup on the probe's modal menus" },
+    { "batch": "2026-10-05-g40b", "session": "ss7", "failure": "Tab could not reach the Snap chooser", "cause": "the chooser shows only in Arrange focus; the step ran in Mixer focus", "repair": "770dcc4 timeline click first" },
+    { "batch": "2026-10-05-g40b-cert", "session": "ss3", "failure": "Clip menu Stretch to Loop", "cause": "menu still closed at 350 ms (screenshot); late menu swallowed part of the Downs", "repair": "de7dd3f WaitPopup" },
+    { "batch": "2026-10-05-g42cp2", "session": "ss7", "failure": "meter reading in a silent song", "cause": "drive expectation wrong: an empty project runs a transport-only engine, so 'not running' is the honest state", "repair": "9ebd6df" },
+    { "batch": "2026-10-05-g42cp2", "session": "ss5", "failure": "Scissors tool click not registered", "cause": "unknown; no [ctx] existed yet", "repair": "9ebd6df adds [ctx] to every FAIL; not reproduced in two later batches" },
+    { "batch": "2026-10-05-g42cp2-b", "session": "ss4", "failure": "Sampler pick re-chose SimpleSynth", "cause": "JUCE popup mouse tracker's first tick undid a key sent 60 ms after open ([ctx]: popup closed, no dispatch)", "repair": "29891ec 200 ms settle" },
+    { "batch": "2026-10-05-g42cp2-b", "session": "ss7", "failure": "Tab stuck on project.save", "cause": "level-triggered screen-reader adoption dragged the target back", "repair": "404bb85 edge-triggered adoption (product fix)" },
+    { "batch": "2026-10-05-g42cp3", "session": "ss6", "failure": "second Load Sample dialog not focusable at 1.2 s", "cause": "dialog tree not yet built, another window foreground ([ctx]/diagnostic)", "repair": "765d2e6 bounded verified focus re-attempts" }
+  ],
+  "artifactAvailability": "Logs and screenshots under build-ci/ are local to DESKTOP-7LC339R."
+}

@@ -8,6 +8,32 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-05 (late) — G4.0b proven in the real app; G4.2 cp2–cp4 faces in
+
+**Now:** one Release build of `765d2e6` passed **all seven journeys, 349/349** (SS7 78 incl. the
+keyboard-only Step 11 and the compressor face), worst launch 1,379 ms, paint p95 4.00 ms, and the full
+local suite 380/380. G4.0b's real-app proof is done; **exact-code CI on `765d2e6` is the open item**
+(GitHub was still building it at this update). Dan granted the shared desktop for the whole night.
+**Next:** G4.2 cp5 transfer curves (limiter + compressor) → cp6 drag-reorder of insert slots → cp7
+presets → G4.3–G4.7 → G5 → G6. [Evidence](docs/evidence/2026-10-05-g40b-g42-drives.json).
+
+**Shipped since cp1 (each its own commit, local suite green each time):**
+- **G4.2 cp2** compressor/limiter face: a live gain-reduction meter fed by taps the engine harvests at
+  create (one acquire-load; RT-safe per critic). Peak hold ~1.5 s; honest "not running" without a graph.
+- **G4.2 cp3** delay face and **cp4** reverb face, each drawn from a private copy of the real node fed a
+  click (EQ face's law). The reverb gate checks the DSP against its settings: 1 s decay falls 60 dB in
+  960 ms, 0.5 s in 480 ms, 100 ms pre-delay starts at 120 ms. Window caps keep an edit's work ~3 ms (B1).
+- Parameter rows read human names ("Threshold", "Time L", "Decay") instead of stable ids.
+- **Product fix:** screen-reader adoption is edge-triggered (a level-triggered poll dragged Tab back).
+- **Harness:** `WaitPopup` waits on the app's modal popup menus then 200 ms (JUCE's popup mouse tracker
+  undoes a key sent before its first tick — proven from the source); native choosers re-establish
+  verified focus while a dialog is still building; every FAIL prints the app's state (`[ctx]`).
+- **CI:** the docs-only fast path now diffs the whole pushed range; it had reported three code commits
+  green in 7 s under a docs head. Two Linux/macOS `-Wsign-compare` reds were fixed (`a608efc`).
+
+**Raw failures on the way** are listed with causes and repairs in the evidence index; all have a
+supported cause except one ss5 Scissors click (no `[ctx]` existed yet; not reproduced in two batches).
+
 ## 2026-10-05 — G4.0b cp1: the keyboard Control target (code + gates; drive pending)
 
 **Now:** G4.0b's code and headless gate are in; the real-app proof (the new ss7 Step 11) and exact-code
