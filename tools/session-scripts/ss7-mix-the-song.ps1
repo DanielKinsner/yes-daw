@@ -12,6 +12,12 @@
 # the kinds (EQ, then a Compressor, on the bus); a filled slot's double-click opens the FX editor (a
 # shot; Close); an empty send well's click lists the buses (track 1 sends to the bus); the send row's
 # right-click menu flips it pre-fader. Later G4 items append theirs (Write, solo-safe, export).
+# G4.0b (2026-10-05) — keyboard only: Step 11. Tab starts control navigation (the ring; the probe's
+# controlTarget); Space stays transport; the Snap chooser previews with arrows and Enter applies; strip 1's
+# painted fader moves by dB as one undo step while Right never moves the playhead, and Esc restores; the
+# EQ editor is a Tab panel of its own (band 1 gain by keys; Enter on Close returns the target); the keymap
+# search field takes typed text (its Space types, never plays) and Tab leaves it; Esc ends navigation and
+# Enter is Return to zero again. Save and close is Step 12.
 #
 # Deviations from the plan text (logged in STATUS.md, the G4.1 cp1 story): the recording device on the
 # drive machine may have no inputs — the input-slot and R-cell steps then assert the honest refusal
@@ -206,7 +212,115 @@ Key 'Enter'
 [void](Assert (WaitProbe { param($q) [bool]$q.mixer.strips[0].sends[0].pre } -TimeoutMs 2000) 'the row''s menu flips the send pre-fader (the strip paints PRE)')
 Shot 'ss7-send'
 
-Step 11 'Save and close'
+# The probe advances one document per UI tick: wait two ticks after a key so the read is post-key.
+function KeyThenTick([string] $chord) {
+  $tick = [int](Probe).tick
+  Key $chord
+  [void](WaitProbe { param($q) [int]$q.tick -ge $tick + 2 } -TimeoutMs 600)
+}
+function TabTo([string] $id, [switch] $Back) {
+  $limit = [int](Probe).controlTarget.count + 2
+  for ($i = 0; $i -lt $limit; $i++) {
+    if ("$((Probe).controlTarget.id)" -eq $id) { return $true }
+    if ($Back) { KeyThenTick 'Shift+Tab' } else { KeyThenTick 'Tab' }
+  }
+  return ("$((Probe).controlTarget.id)" -eq $id)
+}
+
+Step 11 'Keyboard only: the Control target (G4.0b)'
+Focus
+[void](Assert (-not [bool](Probe).controlTarget.navigating) 'no control is targeted before Tab')
+KeyThenTick 'Tab'
+$ct = (Probe).controlTarget
+[void](Assert ([bool]$ct.navigating -and "$($ct.id)" -ne '') ('Tab starts control navigation on ' + $ct.id + ' (' + $ct.count + ' controls)'))
+Shot 'ss7-keyboard-ring'
+KeyThenTick 'Space'
+[void](Assert (WaitProbe { param($q) [bool]$q.transport.isPlaying } -TimeoutMs 1500) 'Space plays while navigating')
+[void](Assert ("$((Probe).controlTarget.id)" -eq "$($ct.id)") 'Space leaves the target where it was')
+KeyThenTick 'Space'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.transport.isPlaying } -TimeoutMs 1500) 'Space stops while navigating')
+
+[void](Assert (TabTo 'timeline.snap.chooser') 'Tab reaches the Snap chooser')
+$ticks = [int64](Probe).view.snapGridTicks
+KeyThenTick 'Enter'
+[void](Assert ([bool](Probe).controlTarget.interacting) 'Enter starts the choice')
+KeyThenTick 'Down'
+[void](Assert ([int64](Probe).view.snapGridTicks -eq $ticks) ('an arrow previews without applying (' + (Probe).controlTarget.value + ')'))
+Shot 'ss7-keyboard-chooser'
+KeyThenTick 'Enter'
+[void](Assert (WaitProbe { param($q) [int64]$q.view.snapGridTicks -ne $ticks -and -not [bool]$q.controlTarget.interacting } -TimeoutMs 1500) ('Enter applies the choice (' + (Probe).view.snapGridTicks + ' ticks)'))
+KeyThenTick 'Enter'
+KeyThenTick 'Up'
+KeyThenTick 'Enter'
+[void](Assert (WaitProbe { param($q) [int64]$q.view.snapGridTicks -eq $ticks } -TimeoutMs 1500) 'the chooser goes back by keys too')
+
+# The Arrange editor takes the focus (a click: its Left / Right locate the playhead) while the dock
+# still shows the mixer; Shift+Tab from the start lands on the last control, nearest the dock.
+KeyThenTick 'Escape'
+Click 'timeline'
+[void](Assert (WaitProbe { param($q) "$($q.focusContext)" -eq 'Arrange' -and -not [bool]$q.controlTarget.navigating } -TimeoutMs 1500) ('a timeline click gives Arrange the keys (' + (Probe).focusContext + ')'))
+KeyThenTick 'Shift+Tab'
+[void](Assert (TabTo 'mixer.strip.0.fader' -Back) 'Shift+Tab reaches track 1''s painted fader')
+$located = [int64](Probe).transport.playheadFrame
+KeyThenTick 'Right'
+[void](Assert ([int64](Probe).transport.playheadFrame -gt $located) 'negative control: before Enter, Right is the editor''s and locates the playhead')
+$frame = [int64](Probe).transport.playheadFrame
+KeyThenTick 'Enter'
+KeyThenTick 'Up'
+KeyThenTick 'Up'
+KeyThenTick 'Up'
+KeyThenTick 'Right'
+KeyThenTick 'Left'
+KeyThenTick 'Enter'
+$gain = [double](Probe).mixer.strips[0].linearGain
+[void](Assert ([Math]::Abs($gain - [Math]::Pow(10.0, 3.0 / 20.0)) -lt 0.002) ('three Ups raise the fader 3 dB (' + (Probe).controlTarget.value + ', linear ' + $gain + ')'))
+[void](Assert ([int64](Probe).transport.playheadFrame -eq $frame) 'Right / Left adjusted the fader, never the playhead')
+Shot 'ss7-keyboard-fader'
+KeyThenTick 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.mixer.strips[0].linearGain - 1.0) -lt 0.0001 } -TimeoutMs 1500) 'one Ctrl+Z undoes the whole keyboard adjustment')
+KeyThenTick 'Enter'
+KeyThenTick 'Down'
+KeyThenTick 'Escape'
+[void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.mixer.strips[0].linearGain - 1.0) -lt 0.0001 -and [bool]$q.controlTarget.navigating } -TimeoutMs 1500) 'Esc restores the value the interaction started from')
+
+# The EQ editor (opened with the mouse: a click ends navigation; Tab starts it inside the editor).
+Click 'mixer.strip.3.insert.0' -Double
+[void](Assert (WaitProbe { param($q) [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'the EQ editor is open')
+[void](Assert (-not [bool](Probe).controlTarget.navigating) 'the mouse press ended keyboard navigation')
+Focus
+KeyThenTick 'Tab'
+[void](Assert ("$((Probe).controlTarget.scope)" -eq 'mixer.fx.editor') ('Tab stays inside the open editor (' + (Probe).controlTarget.id + ')'))
+[void](Assert (TabTo 'mixer.fx.param.2') 'Tab reaches band 1 gain')
+$eq = [double](Probe).fxEditor.eqResponseDb1000
+KeyThenTick 'Enter'
+1..5 | ForEach-Object { KeyThenTick 'Up' }
+KeyThenTick 'Enter'
+[void](Assert (WaitProbe { param($q) [double]$q.fxEditor.eqResponseDb1000 -gt $eq + 0.5 } -TimeoutMs 1500) ('band 1 gain by keys lifts 1 kHz (' + $eq + ' -> ' + (Probe).fxEditor.eqResponseDb1000 + ' dB)'))
+Shot 'ss7-keyboard-eq'
+[void](Assert (TabTo 'mixer.fx.editor.close') 'Tab reaches the editor''s Close')
+KeyThenTick 'Enter'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible -and [bool]$q.controlTarget.navigating -and "$($q.controlTarget.scope)" -eq '' } -TimeoutMs 2000) ('Enter on Close closes the panel and navigation continues in the shell (' + (Probe).controlTarget.id + ')'))
+
+# Text entry outranks the router: the keymap search field types Space instead of playing.
+KeyThenTick 'Alt+K'
+[void](Assert (WaitProbe { param($q) "$($q.controlTarget.scope)" -eq 'keymap.editor' } -TimeoutMs 1500) 'the keymap editor is a Tab panel of its own')
+[void](Assert (TabTo 'keymap.editor.search') 'Tab reaches the keymap search field')
+KeyThenTick 'Enter'
+[void](Assert (WaitProbe { param($q) "$($q.focusOwner)" -eq 'keymap.editor.search' } -TimeoutMs 1500) ('Enter starts text entry (focus ' + (Probe).focusOwner + ')'))
+TypeText 'play mode'
+[void](WaitProbe { param($q) "$($q.controlTarget.value)" -eq 'play mode' } -TimeoutMs 1500)
+[void](Assert ("$((Probe).controlTarget.value)" -eq 'play mode') ('typed text reaches the field, Space included (' + (Probe).controlTarget.value + ')'))
+[void](Assert (-not [bool](Probe).transport.isPlaying) 'the typed Space did not play')
+KeyThenTick 'Tab'
+[void](Assert (WaitProbe { param($q) "$($q.focusOwner)" -ne 'keymap.editor.search' -and [bool]$q.controlTarget.navigating } -TimeoutMs 1500) 'Tab leaves the field and keeps navigating')
+KeyThenTick 'Escape'
+[void](Assert (-not [bool](Probe).controlTarget.navigating) 'Esc ends navigation')
+KeyThenTick 'Escape'
+[void](Assert (WaitProbe { param($q) "$($q.controlTarget.scope)" -eq '' } -TimeoutMs 1500) 'the next Esc closes the keymap editor')
+KeyThenTick 'Enter'
+[void](Assert (WaitProbe { param($q) [int64]$q.transport.playheadFrame -eq 0 } -TimeoutMs 1500) 'outside navigation Enter is Return to zero again')
+
+Step 12 'Save and close'
 Focus
 Key 'Ctrl+S'
 Start-Sleep -Milliseconds 800
