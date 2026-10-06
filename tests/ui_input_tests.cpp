@@ -5,6 +5,7 @@
 #include "ui/ControlTarget.h"   // G4.0b: the pure Control-target rules
 #include "ui/DesktopAudioStartup.h"
 #include "ui/EqResponseComponent.h"
+#include "ui/FxParameterNames.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
 #include "ui/UiPianoRollSurface.h"   // G3.2: pianoRollKeyName
@@ -22934,4 +22935,37 @@ TEST_CASE ("G4.2 cp2 the compressor face meters the running node's gain reductio
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G4.2: every parameter row of every built-in reads a reader's name — never the stable id, never a
+// raw underscore — and no two rows of one effect read alike.
+TEST_CASE ("G4.2 FX parameter rows read human names for every built-in", "[ui][fx-editors]")
+{
+    REQUIRE (yesdaw::ui::fxParameterDisplayName ("compressor.threshold") == "Threshold");
+    REQUIRE (yesdaw::ui::fxParameterDisplayName ("delay.time_l") == "Time L");
+    REQUIRE (yesdaw::ui::fxParameterDisplayName ("reverb.rt60") == "Decay");
+    REQUIRE (yesdaw::ui::fxParameterDisplayName ("reverb.pre_delay") == "Pre-delay");
+    REQUIRE (yesdaw::ui::fxParameterDisplayName ("no_dot_here") == "No dot here");
+    REQUIRE (yesdaw::ui::fxParameterDisplayName ("") == "");
+
+    for (const auto kind : { yesdaw::engine::FxKind::Compressor, yesdaw::engine::FxKind::Delay, yesdaw::engine::FxKind::Reverb,
+                             yesdaw::engine::FxKind::Limiter })
+    {
+        std::set<std::string> names;
+        int accepted = 0;
+        for (std::uint32_t id = 0; id < 64u; ++id)
+        {
+            if (! yesdaw::engine::fxKindAcceptsParameterId (kind, id))
+                continue;
+            ++accepted;
+            const std::string name = yesdaw::ui::fxParameterDisplayName (yesdaw::engine::fxParamSpecForKind (kind, id).name);
+            INFO ("kind " << static_cast<int> (kind) << " param " << id << " reads '" << name << "'");
+            REQUIRE_FALSE (name.empty());
+            REQUIRE (name.find ('.') == std::string::npos);
+            REQUIRE (name.find ('_') == std::string::npos);
+            REQUIRE (std::isupper (static_cast<unsigned char> (name.front())) != 0);
+            REQUIRE (names.insert (name).second);
+        }
+        REQUIRE (accepted >= 3);
+    }
 }

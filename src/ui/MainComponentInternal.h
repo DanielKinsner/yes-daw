@@ -26,6 +26,7 @@
 #include "ui/UndoHistoryComponent.h"
 #include "ui/KeymapEditorComponent.h"
 #include "ui/FxEditorComponent.h"
+#include "ui/FxParameterNames.h"
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_gui_extra/juce_gui_extra.h>

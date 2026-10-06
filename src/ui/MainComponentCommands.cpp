@@ -1881,9 +1881,8 @@ void MainComponent::refreshActionState()
             {
                 const std::uint32_t paramId = acceptedIds[i];
                 const yesdaw::engine::ParamSpec spec = yesdaw::engine::fxParamSpecForKind (kind, paramId);
-                // G4.2 cp2: a readable name ("compressor.threshold" reads "Threshold"), never the stable id.
-                juce::String parameterName = juce::String (spec.name).fromLastOccurrenceOf (".", false, false).replaceCharacter ('_', ' ');
-                parameterName = parameterName.substring (0, 1).toUpperCase() + parameterName.substring (1);
+                // G4.2: a reader's name ("compressor.threshold" reads "Threshold"), never the stable id.
+                juce::String parameterName (yesdaw::ui::fxParameterDisplayName (spec.name != nullptr ? spec.name : ""));
                 if (kind == yesdaw::engine::FxKind::Eq)
                 {
                     static constexpr std::array<const char*, 4> names { "Type", "Frequency", "Gain", "Q" };
