@@ -8085,12 +8085,16 @@ public:
     // control move — as ONE undo step. addAutomationBreakpointToLane (above) resolves its lane
     // against the LIVE project_, which would try to create a second lane on a second call within
     // the same working copy; this resolves the lane ONCE against the working copy (nextProject)
-    // instead, then loops every sample into the SAME transaction group before adopting once. The
+    // instead and commits the lane edit into the SAME transaction group before adopting once. The
     // caller (a mixer fader/pan drag) never calls adoptEditedProject mid-drag: one ride must be
     // one undo step, not one per drag tick, and a per-tick engine rebuild would glitch the very
     // playback the ride is riding (R2 keeps the transport rolling across an adoption, but each
     // rebuild still swaps the engine). Sampling client-side and committing once, here, at the
     // end of the ride keeps the ride atomic and the playback continuous.
+    // G4.6 / ADR-0052: the ride REPLACES the span it wrote (edge anchors keep the curve outside it), so a
+    // second pass over the same bars rewrites them instead of being refused. Samples whose tick runs
+    // backwards (a loop wrap) start a new pass inside the same step; a sample that compiles onto the
+    // previous one's audio frame updates it (the lane compiler refuses two points on one frame).
     [[nodiscard]] UiActionDispatchResult commitAutomationTouchRide (
         engine::EntityId ownerEntity,
         engine::AutomationTargetRole role,
@@ -8132,23 +8136,45 @@ public:
             }
         }
 
-        bool ok = true;
+        engine::CompiledTempoMap tempoMap;
+        bool ok = engine::CompiledTempoMap::build (
+            engine::TempoMapView { nextProject.tempoMap.data(), nextProject.tempoMap.size() }, nextProject.sampleRate, tempoMap);
+
+        // The passes: runs of rising ticks, one point per compiled frame.
+        std::vector<std::vector<engine::AutomationBreakpoint>> passes;
+        std::int64_t previousFrame = -1;
         for (const AutomationTouchSample& sample : samples)
         {
-            if (sample.tick < 0 || ! std::isfinite (sample.value))
+            std::int64_t frame = 0;
+            if (! ok || sample.tick < 0 || ! std::isfinite (sample.value)
+                || ! engine::compiledAutomationFrameForTick (tempoMap, sample.tick, frame))
             {
                 ok = false;
                 break;
             }
 
-            const double clampedValue = std::clamp (sample.value, 0.0, 1.0);
-            ok = nextUndo.apply (nextProject,
-                                 engine::ProjectEditCommand::addAutomationBreakpoint (
-                                     laneId, sample.tick, clampedValue,
-                                     engine::AutomationCurveType::Linear))
-                     .applied();
+            const engine::AutomationBreakpoint point { sample.tick, std::clamp (sample.value, 0.0, 1.0),
+                                                       engine::AutomationCurveType::Linear };
+            if (passes.empty() || sample.tick <= passes.back().back().tick)
+                passes.push_back ({ point });
+            else if (frame <= previousFrame)
+                passes.back().back().value = point.value;
+            else
+                passes.back().push_back (point);
+            previousFrame = frame;
+        }
+
+        std::vector<engine::AutomationBreakpoint> points;
+        for (const std::vector<engine::AutomationBreakpoint>& pass : passes)
+        {
             if (! ok)
                 break;
+            const auto lane = std::find_if (nextProject.automationLanes.begin(), nextProject.automationLanes.end(),
+                                            [&] (const engine::AutomationLaneData& candidate) { return candidate.id == laneId; });
+            ok = lane != nextProject.automationLanes.end()
+                 && engine::replaceAutomationSpan (lane->points, pass, tempoMap, points) == engine::AutomationSpanEditStatus::Ok;
+            if (ok && points != lane->points)
+                ok = nextUndo.replaceAutomationLanePoints (nextProject, laneId, std::move (points)).applied();
         }
 
         if (grouped)

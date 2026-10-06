@@ -24134,3 +24134,72 @@ TEST_CASE ("a MIDI clip's preview draws its notes where the engine plays them", 
         REQUIRE (preview.notes.front().startSeconds == Catch::Approx (1.0));
     }
 }
+
+// G4.6 / ADR-0052: a Touch ride REPLACES the span it writes (edge anchors keep the lane outside it), so a
+// second pass over the same bars rewrites them instead of being refused whole; each pass is one undo step,
+// and a pass whose ticks run backwards (a loop wrap) commits as two passes in that step.
+TEST_CASE ("a second ride over the same bars rewrites them and one undo brings the first back", "[ui][automation][automation-v2]")
+{
+    const auto bundlePath = makeTempBundlePath ("automation-v2-ride");
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (bundlePath).ok());
+    REQUIRE (model.addAudioTrack().dispatched);
+    const yesdaw::engine::EntityId trackId = model.project().tracks.front().id;
+    using Sample = yesdaw::ui::UiAppModel::AutomationTouchSample;
+    const auto ride = [&] (std::vector<Sample> samples) {
+        const auto result = model.commitAutomationTouchRide (trackId, yesdaw::engine::AutomationTargetRole::TrackFader,
+                                                             yesdaw::engine::FaderNode::kGainParameterId, samples);
+        UNSCOPED_INFO ("ride: " << result.state.disabledReason);
+        return result.dispatched;
+    };
+    const auto lanePoints = [&model] {
+        REQUIRE (model.project().automationLanes.size() == 1u);
+        return model.project().automationLanes.front().points;
+    };
+
+    // Pass 1 over beats 1..4 (an earlier point at 0 and a later one at bar 3 frame it).
+    REQUIRE (ride ({ { 0, 0.2 } }));
+    REQUIRE (ride ({ { 92'160, 0.6 } }));
+    REQUIRE (ride ({ { 15'360, 0.5 }, { 30'720, 0.7 }, { 46'080, 0.9 } }));
+    const std::vector<yesdaw::engine::AutomationBreakpoint> firstPass = lanePoints();
+    // 0 | anchor | three | anchor | 92159 (the one-sample pass's own left anchor) | 92160
+    REQUIRE (firstPass.size() == 8u);
+    REQUIRE (firstPass[1].tick == 15'359);
+    REQUIRE (firstPass[5].tick == 46'081);
+
+    // Pass 2 over the same beats: rewritten, not refused, the anchors reused.
+    REQUIRE (ride ({ { 15'360, 0.1 }, { 30'720, 0.15 }, { 46'080, 0.25 } }));
+    const std::vector<yesdaw::engine::AutomationBreakpoint> secondPass = lanePoints();
+    REQUIRE (secondPass.size() == firstPass.size());
+    REQUIRE (secondPass[2].value == 0.1);
+    REQUIRE (secondPass[3].value == 0.15);
+    REQUIRE (secondPass[4].value == 0.25);
+    REQUIRE (secondPass[1] == firstPass[1]);
+    REQUIRE (secondPass[5] == firstPass[5]);
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.front().points == secondPass);   // persisted
+
+    // One undo brings the first pass back exactly.
+    REQUIRE (model.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (lanePoints() == firstPass);
+
+    // A loop wrap mid-ride: the later cycle's samples run backwards in ticks — two passes, one step.
+    REQUIRE (ride ({ { 61'440, 0.3 }, { 76'800, 0.35 }, { 20'000, 0.8 }, { 25'000, 0.85 } }));
+    const std::vector<yesdaw::engine::AutomationBreakpoint> wrapped = lanePoints();
+    for (std::size_t i = 1; i < wrapped.size(); ++i)
+        REQUIRE (wrapped[i].tick > wrapped[i - 1u].tick);
+    const auto valueAt = [&wrapped] (yesdaw::engine::Tick tick) {
+        for (const auto& point : wrapped)
+            if (point.tick == tick)
+                return point.value;
+        return -1.0;
+    };
+    REQUIRE (valueAt (61'440) == 0.3);
+    REQUIRE (valueAt (20'000) == 0.8);
+    REQUIRE (valueAt (25'000) == 0.85);
+    REQUIRE (valueAt (30'720) == 0.7);   // outside the second cycle's span: the first pass stays
+    REQUIRE (model.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (lanePoints() == firstPass);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
