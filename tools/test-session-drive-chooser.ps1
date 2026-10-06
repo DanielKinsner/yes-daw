@@ -11,7 +11,7 @@ public static class YesDawDrive {
     public static bool ReadbackAvailable = true, LoseFocusAfterTyping = false;
     public static bool EmptyReadback = false, FocusVerifies = true;
     public static int FocusAttempts = 0, FocusReadyOnAttempt = 1;
-    public static int Typed = 0, Confirmed = 0;
+    public static int Typed = 0, Confirmed = 0, TruncatedTypings = 0;
     public static string Text = "", LastSearch = "";
     public static int ActivationAttempts = 0, ActivateOnAttempt = 1;
     public static bool CaptionSafe = false;
@@ -35,7 +35,7 @@ public static class YesDawDrive {
         public string text;
         public override string ToString() { return available ? "text='"+text+"'" : "<unavailable>"; }
     }
-    public static FileNameReadback ReadFileName(IntPtr h) { return new FileNameReadback { available = ReadbackAvailable, text = ReadbackAvailable ? (EmptyReadback ? "" : (ReadbackOk ? Text : "wrong path")) : null }; }
+    public static FileNameReadback ReadFileName(IntPtr h) { return new FileNameReadback { available = ReadbackAvailable, text = ReadbackAvailable ? (EmptyReadback ? "" : (!ReadbackOk ? "wrong path" : (Typed <= TruncatedTypings ? Text.Substring(Math.Min(4, Text.Length)) : Text))) : null }; }
     public static bool FileNameHasFocus(IntPtr h) { return FocusOk && FocusVerifies && FocusAttempts >= FocusReadyOnAttempt && !(LoseFocusAfterTyping && Typed > 0); }
     public static string DialogDiagnostic(IntPtr h) { return "test diagnostic"; }
 }
@@ -56,7 +56,7 @@ $script:Hwnd = [IntPtr]10
 function Reset {
     [YesDawDrive]::FocusOk = $true; [YesDawDrive]::Closed = $false; [YesDawDrive]::ReadbackOk = $true
     [YesDawDrive]::ReadbackAvailable = $true; [YesDawDrive]::EmptyReadback = $false; [YesDawDrive]::LoseFocusAfterTyping = $false
-    [YesDawDrive]::Typed = 0; [YesDawDrive]::Confirmed = 0; [YesDawDrive]::Text = ''
+    [YesDawDrive]::Typed = 0; [YesDawDrive]::Confirmed = 0; [YesDawDrive]::Text = ''; [YesDawDrive]::TruncatedTypings = 0
     [YesDawDrive]::FocusAttempts = 0; [YesDawDrive]::FocusReadyOnAttempt = 1; [YesDawDrive]::FocusVerifies = $true
     [void](WaitDialog 'Import WAV Audio')
 }
@@ -83,6 +83,7 @@ foreach ($failure in @('empty', 'unavailable', 'focus-loss')) {
     if ($failure -eq 'empty' -and $message -notlike "*text=''*" ) { throw 'Valid empty readback was not distinguished' }
     if ($failure -eq 'unavailable' -and $message -notlike '*<unavailable>*') { throw 'Unavailable readback was reported as empty' }
     if ($failure -eq 'focus-loss' -and $message -notlike '*observedFocus=False*') { throw 'Condition-time focus loss was not recorded' }
+    if ($failure -eq 'focus-loss' -and [YesDawDrive]::Typed -ne 1) { throw 'Retyped after the filename control lost focus' }
 }
 Reset
 $refused = $false
@@ -111,6 +112,19 @@ $refused = $false
 try { FileDialogEnter 'C:\unverified.wav' } catch { $refused = $_.Exception.Message -like '*focus was not established*' }
 if (-not $refused -or [YesDawDrive]::Typed -ne 0) { throw 'An unverified focus click let input through' }
 Write-Host 'PASS: late chooser focus is re-established (bounded, verified) before any input; never-ready refuses'
+
+# 2026-10-06: a settling dialog dropped the first characters ('sers\...' for 'C:\Users\...'). The same
+# verified control is retyped (bounded); Enter only after an exact readback.
+Reset
+[YesDawDrive]::TruncatedTypings = 1
+FileDialogEnter 'C:\Users\fixture.wav'
+if ([YesDawDrive]::Typed -ne 2 -or [YesDawDrive]::Confirmed -ne 1) { throw 'A dropped-prefix readback was not retyped once and confirmed once' }
+Reset
+[YesDawDrive]::TruncatedTypings = 99
+$refused = $false
+try { FileDialogEnter 'C:\Users\fixture.wav' } catch { $refused = $_.Exception.Message -like '*readback did not match*' }
+if (-not $refused -or [YesDawDrive]::Typed -ne 3 -or [YesDawDrive]::Confirmed -ne 0) { throw 'A persistent mismatch was not refused after three bounded typings without confirmation' }
+Write-Host 'PASS: a dropped-prefix filename is retyped (bounded) into the same verified control; Enter only on an exact readback'
 
 [YesDawDrive]::Foreground = [IntPtr]99
 [YesDawDrive]::ActivationAttempts = 0; [YesDawDrive]::ActivateOnAttempt = 1000

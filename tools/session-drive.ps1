@@ -502,13 +502,26 @@ function FileDialogEnter([string] $path, [string] $DialogTitle = '') {
   }
   if (-not $clicked) { throw ('Cannot focus native filename control: ' + [YesDawDrive]::DialogDiagnostic($dialog)) }
   if (-not $focused) { throw ('Native filename focus was not established: ' + [YesDawDrive]::DialogDiagnostic($dialog)) }
-  Key 'Ctrl+A'
-  Start-Sleep -Milliseconds 100
-  TypeText $path
-  Start-Sleep -Milliseconds 300
-  $readbackFocus = [YesDawDrive]::FileNameHasFocus($dialog)
-  $readback = [YesDawDrive]::ReadFileName($dialog)
-  if (-not $readbackFocus -or -not $readback.available -or $readback.text -cne $path) {
+  # The 2026-10-06 ss1 import read back 'sers\...' for 'C:\Users\...': the still-settling dialog dropped
+  # the first characters (a late select-all or field reset). Input delivery into the SAME verified
+  # control is re-attempted (select all, retype, read back) up to three times; Enter is pressed only
+  # after an exact readback, so the app never sees a partial path.
+  $matched = $false
+  for ($typing = 0; $typing -lt 3 -and -not $matched; $typing++) {
+    if ($typing -gt 0) {
+      Write-Host ("  [dialog] filename readback mismatch (observed '" + $readback.text + "'); retyping, attempt " + ($typing + 1))
+      Start-Sleep -Milliseconds 300
+    }
+    Key 'Ctrl+A'
+    Start-Sleep -Milliseconds 100
+    TypeText $path
+    Start-Sleep -Milliseconds 300
+    $readbackFocus = [YesDawDrive]::FileNameHasFocus($dialog)
+    $readback = [YesDawDrive]::ReadFileName($dialog)
+    if (-not $readbackFocus) { break }   # focus moved elsewhere: never type into an unknown control
+    $matched = $readback.available -and $readback.text -ceq $path
+  }
+  if (-not $matched) {
     throw ("Native filename readback did not match requested path: observedFocus=$readbackFocus observed=[$readback] expected='$path'; later state: " + [YesDawDrive]::DialogDiagnostic($dialog))
   }
   Write-Host ('  [dialog] verified filename focus/readback: hwnd=' + $dialog + ' title=' + [YesDawDrive]::WindowTitle($dialog) + ' path=' + $path)
