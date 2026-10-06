@@ -8074,6 +8074,60 @@ public:
     // N8: the persisted punch region, for the UI to paint/hit-test on the ruler.
     [[nodiscard]] engine::PunchRegion punchRegion() const noexcept { return project_.punchRegion; }
 
+    // G4.6 / ADR-0052: while a ride lasts you hear it. Its start suspends the target's compiled lane on the
+    // running graph (the lane emits nothing and the live sets below are accepted for that one target); its
+    // end resumes the lane. Both ride the ordered command lane, ahead of the ride's own live values. A
+    // target with no lane yet suspends nothing — no lane owns it, so its live values are heard anyway.
+    [[nodiscard]] bool setAutomationRideSuspended (engine::EntityId owner,
+                                                   engine::AutomationTargetRole role,
+                                                   std::uint32_t paramId,
+                                                   bool suspended)
+    {
+        engine::NodeId node = 0;
+        engine::ParameterId parameter = 0;
+        if (playback_ == nullptr || ! playback_->hasLiveGraph()
+            || ! engine::projectAutomationRideTarget (owner, role, paramId, node, parameter))
+            return false;
+        return playback_->postLiveSetAutomationSuspended (node, parameter, suspended);
+    }
+
+    // G4.6 / ADR-0052: a ride's live value (the lane's normalized 0..1, mapped by the node's own event law
+    // so what you hear riding is what the written lane plays back). Not persisted — the ride commits once,
+    // at its end. A disabled insert's node keeps its transparent defaults (one law with the FX param edit).
+    [[nodiscard]] bool postAutomationRideValue (engine::EntityId owner,
+                                                engine::AutomationTargetRole role,
+                                                std::uint32_t paramId,
+                                                double normalized)
+    {
+        engine::NodeId node = 0;
+        engine::ParameterId parameter = 0;
+        if (playback_ == nullptr || ! playback_->hasLiveGraph() || ! std::isfinite (normalized)
+            || ! engine::projectAutomationRideTarget (owner, role, paramId, node, parameter))
+            return false;
+
+        const double value = std::clamp (normalized, 0.0, 1.0);
+        switch (role)
+        {
+            case engine::AutomationTargetRole::TrackFader:
+            case engine::AutomationTargetRole::BusFader:
+            case engine::AutomationTargetRole::SendLevel:
+                return playback_->postLiveSetGain (node, engine::FaderNode::linearGainForNormalizedEvent (value));
+            case engine::AutomationTargetRole::TrackPan:
+            case engine::AutomationTargetRole::BusPan:
+                return playback_->postLiveSetPan (node, engine::PanNode::panForNormalizedEvent (value));
+            case engine::AutomationTargetRole::FxInsertParam:
+            {
+                const engine::FxInsert* const insert = project_.findFxInsert (owner);
+                if (insert == nullptr || ! insert->enabled)
+                    return false;
+                return playback_->postLiveSetFxParam (node, parameter, value);
+            }
+            case engine::AutomationTargetRole::InstrumentParam:
+                break;
+        }
+        return false;
+    }
+
     // N5: one sampled point of a live Touch/Latch control ride — (tick, normalized value).
     struct AutomationTouchSample
     {

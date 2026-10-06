@@ -943,6 +943,8 @@ void MainComponent::beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationT
     automationTouchRideRole = role;
     automationTouchRideParamId = paramId;
     automationTouchRideTrackId = ownerId;
+    // G4.6 / ADR-0052: you hear the ride — its lane steps aside until the release.
+    (void) appModel.setAutomationRideSuspended (ownerId, role, paramId, true);
 }
 
 // N5: sample the live playhead tick and the control's current value into the ride buffer.
@@ -955,6 +957,10 @@ void MainComponent::recordAutomationTouchSample (double normalizedValue)
 {
     if (! automationTouchRideActive || ! appModel.project().sampleRate.isValid())
         return;
+
+    // G4.6 / ADR-0052: the riding control's value is heard live (not persisted; the ride commits at its end).
+    (void) appModel.postAutomationRideValue (automationTouchRideTrackId, automationTouchRideRole,
+                                             automationTouchRideParamId, normalizedValue);
 
     // The playhead's MUSICAL tick (a breakpoint's domain), not its frame — at 48 kHz / 120 BPM a frame
     // stored as a tick played 1.5625x late.
@@ -980,6 +986,10 @@ void MainComponent::endAutomationTouchRideIfActive()
         return;
 
     automationTouchRideActive = false;
+    // G4.6 / ADR-0052: the lane plays again (the commit's rebuild starts unsuspended too; this covers a
+    // ride with nothing to commit).
+    (void) appModel.setAutomationRideSuspended (automationTouchRideTrackId, automationTouchRideRole,
+                                                automationTouchRideParamId, false);
     if (! automationTouchRideSamples.empty())
         (void) appModel.commitAutomationTouchRide (
             automationTouchRideTrackId, automationTouchRideRole, automationTouchRideParamId,

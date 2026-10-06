@@ -24203,3 +24203,103 @@ TEST_CASE ("a second ride over the same bars rewrites them and one undo brings t
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G4.6 / ADR-0052: you hear a ride while it lasts. A first ride writes a lane that holds the fader at the
+// bottom (silence); a second ride pushes the fader to the top — the lane steps aside for the ride, so the
+// render is loud again DURING the ride, before anything is committed. (Before G4.6 the lane kept winning:
+// the ride recorded silently and only played back after the release.)
+TEST_CASE ("a fader ride is heard while it lasts, over a lane that holds the fader down", "[ui][input][shell][automation-v2]")
+{
+    const auto bundlePath = makeTempBundlePath ("automation-v2-heard");
+    auto sourcePath = makeTempBundlePath ("automation-v2-heard-source");
+    sourcePath += ".wav";
+    constexpr std::uint64_t kFrames = 192'000;   // 4 s: every render below stays inside the clip
+    std::vector<float> samples (static_cast<std::size_t> (kFrames));
+    for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+        samples[static_cast<std::size_t> (frame)] = 0.5f * std::sin (2.0f * 3.14159265f * 440.0f * static_cast<float> (frame) / 48'000.0f);
+    REQUIRE (yesdaw::io::writeFloat32WavFile (sourcePath, yesdaw::engine::SampleRate { 48'000.0 }, 1, kFrames,
+                                              std::span<const float> (samples.data(), samples.size())).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [sourcePath] { return sourcePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    auto* modeChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.automation.mode"));
+    REQUIRE (modeChooser != nullptr);
+    modeChooser->setSelectedId (2, juce::sendNotificationSync);   // Touch
+    REQUIRE (readProjectSnapshot (bundlePath).automationMode == yesdaw::engine::AutomationMode::Touch);
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 3));
+    const juce::Rectangle<int> rail = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 0);
+    REQUIRE_FALSE (rail.isEmpty());
+    const juce::Point<int> middle = strips->getLocalPoint (shell.get(), juce::Point<int> { rail.getCentreX(), rail.getCentreY() });
+    const juce::Point<int> bottom = strips->getLocalPoint (shell.get(), juce::Point<int> { rail.getCentreX(), rail.getBottom() - 1 });
+    const juce::Point<int> top = strips->getLocalPoint (shell.get(), juce::Point<int> { rail.getCentreX(), rail.getY() + 4 });
+    const auto peakOf = [] (const std::vector<float>& rendered) {
+        return peakAbs (std::span<const float> (rendered.data(), rendered.size()));
+    };
+    const auto press = [&] (juce::Point<int> at) {
+        juce::MouseEvent down = makeMouseEvent (*strips, at, at, false, 1);
+        strips->mouseDown (down);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    };
+    const auto dragTo = [&] (juce::Point<int> at, juce::Point<int> from) {
+        juce::MouseEvent drag = makeMouseEvent (*strips, at, from, true, 1);
+        strips->mouseDrag (drag);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    };
+    const auto release = [&] (juce::Point<int> at, juce::Point<int> from) {
+        juce::MouseEvent up = makeMouseEvent (*strips, at, from, true, 1);
+        strips->mouseUp (up);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    };
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    const double baseline = peakOf (renderMainComponentPlayback (*shell, 4'800, 128));
+    REQUIRE (baseline > 0.2);
+
+    // Ride 1: unity down to the bottom — the lane it writes holds the fader there after its span.
+    press (middle);
+    (void) renderMainComponentPlayback (*shell, 4'800, 128);
+    dragTo (bottom, middle);
+    (void) renderMainComponentPlayback (*shell, 4'800, 128);
+    release (bottom, middle);
+    const yesdaw::engine::Project afterRide1 = readProjectSnapshot (bundlePath);
+    REQUIRE (afterRide1.automationLanes.size() == 1u);
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);   // R2: the commit kept the transport rolling
+    (void) renderMainComponentPlayback (*shell, 4'800, 128);      // the lane's ramp settles at the bottom
+    REQUIRE (peakOf (renderMainComponentPlayback (*shell, 4'800, 128)) < baseline * 0.05);
+
+    // Ride 2: grab the knob mid-rail and push it to the top. The lane steps aside — the ride is heard
+    // before anything is committed.
+    press (middle);
+    (void) renderMainComponentPlayback (*shell, 2'400, 128);
+    dragTo (top, middle);
+    (void) renderMainComponentPlayback (*shell, 2'400, 128);   // the 5 ms declick ramp
+    const double during = peakOf (renderMainComponentPlayback (*shell, 4'800, 128));
+    INFO ("baseline " << baseline << ", during the ride " << during);
+    REQUIRE (during > baseline * 0.5);
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes == afterRide1.automationLanes);   // nothing committed yet
+    release (top, middle);
+
+    // Released and committed: the lane now carries the ride's top value where the ride wrote it.
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);
+    REQUIRE (project.automationLanes.front().points.back().value
+             > afterRide1.automationLanes.front().points.back().value + 0.5);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove (sourcePath, ec);
+}

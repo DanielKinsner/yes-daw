@@ -163,3 +163,56 @@ TEST_CASE ("prepared empty project keeps the existing transport-only open behavi
     REQUIRE (rendered.size() == 1024u);
     REQUIRE (std::all_of (rendered.begin(), rendered.end(), [] (float sample) { return sample == 0.0f; }));
 }
+
+// G4.6 / ADR-0052, the model half of "you hear a ride while it lasts": a lane holds the fader at the bottom;
+// suspending it and posting the ride's value makes the playback loud before anything is committed; resuming
+// lets the lane hold the fader down again.
+TEST_CASE ("a ride's suspension and live value reach the running engine", "[ui][automation][automation-v2]")
+{
+    const auto directory = loadTestDirectory();
+    const auto wav = directory / "ride-source.wav";
+    std::vector<float> samples (192'000);
+    for (std::size_t frame = 0; frame < samples.size(); ++frame)
+        samples[frame] = 0.5f * std::sin (2.0f * 3.14159265f * 440.0f * static_cast<float> (frame) / 48'000.0f);
+    REQUIRE (yesdaw::io::writeFloat32WavFile (wav, yesdaw::engine::SampleRate { 48000.0 }, 1, samples.size(), samples).ok());
+    auto decoded = yesdaw::ui::shell::decodeProjectWav (wav);
+    REQUIRE (decoded.has_value());
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (directory / "ride.yesdaw").ok());
+    REQUIRE (model.importAudioFile (wav, std::move (*decoded)).ok());
+    REQUIRE (model.setAutomationMode (yesdaw::engine::AutomationMode::Touch).dispatched);
+    const yesdaw::engine::EntityId trackId = model.project().clips.front().trackId;
+    const auto peak = [&model] (std::uint64_t frames) {
+        const std::vector<float> rendered = model.renderPlaybackFrames (frames, 128);
+        float p = 0.0f;
+        for (const float v : rendered)
+            p = std::max (p, std::abs (v));
+        return p;
+    };
+    constexpr auto kFader = yesdaw::engine::AutomationTargetRole::TrackFader;
+    constexpr std::uint32_t kGain = yesdaw::engine::FaderNode::kGainParameterId;
+
+    REQUIRE (model.dispatch (yesdaw::ui::UiActionId::TransportPlay).dispatched);
+    const float baseline = peak (4'800);
+    REQUIRE (baseline > 0.2f);
+
+    // A lane holding the fader at the bottom (its one point holds everywhere).
+    REQUIRE (model.commitAutomationTouchRide (trackId, kFader, kGain, { { 0, 0.0 } }).dispatched);
+    REQUIRE (model.context().isPlaying);
+    (void) peak (2'400);
+    REQUIRE (peak (4'800) < baseline * 0.05f);
+
+    // The ride: suspend the lane, post the ride's value — heard on the running engine.
+    const std::uint64_t appliedBefore = model.playbackLiveScalarsApplied();
+    REQUIRE (model.setAutomationRideSuspended (trackId, kFader, kGain, true));
+    REQUIRE (model.postAutomationRideValue (trackId, kFader, kGain, 1.0));
+    (void) peak (2'400);
+    INFO ("applied " << model.playbackLiveScalarsApplied() - appliedBefore);
+    REQUIRE (model.playbackLiveScalarsApplied() == appliedBefore + 2u);
+    REQUIRE (peak (4'800) > baseline * 0.5f);
+
+    // Released: the lane holds the fader down again.
+    REQUIRE (model.setAutomationRideSuspended (trackId, kFader, kGain, false));
+    (void) peak (2'400);
+    REQUIRE (peak (4'800) < baseline * 0.05f);
+}
