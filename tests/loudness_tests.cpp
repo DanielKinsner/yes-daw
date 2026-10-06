@@ -231,3 +231,49 @@ TEST_CASE ("Pinned libebur128 version is the ADR-0028 dependency", "[loudness]")
     REQUIRE (version.minor == 2);
     REQUIRE (version.patch == 6);
 }
+
+// ADR-0053: the streaming meter fed in arbitrary chunks reports what the offline wrapper reports for the same
+// samples; reset() starts over; bad input is refused whole and changes nothing.
+TEST_CASE ("The live meter fed in chunks matches the offline analysis; reset starts over", "[loudness][loudness-live]")
+{
+    const auto stereo = makeStereoFixture (static_cast<std::size_t> (kSampleRate) * 5u);
+    yesdaw::analysis::LiveLoudnessMeter live;
+    REQUIRE_FALSE (live.ready());
+    REQUIRE (live.reset (2, kSampleRate) == LoudnessStatus::Ok);
+    std::size_t offset = 0;
+    std::size_t chunk = 1;
+    while (offset < stereo.size())
+    {
+        const std::size_t samples = std::min (chunk * 2u, stereo.size() - offset);   // whole frames
+        REQUIRE (live.add (std::span<const float> (stereo.data() + offset, samples)) == LoudnessStatus::Ok);
+        offset += samples;
+        chunk = (chunk * 7u + 13u) % 1'500u + 1u;   // ragged device-block-like sizes
+    }
+    const auto offline = yesdaw::analysis::analyzeInterleavedLoudness (stereo, 2, kSampleRate);
+    REQUIRE (offline.status == LoudnessStatus::Ok);
+    const auto streamed = live.metrics();
+    REQUIRE (streamed.status == LoudnessStatus::Ok);
+    REQUIRE (streamed.metrics.frames == offline.metrics.frames);
+    REQUIRE (streamed.metrics.integratedLufs == Catch::Approx (offline.metrics.integratedLufs).margin (0.1));
+    REQUIRE (std::max (streamed.metrics.truePeakDbtp[0], streamed.metrics.truePeakDbtp[1])
+             == Catch::Approx (std::max (offline.metrics.truePeakDbtp[0], offline.metrics.truePeakDbtp[1])).margin (1.0e-4));
+
+    // Bad input is refused whole and leaves the measurement as it was.
+    const std::array<float, 3> misaligned { 0.1f, 0.2f, 0.3f };
+    REQUIRE (live.add (misaligned) == LoudnessStatus::SampleCountNotFrameAligned);
+    const std::array<float, 2> nonFinite { 0.1f, std::numeric_limits<float>::infinity() };
+    REQUIRE (live.add (nonFinite) == LoudnessStatus::NonFiniteInput);
+    REQUIRE (live.metrics().metrics.frames == offline.metrics.frames);
+
+    // reset() is a fresh measurement — at a new format too (mono).
+    REQUIRE (live.reset (1, kSampleRate) == LoudnessStatus::Ok);
+    REQUIRE (live.frames() == 0u);
+    const auto mono = makeMonoFixture (static_cast<std::size_t> (kSampleRate) * 3u);
+    REQUIRE (live.add (mono) == LoudnessStatus::Ok);
+    const auto monoOffline = yesdaw::analysis::analyzeInterleavedLoudness (mono, 1, kSampleRate);
+    REQUIRE (live.metrics().metrics.integratedLufs == Catch::Approx (monoOffline.metrics.integratedLufs).margin (0.1));
+
+    REQUIRE (live.reset (3, kSampleRate) == LoudnessStatus::UnsupportedChannelLayout);
+    REQUIRE_FALSE (live.ready());
+    REQUIRE (live.reset (2, 0) == LoudnessStatus::InvalidSampleRate);
+}

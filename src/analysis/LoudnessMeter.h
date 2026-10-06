@@ -223,4 +223,77 @@ inline LoudnessResult analyzeInterleavedLoudness (std::span<const float> interle
     return { LoudnessStatus::Ok, metrics };
 }
 
+// ADR-0053: the streaming form of the meter, for the live readout — one libebur128 state fed in chunks on the
+// MESSAGE thread (never the audio thread: ADR-0028), queried after each feed. reset() starts a fresh measurement
+// at a format; add() refuses non-finite or misaligned input whole, exactly like the offline wrapper.
+class LiveLoudnessMeter
+{
+public:
+    [[nodiscard]] LoudnessStatus reset (std::uint32_t channels, std::uint32_t sampleRate)
+    {
+        state_ = {};
+        channels_ = 0;
+        sampleRate_ = 0;
+        frames_ = 0;
+        if (sampleRate == 0)
+            return LoudnessStatus::InvalidSampleRate;
+        if (channels != 1 && channels != 2)
+            return LoudnessStatus::UnsupportedChannelLayout;
+
+        detail::EburState fresh { ebur128_init (channels, static_cast<unsigned long> (sampleRate), kLoudnessMode) };
+        if (fresh.state == nullptr)
+            return LoudnessStatus::LibraryInitFailed;
+        if (! detail::assignChannelMap (fresh.state, channels))
+            return LoudnessStatus::LibraryError;
+
+        state_ = std::move (fresh);
+        channels_ = channels;
+        sampleRate_ = sampleRate;
+        return LoudnessStatus::Ok;
+    }
+
+    [[nodiscard]] bool ready() const noexcept { return state_.state != nullptr; }
+    [[nodiscard]] std::uint32_t channels() const noexcept { return channels_; }
+    [[nodiscard]] std::uint32_t sampleRate() const noexcept { return sampleRate_; }
+    [[nodiscard]] std::uint64_t frames() const noexcept { return frames_; }
+
+    [[nodiscard]] LoudnessStatus add (std::span<const float> interleaved)
+    {
+        if (! ready())
+            return LoudnessStatus::LibraryError;
+        const std::size_t channelCount = static_cast<std::size_t> (channels_);
+        if (interleaved.size() % channelCount != 0)
+            return LoudnessStatus::SampleCountNotFrameAligned;
+        for (const float sample : interleaved)
+            if (! std::isfinite (sample))
+                return LoudnessStatus::NonFiniteInput;
+
+        const std::size_t frames = interleaved.size() / channelCount;
+        if (frames == 0)
+            return LoudnessStatus::Ok;
+        if (! detail::eburOk (ebur128_add_frames_float (state_.state, interleaved.data(), frames)))
+            return LoudnessStatus::LibraryError;
+        frames_ += static_cast<std::uint64_t> (frames);
+        return LoudnessStatus::Ok;
+    }
+
+    [[nodiscard]] LoudnessResult metrics() const
+    {
+        if (! ready())
+            return { LoudnessStatus::LibraryError, {} };
+        LoudnessMetrics metrics;
+        metrics.channels = channels_;
+        metrics.frames = frames_;
+        if (! detail::readMetrics (state_.state, channels_, metrics))
+            return { LoudnessStatus::LibraryError, {} };
+        return { LoudnessStatus::Ok, metrics };
+    }
+
+private:
+    detail::EburState state_;
+    std::uint32_t channels_ = 0;
+    std::uint32_t sampleRate_ = 0;
+    std::uint64_t frames_ = 0;
+};
+
 } // namespace yesdaw::analysis
