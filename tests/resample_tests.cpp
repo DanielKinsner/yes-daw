@@ -65,7 +65,7 @@ TEST_CASE ("ADR-0055 a 44.1 kHz sine resampled to 48 kHz matches the analytic si
 {
     const std::vector<float> source = sine (1'000.0, 44'100.0, 44'100);
     const std::vector<float> reference = sine (1'000.0, 48'000.0, 48'000);
-    for (const auto [quality, floorDb] : { std::pair { ResampleQuality::OfflineRender, -80.0 },
+    for (const auto& [quality, floorDb] : { std::pair { ResampleQuality::OfflineRender, -80.0 },
                                            std::pair { ResampleQuality::LivePlayback, -60.0 } })
     {
         const std::vector<float> resampled = resampleInterleaved (source, 1, 44'100.0, 48'000.0, quality);
