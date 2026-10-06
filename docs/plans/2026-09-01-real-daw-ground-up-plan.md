@@ -741,6 +741,9 @@ G4.8 is a separate later milestone; it does not block G5/G6 or imply that plugin
   property (the ghost kick ducks the bus 27 dB; the negatives stay steady). Batch 372/372.
 - **G4.5 — Solo/mute UX.** Build: solo-safe in context menus, solo-clear button, `Ctrl`-click
   exclusive solo. Gate: `[solo-ux]`.
+  **2026-10-06 complete:** Ctrl-click exclusive solo (mixer + rail), the header SOLO clears all,
+  menu verbs. Quiet batch 377/377. [Evidence](../evidence/2026-10-06-g45-and-repairs.json).
+  G4.6 is decided by ADR-0052.
 - **G4.6 — Automation v2.** Build: stacked per-track lanes, real Write mode, pencil/line tools,
   region-follow toggle (automation moves with clips), instrument parameters as targets. Gate:
   render goldens; `[automation-v2]`.

@@ -1,0 +1,44 @@
+{
+  "checkpoint": "G4.5 solo/mute UX + four repairs found on the way (bus cell click, v33 automation persistence, automation time domain, MIDI clip preview)",
+  "status": "Quiet drive batch PASS 7/7 on one build; critic acceptable; exact-code CI recorded in STATUS.md.",
+  "date": "2026-10-06",
+  "host": "DESKTOP-7LC339R (Windows 11 Pro 10.0.26200), shared desktop, owner-authorized for the night",
+  "codeSha": "cda311d",
+  "batch": {
+    "tag": "2026-10-06-g45-quiet",
+    "sessions": [
+      { "session": "ss1-first-minute", "assertions": 45, "result": "PASS" },
+      { "session": "ss2-mouse-then-keys", "assertions": 33, "result": "PASS" },
+      { "session": "ss3-edit-a-song", "assertions": 55, "result": "PASS" },
+      { "session": "ss4-track-instrument", "assertions": 19, "result": "PASS" },
+      { "session": "ss5-piano-roll", "assertions": 70, "result": "PASS" },
+      { "session": "ss6-write-a-beat", "assertions": 49, "result": "PASS" },
+      { "session": "ss7-mix-the-song", "assertions": 106, "result": "PASS", "covers": "G4.5: two Solo clicks light SOLO; Ctrl-click solos only Audio 2; SOLO clears; Ctrl+Z; clears again" }
+    ],
+    "totalAssertions": 377,
+    "failedAssertions": 0
+  },
+  "rawFailuresBeforeCertification": [
+    { "batch": "2026-10-06-g45", "session": "ss7", "failures": 6,
+      "detail": "Step 8: the EQ editor's Bypass click registered no action twice (lastAction stayed mixer.strips.narrow); Step 11: Tab stopped on project.save so Enter saved instead of opening the Snap chooser, and band-1 gain keys did not move the response",
+      "cause": "not proven; correlated with load — two background agents were working during that batch, ss7 took 53 s against 44 s alone; the same build passed ss7 alone twice (2026-10-06-g45-try1, -rerun) and the full batch on a near-quiet machine (2026-10-06-g45-quiet). Recorded as an open observation, not a tooling flake; if it recurs under load the drive's input waits are the next suspect." }
+  ],
+  "repairs": [
+    { "commit": "f47af33", "bug": "a bus strip's painted S/M cell click was refused whenever no strip was selected (the bus twin borrowed the selected-target verb's gate)", "gate": "[solo-ux]" },
+    { "commit": "e6dbdcc", "bug": "instrument-parameter automation lanes could not be saved (v8 CHECK roles 0..5); bus-owned send-level lanes saved but refused to reopen", "gate": "[v33] round trip + migration keeps every lane and point" },
+    { "commit": "deaf102", "bug": "automation breakpoints played 1.5625x later than drawn at 48 kHz / 120 BPM (the lane stored frames as musical ticks; the Touch ride too)", "gate": "[automation-time]" },
+    { "commit": "cda311d", "bug": "a UI-made MIDI clip's notes were drawn ~1.56x late in the arrange view (display only)", "gate": "[midi-preview-time]" }
+  ],
+  "critics": [
+    "G4.5: ACCEPTABLE (accessible-name suggestion taken, 54c87b5)",
+    "ADR-0052: two passes; accepted with the second pass's extrapolation claim refuted by Automation.h's clamp and the characterization test"
+  ],
+  "ci": [
+    { "sha": "82fb6f4", "run": 37451293051, "result": "every job green except macOS, red only on YesDawTimelineGpuCheck sustained-frame budget (plan 8.2 standing exception)",
+      "raw": { "maxFrameMs": 28.32, "sustainedFrameMs": 17.21, "budgetMs": 16.6, "slowFrames": 10, "allowedOutliers": 8 } },
+    { "sha": "e00b81a", "run": 37444965845, "result": "G4.4 head: every job green except macOS on the same exception",
+      "raw": { "maxFrameMs": 35.59, "sustainedFrameMs": 27.02, "slowFrames": 106 } },
+    { "sha": "cda311d", "result": "its run was cancelled while pending and the next push was docs-only; restarted on the exact SHA (never ran — not a rerun for luck)" }
+  ],
+  "artifactAvailability": "Logs and screenshots under build-ci/ are local to DESKTOP-7LC339R."
+}

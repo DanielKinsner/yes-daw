@@ -8,6 +8,30 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (evening) — G4.5 done; four real bugs fixed; G4.6 automation v2 decided (ADR-0052)
+
+**Now:** **G4.5** is done and **ADR-0052** (automation v2) is accepted. **Next: G4.6** — stacked lanes,
+real Write and Latch, span-replacing rides you can hear, Pencil / Shift+Pencil line / Eraser, "automation
+follows clips" — then G4.7 master strip → G5 → G6. [Evidence](docs/evidence/2026-10-06-g45-and-repairs.json).
+
+**G4.5 — what a user gets:** Ctrl-click (Cmd on Mac) a Solo cell, in the mixer or the track list, solos only
+that strip (one undo step; Ctrl-click the only soloed strip to clear it). The header's **SOLO** beside Loop
+lights amber while anything is soloed; a click clears every solo. The strip and track-header menus carry
+Solo Exclusively, Clear All Solos and Solo Safe. Quiet batch **377/377**; critic acceptable.
+
+**Bugs found and fixed on the way (each proven by a test that failed first):**
+- A **bus** strip's S / M cell did nothing unless some strip was already selected.
+- **Instrument-parameter automation could not be saved**, and a project with **bus-send automation could not
+  reopen** — schema **v33** rebuilds the automation tables (every existing lane and point kept).
+- **Automation played 1.56x later than drawn** at 48 kHz / 120 BPM: the lane stored frames where the engine
+  reads musical ticks. Existing projects keep their stored points — the sound is unchanged; the lane now
+  shows each point where it really plays.
+- **MIDI clips' notes were drawn ~1.56x late** in the arrange view (display only).
+
+**Open observation:** one ss7 run inside a busy batch (two background agents working) missed six steps
+(clicks/keys landing without effect); the same build passed ss7 alone twice and the whole batch when quiet.
+Load is the supported suspect, not proven — if it recurs, the drive's input waits are next.
+
 ## 2026-10-06 (later) — G4.3 and G4.4 done: New Bus, Route to New Bus, compressor sidechain
 
 **Now:** **G4.3** and **G4.4** are done. **Next: G4.5** solo/mute UX (solo-clear control, Ctrl-click
