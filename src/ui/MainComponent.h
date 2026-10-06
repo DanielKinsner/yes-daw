@@ -383,6 +383,8 @@ void mainComponentKeymapEditorSearch (juce::Component& component, const juce::St
 // G1.6: the gesture hint the status line shows for the zone under a shell point (the same law
 // the surfaces' mouseMove uses); empty where nothing has a hint.
 [[nodiscard]] juce::String mainComponentHoverHintAt (juce::Component& component, juce::Point<int> shellPoint);
+[[nodiscard]] juce::String mainComponentModeHint (juce::Component& component);   // ADR-0053: the hover-free status hint
+[[nodiscard]] float mainComponentMonitorGain (juce::Component& component);        // ADR-0053: the device thread's monitor gain
 // G2.1: set the Editor dock's height through the same clamp the splitter uses (tests that need
 // the mixer's full control lane grow the dock first, as a user would drag it).
 void mainComponentSetDockHeight (juce::Component& component, int height);

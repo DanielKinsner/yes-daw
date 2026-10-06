@@ -10,6 +10,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <cstdint>
 #include <array>
 #include <filesystem>
@@ -1430,6 +1431,57 @@ TEST_CASE ("stacked automation lanes render under their track's clips", "[ui][sc
     REQUIRE (structureIn (faderLane->getBounds()) > 300u);   // the Fader curve, handles and name
     REQUIRE (structureIn (panLane->getBounds()) > 200u);     // the Pan curve and handles
     (void) captureShellPng (image, "yesdaw-automation-stacked.png");
+
+    shell.reset();
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// ADR-0053: lit, the header card's DIM paints amber and MUTE the danger red — the two words a silent or quiet
+// monitor is explained by — and both still fit their pills at the default window.
+TEST_CASE ("the header MASTER card lights DIM amber and MUTE red", "[ui][screenshot][g47]")
+{
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath =
+        std::filesystem::temp_directory_path() / "yesdaw-ui-screenshot-monitor.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (1536, 960);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    juce::Button& dim = requireButtonForAction (*shell, UiActionId::MasterMonitorDimToggle);
+    juce::Button& mute = requireButtonForAction (*shell, UiActionId::MasterMonitorMuteToggle);
+    // The pill's lower fill (its gradient settles on the button colour there), left of the word.
+    const auto fillAt = [] (const juce::Image& image, const juce::Button& button) {
+        return image.getPixelAt (button.getX() + 3, button.getBottom() - 3);
+    };
+    const auto distance = [] (juce::Colour a, juce::Colour b) {
+        return std::abs (a.getRed() - b.getRed()) + std::abs (a.getGreen() - b.getGreen()) + std::abs (a.getBlue() - b.getBlue());
+    };
+    const auto nearest = [&distance] (juce::Colour pixel, juce::Colour expected) {
+        using yesdaw::ui::UiTheme;
+        for (const juce::Colour other : { UiTheme::Color::buttonSurface(), UiTheme::Color::accentAmber(), UiTheme::Color::dangerRed() })
+            if (other != expected && distance (pixel, other) <= distance (pixel, expected))
+                return false;
+        return true;
+    };
+    const juce::Image unlit = renderShell (*shell);
+    REQUIRE (nearest (fillAt (unlit, dim), yesdaw::ui::UiTheme::Color::buttonSurface()));
+    REQUIRE (nearest (fillAt (unlit, mute), yesdaw::ui::UiTheme::Color::buttonSurface()));
+    // Dispatched as a click does (a triggerClick would leave the pill in its flashed "down" paint).
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MasterMonitorDimToggle);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MasterMonitorMuteToggle);
+    const juce::Image lit = renderShell (*shell);
+    (void) captureShellPng (lit, "yesdaw-monitor-lit.png");
+    REQUIRE (nearest (fillAt (lit, dim), yesdaw::ui::UiTheme::Color::accentAmber()));
+    REQUIRE (nearest (fillAt (lit, mute), yesdaw::ui::UiTheme::Color::dangerRed()));
 
     shell.reset();
     std::error_code ec;

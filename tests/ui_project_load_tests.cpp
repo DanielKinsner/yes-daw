@@ -563,3 +563,60 @@ TEST_CASE ("ADR-0053 a loop wrap and an engine swap keep one listen; a dropped b
     f.model.serviceLiveLoudness();
     requireReadout (f.model, analyzed (fresh));
 }
+
+// ADR-0053: the monitor stage's ramp — linear over 5 ms (240 frames at 48 kHz) from wherever the gain is to each
+// new target; Mute wins over Dim and Dim under Mute only moves the target Mute releases to; unity is bit-exact.
+TEST_CASE ("ADR-0053 the monitor stage ramps 5 ms to Dim and Mute targets and leaves unity untouched",
+           "[ui][monitor][g47]")
+{
+    using yesdaw::ui::UiActionId;
+    LoudnessModel f;   // a 48 kHz project, so the ramp is 240 frames
+    auto& model = f.model;
+    const bool canUndoBefore = model.context().canUndo;
+    const bool dirtyBefore = model.hasUnsavedChanges();
+
+    // Ones through the stage show the gain sample by sample.
+    const auto pass = [&model] (int frames) {
+        std::vector<float> left (static_cast<std::size_t> (frames), 1.0f);
+        std::vector<float> right (static_cast<std::size_t> (frames), 1.0f);
+        float* channels[2] = { left.data(), right.data() };
+        model.applyMonitorStage (channels, 2, frames);
+        REQUIRE (left == right);
+        return left;
+    };
+    const auto requireRamp = [] (const std::vector<float>& gains, float from, float to) {
+        REQUIRE (gains.size() >= 240u);
+        for (std::size_t i = 0; i < 239u; ++i)
+            REQUIRE (gains[i] == Catch::Approx (from + (to - from) * static_cast<float> (i + 1) / 240.0f).margin (1.0e-5));
+        for (std::size_t i = 239u; i < gains.size(); ++i)
+            REQUIRE (gains[i] == to);   // lands exactly and stays
+    };
+    const float dim = std::pow (10.0f, -20.0f / 20.0f);
+
+    REQUIRE (pass (64) == std::vector<float> (64, 1.0f));   // unity: untouched
+
+    REQUIRE (model.dispatch (UiActionId::MasterMonitorDimToggle).dispatched);
+    REQUIRE (model.context().monitorDimmed);
+    requireRamp (pass (300), 1.0f, dim);
+
+    // Mute while dimmed ramps from the dimmed gain to silence; Dim off under Mute changes nothing heard.
+    REQUIRE (model.dispatch (UiActionId::MasterMonitorMuteToggle).dispatched);
+    requireRamp (pass (300), dim, 0.0f);
+    REQUIRE (model.dispatch (UiActionId::MasterMonitorDimToggle).dispatched);
+    REQUIRE_FALSE (model.context().monitorDimmed);
+    REQUIRE (pass (64) == std::vector<float> (64, 0.0f));
+
+    // Mute off releases to the target Dim left it — unity now — and a change mid-ramp restarts from where it is.
+    REQUIRE (model.dispatch (UiActionId::MasterMonitorMuteToggle).dispatched);
+    const std::vector<float> half = pass (120);
+    REQUIRE (half.back() == Catch::Approx (0.5f).margin (1.0e-5));
+    REQUIRE (model.dispatch (UiActionId::MasterMonitorDimToggle).dispatched);   // 0.5 -> dim over a fresh 240
+    requireRamp (pass (300), half.back(), dim);
+    REQUIRE (model.dispatch (UiActionId::MasterMonitorDimToggle).dispatched);
+    requireRamp (pass (300), dim, 1.0f);
+    REQUIRE (pass (64) == std::vector<float> (64, 1.0f));   // back to untouched
+
+    // Session state: no edit, nothing to undo, nothing to save.
+    REQUIRE (model.context().canUndo == canUndoBefore);
+    REQUIRE (model.hasUnsavedChanges() == dirtyBefore);
+}

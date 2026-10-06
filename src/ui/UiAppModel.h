@@ -429,6 +429,53 @@ public:
         return true;
     }
 
+    // ADR-0053: the monitor's gain — Mute 0 (whatever Dim is), else Dim's -20 dB, else unity.
+    [[nodiscard]] static float monitorTargetGainFor (bool dimmed, bool muted) noexcept
+    {
+        if (muted)
+            return 0.0f;
+        return dimmed ? static_cast<float> (std::pow (10.0, UiThemeLayout::monitorDimDb / 20.0)) : 1.0f;
+    }
+
+    void publishMonitorTarget() noexcept
+    {
+        monitorTargetGain_.store (monitorTargetGainFor (context_.monitorDimmed, context_.monitorMuted),
+                                  std::memory_order_relaxed);
+    }
+
+    // DEVICE thread (ADR-0053): the monitor's LAST stage — after the engine, the click, input monitoring and the
+    // header's peak scan (the shell calls it after accountDeviceBlockPeaks), one gain on every output channel. Each
+    // new target starts a linear 5 ms ramp from wherever the gain is; unity with no ramp running leaves the block
+    // untouched, bit for bit. Plain arithmetic on preowned state — no allocation, lock, log or I/O.
+    void applyMonitorStage (float* const* outputChannels, int numOutputChannels, int numFrames) noexcept YESDAW_RT_HOT
+    {
+        const float target = monitorTargetGain_.load (std::memory_order_relaxed);
+        if (target != monitorRampTarget_)
+        {
+            const engine::PlaybackEngine* const playback = audioPlayback_.load (std::memory_order_acquire);
+            const double rateHz = playback != nullptr && playback->sampleRate().hz > 0.0 ? playback->sampleRate().hz : 48'000.0;
+            const int rampFrames = std::max (1, static_cast<int> (std::lround (UiThemeLayout::monitorRampSeconds * rateHz)));
+            monitorRampTarget_ = target;
+            monitorRampStep_ = (target - monitorGain_) / static_cast<float> (rampFrames);
+            monitorRampFramesLeft_ = rampFrames;
+        }
+        if (monitorRampFramesLeft_ == 0 && monitorGain_ == 1.0f)
+            return;
+
+        for (int frame = 0; frame < numFrames; ++frame)
+        {
+            if (monitorRampFramesLeft_ > 0)
+                monitorGain_ = --monitorRampFramesLeft_ == 0 ? monitorRampTarget_ : monitorGain_ + monitorRampStep_;
+            if (outputChannels == nullptr)
+                continue;
+            for (int channel = 0; channel < numOutputChannels; ++channel)
+                if (float* const samples = outputChannels[channel]; samples != nullptr)
+                    samples[frame] *= monitorGain_;
+        }
+    }
+
+    [[nodiscard]] float monitorGainForTest() const noexcept { return monitorGain_; }   // harness: the device thread's gain
+
     [[nodiscard]] bool processDeviceAudioBlock (float* const* outputChannels,
                                                 int numOutputChannels,
                                                 int numFrames) noexcept YESDAW_RT_HOT
@@ -8939,6 +8986,14 @@ public:
             case UiActionId::TrackSelectPrevious:
             case UiActionId::TrackSelectNext:
             case UiActionId::TimelineTogglePlayheadFollow:
+            case UiActionId::MasterMonitorDimToggle:    // ADR-0053: the registry flips the flag; the device
+            case UiActionId::MasterMonitorMuteToggle:   // thread ramps to the new target
+            {
+                const UiActionDispatchResult result = registry_.dispatch (id, context_);
+                publishMonitorTarget();
+                return result;
+            }
+
             case UiActionId::TransportToggleReturnToStartOnStop:
             case UiActionId::TransportToggleRecordCountIn:
             case UiActionId::ViewToggleSettingsRow:
@@ -12050,6 +12105,12 @@ private:
     std::atomic<std::size_t> armedPickCount_ { 0 };
     // E31: DirectInput monitoring routes the armed picks into the live outputs.
     std::atomic<bool> monitorDirectInput_ { false };
+    // ADR-0053: the monitor stage — the target the control thread publishes; the ramp the device thread owns.
+    std::atomic<float> monitorTargetGain_ { 1.0f };
+    float monitorGain_ = 1.0f;
+    float monitorRampTarget_ = 1.0f;
+    float monitorRampStep_ = 0.0f;
+    int monitorRampFramesLeft_ = 0;
     std::unique_ptr<MonitorChain> monitorChain_;
     std::atomic<MonitorChain*> audioMonitorChain_ { nullptr };
     MonitorChainSignature monitorChainSignature_ {};

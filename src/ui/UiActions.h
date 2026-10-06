@@ -269,6 +269,8 @@ enum class UiActionId : std::uint8_t
     MixerTargetSoloExclusive,   // G4.5: solo ONLY the selected strip (Ctrl-click a Solo cell) — one undo step
     MixerSoloClear,             // G4.5: clear every solo (the header's lit SOLO) — one undo step
     TimelineAutomationFollowsClipsToggle,   // G4.6 / ADR-0052: automation follows clips moved in time
+    MasterMonitorDimToggle,     // G4.7 / ADR-0053: the monitor 20 dB down — session state, never an edit
+    MasterMonitorMuteToggle,    // G4.7 / ADR-0053: the monitor silent — session state, never an edit
     Count
 };
 
@@ -565,6 +567,8 @@ struct UiActionContext
     bool recordCountInActive = false;
     bool playheadFollowEnabled = true;
     bool returnToStartOnStopEnabled = false;
+    bool monitorDimmed = false;   // ADR-0053: Master Dim / Mute — session state (not saved, not undoable, off at launch)
+    bool monitorMuted = false;
     // V3: the always-on bottom mixer dock (inside Timeline/Piano Roll) can be collapsed to
     // reclaim vertical space. True (visible) matches today's historical always-on behaviour, so
     // no existing screenshot/layout gate changes unless a test explicitly toggles it off.
@@ -1172,7 +1176,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerSoloClear, "mixer.solo.clear", "Clear All Solos", "", "Clear every solo",
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineAutomationFollowsClipsToggle, "timeline.automation.follow_clips.toggle", "Automation Follows Clips", "",
-      "Move automation with clips moved in time on their track", AccessibilityRole::MenuItem, UiActionKind::Toggle, true, false, false, false }
+      "Move automation with clips moved in time on their track", AccessibilityRole::MenuItem, UiActionKind::Toggle, true, false, false, false },
+    { UiActionId::MasterMonitorDimToggle, "master.monitor.dim", "Master Dim", "", "Dim the monitor 20 dB (Master Dim)",
+      AccessibilityRole::Button, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::MasterMonitorMuteToggle, "master.monitor.mute", "Master Mute", "", "Mute the monitor (Master Mute)",
+      AccessibilityRole::Button, UiActionKind::Toggle, false, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -1986,6 +1994,14 @@ public:
 
             case UiActionId::TransportToggleReturnToStartOnStop:
                 context.returnToStartOnStopEnabled = ! context.returnToStartOnStopEnabled;
+                break;
+
+            case UiActionId::MasterMonitorDimToggle:    // ADR-0053: the monitor, not the mix — no edit, no panel change
+                context.monitorDimmed = ! context.monitorDimmed;
+                break;
+
+            case UiActionId::MasterMonitorMuteToggle:
+                context.monitorMuted = ! context.monitorMuted;
                 break;
 
             // The snap chooser is panel-preserving (E12): it now governs piano-roll note

@@ -14,13 +14,16 @@ Older entries below are dated history, not competing "Now" instructions.
 (before the click) into one preallocated ring every engine shares; (3) **the header's LUFS button and the
 mixer's INTEGRATED / TRUE PEAK cards now show the real loudness of what you played** — measured from play
 or from a locate while playing, held when stopped, one listen across a loop wrap or an edit, "~" if the UI
-stalled long enough to drop audio. **Next:** (4) monitor **Dim / Mute** (header MASTER card, Transport menu,
-master menu; last stage of the device callback, 5 ms ramp, not saved); (5) the master's insert slots on the
-master pane; then a drive step, the critic pass, a quiet batch and the evidence file.
+stalled long enough to drop audio; (4) **Master Dim / Mute**: DIM (amber) and MUTE (red) on the header MASTER
+card, in the Transport menu and the master's menu — the speakers get 20 dB less or nothing after a 5 ms ramp,
+the header meter keeps showing the signal, exports and renders are never touched, the status line names them,
+nothing is saved or undoable. **Next:** (5) the master's insert slots on the master pane; then a drive step,
+the critic pass, a quiet batch and the evidence file.
 
 **Gates so far:** `[loudness-live]` (meter chunks = offline analysis; play / locate restart, stop holds, loop
 wrap and engine swap keep one listen, overflow marks "~"), `[loudness-tap]` (the tap equals a click-free
-render bit for bit). 410/410 local, Clang clean.
+render bit for bit), `[g47]` (the ramp's exact shape, Mute over Dim, unity bit-exact; the shell's lit pills,
+menus, status line, meter-before-monitor; the lit colours on a rendered screenshot). 410/410 local, Clang clean.
 
 **CI:** e005b43 and 03763dc (the G4.6 close) are fully green, macOS included.
 

@@ -124,9 +124,10 @@ inline constexpr std::array<ContextMenuEntry, 12> kMixerBusStrip {{
     { UiActionId::MixerStripsNarrowToggle, true },
     { UiActionId::MixerBusAdd, true }, { UiActionId::MixerBusRemove },
 }};
-// The MASTER strip: its FX chain (R11), the view, a new bus.
-inline constexpr std::array<ContextMenuEntry, 3> kMixerMasterStrip {{
+// The MASTER strip: its FX chain (R11), the monitor's Dim / Mute (G4.7 / ADR-0053), the view, a new bus.
+inline constexpr std::array<ContextMenuEntry, 5> kMixerMasterStrip {{
     { UiActionId::MixerFxInsertAdd },
+    { UiActionId::MasterMonitorDimToggle, true }, { UiActionId::MasterMonitorMuteToggle },
     { UiActionId::MixerStripsNarrowToggle, true },
     { UiActionId::MixerBusAdd, true },
 }};

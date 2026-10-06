@@ -1662,6 +1662,19 @@ juce::Rectangle<int> MainComponent::headerMasterLufsBounds() const
                                  L::headerMasterLufsHeight);
 }
 
+// ADR-0053: DIM then MUTE, right-aligned in the card's label row so together they span the LUFS readout below.
+juce::Rectangle<int> MainComponent::headerMonitorButtonBounds (bool mute) const
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Rectangle<int> lufs = headerMasterLufsBounds();
+    if (lufs.isEmpty())
+        return {};
+
+    if (mute)
+        return { lufs.getRight() - L::headerMasterMuteWidth, L::headerMasterMonitorY, L::headerMasterMuteWidth, L::headerMasterMonitorHeight };
+    return { lufs.getX(), L::headerMasterMonitorY, L::headerMasterDimWidth, L::headerMasterMonitorHeight };
+}
+
 void MainComponent::drawMasterMeter (juce::Graphics& g) const
 {
     auto master = headerMasterCardBounds();

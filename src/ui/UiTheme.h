@@ -328,6 +328,15 @@ struct UiTheme
         static constexpr int headerMasterMinWidth = 150;
         static constexpr int headerMasterGearGap = 12;
         static constexpr int headerMasterLufsGap = 8;
+        // ADR-0053: the monitor's DIM and MUTE sit in the card's label row, right-aligned over the LUFS readout
+        // (32 + 4 + 40 = its 76 px), clear of the label above the meter. Compact buttons (this height and below)
+        // take the small face and a narrow inset, so the words fit.
+        static constexpr int headerMasterMonitorY = 36;
+        static constexpr int headerMasterMonitorHeight = 14;
+        static constexpr int headerMasterDimWidth = 32;
+        static constexpr int headerMasterMuteWidth = 40;
+        static constexpr int compactTextButtonMaxHeight = 14;
+        static constexpr int compactTextHorizontalInset = 2;
         static constexpr int headerStatusIconRightInset = 36;
         static constexpr int headerStatusIconY = 46;
         static constexpr int headerStatusIconSize = 24;

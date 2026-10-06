@@ -872,6 +872,8 @@ private:
 
 public:
     [[nodiscard]] juce::String harnessHoverHintAt (juce::Point<int> shellPoint);
+    [[nodiscard]] juce::String harnessModeHint() const { return hoverHintOrModeHint(); }   // ADR-0053: names Dim / Mute
+    [[nodiscard]] float harnessMonitorGain() const noexcept { return appModel.monitorGainForTest(); }
 private:
 
     // G1.2: the chord a menu item paints — the one that fires in the CURRENT Focus context
@@ -1070,6 +1072,7 @@ public:
     [[nodiscard]] juce::Rectangle<int> headerMasterCardBounds() const;
 
     [[nodiscard]] juce::Rectangle<int> headerMasterLufsBounds() const;
+    [[nodiscard]] juce::Rectangle<int> headerMonitorButtonBounds (bool mute) const;   // ADR-0053: over the LUFS readout
 
 private:
     void drawMasterMeter (juce::Graphics& g) const;
@@ -1338,6 +1341,8 @@ private:
     // (G4.1: the seven readout buttons and the solo-safe button are gone — the strip and its menu.
     //  G4.1 cp2: the lane's live fader / pan / M / S went with the lane — the painted strip is the mixer.)
     juce::TextButton masterLoudnessReadout;
+    juce::TextButton headerMonitorDim;    // ADR-0053: the monitor's DIM / MUTE on the header MASTER card
+    juce::TextButton headerMonitorMute;
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
     juce::ComboBox timelineSnapChooser;

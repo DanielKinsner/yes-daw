@@ -1414,7 +1414,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 85u));   // G4.5: + the header SOLO; G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 87u));   // G4.7: + the header DIM / MUTE; G4.5: + the header SOLO; G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     // G4.0a restores SS-1's native empty project; it contains one empty audio track.
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
@@ -2265,6 +2265,109 @@ TEST_CASE ("shipped MainComponent device callback renders playing Project audio"
     REQUIRE (snapshot.deviceAudioNonSilentBlockCount == 1u);
     REQUIRE (snapshot.visibleMasterPeakLeft > 0.01f);
     REQUIRE (snapshot.visibleMasterPeakRight > 0.01f);
+}
+
+// ADR-0053: Master Dim and Mute are the device callback's LAST stage — the header meter still shows the signal,
+// the speakers get 20 dB less or nothing; a render never passes through them; the card lights them, the status
+// line names them, and the Transport menu and the master's menu carry them.
+TEST_CASE ("ADR-0053 Master Dim and Mute act on the speakers only, lit and named",
+           "[ui][input][shell][mixer][monitor][g47]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("monitor-dim-mute");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    juce::Button& dim = requireButtonForAction (*shell, UiActionId::MasterMonitorDimToggle);
+    juce::Button& mute = requireButtonForAction (*shell, UiActionId::MasterMonitorMuteToggle);
+    REQUIRE (dim.getButtonText() == "DIM");
+    REQUIRE (mute.getButtonText() == "MUTE");
+    REQUIRE (dim.isVisible());
+    REQUIRE (mute.isVisible());
+    // Over the LUFS readout, inside the MASTER card, apart from each other.
+    juce::Button& lufs = requireButtonForAction (*shell, UiActionId::MixerReadLoudness);
+    REQUIRE (dim.getX() == lufs.getX());
+    REQUIRE (mute.getRight() == lufs.getRight());
+    REQUIRE (dim.getBottom() <= lufs.getY());
+    REQUIRE_FALSE (dim.getBounds().intersects (mute.getBounds()));
+    REQUIRE_FALSE (dim.getToggleState());
+    const bool canUndoBefore = snapshotMainComponent (*shell).context.canUndo;
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    std::array<float, 128> left {};
+    std::array<float, 128> right {};
+    std::array<float*, 2> outputs { left.data(), right.data() };
+    const auto block = [&] { REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*shell, outputs.data(), 2, 128)); };
+    const auto meterPeak = [&] { return snapshotMainComponent (*shell).visibleMasterPeakLeft; };
+
+    block();
+    REQUIRE (meterPeak() > 0.01f);
+    REQUIRE (static_cast<float> (peakAbs (left)) == meterPeak());   // unity: the speakers get what the meter shows
+
+    // DIM: lit amber, named on the status line; after the 5 ms ramp the speakers get exactly 20 dB less while the
+    // header meter keeps showing the signal.
+    clickButton (dim);
+    REQUIRE (dim.getToggleState());
+    REQUIRE (dim.findColour (juce::TextButton::buttonOnColourId) == yesdaw::ui::UiTheme::Color::accentAmber());
+    REQUIRE (yesdaw::ui::mainComponentModeHint (*shell).contains ("DIMMED"));
+    block();
+    block();
+    block();
+    REQUIRE (yesdaw::ui::mainComponentMonitorGain (*shell) == Catch::Approx (0.1f).epsilon (1.0e-6));
+    REQUIRE (meterPeak() > 0.01f);
+    REQUIRE (static_cast<float> (peakAbs (left)) == Catch::Approx (0.1f * meterPeak()).epsilon (1.0e-5));
+
+    // MUTE (from the master's menu): silent speakers, a live meter, lit red; a render is untouched.
+    const auto masterMenu = yesdaw::ui::mainComponentRequestContextMenu (*shell, masterHeaderPoint (*shell));
+    REQUIRE (masterMenu.target == yesdaw::ui::ContextMenuTarget::MixerMasterStrip);
+    REQUIRE (std::find (masterMenu.actions.begin(), masterMenu.actions.end(), UiActionId::MasterMonitorDimToggle) != masterMenu.actions.end());
+    yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MasterMonitorMuteToggle, 0);
+    REQUIRE (mute.getToggleState());
+    REQUIRE (mute.findColour (juce::TextButton::buttonOnColourId) == yesdaw::ui::UiTheme::Color::dangerRed());
+    REQUIRE (yesdaw::ui::mainComponentModeHint (*shell).contains ("MUTED"));
+    block();
+    block();
+    block();
+    REQUIRE (peakAbs (left) == 0.0);
+    REQUIRE (peakAbs (right) == 0.0);
+    REQUIRE (meterPeak() > 0.01f);
+    std::vector<float> rendered = yesdaw::ui::mainComponentRenderPlaybackFrames (*shell, 512, 128);
+    REQUIRE (peakAbs (std::span<const float> (rendered.data(), rendered.size())) > 0.01);
+
+    // Both from the Transport menu, ticked; Dim off under Mute stays silent; Mute off releases to unity.
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    juce::MenuBarModel* model = bar->getModel();
+    const auto transportItem = [model] (const juce::String& text) {
+        juce::PopupMenu transport = model->getMenuForIndex (6, "Transport");
+        juce::PopupMenu::MenuItemIterator iterator (transport);
+        while (iterator.next())
+            if (iterator.getItem().text == text)
+                return std::pair<int, bool> { iterator.getItem().itemID, iterator.getItem().isTicked };
+        return std::pair<int, bool> { 0, false };
+    };
+    REQUIRE (transportItem ("Master Dim").second);
+    REQUIRE (transportItem ("Master Mute").second);
+    model->menuItemSelected (transportItem ("Master Dim").first, 6);
+    REQUIRE_FALSE (dim.getToggleState());
+    block();
+    block();
+    REQUIRE (peakAbs (left) == 0.0);
+    model->menuItemSelected (transportItem ("Master Mute").first, 6);
+    REQUIRE_FALSE (transportItem ("Master Mute").second);
+    REQUIRE (yesdaw::ui::mainComponentModeHint (*shell).isEmpty());
+    block();
+    block();
+    block();
+    REQUIRE (static_cast<float> (peakAbs (left)) == meterPeak());
+
+    // Session state, never an edit.
+    REQUIRE (snapshotMainComponent (*shell).context.canUndo == canUndoBefore);
 }
 
 TEST_CASE ("shipped MainComponent reopens bundled Assets as playable audio",

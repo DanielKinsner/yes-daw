@@ -88,6 +88,7 @@ void MainComponent::audioDeviceIOCallbackWithContext (const float* const* inputC
     (void) appModel.processDeviceAudioBlock (
         inputChannels, numInputChannels, outputChannels, numOutputChannels, numFrames);
     accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
+    appModel.applyMonitorStage (outputChannels, numOutputChannels, numFrames);   // ADR-0053: last, after the peak scan
 
     // G0.1 probe (B5): a block that took longer than the audio it produced is a deadline miss.
     // Atomics only — the device thread never allocates, locks, or logs here.
@@ -128,6 +129,7 @@ bool MainComponent::processDeviceAudioBlock (float* const* outputChannels,
     const bool processed = appModel.processDeviceAudioBlock (
         outputChannels, numOutputChannels, numFrames);
     accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
+    appModel.applyMonitorStage (outputChannels, numOutputChannels, numFrames);   // ADR-0053
     return processed;
 }
 
@@ -168,6 +170,12 @@ juce::String MainComponent::hoverHintOrModeHint() const
     if (! hoverHint.isEmpty())
         return hoverHint;
     const auto& context = appModel.context();
+    // ADR-0053: a silent or quiet monitor is never a mystery.
+    if (context.monitorMuted)
+        return context.monitorDimmed ? "Monitor MUTED (Dim is on too): the speakers are silent; the mix and exports are not"
+                                     : "Monitor MUTED: the speakers are silent; the mix and exports are not";
+    if (context.monitorDimmed)
+        return "Monitor DIMMED 20 dB: the mix and exports are not";
     if (context.musicalTypingOn)
         return "Musical typing ON: A W S E D F T G Y H U J K O L P ; play "
              + juce::String (yesdaw::ui::pianoRollKeyName (context.typingBaseKey)) + juce::String::fromUTF8 (" up \xc2\xb7 Z / X octave \xc2\xb7 C / V velocity (")
@@ -607,7 +615,7 @@ std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int 
         UiActionId::TimelineSnapModeGrid, UiActionId::TimelineSnapModeRelative,
         UiActionId::TimelineSnapModeEvents, UiActionId::TimelineSnapModeOff,
     };
-    static constexpr std::array<UiActionId, 24> kTransportMenu {
+    static constexpr std::array<UiActionId, 26> kTransportMenu {
         UiActionId::TransportTogglePlayStop, UiActionId::TransportPlay, UiActionId::TransportStop,
         UiActionId::TransportPlayFromLastLocate, UiActionId::TransportRecord,
         UiActionId::TransportReturnToZero, UiActionId::TransportLocateStart,
@@ -620,6 +628,7 @@ std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int 
         UiActionId::TransportToggleReturnToStartOnStop,
         UiActionId::TransportSetTempo, UiActionId::TransportSetMeter,
         UiActionId::TransportShuttleFaster, UiActionId::TransportShuttleSlower,
+        UiActionId::MasterMonitorDimToggle, UiActionId::MasterMonitorMuteToggle,   // G4.7 / ADR-0053
     };
     static constexpr std::array<UiActionId, 6> kOptionsMenu {
         UiActionId::TimelineSnapDisable,      UiActionId::TimelineSnapSetBar,
@@ -682,6 +691,8 @@ bool MainComponent::menuTickState (yesdaw::ui::UiActionId action) const noexcept
         case UiActionId::TimelinePlayheadFollowContinuous:  return c.playheadFollowContinuous;    // G2.16
         case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
         case UiActionId::TimelineAutomationFollowsClipsToggle: return c.automationFollowsClips;   // G4.6
+        case UiActionId::MasterMonitorDimToggle:            return c.monitorDimmed;   // G4.7 / ADR-0053
+        case UiActionId::MasterMonitorMuteToggle:           return c.monitorMuted;
         case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
         case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
         case UiActionId::ViewPianoRoll:                     return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll;
@@ -1929,6 +1940,16 @@ void MainComponent::refreshActionState()
             headerSoloClear.setColour (juce::TextButton::textColourOffId,
                                        soloActive ? yesdaw::ui::UiTheme::Color::soloActiveText() : yesdaw::ui::UiTheme::Color::mutedText());
             headerSoloClear.setTooltip (soloActive ? "Solo is active: click to clear every solo" : "No solo active");
+        }
+        // ADR-0053: DIM lights amber, MUTE the danger red, while on.
+        for (auto [button, on, lit] : { std::tuple { &headerMonitorDim, appModel.context().monitorDimmed, yesdaw::ui::UiTheme::Color::accentAmber() },
+                                        std::tuple { &headerMonitorMute, appModel.context().monitorMuted, yesdaw::ui::UiTheme::Color::dangerRed() } })
+        {
+            button->setToggleState (on, juce::dontSendNotification);
+            for (const int colourId : { juce::TextButton::buttonColourId, juce::TextButton::buttonOnColourId })
+                button->setColour (colourId, on ? lit : yesdaw::ui::UiTheme::Color::buttonSurface());
+            for (const int colourId : { juce::TextButton::textColourOffId, juce::TextButton::textColourOnId })
+                button->setColour (colourId, on ? yesdaw::ui::UiTheme::Color::soloActiveText() : yesdaw::ui::UiTheme::Color::mutedText());
         }
 
         refreshingFxParamControls = true;

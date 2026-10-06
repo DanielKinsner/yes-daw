@@ -29,9 +29,12 @@ public:
         setColour (juce::Slider::thumbColourId, UiTheme::Color::faderThumb());
     }
 
-    juce::Font getTextButtonFont (juce::TextButton&, int) override
+    juce::Font getTextButtonFont (juce::TextButton&, int buttonHeight) override
     {
-        return UiTheme::Type::font (UiTheme::Type::body, juce::Font::bold);
+        // ADR-0053: a compact button (the header card's DIM / MUTE) takes the small face.
+        return UiTheme::Type::font (buttonHeight <= UiTheme::Layout::compactTextButtonMaxHeight ? UiTheme::Type::small
+                                                                                                 : UiTheme::Type::body,
+                                    juce::Font::bold);
     }
 
     juce::Font getComboBoxFont (juce::ComboBox&) override
@@ -104,7 +107,10 @@ public:
                                             : juce::TextButton::textColourOffId));
         g.setFont (getTextButtonFont (button, button.getHeight()));
         g.drawFittedText (button.getButtonText(),
-                          button.getLocalBounds().reduced (UiTheme::Layout::controlTextHorizontalInset, 0),
+                          button.getLocalBounds().reduced (button.getHeight() <= UiTheme::Layout::compactTextButtonMaxHeight
+                                                               ? UiTheme::Layout::compactTextHorizontalInset
+                                                               : UiTheme::Layout::controlTextHorizontalInset,
+                                                           0),
                           juce::Justification::centred,
                           1);
     }

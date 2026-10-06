@@ -24,6 +24,10 @@ struct UiThemeLayout
     // model REFUSES an add past it (a 5th send used to exist with no row to edit or remove
     // it). UiTheme::Layout aliases this token so paint and refusal can never drift.
     static constexpr std::size_t mixerSendVisibleRowCount = 4;
+    // ADR-0053: the monitor's Dim depth and the ramp every Dim / Mute change takes (the device callback's last
+    // stage; the model reads these without JUCE).
+    static constexpr double monitorDimDb = -20.0;
+    static constexpr double monitorRampSeconds = 0.005;
 };
 
 } // namespace yesdaw::ui

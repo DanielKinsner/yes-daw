@@ -148,6 +148,21 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     };
     addAndMakeVisible (masterLoudnessReadout);
 
+    // ADR-0053: the monitor's DIM and MUTE — they act on the speakers, never the mix (an export or a bounce is
+    // untouched), and light while on (refreshActionState).
+    for (auto [button, action, text] : { std::tuple { &headerMonitorDim, yesdaw::ui::UiActionId::MasterMonitorDimToggle, "DIM" },
+                                         std::tuple { &headerMonitorMute, yesdaw::ui::UiActionId::MasterMonitorMuteToggle, "MUTE" } })
+    {
+        configureActionComponent (*button, action, text);
+        button->setButtonText (text);
+        button->onClick = [this, action = action] {
+            (void) appModel.dispatch (action);
+            refreshActionState();
+            repaintAll();
+        };
+        addAndMakeVisible (*button);
+    }
+
     timelineInput.setComponentID (kTimelineComponentId);
     timelineInput.setTooltip ("Timeline: drag clips, drag the ruler to select a range, Shift-drag for the loop");
     timelineInput.setName ("Timeline");
@@ -2053,6 +2068,10 @@ void MainComponent::resized()
     // M9: the LUFS readout rides the master card — it drops with it instead of being clipped.
     masterLoudnessReadout.setBounds (headerMasterLufsBounds());
     masterLoudnessReadout.setVisible (! headerMasterLufsBounds().isEmpty());
+    headerMonitorDim.setBounds (headerMonitorButtonBounds (false));   // ADR-0053: and so do DIM / MUTE
+    headerMonitorDim.setVisible (! headerMonitorButtonBounds (false).isEmpty());
+    headerMonitorMute.setBounds (headerMonitorButtonBounds (true));
+    headerMonitorMute.setVisible (! headerMonitorButtonBounds (true).isEmpty());
     {
         // G2.16: the scroll bars take a strip below and beside the timeline; the input keeps the rest.
         juce::Rectangle<int> area = timelinePanelBounds();

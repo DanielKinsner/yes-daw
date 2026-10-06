@@ -173,6 +173,7 @@ bool MainComponent::harnessProcessDeviceAudioBlock (const float* const* inputCha
     const bool processed = appModel.processDeviceAudioBlock (
         inputChannels, numInputChannels, outputChannels, numOutputChannels, numFrames);
     accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
+    appModel.applyMonitorStage (outputChannels, numOutputChannels, numFrames);   // ADR-0053
     return processed;
 }
 
@@ -920,6 +921,8 @@ juce::String MainComponent::buildStateProbeJson()
         mixer->setProperty ("strips", strips);
         mixer->setProperty ("anySolo", appModel.context().anySoloActive);   // G4.5: the header's SOLO is lit
         // ADR-0053: the live loudness readout as the header paints it, and the values behind it.
+        mixer->setProperty ("monitorDim", appModel.context().monitorDimmed);   // ADR-0053: the lit DIM / MUTE
+        mixer->setProperty ("monitorMute", appModel.context().monitorMuted);
         mixer->setProperty ("loudness", masterLoudnessReadoutText());
         mixer->setProperty ("loudnessValid", appModel.liveLoudnessReadout().valid);
         mixer->setProperty ("loudnessApproximate", appModel.liveLoudnessReadout().approximate);
@@ -1672,6 +1675,20 @@ juce::String mainComponentHoverHintAt (juce::Component& component, juce::Point<i
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         return mainComponent->harnessHoverHintAt (shellPoint);
     return {};
+}
+
+juce::String mainComponentModeHint (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessModeHint();
+    return {};
+}
+
+float mainComponentMonitorGain (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessMonitorGain();
+    return 0.0f;
 }
 
 void mainComponentKeymapEditorSearch (juce::Component& component, const juce::String& text)

@@ -259,3 +259,5 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Solo Exclusively (`mixer.target.solo_exclusive`)
 - Clear All Solos (`mixer.solo.clear`)
 - Automation Follows Clips (`timeline.automation.follow_clips.toggle`)
+- Master Dim (`master.monitor.dim`)
+- Master Mute (`master.monitor.mute`)

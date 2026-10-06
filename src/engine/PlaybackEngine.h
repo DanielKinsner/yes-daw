@@ -353,6 +353,7 @@ public:
     std::size_t reclaim() noexcept { return driver_.reclaim(); }
 
     [[nodiscard]] std::uint16_t channels() const noexcept { return channels_; }
+    [[nodiscard]] SampleRate sampleRate() const noexcept { return sampleRate_; }   // fixed at construction
     [[nodiscard]] std::uint64_t frames() const noexcept { return frames_; }   // full timeline incl tail
     [[nodiscard]] int           maxBlockSize() const noexcept { return maxBlockSize_; }
     // G3.2: how long a stopped transport keeps the graph running after the last live note releases.
