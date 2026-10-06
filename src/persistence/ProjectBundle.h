@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 31;   // G3.9: Sampler pads (Track rows referencing Assets, ADR-0048)
+inline constexpr int          kCodeSchemaVersion = 32;   // G4.4: a Compressor's sidechain key (ADR-0051)
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1454,13 +1454,24 @@ CREATE TABLE sampler_pads (
 CREATE INDEX sampler_pads_asset_id_idx ON sampler_pads(asset_id);
 )SQL";
 
+// v32 (G4.4 / ADR-0051): a Compressor's sidechain key — one row per keyed insert, removed with its insert
+// (ON DELETE CASCADE). The source is a Track or a Bus, so it is checked semantically, not by a foreign
+// key. Additive: a v31 bundle opens with no rows (nothing keyed).
+inline constexpr std::string_view kSchemaV32Sql = R"SQL(
+CREATE TABLE fx_insert_sidechain (
+  insert_id BLOB PRIMARY KEY CHECK (length(insert_id) = 16),
+  source_entity BLOB NOT NULL CHECK (length(source_entity) = 16),
+  FOREIGN KEY (insert_id) REFERENCES fx_inserts(id) ON UPDATE RESTRICT ON DELETE CASCADE
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 31> kMigrations {
+inline constexpr std::array<SchemaMigration, 32> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1492,6 +1503,7 @@ inline constexpr std::array<SchemaMigration, 31> kMigrations {
     SchemaMigration { 29, kSchemaV29Sql },
     SchemaMigration { 30, kSchemaV30Sql },
     SchemaMigration { 31, kSchemaV31Sql },
+    SchemaMigration { 32, kSchemaV32Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2093,7 +2105,7 @@ public:
         if (auto result = detail::exec (
                 db_,
                 "DELETE FROM automation_breakpoints; DELETE FROM automation_lanes; "
-                "DELETE FROM fx_insert_params; DELETE FROM fx_inserts; "
+                "DELETE FROM fx_insert_sidechain; DELETE FROM fx_insert_params; DELETE FROM fx_inserts; "
                 "DELETE FROM midi_notes; DELETE FROM midi_clips; DELETE FROM recording_comp_segments; DELETE FROM recording_takes; DELETE FROM clips; "
                 "DELETE FROM sends; DELETE FROM track_outputs; DELETE FROM bus_sends; DELETE FROM bus_outputs; "
                 "DELETE FROM sampler_pads; DELETE FROM buses; DELETE FROM tracks; "
@@ -2312,6 +2324,9 @@ public:
                 db_,
                 "INSERT INTO fx_insert_params(insert_id, param_id, value) "
                 "VALUES (?, ?, ?);");
+            detail::Statement sidechainStmt (   // ADR-0051
+                db_,
+                "INSERT INTO fx_insert_sidechain(insert_id, source_entity) VALUES (?, ?);");
 
             const auto writeFxChain = [&] (engine::EntityId ownerId, const std::vector<engine::FxInsert>& chain) -> BundleResult
             {
@@ -2333,6 +2348,14 @@ public:
                         if (auto result = paramStmt.bindInt64 (2, static_cast<sqlite3_int64> (paramId)); ! result.ok()) { return result; }
                         if (auto result = paramStmt.bindDouble (3, value); ! result.ok()) { return result; }
                         if (auto result = detail::expectDone (db_, paramStmt); ! result.ok()) { return result; }
+                    }
+
+                    if (insert.sidechainSourceId.isValid())   // ADR-0051: a keyed Compressor's one row
+                    {
+                        sidechainStmt.reset();
+                        if (auto result = sidechainStmt.bindBlob (1, insert.id.bytes); ! result.ok()) { return result; }
+                        if (auto result = sidechainStmt.bindBlob (2, insert.sidechainSourceId.bytes); ! result.ok()) { return result; }
+                        if (auto result = detail::expectDone (db_, sidechainStmt); ! result.ok()) { return result; }
                     }
                 }
 
@@ -3121,6 +3144,26 @@ public:
 
                         insert.normalizedParams.push_back ({ static_cast<std::uint32_t> (paramId), value });
                     }
+
+                    // ADR-0051: the key, when this insert has one (its source is checked with the whole Project).
+                    detail::Statement sidechainStmt;
+                    if (auto result = sidechainStmt.prepare (
+                            db_, "SELECT source_entity FROM fx_insert_sidechain WHERE insert_id = ?;");
+                        ! result.ok())
+                        return result;
+                    if (auto result = sidechainStmt.bindBlob (1, insert.id.bytes); ! result.ok())
+                        return result;
+                    if (const int keyStep = sidechainStmt.step(); keyStep == SQLITE_ROW)
+                    {
+                        if (auto result = detail::columnBlob (sidechainStmt.get(), 0, insert.sidechainSourceId.bytes,
+                                                              "fx_insert_sidechain.source_entity");
+                            ! result.ok())
+                            return result;
+                        if (! insert.isValid())
+                            return detail::semanticInvalid ("fx_insert_sidechain keys an insert that is not a Compressor");
+                    }
+                    else if (keyStep != SQLITE_DONE)
+                        return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
 
                     out.push_back (std::move (insert));
                 }

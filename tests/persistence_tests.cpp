@@ -1908,6 +1908,8 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "ALTER TABLE midi_clips DROP COLUMN muted; ALTER TABLE midi_clips DROP COLUMN transpose; "   // G3.5: v29
             "ALTER TABLE midi_clips DROP COLUMN velocity_offset; ALTER TABLE midi_clips DROP COLUMN loop_length; "
             "DELETE FROM schema_migrations WHERE version = 29; "
+            "DROP TABLE fx_insert_sidechain; "   // G4.4 re-pin: v32 (a Compressor's sidechain key)
+            "DELETE FROM schema_migrations WHERE version = 32; "
             "DROP TABLE sampler_pads; "   // G3.9 re-pin: v31 (the Sampler's pads)
             "DELETE FROM schema_migrations WHERE version = 31; "
             "DROP TABLE project_scale; "   // G3.8 re-pin: v30 (the project's key / scale row)
@@ -2793,4 +2795,63 @@ TEST_CASE ("Waveform peak cache builds deterministic min max and RMS tiers", "[p
     REQUIRE (folded.peaks[0].min == Approx (-2.0f));
     REQUIRE (folded.peaks[0].max == Approx (2.0f));
     REQUIRE (folded.peaks[0].rms == Approx (std::sqrt (11.625 / 16.0)));
+}
+
+// ADR-0051 — schema v32: a Compressor's sidechain key round-trips (a Track key, a Bus key, the master's
+// Compressor keyed too); unkeyed inserts write no row; deleting an insert's row cascades its key; a
+// stored key on a non-Compressor, or naming no Track or Bus, refuses the bundle.
+TEST_CASE ("Compressor sidechain keys round-trip through schema v32 and bad keys refuse to open",
+           "[persistence][project][round-trip][sidechain]")
+{
+    const auto path = makeTempBundlePath ("sidechain-round-trip");
+
+    Project project = makeProject();
+    project.tracks.push_back (makeTrack (idFromLowByte (12), "Kick"));
+    project.buses = { makeBus (idFromLowByte (11), "Music") };
+    project.buses[0].strip.fxChain = {
+        makeFxInsert (idFromLowByte (90), FxKind::Compressor),
+        makeFxInsert (idFromLowByte (91), FxKind::Eq),
+    };
+    project.buses[0].strip.fxChain[0].sidechainSourceId = idFromLowByte (12);   // the Kick keys the Music bus
+    project.tracks[0].strip.fxChain = { makeFxInsert (idFromLowByte (92), FxKind::Compressor) };
+    project.tracks[0].strip.fxChain[0].sidechainSourceId = idFromLowByte (11);  // a Bus key (Audio 1 feeds master)
+    project.masterStrip.fxChain = { makeFxInsert (idFromLowByte (93), FxKind::Compressor) };
+    project.masterStrip.fxChain[0].sidechainSourceId = idFromLowByte (12);
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        sqlite3_int64 rows = 0;
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM fx_insert_sidechain;", rows).ok());
+        REQUIRE (rows == 3);   // the EQ writes none
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.buses[0].strip.fxChain == project.buses[0].strip.fxChain);
+    REQUIRE (readback.tracks[0].strip.fxChain == project.tracks[0].strip.fxChain);
+    REQUIRE (readback.masterStrip.fxChain == project.masterStrip.fxChain);
+    REQUIRE (readback.buses[0].strip.fxChain[0].sidechainSourceId == idFromLowByte (12));
+    REQUIRE_FALSE (readback.buses[0].strip.fxChain[1].sidechainSourceId.isValid());
+
+    // An insert row's deletion takes its key with it (ON DELETE CASCADE).
+    REQUIRE (reopened.executeSql ("DELETE FROM fx_insert_params WHERE insert_id = X'0000000000000000000000000000005c'; "
+                                  "DELETE FROM fx_inserts WHERE id = X'0000000000000000000000000000005c';").ok());
+    sqlite3_int64 rows = 0;
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM fx_insert_sidechain;", rows).ok());
+    REQUIRE (rows == 2);
+
+    // A key on the EQ, or naming no Track or Bus, is a bundle that does not open as a Project.
+    REQUIRE (reopened.executeSql ("INSERT INTO fx_insert_sidechain(insert_id, source_entity) "
+                                  "VALUES (X'0000000000000000000000000000005b', X'0000000000000000000000000000000c');").ok());
+    Project refused;
+    REQUIRE_FALSE (reopened.readProjectSnapshot (refused).ok());
+    REQUIRE (reopened.executeSql ("DELETE FROM fx_insert_sidechain WHERE insert_id = X'0000000000000000000000000000005b'; "
+                                  "UPDATE fx_insert_sidechain SET source_entity = X'00000000000000000000000000000063' "
+                                  "WHERE insert_id = X'0000000000000000000000000000005d';").ok());
+    REQUIRE_FALSE (reopened.readProjectSnapshot (refused).ok());
 }
