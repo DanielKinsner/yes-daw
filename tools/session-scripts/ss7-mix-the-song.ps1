@@ -20,6 +20,7 @@
 # Enter is Return to zero again. Save and close is Step 12.
 # G4.2 cp2 (2026-10-05) — Step 8 also opens the bus Compressor's face: its gain-reduction meter is laid out
 # and reads the running node (zero in this silent song).
+# G4.5 (2026-10-06) — Step 10 also solos by click and Ctrl-click (exclusive) and clears with the header's SOLO.
 # G4.4 (2026-10-06) — Step 8 also keys the bus Compressor from Audio 1 through its Sidechain chooser (the
 # SC badge lights) and undoes it.
 # G4.3 (2026-10-06) — Step 9 also sends track 1 to a New Bus from the next empty well and undoes it, and
@@ -311,6 +312,23 @@ Start-Sleep -Milliseconds 80
 Key 'Enter'
 [void](Assert (WaitProbe { param($q) [bool]$q.mixer.strips[0].sends[0].pre } -TimeoutMs 2000) 'the row''s menu flips the send pre-fader (the strip paints PRE)')
 Shot 'ss7-send'
+
+# G4.5: solo UX — two plain Solo clicks light the header's SOLO; a Ctrl-click keeps only its strip; the
+# header's SOLO clears every solo; Ctrl+Z brings the solo back; SOLO clears it again.
+$soloedNames = { param($q) @($q.mixer.strips | Where-Object { [bool]$_.soloed } | ForEach-Object { "$($_.name)" }) -join ',' }
+Click 'mixer.strip.0.solo'
+Click 'mixer.strip.3.solo'   # the bus
+[void](Assert (WaitProbe { param($q) (& $soloedNames $q) -eq 'Audio 1,Bus 1' -and [bool]$q.mixer.anySolo } -TimeoutMs 2000) ('two Solo clicks solo Audio 1 and the bus; the header SOLO lights (' + (& $soloedNames (Probe)) + ')'))
+Click 'mixer.strip.1.solo' -Modifiers 'Ctrl'
+[void](Assert (WaitProbe { param($q) (& $soloedNames $q) -eq 'Audio 2' } -TimeoutMs 2000) ('a Ctrl-click solos only Audio 2 (' + (& $soloedNames (Probe)) + ')'))
+Shot 'ss7-solo'
+Click 'header.solo.clear'
+[void](Assert (WaitProbe { param($q) (& $soloedNames $q) -eq '' -and -not [bool]$q.mixer.anySolo } -TimeoutMs 2000) 'the header SOLO clears every solo')
+Focus
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) (& $soloedNames $q) -eq 'Audio 2' } -TimeoutMs 2000) 'one Ctrl+Z brings the solo back')
+Click 'header.solo.clear'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.mixer.anySolo } -TimeoutMs 2000) 'SOLO clears it again')
 
 # The probe advances one document per UI tick: wait two ticks after a key so the read is post-key.
 function KeyThenTick([string] $chord) {
