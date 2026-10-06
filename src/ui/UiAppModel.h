@@ -12298,6 +12298,9 @@ private:
         engine::Tick fadeOut = 0;
         engine::TimeBase timeBase = engine::TimeBase::SampleLocked;
         engine::ClipName name;
+        // The whole copied clip — its stretch, reverse, fade shapes, colour and mute ride with it (they were
+        // dropped on paste before; a pasted stretched clip came back unstretched).
+        engine::Clip source;
     };
     // G3.5: a copied MIDI clip rides the clipboard whole (notes, control points and settings); the
     // paste gives the clip, its notes and its points fresh ids.
@@ -12336,6 +12339,7 @@ private:
             clip.fadeOut,
             clip.timeBase,
             clip.name,
+            clip,
         };
     }
 
@@ -12423,21 +12427,12 @@ private:
                     project_.tracks.begin(), project_.tracks.end(), [&entry] (const engine::Track& track) {
                         return track.id == entry.trackId;
                     });
-                engine::Clip clip;
+                engine::Clip clip = entry.source;   // every setting the copied clip had
                 clip.id = allocateSessionEntityId (0xC3u, nextProject);
-                clip.assetId = entry.assetId;
                 clip.trackId = clipClipboard_.clips.size() > 1u && sourceTrackExists
                     ? entry.trackId
                     : (keepTracks && trackExists (nextProject, entry.trackId) ? entry.trackId : targetTrackId);
                 clip.timelineStart = timelineStart + repeatOffset + entry.timelineOffset;
-                clip.timelineLength = entry.timelineLength;
-                clip.srcOffset = entry.srcOffset;
-                clip.srcLen = entry.srcLen;
-                clip.gain = entry.gain;
-                clip.fadeIn = entry.fadeIn;
-                clip.fadeOut = entry.fadeOut;
-                clip.timeBase = entry.timeBase;
-                clip.name = entry.name;
 
                 if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied())
                     return { id, state, false };

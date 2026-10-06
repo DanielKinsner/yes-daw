@@ -628,3 +628,35 @@ TEST_CASE ("ADR-0053 the monitor stage ramps 5 ms to Dim and Mute targets and le
     REQUIRE (model.context().canUndo == canUndoBefore);
     REQUIRE (model.hasUnsavedChanges() == dirtyBefore);
 }
+
+// Copy and paste carry the whole clip: a stretched, reversed, muted, coloured clip pastes as itself (the
+// paste used to rebuild the clip from a few fields and drop the rest — a stretched clip came back unstretched).
+TEST_CASE ("copy and paste keep every clip setting", "[ui][timeline][clipboard]")
+{
+    using yesdaw::ui::UiActionId;
+    LoudnessModel f;
+    auto& model = f.model;
+    REQUIRE (model.setSelectedTimelineClipStretchFactor (1.5f).dispatched);
+    REQUIRE (model.dispatch (UiActionId::TimelineClipReverse).dispatched);
+    REQUIRE (model.dispatch (UiActionId::TimelineClipToggleMute).dispatched);
+    REQUIRE (model.dispatch (UiActionId::TimelineClipColourNext).dispatched);
+    const yesdaw::engine::Clip original = model.project().clips.front();
+    REQUIRE (original.stretchFactor == 1.5f);
+    REQUIRE (original.reversed);
+    REQUIRE (original.muted);
+
+    REQUIRE (model.dispatch (UiActionId::TimelineClipCopy).dispatched);
+    REQUIRE (model.locatePlaybackFrame (200'000));
+    REQUIRE (model.dispatch (UiActionId::TimelineClipPaste).dispatched);
+    REQUIRE (model.project().clips.size() == 2u);
+    const yesdaw::engine::Clip pasted = model.project().clips.back();
+    REQUIRE (pasted.id != original.id);
+    REQUIRE (pasted.timelineStart != original.timelineStart);
+    REQUIRE (pasted.stretchFactor == original.stretchFactor);
+    REQUIRE (pasted.reversed == original.reversed);
+    REQUIRE (pasted.muted == original.muted);
+    REQUIRE (pasted.colour == original.colour);
+    REQUIRE (pasted.fadeInShape == original.fadeInShape);
+    REQUIRE (pasted.timelineLength == original.timelineLength);
+    REQUIRE (pasted.srcLen == original.srcLen);
+}
