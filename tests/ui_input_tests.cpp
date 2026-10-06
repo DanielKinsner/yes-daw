@@ -24588,3 +24588,16 @@ TEST_CASE ("a latched fader keeps its held value across an edit that rebuilds th
     ride.stopPlaying();
     REQUIRE (ride.project().automationLanes.size() == 1u);
 }
+
+// G4.6 / ADR-0052: the shared row law grows a row by its stacked automation lanes, below its own part.
+TEST_CASE ("the row law stacks a row's automation lanes under its own part", "[ui][timeline][automation-v2]")
+{
+    const int custom[3] = { 0, 96, 0 };
+    const int lanes[3] = { 120, 0, 60 };
+    const yesdaw::ui::CumulativeRowGeometry rows = yesdaw::ui::computeCumulativeRowGeometry (3, 600, 72, custom, lanes);
+    REQUIRE (rows.tops == std::vector<double> { 0.0, 192.0, 288.0 });
+    REQUIRE (rows.heights == std::vector<double> { 192.0, 96.0, 132.0 });
+    REQUIRE (rows.contentHeights == std::vector<double> { 72.0, 96.0, 72.0 });
+    const yesdaw::ui::CumulativeRowGeometry plain = yesdaw::ui::computeCumulativeRowGeometry (3, 600, 72, custom);
+    REQUIRE (plain.heights == plain.contentHeights);   // no lanes: the historical law exactly
+}

@@ -51,7 +51,18 @@ struct Viewport
     // ownership contract as `out`/`outCapacity` below.
     const double* laneTopPixels = nullptr;
     const double* laneHeightPixelsPerLane = nullptr;
+    // G4.6 / ADR-0052: optional per-lane CLIP height - a row whose automation lanes are shown stacks them
+    // under its clips, so its clips (and their hit area) keep the top part only. Null: the whole row.
+    const double* clipHeightPixelsPerLane = nullptr;
 };
+
+// The height a lane's clips occupy: the clip part of its row when given, else the whole row.
+[[nodiscard]] inline double clipRowHeightPixelsFor (int lane, const Viewport& vp) noexcept
+{
+    if (vp.clipHeightPixelsPerLane != nullptr)
+        return vp.clipHeightPixelsPerLane[lane];
+    return vp.laneHeightPixelsPerLane != nullptr ? vp.laneHeightPixelsPerLane[lane] : vp.laneHeightPixels;
+}
 
 // One on-screen rectangle to draw, in pixels, clipped to the viewport's left/right edges.
 struct ElementRect
@@ -97,9 +108,7 @@ inline int layoutVisible (const Clip* clips, int n, const Viewport& vp,
         const double laneTop = vp.laneTopPixels != nullptr
             ? vp.laneTopPixels[c.lane]
             : c.lane * vp.laneHeightPixels;
-        const double laneH = vp.laneHeightPixelsPerLane != nullptr
-            ? vp.laneHeightPixelsPerLane[c.lane]
-            : vp.laneHeightPixels;
+        const double laneH = clipRowHeightPixelsFor (c.lane, vp);
         const double laneY = laneTop - vp.laneScrollPixels;
 
         // Unclipped pixel span, then clamp to the viewport edges.
@@ -138,9 +147,7 @@ struct ClipPixelRect
     const double laneTop = vp.laneTopPixels != nullptr
         ? vp.laneTopPixels[c.lane]
         : static_cast<double> (c.lane) * vp.laneHeightPixels;
-    const double laneH = vp.laneHeightPixelsPerLane != nullptr
-        ? vp.laneHeightPixelsPerLane[c.lane]
-        : vp.laneHeightPixels;
+    const double laneH = clipRowHeightPixelsFor (c.lane, vp);
     return { (c.startSeconds - vp.scrollSeconds) * pps, laneTop - vp.laneScrollPixels,
              c.lengthSeconds * pps, laneH };
 }
@@ -198,9 +205,7 @@ inline TimelineHitTestResult hitTestVisibleClip (const Clip* clips, int n, const
         const double laneTop = vp.laneTopPixels != nullptr
             ? vp.laneTopPixels[c.lane]
             : static_cast<double> (c.lane) * vp.laneHeightPixels;
-        const double laneH = vp.laneHeightPixelsPerLane != nullptr
-            ? vp.laneHeightPixelsPerLane[c.lane]
-            : vp.laneHeightPixels;
+        const double laneH = clipRowHeightPixelsFor (c.lane, vp);
         const double yPx = laneTop - vp.laneScrollPixels;
         if (xPixels >= xPx
             && xPixels < xPx + wPx

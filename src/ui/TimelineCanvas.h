@@ -38,6 +38,9 @@ struct TimelineCanvasTrack
     // space equally with every other auto-shared row, exactly like every track did before this
     // field existed).
     int heightPx = 0;
+    // G4.6 / ADR-0052: the stacked automation lanes shown under this row (their total height; 0 = none). The
+    // row grows by it; its clips keep the top heightPx part.
+    int automationHeightPx = 0;
 };
 
 struct TimelineCanvasClipStyle
@@ -83,6 +86,7 @@ struct CumulativeRowGeometry
 {
     std::vector<double> tops;
     std::vector<double> heights;
+    std::vector<double> contentHeights;   // G4.6: each row's own part (clips / header), above its automation lanes
     int autoShare = 0;
 
     [[nodiscard]] double top (int row) const noexcept
@@ -117,7 +121,8 @@ struct CumulativeRowGeometry
 };
 
 [[nodiscard]] inline CumulativeRowGeometry computeCumulativeRowGeometry (
-    int rowCount, int availablePixels, int minRowHeight, const int* customHeightsPx)
+    int rowCount, int availablePixels, int minRowHeight, const int* customHeightsPx,
+    const int* automationHeightsPx = nullptr)   // G4.6: each row's stacked lanes, added under its own part
 {
     CumulativeRowGeometry geometry;
     if (rowCount <= 0)
@@ -138,14 +143,17 @@ struct CumulativeRowGeometry
 
     geometry.tops.resize (static_cast<std::size_t> (rowCount));
     geometry.heights.resize (static_cast<std::size_t> (rowCount));
+    geometry.contentHeights.resize (static_cast<std::size_t> (rowCount));
     double cumulative = 0.0;
     for (int i = 0; i < rowCount; ++i)
     {
         const int custom = customHeightsPx != nullptr ? customHeightsPx[i] : 0;
         const double h = custom > 0 ? static_cast<double> (custom) : static_cast<double> (geometry.autoShare);
+        const int lanes = automationHeightsPx != nullptr ? std::max (0, automationHeightsPx[i]) : 0;
         geometry.tops[static_cast<std::size_t> (i)] = cumulative;
-        geometry.heights[static_cast<std::size_t> (i)] = h;
-        cumulative += h;
+        geometry.heights[static_cast<std::size_t> (i)] = h + static_cast<double> (lanes);
+        geometry.contentHeights[static_cast<std::size_t> (i)] = h;
+        cumulative += h + static_cast<double> (lanes);
     }
     return geometry;
 }
@@ -274,6 +282,8 @@ struct TimelineCanvasGeometry
     // reproduces `lane * laneHeight`, so every reader can use these unconditionally.
     std::vector<double> laneTopPixels;
     std::vector<double> laneHeightPixelsPerLane;
+    // G4.6 / ADR-0052: each row's CLIP part (its height before any automation lanes stacked under it).
+    std::vector<double> clipHeightPixelsPerLane;
 
     // N6: the row Y (viewport-local, BEFORE scroll) for `lane`, clamped to a valid index. `lane
     // == the lane count` (one past the last row) is a deliberately supported "bottom edge" case —
@@ -298,6 +308,16 @@ struct TimelineCanvasGeometry
         const std::size_t index = static_cast<std::size_t> (
             std::clamp (lane, 0, static_cast<int> (laneHeightPixelsPerLane.size()) - 1));
         return laneHeightPixelsPerLane[index];
+    }
+
+    // G4.6: the clip part of `lane`'s row (the whole row when no automation lanes are shown under it).
+    [[nodiscard]] double clipHeightFor (int lane) const noexcept
+    {
+        if (clipHeightPixelsPerLane.empty())
+            return laneHeightFor (lane);
+        const std::size_t index = static_cast<std::size_t> (
+            std::clamp (lane, 0, static_cast<int> (clipHeightPixelsPerLane.size()) - 1));
+        return clipHeightPixelsPerLane[index];
     }
 
     // N6: the inverse of laneTop/laneHeightFor — which lane a scrolled, viewport-local Y pixel
@@ -1188,17 +1208,23 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     // track this reduces to the historical uniform law bit-for-bit. Delegates to the SAME shared
     // law the rail uses (computeCumulativeRowGeometry) so the two panels can never drift apart.
     std::vector<int> laneCustomHeights (static_cast<std::size_t> (laneCount), 0);
+    std::vector<int> laneAutomationHeights (static_cast<std::size_t> (laneCount), 0);   // G4.6
     for (int i = 0; i < laneCount; ++i)
         if (state.tracks != nullptr && i < state.trackCount)
+        {
             laneCustomHeights[static_cast<std::size_t> (i)] = state.tracks[i].heightPx;
+            laneAutomationHeights[static_cast<std::size_t> (i)] = state.tracks[i].automationHeightPx;
+        }
 
     const CumulativeRowGeometry laneLaw = computeCumulativeRowGeometry (
         laneCount, geometry.clipArea.getHeight (),
         juce::roundToInt (UiTheme::Layout::timelineCanvasLaneRowHeight * std::clamp (state.rowZoom, UiTheme::Layout::timelineRowZoomMin, UiTheme::Layout::timelineRowZoomMax)),   // G2.16
-        laneCustomHeights.data());
+        laneCustomHeights.data(),
+        laneAutomationHeights.data());
     geometry.laneHeight = laneLaw.autoShare;
     geometry.laneTopPixels = laneLaw.tops;
     geometry.laneHeightPixelsPerLane = laneLaw.heights;
+    geometry.clipHeightPixelsPerLane = laneLaw.contentHeights;
 
     const int visibleRows = std::max (1, geometry.clipArea.getHeight() / geometry.laneHeight);
     geometry.maxTrackScrollRows = std::max (0, laneCount - visibleRows);
@@ -1256,6 +1282,7 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
     Viewport vp = geometry.viewport;
     vp.laneTopPixels = geometry.laneTopPixels.data();
     vp.laneHeightPixelsPerLane = geometry.laneHeightPixelsPerLane.data();
+    vp.clipHeightPixelsPerLane = geometry.clipHeightPixelsPerLane.data();   // G4.6
     return vp;
 }
 

@@ -148,3 +148,37 @@ TEST_CASE ("laying out a big project costs far less than one 60 fps frame", "[ti
     INFO ("layout cost = " << msPerFrame << " ms/frame over 5000 clips (budget 16.6 ms); sink=" << sink);
     REQUIRE (msPerFrame < 1.0);   // comfortably under a frame, leaving the budget for the GPU
 }
+
+// G4.6 / ADR-0052: a row whose automation lanes are shown stacks them UNDER its clips. Its clips (painted
+// and hit) keep the row's top part; the rows below move down by the lanes' height.
+TEST_CASE ("A row's clips keep its top part when automation lanes are stacked under it", "[timeline][layout][automation-v2]")
+{
+    const double tops[3] = { 0.0, 72.0 + 120.0, 72.0 + 120.0 + 72.0 };   // row 0 shows 120 px of lanes
+    const double heights[3] = { 72.0 + 120.0, 72.0, 72.0 };
+    const double clipHeights[3] = { 72.0, 72.0, 72.0 };
+    Viewport vp;
+    vp.pixelsPerSecond = 100.0;
+    vp.widthPixels = 1'000.0;
+    vp.laneHeightPixels = 72.0;
+    vp.laneTopPixels = tops;
+    vp.laneHeightPixelsPerLane = heights;
+    vp.clipHeightPixelsPerLane = clipHeights;
+
+    const Clip clips[2] = { { 1, 0, 0.0, 2.0 }, { 2, 1, 0.0, 2.0 } };
+    ElementRect out[2] {};
+    REQUIRE (layoutVisible (clips, 2, vp, out, 2) == 2);
+    REQUIRE (out[0].y == 0.0f);
+    REQUIRE (out[0].h == 72.0f);            // the clip part, not the 192 px row
+    REQUIRE (out[1].y == 192.0f);           // the next row starts under row 0's lanes
+    REQUIRE (out[1].h == 72.0f);
+
+    // A press in row 0's lanes is not on its clip; a press on the clip part is.
+    REQUIRE_FALSE (hitTestVisibleClip (clips, 2, vp, 50.0, 100.0).hit);
+    REQUIRE (hitTestVisibleClip (clips, 2, vp, 50.0, 40.0).hit);
+    REQUIRE (hitTestVisibleClip (clips, 2, vp, 50.0, 200.0).hit);
+
+    // Without the clip heights, the whole row is the clip (every caller that predates G4.6).
+    vp.clipHeightPixelsPerLane = nullptr;
+    REQUIRE (layoutVisible (clips, 2, vp, out, 2) == 2);
+    REQUIRE (out[0].h == 192.0f);
+}

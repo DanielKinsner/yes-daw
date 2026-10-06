@@ -8,6 +8,35 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (night) — G4.6 automation v2 in progress: rides you hear, Latch / Write, follow clips
+
+**Now:** **G4.6** (ADR-0052) — steps 1–4 and 7 are in; **step 5 (stacked lanes)** is under way (5a, the
+row geometry, is in). Left: 5b–5d stacked lanes, step 6 Pencil / Shift+Pencil line / Eraser, instrument
+rides heard live, step 8 render goldens + the `[automation-v2]` drive step, then the checkpoint (quiet
+batch, critic, evidence) → G4.7 master strip → G5 → G6.
+
+**What a user gets so far:**
+- **Write** is a real mode (Read, Touch, Latch, Off, Write). Play in Write: every lane the selected strip
+  owns is written from play to stop at the value it plays there (touch a control to ride it); stop returns
+  the mode to Touch inside the same undo step.
+- **Latch**: a released control keeps writing — and sounding — its value until stop.
+- **You hear a ride while it lasts** (fader, pan, sends, insert parameters): the lane steps aside on the
+  audio thread and the control's value plays. Instrument-parameter rides still record but are not yet
+  heard live (open step).
+- **A second pass over the same bars rewrites them** (it used to be refused); edges are anchored so the
+  automation outside the pass is untouched. A loop wrap / jump back commits the pass so far.
+- **Edit > Automation Follows Clips** (saved, undoable): moving clips in time carries their automation, by
+  each clip's own time law; one undo restores the clip and its automation together.
+
+**Repairs found on the way (each with a test that failed first):**
+- The engine's **automation event budget undercounted dense lanes** (one event per breakpoint in a block
+  was ignored): two lanes with a point per frame compiled and would overflow the audio thread's event
+  storage (a fatal assert). Dense passes are now refused with the reason on the status line.
+- A **latched ride snapped back to the stored value** when any edit rebuilt the engine mid-ride (critic).
+
+**CI:** every pushed head through af6f476 is green except macOS, red only on the standing GPU
+sustained-frame exception (plan §8.2); later heads pending.
+
 ## 2026-10-06 (evening) — G4.5 done; four real bugs fixed; G4.6 automation v2 decided (ADR-0052)
 
 **Now:** **G4.5** is done and **ADR-0052** (automation v2) is accepted. **Next: G4.6** — stacked lanes,
