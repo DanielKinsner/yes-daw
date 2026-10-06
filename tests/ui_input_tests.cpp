@@ -10,6 +10,7 @@
 #include "ui/TransferCurveComponent.h"
 #include "ui/FxParameterNames.h"
 #include "ui/FxPresets.h"   // G4.2 cp7: preset files (ADR-0050)
+#include "ui/AutomationLaneCanvasComponent.h"   // 2026-10-06: the lane's time law
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
 #include "ui/UiPianoRollSurface.h"   // G3.2: pianoRollKeyName
@@ -9289,9 +9290,12 @@ TEST_CASE ("R16 a breakpoint's curve cycles from the canvas and audibly shapes t
              == yesdaw::engine::AutomationCurveType::Linear);
     const yesdaw::engine::Tick tickB = project.automationLanes.front().points[1].tick;
 
-    // Timeline ticks ARE raw sample frames (timelineTickFromSeconds = seconds * sampleRate,
-    // the SampleLocked reuse) — so B's tick is directly the frame the window keys on.
-    const auto frameB = static_cast<std::uint64_t> (tickB);
+    // 2026-10-06 re-pin: a breakpoint's tick is MUSICAL — the engine plays it at the tempo map's frame
+    // (the old frame-as-tick law played a point drawn at 1.0 s at 1.5625 s at 48 kHz / 120 BPM).
+    double frameBExact = 0.0;
+    REQUIRE (yesdaw::engine::tickToFrame (yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                                          project.sampleRate, tickB, frameBExact));
+    const auto frameB = static_cast<std::uint64_t> (std::llround (frameBExact));
     REQUIRE (frameB > 8'192u);          // the shaped segment is long enough to window
     REQUIRE (frameB < 440'000u);        // ...and B still sits inside the 10 s of real audio
 
@@ -13515,7 +13519,13 @@ TEST_CASE ("the automation target chooser drives pan and FX-param lanes the rend
     INFO ("pan tick " << project.automationLanes.front().points.front().tick
           << " value " << project.automationLanes.front().points.front().value
           << " canvas " << canvas->getBounds().toString().toStdString());
-    REQUIRE (project.automationLanes.front().points.front().tick % probeSnapEffectiveTicks (*shell) == 0);   // G2.7: the zoom-adaptive grid
+    {
+        // G2.7: the zoom-adaptive grid is in frames; the stored MUSICAL tick plays on it (2026-10-06 re-pin).
+        double panFrame = 0.0;
+        REQUIRE (yesdaw::engine::tickToFrame (yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                                              project.sampleRate, project.automationLanes.front().points.front().tick, panFrame));
+        REQUIRE (std::llround (panFrame) % probeSnapEffectiveTicks (*shell) == 0);
+    }
     const std::vector<float> panned = renderFromStart();
     REQUIRE (panned != baseline);
 
@@ -24006,6 +24016,58 @@ TEST_CASE ("G4.5 Ctrl-click solos exclusively; the header SOLO clears every solo
     openStripMenu (*shell, 3);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerTargetSoloExclusive);
     REQUIRE (soloed() == std::vector<bool> { false, false, false, true });
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// 2026-10-06 repair: automation breakpoints play exactly where the lane draws them. A breakpoint's time is a
+// MUSICAL tick the engine compiles through the tempo map, so the lane writes and reads it through the same
+// map. At 48 kHz / 120 BPM the old frame-as-tick law drew a point at 1.0 s that played at 1.5625 s; the
+// tests that pinned it ran at settings where the two only happened to agree.
+TEST_CASE ("automation breakpoints play exactly where the lane draws them", "[ui][input][shell][automation-time]")
+{
+    const auto bundlePath = makeTempBundlePath ("automation-time");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path { YESDAW_WAV_FIXTURE_PATH }; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);   // Off: the point lands exactly where clicked
+
+    auto* canvas = dynamic_cast<yesdaw::ui::AutomationLaneCanvasComponent*> (findChildWithComponentId (*shell, "timeline.automation.canvas"));
+    REQUIRE (canvas != nullptr);
+    REQUIRE (canvas->getWidth() > 0);
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.sampleRate.hz == 48000.0);   // where frames and ticks part ways
+        REQUIRE_FALSE (project.tempoMap.empty());
+    }
+
+    const int x = canvas->getWidth() / 2;
+    const double drawnSeconds = canvas->secondsForLocalX (x);
+    REQUIRE (drawnSeconds >= 0.25);   // the old law would play it 1.5625x later: far outside the margin
+    mouseDownAt (*canvas, { x, canvas->getHeight() / 2 });
+
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.automationLanes.size() == 1u);
+    REQUIRE (project.automationLanes.front().points.size() == 1u);
+    const yesdaw::engine::Tick tick = project.automationLanes.front().points.front().tick;
+    double playedFrame = 0.0;
+    REQUIRE (yesdaw::engine::tickToFrame (yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                                          project.sampleRate, tick, playedFrame));
+    const double frameSeconds = 1.0 / project.sampleRate.hz;
+    INFO ("drawn " << drawnSeconds << " s, stored tick " << tick << ", played " << playedFrame / project.sampleRate.hz << " s");
+    REQUIRE (playedFrame / project.sampleRate.hz == Catch::Approx (drawnSeconds).margin (2.0 * frameSeconds));   // plays where drawn
+
+    const std::vector<yesdaw::ui::AutomationLaneCanvasComponent::CanvasPoint> shown = canvas->pointsProvider();
+    REQUIRE (shown.size() == 1u);
+    REQUIRE (shown.front().seconds == Catch::Approx (playedFrame / project.sampleRate.hz).margin (1.0e-9));   // drawn where it plays
+    REQUIRE (std::abs (canvas->localXForSeconds (shown.front().seconds) - x) <= 1);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

@@ -954,8 +954,12 @@ void MainComponent::recordAutomationTouchSample (double normalizedValue)
     if (! automationTouchRideActive || ! appModel.project().sampleRate.isValid())
         return;
 
-    const yesdaw::engine::Tick tick = static_cast<yesdaw::engine::Tick> (
-        std::max<std::int64_t> (0, appModel.context().playheadFrame));
+    // The playhead's MUSICAL tick (a breakpoint's domain), not its frame — at 48 kHz / 120 BPM a frame
+    // stored as a tick played 1.5625x late.
+    const std::optional<yesdaw::engine::Tick> playheadTick = appModel.playheadTick();
+    if (! playheadTick)
+        return;
+    const yesdaw::engine::Tick tick = *playheadTick;
     // G4.1 cp2: one sample per tick — the painted drags sample on the release too (the live slider
     // spoke only on a value change), and a second breakpoint at one tick refuses the whole commit.
     if (! automationTouchRideSamples.empty() && automationTouchRideSamples.back().tick == tick)
@@ -1754,6 +1758,29 @@ std::optional<yesdaw::engine::Tick> MainComponent::timelineTickFromSeconds (doub
         return std::nullopt;
 
     return static_cast<yesdaw::engine::Tick> (std::llround (ticks));
+}
+
+std::optional<yesdaw::engine::Tick> MainComponent::automationTickForSeconds (double seconds, bool snap) const
+{
+    const std::optional<yesdaw::engine::Tick> frame = timelineTickFromSeconds (seconds);   // frames, despite the name
+    if (! frame)
+        return std::nullopt;
+    const yesdaw::engine::Tick gridFrame = snap ? snappedTimelineTick (*frame, false) : *frame;
+    yesdaw::engine::CompiledTempoMap map;
+    yesdaw::engine::Tick tick = 0;
+    if (! appModel.compiledTempoMap (map) || ! map.tickForFrame (static_cast<double> (std::max<yesdaw::engine::Tick> (0, gridFrame)), tick))
+        return std::nullopt;
+    return tick;
+}
+
+double MainComponent::automationSecondsForTick (yesdaw::engine::Tick tick) const
+{
+    const yesdaw::engine::Project& project = appModel.project();
+    yesdaw::engine::CompiledTempoMap map;
+    double frame = 0.0;
+    if (! project.sampleRate.isValid() || ! appModel.compiledTempoMap (map) || ! map.frameForTick (tick, frame))
+        return 0.0;
+    return frame / project.sampleRate.hz;
 }
 
 void MainComponent::moveTimelineClipByLayoutId (int layoutClipId, double startSeconds, bool snapToGrid)

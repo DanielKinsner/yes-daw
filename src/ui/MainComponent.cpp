@@ -1244,10 +1244,9 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         if (const yesdaw::engine::AutomationLaneData* const lane =
                 appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId))
         {
-            const double sampleRateHz = appModel.project().sampleRate.hz;
             points.reserve (lane->points.size());
             for (const yesdaw::engine::AutomationBreakpoint& point : lane->points)
-                points.push_back ({ static_cast<double> (point.tick) / sampleRateHz,
+                points.push_back ({ automationSecondsForTick (point.tick),   // where the engine plays it
                                     point.value,
                                     point.curveType });
         }
@@ -1260,7 +1259,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
             ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
             : nullptr;
-        if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds);
+        if (const std::optional<yesdaw::engine::Tick> tick = automationTickForSeconds (seconds, false);
             lane != nullptr && tick)
         {
             (void) appModel.cycleAutomationBreakpointCurveAtTick (lane->id, *tick);
@@ -1277,12 +1276,11 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     // E20: added and dragged breakpoints land on the snap chooser's grid (chooser Off = raw).
     automationLaneCanvas.onAddPoint = [this] (double seconds, double value) {
         const AutomationTargetOption target = currentAutomationTarget();
-        if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds);
+        if (const std::optional<yesdaw::engine::Tick> tick = automationTickForSeconds (seconds, true);
             tick && target.ownerEntity.isValid())
         {
             (void) appModel.addAutomationBreakpointToLane (
-                target.ownerEntity, target.role, target.paramId,
-                snappedTimelineTick (*tick, false), value);
+                target.ownerEntity, target.role, target.paramId, *tick, value);
             refreshActionState();
             repaintAll();
         }
@@ -1292,13 +1290,11 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
             ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
             : nullptr;
-        const std::optional<yesdaw::engine::Tick> oldTick = timelineTickFromSeconds (oldSeconds);
-        const std::optional<yesdaw::engine::Tick> newTick = timelineTickFromSeconds (newSeconds);
+        const std::optional<yesdaw::engine::Tick> oldTick = automationTickForSeconds (oldSeconds, false);
+        const std::optional<yesdaw::engine::Tick> newTick = automationTickForSeconds (newSeconds, true);
         if (lane != nullptr && oldTick && newTick)
         {
-            (void) appModel.moveAutomationBreakpointTo (lane->id, *oldTick,
-                                                        snappedTimelineTick (*newTick, false),
-                                                        newValue);
+            (void) appModel.moveAutomationBreakpointTo (lane->id, *oldTick, *newTick, newValue);
             refreshActionState();
             repaintAll();
         }
@@ -1308,7 +1304,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
             ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
             : nullptr;
-        if (const std::optional<yesdaw::engine::Tick> tick = timelineTickFromSeconds (seconds);
+        if (const std::optional<yesdaw::engine::Tick> tick = automationTickForSeconds (seconds, false);
             lane != nullptr && tick)
         {
             (void) appModel.removeAutomationBreakpointAtTick (lane->id, *tick);

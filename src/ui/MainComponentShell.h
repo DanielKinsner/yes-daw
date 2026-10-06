@@ -1086,6 +1086,11 @@ private:
     [[nodiscard]] int automationCanvasLocalXForSeconds (double seconds);
 
     [[nodiscard]] std::optional<yesdaw::engine::Tick> timelineTickFromSeconds (double seconds) const noexcept;
+    // An automation breakpoint's time is a MUSICAL tick (the engine compiles it through the tempo map,
+    // ADR-0039), unlike the frame-domain clip/loop/range fields above: seconds -> frame (snapped on the
+    // frame grid when asked) -> tick, and back through the same map.
+    [[nodiscard]] std::optional<yesdaw::engine::Tick> automationTickForSeconds (double seconds, bool snap) const;
+    [[nodiscard]] double automationSecondsForTick (yesdaw::engine::Tick tick) const;
 
     void moveTimelineClipByLayoutId (int layoutClipId, double startSeconds, bool snapToGrid);
 
