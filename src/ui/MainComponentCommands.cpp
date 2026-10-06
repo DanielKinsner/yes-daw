@@ -598,9 +598,10 @@ std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int 
         UiActionId::PianoRollNoteSetVelocity,
         UiActionId::PianoRollNoteSelectPrevious, UiActionId::PianoRollNoteSelectNext,   // G3.2
     };
-    static constexpr std::array<UiActionId, 32> kViewMenu {
+    static constexpr std::array<UiActionId, 33> kViewMenu {
         UiActionId::ViewTimeline,      UiActionId::ViewMixer,          UiActionId::ViewPianoRoll,
         UiActionId::ViewInstrument,   // G3.1
+        UiActionId::ViewBrowser,      // G5.2 / ADR-0056
         UiActionId::ViewToggleInspector,
         UiActionId::TimelineToggleMixerDock, UiActionId::MixerStripsNarrowToggle,   // G4.1
         UiActionId::InspectorShowClipTab, UiActionId::InspectorShowTrackTab,
@@ -699,6 +700,7 @@ bool MainComponent::menuTickState (yesdaw::ui::UiActionId action) const noexcept
         case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
         case UiActionId::ViewPianoRoll:                     return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll;
         case UiActionId::ViewInstrument:                    return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Instrument;   // G3.1
+        case UiActionId::ViewBrowser:                       return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Browser;   // G5.2
         case UiActionId::InspectorShowClipTab:              return ! c.inspectorTrackTabActive;
         case UiActionId::InspectorShowTrackTab:             return c.inspectorTrackTabActive;
         case UiActionId::TimelineSnapDisable:               return ! c.snapEnabled;
@@ -1477,29 +1479,7 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
             {
                 const std::filesystem::path path = fileChoices.chooseImportAudioFile();
                 if (! path.empty())
-                {
-                    UiAudioDecodeResult decodedFile = decodeProjectAudio (path);   // ADR-0054: any supported format
-                    if (auto& decoded = decodedFile.decoded)
-                    {
-                        // Import lands on the SELECTED Track when the rail has a selection.
-                        const auto& tracks = appModel.project().tracks;
-                        // R7: verb failures report their precise reason inside the model.
-                        if (selectedTrackLane >= 0
-                            && selectedTrackLane < static_cast<int> (tracks.size()))
-                            (void) appModel.importAudioFileToTrack (
-                                path, std::move (*decoded),
-                                tracks[static_cast<std::size_t> (selectedTrackLane)].id);
-                        else
-                            (void) appModel.importAudioFile (path, std::move (*decoded));
-                    }
-                    else
-                    {
-                        // R6: a refused file is named with its reason, never swallowed.
-                        appModel.reportStatus (
-                            "Import refused: " + path.filename().string() + ": " + decodedFile.reason,
-                            true);
-                    }
-                }
+                    importAudioFromPath (path);   // ADR-0054 / ADR-0056: the one import any surface uses
             }
             return;
 
@@ -1872,6 +1852,18 @@ void MainComponent::refreshActionState()
     pianoRollStepButton.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::PianoRollStepInputToggle, appModel.context()).enabled);
     mixerStripsInput.setVisible (dockShowsMixer());
     instrumentPanel.setVisible (dockShowsInstrument());   // G3.1
+    if (const bool showBrowser = dockShowsBrowser(); browserPanel.isVisible() != showBrowser)   // G5.2
+    {
+        browserPanel.setVisible (showBrowser);
+        if (showBrowser && ! browserStateRestored)
+            restoreBrowserState();
+        if (showBrowser)
+            refreshBrowserRows();   // the project or Recent may have changed while it was hidden
+    }
+    else if (showBrowser && browserSourceIndex != 0 && browserRowsStamp != browserSourceStamp())
+    {
+        refreshBrowserRows();       // Project / Recent follow an import or an edit from any surface
+    }
     if (dockShowsInstrument())
         instrumentPanel.refresh();
     {

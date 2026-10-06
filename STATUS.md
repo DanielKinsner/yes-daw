@@ -8,6 +8,41 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (afternoon) — G5.2 cp1: the media browser (ADR-0056)
+
+**Now:** **G5.2 checkpoint 1** is in, headless-certified. **Next:** G5.2 cp2 — the **audition voice** (hear a file
+before importing it, on the monitor path only), then the real-app drive check of G5.1 + G5.2 when the desktop is
+free (drives take the mouse and keyboard; the overnight hands-off grant has ended).
+
+**What a user gets:** press **Y** (or View > Browser) and the editor dock shows a **Browser** tab:
+- **Files** — one folder at a time: `..`, its folders, then only the audio files YES DAW can import, with each
+  file's format, rate, channels and length (read from the header only when the row is on screen). A file that
+  cannot be read says why, in red ("not a readable MP3 file"). It remembers the last folder.
+- **Project** — this project's audio, named by the clip that uses it, ready to place again without re-importing.
+- **Recent** — the last 20 audio files imported from anywhere, newest first; a file that is gone says "missing".
+- Double-click, the Import button or Enter imports a file on the selected track at the playhead (exactly what
+  Ctrl+Shift+I does); Ctrl / Shift+click several and drag them onto the lanes (exactly an OS drop: consecutive
+  tracks, one undo step; below the last track makes new ones); a project Asset placed this way is a new clip on
+  the same audio, no copy.
+- Keyboard only: Tab to the list, Enter, arrows, Enter opens a folder or imports, Esc puts the selection back.
+
+**Gates:** `[browser]` (8 cases) — keep equals Ctrl+Shift+I (same track, tick and Asset row); a two-row drag equals
+an OS drop and undoes in one step; a project Asset adds a clip and no Asset; unreadable and missing files show
+their reasons in the row and on the status line and change nothing; Files order with non-ASCII folder and file
+names; Recent and the browser state survive a new shell; the keyboard path; a 1000-file folder reads only the
+painted rows' headers (and a scroll only the new ones); a rebuild after another surface's import keeps the
+selected rows. `[ui][screenshot][browser]` paints a folder row, a file's facts and a red reason in their
+columns (agent visual judgment: rows read name -> facts; the first draft put facts 1,700 px from their names at
+1920 wide — fixed). 414/414 local, Clang clean. The critic found no blockers; its should-fixes (over-eager
+rebuild resetting the selection, ANSI file names on the status line, an unbounded header cache) are fixed.
+
+**CI:** Linux and macOS failed to build `YesDawResampleCheck` from dd439e8 (a copying structured-binding loop
+under -Werror); fixed in 7f2303a. 79c75c8 fixed a real macOS-only flake (two files of one drop sharing an id).
+
+**Found, next:** `path.string()` on file names (about 25 status-line sites, one in every drop) converts through
+the ANSI code page on Windows and can throw on a name it cannot represent (e.g. CJK); a sweep to UTF-8 with a
+gate is the next commit.
+
 ## 2026-10-06 (day) — G5.1 in: import formats (ADR-0054) and cross-rate audio (ADR-0055)
 
 **Now:** **G5.1** (both checkpoints) is in, headless-certified. **Next:** the real-app drive check of the new

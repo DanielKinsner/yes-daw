@@ -896,6 +896,18 @@ struct UiTheme
         static constexpr int undoHistoryMaxWidth = 420;
         static constexpr int undoHistoryMaxHeight = 480;
         static constexpr int undoHistoryRowHeight = 22;
+        // ADR-0056: the media browser (an Editor-dock tab): a control row (source chooser, path, Up, Import) over a
+        // list of rows (name, then the file's facts or its reason in a right-hand column).
+        static constexpr int browserInset = 12;
+        static constexpr int browserControlRowHeight = 26;
+        static constexpr int browserControlGap = 8;
+        static constexpr int browserSourceWidth = 120;
+        static constexpr int browserButtonWidth = 72;
+        static constexpr int browserRowHeight = 20;
+        static constexpr int browserRowTextInset = 8;
+        static constexpr int browserNameWidth = 420;     // G5.2: the name column; the facts follow it
+        static constexpr int browserFactsWidth = 360;
+        static constexpr int browserDragThreshold = 6;
         // G3.1: the instrument panel (an Editor-dock tab) and the inspector's instrument row.
         static constexpr int instrumentPanelInset = 12;
         static constexpr int instrumentPanelTitleHeight = 24;

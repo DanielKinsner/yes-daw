@@ -1070,6 +1070,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         repaintAll();
     };
     addChildComponent (instrumentPanel);
+    initialiseBrowser();   // G5.2 / ADR-0056: the media browser dock tab
 
     // G3.1: the inspector's TRACK tab carries the kind chooser and an Edit button (opens the tab).
     configureActionComponent (inspectorInstrumentChooser, yesdaw::ui::UiActionId::TrackSetInstrument, "Track instrument");
@@ -2154,6 +2155,7 @@ void MainComponent::resized()
         pianoRollScaleChooser.setBounds (header.removeFromLeft (L::pianoRollHeaderChooserWidth));
     }
     instrumentPanel.setBounds (mixerPanelBounds());   // G3.1: so is the instrument panel
+    browserPanel.setBounds (mixerPanelBounds());      // G5.2: and the media browser
     trackListInput.setBounds (leftRailPanelBounds());
     mixerStripsInput.setBounds (mixerPanelBounds());   // G4.1 cp2: the strips are the whole dock
     {

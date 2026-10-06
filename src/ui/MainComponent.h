@@ -335,6 +335,35 @@ void mainComponentInstrumentPanelDropFileOnPad (juce::Component& component, int 
 [[nodiscard]] MainComponentInstrumentPanel mainComponentInstrumentPanel (juce::Component& component);
 void mainComponentInstrumentPanelSetRow (juce::Component& component, int row, double normalized);
 void mainComponentInstrumentPanelDragRow (juce::Component& component, int row, double first, double second);   // one drag, two values
+// G5.2 / ADR-0056: the media browser for the harness — the source, the location line, the rows as the list holds them
+// (facts appear once a row has been painted), the selection, the list's accessible description, and how many file
+// headers the browser has read. Every verb goes through the panel's own path (the chooser, the list, the button).
+struct MainComponentBrowser
+{
+    bool visible = false;
+    juce::String source;                  // "Files", "Project" or "Recent"
+    juce::String location;
+    std::vector<juce::String> names;
+    std::vector<juce::String> kinds;      // "parent", "folder", "file", "asset"
+    std::vector<juce::String> facts;
+    std::vector<juce::String> reasons;
+    int selected = -1;
+    std::vector<int> marked;              // every selected row (Ctrl / Shift+click)
+    int firstVisible = 0;
+    int visibleRows = 0;
+    juce::String description;
+    std::uint64_t headerReads = 0;
+    juce::Rectangle<int> list;            // shell-local
+};
+[[nodiscard]] MainComponentBrowser mainComponentBrowser (juce::Component& component);
+void mainComponentBrowserOpenFolder (juce::Component& component, const std::filesystem::path& folder);
+void mainComponentBrowserSetSource (juce::Component& component, int index);   // through the source chooser
+void mainComponentBrowserSelect (juce::Component& component, int row, bool ctrl = false, bool shift = false);   // a click on the row
+void mainComponentBrowserImport (juce::Component& component);                 // the Import button
+void mainComponentBrowserDoubleClick (juce::Component& component, int row);   // the row's double-click
+void mainComponentBrowserDragSelectedTo (juce::Component& component, juce::Point<int> shellPoint);
+void mainComponentBrowserPaint (juce::Component& component);                  // the list painted once
+void mainComponentBrowserScroll (juce::Component& component, int wheelNotches);   // the list's wheel (+ down)
 // G3.2: the roll's painted grid lines (tick, x, kind 0 = bar, 1 = beat, 2 = snap) and its clip-relative playhead tick.
 struct MainComponentPianoRollGrid
 {

@@ -31,6 +31,7 @@ struct ControlNavigationMouseListener final : public juce::MouseListener
 [[nodiscard]] bool isControlWidget (const juce::Component& component)
 {
     return dynamic_cast<const juce::Button*> (&component) != nullptr
+        || dynamic_cast<const ChooserListControl*> (&component) != nullptr   // ADR-0056: the browser's list
         || dynamic_cast<const juce::ComboBox*> (&component) != nullptr
         || dynamic_cast<const juce::Slider*> (&component) != nullptr
         || dynamic_cast<const juce::TextEditor*> (&component) != nullptr;
@@ -40,7 +41,8 @@ struct ControlNavigationMouseListener final : public juce::MouseListener
 {
     if (const auto* button = dynamic_cast<const juce::Button*> (&component))
         return button->getClickingTogglesState() ? ControlTargetRole::Toggle : ControlTargetRole::Button;
-    if (dynamic_cast<const juce::ComboBox*> (&component) != nullptr)
+    if (dynamic_cast<const juce::ComboBox*> (&component) != nullptr
+        || dynamic_cast<const ChooserListControl*> (&component) != nullptr)
         return ControlTargetRole::Chooser;
     if (dynamic_cast<const juce::Slider*> (&component) != nullptr)
         return ControlTargetRole::Value;
@@ -242,6 +244,8 @@ juce::String MainComponent::controlValueText (const ShellControl& control) const
             return combo->getItemText (controlChooserPreview);
         return combo->getText();
     }
+    if (const auto* list = dynamic_cast<const ChooserListControl*> (widget))   // ADR-0056: the selected row read out
+        return list->chooserText();
     if (auto* slider = dynamic_cast<juce::Slider*> (widget))
         return slider == &mixerMasterFader ? dbReadoutText (slider->getValue()) : slider->getTextFromValue (slider->getValue());
     if (auto* editor = dynamic_cast<juce::TextEditor*> (widget))
@@ -368,6 +372,12 @@ void MainComponent::activateControlTarget()
         controlChooserPreview = combo->getSelectedItemIndex();
         controlNavigator.beginInteraction (static_cast<double> (controlChooserPreview));
     }
+    else if (auto* list = dynamic_cast<ChooserListControl*> (widget))   // ADR-0056: Enter starts browsing the list
+    {
+        lastControlActivation = "choose:" + id;
+        controlChooserPreview = list->chooserSelection();
+        controlNavigator.beginInteraction (static_cast<double> (controlChooserPreview));
+    }
     else if (auto* slider = dynamic_cast<juce::Slider*> (widget))
     {
         lastControlActivation = "value:" + id;
@@ -403,6 +413,16 @@ void MainComponent::adjustControlTarget (int valueSteps, int listSteps, bool fin
         }
         // The drag verb: one strip gesture (one undo step), the dB readout, the Touch / Latch ride.
         mixerStripsInput.onFaderDragged (control->paintedStrip, next, false);
+    }
+    else if (auto* list = dynamic_cast<ChooserListControl*> (widget))
+    {
+        // ADR-0056: the arrows move the selection (a preview); Enter keeps it (imports / opens), Esc restores it.
+        const int count = list->chooserCount();
+        if (count > 0 && listSteps != 0)
+        {
+            controlChooserPreview = std::clamp (controlChooserPreview + listSteps, 0, count - 1);
+            list->chooserPreview (controlChooserPreview);
+        }
     }
     else if (auto* combo = dynamic_cast<juce::ComboBox*> (widget))
     {
@@ -494,6 +514,15 @@ void MainComponent::finishControlInteraction (bool keep)
         return;
     const auto controls = collectShellControls();
     const ShellControl* control = findControl (controls, controlNavigator.targetId());
+    ChooserListControl* keptList = nullptr;
+    if (control != nullptr)
+        if (auto* list = dynamic_cast<ChooserListControl*> (control->widget.getComponent()))   // ADR-0056
+        {
+            if (keep)
+                keptList = list;   // acted on after the interaction closes (opening a folder rebuilds the rows)
+            else
+                list->chooserPreview (static_cast<int> (controlNavigator.interactionOrigin()));
+        }
     if (control != nullptr)
         if (auto* combo = dynamic_cast<juce::ComboBox*> (control->widget.getComponent()))
         {
@@ -511,6 +540,8 @@ void MainComponent::finishControlInteraction (bool keep)
     closeControlGesture (keep);
     controlChooserPreview = -1;
     controlNavigator.endInteraction();
+    if (keptList != nullptr)
+        keptList->chooserKeep();
     refreshActionState();
     repaintAll();
     const auto after = collectShellControls();

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "ui/BrowserPanelComponent.h"   // G5.2 / ADR-0056
 #include "ui/MainComponentInternal.h"
 #include "ui/ControlTarget.h"
 
@@ -186,6 +187,9 @@ public:
     // G2.18: the undo history window for the harness.
     [[nodiscard]] UndoHistoryComponent& harnessUndoHistory() noexcept { return undoHistory; }
     [[nodiscard]] InstrumentPanelComponent& harnessInstrumentPanel() noexcept { return instrumentPanel; }   // G3.1
+    [[nodiscard]] yesdaw::ui::BrowserPanelComponent& harnessBrowserPanel() noexcept { return browserPanel; }   // G5.2
+    [[nodiscard]] std::uint64_t harnessBrowserHeaderReads() const noexcept { return browserHeaderReads; }
+    void harnessBrowserOpenFolder (const std::filesystem::path& folder) { browserOpenFolder (folder); }
     [[nodiscard]] yesdaw::ui::UiPianoRollSurfaceSnapshot harnessPianoRollSurface() const { return currentPianoRollSurface(); }   // G3.2
     [[nodiscard]] juce::Rectangle<int> harnessPianoRollBounds() const { return pianoRollInput.getBounds(); }
     [[nodiscard]] int harnessPianoRollAuditionKey() const { return pianoRollInput.heldAuditionKey(); }   // G3.2
@@ -394,6 +398,18 @@ private:
     [[nodiscard]] bool dockShowsPianoRoll() const noexcept;
 
     [[nodiscard]] bool dockShowsInstrument() const noexcept;   // G3.1
+    // G5.2 / ADR-0056: the media browser.
+    [[nodiscard]] bool dockShowsBrowser() const noexcept;
+    void initialiseBrowser();
+    void restoreBrowserState();
+    void saveBrowserState();
+    void browserOpenFolder (const std::filesystem::path& folder);
+    void refreshBrowserRows();
+    [[nodiscard]] std::uint64_t browserSourceStamp() const noexcept;
+    void loadBrowserFacts (yesdaw::ui::BrowserRow& row);
+    void browserKeep (const yesdaw::ui::BrowserRow& row);
+    void browserDropAt (std::vector<yesdaw::ui::BrowserRow> rows, juce::Point<int> listPosition);
+    void importAudioFromPath (const std::filesystem::path& path);
 
     [[nodiscard]] juce::Component* toolbarButtonFor (yesdaw::ui::UiActionId action);
 
@@ -1353,6 +1369,23 @@ private:
     // (G4.1: the seven readout buttons and the solo-safe button are gone — the strip and its menu.
     //  G4.1 cp2: the lane's live fader / pan / M / S went with the lane — the painted strip is the mixer.)
     juce::TextButton masterLoudnessReadout;
+    // G5.2 / ADR-0056: the media browser dock tab and its shell state.
+    yesdaw::ui::BrowserPanelComponent browserPanel;
+    int browserSourceIndex = 0;                 // 0 Files, 1 Project, 2 Recent
+    bool browserStateRestored = false;          // read on first show (ADR-0056)
+    std::uint64_t browserRowsStamp = 0;         // browserSourceStamp() when the rows were last built
+    int browserRowsSourceShown = -1;            // the listing the rows show (a refresh of it keeps the selection)
+    std::filesystem::path browserRowsFolderShown;
+    std::filesystem::path browserFolder;
+    struct BrowserFacts
+    {
+        std::uintmax_t size = 0;
+        std::filesystem::file_time_type modified;
+        juce::String facts;
+        juce::String reason;
+    };
+    std::map<std::string, BrowserFacts> browserFactsCache;
+    std::uint64_t browserHeaderReads = 0;       // the gate counts header reads (only painted rows read)
     juce::TextButton headerMonitorDim;    // ADR-0053: the monitor's DIM / MUTE on the header MASTER card
     juce::TextButton headerMonitorMute;
     juce::TextButton autosaveRestoreButton;

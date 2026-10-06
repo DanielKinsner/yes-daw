@@ -1975,6 +1975,7 @@ public:
         {
             engine::Asset asset;
             UiDecodedAsset decoded;
+            std::filesystem::path sourcePath;
         };
         std::vector<Accepted> accepted;
         for (UiAudioImportItem& item : items)
@@ -2004,76 +2005,110 @@ public:
                 result.refusals.push_back (name + ": could not be copied into the project bundle");
                 continue;
             }
-            accepted.push_back ({ imported, std::move (item.decoded) });
+            accepted.push_back ({ imported, std::move (item.decoded), item.sourcePath });
         }
         if (accepted.empty())
             return result;
 
-        engine::Project nextProject = project_;
-        engine::ProjectUndoStack nextUndo = undo_;
-        std::vector<UiDecodedAsset> previousDecoded = decodedAssets_;
-        std::vector<engine::EntityId> clipIds;
-        std::size_t tracksCreated = 0;
-        bool applied = nextUndo.beginTransactionGroup();
-        std::size_t lane = firstLane;
+        std::vector<ClipLanding> landings;
         for (Accepted& item : accepted)
-        {
-            if (! applied)
-                break;
-            if (nextProject.findAsset (item.asset.id) == nullptr)
-                nextProject.assets.push_back (item.asset);
-            while (applied && lane >= nextProject.tracks.size())
-            {
-                const engine::EntityId trackId = allocateSessionEntityId (0xB1u, nextProject);
-                const std::string trackName = "Audio " + std::to_string (nextProject.tracks.size() + 1u);
-                applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::addTrack (trackId, trackName)).applied();
-                tracksCreated += applied ? 1u : 0u;
-            }
-            if (! applied)
-                break;
-
-            engine::Clip clip;
-            clip.id = allocateSessionEntityId (0xC1u, nextProject);
-            clip.assetId = item.asset.id;
-            clip.trackId = nextProject.tracks[lane].id;
-            clip.timelineStart = std::max<engine::Tick> (0, timelineStart);
-            clip.timelineLength = engine::timelineLengthForSource (   // ADR-0055: the source at the project rate
-                item.decoded.frames, engine::rateRatio (item.decoded.sampleRate.hz, project_.sampleRate.hz));
-            clip.srcOffset = 0;
-            clip.srcLen = item.decoded.frames;
-            clip.gain = 1.0f;
-            clip.fadeIn = 0;
-            clip.fadeOut = 0;
-            clip.timeBase = engine::TimeBase::SampleLocked;
-            applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied();
-            if (! applied)
-                break;
-            clipIds.push_back (clip.id);
-            item.decoded.assetId = item.asset.id;
-            upsertDecodedAsset (decodedAssets_, std::move (item.decoded));
-            ++lane;
-        }
-        applied = applied && nextUndo.endTransactionGroup() && nextProject.hasValidAssetClipIndirection();
-        if (! applied || ! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
-        {
-            decodedAssets_ = std::move (previousDecoded);
-            result.refusals.push_back ("the drop could not be saved or rebuilt");
-            return result;
-        }
-
-        context_.projectLoaded = true;
-        selectedTimelineClipIds_ = clipIds;
-        selectedTimelineClipId_ = clipIds.back();
-        context_.timelineClipSelected = true;
-        pendingAudioPlacement_ = {};
-        pendingMidiPlacement_ = {};
-        enqueueWaveformBuildsForDecodedAssets();
-        context_.importCount += static_cast<int> (clipIds.size());
-        ++context_.commandDispatchCount;
-        result.landed = clipIds.size();
-        result.tracksCreated = tracksCreated;
-        result.nextLane = lane;
+            landings.push_back ({ item.asset, std::move (item.decoded), item.sourcePath });
+        landClipsOnConsecutiveTracks (std::move (landings), firstLane, timelineStart, result);
         return result;
+    }
+
+    // ADR-0056: place existing project Assets as new clips — the drop law (consecutive tracks from `firstLane` at
+    // `timelineStart`, the tracks it needs created, ONE undo step) with no copy and no decode.
+    [[nodiscard]] UiAudioDropResult placeAssetsAt (std::span<const engine::EntityId> assetIds,
+                                                   std::size_t firstLane,
+                                                   engine::Tick timelineStart)
+    {
+        UiAudioDropResult result;
+        result.nextLane = firstLane;
+        std::vector<ClipLanding> landings;
+        for (const engine::EntityId assetId : assetIds)
+        {
+            const engine::Asset* const asset = project_.findAsset (assetId);
+            if (asset == nullptr || findDecodedAsset (assetId) == nullptr)
+            {
+                result.refusals.push_back ("that Asset is not in the project");
+                continue;
+            }
+            landings.push_back ({ *asset, std::nullopt, {} });
+        }
+        if (! landings.empty())
+            landClipsOnConsecutiveTracks (std::move (landings), firstLane, timelineStart, result);
+        return result;
+    }
+
+    // ---- ADR-0056: the browser's per-user records, beside the recent-projects record ----
+    static constexpr const char* kRecentAudioRecordFileName = "recent-audio.txt";
+    static constexpr const char* kBrowserStateRecordFileName = "browser-state.txt";
+    static constexpr std::size_t kRecentAudioLimit = 20;
+    static constexpr std::size_t kSessionRecordLineLimit = 4'096;
+
+    // The last audio files imported (any surface, any project), newest first.
+    [[nodiscard]] std::vector<std::filesystem::path> recentAudioFiles() const
+    {
+        std::vector<std::filesystem::path> recents;
+        for (const std::string& line : readSessionRecordLines (kRecentAudioRecordFileName))
+            if (recents.size() < kRecentAudioLimit)
+                recents.push_back (pathFromUtf8Line (line));
+        return recents;
+    }
+
+    void rememberRecentAudioFile (const std::filesystem::path& path)
+    {
+        if (sessionStateDirectory_.empty() || path.empty())
+            return;
+        std::vector<std::filesystem::path> recents = recentAudioFiles();
+        std::erase (recents, path);
+        recents.insert (recents.begin(), path);
+        if (recents.size() > kRecentAudioLimit)
+            recents.resize (kRecentAudioLimit);
+        std::vector<std::string> lines;
+        for (const std::filesystem::path& recent : recents)
+        {
+            const std::u8string utf8 = recent.u8string();
+            lines.emplace_back (reinterpret_cast<const char*> (utf8.data()), utf8.size());
+        }
+        writeSessionRecordLines (kRecentAudioRecordFileName, lines);
+        ++recentAudioRevision_;
+    }
+
+    // Moves each time a file is remembered (the browser rebuilds its Recent rows only then).
+    [[nodiscard]] std::uint64_t recentAudioRevision() const noexcept { return recentAudioRevision_; }
+
+    // The browser's source ("files", "project" or "recent") and the folder Files shows.
+    struct UiBrowserState
+    {
+        std::string source = "files";
+        std::filesystem::path folder;
+    };
+
+    [[nodiscard]] UiBrowserState browserState() const
+    {
+        UiBrowserState state;
+        for (const std::string& line : readSessionRecordLines (kBrowserStateRecordFileName))
+        {
+            if (line.rfind ("source=", 0) == 0)
+            {
+                const std::string source = line.substr (7);
+                if (source == "files" || source == "project" || source == "recent")
+                    state.source = source;
+            }
+            else if (line.rfind ("folder=", 0) == 0)
+                state.folder = pathFromUtf8Line (line.substr (7));
+        }
+        return state;
+    }
+
+    void setBrowserState (const UiBrowserState& state)
+    {
+        const std::u8string folder = state.folder.u8string();
+        writeSessionRecordLines (kBrowserStateRecordFileName,
+                                 { "source=" + state.source,
+                                   "folder=" + std::string (reinterpret_cast<const char*> (folder.data()), folder.size()) });
     }
 
     // G3.7: frames per quarter note at the project's head tempo — the unit bridge between a Standard
@@ -2747,6 +2782,7 @@ private:
         selectedTimelineClipIds_.assign (1, clip.id);
         selectedTimelineClipId_ = clip.id;
         context_.timelineClipSelected = true;
+        rememberRecentAudioFile (sourcePath);   // ADR-0056: the browser's Recent
 
         pendingAudioPlacement_ = {
             imported.id,
@@ -9124,6 +9160,7 @@ public:
             case UiActionId::HelpShowKeymap:
             case UiActionId::EditShowUndoHistory:   // G2.18
             case UiActionId::ViewInstrument:   // G3.1
+            case UiActionId::ViewBrowser:      // G5.2 / ADR-0056
             case UiActionId::TimelineToolSelectPointer:
             case UiActionId::TimelineToolSelectPencil:
             case UiActionId::TimelineToolSelectScissors:
@@ -11437,6 +11474,147 @@ private:
         return nullptr;
     }
 
+    // ADR-0054 / ADR-0056: one clip to land — an Asset (new, with its decode; or the project's own, without) and the
+    // file it came from (for Recent; empty for a project Asset).
+    struct ClipLanding
+    {
+        engine::Asset asset;
+        std::optional<UiDecodedAsset> decoded;
+        std::filesystem::path sourcePath;
+    };
+
+    // The drop law shared by importAudioFilesAt and placeAssetsAt: consecutive tracks from `firstLane` at
+    // `timelineStart`, the tracks past the last one created, the tracks and clips as ONE undo step (an Asset row
+    // stays outside it, as every import's does); nothing lands, nothing changes.
+    void landClipsOnConsecutiveTracks (std::vector<ClipLanding> landings, std::size_t firstLane,
+                                       engine::Tick timelineStart, UiAudioDropResult& result)
+    {
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        std::vector<UiDecodedAsset> previousDecoded = decodedAssets_;
+        std::vector<engine::EntityId> clipIds;
+        std::vector<std::filesystem::path> landedFiles;
+        std::size_t tracksCreated = 0;
+        bool applied = nextUndo.beginTransactionGroup();
+        std::size_t lane = firstLane;
+        for (ClipLanding& landing : landings)
+        {
+            if (! applied)
+                break;
+            if (nextProject.findAsset (landing.asset.id) == nullptr)
+                nextProject.assets.push_back (landing.asset);
+            while (applied && lane >= nextProject.tracks.size())
+            {
+                const engine::EntityId trackId = allocateSessionEntityId (0xB1u, nextProject);
+                const std::string trackName = "Audio " + std::to_string (nextProject.tracks.size() + 1u);
+                applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::addTrack (trackId, trackName)).applied();
+                tracksCreated += applied ? 1u : 0u;
+            }
+            if (! applied)
+                break;
+
+            engine::Clip clip;
+            clip.id = allocateSessionEntityId (0xC1u, nextProject);
+            clip.assetId = landing.asset.id;
+            clip.trackId = nextProject.tracks[lane].id;
+            clip.timelineStart = std::max<engine::Tick> (0, timelineStart);
+            clip.timelineLength = engine::timelineLengthForSource (   // ADR-0055: the source at the project rate
+                landing.asset.frames, engine::rateRatio (landing.asset.sampleRate.hz, project_.sampleRate.hz));
+            clip.srcOffset = 0;
+            clip.srcLen = landing.asset.frames;
+            clip.gain = 1.0f;
+            clip.fadeIn = 0;
+            clip.fadeOut = 0;
+            clip.timeBase = engine::TimeBase::SampleLocked;
+            applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied();
+            if (! applied)
+                break;
+            clipIds.push_back (clip.id);
+            if (landing.decoded.has_value())
+            {
+                landing.decoded->assetId = landing.asset.id;
+                upsertDecodedAsset (decodedAssets_, std::move (*landing.decoded));
+            }
+            if (! landing.sourcePath.empty())
+                landedFiles.push_back (landing.sourcePath);
+            ++lane;
+        }
+        applied = applied && ! clipIds.empty() && nextUndo.endTransactionGroup() && nextProject.hasValidAssetClipIndirection();
+        if (! applied || ! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        {
+            decodedAssets_ = std::move (previousDecoded);
+            result.refusals.push_back ("the drop could not be saved or rebuilt");
+            return;
+        }
+
+        context_.projectLoaded = true;
+        selectedTimelineClipIds_ = clipIds;
+        selectedTimelineClipId_ = clipIds.back();
+        context_.timelineClipSelected = true;
+        pendingAudioPlacement_ = {};
+        pendingMidiPlacement_ = {};
+        enqueueWaveformBuildsForDecodedAssets();
+        context_.importCount += static_cast<int> (clipIds.size());
+        ++context_.commandDispatchCount;
+        result.landed = clipIds.size();
+        result.tracksCreated = tracksCreated;
+        result.nextLane = lane;
+        for (auto it = landedFiles.rbegin(); it != landedFiles.rend(); ++it)   // the first dropped file ends newest
+            rememberRecentAudioFile (*it);
+    }
+
+    // ADR-0056: a session record's lines (UTF-8; over-long lines ignored).
+    [[nodiscard]] std::vector<std::string> readSessionRecordLines (const char* fileName) const
+    {
+        std::vector<std::string> lines;
+        if (sessionStateDirectory_.empty())
+            return lines;
+        std::ifstream input (sessionStateDirectory_ / fileName, std::ios::binary);
+        std::string line;
+        while (std::getline (input, line))
+        {
+            if (! line.empty() && line.back() == '\r')
+                line.pop_back();
+            if (! line.empty() && line.size() <= kSessionRecordLineLimit)
+                lines.push_back (line);
+        }
+        return lines;
+    }
+
+    // Written whole to a temporary sibling, then renamed into place (a crash never leaves half a record).
+    void writeSessionRecordLines (const char* fileName, const std::vector<std::string>& lines) const
+    {
+        if (sessionStateDirectory_.empty())
+            return;
+        const std::filesystem::path target = sessionStateDirectory_ / fileName;
+        std::filesystem::path temporary = target;
+        temporary += ".tmp";
+        bool written = false;
+        {
+            std::ofstream output (temporary, std::ios::binary | std::ios::trunc);
+            if (output.good())
+            {
+                for (const std::string& line : lines)
+                    output << line << '\n';
+                written = output.good();
+            }
+        }
+        std::error_code renamed;
+        if (written)
+            std::filesystem::rename (temporary, target, renamed);
+        if (! written || renamed)
+        {
+            std::error_code removed;
+            std::filesystem::remove (temporary, removed);   // never leave the temporary behind
+        }
+    }
+
+    [[nodiscard]] static std::filesystem::path pathFromUtf8Line (const std::string& line)
+    {
+        const auto* bytes = reinterpret_cast<const char8_t*> (line.data());
+        return std::filesystem::path (std::u8string (bytes, bytes + line.size()));
+    }
+
     static void upsertDecodedAsset (std::vector<UiDecodedAsset>& decodedAssets,
                                     UiDecodedAsset decoded)
     {
@@ -12701,6 +12879,7 @@ private:
     mutable std::vector<OwnedRateMatchedView> rateMatchedViews_;   // filled from const build reads
     mutable std::mutex rateMatchedViewsMutex_;
     mutable std::uint32_t sessionEntityIdSerial_ = 0;   // mixed into every session id (allocateSessionEntityId)
+    std::uint64_t recentAudioRevision_ = 0;              // ADR-0056: bumped when Recent changes
     mutable std::vector<engine::StretchedOwnership> stretchedSamplesCache_;   // G2.9: prepared stretches per clip
     std::uint64_t livePlacementEdits_ = 0;
     std::vector<RetiredMonitorChain> retiredMonitorChains_;

@@ -271,6 +271,7 @@ enum class UiActionId : std::uint8_t
     TimelineAutomationFollowsClipsToggle,   // G4.6 / ADR-0052: automation follows clips moved in time
     MasterMonitorDimToggle,     // G4.7 / ADR-0053: the monitor 20 dB down — session state, never an edit
     MasterMonitorMuteToggle,    // G4.7 / ADR-0053: the monitor silent — session state, never an edit
+    ViewBrowser,                // G5.2 / ADR-0056: the media browser dock tab (Y)
     Count
 };
 
@@ -305,7 +306,8 @@ enum class UiEditorDockTab : std::uint8_t
 {
     Mixer,
     PianoRoll,
-    Instrument   // G3.1: the selected Track's instrument panel
+    Instrument,  // G3.1: the selected Track's instrument panel
+    Browser      // G5.2 / ADR-0056: the media browser
 };
 
 // G2.6 (CONTEXT.md "Edit mode"): the rule for neighbouring Clips when one is placed or removed —
@@ -1180,7 +1182,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MasterMonitorDimToggle, "master.monitor.dim", "Master Dim", "", "Dim the monitor 20 dB (Master Dim)",
       AccessibilityRole::Button, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::MasterMonitorMuteToggle, "master.monitor.mute", "Master Mute", "", "Mute the monitor (Master Mute)",
-      AccessibilityRole::Button, UiActionKind::Toggle, false, false, false, false }
+      AccessibilityRole::Button, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::ViewBrowser, "view.browser", "Browser", "Y", "Show or hide the media browser in the editor dock",
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -1750,6 +1754,24 @@ public:
                     context.mixerDockVisible = true;
                     context.editorDockTab = UiEditorDockTab::PianoRoll;
                     context.activePanel = UiPanel::PianoRoll;
+                }
+                break;
+
+            // G5.2 / ADR-0056: the media browser is a dock tab too; its keyboard path is the Control target, so the
+            // Focus context stays where it was.
+            case UiActionId::ViewBrowser:
+                if (context.mixerDockVisible && context.editorDockTab == UiEditorDockTab::Browser)
+                {
+                    context.mixerDockVisible = false;
+                    if (context.activePanel == UiPanel::Mixer || context.activePanel == UiPanel::PianoRoll)
+                        context.activePanel = UiPanel::Timeline;
+                }
+                else
+                {
+                    context.mixerDockVisible = true;
+                    context.editorDockTab = UiEditorDockTab::Browser;
+                    if (context.activePanel == UiPanel::Mixer || context.activePanel == UiPanel::PianoRoll)
+                        context.activePanel = UiPanel::Timeline;
                 }
                 break;
 

@@ -59,6 +59,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `Space` | Play/Stop | `transport.toggle_play_stop` |
 | `I` | Inspector | `view.toggle_inspector` |
 | `Ctrl+K` | Musical Typing | `piano_roll.musical_typing` |
+| `Y` | Browser | `view.browser` |
 
 ## Arrange
 

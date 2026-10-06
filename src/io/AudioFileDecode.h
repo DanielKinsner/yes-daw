@@ -233,6 +233,48 @@ namespace detail {
 
 } // namespace detail
 
+// ADR-0056: a file's facts from its header alone (no decode) — what the browser shows before an import.
+struct AudioFileFacts
+{
+    bool readable = false;
+    std::string formatName;
+    double sampleRateHz = 0.0;
+    std::uint16_t channels = 0;
+    std::uint64_t frames = 0;
+    std::string reason;   // set when not readable
+};
+
+[[nodiscard]] inline AudioFileFacts readAudioFileFacts (const std::filesystem::path& path)
+{
+    AudioFileFacts facts;
+    const ImportAudioFormat* format = importAudioFormatForPath (path);
+    if (format == nullptr)
+    {
+        facts.reason = "unsupported format (" + lowerCaseExtension (path) + ")";
+        return facts;
+    }
+    facts.formatName = std::string (format->name);
+    const std::unique_ptr<juce::AudioFormat> codec = detail::makeAudioFormat (format->kind);
+    const juce::File file = detail::juceFileForPath (path);
+    std::unique_ptr<juce::AudioFormatReader> reader;
+    if (codec != nullptr && file.existsAsFile())
+        reader.reset (codec->createReaderFor (new juce::FileInputStream (file), true));
+    if (reader == nullptr || ! (reader->sampleRate > 0.0) || reader->numChannels < 1u)
+    {
+        facts.reason = file.existsAsFile() ? "not a readable " + facts.formatName + " file" : "missing";
+        return facts;
+    }
+    facts.sampleRateHz = reader->sampleRate;
+    facts.channels = static_cast<std::uint16_t> (reader->numChannels);
+    facts.frames = reader->lengthInSamples > 0 ? static_cast<std::uint64_t> (reader->lengthInSamples) : 0u;
+    if (reader->numChannels > 2u)
+        facts.reason = std::to_string (reader->numChannels) + " channels (mono or stereo only)";
+    else if (facts.frames == 0u)
+        facts.reason = "no audio in the file";
+    facts.readable = facts.reason.empty();
+    return facts;
+}
+
 // Import: the reader the extension names; the refusal reason when it cannot be imported.
 [[nodiscard]] inline AudioDecodeResult decodeAudioFile (const std::filesystem::path& path)
 {

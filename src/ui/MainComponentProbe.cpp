@@ -381,6 +381,13 @@ juce::var MainComponent::buildProbeLayout()
             put ("pianoroll.typing", pianoRollTypingButton.getBounds());   // G3.6
             put ("pianoroll.step", pianoRollStepButton.getBounds());
         }
+        if (browserPanel.isVisible())   // G5.2: the browser's widgets, so a drive clicks what it sees
+        {
+            put ("browser.source", getLocalArea (&browserPanel, browserPanel.source.getBounds()));
+            put ("browser.up", getLocalArea (&browserPanel, browserPanel.upButton.getBounds()));
+            put ("browser.import", getLocalArea (&browserPanel, browserPanel.importButton.getBounds()));
+            put ("browser.list", getLocalArea (&browserPanel, browserPanel.list.getBounds()));
+        }
         // G3.9: the Sampler's pad grid, when the Instrument tab shows one (panel-local → shell).
         if (instrumentPanel.isVisible() && instrumentPanel.padsShown())
             put ("instrument.panel.pads", instrumentPanel.currentPadGrid().translated (instrumentPanel.getX(), instrumentPanel.getY()));
@@ -664,11 +671,25 @@ juce::String MainComponent::buildStateProbeJson()
                                        ? juce::String ("PianoRoll")
                                    : context.editorDockTab == yesdaw::ui::UiEditorDockTab::Instrument
                                        ? juce::String ("Instrument")   // G3.1
+                                   : context.editorDockTab == yesdaw::ui::UiEditorDockTab::Browser
+                                       ? juce::String ("Browser")      // G5.2
                                        : juce::String ("Mixer"));
         if (const yesdaw::engine::Track* const instrumentTrack = appModel.selectedTrackForInstrument())
         {
             view->setProperty ("instrument", juce::String (instrumentKindName (instrumentTrack->instrumentKind)));   // G3.1
             view->setProperty ("samplerPadCount", static_cast<int> (instrumentTrack->samplerPads.size()));   // G3.9
+        }
+        if (browserPanel.isVisible())   // G5.2 / ADR-0056
+        {
+            auto* browser = new juce::DynamicObject();
+            browser->setProperty ("source", browserPanel.source.getText());
+            browser->setProperty ("location", browserPanel.location.getText());
+            browser->setProperty ("rows", browserPanel.list.chooserCount());
+            browser->setProperty ("selected", browserPanel.list.chooserSelection());
+            if (const BrowserRow* row = browserPanel.list.selectedRow())
+                browser->setProperty ("selectedName", row->name);
+            browser->setProperty ("headerReads", static_cast<juce::int64> (browserHeaderReads));
+            view->setProperty ("browser", juce::var (browser));
         }
         view->setProperty ("dockHeight", dockedMixerHeight());
         view->setProperty ("mixerNarrow", context.mixerStripsNarrow);   // G4.1
@@ -2070,6 +2091,106 @@ bool mainComponentPostMidiInput (juce::Component& component, bool on, int key, d
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         return mainComponent->harnessPostMidiInput (on, key, velocity);
     return false;
+}
+
+MainComponentBrowser mainComponentBrowser (juce::Component& component)   // G5.2 / ADR-0056
+{
+    MainComponentBrowser out;
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        BrowserPanelComponent& panel = mainComponent->harnessBrowserPanel();
+        out.visible = panel.isVisible();
+        out.source = panel.source.getText();
+        out.location = panel.location.getText();
+        for (const BrowserRow& row : panel.list.rows())
+        {
+            out.names.push_back (row.name);
+            out.kinds.push_back (row.kind == BrowserRow::Kind::Parent   ? "parent"
+                                 : row.kind == BrowserRow::Kind::Folder ? "folder"
+                                 : row.kind == BrowserRow::Kind::Asset  ? "asset" : "file");
+            out.facts.push_back (row.facts);
+            out.reasons.push_back (row.reason);
+        }
+        out.selected = panel.list.chooserSelection();
+        for (int row = 0; row < panel.list.chooserCount(); ++row)
+            if (panel.list.isRowSelected (row))
+                out.marked.push_back (row);
+        out.firstVisible = panel.list.firstVisibleRow();
+        out.visibleRows = panel.list.visibleRowCount();
+        out.description = panel.list.getDescription();
+        out.headerReads = mainComponent->harnessBrowserHeaderReads();
+        out.list = mainComponent->getLocalArea (&panel.list, panel.list.getLocalBounds());
+    }
+    return out;
+}
+
+void mainComponentBrowserOpenFolder (juce::Component& component, const std::filesystem::path& folder)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessBrowserOpenFolder (folder);
+}
+
+void mainComponentBrowserSetSource (juce::Component& component, int index)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessBrowserPanel().source.setSelectedItemIndex (index, juce::sendNotificationSync);
+}
+
+void mainComponentBrowserSelect (juce::Component& component, int row, bool ctrl, bool shift)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessBrowserPanel().list.selectWith (row, ctrl, shift);
+}
+
+void mainComponentBrowserImport (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        juce::TextButton& button = mainComponent->harnessBrowserPanel().importButton;
+        if (button.onClick)   // the button's own handler, synchronously (triggerClick posts it)
+            button.onClick();
+    }
+}
+
+void mainComponentBrowserDoubleClick (juce::Component& component, int row)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        BrowserListComponent& list = mainComponent->harnessBrowserPanel().list;
+        list.select (row);
+        list.chooserKeep();   // the double-click's own two steps
+    }
+}
+
+void mainComponentBrowserDragSelectedTo (juce::Component& component, juce::Point<int> shellPoint)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        BrowserListComponent& list = mainComponent->harnessBrowserPanel().list;
+        list.harnessDragSelectedTo (list.getLocalPoint (mainComponent, shellPoint));
+    }
+}
+
+void mainComponentBrowserPaint (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        BrowserListComponent& list = mainComponent->harnessBrowserPanel().list;
+        if (list.getWidth() > 0 && list.getHeight() > 0)
+            (void) list.createComponentSnapshot (list.getLocalBounds());
+    }
+}
+
+void mainComponentBrowserScroll (juce::Component& component, int wheelNotches)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        BrowserListComponent& list = mainComponent->harnessBrowserPanel().list;
+        juce::MouseWheelDetails wheel {};
+        wheel.deltaY = wheelNotches > 0 ? -1.0f : 1.0f;
+        for (int i = 0; i < std::abs (wheelNotches); ++i)
+            list.harnessWheel (wheel);
+    }
 }
 
 void mainComponentInstrumentPanelClickPad (juce::Component& component, int key, bool shift, bool ctrl)   // G3.9

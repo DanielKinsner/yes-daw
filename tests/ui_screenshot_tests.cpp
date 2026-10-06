@@ -2,6 +2,7 @@
 
 #include "app/SongFixture.h"
 #include "engine/Project.h"
+#include "io/WavFile.h"   // G5.2: the browser shot writes its own files
 #include "ui/MainComponent.h"
 #include "ui/UiIcons.h"
 #include "ui/UiTheme.h"
@@ -10,10 +11,12 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <cstdint>
 #include <array>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <utility>
@@ -1486,4 +1489,84 @@ TEST_CASE ("the header MASTER card lights DIM amber and MUTE red", "[ui][screens
     shell.reset();
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G5.2 / ADR-0056: the Browser tab as painted — the shot is the agent's visual judgment; the mechanical part is
+// that a folder row, a readable file's facts and an unreadable file's reason (in the danger colour) really paint
+// inside the list's rows, and the tab fills the dock.
+TEST_CASE ("G5.2 the Browser tab paints its rows, a file's facts and a refusal's reason", "[ui][screenshot][browser]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path root = std::filesystem::temp_directory_path() / "yesdaw-g52-browser-shot";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (root, ec);
+    }
+    const std::filesystem::path media = root / "Samples";
+    std::filesystem::create_directories (media / "Drum Loops");
+    std::filesystem::create_directories (media / "Vocals");
+    {
+        std::vector<float> tone (96'000);
+        for (std::size_t i = 0; i < tone.size(); ++i)
+            tone[i] = 0.3f * static_cast<float> (std::sin (static_cast<double> (i) * 0.05));
+        REQUIRE (yesdaw::io::writeFloat32WavFile (media / "Bass DI.wav", yesdaw::engine::SampleRate { 48'000.0 }, 1, tone.size(), tone).ok());
+        REQUIRE (yesdaw::io::writeFloat32WavFile (media / "Guitar Take 3.wav", yesdaw::engine::SampleRate { 44'100.0 }, 1, tone.size(), tone).ok());
+        std::ofstream (media / "broken.mp3", std::ios::binary) << std::string (2'048, '\0');
+    }
+    const std::filesystem::path bundlePath = root / "shot.yesdaw";
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.sessionStateDirectory = root / "session";
+    std::filesystem::create_directories (choices.sessionStateDirectory);
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (1920, 1080);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewBrowser);
+    yesdaw::ui::mainComponentBrowserOpenFolder (*shell, media);
+    const yesdaw::ui::MainComponentBrowser browser = yesdaw::ui::mainComponentBrowser (*shell);
+    REQUIRE (browser.visible);
+    REQUIRE (browser.names.size() == 6u);   // .., Drum Loops, Vocals, Bass DI.wav, broken.mp3, Guitar Take 3.wav
+    const juce::Image image = renderShell (*shell);
+    (void) captureShellPng (image, "yesdaw-g52-browser-1920x1080.png");
+
+    const auto snapshot = yesdaw::ui::mainComponentBrowser (*shell);   // facts loaded by the paint
+    REQUIRE (snapshot.facts[3].contains ("48 kHz"));
+    REQUIRE (snapshot.facts[5].contains ("44.1 kHz"));
+    REQUIRE (snapshot.reasons[4].isNotEmpty());
+    const juce::Rectangle<int> list = snapshot.list;
+    REQUIRE (list.getWidth() > 400);
+    REQUIRE (list.getHeight() >= L::browserRowHeight * 6);
+    const auto rowBand = [&] (int row) {
+        return juce::Rectangle<int> (list.getX(), list.getY() + row * L::browserRowHeight, list.getWidth(), L::browserRowHeight);
+    };
+    const auto countNear = [&image] (juce::Rectangle<int> area, juce::Colour colour) {
+        int count = 0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+            {
+                const juce::Colour pixel = image.getPixelAt (x, y);
+                if (std::abs (pixel.getRed() - colour.getRed()) < 40 && std::abs (pixel.getGreen() - colour.getGreen()) < 40
+                    && std::abs (pixel.getBlue() - colour.getBlue()) < 40)
+                    ++count;
+            }
+        return count;
+    };
+    // The name column, then the facts column right after it (not across the whole width).
+    constexpr int nameRight = L::browserRowTextInset + L::browserNameWidth;
+    const auto nameColumn = [] (juce::Rectangle<int> band) { return band.withWidth (nameRight); };
+    const auto factsColumn = [] (juce::Rectangle<int> band) {
+        return band.withTrimmedLeft (nameRight).withWidth (L::browserControlGap + L::browserFactsWidth);
+    };
+    REQUIRE (countNear (nameColumn (rowBand (1)), yesdaw::ui::UiTheme::Color::text()) > 20);          // "Drum Loops/"
+    REQUIRE (countNear (factsColumn (rowBand (3)), yesdaw::ui::UiTheme::Color::mutedText()) > 20);    // Bass DI's facts
+    REQUIRE (countNear (factsColumn (rowBand (4)), yesdaw::ui::UiTheme::Color::dangerRed()) > 20);    // broken.mp3's reason
+    REQUIRE (countNear (factsColumn (rowBand (1)), yesdaw::ui::UiTheme::Color::dangerRed()) == 0);    // a folder has no reason
+    REQUIRE (countNear (rowBand (3).withTrimmedLeft (nameRight + L::browserControlGap + L::browserFactsWidth),
+                        yesdaw::ui::UiTheme::Color::mutedText()) == 0);                              // nothing far right
+
+    shell.reset();
+    std::error_code ec;
+    std::filesystem::remove_all (root, ec);
 }
