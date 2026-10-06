@@ -134,6 +134,17 @@ release, Latch from touch to stop, Write from play to stop. A ride replaces the 
 the curve outside it), is heard while it lasts, and is one undo step.
 _Avoid_: take (that is a recording), punch (that bounds audio/MIDI capture)
 
+**Monitor Dim / Mute**:
+Monitor controls on the master card (ADR-0053): Dim lowers what you hear by 20 dB, Mute silences it, as the
+last stage of the device output. Session state — never saved, never in a render, export or recording.
+_Avoid_: master mute (it is not part of the mix), cut
+
+**Live loudness**:
+The mix's loudness while it plays (ADR-0053): the engine taps the master output before the metronome and
+input monitoring, a lock-free ring carries it off the audio thread, and an ADR-0028 meter reads integrated
+LUFS and true peak since the last play start or locate (a loop wrap does not reset it).
+_Avoid_: output loudness (it is not the device output), meter node
+
 **Automation follows clips**:
 A project setting (ADR-0052, off by default): moving a clip in time on its own track moves the automation
 points in its span with it, by the clip's own time law.
