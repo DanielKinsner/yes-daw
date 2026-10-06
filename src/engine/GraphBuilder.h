@@ -344,23 +344,20 @@ private:
         return true;
     }
 
-    [[nodiscard]] static constexpr std::size_t automationEventsPerLaneForBlock (int maxBlockSize) noexcept
-    {
-        const std::size_t block = static_cast<std::size_t> (maxBlockSize > 0 ? maxBlockSize : 1);
-        return block / 64u + 2u;
-    }
-
     static bool validateAutomationEventBudget (
         const std::vector<CompiledAutomationLane>& lanes,
         int maxBlockSize,
         GraphBuildError* error)
     {
-        const std::size_t perLane = automationEventsPerLaneForBlock (maxBlockSize);
+        // ADR-0039: the worst-case events all lanes can emit into one block must fit the side-band
+        // storage (compiledAutomationLaneWorstCaseEvents: breakpoints in a block count, not just lanes).
         const std::size_t capacity = CompiledGraph::kMaxEventsPerBlock;
-        if (perLane != 0u && lanes.size() > capacity / perLane)
+        std::size_t worstCase = 0;
+        for (const CompiledAutomationLane& lane : lanes)
         {
-            const NodeId target = lanes.empty() ? 0u : lanes.front().targetNode;
-            return failBool (error, GraphBuildError::AutomationEventBudgetExceeded { target });
+            worstCase += compiledAutomationLaneWorstCaseEvents (lane, maxBlockSize);
+            if (worstCase > capacity)
+                return failBool (error, GraphBuildError::AutomationEventBudgetExceeded { lanes.front().targetNode });
         }
 
         return true;

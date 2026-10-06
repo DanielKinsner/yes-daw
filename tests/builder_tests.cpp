@@ -1896,3 +1896,80 @@ TEST_CASE ("A suspended fader lane accepts the live gain; resumed, it refuses it
     REQUIRE (graph->applySetAutomationSuspended (kFaderId, FaderNode::kGainParameterId, false));
     REQUIRE_FALSE (graph->applySetGain (kFaderId, 0.25f));
 }
+
+// ADR-0039 / G4.6 repair: the compile-time event budget counts a lane's breakpoints per block. A written
+// ride holds a breakpoint every 64 frames; the old per-lane allowance (block/64 + 2) ignored breakpoints, so
+// a few dense lanes compiled and then overflowed the side-band storage — a fatal assert on the audio thread.
+TEST_CASE ("GraphBuilder counts a dense lane's breakpoints against the per-block event budget",
+           "[builder][automation][budget][automation-v2]")
+{
+    constexpr NodeId kFaderId = 2;
+    constexpr int kMaxBlockSize = 512;
+    const auto denseLane = [] (std::int64_t spacing) {
+        CompiledAutomationLane lane;
+        lane.targetNode = kFaderId;
+        lane.parameterId = FaderNode::kGainParameterId;
+        for (std::int64_t frame = 0; frame < 4'096; frame += spacing)
+        {
+            lane.frames.push_back (frame);
+            lane.values.push_back ((frame / spacing) % 2 == 0 ? 0.25 : 0.75);
+            lane.curveTypes.push_back (AutomationCurveType::Linear);
+        }
+        return lane;
+    };
+    const auto sparseLane = [] {
+        CompiledAutomationLane lane;
+        lane.targetNode = kFaderId;
+        lane.parameterId = FaderNode::kGainParameterId;
+        lane.frames = { 0 };
+        lane.values = { 0.5 };
+        lane.curveTypes = { AutomationCurveType::Hold };
+        return lane;
+    };
+
+    // The law: a breakpoint per frame fills a 512-frame block with 512 breakpoint events, plus the priming
+    // event and eight control-rate events; a lone Hold point keeps the historical allowance.
+    REQUIRE (compiledAutomationLaneWorstCaseEvents (denseLane (1), kMaxBlockSize) == 1u + 512u + 8u);
+    REQUIRE (compiledAutomationLaneWorstCaseEvents (denseLane (64), kMaxBlockSize) == 1u + 8u + 8u);
+    REQUIRE (compiledAutomationLaneWorstCaseEvents (sparseLane(), kMaxBlockSize) == 512u / 64u + 2u);
+
+    // Two breakpoint-per-frame lanes: 1042 worst-case events > 1024. The old check (2 lanes <= 102) let it
+    // compile.
+    {
+        GraphBuilder::Inputs inputs = faderInputs (1.0f, kFaderId);
+        inputs.maxBlockSize = kMaxBlockSize;
+        inputs.automationLanes = { denseLane (1), denseLane (1) };
+        GraphBuildError error;
+        REQUIRE (GraphBuilder::build (std::move (inputs), &error) == nullptr);
+        REQUIRE (error.code() == GraphBuildError::Code::AutomationEventBudgetExceeded);
+    }
+
+    // At the boundary: one dense lane (521) and fifty sparse ones (10 each) = 1021 compile, and playing the
+    // dense span block by block stays inside the storage (the audio thread's assert would fire otherwise).
+    GraphBuilder::Inputs inputs = faderInputs (1.0f, kFaderId);
+    inputs.maxBlockSize = kMaxBlockSize;
+    inputs.automationLanes.push_back (denseLane (1));
+    for (int i = 0; i < 50; ++i)
+        inputs.automationLanes.push_back (sparseLane());
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    std::vector<float> out (static_cast<std::size_t> (kMaxBlockSize), 0.0f);
+    float* outChannels[1] = { out.data() };
+    yesdaw::engine::EventStream events;
+    for (std::int64_t start = 0; start < 4'096; start += kMaxBlockSize)
+    {
+        Transport transport;
+        transport.timelineFrame = start + 17;   // a locate into the dense span: priming plus a full block
+        transport.hasTimelineFrame = true;
+        graph->process (outChannels, 1, kMaxBlockSize, events, transport);
+    }
+
+    GraphBuilder::Inputs over = faderInputs (1.0f, kFaderId);
+    over.maxBlockSize = kMaxBlockSize;
+    over.automationLanes.push_back (denseLane (1));
+    for (int i = 0; i < 51; ++i)
+        over.automationLanes.push_back (sparseLane());
+    REQUIRE (GraphBuilder::build (std::move (over), &error) == nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::AutomationEventBudgetExceeded);
+}

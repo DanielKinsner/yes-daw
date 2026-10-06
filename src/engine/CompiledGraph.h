@@ -169,6 +169,35 @@ struct CompiledAutomationLaneCursor
 static_assert (std::is_trivially_copyable_v<CompiledAutomationLaneCursor>,
                "Compiled automation cursors must stay flat for the audio thread");
 
+// ADR-0039's compile-time event budget, per lane: the most events one lane can emit into one block of
+// `maxBlockSize` frames — a priming event at a locate, one event per breakpoint the block holds, and one
+// control-rate event per 64 frames while a non-Hold segment runs. Never below the historical per-lane
+// allowance (block/64 + 2), so a project of sparse lanes budgets exactly as before. A dense lane (a written
+// ride holds a breakpoint every 64 frames) counts its breakpoints, which the allowance alone undercounted:
+// an overflow is a fatal assert on the audio thread, so the compile-time check has to see it (G4.6 repair).
+[[nodiscard]] inline std::size_t compiledAutomationLaneWorstCaseEvents (const CompiledAutomationLane& lane,
+                                                                       int maxBlockSize) noexcept
+{
+    const std::size_t block = static_cast<std::size_t> (maxBlockSize > 0 ? maxBlockSize : 1);
+    const std::size_t allowance = block / 64u + 2u;
+
+    std::size_t mostInOneBlock = 0;
+    std::size_t first = 0;
+    for (std::size_t last = 0; last < lane.frames.size(); ++last)
+    {
+        while (lane.frames[last] - lane.frames[first] >= static_cast<std::int64_t> (block))
+            ++first;
+        mostInOneBlock = std::max (mostInOneBlock, last - first + 1u);
+    }
+
+    bool ramps = false;
+    for (std::size_t i = 0; i + 1u < lane.frames.size() && i < lane.curveTypes.size(); ++i)
+        ramps = ramps || lane.curveTypes[i] != AutomationCurveType::Hold;
+    const std::size_t controlEvents = ramps ? (block + 63u) / 64u : 0u;
+
+    return std::max (allowance, 1u + mostInOneBlock + controlEvents);
+}
+
 class CompiledGraph
 {
 public:
