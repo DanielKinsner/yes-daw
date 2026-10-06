@@ -20,6 +20,8 @@
 # Enter is Return to zero again. Save and close is Step 12.
 # G4.2 cp2 (2026-10-05) — Step 8 also opens the bus Compressor's face: its gain-reduction meter is laid out
 # and reads the running node (zero in this silent song).
+# G4.3 (2026-10-06) — Step 9 also sends track 1 to a New Bus from the next empty well and undoes it, and
+# routes track 2 with the header's Route to New Bus and undoes that.
 # G4.2 cp6–cp7 (2026-10-05) — Step 8 drags the bus EQ below its Compressor and undoes it; then the
 # Compressor's Presets menu saves a named preset through the prompt, loads it back after an edit, and one
 # Ctrl+Z undoes the load.
@@ -103,11 +105,12 @@ MenuPickFromEnd 2
 Step 4 'Route track 1 to the bus through its OUTPUT slot'
 Click 'mixer.strip.0.output'
 [void](WaitPopup)   # the slot's popup takes the keyboard once it is modal
-# The slot's popup: a section header, Master, then the buses — the LAST item is the new bus.
-Key 'Up'
+# The slot's popup: a section header, Master, the buses, then New Bus (G4.3) — the bus is second from the end.
+Key 'Up' -Repeat 2
 Start-Sleep -Milliseconds 80
 Key 'Enter'
-[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[0].output)" -like 'Out: Bus*' } -TimeoutMs 2000) ('the output slot routes the track to the bus (' + (Probe).mixer.strips[0].output + ')'))
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[0].output)" -eq 'Out: Bus 1' } -TimeoutMs 2000) ('the output slot routes the track to the bus (' + (Probe).mixer.strips[0].output + ')'))
+[void](Assert (@((Probe).mixer.strips | Where-Object { "$($_.kind)" -eq 'Bus' }).Count -eq 1) 'routing to the existing bus makes no new one')
 [void](Assert ("$((Probe).mixer.strips[1].output)" -eq 'Out: Master') 'the other tracks still feed Master')
 Shot 'ss7-output-routed'
 
@@ -258,6 +261,26 @@ Start-Sleep -Milliseconds 80
 Key 'Enter'
 [void](Assert (WaitProbe { param($q) "$($q.mixer.strips[0].sends[0].bus)" -eq 'Bus 1' } -TimeoutMs 2000) ('the send routes track 1 to the bus (the row reads ' + (Probe).mixer.strips[0].sends[0].bus + ')'))
 [void](Assert (-not [bool](Probe).mixer.strips[0].sends[0].pre) 'a new send is post-fader')
+# G4.3: the next empty well's chooser ends with New Bus — the bus and the send in one step; Ctrl+Z takes both.
+Click 'mixer.strip.0.send.1'
+[void](WaitPopup)
+Key 'Up'   # the last item: New Bus
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[0].sends[1].bus)" -eq 'Bus 2' -and @($q.mixer.strips | Where-Object { "$($_.kind)" -eq 'Bus' }).Count -eq 2 } -TimeoutMs 2000) ('New Bus makes Bus 2 and sends track 1 to it (send 2 reads ' + (Probe).mixer.strips[0].sends[1].bus + ')'))
+Shot 'ss7-send-new-bus'
+Focus
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) @($q.mixer.strips[0].sends).Count -eq 1 -and @($q.mixer.strips | Where-Object { "$($_.kind)" -eq 'Bus' }).Count -eq 1 } -TimeoutMs 2000) 'one Ctrl+Z takes back the new bus and its send')
+# G4.3: the track header's Route to New Bus (second from the end: Track Output, Route to New Bus, Automation).
+$row = LayoutRect 'rail.row.1'
+Click 'rail.row.1' -Right -OffsetX (60 - [int]($row[2] / 2))
+MenuPickFromEnd 2
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[1].kind)" -eq 'Track' -and "$($q.mixer.strips[1].output)" -eq 'Out: Bus 2' } -TimeoutMs 2000) ('Route to New Bus sends track 2 to a new Bus 2 (' + (Probe).mixer.strips[1].output + ', lastAction ' + (Probe).lastAction + ')'))
+Shot 'ss7-route-new-bus'
+Focus
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[1].output)" -eq 'Out: Master' -and @($q.mixer.strips | Where-Object { "$($_.kind)" -eq 'Bus' }).Count -eq 1 } -TimeoutMs 2000) 'one Ctrl+Z puts track 2 back on Master and removes the bus')
 
 Step 10 'The send row''s menu: Pre-fader'
 # The routed row's right-click menu: Pre-fader, Destination >, then Remove Send — Pre-fader is first.
