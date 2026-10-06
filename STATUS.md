@@ -17,8 +17,10 @@ or from a locate while playing, held when stopped, one listen across a loop wrap
 stalled long enough to drop audio; (4) **Master Dim / Mute**: DIM (amber) and MUTE (red) on the header MASTER
 card, in the Transport menu and the master's menu — the speakers get 20 dB less or nothing after a 5 ms ramp,
 the header meter keeps showing the signal, exports and renders are never touched, the status line names them,
-nothing is saved or undoable. **Next:** (5) the master's insert slots on the master pane; then a drive step,
-the critic pass, a quiet batch and the evidence file.
+nothing is saved or undoable; (5) **the master pane paints the master's insert slots** (under TRUE PEAK, above
+the meters): an empty slot lists the kinds with the Limiter first, a double-click opens the editor with the
+Limiter's gain-reduction meter, the slot menu bypasses. **Next:** a drive step on the real app, the critic
+pass, a quiet batch and the evidence file.
 
 **Gates so far:** `[loudness-live]` (meter chunks = offline analysis; play / locate restart, stop holds, loop
 wrap and engine swap keep one listen, overflow marks "~"), `[loudness-tap]` (the tap equals a click-free

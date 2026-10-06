@@ -4471,6 +4471,9 @@ public:
             if (track || ! engine::fxKindIsMidi (kind))
                 kinds.push_back (kind);
         }
+        // G4.7 / ADR-0053: the master's list leads with the Limiter (what a master chain ends with).
+        if (context_.mixerTargetSelected && selectedMixerTarget_.kind == MixerTargetKind::Master)
+            std::stable_partition (kinds.begin(), kinds.end(), [] (engine::FxKind kind) { return kind == engine::FxKind::Limiter; });
         return kinds;
     }
 

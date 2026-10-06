@@ -622,6 +622,18 @@ private:
 
     [[nodiscard]] static juce::Rectangle<int> paintedMeterBoundsForLane (juce::Rectangle<int> lane, int ioRows);
 
+    // G4.7 / ADR-0053: the master pane's insert slots — under the TRUE PEAK card, above the meters, with the
+    // strips' row tokens; a short pane drops rows before it starves the meters. ONE law for the paint, the
+    // hit-test, the carry line, the probe and the meter walk (paintedMasterInsertsHeight).
+    [[nodiscard]] int paintedMasterInsertRowCount() const;
+    [[nodiscard]] juce::Rectangle<int> paintedMasterInsertRowBounds (std::size_t slotIndex) const;
+    [[nodiscard]] int paintedMasterInsertsHeight() const;
+    // Any strip's slot row by its ordinal — the master is the ordinal past the buses.
+    [[nodiscard]] juce::Rectangle<int> paintedInsertRowBounds (int stripIndex, std::size_t slotIndex) const;
+    // One slot row as every strip paints it: a well, or the insert's bypass dot and name; selected in purple.
+    void paintInsertSlotRow (juce::Graphics& g, juce::Rectangle<int> row,
+                             const yesdaw::ui::UiMixerFxSlotReadout* insert, bool selected) const;
+
     // G3.4: the quantize panel shows on the CLIP tab when a MIDI clip is selected and no audio clip
     // is (an audio clip's own card wins; the TRACK tab is the track's).
     [[nodiscard]] bool inspectorShowsQuantizePanel() const;

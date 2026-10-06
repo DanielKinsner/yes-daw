@@ -2370,6 +2370,81 @@ TEST_CASE ("ADR-0053 Master Dim and Mute act on the speakers only, lit and named
     REQUIRE (snapshotMainComponent (*shell).context.canUndo == canUndoBefore);
 }
 
+// G4.7 / ADR-0053: the master pane paints the master's insert slots under its TRUE PEAK card and above its
+// meters, with the strips' gestures: an empty slot's click lists the kinds with the Limiter first; a filled
+// slot's double-click opens the FX editor on the master's insert (the Limiter's gain-reduction face); the slot
+// menu bypasses; the master fader stays below the slots.
+TEST_CASE ("G4.7 the master pane's insert slots: Limiter first, the editor, bypass",
+           "[ui][input][shell][mixer][g47][master-inserts]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("master-inserts");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1536, 960);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    const int master = 1;   // one track, no buses: the master is the next ordinal
+    using L = yesdaw::ui::UiTheme::Layout;
+
+    // Painted inside the master pane, stacked, between the cards and the fader.
+    const juce::Rectangle<int> pane = yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell);
+    juce::Rectangle<int> previous;
+    for (int slot = 0; slot < L::mixerPaintedInsertRowCount; ++slot)
+    {
+        const juce::Rectangle<int> row = yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, master, slot);
+        REQUIRE (row.getHeight() == L::mixerPaintedInsertRowHeight);
+        REQUIRE (pane.contains (row));
+        if (slot > 0)
+            REQUIRE (row.getY() > previous.getBottom());
+        previous = row;
+    }
+    REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, master, 0).getY()
+             >= pane.getY() + L::mixerMasterContentTop + L::mixerMasterLoudnessCardHeight + L::mixerMasterPeakCardHeight);
+    juce::Component* fader = findChildWithComponentId (*shell, "mixer.master.fader");
+    REQUIRE (fader != nullptr);
+    REQUIRE (fader->getY() > previous.getBottom());
+
+    // An empty slot's click: the kinds, Limiter first; picking it fills the master's slot 0.
+    const auto local = [strips] (juce::Rectangle<int> shellRect) { return shellRect.getCentre() - strips->getPosition(); };
+    mouseDownAt (*strips, local (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, master, 0)));
+    auto menu = yesdaw::ui::mainComponentLastContextMenu (*shell);
+    REQUIRE (menu.shown);
+    REQUIRE (menu.target == yesdaw::ui::ContextMenuTarget::InsertSlot);
+    REQUIRE_FALSE (menu.addInsertKinds.empty());
+    REQUIRE (menu.addInsertKinds.front() == static_cast<int> (yesdaw::engine::FxKind::Limiter));
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == master);
+    yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerFxInsertAdd, static_cast<int> (yesdaw::engine::FxKind::Limiter));
+    {
+        const yesdaw::engine::Project saved = readProjectSnapshot (bundlePath);
+        REQUIRE (saved.masterStrip.fxChain.size() == 1u);
+        REQUIRE (saved.masterStrip.fxChain.front().kind == yesdaw::engine::FxKind::Limiter);
+        REQUIRE (saved.tracks.front().strip.fxChain.empty());   // the master's, not the track's
+    }
+
+    // The filled slot's double-click opens the editor on the master's Limiter, with its gain-reduction face.
+    doubleClickAt (*strips, local (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, master, 0)));
+    const yesdaw::ui::MainComponentFxEditor editor = yesdaw::ui::mainComponentFxEditor (*shell);
+    REQUIRE (editor.visible);
+    REQUIRE (editor.strip == master);
+    REQUIRE (editor.slot == 0);
+    REQUIRE (editor.kind == "Limiter");
+    REQUIRE (editor.gainReductionVisible);
+    REQUIRE (editor.gainReductionReading);   // the engine runs the master's limiter node
+
+    // The slot menu bypasses it, as on a strip.
+    menu = yesdaw::ui::mainComponentRequestContextMenu (*shell, yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, master, 0).getCentre());
+    REQUIRE (menu.target == yesdaw::ui::ContextMenuTarget::InsertSlot);
+    yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerFxInsertToggle);
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).masterStrip.fxChain.front().enabled);
+}
+
 TEST_CASE ("shipped MainComponent reopens bundled Assets as playable audio",
            "[ui][input][shell][project][playback][device]")
 {
@@ -6610,8 +6685,10 @@ TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot open
                  < yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 1, 0).getX());
         REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 1, 0).getRight()
                  <= yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 2, 0).getX());
-        // Out-of-range asks get an honest empty rect, never a guess.
-        REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 3, 0).isEmpty());
+        // Out-of-range asks get an honest empty rect, never a guess. G4.7: the ordinal past the strips (3) is the
+        // master pane, which paints its own slots now; the one past it is out of range.
+        REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 3, 0).isEmpty());
+        REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 4, 0).isEmpty());
         REQUIRE (yesdaw::ui::mainComponentPaintedInsertSlotBounds (
                      *shell, 0, L::mixerPaintedInsertRowCount).isEmpty());
     }

@@ -229,15 +229,9 @@ yesdaw::ui::MainComponentMixerStripIo MainComponent::harnessMixerStripIo (int st
 // and the click hit-test read.
 juce::Rectangle<int> MainComponent::harnessPaintedInsertSlotBounds (int stripIndex, int slotIndex) const
 {
-    const auto surface = currentMixerSurface();
-    const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
-    if (stripIndex < 0 || stripIndex >= stripTotal
-        || slotIndex < 0 || slotIndex >= yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount)
+    if (slotIndex < 0 || slotIndex >= yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount)
         return {};
-
-    return paintedInsertRowBoundsForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
-                                          static_cast<std::size_t> (slotIndex),
-                                          stripIoRows (static_cast<std::size_t> (stripIndex)));
+    return paintedInsertRowBounds (stripIndex, static_cast<std::size_t> (slotIndex));   // G4.7: the master's too
 }
 
 // M5: the painted send-row rect for a strip, in SHELL coordinates.
@@ -410,6 +404,8 @@ juce::var MainComponent::buildProbeLayout()
             for (int send = 0; send < yesdaw::ui::UiTheme::Layout::mixerPaintedSendRowCount; ++send)
                 put (base + ".send." + juce::String (send), harnessPaintedSendRowBounds (strip, send));
         }
+        for (int slot = 0; slot < yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount; ++slot)   // G4.7
+            put ("mixer.master.insert." + juce::String (slot), harnessPaintedInsertSlotBounds (stripTotal, slot));
     }
 
     // G4.1 cp2: the FX editor and its two buttons (grandchildren: the walk below sees children only).
@@ -921,6 +917,18 @@ juce::String MainComponent::buildStateProbeJson()
         mixer->setProperty ("strips", strips);
         mixer->setProperty ("anySolo", appModel.context().anySoloActive);   // G4.5: the header's SOLO is lit
         // ADR-0053: the live loudness readout as the header paints it, and the values behind it.
+        {
+            // G4.7: the master's inserts as its pane paints them.
+            juce::Array<juce::var> masterInserts;
+            for (const yesdaw::ui::UiMixerFxSlotReadout& insert : yesdaw::ui::detail::fxSlotReadoutsForStrip (appModel.project().masterStrip))
+            {
+                auto* row = new juce::DynamicObject();
+                row->setProperty ("kind", fxKindName (insert.kind));
+                row->setProperty ("enabled", insert.enabled);
+                masterInserts.add (juce::var (row));
+            }
+            mixer->setProperty ("masterInserts", masterInserts);
+        }
         mixer->setProperty ("monitorDim", appModel.context().monitorDimmed);   // ADR-0053: the lit DIM / MUTE
         mixer->setProperty ("monitorMute", appModel.context().monitorMuted);
         mixer->setProperty ("loudness", masterLoudnessReadoutText());
