@@ -55,7 +55,7 @@ if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (D3: created through the real New chooser)')
 Focus
 Key 'Ctrl+Shift+I'
-$dlg = WaitDialog 'Import WAV Audio' 4000
+$dlg = WaitDialog 'Import Audio' 4000
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $Fixture }
 [void](Assert (WaitProbe { param($q) [int]$q.view.clipCount -eq 1 } -TimeoutMs 8000) 'one clip after import')
 Resize 1920 1080

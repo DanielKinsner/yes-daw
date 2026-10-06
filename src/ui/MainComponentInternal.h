@@ -27,6 +27,7 @@
 #include "ui/KeymapEditorComponent.h"
 #include "ui/FxEditorComponent.h"
 #include "ui/FxParameterNames.h"
+#include "io/AudioFileDecode.h"   // ADR-0054: the one decoder
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -387,43 +388,44 @@ inline juce::File juceFileFromPath (const std::filesystem::path& path)
         static_cast<int> (utf8.size())) };
 }
 
-// Decode a mono or stereo WAV into an interleaved UiDecodedAsset (ADR-0042). Wider-than-stereo files
-// are rejected — never silently downmixed.
+// A dropped file's name (JUCE's UTF-8) as a path — non-ASCII names survive (the old narrow-string path did not).
+inline std::filesystem::path pathFromJuceString (const juce::String& text)
+{
+    const std::string utf8 = text.toStdString();
+    const auto* begin = reinterpret_cast<const char8_t*> (utf8.data());
+    return std::filesystem::path (std::u8string (begin, begin + utf8.size()));
+}
+
+// ADR-0054: decode any supported import format (WAV, AIFF, FLAC, Ogg Vorbis, MP3) into an interleaved
+// UiDecodedAsset — mono or stereo (ADR-0042), never silently downmixed — or the reason it cannot be imported.
+struct UiAudioDecodeResult
+{
+    std::optional<yesdaw::ui::UiDecodedAsset> decoded;
+    std::string reason;   // set exactly when `decoded` is empty
+};
+
+inline yesdaw::ui::UiDecodedAsset uiDecodedAssetFrom (yesdaw::io::DecodedAudioFile&& audio)
+{
+    yesdaw::ui::UiDecodedAsset decoded;
+    decoded.sampleRate = yesdaw::engine::SampleRate { audio.sampleRateHz };
+    decoded.frames = audio.frames;
+    decoded.channels = audio.channels;
+    decoded.interleavedSamples = std::move (audio.interleaved);
+    return decoded;
+}
+
+inline UiAudioDecodeResult decodeProjectAudio (const std::filesystem::path& sourcePath)
+{
+    yesdaw::io::AudioDecodeResult result = yesdaw::io::decodeAudioFile (sourcePath);
+    if (! result.audio.has_value())
+        return { std::nullopt, std::move (result.reason) };
+    return { uiDecodedAssetFrom (std::move (*result.audio)), {} };
+}
+
+// The historical name, kept for its callers: any supported format, the reason dropped.
 inline std::optional<yesdaw::ui::UiDecodedAsset> decodeProjectWav (const std::filesystem::path& sourcePath)
 {
-    juce::WavAudioFormat wav;
-    const juce::File file = juceFileFromPath (sourcePath);
-    std::unique_ptr<juce::AudioFormatReader> reader (
-        wav.createReaderFor (new juce::FileInputStream (file), true));
-    if (reader == nullptr)
-        return std::nullopt;
-
-    if (reader->sampleRate <= 0.0
-        || reader->numChannels < 1u
-        || reader->numChannels > 2u
-        || reader->lengthInSamples <= 0
-        || reader->lengthInSamples > static_cast<juce::int64> (std::numeric_limits<int>::max()))
-        return std::nullopt;
-
-    const int frames = static_cast<int> (reader->lengthInSamples);
-    const int channels = static_cast<int> (reader->numChannels);
-    juce::AudioBuffer<float> decodedBuffer (channels, frames);
-    if (! reader->read (&decodedBuffer, 0, frames, 0, true, channels > 1))
-        return std::nullopt;
-
-    yesdaw::ui::UiDecodedAsset decoded;
-    decoded.sampleRate = yesdaw::engine::SampleRate { reader->sampleRate };
-    decoded.frames = static_cast<std::uint64_t> (frames);
-    decoded.channels = static_cast<std::uint16_t> (channels);
-    decoded.interleavedSamples.resize (static_cast<std::size_t> (frames) * static_cast<std::size_t> (channels));
-    for (int channel = 0; channel < channels; ++channel)
-    {
-        const float* const source = decodedBuffer.getReadPointer (channel);
-        for (int frame = 0; frame < frames; ++frame)
-            decoded.interleavedSamples[static_cast<std::size_t> (frame) * static_cast<std::size_t> (channels)
-                                       + static_cast<std::size_t> (channel)] = source[frame];
-    }
-    return decoded;
+    return decodeProjectAudio (sourcePath).decoded;
 }
 
 // R5: the three ways a stored project can fail to open are distinct facts the user needs —
@@ -459,19 +461,20 @@ inline StoredProjectAssetsResult decodeStoredProjectAssets (const std::filesyste
     {
         const std::filesystem::path assetPath =
             yesdaw::persistence::storedAssetPathForHash (bundlePath, asset.contentHash);
-        auto decoded = decodeProjectWav (assetPath);
-        if (! decoded
-            || decoded->frames != asset.frames
-            || decoded->sampleRate != asset.sampleRate
-            || decoded->channels != asset.channels)
+        // ADR-0054: the Asset row is the authority — the first reader whose decode has its frames, rate and
+        // channels is the one; none means the stored bytes no longer match.
+        yesdaw::io::AudioDecodeResult stored = yesdaw::io::decodeStoredAudio (
+            assetPath, { asset.frames, asset.sampleRate.hz, asset.channels });
+        if (! stored.audio.has_value())
         {
             out.failureReason =
                 "missing or corrupt audio file: " + assetPath.filename().string();
             return out;
         }
 
-        decoded->assetId = asset.id;
-        decodedAssets.push_back (std::move (*decoded));
+        yesdaw::ui::UiDecodedAsset decoded = uiDecodedAssetFrom (std::move (*stored.audio));
+        decoded.assetId = asset.id;
+        decodedAssets.push_back (std::move (decoded));
     }
 
     out.assets = std::move (decodedAssets);

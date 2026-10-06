@@ -970,17 +970,17 @@ void MainComponent::hideMixerControlsBehindDockTab()
     }
 }
 
-// G3.9: a WAV onto a Sampler pad — the WAV reader's refusal is the shell's to name (R6), every
-// other refusal the model's (R7).
+// G3.9 / ADR-0054: a sample onto a Sampler pad — any supported format; the decoder's refusal is the shell's
+// to name with its reason (R6), every other refusal the model's (R7).
 void MainComponent::loadSamplerPadFromPath (std::int16_t key, const std::filesystem::path& path)
 {
-    auto decoded = decodeProjectWav (path);
-    if (! decoded)
+    UiAudioDecodeResult decodedFile = decodeProjectAudio (path);
+    if (! decodedFile.decoded)
     {
-        appModel.reportStatus ("Sampler pad refused (WAV only, stereo max): " + path.filename().string(), true);
+        appModel.reportStatus ("Sampler pad refused: " + path.filename().string() + ": " + decodedFile.reason, true);
         return;
     }
-    if (appModel.importSamplerPadFromSource (path, std::move (*decoded), key).ok())
+    if (appModel.importSamplerPadFromSource (path, std::move (*decodedFile.decoded), key).ok())
         recordLastAction (yesdaw::ui::UiActionId::SamplerPadLoad);
 }
 

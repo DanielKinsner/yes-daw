@@ -12,7 +12,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `Ctrl+O` | Open | `project.open` |
 | `Ctrl+S` | Save | `project.save` |
 | `Ctrl+Shift+S` | Save As | `project.save_as` |
-| `Ctrl+Shift+I` | Import WAV | `project.import_audio` |
+| `Ctrl+Shift+I` | Import Audio | `project.import_audio` |
 | `Ctrl+B` | Export Audio | `project.export_audio` |
 | `Esc` | Cancel / Pointer | `project.export_audio.cancel` |
 | `Home` | Locate | `transport.locate_start` |

@@ -251,7 +251,7 @@ $mid = Join-Path ([System.IO.Path]::GetTempPath()) ('ss5-import-' + (Get-Date).T
 $t0 = [int](Probe).view.trackCount
 $menubar = LayoutRect 'widget.shell.menubar'
 Click 'widget.shell.menubar' -OffsetX (20 - [int]($menubar[2] / 2))
-# File (a project loaded, every item enabled): New, Open, Save, Save As, Import WAV, Export Audio, Import MIDI File -> 7th.
+# File (a project loaded, every item enabled): New, Open, Save, Save As, Import Audio, Export Audio, Import MIDI File -> 7th.
 MenuPick 7
 $dlg = WaitDialog 'Import MIDI File' 4000
 [void](Assert ($dlg -ne [IntPtr]::Zero) 'File > Import MIDI File opens the native chooser')

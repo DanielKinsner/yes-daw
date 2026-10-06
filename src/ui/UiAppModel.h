@@ -126,6 +126,21 @@ enum class UiAppImportStatus : std::uint8_t
     SampleRateMismatch
 };
 
+// ADR-0054: one dropped audio file, decoded by the shell; and what a drop of several did.
+struct UiAudioImportItem
+{
+    std::filesystem::path sourcePath;
+    UiDecodedAsset decoded;
+};
+
+struct UiAudioDropResult
+{
+    std::size_t landed = 0;
+    std::size_t tracksCreated = 0;
+    std::size_t nextLane = 0;             // the lane after the last file that landed (the drop's first lane if none)
+    std::vector<std::string> refusals;    // "<file>: <reason>" for each file the model refused
+};
+
 struct UiAppImportResult
 {
     UiAppImportStatus            status = UiAppImportStatus::Ok;
@@ -1925,6 +1940,130 @@ public:
             ++context_.commandDispatchCount;
         }
 
+        return result;
+    }
+
+    // ADR-0054: a drop of audio files lands them on consecutive tracks from `firstLane` at `timelineStart`,
+    // creating the tracks past the last one, as ONE undo step (the tracks and the clips; the asset rows and
+    // bundle bytes stay outside it, as every import's do). A file the model refuses (another rate, a failed copy)
+    // is named in the result and the rest still land; when nothing lands nothing changes.
+    [[nodiscard]] UiAudioDropResult importAudioFilesAt (std::vector<UiAudioImportItem> items,
+                                                        std::size_t firstLane,
+                                                        engine::Tick timelineStart)
+    {
+        UiAudioDropResult result;
+        result.nextLane = firstLane;
+        if (! bundleDb_.isOpen())
+        {
+            for (const UiAudioImportItem& item : items)
+                result.refusals.push_back (item.sourcePath.filename().string() + ": no project is open");
+            return result;
+        }
+
+        struct Accepted
+        {
+            engine::Asset asset;
+            UiDecodedAsset decoded;
+        };
+        std::vector<Accepted> accepted;
+        for (UiAudioImportItem& item : items)
+        {
+            const std::string name = item.sourcePath.filename().string();
+            if (! decodedAudioIsValid (item.decoded))
+            {
+                result.refusals.push_back (name + ": not usable audio");
+                continue;
+            }
+            if (item.decoded.sampleRate.hz != project_.sampleRate.hz)
+            {
+                result.refusals.push_back (name + ": "
+                                           + std::to_string (static_cast<long long> (item.decoded.sampleRate.hz))
+                                           + " Hz but this project is "
+                                           + std::to_string (static_cast<long long> (project_.sampleRate.hz))
+                                           + " Hz (no resampling yet)");
+                continue;
+            }
+            engine::Asset imported;
+            const persistence::AssetImportRequest request {
+                item.sourcePath,
+                allocateSessionEntityId (0xA1u),
+                item.decoded.frames,
+                item.decoded.sampleRate,
+                item.decoded.channels
+            };
+            if (! bundleDb_.importAssetBytes (request, imported).ok())
+            {
+                result.refusals.push_back (name + ": could not be copied into the project bundle");
+                continue;
+            }
+            accepted.push_back ({ imported, std::move (item.decoded) });
+        }
+        if (accepted.empty())
+            return result;
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        std::vector<UiDecodedAsset> previousDecoded = decodedAssets_;
+        std::vector<engine::EntityId> clipIds;
+        std::size_t tracksCreated = 0;
+        bool applied = nextUndo.beginTransactionGroup();
+        std::size_t lane = firstLane;
+        for (Accepted& item : accepted)
+        {
+            if (! applied)
+                break;
+            if (nextProject.findAsset (item.asset.id) == nullptr)
+                nextProject.assets.push_back (item.asset);
+            while (applied && lane >= nextProject.tracks.size())
+            {
+                const engine::EntityId trackId = allocateSessionEntityId (0xB1u, nextProject);
+                const std::string trackName = "Audio " + std::to_string (nextProject.tracks.size() + 1u);
+                applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::addTrack (trackId, trackName)).applied();
+                tracksCreated += applied ? 1u : 0u;
+            }
+            if (! applied)
+                break;
+
+            engine::Clip clip;
+            clip.id = allocateSessionEntityId (0xC1u, nextProject);
+            clip.assetId = item.asset.id;
+            clip.trackId = nextProject.tracks[lane].id;
+            clip.timelineStart = std::max<engine::Tick> (0, timelineStart);
+            clip.timelineLength = static_cast<engine::Tick> (item.decoded.frames);
+            clip.srcOffset = 0;
+            clip.srcLen = item.decoded.frames;
+            clip.gain = 1.0f;
+            clip.fadeIn = 0;
+            clip.fadeOut = 0;
+            clip.timeBase = engine::TimeBase::SampleLocked;
+            applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied();
+            if (! applied)
+                break;
+            clipIds.push_back (clip.id);
+            item.decoded.assetId = item.asset.id;
+            upsertDecodedAsset (decodedAssets_, std::move (item.decoded));
+            ++lane;
+        }
+        applied = applied && nextUndo.endTransactionGroup() && nextProject.hasValidAssetClipIndirection();
+        if (! applied || ! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        {
+            decodedAssets_ = std::move (previousDecoded);
+            result.refusals.push_back ("the drop could not be saved or rebuilt");
+            return result;
+        }
+
+        context_.projectLoaded = true;
+        selectedTimelineClipIds_ = clipIds;
+        selectedTimelineClipId_ = clipIds.back();
+        context_.timelineClipSelected = true;
+        pendingAudioPlacement_ = {};
+        pendingMidiPlacement_ = {};
+        enqueueWaveformBuildsForDecodedAssets();
+        context_.importCount += static_cast<int> (clipIds.size());
+        ++context_.commandDispatchCount;
+        result.landed = clipIds.size();
+        result.tracksCreated = tracksCreated;
+        result.nextLane = lane;
         return result;
     }
 

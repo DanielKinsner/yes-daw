@@ -1401,7 +1401,7 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
 
     choices.chooseImportAudioFile = [] {
         const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Import WAV Audio", documents, "*.wav;*.wave", true);
+        juce::FileChooser chooser ("Import Audio", documents, juce::String (yesdaw::io::importAudioFilePatterns()), true);   // ADR-0054
         if (! chooser.browseForFileToOpen())
             return std::filesystem::path {};
 
@@ -1433,7 +1433,7 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
     // G3.9: the Sampler pad's WAV chooser.
     choices.chooseSamplerPadFile = [] {
         const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Load Sample onto Pad", documents, "*.wav;*.wave", true);
+        juce::FileChooser chooser ("Load Sample onto Pad", documents, juce::String (yesdaw::io::importAudioFilePatterns()), true);   // ADR-0054
         if (! chooser.browseForFileToOpen())
             return std::filesystem::path {};
 

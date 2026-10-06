@@ -1478,7 +1478,8 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
                 const std::filesystem::path path = fileChoices.chooseImportAudioFile();
                 if (! path.empty())
                 {
-                    if (auto decoded = decodeProjectWav (path))
+                    UiAudioDecodeResult decodedFile = decodeProjectAudio (path);   // ADR-0054: any supported format
+                    if (auto& decoded = decodedFile.decoded)
                     {
                         // Import lands on the SELECTED Track when the rail has a selection.
                         const auto& tracks = appModel.project().tracks;
@@ -1493,10 +1494,9 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
                     }
                     else
                     {
-                        // R6: a file the WAV reader refuses is named, never swallowed.
+                        // R6: a refused file is named with its reason, never swallowed.
                         appModel.reportStatus (
-                            "Import refused (WAV only, stereo max): "
-                                + path.filename().string(),
+                            "Import refused: " + path.filename().string() + ": " + decodedFile.reason,
                             true);
                     }
                 }

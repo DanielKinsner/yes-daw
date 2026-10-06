@@ -226,76 +226,86 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     timelineInput.onVerticalScrollRows = [this] (int rowDelta) {
         scrollTrackRowsBy (rowDelta);
     };
-    // M10: OS file drops land on the track under the pointer at the snapped tick under the
-    // pointer. Several files go onto consecutive lanes, each import its own undo step
-    // (R8); anything the WAV reader refuses is reported on the status line (R6) and
-    // changes nothing.
+    // M10 / ADR-0054: OS file drops land at the snapped tick under the pointer, from the lane under it. Audio
+    // files of every supported format land on consecutive tracks — the drop creates the tracks past the last
+    // one — as ONE undo step; MIDI files keep G3.7's import on their own lanes after them (each its own step).
+    // Every refused file is named with its reason; the good ones still land.
     timelineInput.filesAreImportable = [this] (const juce::StringArray& files) {
         if (! appModel.context().projectLoaded || files.isEmpty())
             return false;
 
         for (const juce::String& file : files)
-            if (juce::File (file).hasFileExtension ("wav") || juce::File (file).hasFileExtension ("mid;midi"))   // G3.7
+            if (yesdaw::io::isImportableAudioPath (pathFromJuceString (file))
+                || juce::File (file).hasFileExtension ("mid;midi"))   // G3.7
                 return true;
 
         return false;
     };
     timelineInput.onFilesDropped = [this] (const juce::StringArray& files, int lane, double seconds) {
-        const auto& tracks = appModel.project().tracks;
-        if (lane < 0 || lane >= static_cast<int> (tracks.size()))
+        const int trackCount = static_cast<int> (appModel.project().tracks.size());
+        if (lane < 0)
             return;
+        const std::size_t firstLane = static_cast<std::size_t> (std::min (lane, trackCount));   // below the tracks: a new one
 
         const auto tick = timelineTickFromSeconds (seconds);
         if (! tick.has_value())
             return;
 
         const yesdaw::engine::Tick start = snappedTimelineTick (*tick, false);
-        int laneOffset = 0;
-        bool anyImported = false;
-        std::string refusedNames;
+        std::vector<yesdaw::ui::UiAudioImportItem> audio;
+        std::vector<std::filesystem::path> midiFiles;
+        std::vector<std::string> refusals;
         for (const juce::String& file : files)
         {
-            const std::filesystem::path path (file.toStdString());
-            // G3.7: a .mid lands on the lane under the pointer as MIDI clips (the model names
-            // its own refusals on the status line; further file tracks add lanes below).
+            const std::filesystem::path path = pathFromJuceString (file);
             if (juce::File (file).hasFileExtension ("mid;midi"))
             {
-                const int midiLane = std::min (lane + laneOffset, static_cast<int> (appModel.project().tracks.size()) - 1);
-                const yesdaw::engine::EntityId midiTrackId = appModel.project().tracks[static_cast<std::size_t> (midiLane)].id;
-                if (appModel.importMidiFileAt (path, midiTrackId, start).dispatched)
-                {
-                    anyImported = true;
-                    ++laneOffset;
-                }
+                midiFiles.push_back (path);
                 continue;
             }
-            auto decoded = decodeProjectWav (path);
-            if (! decoded)
+            UiAudioDecodeResult decoded = decodeProjectAudio (path);
+            if (! decoded.decoded.has_value())
             {
-                refusedNames += (refusedNames.empty() ? "" : ", ") + path.filename().string();
+                refusals.push_back (path.filename().string() + ": " + decoded.reason);
                 continue;
             }
+            audio.push_back ({ path, std::move (*decoded.decoded) });
+        }
 
-            const int targetLane = std::min (lane + laneOffset,
-                                             static_cast<int> (appModel.project().tracks.size()) - 1);
-            const yesdaw::engine::EntityId trackId =
-                appModel.project().tracks[static_cast<std::size_t> (targetLane)].id;
-            // R7: a verb failure (rate mismatch, bundle copy, …) reports its own precise
-            // reason inside the model — only decoder refusals are the shell's to name.
-            if (appModel.importAudioFileAt (path, std::move (*decoded), trackId, start).ok())
+        std::size_t nextLane = firstLane;
+        bool anyImported = false;
+        if (! audio.empty())
+        {
+            yesdaw::ui::UiAudioDropResult dropped = appModel.importAudioFilesAt (std::move (audio), firstLane, start);
+            refusals.insert (refusals.end(), dropped.refusals.begin(), dropped.refusals.end());
+            anyImported = dropped.landed > 0;
+            nextLane = dropped.nextLane;
+        }
+        // G3.7: a .mid lands on the lane after the audio as MIDI clips (the model names its own refusals).
+        for (const std::filesystem::path& path : midiFiles)
+        {
+            const auto& tracks = appModel.project().tracks;
+            if (tracks.empty())
+                break;
+            const std::size_t midiLane = std::min (nextLane, tracks.size() - 1u);
+            if (appModel.importMidiFileAt (path, tracks[midiLane].id, start).dispatched)
             {
                 anyImported = true;
-                ++laneOffset;
+                ++nextLane;
             }
         }
 
-        // R6: every file the WAV reader refused is named immediately — the good files
-        // still landed.
-        if (! refusedNames.empty())
-            appModel.reportStatus ("Import refused (WAV only, stereo max): " + refusedNames, true);
+        // R6: every refused file is named with its reason — the good files still landed.
+        if (! refusals.empty())
+        {
+            std::string message = "Import refused: ";
+            for (std::size_t i = 0; i < refusals.size(); ++i)
+                message += (i == 0 ? "" : "; ") + refusals[i];
+            appModel.reportStatus (message, true);
+        }
 
         if (anyImported)
-            selectedTrackLane = lane;
+            selectedTrackLane = static_cast<int> (firstLane);
 
         refreshActionState();
         repaintAll();

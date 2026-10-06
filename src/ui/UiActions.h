@@ -699,7 +699,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectSaveAs, "project.save_as", "Save As", "Ctrl+Shift+S", "Save project as",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
-    { UiActionId::ProjectImportAudio, "project.import_audio", "Import WAV", "Ctrl+Shift+I", "Import audio",
+    { UiActionId::ProjectImportAudio, "project.import_audio", "Import Audio", "Ctrl+Shift+I", "Import audio",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectExportAudio, "project.export_audio", "Export Audio", "Ctrl+B", "Export audio",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },

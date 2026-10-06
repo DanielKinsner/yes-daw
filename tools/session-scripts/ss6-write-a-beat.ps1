@@ -237,7 +237,7 @@ Click 'lane.0' -OffsetX ([int]($lane0[2] / 2) - 40)
 [void](Assert (WaitProbe { param($q) $q.selection.clips.Count -eq 0 } -TimeoutMs 1500) 'an empty-lane click clears the clip selection (the export is the whole project)')
 $menubar = LayoutRect 'widget.shell.menubar'
 Click 'widget.shell.menubar' -OffsetX (20 - [int]($menubar[2] / 2))
-MenuPick 8   # New, Open, Save, Save As, Import WAV, Export Audio, Import MIDI File, Export MIDI File -> 8th
+MenuPick 8   # New, Open, Save, Save As, Import Audio, Export Audio, Import MIDI File, Export MIDI File -> 8th
 $dlg = WaitDialog 'Export MIDI File' 4000
 [void](Assert ($dlg -ne [IntPtr]::Zero) 'File > Export MIDI File opens the native chooser')
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $midPath }

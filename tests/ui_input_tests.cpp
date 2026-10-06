@@ -1,6 +1,7 @@
 // YES DAW - H12 real-shell UI input harness skeleton.
 
 #include "interchange/Smf.h"   // G3.7: the [midi-file] gate writes and reads back a Standard MIDI File
+#include "io/AudioFileDecode.h"   // ADR-0054: the [import-formats] shell gate
 #include "ui/MainComponent.h"
 #include "ui/ControlTarget.h"   // G4.0b: the pure Control-target rules
 #include "ui/DesktopAudioStartup.h"
@@ -6221,6 +6222,127 @@ TEST_CASE ("dropping audio files onto the timeline imports them where they land"
     dropTarget->filesDropped (juce::StringArray { "C:/does/not/exist.wav" }, dropX, firstLaneY);
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == beforeJunk.clips.size());
     (void) before;
+}
+
+// ADR-0054: every supported format imports through every surface. A drop of WAV, MP3 and FLAC on the first
+// lane of a one-track project lands them on consecutive tracks — creating the two it needs — as ONE undo step
+// whose redo brings back the same ids; refused files are named with their reasons while the good ones land;
+// the chooser takes an MP3 and names a refusal; the bundle keeps each file's own bytes ([import-formats] in
+// audio_import_tests.cpp reopens such a bundle).
+TEST_CASE ("ADR-0054 a multi-format drop lands on consecutive tracks as one undo step; refusals carry reasons",
+           "[ui][input][shell][timeline][file-drop][import-formats]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("import-formats");
+    const std::filesystem::path wavPath { YESDAW_WAV_FIXTURE_PATH };
+    const std::filesystem::path mp3Path = std::filesystem::path (YESDAW_IMPORT_FIXTURE_DIR) / "cbr128_info.mp3";
+    const std::filesystem::path crossRatePath = std::filesystem::path (YESDAW_IMPORT_FIXTURE_DIR) / "mono_44k.mp3";
+    const std::filesystem::path scratch = bundlePath.parent_path() / (bundlePath.stem().string() + "-media");
+    std::filesystem::create_directories (scratch);
+    // A FLAC made from the WAV fixture with JUCE's writer; a junk "MP3".
+    const std::filesystem::path flacPath = scratch / "tone.flac";
+    {
+        const yesdaw::io::AudioDecodeResult wav = yesdaw::io::decodeAudioFile (wavPath);
+        REQUIRE (wav.audio.has_value());
+        juce::AudioBuffer<float> buffer (1, static_cast<int> (wav.audio->frames));
+        for (int i = 0; i < buffer.getNumSamples(); ++i)
+            buffer.setSample (0, i, wav.audio->interleaved[static_cast<std::size_t> (i)]);
+        juce::FlacAudioFormat flac;
+        auto stream = std::make_unique<juce::FileOutputStream> (yesdaw::io::detail::juceFileForPath (flacPath));
+        std::unique_ptr<juce::AudioFormatWriter> writer (flac.createWriterFor (stream.get(), 48'000.0, 1, 16, {}, 0));
+        REQUIRE (writer != nullptr);
+        (void) stream.release();
+        REQUIRE (writer->writeFromAudioSampleBuffer (buffer, 0, buffer.getNumSamples()));
+    }
+    const std::filesystem::path junkPath = scratch / "junk.mp3";
+    {
+        std::ofstream junk (junkPath, std::ios::binary);
+        junk << std::string (2'048, '\0');
+    }
+
+    std::filesystem::path chooserPick = mp3Path;
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [&chooserPick] { return chooserPick; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    auto* dropTarget = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (dropTarget != nullptr);
+    const auto asJuce = [] (const std::filesystem::path& path) { return juce::String (path.string()); };
+    REQUIRE (dropTarget->isInterestedInFileDrag (juce::StringArray { asJuce (mp3Path) }));
+    REQUIRE (dropTarget->isInterestedInFileDrag (juce::StringArray { asJuce (flacPath) }));
+    REQUIRE_FALSE (dropTarget->isInterestedInFileDrag (juce::StringArray { "C:/song.m4a" }));
+
+    const yesdaw::ui::TimelineCanvasGeometry geometry = timelineGeometryForProject (timeline, readProjectSnapshot (bundlePath));
+    const int dropX = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 4;
+    const int firstLaneY = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2;
+    dropTarget->filesDropped (juce::StringArray { asJuce (wavPath), asJuce (mp3Path), asJuce (flacPath) }, dropX, firstLaneY);
+
+    const yesdaw::engine::Project dropped = readProjectSnapshot (bundlePath);
+    REQUIRE (dropped.tracks.size() == 3u);   // the drop made the two tracks it needed
+    REQUIRE (dropped.clips.size() == 3u);
+    for (std::size_t i = 0; i < 3u; ++i)
+    {
+        REQUIRE (dropped.clips[i].trackId == dropped.tracks[i].id);
+        REQUIRE (dropped.clips[i].timelineStart == dropped.clips[0].timelineStart);
+    }
+    REQUIRE (dropped.clips[0].timelineStart > 0);
+    REQUIRE (dropped.clips[1].timelineLength == 25'344);   // the MP3's pinned decode length
+    // The bundle keeps each file's own bytes: the stored asset IS the dropped file.
+    const auto bytesOf = [] (const std::filesystem::path& path) {
+        std::ifstream in (path, std::ios::binary);
+        return std::string ((std::istreambuf_iterator<char> (in)), std::istreambuf_iterator<char>());
+    };
+    for (std::size_t i = 0; i < 3u; ++i)
+    {
+        const yesdaw::engine::Asset* asset = dropped.findAsset (dropped.clips[i].assetId);
+        REQUIRE (asset != nullptr);
+        const std::filesystem::path stored = yesdaw::persistence::storedAssetPathForHash (bundlePath, asset->contentHash);
+        REQUIRE (bytesOf (stored) == bytesOf (i == 0 ? wavPath : i == 1 ? mp3Path : flacPath));
+    }
+
+    // One undo takes the clips AND the tracks the drop made; redo brings back the same ids.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    const yesdaw::engine::Project undone = readProjectSnapshot (bundlePath);
+    REQUIRE (undone.clips.empty());
+    REQUIRE (undone.tracks.size() == 1u);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+    const yesdaw::engine::Project redone = readProjectSnapshot (bundlePath);
+    REQUIRE (redone.tracks.size() == 3u);
+    REQUIRE (redone.clips.size() == 3u);
+    for (std::size_t i = 0; i < 3u; ++i)
+    {
+        REQUIRE (redone.tracks[i].id == dropped.tracks[i].id);
+        REQUIRE (redone.clips[i].id == dropped.clips[i].id);
+    }
+
+    // A mixed drop: the good file lands; the junk and the cross-rate file are named with their reasons.
+    const int secondLaneY = firstLaneY + juce::jmax (1, geometry.laneHeight);
+    dropTarget->filesDropped (juce::StringArray { asJuce (junkPath), asJuce (flacPath), asJuce (crossRatePath) }, dropX, secondLaneY);
+    const yesdaw::engine::Project mixed = readProjectSnapshot (bundlePath);
+    REQUIRE (mixed.clips.size() == 4u);
+    REQUIRE (mixed.clips.back().trackId == mixed.tracks[1].id);
+    const std::string status = snapshotMainComponent (*shell).statusLineText;
+    INFO (status);
+    REQUIRE (status.find ("junk.mp3: not a readable MP3 file") != std::string::npos);
+    REQUIRE (status.find ("mono_44k.mp3: 44100 Hz but this project is 48000 Hz") != std::string::npos);
+    // ...and every file refused changes nothing.
+    dropTarget->filesDropped (juce::StringArray { asJuce (junkPath) }, dropX, firstLaneY);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 4u);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+
+    // The chooser takes an MP3, and names a refusal with its reason.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 5u);
+    chooserPick = junkPath;
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 5u);
+    REQUIRE (snapshotMainComponent (*shell).statusLineText == "Import refused: junk.mp3: not a readable MP3 file");
+
+    std::error_code ec;
+    std::filesystem::remove_all (scratch, ec);
 }
 
 // M6 — the fader scale tells the truth. The sliders travel 0..2 in linear gain, but the painted

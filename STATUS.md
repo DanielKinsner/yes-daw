@@ -8,6 +8,23 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (day) — G5 started: G5.1 cp1, import formats (ADR-0054)
+
+**Now:** **G5.1 checkpoint 1** is in (headless-certified). **Next:** the real-app drive check of the new
+import surfaces (pending: the drives take the mouse and keyboard, and the overnight hands-off grant has
+ended — they run when the desktop is free again), then **G5.1 cp2 — cross-rate audio** (its own ADR under
+ADR-0010 first).
+
+**What a user gets:** WAV, AIFF, FLAC, Ogg Vorbis and MP3 import through Ctrl+Shift+I, a drop on the
+timeline and the Sampler pads, and reopen the same on every platform; the project keeps each file's own
+bytes. Every refusal says why ("junk.mp3: not a readable MP3 file", "6 channels (mono or stereo only)",
+"AIFF compression 'ulaw' is not supported", "44100 Hz but this project is 48000 Hz"). A drop of several
+files lands them on consecutive tracks — making the tracks it needs — as one undo step.
+
+**Gates:** `[import-formats]` (lossless formats equal the source PCM; Ogg and committed MP3 fixtures match the
+source after alignment; MP3 lengths pinned on every CI platform; refusals with reasons; reopen by content
+against the Asset row; the drop's one undo / same-id redo). 410/410 local, Clang clean.
+
 ## 2026-10-06 (late night) — G4 done: SS-5 "Mix the song" passes with built-ins
 
 **Now:** **G4 is certified** (plan §6 exit: logical SS-5 with built-ins, every earlier journey restored).

@@ -42,7 +42,7 @@ if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (created through the real New chooser; D3)')
 Focus
 Key 'Ctrl+Shift+I'
-$dlg = WaitDialog 'Import WAV Audio' 4000
+$dlg = WaitDialog 'Import Audio' 4000
 [void](Assert ($dlg -ne [IntPtr]::Zero) 'Ctrl+Shift+I opens the import chooser')
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $Fixture }
 [void](Assert (WaitProbe { param($q) [int]$q.view.clipCount -eq 1 } -TimeoutMs 8000) 'one clip after import')

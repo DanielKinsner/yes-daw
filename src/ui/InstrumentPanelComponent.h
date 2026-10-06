@@ -10,6 +10,7 @@
 #include "ui/ContextMenus.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
+#include "io/AudioFileDecode.h"   // ADR-0054: the supported import list
 #include "ui/UiMixerSurface.h"
 #include "ui/UiPianoRollSurface.h"
 #include "ui/UiTheme.h"
@@ -207,8 +208,8 @@ public:
     {
         if (! padsShown())
             return false;
-        for (const juce::String& file : files)
-            if (juce::File (file).hasFileExtension ("wav;wave"))
+        for (const juce::String& file : files)   // ADR-0054: every supported import format
+            if (yesdaw::io::isImportableAudioPath (std::filesystem::path ("pad" + juce::File (file).getFileExtension().toStdString())))
                 return true;
         return false;
     }

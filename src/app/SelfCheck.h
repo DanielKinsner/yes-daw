@@ -13,6 +13,7 @@
 #include "analysis/LoudnessMeter.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/Project.h"
+#include "io/AudioFileDecode.h"   // ADR-0054: the app's one decoder (every supported format)
 #include "io/WavFile.h"
 #include "persistence/AutosaveRecovery.h"
 #include "persistence/ProjectBundle.h"
@@ -59,8 +60,6 @@ namespace detail {
     storage.reserve (project.assets.size());
     out.reserve (project.assets.size());
 
-    juce::WavAudioFormat wav;
-
     for (const engine::Asset& asset : project.assets)
     {
         if (asset.channels == 0u || asset.channels > 2u)
@@ -78,43 +77,20 @@ namespace detail {
         const std::filesystem::path assetPath =
             bundlePath / persistence::detail::assetRelativePathForHash (asset.contentHash);
 
-        const juce::File file { juce::String { assetPath.string() } };
-        std::unique_ptr<juce::AudioFormatReader> reader (
-            wav.createReaderFor (new juce::FileInputStream (file), true));
-
-        if (reader == nullptr)
+        if (! std::filesystem::exists (assetPath))
         {
             err = "could not open asset audio file";
             return false;
         }
-        // Validate the decoded audio against the STORED metadata, sample rate included, so a swapped
+        // ADR-0054: the first reader whose decode has the STORED metadata, sample rate included, so a swapped
         // asset can't slip through (mirrors the read-back checks in tests/bundle_render_tests.cpp).
-        if (reader->sampleRate != asset.sampleRate.hz
-            || reader->numChannels != asset.channels
-            || reader->lengthInSamples != static_cast<juce::int64> (asset.frames))
+        io::AudioDecodeResult stored = io::decodeStoredAudio (assetPath, { asset.frames, asset.sampleRate.hz, asset.channels });
+        if (! stored.audio.has_value())
         {
             err = "asset audio metadata mismatch (sample rate / channels / length)";
             return false;
         }
-
-        const int frames = static_cast<int> (asset.frames);
-        const int channels = static_cast<int> (asset.channels);
-        juce::AudioBuffer<float> buffer (channels, frames);
-        if (! reader->read (&buffer, 0, frames, 0, true, channels > 1))
-        {
-            err = "asset audio decode failed";
-            return false;
-        }
-
-        std::vector<float> interleaved (static_cast<std::size_t> (frames) * static_cast<std::size_t> (channels));
-        for (int channel = 0; channel < channels; ++channel)
-        {
-            const float* const source = buffer.getReadPointer (channel);
-            for (int frame = 0; frame < frames; ++frame)
-                interleaved[static_cast<std::size_t> (frame) * static_cast<std::size_t> (channels)
-                            + static_cast<std::size_t> (channel)] = source[frame];
-        }
-        storage.push_back (std::move (interleaved));
+        storage.push_back (std::move (stored.audio->interleaved));
 
         engine::DecodedAssetAudio decoded;
         decoded.assetId = asset.id;

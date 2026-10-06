@@ -87,6 +87,10 @@ target_link_libraries(yesdaw_loudness INTERFACE ebur128)
 # includes OfflineRenderer.h sees the pinned Signalsmith header (SYSTEM: its warnings are not ours).
 include_directories(SYSTEM ${signalsmith_stretch_SOURCE_DIR})
 
+# ADR-0054: JUCE's own MP3 decoder (off by default) — one setting for every target that compiles
+# juce_audio_formats, so the module is configured the same everywhere (no encoder).
+add_compile_definitions(JUCE_USE_MP3AUDIOFORMAT=1)
+
 add_library(sqlite3_amalgamation STATIC ${sqlite3_SOURCE_DIR}/sqlite3.c)
 target_include_directories(sqlite3_amalgamation SYSTEM PUBLIC ${sqlite3_SOURCE_DIR})
 target_compile_definitions(sqlite3_amalgamation PRIVATE
@@ -412,14 +416,15 @@ add_test(NAME YesDawAccessibilityCheck COMMAND $<TARGET_FILE:YesDawAccessibility
 if (YESDAW_BUILD_APPS)
   # --- UI input harness (H12; shipped MainComponent real-Component activation) ---
   juce_add_console_app(YesDawUiInputCheck PRODUCT_NAME "YesDawUiInputCheck")
-  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp tests/ui_saveas_tests.cpp tests/ui_project_load_tests.cpp tests/ui_canvas_cache_tests.cpp ${YESDAW_SHELL_SOURCES})
+  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp tests/ui_saveas_tests.cpp tests/ui_project_load_tests.cpp tests/ui_canvas_cache_tests.cpp tests/audio_import_tests.cpp ${YESDAW_SHELL_SOURCES})
   target_include_directories(YesDawUiInputCheck PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawUiInputCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawUiInputCheck PRIVATE
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_MODAL_LOOPS_PERMITTED=1
-    YESDAW_WAV_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sine_440_48k_mono.wav")
+    YESDAW_WAV_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sine_440_48k_mono.wav"
+    YESDAW_IMPORT_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/import")   # ADR-0054
   target_link_libraries(YesDawUiInputCheck
     PRIVATE
       Catch2::Catch2WithMain

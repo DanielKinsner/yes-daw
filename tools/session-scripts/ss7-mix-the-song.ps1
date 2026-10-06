@@ -498,7 +498,7 @@ Focus
 Click 'rail.row.0'
 Start-Sleep -Milliseconds 200
 Key 'Ctrl+Shift+I'
-$dlg = WaitDialog 'Import WAV Audio' 4000
+$dlg = WaitDialog 'Import Audio' 4000
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $Fixture }
 [void](Assert (WaitProbe { param($q) [int]$q.view.clipCount -ge 1 } -TimeoutMs 8000) 'the fixture is on track 1')
 Focus

@@ -44,12 +44,12 @@ if (-not [bool]$p.projectLoaded) {
 Step 2 'Import the first stem (Ctrl+Shift+I, file chooser)'
 Focus
 Key 'Ctrl+Shift+I'
-$dlg = WaitDialog 'Import WAV Audio' 2500
+$dlg = WaitDialog 'Import Audio' 2500
 $opened = $dlg -ne [IntPtr]::Zero
 [void](Assert $opened 'Ctrl+Shift+I opens the import chooser (keymap v2, G1.1)')
 if (-not $opened) {
   Click 'widget.project.import_audio'
-  $dlg = WaitDialog 'Import WAV Audio' 5000
+  $dlg = WaitDialog 'Import Audio' 5000
 }
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $Fixture }
 [void](Assert (WaitProbe { param($q) [int]$q.view.clipCount -eq 1 } -TimeoutMs 8000) 'one clip on track 1 after import')
