@@ -1017,4 +1017,34 @@ template <typename ClipSourceProvider>
     return true;
 }
 
+// ADR-0039 / ADR-0052: whether every stored lane, compiled against the project's tempo map, fits the
+// per-block automation event budget for `maxBlockSize` — what a ride commit checks before it adopts, so a
+// too-dense pass is refused whole with a reason instead of failing the engine rebuild. Off compiles no lanes
+// (always fits); a lane that does not compile is the projection's own error to report. Every lane counts,
+// a sleeping instrument lane too (conservative).
+[[nodiscard]] inline bool projectAutomationFitsEventBudget (const Project& project, int maxBlockSize)
+{
+    if (project.automationLanes.empty() || project.automationMode == AutomationMode::Off)
+        return true;
+
+    CompiledTempoMap tempoMap;
+    if (! CompiledTempoMap::build (TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                                   project.sampleRate,
+                                   tempoMap))
+        return true;
+
+    std::size_t worstCase = 0;
+    std::vector<CompiledAutomationLane> compiled;
+    for (const AutomationLaneData& lane : project.automationLanes)
+    {
+        compiled.clear();
+        if (! detail::appendCompiledAutomationLane (lane, 0, 0, tempoMap, compiled))
+            continue;
+        worstCase += compiledAutomationLaneWorstCaseEvents (compiled.front(), maxBlockSize);
+        if (worstCase > CompiledGraph::kMaxEventsPerBlock)
+            return false;
+    }
+    return true;
+}
+
 } // namespace yesdaw::engine

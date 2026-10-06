@@ -1892,6 +1892,7 @@ void MainComponent::serviceUiTick()
     // shared status line from real model state.
     if (deviceErrorPending.exchange (false, std::memory_order_acq_rel))
         appModel.reportStatus ("Audio device error - output stopped", true);
+    serviceAutomationRide();   // G4.6 / ADR-0052: held values, loop wraps, the stop that ends every pass
     appModel.serviceStatusLineDecay();
     refreshStatusLine();
     updateTrackMeterHoldStates();

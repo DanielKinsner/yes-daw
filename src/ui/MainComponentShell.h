@@ -946,6 +946,16 @@ private:
     // here, and only here — see recordAutomationTouchSample's note on why).
     void endAutomationTouchRideIfActive();
 
+    // G4.6 / ADR-0052: the ride laws over a transport run (AutomationRideRecorder): the playhead as a ride
+    // position, the pressed control's target, the run's start (a Write run arms the selected strip's laned
+    // targets), committing closed passes (the targets still writing are suspended again on the rebuilt
+    // engine), and the UI tick's service (held values, loop wraps, the stop that ends every pass).
+    [[nodiscard]] std::optional<yesdaw::ui::AutomationRidePosition> automationRidePosition() const;
+    [[nodiscard]] yesdaw::ui::AutomationRideTarget automationTouchRideTarget() const;
+    void startAutomationRecorderIfNeeded (yesdaw::ui::AutomationRidePosition at);
+    void commitAutomationRidePasses (const std::vector<yesdaw::ui::AutomationRidePass>& passes, bool returnToTouch);
+    void serviceAutomationRide();
+
     void refreshAutosaveRecoveryControls();
 
     void refreshInspectorTakesVisibility();
@@ -1365,7 +1375,11 @@ private:
         yesdaw::engine::AutomationTargetRole::TrackFader;
     std::uint32_t automationTouchRideParamId = 0;
     yesdaw::engine::EntityId automationTouchRideTrackId;
-    std::vector<yesdaw::ui::UiAppModel::AutomationTouchSample> automationTouchRideSamples;
+    // G4.6 / ADR-0052: the ride laws over one transport run (Touch / Latch / Write, loop wrap, density).
+    yesdaw::ui::AutomationRideRecorder automationRecorder;
+    bool automationRecorderRunning = false;
+    yesdaw::ui::AutomationRidePosition automationLastPlayingPosition;
+    double automationTouchRideLastValue = 0.0;
     juce::TextButton automationBreakpointAddButton;
     juce::TextButton automationBreakpointDeleteButton;
     // E26: whether the lane controls were last laid out with the band reserved.

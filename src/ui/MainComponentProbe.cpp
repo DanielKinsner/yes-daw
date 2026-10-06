@@ -958,7 +958,8 @@ juce::String MainComponent::buildStateProbeJson()
         // G4.1 cp2: the Touch / Latch ride a painted drag is buffering (N5) — what a drive sees mid-ride.
         auto* ride = new juce::DynamicObject();
         ride->setProperty ("active", automationTouchRideActive);
-        ride->setProperty ("samples", static_cast<int> (automationTouchRideSamples.size()));
+        ride->setProperty ("samples", static_cast<int> (automationRecorder.keptSampleCount (automationTouchRideTarget())));
+        ride->setProperty ("writing", static_cast<int> (automationRecorder.writingTargets().size()));   // G4.6
         root->setProperty ("ride", juce::var (ride));
     }
     return juce::JSON::toString (rootVar, true);

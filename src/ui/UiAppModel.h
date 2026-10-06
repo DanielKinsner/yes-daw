@@ -17,6 +17,7 @@
 #include "persistence/AutosaveRecovery.h"
 #include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
+#include "ui/AutomationRide.h"   // G4.6 / ADR-0052
 #include "ui/UiActions.h"
 #include "ui/UiPianoRollSurface.h"
 #include "ui/UiThemeLayout.h"
@@ -8129,112 +8130,128 @@ public:
     }
 
     // N5: one sampled point of a live Touch/Latch control ride — (tick, normalized value).
-    struct AutomationTouchSample
-    {
-        engine::Tick tick = 0;
-        double value = 0.0;
-    };
+    using AutomationTouchSample = AutomationRideSample;
 
     // N5: commit an entire Touch/Latch "ride" — every breakpoint sampled during one continuous
-    // control move — as ONE undo step. addAutomationBreakpointToLane (above) resolves its lane
-    // against the LIVE project_, which would try to create a second lane on a second call within
-    // the same working copy; this resolves the lane ONCE against the working copy (nextProject)
-    // instead and commits the lane edit into the SAME transaction group before adopting once. The
-    // caller (a mixer fader/pan drag) never calls adoptEditedProject mid-drag: one ride must be
-    // one undo step, not one per drag tick, and a per-tick engine rebuild would glitch the very
-    // playback the ride is riding (R2 keeps the transport rolling across an adoption, but each
-    // rebuild still swaps the engine). Sampling client-side and committing once, here, at the
-    // end of the ride keeps the ride atomic and the playback continuous.
-    // G4.6 / ADR-0052: the ride REPLACES the span it wrote (edge anchors keep the curve outside it), so a
-    // second pass over the same bars rewrites them instead of being refused. Samples whose tick runs
-    // backwards (a loop wrap) start a new pass inside the same step; a sample that compiles onto the
-    // previous one's audio frame updates it (the lane compiler refuses two points on one frame).
+    // control move — as ONE undo step (one pass: see commitAutomationPasses).
     [[nodiscard]] UiActionDispatchResult commitAutomationTouchRide (
         engine::EntityId ownerEntity,
         engine::AutomationTargetRole role,
         std::uint32_t paramId,
         const std::vector<AutomationTouchSample>& samples)
     {
+        if (samples.empty() || ! ownerEntity.isValid())
+            return { UiActionId::Count, { false, "no ride to commit" }, false };
+        return commitAutomationPasses ({ AutomationRidePass { AutomationRideTarget { ownerEntity, role, paramId }, samples } },
+                                       false);
+    }
+
+    // N5 / G4.6 (ADR-0052): commit closed ride passes as ONE undo step. Each pass resolves its lane ONCE
+    // against the working copy (creating it on a first ride) and REPLACES the span it wrote (edge anchors keep
+    // the curve outside it), so a second pass over the same bars rewrites them. Samples whose tick runs
+    // backwards (a loop wrap) start a new pass inside the same step; a sample that compiles onto the previous
+    // one's audio frame updates it (the lane compiler refuses two points on one frame). `returnToTouch` (the
+    // end of a Write pass) sets the mode back to Touch inside the same step. The caller (a ride) never adopts
+    // mid-ride: one pass must be one undo step, and a per-sample engine rebuild would glitch the very playback
+    // being ridden. A commit whose lanes would exceed the engine's per-block event budget is refused whole,
+    // with the reason on the status line — never thinned or dropped silently.
+    [[nodiscard]] UiActionDispatchResult commitAutomationPasses (const std::vector<AutomationRidePass>& passes,
+                                                                 bool returnToTouch)
+    {
         constexpr UiActionId id = UiActionId::Count;
-        if (! context_.projectLoaded || samples.empty() || ! ownerEntity.isValid())
+        if (! context_.projectLoaded || passes.empty())
             return { id, { false, "no ride to commit" }, false };
 
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
         const bool grouped = nextUndo.beginTransactionGroup();
-
-        engine::EntityId laneId;
-        const auto existingLane = std::find_if (
-            nextProject.automationLanes.begin(), nextProject.automationLanes.end(),
-            [&] (const engine::AutomationLaneData& lane) {
-                return lane.ownerEntity == ownerEntity && lane.role == role && lane.paramId == paramId;
-            });
-        if (existingLane != nextProject.automationLanes.end())
-        {
-            laneId = existingLane->id;
-        }
-        else
-        {
-            laneId = allocateSessionEntityId (0xE2u, nextProject);
-            engine::ProjectEditCommand createLane;
-            createLane.verb = engine::ProjectEditVerb::AddAutomationLane;
-            createLane.automationLaneId = laneId;
-            createLane.automationOwnerId = ownerEntity;
-            createLane.automationRole = role;
-            createLane.automationParamId = paramId;
-            if (! nextUndo.apply (nextProject, createLane).applied())
-            {
-                if (grouped)
-                    (void) nextUndo.endTransactionGroup();
-                return { id, { false, "automation lane create failed" }, false };
-            }
-        }
+        const auto fail = [&] (const char* reason) -> UiActionDispatchResult {
+            if (grouped)
+                (void) nextUndo.endTransactionGroup();
+            return { id, { false, reason }, false };
+        };
 
         engine::CompiledTempoMap tempoMap;
-        bool ok = engine::CompiledTempoMap::build (
-            engine::TempoMapView { nextProject.tempoMap.data(), nextProject.tempoMap.size() }, nextProject.sampleRate, tempoMap);
+        if (! engine::CompiledTempoMap::build (
+                engine::TempoMapView { nextProject.tempoMap.data(), nextProject.tempoMap.size() }, nextProject.sampleRate, tempoMap))
+            return fail ("automation ride payload invalid");
 
-        // The passes: runs of rising ticks, one point per compiled frame.
-        std::vector<std::vector<engine::AutomationBreakpoint>> passes;
-        std::int64_t previousFrame = -1;
-        for (const AutomationTouchSample& sample : samples)
+        for (const AutomationRidePass& pass : passes)
         {
-            std::int64_t frame = 0;
-            if (! ok || sample.tick < 0 || ! std::isfinite (sample.value)
-                || ! engine::compiledAutomationFrameForTick (tempoMap, sample.tick, frame))
+            const AutomationRideTarget& target = pass.target;
+            if (! target.owner.isValid() || pass.samples.empty())
+                return fail ("automation ride payload invalid");
+
+            engine::EntityId laneId;
+            const auto existingLane = std::find_if (
+                nextProject.automationLanes.begin(), nextProject.automationLanes.end(),
+                [&] (const engine::AutomationLaneData& lane) {
+                    return lane.ownerEntity == target.owner && lane.role == target.role && lane.paramId == target.paramId;
+                });
+            if (existingLane != nextProject.automationLanes.end())
             {
-                ok = false;
-                break;
+                laneId = existingLane->id;
+            }
+            else
+            {
+                laneId = allocateSessionEntityId (0xE2u, nextProject);
+                engine::ProjectEditCommand createLane;
+                createLane.verb = engine::ProjectEditVerb::AddAutomationLane;
+                createLane.automationLaneId = laneId;
+                createLane.automationOwnerId = target.owner;
+                createLane.automationRole = target.role;
+                createLane.automationParamId = target.paramId;
+                if (! nextUndo.apply (nextProject, createLane).applied())
+                    return fail ("automation lane create failed");
             }
 
-            const engine::AutomationBreakpoint point { sample.tick, std::clamp (sample.value, 0.0, 1.0),
-                                                       engine::AutomationCurveType::Linear };
-            if (passes.empty() || sample.tick <= passes.back().back().tick)
-                passes.push_back ({ point });
-            else if (frame <= previousFrame)
-                passes.back().back().value = point.value;
-            else
-                passes.back().push_back (point);
-            previousFrame = frame;
+            // The runs: rising ticks, one point per compiled frame.
+            std::vector<std::vector<engine::AutomationBreakpoint>> runs;
+            std::int64_t previousFrame = -1;
+            for (const AutomationRideSample& sample : pass.samples)
+            {
+                std::int64_t frame = 0;
+                if (sample.tick < 0 || ! std::isfinite (sample.value)
+                    || ! engine::compiledAutomationFrameForTick (tempoMap, sample.tick, frame))
+                    return fail ("automation ride payload invalid");
+
+                const engine::AutomationBreakpoint point { sample.tick, std::clamp (sample.value, 0.0, 1.0),
+                                                           engine::AutomationCurveType::Linear };
+                if (runs.empty() || sample.tick <= runs.back().back().tick)
+                    runs.push_back ({ point });
+                else if (frame <= previousFrame)
+                    runs.back().back().value = point.value;
+                else
+                    runs.back().push_back (point);
+                previousFrame = frame;
+            }
+
+            std::vector<engine::AutomationBreakpoint> points;
+            for (const std::vector<engine::AutomationBreakpoint>& run : runs)
+            {
+                const auto lane = std::find_if (nextProject.automationLanes.begin(), nextProject.automationLanes.end(),
+                                                [&] (const engine::AutomationLaneData& candidate) { return candidate.id == laneId; });
+                if (lane == nextProject.automationLanes.end()
+                    || engine::replaceAutomationSpan (lane->points, run, tempoMap, points) != engine::AutomationSpanEditStatus::Ok)
+                    return fail ("automation ride payload invalid");
+                if (points != lane->points
+                    && ! nextUndo.replaceAutomationLanePoints (nextProject, laneId, std::move (points)).applied())
+                    return fail ("automation ride payload invalid");
+            }
         }
 
-        std::vector<engine::AutomationBreakpoint> points;
-        for (const std::vector<engine::AutomationBreakpoint>& pass : passes)
-        {
-            if (! ok)
-                break;
-            const auto lane = std::find_if (nextProject.automationLanes.begin(), nextProject.automationLanes.end(),
-                                            [&] (const engine::AutomationLaneData& candidate) { return candidate.id == laneId; });
-            ok = lane != nextProject.automationLanes.end()
-                 && engine::replaceAutomationSpan (lane->points, pass, tempoMap, points) == engine::AutomationSpanEditStatus::Ok;
-            if (ok && points != lane->points)
-                ok = nextUndo.replaceAutomationLanePoints (nextProject, laneId, std::move (points)).applied();
-        }
+        if (returnToTouch && nextProject.automationMode != engine::AutomationMode::Touch
+            && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setAutomationMode (engine::AutomationMode::Touch)).applied())
+            return fail ("automation mode unchanged");
 
         if (grouped)
             (void) nextUndo.endTransactionGroup();
-        if (! ok)
-            return { id, { false, "automation ride payload invalid" }, false };
+
+        if (! engine::projectAutomationFitsEventBudget (nextProject, playbackMaxBlockSize_))
+        {
+            reportStatus ("Automation pass not written: too dense for the engine to play (event budget)", true);
+            return { id, { false, "automation pass exceeds the event budget" }, false };
+        }
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "automation ride did not persist" }, false };
@@ -8242,6 +8259,42 @@ public:
         ++context_.commandDispatchCount;
         ++context_.timelineAutomationBreakpointEditCount;
         return { id, {}, true };
+    }
+
+    // G4.6 / ADR-0052: what a Write pass arms at play — every lane the selected strip owns (its fader, pan,
+    // sends and instrument, and its inserts' parameters), each at the value it plays at the playhead.
+    [[nodiscard]] std::vector<std::pair<AutomationRideTarget, double>> automationWriteTargetsAtPlayhead() const
+    {
+        std::vector<std::pair<AutomationRideTarget, double>> targets;
+        const engine::EntityId owner = selectedSendOwnerEntityId();
+        if (! owner.isValid() || ! project_.sampleRate.isValid())
+            return targets;
+
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, owner);
+        engine::CompiledTempoMap tempoMap;
+        if (strip == nullptr || ! compiledTempoMap (tempoMap))
+            return targets;
+
+        const auto ownedByStrip = [&] (engine::EntityId laneOwner) {
+            if (laneOwner == owner)
+                return true;
+            for (const engine::FxInsert& insert : strip->fxChain)
+                if (insert.id == laneOwner)
+                    return true;
+            return false;
+        };
+        const std::int64_t frame = std::max<std::int64_t> (0, context_.playheadFrame);
+        std::vector<std::int64_t> frames;
+        for (const engine::AutomationLaneData& lane : project_.automationLanes)
+        {
+            if (! ownedByStrip (lane.ownerEntity) || lane.points.empty()
+                || ! engine::detail::compileAutomationPointFrames (tempoMap, lane.points, frames))
+                continue;
+            engine::AutomationCurveType curve = engine::AutomationCurveType::Linear;
+            targets.push_back ({ AutomationRideTarget { lane.ownerEntity, lane.role, lane.paramId },
+                                 engine::detail::automationValueAtCompiledFrame (lane.points, frames, frame, curve) });
+        }
+        return targets;
     }
 
     // R16: cycle a breakpoint's curve shape Linear→Hold→Bezier→Log→Linear through the undoable

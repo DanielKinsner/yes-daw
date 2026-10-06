@@ -904,23 +904,23 @@ juce::String MainComponent::automationLaneRowText() const
     return trackName + " - " + target.label + " - " + juce::String (breakpointCount) + " breakpoints";
 }
 
-// N5: arm a Touch/Latch ride if the mode is armed AND the transport was already rolling when
-// the drag started — moving a control while stopped, even in Touch/Latch mode, is just a
-// normal edit (matches real-DAW semantics: Touch/Latch only writes DURING playback).
-// R15: the ride owner is the selected TRACK or BUS strip (a bus strip's fader/pan ride
-// writes the Bus roles), or an explicit owner (an FX insert's id for param rides); ONLY
-// Touch/Latch arm — Read plays back, Off ignores lanes entirely and writes nothing.
+// N5: arm a ride if the mode is armed AND the transport was already rolling when the drag started — moving
+// a control while stopped, in any mode, is just a normal edit (Touch / Latch / Write only write DURING
+// playback). R15: the ride owner is the selected TRACK or BUS strip (a bus strip's fader/pan ride writes the
+// Bus roles), or an explicit owner (an FX insert's id for param rides). G4.6 / ADR-0052: Touch, Latch and
+// Write arm; Read plays back, Off ignores lanes entirely and writes nothing. You hear the ride: its lane
+// steps aside until the pass ends.
 void MainComponent::beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole role,
                                       std::uint32_t paramId,
                                       yesdaw::engine::EntityId ownerOverride)
 {
     automationTouchRideActive = false;
-    automationTouchRideSamples.clear();
     if (! appModel.context().projectLoaded || ! appModel.context().isPlaying)
         return;
     const yesdaw::engine::AutomationMode mode = appModel.project().automationMode;
     if (mode != yesdaw::engine::AutomationMode::Touch
-        && mode != yesdaw::engine::AutomationMode::Latch)
+        && mode != yesdaw::engine::AutomationMode::Latch
+        && mode != yesdaw::engine::AutomationMode::Write)
         return;
 
     yesdaw::engine::EntityId ownerId = ownerOverride;
@@ -939,64 +939,141 @@ void MainComponent::beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationT
         }
     }
 
+    const std::optional<yesdaw::ui::AutomationRidePosition> position = automationRidePosition();
+    if (! position)
+        return;
+    startAutomationRecorderIfNeeded (*position);
+
     automationTouchRideActive = true;
     automationTouchRideRole = role;
     automationTouchRideParamId = paramId;
     automationTouchRideTrackId = ownerId;
-    // G4.6 / ADR-0052: you hear the ride — its lane steps aside until the release.
     (void) appModel.setAutomationRideSuspended (ownerId, role, paramId, true);
 }
 
-// N5: sample the live playhead tick and the control's current value into the ride buffer.
-// Deliberately does NOT touch project_/adoptEditedProject — every edit adoption resets the
-// transport to stopped (resetContextForFreshPlayback), so committing per-tick would collapse
-// every point in the ride to tick 0 after the very first write. Buffering client-side and
-// committing once, at the end of the ride, is what makes "breakpoints across a moved span"
-// possible at all.
+// N5: one sample of the pressed control — heard live (G4.6) and handed to the ride laws. Deliberately does
+// NOT touch project_ / adoptEditedProject per sample: a pass is one undo step, and a per-sample engine
+// rebuild would glitch the playback being ridden. A loop wrap seen here closes the passes so far.
 void MainComponent::recordAutomationTouchSample (double normalizedValue)
 {
     if (! automationTouchRideActive || ! appModel.project().sampleRate.isValid())
         return;
 
-    // G4.6 / ADR-0052: the riding control's value is heard live (not persisted; the ride commits at its end).
+    // G4.6 / ADR-0052: the riding control's value is heard live (not persisted; the pass commits at its end).
     (void) appModel.postAutomationRideValue (automationTouchRideTrackId, automationTouchRideRole,
                                              automationTouchRideParamId, normalizedValue);
+    automationTouchRideLastValue = normalizedValue;
 
     // The playhead's MUSICAL tick (a breakpoint's domain), not its frame — at 48 kHz / 120 BPM a frame
     // stored as a tick played 1.5625x late.
-    const std::optional<yesdaw::engine::Tick> playheadTick = appModel.playheadTick();
-    if (! playheadTick)
+    const std::optional<yesdaw::ui::AutomationRidePosition> position = automationRidePosition();
+    if (! position)
         return;
-    const yesdaw::engine::Tick tick = *playheadTick;
-    // G4.1 cp2: one sample per tick — the painted drags sample on the release too (the live slider
-    // spoke only on a value change), and a second breakpoint at one tick refuses the whole commit.
-    if (! automationTouchRideSamples.empty() && automationTouchRideSamples.back().tick == tick)
-    {
-        automationTouchRideSamples.back().value = normalizedValue;
-        return;
-    }
-    automationTouchRideSamples.push_back ({ tick, normalizedValue });
+    commitAutomationRidePasses (automationRecorder.touch (automationTouchRideTarget(), *position, normalizedValue), false);
 }
 
-// N5: commit the whole buffered ride as ONE undo step (the actual project write happens
-// here, and only here — see recordAutomationTouchSample's note on why).
+// N5: the release. Touch: the pass closes and commits as ONE undo step, and the lane plays again. Latch and
+// Write (G4.6): the target holds its last value — still heard, still writing — until the transport stops.
 void MainComponent::endAutomationTouchRideIfActive()
 {
     if (! automationTouchRideActive)
         return;
 
     automationTouchRideActive = false;
-    // G4.6 / ADR-0052: the lane plays again (the commit's rebuild starts unsuspended too; this covers a
-    // ride with nothing to commit).
-    (void) appModel.setAutomationRideSuspended (automationTouchRideTrackId, automationTouchRideRole,
-                                                automationTouchRideParamId, false);
-    if (! automationTouchRideSamples.empty())
-        (void) appModel.commitAutomationTouchRide (
-            automationTouchRideTrackId, automationTouchRideRole, automationTouchRideParamId,
-            automationTouchRideSamples);
-    automationTouchRideSamples.clear();
+    const yesdaw::ui::AutomationRideTarget target = automationTouchRideTarget();
+    std::vector<yesdaw::ui::AutomationRidePass> closed;
+    if (const std::optional<yesdaw::ui::AutomationRidePosition> position = automationRidePosition())
+        closed = automationRecorder.release (target, *position, automationTouchRideLastValue);
+    if (! automationRecorder.isWriting (target))
+        (void) appModel.setAutomationRideSuspended (target.owner, target.role, target.paramId, false);
+    commitAutomationRidePasses (closed, false);
     refreshActionState();
     repaintAll();
+}
+
+std::optional<yesdaw::ui::AutomationRidePosition> MainComponent::automationRidePosition() const
+{
+    const std::optional<yesdaw::engine::Tick> tick = appModel.playheadTick();
+    if (! tick)
+        return std::nullopt;
+    return yesdaw::ui::AutomationRidePosition { *tick, std::max<std::int64_t> (0, appModel.context().playheadFrame) };
+}
+
+yesdaw::ui::AutomationRideTarget MainComponent::automationTouchRideTarget() const
+{
+    return { automationTouchRideTrackId, automationTouchRideRole, automationTouchRideParamId };
+}
+
+// A transport run's first ride event (a press, or the UI tick that sees the transport rolling) starts the ride
+// laws in the project's mode. A Write run arms every lane the selected strip owns at its current value:
+// each is suspended and sounds that value until touched, and all of them write from here to stop.
+void MainComponent::startAutomationRecorderIfNeeded (yesdaw::ui::AutomationRidePosition at)
+{
+    // A run that is writing keeps its laws; otherwise (re)start in the project's mode, so a run whose stop
+    // fell between two UI ticks never carries its old mode into the next.
+    if (automationRecorderRunning && automationRecorder.writing())
+        return;
+
+    automationRecorderRunning = true;
+    const yesdaw::engine::AutomationMode mode = appModel.project().automationMode;
+    automationRecorder.start (mode, appModel.project().sampleRate.hz);
+    if (mode != yesdaw::engine::AutomationMode::Write)
+        return;
+
+    for (const auto& [target, value] : appModel.automationWriteTargetsAtPlayhead())
+    {
+        (void) automationRecorder.arm (target, at, value);
+        (void) appModel.setAutomationRideSuspended (target.owner, target.role, target.paramId, true);
+        (void) appModel.postAutomationRideValue (target.owner, target.role, target.paramId, value);
+    }
+}
+
+// Closed passes commit as ONE undo step. The commit rebuilds the engine (which starts with nothing suspended),
+// so every target still writing is suspended again and sounds the value it holds.
+void MainComponent::commitAutomationRidePasses (const std::vector<yesdaw::ui::AutomationRidePass>& passes, bool returnToTouch)
+{
+    if (passes.empty())
+        return;
+
+    (void) appModel.commitAutomationPasses (passes, returnToTouch);
+    for (const yesdaw::ui::AutomationRideTarget& target : automationRecorder.writingTargets())
+    {
+        (void) appModel.setAutomationRideSuspended (target.owner, target.role, target.paramId, true);
+        (void) appModel.postAutomationRideValue (target.owner, target.role, target.paramId,
+                                                 automationRecorder.latestValue (target, 0.0));
+    }
+    refreshActionState();
+    repaintAll();
+}
+
+// The UI tick: while the transport rolls, held (Latch / Write) values keep writing and a loop wrap closes the
+// passes so far; the tick that finds it stopped ends every pass at the last playing position — a Write run
+// then returns the mode to Touch inside the same undo step.
+void MainComponent::serviceAutomationRide()
+{
+    if (appModel.context().isPlaying)
+    {
+        const std::optional<yesdaw::ui::AutomationRidePosition> position = automationRidePosition();
+        if (! position)
+            return;
+        startAutomationRecorderIfNeeded (*position);
+        automationLastPlayingPosition = *position;
+        if (automationRecorder.writing())
+            commitAutomationRidePasses (automationRecorder.advance (*position), false);
+        return;
+    }
+
+    if (! automationRecorderRunning)
+        return;
+
+    automationRecorderRunning = false;
+    automationTouchRideActive = false;   // the stop ends a held control's ride too
+    const bool writeRun = automationRecorder.mode() == yesdaw::engine::AutomationMode::Write;
+    const std::vector<yesdaw::ui::AutomationRideTarget> targets = automationRecorder.writingTargets();
+    const std::vector<yesdaw::ui::AutomationRidePass> closed = automationRecorder.stop (automationLastPlayingPosition);
+    for (const yesdaw::ui::AutomationRideTarget& target : targets)
+        (void) appModel.setAutomationRideSuspended (target.owner, target.role, target.paramId, false);
+    commitAutomationRidePasses (closed, writeRun);
 }
 
 void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area) const

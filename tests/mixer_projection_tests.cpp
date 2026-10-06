@@ -1692,3 +1692,25 @@ TEST_CASE ("A ride's live target is the node and parameter its lane compiles to,
     REQUIRE_FALSE (yesdaw::engine::projectAutomationRideTarget (track.id, AutomationTargetRole::InstrumentParam, 0, node, parameter));
     REQUIRE (node == 0u);
 }
+
+// ADR-0039 / ADR-0052: the commit-time budget check — every stored lane compiled against the tempo map, each
+// counted by the builder's own worst-case law; Off compiles nothing, so it always fits.
+TEST_CASE ("A project's lanes are checked against the per-block event budget before a commit",
+           "[mixer][projection][project][automation][budget][automation-v2]")
+{
+    Project project = makeMixerProjectionProject();
+    project.automationLanes = { makeAutomationLane (90, project.tracks[0].id, AutomationTargetRole::TrackFader, FaderNode::kGainParameterId) };
+    REQUIRE (yesdaw::engine::projectAutomationFitsEventBudget (project, 512));
+
+    // A breakpoint every tick (1.5625 frames at 48 kHz / 120 BPM): ~2 600 in one 4 096-frame block.
+    AutomationLaneData dense = makeAutomationLane (91, project.tracks[0].id, AutomationTargetRole::TrackPan, yesdaw::engine::PanNode::kPanParameterId);
+    dense.points.clear();
+    for (yesdaw::engine::Tick tick = 0; tick < 4'000; ++tick)
+        dense.points.push_back ({ tick, 0.5, AutomationCurveType::Linear });
+    project.automationLanes.push_back (dense);
+    REQUIRE_FALSE (yesdaw::engine::projectAutomationFitsEventBudget (project, 4'096));
+    REQUIRE (yesdaw::engine::projectAutomationFitsEventBudget (project, 512));   // ~330 per 512-frame block fits
+
+    project.automationMode = yesdaw::engine::AutomationMode::Off;
+    REQUIRE (yesdaw::engine::projectAutomationFitsEventBudget (project, 4'096));
+}

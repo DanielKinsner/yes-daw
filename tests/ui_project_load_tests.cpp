@@ -216,3 +216,38 @@ TEST_CASE ("a ride's suspension and live value reach the running engine", "[ui][
     (void) peak (2'400);
     REQUIRE (peak (4'800) < baseline * 0.05f);
 }
+
+// G4.6 / ADR-0052: a pass whose lanes would exceed the engine's per-block event budget is refused whole, with
+// the reason on the status line — never thinned or dropped silently, and the project and undo stay as they were.
+TEST_CASE ("a pass too dense for the engine's event budget is refused whole with a reason", "[ui][automation][automation-v2]")
+{
+    const auto directory = loadTestDirectory();
+    const auto wav = directory / "dense-source.wav";
+    const std::vector<float> samples (48'000, 0.25f);
+    REQUIRE (yesdaw::io::writeFloat32WavFile (wav, yesdaw::engine::SampleRate { 48000.0 }, 1, samples.size(), samples).ok());
+    auto decoded = yesdaw::ui::shell::decodeProjectWav (wav);
+    REQUIRE (decoded.has_value());
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (directory / "dense.yesdaw").ok());
+    REQUIRE (model.importAudioFile (wav, std::move (*decoded)).ok());
+    model.setPlaybackMaxBlockSize (4'096);   // one 4 096-frame block can hold 2 600+ breakpoints a tick apart
+    const yesdaw::engine::EntityId trackId = model.project().clips.front().trackId;
+    constexpr auto kFader = yesdaw::engine::AutomationTargetRole::TrackFader;
+    constexpr std::uint32_t kGain = yesdaw::engine::FaderNode::kGainParameterId;
+
+    REQUIRE (model.commitAutomationTouchRide (trackId, kFader, kGain, { { 0, 0.5 }, { 15'360, 0.6 } }).dispatched);
+    const auto before = model.project().automationLanes;
+
+    std::vector<yesdaw::ui::UiAppModel::AutomationTouchSample> dense;
+    for (yesdaw::engine::Tick tick = 20'000; tick < 24'000; ++tick)
+        dense.push_back ({ tick, 0.5 + 0.001 * static_cast<double> (tick % 100) });
+    const auto refused = model.commitAutomationTouchRide (trackId, kFader, kGain, dense);
+    REQUIRE_FALSE (refused.dispatched);
+    REQUIRE (model.project().automationLanes == before);
+    REQUIRE (model.statusLineIsError());
+    REQUIRE (model.statusLineText().find ("too dense") != std::string::npos);
+
+    // The undo history is untouched: one undo removes the first pass.
+    REQUIRE (model.dispatch (yesdaw::ui::UiActionId::EditUndo).dispatched);
+    REQUIRE (model.project().automationLanes.empty());
+}

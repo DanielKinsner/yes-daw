@@ -24303,3 +24303,257 @@ TEST_CASE ("a fader ride is heard while it lasts, over a lane that holds the fad
     std::filesystem::remove_all (bundlePath, ec);
     std::filesystem::remove (sourcePath, ec);
 }
+
+// ---- G4.6 / ADR-0052 step 4: Latch, Write and a wrap through the real shell ------------------------------
+namespace
+{
+// A shell with one 4-second 440 Hz track, the mixer open on strip 0, and the automation mode set through the
+// shipped chooser (ids: Read 1, Touch 2, Latch 3, Off 4, Write 5).
+struct RideShell
+{
+    std::filesystem::path bundlePath;
+    std::filesystem::path sourcePath;
+    std::unique_ptr<juce::Component> shell;
+    juce::Component* strips = nullptr;
+    juce::Point<int> middle, bottom, top;
+
+    explicit RideShell (const char* name)
+    {
+        bundlePath = makeTempBundlePath (name);
+        sourcePath = makeTempBundlePath ((std::string (name) + "-source").c_str());
+        sourcePath += ".wav";
+        constexpr std::uint64_t kFrames = 192'000;
+        std::vector<float> samples (static_cast<std::size_t> (kFrames));
+        for (std::uint64_t frame = 0; frame < kFrames; ++frame)
+            samples[static_cast<std::size_t> (frame)] = 0.5f * std::sin (2.0f * 3.14159265f * 440.0f * static_cast<float> (frame) / 48'000.0f);
+        REQUIRE (yesdaw::io::writeFloat32WavFile (sourcePath, yesdaw::engine::SampleRate { 48'000.0 }, 1, kFrames,
+                                                  std::span<const float> (samples.data(), samples.size())).ok());
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [path = bundlePath] { return path; };
+        choices.chooseImportAudioFile = [path = sourcePath] { return path; };
+        shell = makeShell (std::move (choices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    }
+
+    ~RideShell()
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+        std::filesystem::remove (sourcePath, ec);
+    }
+
+    void setMode (int chooserId)
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);
+        yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::mixerHeight);
+        clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+        auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.automation.mode"));
+        REQUIRE (chooser != nullptr);
+        chooser->setSelectedId (chooserId, juce::sendNotificationSync);
+        clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+        openMixer();
+    }
+
+    void openMixer()
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+        yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+        strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+        REQUIRE (strips != nullptr);
+        mouseDownAt (*strips, paintedStripCentre (*strips, 0, 3));
+        const juce::Rectangle<int> rail = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 0);
+        REQUIRE_FALSE (rail.isEmpty());
+        middle = strips->getLocalPoint (shell.get(), juce::Point<int> { rail.getCentreX(), rail.getCentreY() });
+        bottom = strips->getLocalPoint (shell.get(), juce::Point<int> { rail.getCentreX(), rail.getBottom() - 1 });
+        top = strips->getLocalPoint (shell.get(), juce::Point<int> { rail.getCentreX(), rail.getY() + 4 });
+    }
+
+    yesdaw::engine::Project project() const { return readProjectSnapshot (bundlePath); }
+    void tick() { yesdaw::ui::mainComponentServiceUiTick (*shell); }
+    double play (std::uint64_t frames)
+    {
+        const std::vector<float> rendered = renderMainComponentPlayback (*shell, frames, 128);
+        return peakAbs (std::span<const float> (rendered.data(), rendered.size()));
+    }
+    void press (juce::Point<int> at)
+    {
+        juce::MouseEvent down = makeMouseEvent (*strips, at, at, false, 1);
+        strips->mouseDown (down);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    }
+    void dragTo (juce::Point<int> at, juce::Point<int> from)
+    {
+        juce::MouseEvent drag = makeMouseEvent (*strips, at, from, true, 1);
+        strips->mouseDrag (drag);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    }
+    void release (juce::Point<int> at, juce::Point<int> from)
+    {
+        juce::MouseEvent up = makeMouseEvent (*strips, at, from, true, 1);
+        strips->mouseUp (up);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (30);
+    }
+    void startPlaying()
+    {
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+        REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    }
+    void stopPlaying()
+    {
+        tick();   // the last playing position the passes write on to
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+        REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
+        tick();   // the tick that finds the transport stopped ends every pass
+    }
+    void undo() { REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0))); }
+};
+
+bool pressHome (juce::Component& shell)   // locate to the start (while playing, the playhead jumps back)
+{
+    return shell.keyPressed (juce::KeyPress (juce::KeyPress::homeKey));
+}
+
+bool risingPoints (const yesdaw::engine::AutomationLaneData& lane)
+{
+    for (std::size_t i = 1; i < lane.points.size(); ++i)
+        if (lane.points[i].tick <= lane.points[i - 1u].tick)
+            return false;
+    return ! lane.points.empty();
+}
+} // namespace
+
+TEST_CASE ("a Latch ride holds its value after the release and writes on until stop", "[ui][input][shell][automation-v2]")
+{
+    RideShell ride ("automation-v2-latch");
+    ride.setMode (3);   // Latch
+    REQUIRE (ride.project().automationMode == yesdaw::engine::AutomationMode::Latch);
+
+    ride.startPlaying();
+    const double baseline = ride.play (4'800);
+    ride.tick();
+    ride.press (ride.middle);
+    (void) ride.play (2'400);
+    ride.dragTo (ride.bottom, ride.middle);
+    (void) ride.play (2'400);
+    ride.release (ride.bottom, ride.middle);
+    REQUIRE (ride.project().automationLanes.empty());   // latched: still writing, nothing committed
+
+    // The released fader keeps writing its value (and keeps being heard) while the song plays on.
+    double held = 1.0;
+    for (int i = 0; i < 6; ++i)
+    {
+        held = ride.play (4'800);
+        ride.tick();
+    }
+    REQUIRE (held < baseline * 0.05);
+    REQUIRE (ride.project().automationLanes.empty());
+
+    ride.stopPlaying();
+    const yesdaw::engine::Project written = ride.project();
+    REQUIRE (written.automationLanes.size() == 1u);
+    const yesdaw::engine::AutomationLaneData& lane = written.automationLanes.front();
+    REQUIRE (risingPoints (lane));
+    REQUIRE (lane.points.size() >= 3u);
+    const double heldValue = lane.points.back().value;
+    REQUIRE (heldValue < lane.points.front().value);
+    // The pass wrote on past the release: the held value spans more than six 4 800-frame renders (> 0.5 s).
+    yesdaw::engine::Tick heldFrom = lane.points.back().tick;
+    for (const auto& point : lane.points)
+        if (point.value == heldValue)
+            heldFrom = std::min (heldFrom, point.tick);
+    REQUIRE (lane.points.back().tick - heldFrom >= 15'360);   // >= one quarter note at 120 BPM (0.5 s)
+
+    ride.undo();
+    REQUIRE (ride.project().automationLanes.empty());
+}
+
+TEST_CASE ("a Write pass overwrites the strip's lanes from play to stop and returns the mode to Touch",
+           "[ui][input][shell][automation-v2]")
+{
+    RideShell ride ("automation-v2-write");
+    ride.setMode (2);   // Touch: a first ride writes a lane that pulls the fader to the bottom
+    ride.startPlaying();
+    const double baseline = ride.play (4'800);
+    ride.press (ride.middle);
+    (void) ride.play (4'800);
+    ride.dragTo (ride.bottom, ride.middle);
+    (void) ride.play (4'800);
+    ride.release (ride.bottom, ride.middle);
+    ride.stopPlaying();
+    const yesdaw::engine::Project afterTouch = ride.project();
+    REQUIRE (afterTouch.automationLanes.size() == 1u);
+    REQUIRE (pressHome (*ride.shell));
+
+    ride.setMode (5);   // Write
+    REQUIRE (ride.project().automationMode == yesdaw::engine::AutomationMode::Write);
+    ride.startPlaying();
+    ride.tick();   // the run starts: the fader's lane is armed at the value it plays at the playhead (unity)
+    double late = 0.0;
+    for (int i = 0; i < 5; ++i)
+    {
+        late = ride.play (4'800);
+        ride.tick();
+    }
+    // Past the old ride's release the old lane held the fader at the bottom; the Write pass is heard instead.
+    REQUIRE (late > baseline * 0.5);
+    REQUIRE (ride.project().automationLanes == afterTouch.automationLanes);   // nothing committed mid-pass
+
+    ride.stopPlaying();
+    const yesdaw::engine::Project written = ride.project();
+    REQUIRE (written.automationMode == yesdaw::engine::AutomationMode::Touch);   // Write returns to Touch
+    REQUIRE (written.automationLanes.size() == 1u);
+    const yesdaw::engine::AutomationLaneData& lane = written.automationLanes.front();
+    REQUIRE (risingPoints (lane));
+    REQUIRE (lane.points.front().tick == 0);
+    for (const auto& point : lane.points)
+        REQUIRE (point.value == lane.points.front().value);   // the whole run at the armed value
+    REQUIRE (lane.points.front().value > afterTouch.automationLanes.front().points.back().value + 0.3);
+
+    // One undo brings back the old lane AND the Write mode — the pass and its mode change are one step.
+    ride.undo();
+    REQUIRE (ride.project().automationLanes == afterTouch.automationLanes);
+    REQUIRE (ride.project().automationMode == yesdaw::engine::AutomationMode::Write);
+}
+
+TEST_CASE ("a playhead that jumps back mid-pass closes the pass; a latched fader writes on as a new pass",
+           "[ui][input][shell][automation-v2]")
+{
+    RideShell ride ("automation-v2-wrap");
+    ride.setMode (3);   // Latch
+    ride.startPlaying();
+    (void) ride.play (9'600);
+    ride.tick();
+    ride.press (ride.middle);
+    (void) ride.play (2'400);
+    ride.dragTo (ride.bottom, ride.middle);
+    (void) ride.play (2'400);
+    ride.release (ride.bottom, ride.middle);
+    (void) ride.play (4'800);
+    ride.tick();
+    REQUIRE (ride.project().automationLanes.empty());
+
+    // The playhead jumps back to the start while playing (a loop wrap's shape): the first pass commits.
+    REQUIRE (pressHome (*ride.shell));
+    REQUIRE (snapshotMainComponent (*ride.shell).context.isPlaying);
+    ride.tick();
+    const yesdaw::engine::Project firstPass = ride.project();
+    REQUIRE (firstPass.automationLanes.size() == 1u);
+    const yesdaw::engine::Tick firstStart = firstPass.automationLanes.front().points.front().tick;
+    REQUIRE (firstStart > 0);
+
+    // Still latched: the second cycle writes the held value from the start.
+    (void) ride.play (4'800);
+    ride.tick();
+    ride.stopPlaying();
+    const yesdaw::engine::Project secondPass = ride.project();
+    const yesdaw::engine::AutomationLaneData& lane = secondPass.automationLanes.front();
+    REQUIRE (risingPoints (lane));
+    REQUIRE (lane.points.front().tick == 0);
+    REQUIRE (lane.points.front().value == firstPass.automationLanes.front().points.back().value);
+
+    ride.undo();   // the second pass alone
+    REQUIRE (ride.project().automationLanes == firstPass.automationLanes);
+    ride.undo();   // the first pass
+    REQUIRE (ride.project().automationLanes.empty());
+}
