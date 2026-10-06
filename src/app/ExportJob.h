@@ -212,10 +212,14 @@ private:
         options.progressTotalFrames = &renderTotal_;
         options.cancel = &cancelRequested_;
         options.latch = latch_;
+        options.exportRange = snapshot_.range;   // cp3: refused before rendering when past the end; rendered only to its end
         const engine::OfflineRenderResult rendered = engine::renderOfflineProject (
             snapshot_.project, std::span<const engine::DecodedAssetAudio> (views.data(), views.size()), std::move (options));
         if (rendered.status == engine::OfflineRenderStatus::Cancelled || cancelled())
             return finish (ExportJobState::Cancelled, ExportFailure::None, "Export cancelled");
+        if (rendered.status == engine::OfflineRenderStatus::RangeOutsideRender)
+            return finish (ExportJobState::Failed, ExportFailure::Range,
+                           "Export failed: the loop range is outside the rendered project");
         if (! rendered.ok())
             return finish (ExportJobState::Failed, ExportFailure::Render, "Export failed: the project render failed");
 

@@ -26,6 +26,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <utility>
+#include <optional>
 #include <memory>
 #include <span>
 #include <thread>
@@ -91,6 +93,9 @@ struct OfflineRenderOptions
     std::atomic<std::uint64_t>* progressTotalFrames = nullptr;
     const std::atomic<bool>* cancel = nullptr;
     OfflineRenderLatch* latch = nullptr;
+    // ADR-0058 cp3: an export range [start, end) frames. The render refuses a range starting at or past its end
+    // before rendering anything (RangeOutsideRender) and stops at the range's end; the result holds frames [0, stop).
+    std::optional<std::pair<std::uint64_t, std::uint64_t>> exportRange;
 };
 
 enum class OfflineRenderStatus : std::uint8_t
@@ -111,7 +116,8 @@ enum class OfflineRenderStatus : std::uint8_t
     RenderProducedNonFinite,
     TimeStretchFailed,          // G2.9: a stretched Clip's control-side preparation failed
     GraphNotBlockParallelSafe,  // ADR-0027: graph has a cross-Block-stateful node; use the serial renderer
-    Cancelled                   // ADR-0058: an export job's cancel flag was set mid-render (no audio returned)
+    Cancelled,                  // ADR-0058: an export job's cancel flag was set mid-render (no audio returned)
+    RangeOutsideRender          // ADR-0058 cp3: the export range starts at or past the render's end (nothing rendered)
 };
 
 struct OfflineRenderResult
@@ -792,8 +798,17 @@ namespace detail {
     }
 
     const std::uint16_t channels = built.channels;
-    const std::uint64_t timelineEndFrames = built.frames;
+    std::uint64_t timelineEndFrames = built.frames;
     CompiledGraph& graph = *built.graph;
+    if (options.exportRange.has_value())   // ADR-0058 cp3: refuse a range past the end; render only up to its end
+    {
+        if (options.exportRange->first >= timelineEndFrames || options.exportRange->second <= options.exportRange->first)
+        {
+            result.status = OfflineRenderStatus::RangeOutsideRender;
+            return result;
+        }
+        timelineEndFrames = std::min (timelineEndFrames, options.exportRange->second);
+    }
 
     if (timelineEndFrames > std::numeric_limits<std::uint64_t>::max() / channels)
     {

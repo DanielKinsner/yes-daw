@@ -495,3 +495,53 @@ TEST_CASE ("ADR-0058 no two files or channels share dither noise", "[export-opti
     REQUIRE (sameAcrossFiles == 0);
     REQUIRE (sameAcrossChannels == 0);
 }
+
+TEST_CASE ("ADR-0058 a range exports exactly its frames; a range past the end is refused before any render", "[export-options]")
+{
+    const auto directory = scratch ("range");
+    const Fixture f (48'000, 48'000.0);
+    const engine::OfflineRenderResult full = f.renderReference();
+
+    // [10 000, 30 000): exactly those frames, equal to the full render's slice.
+    const auto ranged = directory / "range.wav";
+    app::ExportSnapshot snapshot = f.snapshot (ranged);
+    snapshot.range = std::pair<std::uint64_t, std::uint64_t> { 10'000u, 30'000u };
+    app::ExportJob job (41, std::move (snapshot));
+    job.start();
+    waitTerminal (job);
+    job.join();
+    REQUIRE (job.state() == app::ExportJobState::Succeeded);
+    io::Float32Wav wav;
+    REQUIRE (io::readFloat32WavFile (ranged, wav).ok());
+    REQUIRE (wav.frames == 20'000u);
+    const std::vector<float> slice (full.interleavedSamples.begin() + 10'000 * full.channels,
+                                    full.interleavedSamples.begin() + 30'000 * full.channels);
+    REQUIRE (wav.interleavedSamples == slice);
+
+    // A range ending past the render's end: from its start to the end.
+    const auto tail = directory / "tail.wav";
+    app::ExportSnapshot tailSnapshot = f.snapshot (tail);
+    tailSnapshot.range = std::pair<std::uint64_t, std::uint64_t> { full.frames - 1'000u, full.frames + 50'000u };
+    app::ExportJob tailJob (42, std::move (tailSnapshot));
+    tailJob.start();
+    waitTerminal (tailJob);
+    tailJob.join();
+    REQUIRE (tailJob.state() == app::ExportJobState::Succeeded);
+    REQUIRE (io::readFloat32WavFile (tail, wav).ok());
+    REQUIRE (wav.frames == 1'000u);
+
+    // Past the end: refused with its reason, and the render never ran (a latch at frame 0 was never reached).
+    engine::OfflineRenderLatch latch;
+    latch.holdAfterFrames = 0;
+    const auto past = directory / "past.wav";
+    app::ExportSnapshot pastSnapshot = f.snapshot (past);
+    pastSnapshot.range = std::pair<std::uint64_t, std::uint64_t> { full.frames + 10u, full.frames + 1'000u };
+    app::ExportJob pastJob (43, std::move (pastSnapshot), &latch);
+    pastJob.start();
+    waitTerminal (pastJob);
+    pastJob.join();
+    REQUIRE (pastJob.state() == app::ExportJobState::Failed);
+    REQUIRE (pastJob.failure() == app::ExportFailure::Range);
+    REQUIRE_FALSE (latch.held.load());
+    REQUIRE_FALSE (std::filesystem::exists (past));
+}

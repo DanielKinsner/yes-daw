@@ -10,8 +10,11 @@ Older entries below are dated history, not competing "Now" instructions.
 
 ## 2026-10-06 (night) — G5.3 cp3, step 1: dithered 16 / 24-bit export (ADR-0058)
 
-**Now:** cp3 lands in four small steps: **dither (in)**, then ranges (render only up to the range; a range past the
-end refused before rendering), normalize, and export stems. **What a user gets:** a 16 or 24-bit export is TPDF
+**Now:** cp3 lands in four small steps: **dither (in)**, **ranges (in)** — the render stops at the range's end, a
+range past the end is refused before anything renders (the cp1 follow-up) — then normalize and export stems.
+Range gates: a range exports exactly its frames (equal to the full render's slice); a range running past the end
+exports to the end; a past-the-end range fails without the render ever running; through the model the loop region
+and the ruler range (which wins) export their lengths. **What a user gets:** a 16 or 24-bit export is TPDF
 dithered (a "Dither" toggle in the settings row, on by default); float exports are never dithered and stay
 bit-exact. **Gates:** `[export-options]` — 16 and 24-bit files equal a reference built in the test by an
 independent implementation of the same TPDF law; dither off equals the one-shot writer's plain rounding; no two
@@ -59,8 +62,8 @@ synchronous render for a same-rate and a cross-rate Asset; held, cancelled, rele
 
 **ADR-0058** (Export v2) is accepted after a critic pass; amended before publication so a successful export stays
 quiet on the status line (the existing law). The cp1 critic's blocker (a test latch outlived by its job) and its
-cancel-during-write finding are fixed. **Known, for cp3:** a ruler range wholly past the project's end is refused
-only after the worker renders (it was refused before rendering); cp3's range work renders only up to the range.
+cancel-during-write finding are fixed. A ruler range wholly past the project's end was briefly refused only after the
+render; cp3's range step refuses it before rendering again.
 
 **CI:** d4ce08c's Windows re-run passed (the first attempt's 16.72 ms GPU frame was a runner sample; the renderer
 was unchanged); d4ce08c and a77c6eb fail only the standing macOS GPU exception.

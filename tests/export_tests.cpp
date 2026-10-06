@@ -202,3 +202,27 @@ TEST_CASE ("ADR-0058 opening another project retires a running export silently; 
         REQUIRE (entry.path().extension() != ".partial");
     REQUIRE_FALSE (std::filesystem::exists (folder / "at-exit.wav"));
 }
+
+TEST_CASE ("ADR-0058 the model's export range: the loop region, the ruler range winning over it, and a range past the end",
+           "[export-options]")
+{
+    ExportModel f ("ranges");
+    REQUIRE (f.model.setPlaybackLoopRegion (48'000, 96'000).dispatched);
+    f.model.setExportLoopRangeOnly (true);
+    REQUIRE (f.model.exportAudioFile (f.directory / "loop.wav").dispatched);
+    yesdaw::io::Float32Wav wav;
+    REQUIRE (yesdaw::io::readFloat32WavFile (f.directory / "loop.wav", wav).ok());
+    REQUIRE (wav.frames == 48'000u);
+
+    REQUIRE (f.model.setTimelineRangeSelection (12'000, 24'000));
+    REQUIRE (f.model.exportAudioFile (f.directory / "ruler.wav").dispatched);
+    REQUIRE (yesdaw::io::readFloat32WavFile (f.directory / "ruler.wav", wav).ok());
+    REQUIRE (wav.frames == 12'000u);
+
+    REQUIRE (f.model.setTimelineRangeSelection (5'000'000, 5'100'000));
+    const auto refused = f.model.exportAudioFile (f.directory / "past.wav");
+    REQUIRE_FALSE (refused.dispatched);
+    REQUIRE (std::string (refused.state.disabledReason) == "loop range is outside the rendered project");
+    REQUIRE (f.model.statusLineText().find ("outside the rendered project") != std::string::npos);
+    REQUIRE_FALSE (std::filesystem::exists (f.directory / "past.wav"));
+}
