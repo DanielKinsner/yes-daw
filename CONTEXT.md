@@ -523,6 +523,12 @@ The H7 bit-exact export file: RIFF/WAVE, 32-bit IEEE float, Project sample rate,
 interleaved samples.
 _Avoid_: treating integer WAV, compressed files, or resampled output as the canonical gate format
 
+**Decoded buffer**:
+An Asset's decoded samples, made once and never written again, held by reference by everything that reads them —
+the model, the engine's clip schedules and Sampler pads, export jobs, peak builds (ADR-0059). A cross-rate Asset's
+rate-matched view is the only other buffer an Asset can have.
+_Avoid_: copying an Asset's samples to read them; a per-clip or per-build copy
+
 **Export job**:
 An export running on a worker thread over a snapshot it owns — a copy of the project and owning references to its
 audio — reporting progress and honouring Cancel; it writes `.partial` files beside the destination and renames them
