@@ -96,6 +96,9 @@ struct OfflineRenderOptions
     // ADR-0058 cp3: an export range [start, end) frames. The render refuses a range starting at or past its end
     // before rendering anything (RangeOutsideRender) and stops at the range's end; the result holds frames [0, stop).
     std::optional<std::pair<std::uint64_t, std::uint64_t>> exportRange;
+    // ADR-0058 cp3: render one export stem — the top-level Track (false) or Bus (true) with this id (MixerGraphProjection).
+    std::optional<std::pair<bool, EntityId>> stemStrip;
+    std::uint32_t stemSalt = 0;
 };
 
 enum class OfflineRenderStatus : std::uint8_t
@@ -645,6 +648,8 @@ namespace detail {
     config.masterNodeId = options.masterNodeId;
     config.maxBlockSize = options.maxBlockSize;
     config.sendRoutes = options.sendRoutes;
+    config.stemStrip = options.stemStrip;   // ADR-0058 cp3
+    config.stemSalt = options.stemSalt;
     // ADR-0044: persisted send rows on the Track are the product's routing source of truth; the
     // options seam stays for engine tests and is concatenated in front (no overlap in practice).
     for (const Track& track : project.tracks)

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "engine/nodes/DelayNode.h"   // ADR-0058 cp3: a stem's master latency
 #include "engine/GraphBuilder.h"
 #include "engine/MixerValue.h"
 #include "engine/Node.h"
@@ -23,10 +24,12 @@
 #include "engine/nodes/SidechainGainNode.h"
 #include "engine/nodes/SumNode.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -141,6 +144,17 @@ struct MixerProjectionInputs
     std::vector<CompiledAutomationLane> automationLanes;
     std::vector<MixerSidechainKey> sidechainKeys {};   // ADR-0051
 
+    // ADR-0058 cp3: an export stem. Only this top-level strip reaches the master sum audibly — every other master
+    // input rides a zero-gain fader, so the sum's delay compensation is the mix's — the master's inserts give way to
+    // a pure delay of their latency, and the master fader is unity. An index past the end selects nothing (silence).
+    struct StemTap
+    {
+        bool isBus = false;
+        std::size_t index = 0;
+        std::uint32_t salt = 0;   // varies the helper nodes' ids (a retry after an id collision)
+    };
+    std::optional<StemTap> stemTap {};
+
     // E19/R12: the master fader sits ONE node id below the master sum — one law shared by the
     // graph build below and the live scalar lane's control-side addressing (UiAppModel).
     [[nodiscard]] static constexpr NodeId masterFaderNodeIdFor (NodeId masterSumNodeId) noexcept
@@ -148,6 +162,18 @@ struct MixerProjectionInputs
         return masterSumNodeId - 1u;
     }
 };
+
+// ADR-0058 cp3: the zero-gain fader a stem render puts between a non-selected strip's meter and the master sum.
+[[nodiscard]] inline NodeId mixerStemMuteNodeId (NodeId meterNodeId, std::uint32_t salt = 0) noexcept
+{
+    std::uint32_t h = 2166136261u;
+    for (const std::uint32_t value : { static_cast<std::uint32_t> (meterNodeId), 0x5354454Du, 0xA15C0DEu, salt })
+    {
+        h ^= value;
+        h *= 16777619u;
+    }
+    return h == 0u ? 1u : h;
+}
 
 inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
 {
@@ -244,6 +270,29 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
 {
     if (error != nullptr)
         *error = MixerProjectionError {};
+
+    // ADR-0058 cp3: a stem render has no master inserts and a fixed unity master fader, so nothing may automate or
+    // key them; their combined latency becomes a pure delay after the sum (stems line up with the mix file).
+    std::int64_t stemMasterLatency = 0;
+    if (projection.stemTap.has_value())
+    {
+        std::vector<NodeId> removed { MixerProjectionInputs::masterFaderNodeIdFor (projection.masterSumNodeId) };
+        for (std::unique_ptr<Node>& insertNode : projection.masterInsertNodes)
+            if (insertNode != nullptr)
+            {
+                insertNode->prepare (projection.sampleRate, projection.maxBlockSize);   // its latency at this rate
+                stemMasterLatency += std::max<std::int64_t> (0, insertNode->properties().latencySamples);
+                removed.push_back (insertNode->properties().id);
+            }
+        const auto isRemoved = [&removed] (NodeId id) { return std::find (removed.begin(), removed.end(), id) != removed.end(); };
+        std::erase_if (projection.automationLanes, [&isRemoved] (const CompiledAutomationLane& lane) { return isRemoved (lane.targetNode); });
+        std::erase_if (projection.sidechainKeys, [&isRemoved] (const MixerSidechainKey& key) { return isRemoved (key.compressorNodeId); });
+        projection.masterInsertNodes.clear();
+        projection.masterLinearGain = 1.0f;
+    }
+    const auto stemSilences = [&projection] (bool isBus, std::size_t index) {
+        return projection.stemTap.has_value() && (projection.stemTap->isBus != isBus || projection.stemTap->index != index);
+    };
 
     GraphBuilder::Inputs inputs;
     inputs.id = projection.id;
@@ -514,7 +563,19 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         // feed tracks, so this cannot make a cycle; an out-of-range index is an honest refusal.
         if (track.outputBusIndex == MixerTrackProjection::kOutputToMaster)
         {
-            masterBusInputs.push_back (meterPtr);
+            if (stemSilences (false, i))   // ADR-0058 cp3: in the graph (its alignment holds), silent at the sum
+            {
+                auto mute = std::make_unique<FaderNode> (mixerStemMuteNodeId (track.meterNodeId, projection.stemTap->salt),
+                                                         std::max (1, meterPtr->properties().channels));
+                mute->setInput (meterPtr);
+                mute->setTargetGain (0.0f);
+                masterBusInputs.push_back (mute.get());
+                inputs.nodes.push_back (std::move (mute));
+            }
+            else
+            {
+                masterBusInputs.push_back (meterPtr);
+            }
         }
         else if (track.outputBusIndex < projection.buses.size())
         {
@@ -733,7 +794,19 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         // R13: the bus's MAIN output — master (the historical path) or another bus's sum.
         if (bus.outputBusIndex == MixerBusProjection::kOutputToMaster)
         {
-            masterBusInputs.push_back (busMeterPtr);
+            if (stemSilences (true, i))   // ADR-0058 cp3
+            {
+                auto mute = std::make_unique<FaderNode> (mixerStemMuteNodeId (bus.meterNodeId, projection.stemTap->salt),
+                                                         std::max (1, busMeterPtr->properties().channels));
+                mute->setInput (busMeterPtr);
+                mute->setTargetGain (0.0f);
+                masterBusInputs.push_back (mute.get());
+                inputs.nodes.push_back (std::move (mute));
+            }
+            else
+            {
+                masterBusInputs.push_back (busMeterPtr);
+            }
         }
         else if (bus.outputBusIndex < projection.buses.size() && bus.outputBusIndex != i)
         {
@@ -757,6 +830,14 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     // R11: the master FX chain sits between the final sum and the master fader — the same
     // pre-fader insert order every track and bus strip uses.
     Node* masterChainHead = masterSumPtr;
+    std::unique_ptr<DelayNode> stemLatency;   // ADR-0058 cp3: a stem's stand-in for the master inserts' latency
+    if (stemMasterLatency > 0)
+    {
+        stemLatency = std::make_unique<DelayNode> (mixerStemMuteNodeId (projection.masterSumNodeId, projection.stemTap->salt),
+                                                   stemMasterLatency, 2);
+        stemLatency->setInput (masterChainHead);
+        masterChainHead = stemLatency.get();
+    }
     for (std::unique_ptr<Node>& insertNode : projection.masterInsertNodes)
     {
         if (insertNode == nullptr || ! setMixerInsertInput (*insertNode, masterChainHead))
@@ -789,6 +870,8 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     master->setInputNodes ({ masterFaderPtr });
 
     inputs.nodes.push_back (std::move (masterSum));
+    if (stemLatency != nullptr)
+        inputs.nodes.push_back (std::move (stemLatency));
     for (std::unique_ptr<Node>& insertNode : projection.masterInsertNodes)
         inputs.nodes.push_back (std::move (insertNode));
     inputs.nodes.push_back (std::move (masterFader));

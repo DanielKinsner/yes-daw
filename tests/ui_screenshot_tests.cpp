@@ -1576,3 +1576,34 @@ TEST_CASE ("G5.2 the Browser tab paints its rows, a file's facts and a refusal's
     std::error_code ec;
     std::filesystem::remove_all (root, ec);
 }
+
+// G5.3 / ADR-0058: the settings row with the export options (bit depth, range, Dither, Normalize, stems) at the
+// narrowest judged size — the shot is the agent's visual judgment; mechanically, each new control is laid out inside
+// the window, visible, and paints its label.
+TEST_CASE ("G5.3 the settings row shows the export options at 1280x720", "[ui][screenshot][export-settings]")
+{
+    auto shell = yesdaw::ui::createMainComponent ({});
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (1280, 720);
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
+    const juce::Image image = renderShell (*shell);
+    (void) captureShellPng (image, "yesdaw-g53-settings-1280x720.png");
+    for (const char* id : { "shell.export.dither", "shell.export.normalize", "shell.export.stems" })
+    {
+        juce::Component* control = nullptr;
+        for (int i = 0; i < shell->getNumChildComponents() && control == nullptr; ++i)
+            if (shell->getChildComponent (i)->getComponentID() == id)
+                control = shell->getChildComponent (i);
+        INFO (id);
+        REQUIRE (control != nullptr);
+        REQUIRE (control->isVisible());
+        REQUIRE (shell->getLocalBounds().contains (control->getBounds()));
+        int bright = 0;   // its label paints: light pixels inside its bounds
+        const juce::Rectangle<int> b = control->getBounds();
+        for (int y = b.getY(); y < b.getBottom(); ++y)
+            for (int x = b.getX(); x < b.getRight(); ++x)
+                bright += image.getPixelAt (x, y).getBrightness() > 0.6f ? 1 : 0;
+        REQUIRE (bright > 15);
+    }
+}

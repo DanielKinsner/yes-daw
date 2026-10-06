@@ -137,6 +137,23 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     exportNormalizeToggle.onClick = [this] { appModel.setExportNormalize (exportNormalizeToggle.getToggleState()); };
     addAndMakeVisible (exportNormalizeToggle);
 
+    // ADR-0058 cp3: export stems — one file per top-level strip, beside the mix or instead of it.
+    exportStemsChooser.setComponentID ("shell.export.stems");
+    exportStemsChooser.setTooltip ("Export the mix, the mix and a file per top-level track and bus, or only those");
+    exportStemsChooser.setName ("Export stems");
+    exportStemsChooser.setTitle ("Export stems");
+    exportStemsChooser.addItem ("Mix Only", 1);
+    exportStemsChooser.addItem ("Mix + Stems", 2);
+    exportStemsChooser.addItem ("Stems Only", 3);
+    exportStemsChooser.setSelectedId (1, juce::dontSendNotification);
+    exportStemsChooser.onChange = [this] {
+        const int selected = exportStemsChooser.getSelectedId();
+        appModel.setExportStems (selected == 2 ? yesdaw::ui::UiAppModel::UiExportStems::MixAndStems
+                                 : selected == 3 ? yesdaw::ui::UiAppModel::UiExportStems::StemsOnly
+                                                 : yesdaw::ui::UiAppModel::UiExportStems::MixOnly);
+    };
+    addAndMakeVisible (exportStemsChooser);
+
     exportAudioProgress.setComponentID (kExportAudioProgressComponentId);
     exportAudioProgress.setTooltip ("Audio export progress");
     exportAudioProgress.setName ("Export audio progress");
@@ -2113,13 +2130,15 @@ void MainComponent::resized()
     exportRangeChooser.setBounds (h.range);
     exportDitherToggle.setBounds (h.dither);   // ADR-0058 cp3
     exportNormalizeToggle.setBounds (h.normalize);
+    exportStemsChooser.setBounds (h.stems);
     for (juce::Component* settingsControl : { static_cast<juce::Component*> (&audioDeviceChooser),
                                               static_cast<juce::Component*> (&audioInputDeviceChooser),
                                               static_cast<juce::Component*> (&recordingInputChannelChooser),
                                               static_cast<juce::Component*> (&exportBitDepthChooser),
                                               static_cast<juce::Component*> (&exportRangeChooser),
                                               static_cast<juce::Component*> (&exportDitherToggle),
-                                              static_cast<juce::Component*> (&exportNormalizeToggle) })
+                                              static_cast<juce::Component*> (&exportNormalizeToggle),
+                                              static_cast<juce::Component*> (&exportStemsChooser) })
         settingsControl->setVisible (h.settingsVisible);
     menuBar.setBounds (h.menuBar);
     // M9: the LUFS readout rides the master card — it drops with it instead of being clipped.
@@ -2682,6 +2701,7 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
         h.range = cell (L::settingsRangeWidth);
         h.dither = cell (L::settingsDitherWidth);   // ADR-0058 cp3
         h.normalize = cell (L::settingsNormalizeWidth);
+        h.stems = cell (L::settingsStemsWidth);
         h.outputDevice = cell (L::settingsDeviceWidth);
         h.inputDevice = cell (L::settingsDeviceWidth);
         h.inputChannel = cell (L::settingsChannelWidth);

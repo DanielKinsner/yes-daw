@@ -1889,6 +1889,10 @@ public:
     void setExportNormalize (bool normalize) noexcept { exportNormalize_ = normalize; }
     [[nodiscard]] bool exportNormalize() const noexcept { return exportNormalize_; }
     static constexpr double kExportNormalizeTargetDbfs = -1.0;
+    // ADR-0058 cp3: export stems — one file per top-level strip beside the mix (or instead of it).
+    enum class UiExportStems : std::uint8_t { MixOnly, MixAndStems, StemsOnly };
+    void setExportStems (UiExportStems stems) noexcept { exportStems_ = stems; }
+    [[nodiscard]] UiExportStems exportStems() const noexcept { return exportStems_; }
     [[nodiscard]] bool exportLoopRangeOnly() const noexcept { return exportLoopRangeOnly_; }
 
     // ADR-0058: start an export job — the render and the write run on a worker over a snapshot the job owns; the UI
@@ -1914,6 +1918,16 @@ public:
         snapshot.dither = exportDither_;
         if (exportNormalize_)
             snapshot.normalizePeakDbfs = kExportNormalizeTargetDbfs;
+        if (exportStems_ != UiExportStems::MixOnly)   // the top-level strips: those whose output is the master
+        {
+            for (const engine::Track& track : project_.tracks)
+                if (! track.outputBusId.isValid())
+                    snapshot.stems.push_back ({ false, track.id, track.strip.name });
+            for (const engine::Bus& bus : project_.buses)
+                if (! bus.outputBusId.isValid())
+                    snapshot.stems.push_back ({ true, bus.id, bus.strip.name });
+            snapshot.includeMix = exportStems_ == UiExportStems::MixAndStems;
+        }
         snapshot.format = exportBitDepth_ == UiExportBitDepth::Float32 ? app::ExportFormat::Float32
                         : exportBitDepth_ == UiExportBitDepth::Int24   ? app::ExportFormat::Int24
                                                                          : app::ExportFormat::Int16;
@@ -13020,6 +13034,7 @@ private:
     bool exportLoopRangeOnly_ = false;
     bool exportDither_ = true;   // ADR-0058 cp3
     bool exportNormalize_ = false;
+    UiExportStems exportStems_ = UiExportStems::MixOnly;
     // Ruler range selection (parity item 25): transient, never persisted; -1 means no range.
     std::int64_t timelineRangeStartFrame_ = -1;
     std::int64_t timelineRangeEndFrame_ = -1;

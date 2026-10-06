@@ -600,3 +600,266 @@ TEST_CASE ("ADR-0058 normalize brings the peak to the target with one gain, and 
     REQUIRE (std::all_of (silence.interleavedSamples.begin(), silence.interleavedSamples.end(), [] (float s) { return s == 0.0f; }));
     REQUIRE (app::exportNormalizeGain (0.0, -1.0) == 1.0);
 }
+
+// ---- cp3: export stems ----
+
+namespace {
+
+// Tracks: Kick and Keys to the master, Snare into Drum Bus, Muted (muted) to the master; Drum Bus into Group, Group to
+// the master; Keys also sends post-fader to Group at 0.5. Top-level strips: Kick, Keys, Muted, Group.
+struct StemFixture
+{
+    engine::Project project;
+    std::vector<std::vector<float>> sources;
+
+    explicit StemFixture (bool masterLimiter = false, bool twinTracks = false)
+    {
+        project.id = idFor (100);
+        project.sampleRate = engine::SampleRate { 48'000.0 };
+        const std::vector<std::pair<const char*, double>> tracks = twinTracks
+            ? std::vector<std::pair<const char*, double>> { { "Twin A", 330.0 }, { "Twin B", 330.0 } }
+            : std::vector<std::pair<const char*, double>> { { "Kick", 110.0 }, { "Snare", 220.0 }, { "Keys", 440.0 }, { "Muted", 880.0 } };
+        engine::Bus drumBus;
+        drumBus.id = idFor (150);
+        drumBus.strip.name = "Drum Bus";
+        engine::Bus group;
+        group.id = idFor (151);
+        group.strip.name = "Group";
+        drumBus.outputBusId = group.id;
+        for (std::size_t i = 0; i < tracks.size(); ++i)
+        {
+            std::vector<float> samples (24'000);
+            for (std::size_t n = 0; n < samples.size(); ++n)
+                samples[n] = static_cast<float> (0.2 * std::sin (2.0 * 3.14159265358979323846 * tracks[i].second * static_cast<double> (n) / 48'000.0));
+            sources.push_back (samples);
+            engine::Asset asset;
+            asset.id = idFor (static_cast<std::uint8_t> (110 + i));
+            asset.contentHash.bytes.fill (static_cast<std::uint8_t> (110 + i));
+            asset.frames = samples.size();
+            asset.sampleRate = project.sampleRate;
+            asset.channels = 1;
+            project.assets.push_back (asset);
+            engine::Track track;
+            track.id = idFor (static_cast<std::uint8_t> (120 + i));
+            track.strip.name = tracks[i].first;
+            if (! twinTracks && i == 1)
+                track.outputBusId = drumBus.id;
+            if (! twinTracks && i == 2)
+                track.sends = { engine::SendRow { idFor (160), group.id, engine::SendTap::PostFader, 0.5f } };
+            if (! twinTracks && i == 3)
+                track.strip.muted = true;
+            project.tracks.push_back (track);
+            engine::Clip clip;
+            clip.id = idFor (static_cast<std::uint8_t> (130 + i));
+            clip.assetId = asset.id;
+            clip.trackId = track.id;
+            clip.srcLen = samples.size();
+            clip.timelineStart = static_cast<engine::Tick> (100 * i);   // staggered onsets
+            clip.timelineLength = static_cast<engine::Tick> (samples.size());
+            project.clips.push_back (clip);
+        }
+        if (! twinTracks)
+            project.buses = { drumBus, group };
+        if (masterLimiter)
+            project.masterStrip.fxChain = { engine::FxInsert { idFor (170), engine::FxKind::Limiter, true, {}, {} } };
+        REQUIRE (project.hasValidAssetClipIndirection());
+    }
+
+    app::ExportSnapshot snapshot (const std::filesystem::path& destination) const
+    {
+        app::ExportSnapshot out;
+        out.destination = destination;
+        out.project = project;
+        for (std::size_t i = 0; i < sources.size(); ++i)
+        {
+            auto samples = std::make_shared<engine::AssetSamples>();
+            samples->interleaved = sources[i];
+            samples->channels = 1;
+            samples->frames = sources[i].size();
+            out.assets.push_back ({ project.assets[i].id, 1, samples, nullptr, 0.0 });
+        }
+        for (const engine::Track& track : project.tracks)
+            if (! track.outputBusId.isValid())
+                out.stems.push_back ({ false, track.id, track.strip.name });
+        for (const engine::Bus& bus : project.buses)
+            if (! bus.outputBusId.isValid())
+                out.stems.push_back ({ true, bus.id, bus.strip.name });
+        return out;
+    }
+};
+
+io::Float32Wav readWav (const std::filesystem::path& path)
+{
+    io::Float32Wav wav;
+    INFO (path.string());
+    REQUIRE (io::readFloat32WavFile (path, wav).ok());
+    return wav;
+}
+
+void runToEnd (app::ExportJob& job)
+{
+    job.start();
+    waitTerminal (job);
+    job.join();
+    INFO (job.message());
+    REQUIRE (job.state() == app::ExportJobState::Succeeded);
+}
+
+} // namespace
+
+TEST_CASE ("ADR-0058 export stems: top-level strips only, summing to the mix; a muted strip's stem is silent", "[export-options]")
+{
+    const auto directory = scratch ("stems");
+    const StemFixture f;
+    const auto destination = directory / "song.wav";
+    app::ExportSnapshot snapshot = f.snapshot (destination);
+    REQUIRE (snapshot.stems.size() == 4u);   // Kick, Keys, Muted, Group: not Snare (in Drum Bus), not Drum Bus (in Group)
+    app::ExportJob job (61, std::move (snapshot));
+    runToEnd (job);
+
+    const io::Float32Wav mix = readWav (destination);
+    std::vector<double> sum (mix.interleavedSamples.size(), 0.0);
+    for (const char* name : { "Kick", "Keys", "Muted", "Group" })
+    {
+        const io::Float32Wav stem = readWav (directory / ("song - " + std::string (name) + ".wav"));
+        REQUIRE (stem.channels == mix.channels);
+        REQUIRE (stem.frames == mix.frames);
+        for (std::size_t i = 0; i < sum.size(); ++i)
+            sum[i] += static_cast<double> (stem.interleavedSamples[i]);
+        const bool silent = std::all_of (stem.interleavedSamples.begin(), stem.interleavedSamples.end(), [] (float s) { return s == 0.0f; });
+        REQUIRE (silent == (std::string (name) == "Muted"));
+    }
+    double worst = 0.0;
+    for (std::size_t i = 0; i < sum.size(); ++i)
+        worst = std::max (worst, std::abs (sum[i] - static_cast<double> (mix.interleavedSamples[i])));
+    INFO ("worst stem-sum difference " << worst);
+    REQUIRE (worst < 1.0e-6);
+    REQUIRE_FALSE (std::filesystem::exists (directory / "song - Snare.wav"));
+    REQUIRE (partialsIn (directory).empty());
+}
+
+TEST_CASE ("ADR-0058 with a latent master Limiter, stems still start exactly where the mix does", "[export-options]")
+{
+    const auto directory = scratch ("stems-latency");
+    const StemFixture f (true);
+    const auto destination = directory / "song.wav";
+    app::ExportJob job (62, f.snapshot (destination));
+    runToEnd (job);
+    const auto onset = [] (const io::Float32Wav& wav) {
+        for (std::size_t i = 0; i < wav.interleavedSamples.size(); ++i)
+            if (std::abs (wav.interleavedSamples[i]) > 1.0e-6f)
+                return i / wav.channels;
+        return wav.interleavedSamples.size();
+    };
+    const io::Float32Wav mix = readWav (destination);
+    const io::Float32Wav kick = readWav (directory / "song - Kick.wav");   // Kick starts at frame 0, like the mix
+    INFO ("mix onset " << onset (mix) << ", kick onset " << onset (kick));
+    REQUIRE (onset (mix) > 0u);   // the Limiter's lookahead delays the mix
+    REQUIRE (onset (kick) == onset (mix));
+}
+
+TEST_CASE ("ADR-0058 stems: one normalize gain from the loudest file; each file its own dither; cancel leaves nothing",
+           "[export-options]")
+{
+    const auto directory = scratch ("stems-options");
+    {
+        // Two top-level tracks with the same audio, stems only, 16-bit with dither: the files differ (own noise).
+        const StemFixture twins (false, true);
+        app::ExportSnapshot snapshot = twins.snapshot (directory / "twins.wav");
+        snapshot.includeMix = false;
+        snapshot.format = app::ExportFormat::Int16;
+        app::ExportJob job (71, std::move (snapshot));
+        runToEnd (job);
+        REQUIRE_FALSE (std::filesystem::exists (directory / "twins.wav"));
+        const std::string a = bytesOf (directory / "twins - Twin A.wav");
+        const std::string b = bytesOf (directory / "twins - Twin B.wav");
+        REQUIRE (a.size() == b.size());
+        REQUIRE (a != b);
+    }
+    {
+        // Normalize: the loudest file (the mix) reaches -1 dBFS; every stem carries the same gain.
+        const StemFixture f;
+        const auto plain = directory / "plain.wav";
+        const auto loud = directory / "loud.wav";
+        app::ExportJob plainJob (72, f.snapshot (plain));
+        runToEnd (plainJob);
+        app::ExportSnapshot snapshot = f.snapshot (loud);
+        snapshot.normalizePeakDbfs = -1.0;
+        app::ExportJob loudJob (73, std::move (snapshot));
+        runToEnd (loudJob);
+        const io::Float32Wav mix = readWav (loud);
+        float peak = 0.0f;
+        for (const float s : mix.interleavedSamples)
+            peak = std::max (peak, std::abs (s));
+        REQUIRE (std::abs (20.0 * std::log10 (static_cast<double> (peak)) + 1.0) < 0.01);
+        const io::Float32Wav plainMix = readWav (plain);
+        double gain = 0.0;
+        for (std::size_t i = 0; i < mix.interleavedSamples.size() && gain == 0.0; ++i)
+            if (std::abs (plainMix.interleavedSamples[i]) > 0.05f)
+                gain = static_cast<double> (mix.interleavedSamples[i]) / static_cast<double> (plainMix.interleavedSamples[i]);
+        const io::Float32Wav keys = readWav (directory / "loud - Keys.wav");
+        const io::Float32Wav plainKeys = readWav (directory / "plain - Keys.wav");
+        for (std::size_t i = 0; i < keys.interleavedSamples.size(); i += 101)
+            REQUIRE (std::abs (static_cast<double> (keys.interleavedSamples[i]) - gain * static_cast<double> (plainKeys.interleavedSamples[i])) < 1.0e-6);
+    }
+    {
+        // Cancel while the first file renders: no file, no temporary.
+        const StemFixture f;
+        engine::OfflineRenderLatch latch;
+        latch.holdAfterFrames = 4'096;
+        app::ExportJob job (74, f.snapshot (directory / "cancelled.wav"), &latch);
+        job.start();
+        waitHeld (latch);
+        job.cancel();
+        waitTerminal (job);
+        job.join();
+        REQUIRE (job.state() == app::ExportJobState::Cancelled);
+        REQUIRE_FALSE (std::filesystem::exists (directory / "cancelled.wav"));
+        REQUIRE_FALSE (std::filesystem::exists (directory / "cancelled - Kick.wav"));
+        REQUIRE (partialsIn (directory).empty());
+    }
+}
+
+TEST_CASE ("ADR-0058 stem file names follow one rule set on every platform", "[export-options]")
+{
+    REQUIRE (app::exportSafeName ("Lead Vox") == "Lead Vox");
+    REQUIRE (app::exportSafeName ("a/b:c*d?\"e<f>g|h\\i") == "a_b_c_d__e_f_g_h_i");
+    REQUIRE (app::exportSafeName ("Tab\there") == "Tab_here");
+    REQUIRE (app::exportSafeName ("CON") == "_CON");
+    REQUIRE (app::exportSafeName ("con.txt") == "_con.txt");
+    REQUIRE (app::exportSafeName ("Com7") == "_Com7");
+    REQUIRE (app::exportSafeName ("COM0") == "COM0");
+    REQUIRE (app::exportSafeName ("LPT9 mix") == "LPT9 mix");
+    REQUIRE (app::exportSafeName ("trailing. . ") == "trailing");
+    REQUIRE (app::exportSafeName ("") == "Strip");
+    REQUIRE (app::exportSafeName (std::string (150, 'x')).size() == 100u);
+    const std::string kana = "\xe3\x83\x99\xe3\x83\xbc\xe3\x82\xb9";   // a non-ASCII name stays as it is
+    REQUIRE (app::exportSafeName (kana) == kana);
+
+    REQUIRE (app::exportSafeName ("CON" + std::string (120, 'x')).size() == 100u);   // the cap holds with the prefix
+    const std::string cafe = "Caf\xc3\xa9";
+    const std::string cafeUpper = "CAF\xc3\x89";
+    const auto accented = app::exportStemPaths (std::filesystem::path ("song.wav"), { cafe, cafeUpper });
+    REQUIRE (accented[0] != accented[1]);   // one file on a case-insensitive disk: kept apart
+
+    const auto paths = app::exportStemPaths (std::filesystem::path ("out") / "song.wav", { "Vox", "vox", "Vox", "" });
+    REQUIRE (paths.size() == 4u);
+    REQUIRE (paths[0].filename() == "song - Vox.wav");
+    REQUIRE (paths[1].filename() == "song - vox (2).wav");
+    REQUIRE (paths[2].filename() == "song - Vox (3).wav");
+    REQUIRE (paths[3].filename() == "song - Strip.wav");
+    REQUIRE (paths[0].parent_path() == std::filesystem::path ("out"));
+}
+
+TEST_CASE ("ADR-0058 stems render when a master Compressor is keyed from a track (the key goes with the master inserts)",
+           "[export-options]")
+{
+    const auto directory = scratch ("stems-keyed");
+    StemFixture f;
+    f.project.masterStrip.fxChain = { engine::FxInsert { idFor (171), engine::FxKind::Compressor, true, {}, f.project.tracks[0].id } };
+    REQUIRE (f.project.hasValidAssetClipIndirection());
+    app::ExportJob job (81, f.snapshot (directory / "song.wav"));
+    runToEnd (job);
+    REQUIRE (std::filesystem::exists (directory / "song - Kick.wav"));
+    REQUIRE (std::filesystem::exists (directory / "song - Group.wav"));
+}

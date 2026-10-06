@@ -24,6 +24,7 @@
 #include "engine/nodes/SumNode.h"
 
 #include <algorithm>
+#include <optional>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -68,6 +69,9 @@ struct ProjectMixerProjectionConfig
     // the same ownership law the Clips use (the G0.5 owner, else the build's one copy). Control side.
     // Returns false when the Asset's audio is not available to this build.
     std::function<bool (EntityId assetId, SamplerNodePad& padOut)> assetSamplesProvider;
+    // ADR-0058 cp3: render one export stem — the top-level Track (isBus false) or Bus with this id.
+    std::optional<std::pair<bool, EntityId>> stemStrip;
+    std::uint32_t stemSalt = 0;   // varies the stem helpers' node ids (MixerProjectionInputs::StemTap)
 };
 
 struct ProjectMixerProjectionError
@@ -1012,6 +1016,29 @@ template <typename ClipSourceProvider>
                 return false;
             }
         }
+    }
+
+    // ADR-0058 cp3: an export stem selects one top-level strip by its projected index (a Bus that did not project is
+    // silent, so it selects nothing).
+    if (config.stemStrip.has_value())
+    {
+        MixerProjectionInputs::StemTap tap;
+        tap.isBus = config.stemStrip->first;
+        tap.salt = config.stemSalt;
+        tap.index = std::numeric_limits<std::size_t>::max();
+        if (! tap.isBus)
+        {
+            for (std::size_t trackIndex = 0; trackIndex < project.tracks.size(); ++trackIndex)
+                if (project.tracks[trackIndex].id == config.stemStrip->second)
+                    tap.index = trackIndex;
+        }
+        else
+        {
+            for (std::size_t busIndex = 0; busIndex < project.buses.size(); ++busIndex)
+                if (project.buses[busIndex].id == config.stemStrip->second && projectedBusIndices[busIndex] != kMissingProjectedBus)
+                    tap.index = projectedBusIndices[busIndex];
+        }
+        projection.stemTap = tap;
     }
 
     out = std::move (projection);

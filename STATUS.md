@@ -8,6 +8,30 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 (small hours) — G5.3 done: Export v2 (ADR-0058)
+
+**Now:** **G5.3** is in, headless-certified (all three checkpoints). **Next: G5.4 — decoded-asset sharing** (one
+decoded buffer per Asset shared by reference, which also removes the export job's per-Asset copy), then G5.5–G5.7
+and SS-6. The real-app drive of G5.1–G5.3 (SS-6 steps 1 and 5) waits for the desktop.
+
+**Export stems (the last cp3 step):** the settings row's stems chooser offers **Mix Only / Mix + Stems / Stems
+Only**. A stems export writes one file per **top-level** track and bus (those routed to the master) beside the mix,
+named `<song> - <strip>.wav` (file-safe on every platform; duplicates get " (2)"); a track inside a bus is part of
+that bus's stem, so the stems sum to the master's input. Each stem is what its strip contributes at the master's
+input: the master sum with every other input at zero gain (so delay compensation is the mix's), the master's
+inserts replaced by a pure delay of their latency (stems start exactly where the mix does), the master fader at
+unity. One normalize gain spans every file; every file has its own dither noise.
+
+**Gates:** `[export-options]` — float stems of a project with a track into a bus, a bus into a bus, a post-fader
+send and a muted track sum to the mix within 1e-6, and the muted track's stem is silent; with a latent master
+Limiter the stems start on the mix's frame; a master Compressor keyed from a track renders; one normalize gain
+(the loudest file at -1 dBFS); identical stems in 16-bit carry different dither; cancel mid-stems leaves nothing;
+the file-name rules (reserved names, illegal characters, trailing dots, the 100-character cap, accented case
+variants kept apart); through the model, Mix + Stems and Stems Only write their files. The settings row at
+1280x720 is gated and judged (the stems chooser's first item now reads "Mix Only"). 416/416 local, Clang clean;
+the cp3 critic found no blockers and its should-fixes are in (a stem's helper-node ids retry with another salt on a
+collision; the exception path removes every output's temporaries; the name cap and accented duplicates).
+
 ## 2026-10-06 (night) — G5.3 cp3, step 1: dithered 16 / 24-bit export (ADR-0058)
 
 **Now:** cp3 lands in four small steps: **dither (in)**, **ranges (in)** — the render stops at the range's end, a

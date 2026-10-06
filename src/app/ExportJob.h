@@ -90,7 +90,101 @@ struct ExportSnapshot
     std::vector<std::uint64_t> liveJobIds;   // jobs still winding down (a replaced project's): their temporaries are kept
     bool dither = true;                      // cp3: TPDF dither for 16 / 24-bit output (float is never dithered)
     std::optional<double> normalizePeakDbfs; // cp3: one gain bringing the loudest file's peak here (none = off)
+
+    // cp3: export stems — one file per top-level strip (a Track or Bus whose output is the master), named beside the
+    // destination; the mix file is written too when includeMix. Empty = an ordinary single-file export.
+    struct Stem
+    {
+        bool isBus = false;
+        engine::EntityId stripId;
+        std::string name;   // UTF-8, the strip's name
+    };
+    std::vector<Stem> stems;
+    bool includeMix = true;
 };
+
+// ADR-0058 cp3: a strip's name as a file-name part — one rule set on every platform: `< > : " / \ | ? *` and control
+// characters become `_`; trailing dots and spaces go; a Windows reserved name (CON, PRN, AUX, NUL, COM1-9, LPT1-9,
+// any case, with or without an extension) gains a leading `_`; at most 100 characters; empty becomes "Strip".
+[[nodiscard]] inline std::string exportSafeName (const std::string& utf8Name)
+{
+    std::string out;
+    std::size_t characters = 0;
+    for (std::size_t i = 0; i < utf8Name.size() && characters < 100u;)
+    {
+        const auto lead = static_cast<unsigned char> (utf8Name[i]);
+        const std::size_t length = lead < 0x80u ? 1u : (lead >> 5u) == 0x6u ? 2u : (lead >> 4u) == 0xEu ? 3u : (lead >> 3u) == 0x1Eu ? 4u : 1u;
+        if (length == 1u)
+        {
+            const char c = static_cast<char> (lead);
+            const bool illegal = lead < 0x20u || lead == 0x7Fu || lead >= 0x80u
+                              || c == '<' || c == '>' || c == ':' || c == '"' || c == '/' || c == '\\' || c == '|' || c == '?' || c == '*';
+            out.push_back (illegal ? '_' : c);
+        }
+        else
+        {
+            out.append (utf8Name, i, std::min (length, utf8Name.size() - i));
+        }
+        i += length;
+        ++characters;
+    }
+    while (! out.empty() && (out.back() == '.' || out.back() == ' '))
+        out.pop_back();
+    if (out.empty())
+        return "Strip";
+    std::string base = out.substr (0, out.find ('.'));
+    for (char& c : base)
+        c = static_cast<char> (c >= 'a' && c <= 'z' ? c - 'a' + 'A' : c);
+    const bool reserved = base == "CON" || base == "PRN" || base == "AUX" || base == "NUL"
+                       || (base.size() == 4u && (base.rfind ("COM", 0) == 0 || base.rfind ("LPT", 0) == 0) && base[3] >= '1' && base[3] <= '9');
+    if (! reserved)
+        return out;
+    if (characters >= 100u)   // keep the cap with the prefix: drop the last character (whole UTF-8 sequence)
+    {
+        std::size_t cut = out.size() - 1u;
+        while (cut > 0u && (static_cast<unsigned char> (out[cut]) & 0xC0u) == 0x80u)
+            --cut;
+        out.erase (cut);
+    }
+    return "_" + out;
+}
+
+// The stem files of an export to `destination`: `<destination stem> - <strip name>.wav` beside it; a name already
+// used (case-insensitively) gets ` (2)`, ` (3)`.
+[[nodiscard]] inline std::vector<std::filesystem::path> exportStemPaths (const std::filesystem::path& destination,
+                                                                       const std::vector<std::string>& stripNames)
+{
+    const std::u8string stem = destination.stem().u8string();
+    const std::string base (reinterpret_cast<const char*> (stem.data()), stem.size());
+    std::vector<std::string> used;
+    std::vector<std::filesystem::path> out;
+    // The duplicate key: ASCII folded to lower case, every other character a wildcard — so "Caf\u00e9" and its upper-case
+    // form (one file on a case-insensitive disk) never share a name; a false match only adds a " (2)".
+    const auto lower = [] (const std::string& text) {
+        std::string key;
+        for (std::size_t i = 0; i < text.size(); ++i)
+        {
+            const auto byte = static_cast<unsigned char> (text[i]);
+            if (byte < 0x80u)
+                key.push_back (static_cast<char> (byte >= 'A' && byte <= 'Z' ? byte - 'A' + 'a' : byte));
+            else if ((byte & 0xC0u) != 0x80u)
+                key.push_back ('\x01');
+        }
+        return key;
+    };
+    for (const std::string& name : stripNames)
+    {
+        const std::string safe = exportSafeName (name);
+        std::string file = base + " - " + safe;
+        for (int n = 2; std::find (used.begin(), used.end(), lower (file)) != used.end(); ++n)
+            file = base + " - " + safe + " (" + std::to_string (n) + ")";
+        used.push_back (lower (file));
+        file += ".wav";
+        const auto* bytes = reinterpret_cast<const char8_t*> (file.data());
+        out.push_back (destination.parent_path() / std::filesystem::path (std::u8string (bytes, bytes + file.size())));
+    }
+    return out;
+}
 
 // ADR-0058 cp3: the normalize gain — the target peak over the measured one; silence (peak 0) is never boosted.
 [[nodiscard]] inline double exportNormalizeGain (double peak, double targetDbfs) noexcept
@@ -133,10 +227,26 @@ public:
                 {
                     run();
                 }
-                catch (...)   // e.g. out of memory: the job fails, the app does not
+                catch (...)   // e.g. out of memory: the job fails, the app does not, and no temporary stays
                 {
-                    std::error_code removed;
-                    std::filesystem::remove (partialPathFor (snapshot_.destination, id_), removed);
+                    std::vector<std::filesystem::path> outputs { snapshot_.destination };
+                    try
+                    {
+                        std::vector<std::string> names;
+                        for (const ExportSnapshot::Stem& stem : snapshot_.stems)
+                            names.push_back (stem.name);
+                        for (const std::filesystem::path& path : exportStemPaths (snapshot_.destination, names))
+                            outputs.push_back (path);
+                    }
+                    catch (...)
+                    {
+                    }
+                    for (const std::filesystem::path& output : outputs)
+                    {
+                        std::error_code removed;
+                        std::filesystem::remove (partialPathFor (output, id_), removed);
+                        std::filesystem::remove (renderPathFor (output, id_), removed);
+                    }
                     finish (ExportJobState::Failed, ExportFailure::Write, "Export failed: an unexpected error");
                 }
             });
@@ -170,9 +280,15 @@ public:
         const std::uint64_t rendered = rendered_.load (std::memory_order_relaxed);
         const std::uint64_t writeTotal = writeTotal_.load (std::memory_order_relaxed);
         const std::uint64_t written = written_.load (std::memory_order_relaxed);
-        const double renderShare = renderTotal > 0u ? std::min (1.0, static_cast<double> (rendered) / static_cast<double> (renderTotal)) : 0.0;
+        const double files = static_cast<double> (std::max<std::uint64_t> (1u, fileCount_.load (std::memory_order_relaxed)));
+        const double done = static_cast<double> (filesRendered_.load (std::memory_order_relaxed));
+        const double current = renderTotal > 0u ? std::min (1.0, static_cast<double> (rendered) / static_cast<double> (renderTotal)) : 0.0;
+        const double renderShare = std::min (1.0, (done + current) / files);
         const double writeShare = writeTotal > 0u ? std::min (1.0, static_cast<double> (written) / static_cast<double> (writeTotal)) : 0.0;
-        return std::clamp (static_cast<int> (50.0 * renderShare + 50.0 * writeShare), 0, 99);
+        const int now = std::clamp (static_cast<int> (50.0 * renderShare + 50.0 * writeShare), 0, 99);
+        int shown = lastPercent_.load (std::memory_order_relaxed);   // never goes back
+        while (now > shown && ! lastPercent_.compare_exchange_weak (shown, now, std::memory_order_relaxed)) {}
+        return std::max (now, shown);
     }
 
 private:
@@ -187,12 +303,14 @@ private:
 
     void run()
     {
+        if (! snapshot_.stems.empty())
+            return runFiles();
         const std::string name = yesdaw::io::utf8Text (snapshot_.destination.filename());
         const double projectRateHz = snapshot_.project.sampleRate.hz;
 
         // Preparing: stale temporaries of this destination (a crash's), then the offline tier's views for cross-rate
         // Assets — both here, off the message thread.
-        removeStalePartials();
+        removeStalePartials (snapshot_.destination);
         std::vector<std::shared_ptr<const engine::AssetSamples>> owners;
         std::vector<engine::DecodedAssetAudio> views;
         owners.reserve (snapshot_.assets.size());
@@ -336,16 +454,20 @@ private:
         finish (ExportJobState::Succeeded, ExportFailure::None, "Exported " + name);
     }
 
-    // Removes `<destination name>.*.partial` in the destination's folder (temporaries a crash left behind).
-    void removeStalePartials() const
+    // Removes `<destination name>.*.partial` in the destination's folder (temporaries a crash left behind), sparing
+    // those of jobs still winding down.
+    void removeStalePartials (const std::filesystem::path& destination) const
     {
-        const std::filesystem::path folder = snapshot_.destination.has_parent_path() ? snapshot_.destination.parent_path()
-                                                                                     : std::filesystem::path (".");
-        const std::u8string prefix = snapshot_.destination.filename().u8string() + u8".";
+        const std::filesystem::path folder = destination.has_parent_path() ? destination.parent_path()
+                                                                           : std::filesystem::path (".");
+        const std::u8string prefix = destination.filename().u8string() + u8".";
         const std::u8string suffix = u8".partial";
         std::vector<std::u8string> live;
         for (const std::uint64_t id : snapshot_.liveJobIds)
-            live.push_back (partialPathFor (snapshot_.destination, id).filename().u8string());
+        {
+            live.push_back (partialPathFor (destination, id).filename().u8string());
+            live.push_back (renderPathFor (destination, id).filename().u8string());
+        }
         std::error_code error;
         std::vector<std::filesystem::path> stale;
         for (std::filesystem::directory_iterator it (folder, error), end; ! error && it != end; it.increment (error))
@@ -364,6 +486,235 @@ private:
 
     static constexpr std::uint64_t kWriteChunkFrames = 16'384;
 
+    // cp3: a stems export's float render of one file, before its normalize gain and dither (also a `.partial`).
+    [[nodiscard]] static std::filesystem::path renderPathFor (const std::filesystem::path& destination, std::uint64_t id)
+    {
+        std::filesystem::path partial = destination;
+        partial += "." + std::to_string (id) + ".render.partial";
+        return partial;
+    }
+
+    // Writes `samples` x `gain` (dithered when given) through `writer` in chunks, checking Cancel between them.
+    // Returns false (with `failure` set when it is a write failure, empty when cancelled).
+    [[nodiscard]] bool writeChunks (io::WavStreamWriter& writer, std::span<const float> samples, std::uint16_t channels,
+                                    double gain, io::TpdfDither* dither, std::string& failure, bool countsAsWritten = true)
+    {
+        std::vector<float> scaled;
+        const std::uint64_t frames = samples.size() / std::max<std::uint16_t> (1u, channels);
+        for (std::uint64_t done = 0; done < frames;)
+        {
+            if (cancelled())
+                return false;
+            const std::uint64_t chunk = std::min<std::uint64_t> (kWriteChunkFrames, frames - done);
+            std::span<const float> part = samples.subspan (static_cast<std::size_t> (done) * channels, static_cast<std::size_t> (chunk) * channels);
+            if (gain != 1.0)
+            {
+                scaled.resize (part.size());
+                for (std::size_t i = 0; i < part.size(); ++i)
+                    scaled[i] = static_cast<float> (static_cast<double> (part[i]) * gain);
+                part = std::span<const float> (scaled.data(), scaled.size());
+            }
+            if (const io::WavResult appended = writer.append (part, dither); ! appended.ok())
+            {
+                failure = appended.message;
+                return false;
+            }
+            done += chunk;
+            if (countsAsWritten)
+                written_.fetch_add (chunk, std::memory_order_relaxed);
+        }
+        return true;
+    }
+
+    // cp3: a stems export — every file rendered (as float, to its own `.render.partial` when it needs a second pass),
+    // then the one normalize gain (from the loudest file) and dither applied into each file's `.partial`, then every
+    // file committed. Cancel or failure before the commit removes every temporary and changes no destination.
+    void runFiles()
+    {
+        struct Output
+        {
+            std::filesystem::path destination;
+            std::optional<std::pair<bool, engine::EntityId>> stem;
+            std::uint64_t index = 0;
+            std::uint64_t frames = 0;
+            std::uint16_t channels = 2;
+            double peak = 0.0;
+            bool direct = false;   // float, no normalize: the render is the file
+        };
+        std::vector<Output> outputs;
+        if (snapshot_.includeMix)
+            outputs.push_back ({ snapshot_.destination, std::nullopt, 0u });
+        std::vector<std::string> names;
+        for (const ExportSnapshot::Stem& stem : snapshot_.stems)
+            names.push_back (stem.name);
+        const std::vector<std::filesystem::path> stemPaths = exportStemPaths (snapshot_.destination, names);
+        for (std::size_t i = 0; i < snapshot_.stems.size(); ++i)
+            outputs.push_back ({ stemPaths[i], std::pair<bool, engine::EntityId> { snapshot_.stems[i].isBus, snapshot_.stems[i].stripId },
+                                 static_cast<std::uint64_t> (i + 1u) });
+        fileCount_.store (outputs.size(), std::memory_order_relaxed);
+
+        const auto cleanUp = [this, &outputs] {
+            for (const Output& output : outputs)
+            {
+                std::error_code removed;
+                std::filesystem::remove (partialPathFor (output.destination, id_), removed);
+                std::filesystem::remove (renderPathFor (output.destination, id_), removed);
+            }
+        };
+        const auto fail = [&] (ExportFailure failure, std::string message) {
+            cleanUp();
+            finish (ExportJobState::Failed, failure, std::move (message));
+        };
+        const auto cancelledOut = [&] {
+            cleanUp();
+            finish (ExportJobState::Cancelled, ExportFailure::None, "Export cancelled");
+        };
+
+        for (const Output& output : outputs)
+            removeStalePartials (output.destination);
+
+        // Preparing: the offline views, as for one file.
+        const double projectRateHz = snapshot_.project.sampleRate.hz;
+        std::vector<std::shared_ptr<const engine::AssetSamples>> owners;
+        std::vector<engine::DecodedAssetAudio> views;
+        for (const ExportAssetAudio& asset : snapshot_.assets)
+        {
+            if (cancelled())
+                return cancelledOut();
+            std::shared_ptr<const engine::AssetSamples> samples = asset.samples;
+            if (samples == nullptr && asset.source != nullptr)
+                samples = engine::buildRateMatchedSamples (*asset.source, asset.channels, asset.sourceRateHz, projectRateHz,
+                                                           engine::ResampleQuality::OfflineRender);
+            if (samples == nullptr)
+                continue;
+            owners.push_back (samples);
+            views.push_back (engine::DecodedAssetAudio {
+                asset.assetId, snapshot_.project.sampleRate, samples->frames, asset.channels,
+                std::span<const float> (samples->interleaved.data(), samples->interleaved.size()) });
+        }
+
+        const std::uint16_t bits = snapshot_.format == ExportFormat::Float32 ? 32u : snapshot_.format == ExportFormat::Int24 ? 24u : 16u;
+        const bool secondPass = bits != 32u || snapshot_.normalizePeakDbfs.has_value();
+
+        // Rendering: each file in turn; its frames go to its render temporary (or straight to its file).
+        state_.store (ExportJobState::Rendering, std::memory_order_release);
+        for (Output& output : outputs)
+        {
+            // A stem's helper nodes carry hashed ids; in the (vanishingly rare) case one collides with a project node the
+            // build fails, and another salt is tried.
+            engine::OfflineRenderResult rendered;
+            for (std::uint32_t salt = 0; salt < 3u; ++salt)
+            {
+                engine::OfflineRenderOptions options;
+                options.progressFrames = &rendered_;
+                options.progressTotalFrames = &renderTotal_;
+                options.cancel = &cancelRequested_;
+                options.latch = latch_;
+                options.exportRange = snapshot_.range;
+                options.stemStrip = output.stem;
+                options.stemSalt = salt;
+                rendered_.store (0, std::memory_order_relaxed);
+                rendered = engine::renderOfflineProject (
+                    snapshot_.project, std::span<const engine::DecodedAssetAudio> (views.data(), views.size()), std::move (options));
+                if (rendered.status != engine::OfflineRenderStatus::MixerProjectionFailed || ! output.stem.has_value())
+                    break;
+            }
+            if (rendered.status == engine::OfflineRenderStatus::Cancelled || cancelled())
+                return cancelledOut();
+            if (rendered.status == engine::OfflineRenderStatus::RangeOutsideRender)
+                return fail (ExportFailure::Range, "Export failed: the loop range is outside the rendered project");
+            if (! rendered.ok())
+                return fail (ExportFailure::Render, "Export failed: the project render failed");
+
+            std::span<const float> samples (rendered.interleavedSamples.data(), rendered.interleavedSamples.size());
+            std::uint64_t frames = rendered.frames;
+            if (snapshot_.range.has_value())
+            {
+                const std::uint64_t start = std::min (snapshot_.range->first, rendered.frames);
+                frames = rendered.frames - start;
+                samples = samples.subspan (static_cast<std::size_t> (start) * rendered.channels);
+            }
+            output.frames = frames;
+            output.channels = rendered.channels;
+            for (const float sample : samples)
+                output.peak = std::max (output.peak, static_cast<double> (std::abs (sample)));
+            output.direct = ! secondPass;
+            writeTotal_.fetch_add (frames, std::memory_order_relaxed);
+
+            const std::filesystem::path target = output.direct ? partialPathFor (output.destination, id_)
+                                                               : renderPathFor (output.destination, id_);
+            io::WavStreamWriter writer;
+            if (const io::WavResult opened = writer.open (target, rendered.sampleRate, rendered.channels, frames, 32u); ! opened.ok())
+                return fail (ExportFailure::Write, "Export failed: could not write " + yesdaw::io::utf8Text (output.destination.filename()) + ": " + opened.message);
+            std::string failure;
+            if (! writeChunks (writer, samples, rendered.channels, 1.0, nullptr, failure, output.direct))
+            {
+                writer.abandon();
+                return failure.empty() ? cancelledOut()
+                                       : fail (ExportFailure::Write, "Export failed: could not write " + yesdaw::io::utf8Text (output.destination.filename()) + ": " + failure);
+            }
+            if (const io::WavResult finished = writer.finish(); ! finished.ok())
+                return fail (ExportFailure::Write, "Export failed: could not write " + yesdaw::io::utf8Text (output.destination.filename()) + ": " + finished.message);
+            filesRendered_.fetch_add (1u, std::memory_order_relaxed);
+        }
+
+        // Writing: one gain for every file (from the loudest), then each file's format and dither.
+        state_.store (ExportJobState::Writing, std::memory_order_release);
+        double gain = 1.0;
+        if (snapshot_.normalizePeakDbfs.has_value())
+        {
+            double loudest = 0.0;
+            for (const Output& output : outputs)
+                loudest = std::max (loudest, output.peak);
+            gain = exportNormalizeGain (loudest, *snapshot_.normalizePeakDbfs);
+        }
+        for (const Output& output : outputs)
+        {
+            if (output.direct)
+                continue;
+            io::Float32Wav rendered;
+            if (const io::WavResult read = io::readFloat32WavFile (renderPathFor (output.destination, id_), rendered); ! read.ok())
+                return fail (ExportFailure::Write, "Export failed: could not read back " + yesdaw::io::utf8Text (output.destination.filename()) + ": " + read.message);
+            io::WavStreamWriter writer;
+            if (const io::WavResult opened = writer.open (partialPathFor (output.destination, id_), rendered.sampleRate, rendered.channels, rendered.frames, bits); ! opened.ok())
+                return fail (ExportFailure::Write, "Export failed: could not write " + yesdaw::io::utf8Text (output.destination.filename()) + ": " + opened.message);
+            std::optional<io::TpdfDither> dither;
+            if (snapshot_.dither && bits != 32u)
+                dither.emplace (output.index, rendered.channels);
+            std::string failure;
+            if (! writeChunks (writer, rendered.interleavedSamples, rendered.channels, gain, dither.has_value() ? &*dither : nullptr, failure))
+            {
+                writer.abandon();
+                return failure.empty() ? cancelledOut()
+                                       : fail (ExportFailure::Write, "Export failed: could not write " + yesdaw::io::utf8Text (output.destination.filename()) + ": " + failure);
+            }
+            if (const io::WavResult finished = writer.finish(); ! finished.ok())
+                return fail (ExportFailure::Write, "Export failed: could not write " + yesdaw::io::utf8Text (output.destination.filename()) + ": " + finished.message);
+            std::error_code removed;
+            std::filesystem::remove (renderPathFor (output.destination, id_), removed);
+        }
+        if (cancelled())
+            return cancelledOut();
+
+        // Committing: every file renamed into place; Cancel is ignored from here.
+        state_.store (ExportJobState::Committing, std::memory_order_release);
+        std::string committed;
+        for (std::size_t i = 0; i < outputs.size(); ++i)
+        {
+            std::error_code renamed;
+            std::filesystem::rename (partialPathFor (outputs[i].destination, id_), outputs[i].destination, renamed);
+            if (renamed)
+            {
+                cleanUp();
+                return finish (ExportJobState::Failed, ExportFailure::Write,
+                               "Export failed: could not replace " + yesdaw::io::utf8Text (outputs[i].destination.filename()) + ": "
+                                   + renamed.message() + (committed.empty() ? std::string() : " (committed: " + committed + ")"));
+            }
+            committed += (committed.empty() ? "" : ", ") + yesdaw::io::utf8Text (outputs[i].destination.filename());
+        }
+        finish (ExportJobState::Succeeded, ExportFailure::None, "Exported " + std::to_string (outputs.size()) + " files");
+    }
+
     const std::uint64_t id_;
     const ExportSnapshot snapshot_;
     engine::OfflineRenderLatch* const latch_;
@@ -374,6 +725,9 @@ private:
     std::atomic<std::uint64_t> renderTotal_ { 0 };
     std::atomic<std::uint64_t> written_ { 0 };
     std::atomic<std::uint64_t> writeTotal_ { 0 };
+    std::atomic<std::uint64_t> fileCount_ { 1 };        // cp3: the files a stems export writes
+    std::atomic<std::uint64_t> filesRendered_ { 0 };
+    mutable std::atomic<int> lastPercent_ { 0 };
     std::string message_;
     ExportFailure failure_ = ExportFailure::None;
     std::thread worker_;   // last: started after every member it reads exists, joined before any is destroyed

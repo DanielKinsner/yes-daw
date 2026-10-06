@@ -226,3 +226,22 @@ TEST_CASE ("ADR-0058 the model's export range: the loop region, the ruler range 
     REQUIRE (f.model.statusLineText().find ("outside the rendered project") != std::string::npos);
     REQUIRE_FALSE (std::filesystem::exists (f.directory / "past.wav"));
 }
+
+TEST_CASE ("ADR-0058 the model's stems option writes a file per top-level strip beside the mix, or instead of it",
+           "[export-options]")
+{
+    ExportModel f ("model-stems");
+    const std::string trackName = f.model.project().tracks.at (0).strip.name;
+    REQUIRE_FALSE (trackName.empty());
+    f.model.setExportStems (yesdaw::ui::UiAppModel::UiExportStems::MixAndStems);
+    REQUIRE (f.model.exportAudioFile (f.directory / "song.wav").dispatched);
+    REQUIRE (std::filesystem::exists (f.directory / "song.wav"));
+    const auto stem = f.directory / std::filesystem::path (u8"song - " + std::u8string (trackName.begin(), trackName.end()) + u8".wav");
+    REQUIRE (std::filesystem::exists (stem));
+    REQUIRE (f.model.context().audioExportCount == 1);   // one export, however many files
+
+    f.model.setExportStems (yesdaw::ui::UiAppModel::UiExportStems::StemsOnly);
+    REQUIRE (f.model.exportAudioFile (f.directory / "only.wav").dispatched);
+    REQUIRE_FALSE (std::filesystem::exists (f.directory / "only.wav"));
+    REQUIRE (std::filesystem::exists (f.directory / std::filesystem::path (u8"only - " + std::u8string (trackName.begin(), trackName.end()) + u8".wav")));
+}
