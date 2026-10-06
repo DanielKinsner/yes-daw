@@ -369,6 +369,7 @@ TEST_CASE ("H11 action enabled state explains disabled project, undo, and redo c
 
     context.projectLoaded = true;
     context.firstTrackSendAvailable = true;   // G0.8: the first-Track verbs need their target
+    context.anySoloActive = true;             // G4.5: Clear All Solos needs a solo to clear
     context.firstTrackFxSlotAvailable = true;
     REQUIRE (registry.stateFor (UiActionId::TransportPlay, context).enabled);
     REQUIRE (registry.stateFor (UiActionId::TimelineZoomFitProject, context).enabled);
@@ -631,6 +632,7 @@ TEST_CASE ("H11 action dispatch mutates only the headless app model behind actio
 
     context.mixerTargetSelected = true;
     context.firstTrackSendAvailable = true;   // G0.8: the first-Track verbs need their target
+    context.anySoloActive = true;             // G4.5: Clear All Solos needs a solo to clear
     context.firstTrackFxSlotAvailable = true;
     REQUIRE (registry.dispatch (UiActionId::MixerTargetSetFader, context).dispatched);
     REQUIRE (context.activePanel == UiPanel::Mixer);

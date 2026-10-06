@@ -1020,7 +1020,7 @@ public:
         juce::Rectangle<int> menuBar, toolsSection, transportSection, masterSection, settingsRow;
         juce::Rectangle<int> newButton, openButton, saveButton, importButton, undoButton, redoButton;
         juce::Rectangle<int> exportButton, exportProgress, exportCancel;
-        juce::Rectangle<int> locateStart, play, stop, record, timeReadout, tempoMeterBox, loop;
+        juce::Rectangle<int> locateStart, play, stop, record, timeReadout, tempoMeterBox, loop, soloClear;
         juce::Rectangle<int> midiIn;   // G3.10: the MIDI input lamp
         juce::Rectangle<int> masterCard, gear;
         juce::Rectangle<int> bitDepth, range, outputDevice, inputDevice, inputChannel;
@@ -1246,6 +1246,7 @@ private:
     // it shows the SELECTED strip's selectedFxParamSlot while open and closes when that strip or slot goes.
     FxEditorComponent fxEditor;
     bool fxEditorOpen = false;
+    juce::TextButton headerSoloClear;   // G4.5: SOLO — lit while any strip is soloed; a click clears every solo
     int fxEditorStripOrdinal = -1;
     std::array<FineDragSlider, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamSliders;
     std::array<juce::Label, yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount> mixerFxParamLabels;

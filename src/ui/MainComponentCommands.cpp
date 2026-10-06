@@ -1866,6 +1866,17 @@ void MainComponent::refreshActionState()
                 fxEditor.toFront (false);
         }
 
+        // G4.5: the header's SOLO lights while any strip is soloed; dark (and inert) otherwise.
+        {
+            const bool soloActive = appModel.context().anySoloActive;
+            headerSoloClear.setEnabled (soloActive);
+            headerSoloClear.setColour (juce::TextButton::buttonColourId,
+                                       soloActive ? yesdaw::ui::UiTheme::Color::soloActive() : yesdaw::ui::UiTheme::Color::buttonSurface());
+            headerSoloClear.setColour (juce::TextButton::textColourOffId,
+                                       soloActive ? yesdaw::ui::UiTheme::Color::soloActiveText() : yesdaw::ui::UiTheme::Color::mutedText());
+            headerSoloClear.setTooltip (soloActive ? "Solo is active: click to clear every solo" : "No solo active");
+        }
+
         refreshingFxParamControls = true;
         std::size_t used = 0;
         std::size_t pageCount = 0;

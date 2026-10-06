@@ -662,6 +662,12 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         refreshActionState();
         repaintAll();
     };
+    trackListInput.onSoloExclusive = [this] (int row) {   // G4.5: Ctrl-click solos only this track
+        if (row >= 0 && static_cast<std::size_t> (row) < appModel.project().tracks.size())
+            (void) appModel.soloStripExclusively (appModel.project().tracks[static_cast<std::size_t> (row)].id);
+        refreshActionState();
+        repaintAll();
+    };
     // The "O" badge arms THIS row through the same verb the lane menu's Arm uses (M11: one
     // more member of the arm set, or one fewer). The verb refuses honestly without an input
     // device; the badge simply stays unlit.
@@ -2093,6 +2099,7 @@ void MainComponent::resized()
         }
     }
 
+    headerSoloClear.setBounds (h.soloClear);   // G4.5
     autosaveRestoreButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveRestoreButtonBounds());
     autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
     audioDeviceChooser.setBounds (h.outputDevice);
@@ -2604,7 +2611,8 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
     const int centreWidth = 4 * L::headerTransportButtonSize + 3 * L::headerButtonGap
                           + L::headerClusterGap + L::headerTransportTimeWidth
                           + L::headerClusterGap + L::headerTransportBoxWidth
-                          + L::headerClusterGap + L::headerLoopButtonWidth;
+                          + L::headerClusterGap + L::headerLoopButtonWidth
+                          + L::headerButtonGap + L::headerSoloClearWidth;   // G4.5: SOLO
     const int minStart = toolsRight + L::headerGroupGap;
     int cx = juce::jmax (minStart, width / 2 - centreWidth / 2);
     cx = juce::jmax (minStart, juce::jmin (cx, h.gear.getX() - L::headerMasterGearGap - centreWidth));
@@ -2633,6 +2641,7 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
     h.tempoMeterBox = big (L::headerTransportBoxWidth);
     x += L::headerClusterGap - L::headerButtonGap;
     h.loop = big (L::headerLoopButtonWidth);
+    h.soloClear = big (L::headerSoloClearWidth);   // G4.5: lit while any strip is soloed; a click clears them
     // G3.10: the MIDI input lamp lives in the time readout's top-right corner (Logic's LCD carries
     // its MIDI activity the same way) — no width added to the centred cluster.
     h.midiIn = juce::Rectangle<int> (h.timeReadout.getRight() - L::headerMidiInLampInset - L::headerMidiInLampWidth,

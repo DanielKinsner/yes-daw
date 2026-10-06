@@ -266,6 +266,8 @@ enum class UiActionId : std::uint8_t
     MixerSendAddNewBus,         // G4.3: a send from the selected strip to a NEW bus — the bus and the send one undo step
     MixerTrackRouteToNewBus,    // G4.3: the selected strip's output to a NEW bus — one undo step (the header's Route to New Bus)
     MixerFxInsertSetSidechain,  // G4.4: key a Compressor insert with a Track or Bus (or clear it) — a payload verb (ADR-0051)
+    MixerTargetSoloExclusive,   // G4.5: solo ONLY the selected strip (Ctrl-click a Solo cell) — one undo step
+    MixerSoloClear,             // G4.5: clear every solo (the header's lit SOLO) — one undo step
     Count
 };
 
@@ -607,6 +609,7 @@ struct UiActionContext
     // verbs act on them) — so a disabled control's registry state names why.
     bool firstTrackSendAvailable = false;
     bool firstTrackFxSlotAvailable = false;
+    bool anySoloActive = false;   // G4.5: any Track or Bus soloed (Clear All Solos has something to clear)
     bool recordingCompSelected = false;
     int recordingCompSegmentCount = 0;
     int recordingCompCommandCount = 0;
@@ -1161,7 +1164,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerTrackRouteToNewBus, "mixer.track.route_new_bus", "Route to New Bus", "", "Add a new bus and route the selected strip's output to it",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::MixerFxInsertSetSidechain, "mixer.fx.insert.sidechain", "Insert Sidechain", "", "Choose the track or bus a compressor listens to",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerTargetSoloExclusive, "mixer.target.solo_exclusive", "Solo Exclusively", "", "Solo only the selected strip (Ctrl-click a Solo cell)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerSoloClear, "mixer.solo.clear", "Clear All Solos", "", "Clear every solo",
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -1460,6 +1467,8 @@ public:
             return { false, "no send on the first Track" };
         if (id == UiActionId::MixerToggleFirstFxSlotEnabled && context.projectLoaded && ! context.firstTrackFxSlotAvailable)
             return { false, "no FX in the first Track's first slot" };
+        if (id == UiActionId::MixerSoloClear && context.projectLoaded && ! context.anySoloActive)
+            return { false, "no solo active" };
 
         if (descriptor->requiresProject && ! context.projectLoaded)
             return { false, "no project loaded" };
@@ -2096,6 +2105,8 @@ public:
             case UiActionId::MixerSendAddNewBus:        // G4.3
             case UiActionId::MixerTrackRouteToNewBus:   // G4.3
             case UiActionId::MixerFxInsertSetSidechain:  // G4.4
+            case UiActionId::MixerTargetSoloExclusive:   // G4.5
+            case UiActionId::MixerSoloClear:
             case UiActionId::TrackSetInstrument:   // G3.1
             case UiActionId::TrackInstrumentParamSet:
                 context.activePanel = UiPanel::Mixer;

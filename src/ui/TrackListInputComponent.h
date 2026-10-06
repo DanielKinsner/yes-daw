@@ -53,6 +53,7 @@ public:
     std::function<void (int, float)> onVolumeEdited;   // row, linear gain in [0, 1]
     std::function<void (int)> onMuteToggled;
     std::function<void (int)> onSoloToggled;
+    std::function<void (int)> onSoloExclusive;   // G4.5: Ctrl-click (Cmd on macOS) the S cell
     std::function<void (int)> onArmToggled;   // the "O" cell: the real record-arm badge, clickable
     // Current strip values, used to anchor Shift fine drags without a jump (B30).
     std::function<float (int)> panValueProvider;
@@ -87,7 +88,7 @@ public:
             case MiniZone::Pan:    return juce::String::fromUTF8 ("Pan: drag \xc2\xb7 Alt-click or double-click recentres \xc2\xb7 Shift for fine");
             case MiniZone::Volume: return juce::String::fromUTF8 ("Volume: drag \xc2\xb7 Alt-click resets to unity \xc2\xb7 Shift for fine");
             case MiniZone::Mute:   return "Mute: click toggles";
-            case MiniZone::Solo:   return "Solo: click toggles";
+            case MiniZone::Solo:   return juce::String::fromUTF8 ("Solo: click toggles \xc2\xb7 Ctrl-click solos only this track");
             case MiniZone::Arm:    return "Arm: click arms this track for recording (needs an input device)";
             case MiniZone::Meter:  return "Meter: click clears the clip light";
             case MiniZone::Colour: return "Colour: click cycles the track colour";
@@ -198,7 +199,9 @@ public:
                 return;
 
             case MiniZone::Solo:
-                if (onSoloToggled)
+                if (event.mods.isCommandDown() && onSoloExclusive)
+                    onSoloExclusive (row);
+                else if (onSoloToggled)
                     onSoloToggled (row);
                 return;
 

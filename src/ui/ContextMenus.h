@@ -74,10 +74,11 @@ inline constexpr std::array<ContextMenuEntry, 5> kEmptyLane {{
     { UiActionId::TimelineClipSelectAllTrack, true },
     { UiActionId::TrackAdd, true },
 }};
-inline constexpr std::array<ContextMenuEntry, 12> kTrackHeader {{
+inline constexpr std::array<ContextMenuEntry, 14> kTrackHeader {{
     { UiActionId::TrackRename }, { UiActionId::TrackDuplicate }, { UiActionId::TrackRemove },
     { UiActionId::TrackAdd, true }, { UiActionId::MixerBusAdd },
     { UiActionId::TrackToggleMute, true }, { UiActionId::TrackToggleSolo },
+    { UiActionId::MixerTargetSoloExclusive }, { UiActionId::MixerSoloClear },   // G4.5
     { UiActionId::MixerTargetToggleSoloSafe }, { UiActionId::TrackToggleArm },
     { UiActionId::MixerTrackSetOutput, true }, { UiActionId::MixerTrackRouteToNewBus },   // G4.3
     { UiActionId::TimelineAutomationToggleTrackLane, true },
@@ -102,21 +103,23 @@ inline constexpr std::array<ContextMenuEntry, 9> kNote {{
 // G4.1: the strip menu is per strip kind (Logic's). The TRACK strip: rename; the four routing
 // submenus (Add Insert ▸ the kinds the strip takes, Add Send ▸ the buses, Output ▸ Master + buses,
 // Input ▸ the device's inputs); the state toggles; the view; the structural verbs.
-inline constexpr std::array<ContextMenuEntry, 12> kMixerStrip {{
+inline constexpr std::array<ContextMenuEntry, 14> kMixerStrip {{
     { UiActionId::TrackRename },
     { UiActionId::MixerFxInsertAdd, true }, { UiActionId::MixerSendAdd },
     { UiActionId::MixerTrackSetOutput }, { UiActionId::MixerTrackSetInput },
     { UiActionId::TrackToggleMute, true }, { UiActionId::TrackToggleSolo },
+    { UiActionId::MixerTargetSoloExclusive }, { UiActionId::MixerSoloClear },   // G4.5
     { UiActionId::MixerTargetToggleSoloSafe }, { UiActionId::TrackToggleArm },
     { UiActionId::MixerStripsNarrowToggle, true },
     { UiActionId::MixerBusAdd, true }, { UiActionId::TrackRemove },
 }};
 // The BUS strip: no input, no arm; its mute / solo act on the selected mixer target (the bus).
-inline constexpr std::array<ContextMenuEntry, 10> kMixerBusStrip {{
+inline constexpr std::array<ContextMenuEntry, 12> kMixerBusStrip {{
     { UiActionId::MixerBusRename },
     { UiActionId::MixerFxInsertAdd, true }, { UiActionId::MixerSendAdd },
     { UiActionId::MixerTrackSetOutput },
     { UiActionId::MixerTargetToggleMute, true }, { UiActionId::MixerTargetToggleSolo },
+    { UiActionId::MixerTargetSoloExclusive }, { UiActionId::MixerSoloClear },   // G4.5
     { UiActionId::MixerTargetToggleSoloSafe },
     { UiActionId::MixerStripsNarrowToggle, true },
     { UiActionId::MixerBusAdd, true }, { UiActionId::MixerBusRemove },

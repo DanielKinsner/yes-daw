@@ -42,6 +42,7 @@ UiActionContext fullyReachableContext()
     context.recordingMonitoringSelected = true;
     context.recordingCompTakesAvailable = true;
     context.firstTrackSendAvailable = true;
+    context.anySoloActive = true;   // G4.5: Clear All Solos needs a solo to clear
     context.firstTrackFxSlotAvailable = true;
     context.autosaveRecoveryPending = true;
     context.audioExportInProgress = true;

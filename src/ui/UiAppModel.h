@@ -4242,6 +4242,36 @@ public:
                                               });
     }
 
+    // G4.5: solo ONLY `stripId` (a Track or Bus) — every other strip's solo clears — as ONE undo step.
+    // When it is already the only soloed strip, the same gesture clears it (Pro Tools' exclusive solo).
+    [[nodiscard]] UiActionDispatchResult soloStripExclusively (engine::EntityId stripId)
+    {
+        const UiActionId id = UiActionId::MixerTargetSoloExclusive;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! context_.projectLoaded)
+            return { id, state, false };
+        if (findTrack (stripId) == nullptr && project_.findBus (stripId) == nullptr)
+            return { id, { false, "no track or bus strip" }, false };
+
+        bool targetSoloed = false, othersSoloed = false;
+        for (const engine::Track& track : project_.tracks)
+            (track.id == stripId ? targetSoloed : othersSoloed) |= track.strip.soloed;
+        for (const engine::Bus& bus : project_.buses)
+            (bus.id == stripId ? targetSoloed : othersSoloed) |= bus.strip.soloed;
+        const bool clearIt = targetSoloed && ! othersSoloed;
+        return applySoloSet (id, state, [stripId, clearIt] (engine::EntityId strip) { return ! clearIt && strip == stripId; });
+    }
+
+    // G4.5: clear every solo — the header's lit SOLO — as ONE undo step.
+    [[nodiscard]] UiActionDispatchResult clearAllSolos()
+    {
+        const UiActionId id = UiActionId::MixerSoloClear;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        return applySoloSet (id, state, [] (engine::EntityId) { return false; });
+    }
+
     // N1: the Bus twins — a painted Mute/Solo cell on a BUS strip toggles that bus by id, with
     // the same undoable verb and the same "never steal the selection" law as the Track ones.
     [[nodiscard]] UiActionDispatchResult toggleBusMute (engine::EntityId busId)
@@ -8782,6 +8812,17 @@ public:
             case UiActionId::MixerFxInsertSetSidechain:   // G4.4: setFxInsertSidechainOnSelectedStrip carries the source
                 return { id, { false, "sidechain payload required" }, false };
 
+            case UiActionId::MixerTargetSoloExclusive:   // G4.5: the selected Track or Bus
+            {
+                engine::EntityId ownerId;
+                if (! selectedSendOwnerId (ownerId))
+                    return { id, { false, "no track or bus strip selected" }, false };
+                return soloStripExclusively (ownerId);
+            }
+
+            case UiActionId::MixerSoloClear:
+                return clearAllSolos();
+
             case UiActionId::MixerTrackSetInput:   // G4.1: setRecordingInputForTrack carries the channel
                 return { id, { false, "track input payload required" }, false };
 
@@ -9799,7 +9840,10 @@ private:
                                                                         engine::EntityId trackId,
                                                                         Fn&& fn)
     {
-        const UiActionState state = registry_.stateFor (id, context_);
+        // G4.5: the strip is NAMED by id (a painted cell's click), so no selection gate applies — only a
+        // loaded project. (The bus twin once used the selected-target verb's gate and refused a bus cell's
+        // click whenever no strip was selected.)
+        const UiActionState state { context_.projectLoaded, context_.projectLoaded ? "" : "no project loaded" };
         if (! state.enabled)
             return { id, state, false };
 
@@ -9840,7 +9884,7 @@ private:
                                                                       engine::EntityId busId,
                                                                       Fn&& fn)
     {
-        const UiActionState state = registry_.stateFor (id, context_);
+        const UiActionState state { context_.projectLoaded, context_.projectLoaded ? "" : "no project loaded" };   // G4.5: named by id
         if (! state.enabled)
             return { id, state, false };
 
@@ -9912,6 +9956,9 @@ private:
         context_.pianoRollScaleChoice = project_.scale.isValid() ? project_.scale.scale : 0;
         context_.canUndo = undo_.canUndo();
         context_.canRedo = undo_.canRedo();
+        context_.anySoloActive =   // G4.5: the header's SOLO lights, Clear All Solos enables
+            std::any_of (project_.tracks.begin(), project_.tracks.end(), [] (const engine::Track& t) { return t.strip.soloed; })
+            || std::any_of (project_.buses.begin(), project_.buses.end(), [] (const engine::Bus& b) { return b.strip.soloed; });
         for (std::size_t index = 0; index < project_.locatePoints.size(); ++index)
             context_.locatePoints[index] = project_.locatePoints[index];
         std::erase_if (selectedTimelineClipIds_, [this] (engine::EntityId clipId) {
@@ -10362,6 +10409,62 @@ private:
     // One seam for every strip-scalar dispatcher (gain/pan/mute/solo/solo-safe on a Track or
     // Bus): live when the running engine has a graph and neither the strip's fader nor its pan
     // is automation-owned; the full rebuild path otherwise.
+    // G4.5: set every Track's and Bus's solo to `wanted (id)` in one transaction group — only the strips
+    // that change get an edit — then adopt it live (one global mute-mask refresh) or by rebuild.
+    template <typename Wanted>
+    [[nodiscard]] UiActionDispatchResult applySoloSet (UiActionId id, UiActionState state, Wanted&& wanted)
+    {
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        bool changed = false;
+        for (const engine::Track& track : project_.tracks)
+        {
+            const bool solo = wanted (track.id);
+            if (solo == track.strip.soloed)
+                continue;
+            changed = true;
+            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setTrackMixScalars (
+                                      track.id, track.strip.linearGain, track.strip.pan,
+                                      track.strip.muted, solo, track.strip.soloSafe)).applied())
+                return { id, { false, "invalid strip edit" }, false };
+        }
+        for (const engine::Bus& bus : project_.buses)
+        {
+            const bool solo = wanted (bus.id);
+            if (solo == bus.strip.soloed)
+                continue;
+            changed = true;
+            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setBusMixScalars (
+                                      bus.id, bus.strip.linearGain, bus.strip.pan,
+                                      bus.strip.muted, solo, bus.strip.soloSafe)).applied())
+                return { id, { false, "invalid strip edit" }, false };
+        }
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+        if (! changed)
+            return { id, { false, "no solo to change" }, false };
+
+        bool adopted = false;
+        if (canTakeScalarEditLive())
+        {
+            LiveScalarDelta delta;
+            delta.refreshMuteMask = true;   // solo is one global mask decision
+            adopted = adoptScalarEditLive (std::move (nextProject), std::move (nextUndo), delta);
+        }
+        else
+        {
+            adopted = adoptEditedProject (std::move (nextProject), std::move (nextUndo));
+        }
+        if (! adopted)
+            return { id, { false, "solo edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
     [[nodiscard]] bool adoptStripScalarEdit (engine::EntityId ownerId,
                                              bool ownerIsBus,
                                              const engine::MixerStripState& edited,

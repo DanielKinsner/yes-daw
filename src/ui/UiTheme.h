@@ -39,6 +39,8 @@ struct UiTheme
         static juce::Colour meterYellow() noexcept { return juce::Colour (0xffe2c832); }
         static juce::Colour dangerRed() noexcept { return juce::Colour (0xffff5757); }
         static juce::Colour recordArm() noexcept { return juce::Colour (0xffe8503c); }   // G4.1: the strip's lit R cell
+        static juce::Colour soloActive() noexcept { return Color::accentAmber(); }       // G4.5: the header's lit SOLO
+        static juce::Colour soloActiveText() noexcept { return Color::timelineCanvas(); }
 
         static juce::Colour timelineGrid() noexcept { return juce::Colour (0xff202a33); }
         static juce::Colour timelineCanvas() noexcept { return juce::Colour (0xff090e12); }
@@ -243,6 +245,7 @@ struct UiTheme
         static constexpr int headerExportCancelWidth = 28;
         static constexpr int headerTransportButtonSize = 44;
         static constexpr int headerLoopButtonWidth = 56;
+        static constexpr int headerSoloClearWidth = 40;   // G4.5: the SOLO indicator; 40 keeps the master card at windowMinWidth
         static constexpr int headerMidiInLampWidth = 30;   // G3.10: the MIDI input lamp in the time readout's corner
         static constexpr int headerMidiInLampHeight = 12;
         static constexpr int headerMidiInLampInset = 3;

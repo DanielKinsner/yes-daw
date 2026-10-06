@@ -1411,7 +1411,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 84u));   // G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 85u));   // G4.5: + the header SOLO; G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     // G4.0a restores SS-1's native empty project; it contains one empty audio track.
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
@@ -23898,6 +23898,114 @@ TEST_CASE ("G4.4 the Compressor editor's Sidechain chooser keys it from another 
     REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).kind == "EQ");
     REQUIRE_FALSE (chooser->isVisible());
     REQUIRE_FALSE (static_cast<bool> (probe()["fxEditor"]["sidechainVisible"]));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G4.5 — solo UX: Ctrl-click (Cmd on macOS) a Solo cell solos ONLY that strip (mixer strip or track list),
+// one undo step, and Ctrl-clicking the only soloed strip clears it; the header's SOLO lights while any strip
+// is soloed and a click clears every solo in one step (Clear All Solos, disabled with nothing soloed);
+// the strip menus and the track header carry Solo Exclusively, Clear All Solos and Solo Safe.
+TEST_CASE ("G4.5 Ctrl-click solos exclusively; the header SOLO clears every solo", "[ui][input][shell][mixer][solo-ux]")
+{
+    const auto bundlePath = makeTempBundlePath ("solo-ux");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::mixerHeight);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (strips != nullptr);
+    REQUIRE (rail != nullptr);
+    const auto soloed = [&bundlePath] {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        std::vector<bool> out;
+        for (const auto& track : project.tracks)
+            out.push_back (track.strip.soloed);
+        for (const auto& bus : project.buses)
+            out.push_back (bus.strip.soloed);
+        return out;
+    };
+    const auto clickSolo = [&] (int strip, juce::ModifierKeys mods) {
+        const juce::Rectangle<int> cell = yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, strip, 0);
+        REQUIRE_FALSE (cell.isEmpty());
+        mouseDownAt (*strips, cell.getCentre() - strips->getPosition(), mods);
+    };
+    const juce::ModifierKeys plain = juce::ModifierKeys::leftButtonModifier;
+    const juce::ModifierKeys exclusive (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::commandModifier);
+    auto* soloClear = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "header.solo.clear"));
+    REQUIRE (soloClear != nullptr);
+    const auto anySolo = [&shell] {
+        return static_cast<bool> (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["mixer"]["anySolo"]);
+    };
+
+    // Nothing soloed: the header's SOLO is dark and inert; Clear All Solos says why.
+    REQUIRE_FALSE (soloClear->isEnabled());
+    REQUIRE_FALSE (anySolo());
+    REQUIRE_FALSE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::MixerSoloClear).enabled);
+    REQUIRE (std::string (yesdaw::ui::mainComponentActionState (*shell, UiActionId::MixerSoloClear).disabledReason) == "no solo active");
+
+    // Plain clicks add solos; a Ctrl-click keeps ONLY its strip — one undo step puts the others back.
+    clickSolo (0, plain);
+    clickSolo (3, plain);   // the bus
+    REQUIRE (soloed() == std::vector<bool> { true, false, false, true });
+    REQUIRE (soloClear->isEnabled());
+    REQUIRE (anySolo());
+    clickSolo (1, exclusive);
+    REQUIRE (soloed() == std::vector<bool> { false, true, false, false });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (soloed() == std::vector<bool> { true, false, false, true });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (soloed() == std::vector<bool> { false, true, false, false });
+
+    // Ctrl-clicking the only soloed strip clears it.
+    clickSolo (1, exclusive);
+    REQUIRE (soloed() == std::vector<bool> { false, false, false, false });
+    REQUIRE_FALSE (soloClear->isEnabled());
+
+    // The track list's S cell takes the same gesture.
+    clickSolo (0, plain);
+    const juce::Rectangle<int> railSolo = yesdaw::ui::mainComponentPaintedRailCellBounds (*shell, 2, 1);
+    REQUIRE_FALSE (railSolo.isEmpty());
+    mouseDownAt (*rail, railSolo.getCentre() - rail->getPosition(), exclusive);
+    REQUIRE (soloed() == std::vector<bool> { false, false, true, false });
+
+    // The header's SOLO clears every solo in one step; Ctrl+Z brings them all back.
+    clickSolo (0, plain);
+    REQUIRE (soloed() == std::vector<bool> { true, false, true, false });
+    soloClear->triggerClick();
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    REQUIRE (soloed() == std::vector<bool> { false, false, false, false });
+    REQUIRE_FALSE (soloClear->isEnabled());
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (soloed() == std::vector<bool> { true, false, true, false });
+    REQUIRE (soloClear->isEnabled());
+
+    // The menus carry the solo verbs: Solo Exclusively, Clear All Solos and Solo Safe on every strip kind
+    // and the track header.
+    for (const auto target : { yesdaw::ui::ContextMenuTarget::MixerStrip, yesdaw::ui::ContextMenuTarget::MixerBusStrip,
+                               yesdaw::ui::ContextMenuTarget::TrackHeader })
+    {
+        const auto entries = yesdaw::ui::contextMenuEntries (target);
+        const auto has = [&entries] (UiActionId action) {
+            return std::any_of (entries.begin(), entries.end(), [action] (const auto& entry) { return entry.action == action; });
+        };
+        REQUIRE (has (UiActionId::MixerTargetSoloExclusive));
+        REQUIRE (has (UiActionId::MixerSoloClear));
+        REQUIRE (has (UiActionId::MixerTargetToggleSoloSafe));
+    }
+
+    // Solo Exclusively from the bus strip's menu acts on that bus.
+    openStripMenu (*shell, 3);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerTargetSoloExclusive);
+    REQUIRE (soloed() == std::vector<bool> { false, false, false, true });
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

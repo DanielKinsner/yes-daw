@@ -81,6 +81,7 @@ public:
     // N1: painted Mute/Solo cells — a click toggles THAT strip without stealing the selection.
     std::function<std::pair<int, int> (juce::Point<int>)> muteSoloCellAtPosition;
     std::function<void (int, int)> onMuteSoloCellClicked;
+    std::function<void (int)> onSoloCellExclusive;   // G4.5: Ctrl-click (Cmd on macOS) a Solo cell
     // G4.1: the painted I/O slots — a click opens THAT slot's choices (a menu of inputs / outputs).
     std::function<std::pair<int, int> (juce::Point<int>)> ioRowAtPosition;   // strip, row (kMixerIo*Row)
     std::function<void (int, int, juce::Point<int>)> onIoRowClicked;         // strip, row, position (strips-local)
@@ -106,7 +107,7 @@ public:
         const juce::Point<int> shellPosition = position + getPosition();
         if (muteSoloCellAtPosition)
             if (const auto [cellStrip, cellIndex] = muteSoloCellAtPosition (shellPosition); cellStrip >= 0 && cellIndex >= 0)
-                return cellIndex == 0 ? "Solo: click toggles"
+                return cellIndex == 0 ? juce::String::fromUTF8 ("Solo: click toggles \xc2\xb7 Ctrl-click solos only this strip")
                      : cellIndex == 1 ? "Mute: click toggles"
                                       : "Arm: click toggles record arm";   // G4.1
         if (ioRowAtPosition)
@@ -220,7 +221,10 @@ public:
             const auto [cellStrip, cellIndex] = muteSoloCellAtPosition (shellPosition);
             if (cellStrip >= 0 && cellIndex >= 0)
             {
-                onMuteSoloCellClicked (cellStrip, cellIndex);
+                if (cellIndex == 0 && event.mods.isCommandDown() && onSoloCellExclusive)
+                    onSoloCellExclusive (cellStrip);
+                else
+                    onMuteSoloCellClicked (cellStrip, cellIndex);
                 return;
             }
         }

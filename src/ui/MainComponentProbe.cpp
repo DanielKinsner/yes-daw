@@ -370,6 +370,7 @@ juce::var MainComponent::buildProbeLayout()
         put ("inspector.quantize.apply", inspectorQuantizeApply.getBounds());
     }
     put ("header.midi.in", headerLayout().midiIn);   // G3.10: the input lamp
+    put ("header.solo.clear", headerSoloClear.getBounds());   // G4.5: the SOLO indicator
     if (appModel.context().mixerDockVisible)
     {
         put ("dock", mixerPanelBounds());
@@ -917,6 +918,7 @@ juce::String MainComponent::buildStateProbeJson()
             strips.add (juce::var (strip));
         }
         mixer->setProperty ("strips", strips);
+        mixer->setProperty ("anySolo", appModel.context().anySoloActive);   // G4.5: the header's SOLO is lit
         root->setProperty ("mixer", juce::var (mixer));
     }
     {
@@ -1605,7 +1607,7 @@ std::vector<juce::Rectangle<int>> mainComponentHeaderRects (const juce::Componen
         const MainComponent::HeaderLayout h = mainComponent->headerLayout();
         for (const juce::Rectangle<int>& r : { h.menuBar, h.newButton, h.openButton, h.saveButton, h.importButton,
                                                h.undoButton, h.redoButton, h.exportButton, h.locateStart, h.play,
-                                               h.stop, h.record, h.timeReadout, h.tempoMeterBox, h.loop,   // G3.10: the MIDI lamp sits INSIDE the time readout, not beside it
+                                               h.stop, h.record, h.timeReadout, h.tempoMeterBox, h.loop, h.soloClear,   // G4.5: SOLO; G3.10: the MIDI lamp sits INSIDE the time readout, not beside it
                                                h.masterCard, h.gear, h.bitDepth, h.range, h.outputDevice,
                                                h.inputDevice, h.inputChannel, h.arm, h.monitor, h.comp })
             if (! r.isEmpty())

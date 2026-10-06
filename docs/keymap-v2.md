@@ -256,3 +256,5 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Send to New Bus (`mixer.send.add_new_bus`)
 - Route to New Bus (`mixer.track.route_new_bus`)
 - Insert Sidechain (`mixer.fx.insert.sidechain`)
+- Solo Exclusively (`mixer.target.solo_exclusive`)
+- Clear All Solos (`mixer.solo.clear`)

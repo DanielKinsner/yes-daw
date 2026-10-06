@@ -571,6 +571,31 @@ void MainComponent::configureMixerControls()
         repaintAll();
     };
     fxEditor.onPresets = [this] { showFxPresetsMenu(); };   // G4.2 cp7 (ADR-0050)
+    // G4.5: the header's SOLO — lit while any strip is soloed; a click clears them all (one undo step).
+    headerSoloClear.setComponentID ("header.solo.clear");
+    headerSoloClear.setName ("Clear All Solos");
+    headerSoloClear.setButtonText ("SOLO");
+    headerSoloClear.onClick = [this] {
+        (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerSoloClear);
+        refreshActionState();
+        repaintAll();
+    };
+    addAndMakeVisible (headerSoloClear);
+    // G4.5: Ctrl-click (Cmd on macOS) a strip's Solo cell solos only that strip.
+    mixerStripsInput.onSoloCellExclusive = [this] (int stripIndex) {
+        const auto& tracks = appModel.project().tracks;
+        const auto& buses = appModel.project().buses;
+        if (stripIndex >= 0)
+        {
+            const std::size_t strip = static_cast<std::size_t> (stripIndex);
+            if (strip < tracks.size())
+                (void) appModel.soloStripExclusively (tracks[strip].id);
+            else if (strip - tracks.size() < buses.size())
+                (void) appModel.soloStripExclusively (buses[strip - tracks.size()].id);
+        }
+        refreshActionState();
+        repaintAll();
+    };
     fxEditor.onSidechain = [this] (int choice) {   // G4.4 (ADR-0051): the chooser's pick keys the Compressor
         if (selectedFxParamSlot < 0 || choice < 0)
             return;
