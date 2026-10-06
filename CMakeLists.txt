@@ -872,6 +872,17 @@ endif()
 yesdaw_harden(YesDawMidiFxCheck)
 add_test(NAME YesDawMidiFxCheck COMMAND $<TARGET_FILE:YesDawMidiFxCheck>)
 
+# --- Compressor sidechain key check (G4.4 / ADR-0051: a Compressor keyed by another strip, rendered) ---
+add_executable(YesDawSidechainKeyCheck tests/compressor_sidechain_tests.cpp)
+target_include_directories(YesDawSidechainKeyCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawSidechainKeyCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawSidechainKeyCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawSidechainKeyCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawSidechainKeyCheck)
+add_test(NAME YesDawSidechainKeyCheck COMMAND $<TARGET_FILE:YesDawSidechainKeyCheck>)
+
 # --- Sampler check (G3.9 / ADR-0048: pads on the Track referencing Assets; one-shot + pitched; render goldens) ---
 add_executable(YesDawSamplerCheck tests/sampler_tests.cpp)
 target_include_directories(YesDawSamplerCheck PRIVATE ${YESDAW_SRC_DIR})

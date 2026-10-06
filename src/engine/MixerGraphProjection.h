@@ -115,6 +115,14 @@ struct MixerBusProjection
     std::size_t outputBusIndex = kOutputToMaster;
 };
 
+// ADR-0051: one Compressor key — the Compressor insert's node, and the fader of the strip whose
+// pre-fader signal (after its inserts) keys it. The build wires the edge once every strip exists.
+struct MixerSidechainKey
+{
+    NodeId compressorNodeId = 0;
+    NodeId sourceFaderNodeId = 0;
+};
+
 struct MixerProjectionInputs
 {
     GraphId id = 0;
@@ -131,6 +139,7 @@ struct MixerProjectionInputs
     std::vector<MixerTrackProjection> tracks;
     std::vector<MixerBusProjection> buses;
     std::vector<CompiledAutomationLane> automationLanes;
+    std::vector<MixerSidechainKey> sidechainKeys {};   // ADR-0051
 
     // E19/R12: the master fader sits ONE node id below the master sum — one law shared by the
     // graph build below and the live scalar lane's control-side addressing (UiAppModel).
@@ -258,6 +267,7 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
     inputs.nodes.reserve (projection.tracks.size() * 7u + supportNodeCount + insertNodeCount + sendNodeCount + projection.buses.size() * 5u + 2u);
 
     std::vector<Node*> masterBusInputs;
+    std::vector<std::pair<NodeId, Node*>> preFaderTaps;   // ADR-0051: fader id -> the node feeding it
     masterBusInputs.reserve (projection.tracks.size() + projection.buses.size());
 
     std::vector<std::vector<Node*>> busInputs (projection.buses.size());
@@ -382,6 +392,7 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         auto fader = std::make_unique<FaderNode> (track.faderNodeId, chainChannels);
         FaderNode* const faderPtr = fader.get();
         faderPtr->setInput (chainHead);
+        preFaderTaps.push_back ({ track.faderNodeId, chainHead });   // ADR-0051: a key's tap point
         faderPtr->setTargetGain (track.linearGain);
 
         struct ActiveSendFader
@@ -656,6 +667,7 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         auto busFader = std::make_unique<FaderNode> (busFaderId, busFaderChannels);
         FaderNode* const busFaderPtr = busFader.get();
         busFaderPtr->setInput (busChainHead);
+        preFaderTaps.push_back ({ busFaderId, busChainHead });   // ADR-0051: a key's tap point
         busFaderPtr->setTargetGain (bus.linearGain);
 
         auto busPan = std::make_unique<PanNode> (bus.panNodeId,
@@ -781,6 +793,27 @@ inline void pushUniqueMixerInput (std::vector<Node*>& inputs, Node* node)
         inputs.nodes.push_back (std::move (insertNode));
     inputs.nodes.push_back (std::move (masterFader));
     inputs.nodes.push_back (std::move (master));
+
+    // ADR-0051: every Compressor key, now that every strip's pre-fader tap exists. A key whose
+    // Compressor or source strip is not in the graph is a projection error, never a silent drop.
+    for (const MixerSidechainKey& key : projection.sidechainKeys)
+    {
+        CompressorNode* compressor = nullptr;
+        for (const std::unique_ptr<Node>& node : inputs.nodes)
+            if (node != nullptr && node->properties().id == key.compressorNodeId)
+                compressor = dynamic_cast<CompressorNode*> (node.get());
+        Node* tap = nullptr;
+        for (const auto& [faderNodeId, preFader] : preFaderTaps)
+            if (faderNodeId == key.sourceFaderNodeId)
+                tap = preFader;
+        if (compressor == nullptr || tap == nullptr)
+        {
+            if (error != nullptr)
+                error->code = MixerProjectionError::Code::GraphBuildFailed;
+            return nullptr;
+        }
+        compressor->setSidechainInput (tap);
+    }
 
     GraphBuildError graphError;
     std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &graphError);

@@ -486,7 +486,8 @@ template <typename ClipSourceProvider>
         if (! bus.strip.fxChain.empty()
             || detail::busHasSendRoute (config, bus.id)
             || detail::busHasTrackOutput (project, bus.id)
-            || detail::busIsBusRouteDestination (project, bus.id))   // R13
+            || detail::busIsBusRouteDestination (project, bus.id)   // R13
+            || project.keysAnyCompressor (bus.id))                   // ADR-0051: its key is a real (silent) edge
             projectedBusIndices[busIndex] = projectedBusCount++;
     }
 
@@ -894,6 +895,29 @@ template <typename ClipSourceProvider>
     for (const FxInsert& insert : project.masterStrip.fxChain)
         automationTargets.push_back ({ insert.id, AutomationTargetRole::FxInsertParam,
                                        projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx) });
+
+    // ADR-0051: each Compressor key — the insert's node and its source strip's fader (a Track's or a
+    // Bus's; key-source buses always project, above).
+    {
+        const auto collectKeys = [&project, &projection] (const std::vector<FxInsert>& chain)
+        {
+            for (const FxInsert& insert : chain)
+            {
+                if (insert.kind != FxKind::Compressor || ! insert.sidechainSourceId.isValid())
+                    continue;
+                const NodeId sourceFader = project.findTrack (insert.sidechainSourceId) != nullptr
+                    ? projectMixerNodeIdForTrack (insert.sidechainSourceId, ProjectMixerNodeRole::Fader)
+                    : projectMixerNodeIdForEntity (insert.sidechainSourceId, ProjectMixerNodeRole::Fader);
+                projection.sidechainKeys.push_back (
+                    { projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx), sourceFader });
+            }
+        };
+        for (const Track& track : project.tracks)
+            collectKeys (track.strip.fxChain);
+        for (const Bus& bus : project.buses)
+            collectKeys (bus.strip.fxChain);
+        collectKeys (project.masterStrip.fxChain);
+    }
 
     // R15: Off means the graph carries NO compiled lanes — playback and offline render ignore
     // every stored lane identically (export == playback), and live scalar posts hit

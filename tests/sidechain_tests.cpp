@@ -9,6 +9,7 @@
 //     the single resolved stream the pin sees.
 
 #include "engine/GraphBuilder.h"
+#include "engine/nodes/CompressorNode.h"
 #include "engine/nodes/IdentityDcNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/SidechainGainNode.h"
@@ -225,4 +226,57 @@ TEST_CASE ("Sidechain pin sees multiple sources converged through an explicit Su
     const std::vector<float> out = render (*graph, 32);
     for (float v : out)
         REQUIRE (v == Approx (1.0f).margin (1.0e-5f));
+}
+
+// ADR-0051: a KEYED CompressorNode is a sidechain consumer — [main, key] are real edges, the builder
+// keeps main first, binds the key, and PDC delays the shorter (main) path so both arrive aligned. At its
+// default (ratio 1) the Compressor is unity, so the output is exactly the main path, delayed by the key's
+// latency: zeros, then the main signal from frame kLatency.
+TEST_CASE ("A keyed Compressor is a PDC convergence point and binds its key", "[sidechain][graph][pdc][compressor]")
+{
+    constexpr NodeId kMain = 130, kKey = 131, kComp = 132;
+    constexpr int    kLatency = 5;
+    constexpr int    kFrames  = 24;
+
+    auto mainSrc = std::make_unique<IdentityDcNode> (kMain, 0.5f, 2);
+    auto keySrc = std::make_unique<LatentImpulseSource> (kKey, kLatency);
+    auto compressor = std::make_unique<yesdaw::engine::CompressorNode> (kComp);
+    compressor->setInput (mainSrc.get());
+    compressor->setSidechainInput (keySrc.get());
+    REQUIRE (compressor->directInputs().size() == 2u);
+    REQUIRE (compressor->directInputs()[0] == mainSrc.get());   // main first, key second
+    REQUIRE_FALSE (compressor->isKeyBound());                    // nothing bound before the build
+
+    yesdaw::engine::CompressorNode* const compressorPtr = compressor.get();
+    auto master = std::make_unique<MasterNode> (kMasterId, 2);
+    master->setInputNodes ({ compressor.get() });
+
+    GraphBuilder::Inputs inputs;
+    inputs.id = 3;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = kFrames;
+    inputs.nodes.push_back (std::move (mainSrc));
+    inputs.nodes.push_back (std::move (keySrc));
+    inputs.nodes.push_back (std::move (compressor));
+    inputs.nodes.push_back (std::move (master));
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+    REQUIRE (error.code() == GraphBuildError::Code::None);
+    REQUIRE (graph->totalLatency() == kLatency);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::Latency) >= 1u);   // the main path was delayed
+    REQUIRE (graph->debugMultiInputNodesBound());
+    REQUIRE (compressorPtr->isKeyBound());
+    const CompiledNode* const node = compiledNodeById (*graph, kComp);
+    REQUIRE (node != nullptr);
+    REQUIRE (node->kind == CompiledNodeKind::Compressor);   // still a Compressor: live parameter edits reach it
+    REQUIRE (node->numInputs == 2u);
+
+    std::vector<float> left (static_cast<std::size_t> (kFrames), -999.0f);
+    std::vector<float> right (static_cast<std::size_t> (kFrames), -999.0f);
+    float* outs[2] = { left.data(), right.data() };
+    graph->process (outs, 2, kFrames);
+    for (int i = 0; i < kFrames; ++i)
+        REQUIRE (left[static_cast<std::size_t> (i)] == Approx (i < kLatency ? 0.0f : 0.5f).margin (1.0e-6f));
 }

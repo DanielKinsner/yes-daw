@@ -745,7 +745,8 @@ private:
             // input 1 the sidechain, so order is semantic. Keep its declared (directInputs) order, which the
             // PDC pass preserves positionally even when it splices a LatencyNode onto the shorter path.
             std::vector<std::size_t> orderedInputs = item.inputs;
-            if (orderedInputs.size() > 1u && item.kind != CompiledNodeKind::Sidechain)
+            if (orderedInputs.size() > 1u && item.kind != CompiledNodeKind::Sidechain
+                && item.kind != CompiledNodeKind::Compressor)   // ADR-0051: a keyed Compressor is [main, key]
             {
                 std::sort (orderedInputs.begin(), orderedInputs.end(),
                            [&items] (std::size_t a, std::size_t b)
@@ -961,6 +962,15 @@ private:
                 if (SidechainGainNode* sc = dynamic_cast<SidechainGainNode*> (cn.node))
                     sc->bindInputs (sidechainInputsFor (payload, cn));
             }
+            else if (cn.kind == CompiledNodeKind::Compressor && cn.numInputs > 1u)   // ADR-0051: the key
+            {
+                if (CompressorNode* compressor = dynamic_cast<CompressorNode*> (cn.node))
+                {
+                    const std::vector<SidechainGainNode::Input> resolved = sidechainInputsFor (payload, cn);
+                    if (resolved.size() >= 2u)
+                        compressor->bindKey (resolved[1].channels[0], resolved[1].channels[1]);
+                }
+            }
         }
     }
 
@@ -984,6 +994,12 @@ private:
             {
                 const SidechainGainNode* const sc = dynamic_cast<const SidechainGainNode*> (cn.node);
                 if (sc == nullptr || ! sc->isBound())
+                    return false;
+            }
+            else if (cn.kind == CompiledNodeKind::Compressor && cn.numInputs == 2u)   // ADR-0051
+            {
+                const CompressorNode* const compressor = dynamic_cast<const CompressorNode*> (cn.node);
+                if (compressor == nullptr || ! compressor->isKeyBound())
                     return false;
             }
             else if (cn.numInputs > 1u)

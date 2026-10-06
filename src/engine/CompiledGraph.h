@@ -398,7 +398,10 @@ public:
                 continue;
 
             const bool busLike = cn.kind == CompiledNodeKind::Sum || cn.kind == CompiledNodeKind::Master;
-            if (cn.numInputs == 1 && ! busLike && ! cn.aliasOk)
+            // ADR-0051: a keyed Compressor ([main, key]) processes its MAIN in place, like any one-input
+            // node; it reads the key through its bound pointer.
+            const bool mainOnly = cn.numInputs == 1 || (cn.numInputs == 2 && cn.kind == CompiledNodeKind::Compressor);
+            if (mainOnly && ! busLike && ! cn.aliasOk)
             {
                 const InputSlot& input = inputs[cn.inputsBegin];
                 if (input.fromSlot != kNoSlot)
@@ -714,6 +717,12 @@ public:
             {
                 const SidechainGainNode* const sc = dynamic_cast<const SidechainGainNode*> (cn.node);
                 if (sc == nullptr || ! sc->isBound())
+                    return false;
+            }
+            else if (cn.kind == CompiledNodeKind::Compressor && cn.numInputs == 2u)   // ADR-0051
+            {
+                const CompressorNode* const compressor = dynamic_cast<const CompressorNode*> (cn.node);
+                if (compressor == nullptr || ! compressor->isKeyBound())
                     return false;
             }
             else if (cn.numInputs > 1u)

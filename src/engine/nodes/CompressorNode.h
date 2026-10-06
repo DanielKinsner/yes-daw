@@ -10,6 +10,7 @@
 #include "engine/ParamSpec.h"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -57,9 +58,12 @@ public:
                                 kChannels, /*latencySamples*/ 0, id_, /*blockParallelSafe*/ false };
     }
 
+    // ADR-0051: [main] — or [main, key] when keyed. The key is a real graph edge (ADR-0014), so topo
+    // sort, cycle refusal and PDC see it; the builder keeps this declared order (main first).
     std::span<Node* const> directInputs() const noexcept override
     {
-        return std::span<Node* const> (&input_, input_ != nullptr ? 1u : 0u);
+        const std::size_t count = inputNodes_[1] != nullptr ? 2u : (inputNodes_[0] != nullptr ? 1u : 0u);
+        return std::span<Node* const> (inputNodes_.data(), count);
     }
 
     void prepare (double sampleRate, int /*maxBlockSize*/) override
@@ -118,7 +122,12 @@ public:
 
             const double left = channelSample (args, 0, frame);
             const double right = channels > 1 ? channelSample (args, 1, frame) : 0.0;
-            const double detector = std::max (std::fabs (left), std::fabs (right));
+            // ADR-0051: a keyed Compressor listens to its key (stereo-linked, the same law); otherwise
+            // to its own audio.
+            const double detector = keyLeft_ != nullptr
+                ? std::max (std::fabs (sanitizeInput (static_cast<double> (keyLeft_[frame]))),
+                            std::fabs (sanitizeInput (static_cast<double> (keyRight_[frame]))))
+                : std::max (std::fabs (left), std::fabs (right));
             const double inputDb = 20.0 * std::log10 (std::max (detector, kDetectorFloorLinear));
 
             const double alpha = inputDb > envelopeDb_ ? alphaForMs (attackMs) : alphaForMs (releaseMs);
@@ -157,9 +166,27 @@ public:
         publishedGainReductionDb_.store (0.0f, std::memory_order_release);
     }
 
-    void release() override {}
+    void release() override
+    {
+        keyLeft_ = nullptr;
+        keyRight_ = nullptr;
+        keyBound_ = false;
+    }
 
-    void setInput (Node* in) noexcept { input_ = in; }
+    void setInput (Node* in) noexcept { inputNodes_[0] = in; }
+
+    // ADR-0051, control thread: the key's producer (the source strip's pre-fader point).
+    void setSidechainInput (Node* key) noexcept { inputNodes_[1] = key; }
+    [[nodiscard]] bool isKeyed() const noexcept { return inputNodes_[1] != nullptr; }
+
+    // Control thread, at graph build: the key's resolved buffers (a mono key feeds both detector sides).
+    void bindKey (const float* left, const float* right) noexcept
+    {
+        keyLeft_ = left;
+        keyRight_ = right != nullptr ? right : left;
+        keyBound_ = true;
+    }
+    [[nodiscard]] bool isKeyBound() const noexcept { return ! isKeyed() || (keyBound_ && keyLeft_ != nullptr); }
 
     void setParameters (double thresholdDb,
                         double ratio,
@@ -465,7 +492,10 @@ private:
     }
 
     NodeId id_;
-    Node* input_ = nullptr;
+    std::array<Node*, 2> inputNodes_ { nullptr, nullptr };   // [0] main, [1] the sidechain key (ADR-0051)
+    const float* keyLeft_ = nullptr;
+    const float* keyRight_ = nullptr;
+    bool keyBound_ = false;
     double sampleRate_ = 48000.0;
     std::int64_t rampLengthSamples_ = 240;
     std::int64_t runningFrame_ = 0;
