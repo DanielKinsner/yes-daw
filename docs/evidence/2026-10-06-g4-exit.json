@@ -1,0 +1,54 @@
+{
+  "checkpoint": "G4 exit — logical SS-5 'Mix the song' passes with built-ins, all earlier journeys restored (plan §6 G4; phase close-out per plan §8.5)",
+  "status": "Quiet drive batch PASS 7/7 (413 assertions) on 36e471b; ss7 now drives SS-5 as the plan writes it; exact-code CI recorded below.",
+  "date": "2026-10-06",
+  "host": "DESKTOP-7LC339R (Windows 11 Pro 10.0.26200), shared desktop, owner-authorized for the night",
+  "codeSha": "36e471b",
+  "montage": "docs/evidence/2026-10-06-g4.png (the bus EQ editor with its response; the bus Compressor's face; the Write ride on Bus 1 with the reverb bus and the master's Limiter; the measured loudness after playback)",
+  "ss5Journey": {
+    "planText": "route vocals to a new bus; EQ + compressor on it; send to a reverb bus; automate the bus fader with Write while playing; solo-safe the reverb; export",
+    "drivenBy": "tools/session-scripts/ss7-mix-the-song.ps1",
+    "route": "Step 3–4: a bus from the strip menu; track 1's OUTPUT slot routes it there (Step 9 also exercises the header's Route to New Bus and the send well's New Bus, each undone in one step)",
+    "eqAndCompressor": "Step 7–8: EQ then a Compressor in the bus's slots; their editors (response, gain-reduction face, reorder by drag, presets, sidechain)",
+    "reverbSend": "Step 14: track 1's next empty send well makes a NEW reverb bus (Bus 2) and sends to it; the bus takes a Reverb",
+    "writeAutomation": "Step 14: mode Write from the lanes' chooser; Bus 1's fader ridden by its knob while the song plays; at stop a Bus Fader lane holds the ride (31 points on the certifying run) and Write returns to Touch",
+    "soloSafe": "Step 14: a new bus is born solo-safe (R10); the bus strip menu's Solo Safe turns it off and on again; the reverb bus ends safe",
+    "export": "Step 14: Export WAV through the native save chooser; the export finishes (probe export.count, 100%) and a 69.5 MB WAV of the 180 s song is on disk"
+  },
+  "batch": {
+    "tag": "2026-10-06-g4exit-final",
+    "sessions": [
+      { "session": "ss1-first-minute", "assertions": 45, "result": "PASS" },
+      { "session": "ss2-mouse-then-keys", "assertions": 33, "result": "PASS" },
+      { "session": "ss3-edit-a-song", "assertions": 55, "result": "PASS" },
+      { "session": "ss4-track-instrument", "assertions": 19, "result": "PASS" },
+      { "session": "ss5-piano-roll", "assertions": 71, "result": "PASS" },
+      { "session": "ss6-write-a-beat", "assertions": 49, "result": "PASS" },
+      { "session": "ss7-mix-the-song", "assertions": 141, "result": "PASS", "covers": "Steps 0–15: the strip anatomy, routing, inserts and editors, sends, solo UX, keyboard Control target, automation v2, the master strip (G4.7), SS-5 as written (G4 exit)" }
+    ],
+    "totalAssertions": 413,
+    "failedAssertions": 0
+  },
+  "rawFailuresBeforeCertification": [
+    {
+      "batch": "2026-10-06-g4exit-ss7",
+      "session": "ss7",
+      "failures": 4,
+      "detail": "Step 8 (G4.2 cp7 presets): after the Threshold drag passed, the Presets click landed on the timeline under where the Compressor's editor had been (track 3's lane: Audio 3 became selected) — the editor was no longer showing; the following steps cascaded (no popup, no preset load, the editor's Close missing). Step 14 did not run.",
+      "cause": "Unknown. Same code passed this step in the G4.7 batch before it and in the three ss7 runs after it (ss7b, ss7c, the certifying batch). Recorded as an open observation, not a tooling flake: if it recurs, capture the probe document around the Threshold drag (fxEditor.visible per tick) before the next click."
+    },
+    {
+      "batch": "2026-10-06-g4exit-ss7b",
+      "session": "ss7",
+      "failures": 3,
+      "detail": "Step 14 first drafts: (1) the drive toggled Solo Safe expecting it on — a new bus is born solo-safe, so the toggle turned it off; (2) the drive pressed the fader rail's middle — the painted fader takes a press only on its knob, so no ride started, no lane, and Write did not return to Touch.",
+      "cause": "Drive errors, fixed in the script (assert the default, then off and on via the menu; press the knob through the new probe key mixer.strip.N.fader.thumb). The app behaved as designed."
+    }
+  ],
+  "ci": {
+    "e1d0f43": "every job green except Windows still running at writing (macOS passed this run)",
+    "dd65db7": "pending at writing",
+    "489b653": "queued behind it (pushed in order so each code commit gets its own run)",
+    "36e471b": "to be pushed after 489b653's run starts"
+  }
+}

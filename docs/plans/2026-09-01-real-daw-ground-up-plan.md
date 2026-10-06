@@ -685,6 +685,9 @@ with the MIDI FX; loop and audition; export the MIDI file; reopen it; render equ
 **Built-in mixer exit:** logical **SS-5 "Mix the song"** passes using built-ins, with all earlier
 journeys restored. *For Dan: mix a complete song with EQ, compression, sends and automation.*
 G4.8 is a separate later milestone; it does not block G5/G6 or imply that plugins are delivered.
+**2026-10-06 exit certified:** ss7 drives SS-5 as written (reverb bus on a send, Write on the bus
+fader while playing, solo-safe, export) on top of G4.0–G4.7; quiet batch 413/413.
+[Evidence](../evidence/2026-10-06-g4-exit.json) · [montage](../evidence/2026-10-06-g4.png).
 
 - **G4.0a — Restore the basic journeys (next checkpoint).** Classify the current SS-1–SS-3
   New/Import, empty-launch and startup failures from reproducible evidence. Repair app or harness

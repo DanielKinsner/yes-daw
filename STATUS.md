@@ -8,6 +8,28 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (late night) — G4 done: SS-5 "Mix the song" passes with built-ins
+
+**Now:** **G4 is certified** (plan §6 exit: logical SS-5 with built-ins, every earlier journey restored).
+**Next: G5 — project lifecycle**, starting with **G5.1** (import formats and cross-rate audio; its
+implementation ADR first, under ADR-0010). [Evidence](docs/evidence/2026-10-06-g4-exit.json) ·
+[montage](docs/evidence/2026-10-06-g4.png).
+
+**What a user can now do, end to end on the real app (ss7):** route a vocal to a bus with EQ and a
+compressor, send it to a new reverb bus, ride the bus fader in Write while the song plays (a Bus Fader lane
+appears; Write returns to Touch), keep the reverb solo-safe, put a Limiter on the master, read the mix's
+loudness, dim or mute the monitor, and export the mix to a WAV.
+
+**Gates:** quiet batch **413/413** (ss1–ss7) on 36e471b; ss7 now drives SS-5 as the plan writes it.
+The probe adds each strip's soloSafe, the export count / progress and each fader's knob.
+
+**Open observation:** one ss7 run lost the Compressor's editor between a Threshold drag and the Presets
+click (the click fell through to the timeline); the next three runs passed it. Unknown cause — if it
+recurs, capture fxEditor.visible per tick around the drag before acting.
+
+**CI:** e1d0f43 green on every job but Windows (running at writing; macOS passed this time); the later heads
+are pushed one at a time so each code commit gets its own run.
+
 ## 2026-10-06 (late night) — G4.7 done: the master strip (ADR-0053)
 
 **Now:** **G4.7** is done. **Next: the G4 exit** — ss7 does SS-5 as the plan writes it (a reverb bus fed by

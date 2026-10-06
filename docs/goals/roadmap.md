@@ -8,9 +8,9 @@
 > **Active arc — amended 2026-09-08.** Everything user-facing is governed by
 > [ADR-0046](../adr/0046-feel-first-shell-arc.md),
 > [ADR-0049](../adr/0049-autonomous-delivery-and-usable-song-milestone.md), and the
-> [Real-DAW plan G0–G8](../plans/2026-09-01-real-daw-ground-up-plan.md). Current work starts at G4.0a:
-> restore SS-1–SS-3, then prove shared keyboard control navigation. The remaining order is the built-in
-> mixer (G4.2–G4.7), G5 lifecycle, G6 polish/accessibility, the **Usable-song milestone**, separate
+> [Real-DAW plan G0–G8](../plans/2026-09-01-real-daw-ground-up-plan.md). G0–G4 are certified (G4, the
+> built-in mixer, on 2026-10-06). Current work is **G5 lifecycle** (starting at G5.1). The remaining order
+> is G5, G6 polish/accessibility, the **Usable-song milestone**, separate
 > G4.8/H18 plugin hosting (entered only after a recorded real-VST3 worker PASS), G7 recording, then G8
 > alpha. See `STATUS.md` for the exact live checkpoint. The engine horizons and recorded status below
 > remain history; where their ordering text differs, ADR-0049 and this active arc govern.
