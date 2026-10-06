@@ -574,6 +574,7 @@ void MainComponent::configureMixerControls()
     // G4.5: the header's SOLO — lit while any strip is soloed; a click clears them all (one undo step).
     headerSoloClear.setComponentID ("header.solo.clear");
     headerSoloClear.setName ("Clear All Solos");
+    headerSoloClear.setTitle ("Clear All Solos");   // the screen reader's name (the button paints SOLO)
     headerSoloClear.setButtonText ("SOLO");
     headerSoloClear.onClick = [this] {
         (void) appModel.dispatch (yesdaw::ui::UiActionId::MixerSoloClear);
