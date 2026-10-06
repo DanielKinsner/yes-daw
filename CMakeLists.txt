@@ -659,6 +659,13 @@ target_link_libraries(YesDawTimeCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawTimeCheck)
 catch_discover_tests(YesDawTimeCheck)
 
+# --- Resampler check (G5.1 cp2 / ADR-0055; pure, the band-limited rate-matched view) ---
+add_executable(YesDawResampleCheck tests/resample_tests.cpp)
+target_include_directories(YesDawResampleCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawResampleCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawResampleCheck)
+catch_discover_tests(YesDawResampleCheck)
+
 # --- Event-stream check (H1; pure, ADR-0009 generic block-sliced events + param changes) ---
 add_executable(YesDawEventCheck tests/event_tests.cpp)
 target_include_directories(YesDawEventCheck PRIVATE ${YESDAW_SRC_DIR})
