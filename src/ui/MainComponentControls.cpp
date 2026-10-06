@@ -533,6 +533,7 @@ void MainComponent::endControlNavigation()
     // The screen reader's focus returns to the shell, so the tick's adoption poll stays quiet.
     if (auto* handler = getAccessibilityHandler())
         handler->grabFocus();
+    lastSeenAccessibilityFocus = accessibilityFocusComponent();
 }
 
 void MainComponent::revalidateControlTarget()
@@ -585,19 +586,29 @@ void MainComponent::revalidateControlTarget()
 
 // A screen reader moved its focus onto one of our controls: that control becomes the target. A text
 // field with keyboard focus is text entry, not targeting; the shell or a painted surface is not a control.
-// Runs every UI tick, so it must stay quiet for the router's own focus moves: announceControlTarget puts
-// the screen reader on the target widget (equal to controlTargetWidget: early out), a painted target on
-// the mixer surface (not a control: early out), and endControlNavigation on the shell (early out).
-// Breaking any of those would make the tick re-target what the router just set.
-void MainComponent::adoptAccessibilityControlTarget()
+// Runs every UI tick, so it must stay quiet for the router's own focus moves: announceControlTarget and
+// endControlNavigation record the focus their move left (lastSeenAccessibilityFocus), so only a later,
+// outside move adopts. Without that the tick would re-target what the router just set.
+juce::Component* MainComponent::accessibilityFocusComponent()
 {
     juce::AccessibilityHandler* shellHandler = getAccessibilityHandler();
     if (shellHandler == nullptr)
-        return;
+        return nullptr;
     juce::AccessibilityHandler* focused = shellHandler->getChildFocus();
-    if (focused == nullptr || focused == shellHandler)
+    return focused != nullptr ? &focused->getComponent() : nullptr;
+}
+
+void MainComponent::adoptAccessibilityControlTarget()
+{
+    // Edge-triggered: only a MOVE of the screen reader's focus is targeting. A level-triggered poll
+    // re-adopted a stale focus every tick — when the router's own focus move onto the next control did
+    // not stick, Tab was dragged back (the 2026-10-05 ss7 drive "stuck" on project.save).
+    juce::Component* component = accessibilityFocusComponent();
+    if (component == lastSeenAccessibilityFocus.getComponent())
         return;
-    juce::Component* component = &focused->getComponent();
+    lastSeenAccessibilityFocus = component;
+    if (component == nullptr || component == this)
+        return;
     while (component != nullptr && component != this && ! isControlWidget (*component))
         component = component->getParentComponent();
     if (component == nullptr || component == this || component->hasKeyboardFocus (true)
@@ -671,6 +682,7 @@ void MainComponent::announceControlTarget (const ShellControl& control, bool val
             else
                 handler->grabFocus();
         }
+        lastSeenAccessibilityFocus = accessibilityFocusComponent();   // the router's own move is not targeting
         return;
     }
     // A painted control speaks through the surface that paints it: its title and value become the
@@ -684,6 +696,7 @@ void MainComponent::announceControlTarget (const ShellControl& control, bool val
         handler->notifyAccessibilityEvent (valueOnly ? juce::AccessibilityEvent::valueChanged
                                                      : juce::AccessibilityEvent::titleChanged);
     }
+    lastSeenAccessibilityFocus = accessibilityFocusComponent();
 }
 
 juce::var MainComponent::buildProbeControlTarget()

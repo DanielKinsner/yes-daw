@@ -686,6 +686,7 @@ private:
     void endControlNavigation();
     void revalidateControlTarget();
     void adoptAccessibilityControlTarget();
+    [[nodiscard]] juce::Component* accessibilityFocusComponent();
     bool adoptControlTargetId (const std::string& id);
     void refreshControlTargetRing (const std::vector<ShellControl>& controls);
     void paintControlTargetRing (juce::Graphics& g);
@@ -1392,6 +1393,7 @@ private:
     std::string lastControlActivation;   // harness: what the last Enter did ("click:<id>", "text:<id>", ...)
     int controlChooserPreview = -1;      // a chooser interaction's previewed item (applied on Enter)
     juce::Component::SafePointer<juce::Component> controlTargetWidget;   // the target's widget (null: painted / none)
+    juce::Component::SafePointer<juce::Component> lastSeenAccessibilityFocus;   // the poll adopts only a change
     bool controlGestureOpen = false;
     ShellControl controlGestureTarget;
     std::unique_ptr<juce::MouseListener> controlNavigationMouseListener;
