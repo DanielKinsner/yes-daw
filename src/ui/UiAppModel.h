@@ -1885,6 +1885,10 @@ public:
     // ADR-0058 cp3: TPDF dither for 16 / 24-bit export (on by default; float output is never dithered).
     void setExportDither (bool dither) noexcept { exportDither_ = dither; }
     [[nodiscard]] bool exportDither() const noexcept { return exportDither_; }
+    // ADR-0058 cp3: normalize the export's peak to -1 dBFS (off by default).
+    void setExportNormalize (bool normalize) noexcept { exportNormalize_ = normalize; }
+    [[nodiscard]] bool exportNormalize() const noexcept { return exportNormalize_; }
+    static constexpr double kExportNormalizeTargetDbfs = -1.0;
     [[nodiscard]] bool exportLoopRangeOnly() const noexcept { return exportLoopRangeOnly_; }
 
     // ADR-0058: start an export job — the render and the write run on a worker over a snapshot the job owns; the UI
@@ -1908,6 +1912,8 @@ public:
         app::ExportSnapshot snapshot;
         snapshot.destination = destinationPath;
         snapshot.dither = exportDither_;
+        if (exportNormalize_)
+            snapshot.normalizePeakDbfs = kExportNormalizeTargetDbfs;
         snapshot.format = exportBitDepth_ == UiExportBitDepth::Float32 ? app::ExportFormat::Float32
                         : exportBitDepth_ == UiExportBitDepth::Int24   ? app::ExportFormat::Int24
                                                                          : app::ExportFormat::Int16;
@@ -13013,6 +13019,7 @@ private:
     UiExportBitDepth exportBitDepth_ = UiExportBitDepth::Float32;
     bool exportLoopRangeOnly_ = false;
     bool exportDither_ = true;   // ADR-0058 cp3
+    bool exportNormalize_ = false;
     // Ruler range selection (parity item 25): transient, never persisted; -1 means no range.
     std::int64_t timelineRangeStartFrame_ = -1;
     std::int64_t timelineRangeEndFrame_ = -1;

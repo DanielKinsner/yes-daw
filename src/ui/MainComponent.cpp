@@ -126,6 +126,17 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     exportDitherToggle.onClick = [this] { appModel.setExportDither (exportDitherToggle.getToggleState()); };
     addAndMakeVisible (exportDitherToggle);
 
+    // ADR-0058 cp3: normalize the export's peak to -1 dBFS (off by default).
+    exportNormalizeToggle.setComponentID ("shell.export.normalize");
+    exportNormalizeToggle.setButtonText ("Normalize");
+    exportNormalizeToggle.setTooltip ("Normalize the export's peak to -1 dBFS (one gain for every file)");
+    exportNormalizeToggle.setTitle ("Export normalize");
+    exportNormalizeToggle.setClickingTogglesState (true);
+    exportNormalizeToggle.setToggleState (appModel.exportNormalize(), juce::dontSendNotification);
+    exportNormalizeToggle.setWantsKeyboardFocus (false);
+    exportNormalizeToggle.onClick = [this] { appModel.setExportNormalize (exportNormalizeToggle.getToggleState()); };
+    addAndMakeVisible (exportNormalizeToggle);
+
     exportAudioProgress.setComponentID (kExportAudioProgressComponentId);
     exportAudioProgress.setTooltip ("Audio export progress");
     exportAudioProgress.setName ("Export audio progress");
@@ -2101,12 +2112,14 @@ void MainComponent::resized()
     exportBitDepthChooser.setBounds (h.bitDepth);
     exportRangeChooser.setBounds (h.range);
     exportDitherToggle.setBounds (h.dither);   // ADR-0058 cp3
+    exportNormalizeToggle.setBounds (h.normalize);
     for (juce::Component* settingsControl : { static_cast<juce::Component*> (&audioDeviceChooser),
                                               static_cast<juce::Component*> (&audioInputDeviceChooser),
                                               static_cast<juce::Component*> (&recordingInputChannelChooser),
                                               static_cast<juce::Component*> (&exportBitDepthChooser),
                                               static_cast<juce::Component*> (&exportRangeChooser),
-                                              static_cast<juce::Component*> (&exportDitherToggle) })
+                                              static_cast<juce::Component*> (&exportDitherToggle),
+                                              static_cast<juce::Component*> (&exportNormalizeToggle) })
         settingsControl->setVisible (h.settingsVisible);
     menuBar.setBounds (h.menuBar);
     // M9: the LUFS readout rides the master card — it drops with it instead of being clipped.
@@ -2668,6 +2681,7 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
         h.bitDepth = cell (L::settingsBitDepthWidth);
         h.range = cell (L::settingsRangeWidth);
         h.dither = cell (L::settingsDitherWidth);   // ADR-0058 cp3
+        h.normalize = cell (L::settingsNormalizeWidth);
         h.outputDevice = cell (L::settingsDeviceWidth);
         h.inputDevice = cell (L::settingsDeviceWidth);
         h.inputChannel = cell (L::settingsChannelWidth);

@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <memory>
@@ -88,7 +89,14 @@ struct ExportSnapshot
     std::optional<std::pair<std::uint64_t, std::uint64_t>> range;   // [start, end) frames; none = the whole project
     std::vector<std::uint64_t> liveJobIds;   // jobs still winding down (a replaced project's): their temporaries are kept
     bool dither = true;                      // cp3: TPDF dither for 16 / 24-bit output (float is never dithered)
+    std::optional<double> normalizePeakDbfs; // cp3: one gain bringing the loudest file's peak here (none = off)
 };
+
+// ADR-0058 cp3: the normalize gain — the target peak over the measured one; silence (peak 0) is never boosted.
+[[nodiscard]] inline double exportNormalizeGain (double peak, double targetDbfs) noexcept
+{
+    return peak > 0.0 ? std::pow (10.0, targetDbfs / 20.0) / peak : 1.0;
+}
 
 class ExportJob
 {
@@ -256,6 +264,16 @@ private:
             abandon (writer);
             return finish (ExportJobState::Failed, ExportFailure::Write, "Export failed: could not write " + name + ": " + opened.message);
         }
+        // Normalize: one gain from the file's peak, applied before dither.
+        double gain = 1.0;
+        if (snapshot_.normalizePeakDbfs.has_value())
+        {
+            double peak = 0.0;
+            for (const float sample : samples)
+                peak = std::max (peak, static_cast<double> (std::abs (sample)));
+            gain = exportNormalizeGain (peak, *snapshot_.normalizePeakDbfs);
+        }
+        std::vector<float> scaled;
         std::optional<io::TpdfDither> dither;
         if (snapshot_.dither && bits != 32u)
             dither.emplace (0u, rendered.channels);   // the mix is file 0 of its export
@@ -274,9 +292,16 @@ private:
                 return finish (ExportJobState::Cancelled, ExportFailure::None, "Export cancelled");
             }
             const std::uint64_t chunk = std::min<std::uint64_t> (kWriteChunkFrames, frames - done);
-            const io::WavResult appended = writer.append (samples.subspan (static_cast<std::size_t> (done) * rendered.channels,
-                                                                          static_cast<std::size_t> (chunk) * rendered.channels),
-                                                          dither.has_value() ? &*dither : nullptr);
+            std::span<const float> chunkSamples = samples.subspan (static_cast<std::size_t> (done) * rendered.channels,
+                                                                   static_cast<std::size_t> (chunk) * rendered.channels);
+            if (gain != 1.0)
+            {
+                scaled.resize (chunkSamples.size());
+                for (std::size_t i = 0; i < chunkSamples.size(); ++i)
+                    scaled[i] = static_cast<float> (static_cast<double> (chunkSamples[i]) * gain);
+                chunkSamples = std::span<const float> (scaled.data(), scaled.size());
+            }
+            const io::WavResult appended = writer.append (chunkSamples, dither.has_value() ? &*dither : nullptr);
             if (! appended.ok())
             {
                 abandon (writer);

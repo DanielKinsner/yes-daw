@@ -545,3 +545,58 @@ TEST_CASE ("ADR-0058 a range exports exactly its frames; a range past the end is
     REQUIRE_FALSE (latch.held.load());
     REQUIRE_FALSE (std::filesystem::exists (past));
 }
+
+TEST_CASE ("ADR-0058 normalize brings the peak to the target with one gain, and leaves silence silent", "[export-options]")
+{
+    const auto directory = scratch ("normalize");
+    const Fixture f (48'000, 48'000.0);
+    const engine::OfflineRenderResult full = f.renderReference();
+
+    const auto plain = directory / "plain.wav";
+    const auto normalized = directory / "normalized.wav";
+    for (const bool normalize : { false, true })
+    {
+        app::ExportSnapshot snapshot = f.snapshot (normalize ? normalized : plain);
+        if (normalize)
+            snapshot.normalizePeakDbfs = -1.0;
+        app::ExportJob job (normalize ? 52 : 51, std::move (snapshot));
+        job.start();
+        waitTerminal (job);
+        job.join();
+        REQUIRE (job.state() == app::ExportJobState::Succeeded);
+    }
+    io::Float32Wav before;
+    io::Float32Wav after;
+    REQUIRE (io::readFloat32WavFile (plain, before).ok());
+    REQUIRE (io::readFloat32WavFile (normalized, after).ok());
+    REQUIRE (before.interleavedSamples.size() == after.interleavedSamples.size());
+    double peak = 0.0;
+    std::size_t loudest = 0;
+    for (std::size_t i = 0; i < after.interleavedSamples.size(); ++i)
+        if (std::abs (after.interleavedSamples[i]) > peak)
+        {
+            peak = std::abs (after.interleavedSamples[i]);
+            loudest = i;
+        }
+    INFO ("peak " << 20.0 * std::log10 (peak) << " dBFS");
+    REQUIRE (std::abs (20.0 * std::log10 (peak) - (-1.0)) < 0.01);
+    const double gain = static_cast<double> (after.interleavedSamples[loudest]) / static_cast<double> (before.interleavedSamples[loudest]);
+    for (std::size_t i = 0; i < after.interleavedSamples.size(); i += 97)   // one gain everywhere
+        REQUIRE (std::abs (static_cast<double> (after.interleavedSamples[i]) - gain * static_cast<double> (before.interleavedSamples[i])) < 1.0e-6);
+
+    // Silence is never boosted.
+    Fixture silent (24'000, 48'000.0);
+    std::fill (silent.source.begin(), silent.source.end(), 0.0f);
+    const auto quiet = directory / "silent.wav";
+    app::ExportSnapshot snapshot = silent.snapshot (quiet);
+    snapshot.normalizePeakDbfs = -1.0;
+    app::ExportJob job (53, std::move (snapshot));
+    job.start();
+    waitTerminal (job);
+    job.join();
+    REQUIRE (job.state() == app::ExportJobState::Succeeded);
+    io::Float32Wav silence;
+    REQUIRE (io::readFloat32WavFile (quiet, silence).ok());
+    REQUIRE (std::all_of (silence.interleavedSamples.begin(), silence.interleavedSamples.end(), [] (float s) { return s == 0.0f; }));
+    REQUIRE (app::exportNormalizeGain (0.0, -1.0) == 1.0);
+}

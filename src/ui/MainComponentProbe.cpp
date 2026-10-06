@@ -1685,7 +1685,7 @@ std::vector<juce::Rectangle<int>> mainComponentHeaderRects (const juce::Componen
         for (const juce::Rectangle<int>& r : { h.menuBar, h.newButton, h.openButton, h.saveButton, h.importButton,
                                                h.undoButton, h.redoButton, h.exportButton, h.locateStart, h.play,
                                                h.stop, h.record, h.timeReadout, h.tempoMeterBox, h.loop, h.soloClear,   // G4.5: SOLO; G3.10: the MIDI lamp sits INSIDE the time readout, not beside it
-                                               h.masterCard, h.gear, h.bitDepth, h.range, h.dither, h.outputDevice,
+                                               h.masterCard, h.gear, h.bitDepth, h.range, h.dither, h.normalize, h.outputDevice,
                                                h.inputDevice, h.inputChannel, h.arm, h.monitor, h.comp })
             if (! r.isEmpty())
                 rects.push_back (r);

@@ -11,7 +11,8 @@ Older entries below are dated history, not competing "Now" instructions.
 ## 2026-10-06 (night) — G5.3 cp3, step 1: dithered 16 / 24-bit export (ADR-0058)
 
 **Now:** cp3 lands in four small steps: **dither (in)**, **ranges (in)** — the render stops at the range's end, a
-range past the end is refused before anything renders (the cp1 follow-up) — then normalize and export stems.
+range past the end is refused before anything renders (the cp1 follow-up) — **normalize (in)**: a "Normalize"
+toggle brings the export's peak to -1 dBFS with one gain (silence is never boosted) — then export stems.
 Range gates: a range exports exactly its frames (equal to the full render's slice); a range running past the end
 exports to the end; a past-the-end range fails without the render ever running; through the model the loop region
 and the ruler range (which wins) export their lengths. **What a user gets:** a 16 or 24-bit export is TPDF
