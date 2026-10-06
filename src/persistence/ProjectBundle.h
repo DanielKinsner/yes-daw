@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 32;   // G4.4: a Compressor's sidechain key (ADR-0051)
+inline constexpr int          kCodeSchemaVersion = 33;   // ADR-0047 repair: instrument-parameter automation lanes persist
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -57,6 +57,7 @@ static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::SendLeve
 static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::BusFader) == 3u);
 static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::BusPan) == 4u);
 static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::FxInsertParam) == 5u);
+static_assert (static_cast<std::uint8_t> (engine::AutomationTargetRole::InstrumentParam) == 6u);   // v33
 static_assert (static_cast<std::uint8_t> (engine::MidiControlKind::ControlChange) == 0u);   // G3.3: the kind column
 static_assert (static_cast<std::uint8_t> (engine::MidiControlKind::PitchBend) == 1u);
 static_assert (static_cast<std::uint8_t> (engine::MidiControlKind::ChannelPressure) == 2u);
@@ -1465,13 +1466,45 @@ CREATE TABLE fx_insert_sidechain (
 );
 )SQL";
 
+// v33 (repair of ADR-0047): an automation lane may target an instrument parameter (role 6). The v8
+// CHECK allowed roles 0..5 only, so such a lane could be made and played but never saved. SQLite cannot
+// alter a CHECK, so both automation tables are rebuilt. Foreign keys stay on during migrations: the new
+// breakpoints table points at the NEW lanes table, the old child drops before the old parent (no
+// cascade), and the renames carry the reference over. Every existing lane and point is kept.
+inline constexpr std::string_view kSchemaV33Sql = R"SQL(
+CREATE TABLE automation_lanes_v33 (
+  id BLOB PRIMARY KEY CHECK (length(id) = 16),
+  owner_entity BLOB NOT NULL CHECK (length(owner_entity) = 16),
+  target_role INTEGER NOT NULL CHECK (target_role IN (0, 1, 2, 3, 4, 5, 6)),
+  param_id INTEGER NOT NULL CHECK (param_id >= 0),
+  UNIQUE(owner_entity, target_role, param_id)
+);
+INSERT INTO automation_lanes_v33 (id, owner_entity, target_role, param_id)
+  SELECT id, owner_entity, target_role, param_id FROM automation_lanes;
+CREATE TABLE automation_breakpoints_v33 (
+  lane_id BLOB NOT NULL CHECK (length(lane_id) = 16),
+  tick INTEGER NOT NULL CHECK (tick >= 0),
+  value REAL NOT NULL CHECK(value>=0 AND value<=1),
+  curve_type INTEGER NOT NULL CHECK(curve_type IN (0,1,2,3)),
+  PRIMARY KEY(lane_id, tick),
+  FOREIGN KEY(lane_id) REFERENCES automation_lanes_v33(id) ON UPDATE RESTRICT ON DELETE CASCADE
+);
+INSERT INTO automation_breakpoints_v33 (lane_id, tick, value, curve_type)
+  SELECT lane_id, tick, value, curve_type FROM automation_breakpoints;
+DROP TABLE automation_breakpoints;
+DROP TABLE automation_lanes;
+ALTER TABLE automation_lanes_v33 RENAME TO automation_lanes;
+ALTER TABLE automation_breakpoints_v33 RENAME TO automation_breakpoints;
+CREATE INDEX automation_lanes_owner_entity_idx ON automation_lanes(owner_entity);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 32> kMigrations {
+inline constexpr std::array<SchemaMigration, 33> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1504,6 +1537,7 @@ inline constexpr std::array<SchemaMigration, 32> kMigrations {
     SchemaMigration { 30, kSchemaV30Sql },
     SchemaMigration { 31, kSchemaV31Sql },
     SchemaMigration { 32, kSchemaV32Sql },
+    SchemaMigration { 33, kSchemaV33Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -3214,7 +3248,7 @@ public:
 
                 const sqlite3_int64 role = sqlite3_column_int64 (laneStmt.get(), 2);
                 if (role < static_cast<sqlite3_int64> (engine::AutomationTargetRole::TrackFader)
-                    || role > static_cast<sqlite3_int64> (engine::AutomationTargetRole::FxInsertParam))
+                    || role > static_cast<sqlite3_int64> (engine::AutomationTargetRole::InstrumentParam))   // v33
                     return detail::semanticInvalid ("automation_lanes.target_role is outside the Project value range");
                 lane.role = static_cast<engine::AutomationTargetRole> (role);
 
@@ -4028,7 +4062,10 @@ public:
         if (auto result = detail::hasAnyRow (
                 db_,
                 "SELECT 1 FROM automation_lanes l LEFT JOIN tracks t ON t.id = l.owner_entity "
-                "WHERE l.target_role IN (0, 1, 2) AND t.id IS NULL "
+                "WHERE l.target_role IN (0, 1, 6) AND t.id IS NULL "   // v33: an instrument parameter's owner is its Track
+                "UNION ALL SELECT 1 FROM automation_lanes l LEFT JOIN tracks t ON t.id = l.owner_entity "
+                "LEFT JOIN buses b ON b.id = l.owner_entity "
+                "WHERE l.target_role = 2 AND t.id IS NULL AND b.id IS NULL "   // R14: a send level rides a Track's OR a Bus's send
                 "UNION ALL SELECT 1 FROM automation_lanes l LEFT JOIN buses b ON b.id = l.owner_entity "
                 "WHERE l.target_role IN (3, 4) AND b.id IS NULL "
                 "UNION ALL SELECT 1 FROM automation_lanes l LEFT JOIN fx_inserts f ON f.id = l.owner_entity "

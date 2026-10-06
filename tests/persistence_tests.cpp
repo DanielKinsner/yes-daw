@@ -1908,6 +1908,7 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "ALTER TABLE midi_clips DROP COLUMN muted; ALTER TABLE midi_clips DROP COLUMN transpose; "   // G3.5: v29
             "ALTER TABLE midi_clips DROP COLUMN velocity_offset; ALTER TABLE midi_clips DROP COLUMN loop_length; "
             "DELETE FROM schema_migrations WHERE version = 29; "
+            "DELETE FROM schema_migrations WHERE version = 33; "   // v33 rebuilds the automation tables in place
             "DROP TABLE fx_insert_sidechain; "   // G4.4 re-pin: v32 (a Compressor's sidechain key)
             "DELETE FROM schema_migrations WHERE version = 32; "
             "DROP TABLE sampler_pads; "   // G3.9 re-pin: v31 (the Sampler's pads)
@@ -2859,4 +2860,100 @@ TEST_CASE ("Compressor sidechain keys round-trip through schema v32 and bad keys
     REQUIRE (reopened.executeSql ("UPDATE fx_insert_sidechain SET source_entity = '0123456789abcdef' "
                                   "WHERE insert_id = X'0000000000000000000000000000005d';").ok());
     REQUIRE (reopened.validateStoredProjectSemantics().status == BundleStatus::SemanticInvalid);
+}
+
+// v33 (repair of ADR-0047 and R14): an instrument-parameter lane (role 6) and a BUS-owned send-level lane
+// both save and reopen. The v8 CHECK refused role 6 at write, and the open-time owner law demanded a Track
+// for every send-level lane — a project with either could be made and played but not saved or reopened.
+TEST_CASE ("Instrument-parameter and bus send-level automation lanes save and reopen (schema v33)",
+           "[persistence][project][round-trip][automation][v33]")
+{
+    const auto path = makeTempBundlePath ("automation-v33-round-trip");
+
+    Project project = makeProject();
+    project.tracks[0].instrumentKind = yesdaw::engine::TrackInstrumentKind::SimpleSynth;
+    std::uint32_t synthParam = 0;
+    while (! yesdaw::engine::instrumentKindAcceptsParameterId (project.tracks[0].instrumentKind, synthParam))
+    {
+        ++synthParam;
+        REQUIRE (synthParam < 64u);
+    }
+    project.buses = { makeBus (idFromLowByte (11), "Verb"), makeBus (idFromLowByte (12), "Room") };
+    project.buses[0].sends = { yesdaw::engine::SendRow { idFromLowByte (80), idFromLowByte (12),
+                                                         yesdaw::engine::SendTap::PostFader, 0.5f } };
+    project.automationLanes = {
+        makeAutomationLane (idFromLowByte (70), project.tracks[0].id, AutomationTargetRole::InstrumentParam, synthParam),
+        makeAutomationLane (idFromLowByte (71), project.buses[0].id, AutomationTargetRole::SendLevel, 0),
+    };
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.automationLanes == project.automationLanes);
+    REQUIRE (readback.tracks[0].instrumentKind == yesdaw::engine::TrackInstrumentKind::SimpleSynth);
+
+    // The open-time owner law still bites: an instrument lane on a Bus, or a send-level lane on no strip.
+    REQUIRE (reopened.executeSql ("UPDATE automation_lanes SET owner_entity = X'0000000000000000000000000000000b' "
+                                  "WHERE id = X'00000000000000000000000000000046';").ok());
+    REQUIRE (reopened.validateStoredProjectSemantics().status == BundleStatus::SemanticInvalid);
+    REQUIRE (reopened.executeSql ("UPDATE automation_lanes SET owner_entity = X'0000000000000000000000000000000a' "
+                                  "WHERE id = X'00000000000000000000000000000046'; "
+                                  "UPDATE automation_lanes SET owner_entity = X'00000000000000000000000000000063' "
+                                  "WHERE id = X'00000000000000000000000000000047';").ok());
+    REQUIRE (reopened.validateStoredProjectSemantics().status == BundleStatus::SemanticInvalid);
+}
+
+// v33 rebuilds both automation tables with foreign keys ON: every lane and every point of a v32 bundle
+// survives (a naive drop of the parent table would cascade-delete the points).
+TEST_CASE ("Schema v33 migration keeps every automation lane and point", "[persistence][migration][automation][v33]")
+{
+    const auto path = makeTempBundlePath ("automation-v33-migration");
+    Project project = makeProject();
+    project.automationLanes = {
+        makeAutomationLane (idFromLowByte (70), project.tracks[0].id, AutomationTargetRole::TrackFader, 1),
+        makeAutomationLane (idFromLowByte (71), project.tracks[0].id, AutomationTargetRole::TrackPan, 1),
+    };
+    project.automationLanes[0].points.push_back (AutomationBreakpoint { 30720, 0.5, AutomationCurveType::Bezier });
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        // Back to v32's shape: the v8 CHECK on the lanes table, and the migration row gone.
+        REQUIRE (db.executeSql (
+            "CREATE TABLE lanes_old (id BLOB PRIMARY KEY CHECK (length(id) = 16), "
+            "owner_entity BLOB NOT NULL CHECK (length(owner_entity) = 16), "
+            "target_role INTEGER NOT NULL CHECK (target_role IN (0, 1, 2, 3, 4, 5)), "
+            "param_id INTEGER NOT NULL CHECK (param_id >= 0), UNIQUE(owner_entity, target_role, param_id)); "
+            "INSERT INTO lanes_old SELECT id, owner_entity, target_role, param_id FROM automation_lanes; "
+            "CREATE TABLE points_old (lane_id BLOB NOT NULL CHECK (length(lane_id) = 16), tick INTEGER NOT NULL CHECK (tick >= 0), "
+            "value REAL NOT NULL CHECK(value>=0 AND value<=1), curve_type INTEGER NOT NULL CHECK(curve_type IN (0,1,2,3)), "
+            "PRIMARY KEY(lane_id, tick), FOREIGN KEY(lane_id) REFERENCES lanes_old(id) ON UPDATE RESTRICT ON DELETE CASCADE); "
+            "INSERT INTO points_old SELECT lane_id, tick, value, curve_type FROM automation_breakpoints; "
+            "DROP TABLE automation_breakpoints; DROP TABLE automation_lanes; "
+            "ALTER TABLE lanes_old RENAME TO automation_lanes; ALTER TABLE points_old RENAME TO automation_breakpoints; "
+            "CREATE INDEX automation_lanes_owner_entity_idx ON automation_lanes(owner_entity); "
+            "DELETE FROM schema_migrations WHERE version = 33; PRAGMA user_version = 32;").ok());
+        sqlite3_int64 points = 0;
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM automation_breakpoints;", points).ok());
+        REQUIRE (points == 5);
+    }
+
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    sqlite3_int64 value = 0;
+    REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM automation_breakpoints;", value).ok());
+    REQUIRE (value == 5);
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.automationLanes == project.automationLanes);
 }
