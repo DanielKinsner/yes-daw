@@ -5,6 +5,7 @@
 #include "ui/ControlTarget.h"   // G4.0b: the pure Control-target rules
 #include "ui/DesktopAudioStartup.h"
 #include "ui/EqResponseComponent.h"
+#include "ui/DelayTapsComponent.h"
 #include "ui/FxParameterNames.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
@@ -22332,7 +22333,7 @@ TEST_CASE ("G4.2 EQ response follows edits undo bypass and slot changes", "[ui][
     addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Delay);
     yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 2);
     REQUIRE_FALSE (graph->isVisible());
-    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).bounds.getHeight() == yesdaw::ui::UiTheme::Layout::fxEditorMaxHeight);
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).bounds.getHeight() == yesdaw::ui::UiTheme::Layout::delayEditorMaxHeight);   // G4.2 cp3: the delay face
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -22968,4 +22969,124 @@ TEST_CASE ("G4.2 FX parameter rows read human names for every built-in", "[ui][f
         }
         REQUIRE (accepted >= 3);
     }
+}
+
+// G4.2 cp3 — the delay face: the echoes come from a private copy of the real node fed a centred click,
+// so the face shows times, levels, ping-pong routing and mix exactly as the delay sounds.
+namespace {
+
+juce::ComboBox& fxParamChooserLabelled (juce::Component& shell, const juce::String& prefix)
+{
+    for (int row = 0; row < yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount; ++row)
+    {
+        auto* label = dynamic_cast<juce::Label*> (findChildWithComponentId (shell, "mixer.fx.param." + juce::String (row) + ".label"));
+        if (label != nullptr && label->isVisible() && label->getText().startsWithIgnoreCase (prefix))
+        {
+            auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (shell, "mixer.fx.param." + juce::String (row) + ".choice"));
+            REQUIRE (chooser != nullptr);
+            return *chooser;
+        }
+    }
+    FAIL ("no FX parameter chooser labelled " << prefix);
+    throw std::logic_error ("unreachable");
+}
+
+double delayNormalized (yesdaw::engine::ParameterId id, double real)
+{
+    return yesdaw::engine::unmapToNormalized (yesdaw::engine::fxParamSpecForKind (yesdaw::engine::FxKind::Delay, id), real);
+}
+
+std::vector<yesdaw::ui::DelayTapsComponent::Tap> tapsOn (const yesdaw::ui::DelayTapsComponent& face, int channel)
+{
+    std::vector<yesdaw::ui::DelayTapsComponent::Tap> out;
+    for (const auto& tap : face.taps())
+        if (tap.channel == channel)
+            out.push_back (tap);
+    return out;
+}
+
+} // namespace
+
+TEST_CASE ("G4.2 cp3 the delay face draws the echoes the node produces", "[ui][input][shell][mixer][fx-editors]")
+{
+    using Delay = yesdaw::engine::FxDelayNode;
+    const auto bundlePath = makeTempBundlePath ("fx-editors-delay");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Delay);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    auto* face = dynamic_cast<yesdaw::ui::DelayTapsComponent*> (findChildWithComponentId (*shell, "mixer.fx.editor.delay.taps"));
+    REQUIRE (face != nullptr);
+    REQUIRE (face->isVisible());
+    REQUIRE (face->getHeight() == yesdaw::ui::UiTheme::Layout::delayTapsHeight);
+    auto* firstRow = findChildWithComponentId (*shell, "mixer.fx.param.0");
+    REQUIRE (firstRow != nullptr);
+    REQUIRE (firstRow->getY() >= face->getBottom());
+
+    // The factory delay is dry (mix 0): the click passes at 0 dB and nothing echoes.
+    REQUIRE (face->taps().empty());
+    REQUIRE (face->dryLevelDb() == Catch::Approx (0.0).margin (0.01));
+
+    // Fully wet, feedback 0.5, 250 ms both sides, no damping: echoes every 250 ms, each ~6 dB down.
+    fxParamSliderLabelled (*shell, "Mix").setValue (delayNormalized (Delay::kMixParamId, 1.0), juce::sendNotificationSync);
+    fxParamSliderLabelled (*shell, "Feedback").setValue (delayNormalized (Delay::kFeedbackParamId, 0.5), juce::sendNotificationSync);
+    REQUIRE (face->dryLevelDb() <= -59.0f);
+    for (const int channel : { 0, 1 })
+    {
+        const auto taps = tapsOn (*face, channel);
+        INFO ("channel " << channel << " taps " << taps.size());
+        REQUIRE (taps.size() >= 4u);
+        for (std::size_t k = 0; k < 4; ++k)
+        {
+            REQUIRE (taps[k].ms == Catch::Approx (250.0 * static_cast<double> (k + 1)).margin (1.0));
+            REQUIRE (taps[k].levelDb == Catch::Approx (-6.0206 * static_cast<double> (k)).margin (1.5));
+        }
+    }
+    REQUIRE (face->windowMs() >= 1000.0);
+
+    // Ping-pong with Time L 250 / Time R 500: the outputs swap lines, so the left lane's first echo is the
+    // right line's 500 ms and the right lane's is the left line's 250 ms — read from the node, not assumed.
+    fxParamSliderLabelled (*shell, "Time R").setValue (delayNormalized (Delay::kTimeRightParamId, 500.0), juce::sendNotificationSync);
+    const auto straightLeft = tapsOn (*face, 0);
+    REQUIRE (straightLeft.front().ms == Catch::Approx (250.0).margin (1.0));
+    REQUIRE (tapsOn (*face, 1).front().ms == Catch::Approx (500.0).margin (1.0));
+    fxParamChooserLabelled (*shell, "Ping-pong").setSelectedId (2, juce::sendNotificationSync);
+    REQUIRE (tapsOn (*face, 0).front().ms == Catch::Approx (500.0).margin (1.0));
+    REQUIRE (tapsOn (*face, 1).front().ms == Catch::Approx (250.0).margin (1.0));
+
+    // Damping darkens each pass: the second echo falls further than the feedback alone takes it.
+    fxParamChooserLabelled (*shell, "Ping-pong").setSelectedId (1, juce::sendNotificationSync);
+    fxParamSliderLabelled (*shell, "Time R").setValue (delayNormalized (Delay::kTimeRightParamId, 250.0), juce::sendNotificationSync);
+    const float undamped = tapsOn (*face, 0)[1].levelDb;
+    fxParamSliderLabelled (*shell, "Damping").setValue (delayNormalized (Delay::kDampingParamId, 1000.0), juce::sendNotificationSync);
+    REQUIRE (tapsOn (*face, 0)[1].levelDb < undamped - 3.0f);
+
+    // Bypass greys the face; the parameters keep their echoes for when it returns.
+    auto* bypass = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.editor.bypass"));
+    REQUIRE (bypass != nullptr);
+    clickButton (*bypass);
+    REQUIRE (face->isBypassedFace());
+    clickButton (*bypass);
+    REQUIRE_FALSE (face->isBypassedFace());
+
+    // An edit pays for at most the capped window of the node (B1: action to paint), however long the
+    // feedback tail would ring: the work is bounded by frames, not by a wall clock a slow runner skews.
+    fxParamSliderLabelled (*shell, "Damping").setValue (delayNormalized (Delay::kDampingParamId, Delay::kMaxDampingHz), juce::sendNotificationSync);
+    fxParamSliderLabelled (*shell, "Feedback").setValue (delayNormalized (Delay::kFeedbackParamId, 0.9), juce::sendNotificationSync);
+    REQUIRE (face->windowMs() == Catch::Approx (yesdaw::ui::DelayTapsComponent::maxWindowMs()));
+    REQUIRE (face->simulatedFrames() <= static_cast<std::size_t> (yesdaw::ui::DelayTapsComponent::maxWindowMs() * 48.0) + 2u);
+    REQUIRE (tapsOn (*face, 0).size() >= 7u);
+
+    for (const auto size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+    {
+        shell->setSize (size.x, size.y);
+        REQUIRE (shell->getLocalBounds().contains (yesdaw::ui::mainComponentFxEditor (*shell).bounds));
+        REQUIRE (firstRow->getY() >= face->getBottom());
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
