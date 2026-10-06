@@ -753,6 +753,10 @@ G4.8 is a separate later milestone; it does not block G5/G6 or imply that plugin
   [Evidence](../evidence/2026-10-06-g46-automation-v2.json).
 - **G4.7 — Master strip.** Build: dim/mute, loudness readout in the header (exists as a meter),
   limiter editor. Gate: tokens.
+  **2026-10-06 complete (ADR-0053):** a live loudness readout fed by the played mix (header + mixer
+  cards), Master Dim / Mute as the device callback's last ramped stage, the master's insert slots on
+  its pane (Limiter first; its editor shows gain reduction). `[loudness-live]`, `[g47]`,
+  `[master-inserts]`; quiet batch 396/396; one critic. [Evidence](../evidence/2026-10-06-g47-master-strip.json).
 - **G4.8 — Separate plugin milestone (after Usable-song; opens H18).** Entry: a recorded PASS
   from one named/versioned real VST3 through the worker smoke, under ADR-0037. Synthetic PASS or
   setup exit 2 is not entry credit. An agent runs the available smoke with an approved fixture;

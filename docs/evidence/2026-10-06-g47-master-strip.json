@@ -1,0 +1,66 @@
+{
+  "checkpoint": "G4.7 master strip (ADR-0053): a live loudness readout fed by the played mix, monitor Dim / Mute as the device callback's last stage, and the master's insert slots on its pane",
+  "status": "Quiet drive batch PASS 7/7 (396 assertions) on the final build (489b653, the critic fixes); one separate agent critic pass, both should-fixes taken; exact-code CI recorded below.",
+  "date": "2026-10-06",
+  "host": "DESKTOP-7LC339R (Windows 11 Pro 10.0.26200), shared desktop, owner-authorized for the night",
+  "codeSha": "489b653",
+  "commits": {
+    "fddbe8e": "step 1: a streaming ADR-0028 meter (LiveLoudnessMeter)",
+    "a8ce649": "step 2: the engine taps the mix (before the click) into one preallocated SPSC ring every engine shares",
+    "b785626": "step 3: the model drains the ring into the meter; play / locate-while-playing restart it; the header LUFS button and the mixer's INTEGRATED / TRUE PEAK cards paint it",
+    "8181456": "step 4: Master Dim / Mute (header pills, Transport menu, master menu; 5 ms linear ramp after the header peak scan; session state)",
+    "e1d0f43": "step 5: the master pane paints and plays the master's insert slots",
+    "dd65db7": "ss7 Step 13 drives the master strip on the real app",
+    "489b653": "critic fixes: the compact pill face is opt-in; the ramp is timed at the device rate; shuttle is pinned as not measured"
+  },
+  "batch": {
+    "tag": "2026-10-06-g47-final",
+    "sessions": [
+      { "session": "ss1-first-minute", "assertions": 45, "result": "PASS" },
+      { "session": "ss2-mouse-then-keys", "assertions": 33, "result": "PASS" },
+      { "session": "ss3-edit-a-song", "assertions": 55, "result": "PASS" },
+      { "session": "ss4-track-instrument", "assertions": 19, "result": "PASS" },
+      { "session": "ss5-piano-roll", "assertions": 71, "result": "PASS" },
+      { "session": "ss6-write-a-beat", "assertions": 49, "result": "PASS" },
+      {
+        "session": "ss7-mix-the-song",
+        "assertions": 124,
+        "result": "PASS",
+        "covers": "G4.7 Step 13: a Limiter in the master pane's first slot (Limiter is the first kind there); its double-click opens the editor with the gain-reduction meter; DIM and MUTE light and clear; the song stem on track 1 plays and the header's LUFS readout shows the measured loudness (-28.4 LUFS on the first run)"
+      }
+    ],
+    "totalAssertions": 396,
+    "failedAssertions": 0
+  },
+  "rawFailuresBeforeCertification": [],
+  "gates": {
+    "[loudness-live]": "the streaming meter fed in ragged chunks equals the offline analysis; the model's readout equals analyzeInterleavedLoudness of exactly what played since the listen began (0.1 LU, true peak 1e-4); play and a locate while playing restart it (20 LU discriminating fixture); stop and a locate while stopped hold; a loop wrap and an engine swap keep one listen (frame counts); an overflow marks it approximate until the next listen; shuttle does not feed it; the header button shows the value and '~' after a stall",
+    "[loudness-tap]": "the ring round-trips blocks with their format; a block that does not fit is skipped whole and counted; what the engine taps equals a click-free render bit for bit while the device output carries the click",
+    "[g47]": "the monitor ramp's exact shape (240 frames at 48 kHz, lands exactly), Mute over Dim, Dim under Mute changes only the release target, unity bit-exact; the shell's lit pills, menus (Transport, master strip), status line, header meter before the monitor stage, a render untouched; lit colours on a rendered screenshot",
+    "[master-inserts]": "the master pane's slots inside the pane above the fader; an empty slot lists the kinds with the Limiter first; the double-click opens the editor on the master's Limiter with a live gain-reduction reading; the slot menu bypasses",
+    "local": "410/410 ctest; Clang -Wall -Wextra clean"
+  },
+  "critic": {
+    "passes": 1,
+    "mustFix": 0,
+    "taken": [
+      "the compact text face was inferred from any TextButton of height <= 14 — now opt-in by a property flag",
+      "the ramp counted frames at the engine's (or a 48 kHz fallback) rate — now the device's own rate",
+      "a static_assert keeps DIM + MUTE inside the LUFS readout's width"
+    ],
+    "rejected": [
+      "'shuttle feeds the tap at the nominal rate' — not so: the shuttle path returns before the 1x segment loop that writes the tap; pinned by a test instead"
+    ],
+    "kept": [
+      "a short dock drops master slot rows before it starves the meters — the strips' own law; the chain is unchanged and returns with height"
+    ]
+  },
+  "visualJudgment": "Agent-judged screenshots: the header card's DIM / MUTE pills fit their words at the default and minimum windows, light amber / red with dark text; the master pane reads INTEGRATED and TRUE PEAK with the four insert wells between the cards and the meters; the real-app shot ss7-loudness shows -28.4 LUFS in both places.",
+  "ci": {
+    "a8ce649": "green except macOS, red only on YesDawTimelineGpuCheck timeline_gpu_tests.cpp:84 (sustained frame time — the standing plan §8.2 exception); RTSan / TSan green",
+    "b785626": "green except macOS, the same standing GPU sustained-frame exception (line 84); RTSan / TSan green",
+    "8181456": "cancelled while pending (superseded by e1d0f43, which contains it)",
+    "e1d0f43": "in progress at writing",
+    "489b653": "pending at writing"
+  }
+}

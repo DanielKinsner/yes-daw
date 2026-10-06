@@ -8,26 +8,30 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-10-06 (late night) — G4.7 master strip in progress (ADR-0053)
+## 2026-10-06 (late night) — G4.7 done: the master strip (ADR-0053)
 
-**Now:** **G4.7** (ADR-0053 accepted). Done: (1) a streaming loudness meter; (2) the engine taps the mix
-(before the click) into one preallocated ring every engine shares; (3) **the header's LUFS button and the
-mixer's INTEGRATED / TRUE PEAK cards now show the real loudness of what you played** — measured from play
-or from a locate while playing, held when stopped, one listen across a loop wrap or an edit, "~" if the UI
-stalled long enough to drop audio; (4) **Master Dim / Mute**: DIM (amber) and MUTE (red) on the header MASTER
-card, in the Transport menu and the master's menu — the speakers get 20 dB less or nothing after a 5 ms ramp,
-the header meter keeps showing the signal, exports and renders are never touched, the status line names them,
-nothing is saved or undoable; (5) **the master pane paints the master's insert slots** (under TRUE PEAK, above
-the meters): an empty slot lists the kinds with the Limiter first, a double-click opens the editor with the
-Limiter's gain-reduction meter, the slot menu bypasses. **Next:** a drive step on the real app, the critic
-pass, a quiet batch and the evidence file.
+**Now:** **G4.7** is done. **Next: the G4 exit** — ss7 does SS-5 as the plan writes it (a reverb bus fed by
+a send, Write automation of the bus fader while playing, the reverb bus solo-safe, export), then G5 → G6.
+[Evidence](docs/evidence/2026-10-06-g47-master-strip.json).
 
-**Gates so far:** `[loudness-live]` (meter chunks = offline analysis; play / locate restart, stop holds, loop
-wrap and engine swap keep one listen, overflow marks "~"), `[loudness-tap]` (the tap equals a click-free
-render bit for bit), `[g47]` (the ramp's exact shape, Mute over Dim, unity bit-exact; the shell's lit pills,
-menus, status line, meter-before-monitor; the lit colours on a rendered screenshot). 410/410 local, Clang clean.
+**What a user gets:**
+- **The LUFS readouts are real.** The header's LUFS button and the mixer's INTEGRATED / TRUE PEAK cards show
+  the loudness of what you played — measured from Play or from a locate while playing, held when stopped,
+  one listen across a loop wrap or an edit, "~" if the UI stalled long enough to drop audio.
+- **Master Dim / Mute**: DIM (amber) and MUTE (red) on the header MASTER card, in the Transport menu and the
+  master's menu. The speakers get 20 dB less or nothing after a 5 ms ramp; the header meter still shows the
+  signal; exports and renders are never touched; the status line names them; nothing is saved or undoable.
+- **The master's inserts are on its pane** (under TRUE PEAK, above the meters): an empty slot lists the
+  kinds with the Limiter first, a double-click opens the editor with the Limiter's gain-reduction meter, the
+  slot menu bypasses.
 
-**CI:** e005b43 and 03763dc (the G4.6 close) are fully green, macOS included.
+**Gates:** `[loudness-live]`, `[loudness-tap]`, `[g47]`, `[master-inserts]`. Quiet batch **396/396** on the
+final build (489b653); ss7 Step 13 drives the master strip on the real app (the readout read -28.4 LUFS on
+the song stem). One critic pass: both should-fixes taken (the compact pill face is opt-in; the ramp is timed
+at the device rate); one claim rejected with a test (shuttle does not feed the meter).
+
+**CI:** a8ce649 and b785626 green except macOS, red only on the standing GPU sustained-frame exception (plan
+§8.2); e1d0f43 in progress and 489b653 pending at writing.
 
 ## 2026-10-06 (night) — G4.6 done: automation you can write, hear, draw and move with clips
 
