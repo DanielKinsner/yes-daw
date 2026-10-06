@@ -1920,6 +1920,9 @@ void MainComponent::serviceUiTick()
     else
         repaintDynamicLayers();
 
+    if (fxEditorOpen && fxEditor.showsGainReduction())
+        pushFxEditorGainReduction();   // G4.2 cp2
+
     // G4.0b: a hidden / removed / closed control leaves no stale target, and a screen reader's
     // focus move onto a control makes it the target.
     if (controlNavigator.navigating())

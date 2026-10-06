@@ -257,6 +257,12 @@ struct MainComponentFxEditor
     int pageCount = 0;
     int rows = 0;              // parameter rows laid out on the current page
     juce::Rectangle<int> bounds;   // shell-local
+    // G4.2 cp2: the compressor / limiter face — the meter's last tick sample and its held peak (dB of
+    // reduction, >= 0); `gainReductionReading` false when the engine runs no reduction node for it.
+    bool gainReductionVisible = false;
+    bool gainReductionReading = false;
+    float gainReductionDb = 0.0f;
+    float gainReductionHeldDb = 0.0f;
 };
 [[nodiscard]] MainComponentFxEditor mainComponentFxEditor (const juce::Component& component);
 void mainComponentOpenFxEditor (juce::Component& component, int stripIndex, int slotIndex);

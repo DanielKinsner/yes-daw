@@ -847,6 +847,17 @@ struct UiTheme
         static constexpr int eqResponseLabelWidth = 40;
         static constexpr int eqResponseLabelHeight = 18;
         static constexpr float eqResponseStrokeWidth = 2.0f;
+        // G4.2 cp2: the compressor / limiter gain-reduction meter above the parameter page — a 0..24 dB
+        // bar with a held peak (about 1.5 s at the 30 Hz UI tick, then a steady fall).
+        static constexpr int grMeterHeight = 58;
+        static constexpr int grMeterBarHeight = 14;
+        static constexpr float grMeterScaleMaxDb = 24.0f;
+        static constexpr int grMeterHoldTicks = 45;
+        static constexpr float grMeterFallDbPerTick = 0.5f;
+        static constexpr float grMeterPeakStrokeWidth = 2.0f;
+        static constexpr int grEditorMaxHeight = 370;
+        static constexpr int grMeterTickLength = 3;
+        static constexpr int grMeterValueInset = 4;
         // G2.18: the undo history window (Alt+Z) — a narrower centred panel, the same law.
         static constexpr int undoHistoryMaxWidth = 420;
         static constexpr int undoHistoryMaxHeight = 480;

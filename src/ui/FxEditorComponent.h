@@ -8,6 +8,7 @@
 
 #include "engine/Time.h"
 #include "ui/EqResponseComponent.h"
+#include "ui/GainReductionMeterComponent.h"
 #include "ui/ContextMenus.h"
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
@@ -51,6 +52,7 @@ public:
     FxEditorComponent()
     {
         addChildComponent (eqResponse);
+        addChildComponent (gainReduction);   // G4.2 cp2: the compressor / limiter face
         setName ("FX editor");
         setComponentID ("mixer.fx.editor");
         setTooltip ("The insert's parameters: drag a row (rides Touch / Latch automation); Escape closes");
@@ -88,13 +90,27 @@ public:
     void setInsert (const engine::FxInsert& insert, double sampleRate)
     {
         const bool showEq = insert.kind == engine::FxKind::Eq;
+        const bool showGr = insert.kind == engine::FxKind::Compressor || insert.kind == engine::FxKind::Limiter;
         if (showEq) eqResponse.setInsert (insert, sampleRate);
-        if (eqResponse.isVisible() != showEq)
+        if (insert.id != shownInsertId)
+        {
+            shownInsertId = insert.id;
+            gainReduction.reset();   // another insert: nothing measured for it yet
+        }
+        if (eqResponse.isVisible() != showEq || gainReduction.isVisible() != showGr)
         {
             eqResponse.setVisible (showEq);
+            gainReduction.setVisible (showGr);
             resized();
         }
     }
+    // G4.2 cp2: one UI tick's gain-reduction sample for the shown insert (nullopt: no running node).
+    void pushGainReduction (std::optional<float> gainReductionDb, bool bypassed)
+    {
+        gainReduction.pushReading (gainReductionDb, bypassed);
+    }
+    [[nodiscard]] bool showsGainReduction() const noexcept { return gainReduction.isVisible(); }
+    [[nodiscard]] const GainReductionMeterComponent& gainReductionMeter() const noexcept { return gainReduction; }
     [[nodiscard]] bool showsEqResponse() const noexcept { return eqResponse.isVisible(); }
     [[nodiscard]] double eqResponseDb (double hz) const noexcept { return eqResponse.responseDb (hz); }
     [[nodiscard]] int preferredWidth() const noexcept
@@ -103,7 +119,9 @@ public:
     }
     [[nodiscard]] int preferredHeight() const noexcept
     {
-        return showsEqResponse() ? UiTheme::Layout::eqEditorMaxHeight : UiTheme::Layout::fxEditorMaxHeight;
+        return showsEqResponse()     ? UiTheme::Layout::eqEditorMaxHeight
+             : showsGainReduction() ? UiTheme::Layout::grEditorMaxHeight
+                                    : UiTheme::Layout::fxEditorMaxHeight;
     }
 
     // The content area the shell lays the parameter rows into (editor-local).
@@ -112,6 +130,7 @@ public:
         using L = yesdaw::ui::UiTheme::Layout;
         auto area = bodyArea();
         if (showsEqResponse()) area.removeFromTop (L::eqResponseHeight + L::keymapEditorGap);
+        if (showsGainReduction()) area.removeFromTop (L::grMeterHeight + L::keymapEditorGap);
         return area;
     }
 
@@ -139,6 +158,7 @@ public:
         bypassButton.setBounds (top.removeFromRight (L::fxEditorBypassWidth));
         auto content = bodyArea();
         eqResponse.setBounds (showsEqResponse() ? content.removeFromTop (L::eqResponseHeight) : juce::Rectangle<int> {});
+        gainReduction.setBounds (showsGainReduction() ? content.removeFromTop (L::grMeterHeight) : juce::Rectangle<int> {});
     }
 
 private:
@@ -151,6 +171,8 @@ private:
     }
 
     EqResponseComponent eqResponse;
+    GainReductionMeterComponent gainReduction;
+    engine::EntityId shownInsertId {};
     juce::String title;
     juce::TextButton bypassButton, closeButton;
 };

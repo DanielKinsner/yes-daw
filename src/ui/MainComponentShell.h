@@ -353,6 +353,8 @@ private:
     void openFxEditor (int stripIndex, int slotIndex);
 
     void closeFxEditor();
+    // G4.2 cp2: the open compressor / limiter face samples its insert's live gain reduction (UI tick).
+    void pushFxEditorGainReduction();
 
     // G2.1: the splitters set these; each clamps to the plan's §3.4 ranges, lays out and repaints.
     void setRailWidth (int width);

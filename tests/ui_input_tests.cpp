@@ -30,6 +30,7 @@
 #include <memory>
 #include <span>
 #include <sstream>
+#include <stdexcept>
 #include <set>
 #include <string>
 #include <utility>
@@ -20406,7 +20407,7 @@ TEST_CASE ("G3.8 MIDI FX in the shell: the Add FX chooser lists them, the slot n
         REQUIRE (orderStored);
         auto* orderLabel = dynamic_cast<juce::Label*> (findChildWithComponentId (*shell, "mixer.fx.param.1.label"));
         REQUIRE (orderLabel != nullptr);
-        REQUIRE (orderLabel->getText() == "arp.order Up-Down");   // the row names the choice
+        REQUIRE (orderLabel->getText() == "Order Up-Down");   // the row names the choice (G4.2 cp2: a readable name, not the stable id)
     }
 
     // The roll: a MIDI clip, the header's Key / Scale choosers; Off by default (no row persisted).
@@ -22807,6 +22808,129 @@ TEST_CASE ("G4.0b control navigation: a text field starts text entry on Enter; h
     REQUIRE (target.navigating);
     REQUIRE (target.id != hidden);
     REQUIRE (std::find (withoutRow.begin(), withoutRow.end(), target.id) != withoutRow.end());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G4.2 cp2 — the compressor face: its editor meters the gain reduction the RUNNING node applies (the
+// engine's acquire-load tap, sampled on the UI tick), holds the recent peak, reads its honest zero when
+// bypassed, follows the slot it shows, and the limiter carries the same meter while EQ / Delay do not.
+namespace {
+
+juce::Slider& fxParamSliderLabelled (juce::Component& shell, const juce::String& prefix)
+{
+    for (int row = 0; row < yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount; ++row)
+    {
+        auto* label = dynamic_cast<juce::Label*> (findChildWithComponentId (shell, "mixer.fx.param." + juce::String (row) + ".label"));
+        if (label != nullptr && label->isVisible() && label->getText().startsWithIgnoreCase (prefix))
+        {
+            auto* slider = dynamic_cast<juce::Slider*> (findChildWithComponentId (shell, "mixer.fx.param." + juce::String (row)));
+            REQUIRE (slider != nullptr);
+            return *slider;
+        }
+    }
+    FAIL ("no FX parameter row labelled " << prefix);
+    throw std::logic_error ("unreachable");
+}
+
+} // namespace
+
+TEST_CASE ("G4.2 cp2 the compressor face meters the running node's gain reduction",
+           "[ui][input][shell][mixer][fx-editors]")
+{
+    const auto bundlePath = makeTempBundlePath ("fx-editors-gr");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Compressor);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    auto editor = yesdaw::ui::mainComponentFxEditor (*shell);
+    REQUIRE (editor.kind == "Compressor");
+    REQUIRE (editor.gainReductionVisible);
+    auto* meter = findChildWithComponentId (*shell, "mixer.fx.editor.gr");
+    REQUIRE (meter != nullptr);
+    REQUIRE (meter->isVisible());
+    REQUIRE (meter->getHeight() == yesdaw::ui::UiTheme::Layout::grMeterHeight);
+    auto* pager = findChildWithComponentId (*shell, "mixer.fx.param.page");
+    auto* firstRow = findChildWithComponentId (*shell, "mixer.fx.param.0");
+    REQUIRE (firstRow != nullptr);
+    REQUIRE (firstRow->getY() >= meter->getBottom());   // the face sits above the parameter page
+    (void) pager;
+
+    // Hard settings: the lowest threshold and the highest ratio squash the fixture.
+    fxParamSliderLabelled (*shell, "Threshold").setValue (0.0, juce::sendNotificationSync);
+    fxParamSliderLabelled (*shell, "Ratio").setValue (1.0, juce::sendNotificationSync);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    editor = yesdaw::ui::mainComponentFxEditor (*shell);
+    REQUIRE (editor.gainReductionReading);           // the engine runs the node …
+    REQUIRE (editor.gainReductionDb == 0.0f);        // … and nothing has played yet
+
+    // Render inside the fixture clip (its tail is silence, where the detector releases to 0 dB): the
+    // meter reads the node's last block, once the attack has engaged.
+    const auto playFromStart = [&shell] (std::uint64_t frames) {
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportLocateStart));
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+        (void) renderMainComponentPlayback (*shell, frames, 128);
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        clickButton (requireButtonForAction (*shell, UiActionId::TransportStop));
+    };
+    playFromStart (4096);
+    editor = yesdaw::ui::mainComponentFxEditor (*shell);
+    REQUIRE (editor.gainReductionDb > 6.0f);
+    REQUIRE (editor.gainReductionHeldDb >= editor.gainReductionDb);
+    const juce::var probe = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)));
+    REQUIRE (static_cast<bool> (probe["fxEditor"]["grVisible"]));
+    REQUIRE (static_cast<double> (probe["fxEditor"]["gainReductionDb"]) == Catch::Approx (editor.gainReductionDb));
+    const float squashed = editor.gainReductionDb;
+
+    // Bypass: the node passes the signal through and publishes its honest zero; the peak line holds.
+    auto* bypass = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "mixer.fx.editor.bypass"));
+    REQUIRE (bypass != nullptr);
+    clickButton (*bypass);
+    playFromStart (4096);
+    editor = yesdaw::ui::mainComponentFxEditor (*shell);
+    REQUIRE (editor.bypassed);
+    REQUIRE (editor.gainReductionReading);
+    REQUIRE (editor.gainReductionDb == 0.0f);
+    REQUIRE (editor.gainReductionHeldDb == Catch::Approx (squashed));
+    // The hold lasts its ticks, then falls toward the reading.
+    for (int tick = 0; tick < yesdaw::ui::UiTheme::Layout::grMeterHoldTicks + 4; ++tick)
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).gainReductionHeldDb < squashed);
+    clickButton (*bypass);
+
+    // The face follows the slot: a Limiter carries the meter (fresh, nothing measured for it yet);
+    // an EQ and a Delay do not.
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Limiter);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 1);
+    editor = yesdaw::ui::mainComponentFxEditor (*shell);
+    REQUIRE (editor.kind == "Limiter");
+    REQUIRE (editor.gainReductionVisible);
+    REQUIRE (editor.gainReductionHeldDb == 0.0f);
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Eq);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 2);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentFxEditor (*shell).gainReductionVisible);
+    REQUIRE_FALSE (meter->isVisible());
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Delay);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 3);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentFxEditor (*shell).gainReductionVisible);
+
+    // The compressor face fits at every rubric size.
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    for (const auto size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+    {
+        shell->setSize (size.x, size.y);
+        const auto bounds = yesdaw::ui::mainComponentFxEditor (*shell).bounds;
+        REQUIRE (shell->getLocalBounds().contains (bounds));
+        REQUIRE (meter->getHeight() == yesdaw::ui::UiTheme::Layout::grMeterHeight);
+        REQUIRE (firstRow->getY() >= meter->getBottom());
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

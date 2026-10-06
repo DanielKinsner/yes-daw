@@ -12,6 +12,8 @@
 #include "engine/ProjectMixerProjection.h"
 #include "engine/Recording.h"
 #include "engine/RuntimeAudioDriver.h"
+#include "engine/nodes/CompressorNode.h"   // G4.2 cp2: the gain-reduction taps
+#include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/MeterNode.h"
 #include "rt/RtHot.h"
 
@@ -25,6 +27,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <span>
 #include <type_traits>
 #include <utility>
@@ -87,6 +90,24 @@ public:
             if (const auto* meter = dynamic_cast<const MeterNode*> (built.graph->nodeForId (meterNodeId)))
                 engine->busMeters_.push_back ({ bus.id, meter });
         }
+
+        // G4.2 cp2: harvest each compressor / limiter insert's gain-reduction tap on the same contract
+        // (one graph per engine, so the pointers live as long as the engine; one acquire-load per read).
+        const auto harvestGainReduction = [&engine, &built] (const std::vector<FxInsert>& chain) {
+            for (const FxInsert& insert : chain)
+            {
+                const Node* node = built.graph->nodeForId (projectMixerNodeIdForEntity (insert.id, ProjectMixerNodeRole::Fx));
+                if (const auto* compressor = dynamic_cast<const CompressorNode*> (node))
+                    engine->gainReductionTaps_.push_back ({ insert.id, compressor, nullptr });
+                else if (const auto* limiter = dynamic_cast<const LimiterNode*> (node))
+                    engine->gainReductionTaps_.push_back ({ insert.id, nullptr, limiter });
+            }
+        };
+        for (const Track& track : project.tracks)
+            harvestGainReduction (track.strip.fxChain);
+        for (const Bus& bus : project.buses)
+            harvestGainReduction (bus.strip.fxChain);
+        harvestGainReduction (project.masterStrip.fxChain);
 
         // R12: keep a control-side handle to the ONE graph this engine will ever run. Within a
         // PlaybackEngine's life exactly one graph is published (structural edits build a whole
@@ -154,6 +175,18 @@ public:
                 return meter->peak();
 
         return 0.0f;
+    }
+
+    // G4.2 cp2 — CONTROL THREAD: the gain reduction (dB, >= 0) a compressor or limiter insert published
+    // for its last processed block; nullopt for an insert this engine runs no reduction node for. One
+    // atomic acquire-load; never blocks the audio thread.
+    [[nodiscard]] std::optional<float> fxInsertGainReductionDb (EntityId insertId) const noexcept
+    {
+        for (const GainReductionTap& tap : gainReductionTaps_)
+            if (tap.insertId == insertId)
+                return tap.compressor != nullptr ? tap.compressor->gainReductionDb() : tap.limiter->gainReductionDb();
+
+        return std::nullopt;
     }
 
     // AUDIO THREAD / device callback: no allocation, locking, logging, or I/O. The queued graph installs
@@ -728,6 +761,13 @@ private:
     CompiledGraph* liveGraph_ = nullptr;   // R12: the one graph this engine runs (harvested at create())
     std::vector<std::pair<EntityId, const MeterNode*>> trackMeters_;   // harvested at create()
     std::vector<std::pair<EntityId, const MeterNode*>> busMeters_;     // harvested at create() (E22)
+    struct GainReductionTap
+    {
+        EntityId insertId;
+        const CompressorNode* compressor = nullptr;
+        const LimiterNode* limiter = nullptr;
+    };
+    std::vector<GainReductionTap> gainReductionTaps_;                     // harvested at create() (G4.2 cp2)
     choc::fifo::SingleReaderSingleWriterFIFO<TransportCommand> transportCommands_;
     choc::fifo::SingleReaderSingleWriterFIFO<Event> liveEvents_;                  // G3.2: the live note lane
     MidiInputQueue* midiInput_ = nullptr;                                         // G3.10: set at create, read by the audio thread

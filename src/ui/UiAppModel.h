@@ -3907,6 +3907,15 @@ public:
         return playback_ != nullptr ? playback_->trackMeterPeak (trackId) : 0.0f;
     }
 
+    // G4.2 cp2: the gain reduction (dB) a compressor / limiter insert published for its last block, on
+    // the same tap contract; nullopt with no engine or no reduction node for the insert.
+    [[nodiscard]] std::optional<float> fxInsertGainReductionDb (engine::EntityId insertId) const noexcept
+    {
+        if (playback_ == nullptr)
+            return std::nullopt;
+        return playback_->fxInsertGainReductionDb (insertId);
+    }
+
     // V5: the per-channel twin for the rail's stereo L/R meter (channel 0 = left, 1 = right).
     [[nodiscard]] float trackMeterPeakChannel (engine::EntityId trackId, int channel) const noexcept
     {

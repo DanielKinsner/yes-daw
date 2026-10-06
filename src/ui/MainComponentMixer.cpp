@@ -690,6 +690,17 @@ void MainComponent::openFxEditor (int stripIndex, int slotIndex)
     repaintAll();
 }
 
+// G4.2 cp2: the meter shows what the running node published for the insert on screen — the engine's
+// acquire-load tap, once per UI tick; a bypassed insert reads its honest zero.
+void MainComponent::pushFxEditorGainReduction()
+{
+    const std::vector<yesdaw::engine::FxInsert> chain = appModel.selectedStripFxChain();
+    if (selectedFxParamSlot < 0 || static_cast<std::size_t> (selectedFxParamSlot) >= chain.size())
+        return;
+    const yesdaw::engine::FxInsert& insert = chain[static_cast<std::size_t> (selectedFxParamSlot)];
+    fxEditor.pushGainReduction (appModel.fxInsertGainReductionDb (insert.id), ! insert.enabled);
+}
+
 void MainComponent::closeFxEditor()
 {
     if (! fxEditorOpen)

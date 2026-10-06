@@ -922,6 +922,10 @@ juce::String MainComponent::buildStateProbeJson()
         fx->setProperty ("rows", editor.rows);
         fx->setProperty ("eqResponseVisible", editor.visible && fxEditor.showsEqResponse());
         fx->setProperty ("eqResponseDb1000", fxEditor.eqResponseDb (1000.0));
+        fx->setProperty ("grVisible", editor.gainReductionVisible);   // G4.2 cp2: the compressor / limiter face
+        fx->setProperty ("grReading", editor.gainReductionReading);
+        fx->setProperty ("gainReductionDb", editor.gainReductionDb);
+        fx->setProperty ("gainReductionHeldDb", editor.gainReductionHeldDb);
         root->setProperty ("fxEditor", juce::var (fx));
         // G4.1 cp2: the Touch / Latch ride a painted drag is buffering (N5) — what a drive sees mid-ride.
         auto* ride = new juce::DynamicObject();
@@ -1142,6 +1146,10 @@ yesdaw::ui::MainComponentFxEditor MainComponent::harnessFxEditor() const
     out.pageCount = mixerFxParamPageChooser.getNumItems();
     out.rows = static_cast<int> (lastVisibleFxParamRows);
     out.bounds = fxEditor.getBounds();
+    out.gainReductionVisible = out.visible && fxEditor.showsGainReduction();   // G4.2 cp2
+    out.gainReductionReading = fxEditor.gainReductionMeter().hasReading();
+    out.gainReductionDb = fxEditor.gainReductionMeter().currentDb();
+    out.gainReductionHeldDb = fxEditor.gainReductionMeter().heldDb();
     return out;
 }
 
