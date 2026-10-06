@@ -128,6 +128,17 @@ every audio Insert; a disabled one is not in the path. Track-only: a Bus or the 
 path and refuses it (`MidiFxNeedsTrack`).
 _Avoid_: MIDI plugin, MIDI insert (say MIDI FX), "effect" for the instrument itself
 
+**Ride**:
+One automation recording pass of a control while the transport plays (ADR-0052): Touch writes from touch to
+release, Latch from touch to stop, Write from play to stop. A ride replaces the span it writes (anchoring
+the curve outside it), is heard while it lasts, and is one undo step.
+_Avoid_: take (that is a recording), punch (that bounds audio/MIDI capture)
+
+**Automation follows clips**:
+A project setting (ADR-0052, off by default): moving a clip in time on its own track moves the automation
+points in its span with it, by the clip's own time law.
+_Avoid_: region follow (say automation follows clips)
+
 **Sidechain key**:
 The one Track or Bus whose pre-fader signal (after its inserts) a Compressor Insert listens to instead of
 its own audio (ADR-0051). Never audible; follows its source's mute and solo (ADR-0014); one per

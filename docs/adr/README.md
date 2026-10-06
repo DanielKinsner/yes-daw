@@ -69,6 +69,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0049](0049-autonomous-delivery-and-usable-song-milestone.md) | Autonomous delivery toward a usable-song milestone | Accepted |
 | [0050](0050-fx-presets.md) | FX presets: per-user files of real values keyed by stable parameter names | Accepted |
 | [0051](0051-compressor-sidechain-source.md) | Compressor sidechain: one Track or Bus key, tapped pre-fader, stored per insert | Accepted |
+| [0052](0052-automation-v2.md) | Automation v2: stacked lanes, real Write and Latch, span-replacing rides, clip-following points | Accepted |
 
 ## Decision status (the five research forks)
 
