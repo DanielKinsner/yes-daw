@@ -621,6 +621,7 @@ juce::String MainComponent::buildStateProbeJson()
                                || trackRenameEditor.isVisible() || clipRenameEditor.isVisible()
                                || markerRenameEditor.isVisible() || busRenameEditor.isVisible());
     }
+    root->setProperty ("controlTarget", buildProbeControlTarget());   // G4.0b
     root->setProperty ("lastAction", juce::String (lastActionStableId));
     root->setProperty ("commandDispatchCount", context.commandDispatchCount);
     {
@@ -870,6 +871,7 @@ juce::String MainComponent::buildStateProbeJson()
             strip->setProperty ("armed", i < trackCount && appModel.isRecordingTrackIndexArmed (i));
             strip->setProperty ("muted", state.muted);     // G4.1 cp2: the S / M cells as painted
             strip->setProperty ("soloed", state.soloed);
+            strip->setProperty ("linearGain", state.linearGain);   // G4.0b: the fader a keyboard drive adjusts
             // G4.1 cp2: the painted inserts and sends, as the strip reads them.
             juce::Array<juce::var> inserts;
             for (const yesdaw::ui::UiMixerFxSlotReadout& insert : state.fxSlots)

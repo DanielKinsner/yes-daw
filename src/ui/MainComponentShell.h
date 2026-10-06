@@ -9,6 +9,7 @@
 #pragma once
 
 #include "ui/MainComponentInternal.h"
+#include "ui/ControlTarget.h"
 
 namespace yesdaw::ui {
 
@@ -190,6 +191,18 @@ public:
     [[nodiscard]] bool harnessPostMidiInput (bool on, int key, double velocity) noexcept;   // G3.10: the device callback's path
     void harnessSelectPianoRollScale (int rootKey, int scaleChoice);   // G3.8: through the real choosers
     void harnessServiceUiTick() { serviceUiTick(); }   // G3.2 checkpoint: the timer's own refresh path
+    // G4.0b: one control the router can target — a live widget, or a painted control (a strip's fader).
+    struct ShellControl
+    {
+        yesdaw::ui::ControlTargetEntry entry;
+        juce::Component::SafePointer<juce::Component> widget;   // null for a painted control
+        int paintedStrip = -1;                                  // a painted mixer fader's strip
+    };
+    // G4.0b: the keyboard Control target as the router holds it, its Tab order, and the screen
+    // reader's targeting path (the same adoption the UI tick runs when accessibility focus moves).
+    [[nodiscard]] yesdaw::ui::MainComponentControlTarget harnessControlTarget();
+    [[nodiscard]] std::vector<juce::String> harnessControlTraversal();
+    [[nodiscard]] bool harnessAdoptControlTarget (const juce::String& id) { return adoptControlTargetId (id.toStdString()); }
     [[nodiscard]] bool harnessAuditionNote (std::int16_t key, bool on) { return appModel.auditionNote (key, on); }   // G3.2
     [[nodiscard]] std::vector<float> harnessRenderPlayback (std::uint64_t frames, int blockSize);   // G3.2: the engine's own blocks
 
@@ -652,6 +665,31 @@ private:
     void harnessReleaseTypedKeys();
 
     [[nodiscard]] bool cancelInProgressEdit();
+
+    // ---- G4.0b: the keyboard Control target (ADR-0049) — MainComponentControls.cpp --------------
+    // One logical target owned by the router, separate from the Focus context. The pure rules are
+    // ui/ControlTarget.h; these find the controls and perform each effect through the control's own
+    // path (a click, a chooser's onChange, a slider's drag gesture, the painted fader's drag verb).
+    [[nodiscard]] juce::Component& controlScopeComponent();
+    [[nodiscard]] std::string controlScopeId();
+    [[nodiscard]] std::vector<ShellControl> collectShellControls();
+    [[nodiscard]] int controlRegionAt (juce::Point<int> shellPoint) const;
+    [[nodiscard]] juce::String controlValueText (const ShellControl& control) const;
+    bool routeControlTargetKey (const juce::KeyPress& key);
+    void stepControlTarget (int direction);
+    void activateControlTarget();
+    void adjustControlTarget (int valueSteps, int listSteps, bool fine);
+    void finishControlInteraction (bool keep);
+    void closeControlGesture (bool keep);
+    void endControlNavigation();
+    void revalidateControlTarget();
+    void adoptAccessibilityControlTarget();
+    bool adoptControlTargetId (const std::string& id);
+    void refreshControlTargetRing (const std::vector<ShellControl>& controls);
+    void paintControlTargetRing (juce::Graphics& g);
+    void announceControlTarget (const ShellControl& control, bool valueOnly);
+    void initialiseControlNavigation();
+    [[nodiscard]] juce::var buildProbeControlTarget();
 
     // G3.3: a mouse gesture that lands on a model verb without passing handleAction still names
     // itself to the probe (a drive asserts on lastAction; nothing is blind).
@@ -1341,6 +1379,20 @@ private:
     // G0.2: the top-level component this shell is registered on as a KeyListener (null in the
     // headless harness, where the shell is its own top level).
     juce::Component* routedTopLevel = nullptr;
+
+    // G4.0b: the Control target. The scope is the open overlay a walk was limited to ("" = the
+    // shell); the target before that overlay opened is restored when it closes. A value gesture
+    // opens on the first adjustment and closes on confirm / cancel / the control vanishing.
+    yesdaw::ui::ControlNavigator controlNavigator;
+    juce::Rectangle<int> controlRingArea;
+    std::string controlScope;
+    std::string controlTargetBeforeOverlay;
+    std::string lastControlActivation;   // harness: what the last Enter did ("click:<id>", "text:<id>", ...)
+    int controlChooserPreview = -1;      // a chooser interaction's previewed item (applied on Enter)
+    juce::Component::SafePointer<juce::Component> controlTargetWidget;   // the target's widget (null: painted / none)
+    bool controlGestureOpen = false;
+    ShellControl controlGestureTarget;
+    std::unique_ptr<juce::MouseListener> controlNavigationMouseListener;
 
     // G0.1 State probe (ADR-0046 §10; plan §7.2). Debug-only: `stateProbePath` is empty in a
     // normal launch and nothing below is ever written. Counters are the feel-budget inputs.

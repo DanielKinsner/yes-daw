@@ -344,6 +344,12 @@ struct UiTheme
         static constexpr int controlIconTextGap = 5;
         static constexpr int controlFocusInset = 1;
         static constexpr float controlFocusStrokeWidth = 1.5f;
+        // G4.0b: the Control target's ring, drawn by the router over the targeted control; heavier while
+        // an interaction is active (arrows adjust it). The outset keeps it clear of the control's edge.
+        static constexpr float controlTargetRingStrokeWidth = 2.0f;
+        static constexpr float controlTargetRingActiveStrokeWidth = 3.0f;
+        static constexpr int controlTargetRingOutset = 4;
+        static constexpr int controlTargetRingRepaintMargin = 2;
         static constexpr int sliderTrackThickness = 5;
         static constexpr int sliderThumbDiameter = 14;
         static constexpr int sliderThumbShortSide = 16;

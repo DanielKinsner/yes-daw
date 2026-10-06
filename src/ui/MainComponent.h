@@ -383,6 +383,27 @@ double mainComponentTimelineAutoScrollTick (juce::Component& component);
 void mainComponentKeymapEditorSelectRow (juce::Component& component, int row);
 void mainComponentKeymapEditorBind (juce::Component& component, const juce::String& chord);
 
+// G4.0b: the keyboard Control target as the Command router holds it (ADR-0049) — separate from the
+// Focus context. `bounds` is the ring's rect (shell-local); `count` the controls in the Tab order now.
+struct MainComponentControlTarget
+{
+    bool navigating = false;
+    bool interacting = false;
+    juce::String id;
+    juce::String name;
+    juce::String role;
+    juce::String value;
+    juce::String scope;            // the open overlay Tab is kept inside ("" = the whole shell)
+    juce::String lastActivation;   // what the last Enter did: "click:<id>", "choose:<id>", "value:<id>", "text:<id>"
+    juce::Rectangle<int> bounds;
+    int count = 0;
+};
+[[nodiscard]] MainComponentControlTarget mainComponentControlTarget (juce::Component& component);
+// The control ids in Tab order, as the router walks them right now.
+[[nodiscard]] std::vector<juce::String> mainComponentControlTraversal (juce::Component& component);
+// A screen reader moved its focus onto the control `id`: the same adoption path the UI tick runs.
+[[nodiscard]] bool mainComponentAccessibilityTargetControl (juce::Component& component, const juce::String& id);
+
 // G0.8: dispatch an action as a menu item or chord would, and read its live registry state.
 void mainComponentDispatchAction (juce::Component& component, UiActionId action);
 [[nodiscard]] UiActionState mainComponentActionState (const juce::Component& component, UiActionId action);

@@ -137,6 +137,7 @@ set(YESDAW_SHELL_SOURCES
   src/ui/MainComponent.cpp
   src/ui/MainComponentArrange.cpp
   src/ui/MainComponentCommands.cpp
+  src/ui/MainComponentControls.cpp
   src/ui/MainComponentInspector.cpp
   src/ui/MainComponentMixer.cpp
   src/ui/MainComponentPianoRoll.cpp

@@ -1623,7 +1623,7 @@ TEST_CASE ("plan \u00a75.1: the shell topology — helper components in their ow
 
     // cp2: the declaration is one header; the bodies are the domain translation units. Pins only tighten.
     const char* shellUnits[] = { "MainComponent.cpp", "MainComponentArrange.cpp", "MainComponentCommands.cpp",
-                                 "MainComponentInspector.cpp", "MainComponentMixer.cpp", "MainComponentPianoRoll.cpp",
+                                 "MainComponentControls.cpp", "MainComponentInspector.cpp", "MainComponentMixer.cpp", "MainComponentPianoRoll.cpp",
                                  "MainComponentProbe.cpp" };
     std::vector<std::string> allShellLines;
     for (const char* unit : shellUnits)

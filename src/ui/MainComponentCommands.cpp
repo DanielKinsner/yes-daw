@@ -294,6 +294,10 @@ void MainComponent::resumeDesktopAudioCallback()
 // Ctrl+Z undoes, Del deletes the selected Clip, and every binding stays mechanically listable.
 bool MainComponent::keyPressed (const juce::KeyPress& key)
 {
+    // G4.0b: the Control target's keys come first (ADR-0049) — after active text entry, which keeps
+    // its keys inside the field, and before every route below. A key it claims dispatches nowhere else.
+    if (routeControlTargetKey (key))
+        return true;
     if (key.getKeyCode() == juce::KeyPress::escapeKey && fxEditorOpen)   // G4.1 cp2
     {
         closeFxEditor();

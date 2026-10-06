@@ -22341,6 +22341,26 @@ TEST_CASE ("G4.2 EQ response follows edits undo bypass and slot changes", "[ui][
 // once. Each shell case below drives the shell's own keyPressed — the path every real key takes.
 namespace {
 
+bool pressKey (juce::Component& shell, int keyCode, juce::ModifierKeys mods = {})
+{
+    return shell.keyPressed (juce::KeyPress (keyCode, mods, 0));
+}
+
+juce::var probeRoot (juce::Component& shell)
+{
+    return juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (shell)));
+}
+
+juce::String probeLastAction (juce::Component& shell)
+{
+    return probeRoot (shell)["lastAction"].toString();
+}
+
+yesdaw::ui::MainComponentControlTarget controlTargetOf (juce::Component& shell)
+{
+    return yesdaw::ui::mainComponentControlTarget (shell);
+}
+
 yesdaw::ui::ControlTargetEntry makeControlEntry (std::string id, int region, int x, int y, int width, int height)
 {
     yesdaw::ui::ControlTargetEntry entry;
@@ -22446,4 +22466,348 @@ TEST_CASE ("G4.0b control navigation: the pure rules — priority, reading order
     REQUIRE (stepFaderGainDb (0.001f, -1, 1.0, 2.0) == 0.0f);
     REQUIRE (stepFaderGainDb (1.9f, 3, 1.0, 2.0) == 2.0f);
     REQUIRE (stepFaderGainDb (0.5f, 0, 1.0, 2.0) == 0.5f);
+}
+
+TEST_CASE ("G4.0b control navigation: Tab walks every control, Enter clicks once, Esc ends, Space stays transport",
+           "[ui][input][shell][control-navigation]")
+{
+    const auto bundlePath = makeTempBundlePath ("control-navigation-router");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // Not navigating: Enter is Return to zero (keymap v2) and nothing is targeted.
+    REQUIRE_FALSE (controlTargetOf (*shell).navigating);
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (probeLastAction (*shell) == "transport.return_to_zero");
+
+    // Tab starts navigation on the first control of the router's order; every id is distinct.
+    const auto order = yesdaw::ui::mainComponentControlTraversal (*shell);
+    REQUIRE (order.size() > 20u);
+    REQUIRE (std::set<juce::String> (order.begin(), order.end()).size() == order.size());
+    REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+    auto target = controlTargetOf (*shell);
+    REQUIRE (target.navigating);
+    REQUIRE_FALSE (target.interacting);
+    REQUIRE (target.id == order.front());
+    REQUIRE (target.count == static_cast<int> (order.size()));
+    REQUIRE_FALSE (target.bounds.isEmpty());
+    REQUIRE (shell->getLocalBounds().contains (target.bounds));
+    const juce::var probe = probeRoot (*shell)["controlTarget"];
+    REQUIRE (static_cast<bool> (probe["navigating"]));
+    REQUIRE (probe["id"].toString() == order.front());
+    REQUIRE (probe["role"].toString() == target.role);
+
+    // Shift+Tab wraps to the last control; a full lap of Tab visits each control exactly once.
+    REQUIRE (pressKey (*shell, juce::KeyPress::tabKey, juce::ModifierKeys::shiftModifier));
+    REQUIRE (controlTargetOf (*shell).id == order.back());
+    REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+    std::vector<juce::String> lap;
+    for (std::size_t i = 0; i < order.size(); ++i)
+    {
+        lap.push_back (controlTargetOf (*shell).id);
+        REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+    }
+    REQUIRE (lap == order);
+    REQUIRE (controlTargetOf (*shell).id == order.front());
+
+    // Space is transport while navigating, and the target stays put.
+    REQUIRE (pressKey (*shell, juce::KeyPress::spaceKey));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    REQUIRE (controlTargetOf (*shell).id == order.front());
+    REQUIRE (pressKey (*shell, juce::KeyPress::spaceKey));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.isPlaying);
+
+    // Enter on the Play button clicks it through its own path — exactly the dispatches a mouse click
+    // makes — and never also returns to zero (the playhead stays where it was put).
+    juce::Button& play = requireButtonForAction (*shell, UiActionId::TransportPlay);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportLocateNextGrid);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportLocateNextGrid);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame > 0);
+    auto dispatches = snapshotMainComponent (*shell).context.commandDispatchCount;
+    clickButton (play);
+    const auto mouseClickDispatches = snapshotMainComponent (*shell).context.commandDispatchCount - dispatches;
+    REQUIRE (mouseClickDispatches >= 1u);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame > 0);
+
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, play.getComponentID()));
+    target = controlTargetOf (*shell);
+    REQUIRE (target.navigating);
+    REQUIRE (target.id == play.getComponentID());
+    REQUIRE (target.role == "button");
+    REQUIRE (target.name.isNotEmpty());
+    const auto stoppedFrame = snapshotMainComponent (*shell).context.playheadFrame;
+    dispatches = snapshotMainComponent (*shell).context.commandDispatchCount;
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount - dispatches == mouseClickDispatches);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame >= stoppedFrame);
+    REQUIRE (probeLastAction (*shell) == "transport.play");
+    REQUIRE (controlTargetOf (*shell).lastActivation == "click:" + play.getComponentID());
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+
+    // Esc ends navigation without dispatching anything; Enter is Return to zero again.
+    dispatches = snapshotMainComponent (*shell).context.commandDispatchCount;
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    REQUIRE_FALSE (controlTargetOf (*shell).navigating);
+    REQUIRE (controlTargetOf (*shell).id.isEmpty());
+    REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatches);
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (probeLastAction (*shell) == "transport.return_to_zero");
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 0);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("G4.0b control navigation: a chooser previews with arrows, Enter applies through onChange, Esc restores",
+           "[ui][input][shell][control-navigation]")
+{
+    const auto bundlePath = makeTempBundlePath ("control-navigation-chooser");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    auto* snap = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snap != nullptr);
+    REQUIRE (snap->getSelectedId() == 3);   // Beat
+    const auto beatTicks = snapshotMainComponent (*shell).context.snapGridTicks;
+
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "timeline.snap.chooser"));
+    REQUIRE (controlTargetOf (*shell).role == "chooser");
+    (void) pressKey (*shell, juce::KeyPress::downKey);   // before Enter an arrow is the editor's
+    REQUIRE (snap->getSelectedId() == 3);
+    REQUIRE_FALSE (controlTargetOf (*shell).interacting);
+
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (controlTargetOf (*shell).interacting);
+    REQUIRE (controlTargetOf (*shell).lastActivation == "choose:timeline.snap.chooser");
+    REQUIRE (pressKey (*shell, juce::KeyPress::downKey));
+    REQUIRE (snap->getSelectedId() == 4);
+    REQUIRE (controlTargetOf (*shell).value == "1/16");
+    REQUIRE (snapshotMainComponent (*shell).context.snapGridTicks == beatTicks);   // previewed, not applied
+    REQUIRE (pressKey (*shell, juce::KeyPress::downKey));                           // the last item: no wrap
+    REQUIRE (snap->getSelectedId() == 4);
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE_FALSE (controlTargetOf (*shell).interacting);
+    REQUIRE (controlTargetOf (*shell).navigating);
+    const auto sixteenthTicks = snapshotMainComponent (*shell).context.snapGridTicks;
+    REQUIRE (sixteenthTicks < beatTicks);
+
+    // Esc restores the item the interaction started from and applies nothing.
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::upKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::upKey));
+    REQUIRE (snap->getSelectedId() == 2);
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    REQUIRE (snap->getSelectedId() == 4);
+    REQUIRE (snapshotMainComponent (*shell).context.snapGridTicks == sixteenthTicks);
+    REQUIRE (controlTargetOf (*shell).navigating);
+    REQUIRE_FALSE (controlTargetOf (*shell).interacting);
+
+    // Tab mid-preview keeps what was reached and moves on.
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::upKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+    REQUIRE (snap->getSelectedId() == 3);
+    REQUIRE (snapshotMainComponent (*shell).context.snapGridTicks == beatTicks);
+    REQUIRE (controlTargetOf (*shell).id != "timeline.snap.chooser");
+    REQUIRE_FALSE (controlTargetOf (*shell).interacting);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("G4.0b control navigation: a mixer fader steps in dB as one undo step; its arrows never move the editor",
+           "[ui][input][shell][control-navigation][mixer]")
+{
+    const auto bundlePath = makeTempBundlePath ("control-navigation-fader");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    // The Arrange editor keeps the focus (its Left / Right locate the playhead) while the dock shows the mixer.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == UiPanel::Timeline);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportLocateNextGrid);
+    // The second strip: a leaked Up (Previous Track) would select Track 0, a leaked Left / Right would
+    // locate the playhead.
+    const auto gainOf = [&bundlePath] { return readProjectSnapshot (bundlePath).tracks.at (1).strip.linearGain; };
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
+    REQUIRE (gainOf() == Catch::Approx (1.0));
+
+    const auto order = yesdaw::ui::mainComponentControlTraversal (*shell);
+    REQUIRE (std::find (order.begin(), order.end(), juce::String ("mixer.strip.0.fader")) != order.end());
+    REQUIRE (std::find (order.begin(), order.end(), juce::String ("mixer.strip.1.fader")) != order.end());
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "mixer.strip.1.fader"));
+    auto target = controlTargetOf (*shell);
+    REQUIRE (target.role == "value");
+    REQUIRE (target.name.endsWith ("fader"));
+    REQUIRE (target.bounds == yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 1));
+
+    // Negative control: before Enter, Right is the editor's (Next Grid moves the playhead).
+    const auto locatedFrame = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (pressKey (*shell, juce::KeyPress::rightKey));
+    const auto frameBefore = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (frameBefore > locatedFrame);
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (controlTargetOf (*shell).interacting);
+    for (int i = 0; i < 3; ++i)
+        REQUIRE (pressKey (*shell, juce::KeyPress::upKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::rightKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::leftKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::upKey, juce::ModifierKeys::shiftModifier));
+    // Up / Down select Tracks and Left / Right locate the playhead outside the interaction: inside it,
+    // the fader alone moved (its drag verb selects its own strip's Track, as a mouse drag does).
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == frameBefore);
+    REQUIRE (static_cast<int> (probeRoot (*shell)["selection"]["primaryTrack"]) == 1);
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE_FALSE (controlTargetOf (*shell).interacting);
+    REQUIRE (gainOf() == Catch::Approx (std::pow (10.0, 3.1 / 20.0)).epsilon (1e-4));
+    REQUIRE (controlTargetOf (*shell).value.contains ("3.1"));
+
+    // The whole keyboard adjustment is one undo step, like one drag.
+    REQUIRE (pressKey (*shell, 'z', juce::ModifierKeys::ctrlModifier));
+    REQUIRE (gainOf() == Catch::Approx (1.0));
+
+    // Esc restores the value the interaction started from.
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::downKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::downKey));
+    REQUIRE (gainOf() == Catch::Approx (std::pow (10.0, -2.0 / 20.0)).epsilon (1e-4));
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    REQUIRE (gainOf() == Catch::Approx (1.0));
+    REQUIRE (controlTargetOf (*shell).navigating);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("G4.0b control navigation: the EQ editor is a panel of its own; closing it restores the target",
+           "[ui][input][shell][control-navigation][fx-editors]")
+{
+    const auto bundlePath = makeTempBundlePath ("control-navigation-eq");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Eq);
+
+    REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+    const juce::String shellTarget = controlTargetOf (*shell).id;
+    REQUIRE (controlTargetOf (*shell).scope.isEmpty());
+
+    // The editor opens: Tab now lives inside it, starting at its first control.
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    auto target = controlTargetOf (*shell);
+    REQUIRE (target.scope == "mixer.fx.editor");
+    const auto inside = yesdaw::ui::mainComponentControlTraversal (*shell);
+    REQUIRE (inside.size() >= 3u);
+    REQUIRE (target.id == inside.front());
+    for (const auto& id : inside)
+        REQUIRE ((id.startsWith ("mixer.fx.") || id.startsWith ("unnamed:")));
+    REQUIRE (std::find (inside.begin(), inside.end(), juce::String ("mixer.fx.param.2")) != inside.end());
+    REQUIRE (std::find (inside.begin(), inside.end(), juce::String ("mixer.fx.editor.close")) != inside.end());
+
+    // A value interaction on the band-1 gain moves the curve through the slider's own path.
+    auto* graph = dynamic_cast<yesdaw::ui::EqResponseComponent*> (findChildWithComponentId (*shell, "mixer.fx.editor.eq.response"));
+    REQUIRE (graph != nullptr);
+    REQUIRE (graph->responseDb (1000.0) == Catch::Approx (0.0).margin (1.0e-9));
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "mixer.fx.param.2"));
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (controlTargetOf (*shell).lastActivation == "value:mixer.fx.param.2");
+    for (int i = 0; i < 5; ++i)
+        REQUIRE (pressKey (*shell, juce::KeyPress::upKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    const double raised = graph->responseDb (1000.0);
+    REQUIRE (raised > 0.5);
+    // Esc on a fresh interaction restores what it started from; the editor stays open.
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::downKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    REQUIRE (graph->responseDb (1000.0) == Catch::Approx (raised).margin (1.0e-9));
+    REQUIRE (controlTargetOf (*shell).navigating);
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).visible);
+
+    // Closing the panel from its own Close button returns navigation to where it was before.
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "mixer.fx.editor.close"));
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentFxEditor (*shell).visible);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    target = controlTargetOf (*shell);
+    REQUIRE (target.navigating);
+    REQUIRE (target.scope.isEmpty());
+    REQUIRE (target.id == shellTarget);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("G4.0b control navigation: a text field starts text entry on Enter; hidden controls leave no stale target",
+           "[ui][input][shell][control-navigation]")
+{
+    const auto bundlePath = makeTempBundlePath ("control-navigation-text");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    // The keymap editor is a panel; its search field is a text target. Tab only targets it; Enter
+    // hands it the keys (active text entry outranks the router from then on).
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::HelpShowKeymap);
+    REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+    REQUIRE (controlTargetOf (*shell).scope == "keymap.editor");
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "keymap.editor.search"));
+    REQUIRE (controlTargetOf (*shell).role == "text");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (controlTargetOf (*shell).lastActivation == "text:keymap.editor.search");
+    REQUIRE_FALSE (controlTargetOf (*shell).interacting);
+    // Esc ends navigation; the next Esc is the keymap editor's own close.
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    REQUIRE_FALSE (controlTargetOf (*shell).navigating);
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentKeymapEditor (*shell).visible);
+
+    // A targeted control that hides moves the target to a live control on the next tick.
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    const auto withRow = yesdaw::ui::mainComponentControlTraversal (*shell);
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    const auto withoutRow = yesdaw::ui::mainComponentControlTraversal (*shell);
+    REQUIRE (withRow.size() > withoutRow.size());
+    juce::String hidden;
+    for (const auto& id : withRow)
+        if (std::find (withoutRow.begin(), withoutRow.end(), id) == withoutRow.end())
+        {
+            hidden = id;
+            break;
+        }
+    REQUIRE (hidden.isNotEmpty());
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, hidden));
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    const auto target = controlTargetOf (*shell);
+    REQUIRE (target.navigating);
+    REQUIRE (target.id != hidden);
+    REQUIRE (std::find (withoutRow.begin(), withoutRow.end(), target.id) != withoutRow.end());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }

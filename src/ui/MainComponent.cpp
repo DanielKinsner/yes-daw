@@ -1814,6 +1814,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
 
     // G0.2: keys go to the command router, not to widgets (ADR-0046 §4).
     applyKeyboardFocusLaw();
+    initialiseControlNavigation();   // G4.0b: the router's Control target (ADR-0049)
     refreshActionState();
     resized();
     hideMixerControlsBehindDockTab();
@@ -1829,6 +1830,8 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
 
 MainComponent::~MainComponent()
 {
+    if (controlNavigationMouseListener != nullptr)
+        removeMouseListener (controlNavigationMouseListener.get());
     if (routedTopLevel != nullptr)
         routedTopLevel->removeKeyListener (this);
     menuBar.setModel (nullptr);
@@ -1917,6 +1920,12 @@ void MainComponent::serviceUiTick()
     else
         repaintDynamicLayers();
 
+    // G4.0b: a hidden / removed / closed control leaves no stale target, and a screen reader's
+    // focus move onto a control makes it the target.
+    if (controlNavigator.navigating())
+        revalidateControlTarget();
+    adoptAccessibilityControlTarget();
+
     if (! appModel.autosaveSchedule().enabled)
         return;
 
@@ -1992,8 +2001,9 @@ bool MainComponent::confirmClose()
 // G0.1 probe: paint() opens the frame stamp and paintOverChildren() closes it — JUCE paints
 // this component, then every child, then paintOverChildren on the same component, so the
 // pair brackets the whole shell's paint work for one frame (the B2 budget).
-void MainComponent::paintOverChildren (juce::Graphics&)
+void MainComponent::paintOverChildren (juce::Graphics& g)
 {
+    paintControlTargetRing (g);   // G4.0b: above every child, inside the B2 frame
     const auto now = std::chrono::steady_clock::now();
     lastPaintMs = std::chrono::duration<double, std::milli> (now - paintStartStamp).count();
     paintRing[paintRingIndex] = lastPaintMs;
