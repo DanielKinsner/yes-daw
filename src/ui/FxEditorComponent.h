@@ -52,6 +52,7 @@ public:
     std::function<void()> onClose;
     std::function<void()> onBypass;
     std::function<void()> onPresets;   // G4.2 cp7: the Presets menu (ADR-0050)
+    std::function<void (int)> onSidechain;   // G4.4 (ADR-0051): the picked choice's index (0 = None)
 
     FxEditorComponent()
     {
@@ -89,6 +90,14 @@ public:
         presetsButton.setColour (juce::TextButton::textColourOffId, yesdaw::ui::UiTheme::Color::text());
         presetsButton.onClick = [this] { if (onPresets) onPresets(); };
         addAndMakeVisible (presetsButton);
+        sidechainChooser.setComponentID ("mixer.fx.editor.sidechain");
+        sidechainChooser.setName ("Sidechain");
+        sidechainChooser.setTooltip ("The track or bus this compressor listens to (its key); None listens to its own audio");
+        sidechainChooser.onChange = [this] {
+            if (! settingSidechainChoices && onSidechain)
+                onSidechain (sidechainChooser.getSelectedId() - 1);
+        };
+        addChildComponent (sidechainChooser);
     }
 
     void setTitleText (const juce::String& text)
@@ -103,12 +112,40 @@ public:
     [[nodiscard]] bool isBypassed() const noexcept { return bypassButton.getToggleState(); }
     [[nodiscard]] juce::Component& presetsAnchor() noexcept { return presetsButton; }
 
+    // G4.4 (ADR-0051): a Compressor's Sidechain chooser — None, then the Tracks, then the Buses; a source
+    // that is its own strip or would loop the routing is listed disabled. Rebuilt only when it changes.
+    struct SidechainChoice
+    {
+        juce::String name;
+        bool enabled = true;
+        bool operator== (const SidechainChoice&) const = default;
+    };
+    void setSidechainChoices (const std::vector<SidechainChoice>& choices, int selectedIndex)
+    {
+        const juce::ScopedValueSetter<bool> quiet (settingSidechainChoices, true);
+        if (choices != sidechainChoices)
+        {
+            sidechainChoices = choices;
+            sidechainChooser.clear (juce::dontSendNotification);
+            for (std::size_t i = 0; i < choices.size(); ++i)
+            {
+                sidechainChooser.addItem (choices[i].name, static_cast<int> (i) + 1);
+                sidechainChooser.setItemEnabled (static_cast<int> (i) + 1, choices[i].enabled);
+            }
+        }
+        sidechainChooser.setSelectedId (selectedIndex + 1, juce::dontSendNotification);
+    }
+    [[nodiscard]] bool showsSidechain() const noexcept { return sidechainChooser.isVisible(); }
+    [[nodiscard]] juce::String sidechainText() const { return sidechainChooser.getText(); }
+    [[nodiscard]] juce::ComboBox& sidechainBox() noexcept { return sidechainChooser; }
+
     void setInsert (const engine::FxInsert& insert, double sampleRate)
     {
         const bool eq = insert.kind == engine::FxKind::Eq;
         const bool dynamics = insert.kind == engine::FxKind::Compressor || insert.kind == engine::FxKind::Limiter;
         const bool delay = insert.kind == engine::FxKind::Delay;
         const bool reverb = insert.kind == engine::FxKind::Reverb;
+        const bool keyable = insert.kind == engine::FxKind::Compressor;   // ADR-0051: only a Compressor
         if (eq) eqResponse.setInsert (insert, sampleRate);
         if (delay) delayTaps.setInsert (insert, sampleRate);
         if (reverb) reverbDecay.setInsert (insert, sampleRate);
@@ -118,12 +155,14 @@ public:
             shownInsertId = insert.id;
             gainReduction.reset();   // another insert: nothing measured for it yet
         }
-        if (eq != wantsEq || dynamics != wantsDynamics || delay != wantsDelay || reverb != wantsReverb)
+        if (eq != wantsEq || dynamics != wantsDynamics || delay != wantsDelay || reverb != wantsReverb
+            || keyable != wantsSidechain)
         {
             wantsEq = eq;
             wantsDynamics = dynamics;
             wantsDelay = delay;
             wantsReverb = reverb;
+            wantsSidechain = keyable;
             resized();
         }
     }
@@ -178,6 +217,13 @@ public:
                               .withHeight (yesdaw::ui::UiTheme::Layout::keymapEditorTopRowHeight)
                               .withTrimmedRight (yesdaw::ui::UiTheme::Layout::fxEditorTitleTrimRight),
                           juce::Justification::centredLeft, 1);
+        if (sidechainRowFits())
+        {
+            g.setColour (yesdaw::ui::UiTheme::Color::mutedText());
+            g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small));
+            g.drawText ("Sidechain", sidechainRowArea().withWidth (yesdaw::ui::UiTheme::Layout::fxEditorSidechainLabelWidth),
+                        juce::Justification::centredLeft);
+        }
     }
 
     void resized() override
@@ -190,6 +236,11 @@ public:
         bypassButton.setBounds (top.removeFromRight (L::fxEditorBypassWidth));
         top.removeFromRight (L::keymapEditorGap);
         presetsButton.setBounds (top.removeFromRight (L::fxEditorPresetsWidth));
+
+        sidechainChooser.setVisible (sidechainRowFits());
+        if (sidechainRowFits())
+            sidechainChooser.setBounds (sidechainRowArea().withTrimmedLeft (L::fxEditorSidechainLabelWidth)
+                                            .withWidth (L::fxEditorSidechainChooserWidth));
 
         const Faces faces = fittedFaces();
         eqResponse.setVisible (faces.eq);
@@ -255,15 +306,46 @@ private:
     [[nodiscard]] juce::Rectangle<int> bodyArea() const
     {
         using L = UiTheme::Layout;
+        auto area = bodyBelowTitle();
+        if (sidechainRowFits())
+            area.removeFromTop (L::fxEditorSidechainRowHeight + L::keymapEditorGap);
+        return area;
+    }
+
+    [[nodiscard]] juce::Rectangle<int> bodyBelowTitle() const
+    {
+        using L = UiTheme::Layout;
         auto area = getLocalBounds().reduced (L::keymapEditorInset);
         area.removeFromTop (L::keymapEditorTopRowHeight + L::keymapEditorGap);
         return area;
+    }
+
+    // G4.4: the Sidechain row is a control, so it outlives every face (they drop first, within bodyArea);
+    // it yields only when even the kept parameter rows would not fit under it — the section-fit law.
+    [[nodiscard]] bool sidechainRowFits() const
+    {
+        using L = UiTheme::Layout;
+        return wantsSidechain
+            && bodyBelowTitle().getHeight() - (L::fxEditorSidechainRowHeight + L::keymapEditorGap)
+                   >= L::fxEditorRowsKeptUnderFaces * (L::mixerFxParamRowHeight + L::mixerFxParamRowGap);
+    }
+
+    [[nodiscard]] juce::Rectangle<int> sidechainRowArea() const
+    {
+        using L = UiTheme::Layout;
+        auto area = getLocalBounds().reduced (L::keymapEditorInset);
+        area.removeFromTop (L::keymapEditorTopRowHeight + L::keymapEditorGap);
+        return area.removeFromTop (L::fxEditorSidechainRowHeight);
     }
 
     EqResponseComponent eqResponse;
     GainReductionMeterComponent gainReduction;
     TransferCurveComponent transferCurve;
     bool wantsEq = false, wantsDynamics = false, wantsDelay = false, wantsReverb = false;
+    bool wantsSidechain = false;
+    juce::ComboBox sidechainChooser;
+    std::vector<SidechainChoice> sidechainChoices;
+    bool settingSidechainChoices = false;
     DelayTapsComponent delayTaps;
     ReverbDecayComponent reverbDecay;
     engine::EntityId shownInsertId {};

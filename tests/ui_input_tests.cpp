@@ -23815,3 +23815,90 @@ TEST_CASE ("G4.3 New Bus from the send and output choosers, Route to New Bus fro
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G4.4 (ADR-0051) — the Compressor editor's Sidechain chooser: None, the Tracks, the Buses (its own strip
+// and any loop-making source disabled); a pick keys the Compressor as one undo step and lights the
+// strip's "SC" badge; a keyed source cannot be removed (the status line says why); other kinds have no
+// chooser.
+TEST_CASE ("G4.4 the Compressor editor's Sidechain chooser keys it from another strip", "[ui][input][shell][mixer][fx-editors][sidechain-ui]")
+{
+    using K = yesdaw::engine::FxKind;
+    const auto bundlePath = makeTempBundlePath ("sidechain-ui");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+    addInsertToStrip (*shell, 2, K::Compressor);   // Bus 1's strip: tracks first, then buses
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 2, 0);
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).kind == "Compressor");
+
+    const auto project = [&bundlePath] { return readProjectSnapshot (bundlePath); };
+    const auto probe = [&shell] { return juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell))); };
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "mixer.fx.editor.sidechain"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->isVisible());
+    REQUIRE (static_cast<bool> (probe()["fxEditor"]["sidechainVisible"]));
+    REQUIRE (chooser->getNumItems() == 4);
+    REQUIRE (chooser->getItemText (0) == "None");
+    REQUIRE (chooser->getItemText (1) == "Audio 1");
+    REQUIRE (chooser->getItemText (2) == "Audio 2");
+    REQUIRE (chooser->getItemText (3) == "Bus 1");
+    REQUIRE (chooser->isItemEnabled (3));
+    REQUIRE_FALSE (chooser->isItemEnabled (4));   // its own strip
+    REQUIRE (probe()["fxEditor"]["sidechain"].toString() == "None");
+    REQUIRE_FALSE (static_cast<bool> (probe()["mixer"]["strips"][2]["sidechain"]));
+
+    // A pick keys the Compressor: the model, the chooser and the strip's badge agree; one undo, one redo.
+    chooser->setSelectedId (3, juce::sendNotificationSync);
+    REQUIRE (project().buses[0].strip.fxChain[0].sidechainSourceId == project().tracks[1].id);
+    REQUIRE (probe()["fxEditor"]["sidechain"].toString() == "Audio 2");
+    REQUIRE (static_cast<bool> (probe()["mixer"]["strips"][2]["sidechain"]));
+    REQUIRE_FALSE (static_cast<bool> (probe()["mixer"]["strips"][0]["sidechain"]));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE_FALSE (project().buses[0].strip.fxChain[0].sidechainSourceId.isValid());
+    REQUIRE (probe()["fxEditor"]["sidechain"].toString() == "None");
+    REQUIRE_FALSE (static_cast<bool> (probe()["mixer"]["strips"][2]["sidechain"]));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (project().buses[0].strip.fxChain[0].sidechainSourceId == project().tracks[1].id);
+
+    // A keyed source cannot be removed: the remove is refused whole and the status line says why.
+    {
+        yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::mixerHeight);
+        const juce::var rowVar = probe()["layout"]["rail.row.1"];
+        REQUIRE ((rowVar.isArray() && rowVar.size() == 4));
+        const juce::Point<int> row1 (static_cast<int> (rowVar[0]) + kRailRowClickX,
+                                     static_cast<int> (rowVar[1]) + static_cast<int> (rowVar[3]) / 2);
+        const auto header = yesdaw::ui::mainComponentRequestContextMenu (*shell, row1);
+        REQUIRE (header.target == yesdaw::ui::ContextMenuTarget::TrackHeader);
+        REQUIRE (header.index == 1);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRemove);
+        REQUIRE (project().tracks.size() == 2u);
+        REQUIRE (probe()["status"]["text"].toString().contains ("keys a compressor's sidechain"));
+        yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    }
+
+    // A Track's own Compressor: its own strip, and the bus it feeds (a loop), are listed disabled.
+    routeStripOutput (*shell, 0, 1);   // Audio 1 -> Bus 1
+    REQUIRE (project().tracks[0].outputBusId == project().buses[0].id);
+    addInsertToStrip (*shell, 0, K::Compressor);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).kind == "Compressor");
+    REQUIRE (chooser->getNumItems() == 4);
+    REQUIRE_FALSE (chooser->isItemEnabled (2));   // Audio 1: its own strip
+    REQUIRE (chooser->isItemEnabled (3));         // Audio 2
+    REQUIRE_FALSE (chooser->isItemEnabled (4));   // Bus 1: Audio 1 feeds it, so it would loop
+
+    // Other kinds have no chooser.
+    addInsertToStrip (*shell, 2, K::Eq);
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 2, 1);
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).kind == "EQ");
+    REQUIRE_FALSE (chooser->isVisible());
+    REQUIRE_FALSE (static_cast<bool> (probe()["fxEditor"]["sidechainVisible"]));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

@@ -192,6 +192,13 @@ struct UiMixerActionResult
 
 namespace detail {
 
+// G4.4 (ADR-0051): the strip's "SC" badge shows exactly when one of its Compressors is keyed.
+[[nodiscard]] inline bool stripHasSidechainKey (const engine::MixerStripState& strip) noexcept
+{
+    return std::any_of (strip.fxChain.begin(), strip.fxChain.end(),
+                        [] (const engine::FxInsert& insert) { return insert.sidechainSourceId.isValid(); });
+}
+
 inline const UiMixerTargetControl* findControlForTarget (std::span<const UiMixerTargetControl> controls,
                                                          engine::EntityId targetId) noexcept
 {
@@ -401,7 +408,8 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.muted = control != nullptr ? control->muted : trackRow.strip.muted;
         strip.soloed = control != nullptr ? control->soloed : trackRow.strip.soloed;
         strip.soloSafe = control != nullptr ? control->soloSafe : trackRow.strip.soloSafe;
-        strip.sidechainVisible = control != nullptr && control->sidechainVisible;
+        strip.sidechainVisible = (control != nullptr && control->sidechainVisible)
+                              || detail::stripHasSidechainKey (trackRow.strip);   // G4.4: a keyed Compressor
         strip.colour = trackRow.colour;
         strip.outputBusId = trackRow.outputBusId;   // G4.1
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
@@ -438,7 +446,8 @@ inline UiMixerSurfaceSnapshot projectUiMixerSurface (const engine::Project& proj
         strip.muted = control != nullptr ? control->muted : (bus != nullptr && bus->strip.muted);
         strip.soloed = control != nullptr ? control->soloed : (bus != nullptr && bus->strip.soloed);
         strip.soloSafe = control != nullptr ? control->soloSafe : (bus != nullptr && bus->strip.soloSafe);
-        strip.sidechainVisible = control != nullptr && control->sidechainVisible;
+        strip.sidechainVisible = (control != nullptr && control->sidechainVisible)
+                              || (bus != nullptr && detail::stripHasSidechainKey (bus->strip));   // G4.4
         strip.meter = control != nullptr ? control->meter : UiMixerMeterReadout {};
         if (bus != nullptr)
         {

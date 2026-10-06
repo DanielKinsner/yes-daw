@@ -571,6 +571,17 @@ void MainComponent::configureMixerControls()
         repaintAll();
     };
     fxEditor.onPresets = [this] { showFxPresetsMenu(); };   // G4.2 cp7 (ADR-0050)
+    fxEditor.onSidechain = [this] (int choice) {   // G4.4 (ADR-0051): the chooser's pick keys the Compressor
+        if (selectedFxParamSlot < 0 || choice < 0)
+            return;
+        int selected = 0;
+        const auto choices = appModel.fxSidechainChoicesOnSelectedStrip (static_cast<std::size_t> (selectedFxParamSlot), selected);
+        if (static_cast<std::size_t> (choice) < choices.size())
+            (void) appModel.setFxInsertSidechainOnSelectedStrip (static_cast<std::size_t> (selectedFxParamSlot),
+                                                                 choices[static_cast<std::size_t> (choice)].sourceId);
+        refreshActionState();
+        repaintAll();
+    };
     addChildComponent (fxEditor);
 
     // FX parameter editing (usable-DAW P1): the selected slot's ParamSpecs become live sliders;

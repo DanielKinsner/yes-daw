@@ -4096,10 +4096,16 @@ public:
 
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.apply (nextProject,
-                              engine::ProjectEditCommand::removeBus (
-                                  project_.buses[selectedMixerTarget_.index].id)).applied())
+        const engine::ProjectEditApplyResult removed = nextUndo.apply (
+            nextProject, engine::ProjectEditCommand::removeBus (project_.buses[selectedMixerTarget_.index].id));
+        if (! removed.applied())
+        {
+            if (removed.editStatus == engine::ProjectEditStatus::SidechainSourceInUse)   // ADR-0051
+                reportStatus ("Remove refused: " + project_.buses[selectedMixerTarget_.index].strip.name
+                                  + " keys a compressor's sidechain; set that sidechain to None first",
+                              true);
             return { id, { false, "bus removal refused (sends still route to it)" }, false };
+        }
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "bus removal did not persist" }, false };
@@ -4562,6 +4568,77 @@ public:
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "FX edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // G4.4 (ADR-0051): a Compressor's Sidechain choices on the selected strip's slot — None, the Tracks,
+    // the Buses (never the master); its own strip and any source that would loop the routing are listed
+    // disabled. `selected` is the current key's index (0 = None). Empty when the slot is not a Compressor.
+    struct UiSidechainChoice
+    {
+        engine::EntityId sourceId {};
+        std::string name;
+        bool enabled = true;
+    };
+    [[nodiscard]] std::vector<UiSidechainChoice> fxSidechainChoicesOnSelectedStrip (std::size_t slotIndex, int& selected) const
+    {
+        selected = 0;
+        std::vector<UiSidechainChoice> choices;
+        engine::EntityId ownerId;
+        if (! selectedMixerOwnerId (ownerId))
+            return choices;
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, ownerId);
+        if (strip == nullptr || slotIndex >= strip->fxChain.size() || strip->fxChain[slotIndex].kind != engine::FxKind::Compressor)
+            return choices;
+        const engine::EntityId current = strip->fxChain[slotIndex].sidechainSourceId;
+        choices.push_back ({ {}, "None", true });
+        const auto offer = [&] (engine::EntityId sourceId, const std::string& name)
+        {
+            if (sourceId == current)
+                selected = static_cast<int> (choices.size());
+            const bool usable = sourceId != ownerId && ! project_.stripSignalReaches (ownerId, sourceId);
+            choices.push_back ({ sourceId, name, usable || sourceId == current });
+        };
+        for (const engine::Track& track : project_.tracks)
+            offer (track.id, track.strip.name);
+        for (const engine::Bus& bus : project_.buses)
+            offer (bus.id, bus.strip.name);
+        return choices;
+    }
+
+    // G4.4 (ADR-0051): key the selected strip's Compressor slot with a Track or Bus (an invalid source
+    // clears it) — one undo step; a refusal says why on the status line.
+    [[nodiscard]] UiActionDispatchResult setFxInsertSidechainOnSelectedStrip (std::size_t slotIndex, engine::EntityId sourceId)
+    {
+        const UiActionId id = UiActionId::MixerFxInsertSetSidechain;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId ownerId;
+        if (! selectedMixerOwnerId (ownerId))
+            return { id, { false, "no mixer strip selected" }, false };
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, ownerId);
+        if (strip == nullptr || slotIndex >= strip->fxChain.size())
+            return { id, { false, "no FX slot at index" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::ProjectEditApplyResult applied = nextUndo.apply (
+            nextProject, engine::ProjectEditCommand::setFxInsertSidechain (ownerId, strip->fxChain[slotIndex].id, sourceId));
+        if (! applied.applied())
+        {
+            if (applied.editStatus == engine::ProjectEditStatus::RoutingCycle)
+                reportStatus ("Sidechain refused: that source already hears this compressor (it would loop)", true);
+            else
+                reportStatus ("Sidechain refused: a compressor listens to another track or bus, never its own strip or the master", true);
+            return { id, { false, "sidechain refused" }, false };
+        }
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "sidechain edit did not persist" }, false };
 
         ++context_.commandDispatchCount;
         ++context_.mixerEditCount;
@@ -6427,7 +6504,14 @@ public:
             (void) nextUndo.endTransactionGroup();
 
         if (! removed.applied())
+        {
+            if (removed.editStatus == engine::ProjectEditStatus::SidechainSourceInUse)   // ADR-0051
+                if (const engine::Track* const keyed = findTrack (trackId))
+                    reportStatus ("Remove refused: " + keyed->strip.name
+                                      + " keys a compressor's sidechain; set that sidechain to None first",
+                                  true);
             return { id, state, false };
+        }
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "track edit did not persist" }, false };
@@ -8694,6 +8778,9 @@ public:
 
             case UiActionId::MixerTrackRouteToNewBus:
                 return routeSelectedStripToNewBus();
+
+            case UiActionId::MixerFxInsertSetSidechain:   // G4.4: setFxInsertSidechainOnSelectedStrip carries the source
+                return { id, { false, "sidechain payload required" }, false };
 
             case UiActionId::MixerTrackSetInput:   // G4.1: setRecordingInputForTrack carries the channel
                 return { id, { false, "track input payload required" }, false };

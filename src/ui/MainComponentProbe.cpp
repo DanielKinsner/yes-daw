@@ -892,6 +892,7 @@ juce::String MainComponent::buildStateProbeJson()
             strip->setProperty ("armed", i < trackCount && appModel.isRecordingTrackIndexArmed (i));
             strip->setProperty ("muted", state.muted);     // G4.1 cp2: the S / M cells as painted
             strip->setProperty ("soloed", state.soloed);
+            strip->setProperty ("sidechain", state.sidechainVisible);   // G4.4: the "SC" badge as painted
             strip->setProperty ("linearGain", state.linearGain);   // G4.0b: the fader a keyboard drive adjusts
             // G4.1 cp2: the painted inserts and sends, as the strip reads them.
             juce::Array<juce::var> inserts;
@@ -946,6 +947,8 @@ juce::String MainComponent::buildStateProbeJson()
                 presets.add (juce::String::fromUTF8 (name.c_str()));
             fx->setProperty ("presets", presets);
         }
+        fx->setProperty ("sidechainVisible", editor.visible && fxEditor.showsSidechain());   // G4.4 (ADR-0051)
+        fx->setProperty ("sidechain", fxEditor.showsSidechain() ? fxEditor.sidechainText() : juce::String());
         fx->setProperty ("presetPromptOpen", fxPresetPrompt != nullptr);
         if (fxPresetPrompt != nullptr)
             fx->setProperty ("presetPromptText", fxPresetPrompt->getTextEditorContents ("name"));

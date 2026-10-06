@@ -265,6 +265,7 @@ enum class UiActionId : std::uint8_t
     MixerTrackSetInput,         // G4.1: the strip's INPUT slot — a payload verb (channel + mono / pair); arms the Track on it
     MixerSendAddNewBus,         // G4.3: a send from the selected strip to a NEW bus — the bus and the send one undo step
     MixerTrackRouteToNewBus,    // G4.3: the selected strip's output to a NEW bus — one undo step (the header's Route to New Bus)
+    MixerFxInsertSetSidechain,  // G4.4: key a Compressor insert with a Track or Bus (or clear it) — a payload verb (ADR-0051)
     Count
 };
 
@@ -1158,6 +1159,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerSendAddNewBus, "mixer.send.add_new_bus", "Send to New Bus", "", "Add a new bus and send the selected strip to it",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::MixerTrackRouteToNewBus, "mixer.track.route_new_bus", "Route to New Bus", "", "Add a new bus and route the selected strip's output to it",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerFxInsertSetSidechain, "mixer.fx.insert.sidechain", "Insert Sidechain", "", "Choose the track or bus a compressor listens to",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
 }};
 
@@ -2092,6 +2095,7 @@ public:
             case UiActionId::MixerTrackSetOutput:
             case UiActionId::MixerSendAddNewBus:        // G4.3
             case UiActionId::MixerTrackRouteToNewBus:   // G4.3
+            case UiActionId::MixerFxInsertSetSidechain:  // G4.4
             case UiActionId::TrackSetInstrument:   // G3.1
             case UiActionId::TrackInstrumentParamSet:
                 context.activePanel = UiPanel::Mixer;

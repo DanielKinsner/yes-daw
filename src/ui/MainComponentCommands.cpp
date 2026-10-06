@@ -1850,6 +1850,14 @@ void MainComponent::refreshActionState()
                                    + juce::String::fromUTF8 (" \xc2\xb7 slot ") + juce::String (selectedFxParamSlot + 1));
             fxEditor.setBypassed (! insert.enabled);
             fxEditor.setInsert (insert, appModel.project().sampleRate.hz);
+            if (insert.kind == yesdaw::engine::FxKind::Compressor)   // G4.4 (ADR-0051)
+            {
+                int selected = 0;
+                std::vector<yesdaw::ui::FxEditorComponent::SidechainChoice> shown;
+                for (const auto& choice : appModel.fxSidechainChoicesOnSelectedStrip (static_cast<std::size_t> (selectedFxParamSlot), selected))
+                    shown.push_back ({ juce::String::fromUTF8 (choice.name.c_str()), choice.enabled });
+                fxEditor.setSidechainChoices (shown, selected);
+            }
         }
         if (fxEditor.isVisible() != editorShown)
         {

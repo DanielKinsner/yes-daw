@@ -840,6 +840,10 @@ struct UiTheme
         static constexpr int fxEditorBypassWidth = 72;
         static constexpr int fxEditorTitleTrimRight = 248;   // G4.2 cp7: Close, Bypass and Presets
         static constexpr int fxEditorPresetsWidth = 80;
+        // G4.4 (ADR-0051): a Compressor editor's Sidechain row, under the title row.
+        static constexpr int fxEditorSidechainRowHeight = 26;
+        static constexpr int fxEditorSidechainLabelWidth = 76;
+        static constexpr int fxEditorSidechainChooserWidth = 220;
         // G4.2: response above the eight-row parameter page, using the editor's existing spacing.
         static constexpr int eqEditorMaxWidth = 660;
         static constexpr int eqEditorMaxHeight = 460;
