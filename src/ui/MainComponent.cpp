@@ -266,7 +266,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
             UiAudioDecodeResult decoded = decodeProjectAudio (path);
             if (! decoded.decoded.has_value())
             {
-                refusals.push_back (path.filename().string() + ": " + decoded.reason);
+                refusals.push_back (yesdaw::io::utf8Text (path.filename()) + ": " + decoded.reason);
                 continue;
             }
             audio.push_back ({ path, std::move (*decoded.decoded) });
@@ -1700,7 +1700,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
                 // R5: the last project failing to reopen is a fact, not a shrug.
                 appModel.reportStatus (
                     "Open failed: " + stored.failureReason
-                        + " (" + lastProject.filename().string() + ")",
+                        + " (" + yesdaw::io::utf8Text (lastProject.filename()) + ")",
                     true);
         }
         else
@@ -1919,7 +1919,7 @@ juce::String MainComponent::computedWindowTitle() const
     if (! appModel.context().projectLoaded || appModel.bundlePath().empty())
         return {};
 
-    const juce::String stem (appModel.bundlePath().stem().string());
+    const juce::String stem (yesdaw::io::utf8Text (appModel.bundlePath().stem()));
     return stem + (appModel.hasUnsavedChanges() ? "*" : "") + " - YES DAW";
 }
 

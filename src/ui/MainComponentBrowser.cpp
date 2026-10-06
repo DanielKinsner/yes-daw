@@ -18,14 +18,6 @@ juce::String utf8String (const std::filesystem::path& path)
     return juce::String::fromUTF8 (reinterpret_cast<const char*> (utf8.data()), static_cast<int> (utf8.size()));
 }
 
-// A path's name as UTF-8 bytes for the status line (path::string() converts through the ANSI code page on Windows
-// and throws on a name it cannot represent).
-std::string utf8Name (const std::filesystem::path& path)
-{
-    const std::u8string utf8 = path.filename().u8string();
-    return std::string (reinterpret_cast<const char*> (utf8.data()), utf8.size());
-}
-
 bool sameRow (const BrowserRow& a, const BrowserRow& b)
 {
     return a.kind == b.kind && (a.kind == BrowserRow::Kind::Asset ? a.assetId == b.assetId : a.path == b.path);
@@ -128,7 +120,7 @@ void MainComponent::browserOpenFolder (const std::filesystem::path& folder)
     std::error_code error;
     if (! std::filesystem::is_directory (folder, error))
     {
-        appModel.reportStatus ("Browser: cannot open " + utf8Name (folder), true);
+        appModel.reportStatus ("Browser: cannot open " + yesdaw::io::utf8Text (folder.filename()), true);
         return;
     }
     browserFolder = folder;
@@ -395,7 +387,7 @@ void MainComponent::importAudioFromPath (const std::filesystem::path& path)
     else
     {
         // R6: a refused file is named with its reason, never swallowed.
-        appModel.reportStatus ("Import refused: " + utf8Name (path) + ": " + decodedFile.reason, true);
+        appModel.reportStatus ("Import refused: " + yesdaw::io::utf8Text (path.filename()) + ": " + decodedFile.reason, true);
     }
 }
 

@@ -11,6 +11,7 @@
 // Pure C++ over engine + persistence + io — no JUCE.
 #pragma once
 
+#include "io/PathText.h"   // file names as UTF-8 (never through the ANSI code page)
 #include "engine/Project.h"
 #include "io/WavFile.h"
 #include "persistence/ProjectBundle.h"
@@ -179,7 +180,7 @@ inline std::int32_t nextSample (StemVoice& voice, std::uint64_t frame, std::uint
     std::filesystem::create_directories (outDir / "stems", ec);
     if (ec)
     {
-        result.error = "cannot create " + outDir.string() + ": " + ec.message();
+        result.error = "cannot create " + yesdaw::io::utf8Text (outDir) + ": " + ec.message();
         return result;
     }
     result.bundlePath = outDir / "song.yesdaw";

@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "io/PathText.h"   // file names as UTF-8 (never through the ANSI code page)
 #include "analysis/LoudnessMeter.h"   // ADR-0053: the streaming meter behind the live readout (message thread)
 #include "app/RecordingAssetCommit.h"
 #include "engine/ClipSilence.h"
@@ -1878,7 +1879,7 @@ public:
         if (! written.ok())
         {
             context_.audioExportInProgress = false;
-            reportStatus ("Export failed: could not write " + destinationPath.filename().string(), true);
+            reportStatus ("Export failed: could not write " + yesdaw::io::utf8Text (destinationPath.filename()), true);
             return { id, { false, "audio export write failed" }, false };
         }
 
@@ -1967,7 +1968,7 @@ public:
         if (! bundleDb_.isOpen())
         {
             for (const UiAudioImportItem& item : items)
-                result.refusals.push_back (item.sourcePath.filename().string() + ": no project is open");
+                result.refusals.push_back (yesdaw::io::utf8Text (item.sourcePath.filename()) + ": no project is open");
             return result;
         }
 
@@ -1980,7 +1981,7 @@ public:
         std::vector<Accepted> accepted;
         for (UiAudioImportItem& item : items)
         {
-            const std::string name = item.sourcePath.filename().string();
+            const std::string name = yesdaw::io::utf8Text (item.sourcePath.filename());
             if (! decodedAudioIsValid (item.decoded))
             {
                 result.refusals.push_back (name + ": not usable audio");
@@ -2150,7 +2151,7 @@ public:
             std::ifstream in (sourcePath, std::ios::binary);
             if (! in)
             {
-                reportStatus ("MIDI import refused (cannot read): " + sourcePath.filename().string(), true);
+                reportStatus ("MIDI import refused (cannot read): " + yesdaw::io::utf8Text (sourcePath.filename()), true);
                 return { id, { false, "MIDI file unreadable" }, false };
             }
             bytes.assign (std::istreambuf_iterator<char> (in), std::istreambuf_iterator<char>());
@@ -2162,13 +2163,13 @@ public:
             const char* reason = parsed == interchange::SmfStatus::InvalidHeader ? "not a MIDI file"
                 : parsed == interchange::SmfStatus::UnsupportedFormat ? "format 0 / 1 with a PPQ division only"
                 : "damaged file";
-            reportStatus (std::string ("MIDI import refused (") + reason + "): " + sourcePath.filename().string(), true);
+            reportStatus (std::string ("MIDI import refused (") + reason + "): " + yesdaw::io::utf8Text (sourcePath.filename()), true);
             return { id, { false, "MIDI file refused" }, false };
         }
         const std::vector<interchange::SmfMusicalTrack> musical = interchange::smfMusicalTracks (file);
         if (musical.empty())
         {
-            reportStatus ("MIDI import refused (no notes): " + sourcePath.filename().string(), true);
+            reportStatus ("MIDI import refused (no notes): " + yesdaw::io::utf8Text (sourcePath.filename()), true);
             return { id, { false, "MIDI file has no notes" }, false };
         }
 
@@ -2268,7 +2269,7 @@ public:
         std::snprintf (tempo, sizeof (tempo), "%.1f", head.bpm);
         reportStatus ("Imported " + std::to_string (clipIds.size()) + (clipIds.size() == 1u ? " MIDI clip" : " MIDI clips")
                           + (tracksAdded > 0 ? " on " + std::to_string (tracksAdded + 1) + " tracks" : "")
-                          + " from " + sourcePath.filename().string() + " (file tempo " + tempo + " BPM, placed at the project tempo)",
+                          + " from " + yesdaw::io::utf8Text (sourcePath.filename()) + " (file tempo " + tempo + " BPM, placed at the project tempo)",
                       false);
         return { id, state, true };
     }
@@ -2358,19 +2359,19 @@ public:
         const int numerator = ! project_.meterMap.empty() ? project_.meterMap.front().numerator : 4;
         const int denominator = ! project_.meterMap.empty() ? project_.meterMap.front().denominator : 4;
         const std::vector<std::uint8_t> bytes = interchange::writeSmf (
-            interchange::smfFromMusicalTracks (tracks, bpm, numerator, denominator, 960, bundlePath_.empty() ? "YES DAW" : bundlePath_.stem().string()));
+            interchange::smfFromMusicalTracks (tracks, bpm, numerator, denominator, 960, bundlePath_.empty() ? "YES DAW" : yesdaw::io::utf8Text (bundlePath_.stem())));
         {
             std::ofstream out (destinationPath, std::ios::binary | std::ios::trunc);
             if (! out || ! out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size())))
             {
-                reportStatus ("MIDI export failed (cannot write): " + destinationPath.filename().string(), true);
+                reportStatus ("MIDI export failed (cannot write): " + yesdaw::io::utf8Text (destinationPath.filename()), true);
                 return { id, { false, "MIDI file unwritable" }, false };
             }
         }
         ++context_.commandDispatchCount;
         ++context_.midiExportCount;
         reportStatus ("Exported " + std::to_string (exportedClips) + (exportedClips == 1u ? " MIDI clip" : " MIDI clips")
-                          + (wholeProject ? " (whole project)" : " (selection)") + " to " + destinationPath.filename().string(),
+                          + (wholeProject ? " (whole project)" : " (selection)") + " to " + yesdaw::io::utf8Text (destinationPath.filename()),
                       false);
         return { id, state, true };
     }
@@ -2675,7 +2676,7 @@ private:
 
         if (! decodedAudioIsValid (decoded))
         {
-            reportStatus ("Import refused: " + sourcePath.filename().string()
+            reportStatus ("Import refused: " + yesdaw::io::utf8Text (sourcePath.filename())
                               + " is not usable audio",
                           true);
             result.status = UiAppImportStatus::InvalidDecodedAudio;
@@ -2684,7 +2685,7 @@ private:
 
         if (! importSampleRateSupported (decoded.sampleRate.hz))   // ADR-0055: any rate 8 kHz..384 kHz
         {
-            reportStatus ("Import refused: " + sourcePath.filename().string() + ": unsupported sample rate ("
+            reportStatus ("Import refused: " + yesdaw::io::utf8Text (sourcePath.filename()) + ": unsupported sample rate ("
                               + std::to_string (static_cast<long long> (decoded.sampleRate.hz)) + " Hz)",
                           true);
             result.status = UiAppImportStatus::SampleRateMismatch;
@@ -2704,7 +2705,7 @@ private:
         result.bundleResult = bundleDb_.importAssetBytes (request, imported);
         if (! result.bundleResult.ok())
         {
-            reportStatus ("Import failed: could not copy " + sourcePath.filename().string()
+            reportStatus ("Import failed: could not copy " + yesdaw::io::utf8Text (sourcePath.filename())
                               + " into the project bundle",
                           true);
             result.status = UiAppImportStatus::AssetImportFailed;
@@ -2757,7 +2758,7 @@ private:
             nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip));
         if (! applied.applied() || ! nextProject.hasValidAssetClipIndirection())
         {
-            reportStatus ("Import failed: " + sourcePath.filename().string()
+            reportStatus ("Import failed: " + yesdaw::io::utf8Text (sourcePath.filename())
                               + " produced an invalid project",
                           true);
             result.status = UiAppImportStatus::InvalidDecodedAudio;
@@ -5402,13 +5403,13 @@ public:
         }
         if (! decodedAudioIsValid (decoded))
         {
-            reportStatus ("Sampler pad refused: " + sourcePath.filename().string() + " is not usable audio", true);
+            reportStatus ("Sampler pad refused: " + yesdaw::io::utf8Text (sourcePath.filename()) + " is not usable audio", true);
             result.status = UiAppImportStatus::InvalidDecodedAudio;
             return result;
         }
         if (! importSampleRateSupported (decoded.sampleRate.hz))   // ADR-0055: a cross-rate pad plays its view
         {
-            reportStatus ("Sampler pad refused: " + sourcePath.filename().string() + ": unsupported sample rate ("
+            reportStatus ("Sampler pad refused: " + yesdaw::io::utf8Text (sourcePath.filename()) + ": unsupported sample rate ("
                               + std::to_string (static_cast<long long> (decoded.sampleRate.hz)) + " Hz)",
                           true);
             result.status = UiAppImportStatus::SampleRateMismatch;
@@ -5419,7 +5420,7 @@ public:
         result.bundleResult = bundleDb_.importAssetBytes (request, imported);
         if (! result.bundleResult.ok())
         {
-            reportStatus ("Sampler pad failed: could not copy " + sourcePath.filename().string() + " into the project bundle", true);
+            reportStatus ("Sampler pad failed: could not copy " + yesdaw::io::utf8Text (sourcePath.filename()) + " into the project bundle", true);
             result.status = UiAppImportStatus::AssetImportFailed;
             return result;
         }
@@ -5433,11 +5434,11 @@ public:
         pad.rootKey = pad.key;
         pad.oneShot = true;
         pad.gain = 1.0;
-        pad.setName (sourcePath.stem().string());
+        pad.setName (yesdaw::io::utf8Text (sourcePath.stem()));
         if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setSamplerPad (trackId, pad)).applied()
             || ! nextProject.hasValidAssetClipIndirection())
         {
-            reportStatus ("Sampler pad failed: " + sourcePath.filename().string() + " produced an invalid project", true);
+            reportStatus ("Sampler pad failed: " + yesdaw::io::utf8Text (sourcePath.filename()) + " produced an invalid project", true);
             result.status = UiAppImportStatus::InvalidDecodedAudio;
             return result;
         }

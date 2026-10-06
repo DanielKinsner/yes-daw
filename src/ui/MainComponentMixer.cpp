@@ -981,7 +981,7 @@ void MainComponent::loadSamplerPadFromPath (std::int16_t key, const std::filesys
     UiAudioDecodeResult decodedFile = decodeProjectAudio (path);
     if (! decodedFile.decoded)
     {
-        appModel.reportStatus ("Sampler pad refused: " + path.filename().string() + ": " + decodedFile.reason, true);
+        appModel.reportStatus ("Sampler pad refused: " + yesdaw::io::utf8Text (path.filename()) + ": " + decodedFile.reason, true);
         return;
     }
     if (appModel.importSamplerPadFromSource (path, std::move (*decodedFile.decoded), key).ok())

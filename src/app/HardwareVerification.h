@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "io/PathText.h"   // file names as UTF-8 (never through the ANSI code page)
 #include <juce_core/juce_core.h>
 
 #include <cmath>
@@ -187,12 +188,13 @@ struct ChildExpectation
                                                const juce::var& value,
                                                std::string& error)
 {
-    const std::filesystem::path temp { target.string() + ".tmp" };
+    std::filesystem::path temp = target;
+    temp += ".tmp";
     {
         std::ofstream out (temp, std::ios::binary | std::ios::trunc);
         if (! out.is_open())
         {
-            error = "could not open temp file for writing: " + temp.string();
+            error = "could not open temp file for writing: " + yesdaw::io::utf8Text (temp);
             return false;
         }
         const juce::String text = toJsonText (value);
@@ -200,7 +202,7 @@ struct ChildExpectation
         out.flush();
         if (! out.good())
         {
-            error = "write to temp file failed: " + temp.string();
+            error = "write to temp file failed: " + yesdaw::io::utf8Text (temp);
             return false;
         }
     }

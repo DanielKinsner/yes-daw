@@ -6403,6 +6403,57 @@ TEST_CASE ("ADR-0054 a drop below the tracks lands on new tracks; a MIDI file pa
     REQUIRE (dropped.midiClips[0].trackId == dropped.tracks[2].id);   // the MIDI: its own new track after it
 }
 
+// File and project names outside the ANSI code page (a CJK name on a Western Windows system): path::string()
+// converts through that code page and throws on what it cannot hold, so every name the UI shows goes through
+// UTF-8. A project named in kanji gets its title and its Open Recent entry; a drop of a kanji-named WAV lands and
+// a kanji-named junk file is refused by name.
+TEST_CASE ("names outside the ANSI code page: the title, Open Recent, a drop and a refusal all work",
+           "[ui][input][shell][file-drop][import-formats]")
+{
+    const std::filesystem::path root = makeTempBundlePath ("unicode-names");
+    std::filesystem::create_directories (root);
+    const std::filesystem::path bundlePath = root / std::filesystem::path (u8"\u66f2 2026.yesdaw");
+    const std::filesystem::path goodPath = root / std::filesystem::path (u8"\u97f3.wav");
+    const std::filesystem::path junkPath = root / std::filesystem::path (u8"\u58ca\u308c\u305f.mp3");
+    std::filesystem::copy_file (std::filesystem::path { YESDAW_WAV_FIXTURE_PATH }, goodPath);
+    {
+        std::ofstream junk (junkPath, std::ios::binary);
+        junk << std::string (2'048, '\0');
+    }
+    const auto utf8 = [] (const char8_t* text) { return juce::String::fromUTF8 (reinterpret_cast<const char*> (text)); };
+    const auto asJuce = [] (const std::filesystem::path& path) {
+        const std::u8string text = path.u8string();
+        return juce::String::fromUTF8 (reinterpret_cast<const char*> (text.data()), static_cast<int> (text.size()));
+    };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.sessionStateDirectory = root / "session";
+    std::filesystem::create_directories (choices.sessionStateDirectory);
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (juce::String::fromUTF8 (yesdaw::ui::snapshotMainComponent (*shell).windowTitle.c_str()).startsWith (utf8 (u8"\u66f2 2026")));
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    auto* dropTarget = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (dropTarget != nullptr);
+    const yesdaw::ui::TimelineCanvasGeometry geometry = timelineGeometryForProject (timeline, readProjectSnapshot (bundlePath));
+    dropTarget->filesDropped (juce::StringArray { asJuce (goodPath), asJuce (junkPath) },
+                              geometry.clipArea.getX() + 40, geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
+    const juce::String status = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["status"]["text"].toString();
+    INFO (status);
+    REQUIRE (status.contains (utf8 (u8"\u58ca\u308c\u305f.mp3")));
+
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    const juce::PopupMenu fileMenu = bar->getModel()->getMenuForIndex (0, "File");
+    bool recentNamed = false;
+    for (juce::PopupMenu::MenuItemIterator it (fileMenu, true); it.next();)
+        recentNamed = recentNamed || it.getItem().text == utf8 (u8"\u66f2 2026");
+    REQUIRE (recentNamed);
+}
+
 // M6 — the fader scale tells the truth. The sliders travel 0..2 in linear gain, but the painted
 // thumb multiplied the gain by the rail height, so unity painted at the TOP of the rail while the
 // live slider put it at half travel — the two disagreed by half a fader, and the rail's ticks were

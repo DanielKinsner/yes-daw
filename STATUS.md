@@ -39,9 +39,11 @@ rebuild resetting the selection, ANSI file names on the status line, an unbounde
 **CI:** Linux and macOS failed to build `YesDawResampleCheck` from dd439e8 (a copying structured-binding loop
 under -Werror); fixed in 7f2303a. 79c75c8 fixed a real macOS-only flake (two files of one drop sharing an id).
 
-**Found, next:** `path.string()` on file names (about 25 status-line sites, one in every drop) converts through
-the ANSI code page on Windows and can throw on a name it cannot represent (e.g. CJK); a sweep to UTF-8 with a
-gate is the next commit.
+**Fixed: names outside the ANSI code page crashed the app on Windows.** `path.string()` converts through the ANSI
+code page and throws on a character it cannot hold, so a project named in kanji (window title, Open Recent), a
+drop of a kanji-named file (every drop named each file), a refused file, a Sampler pad or a MIDI export with such
+a name threw. All 27 sites now go through `io::utf8Text`; the gate (a kanji project, a kanji WAV dropped, a kanji
+junk file refused by name, Open Recent) threw "No mapping for the Unicode character" before the fix.
 
 ## 2026-10-06 (day) — G5.1 in: import formats (ADR-0054) and cross-rate audio (ADR-0055)
 

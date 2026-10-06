@@ -311,7 +311,7 @@ void MainComponent::openProjectBundleAtPath (const std::filesystem::path& path)
         // the cause) and refuses to half-open — the shell state stays untouched.
         appModel.reportStatus (
             "Open failed: " + stored.failureReason
-                + " (" + path.filename().string() + ")",
+                + " (" + yesdaw::io::utf8Text (path.filename()) + ")",
             true);
 }
 
@@ -1242,7 +1242,7 @@ juce::PopupMenu MainComponent::getMenuForIndex (int topLevelMenuIndex, const juc
         const std::vector<std::filesystem::path> recents = appModel.recentProjectBundles();
         for (std::size_t i = 0; i < recents.size(); ++i)
             recent.addItem (kRecentMenuBaseId + static_cast<int> (i),
-                            juce::String (recents[i].stem().string()));
+                            juce::String (yesdaw::io::utf8Text (recents[i].stem())));
         menu.addSubMenu ("Open Recent", recent, ! recents.empty());
     }
 

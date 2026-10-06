@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include "io/PathText.h"   // file names as UTF-8 (never through the ANSI code page)
 #include "analysis/LoudnessMeter.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/RateMatchedView.h"   // ADR-0055
@@ -187,7 +188,7 @@ namespace detail {
     // exact != comparison is correct here.
     const std::filesystem::path exportPath =
         std::filesystem::temp_directory_path()
-        / ("yesdaw-selfcheck-export-" + bundlePath.filename().string() + ".wav");
+        / std::filesystem::path (std::u8string (u8"yesdaw-selfcheck-export-") + bundlePath.filename().u8string() + u8".wav");
 
     const io::WavResult wrote = io::writeFloat32WavFile (
         exportPath, project.sampleRate, render.channels, render.frames,
@@ -271,7 +272,7 @@ struct WavVerifyResult
 
     const std::filesystem::path tempPath =
         std::filesystem::temp_directory_path()
-        / ("yesdaw-verifywav-" + wavPath.filename().string() + ".roundtrip.wav");
+        / std::filesystem::path (std::u8string (u8"yesdaw-verifywav-") + wavPath.filename().u8string() + u8".roundtrip.wav");
 
     const io::WavResult wrote = io::writeFloat32WavFile (
         tempPath, original.sampleRate, original.channels, original.frames,
@@ -613,8 +614,8 @@ struct MakeDemoResult
 
     r.renderedChannels = render.channels;
     r.renderedFrames = render.frames;
-    r.bundlePath = bundlePath.string();
-    r.wavPath = wavPath.string();
+    r.bundlePath = yesdaw::io::utf8Text (bundlePath);
+    r.wavPath = yesdaw::io::utf8Text (wavPath);
     r.ok = true;
     r.message = "ok";
     return r;

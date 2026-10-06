@@ -468,7 +468,7 @@ inline StoredProjectAssetsResult decodeStoredProjectAssets (const std::filesyste
         if (! stored.audio.has_value())
         {
             out.failureReason =
-                "missing or corrupt audio file: " + assetPath.filename().string();
+                "missing or corrupt audio file: " + yesdaw::io::utf8Text (assetPath.filename());
             return out;
         }
 

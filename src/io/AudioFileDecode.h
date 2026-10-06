@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "io/PathText.h"   // file names as UTF-8 (never through the ANSI code page)
 #include <juce_audio_formats/juce_audio_formats.h>
 
 #include <algorithm>
@@ -74,7 +75,7 @@ struct ExpectedAudioShape
 
 [[nodiscard]] inline std::string lowerCaseExtension (const std::filesystem::path& path)
 {
-    std::string extension = path.extension().string();
+    std::string extension = yesdaw::io::utf8Text (path.extension());
     std::transform (extension.begin(), extension.end(), extension.begin(),
                     [] (unsigned char c) { return static_cast<char> (std::tolower (c)); });
     return extension;
