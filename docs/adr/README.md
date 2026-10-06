@@ -75,6 +75,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0055](0055-cross-rate-audio.md) | Cross-rate audio: a rate-matched view at the read boundary, two resampler tiers, one rate ratio for every edit | Accepted |
 | [0056](0056-media-browser.md) | The media browser: a Browser dock tab with Files, Project and Recent, an audition voice on the monitor path, import through the same verbs | Accepted |
 | [0057](0057-key-time-modifiers.md) | Key-time modifiers: a shell chord's Shift / Ctrl / Alt are the ones held when its key went down, not when a busy UI got to it | Accepted |
+| [0058](0058-export-v2.md) | Export v2: a worker job over an immutable snapshot, a `.partial` sibling committed only on success, TPDF dither, ranges, export stems and normalize | Accepted |
 
 ## Decision status (the five research forks)
 

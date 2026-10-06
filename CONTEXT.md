@@ -523,6 +523,18 @@ The H7 bit-exact export file: RIFF/WAVE, 32-bit IEEE float, Project sample rate,
 interleaved samples.
 _Avoid_: treating integer WAV, compressed files, or resampled output as the canonical gate format
 
+**Export job**:
+An export running on a worker thread over a snapshot it owns — a copy of the project and owning references to its
+audio — reporting progress and honouring Cancel; it writes `.partial` files beside the destination and renames them
+into place only on success, so a cancelled or failed export leaves an earlier file untouched (ADR-0058).
+_Avoid_: rendering on the message thread, a job that reads the live model
+
+**Export stem**:
+One file of a stems export: what one top-level strip (a Track or Bus whose output is the master) contributes at the
+master's input, at the master's channel count; the stems of a mix sum to the master's input (ADR-0058). Not a
+**Stem** in the separation sense.
+_Avoid_: bounce, track stem (for a Track inside a Bus — that is part of its Bus's stem)
+
 **DAWproject export**:
 The interchange package YES DAW writes so another DAW or reference reader can reconstruct the supported
 Project surface. It is export-only in H10 unless a later ADR says otherwise. Unsupported or lossy cases
