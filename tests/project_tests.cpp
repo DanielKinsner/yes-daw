@@ -2996,3 +2996,139 @@ TEST_CASE ("Randomized automation edit sequences fully undo to a bit-identical P
         requireProjectValueUnchanged (project, edited);
     }
 }
+
+// ADR-0051 — a Compressor's sidechain key: one Track or Bus, set and cleared as one undo step; refused
+// for another kind, an unknown source, the master, its own strip and any loop — and a key counts as a
+// routing edge for every OTHER routing verb too (a Track can now be fed). A keyed source cannot be
+// removed; the key leaves with its insert and survives bypass; validation refuses a bad key.
+TEST_CASE ("Compressor sidechain keys a Track or Bus, refuses loops, and undoes bit-identically",
+           "[project][sidechain][undo]")
+{
+    Project project = makeTwoClipEditableProject();
+    REQUIRE_FALSE (project.tracks.empty());
+    const EntityId trackId = project.tracks[0].id;
+    const EntityId busAId = idFromLowByte (90);
+    const EntityId busBId = idFromLowByte (91);
+    const EntityId compId = idFromLowByte (92);
+    const EntityId eqId = idFromLowByte (93);
+    const EntityId trackCompId = idFromLowByte (94);
+    const EntityId masterCompId = idFromLowByte (95);
+    using yesdaw::engine::kMasterStripOwnerId;
+    namespace engine = yesdaw::engine;
+
+    ProjectUndoStack undo;
+    REQUIRE (undo.apply (project, ProjectEditCommand::addBus (busAId, "Bus A")).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addBus (busBId, "Bus B")).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addFxInsert (busAId, compId, FxKind::Compressor, true, 0)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addFxInsert (busAId, eqId, FxKind::Eq, true, 1)).applied());
+    const Project original = project;
+    const auto keyOf = [] (const Project& p) { return p.buses[0].strip.fxChain[0].sidechainSourceId; };
+
+    // Key Bus A's Compressor with the Track: one step, undone and redone bit-identically.
+    REQUIRE (undo.apply (project, ProjectEditCommand::setFxInsertSidechain (busAId, compId, trackId)).applied());
+    REQUIRE (keyOf (project) == trackId);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    const Project keyed = project;
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, original);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    requireProjectValueUnchanged (project, keyed);
+
+    // The keying Track may also feed Bus A's main input: its pre-fader key is upstream of A — no loop.
+    {
+        Project fed = project;
+        REQUIRE (engine::setTrackOutput (fed, trackId, busAId) == ProjectEditStatus::Applied);
+        REQUIRE (fed.hasValidAssetClipIndirection());
+    }
+
+    // Refusals: another kind, its own strip, an unknown source, the master — nothing changes.
+    {
+        Project refused = project;
+        REQUIRE (engine::setFxInsertSidechain (refused, busAId, eqId, trackId) == ProjectEditStatus::InvalidSidechainSource);
+        REQUIRE (engine::setFxInsertSidechain (refused, busAId, compId, busAId) == ProjectEditStatus::InvalidSidechainSource);
+        REQUIRE (engine::setFxInsertSidechain (refused, busAId, compId, idFromLowByte (99)) == ProjectEditStatus::InvalidSidechainSource);
+        REQUIRE (engine::setFxInsertSidechain (refused, busAId, compId, kMasterStripOwnerId) == ProjectEditStatus::InvalidSidechainSource);
+        requireProjectValueUnchanged (refused, project);
+    }
+
+    // A key that would loop is refused: Bus A feeds Bus B, so B keying A's Compressor would close a loop.
+    {
+        Project looped = project;
+        REQUIRE (engine::setTrackOutput (looped, busAId, busBId) == ProjectEditStatus::Applied);
+        REQUIRE (engine::setFxInsertSidechain (looped, busAId, compId, busBId) == ProjectEditStatus::RoutingCycle);
+        REQUIRE (keyOf (looped) == trackId);
+    }
+    // ... and the other way round: once B keys A, A may not feed B (output or send) — the key is an edge.
+    {
+        Project keyedByB = project;
+        REQUIRE (engine::setFxInsertSidechain (keyedByB, busAId, compId, busBId) == ProjectEditStatus::Applied);
+        REQUIRE (engine::setTrackOutput (keyedByB, busAId, busBId) == ProjectEditStatus::RoutingCycle);
+        REQUIRE (engine::addSend (keyedByB, busAId, engine::SendRow { idFromLowByte (96), busBId })
+                 == ProjectEditStatus::RoutingCycle);
+    }
+    // A Track can now be fed (by a key), so its routing can loop: Bus A keying the Track's own
+    // Compressor forbids the Track feeding Bus A.
+    {
+        Project trackKeyed = original;
+        REQUIRE (engine::addFxInsert (trackKeyed, trackId, FxInsert { trackCompId, FxKind::Compressor, true, {} }, 0)
+                 == ProjectEditStatus::Applied);
+        REQUIRE (engine::setFxInsertSidechain (trackKeyed, trackId, trackCompId, busAId) == ProjectEditStatus::Applied);
+        REQUIRE (engine::setTrackOutput (trackKeyed, trackId, busAId) == ProjectEditStatus::RoutingCycle);
+        REQUIRE (engine::addSend (trackKeyed, trackId, engine::SendRow { idFromLowByte (97), busAId })
+                 == ProjectEditStatus::RoutingCycle);
+        REQUIRE (trackKeyed.hasValidAssetClipIndirection());
+    }
+
+    // The master's Compressor may be keyed by any Track or Bus (the master feeds nothing).
+    {
+        Project masterKeyed = project;
+        REQUIRE (engine::addFxInsert (masterKeyed, kMasterStripOwnerId, FxInsert { masterCompId, FxKind::Compressor, true, {} }, 0)
+                 == ProjectEditStatus::Applied);
+        REQUIRE (engine::setFxInsertSidechain (masterKeyed, kMasterStripOwnerId, masterCompId, busBId) == ProjectEditStatus::Applied);
+        REQUIRE (masterKeyed.hasValidAssetClipIndirection());
+    }
+
+    // A keyed source cannot be removed until the key is cleared; clearing is the same verb.
+    REQUIRE (engine::removeTrack (project, trackId) == ProjectEditStatus::SidechainSourceInUse);
+    {
+        Project keyedByB = project;
+        REQUIRE (engine::setFxInsertSidechain (keyedByB, busAId, compId, busBId) == ProjectEditStatus::Applied);
+        REQUIRE (engine::removeBus (keyedByB, busBId) == ProjectEditStatus::SidechainSourceInUse);
+        REQUIRE (engine::setFxInsertSidechain (keyedByB, busAId, compId, EntityId {}) == ProjectEditStatus::Applied);
+        REQUIRE (engine::removeBus (keyedByB, busBId) == ProjectEditStatus::Applied);
+    }
+
+    // Bypass keeps the key; the key leaves with its insert (and comes back with its undo).
+    REQUIRE (undo.apply (project, ProjectEditCommand::setFxInsertEnabled (busAId, compId, false)).applied());
+    REQUIRE (keyOf (project) == trackId);
+    REQUIRE (undo.apply (project, ProjectEditCommand::removeFxInsert (busAId, compId)).applied());
+    REQUIRE_FALSE (project.keysAnyCompressor (trackId));
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (project.keysAnyCompressor (trackId));
+    REQUIRE (keyOf (project) == trackId);
+
+    // A new insert never arrives keyed, and only a Compressor may carry a key at all.
+    {
+        Project smuggled = original;
+        FxInsert carrying { idFromLowByte (98), FxKind::Compressor, true, {} };
+        carrying.sidechainSourceId = trackId;
+        REQUIRE (engine::addFxInsert (smuggled, busBId, carrying, 0) == ProjectEditStatus::InvalidSidechainSource);
+        FxInsert eqWithKey { idFromLowByte (98), FxKind::Eq, true, {} };
+        eqWithKey.sidechainSourceId = trackId;
+        REQUIRE_FALSE (eqWithKey.isValid());
+    }
+
+    // Validation refuses a hand-made bad key: its own strip, a missing strip, a loop.
+    {
+        Project bad = keyed;
+        bad.buses[0].strip.fxChain[0].sidechainSourceId = busAId;
+        REQUIRE_FALSE (bad.hasValidAssetClipIndirection());
+        bad.buses[0].strip.fxChain[0].sidechainSourceId = idFromLowByte (99);
+        REQUIRE_FALSE (bad.hasValidAssetClipIndirection());
+        bad.buses[0].strip.fxChain[0].sidechainSourceId = busBId;
+        bad.buses[0].outputBusId = busBId;
+        REQUIRE_FALSE (bad.hasValidAssetClipIndirection());
+        bad.buses[0].outputBusId = EntityId {};
+        REQUIRE (bad.hasValidAssetClipIndirection());
+    }
+}

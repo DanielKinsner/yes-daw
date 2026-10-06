@@ -293,10 +293,16 @@ struct FxInsert
     FxKind kind = FxKind::Eq;
     bool enabled = true;
     std::vector<std::pair<std::uint32_t, double>> normalizedParams;
+    // ADR-0051: the Track or Bus whose pre-fader signal keys this Compressor (invalid = no key: it
+    // detects on its own audio). Only a Compressor carries one.
+    EntityId sidechainSourceId {};
 
     [[nodiscard]] bool isValid() const noexcept
     {
         if (! id.isValid() || ! fxKindIsKnown (kind))
+            return false;
+
+        if (sidechainSourceId.isValid() && kind != FxKind::Compressor)
             return false;
 
         for (std::size_t i = 0; i < normalizedParams.size(); ++i)
@@ -1159,7 +1165,9 @@ enum class ProjectEditStatus : std::uint8_t
     RoutingCycle,   // R13: a bus send/output that would loop signal back into its own path
     InvalidSamplerPad,        // G3.9: a pad outside the value range
     SamplerPadNotFound,       // G3.9: no pad on that key to clear
-    SamplerPadAssetNotFound   // G3.9: the pad names an Asset the Project does not hold
+    SamplerPadAssetNotFound,  // G3.9: the pad names an Asset the Project does not hold
+    InvalidSidechainSource,   // ADR-0051: not a Compressor, or the key names no Track/Bus, the master or its own strip
+    SidechainSourceInUse      // ADR-0051: a Track/Bus that keys a Compressor cannot be removed until cleared
 };
 
 struct Project
@@ -1699,6 +1707,98 @@ struct Project
         return true;
     }
 
+    // ADR-0051: does `from`'s signal reach strip `to` along every routing edge the Project has — a Track's
+    // or Bus's main output, its sends (pre- or post-fader) and each Compressor key it feeds? Control-side
+    // DFS over the Tracks and Buses (the master feeds nothing). Shared by the routing verbs, the key verb
+    // and validation, so no edit and no opened bundle can close a loop.
+    [[nodiscard]] bool stripSignalReaches (EntityId from, EntityId to) const
+    {
+        if (! from.isValid() || ! to.isValid())
+            return false;
+
+        std::vector<EntityId> pending { from };
+        std::vector<EntityId> visited;
+        const auto pushKeyedBy = [this, &pending] (EntityId source)
+        {
+            for (const Track& track : tracks)
+                for (const FxInsert& insert : track.strip.fxChain)
+                    if (insert.sidechainSourceId == source)
+                        pending.push_back (track.id);
+            for (const Bus& bus : buses)
+                for (const FxInsert& insert : bus.strip.fxChain)
+                    if (insert.sidechainSourceId == source)
+                        pending.push_back (bus.id);
+        };
+        while (! pending.empty())
+        {
+            const EntityId at = pending.back();
+            pending.pop_back();
+            if (std::find (visited.begin(), visited.end(), at) != visited.end())
+                continue;
+            visited.push_back (at);
+            if (at == to)
+                return true;
+
+            if (const Track* const track = findTrack (at))
+            {
+                if (track->outputBusId.isValid())
+                    pending.push_back (track->outputBusId);
+                for (const SendRow& send : track->sends)
+                    pending.push_back (send.busId);
+            }
+            else if (const Bus* const bus = findBus (at))
+            {
+                if (bus->outputBusId.isValid())
+                    pending.push_back (bus->outputBusId);
+                for (const SendRow& send : bus->sends)
+                    pending.push_back (send.busId);
+            }
+            pushKeyedBy (at);
+        }
+        return false;
+    }
+
+    // ADR-0051: does any Compressor listen to `source`? (A keyed strip cannot be removed until cleared.)
+    [[nodiscard]] bool keysAnyCompressor (EntityId source) const noexcept
+    {
+        if (! source.isValid())
+            return false;
+        const auto keyed = [source] (const MixerStripState& strip)
+        {
+            return std::any_of (strip.fxChain.begin(), strip.fxChain.end(),
+                                [source] (const FxInsert& insert) { return insert.sidechainSourceId == source; });
+        };
+        return std::any_of (tracks.begin(), tracks.end(), [&keyed] (const Track& track) { return keyed (track.strip); })
+            || std::any_of (buses.begin(), buses.end(), [&keyed] (const Bus& bus) { return keyed (bus.strip); })
+            || keyed (masterStrip);
+    }
+
+    // ADR-0051: every key names a Track or Bus other than its own strip, and never closes a loop.
+    [[nodiscard]] bool sidechainKeysAreValid() const
+    {
+        const auto keysOk = [this] (EntityId ownerId, const MixerStripState& strip)
+        {
+            for (const FxInsert& insert : strip.fxChain)
+            {
+                const EntityId source = insert.sidechainSourceId;
+                if (! source.isValid())
+                    continue;
+                if (source == ownerId || (findTrack (source) == nullptr && findBus (source) == nullptr))
+                    return false;
+                if (stripSignalReaches (ownerId, source))   // the master (invalid owner here) feeds nothing
+                    return false;
+            }
+            return true;
+        };
+        for (const Track& track : tracks)
+            if (! keysOk (track.id, track.strip))
+                return false;
+        for (const Bus& bus : buses)
+            if (! keysOk (bus.id, bus.strip))
+                return false;
+        return keysOk (EntityId {}, masterStrip);
+    }
+
     // M3: a Track's main output either goes to master (invalid id, the default) or names a real Bus.
     [[nodiscard]] bool trackOutputsReferenceBuses() const noexcept
     {
@@ -1843,6 +1943,7 @@ struct Project
                && samplerPadsReferenceAssets()
                && clipsReferenceTracks()
                && trackOutputsReferenceBuses()
+               && sidechainKeysAreValid()
                && recordingTakesReferenceProjectRows()
                && recordingCompSegmentsReferenceTakes()
                && automationTargetsReferenceProjectRows();
@@ -3611,6 +3712,9 @@ namespace detail {
     if (trackIndex >= project.tracks.size())
         return ProjectEditStatus::TrackNotFound;
 
+    if (project.keysAnyCompressor (trackId))   // ADR-0051: clear the key first
+        return ProjectEditStatus::SidechainSourceInUse;
+
     for (const Clip& clip : project.clips)
         if (clip.trackId == trackId)
             return ProjectEditStatus::TrackNotEmpty;
@@ -3701,6 +3805,9 @@ namespace detail {
         if (lane.ownerEntity == busId)
             return ProjectEditStatus::BusInUse;
 
+    if (project.keysAnyCompressor (busId))   // ADR-0051: clear the key first
+        return ProjectEditStatus::SidechainSourceInUse;
+
     project.buses.erase (project.buses.begin() + static_cast<std::ptrdiff_t> (busIndex));
     return ProjectEditStatus::Applied;
 }
@@ -3717,34 +3824,8 @@ namespace detail {
     if (! ownerBusId.isValid() || ! destBusId.isValid())
         return false;
 
-    if (ownerBusId == destBusId)
-        return true;
-
-    std::vector<const Bus*> pending;
-    std::vector<const Bus*> visited;
-    if (const Bus* const dest = project.findBus (destBusId))
-        pending.push_back (dest);
-
-    while (! pending.empty())
-    {
-        const Bus* const bus = pending.back();
-        pending.pop_back();
-        if (bus == nullptr || std::find (visited.begin(), visited.end(), bus) != visited.end())
-            continue;
-        visited.push_back (bus);
-
-        if (bus->id == ownerBusId)
-            return true;
-
-        for (const SendRow& send : bus->sends)
-            if (const Bus* const next = project.findBus (send.busId))
-                pending.push_back (next);
-        if (bus->outputBusId.isValid())
-            if (const Bus* const next = project.findBus (bus->outputBusId))
-                pending.push_back (next);
-    }
-
-    return false;
+    // ADR-0051: the walk follows sends, outputs AND Compressor keys (a key edge can feed a Track too).
+    return ownerBusId == destBusId || project.stripSignalReaches (destBusId, ownerBusId);
 }
 
 // R13: the five routing verbs take an OWNER — a Track (the historical shape) or a Bus. The
@@ -3777,6 +3858,10 @@ namespace detail {
         for (const SendRow& existing : track.sends)
             if (existing.busId == send.busId)
                 return ProjectEditStatus::DuplicateSendRoute;
+
+        // ADR-0051: a Track can now be fed — by a Compressor key — so its routing can loop too.
+        if (busRoutingWouldCycle (project, track.id, send.busId))
+            return ProjectEditStatus::RoutingCycle;
 
         track.sends.push_back (send);
         return ProjectEditStatus::Applied;
@@ -3899,6 +3984,9 @@ namespace detail {
     {
         if (track.id != ownerId)
             continue;
+
+        if (busId.isValid() && busRoutingWouldCycle (project, track.id, busId))   // ADR-0051: via a key
+            return ProjectEditStatus::RoutingCycle;
 
         track.outputBusId = busId;
         return ProjectEditStatus::Applied;
@@ -4473,6 +4561,9 @@ namespace detail {
     if (! insert.isValid())
         return ProjectEditStatus::InvalidFxParamValue;
 
+    if (insert.sidechainSourceId.isValid())   // ADR-0051: a key is set by its own verb, never smuggled in
+        return ProjectEditStatus::InvalidSidechainSource;
+
     if (detail::projectContainsEntityId (project, insert.id))
         return ProjectEditStatus::DuplicateEntityId;
 
@@ -4560,6 +4651,45 @@ namespace detail {
         return ProjectEditStatus::FxInsertNotFound;
 
     insert->enabled = enabled;
+    return ProjectEditStatus::Applied;
+}
+
+// ADR-0051: key a Compressor with a Track's or Bus's pre-fader signal, or clear its key (an invalid
+// source). Refused: another kind, an unknown source, the master, its own strip, and any loop.
+[[nodiscard]] inline ProjectEditStatus setFxInsertSidechain (Project& project,
+                                                             EntityId ownerId,
+                                                             EntityId insertId,
+                                                             EntityId sourceId)
+{
+    if (! detail::projectCanApplyFxEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! ownerId.isValid())
+        return ProjectEditStatus::InvalidFxOwnerId;
+
+    if (! insertId.isValid())
+        return ProjectEditStatus::InvalidFxInsertId;
+
+    MixerStripState* const strip = detail::findMixerStrip (project, ownerId);
+    if (strip == nullptr)
+        return ProjectEditStatus::FxOwnerNotFound;
+
+    FxInsert* const insert = detail::findFxInsert (*strip, insertId);
+    if (insert == nullptr)
+        return ProjectEditStatus::FxInsertNotFound;
+
+    if (insert->kind != FxKind::Compressor)
+        return ProjectEditStatus::InvalidSidechainSource;
+
+    if (sourceId.isValid())
+    {
+        if (sourceId == ownerId || (project.findTrack (sourceId) == nullptr && project.findBus (sourceId) == nullptr))
+            return ProjectEditStatus::InvalidSidechainSource;
+        if (project.stripSignalReaches (ownerId, sourceId))
+            return ProjectEditStatus::RoutingCycle;
+    }
+
+    insert->sidechainSourceId = sourceId;
     return ProjectEditStatus::Applied;
 }
 

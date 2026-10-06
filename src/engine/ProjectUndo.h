@@ -118,7 +118,8 @@ enum class ProjectEditVerb : std::uint8_t
     SetMidiClipVelocityOffset,
     SetMidiClipLoopLength,
     SplitMidiClip,
-    JoinMidiClips
+    JoinMidiClips,
+    SetFxInsertSidechain   // ADR-0051: key a Compressor (or clear its key)
 };
 
 // G2.18: the plain-English label of a verb for the undo history window (Logic's "Undo History").
@@ -209,6 +210,7 @@ enum class ProjectEditVerb : std::uint8_t
         case ProjectEditVerb::SetMidiClipLoopLength: return "MIDI Clip Loop";
         case ProjectEditVerb::SplitMidiClip: return "Split MIDI Clip";
         case ProjectEditVerb::JoinMidiClips: return "Join MIDI Clips";
+        case ProjectEditVerb::SetFxInsertSidechain: return "Insert Sidechain";
     }
     return "Edit";
 }
@@ -260,6 +262,7 @@ struct ProjectEditCommand
     EntityId fxInsertId;
     FxKind fxKind = FxKind::Eq;
     bool fxEnabled = true;
+    EntityId fxSidechainSourceId;   // ADR-0051: SetFxInsertSidechain's source (invalid = clear)
     std::size_t fxPosition = 0;
     std::uint32_t fxParamId = 0;
     double fxParamValue = 0.0;
@@ -629,6 +632,18 @@ struct ProjectEditCommand
         command.fxOwnerId = ownerId;
         command.fxInsertId = insertId;
         command.fxEnabled = enabled;
+        return command;
+    }
+
+    [[nodiscard]] static constexpr ProjectEditCommand setFxInsertSidechain (EntityId ownerId,
+                                                                            EntityId insertId,
+                                                                            EntityId sourceId) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetFxInsertSidechain;
+        command.fxOwnerId = ownerId;
+        command.fxInsertId = insertId;
+        command.fxSidechainSourceId = sourceId;
         return command;
     }
 
@@ -1627,7 +1642,8 @@ namespace detail {
            || verb == ProjectEditVerb::RemoveFxInsert
            || verb == ProjectEditVerb::ReorderFxInsert
            || verb == ProjectEditVerb::SetFxInsertEnabled
-           || verb == ProjectEditVerb::SetFxInsertParam;
+           || verb == ProjectEditVerb::SetFxInsertParam
+           || verb == ProjectEditVerb::SetFxInsertSidechain;
 }
 
 [[nodiscard]] constexpr bool isAutomationEditVerb (ProjectEditVerb verb) noexcept
@@ -2019,6 +2035,8 @@ namespace detail {
             return splitMidiClip (project, command.midiClipId, command.rightClipId, command.timelineLength);
         case ProjectEditVerb::JoinMidiClips:
             return joinMidiClips (project, command.midiClipId, command.rightClipId);
+        case ProjectEditVerb::SetFxInsertSidechain:
+            return setFxInsertSidechain (project, command.fxOwnerId, command.fxInsertId, command.fxSidechainSourceId);
     }
 
     return ProjectEditStatus::InvalidProject;
