@@ -927,6 +927,16 @@ endif()
 yesdaw_harden(YesDawMidiInputCheck)
 add_test(NAME YesDawMidiInputCheck COMMAND $<TARGET_FILE:YesDawMidiInputCheck>)
 
+# --- Audition check (G5.2 cp2 / ADR-0056: the audition voice's device-thread read; runs on the RTSan leg) ---
+add_executable(YesDawAuditionCheck tests/audition_tests.cpp)
+target_include_directories(YesDawAuditionCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawAuditionCheck PRIVATE Catch2::Catch2WithMain)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawAuditionCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawAuditionCheck)
+add_test(NAME YesDawAuditionCheck COMMAND $<TARGET_FILE:YesDawAuditionCheck>)
+
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
 target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})

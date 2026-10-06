@@ -1860,6 +1860,11 @@ void MainComponent::refreshActionState()
     if (const bool showBrowser = dockShowsBrowser(); browserPanel.isVisible() != showBrowser)   // G5.2
     {
         browserPanel.setVisible (showBrowser);
+        if (! showBrowser && appModel.auditioning())
+        {
+            appModel.stopAudition();   // ADR-0056: closing the browser stops an audition
+            refreshBrowserAuditionState();
+        }
         if (showBrowser && ! browserStateRestored)
             restoreBrowserState();
         if (showBrowser)

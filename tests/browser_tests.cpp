@@ -15,7 +15,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <juce_gui_extra/juce_gui_extra.h>
 
+#include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -538,4 +540,255 @@ TEST_CASE ("ADR-0056 a 1000-file folder lists without reading a header for rows 
     const std::uint64_t afterScroll = f.browser().headerReads - readsBefore;
     REQUIRE (afterScroll > firstPaint);
     REQUIRE (afterScroll <= firstPaint + 10u);
+}
+
+// ---- G5.2 cp2 / ADR-0056: the audition voice ----
+
+namespace {
+
+// A model with a project holding one clip (so the engine's mix is not silent), its device "live".
+struct AuditionModel
+{
+    std::filesystem::path directory;
+    yesdaw::ui::UiAppModel model;
+
+    AuditionModel (const std::filesystem::path& root, const std::string& name, const std::filesystem::path& song)
+        : directory (root / name)
+    {
+        std::filesystem::create_directories (directory);
+        REQUIRE (model.createProjectBundle (directory / "song.yesdaw").ok());
+        yesdaw::ui::shell::UiAudioDecodeResult decoded = yesdaw::ui::shell::decodeProjectAudio (song);
+        REQUIRE (decoded.decoded.has_value());
+        REQUIRE (model.importAudioFile (song, std::move (*decoded.decoded)).ok());
+        model.setDeviceCallbackLive (true);
+    }
+
+    std::vector<float> block (int frames, bool monitorStage = false)   // one device block, interleaved L R
+    {
+        std::vector<float> left (static_cast<std::size_t> (frames), 0.0f);
+        std::vector<float> right (static_cast<std::size_t> (frames), 0.0f);
+        float* outputs[] { left.data(), right.data() };
+        REQUIRE (model.processDeviceAudioBlock (outputs, 2, frames));
+        if (monitorStage)
+            model.applyMonitorStage (outputs, 2, frames);
+        std::vector<float> out;
+        for (int i = 0; i < frames; ++i)
+        {
+            out.push_back (left[static_cast<std::size_t> (i)]);
+            out.push_back (right[static_cast<std::size_t> (i)]);
+        }
+        return out;
+    }
+};
+
+yesdaw::ui::UiDecodedAsset decodedFile (const std::filesystem::path& path)
+{
+    yesdaw::ui::shell::UiAudioDecodeResult decoded = yesdaw::ui::shell::decodeProjectAudio (path);
+    REQUIRE (decoded.decoded.has_value());
+    return std::move (*decoded.decoded);
+}
+
+} // namespace
+
+TEST_CASE ("ADR-0056 an audition is on the device outputs from frame 0; the engine's mix, the loudness tap and an export carry none of it",
+           "[audition]")
+{
+    const auto directory = browserScratch ("audition-mix");
+    writeTone (directory / "song.wav", 48'000, 0.2f);
+    std::vector<float> clicks (1'000, 0.0f);
+    clicks[0] = 0.5f;
+    clicks[300] = -0.25f;
+    REQUIRE (yesdaw::io::writeFloat32WavFile (directory / "clicks.wav", yesdaw::engine::SampleRate { 48'000.0 }, 1, clicks.size(), clicks).ok());
+
+    AuditionModel heard (directory, "heard", directory / "song.wav");
+    AuditionModel twin (directory, "twin", directory / "song.wav");
+    for (AuditionModel* m : { &heard, &twin })
+    {
+        REQUIRE (m->model.locatePlaybackFrame (0));
+        REQUIRE (m->model.dispatch (UiActionId::TransportPlay).dispatched);
+    }
+    REQUIRE (heard.model.startAudition (decodedFile (directory / "clicks.wav"), directory / "clicks.wav"));   // while playing
+    REQUIRE (heard.model.auditioning());
+
+    // Device blocks in lockstep: the difference is exactly the clicks (mono to both outputs), from frame 0.
+    std::vector<float> difference;
+    for (int b = 0; b < 16; ++b)
+    {
+        const std::vector<float> a = heard.block (128);
+        const std::vector<float> t = twin.block (128);
+        for (std::size_t i = 0; i < a.size(); ++i)
+            difference.push_back (a[i] - t[i]);
+    }
+    for (std::size_t frame = 0; frame < 2'048; ++frame)
+    {
+        const float expected = frame < clicks.size() ? clicks[frame] : 0.0f;
+        REQUIRE (std::abs (difference[frame * 2u] - expected) < 1.0e-6f);
+        REQUIRE (std::abs (difference[frame * 2u + 1u] - expected) < 1.0e-6f);
+    }
+
+    // The voice played to its end: the UI tick retires it, and the watermark frees it two device blocks later.
+    REQUIRE_FALSE (heard.model.auditioning());
+    heard.model.serviceAudition();
+    REQUIRE (heard.model.auditionSource().empty());
+    for (int b = 0; b < 2; ++b)
+    {
+        (void) heard.block (128);
+        (void) twin.block (128);   // in lockstep still
+    }
+    heard.model.reclaimRetiredAudioObjects();
+    REQUIRE (heard.model.retiredAudioObjectCount() == 0u);
+
+    // The live loudness measured the mix only: both models read the same.
+    heard.model.serviceLiveLoudness();
+    twin.model.serviceLiveLoudness();
+    const auto& lh = heard.model.liveLoudnessReadout();
+    const auto& lt = twin.model.liveLoudnessReadout();
+    REQUIRE (heard.model.liveLoudnessFrames() > 0u);
+    REQUIRE (heard.model.liveLoudnessFrames() == twin.model.liveLoudnessFrames());
+    REQUIRE (lh.valid == lt.valid);
+    REQUIRE (lh.momentaryLufs == lt.momentaryLufs);
+    REQUIRE (lh.truePeakDbtp == lt.truePeakDbtp);
+
+    // An export of the same moment is the twin's, sample for sample.
+    for (AuditionModel* m : { &heard, &twin })
+        REQUIRE (m->model.dispatch (UiActionId::TransportStop).dispatched);
+    REQUIRE (heard.model.startAudition (decodedFile (directory / "clicks.wav"), directory / "clicks.wav"));
+    REQUIRE (heard.model.exportAudioFile (directory / "heard.wav").dispatched);
+    REQUIRE (twin.model.exportAudioFile (directory / "twin.wav").dispatched);
+    const auto heardExport = yesdaw::io::decodeAudioFile (directory / "heard.wav");
+    const auto twinExport = yesdaw::io::decodeAudioFile (directory / "twin.wav");
+    REQUIRE (heardExport.audio.has_value());
+    REQUIRE (twinExport.audio.has_value());
+    REQUIRE (heardExport.audio->interleaved == twinExport.audio->interleaved);
+}
+
+TEST_CASE ("ADR-0056 Play, a new audition and Stop end an audition; Mute silences it; no device refuses it; a 44.1 kHz file plays at the project rate",
+           "[audition]")
+{
+    const auto directory = browserScratch ("audition-stops");
+    writeTone (directory / "song.wav", 4'800, 0.2f);
+    writeTone (directory / "a.wav", 48'000, 0.5f);
+    writeTone (directory / "b.wav", 48'000, 0.4f);
+    writeTone (directory / "c44.wav", 44'100, 0.3f, 44'100.0);
+    AuditionModel f (directory, "stops", directory / "song.wav");
+
+    // No device: refused with its reason, nothing published.
+    f.model.setDeviceCallbackLive (false);
+    REQUIRE_FALSE (f.model.startAudition (decodedFile (directory / "a.wav"), directory / "a.wav"));
+    REQUIRE_FALSE (f.model.auditioning());
+    REQUIRE (f.model.statusLineText().find ("a.wav: no audio device") != std::string::npos);
+    f.model.setDeviceCallbackLive (true);
+
+    // Another audition replaces it (the old voice retires); Stop ends it.
+    REQUIRE (f.model.startAudition (decodedFile (directory / "a.wav"), directory / "a.wav"));
+    REQUIRE (f.model.startAudition (decodedFile (directory / "b.wav"), directory / "b.wav"));
+    REQUIRE (f.model.auditionSource().filename() == "b.wav");
+    REQUIRE (f.model.retiredAudioObjectCount() >= 1u);
+    f.model.stopAudition();
+    REQUIRE_FALSE (f.model.auditioning());
+    const std::vector<float> silent = f.block (128);
+    REQUIRE (std::all_of (silent.begin(), silent.end(), [] (float s) { return s == 0.0f; }));   // stopped transport, no voice
+
+    // Play ends it; so does Record (whichever record path runs); so does opening another project.
+    REQUIRE (f.model.startAudition (decodedFile (directory / "a.wav"), directory / "a.wav"));
+    REQUIRE (f.model.dispatch (UiActionId::TransportPlay).dispatched);
+    REQUIRE_FALSE (f.model.auditioning());
+    REQUIRE (f.model.dispatch (UiActionId::TransportStop).dispatched);
+    {
+        AuditionModel recorder (directory, "recorder", directory / "song.wav");
+        REQUIRE (recorder.model.dispatch (UiActionId::DeviceSelectTestAudio).dispatched);   // the harness device
+        REQUIRE (recorder.model.dispatch (UiActionId::RecordingArmTrack).dispatched);
+        REQUIRE (recorder.model.dispatch (UiActionId::RecordingSetMonitoringPolicy).dispatched);
+        REQUIRE (recorder.model.startAudition (decodedFile (directory / "a.wav"), directory / "a.wav"));
+        REQUIRE (recorder.model.dispatch (UiActionId::TransportRecord).dispatched);
+        REQUIRE_FALSE (recorder.model.auditioning());
+    }
+    {
+        AuditionModel other (directory, "other", directory / "song.wav");
+        REQUIRE (other.model.startAudition (decodedFile (directory / "a.wav"), directory / "a.wav"));
+        REQUIRE (other.model.createProjectBundle (directory / "replacement.yesdaw").ok());
+        REQUIRE_FALSE (other.model.auditioning());
+    }
+
+    // Mute (the monitor's last stage) silences it once its 5 ms ramp is done.
+    REQUIRE (f.model.startAudition (decodedFile (directory / "a.wav"), directory / "a.wav"));
+    const std::vector<float> loud = f.block (128, true);
+    REQUIRE (std::any_of (loud.begin(), loud.end(), [] (float s) { return s != 0.0f; }));
+    REQUIRE (f.model.dispatch (UiActionId::MasterMonitorMuteToggle).dispatched);
+    (void) f.block (128, true);   // the ramp: 240 frames at 48 kHz, two blocks
+    (void) f.block (128, true);
+    const std::vector<float> muted = f.block (128, true);
+    REQUIRE (std::all_of (muted.begin(), muted.end(), [] (float s) { return s == 0.0f; }));
+    REQUIRE (f.model.auditioning());   // muted, not stopped
+    REQUIRE (f.model.dispatch (UiActionId::MasterMonitorMuteToggle).dispatched);
+    f.model.stopAudition();
+
+    // One second at 44.1 kHz plays for 48 000 frames at the project rate (ADR-0055's live view): 375 blocks.
+    REQUIRE (f.model.startAudition (decodedFile (directory / "c44.wav"), directory / "c44.wav"));
+    int blocks = 0;
+    while (f.model.auditioning() && blocks < 1'000)
+    {
+        (void) f.block (128);
+        ++blocks;
+    }
+    REQUIRE (blocks == 375);
+}
+
+TEST_CASE ("ADR-0056 the browser's Audition button and play marks start, replace and stop an audition; closing the browser stops it",
+           "[audition][browser]")
+{
+    const auto directory = browserScratch ("audition-shell");
+    const auto media = directory / "media";
+    std::filesystem::create_directories (media);
+    writeTone (media / "a.wav", 48'000, 0.3f);
+    writeTone (media / "b.wav", 48'000, 0.3f);
+
+    BrowserShell f (directory, "audition");
+    f.showBrowser();
+    yesdaw::ui::mainComponentBrowserOpenFolder (*f, media);
+    yesdaw::ui::mainComponentBrowserSelect (*f, f.rowNamed ("a.wav"));
+
+    // A headless shell has no device: refused by name and reason.
+    yesdaw::ui::mainComponentBrowserAudition (*f);
+    REQUIRE_FALSE (f.browser().auditioning);
+    REQUIRE (statusOf (*f).contains ("a.wav: no audio device"));
+
+    yesdaw::ui::mainComponentSetDeviceCallbackLiveForTest (*f, true);
+    yesdaw::ui::mainComponentBrowserAudition (*f);
+    auto snapshot = f.browser();
+    REQUIRE (snapshot.auditioning);
+    REQUIRE (snapshot.auditionName == "a.wav");
+    REQUIRE (snapshot.auditionButton == "Stop");
+    REQUIRE (static_cast<bool> (probeOf (*f)["view"]["browser"]["auditioning"]));
+    yesdaw::ui::mainComponentBrowserAudition (*f);   // a second press stops it
+    REQUIRE_FALSE (f.browser().auditioning);
+    REQUIRE (f.browser().auditionButton == "Audition");
+
+    // The play marks: b auditions; a replaces it; a again stops it.
+    yesdaw::ui::mainComponentBrowserPressPlayMark (*f, f.rowNamed ("b.wav"));
+    REQUIRE (f.browser().auditionName == "b.wav");
+    REQUIRE (f.browser().selected == f.rowNamed ("b.wav"));
+    yesdaw::ui::mainComponentBrowserPressPlayMark (*f, f.rowNamed ("a.wav"));
+    REQUIRE (f.browser().auditionName == "a.wav");
+    yesdaw::ui::mainComponentBrowserPressPlayMark (*f, f.rowNamed ("a.wav"));
+    REQUIRE_FALSE (f.browser().auditioning);
+    REQUIRE (f.project().clips.empty());   // auditioning never imports
+
+    // Closing the browser stops it.
+    yesdaw::ui::mainComponentBrowserPressPlayMark (*f, f.rowNamed ("b.wav"));
+    REQUIRE (f.browser().auditioning);
+    REQUIRE (press (*f, 'y'));
+    REQUIRE_FALSE (f.browser().auditioning);
+
+    // The keyboard reaches the Audition button (Tab), and Play (Space stays transport) stops an audition.
+    REQUIRE (press (*f, 'y'));
+    const auto order = yesdaw::ui::mainComponentControlTraversal (*f);
+    REQUIRE (std::find (order.begin(), order.end(), juce::String ("browser.audition")) != order.end());
+    yesdaw::ui::mainComponentBrowserSelect (*f, f.rowNamed ("a.wav"));
+    yesdaw::ui::mainComponentBrowserAudition (*f);
+    REQUIRE (f.browser().auditioning);
+    REQUIRE (press (*f, juce::KeyPress::spaceKey));
+    REQUIRE_FALSE (f.browser().auditioning);
+    yesdaw::ui::mainComponentServiceUiTick (*f);
+    REQUIRE (f.browser().auditionButton == "Audition");
 }

@@ -8,6 +8,35 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (late afternoon) — G5.2 done: audition in the media browser (ADR-0056 cp2)
+
+**Now:** **G5.2** is in, headless-certified (both checkpoints). **Next: G5.3 — Export v2** (its implementation ADR
+first: a worker with progress and cancel, an immutable job snapshot, a temporary sibling committed only on success,
+then WAV 16/24/32 with dither, range, stems and normalize). The real-app drive of G5.1 + G5.2 (SS-6 step 1: "open
+the browser and audition a supported file") waits for the desktop — another session holds it for its drives now.
+
+**What a user gets:** every file row in the browser has a play mark; click it (or select the file and press
+Audition) to hear the file from its start on the monitor. It plays at the project's rate even when the file's rate
+differs. Click again (the Audition button reads Stop), audition another file, press Play or Record, or close the
+browser and it stops; it stops by itself at the file's end. Monitor Mute and Dim apply to it, the header meters show
+it, but it is never in the mix: the loudness readout, an export, a bounce and a recording never contain it. With no
+audio device it says "no audio device".
+
+**Gates:** `[audition]` — two models in lockstep, one auditioning while the song plays: their device outputs differ
+by exactly the file's samples from frame 0 (mono to both outputs), their live loudness readouts are identical, and
+their exports are identical sample for sample; a new audition, Stop and Play end it; Mute silences it after its
+5 ms ramp; no device refuses it with nothing published; a 44.1 kHz second plays 48 000 frames; the voice retires at
+its end and is freed under the device-block watermark; the browser's button, play marks, second press, closing the
+browser and Space all behave. `YesDawAuditionCheck` (pure, on the RTSan leg) proves the device-thread read never
+allocates or locks. The browser shot gates the play mark (a file row paints one, a folder row none). 415/415 local,
+Clang clean. The critic found no blockers; its should-fixes are in: Record's no-input path now stops an audition
+too (gated with a real Record), and opening another project stops it.
+
+**CI:** d4ce08c's Windows job failed the timeline GPU frame gate at 16.72 ms against 16.6 ms. Not the standing
+macOS exception, so not excused: that commit changed only 12 lines of new browser layout constants in the
+renderer's include set (7f2303a passed Windows with the same renderer). The job was re-run on the same SHA for a
+second measurement; the result is recorded below when it lands.
+
 ## 2026-10-06 (afternoon) — repair: a shortcut pressed while the app is busy means what you pressed (ADR-0057)
 
 **Now:** done, outside the G5 line (Dan asked for the product fix of the drive finding below). **Next:** unchanged —

@@ -354,6 +354,9 @@ struct MainComponentBrowser
     juce::String description;
     std::uint64_t headerReads = 0;
     juce::Rectangle<int> list;            // shell-local
+    bool auditioning = false;             // G5.2 cp2: a file is auditioning
+    juce::String auditionName;            // its file name
+    juce::String auditionButton;          // "Audition" or "Stop"
 };
 [[nodiscard]] MainComponentBrowser mainComponentBrowser (juce::Component& component);
 void mainComponentBrowserOpenFolder (juce::Component& component, const std::filesystem::path& folder);
@@ -364,6 +367,11 @@ void mainComponentBrowserDoubleClick (juce::Component& component, int row);   //
 void mainComponentBrowserDragSelectedTo (juce::Component& component, juce::Point<int> shellPoint);
 void mainComponentBrowserPaint (juce::Component& component);                  // the list painted once
 void mainComponentBrowserScroll (juce::Component& component, int wheelNotches);   // the list's wheel (+ down)
+void mainComponentBrowserAudition (juce::Component& component);                    // G5.2 cp2: the Audition button
+void mainComponentBrowserPressPlayMark (juce::Component& component, int row);      // a file row's play mark
+// The device-callback-live flag the model reads (a headless shell has no device; the UI tick resets it from the
+// real device state, so a test sets it after any tick it runs).
+void mainComponentSetDeviceCallbackLiveForTest (juce::Component& component, bool live);
 // G3.2: the roll's painted grid lines (tick, x, kind 0 = bar, 1 = beat, 2 = snap) and its clip-relative playhead tick.
 struct MainComponentPianoRollGrid
 {

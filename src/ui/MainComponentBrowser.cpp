@@ -76,6 +76,11 @@ void MainComponent::initialiseBrowser()
     };
     browserPanel.list.loadFacts = [this] (BrowserRow& row) { loadBrowserFacts (row); };
     browserPanel.list.onKeep = [this] (const BrowserRow& row) { browserKeep (row); };
+    browserPanel.list.onAudition = [this] (const BrowserRow& row) { browserAudition (row); };
+    browserPanel.auditionButton.onClick = [this] {
+        if (const BrowserRow* row = browserPanel.list.selectedRow())
+            browserAudition (*row);
+    };
     browserPanel.list.onDragReleased = [this] (std::vector<BrowserRow> rows, juce::Point<int> listPosition) {
         browserDropAt (std::move (rows), listPosition);
     };
@@ -367,6 +372,33 @@ void MainComponent::browserDropAt (std::vector<BrowserRow> rows, juce::Point<int
     }
     if (browserSourceIndex != 0)
         refreshBrowserRows();
+}
+
+// ADR-0056 cp2: audition a file row — a second press on the file that is playing stops it; another file replaces
+// it; the decode or the model names any refusal on the status line.
+void MainComponent::browserAudition (const BrowserRow& row)
+{
+    if (row.kind != BrowserRow::Kind::File)
+    {
+        appModel.reportStatus ("Audition: choose an audio file", true);
+        return;
+    }
+    if (appModel.auditioning() && appModel.auditionSource() == row.path)
+        appModel.stopAudition();
+    else if (UiAudioDecodeResult decoded = decodeProjectAudio (row.path); decoded.decoded.has_value())
+        (void) appModel.startAudition (*decoded.decoded, row.path);
+    else
+        appModel.reportStatus ("Audition refused: " + yesdaw::io::utf8Text (row.path.filename()) + ": " + decoded.reason, true);
+    refreshBrowserAuditionState();
+}
+
+// The Audition button reads "Stop" and the playing row shows its stop mark while a file auditions.
+void MainComponent::refreshBrowserAuditionState()
+{
+    const bool playing = appModel.auditioning();
+    browserAuditionShown = playing;
+    browserPanel.auditionButton.setButtonText (playing ? "Stop" : "Audition");
+    browserPanel.list.setAuditioningPath (playing ? appModel.auditionSource() : std::filesystem::path {});
 }
 
 // Ctrl+Shift+I's import, for a path from any surface: the selected track at the playhead; a refusal is named.

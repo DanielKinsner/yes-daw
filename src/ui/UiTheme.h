@@ -906,6 +906,7 @@ struct UiTheme
         static constexpr int browserRowHeight = 20;
         static constexpr int browserRowTextInset = 8;
         static constexpr int browserNameWidth = 420;     // G5.2: the name column; the facts follow it
+        static constexpr int browserPlayMarkWidth = 18;  // G5.2 cp2: a file row's audition mark
         static constexpr int browserFactsWidth = 360;
         static constexpr int browserDragThreshold = 6;
         // G3.1: the instrument panel (an Editor-dock tab) and the inspector's instrument row.

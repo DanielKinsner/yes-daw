@@ -386,6 +386,7 @@ juce::var MainComponent::buildProbeLayout()
             put ("browser.source", getLocalArea (&browserPanel, browserPanel.source.getBounds()));
             put ("browser.up", getLocalArea (&browserPanel, browserPanel.upButton.getBounds()));
             put ("browser.import", getLocalArea (&browserPanel, browserPanel.importButton.getBounds()));
+            put ("browser.audition", getLocalArea (&browserPanel, browserPanel.auditionButton.getBounds()));   // cp2
             put ("browser.list", getLocalArea (&browserPanel, browserPanel.list.getBounds()));
         }
         // G3.9: the Sampler's pad grid, when the Instrument tab shows one (panel-local → shell).
@@ -689,6 +690,9 @@ juce::String MainComponent::buildStateProbeJson()
             if (const BrowserRow* row = browserPanel.list.selectedRow())
                 browser->setProperty ("selectedName", row->name);
             browser->setProperty ("headerReads", static_cast<juce::int64> (browserHeaderReads));
+            browser->setProperty ("auditioning", appModel.auditioning());   // G5.2 cp2
+            if (appModel.auditioning())
+                browser->setProperty ("auditionName", juce::String (yesdaw::io::utf8Text (appModel.auditionSource().filename())));
             view->setProperty ("browser", juce::var (browser));
         }
         view->setProperty ("dockHeight", dockedMixerHeight());
@@ -2120,6 +2124,9 @@ MainComponentBrowser mainComponentBrowser (juce::Component& component)   // G5.2
         out.description = panel.list.getDescription();
         out.headerReads = mainComponent->harnessBrowserHeaderReads();
         out.list = mainComponent->getLocalArea (&panel.list, panel.list.getLocalBounds());
+        out.auditioning = mainComponent->harnessAppModel().auditioning();
+        out.auditionName = juce::String (yesdaw::io::utf8Text (mainComponent->harnessAppModel().auditionSource().filename()));
+        out.auditionButton = panel.auditionButton.getButtonText();
     }
     return out;
 }
@@ -2179,6 +2186,28 @@ void mainComponentBrowserPaint (juce::Component& component)
         if (list.getWidth() > 0 && list.getHeight() > 0)
             (void) list.createComponentSnapshot (list.getLocalBounds());
     }
+}
+
+void mainComponentBrowserAudition (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        juce::TextButton& button = mainComponent->harnessBrowserPanel().auditionButton;
+        if (button.onClick)   // the button's own handler, synchronously
+            button.onClick();
+    }
+}
+
+void mainComponentBrowserPressPlayMark (juce::Component& component, int row)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessBrowserPanel().list.harnessPressPlayMark (row);
+}
+
+void mainComponentSetDeviceCallbackLiveForTest (juce::Component& component, bool live)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessAppModel().setDeviceCallbackLive (live);
 }
 
 void mainComponentBrowserScroll (juce::Component& component, int wheelNotches)

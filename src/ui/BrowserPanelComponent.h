@@ -56,6 +56,7 @@ class BrowserListComponent final : public juce::Component,
 public:
     std::function<void (BrowserRow&)> loadFacts;                                  // header facts for a painted row
     std::function<void (const BrowserRow&)> onKeep;                               // import / open
+    std::function<void (const BrowserRow&)> onAudition;                           // the row's play mark (cp2)
     std::function<void (std::vector<BrowserRow>, juce::Point<int>)> onDragReleased;   // rows, the release point (list-local)
     std::function<void()> onSelectionChanged;
 
@@ -179,6 +180,22 @@ public:
     {
         return { 0, (row - firstVisible_) * UiTheme::Layout::browserRowHeight, getWidth(), UiTheme::Layout::browserRowHeight };
     }
+    // ADR-0056 cp2: a file row's play mark (the audition toggle), left of its name.
+    [[nodiscard]] juce::Rectangle<int> playMarkBounds (int row) const noexcept
+    {
+        return rowBounds (row).withTrimmedLeft (UiTheme::Layout::browserRowTextInset).withWidth (UiTheme::Layout::browserPlayMarkWidth);
+    }
+    [[nodiscard]] static bool rowHasPlayMark (const BrowserRow& row) noexcept { return row.kind == BrowserRow::Kind::File; }
+
+    // The file the audition plays (its row shows a stop mark), or empty.
+    void setAuditioningPath (std::filesystem::path path)
+    {
+        if (path != auditioningPath_)
+        {
+            auditioningPath_ = std::move (path);
+            repaint();
+        }
+    }
 
     void paint (juce::Graphics& g) override
     {
@@ -198,8 +215,26 @@ public:
                 g.setColour (UiTheme::Color::accentPurple().withAlpha (UiTheme::Tone::timelineDragGhostFillAlpha));
                 g.fillRect (bounds);
             }
-            // Two columns read left to right: the name, then its facts (or its reason) right after it.
+            // A file row's play mark (a stop square while it is the one auditioning), then two columns read left to
+            // right: the name, then its facts (or its reason) right after it.
+            if (rowHasPlayMark (row))
+            {
+                const auto mark = playMarkBounds (index).toFloat().withSizeKeepingCentre (8.0f, 8.0f);
+                const bool playing = ! auditioningPath_.empty() && row.path == auditioningPath_;
+                g.setColour (playing ? UiTheme::Color::accentPurple() : UiTheme::Color::mutedText());
+                if (playing)
+                {
+                    g.fillRect (mark);
+                }
+                else
+                {
+                    juce::Path triangle;
+                    triangle.addTriangle (mark.getX(), mark.getY(), mark.getX(), mark.getBottom(), mark.getRight(), mark.getCentreY());
+                    g.fillPath (triangle);
+                }
+            }
             auto text = bounds.reduced (UiTheme::Layout::browserRowTextInset, 0);
+            text.removeFromLeft (UiTheme::Layout::browserPlayMarkWidth);
             const auto nameArea = text.removeFromLeft (std::min (UiTheme::Layout::browserNameWidth, text.getWidth() / 2));
             text.removeFromLeft (UiTheme::Layout::browserControlGap);
             const auto factsArea = text.removeFromLeft (std::min (UiTheme::Layout::browserFactsWidth, text.getWidth()));
@@ -224,13 +259,25 @@ public:
     void mouseDown (const juce::MouseEvent& event) override
     {
         dragging_ = false;
+        markPressed_ = false;
         if (const int row = rowAt (event.getPosition()); row >= 0)
+        {
+            const BrowserRow& pressed = rows_[static_cast<std::size_t> (row)];
+            if (rowHasPlayMark (pressed) && playMarkBounds (row).contains (event.getPosition()))
+            {
+                markPressed_ = true;   // the mark auditions; it never starts a drag
+                select (row);
+                if (onAudition)
+                    onAudition (rows_[static_cast<std::size_t> (row)]);
+                return;
+            }
             selectWith (row, event.mods.isCtrlDown() || event.mods.isCommandDown(), event.mods.isShiftDown());
+        }
     }
 
     void mouseDrag (const juce::MouseEvent& event) override
     {
-        if (event.getDistanceFromDragStart() > UiTheme::Layout::browserDragThreshold && selectedRow() != nullptr)
+        if (! markPressed_ && event.getDistanceFromDragStart() > UiTheme::Layout::browserDragThreshold && selectedRow() != nullptr)
             dragging_ = true;
     }
 
@@ -262,6 +309,17 @@ public:
         repaint();
     }
 
+    // Harness: a press on a row's play mark (the gesture's own path).
+    void harnessPressPlayMark (int row)
+    {
+        if (row >= 0 && row < static_cast<int> (rows_.size()) && rowHasPlayMark (rows_[static_cast<std::size_t> (row)]))
+        {
+            select (row);
+            if (onAudition)
+                onAudition (rows_[static_cast<std::size_t> (row)]);
+        }
+    }
+
     // Harness: a drag of the selected rows released at a list-local point (the gesture's own path).
     void harnessDragSelectedTo (juce::Point<int> listPosition)
     {
@@ -282,6 +340,8 @@ private:
 
     std::vector<BrowserRow> rows_;
     std::vector<bool> marked_;   // the selected rows (the drag carries them all)
+    std::filesystem::path auditioningPath_;
+    bool markPressed_ = false;
     int selected_ = -1;
     int firstVisible_ = 0;
     bool dragging_ = false;
@@ -296,6 +356,7 @@ public:
     juce::Label location;
     juce::TextButton upButton { "Up" };
     juce::TextButton importButton { "Import" };
+    juce::TextButton auditionButton { "Audition" };   // ADR-0056 cp2: "Stop" while a file auditions
 
     BrowserPanelComponent()
     {
@@ -320,8 +381,13 @@ public:
         importButton.setTitle ("Import the selected file");
         importButton.setTooltip ("Import the selected file on the selected track at the playhead");
         importButton.setWantsKeyboardFocus (false);
+        auditionButton.setComponentID ("browser.audition");
+        auditionButton.setTitle ("Audition the selected file");
+        auditionButton.setTooltip ("Hear the selected file on the monitor, never in the mix (again to stop)");
+        auditionButton.setWantsKeyboardFocus (false);
         for (juce::Component* child : { static_cast<juce::Component*> (&source), static_cast<juce::Component*> (&location),
                                         static_cast<juce::Component*> (&upButton), static_cast<juce::Component*> (&importButton),
+                                        static_cast<juce::Component*> (&auditionButton),
                                         static_cast<juce::Component*> (&list) })
             addAndMakeVisible (child);
     }
@@ -336,6 +402,8 @@ public:
         source.setBounds (row.removeFromLeft (L::browserSourceWidth));
         row.removeFromLeft (L::browserControlGap);
         importButton.setBounds (row.removeFromRight (L::browserButtonWidth));
+        row.removeFromRight (L::browserControlGap);
+        auditionButton.setBounds (row.removeFromRight (L::browserButtonWidth));
         row.removeFromRight (L::browserControlGap);
         upButton.setBounds (row.removeFromRight (L::browserButtonWidth));
         row.removeFromRight (L::browserControlGap);

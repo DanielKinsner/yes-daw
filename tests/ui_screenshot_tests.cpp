@@ -1554,7 +1554,7 @@ TEST_CASE ("G5.2 the Browser tab paints its rows, a file's facts and a refusal's
         return count;
     };
     // The name column, then the facts column right after it (not across the whole width).
-    constexpr int nameRight = L::browserRowTextInset + L::browserNameWidth;
+    constexpr int nameRight = L::browserRowTextInset + L::browserPlayMarkWidth + L::browserNameWidth;
     const auto nameColumn = [] (juce::Rectangle<int> band) { return band.withWidth (nameRight); };
     const auto factsColumn = [] (juce::Rectangle<int> band) {
         return band.withTrimmedLeft (nameRight).withWidth (L::browserControlGap + L::browserFactsWidth);
@@ -1565,6 +1565,12 @@ TEST_CASE ("G5.2 the Browser tab paints its rows, a file's facts and a refusal's
     REQUIRE (countNear (factsColumn (rowBand (1)), yesdaw::ui::UiTheme::Color::dangerRed()) == 0);    // a folder has no reason
     REQUIRE (countNear (rowBand (3).withTrimmedLeft (nameRight + L::browserControlGap + L::browserFactsWidth),
                         yesdaw::ui::UiTheme::Color::mutedText()) == 0);                              // nothing far right
+    // G5.2 cp2: a file row paints its play mark left of its name; a folder row has none.
+    const auto playMark = [] (juce::Rectangle<int> band) {
+        return band.withTrimmedLeft (L::browserRowTextInset).withWidth (L::browserPlayMarkWidth);
+    };
+    REQUIRE (countNear (playMark (rowBand (3)), yesdaw::ui::UiTheme::Color::mutedText()) > 10);
+    REQUIRE (countNear (playMark (rowBand (1)), yesdaw::ui::UiTheme::Color::mutedText()) == 0);
 
     shell.reset();
     std::error_code ec;

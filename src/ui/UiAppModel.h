@@ -8,6 +8,7 @@
 #include "io/PathText.h"   // file names as UTF-8 (never through the ANSI code page)
 #include "analysis/LoudnessMeter.h"   // ADR-0053: the streaming meter behind the live readout (message thread)
 #include "app/RecordingAssetCommit.h"
+#include "engine/AuditionVoice.h"   // G5.2 cp2 / ADR-0056
 #include "engine/ClipSilence.h"
 #include "engine/LoudnessTap.h"
 #include "engine/OfflineRenderer.h"
@@ -419,12 +420,84 @@ public:
                        [&] (const RetiredPlayback& r) { return reclaimable (r.retiredAtBlock); });
         std::erase_if (retiredMonitorChains_,
                        [&] (const RetiredMonitorChain& r) { return reclaimable (r.retiredAtBlock); });
+        std::erase_if (retiredAuditions_,
+                       [&] (const RetiredAudition& r) { return reclaimable (r.retiredAtBlock); });
     }
 
     [[nodiscard]] std::size_t retiredAudioObjectCount() const noexcept
     {
-        return retiredPlayback_.size() + retiredMonitorChains_.size();
+        return retiredPlayback_.size() + retiredMonitorChains_.size() + retiredAuditions_.size();
     }
+
+    // ---- ADR-0056 cp2: the audition voice — a file heard on the monitor path, never in the mix ----
+
+    // Start hearing `decoded` (from `source`) from its frame 0, at the project rate (ADR-0055's live view when its
+    // rate differs). Refused, with its reason on the status line and nothing published, when no audio device is
+    // open or the audio is not usable. A running audition is stopped first.
+    [[nodiscard]] bool startAudition (const UiDecodedAsset& decoded, const std::filesystem::path& source)
+    {
+        const std::string name = yesdaw::io::utf8Text (source.filename());
+        if (! deviceCallbackLive_)
+        {
+            reportStatus ("Audition refused: " + name + ": no audio device", true);
+            return false;
+        }
+        if (! decodedAudioIsValid (decoded) || (decoded.channels != 1u && decoded.channels != 2u))
+        {
+            reportStatus ("Audition refused: " + name + ": not usable audio", true);
+            return false;
+        }
+        auto voice = std::make_unique<engine::AuditionVoice>();
+        voice->channels = decoded.channels;
+        const double projectRateHz = project_.sampleRate.isValid() ? project_.sampleRate.hz : decoded.sampleRate.hz;
+        if (decoded.sampleRate.hz != projectRateHz)
+        {
+            const std::shared_ptr<const engine::AssetSamples> view = engine::buildRateMatchedSamples (
+                decoded.interleavedSamples, decoded.channels, decoded.sampleRate.hz, projectRateHz,
+                engine::ResampleQuality::LivePlayback);
+            if (view == nullptr || view->frames == 0u)
+            {
+                reportStatus ("Audition refused: " + name + ": not usable audio", true);
+                return false;
+            }
+            voice->interleaved = view->interleaved;
+            voice->frames = view->frames;
+        }
+        else
+        {
+            voice->interleaved = decoded.interleavedSamples;
+            voice->frames = decoded.frames;
+        }
+        stopAudition();
+        auditionVoice_ = std::move (voice);
+        auditionSource_ = source;
+        audioAudition_.store (auditionVoice_.get(), std::memory_order_release);
+        return true;
+    }
+
+    // Stop the audition (a second press, Play, Record, the browser closing): the device thread stops reading it at
+    // its next block; the voice is freed under the device-block watermark (ADR-0046 §6).
+    void stopAudition()
+    {
+        if (auditionVoice_ == nullptr)
+            return;
+        audioAudition_.store (nullptr, std::memory_order_release);
+        retiredAuditions_.push_back ({ std::move (auditionVoice_), deviceBlocksStarted_.load (std::memory_order_acquire) });
+        auditionSource_.clear();
+    }
+
+    // The UI tick: a voice that played to its end is retired like any other.
+    void serviceAudition()
+    {
+        if (auditionVoice_ != nullptr && auditionVoice_->finished.load (std::memory_order_acquire))
+            stopAudition();
+    }
+
+    [[nodiscard]] bool auditioning() const noexcept
+    {
+        return auditionVoice_ != nullptr && ! auditionVoice_->finished.load (std::memory_order_acquire);
+    }
+    [[nodiscard]] const std::filesystem::path& auditionSource() const noexcept { return auditionSource_; }
 
     [[nodiscard]] std::uint64_t deviceBlocksStarted() const noexcept
     {
@@ -692,6 +765,11 @@ public:
                     dest[frame] += source[frame];
             }
         }
+
+        // ADR-0056 cp2: the audition voice sums in last — after the engine (so never in its loudness tap, an export,
+        // a bounce or a recording) and after input monitoring, before the shell's peak scan and the monitor stage.
+        if (engine::AuditionVoice* const voice = audioAudition_.load (std::memory_order_acquire); voice != nullptr)
+            engine::sumAuditionVoice (*voice, outputChannels, numOutputChannels, numFrames);
         return true;
     }
 
@@ -9130,6 +9208,7 @@ public:
 
             case UiActionId::TransportRecord:
             {
+                stopAudition();   // ADR-0056: Record stops an audition (the real capture path stops it at its play)
                 const UiAppRecordResult recorded = recordDeterministicTestAudioTake();
                 return { id, recorded.actionState, recorded.ok() };
             }
@@ -11694,6 +11773,7 @@ private:
         const std::filesystem::path& bundlePath,
         engine::Project project)
     {
+        stopAudition();   // ADR-0056: an audition belongs to the project (and rate) it started in
         bundleDb_ = std::move (opened);
         bundlePath_ = bundlePath;
         writeLastProjectRecord();
@@ -12277,7 +12357,10 @@ private:
     [[nodiscard]] bool postPlayStartingListen()
     {
         if (! playback_->isPlaying())
+        {
             restartLiveLoudness();
+            stopAudition();   // ADR-0056: Play and Record stop an audition
+        }
         return playback_->play();
     }
 
@@ -12884,6 +12967,18 @@ private:
     mutable std::vector<engine::StretchedOwnership> stretchedSamplesCache_;   // G2.9: prepared stretches per clip
     std::uint64_t livePlacementEdits_ = 0;
     std::vector<RetiredMonitorChain> retiredMonitorChains_;
+    // ADR-0056 cp2: the audition voice the control thread owns, the pointer the device thread reads, the source
+    // file it came from, and the stopped voices awaiting the watermark. Like the retired engines and monitor chains,
+    // they are destroyed with the model only after the shell has removed the device callback.
+    std::unique_ptr<engine::AuditionVoice> auditionVoice_;
+    std::atomic<engine::AuditionVoice*> audioAudition_ { nullptr };
+    std::filesystem::path auditionSource_;
+    struct RetiredAudition
+    {
+        std::unique_ptr<engine::AuditionVoice> voice;
+        std::uint64_t retiredAtBlock = 0;
+    };
+    std::vector<RetiredAudition> retiredAuditions_;
     std::atomic<std::uint64_t> deviceBlocksStarted_ { 0 };
     bool deviceCallbackLive_ = false;
     WaveformPeakService waveformService_;
