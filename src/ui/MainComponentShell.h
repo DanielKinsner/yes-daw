@@ -783,6 +783,7 @@ private:
         int index = -1;
         std::vector<yesdaw::ui::UiActionId> actions;
         std::vector<int> addInsertKinds;   // G4.1: the kinds the Add Insert submenu offered
+        std::vector<int> routingChoiceIds;  // G4.3: the send / output / input choices offered, in order
 
         [[nodiscard]] yesdaw::ui::MainComponentContextMenu toPublic (const juce::String& route = "none") const
         {
@@ -793,6 +794,7 @@ private:
             out.index = index;
             out.actions = actions;
             out.addInsertKinds = addInsertKinds;
+            out.routingChoiceIds = routingChoiceIds;
             return out;
         }
     };
@@ -814,6 +816,8 @@ private:
     static constexpr int kContextMenuInputPairBase = 3500;
     static constexpr int kContextMenuSendDestBase = 3600;      // G4.1 cp2: the send row's Destination (+ bus index)
     static constexpr std::size_t kContextMenuChoiceRange = 100;
+    static constexpr int kContextMenuSendNewBusId = 3700;      // G4.3: the send chooser's New Bus
+    static constexpr int kContextMenuOutputNewBusId = 3701;    // G4.3: the output chooser's New Bus
 
     // The one path a picked context-menu item takes (the popup's callback and the harness): the
     // insert-slot verbs act on the clicked slot through the shell's per-slot handlers; every
@@ -835,6 +839,8 @@ public:
     }
     [[nodiscard]] static constexpr int harnessMixerOutputMenuId (int choice) noexcept { return kContextMenuOutputBase + choice; }
     [[nodiscard]] static constexpr int harnessMixerSendMenuId (int busIndex) noexcept { return kContextMenuAddSendBase + busIndex; }
+    [[nodiscard]] static constexpr int harnessMixerSendNewBusMenuId() noexcept { return kContextMenuSendNewBusId; }
+    [[nodiscard]] static constexpr int harnessMixerOutputNewBusMenuId() noexcept { return kContextMenuOutputNewBusId; }
     [[nodiscard]] static constexpr int harnessMixerSendDestinationMenuId (int busIndex) noexcept { return kContextMenuSendDestBase + busIndex; }
     // G4.1 cp2: the FX editor as the harness reads it, and the open the double-click performs.
     void harnessOpenFxEditor (int stripIndex, int slotIndex) { openFxEditor (stripIndex, slotIndex); }

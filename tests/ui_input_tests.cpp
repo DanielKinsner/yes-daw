@@ -23676,3 +23676,142 @@ TEST_CASE ("G4.2 cp7 the FX editor saves and loads presets, a load one undo step
     std::filesystem::remove_all (bundlePath, ec);
     std::filesystem::remove_all (stateDirectory, ec);
 }
+
+// G4.3 — sends and buses: a send can make its own destination, and a strip's output can go to a bus
+// that does not exist yet. The send well's chooser ends with New Bus, the output chooser too, and the
+// track header carries Route to New Bus; each makes the bus and the send (or the route) as ONE undo step,
+// names it past any name already taken, and the send-row capacity refuses before a bus is made.
+TEST_CASE ("G4.3 New Bus from the send and output choosers, Route to New Bus from the header", "[ui][input][shell][mixer][sends-v2]")
+{
+    const auto bundlePath = makeTempBundlePath ("sends-v2-new-bus");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    const auto project = [&bundlePath] { return readProjectSnapshot (bundlePath); };
+    const auto busNames = [&project] {
+        std::vector<std::string> names;
+        for (const auto& bus : project().buses)
+            names.push_back (bus.strip.name);
+        return names;
+    };
+    const auto lastMenu = [&shell] { return yesdaw::ui::mainComponentLastContextMenu (*shell); };
+    const auto status = [&shell] {
+        return juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["status"]["text"].toString();
+    };
+    const auto undo = [&shell] { REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0))); };
+    const auto redo = [&shell] {
+        REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    };
+    const auto clickSendWell = [&] (int strip, int row) {
+        const juce::Rectangle<int> well = yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, strip, row);
+        REQUIRE_FALSE (well.isEmpty());
+        mouseDownAt (*strips, well.getCentre() - strips->getPosition());
+        REQUIRE (lastMenu().shown);
+        REQUIRE (lastMenu().target == yesdaw::ui::ContextMenuTarget::MixerSendRow);
+    };
+    const int sendNewBus = yesdaw::ui::mainComponentMixerSendNewBusMenuId();
+    const int outputNewBus = yesdaw::ui::mainComponentMixerOutputNewBusMenuId();
+
+    // No bus yet: the empty send well's chooser is New Bus alone (no dead "no buses" line).
+    clickSendWell (0, 0);
+    REQUIRE (lastMenu().routingChoiceIds == std::vector<int> { sendNewBus });
+    yesdaw::ui::mainComponentInvokeContextMenuId (*shell, sendNewBus);
+    REQUIRE (busNames() == std::vector<std::string> { "Bus 1" });
+    {
+        const yesdaw::engine::Project made = project();
+        REQUIRE (made.tracks[0].sends.size() == 1u);
+        REQUIRE (made.tracks[0].sends[0].busId == made.buses[0].id);
+        REQUIRE (made.tracks[0].sends[0].tap == yesdaw::engine::SendTap::PostFader);
+        REQUIRE (made.tracks[0].sends[0].linearGain == 1.0f);
+    }
+    REQUIRE (status() == "Sent to new Bus 1");
+
+    // One Ctrl+Z takes back the bus AND the send; redo replays both.
+    undo();
+    REQUIRE (project().buses.empty());
+    REQUIRE (project().tracks[0].sends.empty());
+    redo();
+    REQUIRE (busNames() == std::vector<std::string> { "Bus 1" });
+    REQUIRE (project().tracks[0].sends.size() == 1u);
+
+    // With a bus, the chooser lists it, then New Bus last.
+    clickSendWell (0, 1);
+    REQUIRE (lastMenu().routingChoiceIds == std::vector<int> { yesdaw::ui::mainComponentMixerSendMenuId (0), sendNewBus });
+    yesdaw::ui::mainComponentInvokeContextMenuId (*shell, sendNewBus);
+    REQUIRE (busNames() == std::vector<std::string> { "Bus 1", "Bus 2" });
+    REQUIRE (project().tracks[0].sends.size() == 2u);
+
+    // The OUTPUT slot's chooser: Master, the buses, then New Bus — routing there is one step too.
+    const juce::Rectangle<int> outputSlot = yesdaw::ui::mainComponentPaintedIoRowBounds (*shell, 0, 1);
+    REQUIRE_FALSE (outputSlot.isEmpty());
+    mouseDownAt (*strips, outputSlot.getCentre() - strips->getPosition());
+    REQUIRE (lastMenu().target == yesdaw::ui::ContextMenuTarget::MixerStripOutput);
+    REQUIRE (lastMenu().routingChoiceIds
+             == std::vector<int> { yesdaw::ui::mainComponentMixerOutputMenuId (0), yesdaw::ui::mainComponentMixerOutputMenuId (1),
+                                   yesdaw::ui::mainComponentMixerOutputMenuId (2), outputNewBus });
+    yesdaw::ui::mainComponentInvokeContextMenuId (*shell, outputNewBus);
+    REQUIRE (busNames() == std::vector<std::string> { "Bus 1", "Bus 2", "Bus 3" });
+    REQUIRE (project().tracks[0].outputBusId == project().buses[2].id);
+    REQUIRE (status() == "Routed to new Bus 3");
+    undo();
+    REQUIRE (busNames() == std::vector<std::string> { "Bus 1", "Bus 2" });
+    REQUIRE_FALSE (project().tracks[0].outputBusId.isValid());   // straight to master again
+
+    // The track header's menu carries Route to New Bus, acting on the row it opened on (the dock at its
+    // ordinary height, so the rail's rows are on screen).
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::mixerHeight);
+    const juce::var rowVar = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["layout"]["rail.row.1"];
+    REQUIRE ((rowVar.isArray() && rowVar.size() == 4));
+    const juce::Point<int> row1 (static_cast<int> (rowVar[0]) + kRailRowClickX,
+                                 static_cast<int> (rowVar[1]) + static_cast<int> (rowVar[3]) / 2);   // the name band
+    const auto header = yesdaw::ui::mainComponentRequestContextMenu (*shell, row1);
+    INFO ("route " << header.route << " at " << row1.toString());
+    REQUIRE (header.target == yesdaw::ui::ContextMenuTarget::TrackHeader);
+    REQUIRE (header.index == 1);
+    REQUIRE (std::find (header.actions.begin(), header.actions.end(), UiActionId::MixerTrackRouteToNewBus) != header.actions.end());
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerTrackRouteToNewBus);
+    REQUIRE (busNames() == std::vector<std::string> { "Bus 1", "Bus 2", "Bus 3" });
+    REQUIRE (project().tracks[1].outputBusId == project().buses[2].id);
+    REQUIRE_FALSE (project().tracks[0].outputBusId.isValid());
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+
+    // A removed or renamed bus never makes two strips read the same name: the count + 1, stepping past
+    // a name already taken.
+    {
+        yesdaw::engine::Project named = project();
+        REQUIRE (yesdaw::ui::UiAppModel::nextBusName (named) == "Bus 4");
+        named.buses[0].strip.name = "Bus 4";   // as if Bus 1 were renamed
+        REQUIRE (yesdaw::ui::UiAppModel::nextBusName (named) == "Bus 5");
+        named.buses.erase (named.buses.begin());   // as if it were then removed: Bus 2, Bus 3 remain
+        REQUIRE (yesdaw::ui::UiAppModel::nextBusName (named) == "Bus 4");
+        named.buses[0].strip.name = "Bus 3";
+        named.buses[1].strip.name = "Bus 4";
+        REQUIRE (yesdaw::ui::UiAppModel::nextBusName (named) == "Bus 5");
+    }
+
+    // A full strip refuses Send to New Bus before any bus is made.
+    for (int guard = 0; project().tracks[0].sends.size() < yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount; ++guard)
+    {
+        REQUIRE (guard < 8);   // each pass must add a send (a second send to one bus is refused)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+        const std::size_t before = project().tracks[0].sends.size();
+        addSendFromStrip (*shell, 0, static_cast<int> (project().buses.size()) - 1);
+        REQUIRE (project().tracks[0].sends.size() == before + 1);
+    }
+    openStripMenu (*shell, 0);
+    const std::size_t busesBefore = project().buses.size();
+    yesdaw::ui::mainComponentInvokeContextMenuId (*shell, sendNewBus);
+    REQUIRE (project().buses.size() == busesBefore);
+    REQUIRE (project().tracks[0].sends.size() == yesdaw::ui::UiTheme::Layout::mixerSendVisibleRowCount);
+    REQUIRE (status().startsWith ("Send refused"));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

@@ -734,6 +734,12 @@ void MainComponent::openContextMenu (yesdaw::ui::ContextMenuTarget target, int i
                                      juce::String (project.buses[busIndex].strip.name));
                     ++choiceCount;
                 }
+                // G4.3: a send can make its own destination — the bus and the send one undo step.
+                if (choiceCount > 0)
+                    choices.addSeparator();
+                choices.addItem (kContextMenuSendNewBusId, "New Bus",
+                                 appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerSendAddNewBus, appModel.context()).enabled);
+                ++choiceCount;
             }
             else if (entry.action == yesdaw::ui::UiActionId::MixerTrackSetOutput)
             {
@@ -753,6 +759,10 @@ void MainComponent::openContextMenu (yesdaw::ui::ContextMenuTarget target, int i
                     choices.addItem (std::move (item));
                     ++choiceCount;
                 }
+                choices.addSeparator();   // G4.3: route to a bus that does not exist yet
+                choices.addItem (kContextMenuOutputNewBusId, "New Bus",
+                                 appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerTrackRouteToNewBus, appModel.context()).enabled);
+                ++choiceCount;
             }
             else
             {
@@ -785,6 +795,12 @@ void MainComponent::openContextMenu (yesdaw::ui::ContextMenuTarget target, int i
                     none.isEnabled = false;
                     choices.addItem (std::move (none));
                 }
+            }
+            {
+                juce::PopupMenu::MenuItemIterator offered (choices);   // G4.3: the harness reads the choices
+                while (offered.next())
+                    if (offered.getItem().itemID != 0)
+                        lastContextMenu.routingChoiceIds.push_back (offered.getItem().itemID);
             }
             if (inline_)
             {
@@ -937,6 +953,17 @@ void MainComponent::invokeContextMenuItem (int itemId)
     const auto inChoiceRange = [itemId] (int base) {
         return itemId >= base && itemId < base + static_cast<int> (kContextMenuChoiceRange);
     };
+    if (itemId == kContextMenuSendNewBusId || itemId == kContextMenuOutputNewBusId)   // G4.3
+    {
+        if (itemId == kContextMenuSendNewBusId)
+            (void) appModel.addSendToNewBusOnSelectedStrip();
+        else
+            (void) appModel.routeSelectedStripToNewBus();
+        refreshActionState();
+        resized();
+        repaintAll();
+        return;
+    }
     if (inChoiceRange (kContextMenuAddSendBase) || inChoiceRange (kContextMenuOutputBase)
         || inChoiceRange (kContextMenuInputMonoBase) || inChoiceRange (kContextMenuInputPairBase)
         || inChoiceRange (kContextMenuSendDestBase))

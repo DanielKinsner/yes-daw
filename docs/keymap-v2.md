@@ -253,3 +253,5 @@ the numpad's digits and operators spell the same chords as the main keys.
 - One-shot / Pitched (`sampler.pad.mode`)
 - Narrow Strips (`mixer.strips.narrow`)
 - Track Input (`mixer.track.input`)
+- Send to New Bus (`mixer.send.add_new_bus`)
+- Route to New Bus (`mixer.track.route_new_bus`)

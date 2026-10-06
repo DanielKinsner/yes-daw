@@ -263,6 +263,8 @@ enum class UiActionId : std::uint8_t
     SamplerPadModeToggle,       // G3.9: Shift+click a pad cell — one-shot <-> pitched
     MixerStripsNarrowToggle,    // G4.1: View > Narrow Strips — every mixer strip at the narrow width (Logic's view option)
     MixerTrackSetInput,         // G4.1: the strip's INPUT slot — a payload verb (channel + mono / pair); arms the Track on it
+    MixerSendAddNewBus,         // G4.3: a send from the selected strip to a NEW bus — the bus and the send one undo step
+    MixerTrackRouteToNewBus,    // G4.3: the selected strip's output to a NEW bus — one undo step (the header's Route to New Bus)
     Count
 };
 
@@ -1152,6 +1154,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerStripsNarrowToggle, "mixer.strips.narrow", "Narrow Strips", "", "Show the mixer's strips at the narrow width (View menu; the strip menu)",
       AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::MixerTrackSetInput, "mixer.track.input", "Track Input", "", "Pick the input the selected Track records from (arms it on that input)",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerSendAddNewBus, "mixer.send.add_new_bus", "Send to New Bus", "", "Add a new bus and send the selected strip to it",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
+    { UiActionId::MixerTrackRouteToNewBus, "mixer.track.route_new_bus", "Route to New Bus", "", "Add a new bus and route the selected strip's output to it",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true }
 }};
 
@@ -2084,6 +2090,8 @@ public:
             case UiActionId::MixerSendRemove:
             case UiActionId::MixerSendSetLevel:
             case UiActionId::MixerTrackSetOutput:
+            case UiActionId::MixerSendAddNewBus:        // G4.3
+            case UiActionId::MixerTrackRouteToNewBus:   // G4.3
             case UiActionId::TrackSetInstrument:   // G3.1
             case UiActionId::TrackInstrumentParamSet:
                 context.activePanel = UiPanel::Mixer;

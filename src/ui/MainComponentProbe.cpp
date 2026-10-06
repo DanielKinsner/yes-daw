@@ -1750,6 +1750,8 @@ void mainComponentInvokeFxPresetsMenuItem (juce::Component& component, int itemI
 }
 
 int mainComponentFxPresetSaveItemId() noexcept { return MainComponent::kFxPresetSaveItemId; }
+int mainComponentMixerSendNewBusMenuId() noexcept { return MainComponent::harnessMixerSendNewBusMenuId(); }
+int mainComponentMixerOutputNewBusMenuId() noexcept { return MainComponent::harnessMixerOutputNewBusMenuId(); }
 
 bool mainComponentSaveFxPreset (juce::Component& component, const juce::String& name)
 {

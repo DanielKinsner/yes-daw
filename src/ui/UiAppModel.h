@@ -4612,9 +4612,8 @@ public:
 
         engine::Project nextProject = project_;
         const engine::EntityId busId = allocateSessionEntityId (0xE1u, nextProject);
-        const std::string name = "Bus " + std::to_string (nextProject.buses.size() + 1u);
         engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addBus (busId, name)).applied())
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addBus (busId, nextBusName (nextProject))).applied())
             return { id, state, false };
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
@@ -5143,6 +5142,99 @@ public:
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "instrument parameter did not persist" }, false };
 
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // A new bus's name: "Bus N", N the bus count + 1, stepping past a name already taken (a removed or
+    // renamed bus never makes two strips read the same).
+    [[nodiscard]] static std::string nextBusName (const engine::Project& project)
+    {
+        for (std::size_t n = project.buses.size() + 1u;; ++n)
+        {
+            const std::string name = "Bus " + std::to_string (n);
+            if (std::none_of (project.buses.begin(), project.buses.end(),
+                              [&name] (const engine::Bus& bus) { return bus.strip.name == name; }))
+                return name;
+        }
+    }
+
+    // G4.3: Send to New Bus — a bus that does not exist yet and the selected strip's post-fader send to it,
+    // as ONE undo step. The send-row capacity refuses before anything is made.
+    [[nodiscard]] UiActionDispatchResult addSendToNewBusOnSelectedStrip()
+    {
+        const UiActionId id = UiActionId::MixerSendAddNewBus;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId ownerId;
+        if (! selectedSendOwnerId (ownerId))
+            return { id, { false, "no track or bus strip selected" }, false };
+        if (const std::vector<engine::SendRow>* const ownerSends = findOwnerSends (ownerId);
+            ownerSends != nullptr && ownerSends->size() >= UiThemeLayout::mixerSendVisibleRowCount)
+        {
+            reportStatus ("Send refused: this strip already has "
+                              + std::to_string (UiThemeLayout::mixerSendVisibleRowCount)
+                              + " sends (the mixer's row capacity)",
+                          true);
+            return { id, { false, "send rows full" }, false };
+        }
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::EntityId busId = allocateSessionEntityId (0xE1u, nextProject);
+        const std::string name = nextBusName (nextProject);
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addBus (busId, name)).applied())
+            return { id, state, false };
+        const engine::EntityId sendId = allocateSessionEntityId (0xE2u, nextProject);
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addSend (ownerId, sendId, busId,
+                                                                              engine::SendTap::PostFader, 1.0f)).applied())
+            return { id, state, false };
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "send edit did not persist" }, false };
+
+        reportStatus ("Sent to new " + name, false);
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // G4.3: Route to New Bus — a new bus and the selected strip's main output routed to it, ONE undo step.
+    [[nodiscard]] UiActionDispatchResult routeSelectedStripToNewBus()
+    {
+        const UiActionId id = UiActionId::MixerTrackRouteToNewBus;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId ownerId;
+        if (! selectedSendOwnerId (ownerId))
+            return { id, { false, "no track or bus strip selected" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const engine::EntityId busId = allocateSessionEntityId (0xE1u, nextProject);
+        const std::string name = nextBusName (nextProject);
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addBus (busId, name)).applied())
+            return { id, state, false };
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setTrackOutput (ownerId, busId)).applied())
+            return { id, { false, "track output refused" }, false };
+        if (! nextUndo.endTransactionGroup())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "track output did not persist" }, false };
+
+        reportStatus ("Routed to new " + name, false);
         ++context_.commandDispatchCount;
         ++context_.mixerEditCount;
         return { id, state, true };
@@ -8596,6 +8688,12 @@ public:
 
             case UiActionId::MixerTrackSetOutput:
                 return { id, { false, "track output payload required" }, false };
+
+            case UiActionId::MixerSendAddNewBus:
+                return addSendToNewBusOnSelectedStrip();
+
+            case UiActionId::MixerTrackRouteToNewBus:
+                return routeSelectedStripToNewBus();
 
             case UiActionId::MixerTrackSetInput:   // G4.1: setRecordingInputForTrack carries the channel
                 return { id, { false, "track input payload required" }, false };

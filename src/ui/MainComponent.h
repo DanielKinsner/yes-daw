@@ -233,8 +233,14 @@ struct MainComponentContextMenu
     // G4.1: the FX kinds the Add Insert submenu offered (a Track: every kind; a Bus / the master: the
     // audio kinds) — the promoted parking-lot item's pin.
     std::vector<int> addInsertKinds;
+    // G4.3: the routing choices a send / output / input chooser offered, in order (ids as
+    // mainComponentMixerSendMenuId / ...OutputMenuId / the New Bus ids below give them).
+    std::vector<int> routingChoiceIds;
 };
 [[nodiscard]] MainComponentContextMenu mainComponentRequestContextMenu (juce::Component& component, juce::Point<int> shellPoint);
+// G4.3: the choosers' New Bus items — a send to a new bus, the output routed to a new bus.
+[[nodiscard]] int mainComponentMixerSendNewBusMenuId() noexcept;
+[[nodiscard]] int mainComponentMixerOutputNewBusMenuId() noexcept;
 // G4.1: the LAST menu the shell built — a left-click on a strip's input / output slot opens one too
 // (targets MixerStripInput / MixerStripOutput), so a gate reads it back the way the right-click law's
 // caller does.

@@ -74,12 +74,12 @@ inline constexpr std::array<ContextMenuEntry, 5> kEmptyLane {{
     { UiActionId::TimelineClipSelectAllTrack, true },
     { UiActionId::TrackAdd, true },
 }};
-inline constexpr std::array<ContextMenuEntry, 11> kTrackHeader {{
+inline constexpr std::array<ContextMenuEntry, 12> kTrackHeader {{
     { UiActionId::TrackRename }, { UiActionId::TrackDuplicate }, { UiActionId::TrackRemove },
     { UiActionId::TrackAdd, true }, { UiActionId::MixerBusAdd },
     { UiActionId::TrackToggleMute, true }, { UiActionId::TrackToggleSolo },
     { UiActionId::MixerTargetToggleSoloSafe }, { UiActionId::TrackToggleArm },
-    { UiActionId::MixerTrackSetOutput, true },
+    { UiActionId::MixerTrackSetOutput, true }, { UiActionId::MixerTrackRouteToNewBus },   // G4.3
     { UiActionId::TimelineAutomationToggleTrackLane, true },
 }};
 inline constexpr std::array<ContextMenuEntry, 10> kRuler {{
