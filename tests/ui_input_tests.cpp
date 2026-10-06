@@ -9,6 +9,7 @@
 #include "ui/ReverbDecayComponent.h"
 #include "ui/TransferCurveComponent.h"
 #include "ui/FxParameterNames.h"
+#include "ui/FxPresets.h"   // G4.2 cp7: preset files (ADR-0050)
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
 #include "ui/UiPianoRollSurface.h"   // G3.2: pianoRollKeyName
@@ -23382,3 +23383,193 @@ TEST_CASE ("G4.2 cp6 an insert slot drags to a new place in its chain as one und
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G4.2 cp7 (ADR-0050) — FX presets: per-user files of real values keyed by stable names. Every built-in
+// kind round-trips (the EQ's six bands distinct); a malformed file is refused whole with one reason;
+// names are safe file stems that never overwrite; the editor's Presets menu saves and loads, a load is
+// one undo step, and a refused load leaves the insert and the undo history untouched.
+namespace {
+
+// A distinct, non-default setting: every parameter its own normalized value (a choice on a whole choice).
+std::vector<std::pair<std::uint32_t, double>> presetSettingFor (yesdaw::engine::FxKind kind, double phase)
+{
+    std::vector<std::pair<std::uint32_t, double>> params;
+    int ordinal = 0;
+    for (const yesdaw::ui::FxPresetKey& key : yesdaw::ui::fxPresetKeys (kind))
+    {
+        ++ordinal;
+        const yesdaw::engine::ParamSpec spec = yesdaw::engine::fxParamSpecForKind (kind, key.id);
+        double value = std::fmod (phase + 0.137 * ordinal, 1.0);
+        if (spec.choiceCount >= 2)
+            value = yesdaw::engine::normalizedForChoice (spec, static_cast<std::uint8_t> (ordinal % spec.choiceCount));
+        params.emplace_back (key.id, value);
+    }
+    return params;
+}
+
+std::uint32_t presetParamId (yesdaw::engine::FxKind kind, const std::string& key)
+{
+    for (const yesdaw::ui::FxPresetKey& entry : yesdaw::ui::fxPresetKeys (kind))
+        if (entry.key == key)
+            return entry.id;
+    FAIL ("no preset key " << key);
+    return 0;
+}
+
+} // namespace
+
+TEST_CASE ("G4.2 cp7 an FX preset round-trips every built-in kind by stable name", "[ui][fx-presets]")
+{
+    using K = yesdaw::engine::FxKind;
+    for (const K kind : { K::Eq, K::Compressor, K::Delay, K::Reverb, K::Limiter,
+                          K::MidiTranspose, K::MidiScaleMap, K::MidiArpeggiator, K::MidiChord })
+    {
+        INFO (yesdaw::ui::fxPresetKindName (kind));
+        const std::vector<yesdaw::ui::FxPresetKey> keys = yesdaw::ui::fxPresetKeys (kind);
+        REQUIRE_FALSE (keys.empty());
+        std::set<std::string> unique;
+        for (const auto& key : keys)
+            unique.insert (key.key);
+        REQUIRE (unique.size() == keys.size());   // every key names exactly one parameter
+
+        const auto setting = presetSettingFor (kind, 0.05);
+        const yesdaw::ui::FxPresetDecode decoded = yesdaw::ui::decodeFxPreset (yesdaw::ui::encodeFxPreset (kind, setting), kind);
+        REQUIRE (decoded.ok);
+        REQUIRE (decoded.normalizedParams.size() == setting.size());
+        for (std::size_t i = 0; i < setting.size(); ++i)
+        {
+            REQUIRE (decoded.normalizedParams[i].first == setting[i].first);
+            REQUIRE (decoded.normalizedParams[i].second == Catch::Approx (setting[i].second).margin (1e-9));
+        }
+    }
+
+    // The EQ's six bands are six keys each: band 3's frequency is its own value, never band 1's.
+    const auto eqKeys = yesdaw::ui::fxPresetKeys (K::Eq);
+    REQUIRE (eqKeys.size() == 24u);
+    const auto hasKey = [&eqKeys] (const std::string& key) {
+        return std::any_of (eqKeys.begin(), eqKeys.end(), [&key] (const auto& entry) { return entry.key == key; });
+    };
+    REQUIRE (hasKey ("eq.band.freq.1"));
+    REQUIRE (hasKey ("eq.band.freq.6"));
+    REQUIRE (hasKey ("eq.band.type.3"));
+    REQUIRE_FALSE (hasKey ("eq.band.freq"));
+
+    // The file speaks the spec's real unit; a choice is its whole index; an omitted parameter is its default.
+    const yesdaw::engine::ParamSpec threshold =
+        yesdaw::engine::fxParamSpecForKind (K::Compressor, presetParamId (K::Compressor, "compressor.threshold"));
+    const juce::var compressor = juce::JSON::parse (juce::String (yesdaw::ui::encodeFxPreset (
+        K::Compressor, { { threshold.id, yesdaw::engine::unmapToNormalized (threshold, -20.0) } })));
+    REQUIRE (compressor["format"].toString() == "yesdaw.fx-preset");
+    REQUIRE (static_cast<int> (compressor["version"]) == 1);
+    REQUIRE (compressor["kind"].toString() == "Compressor");
+    REQUIRE (static_cast<double> (compressor["params"]["compressor.threshold"]) == Catch::Approx (-20.0).margin (1e-9));
+    const yesdaw::engine::ParamSpec ratio =
+        yesdaw::engine::fxParamSpecForKind (K::Compressor, presetParamId (K::Compressor, "compressor.ratio"));
+    REQUIRE (static_cast<double> (compressor["params"]["compressor.ratio"]) == Catch::Approx (ratio.def));
+    const std::uint32_t pingPong = presetParamId (K::Delay, "delay.ping_pong");
+    const juce::var delay = juce::JSON::parse (juce::String (yesdaw::ui::encodeFxPreset (K::Delay, { { pingPong, 0.8 } })));
+    REQUIRE (delay["params"]["delay.ping_pong"].isInt());
+    REQUIRE (static_cast<int> (delay["params"]["delay.ping_pong"]) == 1);
+}
+
+TEST_CASE ("G4.2 cp7 a malformed FX preset is refused whole with one reason", "[ui][fx-presets]")
+{
+    using K = yesdaw::engine::FxKind;
+    const auto refusal = [] (const std::string& text, K kind = K::Compressor) {
+        const yesdaw::ui::FxPresetDecode decoded = yesdaw::ui::decodeFxPreset (text, kind);
+        INFO (text.substr (0, 120));
+        CHECK_FALSE (decoded.ok);
+        CHECK (decoded.normalizedParams.empty());
+        CHECK_FALSE (decoded.reason.empty());
+        return decoded.reason;
+    };
+    const auto preset = [] (const std::string& params, const std::string& head) { return "{" + head + ",\"params\":{" + params + "}}"; };
+    const std::string compressorHead = R"("format":"yesdaw.fx-preset","version":1,"kind":"Compressor")";
+    const auto contains = [] (const std::string& text, const char* part) { return text.find (part) != std::string::npos; };
+
+    // A sound file loads; an empty parameter set is a complete setting of defaults.
+    const std::string good = yesdaw::ui::encodeFxPreset (K::Compressor, presetSettingFor (K::Compressor, 0.2));
+    REQUIRE (yesdaw::ui::decodeFxPreset (good, K::Compressor).ok);
+    const yesdaw::ui::FxPresetDecode defaults = yesdaw::ui::decodeFxPreset (preset ("", compressorHead), K::Compressor);
+    REQUIRE (defaults.ok);
+    REQUIRE (defaults.normalizedParams.size() == yesdaw::ui::fxPresetKeys (K::Compressor).size());
+    for (const auto& [id, value] : defaults.normalizedParams)
+        REQUIRE (value == Catch::Approx (yesdaw::engine::normalizedDefault (yesdaw::engine::fxParamSpecForKind (K::Compressor, id))));
+    // A UTF-8 BOM is skipped.
+    REQUIRE (yesdaw::ui::decodeFxPreset ("\xEF\xBB\xBF" + good, K::Compressor).ok);
+
+    CHECK (contains (refusal ("{ not json"), "not readable JSON"));
+    CHECK (contains (refusal ("[1, 2]"), "not readable JSON"));
+    CHECK (contains (refusal ("{\"format\":\"yesdaw.fx-preset\",\"kind\":\"Compr\xFF\"}"), "not UTF-8"));
+    CHECK (contains (refusal (preset ("", R"("format":"other","version":1,"kind":"Compressor")")), "not a YES DAW FX preset"));
+    CHECK (contains (refusal (preset ("", R"("format":"yesdaw.fx-preset","version":2,"kind":"Compressor")")), "newer YES DAW"));
+    CHECK (contains (refusal (preset ("", R"("format":"yesdaw.fx-preset","version":0,"kind":"Compressor")")), "no valid version"));
+    CHECK (contains (refusal (preset ("", R"("format":"yesdaw.fx-preset","version":1.5,"kind":"Compressor")")), "no valid version"));
+    CHECK (contains (refusal (preset ("", R"("format":"yesdaw.fx-preset","version":"1","kind":"Compressor")")), "no valid version"));
+    CHECK (contains (refusal (preset ("", R"("format":"yesdaw.fx-preset","version":1)")), "does not say which effect"));
+    CHECK (contains (refusal (preset ("", R"("format":"yesdaw.fx-preset","version":1,"kind":"Limiter")")), "is for Limiter, not Compressor"));
+    CHECK (contains (refusal ("{" + compressorHead + "}"), "no parameters"));
+    CHECK (contains (refusal (preset (R"("compressor.thresh":-10)", compressorHead)), "unknown parameter \"compressor.thresh\""));
+    CHECK (contains (refusal (preset (R"("compressor.threshold":100)", compressorHead)), "outside its range"));
+    CHECK (contains (refusal (preset (R"("compressor.threshold":1e999)", compressorHead)), "outside its range"));
+    CHECK (contains (refusal (preset (R"("compressor.threshold":"-10")", compressorHead)), "not a number"));
+    CHECK (contains (refusal (preset (R"("compressor.threshold":-10,"compressor.knee":true)", compressorHead)), "not a number"));
+    // The EQ's repeated names need their ordinal; a choice needs a whole index.
+    CHECK (contains (refusal (preset (R"("eq.band.freq":1000)", R"("format":"yesdaw.fx-preset","version":1,"kind":"EQ")"), K::Eq),
+                     "unknown parameter \"eq.band.freq\""));
+    CHECK (contains (refusal (preset (R"("delay.ping_pong":0.5)", R"("format":"yesdaw.fx-preset","version":1,"kind":"Delay")"), K::Delay),
+                     "not one of its choices"));
+    // Anything past the cap is no preset, whatever it holds.
+    CHECK (contains (refusal (good + std::string (yesdaw::ui::kFxPresetMaxBytes, ' ')), "too large"));
+}
+
+TEST_CASE ("G4.2 cp7 preset names are safe file stems and a save never overwrites", "[ui][fx-presets]")
+{
+    using K = yesdaw::engine::FxKind;
+    CHECK (yesdaw::ui::fxPresetNameRefusal ("Vocal comp").empty());
+    CHECK (yesdaw::ui::fxPresetNameRefusal ("  Slap (back)-1_  ").empty());
+    CHECK (yesdaw::ui::fxPresetNameRefusal (std::string (64, 'a')).empty());
+    for (const std::string& bad : { std::string(), std::string ("   "), std::string (65, 'a'), std::string ("a/b"),
+                                   std::string ("a.b"), std::string (".."), std::string ("a:b"), std::string ("CON"),
+                                   std::string ("nul"), std::string ("Com1"), std::string ("lpt9") })
+    {
+        INFO (bad);
+        CHECK_FALSE (yesdaw::ui::fxPresetNameRefusal (bad).empty());
+    }
+
+    const auto stateDirectory = makeTempBundlePath ("fx-presets-state");
+    REQUIRE (yesdaw::ui::listFxPresets (stateDirectory, K::Reverb).empty());
+    const auto hall = presetSettingFor (K::Reverb, 0.3);
+    REQUIRE (yesdaw::ui::saveFxPreset (stateDirectory, K::Reverb, " Big hall ", hall).ok);
+    REQUIRE (yesdaw::ui::saveFxPreset (stateDirectory, K::Reverb, "amb", presetSettingFor (K::Reverb, 0.6)).ok);
+    REQUIRE (yesdaw::ui::listFxPresets (stateDirectory, K::Reverb) == std::vector<std::string> { "amb", "Big hall" });
+    REQUIRE (yesdaw::ui::listFxPresets (stateDirectory, K::Delay).empty());   // presets belong to their kind
+    REQUIRE (std::filesystem::is_regular_file (stateDirectory / "presets" / "Reverb" / "Big hall.yesfx"));
+
+    // A name already taken, in any case, is refused and the first file survives.
+    const yesdaw::ui::FxPresetWrite again = yesdaw::ui::saveFxPreset (stateDirectory, K::Reverb, "big HALL", {});
+    REQUIRE_FALSE (again.ok);
+    REQUIRE (again.reason.find ("already exists") != std::string::npos);
+    const yesdaw::ui::FxPresetDecode loaded = yesdaw::ui::loadFxPreset (stateDirectory, K::Reverb, "Big hall");
+    REQUIRE (loaded.ok);
+    for (std::size_t i = 0; i < hall.size(); ++i)
+        REQUIRE (loaded.normalizedParams[i].second == Catch::Approx (hall[i].second).margin (1e-9));
+
+    REQUIRE_FALSE (yesdaw::ui::saveFxPreset ({}, K::Reverb, "anywhere", hall).ok);   // no state, no presets
+    REQUIRE_FALSE (yesdaw::ui::saveFxPreset (stateDirectory, K::Reverb, "a/b", hall).ok);
+    REQUIRE (yesdaw::ui::loadFxPreset (stateDirectory, K::Reverb, "missing").reason.find ("is gone") != std::string::npos);
+
+    // A file over the cap is refused before it is read; a file whose stem is no preset name is not listed.
+    {
+        std::ofstream huge (stateDirectory / "presets" / "Reverb" / "huge.yesfx", std::ios::binary);
+        huge << std::string (yesdaw::ui::kFxPresetMaxBytes + 1u, ' ');
+        std::ofstream odd (stateDirectory / "presets" / "Reverb" / "odd.name.yesfx", std::ios::binary);
+        odd << "{}";
+    }
+    REQUIRE (yesdaw::ui::loadFxPreset (stateDirectory, K::Reverb, "huge").reason.find ("too large") != std::string::npos);
+    REQUIRE (yesdaw::ui::listFxPresets (stateDirectory, K::Reverb) == std::vector<std::string> { "amb", "Big hall", "huge" });
+
+    std::error_code ec;
+    std::filesystem::remove_all (stateDirectory, ec);
+}
+

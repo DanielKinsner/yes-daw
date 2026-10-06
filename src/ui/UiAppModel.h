@@ -1361,6 +1361,9 @@ public:
         loadKeymapOverrides();
     }
 
+    // ADR-0050: FX presets live under this per-user directory (empty when the session keeps no state).
+    [[nodiscard]] const std::filesystem::path& sessionStateDirectory() const noexcept { return sessionStateDirectory_; }
+
     [[nodiscard]] std::filesystem::path readLastProjectRecord() const
     {
         if (sessionStateDirectory_.empty())
@@ -4511,6 +4514,50 @@ public:
                                   ownerId,
                                   strip->fxChain[slotIndex].id,
                                   static_cast<std::size_t> (target))).applied())
+            return { id, state, false };
+
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "FX edit did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        ++context_.mixerEditCount;
+        return { id, state, true };
+    }
+
+    // G4.2 cp7 / ADR-0050: a preset's complete setting onto one insert of the selected strip — every
+    // parameter as one transaction group, so loading a preset is one undo step. The caller has already
+    // decoded and validated the file; anything this kind does not accept still refuses here, whole.
+    [[nodiscard]] UiActionDispatchResult applyFxPresetOnSelectedStrip (
+        std::size_t slotIndex, const std::vector<std::pair<std::uint32_t, double>>& normalizedParams)
+    {
+        const UiActionId id = UiActionId::MixerFxInsertParamSet;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::EntityId ownerId;
+        if (! selectedMixerOwnerId (ownerId))
+            return { id, { false, "no mixer strip selected" }, false };
+
+        const engine::MixerStripState* const strip = engine::detail::findMixerStrip (project_, ownerId);
+        if (strip == nullptr || slotIndex >= strip->fxChain.size())
+            return { id, { false, "no FX slot at index" }, false };
+
+        const engine::FxInsert& insert = strip->fxChain[slotIndex];
+        if (normalizedParams.empty())
+            return { id, { false, "the preset has no parameters" }, false };
+        for (const auto& [paramId, value] : normalizedParams)
+            if (! engine::fxKindAcceptsParameterId (insert.kind, paramId) || ! engine::normalizedFxParamValueIsValid (value))
+                return { id, { false, "the preset does not fit this effect" }, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.beginTransactionGroup())
+            return { id, state, false };
+        for (const auto& [paramId, value] : normalizedParams)
+            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setFxInsertParam (ownerId, insert.id, paramId, value)).applied())
+                return { id, state, false };
+        if (! nextUndo.endTransactionGroup())
             return { id, state, false };
 
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
