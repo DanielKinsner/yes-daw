@@ -11,6 +11,7 @@
 #include "engine/LoudnessTap.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
+#include "engine/RateMatchedView.h"   // ADR-0055: cross-rate Assets read through rate-matched views
 #include "engine/ProjectMixerProjection.h"   // M13: the shared FX-insert node factory
 #include "engine/ProjectUndo.h"
 #include "engine/Recording.h"
@@ -1127,8 +1128,9 @@ public:
         }
 
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (nextDecoded);
+        std::optional<engine::Project> engineStorage;   // ADR-0055: cross-rate windows in view frames
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
-            working,
+            engineProjectFor (working, engineStorage),
             std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
             playbackBuildOptions());
 
@@ -1811,9 +1813,13 @@ public:
         context_.audioExportInProgress = true;
         context_.audioExportProgressPercent = 0;
 
-        std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
+        // ADR-0055: an export reads cross-rate Assets through the offline tier's views, built for this render.
+        std::vector<std::shared_ptr<const engine::AssetSamples>> offlineViews;
+        std::vector<engine::DecodedAssetAudio> decodedViews =
+            makeDecodedViews (decodedAssets_, engine::ResampleQuality::OfflineRender, &offlineViews);
+        std::optional<engine::Project> engineStorage;
         const engine::OfflineRenderResult rendered = engine::renderOfflineProject (
-            project_,
+            engineProjectFor (project_, engineStorage),
             std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()));
         if (! rendered.ok())
         {
@@ -1974,13 +1980,10 @@ public:
                 result.refusals.push_back (name + ": not usable audio");
                 continue;
             }
-            if (item.decoded.sampleRate.hz != project_.sampleRate.hz)
+            if (! importSampleRateSupported (item.decoded.sampleRate.hz))   // ADR-0055
             {
-                result.refusals.push_back (name + ": "
-                                           + std::to_string (static_cast<long long> (item.decoded.sampleRate.hz))
-                                           + " Hz but this project is "
-                                           + std::to_string (static_cast<long long> (project_.sampleRate.hz))
-                                           + " Hz (no resampling yet)");
+                result.refusals.push_back (name + ": unsupported sample rate ("
+                                           + std::to_string (static_cast<long long> (item.decoded.sampleRate.hz)) + " Hz)");
                 continue;
             }
             engine::Asset imported;
@@ -2029,7 +2032,8 @@ public:
             clip.assetId = item.asset.id;
             clip.trackId = nextProject.tracks[lane].id;
             clip.timelineStart = std::max<engine::Tick> (0, timelineStart);
-            clip.timelineLength = static_cast<engine::Tick> (item.decoded.frames);
+            clip.timelineLength = engine::timelineLengthForSource (   // ADR-0055: the source at the project rate
+                item.decoded.frames, engine::rateRatio (item.decoded.sampleRate.hz, project_.sampleRate.hz));
             clip.srcOffset = 0;
             clip.srcLen = item.decoded.frames;
             clip.gain = 1.0f;
@@ -2441,8 +2445,9 @@ public:
         upsertDecodedAsset (nextDecoded, std::move (decoded));
 
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (nextDecoded);
+        std::optional<engine::Project> engineStorage;   // ADR-0055: cross-rate windows in view frames
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
-            commit.project,
+            engineProjectFor (commit.project, engineStorage),
             std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
             playbackBuildOptions());
 
@@ -2637,13 +2642,10 @@ private:
             return result;
         }
 
-        if (decoded.sampleRate.hz != project_.sampleRate.hz)
+        if (! importSampleRateSupported (decoded.sampleRate.hz))   // ADR-0055: any rate 8 kHz..384 kHz
         {
-            reportStatus ("Import refused: " + sourcePath.filename().string() + " is "
-                              + std::to_string (static_cast<long long> (decoded.sampleRate.hz))
-                              + " Hz but this project is "
-                              + std::to_string (static_cast<long long> (project_.sampleRate.hz))
-                              + " Hz (no resampling yet)",
+            reportStatus ("Import refused: " + sourcePath.filename().string() + ": unsupported sample rate ("
+                              + std::to_string (static_cast<long long> (decoded.sampleRate.hz)) + " Hz)",
                           true);
             result.status = UiAppImportStatus::SampleRateMismatch;
             return result;
@@ -2698,7 +2700,9 @@ private:
         clip.timelineStart = timelineStart.has_value()
             ? std::max<engine::Tick> (0, *timelineStart)
             : static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame));
-        clip.timelineLength = static_cast<engine::Tick> (decoded.frames);
+        // ADR-0055: the timeline span is the source at the project rate (the source window stays in Asset frames).
+        clip.timelineLength = engine::timelineLengthForSource (
+            decoded.frames, engine::rateRatio (decoded.sampleRate.hz, project_.sampleRate.hz));
         clip.srcOffset = 0;
         clip.srcLen = decoded.frames;
         clip.gain = 1.0f;
@@ -5361,11 +5365,10 @@ public:
             result.status = UiAppImportStatus::InvalidDecodedAudio;
             return result;
         }
-        if (decoded.sampleRate.hz != project_.sampleRate.hz)
+        if (! importSampleRateSupported (decoded.sampleRate.hz))   // ADR-0055: a cross-rate pad plays its view
         {
-            reportStatus ("Sampler pad refused: " + sourcePath.filename().string() + " is "
-                              + std::to_string (static_cast<long long> (decoded.sampleRate.hz)) + " Hz but this project is "
-                              + std::to_string (static_cast<long long> (project_.sampleRate.hz)) + " Hz (no resampling yet)",
+            reportStatus ("Sampler pad refused: " + sourcePath.filename().string() + ": unsupported sample rate ("
+                              + std::to_string (static_cast<long long> (decoded.sampleRate.hz)) + " Hz)",
                           true);
             result.status = UiAppImportStatus::SampleRateMismatch;
             return result;
@@ -7363,7 +7366,8 @@ public:
             return { id, { false, "timeline clip source missing" }, false };
         const std::uint64_t maxOffset = asset->frames - clip->srcLen;
         const auto current = static_cast<long long> (clip->srcOffset);
-        const long long wanted = current - static_cast<long long> (deltaTicks);
+        // ADR-0055: the source moves in Asset frames — a tick delta is round (delta / r) of them.
+        const long long wanted = current - static_cast<long long> (std::llround (static_cast<double> (deltaTicks) / clipRateRatio (*clip)));
         const auto nextOffset = static_cast<std::uint64_t> (std::clamp<long long> (wanted, 0, static_cast<long long> (maxOffset)));
         if (nextOffset == clip->srcOffset)
             return { id, { false, "slip has no room to move" }, false };
@@ -7870,7 +7874,8 @@ public:
             return { id, { false, "timeline clip missing" }, false };
         if (timelineEnd <= clip->timelineStart)
             return { id, { false, "stretch must leave a positive clip length" }, false };
-        const double factor = static_cast<double> (timelineEnd - clip->timelineStart) / static_cast<double> (clip->srcLen);
+        const double factor = static_cast<double> (timelineEnd - clip->timelineStart)
+                            / (static_cast<double> (clip->srcLen) * clipRateRatio (*clip));   // ADR-0055
         return applySelectedTimelineClipStretch (id, static_cast<float> (factor));
     }
 
@@ -7890,7 +7895,7 @@ public:
         if (clip == nullptr || clip->srcLen == 0 || loopLength <= 0)
             return { id, { false, "no loop region" }, false };
         return applySelectedTimelineClipStretch (id, static_cast<float> (static_cast<double> (loopLength)
-                                                                         / static_cast<double> (clip->srcLen)));
+                                                                         / (static_cast<double> (clip->srcLen) * clipRateRatio (*clip))));
     }
 
     [[nodiscard]] UiActionDispatchResult applySelectedTimelineClipStretch (UiActionId id, float factor)
@@ -7902,7 +7907,7 @@ public:
         if (clip == nullptr || clip->srcLen == 0)
             return { id, { false, "timeline clip missing" }, false };
         const float clamped = std::clamp (factor, 0.5f, 2.0f);
-        const auto newLength = static_cast<engine::Tick> (std::llround (static_cast<double> (clip->srcLen) * static_cast<double> (clamped)));
+        const engine::Tick newLength = engine::timelineLengthForSource (clip->srcLen, clipRateRatio (*clip), static_cast<double> (clamped));   // ADR-0055
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
         const engine::ProjectEditApplyResult applied = nextUndo.apply (
@@ -8020,10 +8025,14 @@ public:
         if (decoded == nullptr || decoded->channels == 0 || clip->srcOffset > decoded->frames
             || clip->srcLen > decoded->frames - clip->srcOffset || ! project_.sampleRate.isValid())
             return { id, { false, "timeline clip source missing" }, false };
-        const std::uint64_t windowFrames = std::min<std::uint64_t> (clip->srcLen, static_cast<std::uint64_t> (std::max<engine::Tick> (0, clip->timelineLength)));
+        // ADR-0055: the scan runs in Asset frames over the clip's source window; its minimum run is 50 ms at the
+        // Asset's rate, and each run reaches the timeline as round (frames x r) ticks.
+        const double r = clipRateRatio (*clip);
+        const std::uint64_t windowFrames = std::min<std::uint64_t> (
+            clip->srcLen, static_cast<std::uint64_t> (std::llround (static_cast<double> (std::max<engine::Tick> (0, clip->timelineLength)) / r)));
         const std::size_t stride = decoded->channels;
         const std::size_t first = static_cast<std::size_t> (clip->srcOffset) * stride;
-        const auto minRun = static_cast<std::uint64_t> (std::llround (kStripSilenceMinRunSeconds * project_.sampleRate.hz));
+        const auto minRun = static_cast<std::uint64_t> (std::llround (kStripSilenceMinRunSeconds * decoded->sampleRate.hz));
         const std::vector<engine::SilentRun> runs = engine::detectSilentRuns (
             std::span<const float> (decoded->interleavedSamples.data() + first, static_cast<std::size_t> (windowFrames) * stride),
             static_cast<int> (stride), windowFrames, kStripSilenceThreshold, minRun);
@@ -8048,8 +8057,8 @@ public:
         {
             const engine::Clip* const working = clipIn (nextProject, current);
             if (working == nullptr) { ok = false; break; }
-            const auto runStart = static_cast<engine::Tick> (it->start);
-            const auto runEnd = static_cast<engine::Tick> (std::min<std::uint64_t> (it->end, windowFrames));
+            const auto runStart = static_cast<engine::Tick> (engine::viewFrameFor (it->start, r));
+            const auto runEnd = static_cast<engine::Tick> (engine::viewFrameFor (std::min<std::uint64_t> (it->end, windowFrames), r));
             if (runEnd < working->timelineLength)   // keep what follows the run as its own clip
             {
                 const std::optional<std::uint64_t> leftSource = sourceLengthForSplit (*working, runEnd);
@@ -8835,8 +8844,9 @@ public:
         result.bundleResult = persistence::detail::ok();
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (ownedDecoded);
 
+        std::optional<engine::Project> engineStorage;   // ADR-0055: cross-rate windows in view frames
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
-            loadedProject,
+            engineProjectFor (loadedProject, engineStorage),
             std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
             options);
 
@@ -8854,6 +8864,7 @@ public:
 
         attachProjectBundle (std::move (prepared.db_), bundlePath, std::move (loadedProject));
         decodedAssets_ = std::move (ownedDecoded);
+        rateMatchedViews_.clear();   // ADR-0055: the old project's views go with its decodes
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
         replacePlayback (std::move (built.engine));
         enqueueWaveformBuildsForDecodedAssets();
@@ -10642,7 +10653,9 @@ private:
         // the ordinary rebuild path, before anything is adopted.
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
         const std::vector<engine::AssetOwnership> owners = makeDecodedOwners (decodedAssets_);
-        const std::vector<engine::StretchedOwnership> stretches = refreshStretchOwners (nextProject, owners);   // G2.9
+        std::optional<engine::Project> engineStorage;   // ADR-0055
+        const engine::Project& engineProject = engineProjectFor (nextProject, engineStorage);
+        const std::vector<engine::StretchedOwnership> stretches = refreshStretchOwners (engineProject, owners);   // G2.9
         std::vector<std::pair<engine::NodeId, std::unique_ptr<const engine::ClipSchedule>>> schedules;
         for (const engine::Track& track : nextProject.tracks)
         {
@@ -10650,7 +10663,7 @@ private:
                 continue;
             engine::OfflineRenderStatus status = engine::OfflineRenderStatus::Ok;
             std::unique_ptr<engine::ClipSchedule> schedule = engine::buildTrackClipSchedule (
-                nextProject, track.id,
+                engineProject, track.id,
                 std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
                 status,
                 std::span<const engine::AssetOwnership> (owners.data(), owners.size()),
@@ -10700,8 +10713,9 @@ private:
         }
 
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
+        std::optional<engine::Project> engineStorage;   // ADR-0055: cross-rate windows in view frames
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
-            nextProject,
+            engineProjectFor (nextProject, engineStorage),
             std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
             playbackBuildOptions());
 
@@ -10895,8 +10909,9 @@ private:
     void rebuildPlaybackForCurrentProject()
     {
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
+        std::optional<engine::Project> engineStorage;   // ADR-0055: cross-rate windows in view frames
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
-            project_,
+            engineProjectFor (project_, engineStorage),
             std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
             playbackBuildOptions());
 
@@ -11075,6 +11090,19 @@ private:
         return { id, state, true };
     }
 
+    // ADR-0055: the rates an import accepts.
+    [[nodiscard]] static bool importSampleRateSupported (double rateHz) noexcept
+    {
+        return rateHz >= 8'000.0 && rateHz <= 384'000.0;
+    }
+
+    // ADR-0055: a clip's rate ratio r = projectRate / assetRate (1 when its Asset is at the project rate or missing).
+    [[nodiscard]] double clipRateRatio (const engine::Clip& clip) const noexcept
+    {
+        const engine::Asset* const asset = project_.findAsset (clip.assetId);
+        return asset == nullptr ? 1.0 : engine::rateRatio (asset->sampleRate.hz, project_.sampleRate.hz);
+    }
+
     [[nodiscard]] static bool decodedAudioIsValid (const UiDecodedAsset& decoded) noexcept
     {
         if (! decoded.sampleRate.isValid() || decoded.frames == 0 || decoded.channels == 0)
@@ -11112,13 +11140,44 @@ private:
         return decoded;
     }
 
-    static std::vector<engine::DecodedAssetAudio> makeDecodedViews (const std::vector<UiDecodedAsset>& decodedAssets)
+    // ADR-0055: a cross-rate decode is handed to engines as its rate-matched view — the live tier (built once and
+    // kept beside the decode) for every playback engine, the offline tier (built for that render and kept alive in
+    // `offlineViews`) for a render. A same-rate decode is handed over as it is.
+    [[nodiscard]] std::vector<engine::DecodedAssetAudio> makeDecodedViews (
+        const std::vector<UiDecodedAsset>& decodedAssets,
+        engine::ResampleQuality quality = engine::ResampleQuality::LivePlayback,
+        std::vector<std::shared_ptr<const engine::AssetSamples>>* offlineViews = nullptr) const
     {
         std::vector<engine::DecodedAssetAudio> views;
         views.reserve (decodedAssets.size());
 
         for (const UiDecodedAsset& asset : decodedAssets)
         {
+            std::shared_ptr<const engine::AssetSamples> view;
+            if (asset.sampleRate.hz != project_.sampleRate.hz && project_.sampleRate.isValid())
+            {
+                if (quality == engine::ResampleQuality::OfflineRender && offlineViews != nullptr)
+                {
+                    view = engine::buildRateMatchedSamples (asset.interleavedSamples, asset.channels, asset.sampleRate.hz,
+                                                            project_.sampleRate.hz, engine::ResampleQuality::OfflineRender);
+                    offlineViews->push_back (view);
+                }
+                else
+                {
+                    view = liveRateMatchedView (asset);
+                }
+            }
+            if (view != nullptr)
+            {
+                views.push_back (engine::DecodedAssetAudio {
+                    asset.assetId,
+                    project_.sampleRate,
+                    view->frames,
+                    asset.channels,
+                    std::span<const float> (view->interleaved.data(), view->interleaved.size())
+                });
+                continue;
+            }
             views.push_back (engine::DecodedAssetAudio {
                 asset.assetId,
                 asset.sampleRate,
@@ -11129,6 +11188,36 @@ private:
         }
 
         return views;
+    }
+
+    // ADR-0055: a cross-rate decode's live-tier rate-matched view (null for a same-rate one) — built once per Asset
+    // and project rate and kept, so every engine rebuild after an edit reuses it. An Asset's content never changes
+    // under its id (ADR-0011), so the id and the rates are the key.
+    [[nodiscard]] std::shared_ptr<const engine::AssetSamples> liveRateMatchedView (const UiDecodedAsset& asset) const
+    {
+        const double projectRateHz = project_.sampleRate.hz;
+        if (! project_.sampleRate.isValid() || asset.sampleRate.hz == projectRateHz || asset.channels == 0u)
+            return nullptr;
+        for (const OwnedRateMatchedView& cached : rateMatchedViews_)
+            if (cached.assetId == asset.assetId && cached.assetRateHz == asset.sampleRate.hz
+                && cached.projectRateHz == projectRateHz && cached.frames == asset.frames && cached.channels == asset.channels)
+                return cached.view;
+        std::shared_ptr<const engine::AssetSamples> view = engine::buildRateMatchedSamples (
+            asset.interleavedSamples, asset.channels, asset.sampleRate.hz, projectRateHz, engine::ResampleQuality::LivePlayback);
+        std::erase_if (rateMatchedViews_, [&asset] (const OwnedRateMatchedView& cached) { return cached.assetId == asset.assetId; });
+        rateMatchedViews_.push_back ({ asset.assetId, asset.sampleRate.hz, projectRateHz, asset.frames, asset.channels, view });
+        return view;
+    }
+
+    // ADR-0055: the project an engine or a render is built from — every cross-rate window in its view's frames.
+    // A project with no cross-rate Asset is used as it is (no copy).
+    [[nodiscard]] static const engine::Project& engineProjectFor (const engine::Project& project,
+                                                                  std::optional<engine::Project>& storage)
+    {
+        if (! engine::projectHasCrossRateAssets (project))
+            return project;
+        storage = engine::projectInViewFrames (project);
+        return *storage;
     }
 
     // G0.5: shared OWNED storage per decoded asset so a live ClipSchedule can keep an asset's
@@ -11143,6 +11232,11 @@ private:
         owners.reserve (decodedAssets.size());
         for (const UiDecodedAsset& asset : decodedAssets)
         {
+            if (std::shared_ptr<const engine::AssetSamples> view = liveRateMatchedView (asset))   // ADR-0055
+            {
+                owners.push_back ({ asset.assetId, std::move (view) });
+                continue;
+            }
             std::shared_ptr<const engine::AssetSamples> owner;
             for (const OwnedAssetSamples& cached : assetSamplesCache_)
             {
@@ -11405,6 +11499,7 @@ private:
         selectedMixerTarget_ = {};
         undo_ = {};
         decodedAssets_.clear();
+        rateMatchedViews_.clear();
         decodedAssetViews_.clear();
         std::unique_ptr<engine::PlaybackEngine> transport =
             engine::PlaybackEngine::createTransportOnly (project_.sampleRate, playbackMaxBlockSize_);
@@ -12103,7 +12198,8 @@ private:
         // G0.5: every engine build references the model's shared per-asset storage by asset id,
         // so the live placement lane's schedules can keep it alive without copying.
         options.assetOwners = makeDecodedOwners (decodedAssets_);
-        options.stretchOwners = refreshStretchOwners (project_, options.assetOwners);   // G2.9
+        std::optional<engine::Project> engineStorage;   // ADR-0055: stretch from the views, in view frames
+        options.stretchOwners = refreshStretchOwners (engineProjectFor (project_, engineStorage), options.assetOwners);   // G2.9
         options.midiInput = &midiInput_;   // G3.10: every live engine drains the one device lane
         options.loudnessTap = &loudnessTap_;   // ADR-0053: and feeds the one live loudness ring
         return options;
@@ -12561,6 +12657,17 @@ private:
         std::shared_ptr<const engine::AssetSamples> samples;
     };
     mutable std::vector<OwnedAssetSamples> assetSamplesCache_;   // filled from const build-option reads
+    // ADR-0055: each cross-rate Asset's live-tier rate-matched view, kept beside its decode for engine rebuilds.
+    struct OwnedRateMatchedView
+    {
+        engine::EntityId assetId;
+        double assetRateHz = 0.0;
+        double projectRateHz = 0.0;
+        std::uint64_t frames = 0;
+        std::uint16_t channels = 0;
+        std::shared_ptr<const engine::AssetSamples> view;
+    };
+    mutable std::vector<OwnedRateMatchedView> rateMatchedViews_;   // filled from const build reads
     mutable std::vector<engine::StretchedOwnership> stretchedSamplesCache_;   // G2.9: prepared stretches per clip
     std::uint64_t livePlacementEdits_ = 0;
     std::vector<RetiredMonitorChain> retiredMonitorChains_;

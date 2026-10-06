@@ -9,6 +9,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
 #include <cmath>
 #include <numbers>
 #include <vector>
@@ -135,4 +136,26 @@ TEST_CASE ("ADR-0055 the resampler is deterministic, and same-rate input passes 
     REQUIRE (resampleInterleaved (source, 3, 44'100.0, 48'000.0, ResampleQuality::LivePlayback).empty());   // not frame-aligned
     REQUIRE (yesdaw::engine::resampledFrameCount (44'100, 44'100.0, 48'000.0) == 48'000u);
     REQUIRE (yesdaw::engine::resampledFrameCount (1, 44'100.0, 48'000.0) == 1u);
+}
+
+// Measured, not gated in CI (machine-dependent): a three-minute stereo 44.1 kHz file's live view — the cost an
+// import or an open pays (ADR-0055 reports it in the evidence). Run with the tag to see the time.
+TEST_CASE ("ADR-0055 live view build time for three minutes of stereo 44.1 kHz", "[.perf][cross-rate]")
+{
+    const std::size_t frames = 44'100u * 180u;
+    std::vector<float> stereo (frames * 2u);
+    for (std::size_t i = 0; i < frames; ++i)
+    {
+        stereo[i * 2u] = static_cast<float> (0.3 * std::sin (0.0627 * static_cast<double> (i)));
+        stereo[i * 2u + 1u] = static_cast<float> (0.3 * std::sin (0.0911 * static_cast<double> (i)));
+    }
+    const auto start = std::chrono::steady_clock::now();
+    const std::vector<float> view = resampleInterleaved (stereo, 2, 44'100.0, 48'000.0, ResampleQuality::LivePlayback);
+    const double liveSeconds = std::chrono::duration<double> (std::chrono::steady_clock::now() - start).count();
+    const auto offlineStart = std::chrono::steady_clock::now();
+    const std::vector<float> offline = resampleInterleaved (stereo, 2, 44'100.0, 48'000.0, ResampleQuality::OfflineRender);
+    const double offlineSeconds = std::chrono::duration<double> (std::chrono::steady_clock::now() - offlineStart).count();
+    WARN ("live view: " << liveSeconds << " s, offline view: " << offlineSeconds << " s for 180 s stereo");
+    REQUIRE (view.size() == 48'000u * 180u * 2u);
+    REQUIRE (offline.size() == view.size());
 }

@@ -6318,27 +6318,37 @@ TEST_CASE ("ADR-0054 a multi-format drop lands on consecutive tracks as one undo
         REQUIRE (redone.clips[i].id == dropped.clips[i].id);
     }
 
-    // A mixed drop: the good file lands; the junk and the cross-rate file are named with their reasons.
+    // A mixed drop: the good files land — the 44.1 kHz MP3 too, at its true duration (ADR-0055) — and the junk is
+    // named with its reason.
     const int secondLaneY = firstLaneY + juce::jmax (1, geometry.laneHeight);
     dropTarget->filesDropped (juce::StringArray { asJuce (junkPath), asJuce (flacPath), asJuce (crossRatePath) }, dropX, secondLaneY);
     const yesdaw::engine::Project mixed = readProjectSnapshot (bundlePath);
-    REQUIRE (mixed.clips.size() == 4u);
-    REQUIRE (mixed.clips.back().trackId == mixed.tracks[1].id);
+    REQUIRE (mixed.clips.size() == 5u);
+    REQUIRE (mixed.clips[3].trackId == mixed.tracks[1].id);
+    REQUIRE (mixed.clips[4].trackId == mixed.tracks[2].id);
+    {
+        const yesdaw::engine::Clip& crossRate = mixed.clips[4];
+        const yesdaw::engine::Asset* asset = mixed.findAsset (crossRate.assetId);
+        REQUIRE (asset != nullptr);
+        REQUIRE (asset->sampleRate.hz == 44'100.0);
+        REQUIRE (crossRate.srcLen == asset->frames);
+        REQUIRE (crossRate.timelineLength == static_cast<yesdaw::engine::Tick> (std::llround (static_cast<double> (asset->frames) * 48'000.0 / 44'100.0)));
+    }
     const std::string status = snapshotMainComponent (*shell).statusLineText;
     INFO (status);
     REQUIRE (status.find ("junk.mp3: not a readable MP3 file") != std::string::npos);
-    REQUIRE (status.find ("mono_44k.mp3: 44100 Hz but this project is 48000 Hz") != std::string::npos);
+    REQUIRE (status.find ("mono_44k.mp3") == std::string::npos);
     // ...and every file refused changes nothing.
     dropTarget->filesDropped (juce::StringArray { asJuce (junkPath) }, dropX, firstLaneY);
-    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 4u);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 5u);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
     // The chooser takes an MP3, and names a refusal with its reason.
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 5u);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 6u);
     chooserPick = junkPath;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
-    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 5u);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 6u);
     REQUIRE (snapshotMainComponent (*shell).statusLineText == "Import refused: junk.mp3: not a readable MP3 file");
 
     std::error_code ec;
@@ -9866,24 +9876,31 @@ TEST_CASE ("undo after an import removes the import, never the edit before it",
     std::filesystem::remove_all (bundlePath, ec);
 }
 
-TEST_CASE ("a wrong-sample-rate import is refused with the rate fact, never played fast",
-           "[ui][input][shell][sample-rate]")
+// ADR-0055 re-pin of the R7 refusal: a 44.1 kHz file used to be refused so it could never play ~9 % fast; now it
+// imports at its true duration (the source window in Asset frames, the timeline span at the project rate) through
+// both the chooser and a drop, and only a rate outside 8 kHz..384 kHz is refused, with the rate named.
+TEST_CASE ("a 44.1 kHz import lands at its true duration; an unsupported rate is refused with the rate fact",
+           "[ui][input][shell][sample-rate][cross-rate]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("sample-rate");
     const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
-    std::filesystem::path wrongRatePath = bundlePath;
-    wrongRatePath += "-44k.wav";
+    std::filesystem::path crossRatePath = bundlePath;
+    crossRatePath += "-44k.wav";
+    std::filesystem::path unsupportedPath = bundlePath;
+    unsupportedPath += "-4k.wav";
     {
-        // A perfectly valid WAV — at 44.1 kHz. Without the R7 guard it would import and play
-        // ~9 % fast in a 48 kHz project.
-        const std::vector<float> samples (441, 0.25f);
+        const std::vector<float> samples (441, 0.25f);   // 10 ms at 44.1 kHz
         REQUIRE (yesdaw::io::writeFloat32WavFile (
-                     wrongRatePath, yesdaw::engine::SampleRate { 44'100.0 }, 1u, 441u,
+                     crossRatePath, yesdaw::engine::SampleRate { 44'100.0 }, 1u, 441u,
                      std::span<const float> (samples.data(), samples.size()))
+                     .ok());
+        REQUIRE (yesdaw::io::writeFloat32WavFile (
+                     unsupportedPath, yesdaw::engine::SampleRate { 4'000.0 }, 1u, 40u,
+                     std::span<const float> (samples.data(), 40u))
                      .ok());
     }
 
-    std::filesystem::path currentImportPath = wrongRatePath;
+    std::filesystem::path currentImportPath = crossRatePath;
 
     MainComponentFileChoices choices;
     choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
@@ -9892,25 +9909,29 @@ TEST_CASE ("a wrong-sample-rate import is refused with the rate fact, never play
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
 
-    // Ctrl+I path: refused with both rates named; the project is untouched.
+    // Ctrl+I path: the 44.1 kHz file lands as 10 ms of timeline (480 frames at 48 kHz), its Asset at 44.1 kHz.
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.clips.size() == 1u);
+        REQUIRE (project.assets.size() == 1u);
+        REQUIRE (project.assets.front().sampleRate.hz == 44'100.0);
+        REQUIRE (project.clips.front().srcLen == 441u);
+        REQUIRE (project.clips.front().timelineLength == 480);
+    }
+
+    // An unsupported rate is refused with the rate named; the project is untouched.
+    currentImportPath = unsupportedPath;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     {
         const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
         REQUIRE (snapshot.statusLineIsError);
-        REQUIRE (snapshot.statusLineText.find ("44100") != std::string::npos);
-        REQUIRE (snapshot.statusLineText.find ("48000") != std::string::npos);
-        REQUIRE (snapshot.statusLineText.find (wrongRatePath.filename().string()) != std::string::npos);
-        REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
-        REQUIRE (readProjectSnapshot (bundlePath).assets.empty());
+        REQUIRE (snapshot.statusLineText.find ("unsupported sample rate (4000 Hz)") != std::string::npos);
+        REQUIRE (snapshot.statusLineText.find (unsupportedPath.filename().string()) != std::string::npos);
+        REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
     }
 
-    // Decay to quiet so the drop section proves its own report.
-    for (int i = 0; i < 400 && ! snapshotMainComponent (*shell).statusLineText.empty(); ++i)
-        REQUIRE (serviceMainComponentUiTimer (*shell));
-    REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
-
-    // Drop path: a mixed drop imports the 48 kHz fixture and refuses the 44.1 kHz file with
-    // the model's precise rate message (not the generic WAV-reader text).
+    // Drop path: the 48 kHz fixture and the 44.1 kHz file both land, each at its own true duration.
     juce::Component& timeline = requireTimelineComponent (*shell);
     auto* dropTarget = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
     REQUIRE (dropTarget != nullptr);
@@ -9918,22 +9939,18 @@ TEST_CASE ("a wrong-sample-rate import is refused with the rate fact, never play
         timelineGeometryForProject (timeline, readProjectSnapshot (bundlePath));
     const int dropX = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 3;
     const int firstLaneY = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2;
-    const juce::StringArray mixedDrop {
-        juce::String (fixturePath.string()),
-        juce::String (wrongRatePath.string())
-    };
-    dropTarget->filesDropped (mixedDrop, dropX, firstLaneY);
+    dropTarget->filesDropped (juce::StringArray { juce::String (fixturePath.string()), juce::String (crossRatePath.string()) },
+                              dropX, firstLaneY);
     {
-        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
-        REQUIRE (snapshot.statusLineIsError);
-        REQUIRE (snapshot.statusLineText.find ("44100") != std::string::npos);
-        REQUIRE (snapshot.statusLineText.find (wrongRatePath.filename().string()) != std::string::npos);
-        REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
-        REQUIRE (readProjectSnapshot (bundlePath).assets.size() == 1u);
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.clips.size() == 3u);
+        REQUIRE (project.clips[1].timelineLength == static_cast<yesdaw::engine::Tick> (project.findAsset (project.clips[1].assetId)->frames));
+        REQUIRE (project.clips[2].timelineLength == 480);
     }
 
     std::error_code ec;
-    std::filesystem::remove (wrongRatePath, ec);
+    std::filesystem::remove (crossRatePath, ec);
+    std::filesystem::remove (unsupportedPath, ec);
     std::filesystem::remove_all (bundlePath, ec);
 }
 

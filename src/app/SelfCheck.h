@@ -12,6 +12,7 @@
 
 #include "analysis/LoudnessMeter.h"
 #include "engine/OfflineRenderer.h"
+#include "engine/RateMatchedView.h"   // ADR-0055
 #include "engine/Project.h"
 #include "io/AudioFileDecode.h"   // ADR-0054: the app's one decoder (every supported format)
 #include "io/WavFile.h"
@@ -90,12 +91,19 @@ namespace detail {
             err = "asset audio metadata mismatch (sample rate / channels / length)";
             return false;
         }
-        storage.push_back (std::move (stored.audio->interleaved));
+        // ADR-0055: a cross-rate Asset renders through its offline-tier rate-matched view (the render's project is
+        // projectInViewFrames, so its row says the project rate and the view's length).
+        const bool crossRate = engine::assetNeedsRateMatchedView (asset, project.sampleRate);
+        if (crossRate)
+            storage.push_back (engine::resampleInterleaved (stored.audio->interleaved, asset.channels, asset.sampleRate.hz,
+                                                           project.sampleRate.hz, engine::ResampleQuality::OfflineRender));
+        else
+            storage.push_back (std::move (stored.audio->interleaved));
 
         engine::DecodedAssetAudio decoded;
         decoded.assetId = asset.id;
-        decoded.sampleRate = asset.sampleRate;
-        decoded.frames = asset.frames;
+        decoded.sampleRate = crossRate ? project.sampleRate : asset.sampleRate;
+        decoded.frames = crossRate ? storage.back().size() / asset.channels : asset.frames;
         decoded.channels = asset.channels;
         decoded.interleavedSamples =
             std::span<const float> (storage.back().data(), storage.back().size());
@@ -158,7 +166,7 @@ namespace detail {
         return r;
     }
 
-    const engine::OfflineRenderResult render = engine::renderOfflineProject (project, decodedAssets);
+    const engine::OfflineRenderResult render = engine::renderOfflineProject (engine::projectInViewFrames (project), decodedAssets);   // ADR-0055
     if (! render.ok())
     {
         r.message = "render failed (status " + std::to_string (static_cast<int> (render.status)) + ")";

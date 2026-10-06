@@ -8,22 +8,33 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-10-06 (day) — G5 started: G5.1 cp1, import formats (ADR-0054)
+## 2026-10-06 (day) — G5.1 in: import formats (ADR-0054) and cross-rate audio (ADR-0055)
 
-**Now:** **G5.1 checkpoint 1** is in (headless-certified). **Next:** the real-app drive check of the new
-import surfaces (pending: the drives take the mouse and keyboard, and the overnight hands-off grant has
-ended — they run when the desktop is free again), then **G5.1 cp2 — cross-rate audio** (its own ADR under
-ADR-0010 first).
+**Now:** **G5.1** (both checkpoints) is in, headless-certified. **Next:** the real-app drive check of the new
+import surfaces (pending: the drives take the mouse and keyboard, and the overnight hands-off grant has ended —
+they run when the desktop is free again), then **G5.2 — the media browser** (its ADR first).
 
-**What a user gets:** WAV, AIFF, FLAC, Ogg Vorbis and MP3 import through Ctrl+Shift+I, a drop on the
-timeline and the Sampler pads, and reopen the same on every platform; the project keeps each file's own
-bytes. Every refusal says why ("junk.mp3: not a readable MP3 file", "6 channels (mono or stereo only)",
-"AIFF compression 'ulaw' is not supported", "44100 Hz but this project is 48000 Hz"). A drop of several
-files lands them on consecutive tracks — making the tracks it needs — as one undo step.
+**What a user gets:**
+- WAV, AIFF, FLAC, Ogg Vorbis and MP3 import through Ctrl+Shift+I, a drop on the timeline and the Sampler pads,
+  and reopen the same on every platform; the project keeps each file's own bytes. Every refusal says why
+  ("junk.mp3: not a readable MP3 file", "6 channels (mono or stereo only)", "AIFF compression 'ulaw' is not
+  supported", "unsupported sample rate (4000 Hz)"). A drop of several files lands them on consecutive tracks —
+  making the tracks it needs — as one undo step.
+- **Files at another sample rate import and play at their true speed and pitch** (8 kHz to 384 kHz): a 44.1 kHz
+  file in a 48 kHz project plays through a resampled view built once on import (live tier) and exports through
+  a long-kernel one (offline tier); the clip keeps its source window in the file's own frames; split, trim,
+  slip and stretch work through the rate ratio; a 44.1 kHz Sampler pad sounds at its own pitch.
+- Copy and paste keep every clip setting (stretch, reverse, fade shapes, colour, mute were dropped before).
 
-**Gates:** `[import-formats]` (lossless formats equal the source PCM; Ogg and committed MP3 fixtures match the
-source after alignment; MP3 lengths pinned on every CI platform; refusals with reasons; reopen by content
-against the Asset row; the drop's one undo / same-id redo). 410/410 local, Clang clean.
+**Gates:** `[import-formats]`, `[cross-rate]`, `[resample]`: lossless decodes equal the source PCM; MP3 lengths
+pinned on every platform; a 44.1 kHz sine plays live at -95.5 dB and exports at -132.7 dB error against the
+analytic 48 kHz sine (gates -60 / -80); a 96 kHz file's 30 kHz tone is kept from aliasing (-85 / -116 dB);
+a click lands where the ratio puts it; a split renders bit-identically; slip moves 441 Asset frames for 480
+ticks; reopen and the self-check play cross-rate bundles. A three-minute stereo 44.1 kHz file's live view
+builds in 0.88 s (export view 3.2 s). 414/414 local, Clang clean.
+
+**CI:** a CI-only race in the G4.7 master-inserts gate (the Limiter face filled on the next UI tick) is fixed
+at the source in 130d184; macOS otherwise fails only on the standing GPU sustained-frame exception.
 
 ## 2026-10-06 (late night) — G4 done: SS-5 "Mix the song" passes with built-ins
 
