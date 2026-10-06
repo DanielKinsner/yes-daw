@@ -315,6 +315,17 @@ content-hashed; never edited in place. Imported from WAV, AIFF, FLAC, Ogg Vorbis
 the file's original bytes whatever the format; its frame count is the pinned decoder's length for those bytes.
 _Avoid_: file, sample (when you mean the imported audio)
 
+**Media browser**:
+The editor dock's Browser tab (`Y`): Files (a folder of supported audio), Project (the project's Assets) and Recent
+(the last audio files imported); keeping or dragging a row imports through the same verbs as the chooser and a drop
+(ADR-0056).
+_Avoid_: file manager, library (no database or tags)
+
+**Audition**:
+Hearing a file from the browser before importing it: summed into the device outputs after the engine, before the
+monitor Dim / Mute, and never in the mix, the loudness tap or an export (ADR-0056).
+_Avoid_: preview track, solo (it is not a track)
+
 **Rate ratio**:
 A clip's `r = projectRate / assetRate` (1 for a same-rate Asset): its timeline length is `round (srcLen × r ×
 stretchFactor)`, its source window stays in Asset frames (ADR-0055).
