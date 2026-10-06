@@ -1,0 +1,53 @@
+{
+  "checkpoint": "G4.3 sends and buses (New Bus, Route to New Bus) + G4.4 compressor sidechain (ADR-0051)",
+  "status": "Both drive batches PASS 7/7; agent critics acceptable; exact-code CI recorded in STATUS.md.",
+  "date": "2026-10-06",
+  "host": "DESKTOP-7LC339R (Windows 11 Pro 10.0.26200), shared desktop, owner-authorized for the night",
+  "g43": {
+    "codeSha": "cb7b0ad",
+    "batch": {
+      "tag": "2026-10-06-g43",
+      "sessions": [
+        { "session": "ss1-first-minute", "assertions": 45, "result": "PASS" },
+        { "session": "ss2-mouse-then-keys", "assertions": 33, "result": "PASS" },
+        { "session": "ss3-edit-a-song", "assertions": 55, "result": "PASS" },
+        { "session": "ss4-track-instrument", "assertions": 19, "result": "PASS" },
+        { "session": "ss5-piano-roll", "assertions": 70, "result": "PASS" },
+        { "session": "ss6-write-a-beat", "assertions": 49, "result": "PASS" },
+        { "session": "ss7-mix-the-song", "assertions": 96, "result": "PASS", "covers": "send well New Bus + undo; header Route to New Bus + undo; Step 4 exact 'Out: Bus 1'" }
+      ],
+      "totalAssertions": 367, "failedAssertions": 0, "B6WorstMs": 1500, "B6LimitMs": 3000, "B2PaintP95Ms": 3.96
+    },
+    "localTests": { "passed": 380, "failed": 0, "gate": "[sends-v2] 127 assertions" },
+    "critic": "ACCEPTABLE; drive robustness suggestion (assert strip kind) taken",
+    "ci": { "sha": "cb7b0ad", "run": 37439064883, "result": "every job green except macOS, red only on YesDawTimelineGpuCheck sustained-frame budget (plan 8.2 standing exception)",
+            "raw": { "maxFrameMs": 31.27, "sustainedFrameMs": 27.70, "budgetMs": 16.6, "slowFrames": 104, "allowedOutliers": 8 } }
+  },
+  "g44": {
+    "adr": "docs/adr/0051-compressor-sidechain-source.md (Accepted after an agent critic; committed alone as 0c4b05b)",
+    "commits": ["9a9f7fa engine model + verb + cycle law", "0ac78ad schema v32", "03f4437 keyed CompressorNode, builder, executor, projection", "9ed91de editor chooser + SC badge", "e00b81a ss7 step", "682cc5a critic hardening"],
+    "batch": {
+      "tag": "2026-10-06-g44",
+      "codeSha": "e00b81a",
+      "sessions": [
+        { "session": "ss1-first-minute", "assertions": 45, "result": "PASS" },
+        { "session": "ss2-mouse-then-keys", "assertions": 33, "result": "PASS" },
+        { "session": "ss3-edit-a-song", "assertions": 55, "result": "PASS" },
+        { "session": "ss4-track-instrument", "assertions": 19, "result": "PASS" },
+        { "session": "ss5-piano-roll", "assertions": 70, "result": "PASS" },
+        { "session": "ss6-write-a-beat", "assertions": 49, "result": "PASS" },
+        { "session": "ss7-mix-the-song", "assertions": 101, "result": "PASS", "covers": "bus Compressor keyed from Audio 1 by keyboard, SC badge, one-step undo" }
+      ],
+      "totalAssertions": 372, "failedAssertions": 0, "B6WorstMs": 1385, "B6LimitMs": 3000, "B2PaintP95Ms": 3.81
+    },
+    "localTests": { "passed": 384, "failed": 0,
+                    "gates": ["[sidechain] engine 93 assertions", "persistence round-trip + refusals", "[sidechain][pdc][compressor] PDC convergence", "YesDawSidechainKeyCheck render: ghost kick ducks 27 dB; unkeyed/muted/solo-muted/bypassed steady; set-then-cleared bit-identical", "[sidechain-ui]"] },
+    "critic": "ACCEPTABLE; hardening taken (stored-type row, search break); noted not taken: noexcept on an allocating validator (pre-existing pattern), per-insert statement prepare (matches existing loader), a detail:: helper reach from the UI layer",
+    "ci": [
+      { "sha": "0ac78ad", "run": 37441639732, "result": "every job green except macOS, red only on YesDawTimelineGpuCheck sustained-frame budget (exception)",
+        "raw": { "maxFrameMs": 18.23, "sustainedFrameMs": 16.67, "budgetMs": 16.6, "slowFrames": 9, "allowedOutliers": 8 } },
+      { "sha": "03f4437", "result": "cancelled while pending (a newer push queued behind it); covered by the head's run" }
+    ]
+  },
+  "artifactAvailability": "Logs and screenshots under build-ci/ are local to DESKTOP-7LC339R."
+}

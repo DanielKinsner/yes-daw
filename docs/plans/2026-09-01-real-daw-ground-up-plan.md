@@ -733,8 +733,12 @@ G4.8 is a separate later milestone; it does not block G5/G6 or imply that plugin
   [Evidence](../evidence/2026-10-06-g42-close.json).
 - **G4.3 — Sends and buses.** Build: `+` adds a send with a bus chooser or "New Bus…", pre/post,
   level, destination; "Route to New Bus" from the header. Gate: `[sends-v2]`.
+  **2026-10-06 complete:** New Bus in the send and output choosers, Route to New Bus on the header, one
+  undo step each. Batch 367/367. [Evidence](../evidence/2026-10-06-g43-g44.json).
 - **G4.4 — Sidechain reachable.** Build: compressor sidechain source chooser (node exists).
   Gate: render golden.
+  **2026-10-06 complete:** ADR-0051; the editor's Sidechain chooser; schema v32; render gate by
+  property (the ghost kick ducks the bus 27 dB; the negatives stay steady). Batch 372/372.
 - **G4.5 — Solo/mute UX.** Build: solo-safe in context menus, solo-clear button, `Ctrl`-click
   exclusive solo. Gate: `[solo-ux]`.
 - **G4.6 — Automation v2.** Build: stacked per-track lanes, real Write mode, pencil/line tools,

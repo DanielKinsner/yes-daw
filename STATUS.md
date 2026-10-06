@@ -8,6 +8,29 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (later) — G4.3 and G4.4 done: New Bus, Route to New Bus, compressor sidechain
+
+**Now:** **G4.3** and **G4.4** are done. **Next: G4.5** solo/mute UX (solo-clear control, Ctrl-click
+exclusive solo; solo-safe is already in the strip and header menus) → G4.6 automation v2 → G4.7 master
+strip → G5 → G6. [Evidence](docs/evidence/2026-10-06-g43-g44.json).
+
+**What a user gets:**
+- **G4.3:** an empty send well's chooser (and the strip menu's Add Send) ends with **New Bus** — the bus and
+  a unity post-fader send to it in one undo step; the OUTPUT chooser ends with New Bus too; the track
+  header has **Route to New Bus**. New buses are named "Bus N" past any name already taken.
+- **G4.4 (ADR-0051, accepted after a critic, committed before any code):** a Compressor's editor has a
+  **Sidechain** chooser — None, the tracks, the buses; its own strip and anything that would loop the
+  routing are disabled. The key is the source's pre-fader signal after its inserts, so a kick with its
+  fader all the way down still ducks the bus (the "ghost trigger"); muting or solo-muting the source
+  silences the key (ADR-0014). Saved in schema **v32**; one undo step; the strip's **SC** badge is now real;
+  a keyed track or bus cannot be removed until its sidechain is cleared (the status line says so).
+
+**Proof:** G4.3 batch 367/367 (worst launch 1,500 ms, paint p95 3.96 ms); G4.4 batch **372/372** (1,385 ms,
+3.81 ms); local suite 384/384; Clang clean. Render gate: the ghost kick ducks the Pad's bus by 27 dB;
+unkeyed, muted, solo-muted and bypassed renders stay steady; set-then-cleared renders bit-identically to
+never keyed; a keyed Compressor is a latency-compensation convergence point. Both critics acceptable.
+CI: `cb7b0ad` (G4.3) and `0ac78ad` (G4.4 engine) green except macOS on the standing GPU timing exception.
+
 ## 2026-10-06 — G4.2 complete (faces, drag reorder, FX presets); G4.3 sends and buses next
 
 **Now:** **G4.2 is done.** One Release build (code `b26c9e5`, harness `a01a90e`) passed **all seven
