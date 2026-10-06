@@ -3432,3 +3432,99 @@ TEST_CASE ("Replacing a lane's points is one undo step that undo and redo replay
     REQUIRE_FALSE (undo.apply (project, bare).applied());
     REQUIRE (project.automationLanes == settled.automationLanes);
 }
+
+// ---- G4.6 / ADR-0052: automation follows clips --------------------------------------------------------------
+namespace
+{
+// 120 BPM, then 90 BPM from bar 3 (tick 30 720): ticks and frames part ways mid-lane.
+yesdaw::engine::CompiledTempoMap followTempoMap()
+{
+    const std::array<yesdaw::engine::TempoChange, 2> changes { yesdaw::engine::TempoChange { 0, 120.0 },
+                                                               yesdaw::engine::TempoChange { 30'720, 90.0 } };
+    yesdaw::engine::CompiledTempoMap compiled;
+    REQUIRE (yesdaw::engine::CompiledTempoMap::build (yesdaw::engine::TempoMapView { changes.data(), changes.size() },
+                                                      yesdaw::engine::SampleRate { 48'000.0 }, compiled));
+    return compiled;
+}
+
+const std::vector<AutomationBreakpoint> kFollowLane {
+    { 0, 0.1, AutomationCurveType::Linear }, { 20'000, 0.9, AutomationCurveType::Linear },
+    { 40'000, 0.3, AutomationCurveType::Linear }, { 60'000, 0.7, AutomationCurveType::Linear },
+    { 90'000, 0.2, AutomationCurveType::Linear } };
+} // namespace
+
+TEST_CASE ("Automation follows a SampleLocked clip by its frame delta, locked to the audio across a tempo change",
+           "[project][automation][automation-v2][follow-clips]")
+{
+    const auto map = followTempoMap();
+    const yesdaw::engine::AutomationClipMove move { yesdaw::engine::TimeBase::SampleLocked, 24'000, 48'000, 96'000 };
+    std::vector<AutomationBreakpoint> out;
+    REQUIRE (yesdaw::engine::moveAutomationWithClips (kFollowLane, std::span (&move, 1), map, out)
+             == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    REQUIRE (spanCompiles (out, map));
+
+    // Inside the clip: what played at frame f now plays at f + delta (a carried tick lands within a frame);
+    // the last few frames lead into the destination's edge anchor.
+    for (std::int64_t frame = 24'000; frame < 72'000 - 8; frame += 7)
+        REQUIRE (std::abs (spanValueAt (out, map, frame + 96'000) - spanValueAt (kFollowLane, map, frame)) <= 1.0e-4);
+    // Outside the vacated and destination spans (and their one-tick edges) nothing changed.
+    for (std::int64_t frame = 0; frame < 23'990; frame += 11)
+        REQUIRE (std::abs (spanValueAt (out, map, frame) - spanValueAt (kFollowLane, map, frame)) <= 1.0e-9);
+    for (std::int64_t frame = 168'010; frame < 260'000; frame += 13)
+        REQUIRE (std::abs (spanValueAt (out, map, frame) - spanValueAt (kFollowLane, map, frame)) <= 1.0e-9);
+}
+
+TEST_CASE ("Automation follows a TempoLocked clip by its tick delta, locked to the music",
+           "[project][automation][automation-v2][follow-clips]")
+{
+    const auto map = followTempoMap();
+    const yesdaw::engine::AutomationClipMove move { yesdaw::engine::TimeBase::TempoLocked, 15'360, 30'720, 46'080 };
+    std::vector<AutomationBreakpoint> out;
+    REQUIRE (yesdaw::engine::moveAutomationWithClips (kFollowLane, std::span (&move, 1), map, out)
+             == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    REQUIRE (spanCompiles (out, map));
+
+    // Every point inside the span moved by exactly the tick delta.
+    for (const AutomationBreakpoint& point : kFollowLane)
+        if (point.tick > 15'360 && point.tick < 46'079)
+        {
+            bool found = false;
+            for (const AutomationBreakpoint& moved : out)
+                found = found || (moved.tick == point.tick + 46'080 && moved.value == point.value);
+            REQUIRE (found);
+        }
+    // The span's edge values travel too: the value at the clip's first tick plays at its new first tick.
+    REQUIRE (std::abs (spanValueAt (out, map, spanFrame (map, 15'360 + 46'080))
+                       - spanValueAt (kFollowLane, map, spanFrame (map, 15'360))) <= 1.0e-9);
+}
+
+TEST_CASE ("Clips moving together carry their own automation, never each other's", "[project][automation][automation-v2][follow-clips]")
+{
+    const auto map = spanTempoMap (120.0, 48'000.0);
+    // Two adjacent SampleLocked clips, both moving right by one clip length: A lands where B was.
+    const std::array<yesdaw::engine::AutomationClipMove, 2> moves {
+        yesdaw::engine::AutomationClipMove { yesdaw::engine::TimeBase::SampleLocked, 24'000, 24'000, 24'000 },
+        yesdaw::engine::AutomationClipMove { yesdaw::engine::TimeBase::SampleLocked, 48'000, 24'000, 24'000 } };
+    std::vector<AutomationBreakpoint> out;
+    REQUIRE (yesdaw::engine::moveAutomationWithClips (kFollowLane, moves, map, out) == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    REQUIRE (spanCompiles (out, map));
+    for (std::int64_t frame = 24'000; frame < 72'000; frame += 5)   // A's and B's spans, each carried whole
+        REQUIRE (std::abs (spanValueAt (out, map, frame + 24'000) - spanValueAt (kFollowLane, map, frame)) <= 1.0e-4);
+}
+
+TEST_CASE ("Automation a clip lands on is replaced; an empty lane stays empty", "[project][automation][automation-v2][follow-clips]")
+{
+    const auto map = spanTempoMap (120.0, 48'000.0);
+    const std::vector<AutomationBreakpoint> lane {
+        { 0, 0.5, AutomationCurveType::Linear }, { 30'000, 0.95, AutomationCurveType::Linear }, { 60'000, 0.5, AutomationCurveType::Linear } };
+    // A flat 0.5 clip span [0, 9 600) moves onto the 0.95 peak at tick 30 000 (frame 46 875).
+    const yesdaw::engine::AutomationClipMove move { yesdaw::engine::TimeBase::SampleLocked, 0, 9'600, 40'000 };
+    std::vector<AutomationBreakpoint> out;
+    REQUIRE (yesdaw::engine::moveAutomationWithClips (lane, std::span (&move, 1), map, out) == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    for (const AutomationBreakpoint& point : out)
+        REQUIRE (point.value < 0.94);   // the peak inside the destination span is gone
+    REQUIRE (spanValueAt (out, map, 46'875) < spanValueAt (lane, map, 46'875));
+
+    REQUIRE (yesdaw::engine::moveAutomationWithClips ({}, std::span (&move, 1), map, out) == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    REQUIRE (out.empty());
+}

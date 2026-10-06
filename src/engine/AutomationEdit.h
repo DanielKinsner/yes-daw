@@ -113,13 +113,17 @@ namespace detail {
 // Log segment cut by the edge is re-shaped between the same values (ADR-0052's accepted approximation).
 // An anchor that would share a frame with the kept neighbour is skipped: the neighbour already holds
 // that value within one frame. With no kept point on a side, the lane holds the written edge value there.
-[[nodiscard]] inline AutomationSpanEditStatus replaceAutomationSpan (std::span<const AutomationBreakpoint> lane,
-                                                                    std::span<const AutomationBreakpoint> written,
-                                                                    const CompiledTempoMap& tempoMap,
-                                                                    std::vector<AutomationBreakpoint>& out)
+// The span law with an explicit span [t0, t1] (inclusive ticks) and the points written inside it — none
+// erases the span, edges anchored (what a clip leaving its span does to the automation it carries away).
+[[nodiscard]] inline AutomationSpanEditStatus replaceAutomationSpanBetween (std::span<const AutomationBreakpoint> lane,
+                                                                           Tick t0,
+                                                                           Tick t1,
+                                                                           std::span<const AutomationBreakpoint> written,
+                                                                           const CompiledTempoMap& tempoMap,
+                                                                           std::vector<AutomationBreakpoint>& out)
 {
     out.clear();
-    if (written.empty())
+    if (t0 < 0 || t1 < t0 || (! written.empty() && (written.front().tick < t0 || written.back().tick > t1)))
         return AutomationSpanEditStatus::InvalidInput;
 
     std::vector<std::int64_t> writtenFrames;
@@ -137,10 +141,10 @@ namespace detail {
     if (! detail::compileAutomationPointFrames (tempoMap, lane, laneFrames))
         return AutomationSpanEditStatus::Uncompilable;
 
-    const Tick t0 = written.front().tick;
-    const Tick t1 = written.back().tick;
-    const std::int64_t f0 = writtenFrames.front();
-    const std::int64_t f1 = writtenFrames.back();
+    std::int64_t f0 = 0;
+    std::int64_t f1 = 0;
+    if (! compiledAutomationFrameForTick (tempoMap, t0, f0) || ! compiledAutomationFrameForTick (tempoMap, t1, f1))
+        return AutomationSpanEditStatus::InvalidInput;
 
     // The kept points on each side (the lane is tick-sorted, so its frames never decrease).
     std::size_t leftEnd = 0;   // [0, leftEnd) kept before the span
@@ -212,6 +216,165 @@ namespace detail {
         previousFrame = frame;
     }
 
+    return AutomationSpanEditStatus::Ok;
+}
+
+// ADR-0052's span replacement: `written` (a ride pass or Pencil sweep: non-empty, strictly increasing ticks
+// and compiled frames, valid values) replaces the span its first and last ticks bound.
+[[nodiscard]] inline AutomationSpanEditStatus replaceAutomationSpan (std::span<const AutomationBreakpoint> lane,
+                                                                    std::span<const AutomationBreakpoint> written,
+                                                                    const CompiledTempoMap& tempoMap,
+                                                                    std::vector<AutomationBreakpoint>& out)
+{
+    out.clear();
+    if (written.empty())
+        return AutomationSpanEditStatus::InvalidInput;
+    return replaceAutomationSpanBetween (lane, written.front().tick, written.back().tick, written, tempoMap, out);
+}
+
+// ADR-0052 "automation follows clips": one clip moving in time on its own track. Its span is half-open in its
+// own time base — frames for a SampleLocked clip, ticks for a TempoLocked one — and `delta` is the move in
+// that same base.
+struct AutomationClipMove
+{
+    TimeBase timeBase = TimeBase::SampleLocked;
+    Tick start = 0;
+    Tick length = 0;
+    Tick delta = 0;
+};
+
+namespace detail {
+
+// A tick carried by the clip's own time law: a SampleLocked clip shifts the tick's FRAME (the automation stays
+// locked to the audio across tempo changes); a TempoLocked clip shifts the tick (locked to the music).
+[[nodiscard]] inline bool automationTickCarriedByClip (const CompiledTempoMap& tempoMap, const AutomationClipMove& move,
+                                                       Tick tick, Tick& out) noexcept
+{
+    if (move.timeBase == TimeBase::TempoLocked)
+    {
+        out = tick + move.delta;
+        return out >= 0;
+    }
+    double frame = 0.0;
+    return tempoMap.frameForTick (tick, frame)
+           && tempoMap.tickForFrame (frame + static_cast<double> (move.delta), out);
+}
+
+// The clip's span [first, last] in ticks (inclusive), before (`moved` false) or after its move.
+[[nodiscard]] inline bool automationClipSpanTicks (const CompiledTempoMap& tempoMap, const AutomationClipMove& move,
+                                                   bool moved, Tick& first, Tick& last) noexcept
+{
+    const Tick start = move.start + (moved ? move.delta : 0);
+    const Tick end = start + move.length;
+    if (move.length <= 0 || start < 0)
+        return false;
+    if (move.timeBase == TimeBase::TempoLocked)
+    {
+        first = start;
+        last = end - 1;
+        return true;
+    }
+    Tick endTick = 0;
+    if (! tempoMap.tickForFrame (static_cast<double> (start), first) || ! tempoMap.tickForFrame (static_cast<double> (end), endTick))
+        return false;
+    last = endTick - 1;
+    return last >= first;
+}
+
+} // namespace detail
+
+// Moving clips (all on one track, in time only) carry the lane's automation in their spans: each clip's
+// block — the lane's value at its span's first and last tick (so the curve inside the span travels whole)
+// and every point between — is captured from the ORIGINAL lane, so clips moving together never pick up
+// each other's points. Every vacated span is erased with edge anchors; every block then replaces its
+// destination span, edges anchored (the span law): points already there are replaced, the curve outside
+// keeps its values. An empty lane stays empty.
+[[nodiscard]] inline AutomationSpanEditStatus moveAutomationWithClips (std::span<const AutomationBreakpoint> lane,
+                                                                      std::span<const AutomationClipMove> moves,
+                                                                      const CompiledTempoMap& tempoMap,
+                                                                      std::vector<AutomationBreakpoint>& out)
+{
+    out.assign (lane.begin(), lane.end());
+    if (lane.empty() || moves.empty())
+        return AutomationSpanEditStatus::Ok;
+
+    std::vector<std::int64_t> laneFrames;
+    if (! detail::compileAutomationPointFrames (tempoMap, lane, laneFrames))
+        return AutomationSpanEditStatus::Uncompilable;
+
+    struct Block
+    {
+        Tick vacatedFirst = 0;
+        Tick vacatedLast = 0;
+        Tick destinationFirst = 0;
+        Tick destinationLast = 0;
+        std::vector<AutomationBreakpoint> points {};
+    };
+    std::vector<Block> blocks;
+    for (const AutomationClipMove& move : moves)
+    {
+        Block block;
+        if (! detail::automationClipSpanTicks (tempoMap, move, false, block.vacatedFirst, block.vacatedLast)
+            || ! detail::automationClipSpanTicks (tempoMap, move, true, block.destinationFirst, block.destinationLast))
+            return AutomationSpanEditStatus::InvalidInput;
+
+        // The block in the lane's ORIGINAL values: its edges, then the points strictly inside.
+        std::vector<AutomationBreakpoint> captured;
+        const auto edge = [&] (Tick tick) {
+            std::int64_t frame = 0;
+            AutomationCurveType curve = AutomationCurveType::Linear;
+            if (! compiledAutomationFrameForTick (tempoMap, tick, frame))
+                return false;
+            const double value = detail::automationValueAtCompiledFrame (lane, laneFrames, frame, curve);
+            captured.push_back ({ tick, std::clamp (value, 0.0, 1.0), curve });
+            return true;
+        };
+        if (! edge (block.vacatedFirst))
+            return AutomationSpanEditStatus::InvalidInput;
+        for (const AutomationBreakpoint& point : lane)
+            if (point.tick > block.vacatedFirst && point.tick < block.vacatedLast)
+                captured.push_back (point);
+        if (block.vacatedLast > block.vacatedFirst && ! edge (block.vacatedLast))
+            return AutomationSpanEditStatus::InvalidInput;
+
+        // Carried by the clip's time law; a point carried onto an earlier point's tick or frame updates it.
+        std::int64_t previousFrame = -1;
+        for (const AutomationBreakpoint& point : captured)
+        {
+            AutomationBreakpoint carried = point;
+            std::int64_t frame = 0;
+            if (! detail::automationTickCarriedByClip (tempoMap, move, point.tick, carried.tick)
+                || ! compiledAutomationFrameForTick (tempoMap, carried.tick, frame))
+                return AutomationSpanEditStatus::InvalidInput;
+            carried.tick = std::clamp (carried.tick, block.destinationFirst, block.destinationLast);
+            if (! compiledAutomationFrameForTick (tempoMap, carried.tick, frame))
+                return AutomationSpanEditStatus::InvalidInput;
+            if (! block.points.empty() && (carried.tick <= block.points.back().tick || frame <= previousFrame))
+                block.points.back().value = carried.value;
+            else
+                block.points.push_back (carried);
+            previousFrame = frame;
+        }
+        blocks.push_back (std::move (block));
+    }
+
+    std::vector<AutomationBreakpoint> edited;
+    for (const Block& block : blocks)
+    {
+        const AutomationSpanEditStatus status =
+            replaceAutomationSpanBetween (out, block.vacatedFirst, block.vacatedLast, {}, tempoMap, edited);
+        if (status != AutomationSpanEditStatus::Ok)
+            return status;
+        out.swap (edited);
+    }
+    for (const Block& block : blocks)
+    {
+        const AutomationSpanEditStatus status =
+            replaceAutomationSpanBetween (out, block.destinationFirst, block.destinationLast, block.points, tempoMap, edited);
+        if (status != AutomationSpanEditStatus::Ok)
+            return status;
+        out.swap (edited);
+    }
     return AutomationSpanEditStatus::Ok;
 }
 
