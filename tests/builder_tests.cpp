@@ -1786,3 +1786,113 @@ TEST_CASE ("GraphBuilder binds the maximum representable bus fan-in without uint
     REQUIRE (masterNode != nullptr);
     REQUIRE (masterNode->numInputs == static_cast<std::uint16_t> (GraphBuilder::kMaxInputsPerNode));
 }
+
+// G4.6 / ADR-0052: while a ride lasts, its target's lane is suspended — the lane emits nothing and the live
+// set is accepted for that one target; the ride's end resumes the lane, which re-primes at the playhead.
+TEST_CASE ("A ride suspends its target's lane so the live value is heard, and the lane plays again after",
+           "[builder][automation][runtime][automation-v2]")
+{
+    constexpr NodeId kProbeId = 44;
+    constexpr yesdaw::engine::ParameterId kParameterId = 7;
+    constexpr yesdaw::engine::ParameterId kOtherParameterId = 8;
+    AutomationProbeState state;
+
+    auto source = std::make_unique<IdentityDcNode> (1, 0.25f, 1);
+    auto probe = std::make_unique<AutomationProbeNode> (kProbeId, state);
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+    probe->setInput (source.get());
+    master->setInputNodes ({ probe.get() });
+
+    GraphBuilder::Inputs inputs;
+    inputs.masterNodeId = kMasterId;
+    inputs.maxBlockSize = 128;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (probe));
+    inputs.nodes.push_back (std::move (master));
+    CompiledAutomationLane lane;
+    lane.targetNode = kProbeId;
+    lane.parameterId = kParameterId;
+    lane.frames = { 0, 100'000 };
+    lane.values = { 0.25, 0.75 };
+    lane.curveTypes = { AutomationCurveType::Linear, AutomationCurveType::Hold };
+    inputs.automationLanes.push_back (lane);
+    CompiledAutomationLane other = lane;   // a second target on the same node stays unsuspended
+    other.parameterId = kOtherParameterId;
+    inputs.automationLanes.push_back (other);
+
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+
+    std::vector<float> out (128, 0.0f);
+    float* outChannels[1] = { out.data() };
+    yesdaw::engine::EventStream events;
+    const auto block = [&] (std::int64_t start) {
+        Transport transport;
+        transport.timelineFrame = start;
+        transport.hasTimelineFrame = true;
+        graph->process (outChannels, 1, static_cast<int> (out.size()), events, transport);
+    };
+    const auto eventsFor = [&state] (yesdaw::engine::ParameterId parameterId) {
+        std::size_t n = 0;
+        for (std::size_t i = 0; i < std::min<std::size_t> (state.count, 8u); ++i)
+            if (state.events[i].payload.parameter.parameterId == parameterId)
+                ++n;
+        return n;
+    };
+
+    // A fresh graph has nothing suspended: both lanes play.
+    REQUIRE_FALSE (graph->isAutomationTargetSuspended (kProbeId, kParameterId));
+    block (0);
+    REQUIRE (eventsFor (kParameterId) > 0u);
+    REQUIRE (eventsFor (kOtherParameterId) > 0u);
+
+    // The ride suspends ONE target: its lane goes quiet, the other keeps playing.
+    REQUIRE (graph->applySetAutomationSuspended (kProbeId, kParameterId, true));
+    REQUIRE (graph->isAutomationTargetSuspended (kProbeId, kParameterId));
+    REQUIRE_FALSE (graph->isAutomationTargetSuspended (kProbeId, kOtherParameterId));
+    block (128);
+    REQUIRE (eventsFor (kParameterId) == 0u);
+    REQUIRE (eventsFor (kOtherParameterId) > 0u);
+    block (256);
+    REQUIRE (eventsFor (kParameterId) == 0u);
+
+    // The ride ends: the lane re-primes at the playhead with the value it holds there.
+    REQUIRE (graph->applySetAutomationSuspended (kProbeId, kParameterId, false));
+    REQUIRE_FALSE (graph->isAutomationTargetSuspended (kProbeId, kParameterId));
+    block (384);
+    REQUIRE (eventsFor (kParameterId) > 0u);
+    bool primed = false;
+    for (std::size_t i = 0; i < std::min<std::size_t> (state.count, 8u); ++i)
+        if (state.events[i].payload.parameter.parameterId == kParameterId && state.events[i].timeInBlock == 0u)
+            primed = state.events[i].payload.parameter.normalizedValue
+                     == Approx (0.25 + 0.5 * 384.0 / 100'000.0);
+    REQUIRE (primed);
+
+    // A target no lane drives is not suspendable.
+    REQUIRE_FALSE (graph->applySetAutomationSuspended (kProbeId, 99, true));
+    REQUIRE_FALSE (graph->applySetAutomationSuspended (12345, kParameterId, true));
+}
+
+TEST_CASE ("A suspended fader lane accepts the live gain; resumed, it refuses it again",
+           "[builder][automation][scalar][automation-v2]")
+{
+    constexpr NodeId kFaderId = 2;
+    GraphBuilder::Inputs inputs = faderInputs (1.0f, kFaderId);
+    CompiledAutomationLane lane;
+    lane.targetNode = kFaderId;
+    lane.parameterId = FaderNode::kGainParameterId;
+    lane.frames = { 0, 64 };
+    lane.values = { 0.5, 0.5 };
+    lane.curveTypes = { AutomationCurveType::Linear, AutomationCurveType::Hold };
+    inputs.automationLanes.push_back (std::move (lane));
+    GraphBuildError error;
+    std::unique_ptr<CompiledGraph> graph = GraphBuilder::build (std::move (inputs), &error);
+    REQUIRE (graph != nullptr);
+
+    REQUIRE_FALSE (graph->applySetGain (kFaderId, 0.25f));   // automation owns the fader (ADR-0039)
+    REQUIRE (graph->applySetAutomationSuspended (kFaderId, FaderNode::kGainParameterId, true));
+    REQUIRE (graph->applySetGain (kFaderId, 0.25f));          // the ride's value is heard
+    REQUIRE (graph->applySetAutomationSuspended (kFaderId, FaderNode::kGainParameterId, false));
+    REQUIRE_FALSE (graph->applySetGain (kFaderId, 0.25f));
+}

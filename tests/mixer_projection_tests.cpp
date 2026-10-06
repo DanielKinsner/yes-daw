@@ -340,6 +340,7 @@ MixerProjectionInputs makeProjectProjectionForTest (const Project& project,
         projection,
         &projectError);
 
+    INFO ("projection error code " << static_cast<int> (projectError.code) << " at index " << projectError.clipIndex);
     REQUIRE (projected);
     REQUIRE (projectError.code == ProjectMixerProjectionError::Code::None);
     return projection;
@@ -1636,4 +1637,58 @@ TEST_CASE ("Mixer projection PDC-aligns a sidechain key with the main path", "[m
 
     // A surviving product (≈ 1.0 * centreGain) proves the main and key impulses met sample-aligned.
     REQUIRE (peak == Approx (kCenterGain).margin (1.0e-4));
+}
+
+// G4.6 / ADR-0052: a ride suspends its target's compiled lane and posts its live value to the same node —
+// projectAutomationRideTarget must name exactly the target the projection compiles each role's lane to.
+TEST_CASE ("A ride's live target is the node and parameter its lane compiles to, for every role",
+           "[mixer][projection][project][automation][automation-v2]")
+{
+    Project project = makeMixerProjectionProject();
+    Bus sendBus;
+    sendBus.id = entityIdFromLowByte (82);
+    sendBus.strip.name = "Return";
+    Bus groupBus;
+    groupBus.id = entityIdFromLowByte (86);
+    groupBus.strip.name = "Group";
+    groupBus.strip.fxChain.push_back ({ entityIdFromLowByte (87), yesdaw::engine::FxKind::Eq, true, {} });
+    groupBus.sends.push_back ({ entityIdFromLowByte (88), sendBus.id, yesdaw::engine::SendTap::PostFader, 0.5f });
+    project.buses = { sendBus, groupBus };
+    Track& track = project.tracks[0];
+    track.strip.fxChain.push_back ({ entityIdFromLowByte (80), yesdaw::engine::FxKind::Eq, true, {} });
+    track.sends.push_back ({ entityIdFromLowByte (84), sendBus.id, yesdaw::engine::SendTap::PostFader, 0.5f });
+    track.outputBusId = groupBus.id;
+    project.automationLanes = {
+        makeAutomationLane (90, track.id, AutomationTargetRole::TrackFader, FaderNode::kGainParameterId),
+        makeAutomationLane (91, track.id, AutomationTargetRole::TrackPan, yesdaw::engine::PanNode::kPanParameterId),
+        makeAutomationLane (92, track.strip.fxChain[0].id, AutomationTargetRole::FxInsertParam, 1),
+        makeAutomationLane (93, track.id, AutomationTargetRole::SendLevel, 0),
+        makeAutomationLane (94, groupBus.id, AutomationTargetRole::BusFader, FaderNode::kGainParameterId),
+        makeAutomationLane (95, groupBus.id, AutomationTargetRole::BusPan, yesdaw::engine::PanNode::kPanParameterId),
+        makeAutomationLane (96, groupBus.strip.fxChain[0].id, AutomationTargetRole::FxInsertParam, 1),
+        makeAutomationLane (97, groupBus.id, AutomationTargetRole::SendLevel, 0),
+        makeAutomationLane (98, sendBus.id, AutomationTargetRole::BusFader, FaderNode::kGainParameterId),
+    };
+    REQUIRE (project.hasValidAssetClipIndirection());
+
+    // A Track's sends reach the projection as routes (the playback engine builds them from Track::sends).
+    const MixerProjectionInputs projection = makeProjectProjectionForTest (
+        project, SourceGainMutation::None,
+        { ProjectMixerSendRoute { track.id, sendBus.id, MixerSendTap::PostFader, 0.5f } });
+    REQUIRE (projection.automationLanes.size() == project.automationLanes.size());
+    for (std::size_t i = 0; i < project.automationLanes.size(); ++i)
+    {
+        const AutomationLaneData& lane = project.automationLanes[i];
+        INFO ("lane " << i);
+        NodeId node = 0;
+        yesdaw::engine::ParameterId parameter = 0;
+        REQUIRE (yesdaw::engine::projectAutomationRideTarget (lane.ownerEntity, lane.role, lane.paramId, node, parameter));
+        REQUIRE (node == projection.automationLanes[i].targetNode);
+        REQUIRE (parameter == projection.automationLanes[i].parameterId);
+    }
+
+    NodeId node = 7;
+    yesdaw::engine::ParameterId parameter = 7;
+    REQUIRE_FALSE (yesdaw::engine::projectAutomationRideTarget (track.id, AutomationTargetRole::InstrumentParam, 0, node, parameter));
+    REQUIRE (node == 0u);
 }

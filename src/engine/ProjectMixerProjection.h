@@ -146,6 +146,50 @@ struct ProjectMixerProjectionError
     return h == 0u ? 1u : h;
 }
 
+// G4.6 / ADR-0052: the compiled target a ride on (owner, role, paramId) drives — the node and parameter
+// the projection below binds that role's lane to (its automation target table; the [automation-v2]
+// projection test cross-checks every role). A ride suspends that lane and posts its live value there.
+// False for an instrument parameter: its node takes no live set (the ride still records).
+[[nodiscard]] inline bool projectAutomationRideTarget (EntityId owner,
+                                                       AutomationTargetRole role,
+                                                       std::uint32_t paramId,
+                                                       NodeId& node,
+                                                       ParameterId& parameter) noexcept
+{
+    switch (role)
+    {
+        case AutomationTargetRole::TrackFader:
+            node = projectMixerNodeIdForTrack (owner, ProjectMixerNodeRole::Fader);
+            parameter = FaderNode::kGainParameterId;
+            return true;
+        case AutomationTargetRole::TrackPan:
+            node = projectMixerNodeIdForTrack (owner, ProjectMixerNodeRole::Pan);
+            parameter = PanNode::kPanParameterId;
+            return true;
+        case AutomationTargetRole::BusFader:
+            node = projectMixerNodeIdForEntity (owner, ProjectMixerNodeRole::Fader);
+            parameter = FaderNode::kGainParameterId;
+            return true;
+        case AutomationTargetRole::BusPan:
+            node = projectMixerNodeIdForEntity (owner, ProjectMixerNodeRole::Pan);
+            parameter = PanNode::kPanParameterId;
+            return true;
+        case AutomationTargetRole::SendLevel:   // a Track's or a Bus's send: the ordinal is the paramId
+            node = projectMixerSendLevelNodeIdForTrack (owner, paramId);
+            parameter = FaderNode::kGainParameterId;
+            return true;
+        case AutomationTargetRole::FxInsertParam:   // the owner is the insert
+            node = projectMixerNodeIdForEntity (owner, ProjectMixerNodeRole::Fx);
+            parameter = static_cast<ParameterId> (paramId);
+            return true;
+        case AutomationTargetRole::InstrumentParam:
+            break;
+    }
+    node = 0;
+    parameter = 0;
+    return false;
+}
+
 namespace detail {
 
 struct ProjectedAutomationTarget

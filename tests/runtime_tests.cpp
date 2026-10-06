@@ -562,3 +562,51 @@ TEST_CASE ("stress: real-node graphs swap under concurrency so RTSan/TSan cover 
     }
     REQUIRE (CompiledGraph::aliveCount() == base);           // no leak, no UAF
 }
+
+// G4.6 / ADR-0052: through the one ordered command lane, a ride's suspension lands before its live
+// SetGain, so the ridden value is heard; resumed, the lane wins again; a rebuilt graph starts unsuspended.
+TEST_CASE ("Runtime lets a ride's SetGain through while the ride suspends the fader lane",
+           "[runtime][automation][automation-v2]")
+{
+    const auto base = CompiledGraph::aliveCount();
+    {
+        constexpr NodeId kFaderId = 40;
+
+        Runtime rt;
+        std::vector<float> buf (512, 1.0f);
+        float* outChannels[1] = { buf.data() };
+        EventStream events;
+        Transport transport;
+        transport.hasTimelineFrame = true;
+        const auto block = [&] (std::int64_t start) {
+            transport.timelineFrame = start;
+            rt.processBlock (outChannels, 1, static_cast<int> (buf.size()), events, transport);
+        };
+
+        REQUIRE (rt.publish (automatedFaderGraph (1, kFaderId, 1.0f)));
+        block (0);
+        REQUIRE (buf.back() == Approx (0.0f).margin (1.0e-6f));   // the lane holds the fader down
+
+        REQUIRE (rt.postSetAutomationSuspended (kFaderId, FaderNode::kGainParameterId, true));
+        REQUIRE (rt.postSetGain (kFaderId, 1.0f));
+        block (512);
+        REQUIRE (rt.scalarsApplied() == 2);
+        REQUIRE (buf.back() == Approx (1.0f).margin (1.0e-6f));   // the ride is heard
+
+        REQUIRE (rt.postSetAutomationSuspended (kFaderId, FaderNode::kGainParameterId, false));
+        block (1024);
+        block (1536);
+        REQUIRE (buf.back() == Approx (0.0f).margin (1.0e-6f));   // the lane plays again
+
+        // A rebuilt graph starts with nothing suspended: a stale live set is refused.
+        REQUIRE (rt.postSetAutomationSuspended (kFaderId, FaderNode::kGainParameterId, true));
+        REQUIRE (rt.publish (automatedFaderGraph (2, kFaderId, 1.0f)));
+        REQUIRE (rt.postSetGain (kFaderId, 1.0f));
+        block (2048);
+        block (2560);
+        REQUIRE (buf.back() == Approx (0.0f).margin (1.0e-6f));
+
+        rt.reclaim();
+    }
+    REQUIRE (CompiledGraph::aliveCount() == base);
+}

@@ -48,6 +48,11 @@ public:
         return runtime_.postSetFxParam (node, paramId, normalizedValue);
     }
 
+    [[nodiscard]] bool postSetAutomationSuspended (NodeId node, ParameterId paramId, bool suspended) noexcept   // G4.6
+    {
+        return runtime_.postSetAutomationSuspended (node, paramId, suspended);
+    }
+
     // AUDIO THREAD / device callback: no allocation, locking, logging, or I/O.
     void processDeviceBlock (float* const* outputChannels,
                              int numOutputChannels,

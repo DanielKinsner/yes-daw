@@ -234,6 +234,7 @@ public:
           masterChannels_ (payload.masterChannels),
           idIndex_ (std::move (payload.idIndex)),
           automationLanes_ (std::move (payload.automationLanes)),
+          automationSuspendWords_ (muteWordCount (automationLanes_.size())),
           isDegenerate_ (false),
           blockParallelSafe_ (payload.blockParallelSafe)
     {
@@ -369,6 +370,8 @@ public:
                 emitAutomationEventsForBlock (automationLanes_,
                                               std::span<CompiledAutomationLaneCursor> (automationLaneCursors_.get(),
                                                                                        automationLanes_.size()),
+                                              std::span<const std::atomic<std::uint64_t>> (automationSuspendWords_.data(),
+                                                                                           automationSuspendWords_.size()),
                                               transport.timelineFrame,
                                               static_cast<std::uint32_t> (numFrames),
                                               std::span<Event> (automationEventStorage_.get(), maxEventsPerBlock_));
@@ -586,12 +589,52 @@ public:
         return node != nullptr && node->muteBit != kNoMuteBit;
     }
 
+    // G4.6 / ADR-0052 (AUDIO THREAD, via the Runtime command lane): a ride suspends the compiled lanes
+    // that drive (id, parameterId) — they emit nothing and the live sets below are accepted for that one
+    // target — and the ride's end resumes them. It mirrors the mute mask (ADR-0016): atomic words, no
+    // allocation, no lock; riding the ordered command lane keeps it ahead of the ride's first live set.
+    // A rebuilt graph starts with no target suspended. False when no compiled lane drives the target.
+    [[nodiscard]] bool applySetAutomationSuspended (NodeId id, ParameterId parameterId, bool suspended) const noexcept YESDAW_RT_HOT
+    {
+        bool matched = false;
+        for (std::size_t i = 0; i < automationLanes_.size(); ++i)
+        {
+            if (automationLanes_[i].targetNode != id || automationLanes_[i].parameterId != parameterId)
+                continue;
+
+            std::atomic<std::uint64_t>& word = automationSuspendWords_[i >> 6u];
+            const std::uint64_t bit = 1ull << (i & 63u);
+            if (suspended)
+                word.fetch_or (bit, std::memory_order_relaxed);
+            else
+                word.fetch_and (~bit, std::memory_order_relaxed);
+            matched = true;
+        }
+        return matched;
+    }
+
+    // Test probe: is every compiled lane driving (id, parameterId) suspended (false when none does)?
+    [[nodiscard]] bool isAutomationTargetSuspended (NodeId id, ParameterId parameterId) const noexcept
+    {
+        bool any = false;
+        const std::span<const std::atomic<std::uint64_t>> words (automationSuspendWords_.data(), automationSuspendWords_.size());
+        for (std::size_t i = 0; i < automationLanes_.size(); ++i)
+        {
+            if (automationLanes_[i].targetNode != id || automationLanes_[i].parameterId != parameterId)
+                continue;
+            if (! automationLaneSuspended (words, i))
+                return false;
+            any = true;
+        }
+        return any;
+    }
+
     [[nodiscard]] bool applySetGain (NodeId id, float linearGain) const noexcept YESDAW_RT_HOT
     {
         const CompiledNode* const node = findCompiledNode (id);
         if (node == nullptr || node->kind != CompiledNodeKind::Fader || node->node == nullptr)
             return false;
-        if (hasCompiledAutomationTarget (id, FaderNode::kGainParameterId))
+        if (automationOwnsTarget (id, FaderNode::kGainParameterId))
             return false;
 
         static_cast<FaderNode*> (node->node)->setTargetGain (linearGain);
@@ -621,7 +664,7 @@ public:
         const CompiledNode* const node = findCompiledNode (id);
         if (node == nullptr || node->kind != CompiledNodeKind::Pan || node->node == nullptr)
             return false;
-        if (hasCompiledAutomationTarget (id, PanNode::kPanParameterId))
+        if (automationOwnsTarget (id, PanNode::kPanParameterId))
             return false;
 
         static_cast<PanNode*> (node->node)->setPan (pan);
@@ -632,13 +675,14 @@ public:
     // setNormalizedParameter writes plain (non-atomic) ramp state, so it may ONLY run here on the
     // audio thread via the ordered command drain — never from the control side. Kind-keyed
     // static_cast (the applySetGain pattern): dynamic_cast is off-limits under YESDAW_RT_HOT. An
-    // automated (compiled-lane) parameter is refused — automation owns it during playback.
+    // automated (compiled-lane) parameter is refused — automation owns it during playback, unless a
+    // ride has suspended its lane (G4.6 / ADR-0052).
     [[nodiscard]] bool applySetFxParam (NodeId id, ParameterId parameterId, double normalizedValue) const noexcept YESDAW_RT_HOT
     {
         const CompiledNode* const node = findCompiledNode (id);
         if (node == nullptr || node->node == nullptr)
             return false;
-        if (hasCompiledAutomationTarget (id, parameterId))
+        if (automationOwnsTarget (id, parameterId))
             return false;
 
         switch (node->kind)
@@ -1043,6 +1087,7 @@ private:
     [[nodiscard]] static std::size_t emitAutomationEventsForBlock (
         std::span<const CompiledAutomationLane> lanes,
         std::span<CompiledAutomationLaneCursor> cursors,
+        std::span<const std::atomic<std::uint64_t>> suspendWords,
         std::int64_t blockStart,
         std::uint32_t numFrames,
         std::span<Event> out) noexcept YESDAW_RT_HOT
@@ -1054,9 +1099,23 @@ private:
         const std::int64_t blockEnd = saturatedBlockEnd (blockStart, numFrames);
         YESDAW_RT_FATAL (cursors.size() == lanes.size());
         for (std::size_t i = 0; i < lanes.size(); ++i)
+        {
+            // G4.6 / ADR-0052: a lane a ride suspended emits nothing. Its cursor keeps the last block end
+            // it saw, so the first block after the ride re-primes it at the playhead — the lane plays again.
+            if (automationLaneSuspended (suspendWords, i))
+                continue;
             emitCompiledLaneAutomationEvents (lanes[i], cursors[i], blockStart, blockEnd, out, count);
+        }
 
         return count;
+    }
+
+    [[nodiscard]] static bool automationLaneSuspended (std::span<const std::atomic<std::uint64_t>> suspendWords,
+                                                       std::size_t laneIndex) noexcept YESDAW_RT_HOT
+    {
+        const std::size_t word = laneIndex >> 6u;
+        return word < suspendWords.size()
+               && (suspendWords[word].load (std::memory_order_relaxed) & (1ull << (laneIndex & 63u))) != 0;
     }
 
     static void debugPaintPooledSlots (float* const* slots,
@@ -1090,10 +1149,14 @@ private:
         return &compiledNodes_[compiledIdx];
     }
 
-    [[nodiscard]] bool hasCompiledAutomationTarget (NodeId id, ParameterId parameterId) const noexcept YESDAW_RT_HOT
+    // A compiled lane drives (id, parameterId) and no ride has suspended it: automation owns the target
+    // (ADR-0039's read-mode rule) and a live set on it is refused.
+    [[nodiscard]] bool automationOwnsTarget (NodeId id, ParameterId parameterId) const noexcept YESDAW_RT_HOT
     {
-        for (const CompiledAutomationLane& lane : automationLanes_)
-            if (lane.targetNode == id && lane.parameterId == parameterId)
+        const std::span<const std::atomic<std::uint64_t>> words (automationSuspendWords_.data(), automationSuspendWords_.size());
+        for (std::size_t i = 0; i < automationLanes_.size(); ++i)
+            if (automationLanes_[i].targetNode == id && automationLanes_[i].parameterId == parameterId
+                && ! automationLaneSuspended (words, i))
                 return true;
 
         return false;
@@ -1125,6 +1188,9 @@ private:
     std::uint16_t                                 masterChannels_   = 1;
     std::vector<std::pair<NodeId, std::uint32_t>> idIndex_;
     std::vector<CompiledAutomationLane>           automationLanes_;
+    // G4.6 / ADR-0052: bit i = automationLanes_[i] suspended by a ride. Mutable: the audio thread applies
+    // it through the const graph it runs, exactly as the scalar sets reach their nodes.
+    mutable std::vector<std::atomic<std::uint64_t>> automationSuspendWords_;
     mutable std::vector<DelayCacheEntry>          delayCache_;
     bool                                          isDegenerate_     = true;
     bool                                          blockParallelSafe_ = false;   // ADR-0027

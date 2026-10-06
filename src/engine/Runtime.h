@@ -161,6 +161,13 @@ public:
         return cmdFifo_.push (Command { CommandType::SetFxParam, nullptr, node, 0.0f, paramId, normalizedValue });
     }
 
+    // G4.6 / ADR-0052 (CONTROL THREAD): a ride suspends (or resumes) the compiled lanes driving one target,
+    // on the same ordered queue as the ride's live scalar sets, so the suspension always lands first.
+    [[nodiscard]] bool postSetAutomationSuspended (NodeId node, ParameterId paramId, bool suspended) noexcept
+    {
+        return cmdFifo_.push (Command { CommandType::SetAutomationSuspended, nullptr, node, suspended ? 1.0f : 0.0f, paramId, 0.0 });
+    }
+
     // G0.5 (CONTROL THREAD): hand a Track's next ClipSchedule to the audio thread. Ownership
     // transfers on success (the audio thread installs it and retires the previous one to the
     // janitor); on a full queue `schedule` destructs here and the caller converges by a rebuild.
@@ -354,6 +361,11 @@ private:
 
             case CommandType::SetFxParam:
                 if (current_ != nullptr && current_->applySetFxParam (c.node, c.paramId, c.normalized))
+                    scalarsApplied_.fetch_add (1, std::memory_order_relaxed);
+                break;
+
+            case CommandType::SetAutomationSuspended:   // G4.6 / ADR-0052
+                if (current_ != nullptr && current_->applySetAutomationSuspended (c.node, c.paramId, c.value != 0.0f))
                     scalarsApplied_.fetch_add (1, std::memory_order_relaxed);
                 break;
 

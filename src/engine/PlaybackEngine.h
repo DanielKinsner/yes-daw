@@ -373,6 +373,13 @@ public:
         return liveGraph_ != nullptr && driver_.postSetFxParam (node, paramId, normalizedValue);
     }
 
+    // G4.6 / ADR-0052: a ride suspends (resumes) the compiled lanes driving one target, so the riding
+    // control's live sets are heard while it lasts.
+    [[nodiscard]] bool postLiveSetAutomationSuspended (NodeId node, ParameterId paramId, bool suspended) noexcept
+    {
+        return liveGraph_ != nullptr && driver_.postSetAutomationSuspended (node, paramId, suspended);
+    }
+
     // G0.5 — the live placement lane (CONTROL THREAD): publish a Track's new ClipSchedule to its
     // schedule node through the ordered command queue. The audio thread installs it and retires
     // the previous one to the janitor (reclaim()). Refused on a transport-only engine.
