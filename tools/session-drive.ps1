@@ -19,6 +19,7 @@
 #   Drag <from> <to> [-Modifiers ...]  - press at `from`, move in steps, release at `to`
 #   DragWithin <id> fx fy tx ty [-Modifiers ...] - a drag inside one element, offsets from its centre
 #   Key "<chord>" [-Repeat n]          - e.g. "Space", "Ctrl+Shift+I", "Alt+Right", "F2", "K"
+#   KeyWhileBusy "<chord>" [-ModifierAfter] - the chord queued behind a held UI thread (ADR-0057)
 #   TypeText "<text>"                  - unicode text into whatever has focus (not `Type`: a built-in alias)
 #   FileDialogEnter "<path>"           - after WaitDialog: settle, select-all, type the path, Enter
 #   Probe                              - the latest probe document (PSObject)
@@ -282,6 +283,36 @@ public static class YesDawDrive
         Inject(a);
     }
 
+    [DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr OpenThread(uint access, bool inherit, uint threadId);
+    [DllImport("kernel32.dll", SetLastError = true)] static extern int SuspendThread(IntPtr thread);
+    [DllImport("kernel32.dll", SetLastError = true)] static extern int ResumeThread(IntPtr thread);
+    [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
+
+    // ADR-0057: hold the app's UI thread (the window's thread) still, so keys sent now queue exactly as they
+    // do behind a busy UI. Returns the thread handle; ResumeUiThread must follow (in a finally).
+    public static IntPtr SuspendUiThread(IntPtr window)
+    {
+        uint pid; uint tid = GetWindowThreadProcessId(window, out pid);
+        if (tid == 0) throw new InvalidOperationException("no UI thread for window " + window);
+        IntPtr thread = OpenThread(0x0002, false, tid);   // THREAD_SUSPEND_RESUME
+        if (thread == IntPtr.Zero) throw new InvalidOperationException("OpenThread failed; Win32=" + Marshal.GetLastWin32Error());
+        if (SuspendThread(thread) < 0)
+        {
+            int error = Marshal.GetLastWin32Error();
+            CloseHandle(thread);
+            throw new InvalidOperationException("SuspendThread failed; Win32=" + error);
+        }
+        return thread;
+    }
+
+    // The suspend count before this resume: 1 means the thread was held once, by us, and runs again.
+    public static int ResumeUiThread(IntPtr thread)
+    {
+        int previous = ResumeThread(thread);
+        CloseHandle(thread);
+        return previous;
+    }
+
     public static void UnicodeChar(char c)
     {
         INPUT d = new INPUT(); d.type = 1; d.u.ki.wScan = c; d.u.ki.dwFlags = 0x0004u;
@@ -462,6 +493,9 @@ function Key([string] $chord, [int] $Repeat = 1) {
   # JUCE reads modifier state with GetAsyncKeyState (the PHYSICAL state at processing time), not
   # from the message queue — so a modifier must still be held when the app gets round to the key
   # message. Hold it for a beat on both sides of the key or "Ctrl+N" arrives as "N".
+  # ADR-0057 fixed that in the app for the shell's chords (they read the key-time state); the holds
+  # and the idle wait below stay: JUCE popups and text fields still read the physical state, and
+  # they keep every drive deterministic. KeyWhileBusy is the queued case on purpose.
   # A repeat burst holds the modifier ONCE across all presses (a user holds Alt and taps Right),
   # so fifty nudges take about a second, not a minute of modifier settling.
   # A chord also waits for the app to be idle first (its UI tick advances twice): a key that sits in the queue
@@ -483,6 +517,38 @@ function Key([string] $chord, [int] $Repeat = 1) {
   }
   if ($mods.Count -gt 0) { Start-Sleep -Milliseconds 80 }
   foreach ($m in ($mods | Sort-Object -Descending)) { [YesDawDrive]::KeyEvent([uint16]$m, $false, $false) }
+}
+
+# ADR-0057: a chord that waits behind a busy UI, on purpose. The app's UI thread is held still, the whole
+# chord goes in and every key comes back up, then the thread runs and finds the chord waiting in its queue
+# with the modifiers already released. -ModifierAfter is the other direction: the key goes in bare and the
+# modifier goes down only after it (still while the thread is held) and is released once the app has read
+# the key. The thread is always resumed.
+function KeyWhileBusy([string] $chord, [switch] $ModifierAfter) {
+  $parts = @($chord.Split('+') | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' })
+  if ($parts.Count -lt 2) { throw "KeyWhileBusy needs a modifier chord, not '$chord'" }
+  $mods = @(ModifierVks (($parts[0..($parts.Count - 2)]) -join '+'))
+  $vk = VkFor $parts[-1]
+  $ext = $script:ExtendedVk -contains $vk
+  $thread = [YesDawDrive]::SuspendUiThread($script:Hwnd)
+  $previous = -1
+  try {
+    if (-not $ModifierAfter) { foreach ($m in $mods) { [YesDawDrive]::KeyEvent([uint16]$m, $true, $false) } }
+    [YesDawDrive]::KeyEvent([uint16]$vk, $true, $ext)
+    [YesDawDrive]::KeyEvent([uint16]$vk, $false, $ext)
+    if ($ModifierAfter) { foreach ($m in $mods) { [YesDawDrive]::KeyEvent([uint16]$m, $true, $false) } }
+    else { foreach ($m in ($mods | Sort-Object -Descending)) { [YesDawDrive]::KeyEvent([uint16]$m, $false, $false) } }
+    Start-Sleep -Milliseconds 60
+  } finally {
+    $previous = [YesDawDrive]::ResumeUiThread($thread)
+    if ($ModifierAfter) {
+      # the app reads the queued key while the modifier is still down; then it comes up
+      $t0 = [int64](Probe).tick
+      [void](WaitProbe { param($q) [int64]$q.tick -ge $t0 + 2 } -TimeoutMs 1500)
+      foreach ($m in ($mods | Sort-Object -Descending)) { [YesDawDrive]::KeyEvent([uint16]$m, $false, $false) }
+    }
+  }
+  if ($previous -ne 1) { throw "the UI thread's suspend count before resume was $previous (expected 1)" }
 }
 
 function TypeText([string] $text) {

@@ -12,6 +12,8 @@
 #    the requested bundle path, and imports the fixture through the real Import chooser.
 #  - "Duplicate Track" and "Create MIDI Clip" have no chord in the plan's §4 table: the "same four
 #    by chord" step uses the two chords that exist (Ctrl+T split, M marker).
+#  - ADR-0057 (2026-10-06): step 10 sends chords while the app's UI thread is held still (KeyWhileBusy),
+#    the queued-key case a busy UI makes; each chord must mean what was held when its key went down.
 
 $bundle = Join-Path ([System.IO.Path]::GetTempPath()) ('ss2-mouse-then-keys-' + (Get-Date).ToString('HHmmss') + '.yesdaw')
 if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $bundle }
@@ -200,4 +202,19 @@ Step 9 'Screenshots at the three rubric sizes'
 Resize 1280 720;  Start-Sleep -Milliseconds 400; Shot 'ss2-1280x720'
 Resize 1920 1080; Start-Sleep -Milliseconds 400; Shot 'ss2-1920x1080'
 Resize 2560 1440; Start-Sleep -Milliseconds 400; Shot 'ss2-2560x1440'
+
+Step 10 'A chord that waits behind a busy UI means what was held when its key went down (ADR-0057)'
+# The UI thread is held while the chord goes in and every key comes back up, so the app reads the whole
+# chord from its queue afterwards — the 2026-10-06 case where Ctrl+Z after an engine rebuild became Z.
+Focus
+Resize 1920 1080; Start-Sleep -Milliseconds 300
+[void](Assert ((Probe).lastAction -ne 'edit.undo') ('precondition: the last action is not Undo (lastAction=' + (Probe).lastAction + ')'))
+KeyWhileBusy 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) $q.lastAction -eq 'edit.undo' } -TimeoutMs 2000) ('Ctrl+Z queued behind a held UI, Ctrl up before the app read it: Undo (lastAction=' + (Probe).lastAction + ')'))
+KeyWhileBusy 'Ctrl+Shift+Z'
+[void](Assert (WaitProbe { param($q) $q.lastAction -eq 'edit.redo' } -TimeoutMs 2000) ('Ctrl+Shift+Z queued the same way: Redo (lastAction=' + (Probe).lastAction + ')'))
+KeyWhileBusy 'Ctrl+Z' -ModifierAfter
+[void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.zoom.selection' } -TimeoutMs 2000) ('a bare Z queued before Ctrl went down stays Z: Zoom to Selection, not Undo (lastAction=' + (Probe).lastAction + ')'))
+$tickNow = [int64](Probe).tick
+[void](Assert (WaitProbe { param($q) [int64]$q.tick -ge $tickNow + 2 } -TimeoutMs 1500) 'the app keeps ticking after its UI thread is released')
 Close
