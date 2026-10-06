@@ -4940,4 +4940,28 @@ namespace detail {
     return ProjectEditStatus::Applied;
 }
 
+// G4.6 / ADR-0052: one lane's points replaced wholesale — what a ride pass or a Pencil or Eraser sweep
+// commits. The span law lives in AutomationEdit.h; this refuses only a malformed result.
+[[nodiscard]] inline ProjectEditStatus replaceAutomationLanePoints (Project& project,
+                                                                    EntityId laneId,
+                                                                    std::vector<AutomationBreakpoint> points)
+{
+    if (! detail::projectCanApplyAutomationEdit (project))
+        return ProjectEditStatus::InvalidProject;
+
+    if (! laneId.isValid())
+        return ProjectEditStatus::InvalidAutomationLaneId;
+
+    AutomationLaneData* const lane = detail::findAutomationLane (project, laneId);
+    if (lane == nullptr)
+        return ProjectEditStatus::AutomationLaneNotFound;
+
+    for (std::size_t i = 0; i < points.size(); ++i)
+        if (! points[i].isValid() || (i > 0u && points[i].tick <= points[i - 1u].tick))
+            return ProjectEditStatus::InvalidAutomationBreakpoint;
+
+    lane->points = std::move (points);
+    return ProjectEditStatus::Applied;
+}
+
 } // namespace yesdaw::engine

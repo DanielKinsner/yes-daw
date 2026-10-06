@@ -3,6 +3,7 @@
 // This locks the storage-facing EntityId/Asset/Clip/Project surface before SQLite schema v1 starts
 // serializing it.
 
+#include "engine/AutomationEdit.h"
 #include "engine/ClipEnvelope.h"
 #include "engine/ClipSilence.h"
 #include "engine/Project.h"
@@ -3153,4 +3154,281 @@ TEST_CASE ("Write mode and automation-follows-clips are undoable settings", "[pr
     REQUIRE (project.automationFollowsClips);
     REQUIRE (yesdaw::engine::setAutomationMode (project, static_cast<yesdaw::engine::AutomationMode> (5))
              == ProjectEditStatus::InvalidProject);
+}
+
+// ---- G4.6 / ADR-0052: a ride or Pencil pass replaces the span it writes, edges anchored ----------------
+namespace
+{
+yesdaw::engine::CompiledTempoMap spanTempoMap (double bpm, double sampleRateHz)
+{
+    const std::array<yesdaw::engine::TempoChange, 1> changes { yesdaw::engine::TempoChange { 0, bpm } };
+    yesdaw::engine::CompiledTempoMap compiled;
+    REQUIRE (yesdaw::engine::CompiledTempoMap::build (yesdaw::engine::TempoMapView { changes.data(), changes.size() },
+                                                      yesdaw::engine::SampleRate { sampleRateHz },
+                                                      compiled));
+    return compiled;
+}
+
+std::int64_t spanFrame (const yesdaw::engine::CompiledTempoMap& map, yesdaw::engine::Tick tick)
+{
+    std::int64_t frame = 0;
+    REQUIRE (yesdaw::engine::compiledAutomationFrameForTick (map, tick, frame));
+    return frame;
+}
+
+// The value a lane plays at `frame`, by the compiled law.
+double spanValueAt (const std::vector<AutomationBreakpoint>& points, const yesdaw::engine::CompiledTempoMap& map, std::int64_t frame)
+{
+    std::vector<std::int64_t> frames;
+    REQUIRE (yesdaw::engine::detail::compileAutomationPointFrames (map, points, frames));
+    AutomationCurveType curve = AutomationCurveType::Linear;
+    return yesdaw::engine::detail::automationValueAtCompiledFrame (points, frames, frame, curve);
+}
+
+// Every point of `points` compiles to its own, strictly later frame (what the projection demands).
+bool spanCompiles (const std::vector<AutomationBreakpoint>& points, const yesdaw::engine::CompiledTempoMap& map)
+{
+    std::int64_t previous = -1;
+    for (const AutomationBreakpoint& point : points)
+    {
+        std::int64_t frame = 0;
+        if (! yesdaw::engine::compiledAutomationFrameForTick (map, point.tick, frame) || frame <= previous)
+            return false;
+        previous = frame;
+    }
+    return true;
+}
+
+std::vector<AutomationBreakpoint> spanRide (yesdaw::engine::Tick first, yesdaw::engine::Tick last, int count, double startValue)
+{
+    std::vector<AutomationBreakpoint> ride;
+    for (int i = 0; i < count; ++i)
+        ride.push_back ({ first + (last - first) * i / (count - 1), startValue + 0.3 * i / count, AutomationCurveType::Linear });
+    return ride;
+}
+} // namespace
+
+TEST_CASE ("A ride replaces the span it writes and the Linear curve outside it keeps its values", "[project][automation][automation-v2]")
+{
+    const auto map = spanTempoMap (120.0, 48'000.0);   // 1.5625 frames per tick
+    const std::vector<AutomationBreakpoint> lane {
+        { 0, 0.2, AutomationCurveType::Linear }, { 15'360, 0.8, AutomationCurveType::Linear },
+        { 30'720, 0.4, AutomationCurveType::Linear }, { 46'080, 0.6, AutomationCurveType::Linear } };
+    const std::vector<AutomationBreakpoint> ride = spanRide (10'000, 20'000, 6, 0.5);
+
+    std::vector<AutomationBreakpoint> out;
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (lane, ride, map, out) == yesdaw::engine::AutomationSpanEditStatus::Ok);
+
+    // 0 kept | anchor 9999 | six written | anchor 20001 | 30720, 46080 kept — the point at 15360 was in the span.
+    REQUIRE (out.size() == 11u);
+    REQUIRE (out[0] == lane[0]);
+    REQUIRE (out[1].tick == 9'999);
+    REQUIRE (std::equal (ride.begin(), ride.end(), out.begin() + 2));
+    REQUIRE (out[8].tick == 20'001);
+    REQUIRE (out[9] == lane[2]);
+    REQUIRE (out[10] == lane[3]);
+    REQUIRE (spanCompiles (out, map));
+
+    // Outside the span the lane plays what it played before: exactly on the untouched segments, within
+    // rounding on the two segments an anchor cut.
+    const std::int64_t leftEdge = spanFrame (map, 9'999);
+    const std::int64_t rightEdge = spanFrame (map, 20'001);
+    const std::int64_t untouched = spanFrame (map, 30'720);
+    for (std::int64_t frame = 0; frame <= spanFrame (map, 46'080) + 4'800; ++frame)
+    {
+        if (frame > leftEdge && frame < rightEdge)
+            continue;
+        const double before = spanValueAt (lane, map, frame);
+        const double after = spanValueAt (out, map, frame);
+        if (frame >= untouched || frame == 0)
+            REQUIRE (after == before);
+        else
+            REQUIRE (std::abs (after - before) <= 1.0e-12);
+    }
+    // Inside the span the ride plays.
+    REQUIRE (spanValueAt (out, map, spanFrame (map, 10'000)) == ride.front().value);
+    REQUIRE (spanValueAt (out, map, spanFrame (map, 20'000)) == ride.back().value);
+}
+
+TEST_CASE ("A span replaced over Hold segments leaves the curve outside it bit-identical", "[project][automation][automation-v2]")
+{
+    const auto map = spanTempoMap (120.0, 48'000.0);
+    const std::vector<AutomationBreakpoint> lane {
+        { 0, 0.3, AutomationCurveType::Hold }, { 30'720, 0.9, AutomationCurveType::Hold } };
+    const std::vector<AutomationBreakpoint> ride = spanRide (10'000, 12'000, 3, 0.6);
+
+    std::vector<AutomationBreakpoint> out;
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (lane, ride, map, out) == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    REQUIRE (out.size() == 7u);
+    REQUIRE (out[1] == AutomationBreakpoint { 9'999, 0.3, AutomationCurveType::Hold });
+    REQUIRE (out[5] == AutomationBreakpoint { 12'001, 0.3, AutomationCurveType::Hold });
+
+    const std::int64_t leftEdge = spanFrame (map, 9'999);
+    const std::int64_t rightEdge = spanFrame (map, 12'001);
+    for (std::int64_t frame = 0; frame <= spanFrame (map, 30'720) + 4'800; ++frame)
+        if (frame <= leftEdge || frame >= rightEdge)
+            REQUIRE (spanValueAt (out, map, frame) == spanValueAt (lane, map, frame));
+}
+
+TEST_CASE ("A second pass over the same span replaces the first instead of being refused", "[project][automation][automation-v2]")
+{
+    const auto map = spanTempoMap (120.0, 48'000.0);
+    const std::vector<AutomationBreakpoint> lane {
+        { 0, 0.2, AutomationCurveType::Linear }, { 46'080, 0.6, AutomationCurveType::Linear } };
+    std::vector<AutomationBreakpoint> first;
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (lane, spanRide (10'000, 20'000, 5, 0.5), map, first)
+             == yesdaw::engine::AutomationSpanEditStatus::Ok);
+
+    const std::vector<AutomationBreakpoint> secondRide = spanRide (10'000, 20'000, 5, 0.1);
+    std::vector<AutomationBreakpoint> second;
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (first, secondRide, map, second)
+             == yesdaw::engine::AutomationSpanEditStatus::Ok);
+
+    // The first pass's anchors are reused, not stacked: same shape, the second ride's values.
+    REQUIRE (second.size() == first.size());
+    REQUIRE (second.front() == first.front());
+    REQUIRE (second[1] == first[1]);
+    REQUIRE (std::equal (secondRide.begin(), secondRide.end(), second.begin() + 2));
+    REQUIRE (second[second.size() - 2u] == first[first.size() - 2u]);
+    REQUIRE (second.back() == first.back());
+    for (const AutomationBreakpoint& point : second)
+        REQUIRE_FALSE ((point.tick >= 10'000 && point.tick <= 20'000 && point.value >= 0.5));
+}
+
+TEST_CASE ("A span written into an empty or one-sided lane holds its written edge values outside", "[project][automation][automation-v2]")
+{
+    const auto map = spanTempoMap (120.0, 48'000.0);
+    const std::vector<AutomationBreakpoint> ride = spanRide (10'000, 20'000, 4, 0.5);
+
+    std::vector<AutomationBreakpoint> out;
+    REQUIRE (yesdaw::engine::replaceAutomationSpan ({}, ride, map, out) == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    REQUIRE (out == ride);
+
+    // Points only before the span: a left anchor, none on the right — the lane holds the last written value.
+    const std::vector<AutomationBreakpoint> before { { 0, 0.9, AutomationCurveType::Linear }, { 5'000, 0.7, AutomationCurveType::Linear } };
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (before, ride, map, out) == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    REQUIRE (out.size() == before.size() + 1u + ride.size());
+    REQUIRE (out[2] == AutomationBreakpoint { 9'999, 0.7, AutomationCurveType::Linear });
+    REQUIRE (out.back() == ride.back());
+    REQUIRE (spanValueAt (out, map, spanFrame (map, 40'000)) == ride.back().value);
+}
+
+TEST_CASE ("An edge anchor steps past ticks that share the span edge's audio frame at fast tempos", "[project][automation][automation-v2]")
+{
+    // 240 BPM at 44.1 kHz: 0.718 frames per tick, so t0 - 1 often rounds onto t0's frame — a literal
+    // t0 - 1 anchor would make the lane uncompilable and the whole edit unplayable.
+    const auto map = spanTempoMap (240.0, 44'100.0);
+    yesdaw::engine::Tick t0 = 1'000;
+    while (spanFrame (map, t0 - 1) != spanFrame (map, t0))
+        ++t0;
+
+    // An old point at t0 - 1 shares t0's frame: it goes with the span; the anchor lands on an earlier frame.
+    const std::vector<AutomationBreakpoint> lane {
+        { 0, 0.2, AutomationCurveType::Linear }, { t0 - 1, 0.4, AutomationCurveType::Linear },
+        { 40'000, 0.6, AutomationCurveType::Linear } };
+    const std::vector<AutomationBreakpoint> ride { { t0, 0.9, AutomationCurveType::Linear }, { t0 + 2'000, 0.8, AutomationCurveType::Linear } };
+
+    std::vector<AutomationBreakpoint> out;
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (lane, ride, map, out) == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    REQUIRE (spanCompiles (out, map));
+    REQUIRE (out[0] == lane[0]);
+    REQUIRE (out[1].tick < t0 - 1);
+    REQUIRE (spanFrame (map, out[1].tick) < spanFrame (map, t0));
+    REQUIRE (out[1].value == spanValueAt (lane, map, spanFrame (map, out[1].tick)));
+    REQUIRE (out[2] == ride[0]);
+    REQUIRE (out.back() == lane[2]);
+    for (const AutomationBreakpoint& point : out)
+        REQUIRE (point.tick != t0 - 1);
+}
+
+TEST_CASE ("An anchor that cuts a Bezier segment keeps the old value and carries the old curve", "[project][automation][automation-v2]")
+{
+    const auto map = spanTempoMap (120.0, 48'000.0);
+    const std::vector<AutomationBreakpoint> lane {
+        { 0, 0.0, AutomationCurveType::Bezier }, { 30'720, 1.0, AutomationCurveType::Linear } };
+    std::vector<AutomationBreakpoint> out;
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (lane, spanRide (10'000, 12'000, 3, 0.5), map, out)
+             == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    REQUIRE (out.size() == 7u);
+    REQUIRE (out[1].tick == 9'999);
+    REQUIRE (out[1].curveType == AutomationCurveType::Bezier);
+    REQUIRE (out[1].value == spanValueAt (lane, map, spanFrame (map, 9'999)));
+    REQUIRE (out[5].tick == 12'001);
+    REQUIRE (out[5].curveType == AutomationCurveType::Bezier);
+    REQUIRE (out[5].value == spanValueAt (lane, map, spanFrame (map, 12'001)));
+}
+
+TEST_CASE ("A malformed pass is refused whole", "[project][automation][automation-v2]")
+{
+    const auto map = spanTempoMap (120.0, 48'000.0);
+    const std::vector<AutomationBreakpoint> lane { { 0, 0.2, AutomationCurveType::Linear } };
+    std::vector<AutomationBreakpoint> out { { 1, 0.1, AutomationCurveType::Linear } };
+    using yesdaw::engine::AutomationSpanEditStatus;
+
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (lane, {}, map, out) == AutomationSpanEditStatus::InvalidInput);
+    REQUIRE (out.empty());
+    const std::vector<AutomationBreakpoint> unsorted { { 2'000, 0.5, AutomationCurveType::Linear }, { 1'000, 0.5, AutomationCurveType::Linear } };
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (lane, unsorted, map, out) == AutomationSpanEditStatus::InvalidInput);
+    const std::vector<AutomationBreakpoint> outOfRange { { 1'000, 1.5, AutomationCurveType::Linear } };
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (lane, outOfRange, map, out) == AutomationSpanEditStatus::InvalidInput);
+
+    // Two written points on one audio frame (fast tempo) would not compile.
+    const auto fast = spanTempoMap (240.0, 44'100.0);
+    yesdaw::engine::Tick t = 1'000;
+    while (spanFrame (fast, t) != spanFrame (fast, t + 1))
+        ++t;
+    const std::vector<AutomationBreakpoint> sameFrame { { t, 0.5, AutomationCurveType::Linear }, { t + 1, 0.6, AutomationCurveType::Linear } };
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (lane, sameFrame, fast, out) == AutomationSpanEditStatus::InvalidInput);
+    REQUIRE (out.empty());
+}
+
+TEST_CASE ("Replacing a lane's points is one undo step that undo and redo replay exactly", "[project][automation][automation-v2][undo]")
+{
+    Project project = makeEditableProject();
+    const EntityId ownerId = project.tracks.front().id;
+    const EntityId laneId = idFromLowByte (90);
+    ProjectUndoStack undo;
+
+    // Lane creation and the pass in one transaction group: one undo step.
+    REQUIRE (undo.beginTransactionGroup());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addAutomationLane (laneId, ownerId, AutomationTargetRole::TrackFader, 1)).applied());
+    const std::vector<AutomationBreakpoint> pass = spanRide (1'000, 9'000, 400, 0.1);
+    REQUIRE (undo.replaceAutomationLanePoints (project, laneId, pass).applied());
+    REQUIRE (undo.endTransactionGroup());
+    REQUIRE (undo.nextUndo() != nullptr);
+    REQUIRE (undo.nextUndo()->command.verb == yesdaw::engine::ProjectEditVerb::ReplaceAutomationLanePoints);
+    REQUIRE (std::string_view (yesdaw::engine::projectEditVerbLabel (yesdaw::engine::ProjectEditVerb::ReplaceAutomationLanePoints)) == "Edit Automation");
+    REQUIRE (project.automationLanes.front().points == pass);
+    const Project afterPass = project;
+
+    // A second pass is its own step.
+    std::vector<AutomationBreakpoint> replaced = pass;
+    replaced.resize (10u);
+    REQUIRE (undo.replaceAutomationLanePoints (project, laneId, replaced).applied());
+    REQUIRE (project.automationLanes.front().points == replaced);
+
+    REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (project.automationLanes == afterPass.automationLanes);
+    REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (project.automationLanes.empty());
+    REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (project.automationLanes == afterPass.automationLanes);
+    REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (project.automationLanes.front().points == replaced);
+
+    // The same points again are no step; malformed points and a missing lane are refused with nothing changed.
+    const Project settled = project;
+    REQUIRE_FALSE (undo.replaceAutomationLanePoints (project, laneId, replaced).applied());
+    std::vector<AutomationBreakpoint> unsorted = replaced;
+    std::swap (unsorted[0], unsorted[1]);
+    REQUIRE (undo.replaceAutomationLanePoints (project, laneId, unsorted).editStatus == ProjectEditStatus::InvalidAutomationBreakpoint);
+    REQUIRE (undo.replaceAutomationLanePoints (project, idFromLowByte (91), replaced).editStatus == ProjectEditStatus::AutomationLaneNotFound);
+    REQUIRE (project.automationLanes == settled.automationLanes);
+
+    // The bare command carries no points: dispatching it is refused.
+    ProjectEditCommand bare;
+    bare.verb = yesdaw::engine::ProjectEditVerb::ReplaceAutomationLanePoints;
+    bare.automationLaneId = laneId;
+    REQUIRE_FALSE (undo.apply (project, bare).applied());
+    REQUIRE (project.automationLanes == settled.automationLanes);
 }

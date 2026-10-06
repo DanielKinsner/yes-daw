@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "engine/AutomationEdit.h"   // G4.6: compiledAutomationFrameForTick, the one breakpoint-frame law
 #include "engine/Midi.h"
 #include "engine/MixerGraphProjection.h"
 #include "engine/Project.h"
@@ -399,16 +400,10 @@ inline bool setMidiEffectInput (Node& node, Node* input) noexcept
     bool havePrevious = false;
     for (const AutomationBreakpoint& point : lane.points)
     {
-        double frame = 0.0;
-        if (! tempoMap.frameForTick (point.tick, frame) || ! std::isfinite (frame) || frame < 0.0)
+        std::int64_t roundedFrame = 0;
+        if (! compiledAutomationFrameForTick (tempoMap, point.tick, roundedFrame))
             return false;
 
-        constexpr double kMaxFrame =
-            static_cast<double> (std::numeric_limits<std::int64_t>::max()) - 1.0;
-        if (frame > kMaxFrame)
-            return false;
-
-        const std::int64_t roundedFrame = static_cast<std::int64_t> (std::llround (frame));
         if (havePrevious && roundedFrame <= previousFrame)
             return false;
 

@@ -120,7 +120,8 @@ enum class ProjectEditVerb : std::uint8_t
     SplitMidiClip,
     JoinMidiClips,
     SetFxInsertSidechain,   // ADR-0051: key a Compressor (or clear its key)
-    SetAutomationFollowsClips   // G4.6 / ADR-0052
+    SetAutomationFollowsClips,   // G4.6 / ADR-0052
+    ReplaceAutomationLanePoints   // G4.6 / ADR-0052: ProjectUndoStack::replaceAutomationLanePoints only
 };
 
 // G2.18: the plain-English label of a verb for the undo history window (Logic's "Undo History").
@@ -213,6 +214,7 @@ enum class ProjectEditVerb : std::uint8_t
         case ProjectEditVerb::JoinMidiClips: return "Join MIDI Clips";
         case ProjectEditVerb::SetFxInsertSidechain: return "Insert Sidechain";
         case ProjectEditVerb::SetAutomationFollowsClips: return "Automation Follows Clips";
+        case ProjectEditVerb::ReplaceAutomationLanePoints: return "Edit Automation";
     }
     return "Edit";
 }
@@ -1669,7 +1671,8 @@ namespace detail {
            || verb == ProjectEditVerb::MoveAutomationBreakpoint
            || verb == ProjectEditVerb::SetAutomationBreakpointValue
            || verb == ProjectEditVerb::SetAutomationBreakpointCurve
-           || verb == ProjectEditVerb::RemoveAutomationBreakpoint;
+           || verb == ProjectEditVerb::RemoveAutomationBreakpoint
+           || verb == ProjectEditVerb::ReplaceAutomationLanePoints;   // G4.6: undo/redo replay its lane-row diff
 }
 
 [[nodiscard]] inline ProjectEditStatus applyProjectEditCommandToProject (Project& project,
@@ -2054,6 +2057,10 @@ namespace detail {
             return setFxInsertSidechain (project, command.fxOwnerId, command.fxInsertId, command.fxSidechainSourceId);
         case ProjectEditVerb::SetAutomationFollowsClips:
             return setAutomationFollowsClips (project, command.automationFollowsClips);
+        case ProjectEditVerb::ReplaceAutomationLanePoints:
+            // G4.6: the points are not in the (trivially copyable) command — only
+            // ProjectUndoStack::replaceAutomationLanePoints applies this verb.
+            return ProjectEditStatus::InvalidProject;
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -2934,6 +2941,44 @@ public:
         if (! result.applied())
             return result;
 
+        return record (std::move (transaction), result);
+    }
+
+    // G4.6 / ADR-0052: replace one lane's points wholesale (a ride pass, a Pencil or Eraser sweep) as ONE
+    // entry. The points ride the entry's lane-row diff — the command stays trivially copyable and names
+    // only the lane — so undo and redo replay that diff like every other automation verb; one entry per
+    // lane keeps a long pass linear (a point-per-command pass copies the project once per point).
+    [[nodiscard]] ProjectEditApplyResult replaceAutomationLanePoints (Project& project,
+                                                                      EntityId laneId,
+                                                                      std::vector<AutomationBreakpoint> points)
+    {
+        std::size_t laneIndex = 0;
+        if (! laneId.isValid() || ! detail::findAutomationLaneIndex (project, laneId, laneIndex))
+            return ProjectEditApplyResult { laneId.isValid() ? ProjectEditStatus::AutomationLaneNotFound
+                                                             : ProjectEditStatus::InvalidAutomationLaneId,
+                                            false };
+
+        if (project.automationLanes[laneIndex].points == points)
+            return ProjectEditApplyResult { ProjectEditStatus::InvalidProject, false };   // no change, no step
+
+        AutomationLaneData before = project.automationLanes[laneIndex];
+        const ProjectEditStatus status = engine::replaceAutomationLanePoints (project, laneId, std::move (points));
+        if (status != ProjectEditStatus::Applied)
+            return ProjectEditApplyResult { status, false };
+
+        ProjectEditTransaction transaction;
+        transaction.command.verb = ProjectEditVerb::ReplaceAutomationLanePoints;
+        transaction.command.automationLaneId = laneId;
+        transaction.automationDiff.firstAutomationLaneIndex = laneIndex;
+        transaction.automationDiff.before = { std::move (before) };
+        transaction.automationDiff.after = { project.automationLanes[laneIndex] };
+        return record (std::move (transaction), ProjectEditApplyResult { ProjectEditStatus::Applied, true });
+    }
+
+private:
+    [[nodiscard]] ProjectEditApplyResult record (ProjectEditTransaction transaction, ProjectEditApplyResult result)
+    {
+        const ProjectEditCommand& command = transaction.command;
         if (! detail::canCoalesceProjectEditVerb (command.verb))
             scalarCoalescing_ = false;
 
@@ -2984,11 +3029,12 @@ public:
             }
         }
 
-        undo_.push_back (UndoEntry { transaction, activeGroupId_ });
+        undo_.push_back (UndoEntry { std::move (transaction), activeGroupId_ });
         redo_.clear();
         return result;
     }
 
+public:
     [[nodiscard]] ProjectUndoStatus undo (Project& project)
     {
         if (undo_.empty())
