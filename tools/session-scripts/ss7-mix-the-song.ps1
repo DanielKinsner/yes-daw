@@ -12,6 +12,11 @@
 # the kinds (EQ, then a Compressor, on the bus); a filled slot's double-click opens the FX editor (a
 # shot; Close); an empty send well's click lists the buses (track 1 sends to the bus); the send row's
 # right-click menu flips it pre-fader. Later G4 items append theirs (Write, solo-safe, export).
+# G4 exit (2026-10-06) — SS-5 as the plan writes it: Step 14. Track 1 (the vocal: the fixture on it, routed
+# to Bus 1 with EQ + Compressor) sends to a NEW reverb bus (the next empty well's New Bus) that takes a Reverb;
+# the reverb bus is solo-safe from its strip menu; Bus 1's fader is ridden in Write mode while the song plays
+# (a Bus Fader lane appears, and Write returns to Touch at stop); the mix exports to a WAV. Save and close is
+# Step 15.
 # G4.7 (2026-10-06) — the master strip: Step 13. The master pane's first slot takes a Limiter (Limiter is
 # the first kind there) and its double-click opens the editor with the gain-reduction face; the header's DIM
 # and MUTE light and clear; the fixture imported onto track 1 plays and the header's LUFS readout shows the
@@ -508,7 +513,77 @@ if ([bool](Probe).audio.deviceOpen) {
 Key 'Space'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.transport.isPlaying } -TimeoutMs 1500) 'Space stops; the readout holds')
 
-Step 14 'Save and close'
+Step 14 'SS-5 as written (the G4 exit): a reverb bus on a send; solo-safe it; Write the bus fader while playing; export'
+OpenMixer
+$busesBefore = @((Probe).mixer.strips | Where-Object { "$($_.kind)" -eq 'Bus' }).Count
+Click 'mixer.strip.0.send.1'
+[void](WaitPopup)
+Key 'Up'   # the last item: New Bus
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) "$($q.mixer.strips[0].sends[1].bus)" -eq 'Bus 2' -and @($q.mixer.strips | Where-Object { "$($_.kind)" -eq 'Bus' }).Count -eq $busesBefore + 1 } -TimeoutMs 2000) ('track 1 sends to a new reverb bus, Bus 2 (send 2 reads ' + (Probe).mixer.strips[0].sends[1].bus + ')'))
+$reverbStrip = @((Probe).mixer.strips).Count - 1   # the new bus is the last strip
+[void](Assert ("$((Probe).mixer.strips[$reverbStrip].name)" -eq 'Bus 2') ('the reverb bus is strip ' + $reverbStrip))
+Click ('mixer.strip.' + $reverbStrip + '.insert.0')
+[void](WaitPopup)
+Key 'Down' -Repeat 4   # a Bus's kinds: EQ, Compressor, Delay, Reverb, Limiter
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) "$(@($q.mixer.strips[$reverbStrip].inserts)[0].kind)" -eq 'Reverb' } -TimeoutMs 2000) ('the reverb bus takes a Reverb (' + @((Probe).mixer.strips[$reverbStrip].inserts)[0].kind + ')'))
+# Solo-safe: a new bus is born solo-safe (R10: returns and submixes stay audible under a solo). The bus's strip
+# menu verb flips it — fourth from the end (Solo Safe, Narrow Strips, Add Bus, Remove Bus) — off, then on again.
+[void](Assert ([bool](Probe).mixer.strips[$reverbStrip].soloSafe) 'the new reverb bus is solo-safe')
+ClickStripHeader $reverbStrip -Right
+MenuPickFromEnd 4
+[void](Assert (WaitProbe { param($q) -not [bool]$q.mixer.strips[$reverbStrip].soloSafe } -TimeoutMs 2000) 'its strip menu''s Solo Safe turns the protection off')
+ClickStripHeader $reverbStrip -Right
+MenuPickFromEnd 4
+[void](Assert (WaitProbe { param($q) [bool]$q.mixer.strips[$reverbStrip].soloSafe } -TimeoutMs 2000) 'and on again: the reverb bus is solo-safe')
+Shot 'ss7-reverb-bus'
+
+# Write on Bus 1's fader while the song plays. The mode chooser shows with the lanes (A on track 1).
+Focus
+Click 'rail.row.0'
+Start-Sleep -Milliseconds 200
+Key 'A'
+[void](Assert (WaitProbe { param($q) $null -ne $q.layout.'widget.timeline.automation.mode' } -TimeoutMs 2000) 'A shows the lanes and the automation mode chooser')
+$mode = [int](Probe).automation.mode   # Read 0, Touch 1, Latch 2, Off 3, Write 4 — the chooser's order
+Click 'widget.timeline.automation.mode'
+[void](WaitPopup)
+if (4 - $mode -gt 0) { Key 'Down' -Repeat (4 - $mode) }
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) [int]$q.automation.mode -eq 4 } -TimeoutMs 2000) ('the mode is Write (automation.mode=' + (Probe).automation.mode + ')'))
+Key 'A'
+$busLanes = { param($q) @($q.automation.lanes | Where-Object { [int]$_.role -eq 3 -and [int]$_.points -ge 2 }).Count }
+[void](Assert ((& $busLanes (Probe)) -eq 0) 'no Bus Fader lane before the ride')
+ClickStripHeader 3   # Bus 1: the strip Write writes
+Key 'Space'
+[void](Assert (WaitProbe { param($q) [bool]$q.transport.isPlaying } -TimeoutMs 1500) 'Space plays')
+Start-Sleep -Milliseconds 400
+DragWithin 'mixer.strip.3.fader.thumb' 0 0 0 70 -Steps 30   # the knob takes the press; down 70 px over ~0.8 s
+Start-Sleep -Milliseconds 400
+Key 'Space'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.transport.isPlaying } -TimeoutMs 1500) 'Space stops')
+[void](Assert (WaitProbe { param($q) (& $busLanes $q) -ge 1 } -TimeoutMs 2000) ('the ride wrote a Bus Fader lane (lanes: ' + ((@((Probe).automation.lanes) | ForEach-Object { "$($_.role):$($_.points)" }) -join ' ') + ')'))
+[void](Assert (WaitProbe { param($q) [int]$q.automation.mode -eq 1 } -TimeoutMs 2000) ('Write returns to Touch at stop (automation.mode=' + (Probe).automation.mode + ')'))
+Shot 'ss7-write-ride'
+
+# Export the mix.
+$export = Join-Path ([System.IO.Path]::GetTempPath()) ('ss7-mix-' + (Get-Date).ToString('HHmmss') + '.wav')
+if (Test-Path -LiteralPath $export) { Remove-Item -Force -LiteralPath $export }
+$exportsBefore = [int](Probe).export.count
+Focus
+Click 'widget.project.export_audio'
+$dlg = WaitDialog 'Export YES DAW Mix' 6000
+[void](Assert ($dlg -ne [IntPtr]::Zero) 'Export opens the native save chooser')
+if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $export }
+[void](Assert (WaitProbe { param($q) [int]$q.export.count -eq $exportsBefore + 1 -and -not [bool]$q.export.inProgress } -TimeoutMs 120000) ('the export finishes (export.count=' + (Probe).export.count + ', ' + (Probe).export.percent + '%)'))
+$size = if (Test-Path -LiteralPath $export) { (Get-Item -LiteralPath $export).Length } else { 0 }
+[void](Assert ($size -gt 1000000) ('the exported WAV is on disk (' + $size + ' bytes)'))
+if (Test-Path -LiteralPath $export) { Remove-Item -Force -LiteralPath $export }
+
+Step 15 'Save and close'
 Focus
 Key 'Ctrl+S'
 Start-Sleep -Milliseconds 800

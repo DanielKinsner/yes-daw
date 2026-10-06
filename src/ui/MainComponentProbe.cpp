@@ -399,6 +399,12 @@ juce::var MainComponent::buildProbeLayout()
             put (base + ".input", harnessPaintedIoRowBounds (strip, kMixerIoInputRow));
             put (base + ".output", harnessPaintedIoRowBounds (strip, kMixerIoOutputRow));
             put (base + ".fader", harnessPaintedFaderRailBounds (strip));
+            // G4 exit: the knob a press must land on (the rail itself does not take a press).
+            put (base + ".fader.thumb", paintedFaderThumbForLane (paintedMixerLaneBounds (static_cast<std::size_t> (strip)),
+                                                                 static_cast<std::size_t> (strip) < surface.tracks.size()
+                                                                     ? surface.tracks[static_cast<std::size_t> (strip)].linearGain
+                                                                     : surface.buses[static_cast<std::size_t> (strip) - surface.tracks.size()].linearGain,
+                                                                 stripIoRows (static_cast<std::size_t> (strip))));
             put (base + ".pan", harnessPaintedPanKnobBounds (strip));
             for (int slot = 0; slot < yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount; ++slot)
                 put (base + ".insert." + juce::String (slot), harnessPaintedInsertSlotBounds (strip, slot));
@@ -891,6 +897,7 @@ juce::String MainComponent::buildStateProbeJson()
             strip->setProperty ("armed", i < trackCount && appModel.isRecordingTrackIndexArmed (i));
             strip->setProperty ("muted", state.muted);     // G4.1 cp2: the S / M cells as painted
             strip->setProperty ("soloed", state.soloed);
+            strip->setProperty ("soloSafe", state.soloSafe);   // G4 exit (SS-5): the reverb bus is solo-safe
             strip->setProperty ("sidechain", state.sidechainVisible);   // G4.4: the "SC" badge as painted
             strip->setProperty ("linearGain", state.linearGain);   // G4.0b: the fader a keyboard drive adjusts
             // G4.1 cp2: the painted inserts and sends, as the strip reads them.
@@ -929,6 +936,14 @@ juce::String MainComponent::buildStateProbeJson()
                 masterInserts.add (juce::var (row));
             }
             mixer->setProperty ("masterInserts", masterInserts);
+        }
+        {
+            // G4 exit (SS-5): the export a drive waits on — how many finished, and the one running.
+            auto* exported = new juce::DynamicObject();
+            exported->setProperty ("count", appModel.context().audioExportCount);
+            exported->setProperty ("inProgress", appModel.context().audioExportInProgress);
+            exported->setProperty ("percent", appModel.context().audioExportProgressPercent);
+            root->setProperty ("export", juce::var (exported));
         }
         mixer->setProperty ("monitorDim", appModel.context().monitorDimmed);   // ADR-0053: the lit DIM / MUTE
         mixer->setProperty ("monitorMute", appModel.context().monitorMuted);
