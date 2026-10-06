@@ -23519,6 +23519,8 @@ TEST_CASE ("G4.2 cp7 a malformed FX preset is refused whole with one reason", "[
                      "unknown parameter \"eq.band.freq\""));
     CHECK (contains (refusal (preset (R"("delay.ping_pong":0.5)", R"("format":"yesdaw.fx-preset","version":1,"kind":"Delay")"), K::Delay),
                      "not one of its choices"));
+    // A NUL ends a juce::String: a sound preset with junk after one is refused, never parsed as its prefix.
+    CHECK (contains (refusal (good + std::string (1, '\0') + "junk"), "not text"));
     // Anything past the cap is no preset, whatever it holds.
     CHECK (contains (refusal (good + std::string (yesdaw::ui::kFxPresetMaxBytes, ' ')), "too large"));
 }

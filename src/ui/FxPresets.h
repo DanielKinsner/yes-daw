@@ -167,6 +167,8 @@ struct FxPresetDecode
         && static_cast<unsigned char> (text[2]) == 0xBF)
         text.remove_prefix (3);
     const std::string owned (text);
+    if (owned.find ('\0') != std::string::npos)   // juce::String would end the text there and parse a prefix
+        return refuse ("the file is not a preset (not text)");
     if (! juce::CharPointer_UTF8::isValidString (owned.c_str(), static_cast<int> (owned.size())))
         return refuse ("the file is not a preset (not UTF-8 text)");
     juce::var root;
