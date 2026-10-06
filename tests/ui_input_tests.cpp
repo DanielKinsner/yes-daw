@@ -11,6 +11,7 @@
 #include "ui/FxParameterNames.h"
 #include "ui/FxPresets.h"   // G4.2 cp7: preset files (ADR-0050)
 #include "ui/AutomationLaneCanvasComponent.h"   // 2026-10-06: the lane's time law
+#include "ui/MidiClipPreview.h"                 // 2026-10-06: the arrange view's MIDI time law
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAccessibility.h"
 #include "ui/UiPianoRollSurface.h"   // G3.2: pianoRollKeyName
@@ -24071,4 +24072,65 @@ TEST_CASE ("automation breakpoints play exactly where the lane draws them", "[ui
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+// 2026-10-06 repair: the arrange view draws a MIDI Clip's notes where the ENGINE plays them — the clip's own
+// time law (SampleLocked ticks are frames; TempoLocked ticks go through the tempo map). The preview used
+// the tempo map for every clip, so at 48 kHz / 120 BPM a UI-made clip's notes were drawn ~1.56x late.
+TEST_CASE ("a MIDI clip's preview draws its notes where the engine plays them", "[ui][timeline][midi-preview-time]")
+{
+    yesdaw::engine::Project project;
+    project.sampleRate = yesdaw::engine::SampleRate { 48000.0 };
+    project.tempoMap = { yesdaw::engine::TempoChange { 0, 120.0, yesdaw::engine::TempoCurve::Jump } };
+    const yesdaw::engine::TempoMapView tempoMap { project.tempoMap.data(), project.tempoMap.size() };
+
+    const auto makeClip = [] (yesdaw::engine::TimeBase timeBase, yesdaw::engine::Tick start, yesdaw::engine::Tick length,
+                              yesdaw::engine::Tick noteStart, yesdaw::engine::Tick noteLength) {
+        yesdaw::engine::MidiClip clip;
+        clip.id.bytes.back() = 40;
+        clip.trackId.bytes.back() = 31;   // a valid clip names its Track
+        clip.timeBase = timeBase;
+        clip.timelineStart = start;
+        clip.timelineLength = length;
+        yesdaw::engine::Note note;
+        note.id.bytes.back() = 41;
+        note.startTick = noteStart;
+        note.lengthTicks = noteLength;
+        note.key = 60;
+        note.pitchNote = 60.0;
+        note.normalizedVelocity = 1.0;
+        clip.notes = { note };
+        return clip;
+    };
+    const auto engineNoteOnSeconds = [&] (const yesdaw::engine::MidiClip& clip) {
+        std::vector<yesdaw::engine::ScheduledMidiEvent> timeline;
+        REQUIRE (yesdaw::engine::flattenMidiClipForProjection (clip, tempoMap, project.sampleRate, timeline)
+                 == yesdaw::engine::MidiFlattenStatus::Ok);
+        REQUIRE_FALSE (timeline.empty());
+        return static_cast<double> (timeline.front().frame) / project.sampleRate.hz;
+    };
+
+    // A UI-made (SampleLocked) clip at 1.0 s with a note half a second in: the note sounds at 1.5 s.
+    {
+        const yesdaw::engine::MidiClip clip = makeClip (yesdaw::engine::TimeBase::SampleLocked, 48000, 96000, 24000, 12000);
+        yesdaw::ui::MidiClipPreview preview;
+        REQUIRE (yesdaw::ui::midiClipPreview (project, clip, 7, preview));
+        REQUIRE (preview.startSeconds == Catch::Approx (1.0));
+        REQUIRE (preview.lengthSeconds == Catch::Approx (2.0));
+        REQUIRE (preview.notes.size() == 1u);
+        REQUIRE (preview.notes.front().clipId == 7);
+        REQUIRE (preview.notes.front().startSeconds == Catch::Approx (engineNoteOnSeconds (clip)).margin (1.0 / 48000.0));
+        REQUIRE (preview.notes.front().startSeconds == Catch::Approx (1.5));
+        REQUIRE (preview.notes.front().lengthSeconds == Catch::Approx (0.25));
+    }
+    // A TempoLocked clip at beat 2 (15360 ticks = 0.5 s) with a note one beat in: it sounds at 1.0 s.
+    {
+        const yesdaw::engine::MidiClip clip = makeClip (yesdaw::engine::TimeBase::TempoLocked, 15360, 61440, 15360, 7680);
+        yesdaw::ui::MidiClipPreview preview;
+        REQUIRE (yesdaw::ui::midiClipPreview (project, clip, 0, preview));
+        REQUIRE (preview.startSeconds == Catch::Approx (0.5));
+        REQUIRE (preview.lengthSeconds == Catch::Approx (2.0));
+        REQUIRE (preview.notes.front().startSeconds == Catch::Approx (engineNoteOnSeconds (clip)).margin (1.0 / 48000.0));
+        REQUIRE (preview.notes.front().startSeconds == Catch::Approx (1.0));
+    }
 }

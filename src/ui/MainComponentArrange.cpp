@@ -4,6 +4,7 @@
 // verbatim from the inline class. The declaration is ui/MainComponentShell.h.
 
 #include "ui/MainComponentShell.h"
+#include "ui/MidiClipPreview.h"
 
 using namespace yesdaw::ui::shell;
 
@@ -1529,35 +1530,13 @@ void MainComponent::rebuildTimelineClipViews()
             continue;
 
         const int lane = static_cast<int> (std::distance (project.tracks.begin(), track));
-        const double startSeconds = static_cast<double> (midiClip.timelineStart) / sampleRate;
-        const double lengthSeconds = static_cast<double> (midiClip.timelineLength) / sampleRate;
+        // M7 + 2026-10-06: the box and the notes it CONTAINS, by the clip's own time law (the engine's).
         const int id = static_cast<int> (timelineClips.size());
-        timelineClips.push_back ({ id, lane, startSeconds, lengthSeconds, "MIDI" });
-        // M7: hand the canvas this clip's real notes so it can paint what the clip CONTAINS
-        // instead of falling through to the placeholder waveform.
-        for (const yesdaw::engine::Note& note : midiClip.notes)
-        {
-            double noteStartFrame = 0.0;
-            double noteEndFrame = 0.0;
-            if (! yesdaw::engine::tickToFrame (
-                    yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
-                    project.sampleRate,
-                    midiClip.timelineStart + note.startTick,
-                    noteStartFrame)
-                || ! yesdaw::engine::tickToFrame (
-                    yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
-                    project.sampleRate,
-                    midiClip.timelineStart + note.startTick + note.lengthTicks,
-                    noteEndFrame))
-            {
-                continue;
-            }
-
-            timelineClipNotes.push_back ({ id,
-                                           noteStartFrame / sampleRate,
-                                           std::max (0.0, (noteEndFrame - noteStartFrame) / sampleRate),
-                                           static_cast<int> (note.key) });
-        }
+        yesdaw::ui::MidiClipPreview preview;
+        if (! yesdaw::ui::midiClipPreview (project, midiClip, id, preview))
+            continue;
+        timelineClips.push_back ({ id, lane, preview.startSeconds, preview.lengthSeconds, "MIDI" });
+        timelineClipNotes.insert (timelineClipNotes.end(), preview.notes.begin(), preview.notes.end());
         // V6: same ring law as audio clips; MIDI clips have no fade model, so the fade tick
         // fields stay honestly zero (nothing paints).
         timelineClipStyles.push_back ({ colourForTrack (*track, yesdaw::ui::UiTheme::Color::accentCyan()),
@@ -1571,7 +1550,7 @@ void MainComponent::rebuildTimelineClipViews()
                                         false });
         timelineClipIds.push_back (midiClip.id);
         timelineClipAssetHashes.push_back ({});
-        endSeconds = std::max (endSeconds, startSeconds + lengthSeconds);
+        endSeconds = std::max (endSeconds, preview.startSeconds + preview.lengthSeconds);
     }
 
     timelineTotalSeconds = timelineClips.empty()
