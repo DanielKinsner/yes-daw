@@ -8,6 +8,46 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-05 — G4.0b cp1: the keyboard Control target (code + gates; drive pending)
+
+**Now:** G4.0b's code and headless gate are in; the real-app proof (the new ss7 Step 11) and exact-code
+CI are pending. **Next:** run ss7 on the built app in a hands-off desktop window, record it, then G4.2 cp2.
+
+**What a user gets:** Tab / Shift+Tab walk every visible, enabled control in reading order (header, rail,
+arrange, inspector, dock), with a purple ring on the target. Enter clicks a button, or starts a choice,
+value or text interaction. Arrows adjust only that interaction: a chooser previews and Enter applies it;
+a slider or the painted mixer fader moves live (fader by 1 dB, Shift 0.1 dB) as one undo step. Esc
+restores the starting value; a second Esc ends navigation. Space is transport throughout. An open FX
+editor, keymap editor or undo history keeps Tab inside it; closing it returns the earlier target. A
+mouse press ends navigation. A screen reader moving onto a control makes it the target.
+
+**How:** pure rules in `src/ui/ControlTarget.h` (priority table, reading order, traversal, stale-target
+recovery, dB step); the shell half in `src/ui/MainComponentControls.cpp`, which performs every effect
+through the control's own path (click, `onChange`, the slider's drag bracket, the painted fader's drag
+verb). The router runs first in `keyPressed`; the probe gains `controlTarget` and each strip's
+`linearGain`; ring tokens live in `UiTheme::Layout`.
+
+**Gates:** six `[control-navigation]` cases (336 assertions): the priority table; a full Tab lap with
+unique ids; Space while navigating; Enter on Play making exactly a mouse click's dispatches without
+returning to zero; Esc dispatching nothing; chooser preview/apply/restore; a fader stepping +3.1 dB as
+one undo step while Right/Left/Up do not leak (negative control: Right locates before Enter); the EQ
+panel scope and Close restoring the target; text entry on Enter; a hidden control moving the target.
+Full local suite 380/380 on the final code. ss7 Step 11 drives the same gestures with real keys.
+
+**Critic:** no blocking finding. Taken: a cached target widget so the per-tick screen-reader poll does
+not walk the tree, an O(n) reorder, and the focus-loop invariant documented. Rejected after checking the
+code: an "unpaired" gesture end (the gesture always opens inside `onFaderDragged`; the flag is
+idempotent) and ScrollBar/ListBox stops (Viewport scroll bars are `ScrollBar`s, already skipped).
+A self-review negative control also caught a test that could not bite (Right is unbound in Mixer focus);
+the test now holds Arrange focus and proves Right is live before the interaction.
+
+**Deviation log:** choosers preview and apply on Enter, so stepping past an audio device never reopens it.
+FX-parameter keys keep the mouse drag's undo granularity (that verb does not coalesce). The painted pan,
+sends, M/S cells and insert slots are not targets yet; G6.3 audits whole-shell coverage. A text field is
+announced on Tab, not given accessibility focus, because JUCE would also hand it the keyboard. Headless
+gates reach screen-reader adoption through the harness, since no window means no native handlers.
+The 2026-10-05 waveform observation is closed: the stem is a constant −19 dBFS signal, drawn correctly.
+
 ## 2026-10-05 — G4.0a certified: all seven journeys pass on one build
 
 **Now:** G4.0a is **certified**. **Next: G4.0b** (keyboard Control target, ADR-0049), then G4.2–G4.7 →

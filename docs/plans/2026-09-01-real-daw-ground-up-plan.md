@@ -709,6 +709,8 @@ G4.8 is a separate later milestone; it does not block G5/G6 or imply that plugin
   Gate: `[control-navigation]` covers transport, EQ, a mixer fader, chooser, text field and panel
   closure, including keyboard-only journeys and cancellation. Extend ss7 with the same real
   keyboard gestures. This is shared interaction behavior; G6 later audits complete coverage.
+  **2026-10-05 cp1 code in:** `ui/ControlTarget.h` + `MainComponentControls.cpp`; six `[control-navigation]`
+  cases; ss7 Step 11. Real-app drive and exact-code CI recorded in `STATUS.md`.
 
 - **G4.1 — Mixer dock v2** per §3.1: strips with name/colour, input, insert list, sends, pan,
   fader with dB scale, meter with peak-hold and clip, M/S/R, output chooser; bus and master
