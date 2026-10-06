@@ -20,6 +20,8 @@
 # Enter is Return to zero again. Save and close is Step 12.
 # G4.2 cp2 (2026-10-05) — Step 8 also opens the bus Compressor's face: its gain-reduction meter is laid out
 # and reads the running node (zero in this silent song).
+# G4.4 (2026-10-06) — Step 8 also keys the bus Compressor from Audio 1 through its Sidechain chooser (the
+# SC badge lights) and undoes it.
 # G4.3 (2026-10-06) — Step 9 also sends track 1 to a New Bus from the next empty well and undoes it, and
 # routes track 2 with the header's Route to New Bus and undoes that.
 # G4.2 cp6–cp7 (2026-10-05) — Step 8 drags the bus EQ below its Compressor and undoes it; then the
@@ -252,6 +254,24 @@ Key 'Ctrl+Z'
 [void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.fxEditor.params.'compressor.threshold' - $edited) -lt 0.01 } -TimeoutMs 2000) ('one Ctrl+Z undoes the whole load (' + (Probe).fxEditor.params.'compressor.threshold' + ' dB)'))
 Click 'mixer.fx.editor.close'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'Close hides the compressor editor again')
+
+# G4.4 (ADR-0051): the bus Compressor's Sidechain chooser keys it from Audio 1 (which already feeds the bus:
+# its pre-fader key is upstream, no loop) as one step; the strip's SC badge lights; Ctrl+Z clears it.
+Click 'mixer.strip.3.insert.1' -Double
+[void](Assert (WaitProbe { param($q) [bool]$q.fxEditor.visible -and "$($q.fxEditor.kind)" -eq 'Compressor' -and [bool]$q.fxEditor.sidechainVisible } -TimeoutMs 2000) 'the Compressor editor carries its Sidechain chooser')
+[void](Assert ("$((Probe).fxEditor.sidechain)" -eq 'None' -and -not [bool](Probe).mixer.strips[3].sidechain) 'unkeyed: None, no SC badge')
+Click 'mixer.fx.editor.sidechain'
+[void](WaitPopup)
+Key 'Down'   # from None to the first source: Audio 1
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) "$($q.fxEditor.sidechain)" -eq 'Audio 1' -and [bool]$q.mixer.strips[3].sidechain } -TimeoutMs 2000) ('the pick keys the Compressor from Audio 1 and lights the SC badge (' + (Probe).fxEditor.sidechain + ')'))
+Shot 'ss7-sidechain'
+Focus
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) "$($q.fxEditor.sidechain)" -eq 'None' -and -not [bool]$q.mixer.strips[3].sidechain } -TimeoutMs 2000) 'one Ctrl+Z clears the sidechain')
+Click 'mixer.fx.editor.close'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'Close hides the compressor editor after the sidechain')
 
 Step 9 'Track 1 sends to the bus (the empty send well''s click lists the buses)'
 Click 'mixer.strip.0.send.0'
