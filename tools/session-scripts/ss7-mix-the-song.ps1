@@ -195,12 +195,13 @@ Resize 1920 1080
 Click 'mixer.fx.editor.close'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'Close hides the editor')
 
-# G4.2 cp2: the Compressor's face carries the gain-reduction meter (the song is silent here, so its
-# honest reading is zero; the headless gate drives real reduction through the engine).
+# G4.2 cp2: the Compressor's face carries the gain-reduction meter. This song has no audio yet, so the
+# app runs its transport-only engine (no compiled graph): the honest reading is "not running". The
+# headless gate drives real reduction through a running node.
 Click 'mixer.strip.3.insert.1' -Double
 [void](Assert (WaitProbe { param($q) [bool]$q.fxEditor.visible -and "$($q.fxEditor.kind)" -eq 'Compressor' } -TimeoutMs 2000) ('the double-click opens the Compressor''s editor (' + (Probe).fxEditor.kind + ')'))
 [void](Assert ([bool](Probe).fxEditor.grVisible -and $null -ne (Probe).layout.'mixer.fx.editor.gr') 'the compressor face lays out its gain-reduction meter')
-[void](Assert ([bool](Probe).fxEditor.grReading -and [double](Probe).fxEditor.gainReductionDb -eq 0.0) ('the meter reads the running node: no reduction in silence (' + (Probe).fxEditor.gainReductionDb + ' dB)'))
+[void](Assert (-not [bool](Probe).fxEditor.grReading -and [double](Probe).fxEditor.gainReductionDb -eq 0.0) ('no media, no running node: the meter says not running rather than inventing a reading (' + (Probe).fxEditor.gainReductionDb + ' dB)'))
 Shot 'ss7-compressor-face'
 Click 'mixer.fx.editor.close'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'Close hides the compressor editor')

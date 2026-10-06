@@ -341,6 +341,18 @@ function Assert([bool] $condition, [string] $message) {
   $script:Results.Add([pscustomobject]@{ Step = $script:CurrentStep; Verdict = $verdict; Message = $message })
   $colour = if ($condition) { 'Green' } else { 'Red' }
   Write-Host ("  [{0}] {1}" -f $verdict, $message) -ForegroundColor $colour
+  # 2026-10-05: every FAIL carries the app's state at that moment, so an unexplained failure is
+  # diagnosable from its first occurrence (several raw FAILs tonight could only be reasoned about).
+  if (-not $condition -and $script:ProbePath -and (Test-Path -LiteralPath $script:ProbePath)) {
+    try {
+      $q = Probe
+      $ctx = '    [ctx] tick=' + $q.tick + ' focusContext=' + $q.focusContext + ' focusOwner=' + $q.focusOwner
+      $ctx += ' lastAction=' + $q.lastAction + ' dispatches=' + $q.commandDispatchCount + ' tool=' + $q.view.tool
+      $ctx += ' modalMenus=' + $q.modal.menus + ' navigating=' + $q.controlTarget.navigating + ' target=' + $q.controlTarget.id
+      $ctx += ' foreground=' + ([YesDawDrive]::GetForegroundWindow() -eq $script:Hwnd)
+      Write-Host $ctx
+    } catch { Write-Host ('    [ctx] unavailable: ' + $_.Exception.Message) }
+  }
   return $condition
 }
 
