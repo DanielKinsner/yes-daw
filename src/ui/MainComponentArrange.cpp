@@ -138,7 +138,8 @@ void MainComponent::configureAutomationLaneControls()
     automationModeChooser.addItem ("Read", 1);
     automationModeChooser.addItem ("Touch", 2);
     automationModeChooser.addItem ("Latch", 3);
-    automationModeChooser.addItem ("Off", 4);   // id - 1 == AutomationMode::Off
+    automationModeChooser.addItem ("Off", 4);     // id - 1 == AutomationMode::Off
+    automationModeChooser.addItem ("Write", 5);   // G4.6 / ADR-0052: id - 1 == AutomationMode::Write (appended: item order is pinned)
     automationModeChooser.onChange = [this] {
         if (refreshingAutomationTarget)
             return;

@@ -119,7 +119,8 @@ enum class ProjectEditVerb : std::uint8_t
     SetMidiClipLoopLength,
     SplitMidiClip,
     JoinMidiClips,
-    SetFxInsertSidechain   // ADR-0051: key a Compressor (or clear its key)
+    SetFxInsertSidechain,   // ADR-0051: key a Compressor (or clear its key)
+    SetAutomationFollowsClips   // G4.6 / ADR-0052
 };
 
 // G2.18: the plain-English label of a verb for the undo history window (Logic's "Undo History").
@@ -211,6 +212,7 @@ enum class ProjectEditVerb : std::uint8_t
         case ProjectEditVerb::SplitMidiClip: return "Split MIDI Clip";
         case ProjectEditVerb::JoinMidiClips: return "Join MIDI Clips";
         case ProjectEditVerb::SetFxInsertSidechain: return "Insert Sidechain";
+        case ProjectEditVerb::SetAutomationFollowsClips: return "Automation Follows Clips";
     }
     return "Edit";
 }
@@ -275,6 +277,7 @@ struct ProjectEditCommand
     double automationValue = 0.0;
     AutomationCurveType automationCurveType = AutomationCurveType::Linear;
     AutomationMode automationMode = AutomationMode::Read;
+    bool automationFollowsClips = false;   // G4.6: SetAutomationFollowsClips
     int trackHeightPx = 0;
     std::uint32_t trackColour = 0;
     TrackInstrumentKind trackInstrumentKind = TrackInstrumentKind::None;   // G3.1 (the param rides fxParamId / fxParamValue)
@@ -1240,6 +1243,15 @@ struct ProjectEditCommand
         return command;
     }
 
+    // G4.6 / ADR-0052: the "automation follows clips" setting.
+    [[nodiscard]] static constexpr ProjectEditCommand setAutomationFollowsClips (bool follows) noexcept
+    {
+        ProjectEditCommand command;
+        command.verb = ProjectEditVerb::SetAutomationFollowsClips;
+        command.automationFollowsClips = follows;
+        return command;
+    }
+
     // N8: the persisted punch region (disabled clears back to no-punch).
     [[nodiscard]] static constexpr ProjectEditCommand setPunchRegion (bool enabled,
                                                                        Tick startFrame,
@@ -1451,6 +1463,8 @@ struct ProjectAutomationModeDiff
 {
     AutomationMode before = AutomationMode::Read;
     AutomationMode after = AutomationMode::Read;
+    bool followsBefore = false;   // G4.6: the "automation follows clips" setting rides the same diff
+    bool followsAfter = false;
 };
 
 // N8: the punch region is one scalar-ish struct; the diff stores both values whole.
@@ -1622,7 +1636,8 @@ namespace detail {
 // N5: the automation-mode family (one scalar today: mode).
 [[nodiscard]] constexpr bool isAutomationModeEditVerb (ProjectEditVerb verb) noexcept
 {
-    return verb == ProjectEditVerb::SetAutomationMode;
+    return verb == ProjectEditVerb::SetAutomationMode
+           || verb == ProjectEditVerb::SetAutomationFollowsClips;   // G4.6: the same scalar family
 }
 
 [[nodiscard]] constexpr bool isPunchRegionEditVerb (ProjectEditVerb verb) noexcept
@@ -2037,6 +2052,8 @@ namespace detail {
             return joinMidiClips (project, command.midiClipId, command.rightClipId);
         case ProjectEditVerb::SetFxInsertSidechain:
             return setFxInsertSidechain (project, command.fxOwnerId, command.fxInsertId, command.fxSidechainSourceId);
+        case ProjectEditVerb::SetAutomationFollowsClips:
+            return setAutomationFollowsClips (project, command.automationFollowsClips);
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -2301,21 +2318,26 @@ namespace detail {
                                                           const Project& after,
                                                           ProjectAutomationModeDiff& out)
 {
-    if (before.automationMode == after.automationMode)
+    if (before.automationMode == after.automationMode && before.automationFollowsClips == after.automationFollowsClips)
         return false;
 
     out = {};
     out.before = before.automationMode;
     out.after = after.automationMode;
+    out.followsBefore = before.automationFollowsClips;
+    out.followsAfter = after.automationFollowsClips;
     return true;
 }
 
-[[nodiscard]] inline bool applyAutomationModeDiff (Project& project, AutomationMode expected, AutomationMode replacement)
+[[nodiscard]] inline bool applyAutomationModeDiff (Project& project, AutomationMode expected, AutomationMode replacement,
+                                                   bool expectedFollows, bool replacementFollows)
 {
-    if (project.automationMode != expected || ! automationModeIsKnown (replacement))
+    if (project.automationMode != expected || project.automationFollowsClips != expectedFollows
+        || ! automationModeIsKnown (replacement))
         return false;
 
     project.automationMode = replacement;
+    project.automationFollowsClips = replacementFollows;
     return true;
 }
 
@@ -2796,8 +2818,8 @@ namespace detail {
     if (isAutomationModeEditVerb (transaction.command.verb))
     {
         const ProjectAutomationModeDiff& diff = transaction.automationModeDiff;
-        return redo ? applyAutomationModeDiff (project, diff.before, diff.after)
-                    : applyAutomationModeDiff (project, diff.after, diff.before);
+        return redo ? applyAutomationModeDiff (project, diff.before, diff.after, diff.followsBefore, diff.followsAfter)
+                    : applyAutomationModeDiff (project, diff.after, diff.before, diff.followsAfter, diff.followsBefore);
     }
 
     if (isPunchRegionEditVerb (transaction.command.verb))

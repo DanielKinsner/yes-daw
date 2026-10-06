@@ -38,7 +38,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 33;   // ADR-0047 repair: instrument-parameter automation lanes persist
+inline constexpr int          kCodeSchemaVersion = 34;   // G4.6 / ADR-0052: Write mode; automation follows clips
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1498,13 +1498,29 @@ ALTER TABLE automation_breakpoints_v33 RENAME TO automation_breakpoints;
 CREATE INDEX automation_lanes_owner_entity_idx ON automation_lanes(owner_entity);
 )SQL";
 
+// v34 (G4.6 / ADR-0052): the stored automation mode admits Write (4); "automation follows clips" is its own
+// one-row table (the project-wide scalar precedent), a missing row meaning off. Additive for every older bundle.
+inline constexpr std::string_view kSchemaV34Sql = R"SQL(
+CREATE TABLE automation_mode_v34 (
+  slot INTEGER PRIMARY KEY CHECK (slot = 1),
+  mode INTEGER NOT NULL CHECK (mode >= 0 AND mode <= 4)
+);
+INSERT INTO automation_mode_v34 (slot, mode) SELECT slot, mode FROM automation_mode;
+DROP TABLE automation_mode;
+ALTER TABLE automation_mode_v34 RENAME TO automation_mode;
+CREATE TABLE automation_follow_clips (
+  slot INTEGER PRIMARY KEY CHECK (slot = 1),
+  enabled INTEGER NOT NULL CHECK (enabled IN (0, 1))
+);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 33> kMigrations {
+inline constexpr std::array<SchemaMigration, 34> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1538,6 +1554,7 @@ inline constexpr std::array<SchemaMigration, 33> kMigrations {
     SchemaMigration { 31, kSchemaV31Sql },
     SchemaMigration { 32, kSchemaV32Sql },
     SchemaMigration { 33, kSchemaV33Sql },
+    SchemaMigration { 34, kSchemaV34Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2144,7 +2161,7 @@ public:
                 "DELETE FROM sends; DELETE FROM track_outputs; DELETE FROM bus_sends; DELETE FROM bus_outputs; "
                 "DELETE FROM sampler_pads; DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
-                "DELETE FROM master_strip; DELETE FROM automation_mode; DELETE FROM punch_region; DELETE FROM loop_region; DELETE FROM project_scale; "
+                "DELETE FROM master_strip; DELETE FROM automation_mode; DELETE FROM automation_follow_clips; DELETE FROM punch_region; DELETE FROM loop_region; DELETE FROM project_scale; "
                 "DELETE FROM assets; DELETE FROM project;");
             ! result.ok())
         {
@@ -2740,6 +2757,13 @@ public:
             detail::Statement modeStmt (db_, "INSERT INTO automation_mode(slot, mode) VALUES (1, ?);");
             if (auto result = modeStmt.bindInt64 (1, static_cast<sqlite3_int64> (project.automationMode)); ! result.ok()) { rollback(); return result; }
             if (auto result = detail::expectDone (db_, modeStmt); ! result.ok()) { rollback(); return result; }
+        }
+
+        // G4.6: the follow-clips row only when on (a missing row is off).
+        if (project.automationFollowsClips)
+        {
+            detail::Statement followStmt (db_, "INSERT INTO automation_follow_clips(slot, enabled) VALUES (1, 1);");
+            if (auto result = detail::expectDone (db_, followStmt); ! result.ok()) { rollback(); return result; }
         }
 
         // N8: the punch-region row is written only when punch is enabled, so a default project
@@ -3748,7 +3772,7 @@ public:
             if (step == SQLITE_ROW)
             {
                 const sqlite3_int64 mode = sqlite3_column_int64 (stmt.get(), 0);
-                if (mode < 0 || mode > 3)   // R15: Off = 3
+                if (mode < 0 || mode > 4)   // R15: Off = 3; G4.6: Write = 4
                     return detail::semanticInvalid ("automation_mode mode is outside the known enum range");
                 project.automationMode = static_cast<engine::AutomationMode> (mode);
             }
@@ -3756,6 +3780,18 @@ public:
             {
                 return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
             }
+        }
+
+        // G4.6: "automation follows clips" — a missing row is off.
+        {
+            detail::Statement stmt;
+            if (auto result = stmt.prepare (db_, "SELECT enabled FROM automation_follow_clips WHERE slot = 1;"); ! result.ok())
+                return result;
+            const int step = stmt.step();
+            if (step == SQLITE_ROW)
+                project.automationFollowsClips = sqlite3_column_int64 (stmt.get(), 0) != 0;
+            else if (step != SQLITE_DONE)
+                return detail::sqliteMessage (db_, BundleStatus::SqliteError, sqlite3_errmsg (db_));
         }
 
         // N8: the punch-region row is optional — absent means disabled, the historical no-punch

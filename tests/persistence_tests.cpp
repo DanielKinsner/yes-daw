@@ -1908,6 +1908,7 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "ALTER TABLE midi_clips DROP COLUMN muted; ALTER TABLE midi_clips DROP COLUMN transpose; "   // G3.5: v29
             "ALTER TABLE midi_clips DROP COLUMN velocity_offset; ALTER TABLE midi_clips DROP COLUMN loop_length; "
             "DELETE FROM schema_migrations WHERE version = 29; "
+            "DROP TABLE automation_follow_clips; DELETE FROM schema_migrations WHERE version = 34; "   // G4.6 re-pin: v34
             "DELETE FROM schema_migrations WHERE version = 33; "   // v33 rebuilds the automation tables in place
             "DROP TABLE fx_insert_sidechain; "   // G4.4 re-pin: v32 (a Compressor's sidechain key)
             "DELETE FROM schema_migrations WHERE version = 32; "
@@ -2940,7 +2941,9 @@ TEST_CASE ("Schema v33 migration keeps every automation lane and point", "[persi
             "DROP TABLE automation_breakpoints; DROP TABLE automation_lanes; "
             "ALTER TABLE lanes_old RENAME TO automation_lanes; ALTER TABLE points_old RENAME TO automation_breakpoints; "
             "CREATE INDEX automation_lanes_owner_entity_idx ON automation_lanes(owner_entity); "
-            "DELETE FROM schema_migrations WHERE version = 33; PRAGMA user_version = 32;").ok());
+            "DELETE FROM schema_migrations WHERE version = 33; "
+            "DROP TABLE automation_follow_clips; DELETE FROM schema_migrations WHERE version = 34; "   // v34 replays too
+            "PRAGMA user_version = 32;").ok());
         sqlite3_int64 points = 0;
         REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM automation_breakpoints;", points).ok());
         REQUIRE (points == 5);
@@ -2956,4 +2959,45 @@ TEST_CASE ("Schema v33 migration keeps every automation lane and point", "[persi
     Project readback;
     REQUIRE (reopened.readProjectSnapshot (readback).ok());
     REQUIRE (readback.automationLanes == project.automationLanes);
+}
+
+// G4.6 / ADR-0052 — schema v34: Write (4) is a stored mode, and "automation follows clips" persists in its own
+// one-row table (a missing row is off); a v33 bundle keeps its stored mode across the rebuild.
+TEST_CASE ("Write mode and automation-follows-clips round-trip through schema v34", "[persistence][project][round-trip][automation][v34]")
+{
+    const auto path = makeTempBundlePath ("automation-v34");
+    Project project = makeProject();
+    project.automationMode = yesdaw::engine::AutomationMode::Write;
+    project.automationFollowsClips = true;
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+    }
+    {
+        ProjectBundleDb reopened;
+        REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+        Project readback;
+        REQUIRE (reopened.readProjectSnapshot (readback).ok());
+        REQUIRE (readback.automationMode == yesdaw::engine::AutomationMode::Write);
+        REQUIRE (readback.automationFollowsClips);
+
+        // Back to v33's shape with Off stored: the migration keeps the mode, and follow is off (no row).
+        REQUIRE (reopened.executeSql (
+            "DROP TABLE automation_follow_clips; "
+            "CREATE TABLE mode_old (slot INTEGER PRIMARY KEY CHECK (slot = 1), mode INTEGER NOT NULL CHECK (mode >= 0 AND mode <= 3)); "
+            "INSERT INTO mode_old VALUES (1, 3); DROP TABLE automation_mode; ALTER TABLE mode_old RENAME TO automation_mode; "
+            "DELETE FROM schema_migrations WHERE version = 34; PRAGMA user_version = 33;").ok());
+    }
+    ProjectBundleDb migrated;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, migrated).ok());
+    sqlite3_int64 value = 0;
+    REQUIRE (migrated.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    Project readback;
+    REQUIRE (migrated.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.automationMode == yesdaw::engine::AutomationMode::Off);
+    REQUIRE_FALSE (readback.automationFollowsClips);
+    // A mode past Write is refused at open.
+    REQUIRE_FALSE (migrated.executeSql ("UPDATE automation_mode SET mode = 5 WHERE slot = 1;").ok());   // the CHECK
 }

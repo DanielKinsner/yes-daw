@@ -3132,3 +3132,25 @@ TEST_CASE ("Compressor sidechain keys a Track or Bus, refuses loops, and undoes 
         REQUIRE (bad.hasValidAssetClipIndirection());
     }
 }
+
+// G4.6 / ADR-0052: Write is a known mode; "automation follows clips" is an undoable scalar in the mode family.
+TEST_CASE ("Write mode and automation-follows-clips are undoable settings", "[project][automation][undo][v34]")
+{
+    Project project = makeTwoClipEditableProject();
+    const Project original = project;
+    ProjectUndoStack undo;
+    REQUIRE (undo.apply (project, ProjectEditCommand::setAutomationMode (yesdaw::engine::AutomationMode::Write)).applied());
+    REQUIRE (project.automationMode == yesdaw::engine::AutomationMode::Write);
+    REQUIRE (undo.apply (project, ProjectEditCommand::setAutomationFollowsClips (true)).applied());
+    REQUIRE (project.automationFollowsClips);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE_FALSE (project.automationFollowsClips);
+    REQUIRE (project.automationMode == yesdaw::engine::AutomationMode::Write);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (project.automationMode == original.automationMode);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (project.automationFollowsClips);
+    REQUIRE (yesdaw::engine::setAutomationMode (project, static_cast<yesdaw::engine::AutomationMode> (5))
+             == ProjectEditStatus::InvalidProject);
+}

@@ -949,10 +949,11 @@ enum class AutomationMode : std::uint8_t
     Touch = 1,
     Latch = 2,
     // R15: Off — lanes stay stored and editable, but playback/render IGNORE them (the
-    // projection compiles no lanes) and no ride ever arms. Classic Write (continuous
-    // overwrite-while-playing) is deliberately NOT added: the backlog gates it on being honest
-    // end-to-end, and an erase-as-you-go law is a bigger slice — parked, not faked.
-    Off = 3
+    // projection compiles no lanes) and no ride ever arms.
+    Off = 3,
+    // G4.6 / ADR-0052: Write — a pass writes from play to stop on the selected track's laned or touched
+    // targets, replacing the span; the mode returns to Touch after the pass.
+    Write = 4
 };
 
 [[nodiscard]] constexpr bool automationModeIsKnown (AutomationMode mode) noexcept
@@ -960,7 +961,8 @@ enum class AutomationMode : std::uint8_t
     return mode == AutomationMode::Read
            || mode == AutomationMode::Touch
            || mode == AutomationMode::Latch
-           || mode == AutomationMode::Off;
+           || mode == AutomationMode::Off
+           || mode == AutomationMode::Write;
 }
 
 // N8: a persisted punch region for recording. Disabled (the default) reproduces today's
@@ -1210,6 +1212,8 @@ struct Project
     // N5: persisted automation write mode (schema v14, locate-points pattern: a missing row
     // means the historical Read-only default).
     AutomationMode automationMode = AutomationMode::Read;
+    // G4.6 / ADR-0052: moving a clip in time on its own track carries the automation in its span.
+    bool automationFollowsClips = false;
     // N8: persisted punch region (schema v17, locate-points pattern: a missing row means
     // disabled, the historical no-punch default).
     PunchRegion punchRegion;
@@ -3577,6 +3581,16 @@ namespace detail {
         return ProjectEditStatus::InvalidProject;
 
     project.automationMode = mode;
+    return ProjectEditStatus::Applied;
+}
+
+// G4.6 / ADR-0052: the "automation follows clips" setting (an automation-mode-family scalar).
+[[nodiscard]] inline ProjectEditStatus setAutomationFollowsClips (Project& project, bool follows)
+{
+    if (! project.hasValidAssetClipIndirection())
+        return ProjectEditStatus::InvalidProject;
+
+    project.automationFollowsClips = follows;
     return ProjectEditStatus::Applied;
 }
 
