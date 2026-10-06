@@ -747,6 +747,10 @@ G4.8 is a separate later milestone; it does not block G5/G6 or imply that plugin
 - **G4.6 — Automation v2.** Build: stacked per-track lanes, real Write mode, pencil/line tools,
   region-follow toggle (automation moves with clips), instrument parameters as targets. Gate:
   render goldens; `[automation-v2]`.
+  **2026-10-06 complete (ADR-0052):** Write and Latch, rides heard live, span-replacing passes, stacked
+  per-track lanes (saved view keys), Pencil / Shift+Pencil line / Eraser, Automation Follows Clips,
+  instrument rides. Render gates + `[automation-v2]`; quiet batch 385/385; two critics.
+  [Evidence](../evidence/2026-10-06-g46-automation-v2.json).
 - **G4.7 — Master strip.** Build: dim/mute, loudness readout in the header (exists as a meter),
   limiter editor. Gate: tokens.
 - **G4.8 — Separate plugin milestone (after Usable-song; opens H18).** Entry: a recorded PASS

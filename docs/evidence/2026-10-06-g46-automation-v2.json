@@ -1,0 +1,176 @@
+{
+  "checkpoint": "G4.6 automation v2 (ADR-0052): Write and Latch, rides you hear, span-replacing passes, stacked per-track lanes, Pencil / Shift+Pencil line / Eraser, automation follows clips; plus two engine repairs found on the way",
+  "status": "Quiet drive batch PASS 7/7 (385 assertions) on the final build (e005b43 + the drive chord fix 03763dc); two separate agent critic passes, every should-fix taken; exact-code CI recorded below.",
+  "date": "2026-10-06",
+  "host": "DESKTOP-7LC339R (Windows 11 Pro 10.0.26200), shared desktop, owner-authorized for the night",
+  "codeSha": "e005b43",
+  "batch": {
+    "tag": "2026-10-06-g46-final2",
+    "sessions": [
+      {
+        "session": "ss1-first-minute",
+        "assertions": 45,
+        "result": "PASS"
+      },
+      {
+        "session": "ss2-mouse-then-keys",
+        "assertions": 33,
+        "result": "PASS"
+      },
+      {
+        "session": "ss3-edit-a-song",
+        "assertions": 55,
+        "result": "PASS"
+      },
+      {
+        "session": "ss4-track-instrument",
+        "assertions": 19,
+        "result": "PASS"
+      },
+      {
+        "session": "ss5-piano-roll",
+        "assertions": 71,
+        "result": "PASS",
+        "covers": "the Step click's effect is now awaited before Ctrl+K (98127b7)"
+      },
+      {
+        "session": "ss6-write-a-beat",
+        "assertions": 49,
+        "result": "PASS"
+      },
+      {
+        "session": "ss7-mix-the-song",
+        "assertions": 113,
+        "result": "PASS",
+        "covers": "G4.6 Step 12: A shows track 1's lanes; Shift+Pencil draws a two-point line; the Eraser sweeps it; Ctrl+Z restores; A hides"
+      }
+    ],
+    "totalAssertions": 385,
+    "failedAssertions": 0
+  },
+  "rawFailuresBeforeCertification": [
+    {
+      "batch": "2026-10-06-g46",
+      "session": "ss5",
+      "failures": 1,
+      "detail": "Step 14 'both modes off again': the probe shows the second Step click dispatched (lastAction piano_roll.step_input) but the Ctrl+K sent right after never dispatched",
+      "cause": "the drive sent the key while the click was still being handled; ss5 alone passed 70/70 on the same build. Second observation of an input landing without effect (first: ss7 under load, 2026-10-06 g45). Fixed in the drive by asserting the click's effect before the next key (98127b7); the quiet batch then passed."
+    },
+    {
+      "batch": "2026-10-06-g46-final",
+      "session": "ss4",
+      "failures": 1,
+      "detail": "'Ctrl+Z undoes the knob drag': the probe's lastAction was timeline.zoom.selection — the Ctrl+Z arrived as a bare Z",
+      "cause": "understood: JUCE reads a modifier's physical state when it handles the key; the drive released Ctrl 40 ms after the key while the app was still finishing the knob drag's engine rebuild. The same cause fits the ss5 Ctrl+K above and the ss7-under-load observation. Fixed in the drive (03763dc: a chord waits for the app to be idle, then holds the modifier 80 ms); the product side (a fast Ctrl+Z during a busy moment could read as Z) is a separate task."
+    }
+  ],
+  "gates": {
+    "engine": [
+      "[automation-v2] span replacement: Linear curve outside the span within 1e-12, Hold exact; a second pass replaces the first; anchors step past ticks that share a frame at fast tempos; malformed passes refused whole; one-entry undo",
+      "[automation-v2] render: Hold outside a replaced span bit-identical, Linear within 1e-6 after the fader smoothing settles; a Write pass sounds its written value; a clip moved with its automation renders the same audio shifted (2e-3)",
+      "[automation-v2] a ride suspends its target's lane on the audio thread (builder, runtime and every role's target cross-checked with the projection); instrument rides heard (track_instrument_tests)",
+      "[budget] the per-block event budget counts each lane's breakpoints (dense lanes refused; the pinned 102-lane boundary holds)",
+      "[follow-clips] SampleLocked across a tempo change, TempoLocked, two clips moving together, a landing that replaces a peak"
+    ],
+    "ui": [
+      "[automation-ride] Touch / Latch / Write / loop wrap / density laws (5 cases)",
+      "[automation-v2] a ride is heard while it lasts (a mutation that drops the suspension makes it silent and fails); a latched ride survives an engine rebuild (a mutation that drops the re-suspend fails); Latch holds to stop; Write writes play to stop and returns to Touch in one undo step; a jump back commits the pass so far; the budget refusal names its reason",
+      "[automation-v2] lanes show per track as saved view keys (malformed keys ignored); stacked lanes edit only their own target; [automation-stack] screenshot requires real curves in each lane",
+      "[automation-tools] Pencil freehand, Shift+Pencil line, Eraser sweep, one undo each; a snapped stroke lands on one grid",
+      "[follow-clips] Edit > Automation Follows Clips: off leaves the lane, on carries it, one undo restores both"
+    ]
+  },
+  "repairs": [
+    {
+      "commit": "af6f476",
+      "bug": "the compile-time automation event budget ignored breakpoints inside a block: two lanes with a point per frame compiled and would overflow the audio thread's event storage (a fatal assert)",
+      "gate": "[budget]"
+    },
+    {
+      "commit": "01ac477",
+      "bug": "an edit adopted mid-ride (a new track, a clip move) rebuilt the engine and a latched fader snapped back to its stored value until stop (critic finding)",
+      "gate": "[automation-v2] latched fader across a rebuild"
+    },
+    {
+      "commit": "677ab52",
+      "bug": "instrument-parameter rides recorded but were not heard live (critic finding)",
+      "gate": "[automation-v2] instrument ride"
+    },
+    {
+      "commit": "dbc4d4f",
+      "bug": "with Automation Follows Clips on, a neighbour the Shuffle edit mode slid along kept its automation in place (critic 2)",
+      "gate": "[follow-clips] Shuffle neighbour"
+    },
+    {
+      "commit": "e005b43",
+      "bug": "another shown track's last lane was a dead slot; a selected track's chooser lane could duplicate a stacked lane and shift its row; an Eraser drag that doubled back erased only between its ends (critic 2)",
+      "gate": "[automation-v2] + Lane; [automation-tools] back-and-forth erase"
+    }
+  ],
+  "critics": [
+    "G4.6 steps 1-4: 2 should-fix taken (instrument rides heard: 677ab52; the rebuild re-suspend found while verifying finding 3: 01ac477); the 'mode frozen for the run' claim checked and refuted (the recorder restarts whenever nothing is writing); a loop wrap committing (an engine rebuild) per cycle accepted as ADR-0052's rule",
+    "G4.6 steps 5-8: four should-fix taken (Shuffle neighbours: dbc4d4f; the dead last-lane slot, now + Lane, and the chooser starting on a target without a lane; the doubled-back erase; the instrument setters' audio-thread comments: e005b43); one nit recorded, not changed: a very fast snapped Pencil flick writes one point per mouse sample that snaps, so a grid cell crossed between two samples gets none. Verified fine by the critic: time bases in follow-clips, view keys per project, the suspend mask, captures from the original lane, the Pencil's sorted ticks."
+  ],
+  "visualJudgment": [
+    "yesdaw-automation-stacked.png (screenshot test): the clip keeps its part of the row, the Fader lane stacks under it with its name and a separator, the Pan chooser lane is last; no curve drawn twice (fixed during review: the chooser lane's target is left out of the stack)",
+    "ss7-automation-line.png (real app): track 1's row grew; the chooser lane and the drawn line sit under it; the rail's rows stay aligned with the timeline's"
+  ],
+  "ci": [
+    {
+      "sha": "78f65ae",
+      "run": 37467330825,
+      "result": "every job green except macOS, red only on YesDawTimelineGpuCheck (plan 8.2 standing exception)",
+      "raw": {
+        "maxFrameMs": 25.6,
+        "sustainedFrameMs": 22.67,
+        "slowFrames": 74
+      }
+    },
+    {
+      "sha": "effbeb0",
+      "run": 37470907872,
+      "result": "same exception only",
+      "raw": {
+        "maxFrameMs": 58.77,
+        "sustainedFrameMs": 26.07,
+        "slowFrames": 81
+      }
+    },
+    {
+      "sha": "4f66c62",
+      "run": 37475432294,
+      "result": "same exception only",
+      "raw": {
+        "maxFrameMs": 33.21,
+        "sustainedFrameMs": 24.67,
+        "slowFrames": 82
+      }
+    },
+    {
+      "sha": "eff1727",
+      "run": 37478203004,
+      "result": "same exception only",
+      "raw": {
+        "maxFrameMs": 31.59,
+        "sustainedFrameMs": 21.19,
+        "slowFrames": 33
+      }
+    },
+    {
+      "sha": "677ab52",
+      "run": 37482355504,
+      "result": "every job green, RTSan and TSan included, except macOS, red only on YesDawTimelineGpuCheck (plan 8.2 standing exception)",
+      "raw": {
+        "maxFrameMs": 32.91,
+        "sustainedFrameMs": 23.09,
+        "slowFrames": 80
+      }
+    },
+    {
+      "sha": "e005b43",
+      "run": 37485734345,
+      "result": "in progress at writing; recorded in STATUS.md"
+    }
+  ],
+  "artifactAvailability": "Logs and screenshots under build-ci/ are local to DESKTOP-7LC339R."
+}

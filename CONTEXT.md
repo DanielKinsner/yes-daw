@@ -331,7 +331,9 @@ _Avoid_: reusing or renumbering a ParamID, raw index as parameter identity
 
 **Automation lane**:
 The saved series of Breakpoints for one parameter target (a ParamID on a specific Track, Bus, or
-Node). It is data first; its editor UI is an H16 surface.
+Node). It is data first. On screen (ADR-0052) a Track's lanes show per Track (the A toggle): every lane
+the Track owns stacks under its row, one lane high, and a last lane's chooser starts a lane for another
+target; Pointer, Pencil (Shift: a line) and Eraser edit them.
 _Avoid_: curve (when you mean the stored lane), envelope
 
 **Breakpoint**:

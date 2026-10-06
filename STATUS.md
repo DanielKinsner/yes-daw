@@ -8,34 +8,38 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-10-06 (night) — G4.6 automation v2 in progress: rides you hear, Latch / Write, follow clips
+## 2026-10-06 (night) — G4.6 done: automation you can write, hear, draw and move with clips
 
-**Now:** **G4.6** (ADR-0052) — steps 1–4 and 7 are in; **step 5 (stacked lanes)** is under way (5a, the
-row geometry, is in). Left: 5b–5d stacked lanes, step 6 Pencil / Shift+Pencil line / Eraser, instrument
-rides heard live, step 8 render goldens + the `[automation-v2]` drive step, then the checkpoint (quiet
-batch, critic, evidence) → G4.7 master strip → G5 → G6.
+**Now:** **G4.6** (ADR-0052) is done. **Next: G4.7 master strip** (dim / mute, a header loudness readout
+that is actually fed, a limiter editor reachable from the master) → G5 → G6. [Evidence](docs/evidence/2026-10-06-g46-automation-v2.json).
 
-**What a user gets so far:**
-- **Write** is a real mode (Read, Touch, Latch, Off, Write). Play in Write: every lane the selected strip
-  owns is written from play to stop at the value it plays there (touch a control to ride it); stop returns
-  the mode to Touch inside the same undo step.
-- **Latch**: a released control keeps writing — and sounding — its value until stop.
-- **You hear a ride while it lasts** (fader, pan, sends, insert parameters): the lane steps aside on the
-  audio thread and the control's value plays. Instrument-parameter rides still record but are not yet
-  heard live (open step).
-- **A second pass over the same bars rewrites them** (it used to be refused); edges are anchored so the
-  automation outside the pass is untouched. A loop wrap / jump back commits the pass so far.
-- **Edit > Automation Follows Clips** (saved, undoable): moving clips in time carries their automation, by
-  each clip's own time law; one undo restores the clip and its automation together.
+**What a user gets:**
+- **Modes Read, Touch, Latch, Write, Off.** Touch writes while you hold a control; **Latch** keeps writing
+  your last value until stop; **Write** writes every lane the selected strip owns from play to stop (touch a
+  control to ride it) and then returns to Touch — the pass and the mode change are one undo step.
+- **You hear a ride while it lasts** — fader, pan, sends, insert parameters and instrument parameters.
+- **A second pass rewrites the bars it covers** (it used to be refused); the automation outside a pass is
+  untouched. A loop wrap or jump back commits the pass so far and carries on.
+- **Lanes per track, stacked under the track** (the A key / button shows the selected track's lanes; saved
+  with the project's view): each lane the track owns, named, one under another; the last lane's chooser
+  starts a lane for another target; other shown tracks offer **+ Lane** there.
+- **Pencil** draws (one point per snap step), **Shift+Pencil** draws a straight line, the **Eraser** sweeps
+  points away — one undo step each.
+- **Edit > Automation Follows Clips**: moving clips in time (including neighbours Shuffle moves) carries
+  their automation, locked to the audio across tempo changes; one undo restores clips and automation.
 
-**Repairs found on the way (each with a test that failed first):**
-- The engine's **automation event budget undercounted dense lanes** (one event per breakpoint in a block
-  was ignored): two lanes with a point per frame compiled and would overflow the audio thread's event
-  storage (a fatal assert). Dense passes are now refused with the reason on the status line.
-- A **latched ride snapped back to the stored value** when any edit rebuilt the engine mid-ride (critic).
+**Gates:** `[automation-v2]`, `[automation-ride]`, `[automation-tools]`, `[follow-clips]`, `[budget]` and
+render gates (the audio outside a replaced span is unchanged, a Write pass sounds its values, a clip moved
+with its automation renders the same audio shifted). Quiet batch **385/385** on the final build; ss7 drives
+the lanes (A, Shift+Pencil line, Eraser, Ctrl+Z) on the real app. Two critic passes; every should-fix taken.
 
-**CI:** every pushed head through af6f476 is green except macOS, red only on the standing GPU
-sustained-frame exception (plan §8.2); later heads pending.
+**Repairs found on the way:** the engine's event budget undercounted dense lanes (a possible audio-thread
+assert — now refused with a reason); a latched ride snapped back when another edit rebuilt the engine;
+Shuffle neighbours left their automation behind; the drives sent key chords before the app was idle
+("Ctrl+Z" read as "Z" — the drive now waits; the product side is its own task).
+
+**CI:** heads through 677ab52 are green except macOS, red only on the standing GPU sustained-frame exception
+(plan §8.2); e005b43 (the critic fixes) in progress at writing.
 
 ## 2026-10-06 (evening) — G4.5 done; four real bugs fixed; G4.6 automation v2 decided (ADR-0052)
 
