@@ -1,3 +1,4 @@
+#include "ui/AutomationRide.h"   // G4.6 / ADR-0052: the ride laws
 #include "ui/UiActions.h"
 #include "ui/UiMixerSurface.h"
 #include "ui/UiPianoRollSurface.h"
@@ -1221,4 +1222,183 @@ TEST_CASE ("action descriptors are plain ASCII, as every consumer reads them", "
     const yesdaw::ui::UiActionDescriptor* undoHistory = yesdaw::ui::descriptorFor (yesdaw::ui::UiActionId::EditShowUndoHistory);
     REQUIRE (undoHistory != nullptr);
     CHECK (std::string (undoHistory->label) == "Undo History...");
+}
+
+// ---- G4.6 / ADR-0052: the ride laws ------------------------------------------------------------------------
+namespace
+{
+using yesdaw::ui::AutomationRidePass;
+using yesdaw::ui::AutomationRidePosition;
+using yesdaw::ui::AutomationRideRecorder;
+using yesdaw::ui::AutomationRideTarget;
+
+// 48 kHz at 120 BPM: 1.5625 frames per tick.
+AutomationRidePosition ridePosition (yesdaw::engine::Tick tick)
+{
+    return { tick, static_cast<std::int64_t> (static_cast<double> (tick) * 1.5625) };
+}
+
+AutomationRideTarget rideTarget (std::uint8_t ownerByte, yesdaw::engine::AutomationTargetRole role = yesdaw::engine::AutomationTargetRole::TrackFader)
+{
+    AutomationRideTarget target;
+    target.owner.bytes.back() = ownerByte;
+    target.role = role;
+    target.paramId = 1;
+    return target;
+}
+
+bool risingTicks (const AutomationRidePass& pass)
+{
+    for (std::size_t i = 1; i < pass.samples.size(); ++i)
+        if (pass.samples[i].tick <= pass.samples[i - 1u].tick)
+            return false;
+    return ! pass.samples.empty();
+}
+} // namespace
+
+TEST_CASE ("A Touch ride writes from its touch to its release, ending on the release value", "[ui][automation][automation-ride]")
+{
+    AutomationRideRecorder recorder;
+    recorder.start (yesdaw::engine::AutomationMode::Touch, 48'000.0);
+    const AutomationRideTarget fader = rideTarget (7);
+
+    REQUIRE (recorder.touch (fader, ridePosition (1'000), 0.5).empty());
+    REQUIRE (recorder.isWriting (fader));
+    REQUIRE (recorder.touch (fader, ridePosition (3'000), 0.6).empty());
+    REQUIRE (recorder.advance (ridePosition (4'000)).empty());   // held still: nothing closes
+    const std::vector<AutomationRidePass> closed = recorder.release (fader, ridePosition (5'000), 0.7);
+    REQUIRE (closed.size() == 1u);
+    REQUIRE (closed[0].target == fader);
+    REQUIRE (risingTicks (closed[0]));
+    REQUIRE (closed[0].samples.front().tick == 1'000);
+    REQUIRE (closed[0].samples.back() == yesdaw::ui::AutomationRideSample { 5'000, 0.7 });
+    REQUIRE_FALSE (recorder.writing());
+}
+
+TEST_CASE ("A ride keeps a sample only when it moved 1/512 or 250 ms passed, at most once per 64 frames", "[ui][automation][automation-ride]")
+{
+    AutomationRideRecorder recorder;
+    recorder.start (yesdaw::engine::AutomationMode::Touch, 48'000.0);
+    const AutomationRideTarget fader = rideTarget (7);
+
+    // Moves every 16 ticks (25 frames) of a big step: at most one kept per 64 frames.
+    (void) recorder.touch (fader, ridePosition (0), 0.0);
+    for (yesdaw::engine::Tick tick = 16; tick <= 1'600; tick += 16)
+        (void) recorder.touch (fader, ridePosition (tick), static_cast<double> (tick) / 2'000.0);
+    std::vector<AutomationRidePass> closed = recorder.release (fader, ridePosition (1'616), 0.9);
+    REQUIRE (closed.size() == 1u);
+    const auto& dense = closed[0].samples;
+    for (std::size_t i = 1; i + 1u < dense.size(); ++i)   // the release sample may follow closer
+        REQUIRE (ridePosition (dense[i].tick).frame - ridePosition (dense[i - 1u].tick).frame >= 64);
+    REQUIRE (dense.back() == yesdaw::ui::AutomationRideSample { 1'616, 0.9 });
+
+    // Tiny moves (1/1024) are dropped until 250 ms (12 000 frames = 7 680 ticks) pass.
+    (void) recorder.touch (fader, ridePosition (10'000), 0.5);
+    for (yesdaw::engine::Tick tick = 10'100; tick <= 26'000; tick += 100)
+        (void) recorder.touch (fader, ridePosition (tick), 0.5 + ((tick / 100) % 2 == 0 ? 1.0 / 1024.0 : 0.0));
+    closed = recorder.release (fader, ridePosition (26'000), 0.5);
+    REQUIRE (closed.size() == 1u);
+    const auto& quiet = closed[0].samples;
+    REQUIRE (quiet.front().tick == 10'000);
+    REQUIRE (quiet.size() >= 3u);
+    REQUIRE (quiet.size() <= 5u);   // the start, one per 250 ms, the release
+    for (std::size_t i = 1; i + 1u < quiet.size(); ++i)
+        REQUIRE (ridePosition (quiet[i].tick).frame - ridePosition (quiet[i - 1u].tick).frame >= 12'000);
+    REQUIRE (quiet.back().tick == 26'000);
+}
+
+TEST_CASE ("A Latch ride holds its last value after the release and writes on to stop", "[ui][automation][automation-ride]")
+{
+    AutomationRideRecorder recorder;
+    recorder.start (yesdaw::engine::AutomationMode::Latch, 48'000.0);
+    const AutomationRideTarget pan = rideTarget (9, yesdaw::engine::AutomationTargetRole::TrackPan);
+
+    (void) recorder.touch (pan, ridePosition (1'000), 0.2);
+    REQUIRE (recorder.release (pan, ridePosition (2'000), 0.8).empty());   // latched, not closed
+    REQUIRE (recorder.isWriting (pan));
+    REQUIRE (recorder.latestValue (pan, -1.0) == 0.8);
+    for (yesdaw::engine::Tick tick = 3'000; tick <= 40'000; tick += 1'000)
+        REQUIRE (recorder.advance (ridePosition (tick)).empty());
+    const std::vector<AutomationRidePass> closed = recorder.stop (ridePosition (40'500));
+    REQUIRE (closed.size() == 1u);
+    REQUIRE (risingTicks (closed[0]));
+    REQUIRE (closed[0].samples.back() == yesdaw::ui::AutomationRideSample { 40'500, 0.8 });
+    for (std::size_t i = 1; i < closed[0].samples.size(); ++i)
+        if (closed[0].samples[i].tick > 2'000)
+            REQUIRE (closed[0].samples[i].value == 0.8);   // the held value, never anything else
+    REQUIRE_FALSE (recorder.writing());
+}
+
+TEST_CASE ("A Write pass writes every armed and touched target from play to stop", "[ui][automation][automation-ride]")
+{
+    AutomationRideRecorder recorder;
+    recorder.start (yesdaw::engine::AutomationMode::Write, 48'000.0);
+    const AutomationRideTarget fader = rideTarget (7);
+    const AutomationRideTarget pan = rideTarget (7, yesdaw::engine::AutomationTargetRole::TrackPan);
+    const AutomationRideTarget send = rideTarget (7, yesdaw::engine::AutomationTargetRole::SendLevel);
+
+    REQUIRE (recorder.arm (fader, ridePosition (0), 0.75).empty());
+    REQUIRE (recorder.arm (pan, ridePosition (0), 0.5).empty());
+    (void) recorder.advance (ridePosition (8'000));
+    (void) recorder.touch (send, ridePosition (10'000), 0.3);   // a target touched mid-pass joins
+    (void) recorder.touch (fader, ridePosition (12'000), 0.9);  // an armed target touched takes the ride
+    REQUIRE (recorder.release (fader, ridePosition (14'000), 0.95).empty());
+    REQUIRE (recorder.release (send, ridePosition (14'000), 0.35).empty());
+    (void) recorder.advance (ridePosition (20'000));
+
+    const std::vector<AutomationRidePass> closed = recorder.stop (ridePosition (24'000));
+    REQUIRE (closed.size() == 3u);
+    for (const AutomationRidePass& pass : closed)
+    {
+        REQUIRE (risingTicks (pass));
+        REQUIRE (pass.samples.back().tick == 24'000);
+        if (pass.target == fader)
+        {
+            REQUIRE (pass.samples.front() == yesdaw::ui::AutomationRideSample { 0, 0.75 });
+            REQUIRE (pass.samples.back().value == 0.95);
+        }
+        else if (pass.target == pan)
+        {
+            for (const auto& sample : pass.samples)
+                REQUIRE (sample.value == 0.5);   // never touched: its current value, play to stop
+        }
+        else
+        {
+            REQUIRE (pass.target == send);
+            REQUIRE (pass.samples.front() == yesdaw::ui::AutomationRideSample { 10'000, 0.3 });
+            REQUIRE (pass.samples.back().value == 0.35);
+        }
+    }
+}
+
+TEST_CASE ("A loop wrap closes every pass as written; held writers carry on as new passes", "[ui][automation][automation-ride]")
+{
+    AutomationRideRecorder recorder;
+    recorder.start (yesdaw::engine::AutomationMode::Latch, 48'000.0);
+    const AutomationRideTarget fader = rideTarget (7);
+
+    (void) recorder.touch (fader, ridePosition (10'000), 0.4);
+    (void) recorder.release (fader, ridePosition (20'000), 0.6);
+    (void) recorder.advance (ridePosition (30'000));
+    std::vector<AutomationRidePass> closed = recorder.advance (ridePosition (5'000));   // the loop wrapped
+    REQUIRE (closed.size() == 1u);
+    REQUIRE (closed[0].samples.front().tick == 10'000);
+    REQUIRE (closed[0].samples.back().tick == 30'000);
+    REQUIRE (recorder.isWriting (fader));   // latched: carries on in the next cycle
+
+    closed = recorder.stop (ridePosition (12'000));
+    REQUIRE (closed.size() == 1u);
+    REQUIRE (closed[0].samples.front() == yesdaw::ui::AutomationRideSample { 5'000, 0.6 });
+    REQUIRE (closed[0].samples.back() == yesdaw::ui::AutomationRideSample { 12'000, 0.6 });
+
+    // Touch: a wrap while the control is held closes the pass and continues; the release ends the second.
+    recorder.start (yesdaw::engine::AutomationMode::Touch, 48'000.0);
+    (void) recorder.touch (fader, ridePosition (40'000), 0.1);
+    closed = recorder.touch (fader, ridePosition (2'000), 0.2);
+    REQUIRE (closed.size() == 1u);
+    REQUIRE (closed[0].samples.front().tick == 40'000);
+    closed = recorder.release (fader, ridePosition (6'000), 0.3);
+    REQUIRE (closed.size() == 1u);
+    REQUIRE (closed[0].samples.front() == yesdaw::ui::AutomationRideSample { 2'000, 0.2 });
+    REQUIRE (closed[0].samples.back() == yesdaw::ui::AutomationRideSample { 6'000, 0.3 });
 }
