@@ -693,6 +693,9 @@ G4.8 is a separate later milestone; it does not block G5/G6 or imply that plugin
   control; repair synchronization/targeting if the harness is at fault. Unknown cause is not a
   tooling exemption. Gate: current SS-1–SS-3 fully pass on the same built app, plus applicable
   local/CI checks. No more editor features until this checkpoint restores the earlier proof.
+  **2026-10-05 certified:** one build of CI-green code `30bc84c` passed ss1–ss7 (311/311 assertions,
+  worst launch 1,404 ms) and the local suite (380/380);
+  [evidence](../evidence/2026-10-05-g40a-certification.json).
 - **G4.0b — Keyboard operation without losing transport.** Implement ADR-0049's Control target,
   separate from Focus context: Tab/Shift+Tab traverse visible enabled controls in a stable order;
   Tab or accessibility targeting starts control navigation; returning to an editor canvas ends it.

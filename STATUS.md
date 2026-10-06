@@ -8,6 +8,37 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-05 — G4.0a certified: all seven journeys pass on one build
+
+**Now:** G4.0a is **certified**. **Next: G4.0b** (keyboard Control target, ADR-0049), then G4.2–G4.7 →
+G5 → G6 → Usable-song certification. Dan asked the agent to keep delivering autonomously and granted
+one hands-off shared-desktop window for this batch; that window is now released.
+
+**Result:** on DESKTOP-7LC339R, one Release build of `76ffbac` was driven serially, with no concurrent
+build. Its code is byte-identical to `30bc84c`, whose
+[CI 34315558059](https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059) passed all ten jobs
+with no timing exception. The unchanged driver passed **SS1 45, SS2 33, SS3 55, SS4 19, SS5 70, SS6 49,
+SS7 40: 311/311 assertions**. All eleven launches met B6 (worst **1,404 ms** of 3,000). B2 paint p95 was
+**4.05 ms** (limit 8), B3 had zero callback removals, B4 had no placement-edit rebuilds and B5 had zero
+burst underruns. The same build passed the full local suite, **380/380** (107 s). App SHA-256
+`88F896E6…62A6`; the [certification index](docs/evidence/2026-10-05-g40a-certification.json) lists
+every log and number.
+
+**Refuted on the way (kept as a raw result):** setting the chooser filename by `WM_SETTEXT`, so that
+keyboard focus could not drop typed characters, does **not** reach Windows' own filename model
+reliably. SS1 Save As read back the exact path but saved the dialog default `Documents\Untitled.yesdaw`
+(44/45), while SS2's identical New/Import choosers accepted it (33/33). The experiment was reverted
+before the certifying batch. Its stray bundle was moved out of Documents into the agent scratchpad.
+The original 2026-09-08 SS7 blank readback stays unexplained and was not reproduced (SS7 40/40). The
+structured readback added then remains in place to capture any recurrence.
+
+**Critic:** a separate agent verified every count, budget, hash, diff and CI claim against the raw
+logs and `gh`; it asked for the local-suite row (added). Its suggestion to credit `30bc84c` with fixing
+the old readback was rejected: that failure occurred on that same candidate, so no cause is claimed.
+
+**Rubric:** no new defect in the reviewed screenshots; rows 1–4 FIX (G6) stay open. Parked observation
+to verify: song-fixture clips draw a near-flat waveform at default zoom (quiet passage vs paint bug).
+
 ## 2026-09-08 — G4.0a: remove duplicate saved-song loading, assert every startup
 
 **Now:** G4.0a remains open. Reviewed repairs are pushed as

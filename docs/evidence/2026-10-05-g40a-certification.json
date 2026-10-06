@@ -1,0 +1,121 @@
+{
+  "checkpoint": "G4.0a restore the basic journeys",
+  "status": "CERTIFIED: SS1-SS7 pass on one build of the CI-green code; local suite and exact-code CI recorded below.",
+  "date": "2026-10-05",
+  "host": "DESKTOP-7LC339R (Windows 11 Pro 10.0.26200), shared desktop, owner-authorized hands-off window",
+  "codeSha": "30bc84c6f2a8add75da18f0fbd18276aa3237cdf",
+  "builtFromHead": "76ffbac51bf3ab1e923cc64dc5e967d13ca6f11a",
+  "builtFromHeadNote": "76ffbac differs from 30bc84c only in STATUS.md and two docs/evidence JSON files; the built code is identical.",
+  "ci": {
+    "runId": 34315558059,
+    "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/34315558059",
+    "conclusion": "success",
+    "jobs": 10,
+    "macosTimingExceptionApplied": false
+  },
+  "app": {
+    "path": "build-ci/YesDaw_artefacts/Release/YesDaw.exe",
+    "sha256": "88F896E668BA8A1B3FBF6B7FBC832A5D91684264B0004478A540EA16DE9E62A6",
+    "build": "ninja -C build-ci (Release, MSVC 2022 BuildTools), exit 0"
+  },
+  "localTests": {
+    "command": "ctest --test-dir build-ci -j 6 --output-on-failure",
+    "passed": 380,
+    "failed": 0,
+    "seconds": 107.44,
+    "log": "build-ci/2026-10-05-g40a-ctest.log",
+    "logSha256": "A255D4C354D14D242AFE6CBA5B90E77C5290707B72C7BA6254441A28B679D3D6"
+  },
+  "fixture": {
+    "path": "%LOCALAPPDATA%/YES DAW/fixtures/stems/stem-01.wav",
+    "sha256": "301EA501ADC8692AC7C04CEB82CE6ECD44EDE3E0B208E8C890BBCB30E9F58210"
+  },
+  "harness": {
+    "driver": "tools/session-drive.ps1 at 76ffbac (unchanged)",
+    "runner": "serial, one script at a time, no concurrent build or drive",
+    "sessions": [
+      {
+        "session": "ss1-first-minute",
+        "result": "PASS",
+        "assertions": 45,
+        "seconds": 26,
+        "log": "build-ci/2026-10-05-g40a-ss1-first-minute.log"
+      },
+      {
+        "session": "ss2-mouse-then-keys",
+        "result": "PASS",
+        "assertions": 33,
+        "seconds": 38,
+        "log": "build-ci/2026-10-05-g40a-ss2-mouse-then-keys.log"
+      },
+      {
+        "session": "ss3-edit-a-song",
+        "result": "PASS",
+        "assertions": 55,
+        "seconds": 47,
+        "log": "build-ci/2026-10-05-g40a-ss3-edit-a-song.log"
+      },
+      {
+        "session": "ss4-track-instrument",
+        "result": "PASS",
+        "assertions": 19,
+        "seconds": 19,
+        "log": "build-ci/2026-10-05-g40a-ss4-track-instrument.log"
+      },
+      {
+        "session": "ss5-piano-roll",
+        "result": "PASS",
+        "assertions": 70,
+        "seconds": 31,
+        "log": "build-ci/2026-10-05-g40a-ss5-piano-roll.log"
+      },
+      {
+        "session": "ss6-write-a-beat",
+        "result": "PASS",
+        "assertions": 49,
+        "seconds": 67,
+        "log": "build-ci/2026-10-05-g40a-ss6-write-a-beat.log"
+      },
+      {
+        "session": "ss7-mix-the-song",
+        "result": "PASS",
+        "assertions": 40,
+        "seconds": 24,
+        "log": "build-ci/2026-10-05-g40a-ss7-mix-the-song.log"
+      }
+    ],
+    "totalAssertions": 311,
+    "failedAssertions": 0
+  },
+  "budgets": {
+    "B6StartupMs": [
+      1099,
+      1348,
+      1126,
+      1377,
+      1107,
+      1385,
+      1120,
+      1093,
+      1109,
+      1404,
+      1113
+    ],
+    "B6LimitMs": 3000,
+    "B6Worst": 1404,
+    "B2PaintP95Ms": 4.05,
+    "B2LimitMs": 8,
+    "B3CallbackRemovals": 0,
+    "B4RebuildsAcrossPlacementEdits": "2 -> 2",
+    "B5BurstUnderruns": 0,
+    "renderer": "Direct2D"
+  },
+  "refutedHypothesis": {
+    "summary": "Setting the native chooser filename with WM_SETTEXT instead of typed input does not reliably reach the Windows file dialog's own filename model.",
+    "evidence": "With that experimental driver, SS1 Save As read back the exact requested path and closed, but the app received the dialog default C:/Users/<owner>/OneDrive/Documents/Untitled.yesdaw; SS1 recorded 44 passed / 1 failed. SS2 New and Import accepted the same method (33/33), so the behavior is inconsistent between identically configured choosers.",
+    "disposition": "Experiment reverted before the certifying batch; the certifying batch used the unchanged driver. The stray Untitled.yesdaw created by the experiment was moved out of the owner's Documents into the agent scratchpad. Raw logs kept under build-ci/g40a-2026-10-05-wmsettext-refuted/.",
+    "originalSs7Failure": "The 2026-09-08 SS7 blank filename readback remains unexplained and was not reproduced in this batch (SS7 40/40). The structured readback committed then stays in place to capture a recurrence."
+  },
+  "visualRubric": "Agent reviewed the SS3 1920x1080 screenshot: no new defect versus the recorded rubric; rows 1-4 FIX (G6) remain open. Observation parked for verification: the song-fixture clips draw a near-flat waveform at this zoom.",
+  "artifactAvailability": "Logs and screenshots under build-ci/ are local to DESKTOP-7LC339R; git carries this index, the CI link and the driver sources."
+}
