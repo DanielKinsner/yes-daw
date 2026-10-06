@@ -946,6 +946,9 @@ juce::String MainComponent::buildStateProbeJson()
                 presets.add (juce::String::fromUTF8 (name.c_str()));
             fx->setProperty ("presets", presets);
         }
+        fx->setProperty ("presetPromptOpen", fxPresetPrompt != nullptr);
+        if (fxPresetPrompt != nullptr)
+            fx->setProperty ("presetPromptText", fxPresetPrompt->getTextEditorContents ("name"));
         root->setProperty ("fxEditor", juce::var (fx));
         // G4.1 cp2: the Touch / Latch ride a painted drag is buffering (N5) — what a drive sees mid-ride.
         auto* ride = new juce::DynamicObject();

@@ -20,6 +20,9 @@
 # Enter is Return to zero again. Save and close is Step 12.
 # G4.2 cp2 (2026-10-05) — Step 8 also opens the bus Compressor's face: its gain-reduction meter is laid out
 # and reads the running node (zero in this silent song).
+# G4.2 cp6–cp7 (2026-10-05) — Step 8 drags the bus EQ below its Compressor and undoes it; then the
+# Compressor's Presets menu saves a named preset through the prompt, loads it back after an edit, and one
+# Ctrl+Z undoes the load.
 #
 # Deviations from the plan text (logged in STATUS.md, the G4.1 cp1 story): the recording device on the
 # drive machine may have no inputs — the input-slot and R-cell steps then assert the honest refusal
@@ -214,6 +217,38 @@ Drag 'mixer.strip.3.insert.0' 'mixer.strip.3.insert.1'
 Focus
 Key 'Ctrl+Z'
 [void](Assert (WaitProbe { param($q) "$($q.mixer.strips[3].inserts[0].kind)" -eq 'EQ' -and "$($q.mixer.strips[3].inserts[1].kind)" -eq 'Compressor' } -TimeoutMs 2000) 'one Ctrl+Z restores the chain order')
+
+# G4.2 cp7: the Compressor's Presets menu. Save Preset... names the setting in a prompt; after an edit,
+# picking the preset puts the saved setting back, and one Ctrl+Z undoes the whole load.
+Click 'mixer.strip.3.insert.1' -Double
+[void](Assert (WaitProbe { param($q) [bool]$q.fxEditor.visible -and "$($q.fxEditor.kind)" -eq 'Compressor' } -TimeoutMs 2000) 'the Compressor''s editor reopens for presets')
+[void](Assert ($null -ne (Probe).layout.'mixer.fx.editor.presets') 'the editor''s title row carries Presets')
+$saved = [double](Probe).fxEditor.params.'compressor.threshold'
+Click 'mixer.fx.editor.presets'
+# A fresh session has none: a disabled "No Compressor presets yet", then Save Preset... (the last item).
+MenuPickFromEnd 1
+[void](Assert (WaitProbe { param($q) [bool]$q.fxEditor.presetPromptOpen } -TimeoutMs 2000) 'Save Preset... asks for a name')
+TypeText 'Drive comp'
+[void](Assert (WaitProbe { param($q) "$($q.fxEditor.presetPromptText)" -eq 'Drive comp' } -TimeoutMs 2000) ('the typed name lands in the prompt (' + (Probe).fxEditor.presetPromptText + ')'))
+Shot 'ss7-preset-prompt'
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.presetPromptOpen -and "$($q.status.text)" -eq 'Saved preset "Drive comp"' } -TimeoutMs 2000) ('Enter saves the preset (' + (Probe).status.text + ')'))
+[void](Assert (@((Probe).fxEditor.presets) -contains 'Drive comp') 'the preset is listed for the Compressor')
+DragWithin 'mixer.fx.param.0' -35 0 60 0
+[void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.fxEditor.params.'compressor.threshold' - $saved) -gt 1.0 } -TimeoutMs 2000) ('dragging Threshold moves it off the saved value (' + (Probe).fxEditor.params.'compressor.threshold' + ' dB)'))
+$edited = [double](Probe).fxEditor.params.'compressor.threshold'
+Click 'mixer.fx.editor.presets'
+[void](WaitPopup)
+Key 'Down'   # the first enabled item: the preset
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.fxEditor.params.'compressor.threshold' - $saved) -lt 0.01 -and "$($q.status.text)" -eq 'Loaded preset "Drive comp"' } -TimeoutMs 2000) ('picking the preset restores the saved threshold (' + (Probe).fxEditor.params.'compressor.threshold' + ' dB, ' + (Probe).status.text + ')'))
+Shot 'ss7-preset-loaded'
+Focus
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.fxEditor.params.'compressor.threshold' - $edited) -lt 0.01 } -TimeoutMs 2000) ('one Ctrl+Z undoes the whole load (' + (Probe).fxEditor.params.'compressor.threshold' + ' dB)'))
+Click 'mixer.fx.editor.close'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 2000) 'Close hides the compressor editor again')
 
 Step 9 'Track 1 sends to the bus (the empty send well''s click lists the buses)'
 Click 'mixer.strip.0.send.0'

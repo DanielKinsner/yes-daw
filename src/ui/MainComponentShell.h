@@ -1255,6 +1255,7 @@ private:
     std::vector<juce::String> lastFxPresetsMenu;
     std::vector<std::string> lastFxPresetsMenuNames;
     int fxPresetPromptRequests = 0;
+    juce::Component::SafePointer<juce::AlertWindow> fxPresetPrompt;   // open while it asks for a name
     // E19: the interactive, undoable master fader on the master pane.
     FineDragSlider mixerMasterFader;
     // E17: the inline bus rename editor (the strip header's double-click).

@@ -844,6 +844,10 @@ void MainComponent::promptFxPresetName()
                                      (void) safeThis->saveFxPresetNamed (prompt->getTextEditorContents ("name"));
                                  }),
                              true);
+    fxPresetPrompt = prompt;
+    // The window itself would take the focus (its buttons are first in focus order): typing goes to the name.
+    if (juce::TextEditor* field = prompt->getTextEditor ("name"))
+        field->grabKeyboardFocus();
 }
 
 bool MainComponent::saveFxPresetNamed (const juce::String& name)
