@@ -38,8 +38,13 @@ if ($Files.Count -eq 0) { Write-Host 'PASS: no C++ changes to check'; exit 0 }
 
 $found = 0
 foreach ($file in $Files) {
+  # Windows PowerShell turns a native program's stderr ("1 error generated.") into a terminating error
+  # under 'Stop', which once killed the run before the finding printed; read it as plain text instead.
+  $ErrorActionPreference = 'Continue'
   $lines = & $tidy -p build-ci --checks='-*,bugprone-sizeof-container' --extra-arg=-Wno-unknown-pragmas --extra-arg=-Wno-unused-command-line-argument $file 2>&1 |
+    ForEach-Object { "$_" } |
     Select-String -Pattern 'warning:|error:' | Where-Object { $_.Line -notmatch '_deps|juce-src|catch2|too many errors' }
+  $ErrorActionPreference = 'Stop'
   foreach ($line in $lines) { Write-Host $line.Line; $found++ }
   Write-Host ('  checked ' + $file + ': ' + @($lines).Count + ' finding(s)')
 }
