@@ -22531,7 +22531,7 @@ TEST_CASE ("G4.0b control navigation: Tab walks every control, Enter clicks once
     auto dispatches = snapshotMainComponent (*shell).context.commandDispatchCount;
     clickButton (play);
     const auto mouseClickDispatches = snapshotMainComponent (*shell).context.commandDispatchCount - dispatches;
-    REQUIRE (mouseClickDispatches >= 1u);
+    REQUIRE (mouseClickDispatches >= 1);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
     REQUIRE (snapshotMainComponent (*shell).context.playheadFrame > 0);
 
