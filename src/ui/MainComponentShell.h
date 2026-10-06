@@ -355,6 +355,16 @@ private:
     void closeFxEditor();
     // G4.2 cp2: the open compressor / limiter face samples its insert's live gain reduction (UI tick).
     void pushFxEditorGainReduction();
+    // G4.2 cp6: the insert a slot drag is carrying, and where it would land (-1: nowhere); painted as a
+    // line over the strip, moved by one reorder verb on release.
+    struct InsertCarry
+    {
+        int strip = -1;
+        int from = -1;
+        int landing = -1;
+    };
+    InsertCarry insertCarry;
+    void paintInsertCarry (juce::Graphics& g);
 
     // G2.1: the splitters set these; each clamps to the plan's §3.4 ranges, lays out and repaints.
     void setRailWidth (int width);

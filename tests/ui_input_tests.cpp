@@ -23273,3 +23273,112 @@ TEST_CASE ("G4.2 cp5 the dynamics faces draw transfer curves from the DSP", "[ui
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G4.2 cp6 — drag reorder: a filled insert slot carried onto another slot row of its strip moves there in
+// one undo step (the existing reorder verb), with a landing line while carried. A press that never
+// travels stays a click; another strip is no landing; an empty row lands last; the open editor follows.
+TEST_CASE ("G4.2 cp6 an insert slot drags to a new place in its chain as one undo step", "[ui][input][shell][mixer][fx-editors]")
+{
+    const auto bundlePath = makeTempBundlePath ("fx-editors-drag-reorder");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    for (const auto kind : { yesdaw::engine::FxKind::Eq, yesdaw::engine::FxKind::Compressor, yesdaw::engine::FxKind::Delay })
+        addInsertToStrip (*shell, 0, kind);
+    const auto kindsOf = [&bundlePath] (std::size_t track) {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);   // a named project: a range-for
+        std::vector<yesdaw::engine::FxKind> kinds;                                // over a temporary's member dangles
+        for (const auto& insert : project.tracks.at (track).strip.fxChain)
+            kinds.push_back (insert.kind);
+        return kinds;
+    };
+    using K = yesdaw::engine::FxKind;
+    REQUIRE (kindsOf (0) == std::vector<K> { K::Eq, K::Compressor, K::Delay });
+
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    const auto slotCentre = [&shell, &strips] (int strip, int slot) {
+        const juce::Rectangle<int> rect = yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, strip, slot);
+        REQUIRE_FALSE (rect.isEmpty());
+        return rect.getCentre() - strips->getPosition();
+    };
+    const auto carry = [&strips] (juce::Point<int> from, juce::Point<int> to) {
+        strips->mouseDown (makeMouseEvent (*strips, from, from, false, 1));
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (20);
+        const juce::Point<int> halfway ((from.x + to.x) / 2, (from.y + to.y) / 2);
+        strips->mouseDrag (makeMouseEvent (*strips, halfway, from, true, 1));
+        strips->mouseDrag (makeMouseEvent (*strips, to, from, true, 1));
+    };
+    const auto release = [&strips] (juce::Point<int> at, juce::Point<int> from) {
+        strips->mouseUp (makeMouseEvent (*strips, at, from, true, 1));
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (20);
+    };
+    const auto carryProbe = [&shell] {
+        return juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["mixer"]["insertCarry"];
+    };
+
+    // The EQ (slot 0) dragged onto slot 2: the landing line shows while carried; the release moves it.
+    yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).kind == "EQ");
+    carry (slotCentre (0, 0), slotCentre (0, 2));
+    REQUIRE (static_cast<int> (carryProbe()["strip"]) == 0);
+    REQUIRE (static_cast<int> (carryProbe()["from"]) == 0);
+    REQUIRE (static_cast<int> (carryProbe()["landing"]) == 2);
+    REQUIRE (kindsOf (0) == std::vector<K> { K::Eq, K::Compressor, K::Delay });   // nothing moves mid-carry
+    release (slotCentre (0, 2), slotCentre (0, 0));
+    REQUIRE (static_cast<int> (carryProbe()["landing"]) == -1);
+    REQUIRE (kindsOf (0) == std::vector<K> { K::Compressor, K::Delay, K::Eq });
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).kind == "EQ");   // the editor follows its insert
+    REQUIRE (yesdaw::ui::mainComponentFxEditor (*shell).slot == 2);
+    REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["lastAction"].toString()
+             == "mixer.fx.insert.reorder");
+
+    // One undo step restores the order; redo replays it.
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (kindsOf (0) == std::vector<K> { K::Eq, K::Compressor, K::Delay });
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (kindsOf (0) == std::vector<K> { K::Compressor, K::Delay, K::Eq });
+
+    // A press that never travels the threshold is a click, not a carry.
+    const juce::Point<int> slot1 = slotCentre (0, 1);
+    carry (slot1, slot1 + juce::Point<int> (1, 1));
+    REQUIRE (static_cast<int> (carryProbe()["landing"]) == -1);
+    release (slot1 + juce::Point<int> (1, 1), slot1);
+    REQUIRE (kindsOf (0) == std::vector<K> { K::Compressor, K::Delay, K::Eq });
+
+    // Another strip is no landing: the chains stay as they were.
+    carry (slotCentre (0, 0), slotCentre (1, 0));
+    REQUIRE (static_cast<int> (carryProbe()["landing"]) == -1);
+    release (slotCentre (1, 0), slotCentre (0, 0));
+    REQUIRE (kindsOf (0) == std::vector<K> { K::Compressor, K::Delay, K::Eq });
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.at (1).strip.fxChain.empty());
+
+    // An empty row below the chain lands the insert last.
+    carry (slotCentre (0, 0), slotCentre (0, 3));
+    release (slotCentre (0, 3), slotCentre (0, 0));
+    REQUIRE (kindsOf (0) == std::vector<K> { K::Delay, K::Eq, K::Compressor });
+
+    // A slot press whose release went elsewhere leaves no carry armed: the fader gestures after it stay
+    // two undo steps (a stale carry once took the fader's release and merged them).
+    strips->mouseDown (makeMouseEvent (*strips, slotCentre (0, 0), slotCentre (0, 0), false, 1));   // no release here
+    const juce::Rectangle<int> rail = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 0);
+    const juce::Point<int> thumb = juce::Point<int> { rail.getCentreX(), yesdaw::ui::mainComponentPaintedFaderThumbY (*shell, 0, 1.0f) } - strips->getPosition();
+    const juce::Point<int> higher = thumb.translated (0, -30);
+    const auto gainOf = [&bundlePath] { return readProjectSnapshot (bundlePath).tracks.at (0).strip.linearGain; };
+    strips->mouseDown (makeMouseEvent (*strips, thumb, thumb, false, 1));
+    strips->mouseUp (makeMouseEvent (*strips, thumb, thumb, false, 1));
+    const float anchor = gainOf();
+    strips->mouseDown (makeMouseEvent (*strips, thumb, thumb, false, 1));
+    strips->mouseDrag (makeMouseEvent (*strips, higher, thumb, true, 1));
+    strips->mouseUp (makeMouseEvent (*strips, higher, thumb, true, 1));
+    REQUIRE (gainOf() > anchor);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (gainOf() == anchor);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

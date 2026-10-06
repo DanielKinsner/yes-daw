@@ -61,6 +61,11 @@ public:
     // G4.1 cp2: the lane is gone — a filled slot's double-click opens the effect's editor; an EMPTY
     // slot's left-click opens the add menu (the same list the right-click offers).
     std::function<void (int, int)> onInsertSlotDoubleClicked;
+    // G4.2 cp6: a FILLED slot dragged onto another slot row of its own strip moves the insert there in
+    // one undo step. The hover hook names the landing row while the drag is on (-1: none, e.g. another
+    // strip); a press that never travels the threshold stays a click.
+    std::function<void (int, int, int)> onInsertSlotDragHover;   // strip, from slot, landing slot
+    std::function<void (int, int, int)> onInsertSlotDropped;     // strip, from slot, landing slot
     // M5: painted send rows — press picks the row, drag sets the level, release commits ONE
     // undoable edit (a per-pixel commit would bury the undo stack).
     std::function<std::pair<int, int> (juce::Point<int>)> sendRowAtPosition;
@@ -199,6 +204,10 @@ public:
     {
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
+        // Every press starts clean: a release that went elsewhere (a popup, a lost capture) must not leave
+        // a carry armed, or the next fader release would take the carry path and skip its gesture's end.
+        draggingInsertStrip = draggingInsertSlot = insertDragLanding = -1;
+        insertDragTravelled = false;
 
         if (event.mods.isRightButtonDown())   // the right button itself: on macOS isPopupMenu() also fires for Ctrl+click, which is a gesture modifier here
         {
@@ -265,6 +274,14 @@ public:
                 // G4.1 cp2: an EMPTY slot's click is the add menu (the lane's Add FX chooser is gone).
                 if (insertSlotFilled && ! insertSlotFilled (slotStrip, slotIndex) && onContextMenuRequested)
                     onContextMenuRequested (yesdaw::ui::ContextMenuTarget::InsertSlot, slotIndex, event.getPosition());
+                else if (insertSlotFilled == nullptr || insertSlotFilled (slotStrip, slotIndex))
+                {
+                    draggingInsertStrip = slotStrip;   // G4.2 cp6: a filled slot may be carried
+                    draggingInsertSlot = slotIndex;
+                    insertDragOrigin = shellPosition;
+                    insertDragTravelled = false;
+                    insertDragLanding = -1;
+                }
                 return;
             }
         }
@@ -327,6 +344,11 @@ public:
     {
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
+        if (draggingInsertStrip >= 0)
+        {
+            carryInsert (shellPosition);
+            return;
+        }
         forwardDrag (event.mods, shellPosition, false);
     }
 
@@ -334,6 +356,19 @@ public:
     {
         const juce::Point<int> shellPosition =
             event.getEventRelativeTo (getParentComponent()).getPosition();
+        if (draggingInsertStrip >= 0)
+        {
+            carryInsert (shellPosition);
+            const int strip = draggingInsertStrip, from = draggingInsertSlot, landing = insertDragLanding;
+            const bool travelled = insertDragTravelled;
+            draggingInsertStrip = draggingInsertSlot = insertDragLanding = -1;
+            insertDragTravelled = false;
+            if (travelled && onInsertSlotDragHover)
+                onInsertSlotDragHover (-1, -1, -1);
+            if (travelled && landing >= 0 && landing != from && onInsertSlotDropped)
+                onInsertSlotDropped (strip, from, landing);
+            return;
+        }
         forwardDrag (event.mods, shellPosition, true);
         draggingFaderStrip = -1;
         draggingPanStrip = -1;
@@ -418,6 +453,30 @@ private:
                           static_cast<double> (fineDragValue (mods, plain, current, sendFine)), ended);
     }
 
+    // G4.2 cp6: the carried insert. It travels once the pointer leaves the threshold; the landing is the
+    // slot row under the pointer in the SAME strip (another strip is no landing at all).
+    void carryInsert (juce::Point<int> shellPosition)
+    {
+        if (! insertDragTravelled
+            && insertDragOrigin.getDistanceFrom (shellPosition) < yesdaw::ui::UiTheme::Layout::insertSlotDragThreshold)
+            return;
+        insertDragTravelled = true;
+        int landing = -1;
+        if (insertSlotAtPosition)
+            if (const auto [strip, slot] = insertSlotAtPosition (shellPosition); strip == draggingInsertStrip)
+                landing = slot;
+        if (landing == insertDragLanding)
+            return;
+        insertDragLanding = landing;
+        if (onInsertSlotDragHover)
+            onInsertSlotDragHover (draggingInsertStrip, draggingInsertSlot, landing);
+    }
+
+    int draggingInsertStrip = -1;
+    int draggingInsertSlot = -1;
+    int insertDragLanding = -1;
+    bool insertDragTravelled = false;
+    juce::Point<int> insertDragOrigin;
     int draggingSendStrip = -1;
     int draggingFaderStrip = -1;   // the painted fader being dragged (2026-09-04)
     int draggingPanStrip = -1;

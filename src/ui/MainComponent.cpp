@@ -2007,6 +2007,7 @@ bool MainComponent::confirmClose()
 void MainComponent::paintOverChildren (juce::Graphics& g)
 {
     paintControlTargetRing (g);   // G4.0b: above every child, inside the B2 frame
+    paintInsertCarry (g);         // G4.2 cp6: a carried insert's landing line
     const auto now = std::chrono::steady_clock::now();
     lastPaintMs = std::chrono::duration<double, std::milli> (now - paintStartStamp).count();
     paintRing[paintRingIndex] = lastPaintMs;

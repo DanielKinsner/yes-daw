@@ -858,6 +858,9 @@ struct UiTheme
         static constexpr int grEditorMaxHeight = 500;   // G4.2 cp5: the transfer curve joins the meter
         static constexpr int transferCurveHeight = 122;
         static constexpr int fxEditorRowsKeptUnderFaces = 3;   // a face drops whole before the rows lose these
+        // G4.2 cp6: an insert slot press becomes a carry only past this many pixels; the landing line's weight.
+        static constexpr int insertSlotDragThreshold = 4;
+        static constexpr float insertDropLineStrokeWidth = 2.0f;
         static constexpr int grMeterTickLength = 3;
         // G4.2 cp3: the delay's echo plot above its parameter page (the EQ editor's width).
         static constexpr int delayTapsHeight = 130;

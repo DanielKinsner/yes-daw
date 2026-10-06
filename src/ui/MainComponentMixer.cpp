@@ -444,6 +444,33 @@ void MainComponent::configureMixerControls()
         refreshActionState();
         repaintAll();
     };
+    // G4.2 cp6: drag a filled slot onto another slot row of its strip: the landing line follows the
+    // pointer; the release moves the insert there through the one reorder verb (one undo step), and the
+    // open editor keeps showing the insert it was showing.
+    mixerStripsInput.onInsertSlotDragHover = [this] (int stripIndex, int fromSlot, int landingSlot) {
+        insertCarry = { stripIndex, fromSlot, landingSlot };
+        repaint (mixerPanelBounds());
+    };
+    mixerStripsInput.onInsertSlotDropped = [this] (int stripIndex, int fromSlot, int landingSlot) {
+        insertCarry = {};
+        const std::size_t chainSize = appModel.selectedStripFxChain().size();
+        if (chainSize == 0 || fromSlot < 0 || static_cast<std::size_t> (fromSlot) >= chainSize || stripIndex != appModel.selectedMixerStripOrdinal())
+            return;
+        const int target = std::min (landingSlot, static_cast<int> (chainSize) - 1);   // an empty row lands last
+        if (target == fromSlot)
+            return;
+        const bool followEditor = selectedFxParamSlot == fromSlot;
+        if (appModel.moveFxInsertOnSelectedStrip (static_cast<std::size_t> (fromSlot), target - fromSlot).dispatched)
+        {
+            if (followEditor)
+                selectedFxParamSlot = target;
+            recordLastAction (yesdaw::ui::UiActionId::MixerFxInsertReorder);
+        }
+        layoutMixerControls();
+        refreshActionState();
+        resized();
+        repaintAll();
+    };
     mixerStripsInput.onInsertSlotClicked = [this] (int stripIndex, int slotIndex) {
         lastContextMenu = {};   // a slot click opens no menu of its own (the empty slot's add menu follows separately)
         const auto surface = currentMixerSurface();
@@ -688,6 +715,23 @@ void MainComponent::openFxEditor (int stripIndex, int slotIndex)
     refreshActionState();
     resized();
     repaintAll();
+}
+
+// G4.2 cp6: the landing line of a carried insert — above the row it would take when it moves up, below
+// it when it moves down, over the strips the shell paints (paintOverChildren draws it).
+void MainComponent::paintInsertCarry (juce::Graphics& g)
+{
+    if (insertCarry.strip < 0 || insertCarry.landing < 0 || insertCarry.landing == insertCarry.from)
+        return;
+    const auto strip = static_cast<std::size_t> (insertCarry.strip);
+    const juce::Rectangle<int> row = paintedInsertRowBoundsForLane (paintedMixerLaneBounds (strip),
+                                                                   static_cast<std::size_t> (insertCarry.landing), stripIoRows (strip));
+    if (row.isEmpty())
+        return;
+    const float y = static_cast<float> (insertCarry.landing < insertCarry.from ? row.getY() : row.getBottom());
+    g.setColour (yesdaw::ui::UiTheme::Color::focusRing());
+    g.drawLine (static_cast<float> (row.getX()), y, static_cast<float> (row.getRight()), y,
+                yesdaw::ui::UiTheme::Layout::insertDropLineStrokeWidth);
 }
 
 // G4.2 cp2: the meter shows what the running node published for the insert on screen — the engine's

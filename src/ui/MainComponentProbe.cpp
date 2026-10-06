@@ -872,6 +872,13 @@ juce::String MainComponent::buildStateProbeJson()
         mixer->setProperty ("trackCount", static_cast<int> (trackCount));
         mixer->setProperty ("busCount", static_cast<int> (surface.buses.size()));
         mixer->setProperty ("narrow", context.mixerStripsNarrow);
+        {
+            auto* carry = new juce::DynamicObject();   // G4.2 cp6: an insert slot being dragged
+            carry->setProperty ("strip", insertCarry.strip);
+            carry->setProperty ("from", insertCarry.from);
+            carry->setProperty ("landing", insertCarry.landing);
+            mixer->setProperty ("insertCarry", juce::var (carry));
+        }
         juce::Array<juce::var> strips;
         for (std::size_t i = 0; i < trackCount + surface.buses.size(); ++i)
         {
