@@ -108,7 +108,13 @@ drive's `Key` keeps its idle wait and modifier holds.
 (SS-3's B6 FAIL), and a foreground app refused the drive focus; both re-ran clean. Recreating a window resets the
 thread's key state to the physical keyboard, so a test that sets that state must let the window settle first.
 
-**CI:** pending at writing; the code commits are pushed one at a time.
+**CI:** the fix `f8174d7` (run 37534088888) and the `KeyWhileBusy` primitive `1dbd0d2` (37534125736) are green on
+all 10 jobs, macOS included; the ADR `7f14c16` and this entry `365a55d` passed the docs path. `e3102ab` (the SS-2
+script only) went red on Windows alone: `YesDawTimelineGpuCheck` sustained frame 17.91 ms vs 16.6 (max 20.04,
+13 slow frames; run 37537021589). Every input to that check is byte-identical to the green `1dbd0d2` (it includes
+nothing this repair changed), and the next two code runs on top, `6ccd0b6` and `0ab9c84`, are Windows-green:
+runner timing variance near a thin margin, as with `b26c9e5`. Not rerun, not called green, threshold unchanged;
+noted for the G6.2 runner baseline.
 
 ## 2026-10-06 (afternoon) — G5.2 cp1: the media browser (ADR-0056)
 
