@@ -1619,13 +1619,14 @@ const char* MainComponent::fxKindName (yesdaw::engine::FxKind kind) noexcept
     return "Unknown";
 }
 
+// ADR-0053: integrated LUFS since the listen began; "~" when the live ring dropped a block since then.
 juce::String MainComponent::masterLoudnessReadoutText() const
 {
-    const auto surface = currentMixerSurface();
-    if (! surface.loudness.valid)
+    const yesdaw::ui::UiMixerLoudnessReadout& loudness = appModel.liveLoudnessReadout();
+    if (! loudness.valid)
         return "-- LUFS";
 
-    return juce::String (surface.loudness.integratedLufs, 1) + " LUFS";
+    return (loudness.approximate ? "~" : "") + juce::String (loudness.integratedLufs, 1) + " LUFS";
 }
 
 MainComponent::HeadTempoMeter MainComponent::headTempoMeter() const
@@ -2138,8 +2139,9 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
     g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
         yesdaw::ui::UiTheme::Type::readout,
         juce::Font::bold));
+    const juce::String approximate = surface.loudness.approximate ? "~" : "";   // ADR-0053: a dropped block
     const juce::String integrated = surface.loudness.valid
-        ? juce::String (surface.loudness.integratedLufs, 1)
+        ? approximate + juce::String (surface.loudness.integratedLufs, 1)
         : juce::String ("--");
     g.drawFittedText (integrated,
                 loudnessCard.withTrimmedTop (
@@ -2180,7 +2182,7 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
         yesdaw::ui::UiTheme::Type::body,
         juce::Font::bold));
     const juce::String truePeak = surface.loudness.valid
-        ? juce::String (surface.loudness.truePeakDbtp, 1) + " dBTP"
+        ? approximate + juce::String (surface.loudness.truePeakDbtp, 1) + " dBTP"
         : juce::String ("-- dBTP");
     g.drawFittedText (truePeak,
                 peakCard.withTrimmedTop (
@@ -2245,7 +2247,7 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
 yesdaw::ui::UiMixerSurfaceSnapshot MainComponent::currentMixerSurface() const
 {
     if (appModel.context().projectLoaded)
-        return yesdaw::ui::projectUiMixerSurface (appModel.project());
+        return yesdaw::ui::projectUiMixerSurface (appModel.project(), {}, {}, appModel.liveLoudnessReadout());   // ADR-0053
 
     return {};
 }

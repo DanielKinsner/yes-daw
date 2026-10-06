@@ -8,6 +8,22 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (late night) — G4.7 master strip in progress (ADR-0053)
+
+**Now:** **G4.7** (ADR-0053 accepted). Done: (1) a streaming loudness meter; (2) the engine taps the mix
+(before the click) into one preallocated ring every engine shares; (3) **the header's LUFS button and the
+mixer's INTEGRATED / TRUE PEAK cards now show the real loudness of what you played** — measured from play
+or from a locate while playing, held when stopped, one listen across a loop wrap or an edit, "~" if the UI
+stalled long enough to drop audio. **Next:** (4) monitor **Dim / Mute** (header MASTER card, Transport menu,
+master menu; last stage of the device callback, 5 ms ramp, not saved); (5) the master's insert slots on the
+master pane; then a drive step, the critic pass, a quiet batch and the evidence file.
+
+**Gates so far:** `[loudness-live]` (meter chunks = offline analysis; play / locate restart, stop holds, loop
+wrap and engine swap keep one listen, overflow marks "~"), `[loudness-tap]` (the tap equals a click-free
+render bit for bit). 410/410 local, Clang clean.
+
+**CI:** e005b43 and 03763dc (the G4.6 close) are fully green, macOS included.
+
 ## 2026-10-06 (night) — G4.6 done: automation you can write, hear, draw and move with clips
 
 **Now:** **G4.6** (ADR-0052) is done. **Next: G4.7 master strip** (dim / mute, a header loudness readout

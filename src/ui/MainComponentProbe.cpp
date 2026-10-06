@@ -919,6 +919,15 @@ juce::String MainComponent::buildStateProbeJson()
         }
         mixer->setProperty ("strips", strips);
         mixer->setProperty ("anySolo", appModel.context().anySoloActive);   // G4.5: the header's SOLO is lit
+        // ADR-0053: the live loudness readout as the header paints it, and the values behind it.
+        mixer->setProperty ("loudness", masterLoudnessReadoutText());
+        mixer->setProperty ("loudnessValid", appModel.liveLoudnessReadout().valid);
+        mixer->setProperty ("loudnessApproximate", appModel.liveLoudnessReadout().approximate);
+        if (appModel.liveLoudnessReadout().valid)
+        {
+            mixer->setProperty ("integratedLufs", appModel.liveLoudnessReadout().integratedLufs);
+            mixer->setProperty ("truePeakDbtp", appModel.liveLoudnessReadout().truePeakDbtp);
+        }
         root->setProperty ("mixer", juce::var (mixer));
     }
     {

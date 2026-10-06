@@ -1,5 +1,6 @@
 #include "ui/MainComponentInternal.h"
 
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
@@ -412,4 +413,153 @@ TEST_CASE ("follow-clips: clips moved together on two tracks each carry their ow
     REQUIRE (f.peakAt (track1, 30'720 + ticksForFrames (48'000), 0.9));
     REQUIRE (f.peakAt (track2, 15'360 + ticksForFrames (48'000), 0.8));
     REQUIRE_FALSE (f.peakAt (track1, 15'360 + ticksForFrames (48'000), 0.8));   // nothing crossed tracks
+}
+
+// ---- G4.7 / ADR-0053: the live loudness readout -------------------------------------------------------------------
+namespace
+{
+// One 1-second clip at frame 0: a loud half (a 997 Hz sine at 0.5) then a quiet half (0.05, 20 dB down), so a
+// measurement that wrongly kept the loud audio reads near the loud level (the quiet blocks fall under the
+// relative gate) and one that restarted reads 20 LU lower.
+struct LoudnessModel
+{
+    yesdaw::ui::UiAppModel model;
+
+    LoudnessModel()
+    {
+        const auto directory = loadTestDirectory();
+        const auto wav = directory / "loud-quiet.wav";
+        std::vector<float> samples (48'000);
+        for (std::size_t i = 0; i < samples.size(); ++i)
+            samples[i] = (i < 24'000u ? 0.5f : 0.05f)
+                         * static_cast<float> (std::sin (2.0 * 3.141592653589793 * 997.0 * static_cast<double> (i) / 48'000.0));
+        REQUIRE (yesdaw::io::writeFloat32WavFile (wav, yesdaw::engine::SampleRate { 48000.0 }, 1, samples.size(), samples).ok());
+        auto decoded = yesdaw::ui::shell::decodeProjectWav (wav);
+        REQUIRE (decoded.has_value());
+        REQUIRE (model.createProjectBundle (directory / "loud-quiet.yesdaw").ok());
+        REQUIRE (model.importAudioFile (wav, std::move (*decoded)).ok());
+    }
+
+    std::vector<float> render (std::uint64_t frames)
+    {
+        std::vector<float> mix = model.renderPlaybackFrames (frames, 128);
+        REQUIRE (mix.size() == frames * 2u);   // a stereo master
+        return mix;
+    }
+};
+
+struct Expected
+{
+    double integratedLufs = 0.0;
+    double truePeakDbtp = 0.0;
+};
+
+Expected analyzed (const std::vector<float>& mix)
+{
+    const auto result = yesdaw::analysis::analyzeInterleavedLoudness (mix, 2, 48'000);
+    REQUIRE (result.status == yesdaw::analysis::LoudnessStatus::Ok);
+    return { result.metrics.integratedLufs, std::max (result.metrics.truePeakDbtp[0], result.metrics.truePeakDbtp[1]) };
+}
+
+void requireReadout (const yesdaw::ui::UiAppModel& model, const Expected& expected)
+{
+    const yesdaw::ui::UiMixerLoudnessReadout& live = model.liveLoudnessReadout();
+    REQUIRE (live.valid);
+    REQUIRE_FALSE (live.approximate);
+    REQUIRE (live.integratedLufs == Catch::Approx (expected.integratedLufs).margin (0.1));
+    REQUIRE (live.truePeakDbtp == Catch::Approx (expected.truePeakDbtp).margin (1.0e-4));
+}
+} // namespace
+
+TEST_CASE ("ADR-0053 the live readout measures the mix since the listen began: play and locate restart it; stop holds",
+           "[ui][mixer][loudness][loudness-live]")
+{
+    using yesdaw::ui::UiActionId;
+    LoudnessModel f;
+    REQUIRE_FALSE (f.model.liveLoudnessReadout().valid);   // nothing heard yet
+
+    // Play from 0: 0.4 s of the loud half. The readout is exactly that audio's loudness and true peak.
+    REQUIRE (f.model.dispatch (UiActionId::TransportPlay).dispatched);
+    const std::vector<float> loud = f.render (19'200);
+    f.model.serviceLiveLoudness();
+    const Expected loudExpected = analyzed (loud);
+    requireReadout (f.model, loudExpected);
+    REQUIRE (f.model.liveLoudnessFrames() == 19'200u);
+
+    // Stopped, the values hold — through a locate too (a locate only restarts a listen while playing).
+    REQUIRE (f.model.dispatch (UiActionId::TransportStop).dispatched);
+    f.model.serviceLiveLoudness();
+    requireReadout (f.model, loudExpected);
+    REQUIRE (f.model.locatePlaybackFrame (24'000));
+    f.model.serviceLiveLoudness();
+    requireReadout (f.model, loudExpected);
+
+    // Play again: a fresh listen — cleared at once, then only the quiet half (20 LU below; a kept measurement
+    // would read near the loud level).
+    REQUIRE (f.model.dispatch (UiActionId::TransportPlay).dispatched);
+    REQUIRE_FALSE (f.model.liveLoudnessReadout().valid);
+    const std::vector<float> quiet = f.render (19'200);
+    f.model.serviceLiveLoudness();
+    requireReadout (f.model, analyzed (quiet));
+    REQUIRE (f.model.liveLoudnessReadout().integratedLufs < loudExpected.integratedLufs - 15.0);
+
+    // Located while playing (Home), then again (a ruler / marker locate): each one a fresh listen.
+    REQUIRE (f.model.dispatch (UiActionId::TransportLocateStart).dispatched);
+    REQUIRE_FALSE (f.model.liveLoudnessReadout().valid);
+    const std::vector<float> loudAgain = f.render (19'200);
+    f.model.serviceLiveLoudness();
+    requireReadout (f.model, analyzed (loudAgain));
+    REQUIRE (f.model.locatePlaybackFrame (24'000));
+    REQUIRE_FALSE (f.model.liveLoudnessReadout().valid);
+    const std::vector<float> quietAgain = f.render (19'200);
+    f.model.serviceLiveLoudness();
+    requireReadout (f.model, analyzed (quietAgain));
+    REQUIRE (f.model.liveLoudnessReadout().integratedLufs < loudExpected.integratedLufs - 15.0);
+    REQUIRE (f.model.liveLoudnessFrames() == 19'200u);
+}
+
+TEST_CASE ("ADR-0053 a loop wrap and an engine swap keep one listen; a dropped block marks the readout approximate",
+           "[ui][mixer][loudness][loudness-live]")
+{
+    using yesdaw::ui::UiActionId;
+    LoudnessModel f;
+    REQUIRE (f.model.dispatch (UiActionId::TransportToggleLoop).dispatched);   // loops the clip: [0, 48 000)
+    REQUIRE (f.model.dispatch (UiActionId::TransportPlay).dispatched);
+
+    // 1.5 s across one wrap, serviced as a UI tick would: one continuous measurement of everything heard.
+    std::vector<float> heard;
+    for (int tick = 0; tick < 45; ++tick)
+    {
+        const std::vector<float> block = f.render (1'600);
+        heard.insert (heard.end(), block.begin(), block.end());
+        f.model.serviceLiveLoudness();
+    }
+    REQUIRE (f.model.liveLoudnessFrames() == 72'000u);
+    requireReadout (f.model, analyzed (heard));
+
+    // An edit that rebuilds the engine while playing (a new track) keeps feeding the same listen.
+    const std::uint64_t rebuilds = f.model.playbackReplaceCount();
+    REQUIRE (f.model.dispatch (UiActionId::TrackAdd).dispatched);
+    REQUIRE (f.model.playbackReplaceCount() == rebuilds + 1);
+    REQUIRE (f.model.context().isPlaying);
+    const std::vector<float> afterSwap = f.render (9'600);
+    heard.insert (heard.end(), afterSwap.begin(), afterSwap.end());
+    f.model.serviceLiveLoudness();
+    REQUIRE (f.model.liveLoudnessFrames() == 81'600u);
+    requireReadout (f.model, analyzed (heard));
+
+    // The UI stalls past the ring (8 s at 48 kHz stereo): whole blocks are dropped and counted, and the readout
+    // says so ("~") until the next listen.
+    REQUIRE (f.model.liveLoudnessOverflowCount() == 0u);
+    (void) f.render (480'000);
+    REQUIRE (f.model.liveLoudnessOverflowCount() > 0u);
+    f.model.serviceLiveLoudness();
+    REQUIRE (f.model.liveLoudnessReadout().valid);
+    REQUIRE (f.model.liveLoudnessReadout().approximate);
+    REQUIRE (f.model.liveLoudnessFrames() < 81'600u + 480'000u);
+
+    REQUIRE (f.model.dispatch (UiActionId::TransportLocateStart).dispatched);   // a fresh listen
+    const std::vector<float> fresh = f.render (19'200);
+    f.model.serviceLiveLoudness();
+    requireReadout (f.model, analyzed (fresh));
 }

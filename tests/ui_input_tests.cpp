@@ -2847,6 +2847,52 @@ TEST_CASE ("H16 CP6 UI input harness reads master loudness through an action-bac
     REQUIRE (snapshot.context.activePanel == UiPanel::Mixer);
 }
 
+// ADR-0053: the header's LUFS button and the mixer's master cards paint the live readout the UI tick drains — the
+// played mix's integrated loudness, "~" after a stall dropped blocks, cleared by the next listen.
+TEST_CASE ("ADR-0053 the header LUFS button follows the live loudness of the played mix",
+           "[ui][input][shell][mixer][loudness][loudness-live]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("live-loudness");
+    std::filesystem::path wavPath = bundlePath;
+    wavPath += ".wav";
+    std::vector<float> tone (48'000);
+    for (std::size_t i = 0; i < tone.size(); ++i)
+        tone[i] = 0.5f * static_cast<float> (std::sin (2.0 * 3.141592653589793 * 997.0 * static_cast<double> (i) / 48'000.0));
+    REQUIRE (yesdaw::io::writeFloat32WavFile (wavPath, yesdaw::engine::SampleRate { 48000.0 }, 1, tone.size(), tone).ok());
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [wavPath] { return wavPath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    juce::Button& loudness = requireButtonForAction (*shell, UiActionId::MixerReadLoudness);
+    REQUIRE (loudness.getButtonText() == "-- LUFS");
+    REQUIRE_FALSE (snapshotMainComponent (*shell).visibleMixerLoudnessValid);
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportPlay);
+    const std::vector<float> mix = yesdaw::ui::mainComponentRenderPlaybackFrames (*shell, 24'000, 128);
+    REQUIRE (mix.size() == 48'000u);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    const auto expected = yesdaw::analysis::analyzeInterleavedLoudness (mix, 2, 48'000);
+    REQUIRE (expected.status == yesdaw::analysis::LoudnessStatus::Ok);
+    const juce::String text = loudness.getButtonText();
+    REQUIRE (text.endsWith (" LUFS"));
+    REQUIRE_FALSE (text.startsWith ("~"));
+    REQUIRE (text.upToFirstOccurrenceOf (" ", false, false).getDoubleValue()
+             == Catch::Approx (expected.metrics.integratedLufs).margin (0.06));
+    REQUIRE (snapshotMainComponent (*shell).visibleMixerLoudnessValid);
+
+    // A stall past the ring (8 s): the readout says it is approximate until the next listen clears it.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportToggleLoop);
+    (void) yesdaw::ui::mainComponentRenderPlaybackFrames (*shell, 480'000, 128);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    REQUIRE (loudness.getButtonText().startsWith ("~"));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportLocateStart);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    REQUIRE (loudness.getButtonText() == "-- LUFS");
+}
+
 TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WAV",
            "[ui][input][shell][export]")
 {

@@ -1824,6 +1824,11 @@ void MainComponent::serviceUiTick()
     if (deviceErrorPending.exchange (false, std::memory_order_acq_rel))
         appModel.reportStatus ("Audio device error - output stopped", true);
     serviceAutomationRide();   // G4.6 / ADR-0052: held values, loop wraps, the stop that ends every pass
+    // ADR-0053: drain the live loudness tap into the meter; the header's LUFS button follows it (the mixer's master
+    // cards repaint with the dynamic layers below).
+    appModel.serviceLiveLoudness();
+    if (const juce::String loudness = masterLoudnessReadoutText(); masterLoudnessReadout.getButtonText() != loudness)
+        masterLoudnessReadout.setButtonText (loudness);
     appModel.serviceStatusLineDecay();
     refreshStatusLine();
     updateTrackMeterHoldStates();

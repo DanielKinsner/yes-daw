@@ -5,8 +5,10 @@
 
 #pragma once
 
+#include "analysis/LoudnessMeter.h"   // ADR-0053: the streaming meter behind the live readout (message thread)
 #include "app/RecordingAssetCommit.h"
 #include "engine/ClipSilence.h"
+#include "engine/LoudnessTap.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
 #include "engine/ProjectMixerProjection.h"   // M13: the shared FX-insert node factory
@@ -19,6 +21,7 @@
 #include "persistence/ProjectBundle.h"
 #include "ui/AutomationRide.h"   // G4.6 / ADR-0052
 #include "ui/UiActions.h"
+#include "ui/UiMixerSurface.h"   // ADR-0053: the loudness readout the header and mixer paint
 #include "ui/UiPianoRollSurface.h"
 #include "ui/UiThemeLayout.h"
 #include "ui/WaveformPeakService.h"
@@ -286,6 +289,34 @@ public:
         syncContextFromPlayback();
     }
 
+    // ADR-0053: the live loudness readout. The UI tick drains the engines' tap into the streaming meter here, on
+    // the message thread. A fresh measurement starts when the transport starts playing or the playhead is located
+    // while playing (restartLiveLoudness, run before that command is posted) and when the engine's rate or master
+    // width changes; a loop wrap is one continuous listen; stopped, nothing is written and the values hold.
+    void serviceLiveLoudness()
+    {
+        bool fed = false;
+        loudnessTap_.drain (loudnessScratch_, [this, &fed] (const float* samples, std::size_t frames,
+                                                            std::size_t channels, double rate) {
+            const auto width = static_cast<std::uint32_t> (channels);
+            const auto hz = static_cast<std::uint32_t> (std::lround (rate));
+            if (! liveLoudness_.ready() || liveLoudness_.channels() != width || liveLoudness_.sampleRate() != hz)
+            {
+                if (liveLoudness_.reset (width, hz) != analysis::LoudnessStatus::Ok)
+                    return;
+                liveLoudnessOverflowMark_ = loudnessTap_.overflowCount();
+            }
+            fed = liveLoudness_.add (std::span<const float> (samples, frames * channels)) == analysis::LoudnessStatus::Ok
+                  || fed;
+        });
+        if (fed)
+            liveLoudnessReadout_ = readLiveLoudness();
+    }
+
+    [[nodiscard]] const UiMixerLoudnessReadout& liveLoudnessReadout() const noexcept { return liveLoudnessReadout_; }
+    [[nodiscard]] std::uint64_t liveLoudnessOverflowCount() const noexcept { return loudnessTap_.overflowCount(); }
+    [[nodiscard]] std::uint64_t liveLoudnessFrames() const noexcept { return liveLoudness_.frames(); }   // since the reset
+
     // CONTROL THREAD: finish a pending one-bar count-in only after the audio-owned transport has
     // reached the exact head-tempo/meter boundary. The real capture FIFO is already punch-gated at
     // that frame; the deterministic test-device path commits its canonical Take here.
@@ -388,7 +419,7 @@ public:
     }
     [[nodiscard]] bool locatePlaybackFrame (std::int64_t timelineFrame) noexcept
     {
-        if (playback_ == nullptr || ! playback_->locate (timelineFrame))
+        if (playback_ == nullptr || ! postLocateStartingListen (timelineFrame))
             return false;
 
         drainTransport (*playback_);
@@ -769,7 +800,7 @@ public:
         }
         else
         {
-            if (! playback_->play())
+            if (! postPlayStartingListen())
             {
                 captureActive_.store (false, std::memory_order_release);
                 return false;
@@ -8693,7 +8724,7 @@ public:
                 const bool startingPlayback = ! context_.isPlaying;
                 const std::int64_t playbackStart = context_.playheadFrame;
                 UiActionDispatchResult result =
-                    dispatchTransport (id, [this] { return playback_ != nullptr && playback_->play(); });
+                    dispatchTransport (id, [this] { return playback_ != nullptr && postPlayStartingListen(); });
                 if (result.dispatched && startingPlayback)
                     context_.playbackStartFrame = playbackStart;
                 return result;
@@ -8704,8 +8735,8 @@ public:
                 const std::int64_t targetFrame = context_.lastLocateFrame;
                 UiActionDispatchResult result = dispatchTransport (id, [this, targetFrame] {
                     return playback_ != nullptr
-                        && playback_->locate (targetFrame)
-                        && playback_->play();
+                        && postLocateStartingListen (targetFrame)
+                        && postPlayStartingListen();
                 });
                 if (result.dispatched)
                     context_.playbackStartFrame = targetFrame;
@@ -8720,7 +8751,7 @@ public:
                     if (playback_ == nullptr)
                         return false;
                     if (! context_.isPlaying)
-                        return playback_->play();
+                        return postPlayStartingListen();
 
                     const int nextRate = std::min (4, context_.shuttlePlaybackRate * 2);
                     return playback_->setPlaybackRate (nextRate);
@@ -11628,7 +11659,7 @@ private:
     UiActionDispatchResult locatePlaybackAbsolute (UiActionId id, std::int64_t targetFrame)
     {
         UiActionDispatchResult result = dispatchTransport (id, [this, targetFrame] {
-            return playback_ != nullptr && playback_->locate (targetFrame);
+            return playback_ != nullptr && postLocateStartingListen (targetFrame);
         });
         if (result.dispatched)
             context_.lastLocateFrame = context_.playheadFrame;
@@ -11696,7 +11727,7 @@ private:
         context_.recordCountInActive = true;
         context_.isRecording = false;
         applyMetronomeToPlayback (true);
-        if (! playback_->play())
+        if (! postPlayStartingListen())
         {
             context_.recordCountInActive = false;
             deterministicRecordCountInPending_ = false;
@@ -11729,6 +11760,56 @@ private:
         }
         context_.isRecording = false;
         applyMetronomeToPlayback();
+    }
+
+    // ADR-0053: every play and locate a person starts goes through these two, so the live loudness measurement
+    // restarts BEFORE the command is posted — a stopped engine writes nothing, so after a play every block in the
+    // ring is the new listen's; after a locate while playing, at most the one device block already in flight is
+    // not. An engine swap's transport restore and the return-to-start on Stop call the engine directly: neither
+    // is a new listen.
+    [[nodiscard]] bool postPlayStartingListen()
+    {
+        if (! playback_->isPlaying())
+            restartLiveLoudness();
+        return playback_->play();
+    }
+
+    [[nodiscard]] bool postLocateStartingListen (std::int64_t timelineFrame)
+    {
+        if (playback_->isPlaying())
+            restartLiveLoudness();
+        return playback_->locate (timelineFrame);
+    }
+
+    void restartLiveLoudness()
+    {
+        loudnessTap_.drain (loudnessScratch_, [] (const float*, std::size_t, std::size_t, double) {});
+        if (liveLoudness_.ready())
+            (void) liveLoudness_.reset (liveLoudness_.channels(), liveLoudness_.sampleRate());
+        liveLoudnessOverflowMark_ = loudnessTap_.overflowCount();
+        liveLoudnessReadout_ = {};
+    }
+
+    // ADR-0053: integrated LUFS since the reset and the maximum true peak over the channels; "valid" only once the
+    // meter reports finite values; "approximate" when the ring dropped a block since the reset.
+    [[nodiscard]] UiMixerLoudnessReadout readLiveLoudness() const
+    {
+        UiMixerLoudnessReadout readout;
+        const analysis::LoudnessResult measured = liveLoudness_.metrics();
+        if (measured.status != analysis::LoudnessStatus::Ok)
+            return readout;
+
+        const analysis::LoudnessMetrics& metrics = measured.metrics;
+        readout.integratedLufs = metrics.integratedLufs;
+        readout.momentaryLufs = metrics.momentaryLufs;
+        readout.shortTermLufs = metrics.shortTermLufs;
+        readout.loudnessRangeLu = metrics.loudnessRangeLu;
+        readout.truePeakDbtp = metrics.truePeakDbtp[0];
+        for (std::uint32_t channel = 1; channel < liveLoudness_.channels(); ++channel)
+            readout.truePeakDbtp = std::max (readout.truePeakDbtp, metrics.truePeakDbtp[channel]);
+        readout.valid = std::isfinite (readout.integratedLufs) && std::isfinite (readout.truePeakDbtp);
+        readout.approximate = readout.valid && loudnessTap_.overflowCount() != liveLoudnessOverflowMark_;
+        return readout;
     }
 
     void syncContextFromPlayback() noexcept
@@ -11821,6 +11902,7 @@ private:
         options.assetOwners = makeDecodedOwners (decodedAssets_);
         options.stretchOwners = refreshStretchOwners (project_, options.assetOwners);   // G2.9
         options.midiInput = &midiInput_;   // G3.10: every live engine drains the one device lane
+        options.loudnessTap = &loudnessTap_;   // ADR-0053: and feeds the one live loudness ring
         return options;
     }
 
@@ -12238,6 +12320,13 @@ private:
     std::vector<engine::DecodedAssetAudio> decodedAssetViews_;
     std::unique_ptr<engine::PlaybackEngine> playback_;
     mutable engine::MidiInputQueue midiInput_;   // G3.10: the device→engine lane; outlives every engine (attached at build)
+    // ADR-0053: the live loudness ring every engine feeds (preallocated once, never freed under a callback), the
+    // streaming meter the UI tick drains it into, and the readout the header and the mixer paint.
+    mutable engine::LoudnessTap loudnessTap_;   // mutable like midiInput_: the const build options hand engines its address
+    analysis::LiveLoudnessMeter liveLoudness_;
+    std::vector<float> loudnessScratch_;
+    std::uint64_t liveLoudnessOverflowMark_ = 0;
+    UiMixerLoudnessReadout liveLoudnessReadout_;
     std::atomic<engine::PlaybackEngine*> audioPlayback_ { nullptr };
     int playbackMaxBlockSize_ = 128;
     UiExportBitDepth exportBitDepth_ = UiExportBitDepth::Float32;

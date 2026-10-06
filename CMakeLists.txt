@@ -77,6 +77,12 @@ else()
   FetchContent_MakeAvailable(Catch2 choc sqlite3 libebur128 signalsmith_stretch)   # RTSan/TSan leg: skip the JUCE clone, still get choc
 endif()
 
+# ADR-0053: the app model meters the live mix (a streaming libebur128 state, message thread only), so every
+# target that compiles UiAppModel.h links this (SYSTEM: the library's header warnings are not ours).
+add_library(yesdaw_loudness INTERFACE)
+target_include_directories(yesdaw_loudness SYSTEM INTERFACE ${libebur128_SOURCE_DIR}/ebur128)
+target_link_libraries(yesdaw_loudness INTERFACE ebur128)
+
 # G2.9: the engine's clip resolver prepares stretched Clips (ADR-0030), so every target that
 # includes OfflineRenderer.h sees the pinned Signalsmith header (SYSTEM: its warnings are not ours).
 include_directories(SYSTEM ${signalsmith_stretch_SOURCE_DIR})
@@ -1168,6 +1174,21 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawSidechainCheck
   YesDawPluginIpcCheck
   YesDawPluginNodeCheck)
+
+# ADR-0053: every target that compiles the app model (UiAppModel.h) gets the live loudness meter's library.
+foreach(_target IN ITEMS
+    YesDaw
+    YesDawWaveformCacheCheck
+    YesDawAppSmokeCheck
+    YesDawUiInputCheck
+    YesDawStateProbeCheck
+    YesDawUiScreenshotCheck
+    YesDawRecordingUxCheck
+    YesDawShippedRecordCheck)
+  if (TARGET ${_target})
+    target_link_libraries(${_target} PRIVATE yesdaw_loudness)
+  endif()
+endforeach()
 
 set(_yesdaw_hosting_violations)
 foreach(_target IN LISTS YESDAW_ENGINE_LAYER_TARGETS)

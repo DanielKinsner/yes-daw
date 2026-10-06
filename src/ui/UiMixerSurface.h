@@ -58,6 +58,7 @@ struct UiMixerLoudnessReadout
     double loudnessRangeLu = 0.0;
     double truePeakDbtp = 0.0;
     bool valid = false;
+    bool approximate = false;   // ADR-0053: the live ring dropped a block since the reset — painted with a leading "~"
 };
 
 struct UiMixerSendReadout
