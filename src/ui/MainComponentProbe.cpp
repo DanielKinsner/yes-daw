@@ -173,7 +173,8 @@ bool MainComponent::harnessProcessDeviceAudioBlock (const float* const* inputCha
     const bool processed = appModel.processDeviceAudioBlock (
         inputChannels, numInputChannels, outputChannels, numOutputChannels, numFrames);
     accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
-    appModel.applyMonitorStage (outputChannels, numOutputChannels, numFrames);   // ADR-0053
+    appModel.applyMonitorStage (outputChannels, numOutputChannels, numFrames,   // ADR-0053
+                                deviceSampleRateHz.load (std::memory_order_relaxed));
     return processed;
 }
 

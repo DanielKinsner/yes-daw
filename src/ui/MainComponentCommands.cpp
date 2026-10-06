@@ -88,7 +88,8 @@ void MainComponent::audioDeviceIOCallbackWithContext (const float* const* inputC
     (void) appModel.processDeviceAudioBlock (
         inputChannels, numInputChannels, outputChannels, numOutputChannels, numFrames);
     accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
-    appModel.applyMonitorStage (outputChannels, numOutputChannels, numFrames);   // ADR-0053: last, after the peak scan
+    appModel.applyMonitorStage (outputChannels, numOutputChannels, numFrames,   // ADR-0053: last, after the peak scan
+                                deviceSampleRateHz.load (std::memory_order_relaxed));
 
     // G0.1 probe (B5): a block that took longer than the audio it produced is a deadline miss.
     // Atomics only — the device thread never allocates, locks, or logs here.
@@ -129,7 +130,8 @@ bool MainComponent::processDeviceAudioBlock (float* const* outputChannels,
     const bool processed = appModel.processDeviceAudioBlock (
         outputChannels, numOutputChannels, numFrames);
     accountDeviceBlockPeaks (outputChannels, numOutputChannels, numFrames);
-    appModel.applyMonitorStage (outputChannels, numOutputChannels, numFrames);   // ADR-0053
+    appModel.applyMonitorStage (outputChannels, numOutputChannels, numFrames,   // ADR-0053
+                                deviceSampleRateHz.load (std::memory_order_relaxed));
     return processed;
 }
 

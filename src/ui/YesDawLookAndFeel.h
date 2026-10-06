@@ -13,6 +13,14 @@ namespace yesdaw::ui {
 class YesDawLookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
+    // ADR-0053: a TextButton whose properties carry this flag (true) paints the compact face — the small type
+    // and a narrow inset — for words in a tight pill (the header card's DIM / MUTE). Opt-in, never inferred.
+    static constexpr const char* kCompactTextButton = "yesdaw.compactTextButton";
+    [[nodiscard]] static bool isCompactTextButton (const juce::Button& button)
+    {
+        return static_cast<bool> (button.getProperties()[kCompactTextButton]);
+    }
+
     YesDawLookAndFeel()
     {
         setColour (juce::TextButton::buttonColourId, UiTheme::Color::buttonSurface());
@@ -29,11 +37,9 @@ public:
         setColour (juce::Slider::thumbColourId, UiTheme::Color::faderThumb());
     }
 
-    juce::Font getTextButtonFont (juce::TextButton&, int buttonHeight) override
+    juce::Font getTextButtonFont (juce::TextButton& button, int) override
     {
-        // ADR-0053: a compact button (the header card's DIM / MUTE) takes the small face.
-        return UiTheme::Type::font (buttonHeight <= UiTheme::Layout::compactTextButtonMaxHeight ? UiTheme::Type::small
-                                                                                                 : UiTheme::Type::body,
+        return UiTheme::Type::font (isCompactTextButton (button) ? UiTheme::Type::small : UiTheme::Type::body,
                                     juce::Font::bold);
     }
 
@@ -107,7 +113,7 @@ public:
                                             : juce::TextButton::textColourOffId));
         g.setFont (getTextButtonFont (button, button.getHeight()));
         g.drawFittedText (button.getButtonText(),
-                          button.getLocalBounds().reduced (button.getHeight() <= UiTheme::Layout::compactTextButtonMaxHeight
+                          button.getLocalBounds().reduced (isCompactTextButton (button)
                                                                ? UiTheme::Layout::compactTextHorizontalInset
                                                                : UiTheme::Layout::controlTextHorizontalInset,
                                                            0),

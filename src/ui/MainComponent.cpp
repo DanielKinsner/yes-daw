@@ -155,6 +155,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     {
         configureActionComponent (*button, action, text);
         button->setButtonText (text);
+        button->getProperties().set (yesdaw::ui::YesDawLookAndFeel::kCompactTextButton, true);   // the pill's small face
         button->onClick = [this, action = action] {
             (void) appModel.dispatch (action);
             refreshActionState();

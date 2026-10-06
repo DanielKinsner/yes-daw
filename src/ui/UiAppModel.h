@@ -445,15 +445,21 @@ public:
 
     // DEVICE thread (ADR-0053): the monitor's LAST stage — after the engine, the click, input monitoring and the
     // header's peak scan (the shell calls it after accountDeviceBlockPeaks), one gain on every output channel. Each
-    // new target starts a linear 5 ms ramp from wherever the gain is; unity with no ramp running leaves the block
-    // untouched, bit for bit. Plain arithmetic on preowned state — no allocation, lock, log or I/O.
-    void applyMonitorStage (float* const* outputChannels, int numOutputChannels, int numFrames) noexcept YESDAW_RT_HOT
+    // new target starts a linear 5 ms ramp from wherever the gain is, timed at the device's rate (the engine's when
+    // the caller has none — a harness block); unity with no ramp running leaves the block untouched, bit for bit.
+    // Plain arithmetic on preowned state — no allocation, lock, log or I/O.
+    void applyMonitorStage (float* const* outputChannels, int numOutputChannels, int numFrames,
+                            double deviceRateHz = 0.0) noexcept YESDAW_RT_HOT
     {
         const float target = monitorTargetGain_.load (std::memory_order_relaxed);
         if (target != monitorRampTarget_)
         {
-            const engine::PlaybackEngine* const playback = audioPlayback_.load (std::memory_order_acquire);
-            const double rateHz = playback != nullptr && playback->sampleRate().hz > 0.0 ? playback->sampleRate().hz : 48'000.0;
+            double rateHz = deviceRateHz;
+            if (! (rateHz > 0.0))
+            {
+                const engine::PlaybackEngine* const playback = audioPlayback_.load (std::memory_order_acquire);
+                rateHz = playback != nullptr && playback->sampleRate().hz > 0.0 ? playback->sampleRate().hz : 48'000.0;
+            }
             const int rampFrames = std::max (1, static_cast<int> (std::lround (UiThemeLayout::monitorRampSeconds * rateHz)));
             monitorRampTarget_ = target;
             monitorRampStep_ = (target - monitorGain_) / static_cast<float> (rampFrames);

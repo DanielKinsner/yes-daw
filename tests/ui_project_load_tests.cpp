@@ -562,6 +562,14 @@ TEST_CASE ("ADR-0053 a loop wrap and an engine swap keep one listen; a dropped b
     const std::vector<float> fresh = f.render (19'200);
     f.model.serviceLiveLoudness();
     requireReadout (f.model, analyzed (fresh));
+
+    // Shuttle (2x) is a scrub, not a listen: the engine does not feed the tap, so the readout holds.
+    REQUIRE (f.model.dispatch (UiActionId::TransportShuttleFaster).dispatched);
+    REQUIRE (f.model.context().shuttlePlaybackRate == 2);
+    (void) f.render (9'600);
+    f.model.serviceLiveLoudness();
+    REQUIRE (f.model.liveLoudnessFrames() == 19'200u);
+    requireReadout (f.model, analyzed (fresh));
 }
 
 // ADR-0053: the monitor stage's ramp — linear over 5 ms (240 frames at 48 kHz) from wherever the gain is to each
