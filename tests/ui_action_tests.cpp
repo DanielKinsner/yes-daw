@@ -1196,3 +1196,27 @@ TEST_CASE ("keymap v2: per-context lookup, no conflicts, aliases, generated docu
     INFO ("docs/keymap-v2.md is stale: run YesDawKeymapDoc --out docs/keymap-v2.md and commit");
     REQUIRE (committed == rendered);
 }
+
+// 2026-10-06: every consumer reads a descriptor's strings as juce ASCII (menu items, the keymap editor's
+// rows, the command search), so "Undo History\xe2\x80\xa6" painted as mojibake in the Edit menu. Every
+// descriptor string is plain ASCII.
+TEST_CASE ("action descriptors are plain ASCII, as every consumer reads them", "[ui][actions][utf8]")
+{
+    const auto ascii = [] (const char* text) {
+        for (const char* p = text; p != nullptr && *p != 0; ++p)
+            if (static_cast<unsigned char> (*p) >= 0x80)
+                return false;
+        return true;
+    };
+    for (const auto& descriptor : yesdaw::ui::uiActionDescriptors())
+    {
+        INFO (descriptor.stableId);
+        CHECK (ascii (descriptor.stableId));
+        CHECK (ascii (descriptor.label));
+        CHECK (ascii (descriptor.defaultKey));
+        CHECK (ascii (descriptor.accessibleName));
+    }
+    const yesdaw::ui::UiActionDescriptor* undoHistory = yesdaw::ui::descriptorFor (yesdaw::ui::UiActionId::EditShowUndoHistory);
+    REQUIRE (undoHistory != nullptr);
+    CHECK (std::string (undoHistory->label) == "Undo History...");
+}
