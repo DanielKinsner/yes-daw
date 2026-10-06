@@ -440,7 +440,30 @@ KeyThenTick 'Escape'
 KeyThenTick 'Enter'
 [void](Assert (WaitProbe { param($q) [int64]$q.transport.playheadFrame -eq 0 } -TimeoutMs 1500) 'outside navigation Enter is Return to zero again')
 
-Step 12 'Save and close'
+Step 12 'Automation (G4.6): A shows the track''s lanes; Shift+Pencil draws a line; the Eraser sweeps it; Ctrl+Z'
+Focus
+Click 'rail.row.0'
+Start-Sleep -Milliseconds 200
+Key 'A'
+[void](Assert (WaitProbe { param($q) $null -ne $q.layout.'widget.timeline.automation.canvas' } -TimeoutMs 2000) 'A shows track 1''s automation lanes (the chooser lane is laid out)')
+Key '2'
+[void](Assert (WaitProbe { param($q) "$($q.view.tool)" -eq 'Pencil' } -TimeoutMs 1500) ('the Pencil is the tool (view.tool=' + (Probe).view.tool + ')'))
+$canvas = LayoutRect 'widget.timeline.automation.canvas'
+$half = [int]($canvas[2] / 3)
+DragWithin 'widget.timeline.automation.canvas' (-$half) 6 $half (-6) 'Shift'
+[void](Assert (WaitProbe { param($q) @($q.automation.lanes).Count -eq 1 -and [int]@($q.automation.lanes)[0].points -eq 2 } -TimeoutMs 2000) ('Shift+Pencil draws a two-point line (lanes ' + @((Probe).automation.lanes).Count + ')'))
+Shot 'ss7-automation-line'
+Key '4'
+[void](Assert (WaitProbe { param($q) "$($q.view.tool)" -eq 'Eraser' } -TimeoutMs 1500) 'the Eraser is the tool')
+DragWithin 'widget.timeline.automation.canvas' (-$half - 20) 0 ($half + 20) 0
+[void](Assert (WaitProbe { param($q) [int]@($q.automation.lanes)[0].points -eq 0 } -TimeoutMs 2000) ('the Eraser sweeps both points away (points ' + @((Probe).automation.lanes)[0].points + ')'))
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) [int]@($q.automation.lanes)[0].points -eq 2 } -TimeoutMs 2000) 'Ctrl+Z brings the line back (one undo per stroke)')
+Key '1'
+Key 'A'
+[void](Assert (WaitProbe { param($q) $null -eq $q.layout.'widget.timeline.automation.canvas' } -TimeoutMs 2000) 'A hides the lanes again')
+
+Step 13 'Save and close'
 Focus
 Key 'Ctrl+S'
 Start-Sleep -Milliseconds 800

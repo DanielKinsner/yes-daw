@@ -4,6 +4,7 @@
 // source -> FaderNode -> PanNode -> MeterNode -> SumNode(master bus) -> MasterNode,
 // with Send edges to Bus SumNodes whose Returns feed the master bus.
 
+#include "engine/AutomationEdit.h"
 #include "engine/MixerGraphProjection.h"
 #include "engine/ProjectMixerProjection.h"
 #include "engine/nodes/DecodedClipNode.h"
@@ -19,6 +20,7 @@
 #include <limits>
 #include <memory>
 #include <span>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -1713,4 +1715,213 @@ TEST_CASE ("A project's lanes are checked against the per-block event budget bef
 
     project.automationMode = yesdaw::engine::AutomationMode::Off;
     REQUIRE (yesdaw::engine::projectAutomationFitsEventBudget (project, 4'096));
+}
+
+// ---- G4.6 / ADR-0052 render gates: what the edits SOUND like through the real projection and graph -------
+namespace
+{
+using yesdaw::engine::Tick;
+
+// One track, one long SampleLocked DC clip (0.25 x unity clip gain) from `clipStart` for `clipFrames`: the
+// rendered sample IS 0.25 x the fader's gain, so a render reads the automation directly.
+Project longDcProject (Tick clipStart, std::uint64_t clipFrames)
+{
+    Project project;
+    project.id = entityIdFromLowByte (1);
+    project.sampleRate = SampleRate { 48000.0 };
+    project.assets = { makeProjectAsset (2, clipFrames) };
+    Track track;
+    track.id = entityIdFromLowByte (6);
+    track.strip.name = "Audio 1";
+    project.tracks = { track };
+    Clip clip = makeProjectClip (4, project.assets[0].id, track.id, 1.0f);
+    clip.timelineStart = clipStart;
+    clip.timelineLength = static_cast<Tick> (clipFrames);
+    clip.srcLen = clipFrames;
+    project.clips = { clip };
+    return project;
+}
+
+AutomationLaneData faderLaneWith (std::vector<AutomationBreakpoint> points)
+{
+    AutomationLaneData lane = makeAutomationLane (90, entityIdFromLowByte (6), AutomationTargetRole::TrackFader, FaderNode::kGainParameterId);
+    lane.points = std::move (points);
+    return lane;
+}
+
+yesdaw::engine::CompiledTempoMap renderTempoMap (const Project& project)
+{
+    yesdaw::engine::CompiledTempoMap map;
+    REQUIRE (yesdaw::engine::CompiledTempoMap::build (yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
+                                                      project.sampleRate, map));
+    return map;
+}
+
+// Renders `project` with each DC clip PLACED at its own timeline start (the shared helper starts every test
+// clip at frame 0), so a moved clip sounds where it moved to.
+std::vector<float> renderPlacedDcProject (const Project& project, int totalFrames)
+{
+    ProjectMixerProjectionConfig config;
+    config.id = 70;
+    config.masterSumNodeId = kMasterSumId;
+    config.masterNodeId = kMasterId;
+    config.maxBlockSize = kMaxBlock;
+    MixerProjectionInputs projection;
+    ProjectMixerProjectionError projectError;
+    REQUIRE (projectToMixerProjectionInputs (
+        project, config,
+        [] (const Project&, const Clip& clip, const Asset& asset, int, ScheduledClipSource& out) -> bool {
+            const bool made = makeDcClipSource (clip.srcLen, sourceDcForAsset (asset), clip.gain, out);
+            out.clip.startFrame = clip.timelineStart;   // a SampleLocked clip's start is a frame
+            return made;
+        },
+        projection, &projectError));
+    MixerProjectionError graphError;
+    std::unique_ptr<CompiledGraph> graph = buildMixerGraphProjection (std::move (projection), &graphError);
+    REQUIRE (graph != nullptr);
+
+    std::vector<float> rendered;
+    std::vector<float> block (static_cast<std::size_t> (kMaxBlock), 0.0f);
+    float* outChannels[1] = { block.data() };
+    EventStream events;
+    Transport transport;
+    transport.hasTimelineFrame = true;
+    for (int frame = 0; frame < totalFrames; frame += kMaxBlock)
+    {
+        const int frames = std::min (kMaxBlock, totalFrames - frame);
+        transport.timelineFrame = frame;
+        graph->process (outChannels, 1, frames, events, transport);
+        rendered.insert (rendered.end(), block.begin(), block.begin() + frames);
+    }
+    return rendered;
+}
+
+std::int64_t renderFrameOf (const yesdaw::engine::CompiledTempoMap& map, Tick tick)
+{
+    std::int64_t frame = 0;
+    REQUIRE (yesdaw::engine::compiledAutomationFrameForTick (map, tick, frame));
+    return frame;
+}
+} // namespace
+
+TEST_CASE ("A replaced span renders the rest of the lane unchanged: Hold bit-identical, Linear within rounding",
+           "[mixer][projection][automation][automation-v2][render]")
+{
+    constexpr int kFrames = 192'000;
+    const auto ride = std::vector<AutomationBreakpoint> {
+        { 20'000, 0.95, AutomationCurveType::Linear }, { 25'000, 0.1, AutomationCurveType::Linear }, { 30'000, 0.6, AutomationCurveType::Linear } };
+
+    for (const AutomationCurveType curve : { AutomationCurveType::Hold, AutomationCurveType::Linear })
+    {
+        INFO ("curve " << static_cast<int> (curve));
+        Project before = longDcProject (0, kFrames);
+        before.automationLanes = { faderLaneWith ({ { 0, 0.2, curve }, { 61'440, 0.8, curve }, { 122'880, 0.4, curve } }) };
+        const auto map = renderTempoMap (before);
+        Project after = before;
+        std::vector<AutomationBreakpoint> replaced;
+        REQUIRE (yesdaw::engine::replaceAutomationSpan (before.automationLanes.front().points, ride, map, replaced)
+                 == yesdaw::engine::AutomationSpanEditStatus::Ok);
+        after.automationLanes.front().points = replaced;
+
+        const std::vector<float> a = renderProjectProjectionSchedule (before, { 128 }, kFrames);
+        const std::vector<float> b = renderProjectProjectionSchedule (after, { 128 }, kFrames);
+        REQUIRE (a.size() == b.size());
+        // Outside the span and its two edge anchors (and the 64-frame control step either side).
+        const std::int64_t spanFrom = renderFrameOf (map, 19'999) - 64;
+        // + the fader's smoothing settling back onto the old curve (a moving ramp lags ~2 600 frames to 1e-6)
+        const std::int64_t spanTo = renderFrameOf (map, 30'001) + 4'096;
+        const std::int64_t untouchedFrom = renderFrameOf (map, 61'440);   // past the segment the right anchor cut
+        std::size_t differing = 0;
+        double worst = 0.0;
+        for (std::size_t i = 0; i < a.size(); ++i)
+        {
+            const auto frame = static_cast<std::int64_t> (i);
+            if (frame >= spanFrom && frame <= spanTo)
+                continue;
+            if (a[i] != b[i])
+                ++differing;
+            worst = std::max (worst, static_cast<double> (std::abs (a[i] - b[i])));
+            if (frame >= untouchedFrom && curve == AutomationCurveType::Hold)
+                REQUIRE (a[i] == b[i]);   // an untouched Hold segment renders bit-identically
+        }
+        if (curve == AutomationCurveType::Hold)
+            REQUIRE (differing == 0u);    // ADR-0052: Hold outside the span is bit-identical
+        else
+            REQUIRE (worst <= 1.0e-6);    // Linear: the cut segment is re-anchored on the same line
+        // Inside the span, the ride plays: at its middle point the gain is the written value's.
+        const auto middle = static_cast<std::size_t> (renderFrameOf (map, 25'000) + 1);
+        REQUIRE (b[middle] != a[middle]);
+    }
+}
+
+TEST_CASE ("A Write pass's values play at the frames it wrote them", "[mixer][projection][automation][automation-v2][render]")
+{
+    constexpr int kFrames = 144'000;
+    Project project = longDcProject (0, kFrames);
+    project.automationLanes = { faderLaneWith ({ { 0, 0.2, AutomationCurveType::Linear }, { 92'160, 0.9, AutomationCurveType::Linear } }) };
+    const auto map = renderTempoMap (project);
+    // A Write pass holding 0.6 from tick 30 000 to 60 000 (what the recorder commits for an armed, untouched target).
+    const std::vector<AutomationBreakpoint> pass {
+        { 30'000, 0.6, AutomationCurveType::Linear }, { 45'000, 0.6, AutomationCurveType::Linear }, { 60'000, 0.6, AutomationCurveType::Linear } };
+    std::vector<AutomationBreakpoint> written;
+    REQUIRE (yesdaw::engine::replaceAutomationSpan (project.automationLanes.front().points, pass, map, written)
+             == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    project.automationLanes.front().points = written;
+
+    const std::vector<float> rendered = renderProjectProjectionSchedule (project, { 128 }, kFrames);
+    // The reference: the same clip under a lane that holds 0.6 everywhere.
+    Project flat = longDcProject (0, kFrames);
+    flat.automationLanes = { faderLaneWith ({ { 0, 0.6, AutomationCurveType::Hold } }) };
+    const std::vector<float> reference = renderProjectProjectionSchedule (flat, { 128 }, kFrames);
+    const std::int64_t from = renderFrameOf (map, 30'000) + 512;   // past the 5 ms declick ramp
+    const std::int64_t to = renderFrameOf (map, 60'000);
+    REQUIRE (reference[static_cast<std::size_t> (from)] > 0.01f);
+    for (std::int64_t frame = from; frame < to; ++frame)
+        REQUIRE (rendered[static_cast<std::size_t> (frame)] == Catch::Approx (reference[static_cast<std::size_t> (frame)]).margin (1.0e-6));
+    // Outside the pass the old ramp plays (well before it, the lane is still near its start value).
+    REQUIRE (std::abs (rendered[1'000] - reference[1'000]) > 0.01f);
+}
+
+TEST_CASE ("A clip moved with its automation renders the same audio, shifted", "[mixer][projection][automation][automation-v2][render][follow-clips]")
+{
+    constexpr int kFrames = 240'000;
+    constexpr Tick kStart = 24'000;
+    constexpr std::uint64_t kLength = 96'000;
+    constexpr Tick kDelta = 64 * 750;   // 48 000 frames: on the 64-frame control grid, so the staircase lines up
+    Project before = longDcProject (kStart, kLength);
+    before.automationLanes = { faderLaneWith ({ { 0, 0.3, AutomationCurveType::Linear }, { 20'000, 0.9, AutomationCurveType::Linear },
+                                                { 50'000, 0.2, AutomationCurveType::Bezier }, { 70'000, 0.7, AutomationCurveType::Linear } }) };
+    const auto map = renderTempoMap (before);
+
+    Project after = before;
+    after.clips.front().timelineStart = kStart + kDelta;
+    const yesdaw::engine::AutomationClipMove move { yesdaw::engine::TimeBase::SampleLocked, kStart, static_cast<Tick> (kLength), kDelta };
+    std::vector<AutomationBreakpoint> carried;
+    REQUIRE (yesdaw::engine::moveAutomationWithClips (before.automationLanes.front().points, std::span (&move, 1), map, carried)
+             == yesdaw::engine::AutomationSpanEditStatus::Ok);
+    after.automationLanes.front().points = carried;
+
+    const std::vector<float> a = renderPlacedDcProject (before, kFrames);
+    const std::vector<float> b = renderPlacedDcProject (after, kFrames);
+    REQUIRE (a[static_cast<std::size_t> (kStart - 1)] == 0.0f);            // the clip sounds where it sits
+    REQUIRE (b[static_cast<std::size_t> (kStart + kDelta - 1)] == 0.0f);
+    REQUIRE (b[static_cast<std::size_t> (kStart + kDelta + 64)] != 0.0f);
+    // From where the fader's smoothing has settled (its history before the clip differs) to the clip's end.
+    double worst = 0.0;
+    Tick worstFrame = 0;
+    for (Tick frame = kStart + 4'096; frame < kStart + static_cast<Tick> (kLength) - 512; ++frame)
+    {
+        const double difference = std::abs (b[static_cast<std::size_t> (frame + kDelta)] - a[static_cast<std::size_t> (frame)]);
+        if (difference > worst)
+        {
+            worst = difference;
+            worstFrame = frame;
+        }
+    }
+    std::ostringstream points;
+    for (const auto& point : carried)
+        points << point.tick << ":" << point.value << " ";
+    INFO ("worst " << worst << " at frame " << worstFrame << " (before " << a[static_cast<std::size_t> (worstFrame)]
+          << ", after " << b[static_cast<std::size_t> (worstFrame + kDelta)] << "); carried " << points.str());
+    REQUIRE (worst <= 2.0e-3);   // a carried point lands within a tick (~1.5 frames) of its frame
 }

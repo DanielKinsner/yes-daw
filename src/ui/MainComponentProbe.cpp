@@ -961,6 +961,21 @@ juce::String MainComponent::buildStateProbeJson()
         ride->setProperty ("samples", static_cast<int> (automationRecorder.keptSampleCount (automationTouchRideTarget())));
         ride->setProperty ("writing", static_cast<int> (automationRecorder.writingTargets().size()));   // G4.6
         root->setProperty ("ride", juce::var (ride));
+        // G4.6 / ADR-0052: the automation a drive asserts on — the mode, the follow-clips setting, and each lane
+        // (its role and point count, in project order).
+        auto* automation = new juce::DynamicObject();
+        automation->setProperty ("mode", static_cast<int> (appModel.project().automationMode));
+        automation->setProperty ("followsClips", appModel.project().automationFollowsClips);
+        juce::Array<juce::var> lanes;
+        for (const yesdaw::engine::AutomationLaneData& lane : appModel.project().automationLanes)
+        {
+            auto* entry = new juce::DynamicObject();
+            entry->setProperty ("role", static_cast<int> (lane.role));
+            entry->setProperty ("points", static_cast<int> (lane.points.size()));
+            lanes.add (juce::var (entry));
+        }
+        automation->setProperty ("lanes", lanes);
+        root->setProperty ("automation", juce::var (automation));
     }
     return juce::JSON::toString (rootVar, true);
 }
