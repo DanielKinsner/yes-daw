@@ -43,14 +43,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 1
 
+      # The WHOLE pushed range must be docs-only, not just its last commit: GitHub runs only the head
+      # of a multi-commit push, so a docs commit on top would otherwise skip the code commits beneath
+      # it (2026-10-05: three code commits were reported green by a 7 s docs-only run). The range
+      # starts at the previous head, which had its own run. A missing or unfetchable previous head
+      # (new branch, force-push) runs the full matrix.
       - id: classify
+        env:
+          BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
           code=true
-          if [ "${{ github.event_name }}" = "push" ] && git rev-parse HEAD^ >/dev/null 2>&1; then
-            changed="$(git diff --name-only HEAD^ HEAD)"
+          if [ "${{ github.event_name }}" = "push" ] && [ -n "${BEFORE:-}" ] \
+             && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git fetch --no-tags --depth=1 origin "$BEFORE" >/dev/null 2>&1; then
+            changed="$(git diff --name-only "$BEFORE" HEAD)"
             echo "changed files:"
             echo "$changed"
             # Allowlist: docs/** and *.md anywhere. Anything else keeps code=true.
