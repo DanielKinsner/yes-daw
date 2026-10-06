@@ -645,7 +645,11 @@ function WaitDialog([string] $titleContains, [int] $TimeoutMs = 4000) {
 function WaitPopup([int] $Depth = 1, [int] $TimeoutMs = 2500) {
   $ok = WaitProbe { param($q) [int]$q.modal.menus -ge $Depth } -TimeoutMs $TimeoutMs
   if (-not $ok) { [void](Assert $false ('a popup menu opened (depth ' + $Depth + ') within ' + $TimeoutMs + ' ms')) }
-  Start-Sleep -Milliseconds 60
+  # Then let the popup's mouse tracker run first: it ticks at 20 Hz from a zero last-position, so its
+  # first tick sees "the mouse moved", clears the keyboard's claim and highlights the item under the
+  # pointer — a key sent before that tick is undone (juce_PopupMenu.cpp highlightItemUnderMouse; the
+  # 2026-10-05 ss4 Sampler pick re-chose SimpleSynth exactly so). Four ticks of margin.
+  Start-Sleep -Milliseconds 200
   return $ok
 }
 

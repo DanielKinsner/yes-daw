@@ -128,8 +128,8 @@ Step 6 'The INPUT slot picks the input the track records from (arms it); the R c
 $rec = (Probe).recording
 $inputs = if ([bool]$rec.deviceSelected) { [int]$rec.inputChannels } else { 0 }
 Click 'mixer.strip.1.input'
-Start-Sleep -Milliseconds 600
 if ($inputs -gt 0) {
+  [void](WaitPopup)   # with inputs the slot's popup lists them; without, the refusal below may show none
   Key 'Down'
   Start-Sleep -Milliseconds 80
   Key 'Enter'
@@ -142,6 +142,7 @@ if ($inputs -gt 0) {
   Click 'mixer.strip.2.arm'
   [void](Assert (WaitProbe { param($q) [int]$q.recording.armedTrackCount -eq 1 } -TimeoutMs 2000) 'a second click disarms it')
 } else {
+  Start-Sleep -Milliseconds 600
   Key 'Escape'
   Start-Sleep -Milliseconds 200
   [void](Assert ([int](Probe).recording.armedTrackCount -eq 0) 'no adopted recording device with inputs on this machine: the popup offers none and nothing arms (the honest refusal)')
