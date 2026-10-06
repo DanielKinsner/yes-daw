@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "engine/LoudnessTap.h"   // ADR-0053
 #include "engine/MidiInputQueue.h"   // G3.10
 #include "engine/OfflineRenderer.h"
 #include "engine/ProjectMixerProjection.h"
@@ -70,6 +71,7 @@ public:
         std::unique_ptr<PlaybackEngine> engine (
             new PlaybackEngine (built.sampleRate, built.channels, built.frames, built.maxBlockSize));
         engine->midiInput_ = options.midiInput;   // G3.10: the device lane this engine's audio thread drains
+        engine->loudnessTap_ = options.loudnessTap;   // ADR-0053: the model's live loudness ring (shared across engines)
 
         // Harvest the per-track MeterNode taps before the graph moves into the Runtime. The engine
         // publishes exactly this one graph and owns the Runtime that owns it, so these control-side
@@ -247,6 +249,11 @@ public:
 
             processTransportSegment (outChannels, numOutputChannels, offset, segment,
                                      offset == 0 ? liveEvents : std::span<const Event> {});
+            // ADR-0053: the live loudness tap reads the MIX — the master output, before the click is summed in
+            // (input monitoring is summed later, by the device callback). A mono master is measured as mono.
+            if (loudnessTap_ != nullptr)
+                loudnessTap_->write (outChannels, std::min<int> (numOutputChannels, static_cast<int> (channels_)),
+                                     offset, segment, sampleRate_.hz);
             overlayMetronome (outChannels, numOutputChannels, offset, segment, playheadFrame_);
             playheadFrame_ += static_cast<std::int64_t> (segment);
             offset += segment;
@@ -795,6 +802,7 @@ private:
     std::vector<float>         metronomeDownbeatClick_;
 
     SampleRate         sampleRate_ {};
+    LoudnessTap*       loudnessTap_ = nullptr;   // ADR-0053: owned by the model, outlives every engine it feeds
     std::uint16_t      channels_ = 0;
     std::uint64_t      frames_ = 0;
     int                maxBlockSize_ = 128;

@@ -1,6 +1,7 @@
 // YES DAW - H8 playback gate: play a Project through the realtime Runtime and prove it equals an
 // INDEPENDENT reference (Clips summed at their timeline positions) -- not the engine compared to itself.
 
+#include "engine/LoudnessTap.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
 #include "engine/nodes/CompressorNode.h"
@@ -1398,4 +1399,102 @@ TEST_CASE ("PlaybackEngine live ClipSchedule publish renders bit-identically to 
     (void) drainPlayback (*live.engine, 16, 8);
     REQUIRE (live.engine->liveSchedulesApplied() == 1);
     (void) live.engine->reclaim();
+}
+
+// ADR-0053: the live loudness tap. The ring round-trips blocks with their format (frames, channels, rate); a block
+// that does not fit is skipped whole and counted; and the engine writes the MIX into it — the master output
+// before the metronome click is summed in.
+TEST_CASE ("ADR-0053 the loudness tap carries the mix before the click; a full ring skips whole blocks", "[playback][loudness-tap]")
+{
+    using yesdaw::engine::LoudnessTap;
+    struct Block
+    {
+        std::vector<float> samples;
+        std::size_t frames = 0;
+        std::size_t channels = 0;
+        double rate = 0.0;
+    };
+    const auto drainAll = [] (LoudnessTap& tap) {
+        std::vector<Block> blocks;
+        std::vector<float> scratch;
+        tap.drain (scratch, [&blocks] (const float* data, std::size_t frames, std::size_t channels, double rate) {
+            blocks.push_back ({ std::vector<float> (data, data + frames * channels), frames, channels, rate });
+        });
+        return blocks;
+    };
+
+    {
+        LoudnessTap tap;
+        std::vector<float> left (100), right (100);
+        for (std::size_t i = 0; i < left.size(); ++i)
+        {
+            left[i] = static_cast<float> (i) * 0.01f;
+            right[i] = -static_cast<float> (i) * 0.01f;
+        }
+        const float* channels[2] = { left.data(), right.data() };
+        tap.write (channels, 2, 10, 50, 48'000.0);
+        tap.write (channels, 1, 0, 20, 44'100.0);   // mono
+        tap.write (channels, 4, 0, 5, 48'000.0);    // more than two channels: the first two
+        const std::vector<Block> blocks = drainAll (tap);
+        REQUIRE (blocks.size() == 3u);
+        REQUIRE (blocks[0].frames == 50u);
+        REQUIRE (blocks[0].channels == 2u);
+        REQUIRE (blocks[0].rate == 48'000.0);
+        for (std::size_t f = 0; f < 50u; ++f)
+        {
+            REQUIRE (blocks[0].samples[f * 2u] == left[10u + f]);
+            REQUIRE (blocks[0].samples[f * 2u + 1u] == right[10u + f]);
+        }
+        REQUIRE (blocks[1].channels == 1u);
+        REQUIRE (blocks[1].rate == 44'100.0);
+        REQUIRE (blocks[1].samples == std::vector<float> (left.begin(), left.begin() + 20));
+        REQUIRE (blocks[2].channels == 2u);
+        REQUIRE (drainAll (tap).empty());   // drained
+        REQUIRE (tap.overflowCount() == 0u);
+
+        // A block bigger than the free space is skipped whole and counted; the ring keeps working.
+        std::vector<float> huge (LoudnessTap::kCapacityFloats / 2u, 0.5f);
+        const float* hugeChannels[2] = { huge.data(), huge.data() };
+        tap.write (hugeChannels, 2, 0, static_cast<int> (huge.size()), 48'000.0);   // header + 2x frames > capacity
+        REQUIRE (tap.overflowCount() == 1u);
+        REQUIRE (drainAll (tap).empty());
+        // Fill it with blocks that fit until one does not.
+        std::uint64_t written = 0;
+        while (tap.overflowCount() == 1u)
+        {
+            tap.write (hugeChannels, 2, 0, 8'192, 48'000.0);
+            ++written;
+        }
+        const std::vector<Block> filled = drainAll (tap);
+        REQUIRE (filled.size() == written - 1u);   // every block that fitted, whole; the overflowing one skipped
+        tap.write (channels, 2, 0, 50, 48'000.0);   // room again after the drain
+        REQUIRE (drainAll (tap).size() == 1u);
+    }
+
+    // The engine feeds the mix: what the tap carries equals a click-free render, bit for bit, while the device
+    // output carries the click on top.
+    const PlaybackFixture fixture = makePlaybackFixture();
+    const std::vector<float> plain = playToBuffer (fixture, 64);
+    LoudnessTap tap;
+    OfflineRenderOptions options;
+    options.loudnessTap = &tap;
+    PlaybackEngine::Result created = PlaybackEngine::create (
+        fixture.project,
+        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
+        std::move (options));
+    REQUIRE (created.ok());
+    PlaybackEngine& engine = *created.engine;
+    engine.setMetronome (true, 120.0, 4, 4);
+    const std::vector<float> withClick = drainPlayback (engine, engine.frames(), 64);
+    engine.reclaim();
+    REQUIRE (withClick != plain);   // the click is in what the device plays
+
+    std::vector<float> tapped;
+    for (const Block& block : drainAll (tap))
+    {
+        REQUIRE (block.channels == 2u);
+        REQUIRE (block.rate == 48'000.0);
+        tapped.insert (tapped.end(), block.samples.begin(), block.samples.end());
+    }
+    REQUIRE (tapped == plain);   // and not in the mix the meter measures
 }
