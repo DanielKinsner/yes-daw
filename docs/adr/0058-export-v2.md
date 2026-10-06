@@ -7,6 +7,8 @@
   counting, Bus-to-Bus routing resolved) at the master's channel count; the responsiveness gate uses a
   deterministic worker latch, not timing; normalize, progress units, the Committing state, file-name rules and the
   memory ceiling are pinned. Committed alone, before any G5.3 code.)
+- **Amended:** 2026-10-06, before publication: a successful export stays quiet on the status line (the existing
+  law, `UiAppModel` and the `[status-line]` gate), rather than saying "Exported …" — found while implementing cp1.
 - **Date:** 2026-10-06
 - **Deciders:** build agent (proposer), separate agent critic
 - **Related:** the plan's G5.3 ("Export v2, in three checkpoints") and SS-6 step 5 in
@@ -71,8 +73,9 @@ job (freeze, bounce, analysis) inherit it — and the on-disk commit law.
 - **Progress and completion are polled on the UI tick.** The model's `serviceExport()` (called each UI tick, as
   `serviceAudition` is) turns `workDone / workTotal` into the existing percent, and when the active job is terminal
   it joins the thread (already finished, so the join is immediate), reports the outcome on the status line
-  ("Exported song.wav", "Export cancelled", "Export failed: song.wav: <reason>") and bumps the existing export count
-  only on Succeeded — an aborted job never reports success. The model holds at most one **active** job; a second
+  ("Export cancelled", "Export failed: song.wav: <reason>"; a success stays quiet — the status line's existing law
+  — and the readout shows 100 %) and bumps the existing export count only on Succeeded — an aborted job never
+  reports success. The model holds at most one **active** job; a second
   export while one is active is refused: "Export refused: an export is already running".
 - **Cancel.** The existing Cancel button / `AudioExportCancel` sets `cancelRequested`. The renderer checks it once
   per render block (128 frames) and the writer once per write chunk; a cancelled job ends Cancelled. The readout
