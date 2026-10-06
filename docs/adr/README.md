@@ -74,6 +74,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0054](0054-audio-import-formats.md) | Audio import formats: one decoder for WAV, AIFF, FLAC, Ogg Vorbis and MP3; drops that land as one edit | Accepted |
 | [0055](0055-cross-rate-audio.md) | Cross-rate audio: a rate-matched view at the read boundary, two resampler tiers, one rate ratio for every edit | Accepted |
 | [0056](0056-media-browser.md) | The media browser: a Browser dock tab with Files, Project and Recent, an audition voice on the monitor path, import through the same verbs | Accepted |
+| [0057](0057-key-time-modifiers.md) | Key-time modifiers: a shell chord's Shift / Ctrl / Alt are the ones held when its key went down, not when a busy UI got to it | Accepted |
 
 ## Decision status (the five research forks)
 

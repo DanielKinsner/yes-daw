@@ -646,6 +646,12 @@ UI action for the current Focus context or Control target. Widgets never own DAW
 active text entry and control navigation follow ADR-0049's dispatch order.
 _Avoid_: per-widget shortcut, key listener on a button
 
+**Key-time modifiers**:
+The Shift / Ctrl / Alt held when a key went down, as opposed to the ones held when a busy message thread got
+round to it. The Command router reads every chord with them (ADR-0057), so a Ctrl+Z tapped during an engine
+rebuild still undoes. On Windows they come from the message-synchronised key state.
+_Avoid_: current modifiers, physical key state (that is the state now, not at the key)
+
 **Control target**:
 The visible, keyboard-operable control selected by the Command router, separate from the Focus context.
 Tab and Shift+Tab move it through enabled controls; activation, adjustment, cancellation and accessibility
