@@ -277,8 +277,9 @@ int MainComponent::automationLaneHeightFor (const yesdaw::engine::Track& track) 
 
 int MainComponent::automationAreaHeightFor (const yesdaw::engine::Track& track) const
 {
-    // 5b: the last lane (its target chooser). The lanes the track owns stack above it (5c).
-    return automationLaneHeightFor (track);
+    // Every lane the track owns, then the last lane (its target chooser).
+    const int laneHeight = automationLaneHeightFor (track);
+    return laneHeight <= 0 ? 0 : laneHeight * (static_cast<int> (automationTargetsStackedUnder (track).size()) + 1);
 }
 
 void MainComponent::saveViewState()

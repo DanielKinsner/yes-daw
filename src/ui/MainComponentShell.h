@@ -1099,12 +1099,23 @@ private:
     // E20: enumerate the selected track's automation targets in a stable order — fader, pan,
     // each send level, then each FX param of each insert.
     [[nodiscard]] std::vector<AutomationTargetOption> buildAutomationTargetOptions() const;
+    [[nodiscard]] std::vector<AutomationTargetOption> buildAutomationTargetOptionsFor (yesdaw::engine::EntityId trackId) const;
+    // G4.6 / ADR-0052: the lanes a track owns (its own options that already have a lane), in chooser order.
+    [[nodiscard]] std::vector<AutomationTargetOption> automationTargetsOwnedBy (const yesdaw::engine::Track& track) const;
+    // The lanes stacked under a shown track: every lane it owns except the one its chooser lane is showing (the
+    // selected track's chooser lane edits that one — it is never drawn twice).
+    [[nodiscard]] std::vector<AutomationTargetOption> automationTargetsStackedUnder (const yesdaw::engine::Track& track) const;
 
     [[nodiscard]] AutomationTargetOption currentAutomationTarget() const;
 
-    [[nodiscard]] double automationCanvasSecondsForLocalX (int localX);
+    [[nodiscard]] double automationCanvasSecondsForLocalX (const juce::Component& canvas, int localX);
 
-    [[nodiscard]] int automationCanvasLocalXForSeconds (double seconds);
+    [[nodiscard]] int automationCanvasLocalXForSeconds (const juce::Component& canvas, double seconds);
+
+    // G4.6: one law for every automation canvas (the chooser lane's and each stacked lane's): `target` names
+    // the lane it reads and edits.
+    void wireAutomationCanvas (AutomationLaneCanvasComponent& canvas, std::function<AutomationTargetOption()> target);
+    void layoutStackedAutomationLanes();
 
     [[nodiscard]] std::optional<yesdaw::engine::Tick> timelineTickFromSeconds (double seconds) const noexcept;
     // An automation breakpoint's time is a MUSICAL tick (the engine compiles it through the tempo map,
@@ -1361,6 +1372,14 @@ private:
     yesdaw::ui::SplitterComponent dockSplitter { yesdaw::ui::SplitterComponent::Axis::Horizontal };
     int timeDisplayMode = 0;               // G1.4: 0 bars|beats primary, 1 min:sec primary
     AutomationLaneCanvasComponent automationLaneCanvas;
+    // G4.6 / ADR-0052: the lanes each shown track owns, stacked under its row above its chooser lane — one
+    // canvas per lane, pooled and re-laid out with the timeline.
+    struct StackedAutomationLane
+    {
+        std::unique_ptr<AutomationLaneCanvasComponent> canvas;
+        AutomationTargetOption target;
+    };
+    std::vector<StackedAutomationLane> stackedAutomationLanes;
     // E20: the automation lane target — what the canvas edits (struct declared with the
     // target helpers earlier in the class).
     std::vector<AutomationTargetOption> automationTargetOptions;

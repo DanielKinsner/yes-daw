@@ -59,10 +59,24 @@ public:
     std::function<void (double)> onDeletePoint;
     // R16: Alt+click a handle cycles its curve Linear→Hold→Bezier→Log.
     std::function<void (double)> onCycleCurvePoint;
+    // G4.6 / ADR-0052: a stacked lane names its target (top-left); the chooser lane's header names its own.
+    juce::String laneLabel;
 
     void paint (juce::Graphics& g) override
     {
         g.fillAll (yesdaw::ui::UiTheme::Color::controlInset());
+        if (laneLabel.isNotEmpty())
+        {
+            // A stacked lane's top edge parts it from the clip row or the lane above.
+            g.setColour (yesdaw::ui::UiTheme::Color::panelStroke());
+            g.fillRect (getLocalBounds().withHeight (yesdaw::ui::UiTheme::Layout::automationCanvasSeparatorHeight));
+            g.setColour (yesdaw::ui::UiTheme::Color::mutedText());
+            g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small));
+            g.drawText (laneLabel,
+                        getLocalBounds().reduced (yesdaw::ui::UiTheme::Layout::automationCanvasLabelInset)
+                            .withHeight (yesdaw::ui::UiTheme::Layout::automationCanvasLabelHeight),
+                        juce::Justification::centredLeft, true);
+        }
         if (! pointsProvider || ! localXForSeconds)
             return;
 

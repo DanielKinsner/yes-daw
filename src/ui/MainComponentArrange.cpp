@@ -609,6 +609,7 @@ void MainComponent::layoutAutomationLaneControls()
     // time positions.
     automationLaneCanvas.setBounds (
         band.withTrimmedBottom (L::timelineCanvasAutomationHeaderGap / 2));
+    layoutStackedAutomationLanes();   // G4.6 / ADR-0052
 }
 
 // Vertical track scroll (E5): one shared whole-row offset moves the timeline lanes and the
@@ -840,6 +841,8 @@ void MainComponent::refreshAutomationLaneControls()
     // transition.
     if (laneVisible)
         layoutAutomationLaneControls();
+    else
+        layoutStackedAutomationLanes();   // G4.6: other tracks' lanes follow edits too
     automationLaneLaidOutVisible = laneVisible;
     if (laneVisible)
         automationLaneCanvas.repaint();
@@ -1703,8 +1706,183 @@ yesdaw::engine::EntityId MainComponent::automationTargetTrackId() const noexcept
 // each send level, then each FX param of each insert.
 std::vector<MainComponent::AutomationTargetOption> MainComponent::buildAutomationTargetOptions() const
 {
+    return buildAutomationTargetOptionsFor (automationTargetTrackId());
+}
+
+std::vector<MainComponent::AutomationTargetOption> MainComponent::automationTargetsOwnedBy (const yesdaw::engine::Track& track) const
+{
+    std::vector<AutomationTargetOption> owned;
+    for (const AutomationTargetOption& option : buildAutomationTargetOptionsFor (track.id))
+        if (! option.busOwned && appModel.automationLaneForTarget (option.ownerEntity, option.role, option.paramId) != nullptr)
+            owned.push_back (option);
+    return owned;
+}
+
+std::vector<MainComponent::AutomationTargetOption> MainComponent::automationTargetsStackedUnder (const yesdaw::engine::Track& track) const
+{
+    std::vector<AutomationTargetOption> stacked = automationTargetsOwnedBy (track);
+    if (track.id == automationTargetTrackId() && appModel.context().timelineAutomationTrackLaneVisible)
+    {
+        const AutomationTargetOption chosen = currentAutomationTarget();
+        std::erase_if (stacked, [&chosen] (const AutomationTargetOption& option) {
+            return option.ownerEntity == chosen.ownerEntity && option.role == chosen.role && option.paramId == chosen.paramId;
+        });
+    }
+    return stacked;
+}
+
+void MainComponent::wireAutomationCanvas (AutomationLaneCanvasComponent& canvas, std::function<AutomationTargetOption()> targetFor)
+{
+    canvas.pointsProvider = [this, targetFor] {
+        std::vector<AutomationLaneCanvasComponent::CanvasPoint> points;
+        const AutomationTargetOption target = targetFor();
+        if (! target.ownerEntity.isValid() || ! appModel.project().sampleRate.isValid())
+            return points;
+
+        if (const yesdaw::engine::AutomationLaneData* const lane =
+                appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId))
+        {
+            points.reserve (lane->points.size());
+            for (const yesdaw::engine::AutomationBreakpoint& point : lane->points)
+                points.push_back ({ automationSecondsForTick (point.tick),   // where the engine plays it
+                                    point.value,
+                                    point.curveType });
+        }
+        return points;
+    };
+    // R16: Alt+click a breakpoint handle cycles its curve shape through the undoable
+    // SetAutomationBreakpointCurve verb — Linear → Hold → Bezier → Log → Linear.
+    canvas.onCycleCurvePoint = [this, targetFor] (double seconds) {
+        const AutomationTargetOption target = targetFor();
+        const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
+            ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
+            : nullptr;
+        if (const std::optional<yesdaw::engine::Tick> tick = automationTickForSeconds (seconds, false);
+            lane != nullptr && tick)
+        {
+            (void) appModel.cycleAutomationBreakpointCurveAtTick (lane->id, *tick);
+            refreshActionState();
+            repaintAll();
+        }
+    };
+    canvas.secondsForLocalX = [this, owner = &canvas] (int localX) {
+        return automationCanvasSecondsForLocalX (*owner, localX);
+    };
+    canvas.localXForSeconds = [this, owner = &canvas] (double seconds) {
+        return automationCanvasLocalXForSeconds (*owner, seconds);
+    };
+    // E20: added and dragged breakpoints land on the snap chooser's grid (chooser Off = raw).
+    canvas.onAddPoint = [this, targetFor] (double seconds, double value) {
+        const AutomationTargetOption target = targetFor();
+        if (const std::optional<yesdaw::engine::Tick> tick = automationTickForSeconds (seconds, true);
+            tick && target.ownerEntity.isValid())
+        {
+            (void) appModel.addAutomationBreakpointToLane (
+                target.ownerEntity, target.role, target.paramId, *tick, value);
+            refreshActionState();
+            repaintAll();
+        }
+    };
+    canvas.onMovePoint = [this, targetFor] (double oldSeconds, double newSeconds, double newValue) {
+        const AutomationTargetOption target = targetFor();
+        const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
+            ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
+            : nullptr;
+        const std::optional<yesdaw::engine::Tick> oldTick = automationTickForSeconds (oldSeconds, false);
+        const std::optional<yesdaw::engine::Tick> newTick = automationTickForSeconds (newSeconds, true);
+        if (lane != nullptr && oldTick && newTick)
+        {
+            (void) appModel.moveAutomationBreakpointTo (lane->id, *oldTick, *newTick, newValue);
+            refreshActionState();
+            repaintAll();
+        }
+    };
+    canvas.onDeletePoint = [this, targetFor] (double seconds) {
+        const AutomationTargetOption target = targetFor();
+        const yesdaw::engine::AutomationLaneData* const lane = target.ownerEntity.isValid()
+            ? appModel.automationLaneForTarget (target.ownerEntity, target.role, target.paramId)
+            : nullptr;
+        if (const std::optional<yesdaw::engine::Tick> tick = automationTickForSeconds (seconds, false);
+            lane != nullptr && tick)
+        {
+            (void) appModel.removeAutomationBreakpointAtTick (lane->id, *tick);
+            refreshActionState();
+            repaintAll();
+        }
+    };
+}
+
+// G4.6 / ADR-0052: every lane a shown track owns gets a canvas stacked under the track's clips, one lane high,
+// in chooser order; the chooser lane (the band) is the last lane under them. Rows scrolled out of the timeline
+// show none.
+void MainComponent::layoutStackedAutomationLanes()
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    struct Wanted
+    {
+        AutomationTargetOption target;
+        juce::Rectangle<int> bounds;
+        juce::String id;
+    };
+    std::vector<Wanted> wanted;
+    const yesdaw::engine::Project& project = appModel.project();
+    if (appModel.context().projectLoaded)
+    {
+        const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (timelineBounds(), makeTimelineState());
+        for (int row = 0; row < static_cast<int> (project.tracks.size()); ++row)
+        {
+            const yesdaw::engine::Track& track = project.tracks[static_cast<std::size_t> (row)];
+            const int laneHeight = automationLaneHeightFor (track);
+            if (laneHeight <= 0)
+                continue;
+            const std::vector<AutomationTargetOption> owned = automationTargetsStackedUnder (track);
+            const int lanesTop = geometry.clipArea.getY()
+                + juce::roundToInt (geometry.laneTop (row) - geometry.laneTop (geometry.trackScrollRows) + geometry.clipHeightFor (row));
+            for (std::size_t k = 0; k < owned.size(); ++k)
+            {
+                const juce::Rectangle<int> bounds (geometry.clipArea.getX(), lanesTop + static_cast<int> (k) * laneHeight,
+                                                   geometry.clipArea.getWidth(), laneHeight);
+                if (bounds.getY() < geometry.clipArea.getY() || bounds.getBottom() > geometry.clipArea.getBottom())
+                    continue;   // scrolled out
+                wanted.push_back ({ owned[k], bounds.withTrimmedBottom (L::timelineCanvasAutomationHeaderGap / 2),
+                                    "timeline.automation.lane." + juce::String (row) + "." + juce::String (static_cast<int> (k)) });
+            }
+        }
+    }
+
+    while (stackedAutomationLanes.size() > wanted.size())
+    {
+        removeChildComponent (stackedAutomationLanes.back().canvas.get());
+        stackedAutomationLanes.pop_back();
+    }
+    while (stackedAutomationLanes.size() < wanted.size())
+    {
+        const std::size_t index = stackedAutomationLanes.size();
+        StackedAutomationLane lane;
+        lane.canvas = std::make_unique<AutomationLaneCanvasComponent>();
+        lane.canvas->setTooltip ("Automation lane: click to add a breakpoint, drag to move it");
+        wireAutomationCanvas (*lane.canvas, [this, index] {
+            return index < stackedAutomationLanes.size() ? stackedAutomationLanes[index].target : AutomationTargetOption {};
+        });
+        addAndMakeVisible (*lane.canvas);
+        stackedAutomationLanes.push_back (std::move (lane));
+    }
+    for (std::size_t i = 0; i < wanted.size(); ++i)
+    {
+        StackedAutomationLane& lane = stackedAutomationLanes[i];
+        lane.target = wanted[i].target;
+        lane.canvas->setComponentID (wanted[i].id);
+        lane.canvas->laneLabel = wanted[i].target.label;
+        lane.canvas->setName ("Automation Lane " + wanted[i].target.label);
+        lane.canvas->setTitle ("Automation Lane " + wanted[i].target.label);
+        lane.canvas->setBounds (wanted[i].bounds);
+        lane.canvas->repaint();
+    }
+}
+
+std::vector<MainComponent::AutomationTargetOption> MainComponent::buildAutomationTargetOptionsFor (yesdaw::engine::EntityId trackId) const
+{
     std::vector<AutomationTargetOption> options;
-    const yesdaw::engine::EntityId trackId = automationTargetTrackId();
     if (! trackId.isValid())
         return options;
 
@@ -1810,7 +1988,7 @@ MainComponent::AutomationTargetOption MainComponent::currentAutomationTarget() c
     return fallback;
 }
 
-double MainComponent::automationCanvasSecondsForLocalX (int localX)
+double MainComponent::automationCanvasSecondsForLocalX (const juce::Component& canvas, int localX)
 {
     const yesdaw::ui::TimelineCanvasState state = makeTimelineState();
     const yesdaw::ui::TimelineCanvasGeometry geometry =
@@ -1818,13 +1996,13 @@ double MainComponent::automationCanvasSecondsForLocalX (int localX)
     const double pixelsPerSecond = std::max (
         yesdaw::ui::UiTheme::Layout::timelineCoordinatePixelsPerSecondFloor,
         geometry.viewport.pixelsPerSecond);
-    const int timelineLocalX = localX + automationLaneCanvas.getX() - timelineInput.getX();
+    const int timelineLocalX = localX + canvas.getX() - timelineInput.getX();
     return std::max (0.0,
                      state.viewport.scrollSeconds
                          + static_cast<double> (timelineLocalX - geometry.clipArea.getX()) / pixelsPerSecond);
 }
 
-int MainComponent::automationCanvasLocalXForSeconds (double seconds)
+int MainComponent::automationCanvasLocalXForSeconds (const juce::Component& canvas, double seconds)
 {
     const yesdaw::ui::TimelineCanvasState state = makeTimelineState();
     const yesdaw::ui::TimelineCanvasGeometry geometry =
@@ -1834,7 +2012,7 @@ int MainComponent::automationCanvasLocalXForSeconds (double seconds)
         geometry.viewport.pixelsPerSecond);
     const int timelineLocalX = geometry.clipArea.getX()
         + juce::roundToInt ((seconds - state.viewport.scrollSeconds) * pixelsPerSecond);
-    return timelineLocalX - (automationLaneCanvas.getX() - timelineInput.getX());
+    return timelineLocalX - (canvas.getX() - timelineInput.getX());
 }
 
 std::optional<yesdaw::engine::Tick> MainComponent::timelineTickFromSeconds (double seconds) const noexcept

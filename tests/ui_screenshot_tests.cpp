@@ -1354,3 +1354,84 @@ TEST_CASE ("G0.7 rubric shots: the song fixture at 1280x720, 1920x1080 and 2560x
     std::error_code ec;
     std::filesystem::remove_all (fixtureDir, ec);
 }
+
+// G4.6 / ADR-0052: stacked automation lanes render honestly — the Fader lane stacked under the clip, the Pan
+// lane in the chooser lane under it, both with real curves; the clip keeps its own part of the row.
+TEST_CASE ("stacked automation lanes render under their track's clips", "[ui][screenshot][automation-stack]")
+{
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath =
+        std::filesystem::temp_directory_path() / "yesdaw-ui-screenshot-automation-stack.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (1536, 960);
+
+    const auto findChildById = [&shell] (const char* id) -> juce::Component*
+    {
+        for (int child = 0; child < shell->getNumChildComponents(); ++child)
+            if (shell->getChildComponent (child)->getComponentID() == id)
+                return shell->getChildComponent (child);
+        return nullptr;
+    };
+    const auto mouseDownUpAt = [] (juce::Component& component, juce::Point<int> point)
+    {
+        const juce::MouseEvent event (juce::Desktop::getInstance().getMainMouseSource(),
+                                      point.toFloat(), juce::ModifierKeys::leftButtonModifier,
+                                      0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                      &component, &component, juce::Time::getCurrentTime(),
+                                      point.toFloat(), juce::Time::getCurrentTime(), 1, false);
+        component.mouseDown (event);
+        component.mouseUp (event);
+    };
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildById ("timeline.automation.target"));
+    REQUIRE (chooser != nullptr);
+    const auto pencil = [&] (std::initializer_list<std::pair<double, double>> points)
+    {
+        juce::Component* band = findChildById ("timeline.automation.canvas");
+        REQUIRE (band != nullptr);
+        for (const auto& [fx, fy] : points)
+            mouseDownUpAt (*band, { juce::roundToInt (band->getWidth() * fx), juce::roundToInt (band->getHeight() * fy) });
+    };
+    chooser->setSelectedId (1, juce::sendNotificationSync);   // Fader
+    pencil ({ { 0.1, 0.8 }, { 0.4, 0.2 }, { 0.75, 0.6 } });
+    chooser->setSelectedId (2, juce::sendNotificationSync);   // Pan
+    pencil ({ { 0.2, 0.3 }, { 0.6, 0.7 } });
+
+    const juce::Image image = renderShell (*shell);
+    const auto structureIn = [&image] (juce::Rectangle<int> area) {
+        const juce::Rectangle<int> lane = area.getIntersection (image.getBounds());
+        REQUIRE_FALSE (lane.isEmpty());
+        const auto background = image.getPixelAt (lane.getRight() - 2, lane.getBottom() - 2).getARGB();
+        std::uint64_t structure = 0;
+        for (int y = lane.getY(); y < lane.getBottom(); ++y)
+            for (int x = lane.getX(); x < lane.getRight(); ++x)
+                if (image.getPixelAt (x, y).getARGB() != background)
+                    ++structure;
+        return structure;
+    };
+    juce::Component* faderLane = findChildById ("timeline.automation.lane.0.0");
+    juce::Component* panLane = findChildById ("timeline.automation.canvas");
+    REQUIRE (faderLane != nullptr);
+    REQUIRE (panLane != nullptr);
+    REQUIRE (faderLane->getBottom() <= panLane->getY());   // stacked, the chooser lane last
+    REQUIRE (structureIn (faderLane->getBounds()) > 300u);   // the Fader curve, handles and name
+    REQUIRE (structureIn (panLane->getBounds()) > 200u);     // the Pan curve and handles
+    (void) captureShellPng (image, "yesdaw-automation-stacked.png");
+
+    shell.reset();
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

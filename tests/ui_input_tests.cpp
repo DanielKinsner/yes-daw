@@ -24711,3 +24711,66 @@ TEST_CASE ("automation lanes show per track, grow the row under its clips, and r
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G4.6 / ADR-0052: every lane a shown track owns stacks under its clips — one lane high each, in chooser order,
+// named — with the chooser lane last; each stacked lane reads and edits only its own target.
+TEST_CASE ("every lane a shown track owns stacks under its clips, each editing its own target", "[ui][input][shell][automation-v2]")
+{
+    const auto bundlePath = makeTempBundlePath ("automation-v2-stacked");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path { YESDAW_WAV_FIXTURE_PATH }; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.automation.target"));
+    juce::Component* band = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    REQUIRE (chooser != nullptr);
+    REQUIRE (band != nullptr);
+    REQUIRE (findChildWithComponentId (*shell, "timeline.automation.lane.0.0") == nullptr);   // no lane owned yet
+
+    // The chooser lane starts a lane by its first point: Fader, then Pan.
+    chooser->setSelectedId (1, juce::sendNotificationSync);   // Fader
+    mouseDownAt (*band, { band->getWidth() / 2, band->getHeight() / 2 });
+    chooser->setSelectedId (2, juce::sendNotificationSync);   // Pan
+    mouseDownAt (*band, { band->getWidth() / 2, band->getHeight() / 2 });
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.size() == 2u);
+
+    // The chooser lane shows Pan (the last target chosen); the stack holds the other lane the track owns.
+    auto* fader = dynamic_cast<yesdaw::ui::AutomationLaneCanvasComponent*> (findChildWithComponentId (*shell, "timeline.automation.lane.0.0"));
+    REQUIRE (fader != nullptr);
+    REQUIRE (fader->isVisible());
+    REQUIRE (fader->laneLabel == "Fader");
+    REQUIRE (findChildWithComponentId (*shell, "timeline.automation.lane.0.1") == nullptr);   // Pan is never drawn twice
+    const int laneHeight = yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight;
+    REQUIRE (band->getY() >= fader->getY() + laneHeight - yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationHeaderGap);   // the chooser lane is last
+    REQUIRE (fader->getX() == band->getX());
+    REQUIRE (fader->getWidth() == band->getWidth());
+
+    // Each lane edits ITS target: a click on the stacked Fader lane adds to Fader, never Pan.
+    const auto pointsFor = [&bundlePath] (yesdaw::engine::AutomationTargetRole role) {
+        for (const auto& lane : readProjectSnapshot (bundlePath).automationLanes)
+            if (lane.role == role)
+                return lane.points.size();
+        return std::size_t { 0 };
+    };
+    REQUIRE (pointsFor (yesdaw::engine::AutomationTargetRole::TrackFader) == 1u);
+    mouseDownAt (*fader, { fader->getWidth() / 4, fader->getHeight() / 2 });
+    REQUIRE (pointsFor (yesdaw::engine::AutomationTargetRole::TrackFader) == 2u);
+    REQUIRE (pointsFor (yesdaw::engine::AutomationTargetRole::TrackPan) == 1u);
+
+    // Choosing Fader in the chooser lane swaps them: Pan moves into the stack.
+    chooser->setSelectedId (1, juce::sendNotificationSync);
+    auto* stacked = dynamic_cast<yesdaw::ui::AutomationLaneCanvasComponent*> (findChildWithComponentId (*shell, "timeline.automation.lane.0.0"));
+    REQUIRE (stacked != nullptr);
+    REQUIRE (stacked->laneLabel == "Pan");
+
+    // A off: the stacked lanes go with the chooser lane.
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    REQUIRE (findChildWithComponentId (*shell, "timeline.automation.lane.0.0") == nullptr);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
