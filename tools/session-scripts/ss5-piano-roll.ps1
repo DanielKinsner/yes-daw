@@ -229,6 +229,9 @@ Shot 'ss5-step-input'
 Key 'Ctrl+Z'
 [void](Assert (WaitProbe { param($q) [int]$q.view.noteCount -eq $n0 } -TimeoutMs 1500) 'Ctrl+Z removes the entered note')
 Click 'pianoroll.step'
+# The click's effect lands before the next key goes out (2026-10-06: a Ctrl+K sent while the click was still
+# being handled never dispatched — the probe's lastAction stayed piano_roll.step_input).
+[void](Assert (WaitProbe { param($q) -not [bool]$q.view.stepInput.on } -TimeoutMs 1500) 'the Step button turns step input off')
 Key 'Ctrl+K'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.view.musicalTyping.on -and -not [bool]$q.view.stepInput.on } -TimeoutMs 1500) 'both modes off again')
 
