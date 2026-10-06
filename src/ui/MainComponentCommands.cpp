@@ -349,8 +349,13 @@ void MainComponent::resumeDesktopAudioCallback()
 // The keymap's declared chords are live application shortcuts: any KeyPress whose chord matches a
 // registered action dispatches through the SAME handleAction path the toolbar uses, so Space plays,
 // Ctrl+Z undoes, Del deletes the selected Clip, and every binding stays mechanically listable.
-bool MainComponent::keyPressed (const juce::KeyPress& key)
+bool MainComponent::keyPressed (const juce::KeyPress& pressed)
 {
+    // ADR-0057: the chord is what was held when the key went down. JUCE's Windows window reads the
+    // modifiers held when it processes the key, so a Ctrl+Z that waited out an engine rebuild arrives
+    // as Z; inside the key's dispatch the key-time modifiers replace them. Every route below sees them.
+    const juce::KeyPress key = yesdaw::ui::withKeyTimeModifiers (pressed);
+
     // G4.0b: the Control target's keys come first (ADR-0049) — after active text entry, which keeps
     // its keys inside the field, and before every route below. A key it claims dispatches nowhere else.
     if (routeControlTargetKey (key))

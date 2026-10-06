@@ -144,6 +144,7 @@ juce_add_gui_app(YesDaw
 # Plan §5.1 cp2: the shell is one class declared in src/ui/MainComponentShell.h and defined by domain.
 set(YESDAW_SHELL_SOURCES
   src/ui/DesktopAudioStartup.cpp
+  src/ui/KeyTimeModifiers.cpp
   src/ui/MainComponent.cpp
   src/ui/MainComponentArrange.cpp
   src/ui/MainComponentBrowser.cpp
@@ -436,6 +437,8 @@ if (YESDAW_BUILD_APPS)
       juce::juce_recommended_config_flags)
   yesdaw_harden(YesDawUiInputCheck)
   add_test(NAME YesDawUiInputCheck COMMAND $<TARGET_FILE:YesDawUiInputCheck>)
+  # ADR-0057: the key-time modifier gate (a queued chord through JUCE's real window procedure on Windows).
+  target_sources(YesDawUiInputCheck PRIVATE tests/key_time_modifier_tests.cpp)
 
   # --- State probe gate (G0.1; ADR-0046 §10) -------------------------------------------
   # The debug-only JSON snapshot the Session drive reads: schema version, required sections,

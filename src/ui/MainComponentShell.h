@@ -11,6 +11,7 @@
 #include "ui/BrowserPanelComponent.h"   // G5.2 / ADR-0056
 #include "ui/MainComponentInternal.h"
 #include "ui/ControlTarget.h"
+#include "ui/KeyTimeModifiers.h"   // ADR-0057
 
 #include <optional>
 
@@ -1526,6 +1527,10 @@ private:
     // G0.2: the top-level component this shell is registered on as a KeyListener (null in the
     // headless harness, where the shell is its own top level).
     juce::Component* routedTopLevel = nullptr;
+
+    // ADR-0057: while the shell's native window dispatches a key, the modifiers held when that key went
+    // down (not when a busy message thread got round to it); keyPressed rebuilds the chord from them.
+    yesdaw::ui::KeyTimeModifierWatcher keyTimeModifierWatcher { *this };
 
     // G4.0b: the Control target. The scope is the open overlay a walk was limited to ("" = the
     // shell); the target before that overlay opened is restored when it closes. A value gesture
