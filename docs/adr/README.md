@@ -72,6 +72,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0052](0052-automation-v2.md) | Automation v2: stacked lanes, real Write and Latch, span-replacing rides, clip-following points | Accepted |
 | [0053](0053-master-strip-monitor-and-loudness.md) | Master strip: monitor Dim / Mute, a live loudness tap, master inserts on the master pane | Accepted |
 | [0054](0054-audio-import-formats.md) | Audio import formats: one decoder for WAV, AIFF, FLAC, Ogg Vorbis and MP3; drops that land as one edit | Accepted |
+| [0055](0055-cross-rate-audio.md) | Cross-rate audio: a rate-matched view at the read boundary, two resampler tiers, one rate ratio for every edit | Accepted |
 
 ## Decision status (the five research forks)
 

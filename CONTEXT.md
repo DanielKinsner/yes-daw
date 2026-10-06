@@ -315,6 +315,17 @@ content-hashed; never edited in place. Imported from WAV, AIFF, FLAC, Ogg Vorbis
 the file's original bytes whatever the format; its frame count is the pinned decoder's length for those bytes.
 _Avoid_: file, sample (when you mean the imported audio)
 
+**Rate ratio**:
+A clip's `r = projectRate / assetRate` (1 for a same-rate Asset): its timeline length is `round (srcLen × r ×
+stretchFactor)`, its source window stays in Asset frames (ADR-0055).
+_Avoid_: speed, pitch ratio
+
+**Rate-matched view**:
+A cross-rate Asset's decoded audio resampled to the project rate on the control thread — derived, never stored,
+never a replacement for the original bytes. A short-kernel live tier for playback, a long-kernel offline tier for
+export (ADR-0010 / ADR-0055).
+_Avoid_: converted file, resampled asset (the Asset itself is never resampled)
+
 **Recorded audio asset**:
 A recorded Take's immutable audio bytes inside the Project bundle Asset store. Canonical recorded audio is
 RIFF/WAVE, 32-bit IEEE float, interleaved, at the Project/device sample rate.
