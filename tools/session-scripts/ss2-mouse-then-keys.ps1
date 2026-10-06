@@ -205,16 +205,19 @@ Resize 2560 1440; Start-Sleep -Milliseconds 400; Shot 'ss2-2560x1440'
 
 Step 10 'A chord that waits behind a busy UI means what was held when its key went down (ADR-0057)'
 # The UI thread is held while the chord goes in and every key comes back up, so the app reads the whole
-# chord from its queue afterwards — the 2026-10-06 case where Ctrl+Z after an engine rebuild became Z.
+# chord from its queue afterwards: the 2026-10-06 case where Ctrl+Z after an engine rebuild became Z.
+# Home (Locate) resets lastAction before each chord, so only that chord's own dispatch can satisfy it.
 Focus
 Resize 1920 1080; Start-Sleep -Milliseconds 300
-[void](Assert ((Probe).lastAction -ne 'edit.undo') ('precondition: the last action is not Undo (lastAction=' + (Probe).lastAction + ')'))
-KeyWhileBusy 'Ctrl+Z'
-[void](Assert (WaitProbe { param($q) $q.lastAction -eq 'edit.undo' } -TimeoutMs 2000) ('Ctrl+Z queued behind a held UI, Ctrl up before the app read it: Undo (lastAction=' + (Probe).lastAction + ')'))
-KeyWhileBusy 'Ctrl+Shift+Z'
-[void](Assert (WaitProbe { param($q) $q.lastAction -eq 'edit.redo' } -TimeoutMs 2000) ('Ctrl+Shift+Z queued the same way: Redo (lastAction=' + (Probe).lastAction + ')'))
-KeyWhileBusy 'Ctrl+Z' -ModifierAfter
-[void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.zoom.selection' } -TimeoutMs 2000) ('a bare Z queued before Ctrl went down stays Z: Zoom to Selection, not Undo (lastAction=' + (Probe).lastAction + ')'))
+function BusyChord([string] $chord, [string] $expected, [string] $what, [switch] $ModifierAfter) {
+  Key 'Home'
+  [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'transport.locate_start' } -TimeoutMs 1500) ('reset before ' + $chord + ': Home locates (lastAction=' + (Probe).lastAction + ')'))
+  KeyWhileBusy $chord -ModifierAfter:$ModifierAfter
+  [void](Assert (WaitProbe { param($q) $q.lastAction -eq $expected } -TimeoutMs 2000) ($what + ' (lastAction=' + (Probe).lastAction + ')'))
+}
+BusyChord 'Ctrl+Z' 'edit.undo' 'Ctrl+Z queued behind a held UI, Ctrl up before the app read it: Undo'
+BusyChord 'Ctrl+Shift+Z' 'edit.redo' 'Ctrl+Shift+Z queued the same way: Redo'
+BusyChord 'Ctrl+Z' 'timeline.zoom.selection' 'a bare Z queued before Ctrl went down stays Z: Zoom to Selection, not Undo' -ModifierAfter
 $tickNow = [int64](Probe).tick
 [void](Assert (WaitProbe { param($q) [int64]$q.tick -ge $tickNow + 2 } -TimeoutMs 1500) 'the app keeps ticking after its UI thread is released')
 Close
