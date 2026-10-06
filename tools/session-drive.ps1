@@ -487,9 +487,21 @@ function FileDialogEnter([string] $path, [string] $DialogTitle = '') {
   if ($DialogTitle) { $dialog = WaitDialog $DialogTitle }
   if (-not [YesDawDrive]::DialogBelongsTo($dialog, [uint32]$script:Proc.Id)) { throw 'The exact chooser returned by WaitDialog is no longer available' }
   Start-Sleep -Milliseconds 1200
-  if (-not [YesDawDrive]::FocusFileName($dialog)) { throw ('Cannot focus native filename control: ' + [YesDawDrive]::DialogDiagnostic($dialog)) }
-  Start-Sleep -Milliseconds 100
-  if (-not [YesDawDrive]::FileNameHasFocus($dialog)) { throw ('Native filename focus was not established: ' + [YesDawDrive]::DialogDiagnostic($dialog)) }
+  # The Common Item Dialog builds its tree after it shows, and a fresh dialog can lose the foreground
+  # race: the 2026-10-05 ss6 second pad load found only the outer DUIViewWndClassName and another
+  # foreground window at 1.2 s. Establish VERIFIED focus on the filename control — re-attempting the
+  # precondition, never the text — for up to five more 400 ms waits before refusing.
+  $clicked = $false
+  $focused = $false
+  for ($attempt = 0; $attempt -lt 6 -and -not $focused; $attempt++) {
+    if ($attempt -gt 0) { Start-Sleep -Milliseconds 400 }
+    if (-not [YesDawDrive]::FocusFileName($dialog)) { continue }
+    $clicked = $true
+    Start-Sleep -Milliseconds 100
+    $focused = [YesDawDrive]::FileNameHasFocus($dialog)
+  }
+  if (-not $clicked) { throw ('Cannot focus native filename control: ' + [YesDawDrive]::DialogDiagnostic($dialog)) }
+  if (-not $focused) { throw ('Native filename focus was not established: ' + [YesDawDrive]::DialogDiagnostic($dialog)) }
   Key 'Ctrl+A'
   Start-Sleep -Milliseconds 100
   TypeText $path

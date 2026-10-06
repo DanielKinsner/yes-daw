@@ -9,7 +9,8 @@ using System;
 public static class YesDawDrive {
     public static bool FocusOk = true, Closed = false, ReadbackOk = true;
     public static bool ReadbackAvailable = true, LoseFocusAfterTyping = false;
-    public static bool EmptyReadback = false;
+    public static bool EmptyReadback = false, FocusVerifies = true;
+    public static int FocusAttempts = 0, FocusReadyOnAttempt = 1;
     public static int Typed = 0, Confirmed = 0;
     public static string Text = "", LastSearch = "";
     public static int ActivationAttempts = 0, ActivateOnAttempt = 1;
@@ -28,14 +29,14 @@ public static class YesDawDrive {
     public static IntPtr FindTopWindow(uint pid, string title) { LastSearch = title; return title == "Import WAV Audio" ? new IntPtr(20) : new IntPtr(10); }
     public static bool DialogBelongsTo(IntPtr h, uint pid) { return h == new IntPtr(20) && !Closed; }
     public static string WindowTitle(IntPtr h) { return "Import WAV Audio"; }
-    public static bool FocusFileName(IntPtr h) { return FocusOk; }
+    public static bool FocusFileName(IntPtr h) { FocusAttempts++; return FocusOk && FocusAttempts >= FocusReadyOnAttempt; }
     public sealed class FileNameReadback {
         public bool available;
         public string text;
         public override string ToString() { return available ? "text='"+text+"'" : "<unavailable>"; }
     }
     public static FileNameReadback ReadFileName(IntPtr h) { return new FileNameReadback { available = ReadbackAvailable, text = ReadbackAvailable ? (EmptyReadback ? "" : (ReadbackOk ? Text : "wrong path")) : null }; }
-    public static bool FileNameHasFocus(IntPtr h) { return FocusOk && !(LoseFocusAfterTyping && Typed > 0); }
+    public static bool FileNameHasFocus(IntPtr h) { return FocusOk && FocusVerifies && FocusAttempts >= FocusReadyOnAttempt && !(LoseFocusAfterTyping && Typed > 0); }
     public static string DialogDiagnostic(IntPtr h) { return "test diagnostic"; }
 }
 '@
@@ -56,6 +57,7 @@ function Reset {
     [YesDawDrive]::FocusOk = $true; [YesDawDrive]::Closed = $false; [YesDawDrive]::ReadbackOk = $true
     [YesDawDrive]::ReadbackAvailable = $true; [YesDawDrive]::EmptyReadback = $false; [YesDawDrive]::LoseFocusAfterTyping = $false
     [YesDawDrive]::Typed = 0; [YesDawDrive]::Confirmed = 0; [YesDawDrive]::Text = ''
+    [YesDawDrive]::FocusAttempts = 0; [YesDawDrive]::FocusReadyOnAttempt = 1; [YesDawDrive]::FocusVerifies = $true
     [void](WaitDialog 'Import WAV Audio')
 }
 Reset
@@ -92,6 +94,23 @@ FileDialogEnter 'C:\fixture with spaces.wav'
 if ([YesDawDrive]::Typed -ne 1 -or [YesDawDrive]::Confirmed -ne 1 -or -not [YesDawDrive]::Closed) { throw 'Valid path was not entered and confirmed exactly once' }
 if ([YesDawDrive]::LastSearch -ne 'Import WAV Audio') { throw 'Replaced the known Import HWND with a fuzzy main-window title search' }
 Write-Host 'PASS: chooser focus refusal, readback refusal, exact Import HWND and single confirmation'
+
+# 2026-10-05: a dialog still building its tree gets its focus precondition re-attempted (never its text).
+Reset
+[YesDawDrive]::FocusReadyOnAttempt = 3
+FileDialogEnter 'C:\late dialog.wav'
+if ([YesDawDrive]::FocusAttempts -ne 3 -or [YesDawDrive]::Typed -ne 1 -or [YesDawDrive]::Confirmed -ne 1) { throw 'A late dialog was not entered exactly once after its focus became ready' }
+Reset
+[YesDawDrive]::FocusReadyOnAttempt = 99
+$refused = $false
+try { FileDialogEnter 'C:\never.wav' } catch { $refused = $_.Exception.Message -like '*Cannot focus native filename control*' }
+if (-not $refused -or [YesDawDrive]::Typed -ne 0 -or [YesDawDrive]::FocusAttempts -ne 6) { throw 'A never-ready dialog was not refused after six bounded attempts without input' }
+Reset
+[YesDawDrive]::FocusVerifies = $false
+$refused = $false
+try { FileDialogEnter 'C:\unverified.wav' } catch { $refused = $_.Exception.Message -like '*focus was not established*' }
+if (-not $refused -or [YesDawDrive]::Typed -ne 0) { throw 'An unverified focus click let input through' }
+Write-Host 'PASS: late chooser focus is re-established (bounded, verified) before any input; never-ready refuses'
 
 [YesDawDrive]::Foreground = [IntPtr]99
 [YesDawDrive]::ActivationAttempts = 0; [YesDawDrive]::ActivateOnAttempt = 1000
