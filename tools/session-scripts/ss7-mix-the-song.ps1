@@ -12,6 +12,11 @@
 # the kinds (EQ, then a Compressor, on the bus); a filled slot's double-click opens the FX editor (a
 # shot; Close); an empty send well's click lists the buses (track 1 sends to the bus); the send row's
 # right-click menu flips it pre-fader. Later G4 items append theirs (Write, solo-safe, export).
+# G4.7 (2026-10-06) — the master strip: Step 13. The master pane's first slot takes a Limiter (Limiter is
+# the first kind there) and its double-click opens the editor with the gain-reduction face; the header's DIM
+# and MUTE light and clear; the fixture imported onto track 1 plays and the header's LUFS readout shows the
+# measured loudness (when the drive machine has an output device — otherwise the honest "--" is asserted).
+# Save and close moves to Step 14.
 # G4.0b (2026-10-05) — keyboard only: Step 11. Tab starts control navigation (the ring; the probe's
 # controlTarget); Space stays transport; the Snap chooser previews with arrows and Enter applies; strip 1's
 # painted fader moves by dB as one undo step while Right never moves the playhead, and Esc restores; the
@@ -463,7 +468,47 @@ Key '1'
 Key 'A'
 [void](Assert (WaitProbe { param($q) $null -eq $q.layout.'widget.timeline.automation.canvas' } -TimeoutMs 2000) 'A hides the lanes again')
 
-Step 13 'Save and close'
+Step 13 'The master strip (G4.7): a Limiter in the master''s slot; DIM / MUTE; the LUFS readout measures the played mix'
+OpenMixer
+Click 'mixer.master.insert.0'
+[void](WaitPopup)
+Key 'Down'   # the master's kinds lead with the Limiter
+Start-Sleep -Milliseconds 80
+Key 'Enter'
+[void](Assert (WaitProbe { param($q) "$(@($q.mixer.masterInserts)[0].kind)" -eq 'Limiter' } -TimeoutMs 2000) ('the Limiter lands in the master''s slot 1 (' + @((Probe).mixer.masterInserts)[0].kind + ')'))
+Click 'mixer.master.insert.0' -Double
+[void](Assert (WaitProbe { param($q) [bool]$q.fxEditor.visible -and "$($q.fxEditor.kind)" -eq 'Limiter' -and [bool]$q.fxEditor.grVisible } -TimeoutMs 2000) ('the double-click opens the master Limiter''s editor with its gain-reduction meter (kind=' + (Probe).fxEditor.kind + ')'))
+Shot 'ss7-master-limiter'
+Click 'mixer.fx.editor.close'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.visible } -TimeoutMs 1500) 'Close closes the master Limiter''s editor')
+Click 'widget.master.monitor.dim'
+[void](Assert (WaitProbe { param($q) [bool]$q.mixer.monitorDim } -TimeoutMs 1500) 'DIM lights')
+Click 'widget.master.monitor.mute'
+[void](Assert (WaitProbe { param($q) [bool]$q.mixer.monitorMute } -TimeoutMs 1500) 'MUTE lights')
+Shot 'ss7-monitor-lit'
+Click 'widget.master.monitor.mute'
+Click 'widget.master.monitor.dim'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.mixer.monitorDim -and -not [bool]$q.mixer.monitorMute } -TimeoutMs 1500) 'DIM and MUTE clear')
+Focus
+Click 'rail.row.0'
+Start-Sleep -Milliseconds 200
+Key 'Ctrl+Shift+I'
+$dlg = WaitDialog 'Import WAV Audio' 4000
+if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $Fixture }
+[void](Assert (WaitProbe { param($q) [int]$q.view.clipCount -ge 1 } -TimeoutMs 8000) 'the fixture is on track 1')
+Focus
+Key 'Space'
+[void](Assert (WaitProbe { param($q) [bool]$q.transport.isPlaying } -TimeoutMs 1500) 'Space plays')
+if ([bool](Probe).audio.deviceOpen) {
+  [void](Assert (WaitProbe { param($q) [bool]$q.mixer.loudnessValid -and "$($q.mixer.loudness)" -match '^~?-?\d+\.\d LUFS$' } -TimeoutMs 6000) ('the header''s LUFS readout measures the played mix (' + (Probe).mixer.loudness + ')'))
+  Shot 'ss7-loudness'
+} else {
+  [void](Assert ("$((Probe).mixer.loudness)" -eq '-- LUFS') 'no output device: nothing is played, so the readout honestly shows --')
+}
+Key 'Space'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.transport.isPlaying } -TimeoutMs 1500) 'Space stops; the readout holds')
+
+Step 14 'Save and close'
 Focus
 Key 'Ctrl+S'
 Start-Sleep -Milliseconds 800
