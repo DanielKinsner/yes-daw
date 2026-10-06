@@ -5917,11 +5917,9 @@ public:
         engine::ProjectUndoStack nextUndo = undo_;
         if (! nextUndo.beginTransactionGroup())
             return { id, state, false };
-        std::vector<std::pair<engine::EntityId, engine::AutomationClipMove>> automationMoves;   // G4.6
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
             const UiTimelineEntityView view = timelineEntityView (clipId);
-            automationMoves.push_back ({ view.trackId, automationClipMoveFor (clipId, delta) });
             const engine::ProjectEditCommand command = view.isMidi
                 ? engine::ProjectEditCommand::moveMidiClip (clipId, view.timelineStart + delta)
                 : engine::ProjectEditCommand::moveClip (clipId, view.timelineStart + delta);
@@ -5937,7 +5935,7 @@ public:
                     return { id, { false, "edit mode refused the move" }, false };
             }
         }
-        if (! applyAutomationFollowingClips (nextProject, nextUndo, automationMoves))
+        if (! applyAutomationFollowingClips (nextProject, nextUndo, clipMovesBetween (project_, nextProject)))
         {
             reportStatus ("Move not made: the automation could not follow the clips", true);
             return { id, { false, "automation could not follow the move" }, false };
@@ -6038,7 +6036,6 @@ public:
         engine::ProjectUndoStack nextUndo = undo_;
         if (! nextUndo.beginTransactionGroup())
             return { id, state, false };
-        std::vector<std::pair<engine::EntityId, engine::AutomationClipMove>> automationMoves;   // G4.6: same-track only
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
             const UiTimelineEntityView view = timelineEntityView (clipId);
@@ -6046,8 +6043,6 @@ public:
             if (! view.valid || sourceLane < 0)
                 return { id, state, false };
             const engine::EntityId nextTrackId = project_.tracks[static_cast<std::size_t> (sourceLane + laneDelta)].id;
-            if (nextTrackId == view.trackId)
-                automationMoves.push_back ({ view.trackId, automationClipMoveFor (clipId, timeDelta) });
             const engine::ProjectEditCommand command = view.isMidi
                 ? engine::ProjectEditCommand::moveMidiClipToTrack (
                       clipId, nextTrackId, view.timelineStart + timeDelta)
@@ -6056,7 +6051,7 @@ public:
             if (! nextUndo.apply (nextProject, command).applied())
                 return { id, state, false };
         }
-        if (! applyAutomationFollowingClips (nextProject, nextUndo, automationMoves))
+        if (! applyAutomationFollowingClips (nextProject, nextUndo, clipMovesBetween (project_, nextProject)))
         {
             reportStatus ("Move not made: the automation could not follow the clips", true);
             return { id, { false, "automation could not follow the move" }, false };
@@ -6091,14 +6086,28 @@ public:
         return { id, state, true };
     }
 
-    // G4.6: one clip's move in its own time base (a SampleLocked clip's frames, a TempoLocked clip's ticks).
-    [[nodiscard]] engine::AutomationClipMove automationClipMoveFor (engine::EntityId clipId, engine::Tick delta) const noexcept
+    // G4.6 / ADR-0052: every clip that moved in time on its own track between `before` and `after` — the
+    // selected clips and any the edit mode shuffled — each in its own time base (a SampleLocked clip's frames,
+    // a TempoLocked clip's ticks). A clip that changed track or length (a trim) is not a move.
+    [[nodiscard]] static std::vector<std::pair<engine::EntityId, engine::AutomationClipMove>> clipMovesBetween (
+        const engine::Project& before, const engine::Project& after)
     {
-        if (const engine::Clip* const clip = findClip (clipId))
-            return { clip->timeBase, clip->timelineStart, clip->timelineLength, delta };
-        if (const engine::MidiClip* const midiClip = findMidiClip (clipId))
-            return { midiClip->timeBase, midiClip->timelineStart, midiClip->timelineLength, delta };
-        return {};
+        std::vector<std::pair<engine::EntityId, engine::AutomationClipMove>> moves;
+        const auto collect = [&moves] (const auto& beforeClips, const auto& afterClips) {
+            for (const auto& was : beforeClips)
+                for (const auto& now : afterClips)
+                    if (now.id == was.id)
+                    {
+                        if (now.trackId == was.trackId && now.timelineLength == was.timelineLength
+                            && now.timelineStart != was.timelineStart)
+                            moves.push_back ({ was.trackId, { was.timeBase, was.timelineStart, was.timelineLength,
+                                                              now.timelineStart - was.timelineStart } });
+                        break;
+                    }
+        };
+        collect (before.clips, after.clips);
+        collect (before.midiClips, after.midiClips);
+        return moves;
     }
 
     // G4.6 / ADR-0052: with Automation Follows Clips on, clips moved in time on their own track carry the

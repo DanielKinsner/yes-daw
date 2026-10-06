@@ -306,3 +306,110 @@ TEST_CASE ("with Automation Follows Clips on, a moved clip carries its automatio
     REQUIRE (model.project().automationLanes == lanesBefore);
     REQUIRE (model.project().automationFollowsClips);   // the setting is its own step
 }
+
+// ---- G4.6 critic pass 2: Automation Follows Clips through every move path ------------------------------
+namespace
+{
+// A model with one 2-second (96 000-frame) clip on track 1 at frame 0, follow-clips on; `wav` stays for more imports.
+struct FollowModel
+{
+    std::filesystem::path wav;
+    yesdaw::ui::UiAppModel model;
+
+    explicit FollowModel (const char* name)
+    {
+        const auto directory = loadTestDirectory();
+        wav = directory / (std::string (name) + ".wav");
+        const std::vector<float> samples (96'000, 0.25f);
+        REQUIRE (yesdaw::io::writeFloat32WavFile (wav, yesdaw::engine::SampleRate { 48000.0 }, 1, samples.size(), samples).ok());
+        REQUIRE (model.createProjectBundle (directory / (std::string (name) + ".yesdaw")).ok());
+        REQUIRE (model.importAudioFile (wav, decode()).ok());
+        REQUIRE (model.dispatch (yesdaw::ui::UiActionId::TimelineAutomationFollowsClipsToggle).dispatched);
+    }
+
+    yesdaw::ui::UiDecodedAsset decode() const
+    {
+        auto decoded = yesdaw::ui::shell::decodeProjectWav (wav);
+        REQUIRE (decoded.has_value());
+        return std::move (*decoded);
+    }
+
+    void lane (yesdaw::engine::EntityId track, std::vector<yesdaw::ui::UiAppModel::AutomationTouchSample> points)
+    {
+        REQUIRE (model.commitAutomationTouchRide (track, yesdaw::engine::AutomationTargetRole::TrackFader,
+                                                  yesdaw::engine::FaderNode::kGainParameterId, points).dispatched);
+    }
+
+    bool peakAt (yesdaw::engine::EntityId track, yesdaw::engine::Tick tick, double value) const
+    {
+        for (const auto& lane : model.project().automationLanes)
+            if (lane.ownerEntity == track)
+                for (const auto& point : lane.points)
+                    if (point.tick == tick && point.value == value)
+                        return true;
+        return false;
+    }
+
+    const yesdaw::engine::Clip& clip (std::size_t index) const { return model.project().clips.at (index); }
+};
+
+constexpr yesdaw::engine::Tick ticksForFrames (yesdaw::engine::Tick frames) { return frames * 15'360 / 24'000; }   // 48 kHz, 120 BPM
+} // namespace
+
+TEST_CASE ("follow-clips: a neighbour the Shuffle edit mode moves carries its own automation", "[ui][automation][automation-v2][follow-clips]")
+{
+    FollowModel f ("follow-shuffle");
+    const yesdaw::engine::EntityId track = f.clip (0).trackId;
+    REQUIRE (f.model.importAudioFileAt (f.wav, f.decode(), track, 96'000).ok());   // B right after A
+    REQUIRE (f.model.project().clips.size() == 2u);
+    const yesdaw::engine::Tick bBefore = f.clip (1).timelineStart;
+    f.lane (track, { { 0, 0.5 }, { 92'160, 0.9 }, { 150'000, 0.3 } });   // the 0.9 peak sits inside B
+    const auto lanesBefore = f.model.project().automationLanes;
+
+    REQUIRE (f.model.dispatch (yesdaw::ui::UiActionId::EditModeShuffle).dispatched);
+    REQUIRE (f.model.selectTimelineClip (f.clip (0).id));
+    REQUIRE (f.model.moveSelectedTimelineClipTo (288'000).dispatched);   // A to the far right: its old place closes up
+    const yesdaw::engine::Tick bMoved = f.clip (1).timelineStart - bBefore;
+    INFO ("B moved " << bMoved << " frames");
+    REQUIRE (bMoved != 0);                                               // Shuffle moved the neighbour
+    REQUIRE (f.peakAt (track, 92'160 + ticksForFrames (bMoved), 0.9));   // and its automation went with it
+
+    REQUIRE (f.model.dispatch (yesdaw::ui::UiActionId::EditUndo).dispatched);   // one step: clips and lanes
+    REQUIRE (f.model.project().automationLanes == lanesBefore);
+    REQUIRE (f.clip (1).timelineStart == bBefore);
+}
+
+TEST_CASE ("follow-clips: a move to another track leaves the automation alone", "[ui][automation][automation-v2][follow-clips]")
+{
+    FollowModel f ("follow-cross-track");
+    const yesdaw::engine::EntityId track1 = f.clip (0).trackId;
+    REQUIRE (f.model.addAudioTrack().dispatched);
+    const yesdaw::engine::EntityId track2 = f.model.project().tracks.back().id;
+    REQUIRE (! (track2 == track1));
+    f.lane (track1, { { 0, 0.5 }, { 30'720, 0.9 } });
+    const auto lanesBefore = f.model.project().automationLanes;
+
+    REQUIRE (f.model.selectTimelineClip (f.clip (0).id));
+    REQUIRE (f.model.moveSelectedTimelineClipToTrack (track2, 48'000).dispatched);
+    REQUIRE (f.clip (0).trackId == track2);
+    REQUIRE (f.model.project().automationLanes == lanesBefore);
+}
+
+TEST_CASE ("follow-clips: clips moved together on two tracks each carry their own track's automation", "[ui][automation][automation-v2][follow-clips]")
+{
+    FollowModel f ("follow-two-tracks");
+    const yesdaw::engine::EntityId track1 = f.clip (0).trackId;
+    REQUIRE (f.model.addAudioTrack().dispatched);
+    const yesdaw::engine::EntityId track2 = f.model.project().tracks.back().id;
+    REQUIRE (f.model.importAudioFileAt (f.wav, f.decode(), track2, 0).ok());
+    REQUIRE (f.model.project().clips.size() == 2u);
+    f.lane (track1, { { 0, 0.5 }, { 30'720, 0.9 } });
+    f.lane (track2, { { 0, 0.4 }, { 15'360, 0.8 } });
+
+    const std::array<yesdaw::engine::EntityId, 2> both { f.clip (0).id, f.clip (1).id };
+    REQUIRE (f.model.selectTimelineClips (both));
+    REQUIRE (f.model.moveSelectedTimelineClipTo (48'000).dispatched);
+    REQUIRE (f.peakAt (track1, 30'720 + ticksForFrames (48'000), 0.9));
+    REQUIRE (f.peakAt (track2, 15'360 + ticksForFrames (48'000), 0.8));
+    REQUIRE_FALSE (f.peakAt (track1, 15'360 + ticksForFrames (48'000), 0.8));   // nothing crossed tracks
+}
