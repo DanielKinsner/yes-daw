@@ -250,7 +250,9 @@ public:
     void setEventInput (Node* in) noexcept { eventInput_ = in; }
 
     // Control thread, before the node goes live (the projection applies the Track's persisted
-    // state): a normalized value maps through the spec exactly as an automation event does.
+    // state) — and the AUDIO thread between blocks, for a ride's live set (G4.6 / ADR-0052, through
+    // CompiledGraph::applySetFxParam; RTSan covers it there): a normalized value maps through the spec
+    // exactly as an automation event does. No allocation, lock or I/O.
     void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept
     {
         if (! acceptsParameterId (parameterId))

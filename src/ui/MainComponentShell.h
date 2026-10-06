@@ -1384,6 +1384,8 @@ private:
     // target helpers earlier in the class).
     std::vector<AutomationTargetOption> automationTargetOptions;
     int selectedAutomationTargetIndex = 0;
+    yesdaw::engine::EntityId automationTargetOptionsTrack;   // G4.6: the track the chooser's options were built for
+    std::vector<std::unique_ptr<juce::TextButton>> automationAddLaneButtons;   // G4.6: other shown tracks' last lane
     bool refreshingAutomationTarget = false;
     juce::ComboBox automationTargetChooser;
     juce::TextButton automationLaneToggle;

@@ -140,8 +140,13 @@ public:
         }
         else if (stroke.size() > 1u && strokeTool == Tool::Eraser)
         {
-            const int from = std::min (stroke.front().x, stroke.back().x);
-            const int to = std::max (stroke.front().x, stroke.back().x);
+            int from = stroke.front().x;
+            int to = stroke.front().x;
+            for (const juce::Point<int>& at : stroke)
+            {
+                from = std::min (from, at.x);
+                to = std::max (to, at.x);
+            }
             g.setColour (yesdaw::ui::UiTheme::Color::dangerRed().withAlpha (yesdaw::ui::UiTheme::Layout::automationCanvasEraseAlpha));
             g.fillRect (juce::Rectangle<int> (from, 0, to - from, getHeight()));
         }
@@ -251,8 +256,14 @@ private:
                     onDeletePoint (*hit);   // a click on a point deletes it
                 return;
             }
-            const int from = std::min (swept.front().x, swept.back().x);
-            const int to = std::max (swept.front().x, swept.back().x);
+            // Everything the drag swept — a stroke that doubles back past its start erases that too.
+            int from = swept.front().x;
+            int to = swept.front().x;
+            for (const juce::Point<int>& at : swept)
+            {
+                from = std::min (from, at.x);
+                to = std::max (to, at.x);
+            }
             if (onEraseSpan)
                 onEraseSpan (secondsForLocalX (from), secondsForLocalX (to));
             return;

@@ -812,6 +812,26 @@ void MainComponent::refreshAutomationLaneControls()
     // so they must see this frame's target, not the previous frame's stale options.
     refreshingAutomationTarget = true;
     automationTargetOptions = buildAutomationTargetOptions();
+    // G4.6 / ADR-0052: switching to another track starts its chooser lane on its first target WITHOUT a lane
+    // (the last lane starts a lane for another target): the lanes it owns stay stacked above it, nothing is
+    // drawn twice, and the row keeps its height as it becomes the selected one. The first track a session
+    // targets keeps the chooser's first target (a reopened project shows its first lane there).
+    if (const yesdaw::engine::EntityId targetTrack = automationTargetTrackId(); ! (targetTrack == automationTargetOptionsTrack))
+    {
+        const bool switched = automationTargetOptionsTrack.isValid();
+        automationTargetOptionsTrack = targetTrack;
+        selectedAutomationTargetIndex = 0;
+        for (std::size_t option = 0; switched && option < automationTargetOptions.size(); ++option)
+        {
+            const AutomationTargetOption& candidate = automationTargetOptions[option];
+            if (! candidate.busOwned
+                && appModel.automationLaneForTarget (candidate.ownerEntity, candidate.role, candidate.paramId) == nullptr)
+            {
+                selectedAutomationTargetIndex = static_cast<int> (option);
+                break;
+            }
+        }
+    }
     if (selectedAutomationTargetIndex < 0
         || selectedAutomationTargetIndex >= static_cast<int> (automationTargetOptions.size()))
         selectedAutomationTargetIndex = 0;
@@ -1890,6 +1910,7 @@ void MainComponent::layoutStackedAutomationLanes()
         juce::String id;
     };
     std::vector<Wanted> wanted;
+    std::vector<std::pair<int, juce::Rectangle<int>>> addLaneSlots;   // another shown track's last lane: row, bounds
     const yesdaw::engine::Project& project = appModel.project();
     if (appModel.context().projectLoaded)
     {
@@ -1912,7 +1933,40 @@ void MainComponent::layoutStackedAutomationLanes()
                 wanted.push_back ({ owned[k], bounds.withTrimmedBottom (L::timelineCanvasAutomationHeaderGap / 2),
                                     "timeline.automation.lane." + juce::String (row) + "." + juce::String (static_cast<int> (k)) });
             }
+            // The last lane: the selected track's chooser lane (the band), or a "+ Lane" that selects this track.
+            const bool chooserHere = track.id == automationTargetTrackId() && appModel.context().timelineAutomationTrackLaneVisible;
+            const juce::Rectangle<int> last (geometry.clipArea.getX(), lanesTop + static_cast<int> (owned.size()) * laneHeight,
+                                             L::automationAddLaneButtonWidth, L::timelineCanvasAutomationHeaderHeight);
+            if (! chooserHere && last.getY() >= geometry.clipArea.getY() && last.getBottom() <= geometry.clipArea.getBottom())
+                addLaneSlots.push_back ({ row, last.translated (L::timelineCanvasClipAreaInsetX, L::timelineCanvasAutomationHeaderGap / 2) });
         }
+    }
+
+    while (automationAddLaneButtons.size() > addLaneSlots.size())
+    {
+        removeChildComponent (automationAddLaneButtons.back().get());
+        automationAddLaneButtons.pop_back();
+    }
+    while (automationAddLaneButtons.size() < addLaneSlots.size())
+    {
+        auto button = std::make_unique<juce::TextButton> ("+ Lane");
+        button->setTooltip ("Select this track to start an automation lane for another target");
+        addAndMakeVisible (*button);
+        automationAddLaneButtons.push_back (std::move (button));
+    }
+    for (std::size_t i = 0; i < addLaneSlots.size(); ++i)
+    {
+        juce::TextButton& button = *automationAddLaneButtons[i];
+        const int row = addLaneSlots[i].first;
+        button.setComponentID ("timeline.automation.add_lane." + juce::String (row));
+        button.setBounds (addLaneSlots[i].second);
+        // Deferred: selecting re-lays out the lanes, which removes this very button — never inside its own click.
+        button.onClick = [safe = juce::Component::SafePointer<MainComponent> (this), row] {
+            juce::MessageManager::callAsync ([safe, row] {
+                if (safe != nullptr)
+                    safe->selectTrackLane (row);
+            });
+        };
     }
 
     while (stackedAutomationLanes.size() > wanted.size())

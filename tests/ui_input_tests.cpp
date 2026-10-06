@@ -24902,3 +24902,98 @@ TEST_CASE ("a snapped Pencil stroke writes one point per snap step", "[ui][input
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// G4.6 critic pass 2: an Eraser drag that doubles back past its start erases everything it swept.
+TEST_CASE ("the Eraser deletes every point a back-and-forth drag swept", "[ui][input][shell][automation-v2][automation-tools]")
+{
+    const auto bundlePath = makeTempBundlePath ("automation-v2-erase-back");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path { YESDAW_WAV_FIXTURE_PATH }; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    auto* snapChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
+    REQUIRE (snapChooser != nullptr);
+    snapChooser->setSelectedId (1, juce::sendNotificationSync);   // Off
+    auto* canvas = dynamic_cast<yesdaw::ui::AutomationLaneCanvasComponent*> (findChildWithComponentId (*shell, "timeline.automation.canvas"));
+    REQUIRE (canvas != nullptr);
+    const auto at = [&canvas] (double fx, double fy) {
+        return juce::Point<int> { juce::roundToInt (canvas->getWidth() * fx), juce::roundToInt ((canvas->getHeight() - 1) * fy) };
+    };
+    const auto stroke = [&] (std::initializer_list<std::pair<double, double>> path) {
+        const std::vector<std::pair<double, double>> points (path);
+        const juce::Point<int> down = at (points.front().first, points.front().second);
+        canvas->mouseDown (makeMouseEvent (*canvas, down, down, false));
+        for (std::size_t i = 1; i < points.size(); ++i)
+            canvas->mouseDrag (makeMouseEvent (*canvas, at (points[i].first, points[i].second), down, true));
+        canvas->mouseUp (makeMouseEvent (*canvas, at (points.back().first, points.back().second), down, true));
+    };
+    const auto pointCount = [&bundlePath] {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        return project.automationLanes.empty() ? std::size_t { 0 } : project.automationLanes.front().points.size();
+    };
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectPencil);
+    stroke ({ { 0.1, 0.8 }, { 0.2, 0.2 }, { 0.3, 0.7 }, { 0.4, 0.3 }, { 0.5, 0.6 } });
+    REQUIRE (pointCount() == 5u);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectEraser);
+    stroke ({ { 0.32, 0.5 }, { 0.45, 0.5 }, { 0.15, 0.5 }, { 0.27, 0.5 } });   // right, back past the start, ends between
+    REQUIRE (pointCount() == 2u);   // 0.2, 0.3 and 0.4 swept; 0.1 and 0.5 kept
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// G4.6 critic pass 2: another shown track's last lane is a "+ Lane" that selects it, bringing its chooser lane
+// there; a newly selected track's chooser lane starts on a target without a lane (its lanes stay stacked).
+TEST_CASE ("another shown track's last lane offers + Lane; its chooser lane starts on a new target", "[ui][input][shell][automation-v2]")
+{
+    const auto bundlePath = makeTempBundlePath ("automation-v2-add-lane");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path { YESDAW_WAV_FIXTURE_PATH }; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
+    mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight / 2 });   // track 1
+
+    // Track 1: lanes shown, a Fader lane drawn through its chooser lane.
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    juce::Component* band = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    REQUIRE (band != nullptr);
+    mouseDownAt (*band, { band->getWidth() / 2, band->getHeight() / 2 });
+    REQUIRE (readProjectSnapshot (bundlePath).automationLanes.size() == 1u);
+
+    // Track 2 selected and shown: track 1's last lane is now a "+ Lane".
+    const int laneHeight = yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight;
+    mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight + laneHeight + rowHeight / 2 });
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 1);
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    auto* addLane = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "timeline.automation.add_lane.0"));
+    REQUIRE (addLane != nullptr);
+    REQUIRE (addLane->isVisible());
+    juce::Component* fader = findChildWithComponentId (*shell, "timeline.automation.lane.0.0");   // track 1's Fader lane
+    REQUIRE (fader != nullptr);
+    REQUIRE (addLane->getY() >= fader->getBottom());
+
+    // + Lane selects track 1: its chooser lane takes that slot, on a target with no lane yet (Pan); Fader stays stacked.
+    clickButton (*addLane);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);   // the selection is deferred past the click
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 0);
+    REQUIRE (findChildWithComponentId (*shell, "timeline.automation.add_lane.0") == nullptr);
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.automation.target"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (chooser->getText() == "Pan");
+    REQUIRE (findChildWithComponentId (*shell, "timeline.automation.lane.0.0") != nullptr);
+    REQUIRE (findChildWithComponentId (*shell, "timeline.automation.canvas")->getY() >= findChildWithComponentId (*shell, "timeline.automation.lane.0.0")->getBottom());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

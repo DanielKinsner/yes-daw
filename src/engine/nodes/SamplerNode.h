@@ -191,6 +191,8 @@ public:
         return parameterId >= kAttackParamId && parameterId <= kGainParamId;
     }
 
+    // The projection's persisted state before the node goes live, and the AUDIO thread between blocks for a
+    // ride's live set (G4.6 / ADR-0052, via CompiledGraph::applySetFxParam): no allocation, lock or I/O.
     void setNormalizedParameter (ParameterId parameterId, double normalizedValue) noexcept
     {
         if (acceptsParameterId (parameterId))
