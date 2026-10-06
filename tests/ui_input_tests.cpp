@@ -22823,7 +22823,7 @@ namespace {
 
 juce::Slider& fxParamSliderLabelled (juce::Component& shell, const juce::String& prefix)
 {
-    for (int row = 0; row < yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount; ++row)
+    for (int row = 0; row < static_cast<int> (yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount); ++row)
     {
         auto* label = dynamic_cast<juce::Label*> (findChildWithComponentId (shell, "mixer.fx.param." + juce::String (row) + ".label"));
         if (label != nullptr && label->isVisible() && label->getText().startsWithIgnoreCase (prefix))
@@ -22978,7 +22978,7 @@ namespace {
 
 juce::ComboBox& fxParamChooserLabelled (juce::Component& shell, const juce::String& prefix)
 {
-    for (int row = 0; row < yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount; ++row)
+    for (int row = 0; row < static_cast<int> (yesdaw::ui::UiTheme::Layout::mixerFxParamSliderCount); ++row)
     {
         auto* label = dynamic_cast<juce::Label*> (findChildWithComponentId (shell, "mixer.fx.param." + juce::String (row) + ".label"));
         if (label != nullptr && label->isVisible() && label->getText().startsWithIgnoreCase (prefix))
