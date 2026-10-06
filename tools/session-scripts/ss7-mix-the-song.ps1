@@ -228,7 +228,10 @@ function TabTo([string] $id, [switch] $Back) {
 }
 
 Step 11 'Keyboard only: the Control target (G4.0b)'
-Focus
+# The Arrange editor takes the keys first (a timeline click): the toolbar's Snap chooser shows only in
+# Arrange focus, and its Left / Right locate the playhead (the negative control below needs both).
+Click 'timeline'
+[void](Assert (WaitProbe { param($q) "$($q.focusContext)" -eq 'Arrange' } -TimeoutMs 1500) ('a timeline click gives Arrange the keys (' + (Probe).focusContext + ')'))
 [void](Assert (-not [bool](Probe).controlTarget.navigating) 'no control is targeted before Tab')
 KeyThenTick 'Tab'
 $ct = (Probe).controlTarget
@@ -254,11 +257,10 @@ KeyThenTick 'Up'
 KeyThenTick 'Enter'
 [void](Assert (WaitProbe { param($q) [int64]$q.view.snapGridTicks -eq $ticks } -TimeoutMs 1500) 'the chooser goes back by keys too')
 
-# The Arrange editor takes the focus (a click: its Left / Right locate the playhead) while the dock
-# still shows the mixer; Shift+Tab from the start lands on the last control, nearest the dock.
+# Arrange still has the focus while the dock shows the mixer; Shift+Tab from the start lands on the last
+# control, nearest the dock.
 KeyThenTick 'Escape'
-Click 'timeline'
-[void](Assert (WaitProbe { param($q) "$($q.focusContext)" -eq 'Arrange' -and -not [bool]$q.controlTarget.navigating } -TimeoutMs 1500) ('a timeline click gives Arrange the keys (' + (Probe).focusContext + ')'))
+[void](Assert ("$((Probe).focusContext)" -eq 'Arrange' -and -not [bool](Probe).controlTarget.navigating) ('Esc ended navigation; Arrange keeps the keys (' + (Probe).focusContext + ')'))
 KeyThenTick 'Shift+Tab'
 [void](Assert (TabTo 'mixer.strip.0.fader' -Back) 'Shift+Tab reaches track 1''s painted fader')
 $located = [int64](Probe).transport.playheadFrame

@@ -273,9 +273,21 @@ Key 'Down'
 Key 'Enter'
 [void](Assert (WaitProbe { param($q) [int]$q.view.pianoRoll.scaleChoice -eq 1 } -TimeoutMs 2000) ('the Scale chooser sets Major (the in-scale rows lift) (scaleChoice=' + (Probe).view.pianoRoll.scaleChoice + ')'))
 Shot 'ss5-scale-assist-major'
+$beforeOff = Probe
 Click 'pianoroll.scale'
 Start-Sleep -Milliseconds 350
 Key 'Up'
 Key 'Enter'
-[void](Assert (WaitProbe { param($q) [int]$q.view.pianoRoll.scaleChoice -eq 0 } -TimeoutMs 2000) 'Off again')
+$offAgain = WaitProbe { param($q) [int]$q.view.pianoRoll.scaleChoice -eq 0 } -TimeoutMs 2000
+[void](Assert $offAgain 'Off again')
+if (-not $offAgain) {
+  # 2026-10-05 diagnostic (G4.0b batch): where did Up / Enter go? Keys that reach the shell instead of the
+  # popup dispatch Previous Track / Return to zero; an adopted Control target would show navigating.
+  $afterOff = Probe
+  $diag = '  [diag] lastAction ' + $beforeOff.lastAction + ' -> ' + $afterOff.lastAction
+  $diag += '; dispatches ' + $beforeOff.commandDispatchCount + ' -> ' + $afterOff.commandDispatchCount
+  $diag += '; navigating=' + $afterOff.controlTarget.navigating + ' target=' + $afterOff.controlTarget.id
+  $diag += '; focusOwner=' + $afterOff.focusOwner + '; scaleChoice=' + $afterOff.view.pianoRoll.scaleChoice
+  Write-Host $diag
+}
 Close
