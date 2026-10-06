@@ -728,6 +728,9 @@ G4.8 is a separate later milestone; it does not block G5/G6 or imply that plugin
   face; cp6 slot reorder/remove/bypass behavior; cp7 presets save/load including malformed preset
   refusal. Reuse already working behavior and tests; do not rebuild a completed step merely to
   match this list. Every face adopts G4.0b's keyboard contract and grows the same mix journey.
+  **2026-10-06 complete:** cp2–cp7 in; FX presets under ADR-0050. One build passed all seven
+  journeys 362/362; exact-code CI `a01a90e` green but for the macOS GPU timing exception.
+  [Evidence](../evidence/2026-10-06-g42-close.json).
 - **G4.3 — Sends and buses.** Build: `+` adds a send with a bus chooser or "New Bus…", pre/post,
   level, destination; "Route to New Bus" from the header. Gate: `[sends-v2]`.
 - **G4.4 — Sidechain reachable.** Build: compressor sidechain source chooser (node exists).

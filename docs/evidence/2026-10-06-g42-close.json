@@ -1,0 +1,56 @@
+{
+  "checkpoint": "G4.2 close: cp5 transfer curves, cp6 drag reorder, cp7 FX presets (ADR-0050), the UTF-8 text fix",
+  "status": "Drive batch PASS 7/7 on one build; exact-code CI green except the macOS GPU timing exception (a01a90e).",
+  "date": "2026-10-06",
+  "host": "DESKTOP-7LC339R (Windows 11 Pro 10.0.26200), shared desktop, owner-authorized for the night",
+  "codeSha": "b26c9e5",
+  "harnessSha": "a01a90e",
+  "app": {
+    "path": "build-ci/YesDaw_artefacts/Release/YesDaw.exe",
+    "sha256": "F303F1C3F5068A4956AEDBC08A2541B944F61D9B73877B4D6932632925DFF09E",
+    "note": "built from b26c9e5's tree; a01a90e changes only tools/ (the drive harness and its mock test)"
+  },
+  "localTests": { "passed": 380, "failed": 0 },
+  "clangWarnings": "PASS (tools/clang-warnings.ps1, 12 translation units)",
+  "batch": {
+    "tag": "2026-10-06-g42close",
+    "sessions": [
+      { "session": "ss1-first-minute", "assertions": 45, "result": "PASS" },
+      { "session": "ss2-mouse-then-keys", "assertions": 33, "result": "PASS" },
+      { "session": "ss3-edit-a-song", "assertions": 55, "result": "PASS" },
+      { "session": "ss4-track-instrument", "assertions": 19, "result": "PASS" },
+      { "session": "ss5-piano-roll", "assertions": 70, "result": "PASS" },
+      { "session": "ss6-write-a-beat", "assertions": 49, "result": "PASS" },
+      { "session": "ss7-mix-the-song", "assertions": 91, "result": "PASS", "covers": "G4.2 cp6 drag reorder + undo; cp7 Save Preset through the prompt, load, one-step undo" }
+    ],
+    "totalAssertions": 362,
+    "failedAssertions": 0,
+    "B6WorstMs": 1406,
+    "B6LimitMs": 3000,
+    "B2PaintP95Ms": 3.88,
+    "chooserRetypes": 0
+  },
+  "visualJudgment": [
+    { "shot": "ss7-compressor-face", "finding": "before b6ffcc6 the meter read 'Gain reduction (dB) â□□ not running' (mojibake); after, the em dash paints", "repair": "b6ffcc6 + b26c9e5 audit gate" },
+    { "shot": "ss7-preset-prompt", "finding": "the name prompt is its own top-level window, outside the main-window shot; its state is asserted through the probe (presetPromptOpen / presetPromptText)" }
+  ],
+  "ci": [
+    { "sha": "394d752", "result": "all jobs green, macOS included" },
+    { "sha": "b378acc", "result": "macOS red only on YesDawTimelineGpuCheck sustained-frame budget (plan 8.2 standing exception); every other job green",
+      "raw": { "run": 37424956229, "maxFrameMs": 31.37, "sustainedFrameMs": 26.97, "budgetMs": 16.6, "slowFrames": 107, "allowedOutliers": 8 },
+      "note": "b378acc changed only tools/session-scripts/ss7; not rerun (no reruns for luck)" },
+    { "sha": "b26c9e5", "result": "Windows AND macOS red, each only on YesDawTimelineGpuCheck sustained-frame budget; every other job green",
+      "raw": { "run": 37433632426,
+               "windows": { "maxFrameMs": 24.16, "sustainedFrameMs": 17.06, "budgetMs": 16.6, "slowFrames": 10, "allowedOutliers": 8 },
+               "macos": { "maxFrameMs": 24.27, "sustainedFrameMs": 19.82, "budgetMs": 16.6, "slowFrames": 21, "allowedOutliers": 8 } },
+      "investigation": "Windows is NOT covered by the macOS-only standing exception, so it was investigated: the GPU check's every input (tests/timeline_gpu_tests.cpp, TimelineFrameCheck.h, TimelineCanvas.h and its includes, UiTheme*.h, CMakeLists.txt, ci.yml) is byte-identical between 394d752 (green on Windows and macOS) and b26c9e5 (git diff --stat empty). The next run on the same app source (a01a90e, tools-only change) is Windows-green. Supported cause: hosted-runner timing variance near a thin margin (17.06 vs 16.6 ms). Not rerun; the job is not called green." },
+    { "sha": "a01a90e", "result": "every job green except macOS, red only on YesDawTimelineGpuCheck sustained-frame budget (plan 8.2 standing exception)",
+      "raw": { "run": 37434149385, "maxFrameMs": 29.83, "sustainedFrameMs": 18.77, "budgetMs": 16.6, "slowFrames": 17, "allowedOutliers": 8 },
+      "note": "app source identical to b26c9e5; this is the exact-code verdict for the G4.2 close build" }
+  ],
+  "risk": "The Windows GPU frame check's margin on hosted runners is thin (one 17.06 ms miss); recorded for the G6.2 runner-baseline re-evaluation, threshold unchanged.",
+  "rawFailuresBeforeCertification": [
+    { "batch": "2026-10-06-g42cp7", "session": "ss1", "failure": "native filename readback 'sers\\Daniel...' for 'C:\\Users\\Daniel...'", "cause": "the settling Import dialog dropped the first four typed characters; the readback refused before Enter, the app saw nothing", "repair": "a01a90e bounded verified retype into the same control (mock-gated)" }
+  ],
+  "artifactAvailability": "Logs and screenshots under build-ci/ are local to DESKTOP-7LC339R."
+}

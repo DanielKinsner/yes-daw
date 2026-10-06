@@ -8,6 +8,41 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 — G4.2 complete (faces, drag reorder, FX presets); G4.3 sends and buses next
+
+**Now:** **G4.2 is done.** One Release build (code `b26c9e5`, harness `a01a90e`) passed **all seven
+journeys, 362/362** (SS7 91: drag-reorder + undo, and a Compressor preset saved through the name prompt,
+loaded back after an edit, undone in one step). Worst launch 1,406 ms, paint p95 3.88 ms; local suite
+380/380; Clang warnings clean. Exact-code CI (`a01a90e`, same app source): every job green except macOS
+on the standing GPU sustained-frame exception (18.77 ms). **Next:** G4.3 — New Bus in the send and
+output choosers, Route to New Bus on the track header (code and `[sends-v2]` gate written, being
+verified) → G4.4 sidechain → G4.5–G4.7 → G5 → G6. [Evidence](docs/evidence/2026-10-06-g42-close.json).
+
+**Shipped since the last entry (each its own commit):**
+- **cp5** transfer curves for the compressor and limiter; faces drop whole when rows run short.
+- **cp6** drag an insert slot to a new place in its chain — one undo step; a stale-carry bug that merged
+  fader undo steps was found and fixed with a test that fails without the fix.
+- **cp7 FX presets** under the new **ADR-0050** (accepted after two critic passes, committed before any
+  code): per-user `.yesfx` files of real values by stable parameter name (the EQ's six bands carry an
+  ordinal), all nine kinds, a Presets button and menu in the editor, Save Preset… asks for a name, a load
+  is one undo step, and a bad file is refused whole with one reason (21 refusal cases gated). Critic on
+  the code: acceptable; its NUL-byte suggestion was taken.
+- **Product fix — garbled text.** The compressor face showed "Gain reduction (dB) â□□ not running" (seen
+  in a drive screenshot). Root cause: JUCE reads a plain `const char*` as ASCII. Six more such strings
+  (two tooltips, a piano-roll hint, the Edit menu's "Undo History…") were broken on every platform, and
+  24 hover hints using `\u00b7` were right on an English Windows machine only by luck ("Â·" on Mac and
+  Linux). All fixed; action labels are now ASCII ("Undo History..."); a new source audit with a negative
+  control makes any such literal a red test.
+- **Tools:** `clang-warnings.ps1` no longer dies before printing a finding; the native file chooser that
+  drops typed characters (seen once in ss1: `sers\...` for `C:\Users\...`) is retyped, bounded, and
+  Enter is pressed only on an exact readback.
+
+**CI notes (raw numbers in the evidence file):** `b26c9e5` went red on **Windows and macOS**, each only
+on the GPU sustained-frame budget (Windows 17.06 ms vs 16.6). Windows is not covered by the macOS-only
+exception, so it was investigated: every input to that check is byte-identical to the green `394d752`,
+and the next run on the same app source is Windows-green — runner timing variance near a thin margin.
+Not rerun, not called green, threshold unchanged; flagged for the G6.2 runner-baseline review.
+
 ## 2026-10-05 (late) — G4.0b proven in the real app; G4.2 cp2–cp4 faces in
 
 **Now:** one Release build of `765d2e6` passed **all seven journeys, 349/349** (SS7 78 incl. the
