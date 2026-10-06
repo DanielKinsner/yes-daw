@@ -5911,9 +5911,11 @@ public:
         engine::ProjectUndoStack nextUndo = undo_;
         if (! nextUndo.beginTransactionGroup())
             return { id, state, false };
+        std::vector<std::pair<engine::EntityId, engine::AutomationClipMove>> automationMoves;   // G4.6
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
             const UiTimelineEntityView view = timelineEntityView (clipId);
+            automationMoves.push_back ({ view.trackId, automationClipMoveFor (clipId, delta) });
             const engine::ProjectEditCommand command = view.isMidi
                 ? engine::ProjectEditCommand::moveMidiClip (clipId, view.timelineStart + delta)
                 : engine::ProjectEditCommand::moveClip (clipId, view.timelineStart + delta);
@@ -5928,6 +5930,11 @@ public:
                         || ! applyEditModeAfterPlacement (nextProject, nextUndo, clipId)))
                     return { id, { false, "edit mode refused the move" }, false };
             }
+        }
+        if (! applyAutomationFollowingClips (nextProject, nextUndo, automationMoves))
+        {
+            reportStatus ("Move not made: the automation could not follow the clips", true);
+            return { id, { false, "automation could not follow the move" }, false };
         }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
@@ -6025,6 +6032,7 @@ public:
         engine::ProjectUndoStack nextUndo = undo_;
         if (! nextUndo.beginTransactionGroup())
             return { id, state, false };
+        std::vector<std::pair<engine::EntityId, engine::AutomationClipMove>> automationMoves;   // G4.6: same-track only
         for (engine::EntityId clipId : selectedTimelineClipIds_)
         {
             const UiTimelineEntityView view = timelineEntityView (clipId);
@@ -6032,6 +6040,8 @@ public:
             if (! view.valid || sourceLane < 0)
                 return { id, state, false };
             const engine::EntityId nextTrackId = project_.tracks[static_cast<std::size_t> (sourceLane + laneDelta)].id;
+            if (nextTrackId == view.trackId)
+                automationMoves.push_back ({ view.trackId, automationClipMoveFor (clipId, timeDelta) });
             const engine::ProjectEditCommand command = view.isMidi
                 ? engine::ProjectEditCommand::moveMidiClipToTrack (
                       clipId, nextTrackId, view.timelineStart + timeDelta)
@@ -6039,6 +6049,11 @@ public:
                       clipId, nextTrackId, view.timelineStart + timeDelta);
             if (! nextUndo.apply (nextProject, command).applied())
                 return { id, state, false };
+        }
+        if (! applyAutomationFollowingClips (nextProject, nextUndo, automationMoves))
+        {
+            reportStatus ("Move not made: the automation could not follow the clips", true);
+            return { id, { false, "automation could not follow the move" }, false };
         }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
@@ -6049,6 +6064,86 @@ public:
         ++context_.commandDispatchCount;
         ++context_.timelineEditCount;
         return { id, state, true };
+    }
+
+    // G4.6 / ADR-0052: the Automation Follows Clips setting — an undoable project scalar.
+    [[nodiscard]] UiActionDispatchResult toggleAutomationFollowsClips()
+    {
+        const UiActionId id = UiActionId::TimelineAutomationFollowsClipsToggle;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::setAutomationFollowsClips (! project_.automationFollowsClips)).applied())
+            return { id, state, false };
+        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+            return { id, { false, "automation setting did not persist" }, false };
+
+        ++context_.commandDispatchCount;
+        return { id, state, true };
+    }
+
+    // G4.6: one clip's move in its own time base (a SampleLocked clip's frames, a TempoLocked clip's ticks).
+    [[nodiscard]] engine::AutomationClipMove automationClipMoveFor (engine::EntityId clipId, engine::Tick delta) const noexcept
+    {
+        if (const engine::Clip* const clip = findClip (clipId))
+            return { clip->timeBase, clip->timelineStart, clip->timelineLength, delta };
+        if (const engine::MidiClip* const midiClip = findMidiClip (clipId))
+            return { midiClip->timeBase, midiClip->timelineStart, midiClip->timelineLength, delta };
+        return {};
+    }
+
+    // G4.6 / ADR-0052: with Automation Follows Clips on, clips moved in time on their own track carry the
+    // automation in their spans — every lane the track owns (its fader, pan, sends and instrument, its inserts'
+    // parameters), each as ONE lane edit inside the move's own transaction group. False refuses the move.
+    [[nodiscard]] bool applyAutomationFollowingClips (engine::Project& nextProject,
+                                                      engine::ProjectUndoStack& nextUndo,
+                                                      const std::vector<std::pair<engine::EntityId, engine::AutomationClipMove>>& moves)
+    {
+        if (! nextProject.automationFollowsClips || moves.empty() || nextProject.automationLanes.empty())
+            return true;
+
+        engine::CompiledTempoMap tempoMap;
+        if (! engine::CompiledTempoMap::build (
+                engine::TempoMapView { nextProject.tempoMap.data(), nextProject.tempoMap.size() }, nextProject.sampleRate, tempoMap))
+            return false;
+
+        for (const engine::Track& track : nextProject.tracks)
+        {
+            std::vector<engine::AutomationClipMove> trackMoves;
+            for (const auto& [trackId, move] : moves)
+                if (trackId == track.id && move.length > 0 && move.delta != 0)
+                    trackMoves.push_back (move);
+            if (trackMoves.empty())
+                continue;
+
+            const auto ownedByTrack = [&track] (engine::EntityId owner) {
+                if (owner == track.id)
+                    return true;
+                for (const engine::FxInsert& insert : track.strip.fxChain)
+                    if (insert.id == owner)
+                        return true;
+                return false;
+            };
+            std::vector<engine::EntityId> laneIds;
+            for (const engine::AutomationLaneData& lane : nextProject.automationLanes)
+                if (ownedByTrack (lane.ownerEntity))
+                    laneIds.push_back (lane.id);
+
+            for (const engine::EntityId laneId : laneIds)
+            {
+                const auto lane = std::find_if (nextProject.automationLanes.begin(), nextProject.automationLanes.end(),
+                                                [laneId] (const engine::AutomationLaneData& candidate) { return candidate.id == laneId; });
+                std::vector<engine::AutomationBreakpoint> points;
+                if (engine::moveAutomationWithClips (lane->points, trackMoves, tempoMap, points) != engine::AutomationSpanEditStatus::Ok)
+                    return false;
+                if (points != lane->points && ! nextUndo.replaceAutomationLanePoints (nextProject, laneId, std::move (points)).applied())
+                    return false;
+            }
+        }
+        return true;
     }
 
     // E8: append a fresh-id copy of a MIDI clip (with all its notes) inside the caller's
@@ -8955,6 +9050,8 @@ public:
 
             case UiActionId::MixerSoloClear:
                 return clearAllSolos();
+            case UiActionId::TimelineAutomationFollowsClipsToggle:   // G4.6 / ADR-0052
+                return toggleAutomationFollowsClips();
 
             case UiActionId::MixerTrackSetInput:   // G4.1: setRecordingInputForTrack carries the channel
                 return { id, { false, "track input payload required" }, false };
@@ -10089,6 +10186,7 @@ private:
         context_.pianoRollScaleChoice = project_.scale.isValid() ? project_.scale.scale : 0;
         context_.canUndo = undo_.canUndo();
         context_.canRedo = undo_.canRedo();
+        context_.automationFollowsClips = project_.automationFollowsClips;   // G4.6 / ADR-0052
         context_.anySoloActive =   // G4.5: the header's SOLO lights, Clear All Solos enables
             std::any_of (project_.tracks.begin(), project_.tracks.end(), [] (const engine::Track& t) { return t.strip.soloed; })
             || std::any_of (project_.buses.begin(), project_.buses.end(), [] (const engine::Bus& b) { return b.strip.soloed; });

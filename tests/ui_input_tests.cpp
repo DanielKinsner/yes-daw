@@ -5097,7 +5097,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
     // Ten action items + the B39 Open Recent submenu (G3.7 re-pin: + Import MIDI File / Export MIDI File).
     REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 11);
-    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 34);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes; G2.18: + Undo History…
+    REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 35);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes; G2.18: + Undo History…; G4.6: + Automation Follows Clips
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
 
     // File > New Project through the model creates a real bundle.

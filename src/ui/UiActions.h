@@ -268,6 +268,7 @@ enum class UiActionId : std::uint8_t
     MixerFxInsertSetSidechain,  // G4.4: key a Compressor insert with a Track or Bus (or clear it) — a payload verb (ADR-0051)
     MixerTargetSoloExclusive,   // G4.5: solo ONLY the selected strip (Ctrl-click a Solo cell) — one undo step
     MixerSoloClear,             // G4.5: clear every solo (the header's lit SOLO) — one undo step
+    TimelineAutomationFollowsClipsToggle,   // G4.6 / ADR-0052: automation follows clips moved in time
     Count
 };
 
@@ -610,6 +611,7 @@ struct UiActionContext
     bool firstTrackSendAvailable = false;
     bool firstTrackFxSlotAvailable = false;
     bool anySoloActive = false;   // G4.5: any Track or Bus soloed (Clear All Solos has something to clear)
+    bool automationFollowsClips = false;   // G4.6 / ADR-0052: the project's Automation Follows Clips setting
     bool recordingCompSelected = false;
     int recordingCompSegmentCount = 0;
     int recordingCompCommandCount = 0;
@@ -1168,7 +1170,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MixerTargetSoloExclusive, "mixer.target.solo_exclusive", "Solo Exclusively", "", "Solo only the selected strip (Ctrl-click a Solo cell)",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false, true },
     { UiActionId::MixerSoloClear, "mixer.solo.clear", "Clear All Solos", "", "Clear every solo",
-      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::Button, UiActionKind::Command, true, false, false, false },
+    { UiActionId::TimelineAutomationFollowsClipsToggle, "timeline.automation.follow_clips.toggle", "Automation Follows Clips", "",
+      "Move automation with clips moved in time on their track", AccessibilityRole::MenuItem, UiActionKind::Toggle, true, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -2230,6 +2234,9 @@ public:
             case UiActionId::TimelineTempoChangeToggleRamp:
             case UiActionId::TimelineMeterChangeAdd:
             case UiActionId::TimelineMeterChangeRemove:
+            case UiActionId::TimelineAutomationFollowsClipsToggle:   // G4.6
+                if (id == UiActionId::TimelineAutomationFollowsClipsToggle)
+                    context.automationFollowsClips = ! context.automationFollowsClips;
                 context.activePanel = UiPanel::Timeline;
                 context.canUndo = true;
                 context.canRedo = false;

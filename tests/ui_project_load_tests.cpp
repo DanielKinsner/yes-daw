@@ -251,3 +251,58 @@ TEST_CASE ("a pass too dense for the engine's event budget is refused whole with
     REQUIRE (model.dispatch (yesdaw::ui::UiActionId::EditUndo).dispatched);
     REQUIRE (model.project().automationLanes.empty());
 }
+
+// G4.6 / ADR-0052: Automation Follows Clips — off, a clip move leaves the lane alone; on (an undoable project
+// setting in the Edit menu), the clip carries the automation in its span, and one undo restores both.
+TEST_CASE ("with Automation Follows Clips on, a moved clip carries its automation; one undo restores both",
+           "[ui][automation][automation-v2][follow-clips]")
+{
+    const auto directory = loadTestDirectory();
+    const auto wav = directory / "follow-source.wav";
+    const std::vector<float> samples (96'000, 0.25f);   // 2 s
+    REQUIRE (yesdaw::io::writeFloat32WavFile (wav, yesdaw::engine::SampleRate { 48000.0 }, 1, samples.size(), samples).ok());
+    auto decoded = yesdaw::ui::shell::decodeProjectWav (wav);
+    REQUIRE (decoded.has_value());
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (directory / "follow.yesdaw").ok());
+    REQUIRE (model.importAudioFile (wav, std::move (*decoded)).ok());
+    const yesdaw::engine::Clip clip = model.project().clips.front();
+    REQUIRE (clip.timeBase == yesdaw::engine::TimeBase::SampleLocked);
+    REQUIRE (clip.timelineStart == 0);
+
+    // A fader lane: 0.2 at the start, a 0.9 peak at tick 30 720 (1 s at 120 BPM) inside the clip, 0.4 later.
+    REQUIRE (model.commitAutomationTouchRide (clip.trackId, yesdaw::engine::AutomationTargetRole::TrackFader,
+                                              yesdaw::engine::FaderNode::kGainParameterId,
+                                              { { 0, 0.2 }, { 30'720, 0.9 }, { 153'600, 0.4 } }).dispatched);
+    const auto lanesBefore = model.project().automationLanes;
+    const auto hasPeakAt = [&model] (yesdaw::engine::Tick tick) {
+        for (const auto& point : model.project().automationLanes.front().points)
+            if (point.tick == tick && point.value == 0.9)
+                return true;
+        return false;
+    };
+    REQUIRE (hasPeakAt (30'720));
+
+    // Off (the default): the move leaves the lane alone.
+    REQUIRE_FALSE (model.project().automationFollowsClips);
+    REQUIRE (model.selectTimelineClip (clip.id));
+    REQUIRE (model.moveSelectedTimelineClipTo (48'000).dispatched);   // +1 s
+    REQUIRE (model.project().automationLanes == lanesBefore);
+    REQUIRE (model.dispatch (yesdaw::ui::UiActionId::EditUndo).dispatched);
+
+    // On: the peak travels 1 s with the clip (tick 30 720 + 30 720 at 120 BPM).
+    REQUIRE (model.dispatch (yesdaw::ui::UiActionId::TimelineAutomationFollowsClipsToggle).dispatched);
+    REQUIRE (model.project().automationFollowsClips);
+    REQUIRE (model.context().automationFollowsClips);
+    REQUIRE (model.selectTimelineClip (clip.id));
+    REQUIRE (model.moveSelectedTimelineClipTo (48'000).dispatched);
+    REQUIRE (model.project().clips.front().timelineStart == 48'000);
+    REQUIRE (hasPeakAt (61'440));
+    REQUIRE_FALSE (hasPeakAt (30'720));
+
+    // One undo: the clip and its automation go back together.
+    REQUIRE (model.dispatch (yesdaw::ui::UiActionId::EditUndo).dispatched);
+    REQUIRE (model.project().clips.front().timelineStart == 0);
+    REQUIRE (model.project().automationLanes == lanesBefore);
+    REQUIRE (model.project().automationFollowsClips);   // the setting is its own step
+}

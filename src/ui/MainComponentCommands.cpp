@@ -496,7 +496,7 @@ std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int 
         UiActionId::ProjectImportMidi, UiActionId::ProjectExportMidi,   // G3.7
         UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
     };
-    static constexpr std::array<UiActionId, 33> kEditMenu {
+    static constexpr std::array<UiActionId, 34> kEditMenu {
         UiActionId::EditUndo,          UiActionId::EditRedo,           UiActionId::EditShowUndoHistory,   // G2.18
         UiActionId::TimelineClipCut,
         UiActionId::TimelineClipCopy,  UiActionId::TimelineClipPaste,  UiActionId::TimelineClipDuplicate,
@@ -504,6 +504,7 @@ std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int 
         UiActionId::TimelineRangeCut,  UiActionId::TimelineRangeCopy,  UiActionId::TimelineRangeDelete,
         UiActionId::TimelineRangeSilence, UiActionId::TimelineRangeSplitEdges, UiActionId::TimelineSelectAllFollowing,
         UiActionId::EditModeOverlap,   UiActionId::EditModeNoOverlap,  UiActionId::EditModeShuffle,
+        UiActionId::TimelineAutomationFollowsClipsToggle,   // G4.6 / ADR-0052
         UiActionId::TimelineClipSelectAllProject, UiActionId::TimelineClipSelectAllTrack,
         UiActionId::EditRenameSelection,
         UiActionId::EditNudgeLeft,     UiActionId::EditNudgeRight,
@@ -633,6 +634,7 @@ bool MainComponent::menuTickState (yesdaw::ui::UiActionId action) const noexcept
         case UiActionId::TimelineTempoChangeToggleRamp:     return c.tempoChangeAtPlayheadRamps;   // G2.15
         case UiActionId::TimelinePlayheadFollowContinuous:  return c.playheadFollowContinuous;    // G2.16
         case UiActionId::TimelineAutomationToggleTrackLane: return c.timelineAutomationTrackLaneVisible;
+        case UiActionId::TimelineAutomationFollowsClipsToggle: return c.automationFollowsClips;   // G4.6
         case UiActionId::ViewTimeline:                      return c.activePanel == yesdaw::ui::UiPanel::Timeline;
         case UiActionId::ViewMixer:                         return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer;
         case UiActionId::ViewPianoRoll:                     return c.mixerDockVisible && c.editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll;
