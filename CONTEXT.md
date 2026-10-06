@@ -127,6 +127,12 @@ on the Track's MIDI path between the merged MIDI Clips and the Track's instrumen
 every audio Insert; a disabled one is not in the path. Track-only: a Bus or the master strip has no MIDI
 path and refuses it (`MidiFxNeedsTrack`).
 _Avoid_: MIDI plugin, MIDI insert (say MIDI FX), "effect" for the instrument itself
+
+**FX preset**:
+A saved, named, complete setting of one built-in Insert kind, kept per user (not in the Project) as a
+`.yesfx` file of real values keyed by stable parameter names (ADR-0050). Loading one onto an Insert of the
+same kind is all or nothing and one undo step.
+_Avoid_: patch, program, snapshot (say preset)
 _Avoid_: rack (a deferred UI concept), chain (when the routing branches)
 
 **Mute**:
