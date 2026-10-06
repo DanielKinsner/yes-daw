@@ -2204,6 +2204,12 @@ void mainComponentBrowserPressPlayMark (juce::Component& component, int row)
         mainComponent->harnessBrowserPanel().list.harnessPressPlayMark (row);
 }
 
+void mainComponentWaitForExport (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessWaitForExport();
+}
+
 void mainComponentSetDeviceCallbackLiveForTest (juce::Component& component, bool live)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))

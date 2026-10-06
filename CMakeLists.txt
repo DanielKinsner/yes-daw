@@ -418,7 +418,7 @@ add_test(NAME YesDawAccessibilityCheck COMMAND $<TARGET_FILE:YesDawAccessibility
 if (YESDAW_BUILD_APPS)
   # --- UI input harness (H12; shipped MainComponent real-Component activation) ---
   juce_add_console_app(YesDawUiInputCheck PRODUCT_NAME "YesDawUiInputCheck")
-  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp tests/ui_saveas_tests.cpp tests/ui_project_load_tests.cpp tests/ui_canvas_cache_tests.cpp tests/audio_import_tests.cpp tests/cross_rate_tests.cpp tests/browser_tests.cpp ${YESDAW_SHELL_SOURCES})
+  target_sources(YesDawUiInputCheck PRIVATE tests/ui_input_tests.cpp tests/ui_saveas_tests.cpp tests/ui_project_load_tests.cpp tests/ui_canvas_cache_tests.cpp tests/audio_import_tests.cpp tests/cross_rate_tests.cpp tests/browser_tests.cpp tests/export_tests.cpp ${YESDAW_SHELL_SOURCES})
   target_include_directories(YesDawUiInputCheck PRIVATE ${YESDAW_SRC_DIR})
   target_include_directories(YesDawUiInputCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
   target_compile_definitions(YesDawUiInputCheck PRIVATE
@@ -936,6 +936,17 @@ if (YESDAW_SANITIZER)
 endif()
 yesdaw_harden(YesDawAuditionCheck)
 add_test(NAME YesDawAuditionCheck COMMAND $<TARGET_FILE:YesDawAuditionCheck>)
+
+# --- Export job check (G5.3 / ADR-0058: the worker job and its handoff; runs on the RTSan and TSan legs) ---
+add_executable(YesDawExportJobCheck tests/export_job_tests.cpp)
+target_include_directories(YesDawExportJobCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawExportJobCheck SYSTEM PRIVATE ${choc_SOURCE_DIR} ${signalsmith_stretch_SOURCE_DIR})
+target_link_libraries(YesDawExportJobCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+if (YESDAW_SANITIZER)
+  target_compile_definitions(YesDawExportJobCheck PRIVATE YESDAW_SANITIZER_BUILD=1)
+endif()
+yesdaw_harden(YesDawExportJobCheck)
+add_test(NAME YesDawExportJobCheck COMMAND $<TARGET_FILE:YesDawExportJobCheck>)
 
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)

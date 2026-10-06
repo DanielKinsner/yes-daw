@@ -8,6 +8,7 @@
 #include "io/PathText.h"   // file names as UTF-8 (never through the ANSI code page)
 #include "analysis/LoudnessMeter.h"   // ADR-0053: the streaming meter behind the live readout (message thread)
 #include "app/RecordingAssetCommit.h"
+#include "app/ExportJob.h"   // G5.3 / ADR-0058
 #include "engine/AuditionVoice.h"   // G5.2 cp2 / ADR-0056
 #include "engine/ClipSilence.h"
 #include "engine/LoudnessTap.h"
@@ -1883,7 +1884,9 @@ public:
     void setExportLoopRangeOnly (bool loopOnly) noexcept { exportLoopRangeOnly_ = loopOnly; }
     [[nodiscard]] bool exportLoopRangeOnly() const noexcept { return exportLoopRangeOnly_; }
 
-    [[nodiscard]] UiActionDispatchResult exportAudioFile (const std::filesystem::path& destinationPath)
+    // ADR-0058: start an export job — the render and the write run on a worker over a snapshot the job owns; the UI
+    // tick's serviceExport() reports progress and the outcome. One job at a time.
+    [[nodiscard]] UiActionDispatchResult startAudioExport (const std::filesystem::path& destinationPath)
     {
         const UiActionId id = UiActionId::ProjectExportAudio;
         const UiActionState state = registry_.stateFor (id, context_);
@@ -1893,79 +1896,138 @@ public:
         if (destinationPath.empty())
             return { id, { false, "audio export path required" }, false };
 
-        context_.audioExportCancelRequested = false;
-        context_.audioExportInProgress = true;
-        context_.audioExportProgressPercent = 0;
-
-        // ADR-0055: an export reads cross-rate Assets through the offline tier's views, built for this render.
-        std::vector<std::shared_ptr<const engine::AssetSamples>> offlineViews;
-        std::vector<engine::DecodedAssetAudio> decodedViews =
-            makeDecodedViews (decodedAssets_, engine::ResampleQuality::OfflineRender, &offlineViews);
-        std::optional<engine::Project> engineStorage;
-        const engine::OfflineRenderResult rendered = engine::renderOfflineProject (
-            engineProjectFor (project_, engineStorage),
-            std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()));
-        if (! rendered.ok())
+        if (activeExport_ != nullptr)
         {
-            context_.audioExportInProgress = false;
-            reportStatus ("Export failed: the project render failed", true);
-            return { id, { false, "audio export render failed" }, false };
+            reportStatus ("Export refused: an export is already running", true);
+            return { id, { false, "an export is already running" }, false };
         }
 
-        // Range selection: loop-only slices the rendered frames to the transport loop region.
-        // The ruler range selection doubles as the source and wins when set (parity item 25).
-        std::uint64_t exportFrames = rendered.frames;
-        std::span<const float> exportSamples (rendered.interleavedSamples.data(),
-                                              rendered.interleavedSamples.size());
+        app::ExportSnapshot snapshot;
+        snapshot.destination = destinationPath;
+        snapshot.format = exportBitDepth_ == UiExportBitDepth::Float32 ? app::ExportFormat::Float32
+                        : exportBitDepth_ == UiExportBitDepth::Int24   ? app::ExportFormat::Int24
+                                                                         : app::ExportFormat::Int16;
+        // Range selection: loop-only slices the rendered frames to the transport loop region; the ruler range
+        // selection doubles as the source and wins when set (parity item 25).
         if (exportLoopRangeOnly_)
         {
-            const bool rangeSet = timelineRangeStartFrame_ >= 0
-                               && timelineRangeEndFrame_ > timelineRangeStartFrame_;
+            const bool rangeSet = timelineRangeStartFrame_ >= 0 && timelineRangeEndFrame_ > timelineRangeStartFrame_;
             const std::int64_t loopStart = rangeSet ? timelineRangeStartFrame_ : playbackLoopStartFrame();
             const std::int64_t loopEnd = rangeSet ? timelineRangeEndFrame_ : playbackLoopEndFrame();
             if (loopStart < 0 || loopEnd <= loopStart)
             {
-                context_.audioExportInProgress = false;
                 reportStatus ("Export failed: loop range export needs a loop region or ruler range", true);
                 return { id, { false, "loop range export requires a loop region or ruler range selection" }, false };
             }
-
-            const std::uint64_t start = std::min<std::uint64_t> (
-                static_cast<std::uint64_t> (loopStart), rendered.frames);
-            const std::uint64_t end = std::min<std::uint64_t> (
-                static_cast<std::uint64_t> (loopEnd), rendered.frames);
-            if (end <= start)
-            {
-                context_.audioExportInProgress = false;
-                reportStatus ("Export failed: the loop range is outside the rendered project", true);
-                return { id, { false, "loop range is outside the rendered project" }, false };
-            }
-
-            exportFrames = end - start;
-            exportSamples = exportSamples.subspan (
-                static_cast<std::size_t> (start) * rendered.channels,
-                static_cast<std::size_t> (exportFrames) * rendered.channels);
+            snapshot.range = std::pair<std::uint64_t, std::uint64_t> { static_cast<std::uint64_t> (loopStart),
+                                                                       static_cast<std::uint64_t> (loopEnd) };
         }
 
-        const io::WavResult written =
-            exportBitDepth_ == UiExportBitDepth::Float32
-                ? io::writeFloat32WavFile (destinationPath, rendered.sampleRate, rendered.channels,
-                                           exportFrames, exportSamples)
-                : io::writePcmWavFile (destinationPath, rendered.sampleRate, rendered.channels,
-                                       exportFrames, exportSamples,
-                                       exportBitDepth_ == UiExportBitDepth::Int24 ? 24u : 16u);
-        if (! written.ok())
+        // The snapshot: a copy of the project (in view frames when it has cross-rate Assets) and owning references to
+        // every decoded Asset it holds — a same-rate Asset's samples copied once (G5.4 will share them instead), a
+        // cross-rate Asset's source, whose offline-tier view the worker builds.
+        snapshot.project = engine::projectHasCrossRateAssets (project_) ? engine::projectInViewFrames (project_) : project_;
+        const double projectRateHz = project_.sampleRate.hz;
+        for (const UiDecodedAsset& decoded : decodedAssets_)
         {
-            context_.audioExportInProgress = false;
-            reportStatus ("Export failed: could not write " + yesdaw::io::utf8Text (destinationPath.filename()), true);
-            return { id, { false, "audio export write failed" }, false };
+            if (project_.findAsset (decoded.assetId) == nullptr || decoded.channels == 0u)
+                continue;
+            app::ExportAssetAudio audio;
+            audio.assetId = decoded.assetId;
+            audio.channels = decoded.channels;
+            if (decoded.sampleRate.hz != projectRateHz && project_.sampleRate.isValid())
+            {
+                audio.source = std::make_shared<const std::vector<float>> (decoded.interleavedSamples);
+                audio.sourceRateHz = decoded.sampleRate.hz;
+            }
+            else
+            {
+                auto samples = std::make_shared<engine::AssetSamples>();
+                samples->interleaved = decoded.interleavedSamples;
+                samples->channels = decoded.channels;
+                samples->frames = decoded.frames;
+                audio.samples = std::move (samples);
+            }
+            snapshot.assets.push_back (std::move (audio));
         }
 
-        ++context_.audioExportCount;
-        context_.audioExportProgressPercent = 100;
-        context_.audioExportInProgress = false;
+        context_.audioExportCancelRequested = false;
+        context_.audioExportInProgress = true;
+        context_.audioExportProgressPercent = 0;
+        activeExport_ = std::make_unique<app::ExportJob> (nextExportJobId_++, std::move (snapshot), exportLatchForTest_);
+        activeExport_->start();
         ++context_.commandDispatchCount;
         return { id, state, true };
+    }
+
+    // The UI tick (and the synchronous export): the active job's progress, and its outcome once terminal — a failure or
+    // a cancel on the status line (success stays quiet), the export count on success only; retiring jobs (from a
+    // replaced project) are joined and report nothing.
+    void serviceExport()
+    {
+        std::erase_if (retiringExports_, [] (std::unique_ptr<app::ExportJob>& job) {
+            if (! job->terminal())
+                return false;
+            job->join();
+            return true;
+        });
+        if (activeExport_ == nullptr)
+            return;
+        if (! activeExport_->terminal())
+        {
+            context_.audioExportProgressPercent = activeExport_->percent();
+            return;
+        }
+        activeExport_->join();
+        lastExportFailure_ = activeExport_->failure();
+        lastExportState_ = activeExport_->state();
+        context_.audioExportInProgress = false;
+        switch (lastExportState_)
+        {
+            case app::ExportJobState::Succeeded:   // success stays quiet (the status line's law); the readout says 100 %
+                ++context_.audioExportCount;
+                context_.audioExportProgressPercent = 100;
+                break;
+            case app::ExportJobState::Cancelled:
+                context_.audioExportProgressPercent = -1;
+                reportStatus (activeExport_->message(), false);
+                break;
+            default:
+                context_.audioExportProgressPercent = -1;
+                reportStatus (activeExport_->message(), true);
+                break;
+        }
+        activeExport_.reset();   // a job's end is not a command: the dispatch count stays the Export's one
+    }
+
+    [[nodiscard]] bool exportRunning() const noexcept { return activeExport_ != nullptr; }
+    // Wait for the running job (if any) and report it as the UI tick would — the harness's and scripts' join.
+    void waitForExport()
+    {
+        if (activeExport_ != nullptr)
+            activeExport_->join();
+        serviceExport();
+    }
+    [[nodiscard]] std::size_t retiringExportCount() const noexcept { return retiringExports_.size(); }
+    // The gates' hook (ADR-0058): jobs started from now on hold their render at the latch until it is released.
+    void setExportLatchForTest (engine::OfflineRenderLatch* latch) noexcept { exportLatchForTest_ = latch; }
+
+    // The synchronous export (tests, the self-check, scripted callers): starts the job, waits for it, and reports it
+    // exactly as the UI tick would.
+    [[nodiscard]] UiActionDispatchResult exportAudioFile (const std::filesystem::path& destinationPath)
+    {
+        const UiActionDispatchResult started = startAudioExport (destinationPath);
+        if (! started.dispatched)
+            return started;
+        activeExport_->join();
+        serviceExport();
+        if (lastExportState_ == app::ExportJobState::Succeeded)
+            return started;
+        const char* reason = lastExportFailure_ == app::ExportFailure::Render ? "audio export render failed"
+                           : lastExportFailure_ == app::ExportFailure::Range  ? "loop range is outside the rendered project"
+                           : lastExportFailure_ == app::ExportFailure::Write  ? "audio export write failed"
+                                                                               : "audio export cancelled";
+        return { started.action, { false, reason }, false };
     }
 
     [[nodiscard]] UiAppImportResult importAudioFile (const std::filesystem::path& sourcePath,
@@ -9236,7 +9298,17 @@ public:
             case UiActionId::MixerReadFxSlots:
             case UiActionId::MixerReadGainReduction:
             case UiActionId::MixerReadBusFxSlots:
-            case UiActionId::ProjectExportAudioCancel:
+            case UiActionId::ProjectExportAudioCancel:   // ADR-0058: Cancel reaches a running export job
+                if (activeExport_ != nullptr && ! activeExport_->terminal())
+                {
+                    activeExport_->cancel();
+                    context_.audioExportCancelRequested = true;
+                    ++context_.audioExportCancelCount;
+                    ++context_.commandDispatchCount;
+                    return { id, state, true };
+                }
+                return registry_.dispatch (id, context_);   // otherwise Esc's Pointer meaning
+
             case UiActionId::HelpShowKeymap:
             case UiActionId::EditShowUndoHistory:   // G2.18
             case UiActionId::ViewInstrument:   // G3.1
@@ -11774,6 +11846,14 @@ private:
         engine::Project project)
     {
         stopAudition();   // ADR-0056: an audition belongs to the project (and rate) it started in
+        if (activeExport_ != nullptr)   // ADR-0058: a running export belongs to the project it started in
+        {
+            activeExport_->cancel();
+            retiringExports_.push_back (std::move (activeExport_));
+            context_.audioExportInProgress = false;
+            context_.audioExportCancelRequested = false;
+            context_.audioExportProgressPercent = -1;
+        }
         bundleDb_ = std::move (opened);
         bundlePath_ = bundlePath;
         writeLastProjectRecord();
@@ -12979,6 +13059,14 @@ private:
         std::uint64_t retiredAtBlock = 0;
     };
     std::vector<RetiredAudition> retiredAuditions_;
+    // ADR-0058: the running export job (at most one), jobs of a replaced project awaiting their join, the next job id,
+    // the last job's outcome (for the synchronous export's result), and the gates' latch.
+    std::unique_ptr<app::ExportJob> activeExport_;
+    std::vector<std::unique_ptr<app::ExportJob>> retiringExports_;
+    std::uint64_t nextExportJobId_ = 1;
+    app::ExportJobState lastExportState_ = app::ExportJobState::Succeeded;
+    app::ExportFailure lastExportFailure_ = app::ExportFailure::None;
+    engine::OfflineRenderLatch* exportLatchForTest_ = nullptr;
     std::atomic<std::uint64_t> deviceBlocksStarted_ { 0 };
     bool deviceCallbackLive_ = false;
     WaveformPeakService waveformService_;

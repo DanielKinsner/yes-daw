@@ -1829,6 +1829,19 @@ void MainComponent::serviceUiTick()
                                     && desktopAudioOpen.load (std::memory_order_acquire));
     appModel.reclaimRetiredAudioObjects();
     appModel.serviceAudition();   // ADR-0056 cp2: a voice that played to its end is retired
+    // ADR-0058: the export job's progress and outcome; the export controls repaint when either changes.
+    if (appModel.exportRunning() || appModel.retiringExportCount() > 0)
+    {
+        appModel.serviceExport();
+        const auto& exportContext = appModel.context();
+        if (exportContext.audioExportProgressPercent != exportPercentShown
+            || exportContext.audioExportInProgress != exportInProgressShown)
+        {
+            exportPercentShown = exportContext.audioExportProgressPercent;
+            exportInProgressShown = exportContext.audioExportInProgress;
+            refreshActionState();
+        }
+    }
     if (browserAuditionShown != appModel.auditioning())
         refreshBrowserAuditionState();
     appModel.refreshTransportSnapshot();

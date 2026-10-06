@@ -8,6 +8,33 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-06 (evening) — G5.3 cp1: export runs as a worker job (ADR-0058)
+
+**Now:** **G5.3 checkpoint 1** is in, headless-certified. **Next:** G5.3 cp2 — the `.partial` sibling committed by
+rename only on success (cancel or failure leaves an earlier file untouched), streamed writing with cancel per chunk.
+Then cp3 (WAV 16/24/32 with TPDF dither, ranges, export stems, normalize).
+
+**What a user gets:** Export no longer freezes the app. It renders and writes on a worker; the readout counts up
+(render, then write), Cancel (or Esc) stops it — "Cancelling…", then "Export cancelled" with no file — and editing,
+importing, undoing and even recording keep working while it runs; the file is the song as it was when you pressed
+Export. A second Export while one runs is refused with its reason; opening another project quietly abandons the
+running one; success stays quiet as before (the readout shows 100 %).
+
+**Gates:** `[export-job]` — held at a test latch mid-render, the UI tick services the job (Rendering, progress
+inside the render half) while a clip-gain edit, an import, an undo and a recording commit all complete, and the
+released job's file equals the synchronous export made before them, byte for byte; Cancel ends it with no file and
+no count; a second export is refused; opening another project retires it with nothing reported; destroying the
+model with a held job returns. `YesDawExportJobCheck` (pure; RTSan and TSan legs) — the job's file equals the
+synchronous render for a same-rate and a cross-rate Asset; held, cancelled, released and destroyed jobs.
+
+**ADR-0058** (Export v2) is accepted after a critic pass; amended before publication so a successful export stays
+quiet on the status line (the existing law). The cp1 critic's blocker (a test latch outlived by its job) and its
+cancel-during-write finding are fixed. **Known, for cp3:** a ruler range wholly past the project's end is refused
+only after the worker renders (it was refused before rendering); cp3's range work renders only up to the range.
+
+**CI:** d4ce08c's Windows re-run passed (the first attempt's 16.72 ms GPU frame was a runner sample; the renderer
+was unchanged); d4ce08c and a77c6eb fail only the standing macOS GPU exception.
+
 ## 2026-10-06 (late afternoon) — G5.2 done: audition in the media browser (ADR-0056 cp2)
 
 **Now:** **G5.2** is in, headless-certified (both checkpoints). **Next: G5.3 — Export v2** (its implementation ADR
@@ -34,8 +61,7 @@ too (gated with a real Record), and opening another project stops it.
 
 **CI:** d4ce08c's Windows job failed the timeline GPU frame gate at 16.72 ms against 16.6 ms. Not the standing
 macOS exception, so not excused: that commit changed only 12 lines of new browser layout constants in the
-renderer's include set (7f2303a passed Windows with the same renderer). The job was re-run on the same SHA for a
-second measurement; the result is recorded below when it lands.
+renderer's include set (7f2303a passed Windows with the same renderer). Re-run on the same SHA: Windows passed.
 
 ## 2026-10-06 (afternoon) — repair: a shortcut pressed while the app is busy means what you pressed (ADR-0057)
 

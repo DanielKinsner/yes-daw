@@ -20,12 +20,15 @@
 #include "engine/nodes/ImpulseInstrumentNode.h"
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <memory>
 #include <span>
+#include <thread>
 #include <vector>
 
 namespace yesdaw::engine {
@@ -61,6 +64,16 @@ struct StretchedOwnership
     std::shared_ptr<const AssetSamples> samples;
 };
 
+// ADR-0058: the gates' hook — an export job's render holds after `holdAfterFrames` frames (setting `held`) until
+// `released` is set or the render is cancelled, so a gate proves what happens while a job is mid-render without
+// timing. Never set in the app.
+struct OfflineRenderLatch
+{
+    std::uint64_t holdAfterFrames = 0;
+    std::atomic<bool> held { false };
+    std::atomic<bool> released { false };
+};
+
 struct OfflineRenderOptions
 {
     GraphId graphId = 7000;
@@ -72,6 +85,12 @@ struct OfflineRenderOptions
     std::vector<StretchedOwnership> stretchOwners;   // G2.9: optional prepared stretches per clip
     class MidiInputQueue* midiInput = nullptr;   // G3.10: the device→engine lane a PlaybackEngine drains (null for offline renders; the type lives in MidiInputQueue.h)
     class LoudnessTap* loudnessTap = nullptr;    // ADR-0053: the live loudness ring a PlaybackEngine feeds (null for offline renders; LoudnessTap.h)
+    // ADR-0058: an export job's hooks — frames rendered so far and the render's length (set once the graph is
+    // built), a cancel flag checked once per block, and the gates' latch. All null by default.
+    std::atomic<std::uint64_t>* progressFrames = nullptr;
+    std::atomic<std::uint64_t>* progressTotalFrames = nullptr;
+    const std::atomic<bool>* cancel = nullptr;
+    OfflineRenderLatch* latch = nullptr;
 };
 
 enum class OfflineRenderStatus : std::uint8_t
@@ -91,7 +110,8 @@ enum class OfflineRenderStatus : std::uint8_t
     OutputTooLarge,
     RenderProducedNonFinite,
     TimeStretchFailed,          // G2.9: a stretched Clip's control-side preparation failed
-    GraphNotBlockParallelSafe   // ADR-0027: graph has a cross-Block-stateful node; use the serial renderer
+    GraphNotBlockParallelSafe,  // ADR-0027: graph has a cross-Block-stateful node; use the serial renderer
+    Cancelled                   // ADR-0058: an export job's cancel flag was set mid-render (no audio returned)
 };
 
 struct OfflineRenderResult
@@ -794,9 +814,30 @@ namespace detail {
     for (std::uint16_t c = 0; c < channels; ++c)
         outputs[c] = channelStorage.data() + static_cast<std::size_t> (c) * static_cast<std::size_t> (options.maxBlockSize);
 
+    if (options.progressTotalFrames != nullptr)
+        options.progressTotalFrames->store (timelineEndFrames, std::memory_order_relaxed);
+    const auto cancelled = [&options] {
+        return options.cancel != nullptr && options.cancel->load (std::memory_order_acquire);
+    };
+
     std::uint64_t offset = 0;
     while (offset < timelineEndFrames)
     {
+        // ADR-0058: an export job's cancel (once per block) and the gates' latch.
+        if (cancelled())
+        {
+            result.interleavedSamples.clear();
+            result.status = OfflineRenderStatus::Cancelled;
+            return result;
+        }
+        if (options.latch != nullptr && offset >= options.latch->holdAfterFrames
+            && ! options.latch->released.load (std::memory_order_acquire))
+        {
+            options.latch->held.store (true, std::memory_order_release);
+            while (! options.latch->released.load (std::memory_order_acquire) && ! cancelled())
+                std::this_thread::sleep_for (std::chrono::milliseconds (1));
+            continue;
+        }
         const std::uint64_t remaining = timelineEndFrames - offset;
         const int blockFrames = static_cast<int> (std::min<std::uint64_t> (remaining, static_cast<std::uint64_t> (options.maxBlockSize)));
         Transport transport;
@@ -824,6 +865,8 @@ namespace detail {
         }
 
         offset += static_cast<std::uint64_t> (blockFrames);
+        if (options.progressFrames != nullptr)
+            options.progressFrames->store (offset, std::memory_order_relaxed);
     }
 
     result.status = OfflineRenderStatus::Ok;

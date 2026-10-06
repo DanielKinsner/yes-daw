@@ -372,6 +372,8 @@ void mainComponentBrowserPressPlayMark (juce::Component& component, int row);   
 // The device-callback-live flag the model reads (a headless shell has no device; the UI tick resets it from the
 // real device state, so a test sets it after any tick it runs).
 void mainComponentSetDeviceCallbackLiveForTest (juce::Component& component, bool live);
+// ADR-0058: wait for the running export job and show its outcome (the UI tick's path, joined).
+void mainComponentWaitForExport (juce::Component& component);
 // G3.2: the roll's painted grid lines (tick, x, kind 0 = bar, 1 = beat, 2 = snap) and its clip-relative playhead tick.
 struct MainComponentPianoRollGrid
 {

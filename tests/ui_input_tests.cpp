@@ -2549,6 +2549,8 @@ TEST_CASE ("shipped MainComponent imports, reopens, plays, and exports a stereo 
         clickButton (requireButtonForAction (*reopened, UiActionId::TransportStop));
 
         clickButton (requireButtonForAction (*reopened, UiActionId::ProjectExportAudio));
+
+        yesdaw::ui::mainComponentWaitForExport (*reopened);   // ADR-0058: a worker job
         REQUIRE (std::filesystem::exists (exportPath));
 
         yesdaw::io::Float32Wav exported;
@@ -3114,6 +3116,7 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
 
     const int beforeCommandCount = snapshot.context.commandDispatchCount;
     clickButton (exportAudio);
+    yesdaw::ui::mainComponentWaitForExport (*shell);   // ADR-0058: a worker job
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.audioExportCount == 1);
@@ -5371,6 +5374,8 @@ TEST_CASE ("export bit-depth chooser drives a 16-bit PCM export through the real
     bitDepth->setSelectedId (3, juce::sendNotificationSync);   // 16-bit PCM
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+
+    yesdaw::ui::mainComponentWaitForExport (*shell);   // ADR-0058: a worker job
     REQUIRE (std::filesystem::exists (exportPath));
 
     // fmt tag 1 (integer PCM) at offset 20, 16 bits per sample at offset 34.
@@ -8890,12 +8895,14 @@ TEST_CASE ("the status line reports failures, stays quiet on success, and decays
     REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    yesdaw::ui::mainComponentWaitForExport (*shell);   // ADR-0058: a worker job
     REQUIRE (std::filesystem::exists (goodExportPath));
     REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
 
     // A failed export write paints its reason, and the painted label carries the model text.
     currentExportPath = badExportPath;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    yesdaw::ui::mainComponentWaitForExport (*shell);   // ADR-0058: a worker job
     {
         const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
         REQUIRE_FALSE (snapshot.statusLineText.empty());
@@ -15106,6 +15113,7 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     // The range doubles as the export "Loop Region" source: the sliced export is sample-identical
     // to the matching slice of the whole-Project export.
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    yesdaw::ui::mainComponentWaitForExport (*shell);   // ADR-0058: a worker job
     REQUIRE (std::filesystem::exists (wholeExportPath));
 
     yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
@@ -15114,6 +15122,7 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     rangeChooser->setSelectedId (2, juce::sendNotificationSync);
     currentExportPath = rangeExportPath;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    yesdaw::ui::mainComponentWaitForExport (*shell);   // ADR-0058: a worker job
     REQUIRE (std::filesystem::exists (rangeExportPath));
 
     yesdaw::io::Float32Wav whole;

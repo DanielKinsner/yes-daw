@@ -1448,7 +1448,7 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
             {
                 const std::filesystem::path path = fileChoices.chooseExportAudioFile();
                 if (! path.empty())
-                    (void) appModel.exportAudioFile (path);
+                    (void) appModel.startAudioExport (path);   // ADR-0058: a worker job; the UI tick reports it
             }
             return;
 
@@ -2169,6 +2169,8 @@ void MainComponent::refreshAutosaveRecoveryControls()
 juce::String MainComponent::exportAudioProgressText() const
 {
     const int percent = appModel.context().audioExportProgressPercent;
+    if (appModel.context().audioExportInProgress && appModel.context().audioExportCancelRequested)
+        return juce::String::fromUTF8 ("Cancelling\xe2\x80\xa6");   // ADR-0058: until the job stops
     if (percent < 0)
         return "Export --";
 

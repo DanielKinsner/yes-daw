@@ -192,6 +192,13 @@ public:
     [[nodiscard]] std::uint64_t harnessBrowserHeaderReads() const noexcept { return browserHeaderReads; }
     void harnessBrowserOpenFolder (const std::filesystem::path& folder) { browserOpenFolder (folder); }
     [[nodiscard]] UiAppModel& harnessAppModel() noexcept { return appModel; }   // G5.2 cp2
+    void harnessWaitForExport()   // ADR-0058: join the export job and show its outcome, as the UI tick would
+    {
+        appModel.waitForExport();
+        exportPercentShown = appModel.context().audioExportProgressPercent;
+        exportInProgressShown = appModel.context().audioExportInProgress;
+        refreshActionState();
+    }
     [[nodiscard]] yesdaw::ui::UiPianoRollSurfaceSnapshot harnessPianoRollSurface() const { return currentPianoRollSurface(); }   // G3.2
     [[nodiscard]] juce::Rectangle<int> harnessPianoRollBounds() const { return pianoRollInput.getBounds(); }
     [[nodiscard]] int harnessPianoRollAuditionKey() const { return pianoRollInput.heldAuditionKey(); }   // G3.2
@@ -1379,6 +1386,8 @@ private:
     bool browserStateRestored = false;          // read on first show (ADR-0056)
     std::uint64_t browserRowsStamp = 0;         // browserSourceStamp() when the rows were last built
     bool browserAuditionShown = false;          // the Audition button shows "Stop" (G5.2 cp2)
+    int exportPercentShown = -1;                // ADR-0058: what the export readout last showed
+    bool exportInProgressShown = false;
     int browserRowsSourceShown = -1;            // the listing the rows show (a refresh of it keeps the selection)
     std::filesystem::path browserRowsFolderShown;
     std::filesystem::path browserFolder;
