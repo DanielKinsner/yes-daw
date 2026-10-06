@@ -559,6 +559,13 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         return appModel.context().projectLoaded ? static_cast<int> (appModel.project().tracks.size()) : 0;
     };
     trackListInput.rowZoomProvider = [this] { return timelineRowZoom; };   // G2.16
+    trackListInput.rowAutomationHeightsProvider = [this] {   // G4.6 / ADR-0052: the same lanes the timeline stacks
+        std::vector<int> heights;
+        if (appModel.context().projectLoaded)
+            for (const yesdaw::engine::Track& track : appModel.project().tracks)
+                heights.push_back (automationAreaHeightFor (track));
+        return heights;
+    };
     trackListInput.rowHeightsProvider = [this] {
         std::vector<int> heights;
         if (appModel.context().projectLoaded)

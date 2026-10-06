@@ -223,6 +223,12 @@ void MainComponent::loadViewStateIfBundleChanged()
             viewState.dockHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::editorDockMinHeight, value);
         else if (key == "narrow")
             appModel.setMixerStripsNarrow (value != 0);   // G4.1
+        else if (key.startsWith ("auto.") && key.length() == 5 + 32 && key.substring (5).containsOnly ("0123456789abcdef")
+                 && line.fromFirstOccurrenceOf ("\t", false, false).isNotEmpty()
+                 && line.fromFirstOccurrenceOf ("\t", false, false).containsOnly ("0123456789"))
+            viewState.automationLanes[key.substring (5).toStdString()] = juce::jlimit (   // G4.6 / ADR-0052
+                yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationLaneMinHeight,
+                yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationLaneMaxHeight, value);
     }
     resized();
 }
@@ -232,7 +238,47 @@ std::string MainComponent::viewStateRecordText() const
     return "rail\t" + std::to_string (viewState.railWidth)
          + "\ninspector\t" + std::to_string (viewState.inspectorWidth)
          + "\ndock\t" + std::to_string (viewState.dockHeight)
-         + "\nnarrow\t" + std::string (appModel.context().mixerStripsNarrow ? "1" : "0") + "\n";   // G4.1
+         + "\nnarrow\t" + std::string (appModel.context().mixerStripsNarrow ? "1" : "0") + "\n"   // G4.1
+         + [this] {
+               std::string lanes;   // G4.6 / ADR-0052: one key per track whose automation lanes are shown
+               for (const auto& [track, height] : viewState.automationLanes)
+                   lanes += "auto." + track + "\t" + std::to_string (height) + "\n";
+               return lanes;
+           }();
+}
+
+void MainComponent::toggleSelectedTrackAutomationLanes()
+{
+    const yesdaw::engine::EntityId trackId = automationTargetTrackId();
+    if (! trackId.isValid())
+        return;
+    const std::string key = yesdaw::ui::shell::entityIdHex (trackId);
+    if (viewState.automationLanes.erase (key) == 0)
+        viewState.automationLanes[key] = yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight;
+    saveViewState();
+    (void) appModel.dispatch (yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane);   // the model's own bookkeeping
+    syncAutomationLaneVisibility();
+    resized();   // the row grew or shrank by its lanes
+    repaintAll();
+}
+
+void MainComponent::syncAutomationLaneVisibility()
+{
+    const yesdaw::engine::EntityId trackId = automationTargetTrackId();
+    appModel.setTimelineAutomationTrackLaneVisible (
+        trackId.isValid() && viewState.automationLanes.contains (yesdaw::ui::shell::entityIdHex (trackId)));
+}
+
+int MainComponent::automationLaneHeightFor (const yesdaw::engine::Track& track) const
+{
+    const auto shown = viewState.automationLanes.find (yesdaw::ui::shell::entityIdHex (track.id));
+    return shown == viewState.automationLanes.end() ? 0 : shown->second;
+}
+
+int MainComponent::automationAreaHeightFor (const yesdaw::engine::Track& track) const
+{
+    // 5b: the last lane (its target chooser). The lanes the track owns stack above it (5c).
+    return automationLaneHeightFor (track);
 }
 
 void MainComponent::saveViewState()
@@ -1346,6 +1392,10 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
 {
     switch (action)
     {
+        case yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane:   // G4.6 / ADR-0052: the selected track's lanes
+            toggleSelectedTrackAutomationLanes();
+            return;
+
         case yesdaw::ui::UiActionId::ProjectNew:
             if (fileChoices.chooseNewProjectBundle)
             {
@@ -1739,6 +1789,7 @@ void MainComponent::refreshActionState()
 {
     ++actionStateRefreshes;   // G0.4 probe: how often the 391-line refresh actually runs
     loadViewStateIfBundleChanged();   // G2.1
+    syncAutomationLaneVisibility();   // G4.6: the A toggle reflects the selected track's lanes
     restoreControlsHiddenByDockTab();   // G2.1 cp2: the laws below decide afresh
     rebuildTimelineClipViews();
     // E29: a device change (adoption, Test Device, refresh) re-lists the channel pick.

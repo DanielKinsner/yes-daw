@@ -41,6 +41,7 @@ struct TimelineCanvasTrack
     // G4.6 / ADR-0052: the stacked automation lanes shown under this row (their total height; 0 = none). The
     // row grows by it; its clips keep the top heightPx part.
     int automationHeightPx = 0;
+    int automationLaneHeightPx = 0;   // one stacked lane's height (the last one holds the target chooser)
 };
 
 struct TimelineCanvasClipStyle
@@ -105,6 +106,16 @@ struct CumulativeRowGeometry
         const std::size_t index = static_cast<std::size_t> (
             std::clamp (row, 0, static_cast<int> (heights.size()) - 1));
         return heights[index];
+    }
+
+    // G4.6: the row's own part (a track header / its clips), above the automation lanes stacked under it.
+    [[nodiscard]] double contentHeightFor (int row) const noexcept
+    {
+        if (contentHeights.empty())
+            return heightFor (row);
+        const std::size_t index = static_cast<std::size_t> (
+            std::clamp (row, 0, static_cast<int> (contentHeights.size()) - 1));
+        return contentHeights[index];
     }
 
     [[nodiscard]] int rowAtPixel (double y) const noexcept
@@ -1247,8 +1258,12 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
         const int rowBottom = rowTop + static_cast<int> (std::llround (rowHeight));
         if (rowTop >= geometry.clipArea.getY() && rowBottom <= geometry.clipArea.getBottom())
         {
-            const int bandHeight = static_cast<int> (
-                std::min<double> (UiTheme::Layout::timelineCanvasAutomationBandHeight, rowHeight));
+            // G4.6 / ADR-0052: the band is the LAST lane stacked under the row (its target chooser row),
+            // one lane high; the row grew by its lanes, so the band never covers the row's clips.
+            const int laneHeightPx = state.tracks != nullptr && row < state.trackCount && state.tracks[row].automationLaneHeightPx > 0
+                ? state.tracks[row].automationLaneHeightPx
+                : UiTheme::Layout::timelineCanvasAutomationBandHeight;
+            const int bandHeight = static_cast<int> (std::min<double> (laneHeightPx, rowHeight));
             geometry.automationLaneArea = juce::Rectangle<int> (
                 geometry.clipArea.getX(), rowBottom - bandHeight,
                 geometry.clipArea.getWidth(), bandHeight);

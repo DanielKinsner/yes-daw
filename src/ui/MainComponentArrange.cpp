@@ -104,8 +104,9 @@ void MainComponent::configureAutomationLaneControls()
     automationLaneToggle.setColour (juce::TextButton::textColourOffId, kText);
     automationLaneToggle.setColour (juce::TextButton::textColourOnId, kText);
     automationLaneToggle.onClick = [this] {
-        (void) appModel.dispatch (yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane);
+        handleAction (yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane);   // G4.6: the selected track's lanes
         refreshActionState();
+        resized();
         repaintAll();
     };
     addAndMakeVisible (automationLaneToggle);
@@ -1119,6 +1120,15 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
         auto row = area.removeFromTop (rowHeight);
         if (row.getHeight() < rowHeight)
             break;
+        // G4.6 / ADR-0052: the automation lanes stacked under this row: their own panel, the header above.
+        const int lanesHeight = rowHeight - static_cast<int> (std::llround (rowLaw.contentHeightFor (static_cast<int> (i))));
+        if (lanesHeight > 0)
+        {
+            const auto lanes = row.removeFromBottom (lanesHeight);
+            g.setColour (yesdaw::ui::UiTheme::Color::darkControl());
+            g.fillRect (lanes.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::trackListRowHorizontalInset)
+                             .withTrimmedRight (yesdaw::ui::UiTheme::Layout::trackListRowHorizontalInset));
+        }
         const auto& projectTrack = appModel.project().tracks[i];
         const juce::String fallbackName = "Track " + juce::String (static_cast<int> (i + 1));
         const juce::String trackName = projectTrack.strip.name.empty()
@@ -1562,7 +1572,9 @@ void MainComponent::rebuildTimelineClipViews()
         projectTimelineTracks.push_back ({ track.strip.name.empty() ? "Track" : track.strip.name.c_str(),
                                            colourForTrack (track, kPurple),
                                            0.0f,
-                                           track.heightPx });
+                                           track.heightPx,
+                                           automationAreaHeightFor (track),     // G4.6 / ADR-0052
+                                           automationLaneHeightFor (track) });
 
     double endSeconds = 0.0;
     const double sampleRate = project.sampleRate.hz;

@@ -43,6 +43,7 @@ public:
     // N6: persisted per-track heights, one entry per row (0 = auto-shared). Empty or unset means
     // every row auto-shares, exactly like every row did before this field existed.
     std::function<std::vector<int>()> rowHeightsProvider;
+    std::function<std::vector<int>()> rowAutomationHeightsProvider;   // G4.6: each row's stacked lanes
     std::function<double()> rowZoomProvider;   // G2.16: the row zoom the canvas geometry also multiplies by
     std::function<void (int)> onRowClicked;
     std::function<void (int, juce::ModifierKeys)> onRowClickedWithModifiers;   // G2.17: Ctrl toggles, Shift extends
@@ -154,8 +155,8 @@ public:
             area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
             resizeDragRow = handleRow;
             resizeDragStartY = event.getPosition().y;
-            resizeDragStartHeightPx = static_cast<int> (
-                std::llround (rowGeometry (rows, area.getHeight()).heightFor (handleRow)));
+            resizeDragStartHeightPx = static_cast<int> (   // G4.6: the row's own part (lanes keep their height)
+                std::llround (rowGeometry (rows, area.getHeight()).contentHeightFor (handleRow)));
             return;
         }
 
@@ -340,12 +341,14 @@ public:
     [[nodiscard]] yesdaw::ui::CumulativeRowGeometry rowGeometry (int rows, int availablePixels) const
     {
         const std::vector<int> heights = rowHeightsProvider ? rowHeightsProvider() : std::vector<int> {};
+        const std::vector<int> lanes = rowAutomationHeightsProvider ? rowAutomationHeightsProvider() : std::vector<int> {};
         const double rowZoom = std::clamp (rowZoomProvider ? rowZoomProvider() : 1.0,
                                            yesdaw::ui::UiTheme::Layout::timelineRowZoomMin,
                                            yesdaw::ui::UiTheme::Layout::timelineRowZoomMax);   // G2.16
         return yesdaw::ui::computeCumulativeRowGeometry (
             rows, availablePixels, juce::roundToInt (yesdaw::ui::UiTheme::Layout::trackListRowMinHeight * rowZoom),
-            static_cast<int> (heights.size()) >= rows ? heights.data() : nullptr);
+            static_cast<int> (heights.size()) >= rows ? heights.data() : nullptr,
+            static_cast<int> (lanes.size()) >= rows ? lanes.data() : nullptr);
     }
 
     [[nodiscard]] juce::Rectangle<int> rowBounds (int row) const
@@ -358,7 +361,8 @@ public:
         area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
         const yesdaw::ui::CumulativeRowGeometry geometry = rowGeometry (rows, area.getHeight());
         const int scrollRows = effectiveScrollRows();
-        const int rowHeight = static_cast<int> (std::llround (geometry.heightFor (row)));
+        // G4.6: the header keeps the row's own part; the automation lanes stacked under it are not header.
+        const int rowHeight = static_cast<int> (std::llround (geometry.contentHeightFor (row)));
         const int rowTop = area.getY()
                          + static_cast<int> (std::llround (geometry.top (row) - geometry.top (scrollRows)));
         return { area.getX(), rowTop, area.getWidth(), rowHeight };

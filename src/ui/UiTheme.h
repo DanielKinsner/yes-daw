@@ -1088,6 +1088,9 @@ struct UiTheme
         static constexpr int timelineCanvasAutomationBandHeight = 56;
         static constexpr int timelineCanvasAutomationHeaderHeight = 24;
         static constexpr int timelineCanvasAutomationHeaderGap = 8;
+        // G4.6 / ADR-0052: a stacked lane's height (the band height is the default), clamped to these.
+        static constexpr int timelineCanvasAutomationLaneMinHeight = 40;
+        static constexpr int timelineCanvasAutomationLaneMaxHeight = 160;
         static constexpr int timelineCanvasGeometryMinLaneCount = 1;
         static constexpr double timelineCanvasViewportMinPixelsPerSecond = 1.0;
         // Caption sits in the gap between the repeat-paste chooser and the snap chooser (B41).

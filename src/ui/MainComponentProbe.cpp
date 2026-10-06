@@ -448,7 +448,7 @@ juce::var MainComponent::buildProbeLayout()
             const int top = geometry.clipArea.getY()
                 + juce::roundToInt (geometry.laneTop (lane) - geometry.viewport.laneScrollPixels);
             const int height = lane < static_cast<int> (geometry.laneHeightPixelsPerLane.size())
-                ? juce::roundToInt (geometry.laneHeightPixelsPerLane[static_cast<std::size_t> (lane)])
+                ? juce::roundToInt (geometry.clipHeightFor (lane))   // G4.6: the clip part (lanes stack under it)
                 : geometry.laneHeight;
             const juce::Rectangle<int> row (geometry.clipArea.getX(), top,
                                             geometry.clipArea.getWidth(), height);

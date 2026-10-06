@@ -959,6 +959,14 @@ private:
     // stored value: the targets still writing are suspended again and sound the value they hold.
     void resuspendAutomationWriters (bool evenIfSameEngine);
 
+    // G4.6 / ADR-0052: per-track automation lanes (a saved view key per shown track). The A toggle shows or
+    // hides the SELECTED track's lanes; a shown row grows by its lanes. The model's toggle state follows the
+    // selected track.
+    void toggleSelectedTrackAutomationLanes();
+    void syncAutomationLaneVisibility();
+    [[nodiscard]] int automationLaneHeightFor (const yesdaw::engine::Track& track) const;   // 0 = hidden
+    [[nodiscard]] int automationAreaHeightFor (const yesdaw::engine::Track& track) const;
+
     void refreshAutosaveRecoveryControls();
 
     void refreshInspectorTakesVisibility();
@@ -1341,6 +1349,9 @@ private:
         int railWidth = yesdaw::ui::UiTheme::Layout::leftRailWidth;
         int inspectorWidth = yesdaw::ui::UiTheme::Layout::inspectorWidth;
         int dockHeight = yesdaw::ui::UiTheme::Layout::mixerHeight;
+        // G4.6 / ADR-0052: the tracks whose automation lanes are shown (`auto.<track id hex>` keys), each
+        // with its lane height.
+        std::map<std::string, int> automationLanes {};
     };
     ViewState viewState;
     std::filesystem::path viewStateBundle;

@@ -327,6 +327,12 @@ public:
     // scalar commands the running engine's audio thread has applied. Together they are the
     // mechanical no-rebuild proof: a live scalar edit advances the second and never the first.
     [[nodiscard]] std::uint64_t playbackReplaceCount() const noexcept { return playbackReplaceCount_; }
+    // G4.6 / ADR-0052: the A toggle's state is the selected track's (the shell keeps which tracks show lanes).
+    void setTimelineAutomationTrackLaneVisible (bool visible) noexcept
+    {
+        context_.timelineAutomationTrackLaneVisible = visible;
+        context_.timelineAutomationTrackIndex = visible ? 0 : -1;
+    }
     // G0.5: how many edits took the live placement lane, and how many schedules the audio thread
     // has installed on the running engine (B4's mechanical proof).
     [[nodiscard]] std::uint64_t livePlacementEdits() const noexcept { return livePlacementEdits_; }

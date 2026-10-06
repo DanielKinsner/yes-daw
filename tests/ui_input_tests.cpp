@@ -12898,6 +12898,17 @@ TEST_CASE ("the inspector take chooser lists the stack and drives switch and del
 // TARGET track's own row (not a separate row inserted elsewhere — the E5 "few tracks stretch to
 // fill the viewport" law means a lone row already fills the whole clip area, so there is no room
 // to insert a new one beside it, but there is always room to carve from its own space).
+// G4.6 / ADR-0052: `count` tracks, the row `shownRow` showing its automation (just the chooser lane: no lane
+// owned yet) — what the shell's A toggle produces on a fresh project.
+std::vector<yesdaw::ui::TimelineCanvasTrack> tracksShowingLanesUnder (int count, int shownRow)
+{
+    std::vector<yesdaw::ui::TimelineCanvasTrack> tracks (static_cast<std::size_t> (count),
+                                                         yesdaw::ui::TimelineCanvasTrack { "", juce::Colours::white, 0.0f });
+    tracks[static_cast<std::size_t> (shownRow)].automationHeightPx = yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight;
+    tracks[static_cast<std::size_t> (shownRow)].automationLaneHeightPx = yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight;
+    return tracks;
+}
+
 TEST_CASE ("the automation lane anchors under its target track's row, not a fixed band above every track",
            "[ui][input][shell][automation-geometry]")
 {
@@ -12913,22 +12924,23 @@ TEST_CASE ("the automation lane anchors under its target track's row, not a fixe
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
 
-    // The one track is selected by default (row 0) — the lane must be carved from ITS row, not
-    // always sit at the top of the timeline regardless of which track is targeted.
+    // The one track is selected by default (row 0). G4.6 / ADR-0052 re-pin: its lanes stack UNDER its row
+    // (the row grows by them), the band being the last lane — it never covers the row's clips.
     juce::Component& timeline = requireTimelineComponent (*shell);
+    const std::vector<yesdaw::ui::TimelineCanvasTrack> tracks = tracksShowingLanesUnder (1, 0);
     yesdaw::ui::TimelineCanvasState state;
+    state.tracks = tracks.data();
     state.trackCount = 1;
     state.automationLaneVisible = true;
     state.automationLaneTrackRow = 0;
     const yesdaw::ui::TimelineCanvasGeometry geometry =
         yesdaw::ui::timelineCanvasGeometry (timeline.getBounds(), state);
     REQUIRE_FALSE (geometry.automationLaneArea.isEmpty());
-    const int expectedBandHeight = std::min (
-        yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight, geometry.laneHeight);
-    REQUIRE (geometry.automationLaneArea.getHeight() == expectedBandHeight);
+    REQUIRE (geometry.automationLaneArea.getHeight() == yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight);
     REQUIRE (geometry.automationLaneArea.getBottom()
-             == geometry.clipArea.getY() + geometry.laneHeight);   // flush with row 0's own bottom
-    REQUIRE (geometry.automationLaneArea.getY() >= geometry.clipArea.getY());   // carved FROM row 0
+             == geometry.clipArea.getY() + juce::roundToInt (geometry.laneTop (1)));   // the grown row's bottom
+    REQUIRE (geometry.automationLaneArea.getY()
+             == geometry.clipArea.getY() + juce::roundToInt (geometry.clipHeightFor (0)));   // right under row 0's clips
 
     // The canvas shares the ARRANGEMENT's horizontal span (breakpoints line up with clip time
     // positions) and sits exactly on the painted band, flush under row 0 — not floating above
@@ -13009,12 +13021,16 @@ TEST_CASE ("N4 the automation lane anchors under the selected track and its head
     // The painted lane rectangle sits under track 3's OWN row — not a fixed band at the top of
     // the timeline, and not wherever track 1's row happens to be.
     juce::Component& timeline = requireTimelineComponent (*shell);
+    const std::vector<yesdaw::ui::TimelineCanvasTrack> row2Shown = tracksShowingLanesUnder (3, 2);   // G4.6 re-pin
+    const std::vector<yesdaw::ui::TimelineCanvasTrack> row0Shown = tracksShowingLanesUnder (3, 0);
     yesdaw::ui::TimelineCanvasState state;
+    state.tracks = row2Shown.data();
     state.trackCount = 3;
     state.automationLaneVisible = true;
     state.automationLaneTrackRow = 2;
     const yesdaw::ui::TimelineCanvasGeometry expectedForRow2 =
         yesdaw::ui::timelineCanvasGeometry (timeline.getBounds(), state);
+    state.tracks = row0Shown.data();
     state.automationLaneTrackRow = 0;
     const yesdaw::ui::TimelineCanvasGeometry expectedForRow0 =
         yesdaw::ui::timelineCanvasGeometry (timeline.getBounds(), state);
@@ -13059,6 +13075,11 @@ TEST_CASE ("N4 the automation lane anchors under the selected track and its head
     REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 0);
     REQUIRE (laneRowComponent->getText().contains ("Audio 1"));
     REQUIRE_FALSE (laneRowComponent->getText().contains ("Audio 3"));
+    // G4.6 / ADR-0052 re-pin: lanes show per track — track 1's are not shown until A is pressed for it.
+    REQUIRE_FALSE (canvas->isVisible());
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.timelineAutomationTrackLaneVisible);
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    REQUIRE (canvas->isVisible());
     REQUIRE (canvas->getY() >= expectedForRow0.automationLaneArea.getY());
     REQUIRE (canvas->getBottom() <= expectedForRow0.automationLaneArea.getBottom());
 
@@ -24600,4 +24621,93 @@ TEST_CASE ("the row law stacks a row's automation lanes under its own part", "[u
     REQUIRE (rows.contentHeights == std::vector<double> { 72.0, 96.0, 72.0 });
     const yesdaw::ui::CumulativeRowGeometry plain = yesdaw::ui::computeCumulativeRowGeometry (3, 600, 72, custom);
     REQUIRE (plain.heights == plain.contentHeights);   // no lanes: the historical law exactly
+}
+
+// G4.6 / ADR-0052: automation lanes show per track. A shows or hides the SELECTED track's lanes; a shown row
+// grows by them (its clips keep the top part, the rail's header too); the choice is a saved view key
+// (`auto.<track id hex>` + the lane height) that reopening the project restores; malformed keys are ignored.
+// The view record's track key: the id's 16 bytes as 32 lowercase hex digits (ADR-0052).
+std::string viewKeyHex (const yesdaw::engine::EntityId& id)
+{
+    static constexpr char kDigits[] = "0123456789abcdef";
+    std::string out;
+    for (const std::uint8_t byte : id.bytes)
+    {
+        out.push_back (kDigits[byte >> 4u]);
+        out.push_back (kDigits[byte & 0x0Fu]);
+    }
+    return out;
+}
+
+TEST_CASE ("automation lanes show per track, grow the row under its clips, and reopen as saved", "[ui][input][shell][automation-v2]")
+{
+    const auto bundlePath = makeTempBundlePath ("automation-v2-lanes-shown");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path { YESDAW_WAV_FIXTURE_PATH }; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.tracks.size() == 2u);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const int headerHeight = yesdaw::ui::UiTheme::Layout::trackListHeaderHeight;
+    const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
+    mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight / 2 });   // track 1
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 0);
+
+    const auto laneTops = [&shell] {
+        const juce::var probe = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)));
+        const juce::var layout = probe.getProperty ("layout", juce::var());
+        const juce::var lane0 = layout.getProperty ("lane.0", juce::var());
+        const juce::var lane1 = layout.getProperty ("lane.1", juce::var());
+        REQUIRE ((lane0.isArray() && lane1.isArray()));
+        return std::pair<int, int> { static_cast<int> (lane0[1]), static_cast<int> (lane1[1]) };
+    };
+    const auto [row0Before, row1Before] = laneTops();
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    REQUIRE (snapshotMainComponent (*shell).context.timelineAutomationTrackLaneVisible);
+    const auto [row0After, row1After] = laneTops();
+    REQUIRE (row0After == row0Before);
+    REQUIRE (row1After == row1Before + yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight);   // row 2 moved down
+    juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
+    REQUIRE (canvas != nullptr);
+    REQUIRE (canvas->isVisible());
+
+    // Track 2 has its own switch: selecting it shows A off; its row stays as it was.
+    mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight + yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight + rowHeight / 2 });
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == 1);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.timelineAutomationTrackLaneVisible);
+    REQUIRE_FALSE (canvas->isVisible());
+
+    // Saved as a view key; a malformed key beside it is ignored on reopen.
+    const std::filesystem::path record = bundlePath / "view-state.txt";
+    std::string text;
+    {
+        std::ifstream in (record);
+        text.assign (std::istreambuf_iterator<char> (in), std::istreambuf_iterator<char> ());
+    }
+    const std::string key = "auto." + viewKeyHex (project.tracks[0].id) + "\t";
+    REQUIRE (text.find (key + std::to_string (yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight)) != std::string::npos);
+    {
+        std::ofstream out (record, std::ios::app);
+        out << "auto.nothex\t90\nauto." << viewKeyHex (project.tracks[1].id) << "\tlots\n";
+    }
+    shell.reset();
+    MainComponentFileChoices openChoices;
+    openChoices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto reopened = makeShell (std::move (openChoices));
+    clickButton (requireButtonForAction (*reopened, UiActionId::ProjectOpen));
+    juce::Component* reopenedRail = findChildWithComponentId (*reopened, "shell.tracklist.input");
+    REQUIRE (reopenedRail != nullptr);
+    mouseDownAt (*reopenedRail, { kRailRowClickX, headerHeight + rowHeight / 2 });
+    REQUIRE (snapshotMainComponent (*reopened).context.timelineAutomationTrackLaneVisible);   // track 1: restored
+    mouseDownAt (*reopenedRail, { kRailRowClickX, headerHeight + rowHeight + yesdaw::ui::UiTheme::Layout::timelineCanvasAutomationBandHeight + rowHeight / 2 });
+    REQUIRE (snapshotMainComponent (*reopened).selectedMixerStripOrdinal == 1);
+    REQUIRE_FALSE (snapshotMainComponent (*reopened).context.timelineAutomationTrackLaneVisible);   // "lots" is no height
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
