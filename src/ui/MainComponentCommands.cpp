@@ -2265,7 +2265,9 @@ void MainComponent::refreshActionState()
     }
     {
         refreshingSnapChooser = true;
-        timelineSnapChooser.setVisible (appModel.context().activePanel == yesdaw::ui::UiPanel::Timeline);
+        // ADR-0064: shown whatever panel is active — the timeline (and its tool row) is always on screen since the mixer
+        // became a dock tab; hiding it with the Mixer active left its SNAP caption over nothing.
+        timelineSnapChooser.setVisible (true);
         timelineSnapChooser.setEnabled (appModel.context().projectLoaded);
         const int snapId = appModel.snapUnit() == yesdaw::ui::UiAppModel::UiSnapUnit::Off ? 1
                          : appModel.snapUnit() == yesdaw::ui::UiAppModel::UiSnapUnit::Bar ? 2

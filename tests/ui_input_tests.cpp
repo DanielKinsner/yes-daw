@@ -16880,6 +16880,68 @@ TEST_CASE ("first-minute density: a dozen tracks at 1080p show at least eight wh
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// ADR-0064: a tempo change at a bar start takes the bars row's spot: the bar number under its label is not drawn (it
+// was painted over by it), and every other bar number stays clear of it.
+TEST_CASE ("ADR-0064 a tempo change's label and a bar number never share the bars row's spot", "[ui][input][shell][layout][ruler]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("ruler-map-label");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
+    const auto rectOf = [&shell] (const juce::String& key)
+    {
+        const juce::var value = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell)).getProperty ("layout", {}).getProperty (key, {});
+        if (! value.isArray() || value.size() != 4)
+            return juce::Rectangle<int>();
+        return juce::Rectangle<int> (static_cast<int> (value[0]), static_cast<int> (value[1]),
+                                     static_cast<int> (value[2]), static_cast<int> (value[3]));
+    };
+    // The first labelled bar after bar 1 (the ruler thins its numbers to power-of-two steps on a wide view).
+    int labelledBar = 0;
+    juce::Rectangle<int> bar3;
+    for (int bar = 2; bar < 64 && labelledBar == 0; ++bar)
+        if (const juce::Rectangle<int> label = rectOf ("ruler.bar." + juce::String (bar)); ! label.isEmpty())
+        {
+            labelledBar = bar;
+            bar3 = label;
+        }
+    REQUIRE (labelledBar >= 2);
+    // Locate on that bar by a ruler click on its tick (the grid snaps it to the bar), then add a tempo change there.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::Rectangle<int> ruler = rectOf ("ruler");
+    const juce::Point<int> tick { bar3.getX() - yesdaw::ui::UiTheme::Layout::timelineCanvasRulerTickWidth - yesdaw::ui::UiTheme::Space::xxs,
+                                  ruler.getY() + yesdaw::ui::UiTheme::Layout::timelineRulerBarsRowHeight
+                                      + yesdaw::ui::UiTheme::Layout::timelineRulerTimeRowHeight / 2 };
+    const juce::Point<int> local = timeline.getLocalPoint (shell.get(), tick);
+    mouseDownAt (timeline, local);
+    releaseDragAt (timeline, local, local);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineTempoChangeAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.size() == 2u);
+
+    const juce::Rectangle<int> mapLabel = rectOf ("ruler.map.0");
+    REQUIRE_FALSE (mapLabel.isEmpty());
+    REQUIRE (std::abs (mapLabel.getX() - yesdaw::ui::UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset - tick.x) <= 1);   // on bar 3
+    REQUIRE (rectOf ("ruler.bar." + juce::String (labelledBar)).isEmpty());   // its number gives way
+    int barsShown = 0;
+    for (int bar = 1; bar < 64; ++bar)
+    {
+        const juce::Rectangle<int> label = rectOf ("ruler.bar." + juce::String (bar));
+        if (label.isEmpty())
+            continue;
+        INFO ("bar " << bar << " " << label.toString().toStdString() << " map " << mapLabel.toString().toStdString());
+        REQUIRE_FALSE (label.intersects (mapLabel));
+        ++barsShown;
+    }
+    REQUIRE (barsShown >= 1);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // ADR-0065: when the strips overflow at their minimum width the master is pinned at the dock's right and the strips
 // scroll in whole strips beside it — by the bar, the wheel and the selection; every strip and the master stay reachable.
 TEST_CASE ("ADR-0065 mixer strips scroll and the master stays pinned at the right", "[ui][input][shell][mixer-scroll]")
@@ -17517,6 +17579,14 @@ TEST_CASE ("G2.1 dock layout: three splitters drag within the plan's ranges, siz
     REQUIRE (requireTimelineComponent (*shell).getHeight() > lanesBefore);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToggleMixerDock);
     REQUIRE (viewInt (*shell, "dockHeight") == 200);
+
+    // ADR-0064: at the window minimum a dock dragged as tall as it goes still leaves the arrangement its minimum.
+    shell->setSize (L::windowMinWidth, L::windowMinHeight);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::windowMaxHeight);
+    REQUIRE (viewInt (*shell, "dockHeight") + L::headerHeight + L::arrangeMinHeight <= L::windowMinHeight);
+    REQUIRE (requireTimelineComponent (*shell).getHeight() >= L::arrangeMinHeight - L::shellPanelVerticalInset * 2
+                                                              - L::timelineScrollBarThickness);
+    REQUIRE (shell->getLocalBounds().contains (yesdaw::ui::mainComponentMixerPanelBounds (*shell)));
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

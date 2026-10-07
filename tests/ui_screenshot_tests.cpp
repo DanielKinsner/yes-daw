@@ -17,7 +17,12 @@
 #include <array>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <memory>
+#include <vector>
+#include <iostream>
+#include <set>
+#include <map>
 #include <string>
 #include <utility>
 
@@ -828,6 +833,375 @@ TEST_CASE ("Piano roll and automation lane render honestly with real notes and b
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+namespace {
+
+// ADR-0064 cp2: one cell of the scaling matrix — a logical window size and the scale it is rasterised at.
+struct ScalingCell
+{
+    int width = 0;
+    int height = 0;
+    float scale = 1.0f;
+    juce::String kind;
+};
+
+// The plan's cells (each window size at each Windows scale) and the display cells (the maximized client of each of
+// the plan's displays at each scale whose client the window minimum fits: floor(W/s) x floor((H - 48)/s - 32), a
+// 48 px physical taskbar and a 32 px logical title bar).
+std::vector<ScalingCell> scalingMatrix()
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    std::vector<ScalingCell> cells;
+    constexpr std::array<std::pair<int, int>, 3> kSizes {{ { 1280, 720 }, { 1920, 1080 }, { 2560, 1440 } }};
+    constexpr std::array<float, 4> kScales {{ 1.0f, 1.25f, 1.5f, 2.0f }};
+    for (const auto& [w, h] : kSizes)
+        for (const float scale : kScales)
+            cells.push_back ({ w, h, scale, "window" });
+    for (const auto& [w, h] : kSizes)
+        for (const float scale : kScales)
+        {
+            const int clientWidth = static_cast<int> (std::floor (static_cast<float> (w) / scale));
+            const int clientHeight = static_cast<int> (std::floor (static_cast<float> (h - 48) / scale - 32.0f));
+            if (clientWidth >= L::windowMinWidth && clientHeight >= L::windowMinHeight)
+                cells.push_back ({ clientWidth, clientHeight, scale, "display" });
+        }
+    return cells;
+}
+
+juce::Image renderShellAtScale (juce::Component& shell, float scale)
+{
+    shell.repaint();
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (100);
+    const int width = static_cast<int> (std::ceil (static_cast<float> (shell.getWidth()) * scale));
+    const int height = static_cast<int> (std::ceil (static_cast<float> (shell.getHeight()) * scale));
+    // JUCE's own software rasteriser, not the platform image type (Direct2D on Windows): the same pixels on a GPU-less
+    // CI runner as on a desktop, so the raster bounds below hold everywhere they run.
+    juce::Image image (juce::Image::ARGB, width, height, true, juce::SoftwareImageType());
+    {
+        juce::Graphics graphics (image);
+        graphics.addTransform (juce::AffineTransform::scale (scale));
+        shell.paintEntireComponent (graphics, true);
+    }
+    return image;
+}
+
+// Mean absolute channel difference (0..255) of two same-size images over a region.
+double meanAbsDifference (const juce::Image& a, const juce::Image& b, juce::Rectangle<int> region)
+{
+    region = region.getIntersection (a.getBounds()).getIntersection (b.getBounds());
+    if (region.isEmpty())
+        return 0.0;
+    const juce::Image::BitmapData da (a, juce::Image::BitmapData::readOnly);
+    const juce::Image::BitmapData db (b, juce::Image::BitmapData::readOnly);
+    double total = 0.0;
+    for (int y = region.getY(); y < region.getBottom(); ++y)
+        for (int x = region.getX(); x < region.getRight(); ++x)
+        {
+            const juce::Colour ca = da.getPixelColour (x, y);
+            const juce::Colour cb = db.getPixelColour (x, y);
+            total += std::abs (static_cast<int> (ca.getRed()) - static_cast<int> (cb.getRed()))
+                   + std::abs (static_cast<int> (ca.getGreen()) - static_cast<int> (cb.getGreen()))
+                   + std::abs (static_cast<int> (ca.getBlue()) - static_cast<int> (cb.getBlue()));
+        }
+    return total / (3.0 * static_cast<double> (region.getWidth()) * static_cast<double> (region.getHeight()));
+}
+
+bool matrixReport() { return juce::SystemStats::getEnvironmentVariable ("YESDAW_MATRIX_REPORT", {}).isNotEmpty(); }
+
+} // namespace
+
+// ADR-0064 cp2: every cell of the scaling matrix — the logical size's geometry and reachability, and the shell
+// rendered at the cell's scale.
+TEST_CASE ("ADR-0064 the scaling matrix: geometry, reachable controls and renders at every cell",
+           "[ui][screenshot][layout][scaling]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    juce::MessageManager::getInstance();
+    const std::vector<ScalingCell> cells = scalingMatrix();
+    REQUIRE (std::count_if (cells.begin(), cells.end(), [] (const ScalingCell& c) { return c.kind == "display"; }) == 8);
+
+    const std::filesystem::path fixtureDir = std::filesystem::temp_directory_path() / "yesdaw-g62-matrix-fixture";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (fixtureDir, ec);
+    }
+    yesdaw::app::fixture::SongFixtureSpec spec;
+    spec.tracks = 16;
+    spec.seconds = 6.0;
+    spec.sampleRateHz = 48000;
+    spec.channels = 2;
+    spec.midiTracks = 4;
+    const yesdaw::app::fixture::SongFixtureResult fixture = yesdaw::app::fixture::buildSongFixture (fixtureDir, spec);
+    INFO (fixture.error);
+    REQUIRE (fixture.ok);
+    yesdaw::ui::MainComponentFileChoices choices;
+    const std::filesystem::path bundlePath = fixture.bundlePath;
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (L::defaultWindowWidth, L::defaultWindowHeight);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.projectLoaded);
+    // A clip selected, so the inspector's clip sections are part of what must stay reachable.
+    {
+        const juce::var layout = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell)).getProperty ("layout", {});
+        juce::Rectangle<int> clip;
+        if (auto* object = layout.getDynamicObject())
+            for (const auto& property : object->getProperties())
+                if (clip.isEmpty() && property.name.toString().startsWith ("clip.") && property.value.isArray() && property.value.size() == 4)
+                    clip = { static_cast<int> (property.value[0]), static_cast<int> (property.value[1]),
+                             static_cast<int> (property.value[2]), static_cast<int> (property.value[3]) };
+        REQUIRE_FALSE (clip.isEmpty());
+        juce::Component* timeline = findChildWithComponentId (*shell, "timeline.canvas");
+        REQUIRE (timeline != nullptr);
+        const juce::Point<int> local = timeline->getLocalPoint (shell.get(), clip.getCentre());
+        const juce::MouseEvent event (juce::Desktop::getInstance().getMainMouseSource(), local.toFloat(),
+                                      juce::ModifierKeys::leftButtonModifier, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                      timeline, timeline, juce::Time::getCurrentTime(), local.toFloat(),
+                                      juce::Time::getCurrentTime(), 1, false);
+        timeline->mouseDown (event);
+        timeline->mouseUp (event);
+        REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.timelineClipSelected);
+    }
+
+    // Every action a menu reaches (item ids are the action + 1, submenus included).
+    std::set<int> menuActions;
+    {
+        auto* model = dynamic_cast<juce::MenuBarModel*> (shell.get());
+        REQUIRE (model != nullptr);
+        const juce::StringArray names = model->getMenuBarNames();
+        for (int index = 0; index < names.size(); ++index)
+        {
+            juce::PopupMenu menu = model->getMenuForIndex (index, names[index]);
+            for (juce::PopupMenu::MenuItemIterator it (menu, true); it.next();)
+                if (it.getItem().itemID > 0)
+                    menuActions.insert (it.getItem().itemID - 1);
+        }
+    }
+    const auto actionForId = [] (const juce::String& id) -> int
+    {
+        const auto& descriptors = yesdaw::ui::uiActionDescriptors();
+        for (std::size_t i = 0; i < descriptors.size(); ++i)
+            if (id == descriptors[i].stableId)
+                return static_cast<int> (i);
+        return -1;
+    };
+    // The toolbar row's choosers: each of their choices is an action a menu carries.
+    const std::map<juce::String, std::vector<UiActionId>> chooserActions {
+        { "timeline.snap.chooser", { UiActionId::TimelineSnapDisable, UiActionId::TimelineSnapSetBar,
+                                     UiActionId::TimelineSnapSetBeat, UiActionId::TimelineSnapSetSixteenth } },
+        { "timeline.snap_mode.chooser", { UiActionId::TimelineSnapModeGrid, UiActionId::TimelineSnapModeRelative,
+                                          UiActionId::TimelineSnapModeEvents, UiActionId::TimelineSnapModeOff } },
+        { "timeline.edit_mode.chooser", { UiActionId::EditModeOverlap, UiActionId::EditModeNoOverlap, UiActionId::EditModeShuffle } },
+        { "timeline.nudge.chooser", { UiActionId::EditNudgeValueGrid, UiActionId::EditNudgeValueBar, UiActionId::EditNudgeValueBeat,
+                                      UiActionId::EditNudgeValueSixteenth, UiActionId::EditNudgeValueMs1, UiActionId::EditNudgeValueMs10,
+                                      UiActionId::EditNudgeValueFrame, UiActionId::EditNudgeValueSample } },
+        { "timeline.zoom.readout", { UiActionId::TimelineZoomIn, UiActionId::TimelineZoomOut } },
+        { "timeline.zoom.slider", { UiActionId::TimelineZoomIn, UiActionId::TimelineZoomOut } },
+        // The inspector's marker list moves the playhead to a marker: Transport > Previous / Next Marker do that where the
+        // card cannot fit even with the dock collapsed (1280x720: it needs 640 px of inspector, the window leaves 556).
+        { "clip.inspector.markers", { UiActionId::TransportLocatePreviousMarker, UiActionId::TransportLocateNextMarker } },
+    };
+
+    // Every shown, identified control at any depth (the FX editor's rows, a panel's buttons), in shell coordinates.
+    struct ShownControl
+    {
+        juce::Component* component = nullptr;
+        juce::Rectangle<int> bounds;
+    };
+    const auto visibleChildren = [&shell]
+    {
+        std::map<juce::String, ShownControl> shown;
+        std::function<void (juce::Component&)> walk = [&] (juce::Component& parent)
+        {
+            for (int i = 0; i < parent.getNumChildComponents(); ++i)
+            {
+                juce::Component* child = parent.getChildComponent (i);
+                if (! child->isVisible())
+                    continue;
+                const juce::Rectangle<int> bounds = shell->getLocalArea (child, child->getLocalBounds());
+                if (! bounds.isEmpty() && child->getComponentID().isNotEmpty())
+                    shown[child->getComponentID()] = { child, bounds };
+                walk (*child);
+            }
+        };
+        walk (*shell);
+        return shown;
+    };
+    shell->setSize (2560, 1440);
+    const std::map<juce::String, ShownControl> widest = visibleChildren();
+    REQUIRE (widest.count ("clip.inspector.fade_in") == 1);   // the selected clip's sections are in the reference
+
+    std::map<std::pair<int, int>, juce::Image> logicalRenders;
+    for (const ScalingCell& cell : cells)
+    {
+        const juce::String name = cell.kind + " " + juce::String (cell.width) + "x" + juce::String (cell.height)
+                                + " @" + juce::String (juce::roundToInt (cell.scale * 100.0f)) + "%";
+        INFO (name.toStdString());
+        shell->setSize (cell.width, cell.height);
+        const std::map<juce::String, ShownControl> shown = visibleChildren();
+
+        // Geometry: the header's rects inside it and disjoint; the dock and the master inside the window.
+        {
+            const std::vector<juce::Rectangle<int>> rects = yesdaw::ui::mainComponentHeaderRects (*shell);
+            const juce::Rectangle<int> header { 0, 0, cell.width, yesdaw::ui::mainComponentHeaderHeight (*shell) };
+            for (std::size_t i = 0; i < rects.size(); ++i)
+            {
+                REQUIRE (header.contains (rects[i]));
+                for (std::size_t j = i + 1; j < rects.size(); ++j)
+                    REQUIRE_FALSE (rects[i].intersects (rects[j]));
+            }
+            REQUIRE (shell->getLocalBounds().contains (yesdaw::ui::mainComponentMixerPanelBounds (*shell)));
+            REQUIRE (yesdaw::ui::mainComponentMixerPanelBounds (*shell).contains (yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell)));
+            const auto row = yesdaw::ui::mainComponentTimelineToolbarControls (*shell);
+            for (std::size_t i = 0; i < row.size(); ++i)
+                for (std::size_t j = i + 1; j < row.size(); ++j)
+                    if (! row[i].second.isEmpty() && ! row[j].second.isEmpty())
+                        REQUIRE_FALSE (row[i].second.intersects (row[j].second));
+        }
+
+        // Reachable: every shown control is inside the window and hit-tests to itself at its centre.
+        for (const auto& [id, control] : shown)
+        {
+            const juce::Rectangle<int> bounds = control.bounds;
+            INFO ("control " << id.toStdString() << " " << bounds.toString().toStdString());
+            juce::Component* child = control.component;
+            REQUIRE (shell->getLocalBounds().contains (bounds));
+            bool clicksSelf = true, clicksChildren = true;
+            child->getInterceptsMouseClicks (clicksSelf, clicksChildren);
+            if (! clicksSelf && ! clicksChildren)
+                continue;   // a paint layer: clicks pass through it by design
+            juce::Component* hit = shell->getComponentAt (bounds.getCentre());
+            if (matrixReport() && ! (hit == child || child->isParentOf (hit)))
+                std::cout << "[matrix] " << name << " covered: " << id << " by " << (hit != nullptr ? hit->getComponentID() + "/" + hit->getName() : juce::String ("nothing")) << "\n";
+            REQUIRE ((hit == child || child->isParentOf (hit)));
+        }
+        // ... and every control shown in the widest window but dropped here has its action(s) in a menu.
+        std::vector<juce::String> droppedInspector;
+        juce::StringArray dropped;
+        for (const auto& [id, control] : widest)
+        {
+            if (shown.count (id) > 0)
+                continue;
+            INFO ("dropped " << id.toStdString());
+            dropped.add (id);
+            if (matrixReport())
+                std::cout << "[matrix] " << name << " dropped: " << id << "\n";
+            if ((id.startsWith ("clip.inspector.") || id.startsWith ("track.inspector.")) && chooserActions.count (id) == 0)
+            {
+                droppedInspector.push_back (id);   // the inspector's whole-section law: back with the dock collapsed (below)
+                continue;
+            }
+            if (const int action = actionForId (id); action >= 0)
+            {
+                REQUIRE (menuActions.count (action) == 1);
+                continue;
+            }
+            const auto chooser = chooserActions.find (id);
+            REQUIRE (chooser != chooserActions.end());
+            for (const UiActionId action : chooser->second)
+                REQUIRE (menuActions.count (static_cast<int> (action)) == 1);
+        }
+
+        // A dropped inspector section is one X away (plan §3.4 "dock collapsible"): collapsed, every one is shown.
+        if (! droppedInspector.empty())
+        {
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToggleMixerDock);
+            const std::map<juce::String, ShownControl> collapsed = visibleChildren();
+            for (const juce::String& id : droppedInspector)
+            {
+                INFO ("inspector control with the dock collapsed: " << id.toStdString());
+                REQUIRE (collapsed.count (id) == 1);
+                REQUIRE (shell->getLocalBounds().contains (collapsed.at (id).bounds));
+            }
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToggleMixerDock);
+            REQUIRE (yesdaw::ui::mainComponentMixerPanelBounds (*shell).getHeight() > 0);
+        }
+        if (matrixReport())
+            std::cout << "[matrix] " << name << " DROPSET " << dropped.joinIntoString (" ") << "\n";
+        // Exactly these drop, by size (2026-10-08, the 16-track fixture with a clip selected, the dock at 300): a control
+        // that starts dropping where it fits, or a law that stops dropping one, fails here instead of passing silently.
+        {
+            const juce::String fades = "clip.inspector.fade_curve clip.inspector.fade_curve_amount clip.inspector.fade_in clip.inspector.fade_out ";
+            const juce::String zoom = "timeline.zoom.in timeline.zoom.out timeline.zoom.readout timeline.zoom.slider";
+            const juce::String modes = "timeline.edit_mode.chooser timeline.nudge.chooser timeline.snap_mode.chooser";
+            const juce::String shortWindow = fades + "clip.inspector.markers clip.inspector.stretch timeline.clip.set_gain " + modes + " " + zoom;
+            const std::map<juce::String, juce::String> expected {
+                { "2560x1440", "" }, { "2560x1360", "" },
+                { "2048x1081", "clip.inspector.markers" },
+                { "1920x1080", "clip.inspector.markers" }, { "1920x1000", "clip.inspector.markers" },
+                { "1706x896", "clip.inspector.markers timeline.edit_mode.chooser timeline.nudge.chooser" },
+                { "1536x793", fades + "clip.inspector.markers " + modes },
+                { "1280x720", fades + "clip.inspector.markers " + modes + " " + zoom },
+                { "1280x664", shortWindow }, { "1280x656", shortWindow }, { "1280x640", shortWindow },
+            };
+            const auto pinned = expected.find (juce::String (cell.width) + "x" + juce::String (cell.height));
+            REQUIRE (pinned != expected.end());
+            REQUIRE (dropped.joinIntoString (" ") == pinned->second);
+        }
+
+        // Rendered at the scale: the image is the physical size.
+        auto logical = logicalRenders.find ({ cell.width, cell.height });
+        if (logical == logicalRenders.end())
+            logical = logicalRenders.emplace (std::make_pair (cell.width, cell.height), renderShellAtScale (*shell, 1.0f)).first;
+        const juce::Image scaled = cell.scale == 1.0f ? logical->second : renderShellAtScale (*shell, cell.scale);
+        REQUIRE (scaled.getWidth() == static_cast<int> (std::ceil (static_cast<float> (cell.width) * cell.scale)));
+        REQUIRE (scaled.getHeight() == static_cast<int> (std::ceil (static_cast<float> (cell.height) * cell.scale)));
+        if (juce::SystemStats::getEnvironmentVariable ("YESDAW_UI_SCREENSHOT_DIR", {}).isNotEmpty())
+            (void) captureShellPng (scaled, ("yesdaw-g62-" + cell.kind + "-" + juce::String (cell.width) + "x" + juce::String (cell.height)
+                                             + "-" + juce::String (juce::roundToInt (cell.scale * 100.0f)) + ".png").toRawUTF8());
+       #if JUCE_WINDOWS
+        // Windows (the drives' platform; JUCE's software rasteriser, measured 2026-10-08): the scaled render box-filtered
+        // back to the logical size matches the 100 % render per panel (measured max 3.13; bound 6), and at 200 % each
+        // panel carries detail a 1x image drawn at 2x does not: such an image IS the bilinear upscale of the 1x render
+        // (difference 0, asserted below as the metric's own calibration), the native render differs from it by
+        // 1.63-3.75 (floor 0.8) — a cache rasterised at 1x fails here.
+        if (cell.scale != 1.0f)
+        {
+            const juce::Image down = scaled.rescaled (cell.width, cell.height, juce::Graphics::highResamplingQuality);
+            const juce::Rectangle<int> header { 0, 0, cell.width, yesdaw::ui::mainComponentHeaderHeight (*shell) };
+            const std::array<std::pair<const char*, juce::Rectangle<int>>, 3> panels {{
+                { "header", header },
+                { "timeline", yesdaw::ui::mainComponentTimelineBounds (*shell) },
+                { "dock", yesdaw::ui::mainComponentMixerPanelBounds (*shell) } }};
+            const juce::Image up = cell.scale == 2.0f
+                ? logical->second.rescaled (scaled.getWidth(), scaled.getHeight(), juce::Graphics::highResamplingQuality)
+                : juce::Image();
+            juce::Image blurred;   // a 1x cache drawn at 2x
+            if (cell.scale == 2.0f)
+            {
+                blurred = juce::Image (juce::Image::ARGB, scaled.getWidth(), scaled.getHeight(), true, juce::SoftwareImageType());
+                juce::Graphics g (blurred);
+                g.drawImageTransformed (logical->second, juce::AffineTransform::scale (2.0f));
+            }
+            for (const auto& [panel, rect] : panels)
+            {
+                const double fidelity = meanAbsDifference (down, logical->second, rect);
+                INFO ("panel " << panel << " fidelity " << fidelity);
+                if (matrixReport())
+                    std::cout << "[matrix] " << name << " " << panel << " fidelity " << fidelity;
+                REQUIRE (fidelity <= 6.0);
+                if (cell.scale == 2.0f)
+                {
+                    const double native = meanAbsDifference (scaled, up, rect * 2);
+                    const double cached = meanAbsDifference (blurred, up, rect * 2);
+                    INFO ("resolution " << native << " vs a 1x cache " << cached);
+                    if (matrixReport())
+                        std::cout << " resolution " << native << " vs 1x cache " << cached;
+                    REQUIRE (cached <= 0.5);   // the metric can tell: a 1x image drawn at 2x scores ~0
+                    REQUIRE (native >= 0.8);
+                }
+                if (matrixReport())
+                    std::cout << "\n";
+            }
+        }
+       #endif
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (fixtureDir, ec);
+}
+
 TEST_CASE ("the shell renders honestly at the resize-limit extremes",
            "[ui][screenshot][shell-sizes]")
 {
@@ -947,6 +1321,22 @@ TEST_CASE ("the shell renders honestly at the resize-limit extremes",
                   yesdaw::ui::UiTheme::Layout::windowMinHeight,
                   true,
                   "yesdaw-shell-min.png");
+    // ADR-0064: at the window minimum a dropped inspector section is one X away (plan §3.4 "dock collapsible"): with
+    // the dock collapsed the FADES section is shown whole, inside the window.
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToggleMixerDock);
+        REQUIRE (yesdaw::ui::mainComponentMixerPanelBounds (*shell).getHeight() <= 0);
+        for (const char* id : { "clip.inspector.fade_in", "clip.inspector.fade_out", "clip.inspector.fade_curve" })
+        {
+            juce::Component* control = controlById (id);
+            REQUIRE (control != nullptr);
+            INFO ("control " << id << " bounds " << control->getBounds().toString().toStdString());
+            REQUIRE_FALSE (control->getBounds().isEmpty());
+            REQUIRE (shell->getLocalBounds().contains (control->getBounds()));
+        }
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToggleMixerDock);
+        REQUIRE (yesdaw::ui::mainComponentMixerPanelBounds (*shell).getHeight() > 0);
+    }
     renderAtSize (2560, 1440, false, "yesdaw-shell-wide.png");
 
     std::error_code ec;
@@ -1439,6 +1829,27 @@ TEST_CASE ("G0.7 rubric shots: the song fixture at 1280x720, 1920x1080 and 2560x
             INFO ("ruler " << ruler.toString().toStdString());
             REQUIRE (fullDifferentPixelCount (image, barsRow) > 30u);
             REQUIRE (fullDifferentPixelCount (image, timeRow) > 30u);
+            // ADR-0064: a bar's number sits right of its tick — the pixel column above each tick (bar 2 on; bar 1 is
+            // under the playhead) carries no text ink, and the number itself paints.
+            int barsChecked = 0;
+            for (int bar = 2; bar < 64; ++bar)
+            {
+                const juce::var value = layout.getProperty ("ruler.bar." + juce::String (bar), juce::var());
+                if (! value.isArray() || value.size() != 4)
+                    continue;
+                const juce::Rectangle<int> label (static_cast<int> (value[0]), static_cast<int> (value[1]),
+                                                  static_cast<int> (value[2]), static_cast<int> (value[3]));
+                const int tickX = label.getX() - L::timelineCanvasRulerTickWidth - yesdaw::ui::UiTheme::Space::xxs;
+                if (tickX < ruler.getX() + 4 || label.getRight() > ruler.getRight() - 4)
+                    continue;
+                const juce::Rectangle<int> aboveTick (tickX, ruler.getY() + 1, 1,
+                                                      L::timelineRulerBarsRowHeight - L::timelineCanvasRulerTickHeight - 1);
+                INFO ("bar " << bar << " label " << label.toString().toStdString());
+                REQUIRE (maxContrastInRegion (image, aboveTick) < 1.5);
+                REQUIRE (maxContrastInRegion (image, label) >= 3.0);
+                ++barsChecked;
+            }
+            REQUIRE (barsChecked >= 1);
         }
         INFO ("whole lanes at " << width << "x" << height << ": " << wholeLanes);
         // G2.1 cp2: the plan's 300 px dock at 720p leaves two whole rows and a third partial

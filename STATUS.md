@@ -8,6 +8,47 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-09 — G6.2 checkpoint 2: the scaling matrix, the 1152x640 window, everything reachable (ADR-0064)
+
+**Now:** G6.2 **cp2** is in, headless-certified locally. **Next: G6.2 cp3** — the macOS frame exception re-measured
+(the baseline is gathered: `docs/evidence/2026-10-g62-gpu-baseline.md`; the decision is Dan's under plan §8.2). Then
+G6.3 (keyboard navigation and accessibility; research done — the router already owns a control target, the gaps are
+painted controls and what accessibility sees). SS-6 still waits for a free desktop.
+
+**What a user gets:** the window can be made as small as 1152x640, so a maximized window fits a 1920x1080 laptop at
+150 % or a 1440x900 one at 125 % (it overflowed under the taskbar before); the status line (messages, refusal reasons,
+hover hints) stays on screen at every size — it used to vanish at 1280 wide, and the Snap-mode / Edit-mode / Nudge
+choosers (all in the Edit and View menus) now drop before it does; the Snap chooser no longer disappears once the mixer
+was used (it hid whenever the Mixer panel was active, a rule from the modal-mixer days, leaving its SNAP caption over
+nothing); a bar number in the ruler sits right of its tick (the tick ran through the digit) and gives way to a tempo
+or meter change's label at the same bar.
+
+**Gates:** `[layout][scaling]` (new) — 20 cells: the plan's 3 window sizes x 4 scales, and the maximized client of each
+of the plan's displays at Windows' scales (floor(W/s) x floor((H-48)/s - 32): 1280x640, 1920x1000, 1536x793, 1280x656,
+2560x1360, 2048x1081, 1706x896, 1280x664). At each: the header's rects inside it and disjoint; the dock and the master
+inside the window; the tool row disjoint; every shown identified control at any depth inside the window and hit-testing
+to itself at its centre; every control shown at 2560x1440 (with a clip selected) but dropped here has its actions in a
+menu (the four toolbar choosers, the zoom controls and the marker list mapped to theirs) or, for an inspector section,
+comes back whole with the dock collapsed; the exact drop set per cell pinned; the render at the cell's scale is the
+physical size; on Windows (JUCE's software rasteriser) the render box-filtered back matches the 100 % render per panel
+(mean difference <= 6; measured max 3.13) and at 200 % carries real detail (difference from a bilinear upscale of the
+1x render >= 0.8, measured 1.63-3.75; a 1x image drawn at 2x scores 0, asserted). `[shell-sizes]` floor at 1152x640:
+the FADES section is back with the dock collapsed. The dock clamp at the window minimum. `[rubric-shots]`: the column
+above each bar tick is ink-free. `[ruler]` (new): a tempo change at a labelled bar hides that bar's number and touches
+no other. Bites: the status line dropping (before the fix), a 1x-rasterised canvas cache (0.32 < 0.8), the centred bar
+label, an un-skipped bar number under a tempo label. 416/416 local, Clang clean.
+
+**Visual judgment (agent):** all 20 renders written; 1280x656 @ 150 % (the common 1080p laptop) — crisp text and lines,
+nothing cut, the pinned master's columns clean, two whole lanes with the dock open; 2560x1440 @ 200 % at native
+resolution — text, icons and waveforms rasterised at full resolution (no 1x blur).
+
+**Critic:** no blockers. In: the matrix selects a clip (the inspector's sections were never in the reference before),
+walks descendants, renders in software for CI determinism, pins the drop sets; map labels win the bars row. Parked: a
+scrollable inspector (Logic-style) would bring the marker card back at 720p; today the marker list's job is reachable
+through Transport > Previous / Next Marker.
+
+**CI recorded:** 08be04a (ADR-0065) green on every job, the macOS GPU check included — **ADR-0065 certified**.
+
 ## 2026-10-08 (night) — the mixer's strips scroll and the master stays reachable (ADR-0065, amended)
 
 **Now:** ADR-0065 is in, headless-certified locally. **Next: G6.2 cp2** — the scaling matrix (plan cells at

@@ -960,6 +960,26 @@ struct RulerRows
     return rows;
 }
 
+// ADR-0064: a bar's number sits just right of its tick, as the time row's label does (it was a box centred on the
+// tick, which ran through the digit at every scale).
+[[nodiscard]] inline juce::Rectangle<int> rulerBarLabelBounds (int tickX, juce::Rectangle<int> barsRow) noexcept
+{
+    return { tickX + UiTheme::Layout::timelineCanvasRulerTickWidth + UiTheme::Space::xxs,
+             barsRow.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
+             UiTheme::Layout::timelineCanvasRulerLabelWidth,
+             UiTheme::Layout::timelineCanvasRulerLabelHeight };
+}
+
+// G2.15: a tempo / meter change's label, right of its tick in the bars row — one law for the paint, the hit-test and
+// the probe. ADR-0064: a bar number whose rect meets one is not drawn (the change's label names that bar's tempo).
+[[nodiscard]] inline juce::Rectangle<int> rulerMapLabelBounds (int tickX, juce::Rectangle<int> barsRow) noexcept
+{
+    return { tickX + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,
+             barsRow.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
+             UiTheme::Layout::timelineCanvasRulerMarkerLabelWidth,
+             UiTheme::Layout::timelineCanvasRulerLabelHeight };
+}
+
 inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea,
                        const TimelineCanvasState& state, const Viewport& vp)
 {
@@ -974,18 +994,25 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
     g.fillRect (ruler.withHeight (UiTheme::Layout::timelineCanvasRulerSeparatorHeight)
                       .withY (ruler.getBottom() - UiTheme::Layout::timelineCanvasRulerSeparatorHeight));
 
+    // ADR-0064: the tempo / meter labels shown in the bars row, so a bar number never paints under one.
+    std::array<juce::Rectangle<int>, 16> mapLabelRects {};
+    std::size_t mapLabelRectCount = 0;
+    for (int i = 0; state.mapLabels != nullptr && i < state.mapLabelCount && mapLabelRectCount < mapLabelRects.size(); ++i)
+    {
+        const int mapX = clipArea.getX() + juce::roundToInt ((state.mapLabels[i].seconds - vp.scrollSeconds) * vp.pixelsPerSecond);
+        if (mapX >= clipArea.getX() - UiTheme::Layout::timelineCanvasRulerMarkerCullPadding && mapX <= clipArea.getRight())
+            mapLabelRects[mapLabelRectCount++] = rulerMapLabelBounds (mapX, rows.bars);
+    }
     for (const RulerBarLabel& label : computeRulerBarLabels (clipArea, state, vp))
     {
         const int x = label.x;
         // Bars row: the bar number and its tick.
         g.setColour (kMutedText);
         g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
-        g.drawText (juce::String (label.bar),
-                    x - UiTheme::Layout::timelineCanvasRulerLabelLeftInset,
-                    rows.bars.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
-                    UiTheme::Layout::timelineCanvasRulerLabelWidth,
-                    UiTheme::Layout::timelineCanvasRulerLabelHeight,
-                    juce::Justification::centred, false);
+        const juce::Rectangle<int> barLabel = rulerBarLabelBounds (x, rows.bars);
+        if (std::none_of (mapLabelRects.begin(), mapLabelRects.begin() + static_cast<std::ptrdiff_t> (mapLabelRectCount),
+                          [&barLabel] (juce::Rectangle<int> mapLabel) { return mapLabel.intersects (barLabel); }))
+            g.drawText (juce::String (label.bar), barLabel, juce::Justification::centredLeft, false);
         g.setColour (UiTheme::Color::rulerTick());   // ADR-0063: opaque
         g.fillRect (x,
                     rows.bars.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight,
@@ -1019,12 +1046,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
         g.setColour (UiTheme::Color::accentAmber());
         g.fillRect (x, mapRows.bars.getY(), UiTheme::Layout::timelineCanvasRulerTickWidth, mapRows.bars.getHeight());
         g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
-        g.drawText (change.label,
-                    x + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,
-                    mapRows.bars.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
-                    UiTheme::Layout::timelineCanvasRulerMarkerLabelWidth,
-                    UiTheme::Layout::timelineCanvasRulerLabelHeight,
-                    juce::Justification::centredLeft, false);
+        g.drawText (change.label, rulerMapLabelBounds (x, mapRows.bars), juce::Justification::centredLeft, false);
     }
 
     if (state.markers == nullptr)
@@ -1337,10 +1359,7 @@ inline juce::Rectangle<int> timelineMapLabelRect (juce::Rectangle<int> area,
                 + juce::roundToInt ((state.mapLabels[mapIndex].seconds - geometry.viewport.scrollSeconds)
                                     * geometry.viewport.pixelsPerSecond);
     const timeline_canvas_detail::RulerRows rows = timeline_canvas_detail::rulerRows (geometry.rulerArea);
-    return { x + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,
-             rows.bars.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
-             UiTheme::Layout::timelineCanvasRulerMarkerLabelWidth,
-             UiTheme::Layout::timelineCanvasRulerLabelHeight };
+    return timeline_canvas_detail::rulerMapLabelBounds (x, rows.bars);
 }
 
 // The tempo / meter change label under `position`, or -1.

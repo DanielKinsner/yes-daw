@@ -468,6 +468,20 @@ juce::var MainComponent::buildProbeLayout()
         put ("toolbar", geometry.toolbarArea.translated (origin.x, origin.y));   // ADR-0064: the row its controls sit in
         put ("ruler", geometry.rulerArea.translated (origin.x, origin.y));
         put ("clipArea", geometry.clipArea.translated (origin.x, origin.y));
+        {   // ADR-0064: each bar number's rect (its tick is just left of it)
+            namespace canvas = yesdaw::ui::timeline_canvas_detail;
+            const canvas::RulerRows rows = canvas::rulerRows (geometry.rulerArea);
+            for (const yesdaw::ui::RulerBarLabel& bar : yesdaw::ui::computeRulerBarLabels (geometry.clipArea, state, geometry.viewport))
+            {
+                const juce::Rectangle<int> label = canvas::rulerBarLabelBounds (bar.x, rows.bars);
+                bool underMapLabel = false;   // the paint's law: a tempo / meter label wins the spot
+                for (int mapIndex = 0; mapIndex < state.mapLabelCount; ++mapIndex)
+                    underMapLabel = underMapLabel
+                                 || yesdaw::ui::timelineMapLabelRect (timelineInput.getLocalBounds(), state, mapIndex).intersects (label);
+                if (! underMapLabel)
+                    put ("ruler.bar." + juce::String (bar.bar), label.translated (origin.x, origin.y));
+            }
+        }
         for (int mapIndex = 0; mapIndex < state.mapLabelCount; ++mapIndex)   // the tempo / meter change labels
             put ("ruler.map." + juce::String (mapIndex),
                  yesdaw::ui::timelineMapLabelRect (timelineInput.getLocalBounds(), state, mapIndex).translated (origin.x, origin.y));

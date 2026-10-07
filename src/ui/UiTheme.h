@@ -269,7 +269,7 @@ struct UiTheme
         // E27: the window resize floor is the smallest size every shipped layout stays honest
         // at (the judged laptop size) — below it the header rows and panels collide.
         static constexpr int windowMinWidth = 1152;
-        static constexpr int windowMinHeight = 720;
+        static constexpr int windowMinHeight = 640;   // ADR-0064: a maximized window fits every display of the matrix (1280x720 @ 100 % -> 640)
         static constexpr int windowMaxWidth = 8192;
         static constexpr int windowMaxHeight = 4320;
         // G0.7 cp2 (plan §3.4): track header 260, inspector 300, editor dock 300.
@@ -984,6 +984,7 @@ struct UiTheme
         static constexpr int inspectorToggleGap = 8;   // G2.1 cp3: four letters fit the 1280 row
         // R4: the status line fills the toolbar row's remaining width right of the zoom cluster.
         static constexpr int statusLineLeftGap = 12;
+        static constexpr int statusLineMinWidth = 80;   // ADR-0064: narrower than this the status line drops
         static constexpr int statusLineRightInset = 8;
         // G2.16: the zoom slider sits right after the zoom trio; the status line starts after it.
         static juce::Rectangle<int> timelineZoomSliderBounds (juce::Rectangle<int> timeline) noexcept
@@ -1146,7 +1147,6 @@ struct UiTheme
         // seconds-step label tokens (the ruler now labels real tempo-map bars, never seconds).
         static constexpr double timelineCanvasRulerMinBarLabelSpacingPx = 56.0;
         static constexpr int timelineCanvasRulerLabelCullPadding = 40;
-        static constexpr int timelineCanvasRulerLabelLeftInset = 18;
         static constexpr int timelineCanvasRulerLabelTopInset = 3;   // within the bars row
         static constexpr int timelineCanvasRulerLabelWidth = 36;
         static constexpr int timelineCanvasRulerLabelHeight = 16;
