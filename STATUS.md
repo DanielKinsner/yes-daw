@@ -10,7 +10,7 @@ Older entries below are dated history, not competing "Now" instructions.
 
 ## 2026-10-08 (evening) — G6.2 checkpoint 1: eight lanes at 1080p, track headers level with their lanes (ADR-0064)
 
-**Now:** G6.2 **cp1** is in, headless-certified locally. **Next: ADR-0065** (mixer strips scroll, the master pinned at
+**Now:** G6.2 **cp1** is in, headless-certified locally; **ADR-0065 accepted** (mixer overflow). **Next: ADR-0065** (mixer strips scroll, the master pinned at
 the right — found in this checkpoint's judgment, accepted after a critic pass), then **G6.2 cp2** (the scaling matrix,
 the 1152x640 window minimum, reachability, scaled renders, the mixer scroll), then cp3 (the macOS frame exception
 re-measured). SS-6 still waits for a free desktop.
