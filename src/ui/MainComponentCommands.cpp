@@ -302,10 +302,15 @@ void MainComponent::openProjectBundleAtPath (const std::filesystem::path& path)
 {
     StoredProjectAssetsResult stored = decodeStoredProjectAssets (path);
     if (stored.assets && ! stored.assets->empty())
-        (void) appModel.loadPreparedProjectBundle (
-            std::move (stored.prepared), std::move (*stored.assets));
+    {
+        if (appModel.loadPreparedProjectBundle (std::move (stored.prepared), std::move (*stored.assets)).ok())
+            afterProjectAttached();   // ADR-0060: the device at the project's rate
+    }
     else if (stored.assets)
-        (void) appModel.openPreparedProjectBundle (std::move (stored.prepared));
+    {
+        if (appModel.openPreparedProjectBundle (std::move (stored.prepared)).ok())
+            afterProjectAttached();
+    }
     else
         // R5: a project that cannot open says WHY (naming the bad audio file when one is
         // the cause) and refuses to half-open — the shell state stays untouched.
@@ -360,6 +365,12 @@ bool MainComponent::keyPressed (const juce::KeyPress& pressed)
     // its keys inside the field, and before every route below. A key it claims dispatches nowhere else.
     if (routeControlTargetKey (key))
         return true;
+    if (key.getKeyCode() == juce::KeyPress::escapeKey && newProjectDialog.isVisible())   // G5.5 / ADR-0060: Esc cancels
+    {
+        if (newProjectDialog.onCancel)
+            newProjectDialog.onCancel();
+        return true;
+    }
     if (key.getKeyCode() == juce::KeyPress::escapeKey && fxEditorOpen)   // G4.1 cp2
     {
         closeFxEditor();
@@ -1268,7 +1279,7 @@ void MainComponent::menuItemSelected (int menuItemID, int /*topLevelMenuIndex*/)
     {
         const std::vector<std::filesystem::path> recents = appModel.recentProjectBundles();
         const std::size_t index = static_cast<std::size_t> (menuItemID - kRecentMenuBaseId);
-        if (index < recents.size())
+        if (index < recents.size() && confirmReplaceProject())   // ADR-0060: unsaved changes first
             openProjectBundleAtPath (recents[index]);
         refreshActionState();
         repaintAll();
@@ -1418,24 +1429,11 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
             return;
 
         case yesdaw::ui::UiActionId::ProjectNew:
-            if (fileChoices.chooseNewProjectBundle)
-            {
-                const std::filesystem::path path = fileChoices.chooseNewProjectBundle();
-                if (! path.empty())
-                {
-                    // R4: a failed create paints its reason instead of vanishing.
-                    const yesdaw::persistence::BundleResult created =
-                        fileChoices.makeNewProject
-                            ? appModel.createProjectBundle (path, fileChoices.makeNewProject())
-                            : appModel.createProjectBundle (path);
-                    if (! created.ok())
-                        appModel.reportStatus ("New project failed: " + created.message, true);
-                }
-            }
+            beginNewProject();   // G5.5 / ADR-0060
             return;
 
         case yesdaw::ui::UiActionId::ProjectOpen:
-            if (fileChoices.chooseOpenProjectBundle)
+            if (fileChoices.chooseOpenProjectBundle && confirmReplaceProject())   // ADR-0060: unsaved changes first
             {
                 const std::filesystem::path path = fileChoices.chooseOpenProjectBundle();
                 if (! path.empty())

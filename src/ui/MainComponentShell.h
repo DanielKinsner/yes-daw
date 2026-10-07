@@ -9,6 +9,7 @@
 #pragma once
 
 #include "ui/BrowserPanelComponent.h"   // G5.2 / ADR-0056
+#include "ui/NewProjectDialogComponent.h"   // G5.5 / ADR-0060
 #include "ui/MainComponentInternal.h"
 #include "ui/ControlTarget.h"
 #include "ui/KeyTimeModifiers.h"   // ADR-0057
@@ -192,6 +193,8 @@ public:
     [[nodiscard]] std::uint64_t harnessBrowserHeaderReads() const noexcept { return browserHeaderReads; }
     void harnessBrowserOpenFolder (const std::filesystem::path& folder) { browserOpenFolder (folder); }
     [[nodiscard]] UiAppModel& harnessAppModel() noexcept { return appModel; }   // G5.2 cp2
+    [[nodiscard]] yesdaw::ui::NewProjectDialogComponent& harnessNewProjectDialog() noexcept { return newProjectDialog; }   // G5.5
+    [[nodiscard]] std::uint64_t harnessDeviceRateRequests() const noexcept { return deviceRateRequests; }
     void harnessWaitForExport()   // ADR-0058: join the export job and show its outcome, as the UI tick would
     {
         appModel.waitForExport();
@@ -419,6 +422,13 @@ private:
     void browserKeep (const yesdaw::ui::BrowserRow& row);
     void browserDropAt (std::vector<yesdaw::ui::BrowserRow> rows, juce::Point<int> listPosition);
     void importAudioFromPath (const std::filesystem::path& path);
+    // G5.5 / ADR-0060: New and Open.
+    void initialiseNewProjectDialog();
+    void beginNewProject();
+    void createNewProject (const yesdaw::ui::UiNewProjectChoices& choices, bool chosenInDialog);
+    [[nodiscard]] bool confirmReplaceProject();
+    void afterProjectAttached();
+    void requestProjectDeviceRate();
     void browserAudition (const yesdaw::ui::BrowserRow& row);   // G5.2 cp2
     void refreshBrowserAuditionState();
 
@@ -1389,6 +1399,8 @@ private:
     bool browserStateRestored = false;          // read on first show (ADR-0056)
     std::uint64_t browserRowsStamp = 0;         // browserSourceStamp() when the rows were last built
     bool browserAuditionShown = false;          // the Audition button shows "Stop" (G5.2 cp2)
+    yesdaw::ui::NewProjectDialogComponent newProjectDialog;   // G5.5 / ADR-0060
+    std::uint64_t deviceRateRequests = 0;       // ADR-0060: times the device was asked for the project's rate
     int exportPercentShown = -1;                // ADR-0058: what the export readout last showed
     bool exportInProgressShown = false;
     int browserRowsSourceShown = -1;            // the listing the rows show (a refresh of it keeps the selection)

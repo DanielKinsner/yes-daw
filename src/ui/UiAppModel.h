@@ -31,6 +31,9 @@
 #include "ui/WaveformPeakService.h"
 
 #include <algorithm>
+#include <iomanip>
+#include <locale>
+#include <sstream>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -275,6 +278,16 @@ struct UiRealRecordingDeviceProfile
     int maxBlockSize = 0;
     std::int64_t inputLatencyFrames = 0;
     std::int64_t outputLatencyFrames = 0;
+};
+
+// ADR-0060: the New Project dialog's choices (remembered per user in new-project.txt).
+struct UiNewProjectChoices
+{
+    double sampleRateHz = 48'000.0;
+    double bpm = 120.0;
+    std::uint16_t meterNumerator = 4;
+    std::uint16_t meterDenominator = 4;
+    std::string templateName;   // empty = Default (one audio track)
 };
 
 struct UiRecordingTrackInputSelection
@@ -2260,6 +2273,112 @@ public:
         if (! landings.empty())
             landClipsOnConsecutiveTracks (std::move (landings), firstLane, timelineStart, result);
         return result;
+    }
+
+    // ---- ADR-0060: a new project from the dialog's choices, and the choices remembered per user ----
+    static constexpr const char* kNewProjectRecordFileName = "new-project.txt";
+
+    [[nodiscard]] static bool newProjectChoicesValid (const UiNewProjectChoices& choices) noexcept
+    {
+        const bool rateOk = choices.sampleRateHz == 44'100.0 || choices.sampleRateHz == 48'000.0
+                         || choices.sampleRateHz == 88'200.0 || choices.sampleRateHz == 96'000.0;
+        const bool denominatorOk = choices.meterDenominator == 2u || choices.meterDenominator == 4u
+                                || choices.meterDenominator == 8u || choices.meterDenominator == 16u;
+        return rateOk && denominatorOk && choices.bpm >= 20.0 && choices.bpm <= 300.0
+            && choices.meterNumerator >= 1u && choices.meterNumerator <= 32u;
+    }
+
+    // The dialog's rate, tempo and meter on a project (the Default template's, or one a test injects).
+    static void applyNewProjectChoices (engine::Project& project, const UiNewProjectChoices& choices)
+    {
+        project.sampleRate = engine::SampleRate { choices.sampleRateHz };
+        project.tempoMap = { { 0, choices.bpm, engine::TempoCurve::Jump } };
+        project.meterMap = { { 0, choices.meterNumerator, choices.meterDenominator } };
+    }
+
+    // The Default template (one audio track) at the chosen rate, tempo and meter.
+    [[nodiscard]] static engine::Project makeNewSessionProject (const UiNewProjectChoices& choices)
+    {
+        engine::Project project = makeDefaultSessionProject();
+        applyNewProjectChoices (project, choices);
+        return project;
+    }
+
+    // The record's numbers are radix '.' both ways (the classic locale, as DAWproject's are): a comma-decimal
+    // locale can neither write "96,5" nor misread "96.5". A known key with a bad value, or a set of values out of
+    // range, falls back to the defaults whole; an unknown key is skipped (a later version's).
+    [[nodiscard]] UiNewProjectChoices newProjectChoices() const
+    {
+        const auto number = [] (const std::string& text, double& out) {
+            std::istringstream in (text);
+            in.imbue (std::locale::classic());
+            double value = 0.0;
+            if (! (in >> value) || in.get() != std::char_traits<char>::eof() || ! std::isfinite (value))
+                return false;
+            out = value;
+            return true;
+        };
+        const auto meterPart = [&number] (const std::string& text, std::uint16_t& out) {
+            double value = 0.0;
+            if (! number (text, value) || value != std::floor (value) || value < 1.0 || value > 32.0)
+                return false;
+            out = static_cast<std::uint16_t> (value);
+            return true;
+        };
+        UiNewProjectChoices choices;
+        for (const std::string& line : readSessionRecordLines (kNewProjectRecordFileName))
+        {
+            const std::size_t equals = line.find ('=');
+            if (equals == std::string::npos)
+                continue;
+            const std::string key = line.substr (0, equals);
+            const std::string text = line.substr (equals + 1u);
+            const std::size_t slash = text.find ('/');
+            bool ok = true;
+            if (key == "rate")
+                ok = number (text, choices.sampleRateHz);
+            else if (key == "bpm")
+                ok = number (text, choices.bpm);
+            else if (key == "meter")
+                ok = slash != std::string::npos && meterPart (text.substr (0, slash), choices.meterNumerator)
+                  && meterPart (text.substr (slash + 1u), choices.meterDenominator);
+            else if (key == "template")
+                choices.templateName = text;
+            if (! ok)
+                return UiNewProjectChoices {};
+        }
+        return newProjectChoicesValid (choices) ? choices : UiNewProjectChoices {};
+    }
+
+    void setNewProjectChoices (const UiNewProjectChoices& choices)
+    {
+        if (! newProjectChoicesValid (choices))
+            return;
+        const auto text = [] (double value) {
+            std::ostringstream out;
+            out.imbue (std::locale::classic());
+            out << std::setprecision (17) << value;
+            return out.str();
+        };
+        writeSessionRecordLines (kNewProjectRecordFileName,
+                                 { "rate=" + text (choices.sampleRateHz),
+                                   "bpm=" + text (choices.bpm),
+                                   "meter=" + std::to_string (choices.meterNumerator) + "/" + std::to_string (choices.meterDenominator),
+                                   "template=" + choices.templateName });
+    }
+
+    // The adopted device's rate (0 when none), and a rate the shell had the device switch to (ADR-0060).
+    [[nodiscard]] double adoptedDeviceSampleRateHz() const noexcept
+    {
+        return recordingDevice_.selected && recordingDevice_.sampleRate.isValid() ? recordingDevice_.sampleRate.hz : 0.0;
+    }
+    void noteDeviceSampleRate (double hz)
+    {
+        if (hz > 0.0)
+        {
+            recordingDevice_.sampleRate = engine::SampleRate { hz };
+            syncRecordingContext();
+        }
     }
 
     // ---- ADR-0056: the browser's per-user records, beside the recent-projects record ----

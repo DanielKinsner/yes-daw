@@ -381,6 +381,12 @@ juce::var MainComponent::buildProbeLayout()
             put ("pianoroll.typing", pianoRollTypingButton.getBounds());   // G3.6
             put ("pianoroll.step", pianoRollStepButton.getBounds());
         }
+        if (newProjectDialog.isVisible())   // G5.5: the New Project dialog's controls, for drives
+            for (juce::Component* control : { static_cast<juce::Component*> (&newProjectDialog.rate), static_cast<juce::Component*> (&newProjectDialog.tempo),
+                                              static_cast<juce::Component*> (&newProjectDialog.meterNumerator), static_cast<juce::Component*> (&newProjectDialog.meterDenominator),
+                                              static_cast<juce::Component*> (&newProjectDialog.templateChooser), static_cast<juce::Component*> (&newProjectDialog.create),
+                                              static_cast<juce::Component*> (&newProjectDialog.cancel) })
+                put (control->getComponentID(), getLocalArea (&newProjectDialog, control->getBounds()));
         if (browserPanel.isVisible())   // G5.2: the browser's widgets, so a drive clicks what it sees
         {
             put ("browser.source", getLocalArea (&browserPanel, browserPanel.source.getBounds()));
@@ -695,6 +701,7 @@ juce::String MainComponent::buildStateProbeJson()
                 browser->setProperty ("auditionName", juce::String (yesdaw::io::utf8Text (appModel.auditionSource().filename())));
             view->setProperty ("browser", juce::var (browser));
         }
+        view->setProperty ("newProjectDialog", newProjectDialog.isVisible());   // G5.5 / ADR-0060
         view->setProperty ("dockHeight", dockedMixerHeight());
         view->setProperty ("mixerNarrow", context.mixerStripsNarrow);   // G4.1
         view->setProperty ("settingsRow", context.settingsRowVisible);
@@ -853,6 +860,12 @@ juce::String MainComponent::buildStateProbeJson()
         audio->setProperty ("callbackAdds", static_cast<juce::int64> (audioCallbackAdds));
         audio->setProperty ("callbackRemovals", static_cast<juce::int64> (audioCallbackRemovals));
         audio->setProperty ("callbackRegistered", desktopAudioCallbackRegistered);
+        // ADR-0060: the device's rate (the open device's, else the adopted profile's) and the project-rate requests.
+        audio->setProperty ("deviceRateHz", fileChoices.currentAudioDeviceSampleRate ? fileChoices.currentAudioDeviceSampleRate()
+                                            : deviceSampleRateHz.load (std::memory_order_relaxed) > 0.0
+                                                ? deviceSampleRateHz.load (std::memory_order_relaxed)
+                                                : appModel.adoptedDeviceSampleRateHz());
+        audio->setProperty ("rateRequests", static_cast<juce::int64> (deviceRateRequests));
         // G0.3: suspend REQUESTS (registered or not) — the [no-callback-teardown] gate's
         // number in the headless harness, where no device callback ever exists.
         audio->setProperty ("suspendRequests", static_cast<juce::int64> (audioSuspendRequests));
@@ -1390,6 +1403,8 @@ std::filesystem::path withExtension (std::filesystem::path path, const std::file
 yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
 {
     yesdaw::ui::MainComponentFileChoices choices;
+    choices.newProjectDialog = true;   // ADR-0060: the New Project overlay
+    choices.nativePrompts = true;      // and the unsaved-changes box before New / Open
 
     choices.chooseNewProjectBundle = [] {
         const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
@@ -2202,6 +2217,13 @@ void mainComponentBrowserPressPlayMark (juce::Component& component, int row)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         mainComponent->harnessBrowserPanel().list.harnessPressPlayMark (row);
+}
+
+UiNewProjectChoices mainComponentNewProjectDialogChoices (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessNewProjectDialog().choices();
+    return {};
 }
 
 void mainComponentWaitForExport (juce::Component& component)

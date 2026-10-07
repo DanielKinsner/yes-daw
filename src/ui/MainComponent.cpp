@@ -1110,6 +1110,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     };
     addChildComponent (instrumentPanel);
     initialiseBrowser();   // G5.2 / ADR-0056: the media browser dock tab
+    initialiseNewProjectDialog();   // G5.5 / ADR-0060
 
     // G3.1: the inspector's TRACK tab carries the kind chooser and an Edit button (opens the tab).
     configureActionComponent (inspectorInstrumentChooser, yesdaw::ui::UiActionId::TrackSetInstrument, "Track instrument");
@@ -1793,6 +1794,8 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         refreshAudioDeviceChooser();
         recordStartupStage ("adopt-and-enumerate-device");
     }
+    if (desktopAudioRequested || fileChoices.initialiseSessionAtLaunch)
+        requestProjectDeviceRate();   // ADR-0060: the launch project, once the device is open
 
     // E34: open every MIDI input so played notes reach a live capture session (native
     // shell only — harness runs stay deterministic with the injected model seam).
@@ -2184,6 +2187,7 @@ void MainComponent::resized()
         const int width = std::min (L::keymapEditorMaxWidth, work.getWidth() - L::keymapEditorMargin);
         const int height = std::min (L::keymapEditorMaxHeight, work.getHeight() - L::keymapEditorMargin);
         keymapEditor.setBounds (work.withSizeKeepingCentre (std::max (L::keymapEditorMinWidth, width), std::max (L::keymapEditorMinHeight, height)));
+        newProjectDialog.setBounds (getLocalBounds().withSizeKeepingCentre (L::newProjectWidth, L::newProjectHeight));   // ADR-0060
         // G2.18: the undo history window — the same centred law, narrower.
         const int historyWidth = std::min (L::undoHistoryMaxWidth, work.getWidth() - L::keymapEditorMargin);
         const int historyHeight = std::min (L::undoHistoryMaxHeight, work.getHeight() - L::keymapEditorMargin);
@@ -2257,6 +2261,8 @@ void MainComponent::resized()
     layoutInspectorControls();
     layoutMixerControls();
     hideMixerControlsBehindDockTab();   // G2.1 cp2
+    if (newProjectDialog.isVisible())   // ADR-0060: the dialog stays above every control the layout raised
+        newProjectDialog.toFront (false);
 }
 
 // G2.1: the splitters set these; each clamps to the plan's §3.4 ranges, lays out and repaints.

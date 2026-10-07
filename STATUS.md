@@ -8,6 +8,42 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 (morning) — G5.5 checkpoint 1: the New Project dialog, the device at the project's rate (ADR-0060)
+
+**Now:** G5.5 **cp1** is in, headless-certified. **Next: G5.5 cp2 — Save As and Save a Copy through one atomic
+bundle copy** (`VACUUM INTO` into `<target>.<n>.partial`, the open path's content-hash check validates it, rename;
+autosave and trash never copied), then cp3 (templates), G5.6 (preferences), G5.7 (relink) and SS-6.
+
+**What a user gets:** `File > New` opens a **New Project** dialog — sample rate (44.1 / 48 / 88.2 / 96 kHz), tempo,
+meter and template (Default for now; templates are cp3) — and remembers the last choices. New never opens or
+overwrites a project already at the chosen place. New, Open and Open Recent ask **Save / Don't Save / Cancel** when
+there are edits since the last Save (Save on the untitled session goes through Save As; cancelling it cancels).
+When a project is created or opened — including the one opened at launch — the audio device is asked to run at the
+project's rate (a reopen); a device that can't is put back as it was and the warning names both rates. Before, every
+project was 48 kHz / 120 / 4/4, New silently overwrote an existing bundle, and a 44.1 kHz project on a 48 kHz device
+played 9 % fast.
+
+**Gates:** `[project-lifecycle]` (9 cases) — the chosen rate, tempo and meter reach the reopened bundle and are
+remembered; the keyboard alone creates a project through the overlay, Tab stays inside it, Esc closes it (one press;
+while navigating, ADR-0049's order: the first Esc ends navigation); an occupied target is refused and left
+byte-identical; a failed creation keeps the current project and its undo; Save / Don't Save / Cancel on a named
+project and on the untitled session (Save As cancelled cancels New); the device asked once, not again at the same
+rate, the warning naming both rates when refused, and the launch project asked too; the dialog's choices apply to an
+injected project; out-of-range choices refused; the remembered record is radix '.' both ways and a bad value falls
+back to the defaults whole. Screenshot gate `[new-project]`: the dialog inside the window, every control visible and
+inside it, nothing the layout raises above it (it bit: the dock splitter was drawn across the dialog). Agent visual
+judgment of the 1280x720 shot: pass (cosmetic nit parked: the meter reads "4 4" with no "/" between the choosers).
+416/416 local, Clang clean.
+
+**Critic:** no blockers; its five should-fixes are in (the dialog's choices win over an injected project; a refused
+native reopen restores the previous device setup so the callback is never lost; the launch project asks for its
+rate; the untitled-session gate; a locale-proof, strict record) plus the nits worth taking (a 0.5 Hz rate tolerance,
+invalid choices refused). **ADR-0060** amended before publication: every edit already persists, so the copy law is
+"never writes the source", not "the source stays as last saved".
+
+**CI recorded:** cb528a6 and 2b636f0 fail only the standing macOS GPU exception (`timeline_gpu_tests.cpp:84`);
+every other job green.
+
 ## 2026-10-07 (early) — G5.4 done: each Asset's audio is one shared buffer (ADR-0059, closes R30)
 
 **Now:** **G5.4** is in, headless-certified. **Next: G5.5 — new project, templates and copies** (sample rate, tempo

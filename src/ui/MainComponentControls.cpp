@@ -140,6 +140,8 @@ int MainComponent::controlRegionAt (juce::Point<int> shellPoint) const
 // parts (a slider's text box, a combo's label) are not separate stops; nor are scroll-bar arrows.
 juce::Component& MainComponent::controlScopeComponent()
 {
+    if (newProjectDialog.isVisible())   // G5.5 / ADR-0060
+        return newProjectDialog;
     if (fxEditorOpen && fxEditor.isVisible())
         return fxEditor;
     if (keymapEditor.isVisible())

@@ -847,6 +847,16 @@ struct UiTheme
         static constexpr int keymapEditorMinWidth = 320;
         static constexpr int keymapEditorMinHeight = 200;
         static constexpr int keymapEditorMargin = 40;
+        // ADR-0060: the New Project dialog.
+        static constexpr int newProjectWidth = 440;
+        static constexpr int newProjectHeight = 236;   // inset, heading, four rows, a gap, the buttons
+        static constexpr int newProjectInset = 16;
+        static constexpr int newProjectHeadingHeight = 24;
+        static constexpr int newProjectRowGap = 8;
+        static constexpr int newProjectControlHeight = 26;
+        static constexpr int newProjectLabelWidth = 112;
+        static constexpr int newProjectButtonWidth = 84;
+        static constexpr int newProjectTempoTextWidth = 56;
         static constexpr int keymapEditorInset = 12;
         static constexpr int keymapEditorGap = 8;
         static constexpr int keymapEditorTopRowHeight = 32;

@@ -16,6 +16,7 @@
 #include <functional>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -58,6 +59,19 @@ struct MainComponentFileChoices
     std::filesystem::path openBundleAtLaunch;
     // G4.0a: exercise native session startup independently of hardware in the input harness.
     bool initialiseSessionAtLaunch = false;
+    // ADR-0060: the New Project dialog. When `newProjectDialogChoices` is set it answers the dialog (nullopt =
+    // Cancel); else, with `newProjectDialog` (the native shell sets it), New opens the overlay; else (the harness's
+    // default) New creates at once from the remembered choices, as before.
+    std::function<std::optional<UiNewProjectChoices>()> newProjectDialogChoices;
+    bool newProjectDialog = false;
+    // ADR-0060: New and Open ask about unsaved changes through confirmCloseUnsavedChanges when set, or a native box
+    // when `nativePrompts` (the native shell); the harness's default proceeds without asking, as before.
+    bool nativePrompts = false;
+    // ADR-0060: ask the open audio device to run at `hz` (the project's rate); returns whether it now does. The native
+    // shell reopens the JUCE device at that rate when unset.
+    std::function<bool (double hz)> requestAudioDeviceSampleRate;
+    // ADR-0060: the open device's rate as the harness's fake device reports it (the native shell reads JUCE's).
+    std::function<double()> currentAudioDeviceSampleRate;
 };
 
 inline constexpr int kCloseChoiceSave = 0;
@@ -372,6 +386,8 @@ void mainComponentBrowserPressPlayMark (juce::Component& component, int row);   
 // The device-callback-live flag the model reads (a headless shell has no device; the UI tick resets it from the
 // real device state, so a test sets it after any tick it runs).
 void mainComponentSetDeviceCallbackLiveForTest (juce::Component& component, bool live);
+// ADR-0060: the New Project dialog's current choices (what Create would use).
+[[nodiscard]] UiNewProjectChoices mainComponentNewProjectDialogChoices (juce::Component& component);
 // ADR-0058: wait for the running export job and show its outcome (the UI tick's path, joined).
 void mainComponentWaitForExport (juce::Component& component);
 // G3.2: the roll's painted grid lines (tick, x, kind 0 = bar, 1 = beat, 2 = snap) and its clip-relative playhead tick.

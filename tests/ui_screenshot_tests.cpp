@@ -1607,3 +1607,42 @@ TEST_CASE ("G5.3 the settings row shows the export options at 1280x720", "[ui][s
         REQUIRE (bright > 15);
     }
 }
+
+// G5.5 / ADR-0060: the New Project dialog over the shell at the narrowest judged size — the shot is the agent's visual
+// judgment; mechanically, the dialog sits inside the window and every control is visible and paints its label.
+TEST_CASE ("G5.5 the New Project dialog at 1280x720", "[ui][screenshot][new-project]")
+{
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.newProjectDialog = true;
+    const std::filesystem::path session = std::filesystem::temp_directory_path() / "yesdaw-g55-dialog-session";
+    std::filesystem::create_directories (session);
+    choices.sessionStateDirectory = session;
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (1280, 720);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    const juce::Image image = renderShell (*shell);
+    (void) captureShellPng (image, "yesdaw-g55-new-project-1280x720.png");
+    juce::Component* dialog = nullptr;
+    for (int i = 0; i < shell->getNumChildComponents() && dialog == nullptr; ++i)
+        if (shell->getChildComponent (i)->getComponentID() == "newproject.dialog")
+            dialog = shell->getChildComponent (i);
+    REQUIRE (dialog != nullptr);
+    REQUIRE (dialog->isVisible());
+    REQUIRE (shell->getLocalBounds().contains (dialog->getBounds()));
+    // Nothing the shell's layout raised paints over the dialog.
+    for (int i = shell->getIndexOfChildComponent (dialog) + 1; i < shell->getNumChildComponents(); ++i)
+    {
+        juce::Component* above = shell->getChildComponent (i);
+        INFO (above->getComponentID() << " " << above->getName());
+        REQUIRE_FALSE ((above->isVisible() && above->getBounds().intersects (dialog->getBounds())));
+    }
+    for (int i = 0; i < dialog->getNumChildComponents(); ++i)
+    {
+        juce::Component* control = dialog->getChildComponent (i);
+        INFO (control->getComponentID() << " " << control->getName());
+        REQUIRE (control->isVisible());
+        REQUIRE (dialog->getLocalBounds().contains (control->getBounds()));
+    }
+}
