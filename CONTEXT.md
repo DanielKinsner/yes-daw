@@ -523,6 +523,16 @@ The H7 bit-exact export file: RIFF/WAVE, 32-bit IEEE float, Project sample rate,
 interleaved samples.
 _Avoid_: treating integer WAV, compressed files, or resampled output as the canonical gate format
 
+**Template**:
+A project's layout saved for reuse — tracks, buses, strips and inserts, sends and routing, the master strip, rate,
+tempo, meter and markers — without content (no clips, takes, Assets, automation or Sampler pads). A project made from
+one gets a new project ID and fresh IDs for everything it carries (ADR-0060).
+_Avoid_: copying a project folder to start another (shared identities)
+
+**Save a Copy**:
+Writing the current project, unsaved edits included, to another bundle while the source stays current, open and
+unchanged (ADR-0060). Unlike **Save As**, which continues in the copy.
+
 **Decoded buffer**:
 An Asset's decoded samples, made once and never written again, held by reference by everything that reads them —
 the model, the engine's clip schedules and Sampler pads, export jobs, peak builds (ADR-0059). A cross-rate Asset's
