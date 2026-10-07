@@ -24240,6 +24240,166 @@ TEST_CASE ("ADR-0066 every Control target has an accurate accessible element", "
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// ADR-0066 cp3: a target whose control goes away (its strip scrolled out, its track deleted, its section dropped) moves to
+// a live control on the next tick; an overlay the walk entered gives the target back when it closes; a full walk of a
+// real session reaches every control class.
+TEST_CASE ("ADR-0066 targets that go away move on, overlays give the target back, a full walk reaches every class",
+           "[ui][input][shell][control-navigation][g6-keyboard]")
+{
+    const auto bundlePath = makeTempBundlePath ("g63-targets-go-away");
+    const auto secondBundle = makeTempBundlePath ("g63-targets-go-away-new");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1280, 720);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    for (int i = 1; i < 16; ++i)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 16u);
+    const auto walk = [&shell] { return yesdaw::ui::mainComponentControlTraversal (*shell); };
+    const auto inWalk = [&walk] (const juce::String& id) { const auto w = walk(); return std::find (w.begin(), w.end(), id) != w.end(); };
+    // The target's place in the walk when it was set: the navigator retargets to the control now at that index (clamped).
+    const auto indexIn = [&walk] (const juce::String& id)
+    {
+        const auto w = walk();
+        const auto at = std::find (w.begin(), w.end(), id);
+        REQUIRE (at != w.end());
+        return static_cast<std::size_t> (at - w.begin());
+    };
+    const auto requireMovedOn = [&] (const juce::String& gone, std::size_t goneIndex, const char* why)
+    {
+        INFO (why);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (20);
+        const auto after = walk();
+        REQUIRE_FALSE (after.empty());
+        REQUIRE (std::find (after.begin(), after.end(), gone) == after.end());
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        const auto target = controlTargetOf (*shell);
+        REQUIRE (target.navigating);
+        REQUIRE (target.id == after[std::min (goneIndex, after.size() - 1)]);   // ADR-0066: the vanished one's Tab index
+    };
+
+    // A strip scrolled out of the mixer (ADR-0065: it has no parts).
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "mixer.strip.0.mute"));
+        const std::size_t goneIndex = indexIn ("mixer.strip.0.mute");
+        juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+        REQUIRE (strips != nullptr);
+        juce::MouseWheelDetails wheel {};
+        wheel.deltaY = -0.4f;
+        const juce::Point<int> local { 20, 40 };
+        for (int i = 0; i < 20; ++i)
+            strips->mouseWheelMove (makeMouseEvent (*strips, local, local, false, 1, juce::ModifierKeys {}), wheel);
+        requireMovedOn ("mixer.strip.0.mute", goneIndex, "the strip scrolled out");
+    }
+
+    // A deleted track: the last row's controls go with it.
+    {
+        const juce::String lastMute = "mixer.strip.15.mute";
+        for (int i = 0; i < 20; ++i)   // select the last track (a mute cell's click is not a selection)
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackSelectNext);
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        REQUIRE (inWalk (lastMute));   // the last strip is shown (the strips were scrolled to the end)
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, lastMute));
+        const std::size_t goneIndex = indexIn (lastMute);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRemove);
+        REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 15u);
+        requireMovedOn (lastMute, goneIndex, "the track was deleted");
+    }
+
+    // A section the inspector drops when the window shrinks.
+    {
+        shell->setSize (1920, 1080);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipSelectAllProject);
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        REQUIRE (inWalk ("clip.inspector.fade_in"));
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "clip.inspector.fade_in"));
+        const std::size_t goneIndex = indexIn ("clip.inspector.fade_in");
+        shell->setSize (yesdaw::ui::UiTheme::Layout::windowMinWidth, yesdaw::ui::UiTheme::Layout::windowMinHeight);
+        requireMovedOn ("clip.inspector.fade_in", goneIndex, "the section dropped");
+    }
+
+    // Overlays give the target back when they close (the FX editor's is G4.0b's EQ case): the keymap editor here, the New
+    // Project dialog on a shell that shows it.
+    shell->setSize (1920, 1080);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    const auto overlayRoundTrip = [] (juce::Component& on, const juce::String& before, UiActionId open, const char* close)
+    {
+        INFO ("overlay closed by " << close);
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (on, before));
+        yesdaw::ui::mainComponentDispatchAction (on, open);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+        yesdaw::ui::mainComponentServiceUiTick (on);
+        const auto inside = controlTargetOf (on);
+        REQUIRE (inside.navigating);
+        REQUIRE_FALSE (inside.scope.isEmpty());
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (on, close));
+        REQUIRE (pressKey (on, juce::KeyPress::returnKey));
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+        yesdaw::ui::mainComponentServiceUiTick (on);
+        const auto after = controlTargetOf (on);
+        REQUIRE (after.navigating);
+        REQUIRE (after.scope.isEmpty());
+        REQUIRE (after.id == before);
+    };
+    overlayRoundTrip (*shell, "rail.row.0.mute", UiActionId::HelpShowKeymap, "keymap.editor.close");
+    {
+        MainComponentFileChoices dialogChoices;
+        dialogChoices.chooseNewProjectBundle = [secondBundle] { return secondBundle; };
+        dialogChoices.newProjectDialog = true;
+        auto dialogShell = makeShell (std::move (dialogChoices));
+        dialogShell->setSize (1920, 1080);
+        yesdaw::ui::mainComponentServiceUiTick (*dialogShell);
+        overlayRoundTrip (*dialogShell, "project.open", UiActionId::ProjectNew, "newproject.cancel");
+        REQUIRE_FALSE (std::filesystem::exists (secondBundle));   // Cancel created nothing
+        std::error_code cleanup;
+        std::filesystem::remove_all (secondBundle, cleanup);
+    }
+
+    // A full walk with Tab, start to end: every step lands where the walk says, and every class is reached.
+    {
+        REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+        REQUIRE_FALSE (controlTargetOf (*shell).navigating);
+        yesdaw::ui::mainComponentSetDockHeight (*shell, 420);   // tall strips: their I/O rows show
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (20);
+        const auto order = walk();
+        std::set<juce::String> roles;
+        for (std::size_t i = 0; i < order.size(); ++i)
+        {
+            REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+            const auto target = controlTargetOf (*shell);
+            INFO ("step " << i << " expected " << order[i].toStdString());
+            REQUIRE (target.id == order[i]);
+            roles.insert (target.role);
+        }
+        for (const char* role : { "button", "toggle", "chooser", "value" })
+        {
+            INFO ("role " << role);
+            REQUIRE (roles.count (role) == 1);
+        }
+        // ...and every surface's zones (cp1's list, the pads aside: they show only on the Instrument tab — cp1b's case).
+        for (const char* family : { "rail.row.", "tool.", "header.gear", "header.time", "mixer.strip.", "mixer.master.insert.",
+                                    "transport.", "clip.inspector." })
+        {
+            INFO ("zone family " << family);
+            REQUIRE (std::any_of (order.begin(), order.end(), [family] (const juce::String& id) { return id.startsWith (family); }));
+        }
+        for (const char* part : { ".mute", ".solo", ".arm", ".pan", ".volume", ".colour", ".meter", ".fader", ".insert.", ".input", ".output" })
+        {
+            INFO ("zone " << part);
+            REQUIRE (std::any_of (order.begin(), order.end(), [part] (const juce::String& id) {
+                return (id.startsWith ("rail.row.") || id.startsWith ("mixer.strip.")) && id.contains (part);
+            }));
+        }
+    }
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // ADR-0066: building the walk (widgets and painted records) runs on every key and every UI tick while navigating; at
 // 24 tracks with the mixer shown it stays far inside a frame.
 TEST_CASE ("ADR-0066 the control walk with every painted control builds well inside a frame at 24 tracks",

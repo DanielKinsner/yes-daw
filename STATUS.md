@@ -8,6 +8,32 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-10 — G6.3 done headless: targets that go away, overlays, a full walk, the ring as drawn (ADR-0066 cp3)
+
+**Now:** G6.3's three checkpoints are in, headless-certified locally. **Next: G6.4** (interaction and motion states —
+hover, pressed and target states; playhead and meter ballistics from real state; its implementation ADR first), then
+G6.5 (empty states and first-run tips). **Pending the desktop:** SS-6 and the earlier real-app drives, and a screen
+reader's live focus on the painted elements. **Decision still pending (Dan, plan §8.2):** the macOS frame exception —
+CI keeps failing only that check on macOS (3daa429: sustained 25.5 ms); reported raw, not claimed excused.
+
+**What a user gets (cp3):** nothing new to see — the gates prove what the router already did: when the control under the
+keyboard target goes away (its strip scrolled out of the mixer, its track deleted, its inspector section dropped by a
+smaller window) the target moves to a live control on the next tick; closing the keymap editor or Cancelling the New
+Project dialog puts the target back where it was; Tab walks a real session end to end; the target ring keeps 3:1
+contrast as it is actually drawn (at its alpha), not only as an opaque token.
+
+**Gates:** `[g6-keyboard]` (new case) — the three going-away cases each leave the target on a live control in the walk;
+the keymap editor and the New Project dialog (a shell that shows it) each take the walk inside and give the target back
+when their close / Cancel is pressed, and Cancel creates nothing; a Tab walk from the first control to the last lands
+on the walk's order at every step and reaches buttons, toggles, choosers and values and every surface's zones (rail,
+tool strip, header, mixer strips and master slots, transport, inspector); `[tokens]` — the ring blended at its alpha
+over every one of the 20 surfaces it can land on is >= 3:1. 417/417 local, Clang clean.
+
+**Critic:** one blocker, fixed — "moved to a live control" was weaker than the ADR's law; each going-away case now
+asserts the exact retarget (the control at the vanished one's Tab index, clamped). In: the walk checks every surface's
+zones, the drawn ring over every surface, the deleted-track case first requires its target in the walk. The FX editor's
+restore stays G4.0b's EQ test (the same overlay law).
+
 ## 2026-10-09 (night) — G6.3 checkpoint 2: every painted control has its own accessible element (ADR-0066)
 
 **Now:** G6.3 **cp2** is in, headless-certified locally. **Next: G6.3 cp3** — targets that go away (a deleted track, a

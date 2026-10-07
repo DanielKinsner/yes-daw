@@ -173,6 +173,10 @@ TEST_CASE ("ADR-0063 text reaches 4.5:1 and indicators 3:1 wherever they are dra
         { "selectedStrip", Color::selectedStrip() }, { "knobFace", Color::knobFace() },
         { "samplerPadEmpty", Color::samplerPadEmpty() },
     };
+    // ADR-0066 cp3: the target ring as it is drawn — at its alpha, blended over whatever it lands on (it strokes just
+    // outside the control: a panel, a selected strip or lane, a knob face, an inset) — not only the opaque token.
+    for (const auto& [name, surface] : surfaces)
+        add ("focusRing as drawn on " + name, surface.overlaidWith (Color::focusRing().withAlpha (Tone::focusRingAlpha)), surface, 3.0);
     // Text: the three text levels on every surface; the accents and the danger red where they are drawn as text.
     for (const auto& [name, surface] : surfaces)
     {
