@@ -100,6 +100,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         appModel.setExportBitDepth (selected == 2 ? yesdaw::ui::UiAppModel::UiExportBitDepth::Int24
                                     : selected == 3 ? yesdaw::ui::UiAppModel::UiExportBitDepth::Int16
                                                     : yesdaw::ui::UiAppModel::UiExportBitDepth::Float32);
+        appModel.notePreferenceChanges();   // ADR-0061: remembered as it changes (no action runs)
     };
     addAndMakeVisible (exportBitDepthChooser);
 
@@ -123,7 +124,10 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     exportDitherToggle.setClickingTogglesState (true);
     exportDitherToggle.setToggleState (appModel.exportDither(), juce::dontSendNotification);
     exportDitherToggle.setWantsKeyboardFocus (false);
-    exportDitherToggle.onClick = [this] { appModel.setExportDither (exportDitherToggle.getToggleState()); };
+    exportDitherToggle.onClick = [this] {
+        appModel.setExportDither (exportDitherToggle.getToggleState());
+        appModel.notePreferenceChanges();   // ADR-0061
+    };
     addAndMakeVisible (exportDitherToggle);
 
     // ADR-0058 cp3: normalize the export's peak to -1 dBFS (off by default).
@@ -134,7 +138,10 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     exportNormalizeToggle.setClickingTogglesState (true);
     exportNormalizeToggle.setToggleState (appModel.exportNormalize(), juce::dontSendNotification);
     exportNormalizeToggle.setWantsKeyboardFocus (false);
-    exportNormalizeToggle.onClick = [this] { appModel.setExportNormalize (exportNormalizeToggle.getToggleState()); };
+    exportNormalizeToggle.onClick = [this] {
+        appModel.setExportNormalize (exportNormalizeToggle.getToggleState());
+        appModel.notePreferenceChanges();   // ADR-0061
+    };
     addAndMakeVisible (exportNormalizeToggle);
 
     // ADR-0058 cp3: export stems — one file per top-level strip, beside the mix or instead of it.

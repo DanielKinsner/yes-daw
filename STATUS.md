@@ -8,6 +8,37 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 (night) — G5.6 checkpoint 2: view, dock, editing and export preferences (ADR-0061)
+
+**Now:** G5.6 **cp2** is in, headless-certified. **Next: G5.6 cp3 — the chosen audio devices** (reopened at launch
+before the project-rate request; a missing one leaves the open device and the status line names both; never
+overwritten by a fallback), then G5.7 (missing-asset relink) and SS-6.
+
+**What a user gets:** the dock's tab and visibility, the inspector's visibility and tab, the snap unit and mode, the
+metronome and the export bit depth, dither and normalize now follow the user across opens and launches instead of
+resetting on every open. Panel sizes: a project keeps its own (its view-state record wins); a new project, or one
+without a record, starts from the last arrangement the user made. The export controls remember a change as it is
+made and show the remembered choice after a relaunch.
+
+**Gates:** `[prefs]` +4 (9 cases) — dock tab, inspector, snap (bar), snap mode and metronome survive a New, a
+relaunch and an Open, while with no session folder every New is factory (the harness unchanged); a project keeps
+its sizes, a new one starts from the last arrangement, and A and B keep separate values across a relaunch (SS-6 step
+7's logic); the export controls write on the click itself and show the choice after a relaunch; export choices
+round-trip; a malformed view, editing or export key falls back alone (counted). `[keymap-editor]` re-pinned: the
+click is remembered too, so the rebound chord is judged by what it toggles. 415/416 local, Clang clean (22 files);
+the one red is `YesDawTimelineGpuCheck` (sustained 21-24 ms vs 16.6) from an unchanged binary (built 19:18, before
+cp1; passed in today's earlier full runs; it links neither changed file) while another session renders video with
+headless Chrome on this machine — load, recorded; CI's Windows runner is the gate. Visual: no layout change.
+
+**Critic:** no blockers; it verified the snap mapping, no write-every-tick oscillation, the no-folder path and the
+other session-folder tests. In: the export controls change model state with no action, so a change was saved only
+by a later unrelated action — they now note it at once (gated through the real controls); the bit-depth chooser was
+fixed at 32-bit float at construction while preferences load later — the controls now show the model's choices on
+every refresh; the harness sets the inspector width through its own setter.
+
+**CI recorded:** 2bb136d (G5.5 cp3) fails only the standing macOS GPU exception — G5.5 fully certified; 50e1253
+(docs) cancelled by the next push; 67d61fc (G5.6 cp1) running.
+
 ## 2026-10-07 (evening) — G5.6 checkpoint 1: prefs.json and the keymap (ADR-0061)
 
 **Now:** G5.6 **cp1** is in, headless-certified. **Next: G5.6 cp2 — view, dock, editing and export preferences**

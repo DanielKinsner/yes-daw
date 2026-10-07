@@ -218,7 +218,17 @@ void MainComponent::loadViewStateIfBundleChanged()
         return;
     viewStateBundle = bundle;
     viewState = {};
-    appModel.setMixerStripsNarrow (false);   // G4.1: the record's default
+    // ADR-0061: the last arrangement (the user's preferences) under the project's own record, which wins.
+    const yesdaw::ui::UiViewPreferences& preferred = appModel.viewPreferences();
+    if (preferred.railWidth > 0)
+        viewState.railWidth = juce::jlimit (yesdaw::ui::UiTheme::Layout::leftRailMinWidth,
+                                            yesdaw::ui::UiTheme::Layout::leftRailMaxWidth, preferred.railWidth);
+    if (preferred.inspectorWidth > 0)
+        viewState.inspectorWidth = juce::jlimit (yesdaw::ui::UiTheme::Layout::inspectorMinWidth,
+                                                 yesdaw::ui::UiTheme::Layout::inspectorMaxWidth, preferred.inspectorWidth);
+    if (preferred.dockHeight > 0)
+        viewState.dockHeight = juce::jmax (yesdaw::ui::UiTheme::Layout::editorDockMinHeight, preferred.dockHeight);
+    appModel.setMixerStripsNarrow (preferred.narrowStrips);   // G4.1: the record's default
     for (const juce::String& line : juce::StringArray::fromLines (juce::String (appModel.readViewStateRecord())))
     {
         const juce::String key = line.upToFirstOccurrenceOf ("\t", false, false);
@@ -292,9 +302,25 @@ int MainComponent::automationAreaHeightFor (const yesdaw::engine::Track& track) 
     return laneHeight <= 0 ? 0 : laneHeight * (static_cast<int> (automationTargetsStackedUnder (track).size()) + 1);
 }
 
+// The export choosers show the model's choices (preferences may set them after the controls were built).
+void MainComponent::syncExportControls()
+{
+    using Depth = yesdaw::ui::UiAppModel::UiExportBitDepth;
+    const int depthId = appModel.exportBitDepth() == Depth::Int24 ? 2 : appModel.exportBitDepth() == Depth::Int16 ? 3 : 1;
+    if (exportBitDepthChooser.getSelectedId() != depthId)
+        exportBitDepthChooser.setSelectedId (depthId, juce::dontSendNotification);
+    if (exportDitherToggle.getToggleState() != appModel.exportDither())
+        exportDitherToggle.setToggleState (appModel.exportDither(), juce::dontSendNotification);
+    if (exportNormalizeToggle.getToggleState() != appModel.exportNormalize())
+        exportNormalizeToggle.setToggleState (appModel.exportNormalize(), juce::dontSendNotification);
+}
+
 void MainComponent::saveViewState()
 {
     appModel.writeViewStateRecord (viewStateRecordText());
+    // ADR-0061: the same arrangement is the user's last one (a new project, or one without a record, starts from it).
+    appModel.setViewSizePreferences (viewState.railWidth, viewState.inspectorWidth, viewState.dockHeight,
+                                     appModel.context().mixerStripsNarrow);
 }
 
 // Open a project bundle at a known path (B39): shared by File > Open and Open Recent.
@@ -1794,6 +1820,8 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
 void MainComponent::refreshActionState()
 {
     ++actionStateRefreshes;   // G0.4 probe: how often the 391-line refresh actually runs
+    appModel.notePreferenceChanges();   // ADR-0061: whatever the last action changed that the user keeps
+    syncExportControls();               // ADR-0061: the choices preferences restored (read after the controls were made)
     loadViewStateIfBundleChanged();   // G2.1
     syncAutomationLaneVisibility();   // G4.6: the A toggle reflects the selected track's lanes
     restoreControlsHiddenByDockTab();   // G2.1 cp2: the laws below decide afresh

@@ -1,6 +1,7 @@
 // YES DAW - ADR-0061 gates: the user's preferences in prefs.json. cp1: the file and the keymap; the per-user records
-// written whole.
+// written whole. cp2: the view, dock, editing and export defaults; a project's own view state still wins.
 
+#include "ui/MainComponent.h"
 #include "ui/UiAppModel.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -8,7 +9,9 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iterator>
+#include <memory>
 #include <string>
 
 using yesdaw::ui::UiActionId;
@@ -211,4 +214,198 @@ TEST_CASE ("ADR-0061 the last-project, recent-projects and view-state records ar
     REQUIRE (textOf (song / "view-state.txt") == "rail\t300\ndock\t240\n");
     REQUIRE (model.readViewStateRecord() == "rail\t300\ndock\t240\n");
     REQUIRE_FALSE (anyTemporaryIn (song));
+}
+
+// ---- cp2: the view, dock, editing and export defaults ----
+
+namespace {
+
+// A shell on one session folder; `launch` opens the last project as the native launch does.
+struct PrefsShell
+{
+    std::filesystem::path session;
+    std::filesystem::path next;
+    std::unique_ptr<juce::Component> shell;
+
+    PrefsShell (const std::filesystem::path& sessionFolder, bool launch) : session (sessionFolder)
+    {
+        juce::MessageManager::getInstance();
+        yesdaw::ui::MainComponentFileChoices choices;
+        choices.sessionStateDirectory = session;
+        choices.chooseNewProjectBundle = [this] { return next; };
+        choices.chooseOpenProjectBundle = [this] { return next; };
+        choices.initialiseSessionAtLaunch = launch;
+        shell = yesdaw::ui::createMainComponent (std::move (choices));
+        REQUIRE (shell != nullptr);
+        shell->setSize (1280, 800);
+    }
+
+    juce::Component& operator*() { return *shell; }
+
+    void dispatch (UiActionId action) { yesdaw::ui::mainComponentDispatchAction (*shell, action); }
+
+    void create (const std::filesystem::path& bundle)
+    {
+        next = bundle;
+        dispatch (UiActionId::ProjectNew);
+    }
+
+    void open (const std::filesystem::path& bundle)
+    {
+        next = bundle;
+        dispatch (UiActionId::ProjectOpen);
+    }
+
+    [[nodiscard]] yesdaw::ui::UiActionContext context() { return yesdaw::ui::snapshotMainComponent (*shell).context; }
+    [[nodiscard]] std::string sizes() { return yesdaw::ui::mainComponentViewStateRecord (*shell).toStdString(); }
+};
+
+} // namespace
+
+TEST_CASE ("ADR-0061 the dock, inspector, snap and metronome follow the user across opens and relaunches", "[prefs]")
+{
+    const auto directory = prefsScratch ("context");
+    std::int64_t barGrid = 0;
+    {
+        PrefsShell f (directory / "session", false);
+        f.create (directory / "a.yesdaw");
+        const yesdaw::ui::UiActionContext factory = f.context();
+        REQUIRE (factory.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer);
+        REQUIRE (factory.inspectorVisible);
+        REQUIRE_FALSE (factory.metronomeEnabled);
+        REQUIRE (factory.snapMode == yesdaw::ui::UiSnapMode::Grid);
+
+        f.dispatch (UiActionId::ViewPianoRoll);
+        f.dispatch (UiActionId::ViewToggleInspector);
+        f.dispatch (UiActionId::TimelineSnapSetBar);
+        f.dispatch (UiActionId::TimelineSnapModeRelative);
+        f.dispatch (UiActionId::TransportToggleMetronome);
+        barGrid = f.context().snapGridTicks;
+        REQUIRE (f.context().editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll);
+
+        f.create (directory / "b.yesdaw");   // a new project no longer resets them
+        const yesdaw::ui::UiActionContext kept = f.context();
+        REQUIRE (kept.editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll);
+        REQUIRE (kept.mixerDockVisible);
+        REQUIRE_FALSE (kept.inspectorVisible);
+        REQUIRE (kept.snapEnabled);
+        REQUIRE (kept.snapGridTicks == barGrid);
+        REQUIRE (kept.snapMode == yesdaw::ui::UiSnapMode::Relative);
+        REQUIRE (kept.metronomeEnabled);
+    }
+    {
+        PrefsShell relaunched (directory / "session", true);   // the launch reopens b
+        const yesdaw::ui::UiActionContext context = relaunched.context();
+        REQUIRE (context.projectLoaded);
+        REQUIRE (context.editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll);
+        REQUIRE_FALSE (context.inspectorVisible);
+        REQUIRE (context.snapGridTicks == barGrid);
+        REQUIRE (context.snapMode == yesdaw::ui::UiSnapMode::Relative);
+        REQUIRE (context.metronomeEnabled);
+        relaunched.open (directory / "a.yesdaw");   // and an open applies them too
+        REQUIRE (relaunched.context().editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll);
+        REQUIRE (relaunched.context().metronomeEnabled);
+    }
+
+    // No session folder (the harness's default): factory values on every New, exactly as before.
+    PrefsShell plain ({}, false);
+    plain.create (directory / "plain-1.yesdaw");
+    plain.dispatch (UiActionId::ViewToggleInspector);
+    plain.create (directory / "plain-2.yesdaw");
+    REQUIRE (plain.context().inspectorVisible);
+}
+
+TEST_CASE ("ADR-0061 a project keeps its own sizes; a new one starts from the last arrangement; A and B keep separate "
+           "values across a relaunch",
+           "[prefs]")
+{
+    const auto directory = prefsScratch ("sizes");
+    {
+        PrefsShell f (directory / "session", false);
+        f.create (directory / "a.yesdaw");
+        yesdaw::ui::mainComponentSetViewSizes (*f, 300, 260, 250);
+        REQUIRE (f.sizes().find ("rail\t300\ninspector\t260\ndock\t250\n") == 0u);
+
+        f.create (directory / "b.yesdaw");   // no record of its own: the last arrangement
+        REQUIRE (f.sizes().find ("rail\t300\ninspector\t260\ndock\t250\n") == 0u);
+        yesdaw::ui::mainComponentSetViewSizes (*f, 200, 320, 220);
+    }
+    PrefsShell relaunched (directory / "session", true);   // reopens b
+    REQUIRE (relaunched.sizes().find ("rail\t200\ninspector\t320\ndock\t220\n") == 0u);
+    relaunched.open (directory / "a.yesdaw");   // a keeps its own
+    REQUIRE (relaunched.sizes().find ("rail\t300\ninspector\t260\ndock\t250\n") == 0u);
+    relaunched.create (directory / "c.yesdaw");   // a new one: the last arrangement (b's)
+    REQUIRE (relaunched.sizes().find ("rail\t200\ninspector\t320\ndock\t220\n") == 0u);
+}
+
+TEST_CASE ("ADR-0061 the export controls remember a change as it is made and show it after a relaunch", "[prefs]")
+{
+    const auto findById = [] (juce::Component& root, const juce::String& id) {
+        std::function<juce::Component* (juce::Component&)> walk = [&] (juce::Component& component) -> juce::Component* {
+            if (component.getComponentID() == id)
+                return &component;
+            for (int i = 0; i < component.getNumChildComponents(); ++i)
+                if (juce::Component* found = walk (*component.getChildComponent (i)))
+                    return found;
+            return nullptr;
+        };
+        return walk (root);
+    };
+    const auto directory = prefsScratch ("export-controls");
+    {
+        PrefsShell f (directory / "session", false);
+        auto* depth = dynamic_cast<juce::ComboBox*> (findById (*f, "shell.export.bitdepth"));
+        auto* dither = dynamic_cast<juce::Button*> (findById (*f, "shell.export.dither"));
+        REQUIRE (depth != nullptr);
+        REQUIRE (dither != nullptr);
+        depth->setSelectedId (3, juce::sendNotificationSync);   // 16-bit, as a pick does
+        dither->setToggleState (false, juce::dontSendNotification);
+        dither->onClick();                                       // as a click does (no other action follows)
+        const std::string written = textOf (directory / "session" / "prefs.json");
+        REQUIRE (written.find ("\"int16\"") != std::string::npos);
+        REQUIRE (written.find ("\"dither\": false") != std::string::npos);
+    }
+    PrefsShell relaunched (directory / "session", true);
+    auto* depth = dynamic_cast<juce::ComboBox*> (findById (*relaunched, "shell.export.bitdepth"));
+    auto* dither = dynamic_cast<juce::Button*> (findById (*relaunched, "shell.export.dither"));
+    REQUIRE (depth != nullptr);
+    REQUIRE (dither != nullptr);
+    REQUIRE (depth->getSelectedId() == 3);
+    REQUIRE_FALSE (dither->getToggleState());
+}
+
+TEST_CASE ("ADR-0061 export choices are remembered; a malformed view, editing or export key falls back alone", "[prefs]")
+{
+    const auto directory = prefsScratch ("export");
+    {
+        yesdaw::ui::UiAppModel model;
+        model.setSessionStateDirectory (directory);
+        model.setExportBitDepth (yesdaw::ui::UiAppModel::UiExportBitDepth::Int16);
+        model.setExportDither (false);
+        model.setExportNormalize (true);
+        model.notePreferenceChanges();
+    }
+    {
+        yesdaw::ui::UiAppModel model;
+        model.setSessionStateDirectory (directory);
+        REQUIRE (model.exportBitDepth() == yesdaw::ui::UiAppModel::UiExportBitDepth::Int16);
+        REQUIRE_FALSE (model.exportDither());
+        REQUIRE (model.exportNormalize());
+    }
+
+    const auto malformed = prefsScratch ("view-keys");
+    writeText (malformed / "prefs.json",
+               "{ \"view\": { \"railWidth\": \"wide\", \"dockHeight\": 250, \"dockTab\": \"sideways\", \"inspectorVisible\": false },\n"
+               "  \"editing\": { \"snapGridTicks\": 300, \"metronome\": true },\n"
+               "  \"export\": \"nope\" }");
+    yesdaw::ui::UiAppModel model;
+    model.setSessionStateDirectory (malformed);
+    REQUIRE (model.preferencesState() == UiPreferencesState::Loaded);
+    REQUIRE (model.rejectedPreferenceKeys() == 4);   // railWidth, dockTab, snapGridTicks, the export section
+    REQUIRE (model.viewPreferences().railWidth == 0);
+    REQUIRE (model.viewPreferences().dockHeight == 250);
+    REQUIRE (model.viewPreferences().dockTab == yesdaw::ui::UiEditorDockTab::Mixer);
+    REQUIRE_FALSE (model.context().inspectorVisible);
+    REQUIRE (model.context().metronomeEnabled);
+    REQUIRE (model.exportBitDepth() == yesdaw::ui::UiAppModel::UiExportBitDepth::Float32);
 }

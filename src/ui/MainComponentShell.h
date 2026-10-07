@@ -430,6 +430,7 @@ private:
     void afterProjectAttached();
     void requestProjectDeviceRate();
     void saveProjectCopy();
+    void syncExportControls();   // ADR-0061
     void saveProjectAsTemplate();
     void browserAudition (const yesdaw::ui::BrowserRow& row);   // G5.2 cp2
     void refreshBrowserAuditionState();
@@ -877,6 +878,13 @@ private:
 
 public:
     void harnessSetDockHeight (int height) { setDockHeight (height); }   // G2.1
+    void harnessSetViewSizes (int rail, int inspector, int dock)   // ADR-0061: as a splitter released
+    {
+        setRailWidth (rail);
+        setInspectorWidth (inspector);
+        setDockHeight (dock);
+        saveViewState();
+    }
     double harnessTimelineAutoScrollTick() { return timelineInput.autoScrollTick(); }   // G2.3
     // G2.4: the Smart tool's zone and cursor under a shell point.
     [[nodiscard]] juce::String harnessTimelineZoneAt (juce::Point<int> shellPoint, juce::ModifierKeys modifiers) const;

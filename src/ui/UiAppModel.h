@@ -1675,6 +1675,82 @@ public:
 
     // ---- ADR-0061: the user's preferences (prefs.json in the session-state folder) ----
     [[nodiscard]] UiPreferencesState preferencesState() const noexcept { return preferencesState_; }
+    [[nodiscard]] const UiViewPreferences& viewPreferences() const noexcept { return preferences_.view; }
+
+    // cp2: the settings that follow the user, applied when preferences are read and on every attach (which resets
+    // the context). No folder: factory values, as before.
+    void applyContextPreferences()
+    {
+        if (sessionStateDirectory_.empty())
+            return;
+        const UiViewPreferences& view = preferences_.view;
+        context_.inspectorVisible = view.inspectorVisible;
+        context_.inspectorTrackTabActive = view.inspectorTrackTab;
+        context_.mixerDockVisible = view.dockVisible;
+        context_.editorDockTab = view.dockTab;
+        const UiEditingPreferences& editing = preferences_.editing;
+        snapUnit_ = ! editing.snapEnabled          ? UiSnapUnit::Off
+                  : editing.snapGridTicks == 2048 ? UiSnapUnit::Bar
+                  : editing.snapGridTicks == 128  ? UiSnapUnit::Sixteenth
+                                                  : UiSnapUnit::Beat;
+        refreshSnapGrid();
+        context_.snapMode = editing.snapMode;
+        context_.metronomeEnabled = editing.metronome;
+        applyMetronomeToPlayback();
+        const UiExportPreferences& exportChoices = preferences_.exportChoices;
+        exportBitDepth_ = exportChoices.bitDepth == "int24" ? UiExportBitDepth::Int24
+                        : exportChoices.bitDepth == "int16" ? UiExportBitDepth::Int16
+                                                            : UiExportBitDepth::Float32;
+        exportDither_ = exportChoices.dither;
+        exportNormalize_ = exportChoices.normalize;
+    }
+
+    // cp2: after any change (the shell calls this from its refresh), what the user now has is written when it differs
+    // from what the file holds. The sizes come through setViewSizePreferences (a splitter released).
+    void notePreferenceChanges()
+    {
+        if (sessionStateDirectory_.empty())
+            return;
+        UiViewPreferences view = preferences_.view;
+        view.inspectorVisible = context_.inspectorVisible;
+        view.inspectorTrackTab = context_.inspectorTrackTabActive;
+        view.dockVisible = context_.mixerDockVisible;
+        view.dockTab = context_.editorDockTab;
+        UiEditingPreferences editing = preferences_.editing;
+        editing.snapEnabled = snapUnit_ != UiSnapUnit::Off;
+        if (snapUnit_ != UiSnapUnit::Off)   // an Off snap keeps the grid it returns to
+            editing.snapGridTicks = snapUnit_ == UiSnapUnit::Bar ? 2048 : snapUnit_ == UiSnapUnit::Sixteenth ? 128 : 512;
+        editing.snapMode = context_.snapMode;
+        editing.metronome = context_.metronomeEnabled;
+        UiExportPreferences exportChoices;
+        exportChoices.bitDepth = exportBitDepth_ == UiExportBitDepth::Int24 ? "int24"
+                               : exportBitDepth_ == UiExportBitDepth::Int16 ? "int16"
+                                                                            : "float32";
+        exportChoices.dither = exportDither_;
+        exportChoices.normalize = exportNormalize_;
+        if (view == preferences_.view && editing == preferences_.editing && exportChoices == preferences_.exportChoices)
+            return;
+        preferences_.view = view;
+        preferences_.editing = editing;
+        preferences_.exportChoices = exportChoices;
+        savePreferences();
+    }
+
+    // cp2: the last arrangement (the shell calls this where it writes the project's view-state record).
+    void setViewSizePreferences (int railWidth, int inspectorWidth, int dockHeight, bool narrowStrips)
+    {
+        if (sessionStateDirectory_.empty())
+            return;
+        UiViewPreferences view = preferences_.view;
+        view.railWidth = railWidth;
+        view.inspectorWidth = inspectorWidth;
+        view.dockHeight = dockHeight;
+        view.narrowStrips = narrowStrips;
+        if (view == preferences_.view)
+            return;
+        preferences_.view = view;
+        savePreferences();
+    }
     [[nodiscard]] int rejectedPreferenceKeys() const noexcept { return preferences_.rejectedKeys(); }
     [[nodiscard]] bool migratedKeymapPreferences() const noexcept { return migratedKeymap_; }
 
@@ -1732,6 +1808,7 @@ public:
             std::filesystem::rename (sessionStateDirectory_ / kKeymapOverridesRecordFileName, migrated, error);
             migratedKeymap_ = true;
         }
+        applyContextPreferences();
     }
 
     // The whole file, after every change (a rebind, a restore; later: the view, editing, export and devices).
@@ -12550,6 +12627,7 @@ private:
         context_ = {};
         context_.projectLoaded = true;
         context_.activePanel = UiPanel::Timeline;
+        applyContextPreferences();   // ADR-0061: the user's dock, inspector, snap, metronome and export choices
         timelineRangeStartFrame_ = -1;
         timelineRangeEndFrame_ = -1;
         recordingDevice_ = {};

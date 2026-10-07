@@ -20017,8 +20017,10 @@ TEST_CASE ("keymap editor: search, rebind with conflict detection, restore, and 
     relaunch.chooseNewProjectBundle = [bundleB] { return bundleB; };
     shell = makeShell (std::move (relaunch));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    // ADR-0061: the click's state is remembered too, so each chord is judged by what it toggles.
+    const bool clickAfterRelaunch = snapshotMainComponent (*shell).context.metronomeEnabled;
     REQUIRE (shell->keyPressed (juce::KeyPress ('k', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
-    REQUIRE (snapshotMainComponent (*shell).context.metronomeEnabled);
+    REQUIRE (snapshotMainComponent (*shell).context.metronomeEnabled != clickAfterRelaunch);
 
     // Restore defaults: K is the click again and the record is empty.
     REQUIRE (shell->keyPressed (juce::KeyPress ('k', juce::ModifierKeys::altModifier, 0)));
@@ -20026,8 +20028,9 @@ TEST_CASE ("keymap editor: search, rebind with conflict detection, restore, and 
     REQUIRE (restore != nullptr);
     clickButton (*restore);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    const bool clickBeforeK = snapshotMainComponent (*shell).context.metronomeEnabled;
     REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
-    REQUIRE_FALSE (snapshotMainComponent (*shell).context.metronomeEnabled);
+    REQUIRE (snapshotMainComponent (*shell).context.metronomeEnabled != clickBeforeK);
     {
         std::ifstream prefs (sessionDir / "prefs.json", std::ios::binary);
         const std::string text ((std::istreambuf_iterator<char> (prefs)), std::istreambuf_iterator<char>());

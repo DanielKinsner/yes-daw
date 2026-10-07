@@ -1826,6 +1826,12 @@ void mainComponentSetDockHeight (juce::Component& component, int height)
         mainComponent->harnessSetDockHeight (height);
 }
 
+void mainComponentSetViewSizes (juce::Component& component, int rail, int inspector, int dock)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessSetViewSizes (rail, inspector, dock);
+}
+
 juce::String mainComponentTimelineZoneAt (juce::Component& component, juce::Point<int> shellPoint, juce::ModifierKeys modifiers)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
