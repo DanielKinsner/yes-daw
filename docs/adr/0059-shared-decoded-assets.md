@@ -5,6 +5,10 @@
   sites and their checks named; the field, accessor and test factory named; the gate's accessor named; the waveform
   service and device hot-swap API changes stated; the reclaim boundary and the thread rules made exact. Committed
   alone, before any G5.4 code.)
+- **Amended:** 2026-10-07, before publication: the export-job gate follows ADR-0058's law that opening another project
+  cancels the running job (the job's references keep the closed project's audio alive until it ends); found while
+  writing the gate. The device hot-swap clause applies when a model call site builds a `DeviceHotSwapCoordinator` (none
+  does today).
 - **Date:** 2026-10-07
 - **Deciders:** build agent (proposer), separate agent critic
 - **Related:** the plan's G5.4 ("Decoded-asset sharing. One decoded buffer per asset shared by reference (R30), while
@@ -101,8 +105,9 @@ never written after it is published.
   a build makes no copy. The fixture memory assertion uses `UiAppModel::distinctDecodedBuffersForTest()` — the
   distinct buffer addresses held by the decode list, the rate-matched views and the owners handed to the engine — which
   equals the number of decoded Assets plus their cross-rate views.
-- An export job's snapshot holds the model's buffers (identity); closing the project mid-job leaves the job's output
-  equal to the export of the project as it was (the job's references keep the audio alive).
+- An export job's snapshot holds the model's buffers (identity: the buffer's reference count rises while the job
+  runs); opening another project mid-job — which cancels the job (ADR-0058) — leaves the closed project's audio alive
+  until the job has ended, and freed after (the job's references, not the model's, kept it).
 - Closing a project releases its audio: a weak reference to an Asset's buffer expires once the model has opened
   another project and reclaimed its retired engines, and no export job or peak build of it remains.
 - Behaviour is unchanged: every existing playback, render, export and reopen gate passes as it is.
