@@ -80,6 +80,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0060](0060-new-project-templates-copies.md) | New project, templates and copies: a New Project dialog, the device at the project's rate, layout templates with fresh identities, Save As / Save a Copy through one atomic copy | Accepted |
 | [0061](0061-persistent-preferences.md) | Persistent preferences: one prefs.json owns the keymap, view and dock defaults, editing and export defaults and the chosen audio devices; a project's own view state still wins | Accepted |
 | [0062](0062-missing-audio-relink.md) | Missing audio relink: an open that finds missing or damaged Asset files asks for each, adopts only its original bytes, and otherwise changes nothing | Accepted |
+| [0063](0063-tokens-contrast-readable-labels.md) | Tokens, contrast and readable labels: the plan's type scale with an 11 px floor, WCAG contrast for every token where it is drawn, colours defined once, no fake data, tooltips in words | Accepted |
 
 ## Decision status (the five research forks)
 
