@@ -3,6 +3,7 @@
 #include "interchange/Smf.h"   // G3.7: the [midi-file] gate writes and reads back a Standard MIDI File
 #include "io/AudioFileDecode.h"   // ADR-0054: the [import-formats] shell gate
 #include "ui/MainComponent.h"
+#include "ui/PaintedAccessibleProxy.h"
 #include "ui/ControlTarget.h"   // G4.0b: the pure Control-target rules
 #include "ui/DesktopAudioStartup.h"
 #include "ui/EqResponseComponent.h"
@@ -1416,7 +1417,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 93u));   // ADR-0065: + the mixer strips' scroll bar; G5.5: + the New Project dialog; G5.3: + the export Dither / Normalize toggles and the stems chooser; G5.2: + the media browser; G4.7: + the header DIM / MUTE; G4.5: + the header SOLO; G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 94u));   // ADR-0066: + the painted-controls accessibility layer; ADR-0065: + the mixer strips' scroll bar; G5.5: + the New Project dialog; G5.3: + the export Dither / Normalize toggles and the stems chooser; G5.2: + the media browser; G4.7: + the header DIM / MUTE; G4.5: + the header SOLO; G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     // G4.0a restores SS-1's native empty project; it contains one empty audio track.
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
@@ -24037,6 +24038,203 @@ TEST_CASE ("ADR-0066 painted controls are Control targets: the mixer's zones, th
     target ("instrument.pad." + juce::String (yesdaw::ui::UiTheme::Layout::instrumentPanelPadFirstKey));
     REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
     REQUIRE (yesdaw::ui::mainComponentInstrumentPanel (*shell).pads.size() == 1u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// ADR-0066 cp2: every Control target in the walk has an accessible element that tells the truth — painted controls a
+// proxy each (click-through, id-less, never the keyboard's), widgets their own — whose role, title, value and state
+// match the target's and whose actions do what Enter does; the pool is not rebuilt by refreshes that change nothing.
+TEST_CASE ("ADR-0066 every Control target has an accurate accessible element", "[ui][input][shell][control-navigation][g6-keyboard][accessibility]")
+{
+    const auto bundlePath = makeTempBundlePath ("g63-accessible-elements");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
+
+    std::vector<yesdaw::ui::PaintedAccessibleProxy*> proxies;
+    std::function<void (juce::Component&)> collect = [&] (juce::Component& parent)
+    {
+        for (int i = 0; i < parent.getNumChildComponents(); ++i)
+        {
+            juce::Component* child = parent.getChildComponent (i);
+            if (auto* proxy = dynamic_cast<yesdaw::ui::PaintedAccessibleProxy*> (child))
+                proxies.push_back (proxy);
+            collect (*child);
+        }
+    };
+    const auto refreshProxies = [&] { proxies.clear(); collect (*shell); };
+    // Re-collected on every look-up: an action can rebuild the pool, and a retired element is deleted on the next
+    // message-loop turn, so a pointer kept across an action may dangle.
+    const auto proxyFor = [&] (const juce::String& id) -> yesdaw::ui::PaintedAccessibleProxy*
+    {
+        refreshProxies();
+        for (auto* proxy : proxies)
+            if (juce::String (proxy->getModel().targetId) == id)
+                return proxy;
+        return nullptr;
+    };
+    std::function<juce::Component* (juce::Component&, const juce::String&)> widgetFor = [&] (juce::Component& parent, const juce::String& id) -> juce::Component*
+    {
+        for (int i = 0; i < parent.getNumChildComponents(); ++i)
+        {
+            juce::Component* child = parent.getChildComponent (i);
+            if (child->getComponentID() == id)
+                return child;
+            if (juce::Component* found = widgetFor (*child, id))
+                return found;
+        }
+        return nullptr;
+    };
+    const auto rolesFor = [] (const juce::String& role) -> std::vector<juce::AccessibilityRole>
+    {
+        using R = juce::AccessibilityRole;
+        if (role == "button")  return { R::button };
+        if (role == "toggle")  return { R::toggleButton, R::button };
+        if (role == "chooser") return { R::comboBox, R::list };
+        if (role == "value")   return { R::slider };
+        return { R::editableText, R::staticText };
+    };
+
+    refreshProxies();
+    const auto order = yesdaw::ui::mainComponentControlTraversal (*shell);
+    int paintedChecked = 0, widgetsChecked = 0;
+    for (const juce::String& id : order)
+    {
+        if (! yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, id))
+            continue;   // an id the walk numbered (#2) or named for an unnamed widget
+        const auto target = controlTargetOf (*shell);
+        INFO ("control " << id.toStdString() << " (" << target.role << ") " << target.name.toStdString() << " = " << target.value.toStdString());
+        // What a screen reader receives. A painted element describes itself through its handler's own functions; a widget
+        // is JUCE's (its role from its type, its value from the text it shows) — no native handler is made here (one made
+        // outside a window creates a platform element of its own).
+        if (auto* proxy = proxyFor (id))
+        {
+            // A painted control: its own element, on its rect, that takes nothing.
+            bool self = true, children = true;
+            proxy->getInterceptsMouseClicks (self, children);
+            REQUIRE_FALSE (self);
+            REQUIRE_FALSE (children);
+            REQUIRE_FALSE (proxy->getWantsKeyboardFocus());
+            REQUIRE_FALSE (proxy->getMouseClickGrabsKeyboardFocus());
+            REQUIRE (proxy->getComponentID().isEmpty());
+            REQUIRE (shell->getLocalArea (proxy->getParentComponent(), proxy->getBounds()) == target.bounds);
+            const auto element = proxy->describe();
+            REQUIRE (element.title == target.name);
+            REQUIRE (element.value == target.value);
+            const auto allowed = rolesFor (target.role);
+            REQUIRE (std::find (allowed.begin(), allowed.end(), element.role) != allowed.end());
+            if (target.role == "value")
+            {
+                REQUIRE_FALSE (element.readOnly);
+                REQUIRE (element.ranged);
+            }
+            if (target.role == "toggle")
+            {
+                REQUIRE (element.checkable);
+                REQUIRE (element.checked == (target.value == "on"));
+                REQUIRE (element.canToggle);
+            }
+            if (target.role == "button" || target.role == "toggle")
+                REQUIRE (element.canPress);
+            ++paintedChecked;
+        }
+        else
+        {
+            juce::Component* widget = widgetFor (*shell, id);
+            if (widget == nullptr)
+                continue;
+            // A widget: JUCE's own handler, as the widget makes it.
+            const std::unique_ptr<juce::AccessibilityHandler> handler = widget->createAccessibilityHandler();
+            REQUIRE (handler != nullptr);
+            const auto allowed = rolesFor (target.role);
+            REQUIRE (std::find (allowed.begin(), allowed.end(), handler->getRole()) != allowed.end());
+            REQUIRE (handler->getTitle().isNotEmpty());
+            if (target.role == "value")
+            {
+                REQUIRE (handler->getValueInterface() != nullptr);
+                REQUIRE (handler->getValueInterface()->getCurrentValueAsString() == target.value);
+                REQUIRE_FALSE (handler->getValueInterface()->isReadOnly());
+            }
+            if (target.role == "toggle")
+                REQUIRE (handler->getCurrentState().isChecked() == (target.value == "on"));
+            ++widgetsChecked;
+        }
+    }
+    INFO ("painted " << paintedChecked << " widgets " << widgetsChecked);
+    REQUIRE (paintedChecked >= 40);
+    REQUIRE (widgetsChecked >= 20);
+
+    // The element's actions do what Enter does: a rail cell's press mutes; a strip pan set from outside is one step.
+    const auto track = [&bundlePath] (int i) { return readProjectSnapshot (bundlePath).tracks.at (static_cast<std::size_t> (i)).strip; };
+    refreshProxies();
+    {
+        auto* mute = proxyFor ("rail.row.0.mute");
+        REQUIRE (mute != nullptr);
+        mute->invokePress();
+        REQUIRE (track (0).muted);
+    }
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (20);   // retired elements go
+    refreshProxies();
+    {
+        auto* pan = proxyFor ("mixer.strip.1.pan");
+        REQUIRE (pan != nullptr);
+        pan->invokeSetValue (-0.2);
+        REQUIRE (track (1).pan == Catch::Approx (-0.2).margin (1e-5));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);   // ONE step
+        REQUIRE (track (1).pan == Catch::Approx (0.0).margin (1e-6));
+        REQUIRE (track (0).muted);   // the press before it is a step of its own, still there
+    }
+    {
+        auto* slot = proxyFor ("mixer.strip.0.insert.0");
+        REQUIRE (slot != nullptr);
+        REQUIRE (slot->describe().canShowMenu);
+    }
+
+    // The router's own move: the element gets the screen reader's focus, the keyboard stays with the shell.
+    {
+        const auto walk = yesdaw::ui::mainComponentControlTraversal (*shell);
+        const auto at = std::find (walk.begin(), walk.end(), juce::String ("rail.row.0.solo"));
+        REQUIRE (at != walk.end());
+        REQUIRE (at != walk.begin());
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, *(at - 1)));
+        REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+        REQUIRE (controlTargetOf (*shell).id == juce::String ("rail.row.0.solo"));
+        refreshProxies();
+        auto* solo = proxyFor ("rail.row.0.solo");
+        REQUIRE (solo != nullptr);
+        // The announcement addressed the element (its live focus grab needs a native window: the desktop drive's).
+        REQUIRE (probeRoot (*shell)["controlTarget"]["announcedElement"].toString() == juce::String ("rail.row.0.solo"));
+        // A widget's announcement clears it: Esc ends navigation, Tab starts again on the walk's first control (a widget).
+        REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+        REQUIRE_FALSE (controlTargetOf (*shell).navigating);
+        REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+        REQUIRE (proxyFor (controlTargetOf (*shell).id) == nullptr);
+        REQUIRE (probeRoot (*shell)["controlTarget"]["announcedElement"].toString().isEmpty());
+        REQUIRE (juce::Component::getCurrentlyFocusedComponent() != solo);
+        REQUIRE_FALSE (solo->hasKeyboardFocus (true));
+    }
+
+    // Refreshes that change nothing rebuild nothing.
+    {
+        const auto creations = [&shell] { return static_cast<int> (probeRoot (*shell)["controlTarget"]["paintedElementCreations"]); };
+        const int before = creations();
+        REQUIRE (before > 0);
+        for (int i = 0; i < 50; ++i)
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+        REQUIRE (creations() == before);
+        refreshProxies();
+        REQUIRE (static_cast<int> (proxies.size()) == static_cast<int> (probeRoot (*shell)["controlTarget"]["paintedElements"]));
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

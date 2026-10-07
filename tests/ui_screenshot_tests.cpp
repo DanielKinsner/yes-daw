@@ -1700,6 +1700,10 @@ TEST_CASE ("header flex row: tools left, transport centred, master right, nothin
                 const juce::Rectangle<int> bounds = child->getBounds();
                 if (! child->isVisible() || bounds.isEmpty() || bounds.getBottom() > headerHeight)
                     continue;
+                bool clicksSelf = true, clicksChildren = true;
+                child->getInterceptsMouseClicks (clicksSelf, clicksChildren);
+                if (! clicksSelf && ! clicksChildren && child->getComponentID().isEmpty())
+                    continue;   // not a control: a layer that takes nothing (ADR-0066: the header's accessible elements' host)
                 INFO ("child " << child->getName().toStdString() << " " << bounds.toString().toStdString());
                 bool placed = false;
                 for (const juce::Rectangle<int>& rect : rects)

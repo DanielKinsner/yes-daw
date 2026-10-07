@@ -12,6 +12,7 @@
 #include "ui/NewProjectDialogComponent.h"   // G5.5 / ADR-0060
 #include "ui/MainComponentInternal.h"
 #include "ui/ControlTarget.h"
+#include "ui/PaintedAccessibleProxy.h"   // ADR-0066 cp2
 #include "ui/KeyTimeModifiers.h"   // ADR-0057
 
 #include <optional>
@@ -796,6 +797,8 @@ private:
     void collectPaintedControls (std::vector<ShellControl>& controls);   // ADR-0066: the painted surfaces' records
     [[nodiscard]] bool railRowExists (int row) const noexcept;
     void collectPaintedMixerControls (std::vector<ShellControl>& controls);   // ADR-0066: the strips' zones and the master's slots
+    void syncPaintedAccessibilityProxies();                                   // ADR-0066 cp2: one accessible element per painted control
+    [[nodiscard]] yesdaw::ui::PaintedAccessibleProxy* paintedProxyFor (const std::string& targetId) const;
     void openControlTargetContextMenu();                                       // ADR-0066: Shift+F10 while navigating
     void cycleTimeDisplayMode();                                          // the header time readout's click
     [[nodiscard]] static juce::String panReadoutText (float pan);         // "C", "L 12", "R 30" — the rail's paint
@@ -1702,6 +1705,17 @@ private:
     std::size_t paintRingCount = 0;
     std::uint64_t paintCount = 0;
     double lastTickMs = 0.0;
+
+    // ADR-0066 cp2: the painted controls' accessible elements — pooled, rebuilt only when the set of painted controls
+    // changes, re-laid out otherwise. Declared last so they go before the surfaces they sit on. The shell paints its
+    // header controls itself; their elements sit on a click-through, focus-less layer.
+    juce::Component paintedAccessibilityLayer;
+    std::vector<std::unique_ptr<yesdaw::ui::PaintedAccessibleProxy>> paintedProxies;
+    std::vector<std::unique_ptr<yesdaw::ui::PaintedAccessibleProxy>> retiredPaintedProxies;   // detached, deleted next turn
+    std::vector<std::string> paintedProxyShape;   // the ids, roles and surfaces the pool was built for
+    int paintedProxyCreations = 0;
+    bool paintedProxiesReady = false;
+    std::string announcedPaintedElement;   // the painted element the router's last announcement addressed (the probe's)
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

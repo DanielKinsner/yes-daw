@@ -8,6 +8,38 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-09 (night) — G6.3 checkpoint 2: every painted control has its own accessible element (ADR-0066)
+
+**Now:** G6.3 **cp2** is in, headless-certified locally. **Next: G6.3 cp3** — targets that go away (a deleted track, a
+strip scrolled out, a dropped section), overlays restoring the target, a representative full-shell walk, the ring's
+contrast. **Decision still pending (Dan, plan §8.2):** the macOS frame exception — CI keeps showing it alone: 813391b
+(cp1a) sustained 22.1 ms, c3df53b (the undo fix) 18.0 ms, every other test green; reported raw, not claimed excused.
+
+**What a user gets:** a screen reader now sees each painted control as its own element — "Stem 3 mute, toggle button,
+checked", "Stem 3 pan, slider, R10", "Mixer strip 2 send 1 level, slider, -6.0 dB", "Pad 1: load a sample, button" —
+instead of one element per surface; pressing or setting it does what Enter (and the mouse) does; the router's moves
+speak through it while the keyboard stays with the shell. The master fader reads "0.0 dB" to a screen reader (it said
+"1.00").
+
+**Found and fixed:** a screen reader pressing a painted control could crash the app — the press refreshed the shell,
+which handed that same element a new model while its function was still running; the element now runs a copy, and a
+pool rebuild retires old elements to the next message-loop turn instead of destroying them under a running call.
+
+**Gates:** `[accessibility]` (new) — for every control in the walk (70 painted, 39 widgets at 1920x1080 with a tall
+dock): a painted control's element is click-through, id-less, never focusable, exactly on its rect, with its role,
+title, value text, range (values) and checked state (toggles) matching the target and press / toggle where they
+belong; a widget's own JUCE handler has the right role, a title, the target's value text (values) and checked state
+(toggles); an element's press mutes a track; a pan set through the element is one undo step; an insert slot's element
+offers its menu; the router's Tab announces through the element (a widget target clears it) and the keyboard stays with
+the shell; 50 refreshes that change nothing create no element. Ten runs in a row clean. Pins moved, deliberately: the
+shell's child count +1 (the header's element layer); `[header-flex]` skips a child that takes no clicks and has no id
+(that layer). 417/417 local, Clang clean.
+
+**Critic:** no blockers. In: the widget half checks JUCE's handlers (role, value, checked); the announced element clears
+for a widget; duplicate ids asserted. Kept: the value interface is JUCE's base one (its ranged one forces a bare number,
+not the readout "+3.0 dB"); the pool's shape key is rebuilt per refresh (refreshes are not per tick; the walk costs
+0.52 ms). Pending the desktop: the live screen-reader focus grab (a native window's), checked by a drive.
+
 ## 2026-10-09 (late) — G6.3 checkpoint 1b: the mixer's zones, the pads and Shift+F10 (ADR-0066)
 
 **Now:** G6.3 **cp1** (both halves) is in, headless-certified locally. **Next: G6.3 cp2** — an accessible element per

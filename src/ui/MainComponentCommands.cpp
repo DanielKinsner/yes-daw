@@ -2342,6 +2342,7 @@ void MainComponent::refreshActionState()
                                      juce::dontSendNotification);
     inspectorTrackTab.setToggleState (appModel.context().inspectorTrackTabActive,
                                       juce::dontSendNotification);
+    syncPaintedAccessibilityProxies();   // ADR-0066 cp2: states and values the elements report follow the action
 }
 
 void MainComponent::refreshAutosaveRecoveryControls()

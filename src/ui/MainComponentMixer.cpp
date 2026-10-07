@@ -554,6 +554,8 @@ void MainComponent::configureMixerControls()
     mixerMasterFader.setValue (yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault,
                                juce::dontSendNotification);
     mixerMasterFader.setDoubleClickReturnValue (true, yesdaw::ui::UiTheme::Layout::mixerFaderSliderDefault);
+    // ADR-0066: its value reads as the painted readout does ("0.0 dB"), for a screen reader too (it said "1.00").
+    mixerMasterFader.textFromValueFunction = [] (double value) { return dbReadoutText (value); };
     // E21: a master fader drag is ONE undo step.
     mixerMasterFader.onDragStart = [this] { appModel.beginStripGesture(); };
     mixerMasterFader.onDragEnd = [this] { appModel.endStripGesture(); };

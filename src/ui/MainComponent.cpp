@@ -1872,9 +1872,16 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     // app's control thread — so writeAutosaveTick()'s heavy SQLite/asset I/O is on the right thread.
     startTimer (kUiRefreshIntervalMs);
 
+    // ADR-0066 cp2: the header's painted controls' accessible elements sit on this layer (it takes nothing).
+    paintedAccessibilityLayer.setInterceptsMouseClicks (false, false);
+    paintedAccessibilityLayer.setWantsKeyboardFocus (false);
+    paintedAccessibilityLayer.setTitle ("Header controls");
+    addAndMakeVisible (paintedAccessibilityLayer);
+
     // G0.2: keys go to the command router, not to widgets (ADR-0046 §4).
     applyKeyboardFocusLaw();
     initialiseControlNavigation();   // G4.0b: the router's Control target (ADR-0049)
+    paintedProxiesReady = true;
     refreshActionState();
     resized();
     hideMixerControlsBehindDockTab();
@@ -2321,6 +2328,9 @@ void MainComponent::resized()
     hideMixerControlsBehindDockTab();   // G2.1 cp2
     if (newProjectDialog.isVisible())   // ADR-0060: the dialog stays above every control the layout raised
         newProjectDialog.toFront (false);
+    paintedAccessibilityLayer.setBounds (getLocalBounds().withHeight (headerHeightNow()));   // the header the shell paints
+    paintedAccessibilityLayer.toBack();   // under every control, so it shadows nothing
+    syncPaintedAccessibilityProxies();
 }
 
 // G2.1: the splitters set these; each clamps to the plan's §3.4 ranges, lays out and repaints.

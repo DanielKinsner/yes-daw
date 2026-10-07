@@ -604,6 +604,109 @@ void MainComponent::collectPaintedMixerControls (std::vector<ShellControl>& cont
     }
 }
 
+// ADR-0066 cp2: one accessible element per painted control, on the surface that paints it, in Tab order. The pool is
+// rebuilt only when the set of painted controls (their ids, roles and surfaces) changes; otherwise each element is moved
+// onto its control and its model (the record's effects and readouts) refreshed.
+void MainComponent::syncPaintedAccessibilityProxies()
+{
+    if (! paintedProxiesReady)
+        return;
+    std::vector<ShellControl> painted;
+    collectPaintedControls (painted);
+    {
+        std::vector<ControlTargetEntry> entries;
+        entries.reserve (painted.size());
+        for (const auto& control : painted)
+            entries.push_back (control.entry);
+        orderControlTargets (entries);
+        std::map<std::string, std::size_t> indexOf;
+        for (std::size_t i = 0; i < painted.size(); ++i)
+            if (! indexOf.emplace (painted[i].entry.id, i).second)
+                jassertfalse;   // ids are unique by construction (layout names); a duplicate is a provider bug
+        std::vector<ShellControl> sorted;
+        sorted.reserve (painted.size());
+        for (const auto& entry : entries)
+            if (const auto it = indexOf.find (entry.id); it != indexOf.end() && ! painted[it->second].entry.id.empty())
+            {
+                sorted.push_back (std::move (painted[it->second]));
+                indexOf.erase (it);   // never moved twice
+            }
+        painted = std::move (sorted);
+    }
+    const auto surfaceOf = [this] (const ShellControl& control) -> juce::Component&
+    {
+        juce::Component* surface = control.painted->surface;
+        return surface == nullptr || surface == this ? paintedAccessibilityLayer : *surface;
+    };
+
+    std::vector<std::string> shape;
+    shape.reserve (painted.size());
+    for (const auto& control : painted)
+        shape.push_back (control.entry.id + "|" + controlTargetRoleName (control.entry.role) + "|"
+                         + std::to_string (reinterpret_cast<std::uintptr_t> (&surfaceOf (control))));
+    if (shape != paintedProxyShape)
+    {
+        // Retired, not destroyed: an element's own action can be what changed the set (its handler is on the stack), so
+        // it leaves its surface now and is deleted on the next message-loop turn.
+        for (auto& old : paintedProxies)
+        {
+            if (juce::Component* parent = old->getParentComponent())
+                parent->removeChildComponent (old.get());
+            retiredPaintedProxies.push_back (std::move (old));
+        }
+        paintedProxies.clear();
+        if (! retiredPaintedProxies.empty())
+            juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<MainComponent> (this)] {
+                if (safe != nullptr)
+                    safe->retiredPaintedProxies.clear();
+            });
+        for (const auto& control : painted)
+        {
+            auto proxy = std::make_unique<PaintedAccessibleProxy>();
+            ++paintedProxyCreations;
+            surfaceOf (control).addAndMakeVisible (*proxy);   // appended: the surface's children follow Tab order
+            paintedProxies.push_back (std::move (proxy));
+        }
+        paintedProxyShape = std::move (shape);
+    }
+
+    for (std::size_t i = 0; i < painted.size() && i < paintedProxies.size(); ++i)
+    {
+        const ShellControl& control = painted[i];
+        PaintedAccessibleProxy& proxy = *paintedProxies[i];
+        juce::Component& surface = surfaceOf (control);
+        proxy.setBounds (surface.getLocalArea (this, juceRectOf (control.entry.bounds)));
+        proxy.setTitle (juce::String (control.entry.name));
+        const std::shared_ptr<const PaintedControl> record = control.painted;
+        PaintedAccessibleProxy::Model model;
+        model.targetId = control.entry.id;
+        model.role = control.entry.role == ControlTargetRole::Toggle ? PaintedAccessibleProxy::Role::Toggle
+                   : control.entry.role == ControlTargetRole::Value  ? PaintedAccessibleProxy::Role::Value
+                                                                     : PaintedAccessibleProxy::Role::Button;
+        model.checked = [record] { return record->checked; };
+        model.valueText = [this, control] { return controlValueText (control); };
+        if (record->currentValue)
+            model.currentValue = record->currentValue;
+        if (record->setValue)
+            model.setValue = [record] (double value) { record->setValue (value, true); };   // one step, as one drag
+        model.minimum = record->minimum;
+        model.maximum = record->maximum;
+        if (record->activate)
+            model.press = [record] { record->activate(); };   // the mouse path's effect refreshes the shell itself
+        if (record->contextMenu)
+            model.showMenu = record->contextMenu;
+        proxy.setModel (std::move (model));
+    }
+}
+
+PaintedAccessibleProxy* MainComponent::paintedProxyFor (const std::string& targetId) const
+{
+    for (const auto& proxy : paintedProxies)
+        if (proxy->getModel().targetId == targetId)
+            return proxy.get();
+    return nullptr;
+}
+
 void MainComponent::openControlTargetContextMenu()
 {
     const auto controls = collectShellControls();
@@ -1039,6 +1142,12 @@ void MainComponent::adoptAccessibilityControlTarget()
     lastSeenAccessibilityFocus = component;
     if (component == nullptr || component == this)
         return;
+    if (const auto* proxy = dynamic_cast<const PaintedAccessibleProxy*> (component))   // ADR-0066 cp2: a painted control
+    {
+        if (! (controlNavigator.navigating() && controlNavigator.targetId() == proxy->getModel().targetId))
+            (void) adoptControlTargetId (proxy->getModel().targetId);
+        return;
+    }
     while (component != nullptr && component != this && ! isControlWidget (*component))
         component = component->getParentComponent();
     if (component == nullptr || component == this || component->hasKeyboardFocus (true)
@@ -1096,6 +1205,8 @@ void MainComponent::announceControlTarget (const ShellControl& control, bool val
 {
     if (juce::Component* widget = control.widget.getComponent())
     {
+        if (! valueOnly)
+            announcedPaintedElement.clear();   // the probe's: a widget speaks through its own element
         // Accessibility focus on a text field also takes the keyboard (JUCE), which would start text
         // entry on a mere Tab: the field is announced instead and takes focus on Enter.
         if (control.entry.role == ControlTargetRole::TextField)
@@ -1115,18 +1226,20 @@ void MainComponent::announceControlTarget (const ShellControl& control, bool val
         lastSeenAccessibilityFocus = accessibilityFocusComponent();   // the router's own move is not targeting
         return;
     }
-    // A painted control speaks through the surface that paints it: its title and value become the
-    // surface's, and the surface takes the screen reader's focus.
-    juce::Component& surface = control.painted != nullptr && control.painted->surface != nullptr ? *control.painted->surface
-                                                                                                : static_cast<juce::Component&> (*this);
-    surface.setTitle (juce::String (control.entry.name));
-    surface.setDescription (controlValueText (control));
-    if (juce::AccessibilityHandler* handler = surface.getAccessibilityHandler())
+    // ADR-0066 cp2: a painted control speaks through its own accessible element (the proxy on it); the element never
+    // takes the keyboard, so the shell keeps it.
+    syncPaintedAccessibilityProxies();
+    if (PaintedAccessibleProxy* proxy = paintedProxyFor (control.entry.id))
     {
         if (! valueOnly)
-            handler->grabFocus();
-        handler->notifyAccessibilityEvent (valueOnly ? juce::AccessibilityEvent::valueChanged
-                                                     : juce::AccessibilityEvent::titleChanged);
+            announcedPaintedElement = control.entry.id;
+        if (juce::AccessibilityHandler* handler = proxy->getAccessibilityHandler())   // live only in a window
+        {
+            if (valueOnly)
+                handler->notifyAccessibilityEvent (juce::AccessibilityEvent::valueChanged);
+            else
+                handler->grabFocus();
+        }
     }
     lastSeenAccessibilityFocus = accessibilityFocusComponent();
 }
@@ -1146,6 +1259,31 @@ juce::var MainComponent::buildProbeControlTarget()
     object->setProperty ("lastActivation", target.lastActivation);
     object->setProperty ("bounds", probeRect (target.bounds));
     object->setProperty ("count", target.count);
+    {   // ADR-0066: the target's enabled state, its actions and the drawn ring; the painted elements' pool
+        const auto controls = collectShellControls();
+        juce::StringArray actions;
+        bool enabled = false;
+        if (const ShellControl* control = findControl (controls, controlNavigator.targetId()))
+        {
+            enabled = control->painted != nullptr || (control->widget != nullptr && control->widget->isEnabled());
+            switch (control->entry.role)
+            {
+                case ControlTargetRole::Button:    actions.add ("press"); break;
+                case ControlTargetRole::Toggle:    actions.add ("press"); actions.add ("toggle"); break;
+                case ControlTargetRole::Chooser:   actions.add ("choose"); break;
+                case ControlTargetRole::Value:     actions.add ("setValue"); break;
+                case ControlTargetRole::TextField: actions.add ("edit"); break;
+            }
+            if (control->painted != nullptr && control->painted->contextMenu)
+                actions.add ("showMenu");
+        }
+        object->setProperty ("enabled", enabled);
+        object->setProperty ("actions", actions.joinIntoString (" "));
+        object->setProperty ("ring", probeRect (controlRingArea));
+        object->setProperty ("paintedElements", static_cast<int> (paintedProxies.size()));
+        object->setProperty ("paintedElementCreations", paintedProxyCreations);
+        object->setProperty ("announcedElement", juce::String (announcedPaintedElement));
+    }
     return result;
 }
 
