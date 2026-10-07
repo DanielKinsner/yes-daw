@@ -540,6 +540,11 @@ projects and launches; a project's own **view state** (its sizes and lane height
 that project.
 _Avoid_: storing a person's habits in a project, or a project's layout in preferences
 
+**Relink**:
+Putting a missing or damaged Asset file back into a project bundle from the original file it was imported from —
+only a file with the Asset's exact content hash is accepted, so the project sounds exactly as it did (ADR-0062).
+_Avoid_: replacing an Asset with a different file of the same length (that is new audio: import it)
+
 **Decoded buffer**:
 An Asset's decoded samples, made once and never written again, held by reference by everything that reads them —
 the model, the engine's clip schedules and Sampler pads, export jobs, peak builds (ADR-0059). A cross-rate Asset's

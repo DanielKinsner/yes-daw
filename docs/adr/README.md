@@ -79,6 +79,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0059](0059-shared-decoded-assets.md) | Decoded Assets are shared, immutable buffers: one per Asset, held by reference by the model, the engine, export jobs and peak builds | Accepted |
 | [0060](0060-new-project-templates-copies.md) | New project, templates and copies: a New Project dialog, the device at the project's rate, layout templates with fresh identities, Save As / Save a Copy through one atomic copy | Accepted |
 | [0061](0061-persistent-preferences.md) | Persistent preferences: one prefs.json owns the keymap, view and dock defaults, editing and export defaults and the chosen audio devices; a project's own view state still wins | Accepted |
+| [0062](0062-missing-audio-relink.md) | Missing audio relink: an open that finds missing or damaged Asset files asks for each, adopts only its original bytes, and otherwise changes nothing | Accepted |
 
 ## Decision status (the five research forks)
 
