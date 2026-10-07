@@ -16872,9 +16872,143 @@ TEST_CASE ("first-minute density: a dozen tracks at 1080p show at least eight wh
         if (! railRow.isEmpty())
             REQUIRE (std::abs (railRow.getHeight() - L::trackListRowMinHeight) <= L::trackListSeparatorHeight);
     }
-    // G2.1 cp2: 1080 − 88 header − 300 dock − 36 toolbar − 64 ruler − the status row = seven whole
-    // 72 px lanes; the plan's "nine" needs the toolbar/status rows folded into the header (parked).
-    REQUIRE (wholeLanes >= 7);
+    // ADR-0064: the panel runs 92–776 (88 header + 4 inset; 300 dock + 4 inset), the canvas to 766 (10 px scroll
+    // bar) and its content 93–765: a 28 px tool row, the 64 px ruler, then eight 72 px lanes to 761.
+    REQUIRE (wholeLanes >= 8);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// ADR-0064: the timeline's tool row holds every control laid out on it (inside the row, centred), and the rail's rows
+// sit level with their lanes — at the window minimum and the rubric sizes, at the top and scrolled to the bottom.
+TEST_CASE ("the tool row holds its controls and the rail rows sit level with their lanes",
+           "[ui][input][shell][layout]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("layout-level");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    constexpr int kTrackCount = 24;
+    for (int i = 1; i < kTrackCount; ++i)
+        clickButton (*addTrack);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == static_cast<std::size_t> (kTrackCount));
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+
+    const auto requireLevel = [&shell] (const juce::String& where) -> void
+    {
+        const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+        const juce::var layout = probe.getProperty ("layout", juce::var());
+        REQUIRE (layout.isObject());
+        const auto rectOf = [&layout] (const juce::String& key)
+        {
+            const juce::var value = layout.getProperty (key, juce::var());
+            if (! value.isArray() || value.size() != 4)
+                return juce::Rectangle<int>();
+            return juce::Rectangle<int> (static_cast<int> (value[0]), static_cast<int> (value[1]),
+                                         static_cast<int> (value[2]), static_cast<int> (value[3]));
+        };
+        INFO (where.toStdString());
+
+        const juce::Rectangle<int> toolbar = rectOf ("toolbar");
+        INFO ("toolbar " << toolbar.toString().toStdString());
+        REQUIRE (toolbar.getHeight() == L::timelineCanvasToolbarHeight);
+        const auto requireInRow = [&toolbar] (const juce::String& name, juce::Rectangle<int> bounds)
+        {
+            INFO (name.toStdString() << " " << bounds.toString().toStdString());
+            REQUIRE (toolbar.contains (bounds));
+            REQUIRE (std::abs ((bounds.getY() - toolbar.getY()) - (toolbar.getBottom() - bounds.getBottom())) <= 1);
+        };
+        int rowControls = 0;
+        for (int i = 0; i < shell->getNumChildComponents(); ++i)
+        {
+            const juce::Component* child = shell->getChildComponent (i);
+            const juce::Rectangle<int> bounds = child->getBounds();
+            // A control on the row: anything shown that reaches the row's band and is not a whole panel.
+            if (! child->isVisible() || bounds.isEmpty() || ! bounds.intersects (toolbar)
+                || bounds.getHeight() >= toolbar.getHeight() * 2)
+                continue;
+            requireInRow (child->getComponentID().isNotEmpty() ? child->getComponentID() : child->getName(), bounds);
+            ++rowControls;
+        }
+        REQUIRE (rowControls >= 4);   // at least the view cluster [I][X][P][A]
+        for (const char* tool : { "tool.pointer", "tool.pencil", "tool.scissors", "tool.eraser", "tool.hand" })
+            requireInRow (tool, rectOf (tool));
+
+        const juce::Rectangle<int> clipArea = rectOf ("clipArea");
+        int levelRows = 0;
+        for (int lane = 0; lane < kTrackCount; ++lane)
+        {
+            const juce::Rectangle<int> laneRect = rectOf ("lane." + juce::String (lane));
+            const juce::Rectangle<int> railRow = rectOf ("rail.row." + juce::String (lane));
+            if (laneRect.isEmpty() || railRow.isEmpty())
+                continue;
+            INFO ("lane " << lane << " " << laneRect.toString().toStdString()
+                  << " rail row " << railRow.toString().toStdString());
+            REQUIRE (railRow.getY() == laneRect.getY());
+            if (laneRect.getBottom() < clipArea.getBottom())   // a whole lane: the header is its height too
+                REQUIRE (railRow.getHeight() == laneRect.getHeight());
+            ++levelRows;
+        }
+        REQUIRE (levelRows >= 1);
+        // A rail row is shown exactly where its lane is: a row whose lane is off the canvas lies outside the rail's row
+        // area (header and footer trimmed), so the rail never shows a row the lanes do not.
+        const juce::Rectangle<int> railRows = rectOf ("widget.shell.tracklist.input")
+                                                  .withTrimmedTop (L::trackListHeaderHeight)
+                                                  .withTrimmedBottom (L::trackListFooterHeight);
+        REQUIRE_FALSE (railRows.isEmpty());
+        for (int lane = 0; lane < kTrackCount; ++lane)
+            if (rectOf ("lane." + juce::String (lane)).isEmpty())
+            {
+                INFO ("hidden lane " << lane);
+                REQUIRE_FALSE (rectOf ("rail.row." + juce::String (lane)).intersects (railRows));
+            }
+    };
+
+    // A height whose rail row area would hold one row more than the lanes' if the rail ran to its panel's bottom (5 px
+    // past eight whole rows in the rail, short of eight in the lanes): the clamp bites here or nowhere.
+    const int straddleHeight = L::headerHeight + L::mixerHeight + 2 * L::shellPanelVerticalInset + L::trackListHeaderHeight
+                             + 8 * L::trackListRowMinHeight + 5;
+    // The derivation assumes the dock at its default height.
+    REQUIRE (static_cast<int> (juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell))
+                                   .getProperty ("view", {}).getProperty ("dockHeight", 0)) == L::mixerHeight);
+    for (const auto& size : { std::pair<int, int> { L::windowMinWidth, L::windowMinHeight },
+                              std::pair<int, int> { 1280, 720 },
+                              std::pair<int, int> { 1920, 1080 },
+                              std::pair<int, int> { 1600, straddleHeight },
+                              std::pair<int, int> { 2560, 1440 } })
+    {
+        shell->setSize (size.first, size.second);
+        const juce::String name = juce::String (size.first) + "x" + juce::String (size.second);
+        requireLevel (name + " at the top");
+
+        // Scroll to the bottom (more wheel steps than tracks): the last track's header sits beside its lane, which
+        // needs the rail and the canvas to clamp the scroll alike.
+        juce::MouseWheelDetails wheelDown {};
+        wheelDown.deltaY = -0.4f;
+        const juce::Point<int> centre = rail->getLocalBounds().getCentre();
+        for (int step = 0; step < kTrackCount + 4; ++step)
+            rail->mouseWheelMove (makeMouseEvent (*rail, centre, centre, false, 1, juce::ModifierKeys {}), wheelDown);
+        REQUIRE (snapshotMainComponent (*shell).timelineTrackScrollRows > 0);
+        requireLevel (name + " scrolled to the bottom");
+        // At the bottom the last track's lane is on the canvas (the canvas's own scroll maximum was reached, no more).
+        {
+            const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+            const juce::var last = probe.getProperty ("layout", juce::var()).getProperty ("lane." + juce::String (kTrackCount - 1), juce::var());
+            REQUIRE ((last.isArray() && last.size() == 4 && static_cast<int> (last[3]) > 0));
+        }
+        juce::MouseWheelDetails wheelUp {};
+        wheelUp.deltaY = 0.4f;
+        for (int step = 0; step < kTrackCount + 4; ++step)
+            rail->mouseWheelMove (makeMouseEvent (*rail, centre, centre, false, 1, juce::ModifierKeys {}), wheelUp);
+        REQUIRE (snapshotMainComponent (*shell).timelineTrackScrollRows == 0);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

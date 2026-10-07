@@ -347,7 +347,7 @@ struct UiTheme
         static constexpr int headerStatusIconSize = 24;
         static constexpr int shellHeaderSeparatorHeight = 1;
         static constexpr int shellPanelHorizontalInset = 6;
-        static constexpr int shellPanelVerticalInset = 10;
+        static constexpr int shellPanelVerticalInset = 4;   // ADR-0064: 10 -> 4 (with the 28 px tool row, eight lanes at 1080p)
         static constexpr int mixerPanelHorizontalInset = 6;
         static constexpr int mixerPanelVerticalInset = 8;
         static constexpr float panelOutlineInset = 0.5f;
@@ -423,6 +423,7 @@ struct UiTheme
         static constexpr double inspectorTimeSliderIntervalSeconds = 0.001;
         static constexpr double inspectorTimeSliderDefaultSeconds = 0.0;
         static constexpr int inspectorSectionLabelHeight = 20;
+        static constexpr int inspectorSectionLabelInsetX = Space::md;   // ADR-0064: a card's caption sits inside its edge, as its rows do
         static constexpr int inspectorGainSectionTop = 118;
         static constexpr int inspectorGainSectionHeight = 84;
         static constexpr int inspectorGainControlTopInset = 28;
@@ -644,7 +645,6 @@ struct UiTheme
         static constexpr int mixerMasterScaleLabelHeight = 14;
         static constexpr std::array<int, 4> mixerMasterScaleDb {{ 0, -12, -24, -60 }};
 
-        static constexpr int trackListHeaderHeight = 86;
         static constexpr int trackListHeaderLabelHeight = 24;
         static constexpr int trackListHeaderInsetX = 16;
         static constexpr int trackListHeaderInsetY = 0;
@@ -795,21 +795,12 @@ struct UiTheme
         // Shifted right (B41) so the tool row, repeat-paste chooser, SNAP caption, and snap
         // chooser all fit without overlap to its left.
         static constexpr int automationLaneToggleLeftInset = 420;
-        static constexpr int automationLaneToggleTopInset = 8;
+        static constexpr int automationLaneToggleTopInset = 3;   // ADR-0064: centred in the 28 px row (1 outer + 2)
         static constexpr int automationLaneToggleWidth = 116;
-        static constexpr int automationLaneToggleHeight = 26;
-        static constexpr int automationLaneRowLeftInset = 12;
-        static constexpr int automationLaneRowTopInset = 92;
-        static constexpr int automationLaneRowWidth = 320;
-        static constexpr int automationLaneRowHeight = 28;
-        static constexpr int automationBreakpointAddButtonLeftInset = 340;
-        static constexpr int automationBreakpointAddButtonTopInset = automationLaneRowTopInset;
+        static constexpr int automationLaneToggleHeight = 24;   // ADR-0064: every row control fits the row
+        // The automation band's header row (E26): its buttons' widths; the row itself is carved from the band.
         static constexpr int automationBreakpointAddButtonWidth = 104;
-        static constexpr int automationBreakpointAddButtonHeight = automationLaneRowHeight;
-        static constexpr int automationBreakpointDeleteButtonLeftInset = 452;
-        static constexpr int automationBreakpointDeleteButtonTopInset = automationLaneRowTopInset;
         static constexpr int automationBreakpointDeleteButtonWidth = 112;
-        static constexpr int automationBreakpointDeleteButtonHeight = automationLaneRowHeight;
         static juce::Rectangle<int> automationLaneToggleBounds (juce::Rectangle<int> timeline) noexcept
         {
             return timeline.withTrimmedLeft (automationLaneToggleLeftInset)
@@ -1002,43 +993,10 @@ struct UiTheme
             return zoomIn.withX (left).withWidth (
                 juce::jmax (0, timeline.getRight() - statusLineRightInset - left));
         }
-        static juce::Rectangle<int> automationLaneRowBounds (juce::Rectangle<int> timeline) noexcept
-        {
-            return timeline.withTrimmedLeft (automationLaneRowLeftInset)
-                           .withTrimmedTop (automationLaneRowTopInset)
-                           .withWidth (automationLaneRowWidth)
-                           .withHeight (automationLaneRowHeight);
-        }
-
-        static juce::Rectangle<int> automationBreakpointAddButtonBounds (juce::Rectangle<int> timeline) noexcept
-        {
-            return timeline.withTrimmedLeft (automationBreakpointAddButtonLeftInset)
-                           .withTrimmedTop (automationBreakpointAddButtonTopInset)
-                           .withWidth (automationBreakpointAddButtonWidth)
-                           .withHeight (automationBreakpointAddButtonHeight);
-        }
-
-        static juce::Rectangle<int> automationBreakpointDeleteButtonBounds (juce::Rectangle<int> timeline) noexcept
-        {
-            return timeline.withTrimmedLeft (automationBreakpointDeleteButtonLeftInset)
-                           .withTrimmedTop (automationBreakpointDeleteButtonTopInset)
-                           .withWidth (automationBreakpointDeleteButtonWidth)
-                           .withHeight (automationBreakpointDeleteButtonHeight);
-        }
-
-        // E20: the lane-target chooser sits beside the delete button on the automation row.
-        static constexpr int automationTargetChooserLeftInset = automationBreakpointDeleteButtonLeftInset
-                                                              + automationBreakpointDeleteButtonWidth + 8;
+        // E20: the lane-target chooser sits beside the delete button on the automation band's header row.
         static constexpr int automationTargetChooserWidth = 172;
         // N5: the write-mode chooser (Read/Touch/Latch) — shorter labels than the target chooser.
         static constexpr int automationModeChooserWidth = 88;
-        static juce::Rectangle<int> automationTargetChooserBounds (juce::Rectangle<int> timeline) noexcept
-        {
-            return timeline.withTrimmedLeft (automationTargetChooserLeftInset)
-                           .withTrimmedTop (automationBreakpointDeleteButtonTopInset)
-                           .withWidth (automationTargetChooserWidth)
-                           .withHeight (automationBreakpointDeleteButtonHeight);
-        }
         static constexpr int inputDragDeadZonePixels = 2;
         // E33: the inspector TAKES section rows (chooser + delete) in the old placeholder area.
         static constexpr int inspectorTakeRowHeight = 26;
@@ -1114,11 +1072,11 @@ struct UiTheme
         static constexpr int timelineCanvasToolStripCells = 7;
         static constexpr int timelineCanvasToolbarWidth = timelineCanvasToolCellWidth * timelineCanvasToolStripCells;
         static constexpr int timelineCanvasToolbarInsetX = 0;
-        static constexpr int timelineCanvasToolbarInsetY = Space::sm;
+        static constexpr int timelineCanvasToolbarInsetY = Space::xxs;   // ADR-0064: the painted tool cells stay 24 px
         static constexpr int timelineCanvasToolCellInsetX = Space::xxs + Space::hairline;
         static constexpr int timelineCanvasToolCellInsetY = 0;
         static constexpr int timelineCanvasOuterInset = 1;
-        static constexpr int timelineCanvasToolbarHeight = 36;
+        static constexpr int timelineCanvasToolbarHeight = 28;   // ADR-0064: the reference tool-row height (was 36)
         // G0.7 cp3 (plan §3.4): the ruler is two 22 px time rows (bars · minutes:seconds) over a
         // 20 px marker lane. The whole band stays ONE hit zone (locate, range, loop, punch).
         static constexpr int timelineRulerBarsRowHeight = 22;
@@ -1126,6 +1084,11 @@ struct UiTheme
         static constexpr int timelineRulerMarkerLaneHeight = 20;
         static constexpr int timelineCanvasRulerHeight = timelineRulerBarsRowHeight + timelineRulerTimeRowHeight
                                                        + timelineRulerMarkerLaneHeight;   // 64
+        // ADR-0064: the rail's rows sit beside their lanes — its header is the canvas's outer inset, tool row and ruler,
+        // its footer the canvas's scroll bar and outer inset — so both panels show and clamp the same rows.
+        static constexpr int trackListHeaderHeight = timelineCanvasOuterInset + timelineCanvasToolbarHeight
+                                                   + timelineCanvasRulerHeight;   // 93
+        static constexpr int trackListFooterHeight = timelineScrollBarThickness + timelineCanvasOuterInset;   // 11
         static constexpr int timelineRulerTimeLabelWidth = 48;
         static constexpr int timelineCanvasClipAreaInsetX = 12;
         static constexpr int timelineCanvasClipAreaInsetY = 0;

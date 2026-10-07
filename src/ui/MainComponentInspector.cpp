@@ -1031,7 +1031,8 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
                     .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainSectionHeight);
     if (drawInspectorSectionCard (gain))
     {
-        drawSmallLabel (g, "GAIN", gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
+        drawSmallLabel (g, "GAIN", gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight)
+                                       .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelInsetX));
         g.setColour (kText);
         g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
             yesdaw::ui::UiTheme::Type::title));
@@ -1051,8 +1052,8 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
             g.setColour (kMutedText);
             g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small));
             g.drawText ("Stretch",
-                        juce::Rectangle<int> (gain.getX() + static_cast<int> (yesdaw::ui::UiTheme::Space::md), stretch.getY(),
-                                              stretch.getX() - gain.getX() - static_cast<int> (yesdaw::ui::UiTheme::Space::md),
+                        juce::Rectangle<int> (gain.getX() + yesdaw::ui::UiTheme::Layout::inspectorSectionLabelInsetX, stretch.getY(),
+                                              stretch.getX() - gain.getX() - yesdaw::ui::UiTheme::Layout::inspectorSectionLabelInsetX,
                                               stretch.getHeight()),
                         juce::Justification::centredLeft,
                         false);
@@ -1069,7 +1070,8 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
                      .withHeight (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionHeight);
     if (drawInspectorSectionCard (fades))
     {
-        drawSmallLabel (g, "FADES", fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
+        drawSmallLabel (g, "FADES", fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight)
+                                        .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelInsetX));
         const double sampleRate = appModel.project().sampleRate.isValid()
                                       ? appModel.project().sampleRate.hz
                                       : yesdaw::ui::UiTheme::Layout::inspectorReadoutFallbackSampleRate;
@@ -1108,7 +1110,8 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
     if (drawInspectorSectionCard (fadeChart))
     {
         drawSmallLabel (g, "FADE CURVE",
-                        fadeChart.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
+                        fadeChart.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight)
+                                 .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelInsetX));
         const auto chart = inspectorFadeChartBounds();
         g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
         g.fillRoundedRectangle (chart.toFloat(), yesdaw::ui::UiTheme::Radius::md);
@@ -1142,7 +1145,8 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
         auto markersCard = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorMarkersSectionTop)
                                .withHeight (yesdaw::ui::UiTheme::Layout::inspectorMarkersSectionHeight);
         if (drawInspectorSectionCard (markersCard))   // G2.14
-            drawSmallLabel (g, "MARKERS", markersCard.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
+            drawSmallLabel (g, "MARKERS", markersCard.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight)
+                                              .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelInsetX));
     }
     auto takes = area.withTrimmedTop (
         yesdaw::ui::UiTheme::Layout::inspectorAutomationSectionTop);

@@ -451,6 +451,7 @@ juce::var MainComponent::buildProbeLayout()
         const yesdaw::ui::TimelineCanvasGeometry geometry =
             yesdaw::ui::timelineCanvasGeometry (timelineInput.getLocalBounds(), state);
         const juce::Point<int> origin = timelineInput.getPosition();
+        put ("toolbar", geometry.toolbarArea.translated (origin.x, origin.y));   // ADR-0064: the row its controls sit in
         put ("ruler", geometry.rulerArea.translated (origin.x, origin.y));
         put ("clipArea", geometry.clipArea.translated (origin.x, origin.y));
         for (int mapIndex = 0; mapIndex < state.mapLabelCount; ++mapIndex)   // the tempo / meter change labels

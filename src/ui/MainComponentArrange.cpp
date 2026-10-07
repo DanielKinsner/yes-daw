@@ -1121,6 +1121,7 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
 {
     fillPanel (g, area);
     auto header = area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+    area.removeFromBottom (yesdaw::ui::UiTheme::Layout::trackListFooterHeight);   // ADR-0064: rows end with the lanes
     drawSmallLabel (g,
                     "TRACKS",
                     header.reduced (yesdaw::ui::UiTheme::Layout::trackListHeaderInsetX,

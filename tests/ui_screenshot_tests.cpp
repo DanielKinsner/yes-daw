@@ -1442,11 +1442,11 @@ TEST_CASE ("G0.7 rubric shots: the song fixture at 1280x720, 1920x1080 and 2560x
         }
         INFO ("whole lanes at " << width << "x" << height << ": " << wholeLanes);
         // G2.1 cp2: the plan's 300 px dock at 720p leaves two whole rows and a third partial
-        // (88 + 36 + 64 + 3×72 + 300 + insets does not fit 720); the dock is one drag from 160,
-        // where four fit. At 1080p the same budget (plus the toolbar and status rows) is seven
-        // whole lanes; the plan's "nine" needs those rows folded into the header (parked).
+        // (88 + 28 + 64 + 3×72 + 300 + insets does not fit 720); the dock is one drag from 160,
+        // where four fit. ADR-0064: at 1080p the 28 px tool row and 4 px insets leave eight whole lanes (the plan's
+        // rubric line 2).
         if (height >= 1080)
-            REQUIRE (wholeLanes >= 7);
+            REQUIRE (wholeLanes >= 8);
         else
             REQUIRE (wholeLanes >= 2);
     }
@@ -1778,5 +1778,18 @@ TEST_CASE ("ADR-0063 the inspector's stretch slider has a label and a value", "[
         INFO ("at " << size.first << "x" << size.second);
         REQUIRE (maxContrastInRegion (image, label) >= 3.0);
         REQUIRE (maxContrastInRegion (image, value) >= 3.0);
+
+        // ADR-0064: the GAIN card's caption sits inside the card's edge like its rows (it was drawn at the edge): no
+        // caption ink in the card's first columns, the caption itself just after the inset.
+        using L = yesdaw::ui::UiTheme::Layout;
+        const int cardLeft = size.first - L::inspectorWidth + L::shellPanelHorizontalInset + L::inspectorContentInsetX;
+        const int cardTop = L::headerHeight + L::shellPanelVerticalInset + L::inspectorTabHeight + L::inspectorContentInsetY
+                          + L::inspectorGainSectionTop;
+        const int inset = yesdaw::ui::UiTheme::Space::md;   // the law, not the token: a token of 0 must fail here
+        const juce::Rectangle<int> edge (cardLeft + 1, cardTop + 4, inset - 2, L::inspectorSectionLabelHeight - 8);
+        const juce::Rectangle<int> caption (cardLeft + inset, cardTop + 2, 40, L::inspectorSectionLabelHeight - 4);
+        INFO ("gain caption edge " << edge.toString().toStdString() << " caption " << caption.toString().toStdString());
+        REQUIRE (maxContrastInRegion (image, edge) < 1.5);
+        REQUIRE (maxContrastInRegion (image, caption) >= 3.0);
     }
 }

@@ -151,8 +151,7 @@ public:
         if (const int handleRow = rowResizeHandleAt (event.getPosition()); handleRow >= 0)
         {
             const int rows = rowCountProvider ? rowCountProvider() : 0;
-            auto area = getLocalBounds();
-            area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+            auto area = rowArea();
             resizeDragRow = handleRow;
             resizeDragStartY = event.getPosition().y;
             resizeDragStartHeightPx = static_cast<int> (   // G4.6: the row's own part (lanes keep their height)
@@ -357,8 +356,7 @@ public:
         if (rows <= 0 || row < 0 || row >= rows)
             return {};
 
-        auto area = getLocalBounds();
-        area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+        auto area = rowArea();
         const yesdaw::ui::CumulativeRowGeometry geometry = rowGeometry (rows, area.getHeight());
         const int scrollRows = effectiveScrollRows();
         // G4.6: the header keeps the row's own part; the automation lanes stacked under it are not header.
@@ -577,8 +575,7 @@ private:
         if (rows <= 0)
             return -1;
 
-        auto area = getLocalBounds();
-        area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+        auto area = rowArea();
         if (position.x < area.getX() || position.x >= area.getRight())
             return -1;
 
@@ -604,8 +601,7 @@ private:
         if (rows <= 0)
             return -1;
 
-        auto area = getLocalBounds();
-        area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+        auto area = rowArea();
         if (! area.contains (position))
             return -1;
 
@@ -622,14 +618,21 @@ public:
     std::function<int()> rowScrollProvider;
     std::function<void (int)> onVerticalScrollRows;
 
+    // ADR-0064: the rows' area ends level with the timeline's lane area (header = its tool row and ruler, footer = its
+    // scroll bar), so a row sits beside its lane and both panels clamp the vertical scroll alike.
+    [[nodiscard]] juce::Rectangle<int> rowArea() const
+    {
+        return getLocalBounds().withTrimmedTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight)
+                               .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::trackListFooterHeight);
+    }
+
     [[nodiscard]] int maxScrollRows() const
     {
         const int rows = rowCountProvider ? rowCountProvider() : 0;
         if (rows <= 0)
             return 0;
 
-        auto area = getLocalBounds();
-        area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
+        auto area = rowArea();
         // N6: visibleRows stays an AUTO-SHARE-height approximation (matching the timeline's own
         // scroll-count heuristic) even with custom heights present — an honest, minor imprecision
         // rather than a full non-uniform scroll-extent solve, which the gate does not require.

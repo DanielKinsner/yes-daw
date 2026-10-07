@@ -8,6 +8,44 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 (evening) — G6.2 checkpoint 1: eight lanes at 1080p, track headers level with their lanes (ADR-0064)
+
+**Now:** G6.2 **cp1** is in, headless-certified locally. **Next: ADR-0065** (mixer strips scroll, the master pinned at
+the right — found in this checkpoint's judgment, accepted after a critic pass), then **G6.2 cp2** (the scaling matrix,
+the 1152x640 window minimum, reachability, scaled renders, the mixer scroll), then cp3 (the macOS frame exception
+re-measured). SS-6 still waits for a free desktop.
+
+**What a user gets:** at a 1920x1080 window with the dock open, eight whole tracks show (seven before); every track
+header on the left sits level with its lane (they were 15 px high since the ruler grew) and stays level after
+scrolling to the bottom at any height (the two panels clamped the scroll separately); the timeline's tool row is a
+compact 28 px with its controls centred; the inspector's section captions (GAIN, FADES, FADE CURVE, MARKERS) sit
+inside their cards instead of on the edge.
+
+**Gates:** `[layout]` (new) — at the window minimum, 1280x720, 1920x1080, 2560x1440 and a token-derived height where
+the two row areas would round apart: every control on the tool row lies inside it with equal gaps (the painted tool
+cells too), every on-screen rail row's top equals its lane's (heights too for whole lanes), a rail row whose lane is
+off the canvas lies outside the rail's row area, at the top and scrolled to the bottom (the last lane reached); density
+`>= 8` at 1080p in both density gates (was `>= 7`); the GAIN caption leaves the card's first 8 px empty and paints just
+after. Bites checked: the scroll clamp fails without the rail footer (at the straddle height, scrolled), the row
+containment fails with the old 8/26 control inset, the caption gate fails with a 0 inset. 416/416 local, Clang clean.
+
+**Visual judgment (agent):** 1080p — the rail rows and lanes share every separator, lane 8 ends 4 px above the canvas;
+the tool row reads tools · SNAP Beat · zoom · slider · Snap / Edit / Nudge · I X P A, centred; 720p — three whole lanes
+(two before); the floor shot keeps the tools and the view cluster (the rest drops whole). **Found:** with 16 tracks at
+1280x720 the mixer's later strips and the whole master run off the dock's right edge with no way to reach them (24
+tracks at 1920 the same) — ADR-0065.
+
+**Critic:** no blockers. In: the dead automation-row tokens (`automationLaneRowTopInset = 92` and the helpers built on
+it) removed; the rail-level gate also checks rows whose lanes are hidden and that the bottom reaches the last lane; the
+straddle height asserts its default-dock premise.
+
+**CI recorded:** 379b6ae and 1bc4a6f (G6.1 cp1, cp2) fail only the standing macOS GPU exception (sustained 22.37 /
+22.64 ms; 413/414 green otherwise) — **G6.1 certified**. fd5eaed (ADR-0064) green.
+
+**Baseline gathered for cp3** (CI history since 2026-09-08): macOS ran the GPU check 56 times and failed 41, all on
+the sustained budget (16.7–30.5 ms, median 22.4 in the failures), passing and failing on adjacent commits with the same
+renderer; Windows failed 2 of 62 (17.1, 17.9 ms). The check prints its numbers only when it fails.
+
 ## 2026-10-08 (afternoon) — G6.2 decided: ADR-0064 (layout density and scaling)
 
 **Now:** ADR-0064 accepted (two critic passes). **Next: G6.2 cp1** — the 28 px tool row and 4 px panel inset (eight
