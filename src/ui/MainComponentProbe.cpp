@@ -893,6 +893,18 @@ juce::String MainComponent::buildStateProbeJson()
         audio->setProperty ("underruns", underruns);
         root->setProperty ("audio", juce::var (audio));
     }
+    {
+        // ADR-0061: what reading prefs.json found.
+        auto* prefs = new juce::DynamicObject();
+        const yesdaw::ui::UiPreferencesState state = appModel.preferencesState();
+        prefs->setProperty ("state", state == yesdaw::ui::UiPreferencesState::Loaded       ? "loaded"
+                                     : state == yesdaw::ui::UiPreferencesState::Missing    ? "missing"
+                                     : state == yesdaw::ui::UiPreferencesState::Unreadable ? "unreadable"
+                                                                                            : "none");
+        prefs->setProperty ("rejectedKeys", appModel.rejectedPreferenceKeys());
+        prefs->setProperty ("migratedKeymap", appModel.migratedKeymapPreferences());
+        root->setProperty ("prefs", juce::var (prefs));
+    }
 
     root->setProperty ("layout", buildProbeLayout());
     root->setProperty ("text", buildProbeText());

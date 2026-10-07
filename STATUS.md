@@ -8,6 +8,40 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 (evening) — G5.6 checkpoint 1: prefs.json and the keymap (ADR-0061)
+
+**Now:** G5.6 **cp1** is in, headless-certified. **Next: G5.6 cp2 — view, dock, editing and export preferences**
+(the last arrangement as the default for projects without their own view state; dock/inspector visibility and
+tab, snap and metronome applied on every open; export bit depth, dither and normalize), then cp3 (the chosen audio
+devices, reopened at launch, an honest reason when one is missing), then G5.7 and SS-6.
+
+**What a user gets:** the user's settings now live in one `prefs.json` in the per-user folder; this checkpoint moves
+the keymap into it (an old `keymap-overrides.txt` is imported once, silently, and retired). A broken preferences
+file never stops a launch: the defaults load, the file is kept as `prefs.json.unreadable` and the status line says
+so; a single bad setting falls back alone; settings a newer version wrote survive. A file an editor saved with a
+byte-order mark still reads. Two actions that traded chords both keep them. The last-project, recent-projects and
+per-project view-state records are now written whole (a crash can no longer leave half a record).
+
+**Gates:** `[prefs]` (5 cases) — a rebind lives in `prefs.json` across launches; the old record imported once,
+renamed, silently, never again once `prefs.json` holds a keymap; the same folder set twice reads nothing; no folder
+writes nothing; empty, truncated, non-JSON, array and string files each give the defaults, are kept aside and
+reported, and the next change writes a fresh readable file; a wrong-typed binding and a duplicate chord are each
+rejected alone (counted) while the rest loads; unknown keys, a newer action's binding and a higher version survive
+a rewrite; a swapped pair binds in either the file or the old record; a BOM and `7.0` read; an unreadable file never
+imports the old record behind "defaults are in use"; the three records written whole, no temporary left.
+`[keymap-editor]` re-pinned from `keymap-overrides.txt` to `prefs.json`. 416/416 local, Clang clean; the theme
+audit caught a high-byte escape in the first BOM check (now a byte comparison). Visual: no surface change.
+
+**Critic:** no blockers. In: a BOM is skipped (Notepad); an unreadable file plus the old record no longer imports
+behind a "defaults" message; bindings apply as one set (swaps were rejected in either order, also in the old
+importer); a version written `7.0` reads; a failed save says so; the no-folder test proves nothing is written. Not
+taken: the probe's "none" (it is the no-folder state, not dead code).
+
+**ADR-0061** accepted after a critic pass (its blocker: the keymap-editor gate asserted the retired file).
+
+**CI recorded:** c5704cb and b871300 (G5.5 cp1, cp2) fail only the standing macOS GPU exception; 2bb136d (cp3) and
+50e1253 (ADR-0061) pushed, CI running.
+
 ## 2026-10-07 (afternoon) — G5.5 done: templates (ADR-0060 cp3); new project, templates and copies complete
 
 **Now:** **G5.5** is in, headless-certified (all three checkpoints). **Next: G5.6 — preferences** (its

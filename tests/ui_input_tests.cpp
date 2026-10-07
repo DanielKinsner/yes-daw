@@ -20001,7 +20001,14 @@ TEST_CASE ("keymap editor: search, rebind with conflict detection, restore, and 
     REQUIRE (shell->keyPressed (juce::KeyPress ('k', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (snapshotMainComponent (*shell).context.metronomeEnabled);
     REQUIRE_FALSE (shell->keyPressed (juce::KeyPress ('k')));
-    REQUIRE (std::filesystem::exists (sessionDir / "keymap-overrides.txt"));
+    // ADR-0061: the rebind is in prefs.json's keymap (keymap-overrides.txt is retired).
+    REQUIRE (std::filesystem::exists (sessionDir / "prefs.json"));
+    REQUIRE_FALSE (std::filesystem::exists (sessionDir / "keymap-overrides.txt"));
+    {
+        std::ifstream prefs (sessionDir / "prefs.json", std::ios::binary);
+        const std::string text ((std::istreambuf_iterator<char> (prefs)), std::istreambuf_iterator<char>());
+        REQUIRE (text.find ("Ctrl+Shift+K") != std::string::npos);
+    }
 
     // The record survives a relaunch: a fresh shell on the same session directory has the rebind.
     shell.reset();
@@ -20021,7 +20028,12 @@ TEST_CASE ("keymap editor: search, rebind with conflict detection, restore, and 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('k')));
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.metronomeEnabled);
-    REQUIRE (std::filesystem::file_size (sessionDir / "keymap-overrides.txt") == 0u);
+    {
+        std::ifstream prefs (sessionDir / "prefs.json", std::ios::binary);
+        const std::string text ((std::istreambuf_iterator<char> (prefs)), std::istreambuf_iterator<char>());
+        REQUIRE (text.find ("Ctrl+Shift+K") == std::string::npos);   // the keymap object is empty again
+        REQUIRE (text.find ("\"keymap\"") != std::string::npos);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (sessionDir, ec);

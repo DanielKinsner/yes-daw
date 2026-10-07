@@ -27,6 +27,7 @@
 #include "ui/UiActions.h"
 #include "ui/UiMixerSurface.h"   // ADR-0053: the loudness readout the header and mixer paint
 #include "ui/UiPianoRollSurface.h"
+#include "ui/UiPreferences.h"   // G5.6 / ADR-0061
 #include "ui/UiThemeLayout.h"
 #include "ui/WaveformPeakService.h"
 
@@ -1633,14 +1634,149 @@ public:
     {
         if (bundlePath_.empty())
             return;
-        std::ofstream out (bundlePath_ / kViewStateRecordFileName, std::ios::trunc);
-        out << text;
+        (void) writeFileAtomically (bundlePath_ / kViewStateRecordFileName, text);   // ADR-0061: never torn
     }
 
+    // Written whole to a temporary sibling, then renamed into place: a crash never leaves half a file (ADR-0061).
+    static bool writeFileAtomically (const std::filesystem::path& target, const std::string& text)
+    {
+        std::filesystem::path temporary = target;
+        temporary += ".tmp";
+        bool written = false;
+        {
+            std::ofstream output (temporary, std::ios::binary | std::ios::trunc);
+            if (output.good())
+            {
+                output.write (text.data(), static_cast<std::streamsize> (text.size()));
+                written = output.good();
+            }
+        }
+        std::error_code renamed;
+        if (written)
+            std::filesystem::rename (temporary, target, renamed);
+        if (! written || renamed)
+        {
+            std::error_code removed;
+            std::filesystem::remove (temporary, removed);   // never leave the temporary behind
+            return false;
+        }
+        return true;
+    }
+
+    // ADR-0061: setting a new folder reads its preferences (once: the native shell can set the same folder twice at
+    // launch). No folder = preferences in memory only, the defaults.
     void setSessionStateDirectory (const std::filesystem::path& directory)
     {
+        if (directory == sessionStateDirectory_ && preferencesState_ != UiPreferencesState::NotRead)
+            return;
         sessionStateDirectory_ = directory;
-        loadKeymapOverrides();
+        loadPreferences();
+    }
+
+    // ---- ADR-0061: the user's preferences (prefs.json in the session-state folder) ----
+    [[nodiscard]] UiPreferencesState preferencesState() const noexcept { return preferencesState_; }
+    [[nodiscard]] int rejectedPreferenceKeys() const noexcept { return preferences_.rejectedKeys(); }
+    [[nodiscard]] bool migratedKeymapPreferences() const noexcept { return migratedKeymap_; }
+
+    void loadPreferences()
+    {
+        preferences_ = UiPreferences {};
+        preferencesState_ = UiPreferencesState::NotRead;
+        foreignKeymapEntries_.clear();
+        migratedKeymap_ = false;
+        registry_.keymap() = Keymap {};
+        if (sessionStateDirectory_.empty())
+            return;
+
+        const std::filesystem::path file = sessionStateDirectory_ / UiPreferences::kFileName;
+        std::error_code error;
+        if (! std::filesystem::exists (file, error))
+        {
+            preferencesState_ = UiPreferencesState::Missing;
+        }
+        else
+        {
+            std::string text;
+            {
+                std::ifstream input (file, std::ios::binary);
+                text.assign ((std::istreambuf_iterator<char> (input)), std::istreambuf_iterator<char>());
+            }
+            if (preferences_.parse (text))
+            {
+                preferencesState_ = UiPreferencesState::Loaded;
+            }
+            else
+            {
+                preferences_ = UiPreferences {};
+                preferencesState_ = UiPreferencesState::Unreadable;
+                const std::filesystem::path aside = sessionStateDirectory_ / UiPreferences::kUnreadableFileName;
+                std::filesystem::remove (aside, error);
+                std::filesystem::rename (file, aside, error);
+                reportStatus ("Preferences could not be read - defaults are in use (the old file is kept as prefs.json.unreadable)", true);
+            }
+        }
+
+        if (preferences_.keymap.has_value())
+        {
+            applyKeymapBindings (*preferences_.keymap);
+        }
+        else if (preferencesState_ != UiPreferencesState::Unreadable   // "defaults are in use" stays true
+                 && std::filesystem::exists (sessionStateDirectory_ / kKeymapOverridesRecordFileName, error))
+        {
+            // G1.5's record, imported once and retired (silently; the probe reports it).
+            loadKeymapOverrides();
+            savePreferences();
+            std::filesystem::path migrated = sessionStateDirectory_ / kKeymapOverridesRecordFileName;
+            migrated += ".migrated";
+            std::filesystem::remove (migrated, error);
+            std::filesystem::rename (sessionStateDirectory_ / kKeymapOverridesRecordFileName, migrated, error);
+            migratedKeymap_ = true;
+        }
+    }
+
+    // The whole file, after every change (a rebind, a restore; later: the view, editing, export and devices).
+    void savePreferences()
+    {
+        if (sessionStateDirectory_.empty())
+            return;
+        std::vector<std::pair<std::string, std::string>> bindings = foreignKeymapEntries_;
+        for (const UiActionDescriptor& descriptor : registry_.actions())
+            if (! registry_.keymap().isDefault (descriptor.id))
+                bindings.emplace_back (descriptor.stableId, registry_.keymap().chordFor (descriptor.id));
+        preferences_.keymap = std::move (bindings);
+        std::error_code error;
+        std::filesystem::create_directories (sessionStateDirectory_, error);
+        const std::filesystem::path file = sessionStateDirectory_ / UiPreferences::kFileName;
+        if (! writeFileAtomically (file, preferences_.serialise()))
+            reportStatus ("Preferences could not be saved to " + io::utf8Text (file), true);
+    }
+
+    // ADR-0061: bindings applied as one set. Every listed action is cleared first, so two actions that swapped chords
+    // both bind whatever order they are listed in; a binding that still conflicts goes back to its default (when that
+    // is free) and counts as rejected. Bindings of actions this version lacks are kept for the next write.
+    void applyKeymapBindings (const std::vector<std::pair<std::string, std::string>>& bindings)
+    {
+        std::vector<std::pair<const UiActionDescriptor*, std::string>> known;
+        for (const auto& [stableId, chord] : bindings)
+        {
+            if (const UiActionDescriptor* descriptor = descriptorForStableId (stableId))
+            {
+                registry_.keymap().unbind (descriptor->id);
+                known.emplace_back (descriptor, chord);
+            }
+            else
+            {
+                foreignKeymapEntries_.emplace_back (stableId, chord);
+            }
+        }
+        for (const auto& [descriptor, chord] : known)
+        {
+            if (chord.empty() || registry_.keymap().rebind (descriptor->id, chord) == KeymapRebindStatus::Ok)
+                continue;
+            preferences_.rejectKey();
+            if (descriptor->defaultKey != nullptr && *descriptor->defaultKey != '\0')
+                (void) registry_.keymap().rebind (descriptor->id, descriptor->defaultKey);
+        }
     }
 
     // ADR-0050: FX presets live under this per-user directory (empty when the session keeps no state).
@@ -1690,50 +1826,27 @@ public:
         return recents;
     }
 
-    // G1.5: keymap overrides persist beside the last-project record, one line per action whose
-    // chord differs from its default: `stableId<TAB>chord` (`-` = unbound). Loaded when the
-    // session-state directory is set; written on every rebind / unbind / restore.
+    // G1.5: keymap overrides were a line record beside the last-project record, one line per action whose chord
+    // differed from its default: `stableId<TAB>chord` (`-` = unbound). ADR-0061 retired it: prefs.json's `keymap`
+    // holds them, and an old record is imported once.
     static constexpr const char* kKeymapOverridesRecordFileName = "keymap-overrides.txt";
     static constexpr const char* kViewStateRecordFileName = "view-state.txt";   // G2.1: beside the bundle
 
+    // The retired record's lines (`-` = unbound), applied as one set like prefs.json's (ADR-0061's import).
     void loadKeymapOverrides()
     {
         if (sessionStateDirectory_.empty())
             return;
-        std::ifstream input (sessionStateDirectory_ / kKeymapOverridesRecordFileName);
-        std::string line;
-        while (std::getline (input, line))
+        std::vector<std::pair<std::string, std::string>> bindings;
+        for (const std::string& line : readSessionRecordLines (kKeymapOverridesRecordFileName))
         {
             const std::size_t tab = line.find ('\t');
             if (tab == std::string::npos)
                 continue;
-            const UiActionDescriptor* descriptor = descriptorForStableId (line.substr (0, tab));
-            if (descriptor == nullptr)
-                continue;
             const std::string chord = line.substr (tab + 1);
-            if (chord == "-")
-                registry_.keymap().unbind (descriptor->id);
-            else
-                (void) registry_.keymap().rebind (descriptor->id, chord);
+            bindings.emplace_back (line.substr (0, tab), chord == "-" ? std::string {} : chord);
         }
-    }
-
-    void saveKeymapOverrides() const
-    {
-        if (sessionStateDirectory_.empty())
-            return;
-        std::error_code ec;
-        std::filesystem::create_directories (sessionStateDirectory_, ec);
-        std::ofstream output (sessionStateDirectory_ / kKeymapOverridesRecordFileName, std::ios::binary | std::ios::trunc);
-        if (! output.good())
-            return;
-        for (const UiActionDescriptor& descriptor : registry_.actions())
-        {
-            if (registry_.keymap().isDefault (descriptor.id))
-                continue;
-            const std::string& chord = registry_.keymap().chordFor (descriptor.id);
-            output << descriptor.stableId << '\t' << (chord.empty() ? std::string ("-") : chord) << '\n';
-        }
+        applyKeymapBindings (bindings);
     }
 
     [[nodiscard]] KeymapRebindStatus rebindChord (UiActionId id, std::string_view chord)
@@ -1748,7 +1861,7 @@ public:
         }
         else if (status == KeymapRebindStatus::Ok)
         {
-            saveKeymapOverrides();
+            savePreferences();
             ++context_.commandDispatchCount;
         }
         return status;
@@ -1757,14 +1870,14 @@ public:
     void unbindChord (UiActionId id)
     {
         registry_.keymap().unbind (id);
-        saveKeymapOverrides();
+        savePreferences();
         ++context_.commandDispatchCount;
     }
 
     void restoreDefaultKeymap()
     {
         registry_.keymap() = Keymap {};
-        saveKeymapOverrides();
+        savePreferences();
         ++context_.commandDispatchCount;
     }
 
@@ -12329,27 +12442,10 @@ private:
     {
         if (sessionStateDirectory_.empty())
             return;
-        const std::filesystem::path target = sessionStateDirectory_ / fileName;
-        std::filesystem::path temporary = target;
-        temporary += ".tmp";
-        bool written = false;
-        {
-            std::ofstream output (temporary, std::ios::binary | std::ios::trunc);
-            if (output.good())
-            {
-                for (const std::string& line : lines)
-                    output << line << '\n';
-                written = output.good();
-            }
-        }
-        std::error_code renamed;
-        if (written)
-            std::filesystem::rename (temporary, target, renamed);
-        if (! written || renamed)
-        {
-            std::error_code removed;
-            std::filesystem::remove (temporary, removed);   // never leave the temporary behind
-        }
+        std::string text;
+        for (const std::string& line : lines)
+            text += line + "\n";
+        (void) writeFileAtomically (sessionStateDirectory_ / fileName, text);
     }
 
     [[nodiscard]] static std::filesystem::path pathFromUtf8Line (const std::string& line)
@@ -12395,14 +12491,9 @@ private:
 
         std::error_code directoryError;
         std::filesystem::create_directories (sessionStateDirectory_, directoryError);
-        std::ofstream output (sessionStateDirectory_ / kLastProjectRecordFileName,
-                              std::ios::binary | std::ios::trunc);
-        if (! output.good())
+        // ADR-0061: both records are written whole and renamed into place (their formats unchanged).
+        if (! writeFileAtomically (sessionStateDirectory_ / kLastProjectRecordFileName, io::utf8Text (bundlePath_)))
             return;
-
-        const std::u8string utf8 = bundlePath_.u8string();
-        output.write (reinterpret_cast<const char*> (utf8.data()),
-                      static_cast<std::streamsize> (utf8.size()));
 
         // MRU update (B39): the current bundle moves to the top; the list keeps at most five.
         std::vector<std::filesystem::path> recents = recentProjectBundles();
@@ -12411,18 +12502,10 @@ private:
         if (recents.size() > kRecentProjectsLimit)
             recents.resize (kRecentProjectsLimit);
 
-        std::ofstream recentOutput (sessionStateDirectory_ / kRecentProjectsRecordFileName,
-                                    std::ios::binary | std::ios::trunc);
-        if (! recentOutput.good())
-            return;
-
+        std::string recentText;
         for (const std::filesystem::path& recent : recents)
-        {
-            const std::u8string recentUtf8 = recent.u8string();
-            recentOutput.write (reinterpret_cast<const char*> (recentUtf8.data()),
-                                static_cast<std::streamsize> (recentUtf8.size()));
-            recentOutput.put ('\n');
-        }
+            recentText += io::utf8Text (recent) + "\n";
+        (void) writeFileAtomically (sessionStateDirectory_ / kRecentProjectsRecordFileName, recentText);
     }
 
     void attachProjectBundle (
@@ -13372,6 +13455,10 @@ private:
     };
     UiClipClipboard clipClipboard_;
     std::filesystem::path sessionStateDirectory_;
+    UiPreferences preferences_;   // ADR-0061
+    UiPreferencesState preferencesState_ = UiPreferencesState::NotRead;
+    std::vector<std::pair<std::string, std::string>> foreignKeymapEntries_;   // bindings of actions this version lacks
+    bool migratedKeymap_ = false;
     UiSnapUnit snapUnit_ = UiSnapUnit::Beat;
     UiNudgeUnit nudgeUnit_ = UiNudgeUnit::Grid;   // G1.4
     int repeatPasteCount_ = kDefaultRepeatPasteCount;
