@@ -131,3 +131,12 @@ counter.
   gain a provider each.
 - **Follow-ups:** a real screen-reader drive (NVDA / Narrator) when the desktop is free; type-ahead or region-jump
   keys if the walk proves long in dogfooding.
+
+## Amendment (2026-10-09, from cp1's implementation)
+
+- **A pad's click loads a sample** (Shift toggles one-shot, Ctrl clears) — it does not audition, as the Decision said.
+  Enter does the plain click; the Shift / Ctrl pad verbs stay mouse-and-modifier gestures with no keyboard route yet
+  (they were before this ADR too) — parked for a pad menu.
+- **The Menu (Apps) key is not deliverable:** JUCE handles VK_APPS as a modifier change and never sends it as a key
+  press, so **Shift+F10** alone is the context-menu key while navigating.
+
