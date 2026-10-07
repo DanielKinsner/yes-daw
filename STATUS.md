@@ -8,6 +8,44 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 (early) — G5.7 done: missing audio is asked for at open and put back from its original (ADR-0062)
+
+**Now:** **G5.7** is in, headless-certified (both checkpoints) — **every G5 item (G5.1–G5.7) is headless-certified.**
+G5's exit is the logical **SS-6** drive (`tools/session-scripts/ss8-project-lifecycle.ps1`, still to be written and
+run on the real app): it **waits for a free desktop** (Dan's go-ahead covered one night only; drives stay paused
+until he frees it). **Next:** safe headless work continues — G6's implementation ADRs (tokens and icons, layout and
+scaling, keyboard/accessibility, interaction states, empty states) and their headless gates, with the SS-6 script
+written alongside so it can run the moment the desktop is free.
+
+**What a user gets:** opening a project whose audio files were moved or damaged no longer just fails with a hash file
+name: each missing or damaged file is asked about in words — "Audio Clip - 0:01.0 48 kHz mono, used by 1 clip" —
+with **Locate...** (the file chooser) or **Cancel**. Only the original file is taken (the exact bytes the project
+was made with, so it sounds exactly as before); another file is refused with the reason and the same file asked
+again; a file that is right but cannot be written says what failed instead. Cancel leaves the current project as it
+was and the status line names what is still missing; files already put back stay, so the next open asks only about
+the rest. File > Open, Open Recent and the launch reopen all ask (the native launch asks once the window exists).
+
+**Gates:** `[relink]` +4 (7 cases) — the open asks about a missing and a damaged file in turn, refuses the wrong tone
+with its reason and asks again, takes the originals, opens, and the reopened project renders byte-identical to before
+the files were lost; it saves and reopens with no question; Cancel keeps the current project (title, undo) and the
+bundle byte-identical, naming both; one put back then Cancel, then the next open asks only about the other; the
+launch reopen asks the same way (Cancel: no project, as a failed launch open); a pad-only and an unused Asset are
+described; a right file that cannot be written is not called the wrong audio. `[missing-asset-open]` and
+`[prepared-project-load]` pass unchanged (with no answerer the open refuses as before — the re-pin the ADR expected
+was not needed). 416/416 local, Clang clean. Visual: the questions are JUCE's modal box and file chooser (drive
+pending).
+
+**Critic:** no blockers. In: an I/O failure while putting a right file back now says what failed ("could not be put
+back: ...") instead of calling it the wrong audio (gated); the native deferred launch open keeps an earlier launch
+reason (a missing device) beside its Cancel line.
+
+**Parked:** imported clips are all named "Audio Clip" (ADR-0056's name for an Asset is its first clip's), so the
+names in these questions and the browser rarely tell files apart — the length, rate and channels do; naming an
+imported clip after its source file (as Logic does) is a separate improvement. Offline Assets, searching a folder
+for the others, hashing off the message thread (ADR-0062).
+
+**CI recorded:** bb8dfd6 (G5.6 cp2) fails only the standing macOS GPU exception; 0655b5e and 9ed2983 pushed.
+
 ## 2026-10-08 (small hours) — G5.7 checkpoint 1: inspecting a bundle's missing audio and adopting original bytes (ADR-0062)
 
 **Now:** G5.7 **cp1** is in, headless-certified. **Next: G5.7 cp2 — the open's questions**: an open refused over its

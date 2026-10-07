@@ -1417,6 +1417,24 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
     yesdaw::ui::MainComponentFileChoices choices;
     choices.newProjectDialog = true;   // ADR-0060: the New Project overlay
     choices.nativePrompts = true;      // and the unsaved-changes box before New / Open
+    choices.chooseMissingAudioReplacement = [] (const yesdaw::ui::UiMissingAsset& missing) {   // ADR-0062
+        for (;;)
+        {
+            juce::String message = juce::String::fromUTF8 (missing.description.c_str())
+                                  + "\n\nLocate the original file to put it back, or cancel the open.";
+            if (! missing.refusal.empty())
+                message = juce::String::fromUTF8 (missing.refusal.c_str()) + "\n\n" + message;
+            if (! juce::AlertWindow::showOkCancelBox (juce::MessageBoxIconType::WarningIcon,
+                                                      missing.damaged ? "Damaged audio" : "Missing audio",
+                                                      message, "Locate...", "Cancel"))
+                return std::filesystem::path {};
+            const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+            juce::FileChooser chooser ("Locate " + juce::String::fromUTF8 (missing.name.c_str()), documents,
+                                       juce::String (yesdaw::io::importAudioFilePatterns()), true);
+            if (chooser.browseForFileToOpen())
+                return pathFromJuceFile (chooser.getResult());
+        }
+    };
     choices.chooseSaveAsTemplateName = [] {   // ADR-0060: File > Save as Template
         juce::AlertWindow window ("Save as Template", "The template's name (its tracks, buses and routing are saved):",
                                   juce::MessageBoxIconType::NoIcon);

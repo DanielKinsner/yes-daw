@@ -1,9 +1,11 @@
 // YES DAW - ADR-0062 gates: missing audio relink. cp1: the bundle inspection (every missing or damaged Asset file,
-// nothing written) and the adoption of an Asset's original bytes only.
+// nothing written) and the adoption of an Asset's original bytes only. cp2: the open's questions, Cancel, the render.
 
 #include "io/WavFile.h"
 #include "persistence/ProjectBundle.h"
+#include "ui/MainComponent.h"
 #include "ui/MainComponentInternal.h"
+#include "ui/MissingAudio.h"
 #include "ui/UiAppModel.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -12,7 +14,9 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <algorithm>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -82,7 +86,7 @@ struct ThreeTones
         for (std::size_t i = 0; i < 3u; ++i)
         {
             const auto wav = directory / ("tone-" + std::to_string (i) + ".wav");
-            writeTone (wav, 12'000 + 6'000 * i, 0.2f, 60u + 20u * i);
+            writeTone (wav, 24'000 * (i + 1u), 0.2f, 60u + 20u * i);   // 0.5 s, 1.0 s, 1.5 s
             yesdaw::ui::shell::UiAudioDecodeResult decoded = yesdaw::ui::shell::decodeProjectAudio (wav);
             REQUIRE (decoded.decoded.has_value());
             REQUIRE (model.importAudioFile (wav, std::move (*decoded.decoded)).ok());
@@ -182,4 +186,188 @@ TEST_CASE ("ADR-0062 adoption takes only an Asset's original bytes; a damaged fi
         REQUIRE (entry.path().extension() != ".tmp");   // no temporary left
     yesdaw::persistence::ProjectBundleDb reopened;
     REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (f.bundle, reopened).ok());   // the validator agrees
+}
+
+// ---- cp2: the open asks ----
+
+namespace {
+
+// The bundle reopened through the ordinary open (its Assets decoded), rendered to float: what the project sounds like.
+std::string renderOf (const std::filesystem::path& bundle, const std::filesystem::path& wav)
+{
+    yesdaw::ui::UiAppModel model;
+    yesdaw::ui::shell::StoredProjectAssetsResult stored = yesdaw::ui::shell::decodeStoredProjectAssets (bundle);
+    REQUIRE (stored.assets.has_value());
+    REQUIRE (model.loadPreparedProjectBundle (std::move (stored.prepared), std::move (*stored.assets)).ok());
+    model.setExportBitDepth (yesdaw::ui::UiAppModel::UiExportBitDepth::Float32);
+    REQUIRE (model.exportAudioFile (wav).dispatched);
+    return bytesOf (wav);
+}
+
+// A shell whose missing-audio answers come from a script (empty = Cancel); every question is kept.
+struct RelinkShell
+{
+    std::filesystem::path open;
+    std::vector<std::filesystem::path> answers;
+    std::vector<yesdaw::ui::UiMissingAsset> asked;
+    std::unique_ptr<juce::Component> shell;
+
+    explicit RelinkShell (const std::filesystem::path& sessionFolder, const std::filesystem::path& launchBundle = {})
+    {
+        juce::MessageManager::getInstance();
+        yesdaw::ui::MainComponentFileChoices choices;
+        choices.sessionStateDirectory = sessionFolder;
+        choices.chooseOpenProjectBundle = [this] { return open; };
+        choices.chooseNewProjectBundle = [this] { return open; };
+        choices.chooseMissingAudioReplacement = [this] (const yesdaw::ui::UiMissingAsset& missing) {
+            asked.push_back (missing);
+            if (answers.empty())
+                return std::filesystem::path {};
+            const std::filesystem::path answer = answers.front();
+            answers.erase (answers.begin());
+            return answer;
+        };
+        if (! launchBundle.empty())
+        {
+            choices.initialiseSessionAtLaunch = true;
+            choices.openBundleAtLaunch = launchBundle;
+        }
+        shell = yesdaw::ui::createMainComponent (std::move (choices));
+        REQUIRE (shell != nullptr);
+    }
+
+    void dispatch (yesdaw::ui::UiActionId action) { yesdaw::ui::mainComponentDispatchAction (*shell, action); }
+    [[nodiscard]] yesdaw::ui::MainComponentSnapshot snapshot() { return yesdaw::ui::snapshotMainComponent (*shell); }
+};
+
+} // namespace
+
+TEST_CASE ("ADR-0062 the open asks about each missing or damaged audio file, refuses another file, takes the originals; "
+           "the project renders as before and reopens without a question",
+           "[relink]")
+{
+    ThreeTones f ("open");
+    const std::string before = renderOf (f.bundle, f.directory / "before.wav");
+    std::filesystem::remove (assetFileOf (f.bundle, f.hashes[0]));
+    writeBytes (assetFileOf (f.bundle, f.hashes[1]), "damaged bytes");
+
+    RelinkShell r (f.directory / "session");
+    r.open = f.bundle;
+    r.answers = { f.originals[2], f.originals[0], f.originals[1] };   // the wrong tone first
+    r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+    REQUIRE (r.asked.size() == 3u);
+    REQUIRE (r.asked[0].description == "Audio Clip - 0:00.5 48 kHz mono, used by 1 clip");   // ADR-0056: its first clip's name
+    REQUIRE (r.asked[0].refusal.empty());
+    REQUIRE_FALSE (r.asked[0].damaged);
+    REQUIRE (r.asked[1].description == r.asked[0].description);   // asked again, with the reason
+    REQUIRE (r.asked[1].refusal == "tone-2.wav is not the missing audio: its content differs");
+    REQUIRE (r.asked[2].description == "Audio Clip - 0:01.0 48 kHz mono, used by 1 clip");
+    REQUIRE (r.asked[2].damaged);
+    REQUIRE (r.snapshot().context.projectLoaded);
+    REQUIRE (r.snapshot().windowTitle.find ("song") != std::string::npos);
+    const std::string hex = yesdaw::persistence::detail::hexBytes (f.hashes[1].bytes);
+    REQUIRE (bytesOf (f.bundle / ".trash" / (hex + ".asset.1")) == "damaged bytes");
+
+    r.dispatch (yesdaw::ui::UiActionId::ProjectSave);
+    r.shell.reset();
+    REQUIRE (renderOf (f.bundle, f.directory / "after.wav") == before);   // the intended content, exactly
+
+    RelinkShell again (f.directory / "session-2");
+    again.open = f.bundle;
+    again.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+    REQUIRE (again.asked.empty());   // the validator is satisfied: no question
+    REQUIRE (again.snapshot().context.projectLoaded);
+}
+
+TEST_CASE ("ADR-0062 Cancel keeps the current project and names what remains missing; a partial relink is kept",
+           "[relink]")
+{
+    ThreeTones f ("cancel");
+    std::filesystem::remove (assetFileOf (f.bundle, f.hashes[0]));
+    writeBytes (assetFileOf (f.bundle, f.hashes[1]), "damaged bytes");
+
+    RelinkShell r (f.directory / "session");
+    r.open = f.directory / "current.yesdaw";
+    r.dispatch (yesdaw::ui::UiActionId::ProjectNew);
+    r.dispatch (yesdaw::ui::UiActionId::TrackAdd);
+    REQUIRE (r.snapshot().context.canUndo);
+
+    const auto untouched = snapshotOf (f.bundle);
+    r.open = f.bundle;
+    r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);   // Cancel at the first question
+    REQUIRE (r.asked.size() == 1u);
+    REQUIRE (r.snapshot().statusLineText == "Open cancelled: 2 audio files still missing (Audio Clip, Audio Clip)");
+    REQUIRE (r.snapshot().windowTitle.find ("current") != std::string::npos);
+    REQUIRE (r.snapshot().context.canUndo);
+    REQUIRE (snapshotOf (f.bundle) == untouched);
+
+    r.asked.clear();
+    r.answers = { f.originals[0] };   // one put back, then Cancel
+    r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+    REQUIRE (r.asked.size() == 2u);
+    REQUIRE (r.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (Audio Clip)");
+    REQUIRE (r.snapshot().windowTitle.find ("current") != std::string::npos);
+
+    r.asked.clear();
+    r.answers = { f.originals[1] };   // the next open asks only about the other
+    r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+    REQUIRE (r.asked.size() == 1u);
+    REQUIRE (r.asked[0].description == "Audio Clip - 0:01.0 48 kHz mono, used by 1 clip");
+    REQUIRE (r.snapshot().windowTitle.find ("song") != std::string::npos);
+}
+
+TEST_CASE ("ADR-0062 the launch reopen asks the same way; a pad's Asset and an unused one are described", "[relink]")
+{
+    ThreeTones f ("launch");
+    std::filesystem::remove (assetFileOf (f.bundle, f.hashes[2]));
+    RelinkShell r (f.directory / "session", f.bundle);   // the launch opens it
+    REQUIRE (r.asked.size() == 1u);   // no answer: Cancel
+    REQUIRE (r.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (Audio Clip)");
+    r.shell.reset();
+
+    RelinkShell relaunch (f.directory / "session-2", f.bundle);
+    REQUIRE (relaunch.asked.size() == 1u);
+    REQUIRE_FALSE (relaunch.snapshot().context.projectLoaded);   // asked, cancelled: no project, as a failed launch open
+    relaunch.shell.reset();
+    RelinkShell found (f.directory / "session-3", {});
+    found.answers = { f.originals[2] };
+    found.open = f.bundle;
+    found.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+    REQUIRE (found.snapshot().context.projectLoaded);
+
+    // The wording for audio only a Sampler pad uses, and for audio nothing uses.
+    yesdaw::persistence::ProjectBundleDb db;
+    REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (f.bundle, db).ok());
+    yesdaw::engine::Project project;
+    REQUIRE (db.readProjectSnapshot (project).ok());
+    const yesdaw::engine::EntityId padAsset = project.assets.at (0).id;
+    project.clips.erase (std::remove_if (project.clips.begin(), project.clips.end(),
+                                         [&] (const yesdaw::engine::Clip& clip) { return clip.assetId == padAsset; }),
+                         project.clips.end());
+    yesdaw::engine::SamplerPad pad;
+    pad.key = 60;
+    pad.assetId = padAsset;
+    project.tracks.at (0).samplerPads.push_back (pad);
+    const std::string hex = yesdaw::persistence::detail::hexBytes (f.hashes[0].bytes).substr (0, 8);
+    REQUIRE (yesdaw::ui::describeMissingAsset (project, f.hashes[0], false).description
+             == "Asset " + hex + " - 0:00.5 48 kHz mono, used by 1 clip");
+    project.tracks.at (0).samplerPads.clear();
+    REQUIRE (yesdaw::ui::describeMissingAsset (project, f.hashes[0], false).description
+             == "Asset " + hex + " - 0:00.5 48 kHz mono, not used by any clip");
+}
+
+TEST_CASE ("ADR-0062 a right file that cannot be written is not called the wrong audio", "[relink]")
+{
+    ThreeTones f ("io-refusal");
+    std::filesystem::remove (assetFileOf (f.bundle, f.hashes[0]));
+    // The temporary's place is taken by a folder: the copy fails for a reason that has nothing to do with the content.
+    const auto temporary = f.bundle / std::filesystem::path (yesdaw::persistence::detail::assetTempRelativePathForHash (f.hashes[0]));
+    std::filesystem::create_directories (temporary / "blocker");
+    RelinkShell r (f.directory / "session");
+    r.open = f.bundle;
+    r.answers = { f.originals[0] };   // the right file, then Cancel
+    r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+    REQUIRE (r.asked.size() == 2u);
+    REQUIRE (r.asked[1].refusal.rfind ("tone-0.wav could not be put back: ", 0) == 0);
+    REQUIRE (r.asked[1].refusal.find ("is not the missing audio") == std::string::npos);
 }

@@ -1738,17 +1738,50 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         if (! lastProject.empty())
         {
             StoredProjectAssetsResult stored = decodeStoredProjectAssets (lastProject);
-            if (stored.assets && ! stored.assets->empty())
-                (void) appModel.loadPreparedProjectBundle (
-                    std::move (stored.prepared), std::move (*stored.assets));
-            else if (stored.assets)
-                (void) appModel.openPreparedProjectBundle (std::move (stored.prepared));
-            else
-                // R5: the last project failing to reopen is a fact, not a shrug.
-                appModel.reportStatus (
-                    "Open failed: " + stored.failureReason
-                        + " (" + yesdaw::io::utf8Text (lastProject.filename()) + ")",
-                    true);
+            bool answered = false;   // ADR-0062: the missing-audio questions took over (asked later, or cancelled)
+            if (! stored.assets && fileChoices.chooseMissingAudioReplacement)
+            {
+                if (fileChoices.nativePrompts)
+                {
+                    // A modal question waits until the window exists: the open runs again from the message loop.
+                    answered = true;
+                    juce::Component::SafePointer<MainComponent> self (this);
+                    juce::MessageManager::callAsync ([self, lastProject] {
+                        if (self != nullptr)
+                        {
+                            // A launch reason already on the status line (a missing device) stays beside a Cancel.
+                            const std::string earlier = self->appModel.statusLineIsError() ? self->appModel.statusLineText() : std::string {};
+                            self->openProjectBundleAtPath (lastProject);
+                            const std::string now = self->appModel.statusLineText();
+                            if (! earlier.empty() && now != earlier && now.rfind ("Open cancelled", 0) == 0)
+                                self->appModel.reportStatus (earlier + "; " + now, true);
+                            self->refreshActionState();
+                            self->repaintAll();
+                        }
+                    });
+                }
+                else
+                {
+                    const RelinkOutcome relink = relinkMissingAudio (lastProject);
+                    answered = relink == RelinkOutcome::Cancelled;   // its status line says what remains missing
+                    if (relink == RelinkOutcome::Relinked)
+                        stored = decodeStoredProjectAssets (lastProject);
+                }
+            }
+            if (! answered)
+            {
+                if (stored.assets && ! stored.assets->empty())
+                    (void) appModel.loadPreparedProjectBundle (
+                        std::move (stored.prepared), std::move (*stored.assets));
+                else if (stored.assets)
+                    (void) appModel.openPreparedProjectBundle (std::move (stored.prepared));
+                else
+                    // R5: the last project failing to reopen is a fact, not a shrug.
+                    appModel.reportStatus (
+                        "Open failed: " + stored.failureReason
+                            + " (" + yesdaw::io::utf8Text (lastProject.filename()) + ")",
+                        true);
+            }
         }
         else
         {

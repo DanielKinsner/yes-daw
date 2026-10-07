@@ -430,6 +430,9 @@ private:
     void afterProjectAttached();
     void requestProjectDeviceRate();
     void saveProjectCopy();
+    // ADR-0062: the missing-audio questions of an open that refused over its Asset files.
+    enum class RelinkOutcome { NothingMissing, Relinked, Cancelled };
+    [[nodiscard]] RelinkOutcome relinkMissingAudio (const std::filesystem::path& bundle);
     void syncExportControls();   // ADR-0061
     void saveProjectAsTemplate();
     void browserAudition (const yesdaw::ui::BrowserRow& row);   // G5.2 cp2

@@ -7,6 +7,7 @@
 
 #include "engine/Project.h"
 #include "ui/ContextMenus.h"
+#include "ui/MissingAudio.h"   // ADR-0062
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
 
@@ -51,6 +52,10 @@ struct MainComponentFileChoices
     // ADR-0061 cp3: the devices open now (the native shell asks the JUCE device manager when unset).
     std::function<std::string()> currentAudioOutputDevice;
     std::function<std::string()> currentAudioInputDevice;
+    // ADR-0062: an open that finds missing or damaged audio asks about each one; the answer is the original file
+    // (empty = Cancel the open). The native shell asks with a box (Locate... / Cancel) and the file chooser; with no
+    // answer at all (the harness's default) the open refuses as before.
+    std::function<std::filesystem::path (const UiMissingAsset&)> chooseMissingAudioReplacement;
     // Close-confirm seam (B37): asked when the app closes with edits since the last explicit Save.
     // Returns kCloseChoiceSave, kCloseChoiceClose, or kCloseChoiceCancel; the native shell shows a
     // three-way box when unset.

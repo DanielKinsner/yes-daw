@@ -185,6 +185,52 @@ void MainComponent::requestProjectDeviceRate()
                                true);
 }
 
+// ADR-0062: an open that refused over its Asset files asks about each missing or damaged one (Locate... / Cancel);
+// only a file with the Asset's own bytes is taken (anything else is refused with its reason and the same one asked
+// again). Relinked: every one put back (the caller opens again). Cancelled: the status line names what remains missing.
+// NothingMissing: the refusal was something else, or no one can be asked (the caller reports it as before).
+MainComponent::RelinkOutcome MainComponent::relinkMissingAudio (const std::filesystem::path& bundle)
+{
+    if (! fileChoices.chooseMissingAudioReplacement)
+        return RelinkOutcome::NothingMissing;
+    engine::Project stored;
+    std::vector<yesdaw::persistence::ProjectBundleDb::MissingAssetFile> missing;
+    if (! yesdaw::persistence::ProjectBundleDb::inspectAssetFiles (bundle, stored, missing).ok() || missing.empty())
+        return RelinkOutcome::NothingMissing;
+
+    std::vector<UiMissingAsset> asked;
+    for (const auto& file : missing)
+        asked.push_back (describeMissingAsset (stored, file.hash, file.damaged));
+    for (std::size_t i = 0; i < missing.size(); ++i)
+    {
+        for (;;)
+        {
+            const std::filesystem::path chosen = fileChoices.chooseMissingAudioReplacement (asked[i]);
+            if (chosen.empty())
+            {
+                std::string names;
+                for (std::size_t j = i; j < asked.size(); ++j)
+                    names += (names.empty() ? "" : ", ") + asked[j].name;
+                const std::size_t left = asked.size() - i;
+                appModel.reportStatus ("Open cancelled: " + std::to_string (left) + (left == 1u ? " audio file" : " audio files")
+                                           + " still missing (" + names + ")",
+                                       true);
+                return RelinkOutcome::Cancelled;
+            }
+            const yesdaw::persistence::BundleResult adopted =
+                yesdaw::persistence::ProjectBundleDb::adoptAssetFile (bundle, missing[i].hash, chosen);
+            if (adopted.ok())
+                break;
+            // Only a content mismatch says the file is not the audio; a read or write failure says what failed.
+            asked[i].refusal = yesdaw::io::utf8Text (chosen.filename())
+                             + (adopted.status == yesdaw::persistence::BundleStatus::IntegrityFailed ? " is not the missing audio: "
+                                                                                                      : " could not be put back: ")
+                             + adopted.message;
+        }
+    }
+    return RelinkOutcome::Relinked;
+}
+
 // File > Save as Template (ADR-0060): a name, the replace question when that name is taken, then the layout.
 void MainComponent::saveProjectAsTemplate()
 {

@@ -327,6 +327,14 @@ void MainComponent::saveViewState()
 void MainComponent::openProjectBundleAtPath (const std::filesystem::path& path)
 {
     StoredProjectAssetsResult stored = decodeStoredProjectAssets (path);
+    if (! stored.assets)   // ADR-0062: missing or damaged audio is asked for, then the open runs again from the start
+    {
+        const RelinkOutcome relink = relinkMissingAudio (path);
+        if (relink == RelinkOutcome::Cancelled)
+            return;   // the status line names what remains missing; the current project stays
+        if (relink == RelinkOutcome::Relinked)
+            stored = decodeStoredProjectAssets (path);
+    }
     if (stored.assets && ! stored.assets->empty())
     {
         if (appModel.loadPreparedProjectBundle (std::move (stored.prepared), std::move (*stored.assets)).ok())
