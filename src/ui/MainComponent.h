@@ -48,6 +48,9 @@ struct MainComponentFileChoices
     // E29: input-side seams for the input device chooser (native shell = JUCE device manager).
     std::function<std::vector<std::string>()> listAudioInputDevices;
     std::function<bool (const std::string&)> selectAudioInputDevice;
+    // ADR-0061 cp3: the devices open now (the native shell asks the JUCE device manager when unset).
+    std::function<std::string()> currentAudioOutputDevice;
+    std::function<std::string()> currentAudioInputDevice;
     // Close-confirm seam (B37): asked when the app closes with edits since the last explicit Save.
     // Returns kCloseChoiceSave, kCloseChoiceClose, or kCloseChoiceCancel; the native shell shows a
     // three-way box when unset.

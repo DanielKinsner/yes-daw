@@ -8,6 +8,36 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 (late night) — G5.6 done: the chosen audio devices (ADR-0061 cp3); persistent preferences complete
+
+**Now:** **G5.6** is in, headless-certified (all three checkpoints). **ADR-0062** (missing audio relink) is accepted.
+**Next: G5.7 — relink**, in two checkpoints: cp1 the bundle inspection (every missing or damaged Asset file, nothing
+written; an old schema not inspected) and the adoption of an Asset's original bytes only; cp2 the open's
+Locate…/Cancel questions, the status line, the re-pinned refusal gates and the render-identity gate. Then SS-6
+(`ss8-project-lifecycle`, needs a free desktop) and G6.
+
+**What a user gets:** the output and input devices chosen in the device choosers are remembered and reopened at the
+next launch (before the project asks for its sample rate). A remembered device that is not there leaves the open one
+and the status line says so in words — "Audio output Interface is not available - using Speakers", "- no input", or
+"No audio device could be opened (Interface is not available)" — and stays remembered, so it is used again once it
+is back. A device of another type (ASIO next to Windows Audio) is switched to through its own type.
+
+**Gates:** `[prefs]` +2 (11 cases, 12 with the keymap gate) — a chosen output and input (one with a non-ASCII name)
+are reopened at the next launch in the order output, input, then the rate request; both missing, listed-but-refusing,
+no input open, no device at all: each named exactly, the open device kept, the choice never overwritten; with the
+rate request refused the device reason and the rate warning share one line; back again, the remembered pair is used
+and nothing is reported. 416/416 local (the GPU timing test green again: the earlier reds were load), Clang clean.
+Visual: no layout change.
+
+**Critic:** its blocker is fixed — the rate request's warning overwrote the device reason (now one line holds both,
+gated with a refusing device); also in: the native switch goes through the device type that lists the name (the
+chooser path too); an implicitly-used default input is named so a remembered default is not switched to again; the
+callback is suspended once around both switches; the chooser is refreshed and the block size re-read only after a
+real switch. Not taken: a gate for the restore's do-not-remember flag (it can only re-write the same name, so no
+behaviour can show it).
+
+**CI recorded:** 67d61fc (G5.6 cp1) fails only the standing macOS GPU exception; bb8dfd6 (cp2) running.
+
 ## 2026-10-07 (night) — G5.6 checkpoint 2: view, dock, editing and export preferences (ADR-0061)
 
 **Now:** G5.6 **cp2** is in, headless-certified. **Next: G5.6 cp3 — the chosen audio devices** (reopened at launch

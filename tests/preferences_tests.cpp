@@ -1,5 +1,6 @@
 // YES DAW - ADR-0061 gates: the user's preferences in prefs.json. cp1: the file and the keymap; the per-user records
-// written whole. cp2: the view, dock, editing and export defaults; a project's own view state still wins.
+// written whole. cp2: the view, dock, editing and export defaults; a project's own view state still wins. cp3: the
+// chosen audio devices, reopened at launch, or an honest reason.
 
 #include "ui/MainComponent.h"
 #include "ui/UiAppModel.h"
@@ -9,6 +10,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
 #include <functional>
 #include <iterator>
 #include <memory>
@@ -227,7 +229,9 @@ struct PrefsShell
     std::filesystem::path next;
     std::unique_ptr<juce::Component> shell;
 
-    PrefsShell (const std::filesystem::path& sessionFolder, bool launch) : session (sessionFolder)
+    PrefsShell (const std::filesystem::path& sessionFolder, bool launch,
+                const std::function<void (yesdaw::ui::MainComponentFileChoices&)>& configure = {})
+        : session (sessionFolder)
     {
         juce::MessageManager::getInstance();
         yesdaw::ui::MainComponentFileChoices choices;
@@ -235,6 +239,8 @@ struct PrefsShell
         choices.chooseNewProjectBundle = [this] { return next; };
         choices.chooseOpenProjectBundle = [this] { return next; };
         choices.initialiseSessionAtLaunch = launch;
+        if (configure)
+            configure (choices);
         shell = yesdaw::ui::createMainComponent (std::move (choices));
         REQUIRE (shell != nullptr);
         shell->setSize (1280, 800);
@@ -258,6 +264,60 @@ struct PrefsShell
 
     [[nodiscard]] yesdaw::ui::UiActionContext context() { return yesdaw::ui::snapshotMainComponent (*shell).context; }
     [[nodiscard]] std::string sizes() { return yesdaw::ui::mainComponentViewStateRecord (*shell).toStdString(); }
+    [[nodiscard]] std::string status() { return yesdaw::ui::snapshotMainComponent (*shell).statusLineText; }
+};
+
+juce::Component* findComponentById (juce::Component& component, const juce::String& id)
+{
+    if (component.getComponentID() == id)
+        return &component;
+    for (int i = 0; i < component.getNumChildComponents(); ++i)
+        if (juce::Component* found = findComponentById (*component.getChildComponent (i), id))
+            return found;
+    return nullptr;
+}
+
+// cp3: a machine's devices as the harness's seams see them; every switch and rate request is recorded in order.
+struct FakeDevices
+{
+    std::vector<std::string> outputs { "Speakers", "Interface" };
+    std::vector<std::string> inputs { "Microphone", "Interface In" };
+    std::string output = "Speakers";
+    std::string input = "Microphone";
+    std::vector<std::string> refuse;   // listed, but a switch to it fails
+    double rateHz = 44'100.0;           // a 48 kHz project asks for its rate
+    bool acceptRate = true;
+    std::vector<std::string> calls;
+
+    void install (yesdaw::ui::MainComponentFileChoices& choices)
+    {
+        choices.listAudioOutputDevices = [this] { return outputs; };
+        choices.listAudioInputDevices = [this] { return inputs; };
+        choices.currentAudioOutputDevice = [this] { return output; };
+        choices.currentAudioInputDevice = [this] { return input; };
+        const auto switchTo = [this] (std::vector<std::string>& listed, std::string& open, const std::string& name) {
+            if (std::find (listed.begin(), listed.end(), name) == listed.end()
+                || std::find (refuse.begin(), refuse.end(), name) != refuse.end())
+                return false;
+            open = name;
+            return true;
+        };
+        choices.selectAudioOutputDevice = [this, switchTo] (const std::string& name) {
+            calls.push_back ("out:" + name);
+            return switchTo (outputs, output, name);
+        };
+        choices.selectAudioInputDevice = [this, switchTo] (const std::string& name) {
+            calls.push_back ("in:" + name);
+            return switchTo (inputs, input, name);
+        };
+        choices.currentAudioDeviceSampleRate = [this] { return rateHz; };
+        choices.requestAudioDeviceSampleRate = [this] (double hz) {
+            calls.push_back ("rate:" + std::to_string (static_cast<long long> (hz)));
+            if (acceptRate)
+                rateHz = hz;
+            return acceptRate;
+        };
+    }
 };
 
 } // namespace
@@ -340,17 +400,7 @@ TEST_CASE ("ADR-0061 a project keeps its own sizes; a new one starts from the la
 
 TEST_CASE ("ADR-0061 the export controls remember a change as it is made and show it after a relaunch", "[prefs]")
 {
-    const auto findById = [] (juce::Component& root, const juce::String& id) {
-        std::function<juce::Component* (juce::Component&)> walk = [&] (juce::Component& component) -> juce::Component* {
-            if (component.getComponentID() == id)
-                return &component;
-            for (int i = 0; i < component.getNumChildComponents(); ++i)
-                if (juce::Component* found = walk (*component.getChildComponent (i)))
-                    return found;
-            return nullptr;
-        };
-        return walk (root);
-    };
+    const auto findById = [] (juce::Component& root, const juce::String& id) { return findComponentById (root, id); };
     const auto directory = prefsScratch ("export-controls");
     {
         PrefsShell f (directory / "session", false);
@@ -408,4 +458,103 @@ TEST_CASE ("ADR-0061 export choices are remembered; a malformed view, editing or
     REQUIRE_FALSE (model.context().inspectorVisible);
     REQUIRE (model.context().metronomeEnabled);
     REQUIRE (model.exportBitDepth() == yesdaw::ui::UiAppModel::UiExportBitDepth::Float32);
+}
+
+// ---- cp3: the chosen audio devices ----
+
+TEST_CASE ("ADR-0061 a chosen output and input are reopened at the next launch, before the project-rate request",
+           "[prefs]")
+{
+    const auto directory = prefsScratch ("devices");
+    FakeDevices devices;
+    devices.inputs = { "Microphone", "Interface In \xc3\x9c" };   // a non-ASCII name (UTF-8) round-trips
+    {
+        PrefsShell f (directory / "session", true, [&devices] (auto& choices) { devices.install (choices); });
+        auto* outputs = dynamic_cast<juce::ComboBox*> (findComponentById (*f, "shell.device.chooser"));
+        auto* inputs = dynamic_cast<juce::ComboBox*> (findComponentById (*f, "shell.device.input.chooser"));
+        REQUIRE (outputs != nullptr);
+        REQUIRE (inputs != nullptr);
+        outputs->setSelectedId (2, juce::sendNotificationSync);   // "Interface", as a pick in the chooser
+        inputs->setSelectedId (2, juce::sendNotificationSync);    // "Interface In"
+        REQUIRE (devices.output == "Interface");
+        REQUIRE (devices.input == "Interface In \xc3\x9c");
+        const std::string written = textOf (directory / "session" / "prefs.json");
+        REQUIRE (written.find ("\"outputDevice\": \"Interface\"") != std::string::npos);
+        REQUIRE (written.find ("Interface In") != std::string::npos);
+    }
+
+    // The next launch: the system opens its defaults; the remembered pair is switched to, then the rate is asked for.
+    devices.output = "Speakers";
+    devices.input = "Microphone";
+    devices.rateHz = 44'100.0;
+    devices.calls.clear();
+    PrefsShell relaunched (directory / "session", true, [&devices] (auto& choices) { devices.install (choices); });
+    REQUIRE (devices.output == "Interface");
+    REQUIRE (devices.input == "Interface In \xc3\x9c");
+    REQUIRE (devices.calls == std::vector<std::string> { "out:Interface", "in:Interface In \xc3\x9c", "rate:48000" });
+    REQUIRE (relaunched.status().empty());
+}
+
+TEST_CASE ("ADR-0061 a missing remembered device leaves the open one, names both, and stays remembered", "[prefs]")
+{
+    const auto writePrefs = [] (const std::filesystem::path& session, const std::string& output, const std::string& input) {
+        std::filesystem::create_directories (session);
+        writeText (session / "prefs.json",
+                   "{ \"audio\": { \"outputDevice\": \"" + output + "\", \"inputDevice\": \"" + input + "\" } }");
+    };
+    const auto directory = prefsScratch ("missing-devices");
+    {
+        // Both gone: one line names each, and what is open instead.
+        writePrefs (directory / "both", "Interface", "Interface In");
+        FakeDevices devices;
+        devices.outputs = { "Speakers" };
+        devices.inputs = { "Microphone" };
+        PrefsShell f (directory / "both", true, [&devices] (auto& choices) { devices.install (choices); });
+        REQUIRE (f.status() == "Audio output Interface is not available - using Speakers; "
+                               "Audio input Interface In is not available - using Microphone");
+        REQUIRE (devices.output == "Speakers");
+        REQUIRE (devices.input == "Microphone");
+        const std::string kept = textOf (directory / "both" / "prefs.json");   // a fallback never overwrites the choice
+        REQUIRE (kept.find ("\"Interface\"") != std::string::npos);
+        REQUIRE (kept.find ("\"Interface In\"") != std::string::npos);
+    }
+    {
+        // Listed but refusing to open: the same honest line; no input open at all says so.
+        writePrefs (directory / "refused", "Interface", "Interface In");
+        FakeDevices devices;
+        devices.refuse = { "Interface" };
+        devices.inputs = {};
+        devices.input.clear();
+        PrefsShell f (directory / "refused", true, [&devices] (auto& choices) { devices.install (choices); });
+        REQUIRE (f.status() == "Audio output Interface is not available - using Speakers; "
+                               "Audio input Interface In is not available - no input");
+        REQUIRE (std::find (devices.calls.begin(), devices.calls.end(), "out:Interface") != devices.calls.end());
+    }
+    {
+        // The rate request's warning does not hide the reason: one line holds both.
+        writePrefs (directory / "rate", "Interface", "");
+        FakeDevices devices;
+        devices.outputs = { "Speakers" };
+        devices.acceptRate = false;
+        PrefsShell f (directory / "rate", true, [&devices] (auto& choices) { devices.install (choices); });
+        REQUIRE (f.status() == "Audio output Interface is not available - using Speakers; "
+                               "Audio device runs at 44100 Hz but this project is 48000 Hz - playback speed will be wrong");
+    }
+    {
+        // No device at all.
+        writePrefs (directory / "none", "Interface", "");
+        FakeDevices devices;
+        devices.outputs = {};
+        devices.output.clear();
+        PrefsShell f (directory / "none", true, [&devices] (auto& choices) { devices.install (choices); });
+        REQUIRE (f.status() == "No audio device could be opened (Interface is not available)");
+    }
+    {
+        // Back again: the remembered device is used, nothing reported.
+        FakeDevices devices;
+        PrefsShell f (directory / "both", true, [&devices] (auto& choices) { devices.install (choices); });
+        REQUIRE (devices.output == "Interface");
+        REQUIRE (devices.input == "Interface In");
+        REQUIRE (f.status().empty());
+    }
 }

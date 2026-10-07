@@ -1323,31 +1323,154 @@ void MainComponent::menuItemSelected (int menuItemID, int /*topLevelMenuIndex*/)
 
 // Device chooser plumbing (usable-DAW P1): harness seams win when injected; the native shell
 // talks to the JUCE device manager.
-bool MainComponent::selectAudioOutputDeviceByName (const std::string& name)
+bool MainComponent::selectAudioOutputDeviceByName (const std::string& name, bool remember)
 {
+    bool switched = false;
     if (fileChoices.selectAudioOutputDevice)
-        return fileChoices.selectAudioOutputDevice (name);
-
-    if (! desktopAudioRequested)
-        return false;
-
-    juce::AudioDeviceManager::AudioDeviceSetup setup = audioDeviceManager.getAudioDeviceSetup();
-    setup.outputDeviceName = juce::String (name);
-    return audioDeviceManager.setAudioDeviceSetup (setup, true).isEmpty();
+    {
+        switched = fileChoices.selectAudioOutputDevice (name);
+    }
+    else if (desktopAudioRequested)
+    {
+        useDeviceTypeListing (name, false);
+        juce::AudioDeviceManager::AudioDeviceSetup setup = audioDeviceManager.getAudioDeviceSetup();
+        setup.outputDeviceName = juce::String (name);
+        switched = audioDeviceManager.setAudioDeviceSetup (setup, true).isEmpty();
+    }
+    if (switched && remember)
+        appModel.rememberAudioDevice (true, name);   // ADR-0061: the one write site for a chosen output
+    return switched;
 }
 
-bool MainComponent::selectAudioInputDeviceByName (const std::string& name)
+bool MainComponent::selectAudioInputDeviceByName (const std::string& name, bool remember)
 {
+    bool switched = false;
     if (fileChoices.selectAudioInputDevice)
-        return fileChoices.selectAudioInputDevice (name);
+    {
+        switched = fileChoices.selectAudioInputDevice (name);
+    }
+    else if (desktopAudioRequested)
+    {
+        useDeviceTypeListing (name, true);
+        juce::AudioDeviceManager::AudioDeviceSetup setup = audioDeviceManager.getAudioDeviceSetup();
+        setup.inputDeviceName = juce::String (name);
+        setup.useDefaultInputChannels = true;
+        switched = audioDeviceManager.setAudioDeviceSetup (setup, true).isEmpty();
+    }
+    if (switched && remember)
+        appModel.rememberAudioDevice (false, name);   // ADR-0061: and for a chosen input
+    return switched;
+}
 
+// The chooser lists every device type's devices (Windows Audio, DirectSound, ASIO...): a name from another type than the
+// open one is switched to through its own type first (a setup cannot name another type's device).
+void MainComponent::useDeviceTypeListing (const std::string& name, bool input)
+{
+    const juce::String wanted (name);
+    for (juce::AudioIODeviceType* type : audioDeviceManager.getAvailableDeviceTypes())
+    {
+        if (type == nullptr || ! type->getDeviceNames (input).contains (wanted))
+            continue;
+        if (type->getTypeName() != audioDeviceManager.getCurrentAudioDeviceType())
+            audioDeviceManager.setCurrentAudioDeviceType (type->getTypeName(), true);
+        return;
+    }
+}
+
+std::vector<std::string> MainComponent::audioDeviceNamesFor (bool output)
+{
+    if (output && fileChoices.listAudioOutputDevices)
+        return fileChoices.listAudioOutputDevices();
+    if (! output && fileChoices.listAudioInputDevices)
+        return fileChoices.listAudioInputDevices();
     if (! desktopAudioRequested)
-        return false;
+        return {};
+    AudioDeviceNames names = enumerateDesktopAudioDeviceNames (audioDeviceManager);
+    return output ? std::move (names.outputs) : std::move (names.inputs);
+}
 
-    juce::AudioDeviceManager::AudioDeviceSetup setup = audioDeviceManager.getAudioDeviceSetup();
-    setup.inputDeviceName = juce::String (name);
-    setup.useDefaultInputChannels = true;
-    return audioDeviceManager.setAudioDeviceSetup (setup, true).isEmpty();
+std::string MainComponent::openAudioDeviceName (bool output)
+{
+    if (output && fileChoices.currentAudioOutputDevice)
+        return fileChoices.currentAudioOutputDevice();
+    if (! output && fileChoices.currentAudioInputDevice)
+        return fileChoices.currentAudioInputDevice();
+    if (! desktopAudioRequested)
+        return {};
+    if (output)
+    {
+        const juce::AudioIODevice* device = audioDeviceManager.getCurrentAudioDevice();
+        return device != nullptr ? device->getName().toStdString() : std::string {};
+    }
+    juce::String input = audioDeviceManager.getAudioDeviceSetup().inputDeviceName;
+    if (input.isEmpty())   // the default input, used implicitly: its name, so a remembered default is not switched to again
+        if (juce::AudioIODeviceType* type = audioDeviceManager.getCurrentDeviceTypeObject())
+        {
+            const juce::StringArray names = type->getDeviceNames (true);
+            const int index = type->getDefaultDeviceIndex (true);
+            if (index >= 0 && index < names.size()
+                && audioDeviceManager.getCurrentAudioDevice() != nullptr
+                && audioDeviceManager.getCurrentAudioDevice()->getActiveInputChannels().countNumberOfSetBits() > 0)
+                input = names[index];
+        }
+    return input.toStdString();
+}
+
+// ADR-0061 cp3, at launch after the device opened and before the project-rate request: the remembered output and input
+// when they are listed (switched without remembering; the callback suspended once around both); otherwise the open
+// device stays. Returns the honest reason for the status line (the caller joins it with the rate request's warning).
+std::string MainComponent::restoreRememberedAudioDevices()
+{
+    const yesdaw::ui::UiAudioPreferences remembered = appModel.audioPreferences();
+    std::vector<std::string> unavailable;
+    bool suspended = false;
+    bool anySwitched = false;
+    for (const bool output : { true, false })
+    {
+        const std::string& name = output ? remembered.outputDevice : remembered.inputDevice;
+        if (name.empty() || name == openAudioDeviceName (output))
+            continue;
+        const std::vector<std::string> listed = audioDeviceNamesFor (output);
+        bool switched = false;
+        if (std::find (listed.begin(), listed.end(), name) != listed.end())
+        {
+            if (! suspended)
+            {
+                suspendDesktopAudioCallback();
+                suspended = true;
+            }
+            switched = output ? selectAudioOutputDeviceByName (name, false) : selectAudioInputDeviceByName (name, false);
+        }
+        anySwitched = anySwitched || switched;
+        if (switched)
+            continue;
+        const std::string open = openAudioDeviceName (output);
+        if (output && open.empty())
+        {
+            const std::string& status = appModel.statusLineText();
+            const bool alreadySaid = status.rfind ("No audio device could be opened", 0) == 0;
+            unavailable.push_back ((alreadySaid ? status : std::string ("No audio device could be opened"))
+                                   + " (" + name + " is not available)");
+        }
+        else
+        {
+            unavailable.push_back (std::string (output ? "Audio output " : "Audio input ") + name + " is not available - "
+                                   + (open.empty() ? std::string (output ? "no output" : "no input") : "using " + open));
+        }
+    }
+    if (suspended)
+        resumeDesktopAudioCallback();
+    if (anySwitched)
+    {
+        if (desktopAudioRequested)
+            if (juce::AudioIODevice* device = audioDeviceManager.getCurrentAudioDevice())
+                appModel.setPlaybackMaxBlockSize (device->getCurrentBufferSizeSamples());
+        refreshAudioDeviceChooser();
+    }
+    std::string message;
+    for (const std::string& part : unavailable)
+        message += (message.empty() ? "" : "; ") + part;
+    return message;
 }
 
 void MainComponent::refreshAudioDeviceChooser()

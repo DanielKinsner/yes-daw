@@ -66,6 +66,15 @@ struct UiExportPreferences
     friend bool operator== (const UiExportPreferences&, const UiExportPreferences&) = default;
 };
 
+// ADR-0061 cp3: the devices the user chose (names; "" = the system default).
+struct UiAudioPreferences
+{
+    std::string outputDevice;
+    std::string inputDevice;
+
+    friend bool operator== (const UiAudioPreferences&, const UiAudioPreferences&) = default;
+};
+
 class UiPreferences
 {
 public:
@@ -78,6 +87,7 @@ public:
     UiViewPreferences view;
     UiEditingPreferences editing;
     UiExportPreferences exportChoices;
+    UiAudioPreferences audio;
 
     // Parse a file's text. False when it is not a JSON object (the caller keeps the defaults); true otherwise, every
     // known key that is malformed counted in rejectedKeys() and left at its default. A UTF-8 byte-order mark (an
@@ -160,6 +170,10 @@ public:
             readBool (section, "dither", exportChoices.dither);
             readBool (section, "normalize", exportChoices.normalize);
         });
+        readSection ("audio", [this] (const choc::value::ValueView& section) {
+            readText (section, "outputDevice", audio.outputDevice);
+            readText (section, "inputDevice", audio.inputDevice);
+        });
         return true;
     }
 
@@ -203,6 +217,11 @@ public:
         exportSection.setMember ("dither", choc::value::createBool (exportChoices.dither));
         exportSection.setMember ("normalize", choc::value::createBool (exportChoices.normalize));
         out.setMember ("export", exportSection);
+
+        choc::value::Value audioSection = sectionOf (out, "audio");
+        audioSection.setMember ("outputDevice", choc::value::createString (audio.outputDevice));
+        audioSection.setMember ("inputDevice", choc::value::createString (audio.inputDevice));
+        out.setMember ("audio", audioSection);
         return choc::json::toString (out, true) + "\n";
     }
 
@@ -238,6 +257,16 @@ private:
             return;
         if (section[key].isBool())
             out = section[key].getBool();
+        else
+            ++rejectedKeys_;
+    }
+
+    void readText (const choc::value::ValueView& section, const char* key, std::string& out)
+    {
+        if (! section.hasObjectMember (key))
+            return;
+        if (section[key].isString())
+            out = std::string (section[key].getString());
         else
             ++rejectedKeys_;
     }

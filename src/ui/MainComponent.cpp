@@ -1802,7 +1802,18 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         recordStartupStage ("adopt-and-enumerate-device");
     }
     if (desktopAudioRequested || fileChoices.initialiseSessionAtLaunch)
-        requestProjectDeviceRate();   // ADR-0060: the launch project, once the device is open
+    {
+        if (! desktopAudioRequested)
+            refreshAudioDeviceChooser();   // the harness's lists (the native shell refreshed them above)
+        const std::string deviceReason = restoreRememberedAudioDevices();   // ADR-0061: the devices the user chose
+        requestProjectDeviceRate();                                         // ADR-0060: the launch project's rate
+        if (! deviceReason.empty())   // the reason stays readable next to the rate request's warning, not under it
+        {
+            const std::string& status = appModel.statusLineText();
+            const bool rateWarning = appModel.statusLineIsError() && status.rfind ("Audio device runs at", 0) == 0;
+            appModel.reportStatus (rateWarning ? deviceReason + "; " + status : deviceReason, true);
+        }
+    }
 
     // E34: open every MIDI input so played notes reach a live capture session (native
     // shell only — harness runs stay deterministic with the injected model seam).

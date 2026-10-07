@@ -956,12 +956,18 @@ private:
     // Device chooser plumbing (usable-DAW P1): harness seams win when injected; the native shell
     // talks to the JUCE device manager.
 
-    [[nodiscard]] bool selectAudioOutputDeviceByName (const std::string& name);
+    // `remember` (ADR-0061): a user's choice is remembered; the launch restore switches without remembering.
+    [[nodiscard]] bool selectAudioOutputDeviceByName (const std::string& name, bool remember = true);
 
     // E29: input-side twins of the output plumbing. Switching the input device restarts the
     // JUCE device, which re-runs audioDeviceAboutToStart and re-adopts the E28 profile.
 
-    [[nodiscard]] bool selectAudioInputDeviceByName (const std::string& name);
+    [[nodiscard]] bool selectAudioInputDeviceByName (const std::string& name, bool remember = true);
+    // ADR-0061 cp3: the device lists and the open devices (seams first), and the launch restore.
+    [[nodiscard]] std::vector<std::string> audioDeviceNamesFor (bool output);
+    [[nodiscard]] std::string openAudioDeviceName (bool output);
+    void useDeviceTypeListing (const std::string& name, bool input);
+    [[nodiscard]] std::string restoreRememberedAudioDevices();
 
     void refreshAudioDeviceChooser();
 

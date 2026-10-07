@@ -1676,6 +1676,20 @@ public:
     // ---- ADR-0061: the user's preferences (prefs.json in the session-state folder) ----
     [[nodiscard]] UiPreferencesState preferencesState() const noexcept { return preferencesState_; }
     [[nodiscard]] const UiViewPreferences& viewPreferences() const noexcept { return preferences_.view; }
+    [[nodiscard]] const UiAudioPreferences& audioPreferences() const noexcept { return preferences_.audio; }
+
+    // cp3: the device the user chose (the shell's one write site: a successful choice in the chooser path, never the
+    // launch restore or a fallback).
+    void rememberAudioDevice (bool output, const std::string& name)
+    {
+        if (sessionStateDirectory_.empty())
+            return;
+        std::string& remembered = output ? preferences_.audio.outputDevice : preferences_.audio.inputDevice;
+        if (remembered == name)
+            return;
+        remembered = name;
+        savePreferences();
+    }
 
     // cp2: the settings that follow the user, applied when preferences are read and on every attach (which resets
     // the context). No folder: factory values, as before.
