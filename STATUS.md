@@ -8,6 +8,22 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 (afternoon) — G6.2 decided: ADR-0064 (layout density and scaling)
+
+**Now:** ADR-0064 accepted (two critic passes). **Next: G6.2 cp1** — the 28 px tool row and 4 px panel inset (eight
+whole 72 px lanes at 1920x1080), the rail's rows level with their lanes (header 93 = outer inset + tool row + ruler,
+footer 11 = scroll bar + inset; one `rowArea()`), the density gates back to >= 8, row-containment and rail-level gates.
+Then cp2 (the scaling matrix, the window minimum 1152x640 so a maximized window fits 125 % / 150 % laptop displays,
+reachability, scaled renders) and cp3 (the macOS frame exception re-measured). SS-6 still waits for a free desktop.
+
+**Found while measuring (defects, fixed in cp1):** the track headers sit 15 px above their lanes (the ruler grew to
+64 px in G0.7 cp3; the rail's 86 px header was never moved); the two panels clamp the vertical scroll over row areas
+11 px apart, so at some heights a scroll to the bottom leaves the headers a row off; a maximized window on a 1920x1080
+display at 150 % (client ~1280x656) cannot fit the 720 px minimum height.
+
+**CI recorded:** 379b6ae (G6.1 cp1) macOS fails only `YesDawTimelineGpuCheck` (sustained 22.37 ms, max 33.03 ms;
+413/414 otherwise green) — the standing exception; Windows still running. 1bc4a6f (G6.1 cp2) queued.
+
 ## 2026-10-08 (midday) — G6.1 done: colours once, no fake data, labels and tooltips in words (ADR-0063 cp2)
 
 **Now:** **G6.1** is in, headless-certified (both checkpoints). **Next: G6.2 — layout and scaling** (the window /

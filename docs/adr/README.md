@@ -81,6 +81,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0061](0061-persistent-preferences.md) | Persistent preferences: one prefs.json owns the keymap, view and dock defaults, editing and export defaults and the chosen audio devices; a project's own view state still wins | Accepted |
 | [0062](0062-missing-audio-relink.md) | Missing audio relink: an open that finds missing or damaged Asset files asks for each, adopts only its original bytes, and otherwise changes nothing | Accepted |
 | [0063](0063-tokens-contrast-readable-labels.md) | Tokens, contrast and readable labels: the plan's type scale with an 11 px floor, WCAG contrast for every token where it is drawn, colours defined once, no fake data, tooltips in words | Accepted |
+| [0064](0064-layout-density-and-scaling.md) | Layout density and scaling: eight whole lanes at 1080p, track headers level with their lanes, a window that fits every display of the matrix, the matrix rendered at its scales, the macOS frame exception re-measured | Accepted |
 
 ## Decision status (the five research forks)
 
