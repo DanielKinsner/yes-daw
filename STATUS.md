@@ -10,8 +10,9 @@ Older entries below are dated history, not competing "Now" instructions.
 
 ## 2026-10-09 — G6.2 checkpoint 3: the macOS frame exception re-measured (ADR-0064) — a decision for Dan
 
-**Now:** G6.2's three checkpoints are in. **Decision pending (Dan, plan §8.2):** renew the macOS frame exception or
-not. **Next:** G6.3 (keyboard navigation and accessibility) — its ADR first. SS-6 still waits for a free desktop.
+**Now:** G6.2's three checkpoints are in; **ADR-0066 accepted** (G6.3: every painted control a Control target with its
+own accessible element). **Decision pending (Dan, plan §8.2):** renew the macOS frame exception or not. **Next:** G6.3
+cp1 — painted controls as targets. SS-6 still waits for a free desktop.
 
 **The baseline** ([evidence](docs/evidence/2026-10-g62-gpu-baseline.md)): on Dan's machine the timeline frame check
 holds 4.1–4.5 ms sustained in ten runs (budget 16.6) — the renderer has about 4x headroom. On CI, macOS failed the check
