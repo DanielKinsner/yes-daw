@@ -8,6 +8,36 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-09 (late) — G6.3 checkpoint 1b: the mixer's zones, the pads and Shift+F10 (ADR-0066)
+
+**Now:** G6.3 **cp1** (both halves) is in, headless-certified locally. **Next: G6.3 cp2** — an accessible element per
+painted control (click-through, focus-less proxies with role, name, value, state and actions). **Decision still
+pending (Dan, plan §8.2):** the macOS frame exception.
+
+**What a user gets:** Tab reaches every painted control on each mixer strip shown — S / M / R, pan, fader, meter, the
+I/O rows, each send row and insert slot — the master's insert slots and the Sampler's pads; Enter mutes, opens an
+empty slot's or well's add menu, opens a filled slot's editor, opens an I/O row's choices, loads a pad; a routed send's
+level and the pan adjust with the arrows (Esc restores). **Shift+F10** opens the target's right-click menu — an insert
+slot's Bypass / Remove / Move had no other home. An adjustment Esc puts back now leaves nothing in the undo history,
+and a drag released where it began no longer adds an empty step either (the redo history survives both).
+
+**Gates:** `[g6-keyboard]` — every mixer zone the probe names on screen (cells, pan, fader, meter, I/O, sends, inserts;
+the master's slots) is in the walk, each kind at least once; strip mute toggles; pan reads L10 and Esc restores it with
+no undo step of its own (one undo then takes back the previous real edit); the meter clears its clip light; Enter on an
+empty insert slot / the output row / an empty send well opens that zone's menu; the add menu's kind fills the slot;
+Shift+F10 on the filled slot opens its menu with Bypass; Shift+F10 on a rail cell opens the row's menu; Enter on the
+filled slot opens its editor; all 16 pads are in the walk and Enter loads the first. `[mix-scalars]` (engine): a
+gesture that comes back leaves no step, one that changes leaves exactly one, an empty one changes nothing, and the redo
+history survives the first and last but not the second. 417/417 local, Clang clean.
+
+**Amendment (ADR-0066):** a pad's click loads a sample (not an audition); JUCE never delivers the Menu key, so Shift+F10
+is the context-menu key. **Parked:** the pads' Shift / Ctrl verbs (mode, clear) still need a keyboard route (a pad menu);
+the "edited" marker stays set after an adjustment that came back (pre-existing: the dirty flag counts edits, not net
+change).
+
+**Critics:** UI — no blockers (the master slots' surface is the strips' input overlay, which covers the master pane).
+Engine — no blockers; in: the redo history set aside and returned.
+
 ## 2026-10-09 (later) — G6.3 checkpoint 1a: the rail, tool strip and header's painted controls are keyboard targets (ADR-0066)
 
 **Now:** G6.3 **cp1a** is in, headless-certified locally; **G6.2 certified** (4dc95a2, the cp2 compile fix, green on

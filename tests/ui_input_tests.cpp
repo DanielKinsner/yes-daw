@@ -23886,6 +23886,162 @@ TEST_CASE ("ADR-0066 painted controls are Control targets: the rail, the tool st
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// ADR-0066 cp1b: the mixer's painted zones, the master's insert slots and the Sampler's pads are Control targets, and
+// Shift+F10 opens the target's right-click menu (an insert slot's Bypass / Remove / Move live nowhere else).
+TEST_CASE ("ADR-0066 painted controls are Control targets: the mixer's zones, the master's slots, the pads and Shift+F10",
+           "[ui][input][shell][control-navigation][g6-keyboard]")
+{
+    const auto bundlePath = makeTempBundlePath ("g63-painted-mixer");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    choices.chooseSamplerPadFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // tall strips: every row shows
+    const auto target = [&shell] (const juce::String& id)
+    {
+        INFO ("target " << id.toStdString());
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, id));
+        REQUIRE (controlTargetOf (*shell).id == id);
+    };
+
+    // Coverage: every mixer zone the probe names on screen (each strip's cells, pan, fader, meter, I/O rows, send
+    // rows, insert slots; the master's insert slots) is in the walk.
+    {
+        const auto order = yesdaw::ui::mainComponentControlTraversal (*shell);
+        const std::set<juce::String> walk (order.begin(), order.end());
+        const juce::var layout = probeRoot (*shell)["layout"];
+        int covered = 0;
+        if (auto* object = layout.getDynamicObject())
+            for (const auto& property : object->getProperties())
+            {
+                const juce::String key = property.name.toString();
+                const bool zone = (key.startsWith ("mixer.strip.") && key.fromFirstOccurrenceOf ("mixer.strip.", false, false).containsChar ('.')
+                                   && ! key.endsWith (".thumb"))
+                               || key.startsWith ("mixer.master.insert.");
+                if (! zone || ! property.value.isArray() || property.value.size() != 4)
+                    continue;
+                if (static_cast<int> (property.value[2]) <= 0 || static_cast<int> (property.value[3]) <= 0)
+                    continue;   // not shown (a bus has no R cell, a short strip no lower rows)
+                INFO ("mixer zone " << key.toStdString());
+                REQUIRE (walk.count (key) == 1);
+                ++covered;
+            }
+        REQUIRE (covered >= 3 * 5);
+        for (const char* kind : { ".solo", ".mute", ".arm", ".pan", ".fader", ".meter", ".input", ".output", ".send.", ".insert." })
+        {
+            INFO ("zone kind " << kind);
+            REQUIRE (std::any_of (order.begin(), order.end(), [kind] (const juce::String& id) {
+                return id.startsWith ("mixer.strip.") && id.contains (kind);
+            }));
+        }
+        REQUIRE (std::any_of (order.begin(), order.end(), [] (const juce::String& id) { return id.startsWith ("mixer.master.insert."); }));
+    }
+
+    // A toggle (strip 1's mute), a value (its pan: Esc restores), the meter (clears its clip light).
+    const auto strip1 = [&bundlePath] { return readProjectSnapshot (bundlePath).tracks.at (1).strip; };
+    target ("mixer.strip.1.mute");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (strip1().muted);
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE_FALSE (strip1().muted);
+    target ("mixer.strip.1.pan");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::leftKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::leftKey));
+    REQUIRE (strip1().pan == Catch::Approx (-0.1).margin (1e-4));
+    REQUIRE (controlTargetOf (*shell).value == "L10");
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    REQUIRE (strip1().pan == Catch::Approx (0.0).margin (1e-6));
+    // Esc left no step of its own: one undo takes back the last real edit (the second mute toggle).
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    REQUIRE (strip1().muted);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+    REQUIRE_FALSE (strip1().muted);
+    yesdaw::ui::mainComponentLatchStripClip (*shell, 1);
+    target ("mixer.strip.1.meter");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentStripClipLatched (*shell, 1));
+
+    // Zones that open menus: an empty insert slot (add), an I/O row (its choices), an empty send well (add a send).
+    const auto menuAfterEnter = [&] (const juce::String& id, yesdaw::ui::ContextMenuTarget expected)
+    {
+        target (id);
+        REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+        const yesdaw::ui::MainComponentContextMenu menu = yesdaw::ui::mainComponentLastContextMenu (*shell);
+        INFO ("menu after Enter on " << id.toStdString() << ": " << menu.route.toStdString());
+        REQUIRE (menu.target == expected);
+    };
+    menuAfterEnter ("mixer.strip.0.insert.0", yesdaw::ui::ContextMenuTarget::InsertSlot);
+    {   // the menu's first kind, as its keys would pick it: the slot fills
+        const yesdaw::ui::MainComponentContextMenu addMenu = yesdaw::ui::mainComponentLastContextMenu (*shell);
+        REQUIRE_FALSE (addMenu.addInsertKinds.empty());
+        yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerFxInsertAdd, addMenu.addInsertKinds.front());
+        REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.fxChain.size() == 1u);
+    }
+    menuAfterEnter ("mixer.strip.0.output", yesdaw::ui::ContextMenuTarget::MixerStripOutput);
+    menuAfterEnter ("mixer.strip.0.send.0", yesdaw::ui::ContextMenuTarget::MixerSendRow);
+
+    // Shift+F10 on a filled insert slot: its own right-click menu, the only home of Bypass.
+    target ("mixer.strip.0.insert.0");
+    REQUIRE (controlTargetOf (*shell).name.endsWith ("open its editor"));
+    REQUIRE (pressKey (*shell, juce::KeyPress::F10Key, juce::ModifierKeys::shiftModifier));
+    {
+        const yesdaw::ui::MainComponentContextMenu menu = yesdaw::ui::mainComponentLastContextMenu (*shell);
+        REQUIRE (menu.target == yesdaw::ui::ContextMenuTarget::InsertSlot);
+        REQUIRE (std::find (menu.actions.begin(), menu.actions.end(), UiActionId::MixerFxInsertToggle) != menu.actions.end());
+    }
+    // Shift+F10 on a rail cell: the row's own menu.
+    target ("rail.row.0.mute");   // the tall dock leaves the rail one row
+    REQUIRE (pressKey (*shell, juce::KeyPress::F10Key, juce::ModifierKeys::shiftModifier));
+    REQUIRE (yesdaw::ui::mainComponentLastContextMenu (*shell).target == yesdaw::ui::ContextMenuTarget::TrackHeader);
+
+    // Enter on the filled slot opens its editor (the walk then lives in it).
+    target ("mixer.strip.0.insert.0");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE_FALSE (controlTargetOf (*shell).scope.isEmpty());
+
+    // The Sampler's pads (track 1 a Sampler, the Instrument tab shown): each is in the walk; Enter loads a sample.
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));   // ends navigation
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));   // closes the editor
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::mixerHeight);   // the rail shows row 1 again
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, juce::Point<int> (kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                                              + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight * 3 / 2));
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowTrackTab));
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "track.inspector.instrument"));
+    REQUIRE (chooser != nullptr);
+    chooser->setSelectedId (3, juce::sendNotificationSync);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks[1].instrumentKind == yesdaw::engine::TrackInstrumentKind::Sampler);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewInstrument);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    REQUIRE (yesdaw::ui::mainComponentInstrumentPanel (*shell).padsVisible);
+    {
+        const auto order = yesdaw::ui::mainComponentControlTraversal (*shell);
+        const std::set<juce::String> walk (order.begin(), order.end());
+        for (int key = yesdaw::ui::UiTheme::Layout::instrumentPanelPadFirstKey;
+             key < yesdaw::ui::UiTheme::Layout::instrumentPanelPadFirstKey + yesdaw::ui::UiTheme::Layout::instrumentPanelPadCount; ++key)
+        {
+            INFO ("pad " << key);
+            REQUIRE (walk.count ("instrument.pad." + juce::String (key)) == 1);
+        }
+    }
+    target ("instrument.pad." + juce::String (yesdaw::ui::UiTheme::Layout::instrumentPanelPadFirstKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (yesdaw::ui::mainComponentInstrumentPanel (*shell).pads.size() == 1u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // ADR-0066: building the walk (widgets and painted records) runs on every key and every UI tick while navigating; at
 // 24 tracks with the mixer shown it stays far inside a frame.
 TEST_CASE ("ADR-0066 the control walk with every painted control builds well inside a frame at 24 tracks",

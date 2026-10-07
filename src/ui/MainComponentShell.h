@@ -221,6 +221,7 @@ public:
         double minimum = 0.0, maximum = 1.0;                  // a Value's range
         bool checked = false;                                 // a Toggle's state
         juce::Component* surface = nullptr;                   // the component that paints it
+        std::function<void()> contextMenu;                    // Shift+F10: the zone's right-click menu, where it has one
     };
     // G4.0b: one control the router can target — a live widget, or a painted control (ADR-0066).
     struct ShellControl
@@ -794,6 +795,8 @@ private:
     [[nodiscard]] std::vector<ShellControl> collectShellControls();
     void collectPaintedControls (std::vector<ShellControl>& controls);   // ADR-0066: the painted surfaces' records
     [[nodiscard]] bool railRowExists (int row) const noexcept;
+    void collectPaintedMixerControls (std::vector<ShellControl>& controls);   // ADR-0066: the strips' zones and the master's slots
+    void openControlTargetContextMenu();                                       // ADR-0066: Shift+F10 while navigating
     void cycleTimeDisplayMode();                                          // the header time readout's click
     [[nodiscard]] static juce::String panReadoutText (float pan);         // "C", "L 12", "R 30" — the rail's paint
     [[nodiscard]] int controlRegionAt (juce::Point<int> shellPoint) const;

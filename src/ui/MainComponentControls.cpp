@@ -291,6 +291,7 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
             const auto& track = tracks[static_cast<std::size_t> (row)];
             const std::string base = "rail.row." + std::to_string (row);
             const std::string name = track.strip.name;
+            const auto rowMenu = [this, centre = rowRect.getCentre() - origin] { trackListInput.requestContextMenu (centre); };
             const auto toggle = [&] (const char* part, const char* words, std::function<void (int)> callback, bool checked,
                                      juce::Rectangle<int> cell)
             {
@@ -298,6 +299,7 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
                 record.activate = [callback = std::move (callback), row] { if (callback) callback (row); };
                 record.checked = checked;
                 record.surface = &trackListInput;
+                record.contextMenu = rowMenu;
                 add (base + "." + part, name + " " + words, ControlTargetRole::Toggle, cell.translated (origin.x, origin.y), std::move (record));
             };
             toggle ("mute", "mute", trackListInput.onMuteToggled, track.strip.muted, trackListInput.muteCellBounds (row));
@@ -359,27 +361,118 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
         }
     }
 
-    // The mixer's painted faders: one per strip shown while the dock shows the mixer (G4.0b).
-    if (appModel.context().mixerDockVisible && ! dockShowsPianoRoll() && ! dockShowsInstrument())
+    collectPaintedMixerControls (controls);
+
+    // The Sampler's pads, while the dock's Instrument tab shows them: Enter is the plain click (load a sample).
+    if (appModel.context().mixerDockVisible && dockShowsInstrument() && instrumentPanel.isVisible() && instrumentPanel.padsShown())
     {
-        const auto surface = currentMixerSurface();
-        const std::size_t trackCount = surface.tracks.size();
-        const std::size_t stripTotal = trackCount + surface.buses.size();
-        const juce::Rectangle<int> dock = mixerPanelBounds();
-        for (std::size_t i = 0; i < stripTotal; ++i)
+        using L = yesdaw::ui::UiTheme::Layout;
+        const juce::Point<int> origin = getLocalArea (instrumentPanel.getParentComponent(), instrumentPanel.getBounds()).getPosition();
+        for (int index = 0; index < L::instrumentPanelPadCount; ++index)
         {
-            const juce::Rectangle<int> rail = paintedFaderRailForLane (paintedMixerLaneBounds (i), stripIoRows (i));
-            if (rail.isEmpty() || ! dock.intersects (rail))
-                continue;
-            const auto& strip = i < trackCount ? surface.tracks[i] : surface.buses[i - trackCount];
-            const int stripIndex = static_cast<int> (i);
+            const int key = L::instrumentPanelPadFirstKey + index;
+            PaintedControl pad;
+            pad.activate = [this, key] { if (instrumentPanel.onPadClicked) instrumentPanel.onPadClicked (key, false, false); };
+            pad.surface = &instrumentPanel;
+            add ("instrument.pad." + std::to_string (key), "Pad " + std::to_string (index + 1) + ": load a sample",
+                 ControlTargetRole::Button, instrumentPanel.padCellBounds (key).translated (origin.x, origin.y), std::move (pad));
+        }
+    }
+}
+
+// ADR-0066: the mixer's painted zones — on every strip shown (ADR-0065: a strip scrolled out has no zones): its S / M / R
+// cells, pan, fader, meter, send rows, insert slots and I/O rows; and the master pane's insert slots. Each runs the
+// strips input's own callback, and Shift+F10 opens the menu its right-click opens.
+void MainComponent::collectPaintedMixerControls (std::vector<ShellControl>& controls)
+{
+    if (! appModel.context().mixerDockVisible || dockShowsPianoRoll() || dockShowsInstrument() || ! mixerStripsInput.isVisible())
+        return;
+    const auto add = [this, &controls] (std::string id, std::string name, ControlTargetRole role, juce::Rectangle<int> bounds,
+                                        PaintedControl record)
+    {
+        if (bounds.isEmpty() || ! getLocalBounds().contains (bounds))
+            return;
+        if (! record.contextMenu)
+            record.contextMenu = [this, centre = bounds.getCentre()] { mixerStripsInput.requestContextMenu (centre - mixerStripsInput.getPosition()); };
+        record.surface = &mixerStripsInput;
+        ShellControl control;
+        control.entry.id = std::move (id);
+        control.entry.name = std::move (name);
+        control.entry.role = role;
+        control.entry.bounds = controlRectOf (bounds);
+        control.entry.region = kRegionDock;
+        control.painted = std::make_shared<const PaintedControl> (std::move (record));
+        controls.push_back (std::move (control));
+    };
+    const auto stripExists = [this] (int strip)
+    {
+        const auto now = currentMixerSurface();
+        return strip >= 0 && static_cast<std::size_t> (strip) < now.tracks.size() + now.buses.size();
+    };
+    const auto localCentre = [this] (juce::Rectangle<int> shellRect) { return shellRect.getCentre() - mixerStripsInput.getPosition(); };
+
+    const auto surface = currentMixerSurface();
+    const std::size_t trackCount = surface.tracks.size();
+    const std::size_t stripTotal = trackCount + surface.buses.size();
+    for (std::size_t i = 0; i < stripTotal; ++i)
+    {
+        const juce::Rectangle<int> lane = paintedMixerLaneBounds (i);
+        if (lane.isEmpty())
+            continue;   // ADR-0065: scrolled out
+        const auto& strip = i < trackCount ? surface.tracks[i] : surface.buses[i - trackCount];
+        const int stripIndex = static_cast<int> (i);
+        const int ioRows = stripIoRows (i);
+        const std::string base = "mixer.strip." + std::to_string (i);
+
+        // S / M / R (R on a Track only).
+        static constexpr std::array<const char*, 3> kParts {{ "solo", "mute", "arm" }};
+        static constexpr std::array<const char*, 3> kWords {{ "solo", "mute", "record arm" }};
+        const std::size_t cells = std::min (stripCellCount (i), kParts.size());
+        for (std::size_t cell = 0; cell < cells; ++cell)
+        {
+            PaintedControl record;
+            record.activate = [this, stripIndex, cell] {
+                if (mixerStripsInput.onMuteSoloCellClicked)
+                    mixerStripsInput.onMuteSoloCellClicked (stripIndex, static_cast<int> (cell));
+            };
+            record.checked = cell == 0 ? strip.soloed
+                           : cell == 1 ? strip.muted
+                                       : appModel.isRecordingTrackIndexArmed (i);
+            add (base + "." + kParts[cell], strip.name + " " + kWords[cell], ControlTargetRole::Toggle,
+                 paintedMuteSoloCellBoundsForLane (lane, cell, cells), std::move (record));
+        }
+
+        // Pan.
+        {
+            PaintedControl pan;
+            pan.currentValue = [this, stripIndex, stripExists] {
+                return stripExists (stripIndex) && mixerStripsInput.panForStrip ? static_cast<double> (mixerStripsInput.panForStrip (stripIndex)) : 0.0;
+            };
+            pan.setValue = [this, stripIndex, stripExists] (double value, bool ended) {
+                if (stripExists (stripIndex) && mixerStripsInput.onPanDragged)
+                    mixerStripsInput.onPanDragged (stripIndex, static_cast<float> (value), ended);
+                else if (ended)
+                {
+                    paintedPanDragStrip = -1;   // the strip went with its track or bus: only the bracket closes
+                    endAutomationTouchRideIfActive();
+                    appModel.endStripGesture();
+                }
+            };
+            pan.stepValue = [] (double current, int steps, bool fine) { return std::clamp (current + steps * (fine ? 0.01 : 0.05), -1.0, 1.0); };
+            pan.valueText = [this, stripIndex] { return panReadoutText (mixerStripsInput.panForStrip ? mixerStripsInput.panForStrip (stripIndex) : 0.0f); };
+            pan.minimum = -1.0;
+            pan.maximum = 1.0;
+            add (base + ".pan", strip.name + " pan", ControlTargetRole::Value, paintedPanKnobForLane (lane), std::move (pan));
+        }
+
+        // The fader (G4.0b).
+        {
             PaintedControl fader;
             fader.currentValue = [this, stripIndex] {
                 return mixerStripsInput.faderGainForStrip ? static_cast<double> (mixerStripsInput.faderGainForStrip (stripIndex)) : 1.0;
             };
-            fader.setValue = [this, stripIndex] (double gain, bool ended) {
-                const auto now = currentMixerSurface();
-                if (static_cast<std::size_t> (stripIndex) < now.tracks.size() + now.buses.size() && mixerStripsInput.onFaderDragged)
+            fader.setValue = [this, stripIndex, stripExists] (double gain, bool ended) {
+                if (stripExists (stripIndex) && mixerStripsInput.onFaderDragged)
                 {
                     mixerStripsInput.onFaderDragged (stripIndex, static_cast<float> (gain), ended);
                 }
@@ -392,24 +485,134 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
                     hideDragDbReadout();
                 }
             };
-            fader.stepValue = [stepDb] (double current, int steps, bool fine) {
-                return stepDb (current, steps, fine, yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax);
+            fader.stepValue = [] (double current, int steps, bool fine) {
+                return static_cast<double> (stepFaderGainDb (static_cast<float> (current), steps, fine ? 0.1 : 1.0,
+                                                             yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax));
             };
             fader.valueText = [this, stripIndex] {
                 return dbReadoutText (mixerStripsInput.faderGainForStrip ? mixerStripsInput.faderGainForStrip (stripIndex) : 1.0f);
             };
             fader.maximum = yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax;
-            fader.surface = &mixerStripsInput;
-            ShellControl control;
-            control.entry.id = "mixer.strip." + std::to_string (i) + ".fader";
-            control.entry.name = strip.name + " fader";
-            control.entry.role = ControlTargetRole::Value;
-            control.entry.bounds = controlRectOf (rail);
-            control.entry.region = kRegionDock;
-            control.painted = std::make_shared<const PaintedControl> (std::move (fader));
-            controls.push_back (std::move (control));
+            add (base + ".fader", strip.name + " fader", ControlTargetRole::Value, paintedFaderRailForLane (lane, ioRows), std::move (fader));
+        }
+
+        // The meter: a click clears its clip light.
+        {
+            PaintedControl meter;
+            meter.activate = [this, stripIndex] { if (mixerStripsInput.onMeterClicked) mixerStripsInput.onMeterClicked (stripIndex); };
+            add (base + ".meter", strip.name + " meter: clear the clip light", ControlTargetRole::Button,
+                 paintedMeterBoundsForLane (lane, ioRows), std::move (meter));
+        }
+
+        // The I/O rows: a click opens the row's choices.
+        for (const int row : { kMixerIoInputRow, kMixerIoOutputRow })
+        {
+            const juce::Rectangle<int> rect = row == kMixerIoInputRow ? paintedInputRowBoundsForLane (lane, ioRows)
+                                                                      : paintedOutputRowBoundsForLane (lane, ioRows);
+            PaintedControl io;
+            io.activate = [this, stripIndex, row, centre = localCentre (rect)] {
+                if (mixerStripsInput.onIoRowClicked)
+                    mixerStripsInput.onIoRowClicked (stripIndex, row, centre);
+            };
+            add (base + (row == kMixerIoInputRow ? ".input" : ".output"),
+                 strip.name + (row == kMixerIoInputRow ? " input: choose" : " output: choose"), ControlTargetRole::Button, rect, std::move (io));
+        }
+
+        // The send rows: a routed send's level is a value (the drag previews, the release commits); an empty well is its
+        // add menu.
+        for (std::size_t send = 0; send < static_cast<std::size_t> (paintedSendRowCountForLane (lane, ioRows)); ++send)
+        {
+            const juce::Rectangle<int> rect = paintedSendRowBoundsForLane (lane, send, ioRows);
+            const int sendIndex = static_cast<int> (send);
+            const std::string id = base + ".send." + std::to_string (send);
+            PaintedControl record;
+            if (mixerStripsInput.sendRowFilled && mixerStripsInput.sendRowFilled (stripIndex, sendIndex))
+            {
+                record.currentValue = [this, stripIndex, sendIndex] {
+                    if (paintedSendDragPreview.stripIndex == stripIndex && paintedSendDragPreview.sendIndex == sendIndex)
+                        return static_cast<double> (paintedSendDragPreview.level);   // the value the drag shows, not yet committed
+                    return mixerStripsInput.sendLevelForRow ? static_cast<double> (mixerStripsInput.sendLevelForRow (stripIndex, sendIndex)) : 1.0;
+                };
+                record.setValue = [this, stripIndex, sendIndex, stripExists] (double level, bool ended) {
+                    if (stripExists (stripIndex) && mixerStripsInput.onSendRowDragged)
+                        mixerStripsInput.onSendRowDragged (stripIndex, sendIndex, level, ended);
+                    else if (ended)
+                        paintedSendDragPreview = {};
+                };
+                record.stepValue = [] (double current, int steps, bool fine) {
+                    return static_cast<double> (stepFaderGainDb (static_cast<float> (current), steps, fine ? 0.1 : 1.0, 1.0));
+                };
+                record.valueText = [this, stripIndex, sendIndex] {
+                    const bool previewing = paintedSendDragPreview.stripIndex == stripIndex && paintedSendDragPreview.sendIndex == sendIndex;
+                    return dbReadoutText (previewing ? paintedSendDragPreview.level
+                                                     : mixerStripsInput.sendLevelForRow ? mixerStripsInput.sendLevelForRow (stripIndex, sendIndex) : 1.0f);
+                };
+                add (id, strip.name + " send " + std::to_string (send + 1) + " level", ControlTargetRole::Value, rect, std::move (record));
+            }
+            else
+            {
+                record.activate = [this, stripIndex, sendIndex, centre = localCentre (rect)] {
+                    if (mixerStripsInput.onStripClicked)
+                        mixerStripsInput.onStripClicked (stripIndex);
+                    if (mixerStripsInput.onContextMenuRequested)
+                        mixerStripsInput.onContextMenuRequested (yesdaw::ui::ContextMenuTarget::MixerSendRow, sendIndex, centre);
+                };
+                add (id, strip.name + " send " + std::to_string (send + 1) + ": add", ControlTargetRole::Button, rect, std::move (record));
+            }
+        }
+
+        // The insert slots: a filled slot opens its editor; an empty one is its add menu.
+        for (std::size_t slot = 0; slot < static_cast<std::size_t> (paintedInsertRowCountForLane (lane)); ++slot)
+        {
+            const juce::Rectangle<int> rect = paintedInsertRowBoundsForLane (lane, slot, ioRows);
+            const int slotIndex = static_cast<int> (slot);
+            const bool filled = mixerStripsInput.insertSlotFilled && mixerStripsInput.insertSlotFilled (stripIndex, slotIndex);
+            PaintedControl record;
+            record.activate = [this, stripIndex, slotIndex, filled, centre = localCentre (rect)] {
+                if (mixerStripsInput.onInsertSlotClicked)
+                    mixerStripsInput.onInsertSlotClicked (stripIndex, slotIndex);
+                if (filled && mixerStripsInput.onInsertSlotDoubleClicked)
+                    mixerStripsInput.onInsertSlotDoubleClicked (stripIndex, slotIndex);
+                else if (! filled && mixerStripsInput.onContextMenuRequested)
+                    mixerStripsInput.onContextMenuRequested (yesdaw::ui::ContextMenuTarget::InsertSlot, slotIndex, centre);
+            };
+            add (base + ".insert." + std::to_string (slot),
+                 strip.name + " insert " + std::to_string (slot + 1) + (filled ? ": open its editor" : ": add"), ControlTargetRole::Button,
+                 rect, std::move (record));
         }
     }
+
+    // The master pane's insert slots (its fader is a native slider; its meters are indicators).
+    for (std::size_t slot = 0; slot < static_cast<std::size_t> (paintedMasterInsertRowCount()); ++slot)
+    {
+        const juce::Rectangle<int> rect = paintedMasterInsertRowBounds (slot);
+        const int master = static_cast<int> (stripTotal);
+        const int slotIndex = static_cast<int> (slot);
+        const bool filled = mixerStripsInput.insertSlotFilled && mixerStripsInput.insertSlotFilled (master, slotIndex);
+        PaintedControl record;
+        record.activate = [this, master, slotIndex, filled, centre = localCentre (rect)] {
+            if (mixerStripsInput.onInsertSlotClicked)
+                mixerStripsInput.onInsertSlotClicked (master, slotIndex);
+            if (filled && mixerStripsInput.onInsertSlotDoubleClicked)
+                mixerStripsInput.onInsertSlotDoubleClicked (master, slotIndex);
+            else if (! filled && mixerStripsInput.onContextMenuRequested)
+                mixerStripsInput.onContextMenuRequested (yesdaw::ui::ContextMenuTarget::InsertSlot, slotIndex, centre);
+        };
+        add ("mixer.master.insert." + std::to_string (slot),
+             "Master insert " + std::to_string (slot + 1) + (filled ? ": open its editor" : ": add"), ControlTargetRole::Button,
+             rect, std::move (record));
+    }
+}
+
+void MainComponent::openControlTargetContextMenu()
+{
+    const auto controls = collectShellControls();
+    const ShellControl* control = findControl (controls, controlNavigator.targetId());
+    if (control == nullptr || control->painted == nullptr || ! control->painted->contextMenu)
+        return;
+    lastControlActivation = "menu:" + control->entry.id;
+    const auto painted = control->painted;
+    painted->contextMenu();
 }
 
 juce::String MainComponent::controlValueText (const ShellControl& control) const
@@ -465,6 +668,18 @@ bool MainComponent::routeControlTargetKey (const juce::KeyPress& key)
     {
         control = ControlKey::Decrease;
         listSteps = code == juce::KeyPress::downKey ? 1 : -1;
+    }
+
+    // ADR-0066: Shift+F10 opens the target's right-click menu while navigating (JUCE delivers the Menu key as a
+    // modifier change, never as a key press). Outside navigation the chord is the keymap's (it binds nothing).
+    if (code == juce::KeyPress::F10Key && mods.isShiftDown() && ! mods.isCtrlDown() && ! mods.isCommandDown() && ! mods.isAltDown()
+        && controlNavigator.navigating() && dynamic_cast<juce::TextEditor*> (juce::Component::getCurrentlyFocusedComponent()) == nullptr)
+    {
+        revalidateControlTarget();
+        if (controlNavigator.interacting())
+            finishControlInteraction (true);
+        openControlTargetContextMenu();
+        return true;
     }
 
     // Active text entry outranks the router: a field keeps its keys. Only Tab leaves it, committing

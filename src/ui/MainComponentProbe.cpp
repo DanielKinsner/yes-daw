@@ -435,6 +435,8 @@ juce::var MainComponent::buildProbeLayout()
                                                                      : surface.buses[static_cast<std::size_t> (strip) - surface.tracks.size()].linearGain,
                                                                  stripIoRows (static_cast<std::size_t> (strip))));
             put (base + ".pan", harnessPaintedPanKnobBounds (strip));
+            put (base + ".meter", paintedMeterBoundsForLane (paintedMixerLaneBounds (static_cast<std::size_t> (strip)),
+                                                             stripIoRows (static_cast<std::size_t> (strip))));   // ADR-0066
             for (int slot = 0; slot < yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount; ++slot)
                 put (base + ".insert." + juce::String (slot), harnessPaintedInsertSlotBounds (strip, slot));
             for (int send = 0; send < yesdaw::ui::UiTheme::Layout::mixerPaintedSendRowCount; ++send)
