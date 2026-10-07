@@ -533,6 +533,13 @@ _Avoid_: copying a project folder to start another (shared identities)
 Writing the current project, unsaved edits included, to another bundle while the source stays current, open and
 unchanged (ADR-0060). Unlike **Save As**, which continues in the copy.
 
+**Preferences**:
+The user's own settings in `prefs.json` in the per-user session-state folder: the keymap, the view and dock
+defaults, snap and metronome, export choices and the chosen audio devices (ADR-0061). They follow the person across
+projects and launches; a project's own **view state** (its sizes and lane heights, in its bundle) still wins for
+that project.
+_Avoid_: storing a person's habits in a project, or a project's layout in preferences
+
 **Decoded buffer**:
 An Asset's decoded samples, made once and never written again, held by reference by everything that reads them —
 the model, the engine's clip schedules and Sampler pads, export jobs, peak builds (ADR-0059). A cross-rate Asset's

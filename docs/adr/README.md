@@ -78,6 +78,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0058](0058-export-v2.md) | Export v2: a worker job over an immutable snapshot, a `.partial` sibling committed only on success, TPDF dither, ranges, export stems and normalize | Accepted |
 | [0059](0059-shared-decoded-assets.md) | Decoded Assets are shared, immutable buffers: one per Asset, held by reference by the model, the engine, export jobs and peak builds | Accepted |
 | [0060](0060-new-project-templates-copies.md) | New project, templates and copies: a New Project dialog, the device at the project's rate, layout templates with fresh identities, Save As / Save a Copy through one atomic copy | Accepted |
+| [0061](0061-persistent-preferences.md) | Persistent preferences: one prefs.json owns the keymap, view and dock defaults, editing and export defaults and the chosen audio devices; a project's own view state still wins | Accepted |
 
 ## Decision status (the five research forks)
 
