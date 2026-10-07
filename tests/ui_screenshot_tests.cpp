@@ -128,12 +128,17 @@ std::uint64_t sampledArgbFingerprint (const juce::Image& image)
     return hash;
 }
 
-// V1: theme-legibility contrast law. A simple (non-gamma-corrected) relative-luminance metric is
-// enough for an internal "is this text visibly distinct from its panel" gate — not a WCAG legal
-// audit, just a real mechanical floor under the D7 judgment pass.
+// V1: theme-legibility contrast law, with the WCAG 2.x relative luminance (gamma-correct sRGB, ADR-0063). The token
+// table ([tokens]) holds text to 4.5:1; this rendered net samples real pixels, where anti-aliasing lowers the measured
+// peak, so its floor stays 3:1.
 double relativeLuminance (juce::Colour colour) noexcept
 {
-    return 0.2126 * colour.getFloatRed() + 0.7152 * colour.getFloatGreen() + 0.0722 * colour.getFloatBlue();
+    const auto channel = [] (float value) {
+        const double v = value;
+        return v <= 0.03928 ? v / 12.92 : std::pow ((v + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * channel (colour.getFloatRed()) + 0.7152 * channel (colour.getFloatGreen())
+         + 0.0722 * channel (colour.getFloatBlue());
 }
 
 double contrastRatio (juce::Colour a, juce::Colour b) noexcept
@@ -1093,6 +1098,69 @@ TEST_CASE ("H16 premium vector asset set covers every shipped shell action and t
     }
 }
 
+// ADR-0063 (G6.1): what the rubric shots showed, made mechanical — the zoom trio slid under the view cluster on a
+// narrow timeline, and the piano roll's Scale chooser cut "Scale: Off" to "Scal...".
+TEST_CASE ("ADR-0063 the timeline toolbar row never overlaps, and the piano roll's choosers show their items whole",
+           "[ui][screenshot][tokens]")
+{
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-g61-toolbar-row.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    for (const bool inspectorOpen : { true, false })
+    {
+        if (inspectorOpen != yesdaw::ui::snapshotMainComponent (*shell).context.inspectorVisible)
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewToggleInspector);
+        for (const auto& size : { std::pair<int, int> { 1152, 720 }, std::pair<int, int> { 1280, 720 },
+                                  std::pair<int, int> { 1366, 768 }, std::pair<int, int> { 1920, 1080 },
+                                  std::pair<int, int> { 2560, 1440 } })
+        {
+            shell->setSize (size.first, size.second);
+            const auto controls = yesdaw::ui::mainComponentTimelineToolbarControls (*shell);
+            for (const char* view : { "view.inspector", "view.mixer", "view.pianoroll", "view.automation" })   // never dropped
+                REQUIRE (std::any_of (controls.begin(), controls.end(), [view] (const auto& control) { return control.first == view; }));
+            for (std::size_t i = 0; i < controls.size(); ++i)
+                for (std::size_t j = i + 1; j < controls.size(); ++j)
+                {
+                    INFO (controls[i].first << " and " << controls[j].first << " at " << size.first << "x" << size.second
+                                            << (inspectorOpen ? " (inspector open)" : " (inspector closed)"));
+                    REQUIRE_FALSE (controls[i].second.intersects (controls[j].second));
+                }
+        }
+    }
+
+    // The piano roll's Key and Scale choosers: every item's text fits the chooser's own text box.
+    shell->setSize (1152, 720);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewPianoRoll);
+    for (const char* id : { "pianoroll.key", "pianoroll.scale" })
+    {
+        auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, id));
+        REQUIRE (chooser != nullptr);
+        juce::Label* text = nullptr;
+        for (int i = 0; i < chooser->getNumChildComponents() && text == nullptr; ++i)
+            text = dynamic_cast<juce::Label*> (chooser->getChildComponent (i));
+        REQUIRE (text != nullptr);
+        for (int i = 0; i < chooser->getNumItems(); ++i)
+        {
+            const juce::String item = chooser->getItemText (i);
+            const float width = juce::GlyphArrangement::getStringWidth (text->getFont(), item);
+            INFO (id << " item \"" << item << "\": " << width << " px in "
+                      << text->getWidth() - text->getBorderSize().getLeftAndRight() << " px");
+            // 2 px to spare: text measured exactly at the box's width can still be ellipsised by drawText.
+            REQUIRE (width + 2.0f <= static_cast<float> (text->getWidth() - text->getBorderSize().getLeftAndRight()));
+        }
+    }
+}
+
 TEST_CASE ("V1 painted text achieves legible contrast against its panel at every D7 size",
            "[ui][screenshot][theme-legibility]")
 {
@@ -1115,6 +1183,7 @@ TEST_CASE ("V1 painted text achieves legible contrast against its panel at every
     shell->setVisible (true);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackToggleMute);   // ADR-0063: a lit rail cell to sample
 
     using L = yesdaw::ui::UiTheme::Layout;
     // A dark-mode DAW UI legitimately carries a lot of secondary/muted text (labels, units) that
@@ -1145,6 +1214,33 @@ TEST_CASE ("V1 painted text achieves legible contrast against its panel at every
         };
         INFO ("track name contrast at " << size.first << "x" << size.second);
         REQUIRE (maxContrastInRegion (image, trackName) >= kMinContrastRatio);
+
+        // ADR-0063: a clip's name on its body, and a lit rail cell (dark ink on the track colour).
+        const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+        const juce::var layout = probe.getProperty ("layout", juce::var());
+        REQUIRE (layout.isObject());
+        const auto rectOf = [&layout] (const juce::Identifier& key) {
+            const juce::var value = layout.getProperty (key, juce::var());
+            return value.isArray() && value.size() == 4
+                       ? juce::Rectangle<int> (static_cast<int> (value[0]), static_cast<int> (value[1]),
+                                               static_cast<int> (value[2]), static_cast<int> (value[3]))
+                       : juce::Rectangle<int> {};
+        };
+        juce::Rectangle<int> clip;
+        if (auto* properties = layout.getDynamicObject())
+            for (const auto& property : properties->getProperties())
+                if (property.name.toString().startsWith ("clip.") && clip.isEmpty())
+                    clip = rectOf (property.name);
+        REQUIRE_FALSE (clip.isEmpty());
+        const juce::Rectangle<int> clipName = clip.reduced (yesdaw::ui::UiTheme::Space::sm)
+                                                  .withHeight (static_cast<int> (yesdaw::ui::UiTheme::Type::small) + 4)
+                                                  .withWidth (std::min (120, clip.getWidth() - 2 * static_cast<int> (yesdaw::ui::UiTheme::Space::sm)));
+        INFO ("clip name contrast at " << size.first << "x" << size.second);
+        REQUIRE (maxContrastInRegion (image, clipName) >= kMinContrastRatio);
+        const juce::Rectangle<int> muteCell = rectOf ("rail.row.0.mute").reduced (3);
+        REQUIRE_FALSE (muteCell.isEmpty());
+        INFO ("lit rail cell contrast at " << size.first << "x" << size.second);
+        REQUIRE (maxContrastInRegion (image, muteCell) >= kMinContrastRatio);
     }
 
     std::error_code ec;

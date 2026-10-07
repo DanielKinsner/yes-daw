@@ -2074,7 +2074,7 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
         {
             g.setColour (yesdaw::ui::UiTheme::Color::controlInsetDeep());
             g.fillRoundedRectangle (rail.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
-            g.setColour (yesdaw::ui::UiTheme::Color::faintText());
+            g.setColour (yesdaw::ui::UiTheme::Color::scaleTick());   // ADR-0063: an indicator
             for (const float markDb : yesdaw::ui::UiTheme::Layout::mixerPaintedScaleDbMarks)
             {
                 const float tickY = static_cast<float> (rail.getBottom())
@@ -2286,7 +2286,7 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
         yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset);
     auto scale = meterArea.removeFromLeft (
         yesdaw::ui::UiTheme::Layout::mixerMasterScaleWidth);
-    g.setColour (yesdaw::ui::UiTheme::Color::faintText());
+    g.setColour (yesdaw::ui::UiTheme::Color::mutedText());   // ADR-0063: the scale's numbers are text
     g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
         yesdaw::ui::UiTheme::Type::tiny));
     for (std::size_t i = 0;

@@ -182,6 +182,7 @@ struct TimelineClipNote
 
 struct TimelineCanvasState
 {
+    bool snapLabelShown = true;   // ADR-0063: the toolbar's SNAP caption, shown only with its chooser
     const TimelineCanvasTrack* tracks = nullptr;
     int trackCount = 0;
 
@@ -861,7 +862,7 @@ inline void drawClipFadeOverlays (juce::Graphics& g, juce::Rectangle<int> area,
     }
 }
 
-inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar, TimelineTool activeTool)
+inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar, TimelineTool activeTool, bool snapLabelShown = true)
 {
     g.setColour (kToolbarBack);
     g.fillRect (toolbar);
@@ -884,11 +885,12 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar, Timeli
             lit ? UiTheme::Color::text() : UiTheme::Color::buttonTextMuted());
     }
 
-    drawSmallLabel (g,
-                    "SNAP",
-                    toolbar.withTrimmedLeft (UiTheme::Layout::timelineCanvasSnapLabelX)
-                           .withWidth (UiTheme::Layout::timelineCanvasSnapLabelWidth),
-                    juce::Justification::centred);
+    if (snapLabelShown)
+        drawSmallLabel (g,
+                        "SNAP",
+                        toolbar.withTrimmedLeft (UiTheme::Layout::timelineCanvasSnapLabelX)
+                               .withWidth (UiTheme::Layout::timelineCanvasSnapLabelWidth),
+                        juce::Justification::centred);
     // The caption labels the shell's real snap chooser (timeline.snap.chooser), which sits to
     // its right. The painted "Bar" field that used to follow it was a mockup left in the paint:
     // a hardcoded value (the real default is Beat) with no click handler — removed 2026-09-04.
@@ -984,7 +986,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
                     UiTheme::Layout::timelineCanvasRulerLabelWidth,
                     UiTheme::Layout::timelineCanvasRulerLabelHeight,
                     juce::Justification::centred, false);
-        g.setColour (kMutedText.withAlpha (UiTheme::Tone::timelineCanvasRulerTickAlpha));
+        g.setColour (UiTheme::Color::rulerTick());   // ADR-0063: opaque
         g.fillRect (x,
                     rows.bars.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight,
                     UiTheme::Layout::timelineCanvasRulerTickWidth,
@@ -992,7 +994,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
         // Time row: the same position in minutes:seconds, with a shorter tick.
         const double seconds = vp.scrollSeconds
                              + static_cast<double> (x - clipArea.getX()) / std::max (1.0, vp.pixelsPerSecond);
-        g.setColour (kMutedText.withAlpha (UiTheme::Tone::timelineCanvasRulerTickAlpha));
+        g.setColour (UiTheme::Color::rulerTick());   // ADR-0063: opaque
         g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
         g.drawText (formatRulerTime (seconds, state.timeDisplayMode, vp.pixelsPerSecond, state.sampleRateHz),
                     x + UiTheme::Layout::timelineCanvasRulerTickWidth + 2,
@@ -1444,7 +1446,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     // takes the plain `vp` since none of them lay out individual clips by lane index.
     const Viewport clipVp = viewportForClipLayout (geometry);
 
-    drawToolbar (g, geometry.toolbarArea, state.activeTool);
+    drawToolbar (g, geometry.toolbarArea, state.activeTool, state.snapLabelShown);
     drawRuler (g, ruler, clipArea, state, vp);
     drawGrid (g, clipArea, state, geometry);
     drawRangeSelection (g, ruler, clipArea, state, vp);

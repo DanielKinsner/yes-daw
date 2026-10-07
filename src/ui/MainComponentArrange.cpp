@@ -534,11 +534,18 @@ void MainComponent::layoutAutomationLaneControls()
 {
     using L = yesdaw::ui::UiTheme::Layout;
     const auto timeline = timelineBounds();
-    // V8: the zoom cluster shares the automation toggle's toolbar row.
-    timelineZoomOutButton.setBounds (L::timelineZoomOutButtonBounds (timeline));
-    timelineZoomReadout.setBounds (L::timelineZoomReadoutBounds (timeline));
-    timelineZoomInButton.setBounds (L::timelineZoomInButtonBounds (timeline));
-    timelineZoomSlider.setBounds (L::timelineZoomSliderBounds (timeline));   // G2.16
+    // V8: the zoom cluster shares the automation toggle's toolbar row. ADR-0063: like every chooser on the row, the
+    // zoom trio and its slider drop whole when they would reach the view cluster [I][X][P][A] (they slid under it on a
+    // narrow timeline).
+    {
+        const int viewClusterLeft = L::timelineViewClusterLeft (timeline);
+        const bool zoomFits = L::timelineZoomInButtonBounds (timeline).getRight() + L::inspectorToggleGap <= viewClusterLeft;
+        const bool sliderFits = zoomFits && L::timelineZoomSliderBounds (timeline).getRight() + L::inspectorToggleGap <= viewClusterLeft;
+        timelineZoomOutButton.setBounds (zoomFits ? L::timelineZoomOutButtonBounds (timeline) : juce::Rectangle<int>());
+        timelineZoomReadout.setBounds (zoomFits ? L::timelineZoomReadoutBounds (timeline) : juce::Rectangle<int>());
+        timelineZoomInButton.setBounds (zoomFits ? L::timelineZoomInButtonBounds (timeline) : juce::Rectangle<int>());
+        timelineZoomSlider.setBounds (sliderFits ? L::timelineZoomSliderBounds (timeline) : juce::Rectangle<int>());   // G2.16
+    }
     // G1.4 toolbar v2: [nudge] … status … [Inspector]; the nudge chooser drops whole when
     // the row cannot hold it next to the toggle.
     {
@@ -1222,7 +1229,7 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
                 yesdaw::ui::UiTheme::Layout::panelOutlineInset),
             yesdaw::ui::UiTheme::Radius::sm,
             yesdaw::ui::UiTheme::Layout::panelOutlineStrokeWidth);
-        g.setColour (yesdaw::ui::UiTheme::Color::faintText());
+        g.setColour (yesdaw::ui::UiTheme::Color::mutedText());   // ADR-0063: text, not the faint level
         g.setFont (yesdaw::ui::UiTheme::Type::font (
             yesdaw::ui::UiTheme::Type::tiny,
             juce::Font::bold));
@@ -1360,7 +1367,8 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
             g.setColour (active ? (armCell ? kRed : trackColour)
                                 : yesdaw::ui::UiTheme::Color::mixerBack());
             g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
-            g.setColour (active ? kText : (armCell ? kRed : kMutedText));
+            g.setColour (active ? yesdaw::ui::UiTheme::Color::textOnFill()   // ADR-0063: dark ink on the lit fill
+                                : (armCell ? kRed : kMutedText));
             g.setFont (yesdaw::ui::UiTheme::Type::font (
                 yesdaw::ui::UiTheme::Type::caption,
                 juce::Font::bold));
@@ -1396,6 +1404,7 @@ yesdaw::ui::TimelineCanvasState MainComponent::makeTimelineState()
 
     yesdaw::ui::TimelineCanvasState state;
     state.activeTool = appModel.context().activeTimelineTool;   // the strip lights this cell
+    state.snapLabelShown = ! timelineSnapChooser.getBounds().isEmpty();   // ADR-0063: the caption goes with its chooser
     if (! appModel.context().projectLoaded)
     {
         state.tracks = nullptr;

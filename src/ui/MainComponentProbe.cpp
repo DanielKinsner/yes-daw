@@ -1844,6 +1844,13 @@ void mainComponentSetDockHeight (juce::Component& component, int height)
         mainComponent->harnessSetDockHeight (height);
 }
 
+std::vector<std::pair<juce::String, juce::Rectangle<int>>> mainComponentTimelineToolbarControls (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessTimelineToolbarControls();
+    return {};
+}
+
 void mainComponentSetViewSizes (juce::Component& component, int rail, int inspector, int dock)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))

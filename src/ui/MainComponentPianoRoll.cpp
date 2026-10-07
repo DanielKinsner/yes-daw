@@ -147,7 +147,7 @@ void MainComponent::drawPianoRoll (juce::Graphics& g, juce::Rectangle<int> area)
             || (! isBlackMidiKey (key)
                 && juce::roundToInt (geometry.rowHeight) >= yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelMinRowHeight))
         {
-            g.setColour (surface.drumMode ? yesdaw::ui::UiTheme::Color::pianoWhiteKeyText().withAlpha (0.5f)
+            g.setColour (surface.drumMode ? yesdaw::ui::UiTheme::Color::pianoWhiteKeyMutedText()   // ADR-0063: opaque
                                           : yesdaw::ui::UiTheme::Color::pianoWhiteKeyText());
             g.setFont (yesdaw::ui::UiTheme::Type::font (
                 yesdaw::ui::UiTheme::Type::caption,

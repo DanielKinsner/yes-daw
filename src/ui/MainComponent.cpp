@@ -2306,7 +2306,10 @@ void MainComponent::resized()
             yesdaw::ui::UiTheme::Layout::timelineSnapChooserWidth,
             automationBounds.getHeight()
         };
-        timelineSnapChooser.setBounds (snapBounds);
+        // ADR-0063: drops whole (with its painted caption) when it would reach the view cluster.
+        const bool snapFits = snapBounds.getRight() + yesdaw::ui::UiTheme::Layout::inspectorToggleGap
+                              <= yesdaw::ui::UiTheme::Layout::timelineViewClusterLeft (timelineBounds());
+        timelineSnapChooser.setBounds (snapFits ? snapBounds : juce::Rectangle<int>());
     }
     layoutAutomationLaneControls();
     layoutInspectorControls();

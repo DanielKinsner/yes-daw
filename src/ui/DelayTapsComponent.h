@@ -99,7 +99,7 @@ public:
         }
 
         const juce::Colour wet = enabled ? UiTheme::Color::accentPurple() : UiTheme::Color::mutedText();
-        g.setColour (UiTheme::Color::text().withAlpha (enabled ? 1.0f : UiTheme::Tone::focusRingAlpha));
+        g.setColour (enabled ? UiTheme::Color::text() : UiTheme::Color::mutedText());   // ADR-0063: opaque
         drawStem (g, 0.0, dryDb, 0);
         drawStem (g, 0.0, dryDb, 1);
         g.setColour (wet);

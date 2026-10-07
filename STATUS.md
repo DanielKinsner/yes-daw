@@ -8,6 +8,40 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 (morning) — G6.1 checkpoint 1: the type scale and WCAG contrast (ADR-0063)
+
+**Now:** G6.1 **cp1** is in, headless-certified. **Next: G6.1 cp2** — every colour defined once (the track accents and
+the window background into one JUCE-free header; the raw-colour audit catches `0x...u` and covers `src/Main.cpp`), the
+unused fake `Tone` array gone, toolbar tooltips in words ("Play  (Space)", never `transport.play`), the inspector's
+second gain slider labelled. Then G6.2 (layout and scaling). SS-6 still waits for a free desktop.
+
+**What a user gets:** every label is at least 11 px and ordinary UI text 12 px (the plan's section 3.4), with WCAG AA
+contrast where it is actually drawn: the faint third text level is gone; the rail's lit S / M / O cells now draw dark
+ink on the track colour (they were light text at 2.3-3.4:1); clip names stay readable on every track colour (the clip's
+bright top is a little calmer); the drum-mode key names, the delay taps' stems and the ruler ticks are solid colours.
+On a narrow timeline the zoom trio, its slider and the Snap chooser (with its caption) drop whole instead of sliding
+under the I / X / P / A buttons (Snap stays in Options, its modes in View); the piano roll's Key and Scale choosers show
+"Scale: Off" whole.
+
+**Gates:** `[tokens]` (4 cases) — the type scale; every one of the 64 colour tokens classified (text, surface, fill,
+indicator, decoration — a new token fails until it is), parsed from `UiTheme.h`; ~180 WCAG pairs (text 4.5:1 on every
+surface and fill it is drawn on, including a clip name on each track colour's body and top and the lit cells' ink;
+indicators 3:1, the playhead line included); no `withAlpha` on a text token in `src/ui`. Screenshot `[tokens]`: the
+timeline toolbar row never overlaps at 1152x720 / 1280x720 / 1366x768 / 1920x1080 / 2560x1440 with the inspector open
+and closed, the four view toggles always there; every Key / Scale item fits its box with 2 px to spare. V1 measures
+with the WCAG formula and also samples a clip name and a lit rail cell. 416/416 local, Clang clean.
+
+**Visual judgment (agent):** the rubric shots at 1280x720 and 1920x1080 and the 1152x720 laptop shots read cleanly at
+the new sizes (mixer rows, insert names, the master meter's scale, clip names, header cards). They found the two layout
+faults above (both gated now) — the rubric's "truncated Scale / fade / master labels" row closes here.
+
+**Critic:** no blockers. In: `soloActiveText` on the lit DIM and MUTE fills asserted; the playhead (`white`) is an
+indicator, not decoration; the chooser-fit gate keeps 2 px to spare. Not taken: "Snap unreachable when its chooser
+drops" (verified: Options holds Snap Off / Bar / Beat / Sixteenth and View the snap modes).
+
+**CI recorded:** 0655b5e (G5.6 cp3) fails only the standing macOS GPU exception — G5.6 certified; 9ed2983, 86a0b31
+(G5.7) and the ADR-0063 commit pushed or queued.
+
 ## 2026-10-08 (early) — G5.7 done: missing audio is asked for at open and put back from its original (ADR-0062)
 
 **Now:** **G5.7** is in, headless-certified (both checkpoints) — **every G5 item (G5.1–G5.7) is headless-certified.**

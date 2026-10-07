@@ -881,6 +881,29 @@ private:
 
 public:
     void harnessSetDockHeight (int height) { setDockHeight (height); }   // G2.1
+    // ADR-0063: the timeline toolbar row's visible controls (no two may overlap).
+    [[nodiscard]] std::vector<std::pair<juce::String, juce::Rectangle<int>>> harnessTimelineToolbarControls()
+    {
+        std::vector<std::pair<juce::String, juce::Rectangle<int>>> controls;
+        const auto add = [&controls] (const juce::String& name, juce::Component* component) {
+            if (component != nullptr && component->isVisible() && ! component->getBounds().isEmpty())
+                controls.emplace_back (name, component->getBounds());
+        };
+        add ("snap", &timelineSnapChooser);
+        add ("zoom.out", &timelineZoomOutButton);
+        add ("zoom.readout", &timelineZoomReadout);
+        add ("zoom.in", &timelineZoomInButton);
+        add ("zoom.slider", &timelineZoomSlider);
+        add ("snap.mode", &snapModeChooser);
+        add ("edit.mode", &editModeChooser);
+        add ("nudge", &nudgeValueChooser);
+        add ("status", &statusLine);
+        add ("view.inspector", &inspectorToggle);
+        add ("view.mixer", &mixerDockToggle);
+        add ("view.pianoroll", toolbarButtonFor (yesdaw::ui::UiActionId::ViewPianoRoll));
+        add ("view.automation", &automationLaneToggle);
+        return controls;
+    }
     void harnessSetViewSizes (int rail, int inspector, int dock)   // ADR-0061: as a splitter released
     {
         setRailWidth (rail);

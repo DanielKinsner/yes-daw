@@ -24,8 +24,10 @@ struct UiTheme
         static juce::Colour panelInnerHighlight() noexcept { return juce::Colour (0xff35414c); }
         static juce::Colour panelShadow() noexcept { return juce::Colour (0xff030507); }
         static juce::Colour text() noexcept { return juce::Colour (0xffedf2f6); }
-        static juce::Colour mutedText() noexcept { return juce::Colour (0xff87929d); }
-        static juce::Colour faintText() noexcept { return juce::Colour (0xff5e6974); }
+        static juce::Colour mutedText() noexcept { return juce::Colour (0xff89949f); }   // ADR-0063: >= 4.5:1 on every surface
+        static juce::Colour textOnFill() noexcept { return juce::Colour (0xff070a0d); }   // ADR-0063: text on a solid accent, record or solo fill
+        static juce::Colour scaleTick() noexcept { return juce::Colour (0xff5e6974); }    // ADR-0063: a fader's scale marks (an indicator, >= 3:1)
+        static juce::Colour rulerTick() noexcept { return juce::Colour (0xff5c646d); }    // ADR-0063: the ruler's ticks (opaque; was muted text at 65 %)
         static juce::Colour white() noexcept { return juce::Colour (0xffffffff); }
 
         static juce::Colour accentBlue() noexcept { return juce::Colour (0xff3b8cff); }
@@ -77,6 +79,7 @@ struct UiTheme
         static juce::Colour midiInLampOff() noexcept { return juce::Colour (0xff1c2632); }   // distinct from panel(): visible when off
         static juce::Colour samplerPadEmpty() noexcept { return juce::Colour (0xff1a2230); }
         static juce::Colour pianoWhiteKeyText() noexcept { return juce::Colour (0xff2a3038); }
+        static juce::Colour pianoWhiteKeyMutedText() noexcept { return juce::Colour (0xff555d67); }   // ADR-0063: drum mode's key names (opaque, >= 4.5:1)
         static juce::Colour pianoGridStrong() noexcept { return juce::Colour (0xff344150); }
         static juce::Colour pianoGridWeak() noexcept { return juce::Colour (0xff202a34); }
         static juce::Colour inspectorTab() noexcept { return juce::Colour (0xff151a22); }
@@ -132,7 +135,7 @@ struct UiTheme
         static constexpr float mixerKnobHighlightAlpha = 0.75f;
         static constexpr float clipSurfaceTopAlpha = 0.22f;
         static constexpr float timelineCanvasClipSurfaceTopBrightness = 0.10f;
-        static constexpr float timelineCanvasClipSurfaceTopAlpha = 0.58f;
+        static constexpr float timelineCanvasClipSurfaceTopAlpha = 0.5f;   // ADR-0063: a clip's name on the top reads >= 4.5:1
         static constexpr std::array<float, 6> inspectorAutomationValues {{
             0.72f, 0.32f, 0.58f, 0.44f, 0.70f, 0.62f
         }};
@@ -145,7 +148,6 @@ struct UiTheme
         static constexpr float timelineDragGhostFillAlpha = 0.30f;      // G2.3
         static constexpr float timelineClipMutedWashAlpha = 0.55f;   // G2.12: the panel wash over a muted clip
         static constexpr float timelineDragGhostOutlineAlpha = 0.95f;   // G2.3
-        static constexpr float timelineCanvasRulerTickAlpha = 0.65f;
         static constexpr float timelineCanvasGridLaneSeparatorAlpha = 0.7f;
         static constexpr float timelineCanvasGridTrackTintAlpha = 0.20f;
         static constexpr float timelineCanvasGridMajorLineBrightness = 0.25f;
@@ -180,9 +182,10 @@ struct UiTheme
 
     struct Type
     {
-        static constexpr float tiny = 9.0f;
-        static constexpr float caption = 10.5f;
-        static constexpr float small = 11.5f;
+        // ADR-0063 / plan section 3.4: labels 11 px (the floor), base UI text 12 px.
+        static constexpr float tiny = 11.0f;
+        static constexpr float caption = 11.0f;
+        static constexpr float small = 12.0f;
         static constexpr float body = 13.0f;
         static constexpr float title = 14.0f;
         static constexpr float readout = 17.0f;
@@ -571,7 +574,7 @@ struct UiTheme
         static constexpr int mixerPaintedInsertRowPitch =
             mixerPaintedInsertRowHeight + mixerPaintedInsertRowGap;
         // M5: the send rows sit under the inserts, the way a channel strip reads top to bottom.
-        static constexpr int mixerPaintedSendRowHeight = 13;
+        static constexpr int mixerPaintedSendRowHeight = 15;   // ADR-0063: 11 px text and 2 px each side
         static constexpr int mixerPaintedSendRowGap = 2;
         static constexpr int mixerPaintedSendRowCount = 3;
         static constexpr int mixerPaintedSendRowPitch = mixerPaintedSendRowHeight + mixerPaintedSendRowGap;
@@ -818,6 +821,9 @@ struct UiTheme
 
         // V8: the toolbar zoom cluster — [-] readout [+] to the right of the automation toggle,
         // sharing its row (the same toolbar band the tools/SNAP/repeat cluster already fills).
+        // ADR-0063: the view cluster [I][X][P][A]'s left edge on the timeline toolbar row; a control that would reach it
+        // drops whole (the snap chooser, the zoom trio and slider, the status choosers).
+        static int timelineViewClusterLeft (juce::Rectangle<int> timeline) noexcept;
         static constexpr int timelineZoomOutButtonLeftInset = automationLaneToggleLeftInset;   // G2.1 cp3: the zoom trio takes the old Automation slot (A joined the view cluster)
         static constexpr int timelineZoomButtonWidth = 28;
         static constexpr int timelineZoomReadoutWidth = 48;
@@ -955,7 +961,7 @@ struct UiTheme
         static constexpr int pianoRollHeaderButtonLeft = 118;    // G3.6: the Typing / Step toggles after the "PIANO ROLL" label
         static constexpr int pianoRollHeaderButtonWidth = 72;
         static constexpr int pianoRollHeaderButtonGap = 6;
-        static constexpr int pianoRollHeaderChooserWidth = 64;   // G3.8: the Key / Scale choosers after the toggles
+        static constexpr int pianoRollHeaderChooserWidth = 96;   // G3.8: the Key / Scale choosers; ADR-0063: "Scale: Off" whole at 12 px
         static constexpr int pianoRollHeaderButtonInsetY = 7;
         static constexpr int pianoRollHeaderButtonInsetX = 0;
         static constexpr int keymapEditorRestoreWidth = 140;
@@ -1215,5 +1221,12 @@ struct UiTheme
         static constexpr double timelineLayoutZeroFloor = UiThemeLayout::timelineLayoutZeroFloor;
     };
 };
+
+
+// ADR-0063: the view cluster's left edge (its four toggles and three gaps end at the status line's right inset).
+inline int UiTheme::Layout::timelineViewClusterLeft (juce::Rectangle<int> timeline) noexcept
+{
+    return timeline.getRight() - statusLineRightInset - inspectorToggleWidth - (inspectorToggleWidth + inspectorToggleGap) * 3;
+}
 
 } // namespace yesdaw::ui
