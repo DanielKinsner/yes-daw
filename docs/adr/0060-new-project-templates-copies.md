@@ -4,7 +4,10 @@
   pass whose findings are folded in: Save As and Save a Copy write the current state into the copy, never the source;
   the source's database is copied consistently while open and the copy validated before its rename; the device-rate
   seam, the untitled session, Sampler tracks in templates, the remap's inclusions and exclusions, the test seams and
-  the remembered-choices record are pinned; three checkpoints, three commits. Committed alone, before any G5.5 code.)
+  the remembered-choices record are pinned; three checkpoints, three commits. Committed alone, before any G5.5 code.
+  Amended before publication: the bundle is always current — every edit persists as it is made — so "unsaved" means
+  edits since the last explicit Save (a model marker), and the copy law is that the routine never writes the source,
+  not that the source keeps an older state.)
 - **Date:** 2026-10-07
 - **Deciders:** build agent (proposer), separate agent critic
 - **Related:** the plan's G5.5 ("New project, templates and copies. Sample rate, tempo and template in the new-project
@@ -79,12 +82,14 @@ bundle-copy commit law every copy path shares.
   `<target>.<n>.partial`: the database copied consistently from the open source (`VACUUM INTO`, which reads a
   committed state without closing the source), the Asset files, the peak caches and the per-project view state — not
   the autosave folder or the trash (listed out, never copied then deleted). It opens the copy and writes the
-  **current in-memory project** into it (unsaved edits go to the copy, never to the source), validates it (the bundle
+  **current in-memory project** into it (the routine never writes the source; the source's database already holds
+  every edit, since each edit persists as it is made — "unsaved" only means edits since the last explicit Save, a
+  marker in the model), validates it (the bundle
   validator, plus a new `validateBundleAssetFiles` that finds every Asset row's file under `audio/` with its size),
   closes it and renames the folder into place. An occupied target is refused before anything is written; any failure
   removes the temporary folder and leaves the source and the current project exactly as they were.
-- **Save As** then opens the copy as the current project (undo history continues; the copy is clean). The source
-  stays as it was last saved.
+- **Save As** then opens the copy as the current project (undo history continues; the copy is clean). The source's
+  stored project is exactly what it was before the copy began.
 - **Save a Copy** (`File > Save a Copy…`, chooser seam `chooseSaveACopyProjectBundle`) leaves the source current and
   untouched — its database, its dirty state, its undo history and any running export carry on; the copy is written and
   closed.
@@ -120,8 +125,9 @@ bundle-copy commit law every copy path shares.
   the warning names both rates; a failed creation leaves the previous project current with its undo history.
 - **cp2:** Save As and Save a Copy each produce a bundle that reopens with the same Assets (byte-identical files),
   clips and mixer, renders the same audio as the in-memory project and opens with no recovery prompt; Save As leaves
-  the source as last saved and the copy current and clean; after Save a Copy the source is current, its database
-  unchanged, still dirty, its undo works and a later Save writes the source; a failure mid-copy (an injected one)
+  the source's stored project as it was before the copy (the same snapshot reads back) and the copy current and
+  clean; after Save a Copy the source is current, its stored project unchanged, still dirty, its undo works and a
+  later Save marks it saved; a failure mid-copy (an injected one)
   leaves no target and no `.partial` folder and the source untouched; an occupied target is refused; an export running
   through either still completes.
 - **cp3:** a template holds exactly the included layout and none of the excluded content; a project created from it
