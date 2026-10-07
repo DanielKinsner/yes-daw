@@ -79,3 +79,19 @@ At 1280×720, 1920×1080 and the window minimum, with 24 tracks and 2 buses:
 - **Negative / accepted costs:** an overflowing mixer loses the scroll bar's height; the offset is not remembered
   between sessions.
 - **Follow-ups:** none required; a "reveal strip" on the strip context menu is not needed with selection following.
+
+## Amendment (2026-10-08, from the implementation's visual judgment)
+
+The decision gave the pinned master the strips' one width. Judged at 1280×720 with 16 tracks, an 84 px master pane
+cannot hold its meter row: the dB scale (28 px), the fader (42 px) and the L / R meters (36 px) overlapped, the scale's
+numbers under the fader. The same overlap existed before this ADR at 112 px (1920×1080, 16 tracks): the fader was
+centred in a column narrower than itself. Amended:
+
+- **The master pane is never narrower than `mixerMasterMinWidth`** (122 px: its insets, the scale, a 24 px fader and
+  the meters with their gaps) nor than the strips' share. The strips share what it leaves (still clamped 84–220, or
+  the narrow 64); the strips overflow, as decided, only when that width is held at its minimum.
+- **The meter row is three disjoint columns** — scale, fader, meters (the meters at the right) — one law for the paint
+  and the master fader's bounds.
+- **Gate:** at every size, fit and overflow, the master fader lies inside its column and is at least 24 px wide, and
+  the scale, fader and meters are pairwise disjoint inside the master pane.
+
