@@ -8,6 +8,31 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-09 (later) — G6.3 checkpoint 1a: the rail, tool strip and header's painted controls are keyboard targets (ADR-0066)
+
+**Now:** G6.3 **cp1a** is in, headless-certified locally; **G6.2 certified** (4dc95a2, the cp2 compile fix, green on
+every job). **Next: G6.3 cp1b** — the mixer's painted zones (S / M / R, pan, meter, sends, insert slots, I/O rows, the
+master's slots), the Sampler's pads and the context-menu key. **Decision still pending (Dan, plan §8.2):** the macOS
+frame exception (see below).
+
+**What a user gets:** Tab now reaches every painted control on the track rail (each row's M, S, O, pan, volume, colour
+swatch and meter), the timeline's seven tool cells and the header's gear and time readout — Enter mutes / picks a tool /
+cycles the time display as a click does; on pan and volume, Enter then the arrows adjust, Enter keeps it as one undo
+step, Esc puts it back exactly. Space stays play / stop throughout.
+
+**Gates:** `[g6-keyboard]` (new) — every one of the 23 painted zones the probe names on screen (two rows x 7, seven tool
+cells, gear, time) is in the Tab walk, row 0's before row 1's; toggles flip the model and read on / off; the rail volume
+steps in dB (capped at unity like its drag, never snapping a higher gain down), Enter keeps one undo step, Esc
+restores exactly; pan reads R10 after two steps; colour advances (one undo step); the meter clears its clip light; a
+tool cell picks the tool; the gear toggles the settings row; the time readout cycles; Space toggles play before, while
+navigating, while adjusting, after Enter and after Esc; a track removed mid-adjustment closes the gesture with no
+empty undo step. Walk cost: 154 controls at 24 tracks build in 0.52 ms (gate < 4 ms). Bite: with the painted
+collection off, coverage fails. 416/416 local, Clang clean.
+
+**Critic:** no blockers. In: a vanished row / strip closes its gesture without an edit; the rail volume reads the true
+gain; the announcement falls back to the shell; undo through the action; row order checked; the walk's cost measured
+instead of cached.
+
 ## 2026-10-09 — G6.2 checkpoint 3: the macOS frame exception re-measured (ADR-0064) — a decision for Dan
 
 **Now:** G6.2's three checkpoints are in; **ADR-0066 accepted** (G6.3: every painted control a Control target with its

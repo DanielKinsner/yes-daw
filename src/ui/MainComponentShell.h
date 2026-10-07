@@ -209,12 +209,25 @@ public:
     [[nodiscard]] bool harnessPostMidiInput (bool on, int key, double velocity) noexcept;   // G3.10: the device callback's path
     void harnessSelectPianoRollScale (int rootKey, int scaleChoice);   // G3.8: through the real choosers
     void harnessServiceUiTick() { serviceUiTick(); }   // G3.2 checkpoint: the timer's own refresh path
-    // G4.0b: one control the router can target — a live widget, or a painted control (a strip's fader).
+    // ADR-0066: a painted control's record — its effects run the mouse path's own callbacks, so undo, rides
+    // and refusals are the mouse's. A Value moves through `setValue` (the drag verb; `ended` closes its gesture).
+    struct PaintedControl
+    {
+        std::function<void()> activate;                       // Button / Toggle: the click's effect
+        std::function<double()> currentValue;                 // Value: the model's value now
+        std::function<void (double, bool)> setValue;          // Value: the drag verb; true closes the gesture
+        std::function<double (double, int, bool)> stepValue;  // Value: (current, steps, fine) -> next
+        std::function<juce::String()> valueText;              // what the paint reads ("+3.0 dB", "L 12")
+        double minimum = 0.0, maximum = 1.0;                  // a Value's range
+        bool checked = false;                                 // a Toggle's state
+        juce::Component* surface = nullptr;                   // the component that paints it
+    };
+    // G4.0b: one control the router can target — a live widget, or a painted control (ADR-0066).
     struct ShellControl
     {
         yesdaw::ui::ControlTargetEntry entry;
         juce::Component::SafePointer<juce::Component> widget;   // null for a painted control
-        int paintedStrip = -1;                                  // a painted mixer fader's strip
+        std::shared_ptr<const PaintedControl> painted;          // a painted control's record (null for a widget)
     };
     // G4.0b: the keyboard Control target as the router holds it, its Tab order, and the screen
     // reader's targeting path (the same adoption the UI tick runs when accessibility focus moves).
@@ -779,6 +792,10 @@ private:
     [[nodiscard]] juce::Component& controlScopeComponent();
     [[nodiscard]] std::string controlScopeId();
     [[nodiscard]] std::vector<ShellControl> collectShellControls();
+    void collectPaintedControls (std::vector<ShellControl>& controls);   // ADR-0066: the painted surfaces' records
+    [[nodiscard]] bool railRowExists (int row) const noexcept;
+    void cycleTimeDisplayMode();                                          // the header time readout's click
+    [[nodiscard]] static juce::String panReadoutText (float pan);         // "C", "L 12", "R 30" — the rail's paint
     [[nodiscard]] int controlRegionAt (juce::Point<int> shellPoint) const;
     [[nodiscard]] juce::String controlValueText (const ShellControl& control) const;
     bool routeControlTargetKey (const juce::KeyPress& key);

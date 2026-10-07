@@ -2574,8 +2574,7 @@ void MainComponent::mouseDown (const juce::MouseEvent& event)
     const HeaderLayout header = headerLayout();
     if (header.timeReadout.contains (event.getPosition()))
     {
-        timeDisplayMode = (timeDisplayMode + 1) % (yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples + 1);   // G2.2: bars → min:sec → SMPTE → samples
-        repaintAll();   // the ruler's time row follows
+        cycleTimeDisplayMode();
         return;
     }
     // The header's gear: painted since G0.7, dead to the mouse until 2026-09-04. It is the
@@ -2586,6 +2585,12 @@ void MainComponent::mouseDown (const juce::MouseEvent& event)
         handleAction (yesdaw::ui::UiActionId::ViewToggleSettingsRow);
         refreshActionState();
     }
+}
+
+void MainComponent::cycleTimeDisplayMode()
+{
+    timeDisplayMode = (timeDisplayMode + 1) % (yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples + 1);   // G2.2: bars → min:sec → SMPTE → samples
+    repaintAll();   // the ruler's time row follows
 }
 
 void MainComponent::drawTransportReadouts (juce::Graphics& g) const

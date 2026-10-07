@@ -349,6 +349,7 @@ juce::var MainComponent::buildProbeLayout()
 
     put ("header", getLocalBounds().withHeight (headerHeightNow()));
     put ("header.gear", headerLayout().gear);   // the settings-row toggle, clickable since 2026-09-04
+    put ("header.time", headerLayout().timeReadout);   // ADR-0066: the time readout (a click cycles its display)
     put ("rail", leftRailPanelBounds());
     put ("timeline", timelineBounds());
     put ("inspector", inspectorBounds());
@@ -506,6 +507,13 @@ juce::var MainComponent::buildProbeLayout()
             put ("rail.row." + juce::String (lane) + ".mute", harnessPaintedRailCellBounds (lane, 0));
             put ("rail.row." + juce::String (lane) + ".solo", harnessPaintedRailCellBounds (lane, 1));
             put ("rail.row." + juce::String (lane) + ".arm",  harnessPaintedRailCellBounds (lane, 2));
+            {   // ADR-0066: every painted hit-zone of the row, by name
+                const juce::Point<int> rail = trackListInput.getPosition();
+                put ("rail.row." + juce::String (lane) + ".pan", trackListInput.panKnobBounds (lane).translated (rail.x, rail.y));
+                put ("rail.row." + juce::String (lane) + ".volume", trackListInput.volumeSliderBounds (lane).translated (rail.x, rail.y));
+                put ("rail.row." + juce::String (lane) + ".colour", trackListInput.colourSwatchBounds (lane).translated (rail.x, rail.y));
+                put ("rail.row." + juce::String (lane) + ".meter", trackListInput.meterZoneBounds (lane).translated (rail.x, rail.y));
+            }
         }
 
         std::array<yesdaw::ui::ElementRect, yesdaw::ui::UiTheme::Layout::timelineCanvasVisibleClipCapacity> visible {};
@@ -1238,6 +1246,8 @@ juce::Rectangle<int> MainComponent::harnessPaintedMixerMasterBounds() const
 
 void MainComponent::harnessLatchStripClip (int stripIndex)
 {
+    trackMeterHold.resize (appModel.project().tracks.size());   // as the UI tick sizes them, for a track added since
+    busMeterHold.resize (appModel.project().buses.size());
     const auto trackCount = static_cast<int> (trackMeterHold.size());
     if (stripIndex >= 0 && stripIndex < trackCount)
         trackMeterHold[static_cast<std::size_t> (stripIndex)].clipLatched = true;

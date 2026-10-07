@@ -1299,11 +1299,7 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
                     panCentre.x + panRadius * std::sin (panAngle),
                     panCentre.y - panRadius * std::cos (panAngle),
                     yesdaw::ui::UiTheme::Layout::iconBoldStrokeWidth);
-        const int panPercent = juce::roundToInt (std::abs (panValue) * 100.0f);
-        const juce::String panText =
-            panPercent == 0 ? juce::String ("C")
-                            : (panValue < 0.0f ? juce::String ("L") : juce::String ("R"))
-                                  + juce::String (panPercent);
+        const juce::String panText = panReadoutText (panValue);
         g.setColour (kMutedText);
         g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
             yesdaw::ui::UiTheme::Type::tiny));
@@ -2517,6 +2513,14 @@ const yesdaw::engine::Clip* MainComponent::findProjectClipById (yesdaw::engine::
             return &candidate;
 
     return nullptr;
+}
+
+// The rail's pan readout: centre, or the side and percent (ADR-0066: the keyboard target reads the same words).
+juce::String MainComponent::panReadoutText (float pan)
+{
+    const int panPercent = juce::roundToInt (std::abs (pan) * 100.0f);
+    return panPercent == 0 ? juce::String ("C")
+                           : (pan < 0.0f ? juce::String ("L") : juce::String ("R")) + juce::String (panPercent);
 }
 
 } // namespace yesdaw::ui

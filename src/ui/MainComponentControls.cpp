@@ -191,29 +191,9 @@ std::vector<MainComponent::ShellControl> MainComponent::collectShellControls()
     };
     walk (*scope);
 
-    // The painted mixer faders are controls too: one per visible strip while the dock shows the mixer.
-    if (scope == this && appModel.context().mixerDockVisible && ! dockShowsPianoRoll() && ! dockShowsInstrument())
-    {
-        const auto surface = currentMixerSurface();
-        const std::size_t trackCount = surface.tracks.size();
-        const std::size_t stripTotal = trackCount + surface.buses.size();
-        const juce::Rectangle<int> dock = mixerPanelBounds();
-        for (std::size_t i = 0; i < stripTotal; ++i)
-        {
-            const juce::Rectangle<int> rail = paintedFaderRailForLane (paintedMixerLaneBounds (i), stripIoRows (i));
-            if (rail.isEmpty() || ! dock.intersects (rail))
-                continue;
-            const auto& strip = i < trackCount ? surface.tracks[i] : surface.buses[i - trackCount];
-            ShellControl control;
-            control.paintedStrip = static_cast<int> (i);
-            control.entry.id = "mixer.strip." + std::to_string (i) + ".fader";
-            control.entry.name = strip.name + " fader";
-            control.entry.role = ControlTargetRole::Value;
-            control.entry.bounds = controlRectOf (rail);
-            control.entry.region = kRegionDock;
-            controls.push_back (std::move (control));
-        }
-    }
+    // ADR-0066: the painted surfaces' controls join the walk beside the widgets.
+    if (scope == this)
+        collectPaintedControls (controls);
 
     // Ids are unique (two widgets that share an action's id are told apart by their order of discovery).
     std::map<std::string, int> seen;
@@ -233,10 +213,213 @@ std::vector<MainComponent::ShellControl> MainComponent::collectShellControls()
     return sorted;
 }
 
+bool MainComponent::railRowExists (int row) const noexcept
+{
+    return appModel.context().projectLoaded && row >= 0 && static_cast<std::size_t> (row) < appModel.project().tracks.size();
+}
+
+// ADR-0066: every painted hit-zone a mouse can use, as a record the walk takes beside the widgets. Each reads the
+// geometry its surface paints and hit-tests with, and runs the callback the mouse path calls.
+void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
+{
+    const auto add = [this, &controls] (std::string id, std::string name, ControlTargetRole role, juce::Rectangle<int> bounds,
+                                        PaintedControl record)
+    {
+        if (bounds.isEmpty() || ! getLocalBounds().contains (bounds))
+            return;
+        ShellControl control;
+        control.entry.id = std::move (id);
+        control.entry.name = std::move (name);
+        control.entry.role = role;
+        control.entry.bounds = controlRectOf (bounds);
+        control.entry.region = controlRegionAt (bounds.getCentre());
+        control.painted = std::make_shared<const PaintedControl> (std::move (record));
+        controls.push_back (std::move (control));
+    };
+    const auto stepDb = [] (double current, int steps, bool fine, double maximum)
+    {
+        return static_cast<double> (stepFaderGainDb (static_cast<float> (current), steps, fine ? 0.1 : 1.0, maximum));
+    };
+    const auto stepPan = [] (double current, int steps, bool fine)
+    {
+        return std::clamp (current + steps * (fine ? 0.01 : 0.05), -1.0, 1.0);
+    };
+
+    // The header: the gear (the settings row) and the time readout (its display mode).
+    {
+        const HeaderLayout header = headerLayout();
+        PaintedControl gear;
+        gear.activate = [this] { handleAction (UiActionId::ViewToggleSettingsRow); refreshActionState(); };
+        gear.checked = appModel.context().settingsRowVisible;
+        gear.surface = this;
+        add ("header.gear", "Settings row", ControlTargetRole::Toggle, header.gear, std::move (gear));
+        PaintedControl time;
+        time.activate = [this] { cycleTimeDisplayMode(); };
+        time.valueText = [this] { return juce::String (counterStrings().mode); };
+        time.surface = this;
+        add ("header.time", "Time display", ControlTargetRole::Button, header.timeReadout, std::move (time));
+    }
+
+    // The timeline's tool strip: a radio group of seven cells.
+    {
+        const TimelineCanvasGeometry geometry = timelineCanvasGeometry (timelineInput.getLocalBounds(), makeTimelineState());
+        for (std::size_t index = 0; index < kTimelineToolStripOrder.size(); ++index)
+        {
+            const TimelineTool tool = kTimelineToolStripOrder[index];
+            const juce::String toolName (probeToolName (tool));
+            PaintedControl cell;
+            cell.activate = [this, tool] { if (timelineInput.onToolSelected) timelineInput.onToolSelected (tool); };
+            cell.checked = appModel.context().activeTimelineTool == tool;
+            cell.surface = &timelineInput;
+            add ("tool." + toolName.toLowerCase().toStdString(), (toolName + " tool").toStdString(), ControlTargetRole::Toggle,
+                 timelineToolStripCell (geometry.toolbarArea, index).translated (timelineInput.getX(), timelineInput.getY()),
+                 std::move (cell));
+        }
+    }
+
+    // The rail: every whole row on screen — M / S / O, pan, volume, the colour swatch, the meter.
+    if (appModel.context().projectLoaded && trackListInput.isVisible())
+    {
+        const auto& tracks = appModel.project().tracks;
+        const juce::Rectangle<int> rows = trackListInput.rowArea().translated (trackListInput.getX(), trackListInput.getY());
+        const juce::Point<int> origin = trackListInput.getPosition();
+        for (int row = 0; row < static_cast<int> (tracks.size()); ++row)
+        {
+            const juce::Rectangle<int> rowRect = trackListInput.rowBounds (row).translated (origin.x, origin.y);
+            if (rowRect.isEmpty() || ! rows.contains (rowRect))
+                continue;   // scrolled out, or the partial row the rail does not paint
+            const auto& track = tracks[static_cast<std::size_t> (row)];
+            const std::string base = "rail.row." + std::to_string (row);
+            const std::string name = track.strip.name;
+            const auto toggle = [&] (const char* part, const char* words, std::function<void (int)> callback, bool checked,
+                                     juce::Rectangle<int> cell)
+            {
+                PaintedControl record;
+                record.activate = [callback = std::move (callback), row] { if (callback) callback (row); };
+                record.checked = checked;
+                record.surface = &trackListInput;
+                add (base + "." + part, name + " " + words, ControlTargetRole::Toggle, cell.translated (origin.x, origin.y), std::move (record));
+            };
+            toggle ("mute", "mute", trackListInput.onMuteToggled, track.strip.muted, trackListInput.muteCellBounds (row));
+            toggle ("solo", "solo", trackListInput.onSoloToggled, track.strip.soloed, trackListInput.soloCellBounds (row));
+            toggle ("arm", "record arm", trackListInput.onArmToggled, appModel.isRecordingTrackIndexArmed (static_cast<std::size_t> (row)),
+                    trackListInput.armCellBounds (row));
+            {
+                PaintedControl pan;
+                pan.currentValue = [this, row] {
+                    return railRowExists (row) && trackListInput.panValueProvider ? static_cast<double> (trackListInput.panValueProvider (row)) : 0.0;
+                };
+                pan.setValue = [this, row] (double value, bool ended) {
+                    if (railRowExists (row) && trackListInput.onPanEdited)   // a deleted row only closes the gesture
+                        trackListInput.onPanEdited (row, static_cast<float> (value));
+                    if (ended && trackListInput.onMiniDragEnded)
+                        trackListInput.onMiniDragEnded();
+                };
+                pan.stepValue = stepPan;
+                pan.valueText = [this, row] { return panReadoutText (trackListInput.panValueProvider ? trackListInput.panValueProvider (row) : 0.0f); };
+                pan.minimum = -1.0;
+                pan.maximum = 1.0;
+                pan.surface = &trackListInput;
+                add (base + ".pan", name + " pan", ControlTargetRole::Value, trackListInput.panKnobBounds (row).translated (origin.x, origin.y), std::move (pan));
+            }
+            {
+                PaintedControl volume;
+                volume.currentValue = [this, row] {   // the strip's true gain (the rail paints it capped at unity)
+                    return railRowExists (row) ? static_cast<double> (appModel.project().tracks[static_cast<std::size_t> (row)].strip.linearGain) : 1.0;
+                };
+                volume.setValue = [this, row] (double value, bool ended) {
+                    if (railRowExists (row) && trackListInput.onVolumeEdited)   // a deleted row only closes the gesture
+                        trackListInput.onVolumeEdited (row, static_cast<float> (value));
+                    if (ended && trackListInput.onMiniDragEnded)
+                        trackListInput.onMiniDragEnded();
+                };
+                // The rail's slider tops out at unity, as its drag does; a gain the mixer fader put above unity is stepped from
+                // where it is (never snapped down to 0 dB on the first key).
+                volume.stepValue = [stepDb] (double current, int steps, bool fine) {
+                    return stepDb (current, steps, fine, std::max (1.0, current));
+                };
+                volume.maximum = yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax;
+                volume.valueText = [this, row] { return dbReadoutText (trackListInput.volumeValueProvider ? trackListInput.volumeValueProvider (row) : 1.0f); };
+                volume.surface = &trackListInput;
+                add (base + ".volume", name + " volume", ControlTargetRole::Value,
+                     trackListInput.volumeSliderBounds (row).translated (origin.x, origin.y), std::move (volume));
+            }
+            {
+                PaintedControl swatch;
+                swatch.activate = [this, row] { if (trackListInput.onColourSwatchClicked) trackListInput.onColourSwatchClicked (row); };
+                swatch.surface = &trackListInput;
+                add (base + ".colour", name + " colour: next", ControlTargetRole::Button,
+                     trackListInput.colourSwatchBounds (row).translated (origin.x, origin.y), std::move (swatch));
+                PaintedControl meter;
+                meter.activate = [this, row] { if (trackListInput.onMeterClicked) trackListInput.onMeterClicked (row); };
+                meter.surface = &trackListInput;
+                add (base + ".meter", name + " meter: clear the clip light", ControlTargetRole::Button,
+                     trackListInput.meterZoneBounds (row).translated (origin.x, origin.y), std::move (meter));
+            }
+        }
+    }
+
+    // The mixer's painted faders: one per strip shown while the dock shows the mixer (G4.0b).
+    if (appModel.context().mixerDockVisible && ! dockShowsPianoRoll() && ! dockShowsInstrument())
+    {
+        const auto surface = currentMixerSurface();
+        const std::size_t trackCount = surface.tracks.size();
+        const std::size_t stripTotal = trackCount + surface.buses.size();
+        const juce::Rectangle<int> dock = mixerPanelBounds();
+        for (std::size_t i = 0; i < stripTotal; ++i)
+        {
+            const juce::Rectangle<int> rail = paintedFaderRailForLane (paintedMixerLaneBounds (i), stripIoRows (i));
+            if (rail.isEmpty() || ! dock.intersects (rail))
+                continue;
+            const auto& strip = i < trackCount ? surface.tracks[i] : surface.buses[i - trackCount];
+            const int stripIndex = static_cast<int> (i);
+            PaintedControl fader;
+            fader.currentValue = [this, stripIndex] {
+                return mixerStripsInput.faderGainForStrip ? static_cast<double> (mixerStripsInput.faderGainForStrip (stripIndex)) : 1.0;
+            };
+            fader.setValue = [this, stripIndex] (double gain, bool ended) {
+                const auto now = currentMixerSurface();
+                if (static_cast<std::size_t> (stripIndex) < now.tracks.size() + now.buses.size() && mixerStripsInput.onFaderDragged)
+                {
+                    mixerStripsInput.onFaderDragged (stripIndex, static_cast<float> (gain), ended);
+                }
+                else if (ended)
+                {
+                    // The strip went with its track or bus: only the drag's bracket closes (no edit, no empty step).
+                    paintedFaderDragStrip = -1;
+                    endAutomationTouchRideIfActive();
+                    appModel.endStripGesture();
+                    hideDragDbReadout();
+                }
+            };
+            fader.stepValue = [stepDb] (double current, int steps, bool fine) {
+                return stepDb (current, steps, fine, yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax);
+            };
+            fader.valueText = [this, stripIndex] {
+                return dbReadoutText (mixerStripsInput.faderGainForStrip ? mixerStripsInput.faderGainForStrip (stripIndex) : 1.0f);
+            };
+            fader.maximum = yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax;
+            fader.surface = &mixerStripsInput;
+            ShellControl control;
+            control.entry.id = "mixer.strip." + std::to_string (i) + ".fader";
+            control.entry.name = strip.name + " fader";
+            control.entry.role = ControlTargetRole::Value;
+            control.entry.bounds = controlRectOf (rail);
+            control.entry.region = kRegionDock;
+            control.painted = std::make_shared<const PaintedControl> (std::move (fader));
+            controls.push_back (std::move (control));
+        }
+    }
+}
+
 juce::String MainComponent::controlValueText (const ShellControl& control) const
 {
-    if (control.paintedStrip >= 0)
-        return dbReadoutText (mixerStripsInput.faderGainForStrip ? mixerStripsInput.faderGainForStrip (control.paintedStrip) : 1.0f);
+    if (control.painted != nullptr)
+    {
+        if (control.painted->valueText)
+            return control.painted->valueText();
+        return control.entry.role == ControlTargetRole::Toggle ? juce::String (control.painted->checked ? "on" : "off") : juce::String();
+    }
     juce::Component* widget = control.widget.getComponent();
     if (widget == nullptr)
         return {};
@@ -357,10 +540,20 @@ void MainComponent::activateControlTarget()
 
     juce::Component* widget = control->widget.getComponent();
     const std::string& id = control->entry.id;
-    if (control->paintedStrip >= 0)
+    if (control->painted != nullptr)
     {
-        lastControlActivation = "value:" + id;
-        controlNavigator.beginInteraction (mixerStripsInput.faderGainForStrip ? mixerStripsInput.faderGainForStrip (control->paintedStrip) : 1.0f);
+        if (control->entry.role == ControlTargetRole::Value && control->painted->currentValue)
+        {
+            lastControlActivation = "value:" + id;
+            controlNavigator.beginInteraction (control->painted->currentValue());
+        }
+        else if (control->painted->activate)
+        {
+            // The click's own effect, through the callback the mouse path calls.
+            lastControlActivation = "click:" + id;
+            const auto painted = control->painted;   // the record outlives a rebuild of the walk
+            painted->activate();
+        }
     }
     else if (auto* button = dynamic_cast<juce::Button*> (widget))
     {
@@ -401,20 +594,19 @@ void MainComponent::adjustControlTarget (int valueSteps, int listSteps, bool fin
         return;
 
     juce::Component* widget = control->widget.getComponent();
-    if (control->paintedStrip >= 0)
+    if (control->painted != nullptr)
     {
-        if (! mixerStripsInput.faderGainForStrip || ! mixerStripsInput.onFaderDragged)
+        const auto& painted = *control->painted;
+        if (! painted.currentValue || ! painted.setValue || ! painted.stepValue)
             return;
-        const float current = mixerStripsInput.faderGainForStrip (control->paintedStrip);
-        const float next = stepFaderGainDb (current, valueSteps, fine ? 0.1 : 1.0,
-                                            yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax);
+        const double next = std::clamp (painted.stepValue (painted.currentValue(), valueSteps, fine), painted.minimum, painted.maximum);
         if (! controlGestureOpen)
         {
             controlGestureOpen = true;
             controlGestureTarget = *control;
         }
-        // The drag verb: one strip gesture (one undo step), the dB readout, the Touch / Latch ride.
-        mixerStripsInput.onFaderDragged (control->paintedStrip, next, false);
+        // The drag verb: the control's own gesture (one undo step), its readout and its Touch / Latch ride.
+        painted.setValue (next, false);
     }
     else if (auto* list = dynamic_cast<ChooserListControl*> (widget))
     {
@@ -477,23 +669,13 @@ void MainComponent::closeControlGesture (bool keep)
         return;
     controlGestureOpen = false;
     const double origin = controlNavigator.interactionOrigin();
-    if (controlGestureTarget.paintedStrip >= 0)
+    if (controlGestureTarget.painted != nullptr)
     {
-        const int strip = controlGestureTarget.paintedStrip;
-        const auto surface = currentMixerSurface();
-        if (static_cast<std::size_t> (strip) < surface.tracks.size() + surface.buses.size() && mixerStripsInput.onFaderDragged
-            && mixerStripsInput.faderGainForStrip)
-        {
-            const float gain = keep ? mixerStripsInput.faderGainForStrip (strip) : static_cast<float> (origin);
-            mixerStripsInput.onFaderDragged (strip, gain, true);
-        }
+        const auto& painted = *controlGestureTarget.painted;
+        if (painted.setValue && painted.currentValue)
+            painted.setValue (keep ? painted.currentValue() : origin, true);   // the drag's release, restoring first on Esc
         else
-        {
-            paintedFaderDragStrip = -1;
-            endAutomationTouchRideIfActive();
             appModel.endStripGesture();
-            hideDragDbReadout();
-        }
     }
     else if (auto* slider = dynamic_cast<juce::Slider*> (controlGestureTarget.widget.getComponent()))
     {
@@ -720,9 +902,11 @@ void MainComponent::announceControlTarget (const ShellControl& control, bool val
     }
     // A painted control speaks through the surface that paints it: its title and value become the
     // surface's, and the surface takes the screen reader's focus.
-    mixerStripsInput.setTitle (juce::String (control.entry.name));
-    mixerStripsInput.setDescription (controlValueText (control));
-    if (juce::AccessibilityHandler* handler = mixerStripsInput.getAccessibilityHandler())
+    juce::Component& surface = control.painted != nullptr && control.painted->surface != nullptr ? *control.painted->surface
+                                                                                                : static_cast<juce::Component&> (*this);
+    surface.setTitle (juce::String (control.entry.name));
+    surface.setDescription (controlValueText (control));
+    if (juce::AccessibilityHandler* handler = surface.getAccessibilityHandler())
     {
         if (! valueOnly)
             handler->grabFocus();

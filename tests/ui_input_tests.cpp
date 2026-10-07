@@ -23692,6 +23692,230 @@ TEST_CASE ("G4.0b control navigation: a mixer fader steps in dB as one undo step
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// ADR-0066 cp1: the painted controls of the rail, the tool strip and the header are Control targets — every one the
+// probe names on screen is in the Tab walk, and each role operates through the mouse's own path (one undo step for a
+// value, Esc restoring it exactly); Space stays transport in every state.
+TEST_CASE ("ADR-0066 painted controls are Control targets: the rail, the tool strip and the header",
+           "[ui][input][shell][control-navigation][g6-keyboard]")
+{
+    const auto bundlePath = makeTempBundlePath ("g63-painted-targets");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
+
+    // Coverage: every painted zone the probe names on screen is in the walk.
+    {
+        const auto order = yesdaw::ui::mainComponentControlTraversal (*shell);
+        const std::set<juce::String> walk (order.begin(), order.end());
+        const juce::var layout = probeRoot (*shell)["layout"];
+        const auto rectOf = [&layout] (const juce::String& key)
+        {
+            const juce::var value = layout.getProperty (key, juce::var());
+            if (! value.isArray() || value.size() != 4)
+                return juce::Rectangle<int>();
+            return juce::Rectangle<int> (static_cast<int> (value[0]), static_cast<int> (value[1]),
+                                         static_cast<int> (value[2]), static_cast<int> (value[3]));
+        };
+        int covered = 0;
+        for (int row = 0; row < 2; ++row)
+            for (const char* part : { "mute", "solo", "arm", "pan", "volume", "colour", "meter" })
+            {
+                const juce::String id = "rail.row." + juce::String (row) + "." + part;
+                INFO (id.toStdString());
+                REQUIRE_FALSE (rectOf (id).isEmpty());
+                REQUIRE (walk.count (id) == 1);
+                ++covered;
+            }
+        for (const char* tool : { "tool.pointer", "tool.pencil", "tool.scissors", "tool.eraser", "tool.velocity", "tool.zoom", "tool.hand" })
+        {
+            INFO (tool);
+            REQUIRE_FALSE (rectOf (tool).isEmpty());
+            REQUIRE (walk.count (tool) == 1);
+            ++covered;
+        }
+        for (const char* header : { "header.gear", "header.time" })
+        {
+            INFO (header);
+            REQUIRE_FALSE (rectOf (header).isEmpty());
+            REQUIRE (walk.count (header) == 1);
+            ++covered;
+        }
+        REQUIRE (covered == 2 * 7 + 7 + 2);
+        // Reading order: row 0's controls all come before row 1's.
+        int lastRow0 = -1, firstRow1 = static_cast<int> (order.size());
+        for (int i = 0; i < static_cast<int> (order.size()); ++i)
+        {
+            if (order[static_cast<std::size_t> (i)].startsWith ("rail.row.0."))
+                lastRow0 = i;
+            if (order[static_cast<std::size_t> (i)].startsWith ("rail.row.1."))
+                firstRow1 = std::min (firstRow1, i);
+        }
+        REQUIRE (lastRow0 >= 0);
+        REQUIRE (lastRow0 < firstRow1);
+    }
+
+    const auto track = [&bundlePath] { return readProjectSnapshot (bundlePath).tracks.at (1).strip; };
+    const auto target = [&shell] (const char* id)
+    {
+        INFO ("target " << id);
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, id));
+        REQUIRE (controlTargetOf (*shell).id == juce::String (id));
+    };
+    const auto playing = [&shell] { return snapshotMainComponent (*shell).context.isPlaying; };
+    const auto spaceToggles = [&] (const char* when)
+    {
+        INFO ("Space " << when);
+        const bool before = playing();
+        REQUIRE (pressKey (*shell, juce::KeyPress::spaceKey));
+        REQUIRE (playing() != before);
+        REQUIRE (pressKey (*shell, juce::KeyPress::spaceKey));
+        REQUIRE (playing() == before);
+    };
+    spaceToggles ("before navigation");
+
+    // A toggle: Enter mutes as a click on the M cell does, Enter again unmutes.
+    target ("rail.row.1.mute");
+    REQUIRE (controlTargetOf (*shell).role == "toggle");
+    REQUIRE (controlTargetOf (*shell).value == "off");
+    spaceToggles ("navigating");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (track().muted);
+    REQUIRE (controlTargetOf (*shell).value == "on");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE_FALSE (track().muted);
+
+    // A value: the volume — Enter, three steps up, Enter keeps it as ONE undo step; Esc restores exactly.
+    target ("rail.row.1.volume");
+    REQUIRE (controlTargetOf (*shell).role == "value");
+    REQUIRE (track().linearGain == Catch::Approx (1.0));
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (controlTargetOf (*shell).interacting);
+    spaceToggles ("interacting on a value");
+    for (int i = 0; i < 3; ++i)
+        REQUIRE (pressKey (*shell, juce::KeyPress::upKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE_FALSE (controlTargetOf (*shell).interacting);
+    spaceToggles ("after Enter");
+    REQUIRE (track().linearGain == Catch::Approx (1.0));   // the rail's slider tops out at unity, as its drag does
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    for (int i = 0; i < 6; ++i)
+        REQUIRE (pressKey (*shell, juce::KeyPress::downKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (track().linearGain == Catch::Approx (std::pow (10.0, -6.0 / 20.0)).epsilon (1e-3));
+    REQUIRE (controlTargetOf (*shell).value.contains ("-6.0"));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);   // ONE undo step for the whole adjustment
+    REQUIRE (track().linearGain == Catch::Approx (1.0));
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::downKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::downKey));
+    REQUIRE (track().linearGain < 0.9f);
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    REQUIRE (track().linearGain == Catch::Approx (1.0));
+    spaceToggles ("after Esc");
+
+    // A value: the pan — two steps right is R10; Esc restores centre.
+    target ("rail.row.1.pan");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::rightKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::rightKey));
+    REQUIRE (track().pan == Catch::Approx (0.1).margin (1e-4));
+    REQUIRE (controlTargetOf (*shell).value == "R10");
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    REQUIRE (track().pan == Catch::Approx (0.0).margin (1e-6));
+
+    // Buttons: the colour swatch advances the colour (one undo step); the meter clears its clip light.
+    {
+        const auto colourOf = [&bundlePath] { return readProjectSnapshot (bundlePath).tracks.at (1).colour; };
+        const auto colourBefore = colourOf();
+        target ("rail.row.1.colour");
+        REQUIRE (controlTargetOf (*shell).role == "button");
+        REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+        REQUIRE (colourOf() != colourBefore);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        REQUIRE (colourOf() == colourBefore);
+    }
+    yesdaw::ui::mainComponentLatchStripClip (*shell, 1);
+    REQUIRE (yesdaw::ui::mainComponentStripClipLatched (*shell, 1));
+    target ("rail.row.1.meter");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentStripClipLatched (*shell, 1));
+
+    // The tool strip: Enter picks the tool, which then reads "on".
+    target ("tool.pencil");
+    REQUIRE (controlTargetOf (*shell).value == "off");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pencil);
+    REQUIRE (controlTargetOf (*shell).value == "on");
+
+    // The header: the gear shows and hides the settings row; the time readout cycles its display.
+    {
+        const bool shown = snapshotMainComponent (*shell).context.settingsRowVisible;
+        target ("header.gear");
+        REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+        REQUIRE (snapshotMainComponent (*shell).context.settingsRowVisible != shown);
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "header.gear"));
+        REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+        REQUIRE (snapshotMainComponent (*shell).context.settingsRowVisible == shown);
+        target ("header.time");
+        const juce::String modeBefore = controlTargetOf (*shell).value;
+        REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+        REQUIRE (controlTargetOf (*shell).value != modeBefore);
+    }
+
+    // A control that goes away mid-interaction: the targeted row's track is removed while its volume is being adjusted;
+    // the gesture closes with no edit of its own (the last undo step is still the removal) and the target moves on.
+    target ("rail.row.1.volume");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (pressKey (*shell, juce::KeyPress::downKey));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRemove);   // the selected track: row 1
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
+    REQUIRE (pressKey (*shell, juce::KeyPress::upKey));   // the next key revalidates: the target is not row 1's any more
+    REQUIRE (controlTargetOf (*shell).id != juce::String ("rail.row.1.volume"));
+    REQUIRE_FALSE (controlTargetOf (*shell).interacting);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);   // undo brought the track back: no empty step in between
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// ADR-0066: building the walk (widgets and painted records) runs on every key and every UI tick while navigating; at
+// 24 tracks with the mixer shown it stays far inside a frame.
+TEST_CASE ("ADR-0066 the control walk with every painted control builds well inside a frame at 24 tracks",
+           "[ui][input][shell][control-navigation][g6-keyboard][perf]")
+{
+    const auto bundlePath = makeTempBundlePath ("g63-walk-cost");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (2560, 1440);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    for (int i = 1; i < 24; ++i)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 24u);
+    const auto first = yesdaw::ui::mainComponentControlTraversal (*shell);
+    REQUIRE (first.size() > 150u);
+    constexpr int kBuilds = 60;
+    const auto start = std::chrono::steady_clock::now();
+    std::size_t total = 0;
+    for (int i = 0; i < kBuilds; ++i)
+        total += yesdaw::ui::mainComponentControlTraversal (*shell).size();
+    const double averageMs = std::chrono::duration<double, std::milli> (std::chrono::steady_clock::now() - start).count() / kBuilds;
+    INFO ("walk of " << first.size() << " controls: " << averageMs << " ms per build");
+    REQUIRE (total == first.size() * kBuilds);
+    REQUIRE (averageMs < 4.0);   // a quarter of a 60 Hz frame on the slowest CI runner
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("G4.0b control navigation: the EQ editor is a panel of its own; closing it restores the target",
            "[ui][input][shell][control-navigation][fx-editors]")
 {
