@@ -160,7 +160,6 @@ void MainComponent::configureAutomationLaneControls()
     automationLaneRow.setTooltip ("First Track automation lane row");
     automationLaneRow.setName ("First Track automation lane");
     automationLaneRow.setTitle ("First Track automation lane");
-    automationLaneRow.setTooltip (kAutomationLaneRowComponentId);
     automationLaneRow.setJustificationType (juce::Justification::centredLeft);
     automationLaneRow.setColour (juce::Label::backgroundColourId, yesdaw::ui::UiTheme::Color::selectedLane());
     automationLaneRow.setColour (juce::Label::textColourId, kText);

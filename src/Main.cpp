@@ -1,5 +1,6 @@
 // YES DAW - JUCE application wrapper.
 
+#include "ui/UiColourValues.h"   // ADR-0063: the window background is the theme's
 #include "ui/MainComponent.h"
 #include "ui/UiTheme.h"
 
@@ -74,7 +75,7 @@ private:
     {
     public:
         MainWindow (juce::String name, juce::Component* content, JUCEApplication& a)
-            : DocumentWindow (name, juce::Colour (0xff0b0f14), DocumentWindow::allButtons, false), app (a)
+            : DocumentWindow (name, juce::Colour (yesdaw::ui::colours::appBackground), DocumentWindow::allButtons, false), app (a)
         {
             setUsingNativeTitleBar (true);
             setContentOwned (content, true);

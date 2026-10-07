@@ -258,7 +258,7 @@ void MainComponent::configureInspectorTimeSlider (juce::Slider& slider, const ch
     slider.setComponentID (componentId);
     slider.setName (name);
     slider.setTitle (name);
-    slider.setTooltip (componentId);
+    slider.setTooltip (name + ": drag to change");   // ADR-0063: words, never the component id
     slider.setSliderStyle (juce::Slider::LinearHorizontal);
     slider.setTextBoxStyle (juce::Slider::NoTextBox,
                             false,
@@ -303,7 +303,7 @@ void MainComponent::configureInspectorFadeSlider (juce::Slider& slider, const ch
     slider.setComponentID (componentId);
     slider.setName (name);
     slider.setTitle (name);
-    slider.setTooltip (componentId);
+    slider.setTooltip (name + ": drag to change");   // ADR-0063: words, never the component id
     slider.setSliderStyle (juce::Slider::LinearHorizontal);
     slider.setTextBoxStyle (juce::Slider::NoTextBox,
                             false,
@@ -473,6 +473,7 @@ void MainComponent::layoutInspectorControls()
     inspectorStretch.setBounds (audioSectionFits (gainSection)
         ? gain.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorGainControlHeight)
               .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorGainControlLeftInset)
+              .withTrimmedRight (yesdaw::ui::UiTheme::Layout::inspectorStretchReadoutWidth)   // ADR-0063: room for its value
         : juce::Rectangle<int>());
 
     const auto fadesSection = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)
@@ -1043,6 +1044,25 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
                         .withHeight (yesdaw::ui::UiTheme::Layout::inspectorGainReadoutHeight),
                     juce::Justification::centredLeft,
                     false);
+        // ADR-0063: the stretch slider below had neither a label nor a value.
+        const juce::Rectangle<int> stretch = inspectorStretch.getBounds();
+        if (! stretch.isEmpty())
+        {
+            g.setColour (kMutedText);
+            g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small));
+            g.drawText ("Stretch",
+                        juce::Rectangle<int> (gain.getX() + static_cast<int> (yesdaw::ui::UiTheme::Space::md), stretch.getY(),
+                                              stretch.getX() - gain.getX() - static_cast<int> (yesdaw::ui::UiTheme::Space::md),
+                                              stretch.getHeight()),
+                        juce::Justification::centredLeft,
+                        false);
+            g.setColour (inspectorStretch.isEnabled() ? kText : kMutedText);   // a dead slider's value is not live
+            g.drawText (juce::String (juce::roundToInt (inspectorStretch.getValue())) + "%",
+                        juce::Rectangle<int> (stretch.getRight(), stretch.getY(),
+                                              yesdaw::ui::UiTheme::Layout::inspectorStretchReadoutWidth, stretch.getHeight()),
+                        juce::Justification::centred,
+                        false);
+        }
     }
 
     auto fades = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorFadesSectionTop)

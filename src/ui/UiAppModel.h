@@ -28,6 +28,7 @@
 #include "ui/UiMixerSurface.h"   // ADR-0053: the loudness readout the header and mixer paint
 #include "ui/UiPianoRollSurface.h"
 #include "ui/UiPreferences.h"   // G5.6 / ADR-0061
+#include "ui/UiColourValues.h"   // ADR-0063
 #include "ui/UiThemeLayout.h"
 #include "ui/WaveformPeakService.h"
 
@@ -8918,7 +8919,8 @@ public:
     // G2.12: the clip's own colour cycle — the SAME six swatches the rail row cycles through
     // (0 = follow the track, then the five theme accents), so a clip colour always looks native.
     static constexpr std::array<std::uint32_t, 6> kClipColourCycle {
-        engine::kTrackColourUnset, 0xff3b8cffu, 0xff1bb5a6u, 0xffd29118u, 0xffa578ffu, 0xff20c8d8u };
+        engine::kTrackColourUnset, colours::accentBlue, colours::accentTeal, colours::accentAmber,   // ADR-0063: shared values
+        colours::accentPurple, colours::accentCyan };
 
     [[nodiscard]] UiActionDispatchResult cycleSelectedTimelineClipColour()
     {

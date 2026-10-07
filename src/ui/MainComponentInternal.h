@@ -272,14 +272,14 @@ inline juce::Colour stripColourForIndex (std::size_t index)
 // override" (kTrackColourUnset); positions 1..5 mirror the SAME five accents
 // stripColourForIndex already draws from (kBlue/kTeal/kAmber/kPurple/kCyan), so a customized
 // track colour always looks native to this theme instead of introducing a new arbitrary hue.
-// Written as raw hex (not the juce::Colour constants above) so the array can be constexpr.
+// ADR-0063: the shared ARGB values (UiColourValues.h), so the array can be constexpr and still be the theme's own.
 inline constexpr std::array<std::uint32_t, 6> kTrackColourCycle {
     yesdaw::engine::kTrackColourUnset,
-    0xff3b8cffu,   // accentBlue
-    0xff1bb5a6u,   // accentTeal
-    0xffd29118u,   // accentAmber
-    0xffa578ffu,   // accentPurple
-    0xff20c8d8u,   // accentCyan
+    yesdaw::ui::colours::accentBlue,
+    yesdaw::ui::colours::accentTeal,
+    yesdaw::ui::colours::accentAmber,
+    yesdaw::ui::colours::accentPurple,
+    yesdaw::ui::colours::accentCyan,
 };
 
 [[nodiscard]] inline std::uint32_t nextTrackColourInCycle (std::uint32_t current) noexcept

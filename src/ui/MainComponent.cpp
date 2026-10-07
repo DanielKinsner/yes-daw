@@ -56,7 +56,11 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         button.setButtonText (actionButtonText (action));
         button.setComponentID (descriptor->stableId);
         button.setName (descriptor->accessibleName);
-        button.setTooltip (juce::String (descriptor->stableId) + "  " + descriptor->defaultKey);
+        {   // ADR-0063: words and the live chord, never the stable id
+            const std::string& chord = appModel.registry().keymap().chordFor (action);
+            button.setTooltip (chord.empty() ? juce::String (descriptor->accessibleName)
+                                             : juce::String (descriptor->accessibleName) + "  (" + chord + ")");
+        }
         button.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
         button.setColour (juce::TextButton::buttonOnColourId, descriptor->accessibleRole == yesdaw::ui::AccessibilityRole::ToggleButton
                                                               ? kPurple.darker (0.45f)

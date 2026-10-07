@@ -8,6 +8,41 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 (midday) — G6.1 done: colours once, no fake data, labels and tooltips in words (ADR-0063 cp2)
+
+**Now:** **G6.1** is in, headless-certified (both checkpoints). **Next: G6.2 — layout and scaling** (the window /
+display scaling matrix, the 1280x720 floor vs the code's 1152 minimum, eight tracks at 1080p; its implementation ADR
+first). SS-6 still waits for a free desktop.
+
+**What a user gets:** every tooltip reads as words with its live chord ("Play  (Space)", "Clip start: drag to change")
+— the toolbar's said `transport.play`, the autosave buttons theirs, the clip time and fade fields `clip.inspector.*`,
+and the automation lane row its component id; the inspector's stretch slider now has a "Stretch" label and its value
+("100%", muted while the slider is disabled); the window's own background is the theme's; each track colour is defined
+once.
+
+**Gates:** `[tokens]` / theme audit — no raw colour in `src/ui` or `src/Main.cpp` outside the token headers (the audit
+now catches a `u` suffix; `UiColourValues.h` is the JUCE-free home of the shared values); every `Tone` array is read
+somewhere (the unused fake `inspectorAutomationValues` is gone); `[tooltips]` — every toolbar button's tooltip is its
+accessible name and live chord (shown or hidden) and no tooltip anywhere contains a dotted code word or a stable id;
+screenshot — the stretch label and value are drawn legibly at 1280x720 and 1920x1080. 416/416 local, Clang clean.
+
+**Deviation (recorded):** ADR-0063 names the raw-colour pattern `0x[0-9A-Fa-f]{8}[uU]?`; the audit uses
+`0xff[0-9A-Fa-f]{6}[uU]?` (opaque ARGB, as before, plus the suffix) so 8-digit non-colour constants such as a
+`0xFFFFFFFFu` sentinel are not flagged — it still bites the five accents and the window background the ADR targets.
+
+**Visual judgment (agent):** the GAIN card reads "Stretch [slider] 100%", aligned with the gain row. Noted for G6.2:
+the card's "GAIN" caption sits tight to the card's left edge.
+
+**Critic:** no blockers. In: the tooltip gate rejects any dotted code word, not only registered action ids (it found
+five inspector fields and the lane row); the autosave buttons' tooltips follow live chord rebinds; the stretch value is
+muted while its slider is disabled.
+
+**CI recorded:** 86a0b31 (G5.7 cp2) fails only the standing macOS GPU exception — **G5.7 certified**. 9ed2983 (G5.7
+cp1): Windows `YesDawTimelineGpuCheck` sustained 17.44 ms vs 16.6 on the runner — the commit touches only
+`ProjectBundle.h` and relink tests (the GPU test includes neither) and 86a0b31, which contains it, passed that test on
+Windows; a re-run of the same SHA was requested for the record. 379b6ae (G6.1 cp1) re-queued after a re-run cancelled
+its pending run.
+
 ## 2026-10-08 (morning) — G6.1 checkpoint 1: the type scale and WCAG contrast (ADR-0063)
 
 **Now:** G6.1 **cp1** is in, headless-certified. **Next: G6.1 cp2** — every colour defined once (the track accents and

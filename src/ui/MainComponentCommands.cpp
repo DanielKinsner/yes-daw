@@ -193,10 +193,15 @@ void MainComponent::configureAutosaveRecoveryButton (juce::TextButton& button, y
     if (descriptor == nullptr)
         return;
 
+    actionComponents.emplace_back (&button, action);   // ADR-0063: its tooltip follows the live keymap too
     button.setButtonText (actionButtonText (action));
     button.setComponentID (descriptor->stableId);
     button.setName (descriptor->accessibleName);
-    button.setTooltip (juce::String (descriptor->stableId) + "  " + descriptor->defaultKey);
+    {   // ADR-0063: words and the live chord, never the stable id
+        const std::string& chord = appModel.registry().keymap().chordFor (action);
+        button.setTooltip (chord.empty() ? juce::String (descriptor->accessibleName)
+                                         : juce::String (descriptor->accessibleName) + "  (" + chord + ")");
+    }
     button.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::warningButton());
     button.setColour (juce::TextButton::textColourOffId, kText);
     button.onClick = [this, action] {
@@ -1215,7 +1220,9 @@ void MainComponent::refreshActionTooltips()
         if (descriptor == nullptr)
             continue;
         const std::string& chord = keymap.chordFor (toolbarActions[i]);
-        buttons[i].setTooltip (juce::String (descriptor->stableId) + (chord.empty() ? juce::String() : "  " + juce::String (chord)));
+        // ADR-0063: words, as every other control's tooltip ("Play  (Space)"), never the stable id.
+        buttons[i].setTooltip (chord.empty() ? juce::String (descriptor->accessibleName)
+                                             : juce::String (descriptor->accessibleName) + "  (" + chord + ")");
     }
 }
 

@@ -1742,3 +1742,41 @@ TEST_CASE ("G5.5 the New Project dialog at 1280x720", "[ui][screenshot][new-proj
         REQUIRE (dialog->getLocalBounds().contains (control->getBounds()));
     }
 }
+
+// ADR-0063 (G6.1 cp2): the inspector's stretch slider was the rubric's "unlabeled gain slider" — it now paints a label
+// at its left and its value at its right, each legible against the card.
+TEST_CASE ("ADR-0063 the inspector's stretch slider has a label and a value", "[ui][screenshot][tokens]")
+{
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-g61-stretch-label.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    for (const auto& size : { std::pair<int, int> { 1280, 720 }, std::pair<int, int> { 1920, 1080 } })
+    {
+        shell->setSize (size.first, size.second);
+        const juce::Image image = renderShell (*shell);
+        (void) captureShellPng (image, ("yesdaw-g61-stretch-" + std::to_string (size.first) + "x" + std::to_string (size.second) + ".png").c_str());
+        juce::Component* stretch = findChildWithComponentId (*shell, "clip.inspector.stretch");
+        REQUIRE (stretch != nullptr);
+        REQUIRE (stretch->isVisible());
+        const juce::Rectangle<int> slider = stretch->getBounds();
+        REQUIRE_FALSE (slider.isEmpty());
+        const juce::Rectangle<int> label (slider.getX() - 60, slider.getY(), 56, slider.getHeight());
+        const juce::Rectangle<int> value (slider.getRight(), slider.getY(),
+                                          yesdaw::ui::UiTheme::Layout::inspectorStretchReadoutWidth, slider.getHeight());
+        INFO ("at " << size.first << "x" << size.second);
+        REQUIRE (maxContrastInRegion (image, label) >= 3.0);
+        REQUIRE (maxContrastInRegion (image, value) >= 3.0);
+    }
+}

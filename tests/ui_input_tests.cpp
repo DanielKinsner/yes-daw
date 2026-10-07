@@ -41,6 +41,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <set>
+#include <regex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -16740,6 +16741,39 @@ TEST_CASE ("every componentID'd control carries a tooltip naming its action and 
 
     // The walk saw the real control population, not an empty shell.
     REQUIRE (checkedControls > 50);
+
+    // ADR-0063: the toolbar's tooltips are the action's words and live chord, and no tooltip anywhere names a stable
+    // id ("transport.play" reads as code, not a label).
+    {
+        const yesdaw::ui::UiActionRegistry registry;
+        for (const yesdaw::ui::UiActionId action : yesdaw::ui::mainShellToolbarActions())
+        {
+            const auto* descriptor = registry.descriptor (action);
+            REQUIRE (descriptor != nullptr);
+            const std::string& chord = registry.keymap().chordFor (action);
+            const juce::String expected = chord.empty() ? juce::String (descriptor->accessibleName)
+                                                        : juce::String (descriptor->accessibleName) + "  (" + chord + ")";
+            INFO (descriptor->stableId);
+            auto* button = dynamic_cast<juce::Button*> (findMainComponentChildForAction (*shell, action));   // shown or not: its words
+            REQUIRE (button != nullptr);
+            REQUIRE (button->getTooltip() == expected);
+        }
+        // A dotted lower-case identifier (an action's stable id, a component id) reads as code.
+        const std::regex codeWord { R"(\b[a-z][a-z0-9_]{2,}(\.[a-z][a-z0-9_]*)+\b)" };
+        std::function<void (juce::Component&)> walk = [&] (juce::Component& component) {
+            if (auto* client = dynamic_cast<juce::SettableTooltipClient*> (&component))
+            {
+                const std::string tooltip = client->getTooltip().toStdString();
+                INFO (component.getComponentID() << ": " << tooltip);
+                REQUIRE_FALSE (std::regex_search (tooltip, codeWord));
+                for (const auto& descriptor : registry.actions())
+                    REQUIRE_FALSE (client->getTooltip().contains (descriptor.stableId));
+            }
+            for (int i = 0; i < component.getNumChildComponents(); ++i)
+                walk (*component.getChildComponent (i));
+        };
+        walk (*shell);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "ui/UiColourValues.h"   // ADR-0063: the colours JUCE-free code shares
 #include "ui/UiThemeLayout.h"
 
 #include <juce_graphics/juce_graphics.h>
@@ -17,7 +18,7 @@ struct UiTheme
 {
     struct Color
     {
-        static juce::Colour appBackground() noexcept { return juce::Colour (0xff070a0d); }
+        static juce::Colour appBackground() noexcept { return juce::Colour (colours::appBackground); }
         static juce::Colour panel() noexcept { return juce::Colour (0xff0e1318); }
         static juce::Colour panelRaised() noexcept { return juce::Colour (0xff141a20); }
         static juce::Colour panelStroke() noexcept { return juce::Colour (0xff26303a); }
@@ -30,13 +31,13 @@ struct UiTheme
         static juce::Colour rulerTick() noexcept { return juce::Colour (0xff5c646d); }    // ADR-0063: the ruler's ticks (opaque; was muted text at 65 %)
         static juce::Colour white() noexcept { return juce::Colour (0xffffffff); }
 
-        static juce::Colour accentBlue() noexcept { return juce::Colour (0xff3b8cff); }
-        static juce::Colour accentTeal() noexcept { return juce::Colour (0xff1bb5a6); }
-        static juce::Colour accentAmber() noexcept { return juce::Colour (0xffd29118); }
-        static juce::Colour accentPurple() noexcept { return juce::Colour (0xffa578ff); }
+        static juce::Colour accentBlue() noexcept { return juce::Colour (colours::accentBlue); }
+        static juce::Colour accentTeal() noexcept { return juce::Colour (colours::accentTeal); }
+        static juce::Colour accentAmber() noexcept { return juce::Colour (colours::accentAmber); }
+        static juce::Colour accentPurple() noexcept { return juce::Colour (colours::accentPurple); }
         static juce::Colour accentPurpleDeep() noexcept { return juce::Colour (0xff35234f); }
         static juce::Colour accentPurpleGlow() noexcept { return juce::Colour (0xffc3a5ff); }
-        static juce::Colour accentCyan() noexcept { return juce::Colour (0xff20c8d8); }
+        static juce::Colour accentCyan() noexcept { return juce::Colour (colours::accentCyan); }
         static juce::Colour meterGreen() noexcept { return juce::Colour (0xff74df35); }
         static juce::Colour meterYellow() noexcept { return juce::Colour (0xffe2c832); }
         static juce::Colour dangerRed() noexcept { return juce::Colour (0xffff5757); }
@@ -136,9 +137,6 @@ struct UiTheme
         static constexpr float clipSurfaceTopAlpha = 0.22f;
         static constexpr float timelineCanvasClipSurfaceTopBrightness = 0.10f;
         static constexpr float timelineCanvasClipSurfaceTopAlpha = 0.5f;   // ADR-0063: a clip's name on the top reads >= 4.5:1
-        static constexpr std::array<float, 6> inspectorAutomationValues {{
-            0.72f, 0.32f, 0.58f, 0.44f, 0.70f, 0.62f
-        }};
         static constexpr float timelineCanvasFallbackClipAmplitude = 0.7f;
         static constexpr float timelineCanvasWaveformBrightness = 0.42f;
         static constexpr float timelineCanvasCompactClipAlpha = 0.44f;
@@ -437,6 +435,7 @@ struct UiTheme
         static constexpr double inspectorGainSliderInterval = 0.01;
         // G2.9b: the inspector's Stretch field, percent of the source length (ADR-0030: 50..200).
         static constexpr int inspectorStretchControlTopGap = 4;
+        static constexpr int inspectorStretchReadoutWidth = 44;   // ADR-0063: the stretch slider's value at its right
         static constexpr double inspectorStretchSliderMin = 50.0;
         static constexpr double inspectorStretchSliderMax = 200.0;
         static constexpr double inspectorStretchSliderInterval = 1.0;

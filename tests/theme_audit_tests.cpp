@@ -33,7 +33,8 @@ bool isUiSourceFile (const std::filesystem::path& path)
 bool isThemeDefinitionFile (const std::filesystem::path& path)
 {
     return path.filename() == "UiTheme.h"
-        || path.filename() == "UiThemeLayout.h";
+        || path.filename() == "UiThemeLayout.h"
+        || path.filename() == "UiColourValues.h";   // ADR-0063: the shared ARGB values
 }
 
 // Plan §5.1 cp2: the shell class is defined across MainComponent*.cpp; every law that used to key on
@@ -439,7 +440,8 @@ bool timelineLayoutHitTestUsesRawGeometry (std::string_view line)
 
 std::vector<ThemeAuditFinding> auditThemeTokens (const std::filesystem::path& root)
 {
-    const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}\b)" };
+    // ADR-0063: an opaque ARGB literal, with or without the u suffix (the track cycle's copies hid behind it).
+    const std::regex rawHexColour { R"(\b0xff[0-9A-Fa-f]{6}[uU]?\b)" };
     const std::regex juceNamedColour { R"(\bjuce::Colours::[A-Za-z_][A-Za-z0-9_]*)" };
     const std::regex rawFontSize { R"(\bFontOptions\s*\(\s*[0-9]+(?:\.[0-9]+)?f?\b)" };
     const std::regex rawLayoutSize { R"(\bconstexpr\s+int\s+k[A-Za-z0-9_]*(?:Width|Height)\s*=\s*[0-9]+\b)" };
@@ -1878,4 +1880,51 @@ TEST_CASE ("UI text audit negative control catches a plain literal above ASCII",
     std::sort (lines.begin(), lines.end());
     REQUIRE (lines == std::vector<int> { 1, 2, 3, 11, 12, 13 });
     std::filesystem::remove_all (scratch);
+}
+
+// ADR-0063 (G6.1 cp2): colours defined once — the app's window background is the theme's (src/Main.cpp is outside
+// src/ui, so the directory audit never saw it) — and no Tone array that nothing reads (an unused one looked like data).
+TEST_CASE ("ADR-0063 src/Main.cpp carries no raw colour, and every Tone array is read", "[ui][theme][tokens]")
+{
+    const std::regex rawColour { R"(\b0xff[0-9A-Fa-f]{6}[uU]?\b|juce::Colours::)" };
+    {
+        std::ifstream in (std::filesystem::path { YESDAW_SOURCE_DIR } / "src" / "Main.cpp");
+        REQUIRE (in.is_open());
+        std::string line;
+        int number = 0;
+        while (std::getline (in, line))
+        {
+            ++number;
+            INFO ("src/Main.cpp:" << number << ": " << line);
+            REQUIRE_FALSE (std::regex_search (line, rawColour));
+        }
+    }
+
+    const std::filesystem::path ui = std::filesystem::path { YESDAW_SOURCE_DIR } / "src" / "ui";
+    std::string theme;
+    {
+        std::ifstream in (ui / "UiTheme.h");
+        theme.assign ((std::istreambuf_iterator<char> (in)), std::istreambuf_iterator<char>());
+    }
+    const std::size_t toneBegin = theme.find ("struct Tone");
+    REQUIRE (toneBegin != std::string::npos);
+    const std::size_t toneEnd = theme.find ("\n    };", toneBegin);
+    REQUIRE (toneEnd != std::string::npos);
+    const std::string tone = theme.substr (toneBegin, toneEnd - toneBegin);
+    const std::regex toneArray { R"(std::array<[^>]+>\s+(\w+))" };
+    std::vector<std::string> arrays;
+    for (auto it = std::sregex_iterator (tone.begin(), tone.end(), toneArray); it != std::sregex_iterator(); ++it)
+        arrays.push_back ((*it)[1].str());
+    std::string sources;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator (ui))
+        if (entry.is_regular_file() && isUiSourceFile (entry.path()) && entry.path().filename() != "UiTheme.h")
+        {
+            std::ifstream in (entry.path());
+            sources.append ((std::istreambuf_iterator<char> (in)), std::istreambuf_iterator<char>());
+        }
+    for (const std::string& name : arrays)
+    {
+        INFO ("UiTheme::Tone::" << name << " is read by nothing in src/ui");
+        REQUIRE (sources.find ("Tone::" + name) != std::string::npos);
+    }
 }
