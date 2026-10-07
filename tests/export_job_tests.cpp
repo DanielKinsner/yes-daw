@@ -86,22 +86,15 @@ struct Fixture
         app::ExportSnapshot out;
         out.destination = destination;
         out.project = engine::projectHasCrossRateAssets (project) ? engine::projectInViewFrames (project) : project;
-        app::ExportAssetAudio audio;
+        app::ExportAssetAudio audio;   // ADR-0059: the Asset's buffer at its own rate
         audio.assetId = project.assets[0].id;
         audio.channels = 1;
-        if (sourceRate != 48'000.0)
-        {
-            audio.source = std::make_shared<const std::vector<float>> (source);
-            audio.sourceRateHz = sourceRate;
-        }
-        else
-        {
-            auto samples = std::make_shared<engine::AssetSamples>();
-            samples->interleaved = source;
-            samples->channels = 1;
-            samples->frames = source.size();
-            audio.samples = std::move (samples);
-        }
+        auto buffer = std::make_shared<engine::AssetSamples>();
+        buffer->interleaved = source;
+        buffer->channels = 1;
+        buffer->frames = source.size();
+        audio.buffer = std::move (buffer);
+        audio.sourceRateHz = sourceRate;
         out.assets = { audio };
         return out;
     }
@@ -676,7 +669,7 @@ struct StemFixture
             samples->interleaved = sources[i];
             samples->channels = 1;
             samples->frames = sources[i].size();
-            out.assets.push_back ({ project.assets[i].id, 1, samples, nullptr, 0.0 });
+            out.assets.push_back ({ project.assets[i].id, 1, samples, 48'000.0 });
         }
         for (const engine::Track& track : project.tracks)
             if (! track.outputBusId.isValid())

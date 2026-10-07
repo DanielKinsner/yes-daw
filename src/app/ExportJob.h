@@ -69,15 +69,15 @@ enum class ExportFailure : std::uint8_t
     Write
 };
 
-// One Asset's audio, owned by the job: a same-rate Asset as the samples the render reads; a cross-rate Asset as its
-// decoded source, from which the worker builds the offline tier's view (ADR-0055).
+// One Asset's audio, owned by the job by reference (ADR-0059): the Asset's own decoded buffer at its own rate. A
+// same-rate Asset's buffer is what the render reads (as its owner — no copy); a cross-rate Asset's is the source the
+// worker builds the offline tier's view from (ADR-0055).
 struct ExportAssetAudio
 {
     engine::EntityId assetId;
     std::uint16_t channels = 0;
-    std::shared_ptr<const engine::AssetSamples> samples;   // at the project rate (same-rate Assets)
-    std::shared_ptr<const std::vector<float>> source;      // a cross-rate Asset's decoded source
-    double sourceRateHz = 0.0;
+    std::shared_ptr<const engine::AssetSamples> buffer;
+    double sourceRateHz = 0.0;   // the buffer's rate
 };
 
 struct ExportSnapshot
@@ -312,6 +312,7 @@ private:
         // Assets — both here, off the message thread.
         removeStalePartials (snapshot_.destination);
         std::vector<std::shared_ptr<const engine::AssetSamples>> owners;
+        std::vector<engine::AssetOwnership> ownership;
         std::vector<engine::DecodedAssetAudio> views;
         owners.reserve (snapshot_.assets.size());
         views.reserve (snapshot_.assets.size());
@@ -319,13 +320,16 @@ private:
         {
             if (cancelled())
                 return finish (ExportJobState::Cancelled, ExportFailure::None, "Export cancelled");
-            std::shared_ptr<const engine::AssetSamples> samples = asset.samples;
-            if (samples == nullptr && asset.source != nullptr)
-                samples = engine::buildRateMatchedSamples (*asset.source, asset.channels, asset.sourceRateHz, projectRateHz,
-                                                           engine::ResampleQuality::OfflineRender);
+            if (asset.buffer == nullptr)
+                continue;
+            std::shared_ptr<const engine::AssetSamples> samples = asset.buffer;
+            if (asset.sourceRateHz != projectRateHz && asset.sourceRateHz > 0.0)
+                samples = engine::buildRateMatchedSamples (std::span<const float> (asset.buffer->interleaved), asset.channels,
+                                                           asset.sourceRateHz, projectRateHz, engine::ResampleQuality::OfflineRender);
             if (samples == nullptr)
                 continue;
             owners.push_back (samples);
+            ownership.push_back ({ asset.assetId, samples });   // ADR-0059: the render reads these, it copies nothing
             views.push_back (engine::DecodedAssetAudio {
                 asset.assetId, snapshot_.project.sampleRate, samples->frames, asset.channels,
                 std::span<const float> (samples->interleaved.data(), samples->interleaved.size()) });
@@ -339,6 +343,7 @@ private:
         options.cancel = &cancelRequested_;
         options.latch = latch_;
         options.exportRange = snapshot_.range;   // cp3: refused before rendering when past the end; rendered only to its end
+        options.assetOwners = ownership;         // ADR-0059
         const engine::OfflineRenderResult rendered = engine::renderOfflineProject (
             snapshot_.project, std::span<const engine::DecodedAssetAudio> (views.data(), views.size()), std::move (options));
         if (rendered.status == engine::OfflineRenderStatus::Cancelled || cancelled())
@@ -576,18 +581,22 @@ private:
         // Preparing: the offline views, as for one file.
         const double projectRateHz = snapshot_.project.sampleRate.hz;
         std::vector<std::shared_ptr<const engine::AssetSamples>> owners;
+        std::vector<engine::AssetOwnership> ownership;
         std::vector<engine::DecodedAssetAudio> views;
         for (const ExportAssetAudio& asset : snapshot_.assets)
         {
             if (cancelled())
                 return cancelledOut();
-            std::shared_ptr<const engine::AssetSamples> samples = asset.samples;
-            if (samples == nullptr && asset.source != nullptr)
-                samples = engine::buildRateMatchedSamples (*asset.source, asset.channels, asset.sourceRateHz, projectRateHz,
-                                                           engine::ResampleQuality::OfflineRender);
+            if (asset.buffer == nullptr)
+                continue;
+            std::shared_ptr<const engine::AssetSamples> samples = asset.buffer;
+            if (asset.sourceRateHz != projectRateHz && asset.sourceRateHz > 0.0)
+                samples = engine::buildRateMatchedSamples (std::span<const float> (asset.buffer->interleaved), asset.channels,
+                                                           asset.sourceRateHz, projectRateHz, engine::ResampleQuality::OfflineRender);
             if (samples == nullptr)
                 continue;
             owners.push_back (samples);
+            ownership.push_back ({ asset.assetId, samples });   // ADR-0059: the render reads these, it copies nothing
             views.push_back (engine::DecodedAssetAudio {
                 asset.assetId, snapshot_.project.sampleRate, samples->frames, asset.channels,
                 std::span<const float> (samples->interleaved.data(), samples->interleaved.size()) });
@@ -613,6 +622,7 @@ private:
                 options.exportRange = snapshot_.range;
                 options.stemStrip = output.stem;
                 options.stemSalt = salt;
+                options.assetOwners = ownership;   // ADR-0059
                 rendered_.store (0, std::memory_order_relaxed);
                 rendered = engine::renderOfflineProject (
                     snapshot_.project, std::span<const engine::DecodedAssetAudio> (views.data(), views.size()), std::move (options));

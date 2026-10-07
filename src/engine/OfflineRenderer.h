@@ -148,6 +148,7 @@ struct ProjectGraphResult
     std::uint16_t                  channels = 0;
     std::uint64_t                  frames = 0;          // full timeline, including the graph/PDC tail
     int                            maxBlockSize = 128;
+    std::size_t                    copiedAssets = 0;    // ADR-0059: Assets this build had to copy (no owner given)
 
     [[nodiscard]] bool ok() const noexcept { return status == OfflineRenderStatus::Ok; }
 };
@@ -779,6 +780,7 @@ namespace detail {
     // applyProjectStripMuteMask law below, so build-time and the R12 live path can never drift.
     applyProjectStripMuteMask (*graph, project);
 
+    result.copiedAssets = copiedAssets.size();   // ADR-0059
     result.graph = std::move (graph);
     result.channels = static_cast<std::uint16_t> (masterChannels);
     result.frames = timelineEndFrames;

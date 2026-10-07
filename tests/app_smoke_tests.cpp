@@ -155,17 +155,13 @@ void writeProjectAssetFiles (const std::filesystem::path& bundlePath, const Proj
 
 UiDecodedAsset makeDecodedAsset (const Asset& asset)
 {
-    UiDecodedAsset decoded;
-    decoded.assetId = asset.id;
-    decoded.sampleRate = asset.sampleRate;
-    decoded.frames = asset.frames;
-    decoded.channels = asset.channels;
-    decoded.interleavedSamples = {
+    UiDecodedAsset decoded = UiDecodedAsset::fromInterleaved (asset.id, asset.sampleRate, asset.channels, {
         0.10f, -0.20f, 0.30f, -0.40f,
         0.50f, -0.60f, 0.70f, -0.80f,
         0.90f, -1.00f, 0.80f, -0.70f,
         0.60f, -0.50f, 0.40f, -0.30f,
-    };
+    });
+    decoded.frames = asset.frames;   // the helper's callers pair it with their Asset row as before
     return decoded;
 }
 
@@ -2241,7 +2237,7 @@ TEST_CASE ("G0.5 placement edits ride the live lane: no engine rebuild, audio eq
     REQUIRE (app.livePlacementEdits() == 0);
     const yesdaw::engine::DecodedAssetAudio diagView {
         decoded.assetId, decoded.sampleRate, decoded.frames, decoded.channels,
-        std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size()) };
+        decoded.interleaved() };
     // Phase check: the live engine renders what the offline render of the in-memory project renders.
     const auto checkLive = [&] (const char* phase) {
         REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
@@ -2323,7 +2319,7 @@ TEST_CASE ("G0.5 placement edits ride the live lane: no engine rebuild, audio eq
     {
         const yesdaw::engine::DecodedAssetAudio view {
             decoded.assetId, decoded.sampleRate, decoded.frames, decoded.channels,
-            std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size()) };
+            decoded.interleaved() };
         const auto offline = yesdaw::engine::renderOfflineProject (app.project(), std::span<const yesdaw::engine::DecodedAssetAudio> (&view, 1));
         REQUIRE (offline.ok());
         const std::size_t n = std::min (live.size(), offline.interleavedSamples.size());
@@ -2369,7 +2365,7 @@ TEST_CASE ("G0.5 live lane stays in step with the project after every single ver
     REQUIRE (app.selectTimelineClip (idFromLowByte (3)));
     const yesdaw::engine::DecodedAssetAudio view {
         decoded.assetId, decoded.sampleRate, decoded.frames, decoded.channels,
-        std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size()) };
+        decoded.interleaved() };
 
     const auto check = [&] (const char* step) {
         REQUIRE (app.dispatch (UiActionId::TransportLocateStart).dispatched);
@@ -2427,7 +2423,7 @@ TEST_CASE ("G0.5 a burst of queued schedule posts is applied in order by the nex
         REQUIRE (app.selectTimelineClip (idFromLowByte (3)));
         const yesdaw::engine::DecodedAssetAudio view {
             decoded.assetId, decoded.sampleRate, decoded.frames, decoded.channels,
-            std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size()) };
+            decoded.interleaved() };
 
         for (int i = 0; i < posts; ++i)
             REQUIRE (app.dispatch (i % 2 == 0 ? UiActionId::TimelineClipGainIncrease

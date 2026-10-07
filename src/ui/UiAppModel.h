@@ -56,7 +56,41 @@ struct UiDecodedAsset
     engine::SampleRate    sampleRate;
     std::uint64_t         frames = 0;
     std::uint16_t         channels = 0;
-    std::vector<float>    interleavedSamples;
+    // ADR-0059: the Asset's one decoded buffer — made once, never written again, held by reference by the model, the
+    // engine's schedules and pads, export jobs and peak builds. Copying a UiDecodedAsset copies the pointer.
+    std::shared_ptr<const engine::AssetSamples> samples;
+
+    [[nodiscard]] std::span<const float> interleaved() const noexcept
+    {
+        return samples != nullptr ? std::span<const float> (samples->interleaved.data(), samples->interleaved.size())
+                                  : std::span<const float> {};
+    }
+
+    // The one way to make one: the vector moves into a new immutable buffer (no copy); frames follow from it.
+    [[nodiscard]] static UiDecodedAsset fromInterleaved (engine::EntityId assetId, engine::SampleRate sampleRate,
+                                                         std::uint16_t channels, std::vector<float>&& interleaved)
+    {
+        UiDecodedAsset out;
+        out.assetId = assetId;
+        out.sampleRate = sampleRate;
+        out.channels = channels;
+        out.frames = channels > 0u ? static_cast<std::uint64_t> (interleaved.size() / channels) : 0u;
+        auto buffer = std::make_shared<engine::AssetSamples>();
+        buffer->channels = std::max<int> (1, channels);
+        buffer->frames = out.frames;
+        buffer->interleaved = std::move (interleaved);
+        out.samples = std::move (buffer);
+        return out;
+    }
+
+    // ADR-0059: the creation sites' finiteness pass (a published buffer is trusted by every reader).
+    [[nodiscard]] static bool allFinite (std::span<const float> interleaved) noexcept
+    {
+        for (const float sample : interleaved)
+            if (! std::isfinite (sample))
+                return false;
+        return true;
+    }
 };
 
 enum class UiAppLoadStatus : std::uint8_t
@@ -454,7 +488,7 @@ public:
         if (decoded.sampleRate.hz != projectRateHz)
         {
             const std::shared_ptr<const engine::AssetSamples> view = engine::buildRateMatchedSamples (
-                decoded.interleavedSamples, decoded.channels, decoded.sampleRate.hz, projectRateHz,
+                decoded.interleaved(), decoded.channels, decoded.sampleRate.hz, projectRateHz,
                 engine::ResampleQuality::LivePlayback);
             if (view == nullptr || view->frames == 0u)
             {
@@ -466,7 +500,7 @@ public:
         }
         else
         {
-            voice->interleaved = decoded.interleavedSamples;
+            voice->interleaved.assign (decoded.interleaved().begin(), decoded.interleaved().end());
             voice->frames = decoded.frames;
         }
         stopAudition();
@@ -573,6 +607,29 @@ public:
     }
 
     [[nodiscard]] float monitorGainForTest() const noexcept { return monitorGain_; }   // harness: the device thread's gain
+    // ADR-0059's gate: the distinct sample buffers (by address) held by the decode list, the rate-matched views and the
+    // owners handed to the engine — one per decoded Asset plus its cross-rate views when nothing is copied.
+    [[nodiscard]] std::vector<const void*> distinctDecodedBuffersForTest() const
+    {
+        std::vector<const void*> out;
+        const auto add = [&out] (const void* buffer) {
+            if (buffer != nullptr && std::find (out.begin(), out.end(), buffer) == out.end())
+                out.push_back (buffer);
+        };
+        for (const UiDecodedAsset& decoded : decodedAssets_)
+            add (decoded.samples.get());
+        const std::lock_guard<std::mutex> lock (rateMatchedViewsMutex_);   // read only: it never builds a view
+        for (const OwnedRateMatchedView& cached : rateMatchedViews_)
+            add (cached.view.get());
+        return out;
+    }
+    // ADR-0059's gates: Assets the live engine's build had to copy (0 when it got every buffer), and peak requests
+    // still holding buffers.
+    [[nodiscard]] std::size_t engineCopiedAssetsForTest() const noexcept
+    {
+        return playback_ != nullptr ? playback_->copiedAssetCount() : 0u;
+    }
+    [[nodiscard]] std::uint64_t waveformRequestsPendingForTest() const noexcept { return waveformService_.pendingCount(); }
     [[nodiscard]] engine::EntityId allocateSessionEntityIdForTest (std::uint8_t seed) const   // harness: the id law
     {
         return allocateSessionEntityId (seed);
@@ -1126,9 +1183,15 @@ public:
             // Per-TRACK ordinals: each armed Track continues its own take numbering.
             const std::uint32_t baseOrdinal = nextRecordingTakeOrdinal (slot.trackId);
             app::RecordedTakeCommitResult commit;
+            bool anyCommitted = false;   // ADR-0059: a slot whose takes were all refused records nothing
             for (std::size_t pending = 0; pending < pendingSlot.takes.size(); ++pending)
             {
                 const std::uint64_t takeFrames = pendingSlot.takes[pending].samples->size() / channels;
+                if (! UiDecodedAsset::allFinite (std::span<const float> (*pendingSlot.takes[pending].samples)))
+                {
+                    reportStatus ("Recording: a take with non-finite samples was not kept", true);   // ADR-0059
+                    continue;
+                }
                 app::RecordedAudioTakeRequest request;
                 request.sampleRate = engine::SampleRate { slot.config.sampleRateHz };
                 request.frames = takeFrames;
@@ -1184,15 +1247,16 @@ public:
                 }
 
                 working = std::move (commit.project);
-                UiDecodedAsset decoded;
-                decoded.assetId = commit.importedAsset.id;
-                decoded.sampleRate = commit.importedAsset.sampleRate;
-                decoded.frames = commit.importedAsset.frames;
-                decoded.channels = commit.importedAsset.channels;
-                decoded.interleavedSamples.assign (pendingSlot.takes[pending].samples->begin(),
-                                                   pendingSlot.takes[pending].samples->end());
-                upsertDecodedAsset (nextDecoded, std::move (decoded));
+                // ADR-0059: the capture slot keeps its own storage, so the take's samples are copied once — that copy is
+                // the take's one buffer, never copied again.
+                std::vector<float> takeSamples (pendingSlot.takes[pending].samples->begin(), pendingSlot.takes[pending].samples->end());
+                takeSamples.resize (static_cast<std::size_t> (commit.importedAsset.frames) * commit.importedAsset.channels);
+                upsertDecodedAsset (nextDecoded, UiDecodedAsset::fromInterleaved (commit.importedAsset.id, commit.importedAsset.sampleRate,
+                                                                                  commit.importedAsset.channels, std::move (takeSamples)));
+                anyCommitted = true;
             }
+            if (! anyCommitted)
+                continue;
 
             const UiRecordedAudioTake slotTake {
                 commit.importedAsset.id,
@@ -1947,31 +2011,19 @@ public:
                                                                        static_cast<std::uint64_t> (loopEnd) };
         }
 
-        // The snapshot: a copy of the project (in view frames when it has cross-rate Assets) and owning references to
-        // every decoded Asset it holds — a same-rate Asset's samples copied once (G5.4 will share them instead), a
-        // cross-rate Asset's source, whose offline-tier view the worker builds.
+        // The snapshot: a copy of the project (in view frames when it has cross-rate Assets) and a reference to every
+        // decoded Asset's one buffer (ADR-0059) — read as it is at the same rate, or as the source of the offline-tier
+        // view the worker builds for a cross-rate Asset.
         snapshot.project = engine::projectHasCrossRateAssets (project_) ? engine::projectInViewFrames (project_) : project_;
-        const double projectRateHz = project_.sampleRate.hz;
         for (const UiDecodedAsset& decoded : decodedAssets_)
         {
             if (project_.findAsset (decoded.assetId) == nullptr || decoded.channels == 0u)
                 continue;
-            app::ExportAssetAudio audio;
+            app::ExportAssetAudio audio;   // ADR-0059: the Asset's own buffer, by reference
             audio.assetId = decoded.assetId;
             audio.channels = decoded.channels;
-            if (decoded.sampleRate.hz != projectRateHz && project_.sampleRate.isValid())
-            {
-                audio.source = std::make_shared<const std::vector<float>> (decoded.interleavedSamples);
-                audio.sourceRateHz = decoded.sampleRate.hz;
-            }
-            else
-            {
-                auto samples = std::make_shared<engine::AssetSamples>();
-                samples->interleaved = decoded.interleavedSamples;
-                samples->channels = decoded.channels;
-                samples->frames = decoded.frames;
-                audio.samples = std::move (samples);
-            }
+            audio.buffer = decoded.samples;
+            audio.sourceRateHz = decoded.sampleRate.hz;   // the buffer's own rate (cross-rate when it differs)
             snapshot.assets.push_back (std::move (audio));
         }
 
@@ -2599,8 +2651,7 @@ public:
         request.sampleRate = decoded.sampleRate;
         request.frames = decoded.frames;
         request.channels = decoded.channels;
-        request.interleavedSamples = std::span<const float> (decoded.interleavedSamples.data(),
-                                                             decoded.interleavedSamples.size());
+        request.interleavedSamples = decoded.interleaved();
         request.targetTrackId = primaryArmedInput().trackId;
         request.timelineStart = deferredTimelineStart;
         request.deviceStableId = recordingDevice_.stableDeviceId;
@@ -8211,8 +8262,9 @@ public:
         const std::size_t first = static_cast<std::size_t> (clip->srcOffset) * stride;
         const std::size_t count = static_cast<std::size_t> (clip->srcLen) * stride;
         float peak = 0.0f;
-        for (std::size_t n = first; n < first + count && n < decoded->interleavedSamples.size(); ++n)
-            peak = std::max (peak, std::abs (decoded->interleavedSamples[n]));
+        const std::span<const float> source = decoded->interleaved();
+        for (std::size_t n = first; n < first + count && n < source.size(); ++n)
+            peak = std::max (peak, std::abs (source[n]));
         if (! std::isfinite (peak) || peak <= 0.0f)
             return { id, { false, "normalize: the clip is silent" }, false };
         return applySelectedTimelineClipGain (id, kNormalizeTargetPeak / peak);
@@ -8244,7 +8296,7 @@ public:
         const std::size_t first = static_cast<std::size_t> (clip->srcOffset) * stride;
         const auto minRun = static_cast<std::uint64_t> (std::llround (kStripSilenceMinRunSeconds * decoded->sampleRate.hz));
         const std::vector<engine::SilentRun> runs = engine::detectSilentRuns (
-            std::span<const float> (decoded->interleavedSamples.data() + first, static_cast<std::size_t> (windowFrames) * stride),
+            decoded->interleaved().subspan (first, static_cast<std::size_t> (windowFrames) * stride),
             static_cast<int> (stride), windowFrames, kStripSilenceThreshold, minRun);
         if (runs.empty())
             return { id, { false, "strip silence: no silent stretch found" }, false };
@@ -9052,6 +9104,15 @@ public:
         const auto bundlePath = prepared.db_.bundlePath();
         auto& loadedProject = prepared.project_;
         result.bundleResult = persistence::detail::ok();
+        // ADR-0059: decodes handed in from outside are checked here (a published buffer is trusted afterwards); the
+        // engine is given the OPENED project's buffers as its owners, so it copies nothing.
+        for (const UiDecodedAsset& decoded : ownedDecoded)
+            if (! decodedAudioIsValid (decoded) || ! UiDecodedAsset::allFinite (decoded.interleaved()))
+            {
+                result.status = UiAppLoadStatus::PlaybackBuildFailed;
+                return result;
+            }
+        options.assetOwners = makeDecodedOwners (ownedDecoded, loadedProject.sampleRate);
         // ADR-0055: views at the OPENED project's rate (project_ is still the previous project here).
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (
             ownedDecoded, engine::ResampleQuality::LivePlayback, nullptr, loadedProject.sampleRate);
@@ -11340,28 +11401,24 @@ private:
 
         const std::uint64_t expectedSamples = decoded.frames * decoded.channels;
         return expectedSamples <= static_cast<std::uint64_t> (std::numeric_limits<std::size_t>::max())
-            && decoded.interleavedSamples.size() == static_cast<std::size_t> (expectedSamples);
+            && decoded.samples != nullptr
+            && decoded.samples->interleaved.size() == static_cast<std::size_t> (expectedSamples);
     }
 
     [[nodiscard]] UiDecodedAsset makeDeterministicRecordedAudio() const
     {
         constexpr std::uint64_t kFrames = 256;
 
-        UiDecodedAsset decoded;
-        decoded.sampleRate = recordingDevice_.sampleRate.isValid()
-            ? recordingDevice_.sampleRate
-            : engine::SampleRate { 48000.0 };
-        decoded.frames = kFrames;
-        decoded.channels = 1;
-        decoded.interleavedSamples.reserve (static_cast<std::size_t> (kFrames));
-
+        std::vector<float> samples;
+        samples.reserve (static_cast<std::size_t> (kFrames));
         for (std::uint64_t frame = 0; frame < kFrames; ++frame)
         {
             const int phase = static_cast<int> (frame % 16u);
-            decoded.interleavedSamples.push_back ((static_cast<float> (phase) - 7.5f) / 16.0f);
+            samples.push_back ((static_cast<float> (phase) - 7.5f) / 16.0f);
         }
-
-        return decoded;
+        return UiDecodedAsset::fromInterleaved ({}, recordingDevice_.sampleRate.isValid() ? recordingDevice_.sampleRate
+                                                                                         : engine::SampleRate { 48000.0 },
+                                                1, std::move (samples));
     }
 
     // ADR-0055: a cross-rate decode is handed to engines as its rate-matched view — the live tier (built once and
@@ -11385,7 +11442,7 @@ private:
             {
                 if (quality == engine::ResampleQuality::OfflineRender && offlineViews != nullptr)
                 {
-                    view = engine::buildRateMatchedSamples (asset.interleavedSamples, asset.channels, asset.sampleRate.hz,
+                    view = engine::buildRateMatchedSamples (asset.interleaved(), asset.channels, asset.sampleRate.hz,
                                                             projectRate.hz, engine::ResampleQuality::OfflineRender);
                     offlineViews->push_back (view);
                 }
@@ -11410,7 +11467,7 @@ private:
                 asset.sampleRate,
                 asset.frames,
                 asset.channels,
-                std::span<const float> (asset.interleavedSamples.data(), asset.interleavedSamples.size())
+                asset.interleaved()
             });
         }
 
@@ -11433,7 +11490,7 @@ private:
                 && cached.projectRateHz == projectRateHz && cached.frames == asset.frames && cached.channels == asset.channels)
                 return cached.view;
         std::shared_ptr<const engine::AssetSamples> view = engine::buildRateMatchedSamples (
-            asset.interleavedSamples, asset.channels, asset.sampleRate.hz, projectRateHz, engine::ResampleQuality::LivePlayback);
+            asset.interleaved(), asset.channels, asset.sampleRate.hz, projectRateHz, engine::ResampleQuality::LivePlayback);
         std::erase_if (rateMatchedViews_, [&asset] (const OwnedRateMatchedView& cached) { return cached.assetId == asset.assetId; });
         rateMatchedViews_.push_back ({ asset.assetId, asset.sampleRate.hz, projectRateHz, asset.frames, asset.channels, view });
         return view;
@@ -11466,50 +11523,21 @@ private:
     // scanned for non-finite samples once, which is what the old per-window copy did per rebuild.
     // Keyed by asset id (OfflineRenderOptions::assetOwners), so a views list built from a
     // different decoded vector (import / record commit) can never pair the wrong storage.
-    std::vector<engine::AssetOwnership> makeDecodedOwners (const std::vector<UiDecodedAsset>& decodedAssets) const
+    std::vector<engine::AssetOwnership> makeDecodedOwners (const std::vector<UiDecodedAsset>& decodedAssets,
+                                                           std::optional<engine::SampleRate> forProjectRate = std::nullopt) const
     {
         std::vector<engine::AssetOwnership> owners;
         owners.reserve (decodedAssets.size());
         for (const UiDecodedAsset& asset : decodedAssets)
         {
-            if (std::shared_ptr<const engine::AssetSamples> view = liveRateMatchedView (asset))   // ADR-0055
+            if (std::shared_ptr<const engine::AssetSamples> view = liveRateMatchedView (asset, forProjectRate))   // ADR-0055
             {
                 owners.push_back ({ asset.assetId, std::move (view) });
                 continue;
             }
-            std::shared_ptr<const engine::AssetSamples> owner;
-            for (const OwnedAssetSamples& cached : assetSamplesCache_)
-            {
-                if (cached.assetId == asset.assetId
-                    && cached.sourceData == asset.interleavedSamples.data()
-                    && cached.frames == asset.frames
-                    && cached.channels == asset.channels)
-                {
-                    owner = cached.samples;
-                    break;
-                }
-            }
-            if (owner == nullptr)
-            {
-                bool finite = true;
-                for (const float sample : asset.interleavedSamples)
-                    finite = finite && std::isfinite (sample);
-                if (finite)
-                {
-                    auto copy = std::make_shared<engine::AssetSamples>();
-                    copy->channels = std::max<int> (1, asset.channels);
-                    copy->frames = asset.frames;
-                    copy->interleaved = asset.interleavedSamples;
-                    owner = copy;
-                    std::erase_if (assetSamplesCache_,
-                                   [&asset] (const OwnedAssetSamples& cached) { return cached.assetId == asset.assetId; });
-                    assetSamplesCache_.push_back ({ asset.assetId, asset.interleavedSamples.data(),
-                                                    asset.frames, asset.channels, owner });
-                }
-                // A non-finite decode keeps no owner: the projection copies and rejects it as before.
-            }
-            if (owner != nullptr)
-                owners.push_back ({ asset.assetId, owner });
+            // ADR-0059: the Asset's own buffer (checked finite when it was made) is the engine's owner — no copy.
+            if (asset.samples != nullptr)
+                owners.push_back ({ asset.assetId, asset.samples });
         }
         return owners;
     }
@@ -11821,13 +11849,7 @@ private:
             if (asset == nullptr)
                 continue;
 
-            waveformService_.requestBuild (
-                *asset,
-                interleavedToChannelMajor (
-                    std::span<const float> (decoded.interleavedSamples.data(),
-                                            decoded.interleavedSamples.size()),
-                    decoded.frames,
-                    decoded.channels));
+            waveformService_.requestBuild (*asset, decoded.samples, decoded.frames, decoded.channels);   // ADR-0059
         }
     }
 
@@ -13051,16 +13073,6 @@ private:
         std::uint64_t retiredAtBlock = 0;
     };
     std::vector<RetiredPlayback> retiredPlayback_;
-    // G0.5: shared asset storage the live lane's schedules keep alive (one copy per decoded asset).
-    struct OwnedAssetSamples
-    {
-        engine::EntityId assetId;
-        const float* sourceData = nullptr;
-        std::uint64_t frames = 0;
-        std::uint16_t channels = 0;
-        std::shared_ptr<const engine::AssetSamples> samples;
-    };
-    mutable std::vector<OwnedAssetSamples> assetSamplesCache_;   // filled from const build-option reads
     // ADR-0055: each cross-rate Asset's live-tier rate-matched view, kept beside its decode for engine rebuilds.
     struct OwnedRateMatchedView
     {

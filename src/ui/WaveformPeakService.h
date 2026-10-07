@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "engine/ClipSchedule.h"   // ADR-0059: AssetSamples
 #include "persistence/WaveformPeakCache.h"
 
 #include <atomic>
@@ -97,6 +98,28 @@ public:
         worker_ = std::thread ([this] { workerLoop(); });
     }
 
+    // ADR-0059: a request carries the Asset's shared, immutable buffer; the channel-major conversion runs on the
+    // worker, and only when the disk cache misses.
+    void requestBuild (const engine::Asset& asset, std::shared_ptr<const engine::AssetSamples> interleaved,
+                       std::uint64_t frames, std::uint16_t channels)
+    {
+        if (interleaved == nullptr || reloadAndPublish (asset.contentHash))
+            return;
+
+        {
+            std::lock_guard lock { queueMutex_ };
+            Job job;
+            pending_.fetch_add (1u, std::memory_order_acq_rel);
+            job.asset = asset;
+            job.interleaved = std::move (interleaved);
+            job.frames = frames;
+            job.channels = channels;
+            jobs_.push_back (std::move (job));
+        }
+
+        queueCv_.notify_one();
+    }
+
     void requestBuild (const engine::Asset& asset, std::vector<float> channelMajorSamples)
     {
         if (reloadAndPublish (asset.contentHash))
@@ -104,7 +127,11 @@ public:
 
         {
             std::lock_guard lock { queueMutex_ };
-            jobs_.push_back (Job { asset, std::move (channelMajorSamples) });
+            Job job;
+            pending_.fetch_add (1u, std::memory_order_acq_rel);
+            job.asset = asset;
+            job.channelMajorSamples = std::move (channelMajorSamples);
+            jobs_.push_back (std::move (job));
         }
 
         queueCv_.notify_one();
@@ -146,6 +173,9 @@ public:
         return lastBuildThreadId_;
     }
 
+    // Requests queued or being built (each holds its Asset's buffer until done).
+    [[nodiscard]] std::uint64_t pendingCount() const noexcept { return pending_.load (std::memory_order_acquire); }
+
     [[nodiscard]] std::uint64_t buildCount() const noexcept
     {
         return buildCount_.load (std::memory_order_acquire);
@@ -163,6 +193,9 @@ private:
     {
         engine::Asset      asset;
         std::vector<float> channelMajorSamples;
+        std::shared_ptr<const engine::AssetSamples> interleaved;   // ADR-0059: converted on the worker when set
+        std::uint64_t      frames = 0;
+        std::uint16_t      channels = 0;
     };
 
     static std::string keyForHash (const engine::AssetContentHash& hash)
@@ -218,9 +251,15 @@ private:
                 jobs_.pop_front();
             }
 
+            if (job.interleaved != nullptr)
+                job.channelMajorSamples = interleavedToChannelMajor (
+                    std::span<const float> (job.interleaved->interleaved.data(), job.interleaved->interleaved.size()),
+                    job.frames, job.channels);
             (void) buildAndPublish (job.asset,
                                     std::span<const float> (job.channelMajorSamples.data(),
                                                             job.channelMajorSamples.size()));
+            job = Job {};   // ADR-0059: the request's references go before it counts as done
+            pending_.fetch_sub (1u, std::memory_order_acq_rel);
         }
     }
 
@@ -271,6 +310,7 @@ private:
     bool               builtOnForbiddenThread_ = false;
 
     std::atomic<std::uint64_t> buildCount_ { 0 };
+    std::atomic<std::uint64_t> pending_ { 0 };
 };
 
 } // namespace yesdaw::ui

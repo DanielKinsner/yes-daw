@@ -88,7 +88,10 @@ TEST_CASE ("prepared load failure retains the editable original session",
     {
         auto stored = yesdaw::ui::shell::decodeStoredProjectAssets (directory / "audio.yesdaw");
         REQUIRE (stored.assets.has_value());
-        stored.assets->front().interleavedSamples.front() = std::numeric_limits<float>::quiet_NaN();
+        yesdaw::ui::UiDecodedAsset& front = stored.assets->front();   // ADR-0059: a buffer is immutable — make a bad one
+        std::vector<float> bad (front.interleaved().begin(), front.interleaved().end());
+        bad.front() = std::numeric_limits<float>::quiet_NaN();
+        front = yesdaw::ui::UiDecodedAsset::fromInterleaved (front.assetId, front.sampleRate, front.channels, std::move (bad));
         const auto result = model.loadPreparedProjectBundle (std::move (stored.prepared),
                                                               std::move (*stored.assets));
         REQUIRE (result.status == yesdaw::ui::UiAppLoadStatus::PlaybackBuildFailed);

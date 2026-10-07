@@ -143,11 +143,7 @@ std::filesystem::path makeTempPath (std::string_view label, std::string_view ext
 
 UiDecodedAsset makeDecodedImport()
 {
-    UiDecodedAsset decoded;
-    decoded.sampleRate = SampleRate { 48000.0 };
-    decoded.frames = 8;
-    decoded.channels = 1;
-    decoded.interleavedSamples = {
+    return UiDecodedAsset::fromInterleaved ({}, SampleRate { 48000.0 }, 1, {
         0.10f,
         0.25f,
         0.40f,
@@ -156,8 +152,7 @@ UiDecodedAsset makeDecodedImport()
         0.85f,
         1.00f,
         0.50f,
-    };
-    return decoded;
+    });
 }
 
 std::vector<std::uint8_t> readFileBytes (const std::filesystem::path& path)
@@ -386,7 +381,7 @@ TEST_CASE ("H16 CP2c app model import enqueues waveform cache build", "[ui][wave
         decoded.sampleRate,
         decoded.channels,
         decoded.frames,
-        std::span<const float> (decoded.interleavedSamples.data(), decoded.interleavedSamples.size()));
+        decoded.interleaved());
     INFO (writeSource.message);
     REQUIRE (writeSource.ok());
 
@@ -405,7 +400,7 @@ TEST_CASE ("H16 CP2c app model import enqueues waveform cache build", "[ui][wave
 
         const Asset& asset = app.project().assets.front();
         const std::vector<float> channelMajor =
-            interleavedToChannelMajor (decoded.interleavedSamples, decoded.frames, decoded.channels);
+            interleavedToChannelMajor (decoded.interleaved(), decoded.frames, decoded.channels);
         const auto expected = buildWaveformPeakCache (asset,
                                                       std::span<const float> (channelMajor.data(),
                                                                               channelMajor.size()));

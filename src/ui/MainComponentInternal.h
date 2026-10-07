@@ -406,12 +406,9 @@ struct UiAudioDecodeResult
 
 inline yesdaw::ui::UiDecodedAsset uiDecodedAssetFrom (yesdaw::io::DecodedAudioFile&& audio)
 {
-    yesdaw::ui::UiDecodedAsset decoded;
-    decoded.sampleRate = yesdaw::engine::SampleRate { audio.sampleRateHz };
-    decoded.frames = audio.frames;
-    decoded.channels = audio.channels;
-    decoded.interleavedSamples = std::move (audio.interleaved);
-    return decoded;
+    // ADR-0059: the decode moves into the Asset's one immutable buffer.
+    return yesdaw::ui::UiDecodedAsset::fromInterleaved ({}, yesdaw::engine::SampleRate { audio.sampleRateHz },
+                                                       audio.channels, std::move (audio.interleaved));
 }
 
 inline UiAudioDecodeResult decodeProjectAudio (const std::filesystem::path& sourcePath)
@@ -419,6 +416,8 @@ inline UiAudioDecodeResult decodeProjectAudio (const std::filesystem::path& sour
     yesdaw::io::AudioDecodeResult result = yesdaw::io::decodeAudioFile (sourcePath);
     if (! result.audio.has_value())
         return { std::nullopt, std::move (result.reason) };
+    if (! yesdaw::ui::UiDecodedAsset::allFinite (result.audio->interleaved))   // ADR-0059: checked once, here
+        return { std::nullopt, "not usable audio (non-finite samples)" };
     return { uiDecodedAssetFrom (std::move (*result.audio)), {} };
 }
 
@@ -472,6 +471,11 @@ inline StoredProjectAssetsResult decodeStoredProjectAssets (const std::filesyste
             return out;
         }
 
+        if (! yesdaw::ui::UiDecodedAsset::allFinite (stored.audio->interleaved))   // ADR-0059: checked once, here
+        {
+            out.failureReason = "corrupt audio file (non-finite samples): " + yesdaw::io::utf8Text (assetPath.filename());
+            return out;
+        }
         yesdaw::ui::UiDecodedAsset decoded = uiDecodedAssetFrom (std::move (*stored.audio));
         decoded.assetId = asset.id;
         decodedAssets.push_back (std::move (decoded));

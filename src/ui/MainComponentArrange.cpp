@@ -1433,7 +1433,7 @@ yesdaw::ui::TimelineCanvasState MainComponent::makeTimelineState()
                 appModel.findDecodedAsset (timelineClipAssetIds[static_cast<std::size_t> (layoutClipId)]);
             if (decoded == nullptr)
                 return {};
-            return { std::span<const float> (decoded->interleavedSamples.data(), decoded->interleavedSamples.size()),
+            return { decoded->interleaved(),
                      decoded->channels, decoded->frames };
         };
         state.totalSeconds = timelineTotalSeconds;

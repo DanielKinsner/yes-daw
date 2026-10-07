@@ -52,6 +52,9 @@ public:
         }
     };
 
+    // ADR-0059: how many Assets the build had to copy (none when the model handed over every buffer).
+    [[nodiscard]] std::size_t copiedAssetCount() const noexcept { return copiedAssets_; }
+
     // CONTROL THREAD: build the Project graph and publish it to a fresh Runtime. On success, `engine` owns
     // a runtime with the graph queued; the first processBlock installs it (ADR-0006 ordered swap).
     [[nodiscard]] static Result create (const Project& project,
@@ -70,6 +73,7 @@ public:
 
         std::unique_ptr<PlaybackEngine> engine (
             new PlaybackEngine (built.sampleRate, built.channels, built.frames, built.maxBlockSize));
+        engine->copiedAssets_ = built.copiedAssets;   // ADR-0059
         engine->midiInput_ = options.midiInput;   // G3.10: the device lane this engine's audio thread drains
         engine->loudnessTap_ = options.loudnessTap;   // ADR-0053: the model's live loudness ring (shared across engines)
 
@@ -804,6 +808,7 @@ private:
 
     SampleRate         sampleRate_ {};
     LoudnessTap*       loudnessTap_ = nullptr;   // ADR-0053: owned by the model, outlives every engine it feeds
+    std::size_t copiedAssets_ = 0;   // ADR-0059: Assets the build copied (0 when every owner was given)
     std::uint16_t      channels_ = 0;
     std::uint64_t      frames_ = 0;
     int                maxBlockSize_ = 128;

@@ -8,6 +8,32 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 (early) — G5.4 done: each Asset's audio is one shared buffer (ADR-0059, closes R30)
+
+**Now:** **G5.4** is in, headless-certified. **Next: G5.5 — new project, templates and copies** (sample rate, tempo
+and template in the new-project dialog; Save As and Save a Copy; its implementation ADR first), then G5.6
+(preferences), G5.7 (relink) and SS-6.
+
+**What a user gets:** memory per imported or recorded file is its audio once (a cross-rate file adds its resampled
+view). Before, an idle file sat in memory at least twice; every recording pass copied all the project's audio on the
+message thread; a running export copied everything twice more; the peak builder copied every file on each request;
+and a closed project's audio stayed held by a cache. Now the model, the engine's clips and Sampler pads, export
+jobs and the peak builder all share one immutable buffer per Asset, freed when the last holder lets go (on the
+control thread — the audio thread never holds one).
+
+**Gates:** `[asset-sharing]` — an Asset's buffer is the same object across an import of another file, an undo, a
+recording and a refused drop and a save; ten clips on one Asset leave exactly one buffer and the engine's build
+copied nothing (it reports how many Assets it copied: 0); a cross-rate Asset has its buffer and one live view; an
+export job holds the model's buffer while it runs, keeps a closed project's audio alive until it ends, then the
+audio is freed. Every existing playback, render, export and reopen gate passes unchanged. Decodes are checked
+finite once, where they are made (import, reopen, recording — a non-finite take is not kept, with a reason); the
+open path also checks outside decodes and now hands the engine the opened project's buffers (it used to copy every
+Asset at open). 416/416 local, Clang clean; the critic found no blockers (its should-fixes are in: a slot whose
+takes were all refused records nothing; exact no-copy and lifetime gates).
+
+**ADR-0059** accepted after a critic pass; amended before publication (the export-job gate follows ADR-0058's
+cancel-on-replace law; the device hot-swap clause waits for a model call site).
+
 ## 2026-10-07 (small hours) — G5.3 done: Export v2 (ADR-0058)
 
 **Now:** **G5.3** is in, headless-certified (all three checkpoints). **Next: G5.4 — decoded-asset sharing** (one
