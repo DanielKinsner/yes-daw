@@ -1,8 +1,12 @@
-// YES DAW - ADR-0060 cp1 gates: the New Project dialog, New refusing an occupied target, unsaved changes before New
-// and Open, and the audio device asked to run at the project's rate.
+// YES DAW - ADR-0060 gates. cp1: the New Project dialog, New refusing an occupied target, unsaved changes before New
+// and Open, and the audio device asked to run at the project's rate. cp2: Save As and Save a Copy through one atomic
+// bundle copy.
 
+#include "io/WavFile.h"
+#include "persistence/AutosaveRecovery.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/MainComponent.h"
+#include "ui/MainComponentInternal.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -13,6 +17,7 @@
 #include <iterator>
 #include <optional>
 #include <string>
+#include <thread>
 #include <vector>
 
 using yesdaw::ui::MainComponentFileChoices;
@@ -76,6 +81,7 @@ struct LifecycleShell
     double deviceRate = 48'000.0;   // the fake output device
     std::filesystem::path saveAsBundle;   // the Save As chooser's answer (empty = cancelled)
     int saveAsAsks = 0;
+    std::filesystem::path saveACopyBundle;   // the Save a Copy chooser's answer
     std::unique_ptr<juce::Component> shell;
 
     // `launchSession`: the native launch (the last project or `openAtLaunch`, else the untitled session).
@@ -107,6 +113,7 @@ struct LifecycleShell
             ++saveAsAsks;
             return saveAsBundle;
         };
+        choices.chooseSaveACopyProjectBundle = [this] { return saveACopyBundle; };
         choices.initialiseSessionAtLaunch = launchSession;
         choices.openBundleAtLaunch = openAtLaunch;
         shell = yesdaw::ui::createMainComponent (std::move (choices));
@@ -122,6 +129,78 @@ struct LifecycleShell
         yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
     }
 };
+
+// ---- cp2: a source with an Asset, unsaved changes and an autosave of its own ----
+
+void writeTone (const std::filesystem::path& path, std::size_t frames, float level)
+{
+    std::vector<float> samples (frames);
+    for (std::size_t i = 0; i < frames; ++i)
+        samples[i] = level * static_cast<float> ((i % 120u) < 60u ? 1.0 : -1.0);
+    REQUIRE (yesdaw::io::writeFloat32WavFile (path, yesdaw::engine::SampleRate { 48'000.0 }, 1, samples.size(), samples).ok());
+}
+
+struct CopyFixture
+{
+    std::filesystem::path directory;
+    std::filesystem::path source;
+    yesdaw::ui::UiAppModel model;
+
+    explicit CopyFixture (const std::string& label) : directory (lifecycleScratch (label)), source (directory / "source.yesdaw")
+    {
+        model.setSessionStateDirectory (directory / "session");
+        writeTone (directory / "tone.wav", 48'000, 0.25f);
+        REQUIRE (model.createProjectBundle (source).ok());
+        yesdaw::ui::shell::UiAudioDecodeResult decoded = yesdaw::ui::shell::decodeProjectAudio (directory / "tone.wav");
+        REQUIRE (decoded.decoded.has_value());
+        REQUIRE (model.importAudioFile (directory / "tone.wav", std::move (*decoded.decoded)).ok());
+        REQUIRE (model.addAudioTrack().dispatched);
+        REQUIRE (model.hasUnsavedChanges());
+        // The source's own autosave: a copy never carries it (it would open with a recovery prompt).
+        std::filesystem::create_directories (yesdaw::persistence::autosaveSnapshotPath (source));
+        REQUIRE (yesdaw::persistence::autosave_detail::anySnapshotSlotExists (source));
+    }
+};
+
+std::string renderOf (yesdaw::ui::UiAppModel& model, const std::filesystem::path& wav)
+{
+    REQUIRE (model.exportAudioFile (wav).dispatched);
+    REQUIRE (std::filesystem::exists (wav));
+    return bytesOf (wav);
+}
+
+// The bundle reopened from disk (its Assets decoded as Open decodes them) renders this.
+std::string renderReopened (const std::filesystem::path& bundle, const std::filesystem::path& wav)
+{
+    yesdaw::ui::UiAppModel reopened;
+    yesdaw::ui::shell::StoredProjectAssetsResult stored = yesdaw::ui::shell::decodeStoredProjectAssets (bundle);
+    REQUIRE (stored.assets.has_value());
+    REQUIRE (reopened.loadPreparedProjectBundle (std::move (stored.prepared), std::move (*stored.assets)).ok());
+    REQUIRE (reopened.project().tracks.size() == 2u);
+    REQUIRE (reopened.project().clips.size() == 1u);
+    REQUIRE (reopened.project().assets.size() == 1u);
+    return renderOf (reopened, wav);
+}
+
+void requireSameAssetFiles (const std::filesystem::path& a, const std::filesystem::path& b)
+{
+    std::size_t files = 0;
+    for (const auto& entry : std::filesystem::directory_iterator (a / "audio"))
+    {
+        INFO (entry.path().filename().string());
+        REQUIRE (bytesOf (entry.path()) == bytesOf (b / "audio" / entry.path().filename()));
+        ++files;
+    }
+    REQUIRE (files >= 1u);
+}
+
+bool anyPartialIn (const std::filesystem::path& directory)
+{
+    for (const auto& entry : std::filesystem::directory_iterator (directory))
+        if (entry.path().extension() == ".partial")
+            return true;
+    return false;
+}
 
 UiNewProjectChoices choicesOf (double rate, double bpm, std::uint16_t numerator, std::uint16_t denominator)
 {
@@ -428,4 +507,153 @@ TEST_CASE ("ADR-0060 the remembered choices: radix '.' both ways; a bad value or
         REQUIRE (back.meterNumerator == 4u);
         REQUIRE (back.meterDenominator == 4u);
     }
+}
+
+// ---- cp2: Save As and Save a Copy through one atomic bundle copy ----
+
+TEST_CASE ("ADR-0060 Save As writes the copy through a .partial folder and continues in it; the source is never written",
+           "[project-lifecycle]")
+{
+    CopyFixture f ("save-as");
+    const std::string mix = renderOf (f.model, f.directory / "before.wav");
+    REQUIRE (readProject (f.source).tracks.size() == 2u);
+
+    const auto copy = f.directory / "copy.yesdaw";
+    std::filesystem::path seen;
+    REQUIRE (f.model.saveProjectBundleAs (copy, [&] (const std::filesystem::path& partial) {
+        seen = partial;
+        REQUIRE_FALSE (std::filesystem::exists (copy));   // nothing at the target until the rename
+        REQUIRE (std::filesystem::exists (partial / "project.db"));
+    }).dispatched);
+    REQUIRE (seen.extension() == ".partial");
+    REQUIRE_FALSE (anyPartialIn (f.directory));
+    REQUIRE (f.model.bundlePath() == copy);
+    REQUIRE_FALSE (f.model.hasUnsavedChanges());   // the copy is current and clean
+    requireSameAssetFiles (f.source, copy);
+    REQUIRE_FALSE (yesdaw::persistence::autosave_detail::anySnapshotSlotExists (copy));   // no recovery prompt
+    REQUIRE (std::filesystem::is_directory (copy / "autosave"));
+    REQUIRE (renderReopened (copy, f.directory / "after.wav") == mix);
+
+    // Undo continues, in the copy; the source is never written.
+    REQUIRE (f.model.context().canUndo);
+    REQUIRE (f.model.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (readProject (copy).tracks.size() == 1u);
+    REQUIRE (readProject (f.source).tracks.size() == 2u);
+    REQUIRE (yesdaw::persistence::autosave_detail::anySnapshotSlotExists (f.source));
+}
+
+TEST_CASE ("ADR-0060 Save a Copy writes and closes the copy; the source stays current, unsaved, undoable and saveable",
+           "[project-lifecycle]")
+{
+    CopyFixture f ("save-a-copy");
+    const std::string mix = renderOf (f.model, f.directory / "before.wav");
+    // A peak cache mid-write (the builder's temporary file) is not copied, and does not fail the copy.
+    std::filesystem::create_directories (f.source / "peaks");
+    {
+        std::ofstream partialCache (f.source / "peaks" / ".mid-write.ypeaks.tmp", std::ios::binary);
+        partialCache << "half a cache";
+    }
+    const auto copy = f.directory / "copy.yesdaw";
+    REQUIRE (f.model.saveProjectBundleCopy (copy).dispatched);
+    REQUIRE_FALSE (std::filesystem::exists (copy / "peaks" / ".mid-write.ypeaks.tmp"));
+    REQUIRE_FALSE (anyPartialIn (f.directory));
+    REQUIRE (f.model.bundlePath() == f.source);
+    REQUIRE (f.model.hasUnsavedChanges());
+    REQUIRE (readProject (f.source).tracks.size() == 2u);
+    requireSameAssetFiles (f.source, copy);
+    REQUIRE_FALSE (yesdaw::persistence::autosave_detail::anySnapshotSlotExists (copy));
+
+    // The copy is closed: its folder can move while the source carries on (Windows refuses with a file open).
+    const auto moved = f.directory / "moved.yesdaw";
+    std::filesystem::rename (copy, moved);
+    REQUIRE (renderReopened (moved, f.directory / "after.wav") == mix);
+
+    REQUIRE (f.model.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (readProject (f.source).tracks.size() == 1u);
+    REQUIRE (readProject (moved).tracks.size() == 2u);
+    REQUIRE (f.model.saveProjectBundle().ok());
+    REQUIRE_FALSE (f.model.hasUnsavedChanges());
+}
+
+TEST_CASE ("ADR-0060 a copy that fails mid-way leaves no target and no .partial folder; an occupied target is refused",
+           "[project-lifecycle]")
+{
+    CopyFixture f ("copy-failure");
+    const auto copy = f.directory / "copy.yesdaw";
+    const auto corruptAudio = [] (const std::filesystem::path& partial) {   // the copy's Asset bytes, not the source's
+        for (const auto& entry : std::filesystem::directory_iterator (partial / "audio"))
+        {
+            std::ofstream out (entry.path(), std::ios::binary | std::ios::trunc);
+            out << "not the asset's bytes";
+        }
+    };
+    const auto failedAs = f.model.saveProjectBundleAs (copy, corruptAudio);
+    REQUIRE_FALSE (failedAs.dispatched);
+    REQUIRE (std::string (failedAs.state.disabledReason) == "the copy did not validate");
+    const auto failedCopy = f.model.saveProjectBundleCopy (copy, corruptAudio);
+    REQUIRE_FALSE (failedCopy.dispatched);
+    REQUIRE (std::string (failedCopy.state.disabledReason) == "the copy did not validate");
+    REQUIRE_FALSE (std::filesystem::exists (copy));
+    REQUIRE_FALSE (anyPartialIn (f.directory));
+    REQUIRE (f.model.bundlePath() == f.source);
+    REQUIRE (f.model.hasUnsavedChanges());
+    REQUIRE (readProject (f.source).tracks.size() == 2u);   // opening it checks the source's Asset bytes too
+
+    REQUIRE (f.model.addAudioTrack().dispatched);   // the source carries on
+    REQUIRE (f.model.saveProjectBundle().ok());
+    REQUIRE (readProject (f.source).tracks.size() == 3u);
+
+    std::filesystem::create_directories (copy);
+    {
+        std::ofstream keep (copy / "keep.txt", std::ios::binary);
+        keep << "keep";
+    }
+    REQUIRE (std::string (f.model.saveProjectBundleCopy (copy).state.disabledReason) == "the target already exists");
+    REQUIRE (std::string (f.model.saveProjectBundleAs (copy).state.disabledReason) == "the target already exists");
+    REQUIRE (bytesOf (copy / "keep.txt") == "keep");
+    REQUIRE_FALSE (anyPartialIn (f.directory));
+}
+
+TEST_CASE ("ADR-0060 an export running through Save a Copy or Save As still completes", "[project-lifecycle]")
+{
+    CopyFixture f ("copy-export");
+    yesdaw::engine::OfflineRenderLatch latch;
+    latch.holdAfterFrames = 4'096;
+    f.model.setExportLatchForTest (&latch);
+    for (const bool saveAs : { false, true })
+    {
+        INFO (saveAs);
+        latch.held.store (false);
+        latch.released.store (false);
+        const auto wav = f.directory / (saveAs ? "as.wav" : "copy.wav");
+        const int exportsBefore = f.model.context().audioExportCount;
+        REQUIRE (f.model.startAudioExport (wav).dispatched);
+        for (int i = 0; i < 20'000 && ! latch.held.load(); ++i)
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        REQUIRE (latch.held.load());
+        const auto target = f.directory / (saveAs ? "as.yesdaw" : "copy.yesdaw");
+        REQUIRE ((saveAs ? f.model.saveProjectBundleAs (target) : f.model.saveProjectBundleCopy (target)).dispatched);
+        REQUIRE (f.model.exportRunning());
+        latch.released.store (true);
+        f.model.waitForExport();
+        REQUIRE (f.model.context().audioExportCount == exportsBefore + 1);
+        REQUIRE (std::filesystem::exists (wav));
+    }
+    f.model.setExportLatchForTest (nullptr);
+}
+
+TEST_CASE ("ADR-0060 File > Save a Copy: the chooser's place gets the copy, this project stays current; a refusal says why",
+           "[project-lifecycle]")
+{
+    LifecycleShell f ("menu-copy");
+    f.newProject ("song", choicesOf (48'000.0, 120.0, 4, 4));
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::TrackAdd);
+    f.saveACopyBundle = f.directory / "song copy.yesdaw";
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectSaveACopy);
+    REQUIRE (readProject (f.directory / "song copy.yesdaw").tracks.size() == 2u);
+    REQUIRE (yesdaw::ui::snapshotMainComponent (*f).bundlePath == f.directory / "song.yesdaw");
+    REQUIRE (yesdaw::ui::snapshotMainComponent (*f).windowTitle.find ("copy") == std::string::npos);
+
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectSaveACopy);   // now occupied
+    REQUIRE (statusOf (*f).contains ("Save a Copy failed: the target already exists"));
 }

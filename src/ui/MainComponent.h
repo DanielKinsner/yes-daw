@@ -28,6 +28,7 @@ struct MainComponentFileChoices
     std::function<std::filesystem::path()> chooseNewProjectBundle;
     std::function<std::filesystem::path()> chooseOpenProjectBundle;
     std::function<std::filesystem::path()> chooseSaveAsProjectBundle;
+    std::function<std::filesystem::path()> chooseSaveACopyProjectBundle;   // ADR-0060: File > Save a Copy
     std::function<std::filesystem::path()> chooseImportAudioFile;
     std::function<std::filesystem::path()> chooseExportAudioFile;
     // G3.7: the MIDI file choosers (the native shell opens a file box; the harness injects a path).

@@ -1439,6 +1439,18 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
         return withExtension (pathFromJuceFile (chooser.getResult()), ".yesdaw");
     };
 
+    choices.chooseSaveACopyProjectBundle = [] {   // ADR-0060
+        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
+        juce::FileChooser chooser ("Save a Copy of the YES DAW Project",
+                                   documents.getChildFile ("Untitled copy.yesdaw"),
+                                   "*.yesdaw",
+                                   true);
+        if (! chooser.browseForFileToSave (true))
+            return std::filesystem::path {};
+
+        return withExtension (pathFromJuceFile (chooser.getResult()), ".yesdaw");
+    };
+
     choices.chooseImportAudioFile = [] {
         const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
         juce::FileChooser chooser ("Import Audio", documents, juce::String (yesdaw::io::importAudioFilePatterns()), true);   // ADR-0054

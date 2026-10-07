@@ -8,6 +8,44 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 (midday) — G5.5 checkpoint 2: Save As and Save a Copy through one atomic bundle copy (ADR-0060)
+
+**Now:** G5.5 **cp2** is in, headless-certified. **Next: G5.5 cp3 — templates** (File > Save as Template..., a
+layout-only bundle in the session-state folder; New from a template gives every entity a fresh ID through one
+map), then G5.6 (preferences), G5.7 (relink) and SS-6.
+
+**What a user gets:** **Save As** and the new **File > Save a Copy...** share one copy routine. It builds the whole
+bundle in a temporary `<name>.yesdaw.<n>.partial` folder next to the target — the database copied consistently
+from the open project (SQLite `VACUUM INTO`; the original is never written), the audio, peak caches and view state,
+but never the autosave folder or the trash — writes the current project into it, checks it (opening it validates
+every stored rule and every audio file against its content hash) and only then renames it into place. A failure
+anywhere leaves no target and no temporary folder, and the original stays open and working. Save As then continues
+in the copy (clean, undo intact); Save a Copy leaves you in the original, still unsaved if it was, its undo and any
+running export carrying on. Before, Save As wrote the original first, copied straight into the final folder (a
+failure left half a bundle), copied the autosave folder (the copy could open with a stale recovery prompt), and
+there was no Save a Copy.
+
+**Gates:** `[project-lifecycle]` +5 (14 cases) — Save As: the target appears only at the rename, no `.partial`
+remains, the copy is clean and current, its Asset files byte-identical, no autosave carried, the copy reopened from
+disk renders byte-identical audio to the in-memory project, undo continues into the copy and the original's stored
+project reads back unchanged. Save a Copy: the original current and unsaved, the copy closed (its folder moves),
+reopened it renders the same audio, undo and a later Save work on the original, a peak cache mid-write is not copied.
+An injected corruption mid-copy fails both with "the copy did not validate", leaving no target, no `.partial`, the
+original working; an occupied target is refused before anything is written. An export held mid-render completes
+through both. File > Save a Copy through its chooser; a refusal says why. The old Save As safety gate rewritten to
+this law (it pinned a half-copied target). File menu re-pinned to 12 items; `docs/keymap-v2.md` regenerated.
+416/416 local, Clang clean (33 files). Visual: the only new surface is one File menu item (no layout change).
+
+**Critic:** no blockers. In: the copy goes file by file — a peak cache the builder renames under the walk is
+skipped, temporary files are never copied, links never followed (it flagged a Save-right-after-import race); a
+failed target check says so instead of "already exists". Not taken: a success message (the status line's law is
+that success stays quiet); POSIX `rename` replacing a directory created empty in the same instant (nothing to
+lose; a non-empty one still refuses). Parked: sweeping stale `.partial` folders left by a crash; seeding the Save a
+Copy chooser with the project's name. ADR-0060's "new validateBundleAssetFiles (presence and size)" is met by the
+open path's existing check, which is stronger (content hash).
+
+**CI recorded:** 69ababc fails only the standing macOS GPU exception; every other job green.
+
 ## 2026-10-07 (morning) — G5.5 checkpoint 1: the New Project dialog, the device at the project's rate (ADR-0060)
 
 **Now:** G5.5 **cp1** is in, headless-certified. **Next: G5.5 cp2 — Save As and Save a Copy through one atomic

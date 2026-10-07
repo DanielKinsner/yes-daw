@@ -272,6 +272,7 @@ enum class UiActionId : std::uint8_t
     MasterMonitorDimToggle,     // G4.7 / ADR-0053: the monitor 20 dB down — session state, never an edit
     MasterMonitorMuteToggle,    // G4.7 / ADR-0053: the monitor silent — session state, never an edit
     ViewBrowser,                // G5.2 / ADR-0056: the media browser dock tab (Y)
+    ProjectSaveACopy,           // G5.5 / ADR-0060: write a copy of the project; keep working in this one
     Count
 };
 
@@ -1184,7 +1185,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::MasterMonitorMuteToggle, "master.monitor.mute", "Master Mute", "", "Mute the monitor (Master Mute)",
       AccessibilityRole::Button, UiActionKind::Toggle, false, false, false, false },
     { UiActionId::ViewBrowser, "view.browser", "Browser", "Y", "Show or hide the media browser in the editor dock",
-      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false }
+      AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
+    // G5.5 / ADR-0060: no default chord (Logic's and Pro Tools' copy commands carry none).
+    { UiActionId::ProjectSaveACopy, "project.save_a_copy", "Save a Copy", "", "Save a copy of the project and keep working in this one",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -2312,6 +2316,9 @@ public:
             case UiActionId::TimelineSnapModeOff:      context.snapMode = UiSnapMode::Off;      break;
             case UiActionId::TimelinePlayheadFollowContinuous:   // G2.16
                 context.playheadFollowContinuous = ! context.playheadFollowContinuous;
+                break;
+
+            case UiActionId::ProjectSaveACopy:   // G5.5 / ADR-0060: the copy changes nothing here (the source stays current)
                 break;
 
             case UiActionId::Count:

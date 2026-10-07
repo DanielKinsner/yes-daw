@@ -1804,40 +1804,29 @@ public:
         return context_.projectLoaded && editSerial_ != lastSavedEditSerial_;
     }
 
-    // Save-As (usable-DAW P0): persist the current Project, copy the whole bundle (SQLite + immutable
-    // Assets) to the chosen path, and continue working in the copy. The original bundle stays intact
-    // on disk. On any failure the model reopens the ORIGINAL bundle and reports the error.
-    [[nodiscard]] UiActionDispatchResult saveProjectBundleAs (
-        const std::filesystem::path& newBundlePath,
-        const std::function<void (const std::filesystem::path&)>& afterCopyBeforeReopen = {})
+    // ADR-0060: where a copy of the open bundle may go. nullptr when `newBundlePath` names a fresh place (resolved into
+    // `target`), else why not. The chooser may append an extension after its native overwrite check, so an existing
+    // target is refused here; so are path aliases and containment either way, before anything is written.
+    [[nodiscard]] const char* bundleCopyTargetRefusal (const std::filesystem::path& newBundlePath,
+                                                       std::filesystem::path& target) const
     {
-        const UiActionId id = UiActionId::ProjectSaveAs;
-        const UiActionState state = registry_.stateFor (id, context_);
-        if (! state.enabled)
-            return { id, state, false };
-
-        if (newBundlePath.empty())
-            return { id, { false, "save-as path required" }, false };
-
-        // The chooser may append an extension AFTER its native overwrite check. Never replace
-        // an existing target here, and reject path aliases/containment before any write or close.
         std::error_code pathError;
         const auto targetStatus = std::filesystem::symlink_status (newBundlePath, pathError);
         if (pathError && pathError != std::errc::no_such_file_or_directory)
-            return { id, { false, "save-as target could not be inspected" }, false };
+            return "the target could not be inspected";
         if (targetStatus.type() != std::filesystem::file_type::not_found)
-            return { id, { false, "save-as target already exists" }, false };
+            return "the target already exists";
 
         pathError.clear();
         const auto source = std::filesystem::canonical (bundlePath_, pathError);
         if (pathError)
-            return { id, { false, "save-as source could not be resolved" }, false };
+            return "the current bundle could not be resolved";
         const auto absoluteTarget = std::filesystem::absolute (newBundlePath, pathError);
         if (pathError)
-            return { id, { false, "save-as target could not be resolved" }, false };
-        const auto target = std::filesystem::weakly_canonical (absoluteTarget, pathError);
+            return "the target could not be resolved";
+        target = std::filesystem::weakly_canonical (absoluteTarget, pathError);
         if (pathError)
-            return { id, { false, "save-as target could not be resolved" }, false };
+            return "the target could not be resolved";
         bool comparisonFailed = false;
         const auto liesWithin = [&] (std::filesystem::path candidate,
                                     const std::filesystem::path& ancestor) {
@@ -1883,56 +1872,159 @@ public:
             }
         };
         if (liesWithin (target, source) || liesWithin (source, target))
-            return { id, { false, "save-as target overlaps the current bundle" }, false };
+            return "the target overlaps the current bundle";
         if (comparisonFailed)
-            return { id, { false, "save-as paths could not be compared" }, false };
+            return "the paths could not be compared";
+        return nullptr;
+    }
 
-        // Copy preparation must not mark edits saved: a later copy/reopen can still fail.
-        if (! bundleDb_.writeProjectSnapshot (project_).ok())
-            return { id, { false, "save before copy failed" }, false };
-
-        // Reserve only after the snapshot succeeds, so a failed write does not occupy the name.
-        // Reservation still prevents merging into a folder appearing after validation.
-        if (! std::filesystem::create_directory (target, pathError))
-            return { id, { false, "save-as target could not be created" }, false };
-
-        // Release the SQLite handle so Windows lets the file copy; reopen (old or new) below.
-        bundleDb_ = persistence::ProjectBundleDb {};
-
-        std::error_code copyError;
-        std::filesystem::copy (source, target,
-                               std::filesystem::copy_options::recursive, copyError);
-
-        // Narrow filesystem-fault seam: tests can make a completed copy unopenable at this
-        // boundary, exercising the real database failure and source recovery without a race.
-        if (! copyError && afterCopyBeforeReopen)
-            afterCopyBeforeReopen (target);
-
-        const std::filesystem::path reopenPath = copyError ? bundlePath_ : target;
-        persistence::ProjectBundleDb reopened;
-        if (! persistence::ProjectBundleDb::openExistingBundle (reopenPath, reopened).ok())
+    // ADR-0060: the one copy routine behind Save As and Save a Copy. It writes a complete bundle into a temporary
+    // sibling `<target>.<n>.partial` — the database copied consistently from the open source (VACUUM INTO; the source
+    // is never written), every other entry but the autosave folder and the trash (listed out, never copied then
+    // deleted), then the current in-memory project written into the copy — validates it (opening it checks every
+    // stored rule and every Asset file against its content hash), closes it and renames it into place. Any failure
+    // removes the temporary folder; the source and the current project are untouched either way. nullptr = done.
+    // `beforeValidate` is the gates' fault seam (it sees the temporary folder before the copy is validated).
+    [[nodiscard]] const char* writeBundleCopy (const std::filesystem::path& target,
+                                               const std::function<void (const std::filesystem::path&)>& beforeValidate)
+    {
+        namespace fs = std::filesystem;
+        std::error_code error;
+        fs::path partial;
+        for (int n = 1; n < 1'000 && partial.empty(); ++n)
         {
-            // A copy can exist but fail to open. Restore the original handle before reporting
-            // failure so subsequent Save/recovery still operates on the retained source.
-            if (reopenPath != bundlePath_)
+            fs::path candidate = target;
+            candidate += "." + std::to_string (n) + ".partial";
+            if (fs::create_directory (candidate, error))
+                partial = candidate;
+            else if (error)   // the parent is missing or is not a folder: another name will not help
+                return "the target could not be created";
+        }
+        if (partial.empty())
+            return "the target could not be created";
+        const auto abandon = [&partial] (const char* reason) {
+            std::error_code removed;
+            fs::remove_all (partial, removed);
+            return reason;
+        };
+
+        if (! bundleDb_.copyDatabaseInto (partial / "project.db").ok())
+            return abandon ("the project database could not be copied");
+        // Everything else, file by file. The peak builder keeps running against the source: a cache it renames or
+        // removes under the walk is skipped (caches rebuild), a temporary file is never copied, a link never followed.
+        const fs::path source = bundleDb_.bundlePath();
+        for (fs::recursive_directory_iterator entry (source, error), end; ! error && entry != end; entry.increment (error))
+        {
+            const fs::path relative = entry->path().lexically_relative (source);
+            const fs::path name = entry->path().filename();
+            std::error_code status;
+            const bool excluded = entry.depth() == 0
+                               && (name == "project.db" || name == "project.db-wal" || name == "project.db-shm"
+                                   || name == "project.db-journal" || name == "autosave" || name == ".trash");
+            if (excluded || entry->is_symlink (status))
             {
-                persistence::ProjectBundleDb original;
-                if (persistence::ProjectBundleDb::openExistingBundle (bundlePath_, original).ok())
-                    bundleDb_ = std::move (original);
+                entry.disable_recursion_pending();
+                continue;
             }
-            return { id, { false, "bundle reopen failed after save-as" }, false };
+            if (entry->is_directory (status))
+            {
+                fs::create_directories (partial / relative, error);
+                continue;
+            }
+            if (entry->path().extension() == ".tmp")
+                continue;
+            fs::copy_file (entry->path(), partial / relative, error);
+            if (error == std::errc::no_such_file_or_directory)
+                error.clear();   // gone under the walk: a cache the builder replaced
+        }
+        if (error)
+            return abandon ("the bundle's files could not be copied");
+        for (const char* folder : { "audio", "peaks", "plugins", "autosave", ".trash" })   // the bundle's usual shape
+        {
+            fs::create_directories (partial / folder, error);
+            if (error)
+                return abandon ("the bundle's folders could not be created");
+        }
+
+        if (beforeValidate)
+            beforeValidate (partial);
+        {
+            persistence::ProjectBundleDb copy;
+            if (! persistence::ProjectBundleDb::openExistingBundle (partial, copy).ok())
+                return abandon ("the copy did not validate");
+            if (! copy.writeProjectSnapshot (project_).ok())
+                return abandon ("the project could not be written into the copy");
+            if (! copy.validateStoredProjectSemantics().ok())
+                return abandon ("the copy did not validate");
+        }   // closed before the rename: Windows renames no folder holding an open file
+
+        const bool occupied = fs::exists (target, error);
+        if (error)
+            return abandon ("the target could not be inspected");
+        if (occupied)
+            return abandon ("the target already exists");
+        fs::rename (partial, target, error);
+        if (error)
+            return abandon ("the copy could not be moved into place");
+        return nullptr;
+    }
+
+    // Save As (ADR-0060): the copy routine, then the copy is the current project — undo history continues, the copy
+    // is clean. Any failure leaves the source current, its handle open and its edits intact.
+    [[nodiscard]] UiActionDispatchResult saveProjectBundleAs (
+        const std::filesystem::path& newBundlePath,
+        const std::function<void (const std::filesystem::path&)>& beforeValidate = {})
+    {
+        const UiActionId id = UiActionId::ProjectSaveAs;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        if (newBundlePath.empty())
+            return { id, { false, "save-as path required" }, false };
+
+        std::filesystem::path target;
+        if (const char* refused = bundleCopyTargetRefusal (newBundlePath, target))
+            return { id, { false, refused }, false };
+        if (const char* failed = writeBundleCopy (target, beforeValidate))
+            return { id, { false, failed }, false };
+
+        persistence::ProjectBundleDb reopened;
+        if (! persistence::ProjectBundleDb::openExistingBundle (target, reopened).ok())
+        {
+            std::error_code removed;
+            std::filesystem::remove_all (target, removed);   // the copy this call made; the source stays current
+            return { id, { false, "the copy could not be opened" }, false };
         }
 
         bundleDb_ = std::move (reopened);
-        if (copyError)
-            return { id, { false, "bundle copy failed" }, false };
-
         bundlePath_ = newBundlePath;
         lastSavedEditSerial_ = editSerial_;
         writeLastProjectRecord();
         waveformService_.start (bundlePath_);
         enqueueWaveformBuildsForDecodedAssets();
         ++context_.saveCount;
+        ++context_.commandDispatchCount;
+        return { id, state, true };
+    }
+
+    // Save a Copy (ADR-0060): the copy routine only. The copy is written and closed; the source stays current — its
+    // database, its unsaved state, its undo history and any running export carry on.
+    [[nodiscard]] UiActionDispatchResult saveProjectBundleCopy (
+        const std::filesystem::path& newBundlePath,
+        const std::function<void (const std::filesystem::path&)>& beforeValidate = {})
+    {
+        const UiActionId id = UiActionId::ProjectSaveACopy;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        if (newBundlePath.empty())
+            return { id, { false, "save-a-copy path required" }, false };
+
+        std::filesystem::path target;
+        if (const char* refused = bundleCopyTargetRefusal (newBundlePath, target))
+            return { id, { false, refused }, false };
+        if (const char* failed = writeBundleCopy (target, beforeValidate))
+            return { id, { false, failed }, false };
         ++context_.commandDispatchCount;
         return { id, state, true };
     }
@@ -9308,6 +9400,9 @@ public:
 
             case UiActionId::ProjectSaveAs:
                 return { id, { false, "save-as path required" }, false };
+
+            case UiActionId::ProjectSaveACopy:   // ADR-0060: the shell's chooser supplies the path
+                return { id, { false, "save-a-copy path required" }, false };
 
             case UiActionId::ProjectSave:
             {

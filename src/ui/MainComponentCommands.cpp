@@ -563,9 +563,10 @@ juce::StringArray MainComponent::getMenuBarNames()
 std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int topLevelMenuIndex)
 {
     using yesdaw::ui::UiActionId;
-    static constexpr std::array<UiActionId, 10> kFileMenu {
+    static constexpr std::array<UiActionId, 11> kFileMenu {
         UiActionId::ProjectNew,        UiActionId::ProjectOpen,        UiActionId::ProjectSave,
-        UiActionId::ProjectSaveAs,     UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
+        UiActionId::ProjectSaveAs,     UiActionId::ProjectSaveACopy,   // G5.5 / ADR-0060
+        UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
         UiActionId::ProjectImportMidi, UiActionId::ProjectExportMidi,   // G3.7
         UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
     };
@@ -1489,6 +1490,10 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
         case yesdaw::ui::UiActionId::ProjectSave:
         case yesdaw::ui::UiActionId::ProjectSaveAs:
             (void) saveCurrentProject (action == UiActionId::ProjectSaveAs);
+            return;
+
+        case yesdaw::ui::UiActionId::ProjectSaveACopy:   // G5.5 / ADR-0060
+            saveProjectCopy();
             return;
 
         case yesdaw::ui::UiActionId::TransportRecord:

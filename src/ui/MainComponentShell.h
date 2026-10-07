@@ -429,6 +429,7 @@ private:
     [[nodiscard]] bool confirmReplaceProject();
     void afterProjectAttached();
     void requestProjectDeviceRate();
+    void saveProjectCopy();
     void browserAudition (const yesdaw::ui::BrowserRow& row);   // G5.2 cp2
     void refreshBrowserAuditionState();
 

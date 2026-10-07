@@ -1824,6 +1824,16 @@ public:
         return detail::exec (db_, sql);
     }
 
+    // ADR-0060: a consistent copy of this open database at `destination` (VACUUM INTO reads one committed state and
+    // writes only the new file; this database is not written). `destination` must not exist yet.
+    [[nodiscard]] BundleResult copyDatabaseInto (const std::filesystem::path& destination) const
+    {
+        detail::Statement stmt (db_, "VACUUM INTO ?;");
+        if (auto result = stmt.bindText (1, detail::utf8Path (destination)); ! result.ok())
+            return result;
+        return detail::expectDone (db_, stmt);
+    }
+
     [[nodiscard]] BundleResult queryInt64 (std::string_view sql, sqlite3_int64& out) const
     {
         return detail::queryInt64 (db_, sql, out);

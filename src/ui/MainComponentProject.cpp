@@ -169,4 +169,17 @@ void MainComponent::requestProjectDeviceRate()
                                true);
 }
 
+// File > Save a Copy (ADR-0060): the copy is written and closed; this project stays current, saved or not.
+void MainComponent::saveProjectCopy()
+{
+    if (! fileChoices.chooseSaveACopyProjectBundle)
+        return;
+    const std::filesystem::path path = fileChoices.chooseSaveACopyProjectBundle();
+    if (path.empty())
+        return;
+    const UiActionDispatchResult copied = appModel.saveProjectBundleCopy (path);
+    if (! copied.dispatched)
+        appModel.reportStatus (std::string ("Save a Copy failed: ") + copied.state.disabledReason, true);
+}
+
 } // namespace yesdaw::ui

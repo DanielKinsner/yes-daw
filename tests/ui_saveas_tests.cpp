@@ -7,7 +7,9 @@
 #include <fstream>
 #include <string>
 
-TEST_CASE ("Save As restores the original database when the completed copy cannot reopen",
+// ADR-0060: a copy that cannot be validated leaves no target and no temporary folder; the original stays current
+// (its database handle never closed) and keeps working.
+TEST_CASE ("Save As that cannot validate its copy leaves no target and keeps the original current",
            "[ui][input][saveas][saveas-safety]")
 {
     const auto directory = std::filesystem::temp_directory_path()
@@ -25,12 +27,14 @@ TEST_CASE ("Save As restores the original database when the completed copy canno
     std::ofstream (original / "retained-asset.txt") << "retain the copied content";
 
     bool reachedCopyBoundary = false;
+    std::filesystem::path partial;
     const auto failed = model.saveProjectBundleAs (destination, [&] (const auto& copied) {
         reachedCopyBoundary = true;
-        REQUIRE (copied == std::filesystem::weakly_canonical (destination));
+        partial = copied;
+        REQUIRE (copied.extension() == ".partial");
         REQUIRE (std::filesystem::exists (copied / "retained-asset.txt"));
         REQUIRE (std::filesystem::file_size (copied / "project.db") > 0);
-        // Preserve the copied bytes but make the real SQLite open fail deterministically.
+        // Keep the copied bytes but make the real SQLite open fail deterministically.
         std::filesystem::rename (copied / "project.db", copied / "project.db.retained");
         std::filesystem::create_directory (copied / "project.db");
     });
@@ -38,23 +42,21 @@ TEST_CASE ("Save As restores the original database when the completed copy canno
     INFO (failed.state.disabledReason);
     REQUIRE (reachedCopyBoundary);
     REQUIRE_FALSE (failed.dispatched);
-    REQUIRE (std::string (failed.state.disabledReason) == "bundle reopen failed after save-as");
+    REQUIRE (std::string (failed.state.disabledReason) == "the copy did not validate");
+    REQUIRE_FALSE (std::filesystem::exists (destination));
+    REQUIRE_FALSE (std::filesystem::exists (partial));
     REQUIRE (model.bundlePath() == original);
     REQUIRE (model.readLastProjectRecord() == original);
     REQUIRE (model.hasUnsavedChanges());
     REQUIRE (model.context().saveCount == savesBefore);
     REQUIRE (model.context().commandDispatchCount == dispatchesBefore);
-    REQUIRE (std::filesystem::exists (destination / "project.db.retained"));
-    REQUIRE (std::filesystem::exists (destination / "retained-asset.txt"));
-    REQUIRE (std::filesystem::is_directory (destination / "project.db"));
 
-    // An active source path alone is insufficient: prove the restored connection accepts a
-    // further edit and an explicit Save, and another model reads that saved state from disk.
+    // An active source path alone is insufficient: prove the connection accepts a further edit and an explicit
+    // Save, and another model reads that saved state from disk.
     REQUIRE (model.addAudioTrack().dispatched);
     REQUIRE (model.saveProjectBundle().ok());
     REQUIRE_FALSE (model.hasUnsavedChanges());
     yesdaw::ui::UiAppModel reopened;
     REQUIRE (reopened.openProjectBundle (original).ok());
     REQUIRE (reopened.project().tracks.size() == 3u);
-    REQUIRE (std::filesystem::exists (destination / "project.db.retained"));
 }

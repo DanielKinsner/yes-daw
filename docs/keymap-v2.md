@@ -262,3 +262,4 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Automation Follows Clips (`timeline.automation.follow_clips.toggle`)
 - Master Dim (`master.monitor.dim`)
 - Master Mute (`master.monitor.mute`)
+- Save a Copy (`project.save_a_copy`)
