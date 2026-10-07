@@ -2921,16 +2921,43 @@ public:
     // never swallow unrelated edits (entries stay groupless and undo one at a time).
     void beginScalarCoalescing() noexcept
     {
-        // A NEW gesture never merges into the previous one: seal the current top entry.
-        if (! scalarCoalescing_ && ! undo_.empty())
-            undo_.back().sealed = true;
+        if (! scalarCoalescing_)
+        {
+            // A NEW gesture never merges into the previous one: seal the current top entry.
+            if (! undo_.empty())
+                undo_.back().sealed = true;
+            // ADR-0066: the redo history is set aside, not lost — a gesture that leaves no step gives it back.
+            redoAtGestureStart_ = std::move (redo_);
+            redo_.clear();
+        }
         scalarCoalescing_ = true;
     }
 
     void endScalarCoalescing() noexcept
     {
-        if (scalarCoalescing_ && ! undo_.empty())
-            undo_.back().sealed = true;
+        if (scalarCoalescing_)
+        {
+            // ADR-0066: a strip-scalar gesture that ends where it began (a keyboard adjustment Esc restored, a drag
+            // released at its start) — or made no edit at all — leaves no step, and the redo history it set aside comes
+            // back. An unsealed top entry is this gesture's own: begin sealed the one before.
+            bool leftNoStep = true;
+            if (! undo_.empty() && ! undo_.back().sealed)
+            {
+                UndoEntry& top = undo_.back();
+                if (top.groupId == 0 && isNetNoOpScalarGesture (top.transaction))
+                {
+                    undo_.pop_back();
+                }
+                else
+                {
+                    top.sealed = true;
+                    leftNoStep = false;
+                }
+            }
+            if (leftNoStep)
+                redo_ = std::move (redoAtGestureStart_);
+        }
+        redoAtGestureStart_.clear();
         scalarCoalescing_ = false;
     }
 
@@ -2980,7 +3007,10 @@ private:
     {
         const ProjectEditCommand& command = transaction.command;
         if (! detail::canCoalesceProjectEditVerb (command.verb))
+        {
             scalarCoalescing_ = false;
+            redoAtGestureStart_.clear();   // a real edit: the redo history it would have given back is gone, as any edit's is
+        }
 
         if (scalarCoalescing_ && activeGroupId_ == 0 && ! undo_.empty())
         {
@@ -3149,6 +3179,23 @@ private:
         bool sealed = false;   // E21: a gesture boundary — later scalar edits never merge in
     };
 
+    // The strip-scalar verbs a gesture coalesces; their merged entry's before equals its after when the gesture came back.
+    [[nodiscard]] static bool isNetNoOpScalarGesture (const ProjectEditTransaction& transaction) noexcept
+    {
+        switch (transaction.command.verb)
+        {
+            case ProjectEditVerb::SetTrackMixScalars:
+            case ProjectEditVerb::SetTrackHeight:
+                return transaction.trackDiff.before == transaction.trackDiff.after;
+            case ProjectEditVerb::SetBusMixScalars:
+                return transaction.busDiff.before == transaction.busDiff.after;
+            case ProjectEditVerb::SetMasterGain:
+                return transaction.masterDiff.before == transaction.masterDiff.after;
+            default:
+                return false;
+        }
+    }
+
     [[nodiscard]] static std::size_t trailingGroupEntryCount (const std::vector<UndoEntry>& entries) noexcept
     {
         if (entries.empty() || entries.back().groupId == 0)
@@ -3166,6 +3213,7 @@ private:
     std::uint64_t activeGroupId_ = 0;
     std::uint64_t nextGroupId_ = 1;
     bool scalarCoalescing_ = false;   // E21: an open strip-scalar gesture
+    std::vector<UndoEntry> redoAtGestureStart_;   // ADR-0066: the redo history an open gesture set aside
 };
 
 } // namespace yesdaw::engine

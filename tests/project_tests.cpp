@@ -2634,6 +2634,61 @@ TEST_CASE ("SetNoteVelocity edits, undoes, and redoes one Note's velocity bit-id
              == ProjectEditStatus::InvalidNoteValue);
 }
 
+// ADR-0066: a strip-scalar gesture that comes back to where it began (a keyboard adjustment Esc restored, a drag let go
+// at its start) leaves no undo step; one that changed something leaves exactly one.
+TEST_CASE ("A strip gesture that ends where it began leaves no undo step", "[project][arrangement][undo][mix-scalars]")
+{
+    Project project = makeTwoClipEditableProject();
+    const EntityId trackId = idFromLowByte (36);
+    ProjectUndoStack undo;
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackMixScalars (trackId, 0.8f, 0.0f, false, false, false)).applied());
+    const std::size_t depth = undo.undoDepth();
+
+    undo.beginScalarCoalescing();
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackMixScalars (trackId, 0.6f, 0.0f, false, false, false)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackMixScalars (trackId, 0.4f, 0.0f, false, false, false)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackMixScalars (trackId, 0.8f, 0.0f, false, false, false)).applied());
+    undo.endScalarCoalescing();
+    REQUIRE (undo.undoDepth() == depth);   // came back: no step
+    REQUIRE (project.tracks.front().strip.linearGain == 0.8f);
+    REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);   // the step before it is still there
+    REQUIRE (project.tracks.front().strip.linearGain != 0.8f);
+    REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+
+    undo.beginScalarCoalescing();
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackMixScalars (trackId, 0.6f, 0.0f, false, false, false)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackMixScalars (trackId, 0.5f, 0.0f, false, false, false)).applied());
+    undo.endScalarCoalescing();
+    REQUIRE (undo.undoDepth() == depth + 1);   // changed: exactly one step
+    REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (project.tracks.front().strip.linearGain == 0.8f);
+
+    // A gesture with no edit at all leaves the stack as it was (the step before stays sealed, not dropped).
+    const std::size_t before = undo.undoDepth();
+    undo.beginScalarCoalescing();
+    undo.endScalarCoalescing();
+    REQUIRE (undo.undoDepth() == before);
+
+    // The redo history survives a gesture that leaves no step (came back, or no edit), and goes with one that edits.
+    REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (undo.canRedo());
+    const float atUndo = project.tracks.front().strip.linearGain;
+    undo.beginScalarCoalescing();
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackMixScalars (trackId, 0.3f, 0.0f, false, false, false)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackMixScalars (trackId, atUndo, 0.0f, false, false, false)).applied());
+    undo.endScalarCoalescing();
+    REQUIRE (undo.canRedo());
+    undo.beginScalarCoalescing();
+    undo.endScalarCoalescing();
+    REQUIRE (undo.canRedo());
+    REQUIRE (undo.redo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    REQUIRE (undo.undo (project) == yesdaw::engine::ProjectUndoStatus::Applied);
+    undo.beginScalarCoalescing();
+    REQUIRE (undo.apply (project, ProjectEditCommand::setTrackMixScalars (trackId, 0.3f, 0.0f, false, false, false)).applied());
+    undo.endScalarCoalescing();
+    REQUIRE_FALSE (undo.canRedo());
+}
+
 TEST_CASE ("SetTrackMixScalars edits, undoes, and redoes the scalar strip state",
            "[project][arrangement][undo][mix-scalars]")
 {
