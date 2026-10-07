@@ -68,6 +68,9 @@ scrollable inspector (Logic-style) would bring the marker card back at 720p; tod
 through Transport > Previous / Next Marker.
 
 **CI recorded:** 08be04a (ADR-0065) green on every job, the macOS GPU check included — **ADR-0065 certified**.
+1497d09 (this checkpoint) failed to COMPILE on Linux and macOS: `meanAbsDifference` is used only inside the
+Windows-only raster gates, so `-Wunused-function` fired under `-Werror` there (the local Clang check runs with Windows
+defines and could not see it); Windows passed. Corrective commit: the helper is `[[maybe_unused]]`.
 
 ## 2026-10-08 (night) — the mixer's strips scroll and the master stays reachable (ADR-0065, amended)
 

@@ -884,8 +884,8 @@ juce::Image renderShellAtScale (juce::Component& shell, float scale)
     return image;
 }
 
-// Mean absolute channel difference (0..255) of two same-size images over a region.
-double meanAbsDifference (const juce::Image& a, const juce::Image& b, juce::Rectangle<int> region)
+// Mean absolute channel difference (0..255) of two same-size images over a region (the raster gates run on Windows).
+[[maybe_unused]] double meanAbsDifference (const juce::Image& a, const juce::Image& b, juce::Rectangle<int> region)
 {
     region = region.getIntersection (a.getBounds()).getIntersection (b.getBounds());
     if (region.isEmpty())
