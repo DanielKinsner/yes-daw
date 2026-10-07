@@ -8,6 +8,32 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 (small hours) — G5.7 checkpoint 1: inspecting a bundle's missing audio and adopting original bytes (ADR-0062)
+
+**Now:** G5.7 **cp1** is in, headless-certified. **Next: G5.7 cp2 — the open's questions**: an open refused over its
+audio asks about each missing or damaged file (Locate... / Cancel), takes only the original, opens again; Cancel keeps
+the current project and names what remains missing; the launch reopen too. Then SS-6 and G6.
+
+**What it adds (persistence, no UI yet):** a read-only inspection of a bundle that refused to open over its audio — it
+lists **every** missing or damaged Asset file (the open stops at the first) and the stored project, changes no byte
+(no migration, reconcile or sweep; an older schema is not inspected), and works on read-only media; and the adoption of
+an Asset's **original bytes only** — another file is refused ("its content differs") with nothing written, a file
+already whole is left alone, a damaged one is copied to `.trash` under a free name (never over earlier evidence) and
+then replaced in one rename, so a failure leaves it where it was.
+
+**Gates:** `[relink]` (3 cases) — the inspection lists both a missing and a damaged file past the first and leaves
+every bundle byte as it was; an old-schema bundle is not inspected and not migrated; adoption refuses another tone
+writing nothing, takes the originals, keeps the first damaged copy when a second is trashed, leaves a whole file
+alone, leaves no temporary, and the open validator then accepts the bundle. 416/416 local, Clang clean. (Earlier in
+this checkpoint `YesDawTimelineGpuCheck` read 21-24 ms under the -j6 suite with other load on the machine; its binary
+is unchanged since 19:18 and passes alone — load, not code.)
+
+**Critic:** no blockers. In: the inspection opens the database truly read-only (no journal-mode write, works on
+read-only media); a damaged file is copied aside and replaced in one rename (a failed rename used to leave it missing);
+a file that already holds the bytes is left alone.
+
+**CI recorded:** bb8dfd6 (G5.6 cp2) and 0655b5e (cp3) pushed; results pending.
+
 ## 2026-10-07 (late night) — G5.6 done: the chosen audio devices (ADR-0061 cp3); persistent preferences complete
 
 **Now:** **G5.6** is in, headless-certified (all three checkpoints). **ADR-0062** (missing audio relink) is accepted.

@@ -1815,6 +1815,131 @@ public:
         return openProjectDb (bundlePath, false, out);
     }
 
+    // ADR-0062: an Asset whose bundle file is missing, or present with bytes that do not match its content hash.
+    struct MissingAssetFile
+    {
+        engine::AssetContentHash hash;
+        bool damaged = false;
+    };
+
+    // ADR-0062: inspect a bundle that refused to open over its Asset files, changing nothing. project.db is opened
+    // read-only (no journal-mode change, no WAL recovery into it; works on read-only media); YES DAW's application id
+    // and the current schema are required (an older schema is not inspected — no migration runs here); the
+    // stored-project checks run and the project is read; then every Asset row's file is checked for presence and
+    // content hash, each failure collected (no reconcile, sweep or repair).
+    [[nodiscard]] static BundleResult inspectAssetFiles (const std::filesystem::path& bundlePath,
+                                                         engine::Project& project,
+                                                         std::vector<MissingAssetFile>& missing)
+    {
+        missing.clear();
+        sqlite3* rawDb = nullptr;
+        const std::string path = detail::utf8Path (bundlePath / "project.db");
+        if (sqlite3_open_v2 (path.c_str(), &rawDb, SQLITE_OPEN_READONLY, nullptr) != SQLITE_OK)
+        {
+            BundleResult result = detail::sqliteError (rawDb);
+            if (rawDb != nullptr)
+                sqlite3_close (rawDb);
+            return result;
+        }
+        ProjectBundleDb opened;
+        opened.db_ = rawDb;
+        opened.bundlePath_ = bundlePath;
+        if (sqlite3_busy_timeout (opened.db_, kBusyTimeoutMs) != SQLITE_OK)
+            return detail::sqliteError (opened.db_);
+
+        sqlite3_int64 appId = 0;
+        sqlite3_int64 userVersion = 0;
+        if (auto result = detail::queryInt64 (opened.db_, "PRAGMA application_id;", appId); ! result.ok())
+            return result;
+        if (auto result = detail::queryInt64 (opened.db_, "PRAGMA user_version;", userVersion); ! result.ok())
+            return result;
+        if (appId != kApplicationId)
+            return BundleResult { BundleStatus::InvalidApplicationId, SQLITE_NOTADB, static_cast<int> (userVersion), "project.db application_id is not YES1" };
+        if (userVersion != kCodeSchemaVersion)
+            return BundleResult { BundleStatus::MigrationFailed, SQLITE_OK, static_cast<int> (userVersion), "the bundle's schema is not current, so its audio is not inspected" };
+
+        if (auto result = opened.validateStoredProjectSemantics(); ! result.ok())
+            return result;
+        if (auto result = opened.readProjectSnapshot (project); ! result.ok())
+            return result;
+        std::vector<StoredAssetFile> assets;
+        if (auto result = opened.loadStoredAssetFiles (assets); ! result.ok())
+            return result;
+        for (const StoredAssetFile& asset : assets)
+        {
+            std::filesystem::path file;
+            if (auto result = opened.bundlePathForRelativePath (asset.relativePath, file); ! result.ok())
+                return result;
+            std::error_code error;
+            if (! std::filesystem::exists (file, error))
+            {
+                missing.push_back ({ asset.hash, false });
+                continue;
+            }
+            engine::AssetContentHash actual;
+            if (! detail::hashFile (file, actual).ok() || ! (actual == asset.hash))
+                missing.push_back ({ asset.hash, true });
+        }
+        return detail::ok (static_cast<int> (userVersion));
+    }
+
+    // ADR-0062: put an Asset's original bytes back into a bundle. `source` must hash to `hash` (else nothing is
+    // written and the reason says its content differs). A file already holding those bytes is left alone. Otherwise the
+    // bytes go to the temporary audio/.<hash>.tmp and are hashed again; a damaged file in the way is first COPIED to
+    // .trash/<hash>.asset.<n> under a free name (never over earlier evidence), then the temporary replaces it in one
+    // rename — if that fails, the damaged file is still where it was. The database is not touched.
+    [[nodiscard]] static BundleResult adoptAssetFile (const std::filesystem::path& bundlePath,
+                                                      const engine::AssetContentHash& hash,
+                                                      const std::filesystem::path& source)
+    {
+        engine::AssetContentHash actual;
+        if (auto result = detail::hashFile (source, actual); ! result.ok())
+            return result;
+        if (! (actual == hash))
+            return BundleResult { BundleStatus::IntegrityFailed, SQLITE_OK, 0, "its content differs" };
+
+        const std::filesystem::path target = bundlePath / std::filesystem::path (detail::assetRelativePathForHash (hash));
+        const std::filesystem::path temporary = bundlePath / std::filesystem::path (detail::assetTempRelativePathForHash (hash));
+        std::error_code error;
+        engine::AssetContentHash present;
+        if (std::filesystem::is_regular_file (target, error) && detail::hashFile (target, present).ok() && present == hash)
+            return detail::ok();   // already whole: nothing to do
+        error.clear();
+        std::filesystem::create_directories (target.parent_path(), error);
+        const auto abandon = [&temporary] (BundleResult result) {
+            std::error_code removed;
+            std::filesystem::remove (temporary, removed);
+            return result;
+        };
+        if (auto result = detail::copyFileBytes (source, temporary); ! result.ok())
+            return abandon (result);
+        if (! detail::hashFile (temporary, actual).ok() || ! (actual == hash))
+            return abandon (BundleResult { BundleStatus::IntegrityFailed, SQLITE_OK, 0, "the copy did not match the original" });
+
+        if (std::filesystem::exists (target, error))
+        {
+            const std::filesystem::path trash = bundlePath / ".trash";
+            std::filesystem::create_directories (trash, error);
+            std::filesystem::path aside;
+            for (int n = 1; n < 10'000 && aside.empty(); ++n)
+            {
+                const std::filesystem::path candidate = trash / (detail::hexBytes (hash.bytes) + ".asset." + std::to_string (n));
+                if (! std::filesystem::exists (candidate, error))
+                    aside = candidate;
+            }
+            error.clear();
+            if (aside.empty())
+                return abandon (BundleResult { BundleStatus::FilesystemError, SQLITE_OK, 0, "the damaged file could not be set aside" });
+            std::filesystem::copy_file (target, aside, error);
+            if (error)
+                return abandon (BundleResult { BundleStatus::FilesystemError, SQLITE_OK, 0, "the damaged file could not be set aside: " + error.message() });
+        }
+        std::filesystem::rename (temporary, target, error);   // replaces the damaged file in one step
+        if (error)
+            return abandon (BundleResult { BundleStatus::FilesystemError, SQLITE_OK, 0, "the file could not be moved into place: " + error.message() });
+        return detail::ok();
+    }
+
     [[nodiscard]] bool isOpen() const noexcept { return db_ != nullptr; }
     [[nodiscard]] const std::filesystem::path& bundlePath() const noexcept { return bundlePath_; }
     [[nodiscard]] std::filesystem::path databasePath() const { return bundlePath_ / "project.db"; }
