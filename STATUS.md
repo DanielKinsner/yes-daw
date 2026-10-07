@@ -8,6 +8,25 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-09 — G6.2 checkpoint 3: the macOS frame exception re-measured (ADR-0064) — a decision for Dan
+
+**Now:** G6.2's three checkpoints are in. **Decision pending (Dan, plan §8.2):** renew the macOS frame exception or
+not. **Next:** G6.3 (keyboard navigation and accessibility) — its ADR first. SS-6 still waits for a free desktop.
+
+**The baseline** ([evidence](docs/evidence/2026-10-g62-gpu-baseline.md)): on Dan's machine the timeline frame check
+holds 4.1–4.5 ms sustained in ten runs (budget 16.6) — the renderer has about 4x headroom. On CI, macOS failed the check
+in 41 of 56 runs since the exception was written (39 with nothing else failing), sustained 16.7–30.5 ms (median 22.4),
+and it passes and fails on adjacent commits with no change to anything the check compiles (9ed2983 passed, 86a0b31
+failed); Windows CI failed 2 of 62 (17.1, 17.9 ms). The check prints its numbers only when it fails, so passing runs
+add counts, not numbers.
+
+**Recommendation:** renew the exception with this baseline, in the same narrow scope (macOS, this check, the sustained
+budget only, nothing else failing), re-evaluated when the renderer, the test or the runner image changes or Dan's
+machine measures above 8 ms sustained. Alternatives: make the macOS frame check informational in CI (the owner-machine
+`verify-hardware.ps1` frame stage stays binding), or renderer work for the macOS runner (not justified by the data).
+Until Dan decides, macOS GPU-only reds are reported raw with their numbers at each checkpoint and not claimed as excused
+by a renewal.
+
 ## 2026-10-09 — G6.2 checkpoint 2: the scaling matrix, the 1152x640 window, everything reachable (ADR-0064)
 
 **Now:** G6.2 **cp2** is in, headless-certified locally. **Next: G6.2 cp3** — the macOS frame exception re-measured
