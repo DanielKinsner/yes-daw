@@ -89,6 +89,7 @@ public:
         templateChooser.setComponentID ("newproject.template");
         templateChooser.setTitle ("Template");
         templateChooser.setTooltip ("Start from the default (one audio track) or one of your templates");
+        templateChooser.onChange = [this] { applyTemplateSettings(); };
 
         create.setComponentID ("newproject.create");
         create.setTitle ("Create the project");
@@ -117,8 +118,9 @@ public:
             addAndMakeVisible (child);
     }
 
-    // Fill the controls from `initial`; `templates` are the user's template names (Default is always first).
-    void show (const UiNewProjectChoices& initial, const std::vector<std::string>& templates)
+    // Fill the controls from `initial`; `templates` are the user's templates (Default is always first). A template
+    // that cannot be used is listed with its reason and cannot be chosen.
+    void show (const UiNewProjectChoices& initial, const std::vector<UiTemplateInfo>& templates)
     {
         int rateId = 2;
         for (std::size_t i = 0; i < kRates.size(); ++i)
@@ -137,12 +139,22 @@ public:
         int templateId = 1;
         for (std::size_t i = 0; i < templates.size(); ++i)
         {
-            templateChooser.addItem (juce::String::fromUTF8 (templates[i].c_str()), static_cast<int> (i) + 2);
-            if (templates[i] == initial.templateName)
-                templateId = static_cast<int> (i) + 2;
+            const int itemId = static_cast<int> (i) + 2;
+            const UiTemplateInfo& entry = templates[i];
+            if (entry.refusal.empty())
+            {
+                templateChooser.addItem (juce::String::fromUTF8 (entry.name.c_str()), itemId);
+                if (entry.name == initial.templateName)
+                    templateId = itemId;
+            }
+            else
+            {
+                templateChooser.addItem (juce::String::fromUTF8 ((entry.name + " - cannot be used: " + entry.refusal).c_str()), itemId);
+                templateChooser.setItemEnabled (itemId, false);
+            }
         }
         templateChooser.setSelectedId (templateId, juce::dontSendNotification);
-        templateNames_ = templates;
+        templates_ = templates;
         setVisible (true);
         toFront (false);
     }
@@ -156,10 +168,25 @@ public:
         out.meterNumerator = static_cast<std::uint16_t> (std::clamp (meterNumerator.getSelectedId(), 1, 32));
         const int denominatorIndex = std::clamp (meterDenominator.getSelectedId() - 1, 0, static_cast<int> (kDenominators.size()) - 1);
         out.meterDenominator = kDenominators[static_cast<std::size_t> (denominatorIndex)];
-        const int templateIndex = templateChooser.getSelectedId() - 2;
-        if (templateIndex >= 0 && templateIndex < static_cast<int> (templateNames_.size()))
-            out.templateName = templateNames_[static_cast<std::size_t> (templateIndex)];
+        if (const UiTemplateInfo* entry = chosenTemplate())
+            out.templateName = entry->name;
         return out;
+    }
+
+    // Choosing a template sets the rate, tempo and meter to the template's (the user may change them after).
+    void applyTemplateSettings()
+    {
+        const UiTemplateInfo* entry = chosenTemplate();
+        if (entry == nullptr)
+            return;
+        for (std::size_t i = 0; i < kRates.size(); ++i)
+            if (kRates[i] == entry->sampleRateHz)
+                rate.setSelectedId (static_cast<int> (i) + 1, juce::dontSendNotification);
+        tempo.setValue (entry->bpm, juce::dontSendNotification);
+        meterNumerator.setSelectedId (std::clamp<int> (entry->meterNumerator, 1, 32), juce::dontSendNotification);
+        for (std::size_t i = 0; i < kDenominators.size(); ++i)
+            if (kDenominators[i] == entry->meterDenominator)
+                meterDenominator.setSelectedId (static_cast<int> (i) + 1, juce::dontSendNotification);
     }
 
     void paint (juce::Graphics& g) override
@@ -202,7 +229,17 @@ public:
     }
 
 private:
-    std::vector<std::string> templateNames_;
+    // The chosen template when it can be used; nullptr for Default (or a refused one, which cannot be chosen).
+    [[nodiscard]] const UiTemplateInfo* chosenTemplate() const
+    {
+        const int index = templateChooser.getSelectedId() - 2;
+        if (index < 0 || index >= static_cast<int> (templates_.size()))
+            return nullptr;
+        const UiTemplateInfo& entry = templates_[static_cast<std::size_t> (index)];
+        return entry.refusal.empty() ? &entry : nullptr;
+    }
+
+    std::vector<UiTemplateInfo> templates_;
 };
 
 } // namespace yesdaw::ui

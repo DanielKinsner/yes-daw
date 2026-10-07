@@ -8,6 +8,44 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 (afternoon) — G5.5 done: templates (ADR-0060 cp3); new project, templates and copies complete
+
+**Now:** **G5.5** is in, headless-certified (all three checkpoints). **Next: G5.6 — preferences** (its
+implementation ADR first: `prefs.json`, the settings that belong to the user rather than the project), then G5.7
+(missing-asset relink) and SS-6 (`ss8-project-lifecycle`, the real-app drive of G5.1-G5.7 — waits for a free
+desktop).
+
+**What a user gets:** **File > Save as Template...** saves the project's layout — tracks (names, colours, heights,
+instruments and their settings, strips with inserts, sends, outputs), buses, the master strip, rate, tempo, meter
+and markers — as a template in the per-user templates folder, never its content (no clips, audio, MIDI, takes,
+automation, Sampler pads, loop/punch, locate points or scale; nothing soloed). A template of the same name is
+replaced only after asking (the question names the template on disk). The New Project dialog lists Default first,
+then the templates by name; one that cannot be used (it does not open, or it holds content) is listed with its
+reason and cannot be chosen; choosing a template fills in its rate, tempo and meter, which can still be changed. A
+project made from a template gets a new identity for everything — the project, every track, bus, insert, send and
+marker — with its routing (outputs, sends, sidechain keys) rewired, so two projects from one template never share
+an ID (ADR-0011).
+
+**Gates:** `[project-lifecycle]` +4 (18 cases) — a template holds exactly the layout and none of the content (and a
+Sampler keeps its kind with no pads); a bundle dropped into the folder by hand brings only its layout; New from a
+template: no ID of the template anywhere in the project, the routing rewired, and a tone through it renders within
+1e-6 of a hand-built twin of the layout; the dialog lists the folder (Default first, a broken and a content-holding
+bundle refused with reasons and unselectable, `.partial` folders never listed) and picking a template by keyboard
+sets its rate, tempo and meter, then creates; Save as Template asks before replacing (No keeps, Yes replaces, no
+temporary folders left), a cancelled name writes nothing, two names sharing a file name are named as the file; a
+template that cannot be used refuses New with a reason. File menu re-pinned to 13; `docs/keymap-v2.md` regenerated.
+416/416 local, Clang clean (22 files). Visual: the dialog's layout is unchanged; templates are text items in its existing chooser (refused ones greyed by JUCE).
+
+**Critic:** no blockers; it confirmed the ID remap complete against `engine::Project`. In: instantiation always
+passes through the layout filter (a hand-copied bundle cannot carry loop, punch, scale, locate points or an
+automation mode into new projects); the replace question names the template file it would replace; a failed restore
+says where the old template is; fresh IDs avoid every ID of the template file, not just its layout. Not taken:
+forcing the first tempo point to a jump (it would flatten a template's tempo ramp; the dialog sets where it starts).
+Parked: case-insensitive sorting of the list.
+
+**CI recorded:** 8cd395d (G5.4) green on every job; 83a3649 and 91cef0f (docs) green; a618c5c fails only the
+standing macOS GPU exception. c5704cb (cp1) and b871300 (cp2) pushed, CI running.
+
 ## 2026-10-07 (midday) — G5.5 checkpoint 2: Save As and Save a Copy through one atomic bundle copy (ADR-0060)
 
 **Now:** G5.5 **cp2** is in, headless-certified. **Next: G5.5 cp3 — templates** (File > Save as Template..., a

@@ -5324,8 +5324,9 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model != nullptr);
     // G1.2: Logic's menu order.
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
-    // Ten action items + the B39 Open Recent submenu (G3.7 re-pin: + Import MIDI File / Export MIDI File; G5.5: + Save a Copy).
-    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 12);
+    // Ten action items + the B39 Open Recent submenu (G3.7 re-pin: + Import MIDI File / Export MIDI File; G5.5: + Save a
+    // Copy, Save as Template).
+    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 13);
     REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 35);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes; G2.18: + Undo History…; G4.6: + Automation Follows Clips
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
 

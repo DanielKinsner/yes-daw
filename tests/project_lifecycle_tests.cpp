@@ -1,6 +1,6 @@
 // YES DAW - ADR-0060 gates. cp1: the New Project dialog, New refusing an occupied target, unsaved changes before New
 // and Open, and the audio device asked to run at the project's rate. cp2: Save As and Save a Copy through one atomic
-// bundle copy.
+// bundle copy. cp3: templates - a layout without content, instantiated with fresh identities.
 
 #include "io/WavFile.h"
 #include "persistence/AutosaveRecovery.h"
@@ -82,6 +82,10 @@ struct LifecycleShell
     std::filesystem::path saveAsBundle;   // the Save As chooser's answer (empty = cancelled)
     int saveAsAsks = 0;
     std::filesystem::path saveACopyBundle;   // the Save a Copy chooser's answer
+    std::string templateName;                // the Save as Template name box's answer (empty = cancelled)
+    bool replaceTemplate = false;            // the replace question's answer
+    int replaceAsks = 0;
+    std::string replaceAskedFor;
     std::unique_ptr<juce::Component> shell;
 
     // `launchSession`: the native launch (the last project or `openAtLaunch`, else the untitled session).
@@ -114,6 +118,12 @@ struct LifecycleShell
             return saveAsBundle;
         };
         choices.chooseSaveACopyProjectBundle = [this] { return saveACopyBundle; };
+        choices.chooseSaveAsTemplateName = [this] { return templateName; };
+        choices.confirmReplaceTemplate = [this] (const std::string& name) {
+            ++replaceAsks;
+            replaceAskedFor = name;
+            return replaceTemplate;
+        };
         choices.initialiseSessionAtLaunch = launchSession;
         choices.openBundleAtLaunch = openAtLaunch;
         shell = yesdaw::ui::createMainComponent (std::move (choices));
@@ -656,4 +666,338 @@ TEST_CASE ("ADR-0060 File > Save a Copy: the chooser's place gets the copy, this
 
     yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectSaveACopy);   // now occupied
     REQUIRE (statusOf (*f).contains ("Save a Copy failed: the target already exists"));
+}
+
+// ---- cp3: templates ----
+
+namespace {
+
+yesdaw::ui::UiDecodedAsset decodeTone (const std::filesystem::path& path)
+{
+    yesdaw::ui::shell::UiAudioDecodeResult decoded = yesdaw::ui::shell::decodeProjectAudio (path);
+    REQUIRE (decoded.decoded.has_value());
+    return std::move (*decoded.decoded);
+}
+
+// The layout every cp3 gate builds by hand: two tracks, two buses; track 0 sends to bus 0, carries an EQ and a
+// Compressor keyed by track 1 and plays into bus 1; bus 0 has a Delay, the master a Limiter; one marker.
+void buildLayout (yesdaw::ui::UiAppModel& model)
+{
+    using yesdaw::engine::FxKind;
+    REQUIRE (model.addAudioTrack().dispatched);
+    REQUIRE (model.dispatch (UiActionId::MixerBusAdd).dispatched);
+    REQUIRE (model.dispatch (UiActionId::MixerBusAdd).dispatched);
+    REQUIRE (model.selectMixerTrack (0));
+    REQUIRE (model.addSendOnSelectedTrack (0).dispatched);
+    REQUIRE (model.addFxInsertToSelectedStrip (FxKind::Eq).dispatched);
+    REQUIRE (model.addFxInsertToSelectedStrip (FxKind::Compressor).dispatched);
+    REQUIRE (model.setFxInsertSidechainOnSelectedStrip (1, model.project().tracks.at (1).id).dispatched);
+    REQUIRE (model.setOutputOnSelectedTrack (model.project().buses.at (1).id).dispatched);
+    REQUIRE (model.selectMixerBus (0));
+    REQUIRE (model.addFxInsertToSelectedStrip (FxKind::Delay).dispatched);
+    REQUIRE (model.selectMixerMaster());
+    REQUIRE (model.addFxInsertToSelectedStrip (FxKind::Limiter).dispatched);
+    REQUIRE (model.addTimelineMarkerAtTick (1'920).dispatched);
+}
+
+// Content a template never carries: a clip and its Asset, a MIDI clip, an automation lane, punch, loop and scale.
+void addContent (yesdaw::ui::UiAppModel& model, const std::filesystem::path& tone)
+{
+    REQUIRE (model.importAudioFileToTrack (tone, decodeTone (tone), model.project().tracks.at (0).id).ok());
+    REQUIRE (model.addMidiClipOnTrackAt (model.project().tracks.at (1).id, 0).dispatched);
+    REQUIRE (model.addAutomationBreakpointToTrackLane (model.project().tracks.at (0).id, 960, 0.5).dispatched);   // makes the lane
+    REQUIRE (model.setPunchRegion (true, 0, 48'000).dispatched);
+    REQUIRE (model.setProjectScale (2, 1, true).dispatched);
+    REQUIRE (model.setPlaybackLoopRegion (0, 96'000).dispatched);
+}
+
+// A tone on track 0, exported as float: what the project's routing makes of it.
+std::vector<float> renderTone (yesdaw::ui::UiAppModel& model, const std::filesystem::path& tone, const std::filesystem::path& wav)
+{
+    REQUIRE (model.importAudioFileToTrack (tone, decodeTone (tone), model.project().tracks.at (0).id).ok());
+    model.setExportBitDepth (yesdaw::ui::UiAppModel::UiExportBitDepth::Float32);
+    REQUIRE (model.exportAudioFile (wav).dispatched);
+    yesdaw::io::Float32Wav read;
+    REQUIRE (yesdaw::io::readFloat32WavFile (wav, read).ok());
+    return read.interleavedSamples;
+}
+
+} // namespace
+
+TEST_CASE ("ADR-0060 a template holds exactly the layout and none of the content", "[project-lifecycle]")
+{
+    const auto directory = lifecycleScratch ("template-layout");
+    writeTone (directory / "tone.wav", 48'000, 0.25f);
+    yesdaw::ui::UiAppModel model;
+    model.setSessionStateDirectory (directory / "session");
+    REQUIRE (model.createProjectBundle (directory / "song.yesdaw").ok());
+    buildLayout (model);
+    addContent (model, directory / "tone.wav");
+    const yesdaw::engine::Project source = model.project();
+    REQUIRE_FALSE (source.clips.empty());
+    REQUIRE_FALSE (source.midiClips.empty());
+    REQUIRE_FALSE (source.automationLanes.empty());
+    REQUIRE_FALSE (source.assets.empty());
+
+    REQUIRE (model.saveProjectAsTemplate ("Band: Setup", false).dispatched);
+    const auto templates = directory / "session" / "templates";
+    const auto bundle = templates / "Band_ Setup.yesdaw";   // ADR-0058's file-safe rule
+    REQUIRE (std::filesystem::is_directory (bundle));
+    REQUIRE_FALSE (anyPartialIn (templates));
+    const yesdaw::engine::Project layout = readProject (bundle);
+
+    // Kept: the tracks, buses, master, rate, tempo, meter and markers, exactly.
+    REQUIRE (layout.tracks.size() == source.tracks.size());
+    for (std::size_t i = 0; i < source.tracks.size(); ++i)
+    {
+        REQUIRE (layout.tracks[i].id == source.tracks[i].id);
+        REQUIRE (layout.tracks[i].strip == source.tracks[i].strip);
+        REQUIRE (layout.tracks[i].sends == source.tracks[i].sends);
+        REQUIRE (layout.tracks[i].outputBusId == source.tracks[i].outputBusId);
+        REQUIRE (layout.tracks[i].instrumentKind == source.tracks[i].instrumentKind);
+    }
+    REQUIRE (layout.buses == source.buses);
+    REQUIRE (layout.masterStrip == source.masterStrip);
+    REQUIRE (layout.masterLinearGain == source.masterLinearGain);
+    REQUIRE (layout.markers == source.markers);
+    REQUIRE (layout.sampleRate.hz == source.sampleRate.hz);
+    REQUIRE (layout.tempoMap.size() == source.tempoMap.size());
+    REQUIRE (layout.meterMap.size() == source.meterMap.size());
+
+    // Dropped: every piece of content.
+    const yesdaw::engine::Project empty;
+    REQUIRE (layout.clips.empty());
+    REQUIRE (layout.midiClips.empty());
+    REQUIRE (layout.assets.empty());
+    REQUIRE (layout.recordingTakes.empty());
+    REQUIRE (layout.recordingCompSegments.empty());
+    REQUIRE (layout.automationLanes.empty());
+    REQUIRE (layout.punchRegion == empty.punchRegion);
+    REQUIRE (layout.loopRegion == empty.loopRegion);
+    REQUIRE (layout.scale == empty.scale);
+    REQUIRE (layout.automationMode == empty.automationMode);
+    REQUIRE (std::filesystem::is_empty (bundle / "audio"));
+
+    // A Sampler keeps its kind and loses its pads; nothing stays soloed; locate points go.
+    yesdaw::engine::Project withPads = source;
+    withPads.tracks.at (1).instrumentKind = yesdaw::engine::TrackInstrumentKind::Sampler;
+    yesdaw::engine::SamplerPad pad;
+    pad.key = 60;
+    pad.assetId = source.assets.at (0).id;
+    withPads.tracks.at (1).samplerPads.push_back (pad);
+    withPads.tracks.at (0).strip.soloed = true;
+    withPads.locatePoints[0] = 480;
+    const yesdaw::engine::Project padless = yesdaw::ui::UiAppModel::makeTemplateLayout (withPads);
+    REQUIRE (padless.tracks.at (1).instrumentKind == yesdaw::engine::TrackInstrumentKind::Sampler);
+    REQUIRE (padless.tracks.at (1).samplerPads.empty());
+    REQUIRE_FALSE (padless.tracks.at (0).strip.soloed);
+    REQUIRE_FALSE (padless.locatePoints[0].has_value());
+    REQUIRE (yesdaw::ui::UiAppModel::isTemplateLayout (padless));
+    REQUIRE_FALSE (yesdaw::ui::UiAppModel::isTemplateLayout (withPads));
+    const yesdaw::engine::Project fromPadless = yesdaw::ui::UiAppModel::instantiateTemplate (padless);
+    REQUIRE (fromPadless.tracks.at (1).instrumentKind == yesdaw::engine::TrackInstrumentKind::Sampler);
+    REQUIRE (fromPadless.tracks.at (1).samplerPads.empty());
+
+    // A bundle put in the templates folder by hand brings only its layout into a new project.
+    withPads.loopRegion = yesdaw::engine::LoopRegion { true, 0, 96'000 };
+    withPads.automationMode = yesdaw::engine::AutomationMode::Latch;
+    const yesdaw::engine::Project fromFull = yesdaw::ui::UiAppModel::instantiateTemplate (withPads);
+    REQUIRE (fromFull.clips.empty());
+    REQUIRE (fromFull.assets.empty());
+    REQUIRE (fromFull.automationLanes.empty());
+    REQUIRE (fromFull.tracks.at (1).samplerPads.empty());
+    REQUIRE (fromFull.loopRegion == empty.loopRegion);
+    REQUIRE (fromFull.punchRegion == empty.punchRegion);
+    REQUIRE (fromFull.scale == empty.scale);
+    REQUIRE (fromFull.automationMode == empty.automationMode);
+    REQUIRE_FALSE (fromFull.locatePoints[0].has_value());
+    REQUIRE_FALSE (fromFull.tracks.at (0).strip.soloed);
+}
+
+TEST_CASE ("ADR-0060 New from a template: its layout with fresh identities; a tone renders as through a hand-built twin",
+           "[project-lifecycle]")
+{
+    LifecycleShell f ("from-template");
+    writeTone (f.directory / "tone.wav", 48'000, 0.25f);
+    yesdaw::engine::Project templateLayout;
+    {
+        yesdaw::ui::UiAppModel source;   // shares the shell's session folder, so the shell sees its templates
+        source.setSessionStateDirectory (f.directory / "session");
+        REQUIRE (source.createProjectBundle (f.directory / "source.yesdaw").ok());
+        buildLayout (source);
+        addContent (source, f.directory / "tone.wav");
+        REQUIRE (source.saveProjectAsTemplate ("Band", false).dispatched);
+        templateLayout = readProject (f.directory / "session" / "templates" / "Band.yesdaw");
+    }
+    UiNewProjectChoices choices = choicesOf (48'000.0, 120.0, 4, 4);
+    choices.templateName = "Band";
+    f.newProject ("song", choices);
+    f.shell.reset();
+    const yesdaw::engine::Project project = readProject (f.directory / "song.yesdaw");
+    REQUIRE (project.tracks.size() == templateLayout.tracks.size());
+    REQUIRE (project.buses.size() == templateLayout.buses.size());
+    REQUIRE (project.markers.size() == templateLayout.markers.size());
+    REQUIRE (project.clips.empty());
+
+    // Fresh identities: nothing in the project carries an ID of the template.
+    const auto requireFresh = [&templateLayout] (yesdaw::engine::EntityId id) {
+        REQUIRE (id.isValid());
+        REQUIRE_FALSE (yesdaw::engine::detail::projectContainsEntityId (templateLayout, id));
+    };
+    const auto requireFreshStrip = [&requireFresh] (const yesdaw::engine::MixerStripState& strip) {
+        for (const yesdaw::engine::FxInsert& insert : strip.fxChain)
+            requireFresh (insert.id);
+    };
+    requireFresh (project.id);
+    for (const yesdaw::engine::Track& track : project.tracks)
+    {
+        requireFresh (track.id);
+        requireFreshStrip (track.strip);
+        for (const yesdaw::engine::SendRow& send : track.sends)
+            requireFresh (send.id);
+    }
+    for (const yesdaw::engine::Bus& bus : project.buses)
+    {
+        requireFresh (bus.id);
+        requireFreshStrip (bus.strip);
+        for (const yesdaw::engine::SendRow& send : bus.sends)
+            requireFresh (send.id);
+    }
+    requireFreshStrip (project.masterStrip);
+    for (const yesdaw::engine::Marker& marker : project.markers)
+        requireFresh (marker.id);
+
+    // The routing, rewired through the one map.
+    REQUIRE (project.tracks.at (0).outputBusId == project.buses.at (1).id);
+    REQUIRE (project.tracks.at (0).sends.at (0).busId == project.buses.at (0).id);
+    REQUIRE (project.tracks.at (0).strip.fxChain.at (1).sidechainSourceId == project.tracks.at (1).id);
+    REQUIRE (project.masterStrip.fxChain.size() == templateLayout.masterStrip.fxChain.size());
+
+    // A test tone through the new project renders as through a hand-built twin of the layout.
+    yesdaw::ui::UiAppModel fromTemplate;
+    REQUIRE (fromTemplate.openProjectBundle (f.directory / "song.yesdaw").ok());
+    yesdaw::ui::UiAppModel twin;
+    REQUIRE (twin.createProjectBundle (f.directory / "twin.yesdaw").ok());
+    buildLayout (twin);
+    const std::vector<float> rendered = renderTone (fromTemplate, f.directory / "tone.wav", f.directory / "from-template.wav");
+    const std::vector<float> expected = renderTone (twin, f.directory / "tone.wav", f.directory / "twin.wav");
+    REQUIRE (rendered.size() == expected.size());
+    float peak = 0.0f;
+    float worst = 0.0f;
+    for (std::size_t i = 0; i < expected.size(); ++i)
+    {
+        peak = std::max (peak, std::abs (expected[i]));
+        worst = std::max (worst, std::abs (rendered[i] - expected[i]));
+    }
+    REQUIRE (peak > 0.01f);
+    REQUIRE (worst <= 1.0e-6f);
+}
+
+TEST_CASE ("ADR-0060 the dialog lists the templates folder: Default first, a refused one with its reason and not "
+           "choosable; choosing one sets the rate, tempo and meter",
+           "[project-lifecycle]")
+{
+    LifecycleShell f ("template-list", true);
+    const auto templates = f.directory / "session" / "templates";
+    {
+        yesdaw::ui::UiAppModel maker;
+        maker.setSessionStateDirectory (f.directory / "session");
+        REQUIRE (maker.createProjectBundle (f.directory / "cd.yesdaw",
+                                            yesdaw::ui::UiAppModel::makeNewSessionProject (choicesOf (44'100.0, 96.0, 7, 8))).ok());
+        REQUIRE (maker.saveProjectAsTemplate ("Band", false).dispatched);
+        // A bundle with content dropped into the folder by hand, and one that does not open.
+        writeTone (f.directory / "tone.wav", 48'000, 0.25f);
+        REQUIRE (maker.createProjectBundle (templates / "Full.yesdaw").ok());
+        REQUIRE (maker.importAudioFile (f.directory / "tone.wav", decodeTone (f.directory / "tone.wav")).ok());
+    }
+    std::filesystem::create_directories (templates / "Broken.yesdaw");
+    {
+        std::ofstream garbage (templates / "Broken.yesdaw" / "project.db", std::ios::binary);
+        garbage << "not a database";
+    }
+    std::filesystem::create_directories (templates / "Band.yesdaw.1.partial");   // never listed
+
+    f.nextBundle = f.directory / "keyed.yesdaw";
+    REQUIRE (press (*f, 'n', juce::ModifierKeys::ctrlModifier));
+    const auto items = yesdaw::ui::mainComponentNewProjectDialogTemplateItems (*f);
+    REQUIRE (items.size() == 4u);
+    REQUIRE (items[0] == std::pair<std::string, bool> { "Default (one audio track)", true });
+    REQUIRE (items[1] == std::pair<std::string, bool> { "Band", true });
+    REQUIRE (items[2].first.rfind ("Broken - cannot be used: ", 0) == 0);
+    REQUIRE_FALSE (items[2].second);
+    REQUIRE (items[3].first == "Full - cannot be used: it holds content (clips, audio or automation)");
+    REQUIRE_FALSE (items[3].second);
+    REQUIRE (yesdaw::ui::mainComponentNewProjectDialogChoices (*f).sampleRateHz == 48'000.0);
+
+    // The keyboard picks Band: its rate, tempo and meter fill the dialog. Down from Band skips the refused ones.
+    const auto order = yesdaw::ui::mainComponentControlTraversal (*f);
+    REQUIRE (press (*f, juce::KeyPress::tabKey));
+    for (std::size_t i = 0; i < order.size() && yesdaw::ui::mainComponentControlTarget (*f).id != "newproject.template"; ++i)
+        REQUIRE (press (*f, juce::KeyPress::tabKey));
+    REQUIRE (yesdaw::ui::mainComponentControlTarget (*f).id == "newproject.template");
+    REQUIRE (press (*f, juce::KeyPress::returnKey));
+    REQUIRE (press (*f, juce::KeyPress::downKey));
+    REQUIRE (press (*f, juce::KeyPress::returnKey));
+    UiNewProjectChoices shown = yesdaw::ui::mainComponentNewProjectDialogChoices (*f);
+    REQUIRE (shown.templateName == "Band");
+    REQUIRE (shown.sampleRateHz == 44'100.0);
+    REQUIRE (shown.bpm == 96.0);
+    REQUIRE (shown.meterNumerator == 7u);
+    REQUIRE (shown.meterDenominator == 8u);
+    REQUIRE (press (*f, juce::KeyPress::returnKey));
+    REQUIRE (press (*f, juce::KeyPress::downKey));
+    REQUIRE (press (*f, juce::KeyPress::returnKey));
+    REQUIRE (yesdaw::ui::mainComponentNewProjectDialogChoices (*f).templateName == "Band");
+
+    for (std::size_t i = 0; i < order.size() && yesdaw::ui::mainComponentControlTarget (*f).id != "newproject.create"; ++i)
+        REQUIRE (press (*f, juce::KeyPress::tabKey));
+    REQUIRE (press (*f, juce::KeyPress::returnKey));
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);   // the button's click is posted
+    const yesdaw::engine::Project created = readProject (f.directory / "keyed.yesdaw");
+    REQUIRE (created.sampleRate.hz == 44'100.0);
+    REQUIRE (created.meterMap.front().numerator == 7u);
+}
+
+TEST_CASE ("ADR-0060 Save as Template asks before replacing a template; a template that cannot be used refuses New",
+           "[project-lifecycle]")
+{
+    LifecycleShell f ("template-replace");
+    f.newProject ("song", choicesOf (48'000.0, 120.0, 4, 4));
+    const auto bundle = f.directory / "session" / "templates" / "Mine.yesdaw";
+    f.templateName = "Mine";
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectSaveAsTemplate);
+    REQUIRE (readProject (bundle).tracks.size() == 1u);
+    REQUIRE (f.replaceAsks == 0);
+
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::TrackAdd);
+    f.replaceTemplate = false;   // keep it
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectSaveAsTemplate);
+    REQUIRE (f.replaceAsks == 1);
+    REQUIRE (readProject (bundle).tracks.size() == 1u);
+    f.replaceTemplate = true;    // replace it
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectSaveAsTemplate);
+    REQUIRE (f.replaceAsks == 2);
+    REQUIRE (readProject (bundle).tracks.size() == 2u);
+    REQUIRE_FALSE (anyPartialIn (f.directory / "session" / "templates"));
+    REQUIRE_FALSE (std::filesystem::exists (f.directory / "session" / "templates" / "Mine.yesdaw.replaced"));
+
+    f.templateName.clear();   // a cancelled name writes nothing
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectSaveAsTemplate);
+    REQUIRE (f.replaceAsks == 2);
+
+    // Two typed names that share one file name: the question names the template it would replace.
+    f.templateName = "A?B";
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectSaveAsTemplate);
+    f.templateName = "A/B";
+    f.replaceTemplate = false;
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectSaveAsTemplate);
+    REQUIRE (f.replaceAsks == 3);
+    REQUIRE (f.replaceAskedFor == "A_B");
+
+    std::filesystem::create_directories (f.directory / "session" / "templates" / "Broken.yesdaw");
+    UiNewProjectChoices broken = choicesOf (48'000.0, 120.0, 4, 4);
+    broken.templateName = "Broken";
+    f.newProject ("never", broken);
+    REQUIRE (statusOf (*f).contains ("New project refused: the template Broken cannot be used"));
+    REQUIRE_FALSE (std::filesystem::exists (f.directory / "never.yesdaw"));
 }

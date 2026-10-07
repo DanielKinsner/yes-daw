@@ -17,4 +17,10 @@ namespace yesdaw::io {
     return std::string (reinterpret_cast<const char*> (text.data()), text.size());
 }
 
+// UTF-8 text (a name the user typed) as a path, never through the ANSI code page.
+[[nodiscard]] inline std::filesystem::path pathFromUtf8 (const std::string& text)
+{
+    return std::filesystem::path (std::u8string (reinterpret_cast<const char8_t*> (text.data()), text.size()));
+}
+
 } // namespace yesdaw::io

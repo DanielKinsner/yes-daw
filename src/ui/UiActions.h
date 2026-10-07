@@ -273,6 +273,7 @@ enum class UiActionId : std::uint8_t
     MasterMonitorMuteToggle,    // G4.7 / ADR-0053: the monitor silent — session state, never an edit
     ViewBrowser,                // G5.2 / ADR-0056: the media browser dock tab (Y)
     ProjectSaveACopy,           // G5.5 / ADR-0060: write a copy of the project; keep working in this one
+    ProjectSaveAsTemplate,      // G5.5 / ADR-0060: the project's layout as a template for new projects
     Count
 };
 
@@ -1188,6 +1189,9 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, false, false, false, false },
     // G5.5 / ADR-0060: no default chord (Logic's and Pro Tools' copy commands carry none).
     { UiActionId::ProjectSaveACopy, "project.save_a_copy", "Save a Copy", "", "Save a copy of the project and keep working in this one",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::ProjectSaveAsTemplate, "project.save_as_template", "Save as Template", "",
+      "Save this project's tracks, buses and routing as a template for new projects",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
@@ -2319,6 +2323,7 @@ public:
                 break;
 
             case UiActionId::ProjectSaveACopy:   // G5.5 / ADR-0060: the copy changes nothing here (the source stays current)
+            case UiActionId::ProjectSaveAsTemplate:   // nor does writing a template
                 break;
 
             case UiActionId::Count:

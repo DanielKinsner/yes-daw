@@ -1405,6 +1405,22 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
     yesdaw::ui::MainComponentFileChoices choices;
     choices.newProjectDialog = true;   // ADR-0060: the New Project overlay
     choices.nativePrompts = true;      // and the unsaved-changes box before New / Open
+    choices.chooseSaveAsTemplateName = [] {   // ADR-0060: File > Save as Template
+        juce::AlertWindow window ("Save as Template", "The template's name (its tracks, buses and routing are saved):",
+                                  juce::MessageBoxIconType::NoIcon);
+        window.addTextEditor ("name", "My template");
+        window.addButton ("Save", 1, juce::KeyPress (juce::KeyPress::returnKey));
+        window.addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+        if (window.runModalLoop() != 1)
+            return std::string {};
+        return window.getTextEditorContents ("name").trim().toStdString();
+    };
+    choices.confirmReplaceTemplate = [] (const std::string& name) {
+        return juce::AlertWindow::showOkCancelBox (juce::MessageBoxIconType::WarningIcon, "Replace template?",
+                                                   "A template named " + juce::String::fromUTF8 (name.c_str())
+                                                       + " exists. Replace it?",
+                                                   "Replace", "Cancel");
+    };
 
     choices.chooseNewProjectBundle = [] {
         const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
@@ -2236,6 +2252,18 @@ UiNewProjectChoices mainComponentNewProjectDialogChoices (juce::Component& compo
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         return mainComponent->harnessNewProjectDialog().choices();
     return {};
+}
+
+std::vector<std::pair<std::string, bool>> mainComponentNewProjectDialogTemplateItems (juce::Component& component)
+{
+    std::vector<std::pair<std::string, bool>> items;
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        const juce::ComboBox& chooser = mainComponent->harnessNewProjectDialog().templateChooser;
+        for (int i = 0; i < chooser.getNumItems(); ++i)
+            items.emplace_back (chooser.getItemText (i).toStdString(), chooser.isItemEnabled (chooser.getItemId (i)));
+    }
+    return items;
 }
 
 void mainComponentWaitForExport (juce::Component& component)

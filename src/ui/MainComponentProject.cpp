@@ -38,7 +38,7 @@ void MainComponent::beginNewProject()
     }
     if (fileChoices.newProjectDialog)
     {
-        newProjectDialog.show (appModel.newProjectChoices(), {});   // cp3 lists the user's templates
+        newProjectDialog.show (appModel.newProjectChoices(), appModel.listTemplates());
         resized();
         refreshActionState();
         repaintAll();
@@ -48,7 +48,8 @@ void MainComponent::beginNewProject()
 }
 
 // `chosenInDialog`: the dialog's rate, tempo and meter win over an injected project's (the harness's immediate
-// path keeps an injected project exactly as injected).
+// path keeps an injected project exactly as injected). A template (ADR-0060 cp3) is read before the location is
+// asked for, and arrives with fresh identities.
 void MainComponent::createNewProject (const UiNewProjectChoices& choices, bool chosenInDialog)
 {
     newProjectDialog.setVisible (false);
@@ -57,6 +58,24 @@ void MainComponent::createNewProject (const UiNewProjectChoices& choices, bool c
         appModel.reportStatus ("New project refused: the sample rate, tempo or meter is out of range", true);
         return;
     }
+    engine::Project project = UiAppModel::makeDefaultSessionProject();
+    if (fileChoices.makeNewProject)
+    {
+        project = fileChoices.makeNewProject();
+    }
+    else if (! choices.templateName.empty())
+    {
+        std::string reason;
+        const std::optional<engine::Project> layout = appModel.loadTemplateLayout (choices.templateName, reason);
+        if (! layout.has_value())
+        {
+            appModel.reportStatus ("New project refused: the template " + choices.templateName + " cannot be used (" + reason + ")", true);
+            return;
+        }
+        project = UiAppModel::instantiateTemplate (*layout);
+    }
+    if (chosenInDialog || ! fileChoices.makeNewProject)
+        UiAppModel::applyNewProjectChoices (project, choices);
     if (! fileChoices.chooseNewProjectBundle)
         return;
     const std::filesystem::path path = fileChoices.chooseNewProjectBundle();
@@ -69,9 +88,6 @@ void MainComponent::createNewProject (const UiNewProjectChoices& choices, bool c
         return;
     }
     // R4: a failed create paints its reason instead of vanishing; what it wrote goes, the current project stays.
-    engine::Project project = fileChoices.makeNewProject ? fileChoices.makeNewProject() : UiAppModel::makeDefaultSessionProject();
-    if (chosenInDialog || ! fileChoices.makeNewProject)
-        UiAppModel::applyNewProjectChoices (project, choices);
     const yesdaw::persistence::BundleResult created = appModel.createProjectBundle (path, std::move (project));
     if (! created.ok())
     {
@@ -167,6 +183,22 @@ void MainComponent::requestProjectDeviceRate()
         appModel.reportStatus ("Audio device runs at " + std::to_string (static_cast<long long> (deviceHz)) + " Hz but this project is "
                                    + std::to_string (static_cast<long long> (projectHz)) + " Hz - playback speed will be wrong",
                                true);
+}
+
+// File > Save as Template (ADR-0060): a name, the replace question when that name is taken, then the layout.
+void MainComponent::saveProjectAsTemplate()
+{
+    if (! fileChoices.chooseSaveAsTemplateName)
+        return;
+    const std::string name = fileChoices.chooseSaveAsTemplateName();
+    if (name.empty())
+        return;
+    const bool taken = appModel.templateExists (name);
+    if (taken && ! (fileChoices.confirmReplaceTemplate && fileChoices.confirmReplaceTemplate (appModel.templateListedName (name))))
+        return;
+    const UiActionDispatchResult saved = appModel.saveProjectAsTemplate (name, taken);
+    if (! saved.dispatched)
+        appModel.reportStatus (std::string ("Save as Template failed: ") + saved.state.disabledReason, true);
 }
 
 // File > Save a Copy (ADR-0060): the copy is written and closed; this project stays current, saved or not.

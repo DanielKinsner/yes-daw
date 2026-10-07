@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <locale>
+#include <random>
 #include <sstream>
 #include <atomic>
 #include <chrono>
@@ -288,6 +289,17 @@ struct UiNewProjectChoices
     std::uint16_t meterNumerator = 4;
     std::uint16_t meterDenominator = 4;
     std::string templateName;   // empty = Default (one audio track)
+};
+
+// ADR-0060 cp3: one entry of the templates folder as the New Project dialog lists it.
+struct UiTemplateInfo
+{
+    std::string name;      // the bundle's name without ".yesdaw" (UTF-8)
+    std::string refusal;   // empty = usable; else why it cannot be chosen
+    double sampleRateHz = 48'000.0;
+    double bpm = 120.0;
+    std::uint16_t meterNumerator = 4;
+    std::uint16_t meterDenominator = 4;
 };
 
 struct UiRecordingTrackInputSelection
@@ -2380,12 +2392,22 @@ public:
             && choices.meterNumerator >= 1u && choices.meterNumerator <= 32u;
     }
 
-    // The dialog's rate, tempo and meter on a project (the Default template's, or one a test injects).
+    // The dialog's rate, tempo and meter on a project (the Default template's, a user template's, or one a test
+    // injects): the rate, and the tempo and meter at the start — a template's later changes stay.
     static void applyNewProjectChoices (engine::Project& project, const UiNewProjectChoices& choices)
     {
         project.sampleRate = engine::SampleRate { choices.sampleRateHz };
-        project.tempoMap = { { 0, choices.bpm, engine::TempoCurve::Jump } };
-        project.meterMap = { { 0, choices.meterNumerator, choices.meterDenominator } };
+        if (project.tempoMap.empty() || project.tempoMap.front().tick != 0)
+            project.tempoMap.insert (project.tempoMap.begin(), engine::TempoChange { 0, choices.bpm, engine::TempoCurve::Jump });
+        else
+            project.tempoMap.front().bpm = choices.bpm;
+        if (project.meterMap.empty() || project.meterMap.front().tick != 0)
+            project.meterMap.insert (project.meterMap.begin(), engine::MeterChange { 0, choices.meterNumerator, choices.meterDenominator });
+        else
+        {
+            project.meterMap.front().numerator = choices.meterNumerator;
+            project.meterMap.front().denominator = choices.meterDenominator;
+        }
     }
 
     // The Default template (one audio track) at the chosen rate, tempo and meter.
@@ -2457,6 +2479,302 @@ public:
                                    "bpm=" + text (choices.bpm),
                                    "meter=" + std::to_string (choices.meterNumerator) + "/" + std::to_string (choices.meterDenominator),
                                    "template=" + choices.templateName });
+    }
+
+    // ---- ADR-0060 cp3: templates — a project's layout without content, per user in <session state>/templates/ ----
+    static constexpr const char* kTemplatesFolderName = "templates";
+
+    // The layout a template holds. Kept: the tracks (name, colour, height, instrument kind and parameters, strip —
+    // gain, pan, mute, solo-safe and inserts — sends, output; a Sampler keeps its kind with no pads), the buses (the
+    // same), the master strip and gain, the rate, the tempo map, the meter and the markers. Everything else is the
+    // empty project's: no clips, MIDI clips, takes, comp segments, Assets, pads or automation lanes (the automation
+    // mode its default), no locate points, loop or punch region or scale, nothing soloed.
+    [[nodiscard]] static engine::Project makeTemplateLayout (const engine::Project& project)
+    {
+        engine::Project layout;
+        layout.id = project.id;
+        layout.sampleRate = project.sampleRate;
+        layout.tracks = project.tracks;
+        layout.buses = project.buses;
+        layout.tempoMap = project.tempoMap;
+        layout.meterMap = project.meterMap;
+        layout.markers = project.markers;
+        layout.masterLinearGain = project.masterLinearGain;
+        layout.masterStrip = project.masterStrip;
+        layout.masterStrip.soloed = false;
+        for (engine::Track& track : layout.tracks)
+        {
+            track.samplerPads.clear();
+            track.strip.soloed = false;
+        }
+        for (engine::Bus& bus : layout.buses)
+            bus.strip.soloed = false;
+        return layout;
+    }
+
+    // Whether `project` holds a layout only (what the dialog lists as usable).
+    [[nodiscard]] static bool isTemplateLayout (const engine::Project& project) noexcept
+    {
+        bool padless = true;
+        for (const engine::Track& track : project.tracks)
+            padless = padless && track.samplerPads.empty();
+        return padless && project.assets.empty() && project.clips.empty() && project.midiClips.empty()
+            && project.recordingTakes.empty() && project.recordingCompSegments.empty() && project.automationLanes.empty();
+    }
+
+    // A project from a template with fresh identities (ADR-0011): the template's layout only (a bundle someone put
+    // in the folder by hand brings no loop, punch, scale, locate points or automation mode with it), a new project
+    // ID and a new ID for every track, bus, FX insert (on tracks, buses and the master), send and marker; every
+    // reference between them — an output bus, a send's bus, a Compressor's sidechain source — rewritten through one
+    // map. No ID of the template remains.
+    [[nodiscard]] static engine::Project instantiateTemplate (const engine::Project& templateProject)
+    {
+        const engine::Project layout = makeTemplateLayout (templateProject);
+        engine::UlidEntropy entropy {};
+        std::random_device device;
+        for (std::uint8_t& byte : entropy)
+            byte = static_cast<std::uint8_t> (device() & 0xffu);
+        const auto now = std::chrono::system_clock::now().time_since_epoch();
+        const auto millis = std::chrono::duration_cast<std::chrono::milliseconds> (now).count();
+        const std::uint64_t timestamp = millis > 0 ? static_cast<std::uint64_t> (millis) : std::uint64_t { 0 };
+        engine::EntityIdAllocator allocator (entropy);
+        std::vector<std::pair<engine::EntityId, engine::EntityId>> remap;
+        const auto fresh = [&] (engine::EntityId old) {
+            for (std::uint64_t attempt = 0; attempt < 1'024; ++attempt)
+            {
+                const engine::EntityId id = allocator.allocate (timestamp + attempt / 16u);
+                if (id.isValid() && ! engine::detail::projectContainsEntityId (templateProject, id))
+                {
+                    remap.emplace_back (old, id);
+                    return id;
+                }
+            }
+            return engine::EntityId {};   // never in practice; an invalid id fails the project's validation loudly
+        };
+        const auto lookup = [&remap] (engine::EntityId old) {
+            if (! old.isValid())
+                return old;
+            for (const auto& [from, to] : remap)
+                if (from == old)
+                    return to;
+            return engine::EntityId {};
+        };
+        const auto freshInserts = [&fresh] (engine::MixerStripState& strip) {
+            for (engine::FxInsert& insert : strip.fxChain)
+                insert.id = fresh (insert.id);
+        };
+        const auto rewireInserts = [&lookup] (engine::MixerStripState& strip) {
+            for (engine::FxInsert& insert : strip.fxChain)
+                insert.sidechainSourceId = lookup (insert.sidechainSourceId);
+        };
+
+        engine::Project project = layout;
+        project.id = fresh (layout.id);
+        for (engine::Track& track : project.tracks)
+        {
+            track.id = fresh (track.id);
+            freshInserts (track.strip);
+            for (engine::SendRow& send : track.sends)
+                send.id = fresh (send.id);
+        }
+        for (engine::Bus& bus : project.buses)
+        {
+            bus.id = fresh (bus.id);
+            freshInserts (bus.strip);
+            for (engine::SendRow& send : bus.sends)
+                send.id = fresh (send.id);
+        }
+        freshInserts (project.masterStrip);
+        for (engine::Marker& marker : project.markers)
+            marker.id = fresh (marker.id);
+
+        for (engine::Track& track : project.tracks)
+        {
+            track.outputBusId = lookup (track.outputBusId);
+            for (engine::SendRow& send : track.sends)
+                send.busId = lookup (send.busId);
+            rewireInserts (track.strip);
+        }
+        for (engine::Bus& bus : project.buses)
+        {
+            bus.outputBusId = lookup (bus.outputBusId);
+            for (engine::SendRow& send : bus.sends)
+                send.busId = lookup (send.busId);
+            rewireInserts (bus.strip);
+        }
+        rewireInserts (project.masterStrip);
+        return project;
+    }
+
+    [[nodiscard]] std::filesystem::path templatesDirectory() const
+    {
+        return sessionStateDirectory_.empty() ? std::filesystem::path {} : sessionStateDirectory_ / kTemplatesFolderName;
+    }
+
+    // A template's bundle: its name made file-safe by ADR-0058's rule. Empty when there is no name or no folder.
+    [[nodiscard]] std::filesystem::path templateBundlePath (const std::string& name) const
+    {
+        if (name.find_first_not_of (" \t") == std::string::npos || templatesDirectory().empty())
+            return {};
+        return templatesDirectory() / io::pathFromUtf8 (app::exportSafeName (name) + ".yesdaw");
+    }
+
+    // The name a template is listed under (its file's): two typed names can share one, so the replace question
+    // names the template it would replace.
+    [[nodiscard]] std::string templateListedName (const std::string& name) const
+    {
+        return io::utf8Text (templateBundlePath (name).stem());
+    }
+
+    [[nodiscard]] bool templateExists (const std::string& name) const
+    {
+        std::error_code error;
+        const std::filesystem::path path = templateBundlePath (name);
+        return ! path.empty() && std::filesystem::exists (path, error);
+    }
+
+    // A template bundle's layout, or why it cannot be used (it does not open, or it holds content).
+    [[nodiscard]] static std::optional<engine::Project> readTemplateLayout (const std::filesystem::path& bundle,
+                                                                          std::string& reason)
+    {
+        persistence::ProjectBundleDb db;
+        if (const persistence::BundleResult opened = persistence::ProjectBundleDb::openExistingBundle (bundle, db); ! opened.ok())
+        {
+            reason = opened.message.empty() ? std::string ("it does not open") : opened.message;
+            return std::nullopt;
+        }
+        engine::Project project;
+        if (const persistence::BundleResult read = db.readProjectSnapshot (project); ! read.ok())
+        {
+            reason = read.message.empty() ? std::string ("it cannot be read") : read.message;
+            return std::nullopt;
+        }
+        if (! isTemplateLayout (project))
+        {
+            reason = "it holds content (clips, audio or automation)";
+            return std::nullopt;
+        }
+        return project;
+    }
+
+    [[nodiscard]] std::optional<engine::Project> loadTemplateLayout (const std::string& name, std::string& reason) const
+    {
+        const std::filesystem::path path = templateBundlePath (name);
+        if (path.empty())
+        {
+            reason = "there is no templates folder";
+            return std::nullopt;
+        }
+        return readTemplateLayout (path, reason);
+    }
+
+    // The templates folder as the dialog lists it, by name; a template that cannot be used carries its reason.
+    [[nodiscard]] std::vector<UiTemplateInfo> listTemplates() const
+    {
+        namespace fs = std::filesystem;
+        std::vector<UiTemplateInfo> out;
+        const fs::path folder = templatesDirectory();
+        std::error_code error;
+        if (folder.empty() || ! fs::is_directory (folder, error))
+            return out;
+        for (fs::directory_iterator entry (folder, error), end; ! error && entry != end; entry.increment (error))
+        {
+            std::error_code status;
+            if (entry->path().extension() != ".yesdaw" || ! entry->is_directory (status))
+                continue;
+            UiTemplateInfo info;
+            info.name = io::utf8Text (entry->path().stem());
+            std::string reason;
+            if (const std::optional<engine::Project> layout = readTemplateLayout (entry->path(), reason))
+            {
+                info.sampleRateHz = layout->sampleRate.hz;
+                if (! layout->tempoMap.empty())
+                    info.bpm = layout->tempoMap.front().bpm;
+                if (! layout->meterMap.empty())
+                {
+                    info.meterNumerator = layout->meterMap.front().numerator;
+                    info.meterDenominator = layout->meterMap.front().denominator;
+                }
+            }
+            else
+            {
+                info.refusal = reason;
+            }
+            out.push_back (std::move (info));
+        }
+        std::sort (out.begin(), out.end(), [] (const UiTemplateInfo& a, const UiTemplateInfo& b) { return a.name < b.name; });
+        return out;
+    }
+
+    // `File > Save as Template...` (ADR-0060): the current project's layout as `<templates>/<safe name>.yesdaw`,
+    // written whole into a `.partial` sibling and renamed into place. A template of that name is replaced only when
+    // `replace` (the shell asks first); the old one is set aside until the new one is in place.
+    [[nodiscard]] UiActionDispatchResult saveProjectAsTemplate (const std::string& name, bool replace)
+    {
+        namespace fs = std::filesystem;
+        const UiActionId id = UiActionId::ProjectSaveAsTemplate;
+        const UiActionState state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        const fs::path target = templateBundlePath (name);
+        if (target.empty())
+            return { id, { false, "template name required" }, false };
+        std::error_code error;
+        fs::create_directories (target.parent_path(), error);
+        if (error)
+            return { id, { false, "the templates folder could not be created" }, false };
+        const bool taken = fs::exists (target, error);
+        if (error)
+            return { id, { false, "the template could not be inspected" }, false };
+        if (taken && ! replace)
+            return { id, { false, "a template of that name exists" }, false };
+
+        fs::path partial;
+        for (int n = 1; n < 1'000 && partial.empty(); ++n)
+        {
+            fs::path candidate = target;
+            candidate += "." + std::to_string (n) + ".partial";
+            if (! fs::exists (candidate, error) && ! error)
+                partial = candidate;
+        }
+        if (partial.empty())
+            return { id, { false, "the template could not be written" }, false };
+        const auto abandon = [&partial] (const char* reason) {
+            std::error_code removed;
+            fs::remove_all (partial, removed);
+            return reason;
+        };
+        {
+            persistence::ProjectBundleDb db;
+            if (! persistence::ProjectBundleDb::openOrCreateBundle (partial, db).ok()
+                || ! db.writeProjectSnapshot (makeTemplateLayout (project_)).ok())
+                return { id, { false, abandon ("the template could not be written") }, false };
+        }   // closed before the rename
+        fs::path aside;
+        if (taken)
+        {
+            aside = target;
+            aside += ".replaced";
+            fs::remove_all (aside, error);
+            error.clear();
+            fs::rename (target, aside, error);
+            if (error)
+                return { id, { false, abandon ("the old template could not be replaced") }, false };
+        }
+        fs::rename (partial, target, error);
+        if (error)
+        {
+            std::error_code restored;
+            if (! aside.empty())
+                fs::rename (aside, target, restored);
+            return { id, { false, abandon (aside.empty() || ! restored ? "the template could not be moved into place"
+                                                                       : "the template could not be moved into place; "
+                                                                         "the old one is kept beside it as .replaced") }, false };
+        }
+        if (! aside.empty())
+            fs::remove_all (aside, error);
+        ++context_.commandDispatchCount;
+        return { id, state, true };
     }
 
     // The adopted device's rate (0 when none), and a rate the shell had the device switch to (ADR-0060).
@@ -9403,6 +9721,9 @@ public:
 
             case UiActionId::ProjectSaveACopy:   // ADR-0060: the shell's chooser supplies the path
                 return { id, { false, "save-a-copy path required" }, false };
+
+            case UiActionId::ProjectSaveAsTemplate:   // ADR-0060: the shell asks for the name
+                return { id, { false, "template name required" }, false };
 
             case UiActionId::ProjectSave:
             {

@@ -29,6 +29,10 @@ struct MainComponentFileChoices
     std::function<std::filesystem::path()> chooseOpenProjectBundle;
     std::function<std::filesystem::path()> chooseSaveAsProjectBundle;
     std::function<std::filesystem::path()> chooseSaveACopyProjectBundle;   // ADR-0060: File > Save a Copy
+    // ADR-0060: File > Save as Template asks for a name (empty = cancelled), and whether to replace a template of
+    // that name (no answer = keep it).
+    std::function<std::string()> chooseSaveAsTemplateName;
+    std::function<bool (const std::string& name)> confirmReplaceTemplate;
     std::function<std::filesystem::path()> chooseImportAudioFile;
     std::function<std::filesystem::path()> chooseExportAudioFile;
     // G3.7: the MIDI file choosers (the native shell opens a file box; the harness injects a path).
@@ -389,6 +393,8 @@ void mainComponentBrowserPressPlayMark (juce::Component& component, int row);   
 void mainComponentSetDeviceCallbackLiveForTest (juce::Component& component, bool live);
 // ADR-0060: the New Project dialog's current choices (what Create would use).
 [[nodiscard]] UiNewProjectChoices mainComponentNewProjectDialogChoices (juce::Component& component);
+// ADR-0060 cp3: the New Project dialog's Template list as shown — each item's text and whether it can be chosen.
+[[nodiscard]] std::vector<std::pair<std::string, bool>> mainComponentNewProjectDialogTemplateItems (juce::Component& component);
 // ADR-0058: wait for the running export job and show its outcome (the UI tick's path, joined).
 void mainComponentWaitForExport (juce::Component& component);
 // G3.2: the roll's painted grid lines (tick, x, kind 0 = bar, 1 = beat, 2 = snap) and its clip-relative playhead tick.
