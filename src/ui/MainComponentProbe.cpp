@@ -403,6 +403,20 @@ juce::var MainComponent::buildProbeLayout()
         // was clickable by name before 2026-09-04, which is where the mouse-only bugs hid.
         const auto surface = currentMixerSurface();
         const int stripTotal = static_cast<int> (surface.tracks.size() + surface.buses.size());
+        put ("mixer.master", paintedMixerMasterBounds());   // ADR-0065
+        {
+            auto masterContent = paintedMixerMasterBounds().reduced (yesdaw::ui::UiTheme::Layout::mixerMasterContentInsetX, 0);
+            masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterContentTop
+                                         + yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessCardHeight
+                                         + yesdaw::ui::UiTheme::Layout::mixerMasterSectionGap
+                                         + yesdaw::ui::UiTheme::Layout::mixerMasterPeakCardHeight
+                                         + paintedMasterInsertsHeight()
+                                         + yesdaw::ui::UiTheme::Layout::mixerMasterMeterTopGap);
+            const MasterMeterColumns columns = masterMeterColumns (
+                masterContent.withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset));
+            put ("mixer.master.scale", columns.scale);
+            put ("mixer.master.meters", columns.meters);
+        }
         for (int strip = 0; strip < stripTotal; ++strip)
         {
             const juce::String base = "mixer.strip." + juce::String (strip);
@@ -704,6 +718,12 @@ juce::String MainComponent::buildStateProbeJson()
         }
         view->setProperty ("newProjectDialog", newProjectDialog.isVisible());   // G5.5 / ADR-0060
         view->setProperty ("dockHeight", dockedMixerHeight());
+        {
+            const MixerStripLayout strips = mixerStripLayout();   // ADR-0065
+            view->setProperty ("mixerStripOffset", strips.offset);
+            view->setProperty ("mixerStripsVisible", strips.visible);
+            view->setProperty ("mixerOverflow", strips.overflow);
+        }
         view->setProperty ("mixerNarrow", context.mixerStripsNarrow);   // G4.1
         view->setProperty ("settingsRow", context.settingsRowVisible);
         view->setProperty ("headerHeight", headerHeightNow());
@@ -1200,6 +1220,25 @@ juce::Rectangle<int> MainComponent::harnessPaintedMixerStripBounds (int stripInd
 juce::Rectangle<int> MainComponent::harnessPaintedMixerMasterBounds() const
 {
     return paintedMixerMasterBounds();
+}
+
+void MainComponent::harnessLatchStripClip (int stripIndex)
+{
+    const auto trackCount = static_cast<int> (trackMeterHold.size());
+    if (stripIndex >= 0 && stripIndex < trackCount)
+        trackMeterHold[static_cast<std::size_t> (stripIndex)].clipLatched = true;
+    else if (stripIndex >= trackCount && stripIndex - trackCount < static_cast<int> (busMeterHold.size()))
+        busMeterHold[static_cast<std::size_t> (stripIndex - trackCount)].clipLatched = true;
+}
+
+bool MainComponent::harnessStripClipLatched (int stripIndex) const
+{
+    const auto trackCount = static_cast<int> (trackMeterHold.size());
+    if (stripIndex >= 0 && stripIndex < trackCount)
+        return trackMeterHold[static_cast<std::size_t> (stripIndex)].clipLatched;
+    if (stripIndex >= trackCount && stripIndex - trackCount < static_cast<int> (busMeterHold.size()))
+        return busMeterHold[static_cast<std::size_t> (stripIndex - trackCount)].clipLatched;
+    return false;
 }
 
 // V3: the dock's OWN reserved rect — height collapses to (near) zero when the toggle hides
@@ -1732,6 +1771,19 @@ juce::Rectangle<int> mainComponentPaintedMixerMasterBounds (const juce::Componen
         return mainComponent->harnessPaintedMixerMasterBounds();
 
     return {};
+}
+
+void mainComponentLatchStripClip (juce::Component& component, int stripIndex)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessLatchStripClip (stripIndex);
+}
+
+bool mainComponentStripClipLatched (const juce::Component& component, int stripIndex)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessStripClipLatched (stripIndex);
+    return false;
 }
 
 juce::Rectangle<int> mainComponentHeaderSectionBounds (const juce::Component& component, int section)

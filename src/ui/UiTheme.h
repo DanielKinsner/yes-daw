@@ -641,6 +641,12 @@ struct UiTheme
         static constexpr int mixerMasterScaleWidth = 28;
         static constexpr int mixerMasterMeterWidth = 16;
         static constexpr int mixerMasterMeterGap = 4;
+        // ADR-0065 (amended): the master pane's meter row is three columns side by side — the dB scale, the fader, the
+        // L / R meters — and the pane is never narrower than they need (the fader at least this wide).
+        static constexpr int mixerMasterFaderMinWidth = 24;
+        static constexpr int mixerMasterMinWidth = 2 * mixerPaintedStripInsetX + 2 * mixerMasterContentInsetX
+                                                 + mixerMasterScaleWidth + mixerMasterMeterGap + mixerMasterFaderMinWidth
+                                                 + mixerMasterMeterGap + 2 * mixerMasterMeterWidth + mixerMasterMeterGap;   // 122
         static constexpr int mixerMasterMeterChannelLabelHeight = 18;
         static constexpr int mixerMasterScaleLabelHeight = 14;
         static constexpr std::array<int, 4> mixerMasterScaleDb {{ 0, -12, -24, -60 }};

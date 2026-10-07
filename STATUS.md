@@ -8,6 +8,48 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 (night) — the mixer's strips scroll and the master stays reachable (ADR-0065, amended)
+
+**Now:** ADR-0065 is in, headless-certified locally. **Next: G6.2 cp2** — the scaling matrix (plan cells at
+100/125/150/200 % and the maximized-display cells), the window minimum 1152x640, reachability (every control
+hit-tests to itself; every droppable control's action in a menu; dropped inspector sections back with the dock
+collapsed), scaled renders; then cp3 (the macOS frame exception re-measured). SS-6 still waits for a free desktop.
+
+**What a user gets:** with more strips than the dock holds (16 tracks at 1280x720, 24 at 1920x1080) the master no
+longer falls off the right edge: it stays pinned there, whole, and the strips scroll beside it in whole strips — by a
+scroll bar under them, by the wheel (a strip a notch; nothing over the master), and by the selection (a new track, a
+rail click, Up / Down and a bus rename bring the strip into view; a manual scroll is never undone). With few strips
+nothing changes. The master pane's meter row now reads scale | fader | L R meters side by side — the fader used to
+sit over the dB numbers and the meters even at 1080p, and the narrow-strips master (64 px) could not hold them at all.
+
+**Amendment (recorded in the ADR):** the master is never narrower than 122 px (its scale, a 24 px fader, its meters)
+nor than the strips' share; the strips share what it leaves. Two pins moved with it, deliberately: the shell's child
+count (+ the scroll bar) and the narrow-strips master width (64 -> 122).
+
+**Gates:** `[mixer-scroll]` (new) — few strips: the N3 layout, no bar; 24 tracks + 2 buses at the window minimum,
+1920x1080 and 1280x720: the master pane's right / bottom at the panel's, the master fader inside it, the bar shown
+and left of the master, every shown strip whole at the minimum width, disjoint, left of the master, its bottom plus
+the bar at the master's bottom, every hidden strip without parts; the wheel moves one strip, the master pane not at
+all; at the end the last bus whole; a mute click on the first shown (deep) strip mutes that track; a clip latch
+survives a scroll out and back; Up / Down x20 and a new track bring their strips into view; a manual scroll survives
+an action refresh (the refresh counter proves it ran); a hidden bus's rename brings it into view with the editor on
+its strip; the master's scale, fader (>= 24 px) and meters pairwise disjoint inside the pane, fit and overflow.
+Bites: the never-overflow law fails the master-inside-the-panel check; a fader column over its neighbours fails the
+disjoint check. 416/416 local, Clang clean.
+
+**Visual judgment (agent):** 1280x720 / 16 tracks — 13 whole strips, the bar under them, the master whole at the
+right with INTEGRATED / TRUE PEAK and scale | fader | meters clean; 1080p / 16 tracks — all strips fit, the master's
+columns clean (the scale's numbers were under the fader before).
+
+**Critic:** one blocker, fixed — the funnel followed the mixer target and the rail lane separately, so a refresh that
+changed both to different strips scrolled the first back out; now the mixer target wins. In: the follow memory and
+the offset reset when the project changes. Parked: trackpad momentum moves a strip per event in the mixer, the rail
+and the timeline alike (a shell-wide wheel accumulation is its own item); a window shrink can leave the selected strip
+hidden until the next selection (the ADR follows new selections only).
+
+**CI recorded:** ea8c596 (G6.2 cp1) green on every job, the macOS GPU check included — **G6.2 cp1 certified**;
+55b5013 (ADR-0065) green.
+
 ## 2026-10-08 (evening) — G6.2 checkpoint 1: eight lanes at 1080p, track headers level with their lanes (ADR-0064)
 
 **Now:** G6.2 **cp1** is in, headless-certified locally; **ADR-0065 accepted** (mixer overflow). **Next: ADR-0065** (mixer strips scroll, the master pinned at

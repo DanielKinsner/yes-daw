@@ -521,8 +521,21 @@ void MainComponent::configureMixerControls()
                 return static_cast<int> (i);
         return -1;
     };
+    // ADR-0065: the wheel over the strips moves them a strip a notch; over the master pane it does nothing.
+    mixerStripsInput.onWheelStrips = [this] (int stripDelta, juce::Point<int> positionInShell) {
+        if (paintedMixerMasterBounds().contains (positionInShell))
+            return;
+        scrollMixerStripsBy (stripDelta);
+    };
     addAndMakeVisible (mixerStripsInput);
     mixerStripsInput.toBack();   // the shared strip controls stay on top and keep their own clicks
+    mixerStripScrollBar.setComponentID ("mixer.scroll.h");
+    mixerStripScrollBar.setName ("Mixer strips scroll");
+    mixerStripScrollBar.setTitle ("Mixer strips scroll");
+    mixerStripScrollBar.setTooltip ("Scroll the mixer's strips (drag the thumb; the wheel over the strips scrolls too)");
+    mixerStripScrollBar.setAutoHide (false);
+    mixerStripScrollBar.addListener (this);
+    addChildComponent (mixerStripScrollBar);
 
     // G4.1 cp2: the lane's Add FX chooser and slot rows are gone — an empty painted slot's click is
     // the add menu, a filled slot's double-click the editor, its right-click the slot menu.
@@ -960,7 +973,7 @@ std::vector<juce::Component*> MainComponent::mixerLaneControls()
 {
     // G4.1 cp2: the strips' input surface, the master fader and the FX editor (its rows are its
     // children, so hiding it hides them) — everything the mixer tab shows that another tab must not.
-    return { &mixerStripsInput, &mixerMasterFader, &fxEditor };
+    return { &mixerStripsInput, &mixerMasterFader, &fxEditor, &mixerStripScrollBar };   // ADR-0065: the strips' bar
 }
 
 void MainComponent::hideMixerControlsBehindDockTab()
@@ -1035,6 +1048,7 @@ void MainComponent::openTrackRenameEditorOverStrip (int stripOrdinal)
         return;
     selectTrackLane (stripOrdinal);
     (void) appModel.selectMixerTrack (static_cast<std::size_t> (stripOrdinal));
+    revealMixerStrip (stripOrdinal);   // ADR-0065: a hidden strip comes into view first
 
     const juce::Rectangle<int> band =
         mixerStripBounds (stripOrdinal).removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight);
@@ -1055,10 +1069,13 @@ void MainComponent::openBusRenameEditor (int busIndex, int stripOrdinal)
     if (busIndex < 0 || busIndex >= static_cast<int> (buses.size()))
         return;
 
+    revealMixerStrip (stripOrdinal);   // ADR-0065: a hidden strip comes into view first
+    const juce::Rectangle<int> band =
+        mixerStripBounds (stripOrdinal).removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight);
+    if (band.isEmpty())
+        return;
     busRenameIndex = busIndex;
-    busRenameEditor.setBounds (
-        mixerStripBounds (stripOrdinal)
-            .removeFromTop (yesdaw::ui::UiTheme::Layout::mixerTrackSelectHeight));
+    busRenameEditor.setBounds (band);
     busRenameEditor.setText (juce::String (buses[static_cast<std::size_t> (busIndex)].strip.name),
                              juce::dontSendNotification);
     busRenameEditor.setVisible (true);
@@ -1219,25 +1236,98 @@ juce::Rectangle<int> MainComponent::paintedMixerMasterBounds() const
 // exactly so a meter click can never drift from the painted meter.
 juce::Rectangle<int> MainComponent::paintedMixerLaneBounds (std::size_t stripIndex) const
 {
-    const auto area = mixerPanelBounds();   // G4.1 cp2: no tools column — the strips start at the panel's edge
-
-    const auto surface = currentMixerSurface();
-    const std::size_t stripCount = surface.tracks.size() + surface.buses.size();
-    // G4.1: View > Narrow Strips is ONE fixed width for every lane (the master's too).
-    const int stripWidth = appModel.context().mixerStripsNarrow
-        ? yesdaw::ui::UiTheme::Layout::mixerPaintedStripNarrowWidth
-        : std::clamp (
-            area.getWidth() / (juce::jmax (yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinCount,
-                                           static_cast<int> (stripCount))
-                               + yesdaw::ui::UiTheme::Layout::mixerPaintedStripExtraSlotCount),
-            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMinWidth,
-            yesdaw::ui::UiTheme::Layout::mixerPaintedStripMaxWidth);
-    return juce::Rectangle<int> (area.getX() + static_cast<int> (stripIndex) * stripWidth,
-                                 area.getY(),
-                                 stripWidth,
-                                 area.getHeight())
-               .reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
+    const MixerStripLayout layout = mixerStripLayout();
+    const int index = static_cast<int> (stripIndex);
+    juce::Rectangle<int> slot;
+    if (index == layout.stripCount)
+        slot = layout.master;
+    else if (index > layout.stripCount)
+        return {};
+    else if (index < layout.offset || index >= layout.offset + layout.visible)
+        return {};   // ADR-0065: scrolled out of the strip viewport — not painted, not hit-tested
+    else
+        slot = { layout.viewport.getX() + (index - layout.offset) * layout.width, layout.viewport.getY(),
+                 layout.width, layout.viewport.getHeight() };
+    return slot.reduced (yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetX,
                          yesdaw::ui::UiTheme::Layout::mixerPaintedStripInsetY);
+}
+
+MainComponent::MixerStripLayout MainComponent::mixerStripLayout() const
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    MixerStripLayout layout;
+    const auto area = mixerPanelBounds();   // G4.1 cp2: no tools column — the strips start at the panel's edge
+    const auto surface = currentMixerSurface();
+    layout.stripCount = static_cast<int> (surface.tracks.size() + surface.buses.size());
+    // G4.1: View > Narrow Strips is ONE fixed width for every strip. ADR-0065 (amended): the master pane is never
+    // narrower than the strips' share nor than its three meter-row columns need; the strips share what it leaves.
+    const bool narrow = appModel.context().mixerStripsNarrow;
+    const int share = narrow ? L::mixerPaintedStripNarrowWidth
+                             : std::clamp (area.getWidth() / (juce::jmax (L::mixerPaintedStripMinCount, layout.stripCount)
+                                                              + L::mixerPaintedStripExtraSlotCount),
+                                           L::mixerPaintedStripMinWidth, L::mixerPaintedStripMaxWidth);
+    layout.masterWidth = juce::jmax (L::mixerMasterMinWidth, share);
+    layout.width = narrow || layout.stripCount == 0
+        ? share
+        : std::clamp ((area.getWidth() - layout.masterWidth) / layout.stripCount,
+                      L::mixerPaintedStripMinWidth, L::mixerPaintedStripMaxWidth);
+    // ADR-0065: the strips overflow only when the width is held at its minimum and the lanes still do not fit.
+    layout.overflow = layout.stripCount * layout.width + layout.masterWidth > area.getWidth();
+    if (! layout.overflow)
+    {
+        layout.visible = layout.stripCount;
+        layout.viewport = area.withWidth (layout.stripCount * layout.width);
+        layout.master = { area.getX() + layout.stripCount * layout.width, area.getY(), layout.masterWidth, area.getHeight() };   // N3
+        return layout;
+    }
+    layout.master = area.withLeft (area.getRight() - layout.masterWidth);
+    const auto strips = area.withRight (layout.master.getX());
+    layout.scrollBar = strips.withTop (strips.getBottom() - L::timelineScrollBarThickness);
+    layout.viewport = strips.withTrimmedBottom (L::timelineScrollBarThickness);
+    layout.visible = juce::jmax (0, layout.viewport.getWidth() / juce::jmax (1, layout.width));
+    layout.offset = std::clamp (mixerStripScroll, 0, juce::jmax (0, layout.stripCount - layout.visible));
+    return layout;
+}
+
+void MainComponent::scrollMixerStripsBy (int stripDelta)
+{
+    const MixerStripLayout layout = mixerStripLayout();
+    if (! layout.overflow)
+        return;
+    mixerStripScroll = std::clamp (layout.offset + stripDelta, 0, juce::jmax (0, layout.stripCount - layout.visible));
+    layoutMixerControls();
+    repaint (mixerPanelBounds());
+}
+
+void MainComponent::revealMixerStrip (int stripOrdinal)
+{
+    const MixerStripLayout layout = mixerStripLayout();
+    if (! layout.overflow || layout.visible <= 0 || stripOrdinal < 0 || stripOrdinal >= layout.stripCount)
+        return;
+    if (stripOrdinal < layout.offset)
+        mixerStripScroll = stripOrdinal;
+    else if (stripOrdinal >= layout.offset + layout.visible)
+        mixerStripScroll = stripOrdinal - layout.visible + 1;
+    else
+        return;
+    layoutMixerControls();
+    repaint (mixerPanelBounds());
+}
+
+// ADR-0065: the bar under the strip viewport — shown only while the strips overflow (another dock tab hides it with
+// the rest of the mixer's controls).
+void MainComponent::layoutMixerScrollBar()
+{
+    const MixerStripLayout layout = mixerStripLayout();
+    const bool shown = layout.overflow && layout.visible > 0 && ! layout.viewport.isEmpty();   // a collapsed dock has none
+    mixerStripScrollBar.setBounds (shown ? layout.scrollBar : juce::Rectangle<int>());
+    mixerStripScrollBar.setVisible (shown);
+    const bool wasRefreshing = refreshingScrollBars;
+    refreshingScrollBars = true;
+    mixerStripScrollBar.setRangeLimits (0.0, static_cast<double> (juce::jmax (1, layout.stripCount)), juce::dontSendNotification);
+    mixerStripScrollBar.setCurrentRange (static_cast<double> (layout.offset), static_cast<double> (juce::jmax (1, layout.visible)),
+                                         juce::dontSendNotification);
+    refreshingScrollBars = wasRefreshing;
 }
 
 // M4: how many insert rows this strip can afford. A tall mixer-view strip shows the whole
@@ -1306,6 +1396,8 @@ juce::Rectangle<int> MainComponent::paintedIoRowRect (juce::Rectangle<int> lane,
 
 juce::Rectangle<int> MainComponent::paintedInputRowBoundsForLane (juce::Rectangle<int> lane, int ioRows)
 {
+    if (lane.isEmpty())
+        return {};   // ADR-0065: a strip scrolled out of the mixer has no parts
     if (paintedInputRowsForLane (lane, ioRows) == 0)
         return {};
     return paintedIoRowRect (lane, lane.getY() + yesdaw::ui::UiTheme::Layout::mixerPaintedInsertsTop);
@@ -1313,6 +1405,8 @@ juce::Rectangle<int> MainComponent::paintedInputRowBoundsForLane (juce::Rectangl
 
 juce::Rectangle<int> MainComponent::paintedOutputRowBoundsForLane (juce::Rectangle<int> lane, int ioRows)
 {
+    if (lane.isEmpty())
+        return {};   // ADR-0065: a strip scrolled out of the mixer has no parts
     using L = yesdaw::ui::UiTheme::Layout;
     if (paintedIoRowsShownForLane (lane, ioRows) == 0)
         return {};
@@ -1337,6 +1431,8 @@ float MainComponent::mixerFaderFractionForDb (float db) noexcept
 
 juce::Rectangle<int> MainComponent::paintedFaderRailForLane (juce::Rectangle<int> lane, int ioRows)
 {
+    if (lane.isEmpty())
+        return {};   // ADR-0065: a strip scrolled out of the mixer has no parts
     const auto faderArea = lane.withTrimmedTop (paintedFaderTopForLane (lane, ioRows))
                                .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
     return faderArea.withWidth (yesdaw::ui::UiTheme::Layout::mixerPaintedRailWidth)
@@ -1349,6 +1445,8 @@ juce::Rectangle<int> MainComponent::paintedFaderRailForLane (juce::Rectangle<int
 // drag hit-test and the picture cannot drift.
 juce::Rectangle<int> MainComponent::paintedPanKnobForLane (juce::Rectangle<int> lane)
 {
+    if (lane.isEmpty())
+        return {};   // ADR-0065: a strip scrolled out of the mixer has no parts
     using L = yesdaw::ui::UiTheme::Layout;
     const auto knob = lane.withTrimmedTop (L::mixerPaintedPanTop).withHeight (L::mixerPaintedPanHeight);
     return juce::Rectangle<int> (knob.getCentreX() - L::mixerPaintedPanRadius,
@@ -1360,6 +1458,8 @@ juce::Rectangle<int> MainComponent::paintedPanKnobForLane (juce::Rectangle<int> 
 // strip-select click: it overlaps the strip's centre line, which every strip click lands on).
 juce::Rectangle<int> MainComponent::paintedFaderThumbForLane (juce::Rectangle<int> lane, float linearGain, int ioRows)
 {
+    if (lane.isEmpty())
+        return {};   // ADR-0065: a strip scrolled out of the mixer has no parts
     using L = yesdaw::ui::UiTheme::Layout;
     const auto rail = paintedFaderRailForLane (lane, ioRows);
     if (rail.isEmpty())
@@ -1401,6 +1501,8 @@ juce::Rectangle<int> MainComponent::paintedSendRowBoundsForLane (juce::Rectangle
                                                                        std::size_t sendIndex,
                                                                        int ioRows)
 {
+    if (lane.isEmpty())
+        return {};   // ADR-0065: a strip scrolled out of the mixer has no parts
     using L = yesdaw::ui::UiTheme::Layout;
     if (static_cast<int> (sendIndex) >= paintedSendRowCountForLane (lane, ioRows))
         return {};
@@ -1433,6 +1535,8 @@ juce::Rectangle<int> MainComponent::paintedMuteSoloCellBoundsForLane (juce::Rect
                                                                      std::size_t cellIndex,
                                                                      std::size_t cellCount) const
 {
+    if (lane.isEmpty())
+        return {};   // ADR-0065: a strip scrolled out of the mixer has no parts
     using L = yesdaw::ui::UiTheme::Layout;
     if (cellIndex >= cellCount)
         return {};
@@ -1455,6 +1559,8 @@ juce::Rectangle<int> MainComponent::paintedInsertRowBoundsForLane (juce::Rectang
                                                                          std::size_t slotIndex,
                                                                          int ioRows)
 {
+    if (lane.isEmpty())
+        return {};   // ADR-0065: a strip scrolled out of the mixer has no parts
     using L = yesdaw::ui::UiTheme::Layout;
     if (static_cast<int> (slotIndex) >= paintedInsertRowCountForLane (lane))
         return {};
@@ -1555,6 +1661,8 @@ void MainComponent::paintInsertSlotRow (juce::Graphics& g, juce::Rectangle<int> 
 
 juce::Rectangle<int> MainComponent::paintedMeterBoundsForLane (juce::Rectangle<int> lane, int ioRows)
 {
+    if (lane.isEmpty())
+        return {};   // ADR-0065: a strip scrolled out of the mixer has no parts
     auto faderArea = lane.withTrimmedTop (paintedFaderTopForLane (lane, ioRows))
                          .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerPaintedFaderBottomInset);
     return faderArea.removeFromRight (yesdaw::ui::UiTheme::Layout::mixerPaintedMeterWidth)
@@ -1564,6 +1672,7 @@ juce::Rectangle<int> MainComponent::paintedMeterBoundsForLane (juce::Rectangle<i
 
 void MainComponent::layoutMixerControls()
 {
+    layoutMixerScrollBar();   // ADR-0065
     // G4.1 cp2: the lane is gone. What is left to lay out live: the FX editor's parameter rows
     // (inside the editor's content area — the pager, then label + slider / chooser per row) and
     // the master pane's fader.
@@ -1615,16 +1724,22 @@ void MainComponent::layoutMixerControls()
                                  + yesdaw::ui::UiTheme::Layout::mixerMasterPeakCardHeight
                                  + paintedMasterInsertsHeight()   // G4.7: the master's insert slots
                                  + yesdaw::ui::UiTheme::Layout::mixerMasterMeterTopGap);
-    auto masterFaderArea = masterContent.withTrimmedBottom (
-        yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset);
-    masterFaderArea.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerMasterScaleWidth);
-    const int masterMeterPairWidth = 2 * yesdaw::ui::UiTheme::Layout::mixerMasterMeterWidth
-                                   + yesdaw::ui::UiTheme::Layout::mixerMasterMeterGap;
-    auto masterFaderColumn = masterFaderArea.withTrimmedRight (
-        masterFaderArea.getWidth() / 2 + masterMeterPairWidth / 2);
-    mixerMasterFader.setBounds (
-        masterFaderColumn.withWidth (yesdaw::ui::UiTheme::Layout::mixerFaderWidth)
-            .withCentre ({ masterFaderColumn.getCentreX(), masterFaderColumn.getCentreY() }));
+    // ADR-0065 (amended): the fader takes the middle column, between the scale and the meters, never over either
+    // (it was centred in a column narrower than itself and covered the scale's numbers and the meters).
+    const MasterMeterColumns columns = masterMeterColumns (
+        masterContent.withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset));
+    mixerMasterFader.setBounds (columns.fader.withSizeKeepingCentre (
+        juce::jmin (yesdaw::ui::UiTheme::Layout::mixerFaderWidth, columns.fader.getWidth()), columns.fader.getHeight()));
+}
+
+MainComponent::MasterMeterColumns MainComponent::masterMeterColumns (juce::Rectangle<int> meterArea) noexcept
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    MasterMeterColumns columns;
+    columns.scale = meterArea.removeFromLeft (L::mixerMasterScaleWidth);
+    columns.meters = meterArea.removeFromRight (2 * L::mixerMasterMeterWidth + L::mixerMasterMeterGap);
+    columns.fader = meterArea.reduced (L::mixerMasterMeterGap, 0);
+    return columns;
 }
 
 // N5: normalized [0,1] breakpoint value for a live linear-gain fader read, matching
@@ -1834,6 +1949,8 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
         // G4.1: the lane from the ONE geometry law (paintedMixerLaneBounds) — the paint, the
         // hit-tests and the harness can never disagree on where a strip is (narrow or wide).
         auto lane = paintedMixerLaneBounds (stripIndex);
+        if (lane.isEmpty())
+            continue;   // ADR-0065: scrolled out of the strip viewport
         g.setColour (yesdaw::ui::UiTheme::Color::panelShadow().withAlpha (
             yesdaw::ui::UiTheme::Tone::shadowAlpha));
         g.fillRoundedRectangle (
@@ -2282,10 +2399,9 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
     const float masterPeakRight = liveMasterPeakRight.load (std::memory_order_acquire);
 
     masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterMeterTopGap);
-    auto meterArea = masterContent.withTrimmedBottom (
-        yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset);
-    auto scale = meterArea.removeFromLeft (
-        yesdaw::ui::UiTheme::Layout::mixerMasterScaleWidth);
+    const MasterMeterColumns meterColumns = masterMeterColumns (masterContent.withTrimmedBottom (
+        yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset));   // ADR-0065 (amended): the fader's columns too
+    const auto scale = meterColumns.scale;
     g.setColour (yesdaw::ui::UiTheme::Color::mutedText());   // ADR-0063: the scale's numbers are text
     g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
         yesdaw::ui::UiTheme::Type::tiny));
@@ -2308,10 +2424,7 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
                     false);
     }
 
-    const int meterPairWidth = 2 * yesdaw::ui::UiTheme::Layout::mixerMasterMeterWidth
-                             + yesdaw::ui::UiTheme::Layout::mixerMasterMeterGap;
-    auto meterPair = meterArea.withWidth (meterPairWidth)
-                         .withCentre ({ meterArea.getCentreX(), meterArea.getCentreY() });
+    auto meterPair = meterColumns.meters;
     auto leftMeter = meterPair.removeFromLeft (
         yesdaw::ui::UiTheme::Layout::mixerMasterMeterWidth);
     meterPair.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerMasterMeterGap);

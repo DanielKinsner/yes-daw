@@ -228,6 +228,9 @@ struct MainComponentSnapshot
 [[nodiscard]] juce::Rectangle<int> mainComponentPaintedMixerStripBounds (const juce::Component& component,
                                                                           int stripIndex);
 [[nodiscard]] juce::Rectangle<int> mainComponentPaintedMixerMasterBounds (const juce::Component& component);
+// ADR-0065 gate: set a strip's clip latch (as a hot signal would) and read it back.
+void mainComponentLatchStripClip (juce::Component& component, int stripIndex);
+[[nodiscard]] bool mainComponentStripClipLatched (const juce::Component& component, int stripIndex);
 
 // V3: the dock's own reserved rect — collapses (near) zero height when the show/hide toggle
 // hides it. The SAME law every layout function (timeline/rail/inspector/this) shares.

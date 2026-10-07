@@ -223,6 +223,9 @@ void MainComponent::loadViewStateIfBundleChanged()
         return;
     viewStateBundle = bundle;
     viewState = {};
+    mixerStripScroll = 0;              // ADR-0065: another project starts at its first strip and follows afresh
+    mixerFollowedStripOrdinal = -1;
+    mixerFollowedTrackLane = -1;
     // ADR-0061: the last arrangement (the user's preferences) under the project's own record, which wins.
     const yesdaw::ui::UiViewPreferences& preferred = appModel.viewPreferences();
     if (preferred.railWidth > 0)
@@ -1961,6 +1964,20 @@ void MainComponent::refreshActionState()
     appModel.notePreferenceChanges();   // ADR-0061: whatever the last action changed that the user keeps
     syncExportControls();               // ADR-0061: the choices preferences restored (read after the controls were made)
     loadViewStateIfBundleChanged();   // G2.1
+    // ADR-0065: a NEW selection is brought into view (the least scroll); a manual scroll away from the strip already
+    // followed is never undone here. The mixer target and the rail's lane (a new track selects only its lane) are
+    // both followed; when both change at once the mixer target wins.
+    {
+        const int selectedStrip = appModel.context().mixerTargetSelected ? appModel.selectedMixerStripOrdinal() : -1;
+        const bool stripChanged = selectedStrip != mixerFollowedStripOrdinal;
+        const bool laneChanged = selectedTrackLane != mixerFollowedTrackLane;
+        mixerFollowedStripOrdinal = selectedStrip;
+        mixerFollowedTrackLane = selectedTrackLane;
+        if (stripChanged)
+            revealMixerStrip (selectedStrip);
+        else if (laneChanged)
+            revealMixerStrip (selectedTrackLane);   // a track's strip ordinal is its lane
+    }
     syncAutomationLaneVisibility();   // G4.6: the A toggle reflects the selected track's lanes
     restoreControlsHiddenByDockTab();   // G2.1 cp2: the laws below decide afresh
     rebuildTimelineClipViews();

@@ -1416,7 +1416,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 92u));   // G5.5: + the New Project dialog; G5.3: + the export Dither / Normalize toggles and the stems chooser; G5.2: + the media browser; G4.7: + the header DIM / MUTE; G4.5: + the header SOLO; G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 93u));   // ADR-0065: + the mixer strips' scroll bar; G5.5: + the New Project dialog; G5.3: + the export Dither / Normalize toggles and the stems chooser; G5.2: + the media browser; G4.7: + the header DIM / MUTE; G4.5: + the header SOLO; G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     // G4.0a restores SS-1's native empty project; it contains one empty audio track.
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
@@ -16880,6 +16880,238 @@ TEST_CASE ("first-minute density: a dozen tracks at 1080p show at least eight wh
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// ADR-0065: when the strips overflow at their minimum width the master is pinned at the dock's right and the strips
+// scroll in whole strips beside it — by the bar, the wheel and the selection; every strip and the master stay reachable.
+TEST_CASE ("ADR-0065 mixer strips scroll and the master stays pinned at the right", "[ui][input][shell][mixer-scroll]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mixer-scroll");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1280, 720);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    const auto viewValue = [&shell] (const char* key)
+    {
+        return juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell)).getProperty ("view", {}).getProperty (key, {});
+    };
+    const auto offset = [&viewValue] { return static_cast<int> (viewValue ("mixerStripOffset")); };
+    juce::Component* bar = findChildWithComponentId (*shell, "mixer.scroll.h");
+    REQUIRE (bar != nullptr);
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    // Amended: the master's meter row is three disjoint columns inside its pane — scale, fader (>= 24 px), meters.
+    const auto requireMasterColumns = [&shell] (const juce::String& where)
+    {
+        INFO ("master columns " << where.toStdString());
+        const juce::var layout = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell)).getProperty ("layout", {});
+        const auto rectOf = [&layout] (const char* key)
+        {
+            const juce::var value = layout.getProperty (key, juce::var());
+            if (! value.isArray() || value.size() != 4)
+                return juce::Rectangle<int>();
+            return juce::Rectangle<int> (static_cast<int> (value[0]), static_cast<int> (value[1]),
+                                         static_cast<int> (value[2]), static_cast<int> (value[3]));
+        };
+        const juce::Rectangle<int> master = yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell);
+        const juce::Rectangle<int> scale = rectOf ("mixer.master.scale");
+        const juce::Rectangle<int> meters = rectOf ("mixer.master.meters");
+        juce::Component* fader = findChildWithComponentId (*shell, "mixer.master.fader");
+        REQUIRE (fader != nullptr);
+        const juce::Rectangle<int> faderBounds = fader->getBounds();
+        INFO ("master " << master.toString().toStdString() << " scale " << scale.toString().toStdString()
+              << " fader " << faderBounds.toString().toStdString() << " meters " << meters.toString().toStdString());
+        REQUIRE (master.getWidth() + 2 * L::mixerPaintedStripInsetX >= L::mixerMasterMinWidth);
+        REQUIRE (faderBounds.getWidth() >= L::mixerMasterFaderMinWidth);
+        for (const juce::Rectangle<int>& column : { scale, faderBounds, meters })
+        {
+            REQUIRE_FALSE (column.isEmpty());
+            REQUIRE (master.contains (column));
+        }
+        REQUIRE_FALSE (scale.intersects (faderBounds));
+        REQUIRE_FALSE (faderBounds.intersects (meters));
+        REQUIRE_FALSE (scale.intersects (meters));
+    };
+
+    // Few strips: today's layout (N3) — the master right after the last strip at the shared width, no bar, no offset.
+    {
+        REQUIRE_FALSE (static_cast<bool> (viewValue ("mixerOverflow")));
+        REQUIRE_FALSE (bar->isVisible());
+        REQUIRE (offset() == 0);
+        const juce::Rectangle<int> lastLane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+        const juce::Rectangle<int> master = yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell);
+        REQUIRE (master.getX() - lastLane.getRight() == 2 * L::mixerPaintedStripInsetX);
+        REQUIRE (master.getWidth() == lastLane.getWidth());
+        requireMasterColumns ("few strips");
+    }
+
+    auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
+    REQUIRE (addTrack != nullptr);
+    for (int i = 1; i < 24; ++i)
+        clickButton (*addTrack);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 24u);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 2u);
+    constexpr int kStrips = 26;
+
+    const auto requireStripLaw = [&] (const juce::String& where)
+    {
+        INFO (where.toStdString());
+        const juce::Rectangle<int> panel = yesdaw::ui::mainComponentMixerPanelBounds (*shell);
+        const juce::Rectangle<int> master = yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell);
+        INFO ("panel " << panel.toString().toStdString() << " master " << master.toString().toStdString());
+        REQUIRE (master.getRight() == panel.getRight() - L::mixerPaintedStripInsetX);
+        REQUIRE (static_cast<bool> (viewValue ("mixerOverflow")));
+        REQUIRE (master.getBottom() == panel.getBottom() - L::mixerPaintedStripInsetY);
+        REQUIRE (shell->getLocalBounds().contains (master));
+        juce::Component* fader = findChildWithComponentId (*shell, "mixer.master.fader");
+        REQUIRE (fader != nullptr);
+        REQUIRE (master.contains (fader->getBounds()));
+        REQUIRE (bar->isVisible());
+        REQUIRE (panel.contains (bar->getBounds()));
+        REQUIRE (bar->getRight() <= master.getX());
+        int shown = 0;
+        juce::Rectangle<int> previous;
+        for (int strip = 0; strip < kStrips; ++strip)
+        {
+            const juce::Rectangle<int> lane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, strip);
+            if (lane.isEmpty())
+            {
+                // A hidden strip has no parts a click could land on.
+                REQUIRE (yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, strip, 1).isEmpty());
+                continue;
+            }
+            INFO ("strip " << strip << " " << lane.toString().toStdString());
+            REQUIRE (lane.getWidth() + 2 * L::mixerPaintedStripInsetX == L::mixerPaintedStripMinWidth);   // overflow: held at the minimum
+            REQUIRE (master.getWidth() >= lane.getWidth());
+            REQUIRE (lane.getRight() <= master.getX());
+            REQUIRE (lane.getBottom() + L::timelineScrollBarThickness == master.getBottom());
+            REQUIRE (panel.contains (lane));
+            if (! previous.isEmpty())
+                REQUIRE (lane.getX() >= previous.getRight());
+            previous = lane;
+            ++shown;
+        }
+        REQUIRE (shown >= 1);
+        REQUIRE (shown == static_cast<int> (viewValue ("mixerStripsVisible")));
+        REQUIRE (shown < kStrips);
+        requireMasterColumns (where);
+    };
+    for (const auto& size : { std::pair<int, int> { L::windowMinWidth, L::windowMinHeight },
+                              std::pair<int, int> { 1920, 1080 },
+                              std::pair<int, int> { 1280, 720 } })
+    {
+        shell->setSize (size.first, size.second);
+        requireStripLaw (juce::String (size.first) + "x" + juce::String (size.second));
+    }
+
+    // The wheel over the strips: one strip a notch; over the master pane nothing.
+    const auto wheelAt = [&] (juce::Point<int> shellPoint, float deltaY, int notches)
+    {
+        juce::MouseWheelDetails wheel {};
+        wheel.deltaY = deltaY;
+        const juce::Point<int> local = strips->getLocalPoint (shell.get(), shellPoint);
+        for (int i = 0; i < notches; ++i)
+            strips->mouseWheelMove (makeMouseEvent (*strips, local, local, false, 1, juce::ModifierKeys {}), wheel);
+    };
+    const juce::Point<int> overStrips = yesdaw::ui::mainComponentMixerPanelBounds (*shell).getTopLeft() + juce::Point<int> (20, 40);
+    wheelAt (overStrips, 0.4f, kStrips + 2);
+    REQUIRE (offset() == 0);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0).isEmpty());
+    wheelAt (overStrips, -0.4f, 1);
+    REQUIRE (offset() == 1);
+    REQUIRE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0).isEmpty());
+    wheelAt (yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell).getCentre(), -0.4f, 3);
+    REQUIRE (offset() == 1);
+    wheelAt (overStrips, -0.4f, kStrips + 2);
+    const int endOffset = offset();
+    REQUIRE (endOffset == kStrips - static_cast<int> (viewValue ("mixerStripsVisible")));
+    {
+        const juce::Rectangle<int> lastBus = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, kStrips - 1);
+        REQUIRE_FALSE (lastBus.isEmpty());
+        REQUIRE (lastBus.getWidth() + 2 * L::mixerPaintedStripInsetX == L::mixerPaintedStripMinWidth);
+    }
+    requireStripLaw ("scrolled to the end");
+
+    // The offset reaches the hit-test: the first strip shown is a track deep in the list; its mute cell mutes it.
+    REQUIRE (endOffset < 24);
+    const juce::Rectangle<int> muteCell = yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, endOffset, 1);
+    REQUIRE_FALSE (muteCell.isEmpty());
+    mouseDownAt (*strips, strips->getLocalPoint (shell.get(), muteCell.getCentre()));
+    {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        REQUIRE (project.tracks[static_cast<std::size_t> (endOffset)].strip.muted);
+        REQUIRE_FALSE (project.tracks.front().strip.muted);
+    }
+
+    // A clip latch survives its strip being scrolled out and back.
+    const int lastBus = kStrips - 1;   // shown at the end, hidden at the start
+    yesdaw::ui::mainComponentLatchStripClip (*shell, lastBus);
+    REQUIRE (yesdaw::ui::mainComponentStripClipLatched (*shell, lastBus));
+    wheelAt (overStrips, 0.4f, kStrips + 2);
+    REQUIRE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, lastBus).isEmpty());
+    wheelAt (overStrips, -0.4f, kStrips + 2);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, lastBus).isEmpty());
+    REQUIRE (yesdaw::ui::mainComponentStripClipLatched (*shell, lastBus));
+
+    // The selection is followed: a key that selects the next track, and a new track, each bring their strip into view.
+    // A strip's name band (its top), where a click selects and nothing else is hit.
+    const auto nameBand = [&shell] (int strip)
+    {
+        const juce::Rectangle<int> lane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, strip);
+        return lane.isEmpty() ? juce::Point<int>() : juce::Point<int> (lane.getCentreX(), lane.getY() + L::mixerTrackSelectHeight / 2);
+    };
+    wheelAt (overStrips, 0.4f, kStrips + 2);
+    REQUIRE (offset() == 0);
+    mouseDownAt (*strips, strips->getLocalPoint (shell.get(), nameBand (0)));   // selects track 0
+    for (int i = 0; i < 20; ++i)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackSelectNext);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 20).isEmpty());
+    REQUIRE (offset() > 0);
+    wheelAt (overStrips, 0.4f, kStrips + 2);
+    REQUIRE (offset() == 0);
+    clickButton (*addTrack);   // the 25th track, selected: its strip (ordinal 24) comes into view
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 25u);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 24).isEmpty());
+    REQUIRE (offset() > 0);
+
+    // A manual scroll away from the selected strip is not undone by a later action refresh.
+    wheelAt (overStrips, 0.4f, kStrips + 4);
+    REQUIRE (offset() == 0);
+    REQUIRE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 24).isEmpty());   // the selected strip, scrolled away
+    const auto refreshes = [&shell]
+    {
+        return static_cast<juce::int64> (juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell))
+                                             .getProperty ("frame", {}).getProperty ("actionStateRefreshes", 0));
+    };
+    const juce::int64 before = refreshes();
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    REQUIRE (refreshes() > before);   // the funnel ran, with the selection unchanged
+    REQUIRE (offset() == 0);
+
+    // Renaming a hidden bus brings it into view first; the editor sits on its strip, never over an empty lane.
+    {
+        const int busOrdinal = 25;   // 25 tracks, then the first bus
+        wheelAt (overStrips, -0.4f, kStrips + 4);   // to the end: the bus shows
+        juce::Rectangle<int> busLane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, busOrdinal);
+        REQUIRE_FALSE (busLane.isEmpty());
+        mouseDownAt (*strips, strips->getLocalPoint (shell.get(), nameBand (busOrdinal)));   // selects the bus
+        wheelAt (overStrips, 0.4f, kStrips + 4);   // scroll it away by hand
+        REQUIRE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, busOrdinal).isEmpty());
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusRename);
+        busLane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, busOrdinal);
+        REQUIRE_FALSE (busLane.isEmpty());
+        juce::Component* editor = findChildWithComponentId (*shell, "shell.mixer.bus.rename");
+        REQUIRE (editor != nullptr);
+        REQUIRE (editor->isVisible());
+        REQUIRE (busLane.contains (editor->getBounds()));
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // ADR-0064: the timeline's tool row holds every control laid out on it (inside the row, centred), and the rail's rows
 // sit level with their lanes — at the window minimum and the rubric sizes, at the top and scrolled to the bottom.
 TEST_CASE ("the tool row holds its controls and the rail rows sit level with their lanes",
@@ -22611,8 +22843,8 @@ TEST_CASE ("mixer v2: I/O slots, the R cell, per-kind strip menus, per-kind FX l
 
     // (FX kinds) NOTE (G4.1 cp2): the lane's chooser is gone — the per-kind lists are the menus' (pinned above).
 
-    // (narrow) View > Narrow Strips: every lane (the master too) takes the narrow width; the flag ticks,
-    // persists with the view state, and the toggle restores the wide law.
+    // (narrow) View > Narrow Strips: every strip takes the narrow width (ADR-0065 amended: the master keeps the width its
+    // scale, fader and meters need); the flag ticks, persists with the view state, and the toggle restores the wide law.
     {
         const int wideWidth = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0).getWidth();
         REQUIRE (wideWidth > L::mixerPaintedStripNarrowWidth);
@@ -22622,7 +22854,7 @@ TEST_CASE ("mixer v2: I/O slots, the R cell, per-kind strip menus, per-kind FX l
             REQUIRE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, strip).getWidth()
                      == L::mixerPaintedStripNarrowWidth - 2 * L::mixerPaintedStripInsetX);
         REQUIRE (yesdaw::ui::mainComponentPaintedMixerMasterBounds (*shell).getWidth()
-                 == L::mixerPaintedStripNarrowWidth - 2 * L::mixerPaintedStripInsetX);
+                 == L::mixerMasterMinWidth - 2 * L::mixerPaintedStripInsetX);
         // The three cells still fit inside the narrow lane, side by side.
         const juce::Rectangle<int> lane0 = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
         for (int cell = 0; cell <= kArmCell; ++cell)

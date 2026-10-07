@@ -155,6 +155,15 @@ public:
     // strip has none; insert slots come with their own list in the next checkpoint).
     std::function<void (yesdaw::ui::ContextMenuTarget, int, juce::Point<int>)> onContextMenuRequested;
     std::function<int ()> stripCountProvider;   // track + bus strips (the master is the next index)
+    // ADR-0065: a wheel notch over the strips — one strip (+1 = toward the later strips) at a SHELL position.
+    std::function<void (int, juce::Point<int>)> onWheelStrips;
+    void mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override
+    {
+        const float delta = std::abs (wheel.deltaY) > std::abs (wheel.deltaX) ? wheel.deltaY : wheel.deltaX;
+        if (delta == 0.0f || ! onWheelStrips)
+            return;
+        onWheelStrips (delta > 0.0f ? -1 : 1, event.getPosition() + getPosition());
+    }
     std::function<int ()> trackCountProvider;   // G4.1: the strips before it are Tracks, then Buses
 
     void requestContextMenu (juce::Point<int> position)

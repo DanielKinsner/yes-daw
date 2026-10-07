@@ -275,6 +275,9 @@ public:
     [[nodiscard]] juce::Rectangle<int> harnessPaintedMixerStripBounds (int stripIndex) const;
 
     [[nodiscard]] juce::Rectangle<int> harnessPaintedMixerMasterBounds() const;
+    // ADR-0065 gate: a strip's clip latch, set and read without playing a hot signal.
+    void harnessLatchStripClip (int stripIndex);
+    [[nodiscard]] bool harnessStripClipLatched (int stripIndex) const;
 
     // V3: the dock's OWN reserved rect — height collapses to (near) zero when the toggle hides
     // it, the same law every layout function (timelineBounds/leftRailPanelBounds/inspectorBounds
@@ -592,6 +595,32 @@ private:
     // Shared painted-strip geometry law (B32): hit-testing must mirror drawMixer's lane math
     // exactly so a meter click can never drift from the painted meter.
     [[nodiscard]] juce::Rectangle<int> paintedMixerLaneBounds (std::size_t stripIndex) const;
+
+    // ADR-0065: the strips' one layout — the width every lane shares, whether the strips overflow at it, the whole
+    // strips shown, the clamped offset, the strip viewport, the scroll bar under it and the master pane (right after
+    // the last strip when they fit, pinned at the dock's right when they overflow). Unreduced slot rects.
+    struct MixerStripLayout
+    {
+        int stripCount = 0;
+        int width = 0;
+        int masterWidth = 0;   // amended: never narrower than the strips, nor than mixerMasterMinWidth
+        bool overflow = false;
+        int visible = 0;
+        int offset = 0;
+        juce::Rectangle<int> viewport;
+        juce::Rectangle<int> scrollBar;
+        juce::Rectangle<int> master;
+    };
+    [[nodiscard]] MixerStripLayout mixerStripLayout() const;
+    // ADR-0065 (amended): the master pane's meter row as three disjoint columns — the paint and the fader share it.
+    struct MasterMeterColumns
+    {
+        juce::Rectangle<int> scale, fader, meters;
+    };
+    [[nodiscard]] static MasterMeterColumns masterMeterColumns (juce::Rectangle<int> meterArea) noexcept;
+    void scrollMixerStripsBy (int stripDelta);
+    void revealMixerStrip (int stripOrdinal);   // the least offset change that shows it (no-op when it is shown)
+    void layoutMixerScrollBar();
 
     // M4: how many insert rows this strip can afford. A tall mixer-view strip shows the whole
     // column; the timeline view's short mini-mixer drops rows rather than starving the fader, and a
@@ -1343,6 +1372,12 @@ private:
     // Vertical track scroll (E5): whole lane rows above the viewport, shared by the timeline
     // lanes and the track rail; geometry clamps it against the current lane count.
     int timelineTrackScrollRows = 0;
+    // ADR-0065: the mixer's strips scrolled out to the left (whole strips; the layout clamps it), and the strip the
+    // mixer last followed into view (a NEW selection is followed, a manual scroll is never undone).
+    int mixerStripScroll = 0;
+    int mixerFollowedStripOrdinal = -1;
+    int mixerFollowedTrackLane = -1;   // the rail's selection too: a new track selects its lane, not the mixer target
+    TooltipScrollBar mixerStripScrollBar { false };
     // Piano-roll viewport (E10): transient view state; the surface builder is the clamp
     // authority (mutable because paint-side snapshots re-clamp against the current clip).
     mutable int pianoRollViewLowKey = yesdaw::ui::UiThemeLayout::pianoRollDefaultLowKey;

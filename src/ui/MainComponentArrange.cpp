@@ -699,6 +699,11 @@ void MainComponent::scrollBarMoved (juce::ScrollBar* bar, double newRangeStart)
         timelineScrollSeconds = std::max (0.0, newRangeStart);
     else if (bar == &timelineVScroll)
         timelineTrackScrollRows = std::max (0, juce::roundToInt (newRangeStart));
+    else if (bar == &mixerStripScrollBar)   // ADR-0065
+    {
+        mixerStripScroll = std::max (0, juce::roundToInt (newRangeStart));
+        layoutMixerControls();
+    }
     repaintAll();
 }
 
