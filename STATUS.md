@@ -8,6 +8,21 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0068 cp5a: every bundle write counts itself (schema v35, the write stamp)
+
+**Now:** ADR-0068 lands in its safe order - the stamp and the recovery rule first, the autosave writes switched on
+last. **This slice:** schema v35 adds `project_write_stamp` (add-only, ADR-0012: an older bundle lands at 0). Every
+snapshot write advances it by one inside its own transaction - it commits, checkpoints and rolls back with the rows;
+an autosave snapshot carries its source bundle's count instead. Nothing reads it yet: behaviour is unchanged until
+cp5b, where an open compares the two counts and only asks about an autosave that holds something the bundle lacks.
+**Gates (`YesDawPersistenceCheck`):** `[v35]` fresh bundle at 0, three writes reach 3, a v34 bundle migrates to 0 and
+reads back unchanged; `[stamp-shared-transaction]` a refused stamp (a trigger, a missing row) fails the whole write and
+leaves no transaction open; `[stamp-override-durable]` an autosave's project.db holds its source's count with no WAL
+beside it, and the bytes of a live bundle already hold an override. Each red under a mutation: the stamp moved after
+COMMIT, after the checkpoint, and the autosave carry removed. ctest 423/423, Clang clean. **Critic:** nothing to fix
+(no project-row writer bypasses the stamp; Save As lands at source + 1 with an empty autosave folder; the frozen
+fixtures are only ever opened as copies). **Next:** cp5b - the recovery predicate and the unresolved-question marker.
+
 ## 2026-10-08 — SS-6 run 8: 171 of 176 pass; the five left are ADR-0068's autosave (known red until it lands)
 
 **Now:** the project-lifecycle drive (`tools/session-scripts/ss8-project-lifecycle.ps1`) passes everything except the

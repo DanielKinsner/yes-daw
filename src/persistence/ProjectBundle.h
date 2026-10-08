@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -38,7 +39,7 @@
 namespace yesdaw::persistence {
 
 inline constexpr std::int32_t kApplicationId = 0x59455331; // "YES1"
-inline constexpr int          kCodeSchemaVersion = 34;   // G4.6 / ADR-0052: Write mode; automation follows clips
+inline constexpr int          kCodeSchemaVersion = 35;   // ADR-0068 §5: the project write stamp
 inline constexpr int          kBusyTimeoutMs = 5000;
 inline constexpr int          kWalAutoCheckpointPages = 1000;
 inline constexpr int          kCacheSizeKiB = -16384;
@@ -1514,13 +1515,25 @@ CREATE TABLE automation_follow_clips (
 );
 )SQL";
 
+// v35 (ADR-0068 §5): the bundle's write stamp - a singleton counted up by every snapshot write, in the snapshot's own
+// transaction, so an autosave (which carries its source's stamp) can tell whether the bundle already holds what it
+// holds. Add-only under ADR-0012: an older bundle lands at stamp 0 with no unresolved recovery question.
+inline constexpr std::string_view kSchemaV35Sql = R"SQL(
+CREATE TABLE project_write_stamp (
+  singleton_id              INTEGER PRIMARY KEY CHECK (singleton_id = 1),
+  write_count               INTEGER NOT NULL DEFAULT 0,
+  unresolved_snapshot_stamp INTEGER
+);
+INSERT INTO project_write_stamp (singleton_id, write_count, unresolved_snapshot_stamp) VALUES (1, 0, NULL);
+)SQL";
+
 struct SchemaMigration
 {
     int              toVersion = 0;
     std::string_view sql;
 };
 
-inline constexpr std::array<SchemaMigration, 34> kMigrations {
+inline constexpr std::array<SchemaMigration, 35> kMigrations {
     SchemaMigration { 1, kSchemaV1Sql },
     SchemaMigration { 2, kSchemaV2Sql },
     SchemaMigration { 3, kSchemaV3Sql },
@@ -1555,6 +1568,7 @@ inline constexpr std::array<SchemaMigration, 34> kMigrations {
     SchemaMigration { 32, kSchemaV32Sql },
     SchemaMigration { 33, kSchemaV33Sql },
     SchemaMigration { 34, kSchemaV34Sql },
+    SchemaMigration { 35, kSchemaV35Sql },
 };
 
 inline PluginStateRestoreChunk decodePluginStateChunkRow (sqlite3_stmt* stmt)
@@ -2278,7 +2292,11 @@ public:
         return detail::ok();
     }
 
-    [[nodiscard]] BundleResult writeProjectSnapshot (const engine::Project& project)
+    // ADR-0068 §5: the write advances the bundle's stamp by one - or, for an autosave snapshot, sets it to its source's
+    // stamp (`stampOverride`) - inside the snapshot's own transaction, so the stamp commits, checkpoints and rolls back
+    // with the rows.
+    [[nodiscard]] BundleResult writeProjectSnapshot (const engine::Project& project,
+                                                     std::optional<std::int64_t> stampOverride = std::nullopt)
     {
         if (! detail::projectFitsSchemaV1 (project))
             return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "Project violates schema v1 semantics" };
@@ -2297,7 +2315,7 @@ public:
                 "DELETE FROM sampler_pads; DELETE FROM buses; DELETE FROM tracks; "
                 "DELETE FROM tempo_changes; DELETE FROM meter_changes; DELETE FROM markers; DELETE FROM locate_points; "
                 "DELETE FROM master_strip; DELETE FROM automation_mode; DELETE FROM automation_follow_clips; DELETE FROM punch_region; DELETE FROM loop_region; DELETE FROM project_scale; "
-                "DELETE FROM assets; DELETE FROM project;");
+                "DELETE FROM assets; DELETE FROM project;");   // never project_write_stamp: it outlives every snapshot
             ! result.ok())
         {
             rollback();
@@ -2934,6 +2952,26 @@ public:
             if (auto result = detail::expectDone (db_, loopStmt); ! result.ok()) { rollback(); return result; }
         }
 
+        {   // ADR-0068 §5: the stamp shares this transaction; a stamp that cannot be written fails the snapshot
+            detail::Statement stampStmt;
+            if (auto result = stampStmt.prepare (db_, stampOverride
+                    ? "UPDATE project_write_stamp SET write_count = ? WHERE singleton_id = 1;"
+                    : "UPDATE project_write_stamp SET write_count = write_count + 1 WHERE singleton_id = 1;");
+                ! result.ok())
+            {
+                rollback();
+                return result;
+            }
+            if (stampOverride)
+                if (auto result = stampStmt.bindInt64 (1, static_cast<sqlite3_int64> (*stampOverride)); ! result.ok()) { rollback(); return result; }
+            if (auto result = detail::expectDone (db_, stampStmt); ! result.ok()) { rollback(); return result; }
+            if (sqlite3_changes (db_) != 1)
+            {
+                rollback();
+                return detail::semanticInvalid ("the project write stamp row is missing");
+            }
+        }
+
         if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
         {
             rollback();
@@ -2947,6 +2985,18 @@ public:
         // moment writeProjectSnapshot returns. Best effort: a busy checkpoint is retried on close.
         (void) detail::exec (db_, "PRAGMA wal_checkpoint(TRUNCATE);");
 
+        return detail::ok();
+    }
+
+    // ADR-0068 §5: how many snapshot writes this bundle has committed (an autosave snapshot: its source's count when
+    // it was written).
+    [[nodiscard]] BundleResult projectWriteStamp (std::int64_t& out) const
+    {
+        sqlite3_int64 value = 0;
+        if (auto result = detail::queryInt64 (db_, "SELECT write_count FROM project_write_stamp WHERE singleton_id = 1;", value);
+            ! result.ok())
+            return result;
+        out = static_cast<std::int64_t> (value);
         return detail::ok();
     }
 

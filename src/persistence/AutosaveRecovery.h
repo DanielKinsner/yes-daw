@@ -229,11 +229,17 @@ namespace autosave_detail {
     if (auto result = autosave_detail::removeTreeIfExists (tempPath); ! result.ok())
         return result;
 
+    // ADR-0068 §5: the snapshot carries the source's write stamp, written in the snapshot's own transaction (and so in
+    // the project.db flushed below), so an open can tell whether the bundle already holds everything it holds.
+    std::int64_t sourceStamp = 0;
+    if (auto result = sourceDb.projectWriteStamp (sourceStamp); ! result.ok())
+        return autosave_detail::bundleError (std::move (result));
+
     {
         ProjectBundleDb snapshot;
         if (auto result = ProjectBundleDb::openOrCreateBundle (tempPath, snapshot); ! result.ok())
             return autosave_detail::bundleError (std::move (result));
-        if (auto result = snapshot.writeProjectSnapshot (project); ! result.ok())
+        if (auto result = snapshot.writeProjectSnapshot (project, sourceStamp); ! result.ok())
             return autosave_detail::bundleError (std::move (result));
     }
 

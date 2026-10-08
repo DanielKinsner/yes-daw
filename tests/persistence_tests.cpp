@@ -1,5 +1,6 @@
 // YES DAW - headless checks for ADR-0012 SQLite bundle schema/migrations/intent log.
 
+#include "persistence/AutosaveRecovery.h"
 #include "persistence/ProjectBundle.h"
 #include "persistence/WaveformPeakCache.h"
 
@@ -1916,6 +1917,7 @@ TEST_CASE ("Schema v11 migration adds empty locate points to a v10 bundle",
             "DELETE FROM schema_migrations WHERE version = 31; "
             "DROP TABLE project_scale; "   // G3.8 re-pin: v30 (the project's key / scale row)
             "DELETE FROM schema_migrations WHERE version = 30; "
+            "DROP TABLE project_write_stamp; DELETE FROM schema_migrations WHERE version = 35; "   // ADR-0068: v35
             "PRAGMA user_version = 10;").ok());
     }
 
@@ -2943,6 +2945,7 @@ TEST_CASE ("Schema v33 migration keeps every automation lane and point", "[persi
             "CREATE INDEX automation_lanes_owner_entity_idx ON automation_lanes(owner_entity); "
             "DELETE FROM schema_migrations WHERE version = 33; "
             "DROP TABLE automation_follow_clips; DELETE FROM schema_migrations WHERE version = 34; "   // v34 replays too
+            "DROP TABLE project_write_stamp; DELETE FROM schema_migrations WHERE version = 35; "   // and v35
             "PRAGMA user_version = 32;").ok());
         sqlite3_int64 points = 0;
         REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM automation_breakpoints;", points).ok());
@@ -2987,7 +2990,8 @@ TEST_CASE ("Write mode and automation-follows-clips round-trip through schema v3
             "DROP TABLE automation_follow_clips; "
             "CREATE TABLE mode_old (slot INTEGER PRIMARY KEY CHECK (slot = 1), mode INTEGER NOT NULL CHECK (mode >= 0 AND mode <= 3)); "
             "INSERT INTO mode_old VALUES (1, 3); DROP TABLE automation_mode; ALTER TABLE mode_old RENAME TO automation_mode; "
-            "DELETE FROM schema_migrations WHERE version = 34; PRAGMA user_version = 33;").ok());
+            "DELETE FROM schema_migrations WHERE version = 34; "
+            "DROP TABLE project_write_stamp; DELETE FROM schema_migrations WHERE version = 35; PRAGMA user_version = 33;").ok());
     }
     ProjectBundleDb migrated;
     REQUIRE (ProjectBundleDb::openExistingBundle (path, migrated).ok());
@@ -3000,4 +3004,155 @@ TEST_CASE ("Write mode and automation-follows-clips round-trip through schema v3
     REQUIRE_FALSE (readback.automationFollowsClips);
     // A mode past Write is refused at open.
     REQUIRE_FALSE (migrated.executeSql ("UPDATE automation_mode SET mode = 5 WHERE slot = 1;").ok());   // the CHECK
+}
+
+// ADR-0068 §5 — schema v35: the bundle's write stamp. A fresh bundle starts at 0 with no unresolved recovery question;
+// every snapshot write advances it by one; a v34 bundle migrates to stamp 0 and is otherwise unchanged.
+TEST_CASE ("ADR-0068 schema v35 adds the write stamp; every snapshot write advances it; a v34 bundle lands at 0",
+           "[persistence][migration][autosave][v35]")
+{
+    const auto path = makeTempBundlePath ("write-stamp-v35");
+    const Project project = makeProject();
+    {
+        ProjectBundleDb db = openFreshBundle (path);
+        sqlite3_int64 value = -1;
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM project_write_stamp;", value).ok());
+        REQUIRE (value == 1);
+        std::int64_t stamp = -1;
+        REQUIRE (db.projectWriteStamp (stamp).ok());
+        REQUIRE (stamp == 0);
+        REQUIRE (db.queryInt64 ("SELECT unresolved_snapshot_stamp IS NULL FROM project_write_stamp;", value).ok());
+        REQUIRE (value == 1);
+        for (int i = 0; i < 3; ++i)
+            REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (db.projectWriteStamp (stamp).ok());
+        REQUIRE (stamp == 3);
+        // Back to v34's shape: no stamp table, no v35 migration row.
+        REQUIRE (db.executeSql ("DROP TABLE project_write_stamp; DELETE FROM schema_migrations WHERE version = 35; "
+                                "PRAGMA user_version = 34;").ok());
+    }
+    ProjectBundleDb migrated;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, migrated).ok());
+    sqlite3_int64 value = 0;
+    REQUIRE (migrated.queryInt64 ("PRAGMA user_version;", value).ok());
+    REQUIRE (value == kCodeSchemaVersion);
+    std::int64_t stamp = -1;
+    REQUIRE (migrated.projectWriteStamp (stamp).ok());
+    REQUIRE (stamp == 0);   // the migration lands the stamp at 0 and writes no snapshot
+    REQUIRE (migrated.queryInt64 ("SELECT unresolved_snapshot_stamp IS NULL FROM project_write_stamp;", value).ok());
+    REQUIRE (value == 1);
+    Project readback;
+    REQUIRE (migrated.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+}
+
+// ADR-0068 §5 — the stamp shares the snapshot's transaction: a stamp that cannot be written (a refusing trigger on this
+// connection, or a missing row) fails the whole snapshot - the rows roll back with it, and no transaction is left open.
+TEST_CASE ("ADR-0068 the write stamp shares the snapshot's transaction; a refused stamp rolls the snapshot back",
+           "[persistence][autosave][stamp-shared-transaction]")
+{
+    const auto path = makeTempBundlePath ("write-stamp-transaction");
+    const Project first = makeProject();
+    Project second = makeProject();
+    second.tracks[0].strip.name = "Renamed";
+    ProjectBundleDb db = openFreshBundle (path);
+    REQUIRE (db.writeProjectSnapshot (first).ok());
+    writeProjectAssetFiles (path, first);
+    std::int64_t stamp = -1;
+
+    SECTION ("the stamp UPDATE fails")
+    {
+        REQUIRE (db.executeSql ("CREATE TEMP TRIGGER stamp_refuses BEFORE UPDATE ON project_write_stamp "
+                                "BEGIN SELECT RAISE(ABORT, 'injected'); END;").ok());
+        REQUIRE_FALSE (db.writeProjectSnapshot (second).ok());
+        REQUIRE (db.projectWriteStamp (stamp).ok());
+        REQUIRE (stamp == 1);
+        Project readback;
+        REQUIRE (db.readProjectSnapshot (readback).ok());
+        REQUIRE (readback.tracks[0].strip.name == "Audio 1");   // the rows rolled back with the stamp
+        REQUIRE (db.executeSql ("BEGIN IMMEDIATE; ROLLBACK;").ok());   // no transaction was left open
+        REQUIRE (db.executeSql ("DROP TRIGGER temp.stamp_refuses;").ok());
+        REQUIRE (db.writeProjectSnapshot (second).ok());
+        REQUIRE (db.projectWriteStamp (stamp).ok());
+        REQUIRE (stamp == 2);
+        REQUIRE (db.readProjectSnapshot (readback).ok());
+        REQUIRE (readback.tracks[0].strip.name == "Renamed");
+    }
+    SECTION ("the stamp row is missing")
+    {
+        REQUIRE (db.executeSql ("DELETE FROM project_write_stamp;").ok());
+        REQUIRE_FALSE (db.writeProjectSnapshot (second).ok());
+        Project readback;
+        REQUIRE (db.readProjectSnapshot (readback).ok());
+        REQUIRE (readback.tracks[0].strip.name == "Audio 1");
+    }
+}
+
+namespace {
+// The stamp as project.db itself holds it: a fresh connection to a file with no -wal beside it.
+std::int64_t rawWriteStamp (const std::filesystem::path& databaseFile)
+{
+    sqlite3* raw = nullptr;
+    REQUIRE (sqlite3_open_v2 (utf8Path (databaseFile).c_str(), &raw, SQLITE_OPEN_READWRITE, nullptr) == SQLITE_OK);
+    sqlite3_stmt* stmt = nullptr;
+    REQUIRE (sqlite3_prepare_v2 (raw, "SELECT write_count FROM project_write_stamp WHERE singleton_id = 1;", -1, &stmt, nullptr)
+             == SQLITE_OK);
+    REQUIRE (sqlite3_step (stmt) == SQLITE_ROW);
+    const std::int64_t value = sqlite3_column_int64 (stmt, 0);
+    sqlite3_finalize (stmt);
+    sqlite3_close (raw);
+    return value;
+}
+} // namespace
+
+// ADR-0068 §5 — an autosave snapshot carries its source's stamp, in its own project.db (read with no WAL beside it), and
+// the source is not advanced by its autosave. The override lands inside the snapshot's transaction and checkpoint: the
+// bytes of project.db, copied while the connection is still open, already hold it; a failed override leaves nothing.
+TEST_CASE ("ADR-0068 an autosave snapshot carries its source's write stamp, durable in its project.db",
+           "[persistence][autosave][stamp-override-durable]")
+{
+    const auto source = makeTempBundlePath ("write-stamp-source");
+    const Project project = makeProject();
+    {
+        ProjectBundleDb db = openFreshBundle (source);
+        for (int i = 0; i < 7; ++i)
+            REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (source, project);
+        REQUIRE (yesdaw::persistence::writeAutosaveSnapshot (db, project).ok());
+        std::int64_t stamp = -1;
+        REQUIRE (db.projectWriteStamp (stamp).ok());
+        REQUIRE (stamp == 7);
+    }
+    const auto snapshotDb = yesdaw::persistence::autosaveSnapshotPath (source) / "project.db";
+    std::error_code ec;
+    for (const char* suffix : { "-wal", "-shm" })
+    {
+        std::filesystem::path sidecar = snapshotDb;
+        sidecar += suffix;
+        std::filesystem::remove (sidecar, ec);
+    }
+    REQUIRE (rawWriteStamp (snapshotDb) == 7);
+
+    const auto live = makeTempBundlePath ("write-stamp-override");
+    ProjectBundleDb overridden = openFreshBundle (live);
+    REQUIRE (overridden.writeProjectSnapshot (project, 42).ok());
+    const auto copied = makeTempBundlePath ("write-stamp-override-copy");
+    std::filesystem::create_directories (copied);
+    const std::vector<std::uint8_t> bytes = readBytes (live / "project.db");
+    writeBytes (copied / "project.db", std::span<const std::uint8_t> (bytes.data(), bytes.size()));
+    REQUIRE (rawWriteStamp (copied / "project.db") == 42);
+
+    Project renamed = project;
+    renamed.tracks[0].strip.name = "Renamed";
+    REQUIRE (overridden.executeSql ("CREATE TEMP TRIGGER stamp_refuses BEFORE UPDATE ON project_write_stamp "
+                                    "BEGIN SELECT RAISE(ABORT, 'injected'); END;").ok());
+    REQUIRE_FALSE (overridden.writeProjectSnapshot (renamed, 7).ok());
+    std::int64_t stamp = -1;
+    REQUIRE (overridden.projectWriteStamp (stamp).ok());
+    REQUIRE (stamp == 42);
+    writeProjectAssetFiles (live, project);
+    Project readback;
+    REQUIRE (overridden.readProjectSnapshot (readback).ok());
+    REQUIRE (readback.tracks[0].strip.name == "Audio 1");
 }
