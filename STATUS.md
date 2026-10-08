@@ -8,6 +8,18 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0073 accepted: empty states name the next action; one first-run tip (G6.5)
+
+**Decided (design workflow: three proposals - Logic-minimal, actionable cards, a help surface - two judges, a synthesis;
+then a critic whose two blockers and five should-fixes are folded in):** an empty surface (Arrange with no project or no
+tracks, inspector and piano roll with no track or no clip) offers its next action as one **row** - `Add audio track
+(Ctrl+Shift+N)` - a real control (Tab, Enter, click, screen reader, hover/pressed) that names the chord that works
+where it is, else the menu path read from the menu bar (`Clip > Add MIDI Clip`); one first-run **tip** under the ruler
+(drag-and-drop and the browser) with Dismiss, gone for good once dismissed or once a track exists, persisted in
+prefs.json, back via Help > Show Tips Again; nothing is obscured at any size. Rejected: cards on every empty surface, a
+permanent help band, Esc to dismiss, the New Project dialog on first launch (a launch change beyond G6.5). CONTEXT.md
+gains **Empty-state row** and **Tip**. **Next:** ADR-0073 cp1 (the chord/menu-path resolver).
+
 ## 2026-10-08 — ADR-0067 cp3c: the real pointer sweeps every control while the song plays (SS-5 drive)
 
 **What:** `ss7` Step 17 plays the song and moves the real Win32 mouse to the centre of every rail, strip and master

@@ -717,6 +717,17 @@ line just inside its edge. A right or middle press presses nothing; during a dra
 the press began on while the Hovered control follows the pointer (ADR-0067, ADR-0072).
 _Avoid_: active control, clicked control, down state
 
+**Empty-state row**:
+On a surface that is empty or lacks the selection it needs, one line naming the next action and how to take it -
+`Add audio track  (Ctrl+Shift+N)`: the chord that works there, else the menu path. A real control: Tab reaches it,
+Enter or a click runs the action, a screen reader announces it (ADR-0073).
+_Avoid_: placeholder, hint text, empty label
+
+**Tip**:
+A one-line piece of first-run guidance with its own Dismiss, shown until dismissed or made moot (the first track), then
+never again unless Help > Show Tips Again asks; dismissals persist in prefs.json (ADR-0073).
+_Avoid_: onboarding, tour, popup
+
 **Object selection**:
 The set of selected Clips, Notes, or Tracks that editing verbs act on. Exactly one object kind is
 current at a time, decided by the Focus context.
