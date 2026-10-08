@@ -31,7 +31,7 @@ component (`widget.project.new`, `mixer.fx.editor.close` (the editor's buttons a
 | `ss5-piano-roll.ps1` | the piano roll checkpoint | G3.2 – G3.8 |
 | `ss6-write-a-beat.ps1` | SS-4 "write a beat and a chord progression" | G3 (the exit) |
 | `ss7-mix-the-song.ps1` | SS-5 "mix the song" | G4 (grown per item) |
-| `ss8-project-lifecycle.ps1` | SS-6 project lifecycle / Usable-song journey | G5–G6 (**planned; not built**) |
+| `ss8-project-lifecycle.ps1` | SS-6 project lifecycle / Usable-song journey | G5–G6 (Step 6 known-red until ADR-0068 lands) |
 | `ss9-record-a-take.ps1` | SS-7 recording journey | G7 (**planned; not built**) |
 | `ss10-plugin-lifecycle.ps1` | separate plugin lifecycle journey | G4.8/H18 (**planned; not built**) |
 
@@ -112,6 +112,11 @@ controls transport and a slider arrow does not also nudge a Clip.
 - **Pick a popup item by its text, not its position.** Menus grow (G5 put Save a Copy and Save as
   Template above Import MIDI File, and SS-5's "7th item" became Import Audio). `MenuPickByName` finds the
   item through UI Automation and clicks it; it FAILs when the item is missing or disabled.
+- **JUCE popups have no Home key and its menu bar no Alt mnemonics.** A chooser's popup opens on its CURRENT item and
+  ignores Home, so "Home, then n Downs" picks the wrong item (SS-6's first run created a 48 kHz project, not 44.1):
+  pick by name (`MenuPickByName`). Open a menu by clicking its title in `widget.shell.menubar`, never Alt+F.
+- **Never name a helper after a PowerShell alias.** Aliases win over functions: `Kill` ran `Stop-Process` with no id
+  and waited on input forever (2026-10-07), as `Type` once did. The runner's are `KillApp` and `TypeText`.
 - **UI Automation is what a screen reader reads.** `UiaFocused` after a router move is the painted
   control's own element (ADR-0066); compare its name / type / rect with the probe's `controlTarget` and
   `layout`, and act through its patterns (Toggle, RangeValue, SetFocus) as a screen reader would.

@@ -20,3 +20,18 @@ ffmpeg -f lavfi -i "sine=frequency=440:sample_rate=44100:duration=0.5" -c:a libm
 - `mono_44k.mp3` — mono at 44.1 kHz: a cross-rate file (refused until the cross-rate checkpoint).
 
 The tests pin each MP3's decoded length (JUCE 8.0.4's reader) and check it on every CI platform.
+
+## Drive fixtures (SS-6, the project-lifecycle drive)
+
+The real-app drive (`tools/session-scripts/ss8-project-lifecycle.ps1`) drops these through the real window, so they are
+committed (the drive cannot run the tests' writers). Made with the same ffmpeg on 2026-10-07:
+
+```
+ffmpeg -i source_48k_stereo.wav -c:a pcm_s16be -bitexact drive_48k_stereo.aiff
+ffmpeg -i source_48k_stereo.wav -c:a flac -bitexact drive_48k_stereo.flac
+ffmpeg -i source_48k_stereo.wav -c:a libvorbis -q:a 2 -bitexact drive_48k_stereo.ogg
+ffmpeg -f lavfi -i "sine=frequency=550:sample_rate=44100:duration=0.5" -c:a pcm_s16le -bitexact drive_44k_mono.wav
+```
+
+- `drive_48k_stereo.{aiff,flac,ogg}` — the source in each container (0.5 s, 48 kHz stereo).
+- `drive_44k_mono.wav` — a 44.1 kHz file: the cross-rate Asset of SS-6 step 2.

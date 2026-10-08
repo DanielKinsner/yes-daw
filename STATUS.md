@@ -8,6 +8,36 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — SS-6 is built: the project-lifecycle drive runs on the real app (151 of 165 on its fourth run)
+
+**Now:** `tools/session-scripts/ss8-project-lifecycle.ps1` — the plan's SS-6, G5's exit — exists and runs end to end on
+the real exe. **Next:** a real bug it found (below) is being root-caused; then ADR-0068 (the autosave and recovery
+contract) in a safe order — the stamp and the recovery rule first, the writes switched on last — so no commit ever
+writes autosaves that the old "ask whenever one exists" rule could offer as a rollback; then ADR-0067 cp2.
+**Decision still pending (Dan, plan §8.2):** the macOS frame exception (unchanged).
+
+**What the drive does, on the real app:** creates a 44.1 kHz / 100 BPM project from the New Project dialog; drops a
+file with a real Windows drag and auditions it from the browser's Recent list; drops AIFF, FLAC, Ogg, a 44.1 kHz WAV and
+an MP3 on chosen lanes and times and checks every Asset's hash names its bundle file; refuses a malformed WAV with its
+reason and declines an .m4a while it is dragged; reopens a copy with a missing asset — Cancel, a wrong file refused,
+the original relinked; exports 24-bit PCM mix + stems (headers read back), cancels an export mid-job (no file, no
+partial), refuses a second export while one runs, and replaces the project under a running export (the old job retired
+silently); then the three autosave laps (ADR-0068); then Save As, Save a Copy and a relaunch keeping the preferences.
+
+**Run 4: 151 passed, 14 failed.** Known-red until ADR-0068: the autosave laps (the shipped autosave never writes).
+Script fixes since (run 5 pending): the browser dock's settle, the concurrent-export refusal (the chooser still asks
+where; the refusal comes with the path), the replacement case (a real New, Don't Save, Create — it used to Cancel).
+**A real bug found:** after Save As, deleting every clip and a kill, relaunching with that bundle opens nothing and
+says nothing (no project, no status) — the launch and Open paths ignore a failed load. Being root-caused with a gate.
+
+**Runner (`tools/session-drive.ps1`):** `FileDrop` (a real OLE file drag from a small topmost source form, checked to be
+under the press; an aborted drag closes its form), `WaitAlert` / `AlertButton` / `AlertText` (JUCE alerts through UI
+Automation), `KillApp` (not `Kill` — PowerShell resolves that to its Stop-Process alias first and waited on input),
+`Launch -AutosaveIntervalMs`, and `Focus` accepts the app's own modal window holding the foreground (the missing-audio
+alert at a relaunch). Fixtures: `tests/fixtures/import/drive_48k_stereo.{aiff,flac,ogg}`, `drive_44k_mono.wav` (ffmpeg
+commands in its README). Lessons in the drives README: no Home key in JUCE popups (pick by name), no Alt mnemonics in
+its menu bar, never name a helper after a PowerShell alias.
+
 ## 2026-10-08 — Fix: a drop that adds tracks left the master fader over the new strip
 
 **Now:** found by the SS-6 smoke drive and fixed. **Next:** the SS-6 drive tooling and its live runs, then ADR-0068's

@@ -13,7 +13,9 @@
 # A Session script is a PowerShell file dot-sourced into this scope. It uses these primitives
 # (element ids come from the probe's `layout` map, so scripts click by NAME, never by pixel):
 #   Step <n> "<title>"                 - names the step every following Assert belongs to
-#   Launch [-Bundle <path.yesdaw>]     - start the exe (fresh session-state dir; probe on)
+#   Launch [-Bundle <path.yesdaw>] [-ReuseSessionDir <dir>] [-AutosaveIntervalMs n]
+#                                      - start the exe (fresh session-state dir unless reused; probe on; a shorter
+#                                        autosave cadence for the lifecycle drive, 250 .. 600000 ms)
 #   Focus                              - bring the window to the foreground
 #   Click <elementId|"x,y"> [-Right] [-Double] [-Modifiers "Ctrl+Shift"] [-OffsetX n] [-OffsetY n]
 #   Drag <from> <to> [-Modifiers ...]  - press at `from`, move in steps, release at `to`
@@ -35,6 +37,13 @@
 #   UiaFind "<name -like>" [-Type t]   - the app's UI Automation elements by name (t: Button, CheckBox, Slider...)
 #   WaitPopup [-Depth n] [-TimeoutMs n] - n JUCE popup menus are modal (keys now reach the popup)
 #   Close                              - WM_CLOSE, then kill if a modal prompt holds it open
+#   KillApp                            - terminate the process at once (an interruption: no close path runs; not
+#                                        `Kill`: PowerShell resolves that to its Stop-Process alias first)
+#   FileDrop <elementId> <paths[]> [-OffsetX n] [-OffsetY n] - a real OLE file drag from outside the app, dropped
+#                                        at the element (what dragging files from Explorer does); returns the effect
+#   WaitAlert "<title contains>" [-TimeoutMs n] - a JUCE alert window of the app is up (UI Automation element)
+#   AlertButton "<text>" [-Title t]    - click the open alert's button by its text (the real mouse)
+#   AlertText "<text>" [-Title t]      - type into the open alert's text field (click it, select all, type)
 #   Elapsed                            - ms since Launch; $script:FirstProbeMs = ms to the first probe tick (B6)
 #
 # Coordinates: the probe publishes shell-local rects plus the shell's screen origin (`window`) and
@@ -645,6 +654,13 @@ function Focus {
     Start-Sleep -Milliseconds 120
     if ([YesDawDrive]::GetForegroundWindow() -eq $script:Hwnd) { return }
   }
+  # One of the app's own windows holds the foreground - its modal question (the missing-audio alert at a relaunch, an
+  # unsaved-changes box): the keys belong there, and Windows will not activate the window it blocks (2026-10-07).
+  $fg = [YesDawDrive]::GetForegroundWindow()
+  if ($null -ne $script:Proc -and [YesDawDrive]::DialogBelongsTo($fg, [uint32]$script:Proc.Id)) {
+    Write-Host ('  [focus] the app''s own window holds the foreground (hwnd ' + $fg + ')')
+    return
+  }
   if (ActivateAppCaption) {
     Start-Sleep -Milliseconds 120
     if ([YesDawDrive]::GetForegroundWindow() -eq $script:Hwnd) {
@@ -850,7 +866,7 @@ function AssertStartupBudget([int] $Milliseconds) {
   [void](Assert ($Milliseconds -ge 0 -and $Milliseconds -le 3000) ("launch to first interactive tick <= 3 s (B6): $Milliseconds ms"))
 }
 
-function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '') {
+function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '', [int] $AutosaveIntervalMs = 0) {
   if (-not (Test-Path -LiteralPath $Exe)) { throw "exe not found: $Exe (build first)" }
   $others = @(Get-Process -Name 'YesDaw' -ErrorAction SilentlyContinue)
   if ($others.Count -gt 0) { throw "another YesDaw.exe is running (pid $($others[0].Id)); the shell is single-instance (R9) - close it first" }
@@ -871,6 +887,8 @@ function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '') {
   $script:LastProbe = $null
   $env:YESDAW_STATE_PROBE = $script:ProbePath
   $env:YESDAW_SESSION_STATE_DIR = $script:SessionDir
+  if ($AutosaveIntervalMs -gt 0) { $env:YESDAW_AUTOSAVE_INTERVAL_MS = [string]$AutosaveIntervalMs }
+  else { Remove-Item Env:\YESDAW_AUTOSAVE_INTERVAL_MS -ErrorAction SilentlyContinue }
 
   $args = @()
   if (-not [string]::IsNullOrWhiteSpace($Bundle)) { $args = @(('"' + $Bundle + '"')) }
@@ -908,6 +926,191 @@ function Close {
   $script:Hwnd = [IntPtr]::Zero
   Remove-Item Env:\YESDAW_STATE_PROBE -ErrorAction SilentlyContinue
   Remove-Item Env:\YESDAW_SESSION_STATE_DIR -ErrorAction SilentlyContinue
+  Remove-Item Env:\YESDAW_AUTOSAVE_INTERVAL_MS -ErrorAction SilentlyContinue
+}
+
+# SS-6 step 6: an interruption — the process ends at once, no close path or prompt runs (what a crash or a kill leaves).
+# The session-state folder stays for a relaunch with -ReuseSessionDir.
+function KillApp {
+  if ($null -eq $script:Proc) { return }
+  try {
+    Stop-Process -Id $script:Proc.Id -Force -ErrorAction SilentlyContinue
+    [void]$script:Proc.WaitForExit(5000)
+  } catch { }
+  $deadline = (Get-Date).AddSeconds(5)   # the single-instance guard reads the process list: wait until it is gone
+  while (@(Get-Process -Name 'YesDaw' -ErrorAction SilentlyContinue).Count -gt 0 -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 100 }
+  $script:Proc = $null
+  $script:Hwnd = [IntPtr]::Zero
+  Remove-Item Env:\YESDAW_STATE_PROBE -ErrorAction SilentlyContinue
+  Remove-Item Env:\YESDAW_SESSION_STATE_DIR -ErrorAction SilentlyContinue
+  Remove-Item Env:\YESDAW_AUTOSAVE_INTERVAL_MS -ErrorAction SilentlyContinue
+}
+
+# SS-6 step 2: files dropped at a chosen lane and time arrive through the window's OLE drop target (JUCE's
+# FileDragAndDropTarget), exactly as a drag from Explorer does. A small topmost form outside the app holds a file-drop data
+# object; the real mouse presses on it (the form starts DoDragDrop on its own STA thread), moves onto the target and
+# releases. Nothing in the app is bypassed: the drop target, the hit-test and onFilesDropped all run.
+Add-Type -ReferencedAssemblies System.Windows.Forms, System.Drawing -TypeDefinition @'
+using System;
+using System.Drawing;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Windows.Forms;
+public static class YesDawFileDrop
+{
+    [StructLayout(LayoutKind.Sequential)] struct PT { public int X, Y; }
+    [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(PT p);
+    [DllImport("user32.dll")] static extern IntPtr GetAncestor(IntPtr h, uint flags);
+    [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int w, int hh, uint flags);
+    [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h);
+    static Thread thread;
+    static Form currentForm;
+    static volatile bool ready, dragging;
+    static volatile string effect = "";
+    static IntPtr formHandle = IntPtr.Zero;
+    public static bool Ready { get { return ready; } }
+    public static bool Dragging { get { return dragging; } }
+    public static IntPtr FormHandle { get { return formHandle; } }
+    // The top-level window under a screen point (what a press there would reach).
+    public static IntPtr RootAt(int x, int y) { PT p; p.X = x; p.Y = y; return GetAncestor(WindowFromPoint(p), 2); }
+    // Put the source form on top of everything again (another window may have been raised above it).
+    public static void Raise() {
+        if (formHandle == IntPtr.Zero) return;
+        SetWindowPos(formHandle, new IntPtr(-1), 0, 0, 0, 0, 0x0003 | 0x0040);   // TOPMOST, NOMOVE|NOSIZE|SHOWWINDOW
+        SetForegroundWindow(formHandle);
+    }
+    // A drag that never started: close the form so no orphan stays on top.
+    public static void Abort() {
+        var f = currentForm;
+        if (f != null && f.IsHandleCreated) { try { f.BeginInvoke((MethodInvoker)(() => f.Close())); } catch (Exception) { } }
+    }
+    public static void Begin(string[] paths, int x, int y)
+    {
+        ready = false; dragging = false; effect = ""; formHandle = IntPtr.Zero; currentForm = null;
+        thread = new Thread(() => {
+            var form = new Form();
+            form.FormBorderStyle = FormBorderStyle.None; form.ShowInTaskbar = false; form.TopMost = true;
+            form.StartPosition = FormStartPosition.Manual; form.Location = new Point(x - 24, y - 24); form.Size = new Size(48, 48);
+            form.BackColor = Color.DarkOrange;
+            currentForm = form;
+            form.MouseDown += (s, e) => {
+                dragging = true;
+                var data = new DataObject(DataFormats.FileDrop, paths);
+                effect = form.DoDragDrop(data, DragDropEffects.Copy | DragDropEffects.Move | DragDropEffects.Link).ToString();
+                dragging = false;
+                form.Close();
+            };
+            form.Shown += (s, e) => { formHandle = form.Handle; form.Activate(); ready = true; };
+            Application.Run(form);
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.IsBackground = true;
+        thread.Start();
+    }
+    public static string End(int timeoutMs)
+    {
+        if (thread != null && !thread.Join(timeoutMs)) return "timeout";
+        return effect;
+    }
+}
+'@
+
+function FileDrop([string] $target, [string[]] $paths, [int] $OffsetX = 0, [int] $OffsetY = 0) {
+  foreach ($path in $paths) { if (-not (Test-Path -LiteralPath $path)) { throw "FileDrop: no file $path" } }
+  $to = ScreenPoint $target $OffsetX $OffsetY
+  # The drag starts left of the window's client area, over the frame, so the form never covers the target.
+  $origin = New-Object YesDawDrive+POINT
+  [void][YesDawDrive]::ClientToScreen($script:Hwnd, [ref]$origin)
+  $fromX = [Math]::Max(30, $origin.X - 40); $fromY = $to[1]
+  [YesDawFileDrop]::Begin([string[]]$paths, $fromX, $fromY)
+  $deadline = (Get-Date).AddSeconds(3)
+  while (-not [YesDawFileDrop]::Ready -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 30 }
+  Start-Sleep -Milliseconds 150
+  [YesDawDrive]::MouseMoveAbs($fromX, $fromY); Start-Sleep -Milliseconds 80
+  # The press must reach the source form, not whatever window was raised above it since it appeared.
+  for ($try = 0; $try -lt 10 -and [YesDawFileDrop]::RootAt($fromX, $fromY) -ne [YesDawFileDrop]::FormHandle; $try++) {
+    [YesDawFileDrop]::Raise(); Start-Sleep -Milliseconds 60
+  }
+  $under = [YesDawFileDrop]::RootAt($fromX, $fromY)
+  if ($under -ne [YesDawFileDrop]::FormHandle) {
+    Write-Host ("  [drop] the source form is covered at {0},{1} by hwnd {2} (form {3})" -f $fromX, $fromY, $under, [YesDawFileDrop]::FormHandle) -ForegroundColor Yellow
+  }
+  [YesDawDrive]::MouseButton($true, $false)
+  $deadline = (Get-Date).AddSeconds(3)
+  while (-not [YesDawFileDrop]::Dragging -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 20 }
+  if (-not [YesDawFileDrop]::Dragging) {
+    [YesDawDrive]::MouseButton($false, $false)
+    [YesDawFileDrop]::Abort()
+    [void][YesDawFileDrop]::End(2000)
+    Write-Host ("  [drop] the press did not start a drag (under the press: hwnd {0}, form {1}, app {2})" -f $under, [YesDawFileDrop]::FormHandle, $script:Hwnd) -ForegroundColor Yellow
+    return 'no-drag'
+  }
+  Start-Sleep -Milliseconds 120
+  $steps = 16
+  for ($i = 1; $i -le $steps; $i++) {   # the drag loop tracks the real cursor; the target sees enter and over
+    [YesDawDrive]::MouseMoveAbs([int]($fromX + ($to[0] - $fromX) * $i / $steps), [int]($fromY + ($to[1] - $fromY) * $i / $steps))
+    Start-Sleep -Milliseconds 25
+  }
+  Start-Sleep -Milliseconds 200
+  [YesDawDrive]::MouseButton($false, $false)
+  $effect = [YesDawFileDrop]::End(5000)
+  if ($effect -eq 'timeout') { [YesDawFileDrop]::Abort(); [void][YesDawFileDrop]::End(2000) }
+  Write-Host ("  [drop] {0} file(s) at {1} -> {2}" -f $paths.Count, $target, $effect)
+  return $effect
+}
+
+# JUCE alert windows (the missing-audio question, Save as Template's name, the replace question) are JUCE-drawn windows of
+# their own; UI Automation names them by title and exposes their buttons and text field.
+function WaitAlert([string] $titleContains, [int] $TimeoutMs = 4000) {
+  $A = [System.Windows.Automation.AutomationElement]
+  $byPid = New-Object System.Windows.Automation.PropertyCondition($A::ProcessIdProperty, [int]$script:Proc.Id)
+  $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
+  do {
+    foreach ($w in $A::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children, $byPid)) {
+      if ([IntPtr][int64]$w.Current.NativeWindowHandle -eq $script:Hwnd) { continue }
+      if ($w.Current.Name -like ('*' + $titleContains + '*')) { return $w }
+    }
+    Start-Sleep -Milliseconds 80
+  } while ((Get-Date) -lt $deadline)
+  return $null
+}
+
+function AlertControl($alert, [string] $type, [string] $name) {
+  $A = [System.Windows.Automation.AutomationElement]
+  $cond = New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, [System.Windows.Automation.ControlType]::$type)
+  $hits = @($alert.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond) | Where-Object {
+    $name -eq '' -or ($_.Current.Name -replace '(\.\.\.|\u2026)$', '') -ceq ($name -replace '(\.\.\.|\u2026)$', '') })
+  return $hits
+}
+
+function AlertButton([string] $text, [string] $Title = '', [int] $TimeoutMs = 4000) {
+  $alert = WaitAlert $Title $TimeoutMs
+  [void](Assert ($null -ne $alert) ("an alert is up" + $(if ($Title) { " (" + $Title + ")" } else { '' })))
+  if ($null -eq $alert) { return $false }
+  $buttons = @(AlertControl $alert 'Button' $text)
+  [void](Assert ($buttons.Count -eq 1) ("the alert offers one '" + $text + "' button (" + $buttons.Count + ")"))
+  if ($buttons.Count -ne 1) { return $false }
+  $r = $buttons[0].Current.BoundingRectangle
+  [YesDawDrive]::MouseMoveAbs([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2)); Start-Sleep -Milliseconds 120
+  [YesDawDrive]::MouseButton($true, $false); Start-Sleep -Milliseconds 30
+  [YesDawDrive]::MouseButton($false, $false); Start-Sleep -Milliseconds 250
+  return $true
+}
+
+function AlertText([string] $text, [string] $Title = '', [int] $TimeoutMs = 4000) {
+  $alert = WaitAlert $Title $TimeoutMs
+  [void](Assert ($null -ne $alert) ("an alert is up" + $(if ($Title) { " (" + $Title + ")" } else { '' })))
+  if ($null -eq $alert) { return $false }
+  $fields = @(AlertControl $alert 'Edit' '')
+  [void](Assert ($fields.Count -ge 1) ("the alert has a text field (" + $fields.Count + ")"))
+  if ($fields.Count -lt 1) { return $false }
+  $r = $fields[0].Current.BoundingRectangle
+  [YesDawDrive]::MouseMoveAbs([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2)); Start-Sleep -Milliseconds 80
+  [YesDawDrive]::MouseButton($true, $false); Start-Sleep -Milliseconds 30
+  [YesDawDrive]::MouseButton($false, $false); Start-Sleep -Milliseconds 120
+  Key 'Ctrl+A'
+  TypeText $text
+  return $true
 }
 
 # --- Run ------------------------------------------------------------------------------------------
