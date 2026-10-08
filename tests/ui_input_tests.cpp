@@ -26310,6 +26310,275 @@ TEST_CASE ("ADR-0073 a painted control's element reports its help and its enable
     REQUIRE_FALSE (proxy.describe().enabled);
 }
 
+// The painted accessible element standing for a Control target (nullptr: none).
+static const yesdaw::ui::PaintedAccessibleProxy* paintedProxyNamed (juce::Component& parent, const std::string& targetId)
+{
+    for (int i = 0; i < parent.getNumChildComponents(); ++i)
+    {
+        juce::Component* child = parent.getChildComponent (i);
+        if (const auto* proxy = dynamic_cast<const yesdaw::ui::PaintedAccessibleProxy*> (child); proxy != nullptr
+            && proxy->getModel().targetId == targetId)
+            return proxy;
+        if (const auto* found = paintedProxyNamed (*child, targetId))
+            return found;
+    }
+    return nullptr;
+}
+
+// ADR-0073 §1-§3 / ADR-0074 (cp2): an empty Arrange offers its next action as rows - with no project, New and Open; a
+// new project (its default track, no clip), Import audio; a project with no tracks, Add audio track and Import audio -
+// each naming the chord that works there; the old prose is gone. Each row is a painted control: a record, a Control
+// target, an element (a Button titled by its noun, its help the chord). Tab reaches them after the timeline's tools,
+// Enter runs them, the named chord runs them, and the first clip makes them give way to the lanes.
+TEST_CASE ("ADR-0073 an empty Arrange offers its next actions as rows", "[ui][input][g65][empty-rows]")
+{
+    const auto bundlePath = makeTempBundlePath ("g65-rows");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    int importChooserOpened = 0;
+    choices.chooseImportAudioFile = [fixturePath, &importChooserOpened] { ++importChooserOpened; return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    using Rows = std::vector<std::pair<std::string, std::string>>;
+    const auto trackCount = [&shell] { return static_cast<int> (probeRoot (*shell)["project"]["trackCount"]); };
+
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.projectLoaded);
+    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == Rows { { "empty.arrange.new_project", "New project  (Ctrl+N)" },
+                                                                  { "empty.arrange.open_project", "Open project  (Ctrl+O)" } });
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
+    REQUIRE (trackCount() == 1);   // ADR-0074: a new project's default track
+    const Rows noClips { { "empty.arrange.import_audio", "Import audio  (Ctrl+Shift+I)" } };
+    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noClips);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackSelectNext);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRemove);
+    REQUIRE (trackCount() == 0);
+    const Rows noTracks { { "empty.arrange.add_track", "Add audio track  (Ctrl+Shift+N)" },
+                          { "empty.arrange.import_audio", "Import audio  (Ctrl+Shift+I)" } };
+    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noTracks);
+
+    // Painted controls: records, and elements titled by the noun with the chord as their help.
+    const auto records = yesdaw::ui::mainComponentPointerRecords (*shell);
+    for (const auto& [id, noun, chord] : { std::tuple<std::string, juce::String, juce::String> { "empty.arrange.add_track", "Add audio track", "Ctrl+Shift+N" },
+                                           std::tuple<std::string, juce::String, juce::String> { "empty.arrange.import_audio", "Import audio", "Ctrl+Shift+I" } })
+    {
+        INFO (id);
+        REQUIRE (std::any_of (records.begin(), records.end(), [&id] (const auto& record) { return record.first == id; }));
+        const auto* proxy = paintedProxyNamed (*shell, id);
+        REQUIRE (proxy != nullptr);
+        const auto described = proxy->describe();
+        REQUIRE (described.role == juce::AccessibilityRole::button);
+        REQUIRE (described.title == noun);
+        REQUIRE (described.help == chord);
+        REQUIRE (described.enabled);
+        REQUIRE (described.canPress);
+    }
+
+    // Tab order: the rows follow every tool cell of the timeline, in the table's order.
+    {
+        const auto traversal = yesdaw::ui::mainComponentControlTraversal (*shell);
+        const auto at = [&traversal] (const char* id) {
+            return static_cast<long> (std::find (traversal.begin(), traversal.end(), juce::String (id)) - traversal.begin());
+        };
+        long lastTool = -1;
+        for (std::size_t i = 0; i < traversal.size(); ++i)
+            if (traversal[i].startsWith ("tool."))
+                lastTool = static_cast<long> (i);
+        REQUIRE (lastTool >= 0);
+        REQUIRE (at ("empty.arrange.add_track") < static_cast<long> (traversal.size()));
+        REQUIRE (at ("empty.arrange.add_track") > lastTool);
+        REQUIRE (at ("empty.arrange.import_audio") == at ("empty.arrange.add_track") + 1);
+    }
+
+    // Tab to a row and Enter runs it: a track, and the rows give way to the lanes.
+    const auto tabTo = [&shell] (const char* id) {
+        for (int n = 0; n < 200 && yesdaw::ui::mainComponentControlTarget (*shell).id != juce::String (id); ++n)
+            REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+        REQUIRE (yesdaw::ui::mainComponentControlTarget (*shell).id == juce::String (id));
+    };
+    tabTo ("empty.arrange.add_track");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (trackCount() == 1);
+    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noClips);   // a track, still no clip
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));   // control navigation ends
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    REQUIRE (trackCount() == 0);
+    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noTracks);
+
+    // The chord the row names runs its action.
+    REQUIRE (pressKey (*shell, 'N', juce::ModifierKeys (juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier)));
+    REQUIRE (trackCount() == 1);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    REQUIRE (trackCount() == 0);
+
+    // Import audio through its row: the fixture lands on a new track.
+    tabTo ("empty.arrange.import_audio");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
+    REQUIRE (trackCount() == 1);
+    REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 1);
+    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell).empty());
+
+    // Undo the import's clip: one track, no clip - the new-project state (ADR-0074).
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    REQUIRE (trackCount() == 1);
+    REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 0);
+    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noClips);
+
+    // ADR-0074: the row takes clicks only inside its own rect - the lane's gestures start everywhere else.
+    {
+        juce::Component& timeline = requireTimelineComponent (*shell);
+        juce::Rectangle<int> row;
+        for (const auto& [id, bounds] : yesdaw::ui::mainComponentPointerRecords (*shell))
+            if (id == "empty.arrange.import_audio")
+                row = bounds;
+        REQUIRE_FALSE (row.isEmpty());
+        const int opened = importChooserOpened;
+        const juce::Point<int> beside = timeline.getLocalPoint (shell.get(), juce::Point<int> (row.getX() - 24, row.getCentreY()));
+        mouseDownAt (timeline, beside);
+        timeline.mouseUp (makeMouseEvent (timeline, beside, beside, false, 1, juce::ModifierKeys::leftButtonModifier));
+        REQUIRE (importChooserOpened == opened);   // the lane's, not the row's
+        mouseDownAt (timeline, timeline.getLocalPoint (shell.get(), row.getCentre()), juce::ModifierKeys::middleButtonModifier);
+        REQUIRE (importChooserOpened == opened);   // a middle click is not the row's
+        mouseDownAt (timeline, timeline.getLocalPoint (shell.get(), row.getCentre()));
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
+        REQUIRE (importChooserOpened == opened + 1);   // the row's own click imports
+        REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 1);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 0);
+    }
+
+    // A MIDI clip alone (no audio) also gives the lanes their content back.
+    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noClips);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["midiClipCount"]) == 1);
+    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell).empty());
+}
+
+// ADR-0073 §5: the rows obscure nothing - at every window size, with the dock open and closed, they lie inside the lanes,
+// meet no other record and no visible widget; where the lanes cannot hold them they are absent, not clipped.
+TEST_CASE ("ADR-0073 an empty Arrange's rows obscure nothing at any size", "[ui][input][g65][no-obscured]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const auto bundlePath = makeTempBundlePath ("g65-obscured");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    int shown = 0;
+    for (const juce::Point<int> size : { juce::Point<int> (L::windowMinWidth, L::windowMinHeight), juce::Point<int> (1280, 720),
+                                         juce::Point<int> (1366, 768), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+        for (const int dock : { 0, L::mixerHeight, 420 })
+        {
+            shell->setSize (size.x, size.y);
+            yesdaw::ui::mainComponentSetDockHeight (*shell, dock);
+            INFO (size.toString() << ", dock " << dock);
+            const auto records = yesdaw::ui::mainComponentPointerRecords (*shell);
+            std::vector<std::pair<std::string, juce::Rectangle<int>>> rows;
+            for (const auto& record : records)
+                if (record.first.rfind ("empty.", 0) == 0)
+                    rows.push_back (record);
+            const auto painted = yesdaw::ui::mainComponentEmptyRows (*shell);
+            REQUIRE (painted.size() == rows.size());   // a row is a record exactly when it is painted
+            if (rows.empty())
+                continue;
+            ++shown;
+            const juce::Rectangle<int> lanes = (*shell).getLocalArea (&timeline, timeline.getLocalBounds());
+            std::vector<juce::Rectangle<int>> laneRects;   // the tracks' lanes (ADR-0074: a row never sits over one)
+            {
+                const juce::var layout = probeRoot (*shell)["layout"];
+                for (int lane = 0; lane < 64; ++lane)
+                    if (const juce::var r = layout[juce::Identifier ("lane." + juce::String (lane))]; r.isArray())
+                        laneRects.push_back ({ static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]) });
+            }
+            for (const auto& [id, bounds] : rows)
+            {
+                INFO (id << " " << bounds.toString());
+                REQUIRE (lanes.contains (bounds));
+                for (const auto& lane : laneRects)
+                    REQUIRE_FALSE (bounds.intersects (lane));
+                for (const auto& [otherId, other] : records)
+                    if (otherId != id)
+                        REQUIRE_FALSE (bounds.intersects (other));
+                std::function<void (juce::Component&)> visit = [&] (juce::Component& parent) {
+                    for (int i = 0; i < parent.getNumChildComponents(); ++i)
+                    {
+                        juce::Component& child = *parent.getChildComponent (i);
+                        if (! child.isVisible())
+                            continue;
+                        const bool widget = dynamic_cast<juce::Button*> (&child) != nullptr || dynamic_cast<juce::ComboBox*> (&child) != nullptr
+                                         || dynamic_cast<juce::Slider*> (&child) != nullptr || dynamic_cast<juce::TextEditor*> (&child) != nullptr
+                                         || dynamic_cast<juce::ScrollBar*> (&child) != nullptr;
+                        if (widget)
+                        {
+                            const juce::Rectangle<int> area = (*shell).getLocalArea (&child, child.getLocalBounds());
+                            INFO ("widget " << child.getComponentID() << " " << area.toString());
+                            REQUIRE_FALSE (bounds.intersects (area));
+                            continue;
+                        }
+                        visit (child);
+                    }
+                };
+                visit (*shell);
+            }
+        }
+    REQUIRE (shown >= 10);   // most sizes and docks show them
+
+    // Empty tracks fill the lanes until no room is left below them: then no row (it never moves over a lane).
+    shell->setSize (1280, 720);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::mixerHeight);
+    bool gone = false;
+    for (int n = 0; n < 40 && ! gone; ++n)
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+        gone = yesdaw::ui::mainComponentEmptyRows (*shell).empty();
+    }
+    REQUIRE (gone);
+    REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 0);   // still no clip: the room ran out
+
+    // Where the lanes cannot hold every row: none at all, never a clipped one - the canvas's own layout, over every
+    // height and a width too narrow for a row's text.
+    yesdaw::ui::TimelineCanvasState state;
+    const std::array<yesdaw::ui::TimelineEmptyRow, 2> rows {{ { "Add audio track", "Ctrl+Shift+N", true },
+                                                              { "Import audio", "Ctrl+Shift+I", true } }};
+    state.emptyRows = rows.data();
+    state.emptyRowCount = static_cast<int> (rows.size());
+    REQUIRE (yesdaw::ui::timelineEmptyRowRects ({ 0, 0, 1200, 600 }, state).size() == rows.size());
+    bool sawNone = false;
+    for (int height = 600; height > 0; height -= 2)
+    {
+        const auto rects = yesdaw::ui::timelineEmptyRowRects ({ 0, 0, 1200, height }, state);
+        INFO ("height " << height);
+        REQUIRE ((rects.empty() || rects.size() == rows.size()));
+        sawNone = sawNone || rects.empty();
+    }
+    REQUIRE (sawNone);
+    REQUIRE (yesdaw::ui::timelineEmptyRowRects ({ 0, 0, 120, 600 }, state).empty());
+}
+
+// ADR-0073: the old empty-Arrange prose is gone from the shell's source - the rows replaced it.
+TEST_CASE ("ADR-0073 the empty Arrange's old prose is gone", "[ui][input][g65][empty-rows]")
+{
+    std::vector<std::string> found;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator (std::filesystem::path { YESDAW_SOURCE_DIR } / "src"))
+    {
+        if (! entry.is_regular_file())
+            continue;
+        std::ifstream in (entry.path(), std::ios::binary);
+        std::string line;
+        while (std::getline (in, line))
+            for (const char* old : { "\"No Project\"", "\"Create or open a Project\"", "\"Use New or Open in the top-left toolbar\"" })
+                if (line.find (old) != std::string::npos)
+                    found.push_back (entry.path().filename().string() + ": " + old);
+    }
+    for (const std::string& site : found)
+        UNSCOPED_INFO (site);
+    REQUIRE (found.empty());
+}
+
 #if JUCE_WINDOWS
 // ADR-0066 / ADR-0049 on a real window (2026-10-07: the desktop drive's UI Automation step found it). JUCE parents an
 // accessible element on its nearest focus container — the window, not the shell, which is not one — so the shell's own

@@ -530,6 +530,8 @@ struct MainComponentPointerState
 // ADR-0073 §2: how an empty-state row's action is taken from where the shell is - the chord that works there, else the
 // menu path ("Clip > Add MIDI Clip"), else "".
 [[nodiscard]] std::string mainComponentEmptyStateHow (juce::Component& component, UiActionId action);
+// ADR-0073 §3: the empty Arrange's rows as painted - (id, text) in order; none while the project has tracks.
+[[nodiscard]] std::vector<std::pair<std::string, std::string>> mainComponentEmptyRows (juce::Component& component);
 // ADR-0072 §1: the pressed stroke's width for a record - the close width for the families whose text sits near their
 // edge (the mixer's insert, send and I/O rows - a strip's and the master's), the full width for every other.
 [[nodiscard]] int pointerPressedStrokeWidthFor (const std::string& id) noexcept;

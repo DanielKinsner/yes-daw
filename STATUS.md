@@ -8,6 +8,27 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0073 cp2 + ADR-0074: the empty Arrange offers its next action
+
+**What changes (visible):** the Arrange no longer says "Create or open a Project" (which it said even with a project
+open) and the rail's "No Project" is gone. A **new project** (it starts with one empty audio track) shows
+`Import audio  (Ctrl+Shift+I)` centred in the empty lanes; a project whose tracks were all deleted shows
+`Add audio track  (Ctrl+Shift+N)` and `Import audio  (Ctrl+Shift+I)`; with no project at all, `New project  (Ctrl+N)`
+and `Open project  (Ctrl+O)`. Each row is a real control: a click or Tab + Enter runs the action exactly as its menu
+item does, a screen reader hears it as a button with the chord as its help, hover shows its outline; the chord shown is
+the one that works there (else the menu path). The first clip makes the rows give way to the lanes.
+**ADR-0074 (accepted, critic folded in):** ADR-0073 had assumed a new project has no tracks; it has one (the Default
+template), so the state a new user actually sees gets the Import row and the first-run tip (cp4) will last until the
+first clip. **Gates:** `[g65][empty-rows]` (each state's rows and text; records and elements; Tab order after the tools;
+Enter, the named chord and a click run them; a click beside the row is the lane's; a MIDI clip alone also clears them),
+`[g65][no-obscured]` (every size x dock: inside the lanes, no record or widget met; all-or-none by the canvas's layout
+over every height), the old prose gone from the source. Six mutations bite. **Visual check (agent):** renders of the
+new-project, no-tracks and hovered states read cleanly.
+**Critic:** its blocker was ADR-0074's own rationale - lanes keep a fixed height (G0.7) and never fill the area, so the
+row now sits in the free space **below the last lane** (never over one; gone once empty tracks leave no room - gated by
+adding tracks until it goes); also in: a middle click no longer runs a row (gated), the old-prose grep covers all of
+`src/`, one timeline state per record collection, two invariant comments.
+
 ## 2026-10-08 — ADR-0073 cp1: how an empty-state row's action is taken (the chord that works here, else the menu)
 
 **What (no visible change yet):** `src/ui/EmptyStateRow.h` resolves, for an action, the chord to show - only if the

@@ -374,6 +374,11 @@ struct UiTheme
         static constexpr float controlTargetRingActiveStrokeWidth = 3.0f;
         static constexpr int controlTargetRingOutset = 4;
         static constexpr int controlTargetRingRepaintMargin = 2;
+        // ADR-0073: an empty Arrange's rows - one line each, centred in the lanes, kept clear of their edges.
+        static constexpr int timelineEmptyRowHeight = 28;
+        static constexpr int timelineEmptyRowGap = 6;
+        static constexpr int timelineEmptyRowPaddingX = 14;
+        static constexpr int timelineEmptyRowMargin = 8;
         // ADR-0072: the hover (1 px) and pressed (2 px) strokes sit inside the control's record, inset from its edge;
         // a family whose text comes within the inset plus the pressed width of its edge presses at the close width.
         static constexpr int pointerStrokeInset = 1;

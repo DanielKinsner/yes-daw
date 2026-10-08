@@ -942,6 +942,18 @@ private:
 
     [[nodiscard]] static std::span<const yesdaw::ui::UiActionId> menuActionsForIndex (int topLevelMenuIndex);
     [[nodiscard]] std::string emptyStateHowFor (yesdaw::ui::UiActionId action);   // ADR-0073 §2: the chord that works here, else the menu path
+    // ADR-0073 §3: the empty Arrange's rows for the state the shell is in (none while the project has tracks).
+    struct EmptyRowSpec
+    {
+        const char* id;
+        const char* noun;
+        yesdaw::ui::UiActionId action;
+    };
+    [[nodiscard]] std::span<const EmptyRowSpec> timelineEmptyRowSpecs() const;
+    void runEmptyRowAction (yesdaw::ui::UiActionId action);   // a row's click / Enter: the action, as its menu item runs it
+    // The state's rows: rebuilt in place within the capacity the constructor reserves (4 - every state has at most 2
+    // rows), so a state copy's pointer stays valid; a spec list longer than that must raise the reserve.
+    std::vector<yesdaw::ui::TimelineEmptyRow> timelineEmptyRows;
 
     // G1.2: the tick a menu item shows — the registry context's own flags, one law for every
     // toggle and every "which one is current" group (views, inspector tabs, snap presets).
@@ -1025,6 +1037,7 @@ public:
     }
     [[nodiscard]] const auto& harnessPointerRecords() const noexcept { return pointerRecords; }   // ADR-0067 §2
     [[nodiscard]] std::string harnessEmptyStateHow (yesdaw::ui::UiActionId action) { return emptyStateHowFor (action); }
+    [[nodiscard]] std::vector<std::pair<std::string, std::string>> harnessEmptyRows();   // ADR-0073: (id, text) as painted
     void harnessPointer (MainComponentPointerKind kind, juce::Point<int> shellPoint, juce::Component* component,
                          juce::ModifierKeys modifiers) { pointerEvent (kind, shellPoint, component, modifiers); }
     [[nodiscard]] MainComponentPointerState harnessPointerState() const

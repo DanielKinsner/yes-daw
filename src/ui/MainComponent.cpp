@@ -238,6 +238,12 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     timelineInput.setBufferedToImage (true);
    #endif
     playheadLayer.stateProvider = [this] { return makeTimelineState(); };
+    timelineEmptyRows.reserve (4);   // ADR-0073: rebuilt in place by makeTimelineState (a state copy's pointer holds)
+    timelineInput.onEmptyRowClicked = [this] (int row) {
+        const auto specs = timelineEmptyRowSpecs();
+        if (row >= 0 && static_cast<std::size_t> (row) < specs.size())
+            runEmptyRowAction (specs[static_cast<std::size_t> (row)].action);
+    };
     // A paint layer, not a control: no component id (the tooltip / dead-affordance laws
     // enumerate identified children), a name for the render-budget gate.
     playheadLayer.setName ("Playhead layer");

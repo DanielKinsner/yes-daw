@@ -309,6 +309,52 @@ std::string MainComponent::emptyStateHowFor (yesdaw::ui::UiActionId action)
                                       yesdaw::ui::focusContextForPanel (appModel.context().activePanel), menus, router);
 }
 
+std::span<const MainComponent::EmptyRowSpec> MainComponent::timelineEmptyRowSpecs() const
+{
+    static constexpr std::array<EmptyRowSpec, 2> kNoProject {{
+        { "empty.arrange.new_project", "New project", UiActionId::ProjectNew },
+        { "empty.arrange.open_project", "Open project", UiActionId::ProjectOpen },
+    }};
+    static constexpr std::array<EmptyRowSpec, 2> kNoTracks {{
+        { "empty.arrange.add_track", "Add audio track", UiActionId::TrackAdd },
+        { "empty.arrange.import_audio", "Import audio", UiActionId::ProjectImportAudio },
+    }};
+    // ADR-0074: a new project's Arrange - its default track, no clip yet. (The Import row keeps its id across the two
+    // states; they never coexist.)
+    static constexpr std::array<EmptyRowSpec, 1> kNoClips {{
+        { "empty.arrange.import_audio", "Import audio", UiActionId::ProjectImportAudio },
+    }};
+    if (! appModel.context().projectLoaded)
+        return kNoProject;
+    const yesdaw::engine::Project& project = appModel.project();
+    if (project.tracks.empty())
+        return kNoTracks;
+    if (project.clips.empty() && project.midiClips.empty())
+        return kNoClips;
+    return {};
+}
+
+void MainComponent::runEmptyRowAction (UiActionId action)
+{
+    if (! appModel.registry().stateFor (action, appModel.context()).enabled)
+        return;
+    handleAction (action);   // exactly as its menu item or toolbar button runs it
+    refreshActionState();
+    resized();
+    repaintAll();
+}
+
+std::vector<std::pair<std::string, std::string>> MainComponent::harnessEmptyRows()
+{
+    std::vector<std::pair<std::string, std::string>> rows;
+    const auto specs = timelineEmptyRowSpecs();
+    const TimelineCanvasState state = makeTimelineState();
+    const auto rects = timelineEmptyRowRects (timelineInput.getLocalBounds(), state);
+    for (std::size_t i = 0; i < specs.size() && i < rects.size(); ++i)
+        rows.emplace_back (specs[i].id, yesdaw::ui::emptyStateRowText (specs[i].noun, emptyStateHowFor (specs[i].action)));
+    return rows;
+}
+
 int pointerPressedStrokeWidthFor (const std::string& id) noexcept
 {
     const auto endsWith = [&id] (const char* suffix) {
@@ -512,9 +558,10 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
         add ("header.time", "Time display", ControlTargetRole::Button, header.timeReadout, std::move (time));
     }
 
-    // The timeline's tool strip: a radio group of seven cells.
+    // The timeline's tool strip: a radio group of seven cells; then an empty Arrange's rows (one state for both).
+    const TimelineCanvasState timelineState = makeTimelineState();
     {
-        const TimelineCanvasGeometry geometry = timelineCanvasGeometry (timelineInput.getLocalBounds(), makeTimelineState());
+        const TimelineCanvasGeometry geometry = timelineCanvasGeometry (timelineInput.getLocalBounds(), timelineState);
         for (std::size_t index = 0; index < kTimelineToolStripOrder.size(); ++index)
         {
             const TimelineTool tool = kTimelineToolStripOrder[index];
@@ -526,6 +573,24 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
             add ("tool." + toolName.toLowerCase().toStdString(), (toolName + " tool").toStdString(), ControlTargetRole::Toggle,
                  timelineToolStripCell (geometry.toolbarArea, index).translated (timelineInput.getX(), timelineInput.getY()),
                  std::move (cell));
+        }
+    }
+
+    // ADR-0073: the empty Arrange's rows - each runs its action as its menu item does; disabled while it is.
+    if (timelineInput.isVisible())
+    {
+        const auto rects = timelineEmptyRowRects (timelineInput.getLocalBounds(), timelineState);
+        const auto specs = timelineEmptyRowSpecs();
+        for (std::size_t i = 0; i < rects.size() && i < specs.size(); ++i)
+        {
+            const UiActionId action = specs[i].action;
+            PaintedControl row;
+            row.activate = [this, action] { runEmptyRowAction (action); };
+            row.enabled = [this, action] { return appModel.registry().stateFor (action, appModel.context()).enabled; };
+            row.description = [this, action] { return juce::String (emptyStateHowFor (action)); };
+            row.surface = &timelineInput;
+            add (specs[i].id, specs[i].noun, ControlTargetRole::Button,
+                 rects[i].translated (timelineInput.getX(), timelineInput.getY()), std::move (row));
         }
     }
 

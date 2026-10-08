@@ -114,6 +114,7 @@ public:
     std::function<void (int)> onClipErased;                      // G3.2: the Eraser tool's click (layout clip id)
     std::function<void (int, double)> onPencilEmptyLane;         // lane, seconds: pencil a MIDI clip — E3
     std::function<void (yesdaw::ui::TimelineTool)> onToolSelected;   // a click on a tool-strip cell
+    std::function<void (int)> onEmptyRowClicked;                     // ADR-0073: a left click on an empty Arrange's row (its index)
     std::function<void (int)> onVerticalScrollRows;              // +1 down / -1 up, plain wheel — E5
 
     // Loop brace editing (E6): drag either handle to resize, drag the band to move.
@@ -321,27 +322,7 @@ public:
             (void) yesdaw::ui::paintTimelineCanvas (g, getLocalBounds(), state);
             if (dragState.active && dragState.moved)
                 paintDragGhost (g, state);   // G2.3
-            if (state.trackCount == 0 && state.clipCount == 0)
-            {
-                const auto geometry = yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
-                g.setColour (yesdaw::ui::UiTheme::Color::text());
-                g.setFont (yesdaw::ui::UiTheme::Type::font (
-                    yesdaw::ui::UiTheme::Type::title,
-                    juce::Font::bold));
-                const int centreY = geometry.clipArea.getCentreY();
-                g.drawText ("Create or open a Project",
-                            juce::Rectangle<int> { geometry.clipArea.getX(), centreY - 30,
-                                                   geometry.clipArea.getWidth(), 24 },
-                            juce::Justification::centred,
-                            false);
-                g.setColour (yesdaw::ui::UiTheme::Color::mutedText());
-                g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body));
-                g.drawText ("Use New or Open in the top-left toolbar",
-                            juce::Rectangle<int> { geometry.clipArea.getX(), centreY + 2,
-                                                   geometry.clipArea.getWidth(), 20 },
-                            juce::Justification::centred,
-                            false);
-            }
+            yesdaw::ui::drawTimelineEmptyRows (g, getLocalBounds(), state);   // ADR-0073: an empty Arrange's next actions
 
             if (marqueeState.active)
             {
@@ -551,6 +532,15 @@ public:
         handDragActive = false;
         marqueeState = {};
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
+
+        // ADR-0073: an empty Arrange's row runs its action and nothing else.
+        if (const int row = yesdaw::ui::timelineEmptyRowAtPoint (getLocalBounds(), state, event.getPosition());
+            row >= 0 && event.mods.isLeftButtonDown())
+        {
+            if (onEmptyRowClicked)
+                onEmptyRowClicked (row);
+            return;
+        }
 
         // The tool strip: a click on a cell picks that tool and nothing else (the strip was
         // paint-only before — clicks fell through as a click on nothing).

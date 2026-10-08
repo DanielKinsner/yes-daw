@@ -1149,13 +1149,7 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
                         .withHeight (yesdaw::ui::UiTheme::Layout::trackListHeaderLabelHeight));
 
     if (! appModel.context().projectLoaded || appModel.project().tracks.empty())
-    {
-        drawSmallLabel (g,
-                        "No Project",
-                        area.reduced (yesdaw::ui::UiTheme::Layout::trackListEmptyLabelInset),
-                        juce::Justification::centred);
-        return;
-    }
+        return;   // ADR-0073: an empty rail; the lanes beside it offer the next action
 
     // N6: row heights come from the SAME cumulative law rowBounds/rowAt use — a resized row
     // paints at exactly the height/position hit-testing agrees on.
@@ -1420,6 +1414,15 @@ yesdaw::ui::TimelineCanvasState MainComponent::makeTimelineState()
 
     yesdaw::ui::TimelineCanvasState state;
     state.activeTool = appModel.context().activeTimelineTool;   // the strip lights this cell
+    {
+        // ADR-0073: the empty Arrange's rows, rebuilt in place (the capacity is reserved, so a copy's pointer holds).
+        timelineEmptyRows.clear();
+        for (const EmptyRowSpec& spec : timelineEmptyRowSpecs())
+            timelineEmptyRows.push_back ({ juce::String (spec.noun), juce::String (emptyStateHowFor (spec.action)),
+                                           appModel.registry().stateFor (spec.action, appModel.context()).enabled });
+        state.emptyRows = timelineEmptyRows.empty() ? nullptr : timelineEmptyRows.data();
+        state.emptyRowCount = static_cast<int> (timelineEmptyRows.size());
+    }
     state.snapLabelShown = timelineSnapChooser.isVisible() && ! timelineSnapChooser.getBounds().isEmpty();   // ADR-0063: the caption goes with its chooser
     if (! appModel.context().projectLoaded)
     {

@@ -2094,6 +2094,13 @@ void mainComponentPointer (juce::Component& component, MainComponentPointerKind 
         mainComponent->harnessPointer (kind, shellPoint, eventComponent, modifiers);
 }
 
+std::vector<std::pair<std::string, std::string>> mainComponentEmptyRows (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessEmptyRows();
+    return {};
+}
+
 std::string mainComponentEmptyStateHow (juce::Component& component, UiActionId action)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
