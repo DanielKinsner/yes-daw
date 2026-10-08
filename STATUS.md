@@ -8,6 +8,17 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — SS-6 run 8: 171 of 176 pass; the five left are ADR-0068's autosave (known red until it lands)
+
+**Now:** the project-lifecycle drive (`tools/session-scripts/ss8-project-lifecycle.ps1`) passes everything except the
+autosave laps, on the real exe with nothing else running (run 6's three B6 timing failures were a build running beside
+it; void). **Drive fixes in this commit:** audition selects the row by its name - its press at x 24 had landed on the
+row's play mark (x 8..26), starting an audition the Audition button then stopped; the mark is now tested on purpose,
+with "auditioning never imports" (it caught the double-press import, fixed in 54c5d1a); a 6 s WAV of the drive's own
+so audition outlives a probe read; the replacement-under-export check compares finished-job outcomes (the per-project
+export count starts again with the new project); a launch Cancel now expects ADR-0062's untitled session (the real
+app's deferred native question path - its fallback runs there). **Next:** ADR-0068 cp5a (schema v35, the write stamp).
+
 ## 2026-10-08 — Fix (found by SS-6): a double press on a browser row's play mark imported the file
 
 **What a user saw:** pressing a file's ▶ mark in the browser twice quickly (start, then stop the audition) also

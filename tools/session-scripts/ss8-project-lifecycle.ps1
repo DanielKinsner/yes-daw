@@ -83,6 +83,21 @@ $fixFlac        = Join-Path $root 'tests\fixtures\import\drive_48k_stereo.flac'
 $fixOgg         = Join-Path $root 'tests\fixtures\import\drive_48k_stereo.ogg'
 $fixCrossRate   = Join-Path $root 'tests\fixtures\import\drive_44k_mono.wav'
 $fixSupportedWav = Join-Path $root 'tests\fixtures\import\source_48k_stereo.wav'
+# Step 1 auditions what it drops: a 0.5 s file can start and end between two probe reads (run 5), so the drive writes
+# a 6 s 48 kHz stereo WAV of its own into the scratch folder (silence is enough: the check is that audition runs).
+$auditionWav = Join-Path $scratchDir 'audition_6s_48k_stereo.wav'
+& {
+  $rate = 48000; $channels = 2; $frames = 6 * $rate
+  $dataLen = $frames * $channels * 2
+  $bw = New-Object System.IO.BinaryWriter([System.IO.File]::Create($auditionWav))
+  try {
+    $bw.Write([System.Text.Encoding]::ASCII.GetBytes('RIFF')); $bw.Write([int](36 + $dataLen))
+    $bw.Write([System.Text.Encoding]::ASCII.GetBytes('WAVEfmt ')); $bw.Write([int]16); $bw.Write([int16]1)
+    $bw.Write([int16]$channels); $bw.Write([int]$rate); $bw.Write([int]($rate * $channels * 2)); $bw.Write([int16]($channels * 2)); $bw.Write([int16]16)
+    $bw.Write([System.Text.Encoding]::ASCII.GetBytes('data')); $bw.Write([int]$dataLen)
+    $bw.Write((New-Object byte[] $dataLen))
+  } finally { $bw.Close() }
+}
 $fixMp3         = Join-Path $root 'tests\fixtures\import\cbr128_info.mp3'
 foreach ($f in @($fixAiff, $fixFlac, $fixOgg, $fixCrossRate, $fixSupportedWav, $fixMp3)) {
   if (-not (Test-Path -LiteralPath $f)) { throw "fixture missing from repo: $f" }
@@ -223,11 +238,11 @@ $pr = Probe
 Resize 1920 1080
 Shot 'ss8-after-new'
 
-# Audition from the browser's Project source. The browser needs at least one Project row, so first drop a
-# supported WAV onto lane.0 (the committed source_48k_stereo.wav); that lands an Asset the browser can list.
+# Audition from the browser's Recent source: first drop the drive's own 6 s WAV onto lane 0, which imports it (an
+# Asset in the project, and a file row in Recent - audition plays a file, never an Asset).
 Focus
 $cliBefore = [int](Probe).view.clipCount
-DropFileOnLane $fixSupportedWav 0 0.1 | Out-Null
+DropFileOnLane $auditionWav 0 0.1 | Out-Null
 [void](Assert (WaitProbe { param($q) [int]$q.view.clipCount -ge $cliBefore + 1 } -TimeoutMs 8000) ('the supported WAV lands on lane 0 (clipCount=' + (Probe).view.clipCount + ')'))
 
 Focus
@@ -240,17 +255,29 @@ SelectCombo 'browser.source' 'Recent'   # files a user imported: audition takes 
 [void](Assert (WaitProbe { param($q) "$($q.view.browser.source)" -eq 'Recent' } -TimeoutMs 2000) ('the browser source is Recent (' + (Probe).view.browser.source + ')'))
 [void](Assert ([int](Probe).view.browser.rows -ge 1) ('Recent lists the file just imported (rows=' + (Probe).view.browser.rows + ')'))
 
-# Select the first row; its top-left is at approximately (ListX + 8, ListY + 10). Click just inside.
+# Row 0 spans list-local y 0..20 (UiTheme browserRowHeight); a file row's play mark sits at x 8..26
+# (browserRowTextInset, browserPlayMarkWidth) and auditions on its own press. Select the row by its name, well clear of
+# the mark (run 6: a press at x 24 hit the mark, started an audition, and the Audition button then stopped it).
 $list = LayoutRect 'browser.list'
-if ($null -ne $list) {
-  Click 'browser.list' -OffsetX (24 - [int]($list[2] / 2)) -OffsetY (14 - [int]($list[3] / 2))
-}
-Start-Sleep -Milliseconds 150
+[void](Assert ($null -ne $list) 'the browser list is laid out')
+$rowY = 10 - [int]($list[3] / 2)
+Click 'browser.list' -OffsetX (200 - [int]($list[2] / 2)) -OffsetY $rowY
+[void](Assert ([int](Probe).view.browser.selected -eq 0) ('row 0 is selected (selected=' + (Probe).view.browser.selected + ')'))
+[void](Assert (-not [bool](Probe).view.browser.auditioning) 'selecting a row by its name does not audition it')
 Click 'browser.audition'
-[void](Assert (WaitProbe { param($q) [bool]$q.view.browser.auditioning } -TimeoutMs 2500) ('audition starts (view.browser.auditioning; selected=' + (Probe).view.browser.selected + ', status=' + (Probe).status.text + ')'))
+[void](Assert (WaitProbe { param($q) [bool]$q.view.browser.auditioning } -TimeoutMs 2500) ('the Audition button starts the selected file (view.browser.auditioning; selected=' + (Probe).view.browser.selected + ', status=' + (Probe).status.text + ')'))
 Shot 'ss8-audition-on'
 Click 'browser.audition'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.view.browser.auditioning } -TimeoutMs 2500) 'a second press stops audition')
+# The row's own play mark auditions too (ADR-0056 cp2), and a second press on it stops it. The two presses come as
+# fast as a user's double press (run 7: the second press's double-click also imported the file - a second clip).
+$clipsBeforeMark = [int](Probe).view.clipCount
+Click 'browser.list' -OffsetX (17 - [int]($list[2] / 2)) -OffsetY $rowY
+[void](Assert (WaitProbe { param($q) [bool]$q.view.browser.auditioning } -TimeoutMs 2500) ('the row''s play mark starts audition (status=' + (Probe).status.text + ')'))
+Click 'browser.list' -OffsetX (17 - [int]($list[2] / 2)) -OffsetY $rowY
+[void](Assert (WaitProbe { param($q) -not [bool]$q.view.browser.auditioning } -TimeoutMs 2500) 'a second press on the mark stops it')
+Start-Sleep -Milliseconds 300
+[void](Assert ([int](Probe).view.clipCount -eq $clipsBeforeMark) ('auditioning never imports: a double press on the mark adds no clip (clipCount ' + (Probe).view.clipCount + ', was ' + $clipsBeforeMark + ')'))
 
 # Hide the browser dock so the arrange view takes keys again before Step 2.
 Focus
@@ -380,7 +407,7 @@ $sidelined    = Join-Path $scratchDir ($missingHash + '.wav')
 Move-Item -LiteralPath $missingAsset.FullName -Destination $sidelined
 [void](Assert (-not (Test-Path -LiteralPath $missingAsset.FullName)) ('the chosen asset is sidelined (' + $missingAsset.Name + ' -> ' + $sidelined + ')'))
 
-# (a) Open with Cancel - the shell reports "Open cancelled: ... audio files still missing" and does not attach.
+# (a) Open with Cancel - the shell reports "Open cancelled: ... audio files still missing" and opens the untitled session.
 Launch -Bundle $bundleScratch
 $alertUp = WaitAlert 'Missing audio' 4000
 if ($null -eq $alertUp) { $alertUp = WaitAlert 'Damaged audio' 2000 }
@@ -390,7 +417,9 @@ if ($null -ne $alertUp) {
   Shot 'ss8-missing-cancel'
   [void](AlertButton 'Cancel' -Title 'Missing audio' -TimeoutMs 2000)
   [void](Assert (WaitProbe { param($q) "$($q.relink.lastOutcome)" -eq 'cancelled' } -TimeoutMs 4000) ('relink.lastOutcome=cancelled (' + (Probe).relink.lastOutcome + ')'))
-  [void](Assert (-not [bool](Probe).projectLoaded) ('Cancel leaves the project unattached (projectLoaded=' + (Probe).projectLoaded + ')'))
+  # ADR-0062: "At launch, Cancel leaves the untitled session" - never no project; the reason stays on the status line,
+  # and the next launch asks about this bundle again (b) because the last-project record still names it.
+  [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded -and (Split-Path -Leaf "$($q.bundlePath)") -eq 'Untitled.yesdaw' } -TimeoutMs 4000) ('Cancel at launch leaves the untitled session (projectLoaded=' + (Probe).projectLoaded + ', bundle=' + (Probe).bundlePath + ')'))
   [void](Assert ("$((Probe).status.text)" -like 'Open cancelled:*') ('the status line names the missing audio (' + (Probe).status.text + ')'))
 }
 Close
@@ -436,9 +465,10 @@ Shot 'ss8-missing-relinked'
 Step 5 'Export selected range and stems; cancel; project replacement during an export'
 Close
 Start-Sleep -Milliseconds 400
-Launch -Bundle $bundleA
+Launch -Bundle $bundleA -ExportPaceMs 6000   # every export pauses 6 s after its first chunk: the drive acts mid-job
 [void](Assert ([bool](Probe).projectLoaded -and [string](Probe).bundlePath -eq $bundleA) 'SongA opens')
 
+[void](Assert ([int](Probe).export.paceMs -eq 6000) ('the drive''s export pacing is on (export.paceMs=' + (Probe).export.paceMs + ')'))
 # Make sure the settings row is up (ViewToggleSettingsRow). Both widgets below should be laid out after.
 Focus
 if ($null -eq (LayoutRect 'widget.shell.export.bitdepth')) {
@@ -558,7 +588,8 @@ $dlgNew = WaitDialog 'Create YES DAW Project' 6000
 if ($dlgNew -ne [IntPtr]::Zero) { FileDialogEnter $bundleReplacement }
 [void](Assert (WaitProbe { param($q) [string]$q.bundlePath -eq $bundleReplacement } -TimeoutMs 8000) ('the replacement project is current (' + (Probe).bundlePath + ')'))
 [void](Assert (WaitProbe { param($q) -not [bool]$q.export.inProgress -and [int]$q.export.retiring -eq 0 } -TimeoutMs 30000) ('the old export is retired and joined (retiring=' + (Probe).export.retiring + ')'))
-[void](Assert ([int](Probe).export.count -eq $beforeC -and [int](Probe).export.outcomes -eq $outcomesC) ('the retired job reports nothing (count ' + (Probe).export.count + ', outcomes ' + (Probe).export.outcomes + ')'))
+# The per-project count starts again at 0 with the new project; outcomes counts every finished job the model has seen.
+[void](Assert ([int](Probe).export.count -eq 0 -and [int](Probe).export.outcomes -eq $outcomesC) ('the retired job reports nothing (count ' + (Probe).export.count + ', outcomes ' + (Probe).export.outcomes + ', was ' + $outcomesC + ')'))
 [void](Assert ("$((Probe).status.text)" -notlike 'Export*') ('no export news on the new project''s status line (' + (Probe).status.text + ')'))
 [void](Assert (-not (Test-Path -LiteralPath $exportC)) ('the replaced export wrote no file: ' + $exportC))
 [void](Assert (@(Get-ChildItem -LiteralPath $exportDir -Filter '*.partial' -ErrorAction SilentlyContinue).Count -eq 0) 'nor a .partial temporary')
