@@ -8,6 +8,21 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0068 cp3/cp4: a Save, a Save As and a Don't Save retire the autosave
+
+**What changes:** once its work is in a bundle (Save; Save As - the bundle left behind) or the user named it abandoned
+("Don't Save" / "Close without saving" on New, Open, Open Recent or closing the window), the autosave is removed, so it
+can never be offered later as a rollback. Never while a recovery question is up: that autosave is the user's lost work
+and only Restore or Discard decides it. Save a Copy keeps the source's (its unsaved tail is still open there). A crash or
+a kill removes nothing. A removal that fails fails nothing (the Save stands): it is reported, and the stamp rule retires
+the snapshot at the next open. Still no autosave is *written* by the app (cp1/cp2 next, last by design).
+**Gates:** `[save-retires][save-as-retires][save-copy-keeps]`, a pending-question test (Save and Don't Save leave the
+autosave and its marker), `[dont-save-retires]` (New: Don't Save removes it, Cancel keeps it; closing: the same, through
+the real confirm seam). One ADR-0060 Save As assertion ("the source keeps its autosave") now reads ADR-0068 §3 ("Save As
+retires it"); the source's project.db is still never written. Five mutations, each red. ctest 423/423, Clang clean.
+**Critic:** nothing blocking; noted - macOS Cmd+Q skips the close question entirely (pre-existing, B37; the stamp rule
+covers its autosave), and the cleanup message reads like a failed Save (reworded in cp1/cp2).
+
 ## 2026-10-08 — ADR-0068 cp5c: the recovery question is a card that says what each side holds
 
 **What a user sees:** when an open finds an autosave holding work the project lacks, a card over the top of the arrange

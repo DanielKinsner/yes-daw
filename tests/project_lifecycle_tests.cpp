@@ -620,7 +620,8 @@ TEST_CASE ("ADR-0060 Save As writes the copy through a .partial folder and conti
     REQUIRE (f.model.dispatch (UiActionId::EditUndo).dispatched);
     REQUIRE (readProject (copy).tracks.size() == 1u);
     REQUIRE (readProject (f.source).tracks.size() == 2u);
-    REQUIRE (yesdaw::persistence::autosave_detail::anySnapshotSlotExists (f.source));
+    // ADR-0068 §3 (after ADR-0060): Save As retires the source's autosave - the copy holds all it did.
+    REQUIRE_FALSE (yesdaw::persistence::autosave_detail::anySnapshotSlotExists (f.source));
 }
 
 TEST_CASE ("ADR-0060 Save a Copy writes and closes the copy; the source stays current, unsaved, undoable and saveable",
@@ -1570,4 +1571,98 @@ TEST_CASE ("ADR-0068 the shell's recovery card carries the question's text and i
     const juce::var after = probeOf (*shell);
     REQUIRE (after["autosave"]["recovery"]["text"].toString().isEmpty());
     REQUIRE (after["layout"]["widget.autosave.recovery.banner"].isVoid());
+}
+
+// ---- ADR-0068 cp3 / cp4: a Save and a Don't Save retire the autosave; nothing does while a question is up ----
+
+TEST_CASE ("ADR-0068 Save and Save As retire the autosave; Save a Copy keeps the source's",
+           "[project-lifecycle][autosave][save-retires][save-as-retires][save-copy-keeps]")
+{
+    const auto directory = lifecycleScratch ("save-retires");
+    const auto bundle = directory / "song.yesdaw";
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (bundle).ok());
+    REQUIRE (model.addAudioTrack().dispatched);
+    plantAutosave (bundle, model.project());   // what cp1's due tick will write
+    REQUIRE (autosaveOnDisk (bundle));
+
+    SECTION ("Save")
+    {
+        REQUIRE (model.saveProjectBundle().ok());
+        REQUIRE_FALSE (autosaveOnDisk (bundle));
+    }
+    SECTION ("Save As")
+    {
+        const auto copy = directory / "as.yesdaw";
+        REQUIRE (model.saveProjectBundleAs (copy).dispatched);
+        REQUIRE (model.bundlePath() == copy);
+        REQUIRE_FALSE (autosaveOnDisk (bundle));   // the bundle left behind
+        REQUIRE_FALSE (autosaveOnDisk (copy));
+    }
+    SECTION ("Save a Copy")
+    {
+        const auto before = bytesOf (yesdaw::persistence::autosaveSnapshotPath (bundle) / "project.db");
+        const auto copy = directory / "copy.yesdaw";
+        REQUIRE (model.saveProjectBundleCopy (copy).dispatched);
+        REQUIRE (model.bundlePath() == bundle);   // this project stays current, with its unsaved tail
+        REQUIRE (autosaveOnDisk (bundle));
+        REQUIRE (bytesOf (yesdaw::persistence::autosaveSnapshotPath (bundle) / "project.db") == before);
+        REQUIRE_FALSE (autosaveOnDisk (copy));
+    }
+}
+
+TEST_CASE ("ADR-0068 while the recovery question is up, Save and Don't Save leave its autosave and its marker",
+           "[project-lifecycle][autosave][save-retires][dont-save-retires]")
+{
+    const LostWrites f = makeLostWrites ("pending-save");
+    yesdaw::ui::UiAppModel model;
+    openThroughShippedPath (model, f.bundle);
+    REQUIRE (model.context().autosaveRecoveryPending);
+    REQUIRE (model.addAudioTrack().dispatched);
+    REQUIRE (model.saveProjectBundle().ok());
+    REQUIRE (autosaveOnDisk (f.bundle));
+    model.retireAutosaveOnDontSave();
+    REQUIRE (autosaveOnDisk (f.bundle));
+    REQUIRE (markerOf (f.bundle) == std::optional<std::int64_t> { f.snapshotStamp });
+    REQUIRE (model.context().autosaveRecoveryPending);   // still Restore or Discard to decide
+}
+
+TEST_CASE ("ADR-0068 Don't Save retires the autosave, replacing the project and closing; Cancel keeps it",
+           "[project-lifecycle][autosave][dont-save-retires]")
+{
+    LifecycleShell f ("dont-save");
+    f.newProject ("first", choicesOf (48'000.0, 120.0, 4, 4));
+    const auto first = f.directory / "first.yesdaw";
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::TrackAdd);   // unsaved changes
+    plantAutosave (first, readProject (first));
+    REQUIRE (autosaveOnDisk (first));
+
+    SECTION ("New, Don't Save")
+    {
+        f.closeChoice = yesdaw::ui::kCloseChoiceClose;
+        f.newProject ("second", choicesOf (48'000.0, 120.0, 4, 4));
+        REQUIRE (f.prompts == 1);
+        REQUIRE (std::filesystem::exists (f.directory / "second.yesdaw"));
+        REQUIRE_FALSE (autosaveOnDisk (first));
+        REQUIRE (readProject (first).tracks.size() == 2u);   // the bundle keeps every edit (ADR-0060)
+    }
+    SECTION ("New, Cancel")
+    {
+        f.closeChoice = yesdaw::ui::kCloseChoiceCancel;
+        f.newProject ("second", choicesOf (48'000.0, 120.0, 4, 4));
+        REQUIRE (f.prompts == 1);
+        REQUIRE (autosaveOnDisk (first));
+    }
+    SECTION ("closing, Close without saving")
+    {
+        f.closeChoice = yesdaw::ui::kCloseChoiceClose;
+        REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*f));
+        REQUIRE_FALSE (autosaveOnDisk (first));
+    }
+    SECTION ("closing, Cancel")
+    {
+        f.closeChoice = yesdaw::ui::kCloseChoiceCancel;
+        REQUIRE_FALSE (yesdaw::ui::mainComponentConfirmsClose (*f));
+        REQUIRE (autosaveOnDisk (first));
+    }
 }

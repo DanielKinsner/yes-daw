@@ -2104,6 +2104,8 @@ bool MainComponent::confirmClose()
         return saveCurrentProject (false);   // canceled naming or a failed save keeps the app open
     }
 
+    if (choice == yesdaw::ui::kCloseChoiceClose)
+        appModel.retireAutosaveOnDontSave();   // ADR-0068 §4: named abandoned, not interrupted
     return choice == yesdaw::ui::kCloseChoiceClose;
 }
 

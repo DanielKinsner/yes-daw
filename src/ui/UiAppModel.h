@@ -2106,12 +2106,17 @@ public:
         if (result.ok())
         {
             lastSavedEditSerial_ = editSerial_;   // an explicit Save marks the session clean (B37)
+            retireAutosaveOf (bundlePath_);       // ADR-0068 §3: the bundle now holds all the autosave did
             ++context_.saveCount;
             ++context_.commandDispatchCount;
         }
 
         return result;
     }
+
+    // ADR-0068 §4: "Don't Save" names this state abandoned - its autosave goes (the bundle keeps every edit, ADR-0060).
+    // A crash or a kill never comes here: their autosave stays for the next open.
+    void retireAutosaveOnDontSave() { retireAutosaveOf (bundlePath_); }
 
     // Edits since the last explicit Save (B37/B38). The bundle on disk is always current — every
     // edit persists synchronously — so this tracks the user's saved-state intent, never data risk.
@@ -2313,8 +2318,10 @@ public:
             return { id, { false, "the copy could not be opened" }, false };
         }
 
+        const std::filesystem::path previousBundlePath = bundlePath_;
         bundleDb_ = std::move (reopened);
         bundlePath_ = newBundlePath;
+        retireAutosaveOf (previousBundlePath);   // ADR-0068 §3: the copy holds all it did (never while a question is up)
         // ADR-0068 §5: an unanswered recovery question belongs to the bundle left behind - its marker and autosave ask
         // again at its next open; the copy (no autosave, no marker) asks nothing.
         clearAutosaveRecoveryPrompt();
@@ -11192,6 +11199,18 @@ private:
                 recordingCompSelection_.gapLength = second.timelineStart - firstEnd;
             }
         }
+    }
+
+    // ADR-0068 §3 / §4: a bundle's autosave is retired when its work is in a bundle (a Save, a Save As) or was named
+    // abandoned (Don't Save). Never while a recovery question is up: that autosave holds work the bundle lacks, and
+    // only Restore or Discard decides it. A failure fails nothing (the Save stands): it is reported, and the stamp
+    // rule (§5) retires the snapshot at the next open.
+    void retireAutosaveOf (const std::filesystem::path& bundle)
+    {
+        if (context_.autosaveRecoveryPending || bundle.empty())
+            return;
+        if (const persistence::AutosaveResult result = persistence::discardAutosaveSnapshot (bundle); ! result.ok())
+            reportStatus ("Autosave cleanup failed: " + result.message, true);
     }
 
     void clearAutosaveRecoveryPrompt() noexcept

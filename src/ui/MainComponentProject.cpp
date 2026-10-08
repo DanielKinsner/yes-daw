@@ -128,6 +128,8 @@ bool MainComponent::confirmReplaceProject()
     }
     if (choice == kCloseChoiceSave)
         return saveCurrentProject (false);   // the untitled session goes through Save As; a cancelled name cancels
+    if (choice == kCloseChoiceClose)
+        appModel.retireAutosaveOnDontSave();   // ADR-0068 §4: named abandoned, not interrupted
     return choice == kCloseChoiceClose;
 }
 
