@@ -8,6 +8,18 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — Fix (found by SS-6): a double press on a browser row's play mark imported the file
+
+**What a user saw:** pressing a file's ▶ mark in the browser twice quickly (start, then stop the audition) also
+imported the file as a new clip - the second press's double-click ran the row's "import" gesture. ADR-0056 keeps them
+apart: a double-click on a row imports, the play mark auditions. **Fix:** a double-click whose press landed on the mark
+is the audition's stop and nothing else. **Found by:** SS-6 run 7 on the real app (two clips, one asset after the
+audition step). **Gate:** `[audition][browser]` drives the real mouse sequence (down, up, down, up, double-click) on
+the list: two audition toggles and no import on the mark; one import on the row's name. Red before the fix (an
+import), green after. The older harness reached "double-click" by calling the import directly, which is why no gate
+saw it. ctest 420/420, Clang clean. **Critic:** nothing wrong (JUCE delivers the second press before the double-click,
+so the guard reads the right press).
+
 ## 2026-10-08 — Fix: a launch that cannot open the last project leaves the untitled session, not nothing
 
 **What a user saw:** when the project YES DAW reopens at launch could not open (a missing or damaged bundle, one the

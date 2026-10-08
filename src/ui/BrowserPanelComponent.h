@@ -292,6 +292,8 @@ public:
 
     void mouseDoubleClick (const juce::MouseEvent& event) override
     {
+        if (markPressed_)   // a quick second press on a play mark is the audition's stop, never an import
+            return;
         if (const int row = rowAt (event.getPosition()); row >= 0)
         {
             select (row);

@@ -10,6 +10,7 @@
 #include "io/WavFile.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/MainComponent.h"
+#include "ui/BrowserPanelComponent.h"
 #include "ui/MainComponentInternal.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -732,6 +733,49 @@ TEST_CASE ("ADR-0056 Play, a new audition and Stop end an audition; Mute silence
         ++blocks;
     }
     REQUIRE (blocks == 375);
+}
+
+// The real mouse path on a play mark: press, release, press, release, double-click - as Windows delivers a quick
+// double press. Both presses toggle the audition and nothing is imported ("auditioning never imports"); a double-click
+// on the row's name still keeps it (imports a file, opens a folder).
+TEST_CASE ("ADR-0056 a double press on a play mark toggles the audition twice and imports nothing", "[audition][browser]")
+{
+    yesdaw::ui::BrowserListComponent list;
+    list.setSize (400, 200);
+    yesdaw::ui::BrowserRow file;
+    file.kind = yesdaw::ui::BrowserRow::Kind::File;
+    file.name = "a.wav";
+    file.path = "a.wav";
+    list.setRows ({ file });
+    int auditions = 0;
+    int keeps = 0;
+    list.onAudition = [&auditions] (const yesdaw::ui::BrowserRow&) { ++auditions; };
+    list.onKeep = [&keeps] (const yesdaw::ui::BrowserRow&) { ++keeps; };
+
+    const auto event = [&list] (juce::Point<int> at, int clicks) {
+        const juce::Time now = juce::Time::getCurrentTime();
+        return juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), at.toFloat(),
+                                 juce::ModifierKeys::leftButtonModifier, juce::MouseInputSource::defaultPressure,
+                                 juce::MouseInputSource::defaultOrientation, juce::MouseInputSource::defaultRotation,
+                                 juce::MouseInputSource::defaultTiltX, juce::MouseInputSource::defaultTiltY, &list, &list,
+                                 now, at.toFloat(), now, clicks, false);
+    };
+    const auto doublePress = [&list, &event] (juce::Point<int> at) {
+        list.mouseDown (event (at, 1));
+        list.mouseUp (event (at, 1));
+        list.mouseDown (event (at, 2));
+        list.mouseUp (event (at, 2));
+        list.mouseDoubleClick (event (at, 2));
+    };
+
+    const juce::Point<int> mark { yesdaw::ui::UiTheme::Layout::browserRowTextInset + 9, 10 };   // row 0's play mark
+    doublePress (mark);
+    REQUIRE (auditions == 2);   // start, then stop
+    REQUIRE (keeps == 0);       // never an import
+
+    doublePress ({ 200, 10 });  // the row's name
+    REQUIRE (auditions == 2);
+    REQUIRE (keeps == 1);
 }
 
 TEST_CASE ("ADR-0056 the browser's Audition button and play marks start, replace and stop an audition; closing the browser stops it",
