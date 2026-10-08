@@ -84,6 +84,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0064](0064-layout-density-and-scaling.md) | Layout density and scaling: eight whole lanes at 1080p, track headers level with their lanes, a window that fits every display of the matrix, the matrix rendered at its scales, the macOS frame exception re-measured | Accepted |
 | [0065](0065-mixer-strips-scroll-master-pinned.md) | Mixer strips scroll; the master is pinned at the right: one width for every lane, whole-strip scrolling only when the strips overflow at their minimum width, the selection followed through one funnel | Accepted |
 | [0066](0066-painted-controls-keyboard-and-accessibility.md) | Every painted control is a Control target with its own accessible element: one record per painted hit-zone, a click-through focus-less proxy per record, the context-menu key while navigating | Accepted |
+| [0067](0067-interaction-and-motion-states.md) | Interaction and motion states: hover and pressed tints from the painted records, re-resolved every tick; meters read every block since the last look (count-stamped peak windows) and fall silent when no block runs; the playhead is the published frame; no timers or animation | Accepted |
 
 ## Decision status (the five research forks)
 
