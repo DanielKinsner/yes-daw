@@ -24849,6 +24849,396 @@ TEST_CASE ("ADR-0066 the painted controls' accessible elements follow a mixer or
     }
 }
 
+namespace {
+
+using PointerKind = yesdaw::ui::MainComponentPointerKind;
+
+// ADR-0072 §6: a gate that moves JUCE's global button state puts it back.
+struct ScopedCurrentModifiers
+{
+    explicit ScopedCurrentModifiers (juce::ModifierKeys modifiers) : saved (juce::ModifierKeys::currentModifiers)
+    {
+        juce::ModifierKeys::currentModifiers = modifiers;
+    }
+    ~ScopedCurrentModifiers() { juce::ModifierKeys::currentModifiers = saved; }
+    ScopedCurrentModifiers (const ScopedCurrentModifiers&) = delete;
+    ScopedCurrentModifiers& operator= (const ScopedCurrentModifiers&) = delete;
+    juce::ModifierKeys saved;
+};
+
+const juce::ModifierKeys kLeft { juce::ModifierKeys::leftButtonModifier };
+
+// A shell with a 16-track project, a bus and a tall mixer dock (optionally track 1 a Sampler with its pads shown), and
+// the pointer driven through the shell's own seam - the events its tracker delivers.
+struct PointerRig
+{
+    std::filesystem::path bundlePath;
+    std::unique_ptr<juce::Component> shell;
+
+    explicit PointerRig (const char* label, bool pads = false) : bundlePath (makeTempBundlePath (label))
+    {
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [path = bundlePath] { return path; };
+        shell = makeShell (std::move (choices));
+        shell->setSize (1280, 800);
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        for (int i = 0; i < 15; ++i)
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+        yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
+        if (pads)
+        {
+            yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::mixerHeight);
+            juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+            REQUIRE (rail != nullptr);
+            mouseDownAt (*rail, juce::Point<int> (kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                                                      + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight * 3 / 2));
+            clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowTrackTab));
+            auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "track.inspector.instrument"));
+            REQUIRE (chooser != nullptr);
+            chooser->setSelectedId (3, juce::sendNotificationSync);
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewInstrument);
+            yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
+        }
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+    }
+    ~PointerRig()
+    {
+        shell.reset();
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    juce::Component& operator*() { return *shell; }
+
+    std::vector<std::pair<std::string, juce::Rectangle<int>>> records() { return yesdaw::ui::mainComponentPointerRecords (*shell); }
+    juce::Rectangle<int> rect (const std::string& id)
+    {
+        for (const auto& [recordId, bounds] : records())
+            if (recordId == id)
+                return bounds;
+        FAIL ("no record " << id);
+        return {};
+    }
+    // The component a real event at a record carries: the surface that paints it (the shell for the header's).
+    juce::Component& surfaceOf (const std::string& id)
+    {
+        const char* surfaceId = id.rfind ("header.", 0) == 0     ? nullptr
+                              : id.rfind ("tool.", 0) == 0       ? "timeline.canvas"
+                              : id.rfind ("rail.", 0) == 0       ? "shell.tracklist.input"
+                              : id.rfind ("mixer.", 0) == 0      ? "shell.mixer.strips.input"
+                                                                  : "instrument.panel";
+        if (surfaceId == nullptr)
+            return *shell;
+        juce::Component* surface = findChildWithComponentId (*shell, surfaceId);
+        REQUIRE (surface != nullptr);
+        return *surface;
+    }
+    void at (PointerKind kind, juce::Point<int> point, juce::Component* component, juce::ModifierKeys mods = {})
+    {
+        yesdaw::ui::mainComponentPointer (*shell, kind, point, component, mods);
+    }
+    void moveTo (const std::string& id) { at (PointerKind::move, rect (id).getCentre(), &surfaceOf (id)); }
+    yesdaw::ui::MainComponentPointerState state() { return yesdaw::ui::mainComponentPointerState (*shell); }
+    void tick() { yesdaw::ui::mainComponentServiceUiTick (*shell); }
+};
+
+} // namespace
+
+// ADR-0067 §2: every painted control is named by the pointer at its centre - one of every family, in fact every record
+// - and nothing is pressed; an exit clears the hover.
+TEST_CASE ("ADR-0067 the pointer names every painted control it is over, and an exit clears it",
+           "[ui][input][shell][g6-motion][hover]")
+{
+    for (const bool pads : { false, true })
+    {
+        PointerRig rig (pads ? "g64-hover-pads" : "g64-hover", pads);
+        std::set<std::string> families;
+        const auto records = rig.records();
+        REQUIRE_FALSE (records.empty());
+        for (const auto& [id, bounds] : records)
+        {
+            INFO (id << " " << bounds.toString());
+            rig.moveTo (id);
+            REQUIRE (rig.state().hovered.toStdString() == id);
+            REQUIRE (rig.state().pressed.isEmpty());
+            families.insert (id.substr (0, id.find ('.', id.find ('.') + 1)));
+        }
+        if (pads)
+            REQUIRE (families.count ("instrument.pad") == 1u);
+        else
+            for (const char* family : { "header.gear", "header.time", "rail.row", "mixer.strip", "mixer.master" })
+            {
+                INFO (family);
+                REQUIRE (families.count (family) == 1u);
+            }
+        rig.at (PointerKind::exit, {}, &rig.surfaceOf (records.back().first));
+        REQUIRE (rig.state().hovered.isEmpty());
+    }
+}
+
+// ADR-0072 §2: an event on an overlay over a record names nothing - for the shell's own records (the header's, where
+// "the surface contains the component" would have let it through) and for every other surface.
+TEST_CASE ("ADR-0072 an overlay over a painted control blocks its hover", "[ui][input][shell][g6-motion][overlay-blocks-hover]")
+{
+    PointerRig rig ("g64-overlay");
+    juce::Component* overlay = findChildWithComponentId (*rig, "newproject.dialog");
+    REQUIRE (overlay != nullptr);
+    for (const char* id : { "header.gear", "header.time", "rail.row.0.mute", "mixer.strip.0.mute" })
+    {
+        INFO (id);
+        rig.moveTo (id);
+        REQUIRE (rig.state().hovered.toStdString() == id);
+        rig.at (PointerKind::move, rig.rect (id).getCentre(), overlay);
+        REQUIRE (rig.state().hovered.isEmpty());
+    }
+}
+
+// ADR-0067 §3 / ADR-0072 §5-§7: a primary press names the pressed control (whatever keys are held); a right or middle
+// press presses nothing; a release, a tick with no button down, or the control going away clears it; during a drag the
+// hover follows the pointer while the press stays where it began.
+TEST_CASE ("ADR-0067 the pressed control: a primary press, released, dropped, and kept through a drag",
+           "[ui][input][shell][g6-motion][pressed][modifiers-in-seam][hover-follows-drag]")
+{
+    PointerRig rig ("g64-pressed");
+    const juce::ModifierKeys baseline = juce::ModifierKeys::currentModifiers;
+    const std::string cell = "rail.row.0.mute";
+    const juce::Point<int> centre = rig.rect (cell).getCentre();
+    juce::Component* rail = &rig.surfaceOf (cell);
+    for (const auto keys : { juce::ModifierKeys {}, juce::ModifierKeys { juce::ModifierKeys::shiftModifier },
+                             juce::ModifierKeys { juce::ModifierKeys::altModifier },
+                             juce::ModifierKeys { juce::ModifierKeys::shiftModifier | juce::ModifierKeys::altModifier } })
+    {
+        INFO ("keys " << keys.getRawFlags());
+        rig.at (PointerKind::down, centre, rail, keys.withFlags (juce::ModifierKeys::leftButtonModifier));
+        REQUIRE (rig.state().pressed.toStdString() == cell);
+        rig.at (PointerKind::up, centre, rail, keys);
+        REQUIRE (rig.state().pressed.isEmpty());
+        for (const int button : { juce::ModifierKeys::rightButtonModifier, juce::ModifierKeys::middleButtonModifier })
+        {
+            rig.at (PointerKind::down, centre, rail, keys.withFlags (button));
+            REQUIRE (rig.state().pressed.isEmpty());
+            rig.at (PointerKind::up, centre, rail, keys);
+        }
+    }
+
+    // A press whose release never arrived (a lost capture): the next tick, with no button down, drops it.
+    {
+        ScopedCurrentModifiers none { juce::ModifierKeys {} };
+        rig.at (PointerKind::down, centre, rail, kLeft);
+        REQUIRE (rig.state().pressed.toStdString() == cell);
+        rig.tick();
+        REQUIRE (rig.state().pressed.isEmpty());
+    }
+    // A pressed strip that scrolls out of the mixer: the next tick drops the press though the button is still down.
+    {
+        ScopedCurrentModifiers held { kLeft };
+        const std::string strip = "mixer.strip.0.mute";
+        juce::Component* strips = &rig.surfaceOf (strip);
+        rig.at (PointerKind::down, rig.rect (strip).getCentre(), strips, kLeft);
+        REQUIRE (rig.state().pressed.toStdString() == strip);
+        juce::MouseWheelDetails wheel {};
+        wheel.deltaY = -0.4f;
+        for (int i = 0; i < 20; ++i)
+            strips->mouseWheelMove (makeMouseEvent (*strips, { 20, 40 }, { 20, 40 }, false, 1, juce::ModifierKeys {}), wheel);
+        rig.tick();
+        REQUIRE (rig.state().pressed.isEmpty());
+        rig.at (PointerKind::up, {}, strips, {});
+    }
+    // A drag from the volume of row 0 over a mixer strip's control (another surface - the drag's events stay with the
+    // rail): the press stays on the volume, the hover follows the pointer.
+    {
+        ScopedCurrentModifiers held { kLeft };
+        const std::string from = "rail.row.0.volume";
+        std::string over;
+        for (const auto& [id, bounds] : rig.records())
+            if (over.empty() && id.rfind ("mixer.strip.", 0) == 0)
+                over = id;
+        REQUIRE_FALSE (over.empty());
+        rig.at (PointerKind::down, rig.rect (from).getCentre(), rail, kLeft);
+        rig.at (PointerKind::drag, rig.rect (over).getCentre(), rail, kLeft);
+        REQUIRE (rig.state().pressed.toStdString() == from);
+        REQUIRE (rig.state().hovered.toStdString() == over);
+        rig.tick();   // the button is still down: the drag's component is kept
+        REQUIRE (rig.state().pressed.toStdString() == from);
+        rig.at (PointerKind::up, rig.rect (over).getCentre(), rail, {});
+        REQUIRE (rig.state().pressed.isEmpty());
+        REQUIRE (rig.state().hovered.toStdString() == over);
+    }
+    REQUIRE (juce::ModifierKeys::currentModifiers == baseline);   // ADR-0072 §6: every scope put the buttons back
+}
+
+// ADR-0067 §2 / ADR-0072 §3: a stationary pointer's hover follows what is under it now - after a scroll, a tab switch or
+// a panel hiding, the next tick names the record there (or nothing) and repaints the old one's rect.
+TEST_CASE ("ADR-0067 a stationary pointer's hover follows what is under it now",
+           "[ui][input][shell][g6-motion][hover-follows-state][tick-walks-children]")
+{
+    PointerRig rig ("g64-follows");
+    ScopedCurrentModifiers none { juce::ModifierKeys {} };
+    const auto recordAt = [&rig] (juce::Point<int> point) {
+        for (const auto& [id, bounds] : rig.records())
+            if (bounds.contains (point))
+                return id;
+        return std::string {};
+    };
+    const auto expanded = [] (juce::Rectangle<int> r) { return r.expanded (yesdaw::ui::UiTheme::Layout::controlTargetRingRepaintMargin); };
+
+    // The strips scroll under it: it hovers the strip that came to the pointer.
+    {
+        const std::string id = "mixer.strip.0.mute";
+        const auto old = rig.rect (id);
+        rig.moveTo (id);
+        juce::Component* strips = &rig.surfaceOf (id);
+        juce::MouseWheelDetails wheel {};
+        wheel.deltaY = -0.4f;
+        strips->mouseWheelMove (makeMouseEvent (*strips, { 20, 40 }, { 20, 40 }, false, 1, juce::ModifierKeys {}), wheel);
+        rig.tick();
+        const std::string now = recordAt (old.getCentre());
+        REQUIRE (now != id);
+        REQUIRE (rig.state().hovered.toStdString() == now);
+        const auto repainted = rig.state().lastRepaint;
+        REQUIRE (std::find (repainted.begin(), repainted.end(), expanded (old)) != repainted.end());
+    }
+    // The dock switches to the Instrument tab under it: no mixer record is hovered after a tick.
+    {
+        const std::string id = "mixer.master.meter";
+        rig.moveTo (id);
+        REQUIRE (rig.state().hovered.toStdString() == id);
+        yesdaw::ui::mainComponentDispatchAction (*rig, UiActionId::ViewInstrument);
+        rig.tick();
+        REQUIRE (rig.state().hovered.toStdString().rfind ("mixer.", 0) != 0);
+        yesdaw::ui::mainComponentDispatchAction (*rig, UiActionId::ViewMixer);
+    }
+    // An overlay opens over it (the keymap editor), the records under it unchanged: after a tick the walk finds the
+    // overlay under the pointer and nothing is hovered. At the window's minimum width the editor covers the rail.
+    {
+        (*rig).setSize (yesdaw::ui::UiTheme::Layout::windowMinWidth, 800);
+        std::set<juce::Component*> shownBefore;
+        for (int i = 0; i < (*rig).getNumChildComponents(); ++i)
+            if ((*rig).getChildComponent (i)->isVisible())
+                shownBefore.insert ((*rig).getChildComponent (i));
+        yesdaw::ui::mainComponentDispatchAction (*rig, UiActionId::HelpShowKeymap);
+        juce::Component* overlay = nullptr;
+        for (int i = 0; i < (*rig).getNumChildComponents() && overlay == nullptr; ++i)
+            if (auto* child = (*rig).getChildComponent (i); child->isVisible() && shownBefore.count (child) == 0)
+                overlay = child;
+        REQUIRE (overlay != nullptr);
+        yesdaw::ui::mainComponentDispatchAction (*rig, UiActionId::HelpShowKeymap);   // closed again: place the pointer
+        std::string covered;
+        for (const auto& [id, bounds] : rig.records())
+            if (overlay->getBounds().contains (bounds.getCentre()))
+                covered = id;
+        INFO ("the keymap editor at " << overlay->getBounds().toString());
+        REQUIRE_FALSE (covered.empty());
+        rig.moveTo (covered);
+        REQUIRE (rig.state().hovered.toStdString() == covered);
+        yesdaw::ui::mainComponentDispatchAction (*rig, UiActionId::HelpShowKeymap);   // opens over the still pointer
+        REQUIRE (overlay->isVisible());
+        rig.tick();
+        REQUIRE (rig.state().hovered.isEmpty());
+        yesdaw::ui::mainComponentDispatchAction (*rig, UiActionId::HelpShowKeymap);
+    }
+}
+
+// ADR-0067 §2: every pointer transition repaints exactly the old and the new control's rects (expanded as the ring's
+// are), never the shell; fifty hover and press transitions leave every accessible element as it was (§4).
+TEST_CASE ("ADR-0067 a pointer transition repaints two rects and touches no accessible element",
+           "[ui][input][shell][g6-motion][repaint-scope][a11y-steady]")
+{
+    PointerRig rig ("g64-repaint");
+    ScopedCurrentModifiers none { juce::ModifierKeys {} };
+    const auto expanded = [] (juce::Rectangle<int> r) { return r.expanded (yesdaw::ui::UiTheme::Layout::controlTargetRingRepaintMargin); };
+    const auto fullInvalidations = [&rig] { return static_cast<juce::int64> (probeRoot (*rig)["frame"]["fullInvalidations"]); };
+    const auto creations = [&rig] { return static_cast<int> (probeRoot (*rig)["controlTarget"]["paintedElementCreations"]); };
+    const auto descriptions = [&rig] {
+        std::vector<juce::String> out;
+        std::function<void (juce::Component&)> visit = [&] (juce::Component& parent) {
+            for (int i = 0; i < parent.getNumChildComponents(); ++i)
+            {
+                juce::Component* child = parent.getChildComponent (i);
+                if (auto* proxy = dynamic_cast<yesdaw::ui::PaintedAccessibleProxy*> (child))
+                    out.push_back (proxy->getTitle() + "|" + proxy->getDescription());
+                visit (*child);
+            }
+        };
+        visit (*rig);
+        return out;
+    };
+
+    const std::vector<std::string> path { "header.gear", "rail.row.0.mute", "rail.row.0.pan", "mixer.strip.1.mute",
+                                          "mixer.master.meter", "header.time", "rail.row.1.volume" };
+    rig.moveTo (path.front());
+    const auto invalidationsBefore = fullInvalidations();
+    const int creationsBefore = creations();
+    const auto descriptionsBefore = descriptions();
+    for (int round = 0; round < 8; ++round)
+    {
+        rig.moveTo (path.front());
+        for (std::size_t i = 1; i < path.size(); ++i)
+        {
+            INFO (path[i - 1] << " -> " << path[i]);
+            rig.moveTo (path[i]);
+            const auto repainted = rig.state().lastRepaint;
+            REQUIRE (repainted.size() == 2u);
+            REQUIRE (std::find (repainted.begin(), repainted.end(), expanded (rig.rect (path[i - 1]))) != repainted.end());
+            REQUIRE (std::find (repainted.begin(), repainted.end(), expanded (rig.rect (path[i]))) != repainted.end());
+            if (i % 2 == 0)
+            {
+                rig.at (PointerKind::down, rig.rect (path[i]).getCentre(), &rig.surfaceOf (path[i]), kLeft);
+                rig.at (PointerKind::up, rig.rect (path[i]).getCentre(), &rig.surfaceOf (path[i]), {});
+            }
+        }
+    }
+    REQUIRE (fullInvalidations() == invalidationsBefore);
+    REQUIRE (creations() == creationsBefore);
+    REQUIRE (descriptions() == descriptionsBefore);
+}
+
+// ADR-0072 §10: the rail's volume record is the slider's own bounds - a point just inside the meter (within the
+// volume's drag slop) hovers the meter - while a drag begun in that slop presses the volume.
+TEST_CASE ("ADR-0072 the rail volume's record is strict; a drag from its slop presses it",
+           "[ui][input][shell][g6-motion][rail-volume-strict-bounds]")
+{
+    PointerRig rig ("g64-volume-slop");
+    const auto volume = rig.rect ("rail.row.0.volume");
+    const auto meter = rig.rect ("rail.row.0.meter");
+    REQUIRE (meter.getX() - volume.getRight() < yesdaw::ui::UiTheme::Layout::trackListLevelHitSlopX);
+    const juce::Point<int> inMeter { meter.getX(), meter.getCentreY() };   // the meter's first column: in the volume's slop
+    juce::Component& rail = rig.surfaceOf ("rail.row.0.meter");
+    rig.at (PointerKind::move, inMeter, &rail);
+    REQUIRE (rig.state().hovered == "rail.row.0.meter");
+
+    // A middle press there: the rail's own handler starts its volume drag from the slop and seeds the volume, but the
+    // press event that follows presses nothing - and leaves no seed for a later left press.
+    {
+        const juce::ModifierKeys middle { juce::ModifierKeys::middleButtonModifier };
+        ScopedCurrentModifiers middleHeld { middle };
+        const juce::Point<int> local = rail.getLocalPoint (&*rig, inMeter);
+        rail.mouseDown (makeMouseEvent (rail, local, local, false, 1, middle));   // no dispatch: no tick in between
+        REQUIRE (rig.state().pressed == "rail.row.0.volume");
+        rig.at (PointerKind::down, inMeter, &rail, middle);
+        REQUIRE (rig.state().pressed.isEmpty());
+        rail.mouseUp (makeMouseEvent (rail, local, local, false, 1, middle));
+        rig.at (PointerKind::up, inMeter, &rail, {});
+    }
+    {
+        ScopedCurrentModifiers held { kLeft };
+        rig.at (PointerKind::down, inMeter, &rail, kLeft);   // no gesture seeded this one: the record under the point
+        REQUIRE (rig.state().pressed == "rail.row.0.meter");
+        rig.at (PointerKind::up, inMeter, &rail, {});
+        REQUIRE (rig.state().pressed.isEmpty());
+    }
+
+    // A real press there (the button held, as JUCE's state shows it while the UI ticks): the rail starts a volume drag
+    // from its slop and names the volume; the press event that follows keeps it.
+    ScopedCurrentModifiers held { kLeft };
+    mouseDownAt (rail, rail.getLocalPoint (&*rig, inMeter));
+    REQUIRE (rig.state().pressed == "rail.row.0.volume");   // the gesture's seed
+    rig.at (PointerKind::down, inMeter, &rail, kLeft);
+    REQUIRE (rig.state().pressed == "rail.row.0.volume");
+    rig.at (PointerKind::up, inMeter, &rail, {});
+    REQUIRE (rig.state().pressed.isEmpty());
+}
+
 #if JUCE_WINDOWS
 // ADR-0066 / ADR-0049 on a real window (2026-10-07: the desktop drive's UI Automation step found it). JUCE parents an
 // accessible element on its nearest focus container — the window, not the shell, which is not one — so the shell's own

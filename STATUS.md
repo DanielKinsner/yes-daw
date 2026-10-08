@@ -8,6 +8,24 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0067 cp2 S3: the shell knows which painted control the pointer hovers and presses
+
+**What changes:** nothing visible yet - the shell now tracks, for every painted control (rail cells, strip knobs and
+faders, sends, inserts, tool cells, the header's gear and time, the Sampler's pads), which one the mouse is over and
+which one is held down; S4 paints them. Rules (ADR-0072): an open dialog over the header blocks its hover; a right or
+middle press presses nothing; during a drag the press stays on the control it began on while hover follows the
+pointer; with no button down, every UI tick re-finds what is under a still pointer (a dialog that opened, a dock tab
+that switched, a strip that scrolled away); the rail's volume slop still starts a volume press. Each change repaints
+only the old and new controls' rects. The probe reports `pointer.{hovered, pressed, lastRepaint}`.
+**Gates (`[g6-motion]`, 8 cases):** `[hover]` names every record family at its centre, an exit clears;
+`[overlay-blocks-hover]`; `[pressed][modifiers-in-seam][hover-follows-drag]` (every button x modifier mask, a lost
+release, a strip scrolled out mid-press, a drag from the rail into the mixer); `[hover-follows-state]
+[tick-walks-children]`; `[repaint-scope][a11y-steady]` (8 rounds: exactly two rects per move, no full repaint, the
+accessible elements untouched); `[rail-volume-strict-bounds]`. Seven mutations bite. ctest 423/423, Clang clean.
+**Critic:** no blocker; its middle-click leak (the rail seeded a volume press on a middle-click for up to one tick) is
+fixed and gated, and a seed can no longer outlive the button. Parked for S4: re-sync a moved record's painted bounds in
+the same frame (visible once strokes paint).
+
 ## 2026-10-08 — ADR-0067 cp2 S2: painted controls never overlap; the rail's floor is 204
 
 **What changes:** the track rail can no longer be dragged narrower than 204 px (was 180): below that a row's record-arm

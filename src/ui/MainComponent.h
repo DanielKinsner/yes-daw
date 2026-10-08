@@ -506,6 +506,27 @@ double mainComponentTimelineAutoScrollTick (juce::Component& component);
 void mainComponentKeymapEditorSelectRow (juce::Component& component, int row);
 void mainComponentKeymapEditorBind (juce::Component& component, const juce::String& chord);
 
+// ADR-0067 §2-§3 / ADR-0072: a pointer event as the shell's tracker delivers it - its position in the shell, the
+// component it was for, and the buttons and keys it carried.
+enum class MainComponentPointerKind
+{
+    enter,
+    move,
+    drag,
+    exit,
+    down,
+    up
+};
+void mainComponentPointer (juce::Component& component, MainComponentPointerKind kind, juce::Point<int> shellPoint,
+                           juce::Component* eventComponent, juce::ModifierKeys modifiers);
+struct MainComponentPointerState
+{
+    juce::String hovered;   // the hovered record's id ("" = none)
+    juce::String pressed;   // the pressed record's id
+    std::vector<juce::Rectangle<int>> lastRepaint;   // the rects the last change repainted (expanded record bounds)
+};
+[[nodiscard]] MainComponentPointerState mainComponentPointerState (juce::Component& component);
+
 // G4.0b: the keyboard Control target as the Command router holds it (ADR-0049) — separate from the
 // Focus context. `bounds` is the ring's rect (shell-local); `count` the controls in the Tab order now.
 struct MainComponentControlTarget

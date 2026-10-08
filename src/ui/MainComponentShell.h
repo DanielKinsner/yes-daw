@@ -871,6 +871,17 @@ private:
     void announceControlTarget (const ShellControl& control, bool valueOnly);
     void initialiseControlNavigation();
     [[nodiscard]] juce::var buildProbeControlTarget();
+    // ADR-0067 §2-§3 / ADR-0072: the pointer's states - the hovered and the pressed record.
+    void initialisePointerTracking();
+    void pointerEvent (MainComponentPointerKind kind, juce::Point<int> shellPoint, juce::Component* component,
+                       juce::ModifierKeys modifiers);
+    void servicePointerStates();
+    void pointerPressSeed (std::string id);
+    [[nodiscard]] juce::Component* walkChildrenAt (juce::Point<int> shellPoint);
+    [[nodiscard]] std::string pointerRecordAt (juce::Point<int> shellPoint, const juce::Component* component) const;
+    [[nodiscard]] juce::Rectangle<int> pointerRecordBounds (const std::string& id) const;
+    void setPointerStates (std::string hovered, std::string pressed);
+    [[nodiscard]] juce::var buildProbePointer() const;
 
     // G3.3: a mouse gesture that lands on a model verb without passing handleAction still names
     // itself to the probe (a drive asserts on lastAction; nothing is blind).
@@ -1008,6 +1019,12 @@ public:
         return controls;
     }
     [[nodiscard]] const auto& harnessPointerRecords() const noexcept { return pointerRecords; }   // ADR-0067 §2
+    void harnessPointer (MainComponentPointerKind kind, juce::Point<int> shellPoint, juce::Component* component,
+                         juce::ModifierKeys modifiers) { pointerEvent (kind, shellPoint, component, modifiers); }
+    [[nodiscard]] MainComponentPointerState harnessPointerState() const
+    {
+        return { juce::String (pointerHovered), juce::String (pointerPressed), pointerLastRepaint };
+    }
     void harnessSetViewSizes (int rail, int inspector, int dock)   // ADR-0061: as a splitter released
     {
         setRailWidth (rail);
@@ -1775,6 +1792,13 @@ private:
         juce::Component::SafePointer<juce::Component> surface;
     };
     std::vector<PointerRecord> pointerRecords;
+    std::unique_ptr<juce::MouseListener> pointerTracker;
+    std::optional<juce::Point<int>> pointerPosition;               // the pointer's last position in the shell (none: away)
+    juce::Component::SafePointer<juce::Component> pointerComponent;   // the component under it
+    std::string pointerHovered, pointerPressed;                      // record ids ("" = none)
+    juce::Rectangle<int> pointerHoveredBounds, pointerPressedBounds; // as last painted
+    bool pointerPressSeeded = false;   // a gesture named its record before the press event (the rail's volume slop)
+    std::vector<juce::Rectangle<int>> pointerLastRepaint;   // what the LAST state change repainted (kept until the next)
     std::array<double, shell::kStateProbePaintRingSize> paintRing {};
     std::size_t paintRingIndex = 0;
     std::size_t paintRingCount = 0;

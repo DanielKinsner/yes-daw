@@ -52,6 +52,7 @@ public:
     // Mini controls (usable-DAW P2): the painted PAN knob, VOL slider, and M/S cells become live.
     std::function<void (int, float)> onPanEdited;      // row, pan in [-1, 1]
     std::function<void (int, float)> onVolumeEdited;   // row, linear gain in [0, 1]
+    std::function<void (int)> onVolumeGestureBegan;     // row: a volume drag started (ADR-0072: the pointer's press)
     std::function<void (int)> onMuteToggled;
     std::function<void (int)> onSoloToggled;
     std::function<void (int)> onSoloExclusive;   // G4.5: Ctrl-click (Cmd on macOS) the S cell
@@ -188,6 +189,8 @@ public:
                 }
                 dragRow = row;
                 dragZone = MiniZone::Volume;
+                if (onVolumeGestureBegan)
+                    onVolumeGestureBegan (row);
                 if (beginFineDragIfWanted (event))
                     return;
                 applyVolume (row, event.getPosition());

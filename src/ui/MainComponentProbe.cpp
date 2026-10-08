@@ -687,6 +687,7 @@ juce::String MainComponent::buildStateProbeJson()
                                || markerRenameEditor.isVisible() || busRenameEditor.isVisible());
     }
     root->setProperty ("controlTarget", buildProbeControlTarget());   // G4.0b
+    root->setProperty ("pointer", buildProbePointer());               // ADR-0067 §2-§3
     {
         // 2026-10-05: the JUCE popup menus running now (each menu / submenu is a modal "menu" window;
         // while one is modal, keys route to it). A drive waits on this instead of a fixed sleep.
@@ -2080,6 +2081,20 @@ void mainComponentSetViewSizes (juce::Component& component, int rail, int inspec
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         mainComponent->harnessSetViewSizes (rail, inspector, dock);
+}
+
+void mainComponentPointer (juce::Component& component, MainComponentPointerKind kind, juce::Point<int> shellPoint,
+                           juce::Component* eventComponent, juce::ModifierKeys modifiers)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessPointer (kind, shellPoint, eventComponent, modifiers);
+}
+
+MainComponentPointerState mainComponentPointerState (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessPointerState();
+    return {};
 }
 
 std::vector<std::pair<std::string, juce::Rectangle<int>>> mainComponentPointerRecords (juce::Component& component)

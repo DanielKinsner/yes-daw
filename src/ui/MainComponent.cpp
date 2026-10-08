@@ -712,6 +712,8 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         refreshActionState();
         repaintAll();
     };
+    // ADR-0072 §10: a volume drag begun in the slop beside the slider presses the volume record, not the meter's.
+    trackListInput.onVolumeGestureBegan = [this] (int row) { pointerPressSeed ("rail.row." + std::to_string (row) + ".volume"); };
     trackListInput.onVolumeEdited = [this] (int row, float linearGain) {
         appModel.beginStripGesture();
         selectTrackLane (row);
@@ -1897,6 +1899,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     // G0.2: keys go to the command router, not to widgets (ADR-0046 §4).
     applyKeyboardFocusLaw();
     initialiseControlNavigation();   // G4.0b: the router's Control target (ADR-0049)
+    initialisePointerTracking();     // ADR-0067 §2: the pointer's hover and press
     paintedProxiesReady = true;
     refreshActionState();
     resized();
@@ -1915,6 +1918,8 @@ MainComponent::~MainComponent()
 {
     if (controlNavigationMouseListener != nullptr)
         removeMouseListener (controlNavigationMouseListener.get());
+    if (pointerTracker != nullptr)
+        removeMouseListener (pointerTracker.get());
     if (routedTopLevel != nullptr)
         routedTopLevel->removeKeyListener (this);
     menuBar.setModel (nullptr);
@@ -2034,6 +2039,7 @@ void MainComponent::serviceUiTick()
     if (controlNavigator.navigating())
         revalidateControlTarget();
     adoptAccessibilityControlTarget();
+    servicePointerStates();   // ADR-0067 §2-§3: the pointer's states follow what is under it now
 
     if (! appModel.autosaveSchedule().enabled)
         return;

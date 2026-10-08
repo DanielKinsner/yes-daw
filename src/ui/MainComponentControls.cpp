@@ -28,6 +28,46 @@ struct ControlNavigationMouseListener final : public juce::MouseListener
     }
 };
 
+// ADR-0067 §2: the pointer's half - every enter, move, drag, exit, press and release anywhere in the shell.
+struct PointerTracker final : public juce::MouseListener
+{
+    std::function<void (MainComponentPointerKind, const juce::MouseEvent&)> onEvent;
+    void mouseEnter (const juce::MouseEvent& event) override { send (MainComponentPointerKind::enter, event); }
+    void mouseMove (const juce::MouseEvent& event) override { send (MainComponentPointerKind::move, event); }
+    void mouseDrag (const juce::MouseEvent& event) override { send (MainComponentPointerKind::drag, event); }
+    void mouseExit (const juce::MouseEvent& event) override { send (MainComponentPointerKind::exit, event); }
+    void mouseDown (const juce::MouseEvent& event) override { send (MainComponentPointerKind::down, event); }
+    void mouseUp (const juce::MouseEvent& event) override { send (MainComponentPointerKind::up, event); }
+    void send (MainComponentPointerKind kind, const juce::MouseEvent& event)
+    {
+        if (onEvent)
+            onEvent (kind, event);
+    }
+};
+
+// ADR-0072 §3: the deepest visible component under `point` that takes the mouse, as JUCE routes an event - one that lets
+// clicks through (the accessible elements and their layer) passes it on. nullptr: none of `parent`'s children.
+// It mirrors JUCE only while no shell component overrides hitTest() or sets a transform: one that does must be handled
+// here too, or a tick's walk and an event's routing disagree and hover flickers between them.
+[[nodiscard]] juce::Component* deepestTakingMouseAt (juce::Component& parent, juce::Point<int> point)
+{
+    for (int i = parent.getNumChildComponents() - 1; i >= 0; --i)
+    {
+        juce::Component* child = parent.getChildComponent (i);
+        if (child == nullptr || ! child->isVisible() || ! child->getBounds().contains (point))
+            continue;
+        bool self = false;
+        bool children = false;
+        child->getInterceptsMouseClicks (self, children);
+        if (children)
+            if (juce::Component* deeper = deepestTakingMouseAt (*child, point - child->getPosition()))
+                return deeper;
+        if (self)
+            return child;
+    }
+    return nullptr;
+}
+
 [[nodiscard]] bool isControlWidget (const juce::Component& component)
 {
     return dynamic_cast<const juce::Button*> (&component) != nullptr
@@ -120,6 +160,157 @@ void MainComponent::initialiseControlNavigation()
     };
     controlNavigationMouseListener = std::move (listener);
     addMouseListener (controlNavigationMouseListener.get(), true);
+}
+
+void MainComponent::initialisePointerTracking()
+{
+    auto tracker = std::make_unique<PointerTracker>();
+    tracker->onEvent = [this] (MainComponentPointerKind kind, const juce::MouseEvent& event) {
+        pointerEvent (kind, event.getEventRelativeTo (this).getPosition(), event.eventComponent, event.mods);
+    };
+    pointerTracker = std::move (tracker);
+    addMouseListener (pointerTracker.get(), true);
+}
+
+// ADR-0072 §3: what a stationary pointer is over now - an overlay that opened, a tab that switched, a panel that hid.
+// Nothing taking the mouse there: the shell's own paint (the header) is under the pointer.
+juce::Component* MainComponent::walkChildrenAt (juce::Point<int> shellPoint)
+{
+    juce::Component* found = deepestTakingMouseAt (*this, shellPoint);
+    return found != nullptr ? found : this;
+}
+
+// ADR-0067 §2 / ADR-0072 §2: the record under the point whose surface the event's component is in - exactly the shell
+// for the shell's own records (the header's), so an overlay over them blocks hover; within the surface for the others.
+std::string MainComponent::pointerRecordAt (juce::Point<int> shellPoint, const juce::Component* component) const
+{
+    if (component == nullptr)
+        return {};
+    for (const auto& record : pointerRecords)
+    {
+        const juce::Component* surface = record.surface.getComponent();
+        if (surface == nullptr || ! record.bounds.contains (shellPoint))
+            continue;
+        if (surface == this ? component == this : (surface == component || surface->isParentOf (component)))
+            return record.id;
+    }
+    return {};
+}
+
+juce::Rectangle<int> MainComponent::pointerRecordBounds (const std::string& id) const
+{
+    if (! id.empty())
+        for (const auto& record : pointerRecords)
+            if (record.id == id)
+                return record.bounds;
+    return {};
+}
+
+// The two pointer states change together; each change repaints the old and the new record's rects (expanded as the
+// ring's are), never a surface - and follows a record that moved under a state that did not change.
+void MainComponent::setPointerStates (std::string hovered, std::string pressed)
+{
+    std::vector<juce::Rectangle<int>> repainted;
+    const auto add = [&repainted] (juce::Rectangle<int> r) {
+        if (r.isEmpty())
+            return;
+        r = r.expanded (L::controlTargetRingRepaintMargin);
+        if (std::find (repainted.begin(), repainted.end(), r) == repainted.end())
+            repainted.push_back (r);
+    };
+    const auto update = [&] (std::string& state, juce::Rectangle<int>& painted, std::string next) {
+        const juce::Rectangle<int> nextBounds = pointerRecordBounds (next);
+        if (next == state && nextBounds == painted)
+            return;
+        add (painted);
+        state = std::move (next);
+        painted = nextBounds;
+        add (painted);
+    };
+    update (pointerHovered, pointerHoveredBounds, std::move (hovered));
+    update (pointerPressed, pointerPressedBounds, std::move (pressed));
+    if (repainted.empty())
+        return;
+    for (const auto& r : repainted)
+        repaint (r);
+    pointerLastRepaint = std::move (repainted);
+}
+
+void MainComponent::pointerEvent (MainComponentPointerKind kind, juce::Point<int> shellPoint, juce::Component* component,
+                                  juce::ModifierKeys modifiers)
+{
+    using K = MainComponentPointerKind;
+    std::string pressed = pointerPressed;
+    if (kind == K::exit)
+    {
+        // The pointer left the component it was over: off the window, or into a popup. An exit from a child the
+        // pointer was not over (an enter arrives with the next one) changes nothing.
+        if (component == this || component == pointerComponent.getComponent())
+        {
+            pointerPosition.reset();
+            pointerComponent = nullptr;
+            setPointerStates ({}, std::move (pressed));
+        }
+        return;
+    }
+    if (kind == K::down)
+    {
+        if (modifiers.isLeftButtonDown() && ! modifiers.isPopupMenu())
+            pressed = pointerPressSeeded ? pointerPressed : pointerRecordAt (shellPoint, component);
+        else
+            pressed.clear();   // a right or middle press presses nothing - not even what its gesture seeded
+        pointerPressSeeded = false;   // the seed was for this press only
+    }
+    if (kind == K::up)
+    {
+        pressed.clear();
+        pointerPressSeeded = false;
+    }
+    pointerPosition = shellPoint;
+    // A drag's events stay with the component it began on; what is under the pointer is found by the walk (ADR-0072 §7).
+    juce::Component* under = kind == K::drag || kind == K::up ? walkChildrenAt (shellPoint) : component;
+    pointerComponent = under;
+    setPointerStates (pointerRecordAt (shellPoint, under), std::move (pressed));
+}
+
+// ADR-0067 §2-§3: every tick the states are re-resolved from the last position and the records now - a press whose
+// button is no longer down or whose record went is dropped; with no button down, the component under the pointer is
+// found again (an overlay or a tab since the last event).
+void MainComponent::servicePointerStates()
+{
+    std::string pressed = pointerPressed;
+    const bool primaryDown = juce::ModifierKeys::currentModifiers.isLeftButtonDown();
+    if (! pressed.empty() && (! primaryDown || pointerRecordBounds (pressed).isEmpty()))
+        pressed.clear();
+    if (pressed.empty() || ! primaryDown)
+        pointerPressSeeded = false;   // a seed whose press event never came does not outlive the button
+    if (! pointerPosition)
+    {
+        setPointerStates ({}, std::move (pressed));
+        return;
+    }
+    if (! primaryDown)
+        pointerComponent = walkChildrenAt (*pointerPosition);
+    setPointerStates (pointerRecordAt (*pointerPosition, pointerComponent.getComponent()), std::move (pressed));
+}
+
+// ADR-0072 §10: a gesture that starts from its slop names its record before the press event reaches the tracker.
+void MainComponent::pointerPressSeed (std::string id)
+{
+    pointerPressSeeded = true;
+    setPointerStates (pointerHovered, std::move (id));
+}
+
+juce::var MainComponent::buildProbePointer() const
+{
+    auto* object = new juce::DynamicObject();
+    object->setProperty ("hovered", juce::String (pointerHovered));
+    object->setProperty ("pressed", juce::String (pointerPressed));
+    juce::Array<juce::var> rects;
+    for (const auto& r : pointerLastRepaint)
+        rects.add (probeRect (r));
+    object->setProperty ("lastRepaint", rects);
+    return object;
 }
 
 int MainComponent::controlRegionAt (juce::Point<int> shellPoint) const
