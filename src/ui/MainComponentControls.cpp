@@ -347,6 +347,16 @@ juce::var MainComponent::buildProbePointer() const
     object->setProperty ("lastRepaint", rects);
     object->setProperty ("hoveredBounds", probeRect (pointerHoveredBounds));   // where the strokes paint
     object->setProperty ("pressedBounds", probeRect (pointerPressedBounds));
+    // ADR-0067 cp3: every painted control's record (id, bounds) - what the drive's real-pointer sweep visits.
+    juce::Array<juce::var> records;
+    for (const auto& record : pointerRecords)
+    {
+        auto* row = new juce::DynamicObject();
+        row->setProperty ("id", juce::String (record.id));
+        row->setProperty ("rect", probeRect (record.bounds));
+        records.add (row);
+    }
+    object->setProperty ("records", records);
     return object;
 }
 

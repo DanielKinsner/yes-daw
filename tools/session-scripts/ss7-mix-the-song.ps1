@@ -23,8 +23,13 @@
 # measured loudness (when the drive machine has an output device — otherwise the honest "--" is asserted).
 # Save and close moves to Step 14.
 # G6.4 (2026-10-08, ADR-0072 §8) — Step 16: the real pointer over the header's meter chooser and tempo cell (native
-# widgets) shows the 1 px hover line in the window's pixels, and held down each shows the 2 px pressed line. Save and
-# close is Step 17.
+# widgets) shows the 1 px hover line in the window's pixels, and held down each shows the 2 px pressed line.
+# G6.4 (2026-10-08, ADR-0067 cp3) — Step 17: while the song plays, the real pointer visits the centre of every rail,
+# strip and master control the shell has a record for (the probe's pointer.records) and the probe names each as hovered;
+# no full invalidation, paint p95 <= 8 ms (B2) and no underrun (B5) across the sweep. Then, at 1280x720, 1920x1080 and
+# 2560x1440 (ADR-0072's sweep): a hover, a press held on a fader's cap, a drag from that cap sideways onto the next
+# strip's fader (the press stays on the first, the hover follows - a sideways drag moves no fader), and a right press
+# that presses nothing; their shots and the keyboard ring with a hover go to the rubric. Save and close is Step 18.
 # G4.0b (2026-10-05) — keyboard only: Step 11. Tab starts control navigation (the ring; the probe's
 # controlTarget); Space stays transport; the Snap chooser previews with arrows and Enter applies; strip 1's
 # painted fader moves by dB as one undo step while Right never moves the playhead, and Esc restores; the
@@ -698,7 +703,73 @@ if ([Math]::Abs([double](Probe).project.tempoBpm - $bpm) -gt 0.001) { Key 'Ctrl+
 [void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.project.tempoBpm - $bpm) -le 0.001 } -TimeoutMs 2000) ('the tempo is back at ' + $bpm + ' (' + (Probe).project.tempoBpm + ')'))
 [void](Assert ($meterBefore -ne '' -and "$((Probe).project.meter)" -eq $meterBefore) ('the meter is unchanged (' + (Probe).project.meter + ')'))
 
-Step 17 'Save and close'
+Step 17 'G6.4: the real pointer sweeps every rail, strip and master control while the song plays (ADR-0067 cp3)'
+Focus
+Key 'Esc'
+Hover 'timeline'
+Key 'Enter'   # outside control navigation Enter returns to zero
+Key 'Space'
+[void](Assert (WaitProbe { param($q) [bool]$q.transport.isPlaying } -TimeoutMs 2000) 'the song plays')
+Start-Sleep -Milliseconds 500
+$before = Probe
+$records = @($before.pointer.records | Where-Object { "$($_.id)" -match '^(rail\.row\.|mixer\.strip\.|mixer\.master\.)' })
+$missed = @()
+foreach ($record in $records) {
+  $id = "$($record.id)"
+  $cx = [int]([double]$record.rect[0] + [double]$record.rect[2] / 2); $cy = [int]([double]$record.rect[1] + [double]$record.rect[3] / 2)
+  $pt = ScreenPoint ("{0},{1}" -f $cx, $cy)
+  [YesDawDrive]::MouseMoveAbs($pt[0] - 1, $pt[1]); Start-Sleep -Milliseconds 15
+  [YesDawDrive]::MouseMoveAbs($pt[0], $pt[1])
+  if (-not (WaitProbe { param($q) "$($q.pointer.hovered)" -eq $id } -TimeoutMs 800)) { $missed += ($id + '->' + (Probe).pointer.hovered) }
+}
+$after = Probe
+[void](Assert ($records.Count -ge 40) ('the sweep covers every rail, strip and master control the shell records (' + $records.Count + ')'))
+[void](Assert ($missed.Count -eq 0) ('the real pointer at each centre hovers it (' + $missed.Count + ' off' + $(if ($missed.Count) { ': ' + (($missed | Select-Object -First 6) -join ' ') }) + ')'))
+[void](Assert ([bool]$after.transport.isPlaying) 'still playing after the sweep')
+[void](Assert ([int64]$after.frame.fullInvalidations -eq [int64]$before.frame.fullInvalidations) ('no full invalidation during the sweep (' + $before.frame.fullInvalidations + ' -> ' + $after.frame.fullInvalidations + ')'))
+[void](Assert ([double]$after.frame.paintP95Ms -le 8.0) ('paint per frame p95 <= 8 ms while sweeping (B2): ' + ('{0:N2}' -f [double]$after.frame.paintP95Ms) + ' ms, renderer ' + $after.renderer))
+$underruns = [int]$after.audio.underruns
+$missDelta = [int]$after.audio.deadlineMisses - [int]$before.audio.deadlineMisses
+$rtDetail = ' [sinceLaunch=' + $underruns + ' deadlineMisses=' + $after.audio.deadlineMisses + ' maxCallbackMs=' + ('{0:N2}' -f [double]$after.audio.maxCallbackMs) + ']'
+if ($underruns -lt 0) { [void](Assert ($missDelta -eq 0) ('driver cannot count xruns; deadline misses during the sweep == 0 (B5): ' + $missDelta + $rtDetail)) }
+else { [void](Assert (($underruns - [int]$before.audio.underruns) -eq 0) ('underruns during the sweep == 0 (B5): ' + ($underruns - [int]$before.audio.underruns) + $rtDetail)) }
+# At the three plan sizes: hover, press, a drag that leaves the pressed control, a right press; shots for the rubric.
+$sizeBefore = @([int](Probe).view.width, [int](Probe).view.height)
+foreach ($size in @(@(1280, 720), @(1920, 1080), @(2560, 1440))) {
+  $tag = '' + $size[0] + 'x' + $size[1]
+  [void](Assert (Resize $size[0] $size[1]) ('window at ' + $tag))
+  [void](Assert ($null -ne (LayoutRect 'mixer.strip.1.fader') -and $null -ne (LayoutRect 'mixer.strip.0.fader.thumb')) ('two strips show their faders at ' + $tag))
+  Hover 'mixer.strip.0.pan'
+  [void](Assert (WaitProbe { param($q) "$($q.pointer.hovered)" -eq 'mixer.strip.0.pan' } -TimeoutMs 800) ('the pan knob is hovered at ' + $tag))
+  Shot ('ss7-sweep-hover-' + $tag)
+  $cap = ScreenPoint 'mixer.strip.0.fader.thumb'
+  $next = ScreenPoint 'mixer.strip.1.fader'
+  [YesDawDrive]::MouseMoveAbs($cap[0], $cap[1]); Start-Sleep -Milliseconds 80
+  [YesDawDrive]::MouseButton($true, $false); Start-Sleep -Milliseconds 250
+  [void](Assert ("$((Probe).pointer.pressed)" -eq 'mixer.strip.0.fader') ('held on its cap, the fader is pressed at ' + $tag + ' (' + (Probe).pointer.pressed + ')'))
+  Shot ('ss7-sweep-pressed-' + $tag)
+  for ($i = 1; $i -le 10; $i++) { [YesDawDrive]::MouseMoveAbs([int]($cap[0] + ($next[0] - $cap[0]) * $i / 10), $cap[1]); Start-Sleep -Milliseconds 25 }   # sideways
+  $dragged = WaitProbe { param($q) "$($q.pointer.hovered)" -eq 'mixer.strip.1.fader' -and "$($q.pointer.pressed)" -eq 'mixer.strip.0.fader' } -TimeoutMs 800
+  [void](Assert $dragged ('dragged onto the next fader: pressed stays on the first, hover follows at ' + $tag + ' (pressed ' + (Probe).pointer.pressed + ', hovered ' + (Probe).pointer.hovered + ')'))
+  Shot ('ss7-sweep-drag-' + $tag)
+  [YesDawDrive]::MouseButton($false, $false); Start-Sleep -Milliseconds 200
+  [void](Assert ("$((Probe).pointer.pressed)" -eq '' -and "$((Probe).pointer.hovered)" -eq 'mixer.strip.1.fader') ('released: nothing pressed, the hover stays at ' + $tag))
+  $knob = ScreenPoint 'mixer.strip.1.pan'
+  [YesDawDrive]::MouseMoveAbs($knob[0], $knob[1]); Start-Sleep -Milliseconds 80
+  [YesDawDrive]::MouseButton($true, $true); Start-Sleep -Milliseconds 250
+  [void](Assert ("$((Probe).pointer.pressed)" -eq '') ('a right press presses nothing at ' + $tag + ' (' + (Probe).pointer.pressed + ')'))
+  [YesDawDrive]::MouseButton($false, $true); Start-Sleep -Milliseconds 250
+  Key 'Esc'; Start-Sleep -Milliseconds 150   # its menu, if one opened
+}
+[void](Resize $sizeBefore[0] $sizeBefore[1])
+Key 'Tab'
+Hover 'mixer.strip.1.mute'
+Shot 'ss7-sweep-ring-and-hover'
+Key 'Esc'
+Key 'Space'
+[void](Assert (WaitProbe { param($q) -not [bool]$q.transport.isPlaying } -TimeoutMs 2000) 'stopped')
+
+Step 18 'Save and close'
 Focus
 Key 'Ctrl+S'
 Start-Sleep -Milliseconds 800

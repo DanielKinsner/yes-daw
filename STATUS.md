@@ -8,6 +8,21 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0067 cp3c: the real pointer sweeps every control while the song plays (SS-5 drive)
+
+**What:** `ss7` Step 17 plays the song and moves the real Win32 mouse to the centre of every rail, strip and master
+control the shell keeps a record for - the probe now lists them (`pointer.records`) - and requires the probe to name
+each as hovered; across the sweep: no full invalidation, paint p95 <= 8 ms (B2), no underrun (B5). Then at 1280x720,
+1920x1080 and 2560x1440 (ADR-0072's sweep): a hover, a press held on a fader's cap, a drag from it sideways onto the next
+strip's fader (the press stays on the first, the hover follows; the release leaves the hover), and a right press that
+presses nothing; their shots and the keyboard ring with a hover go to the rubric. **Result on this desktop:** ss7
+**197/197 PASS** - 97 controls, 0 missed, full invalidations 239 -> 239, p95 3.82 ms (Direct2D), 0 underruns, every
+size's press / drag / right-press law held. **Visual check (agent):** the hover line reads on knobs and cells, the pressed
+fader's line runs under its cap. **Found on the way (parked as its own task):** holding the press on a fader's cap
+without moving showed a "-0.1 dB" readout - whether the press itself nudges the gain is to be checked and fixed.
+**ADR-0067 is now built through cp3** (meters, hover and pressed, the playhead, nothing animates, the real-app sweep).
+**Next:** G6.5 per the plan; the macOS GPU timing exception renewal and ADR-0069 still await Dan.
+
 ## 2026-10-08 — ADR-0067 cp3a/b: the playhead is the published frame, and a still shell never animates
 
 **What (gates; no product change needed - the code already obeyed):** `[playhead]` - while the song plays, at four
