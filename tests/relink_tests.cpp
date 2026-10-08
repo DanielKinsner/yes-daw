@@ -210,6 +210,7 @@ struct RelinkShell
     std::filesystem::path open;
     std::vector<std::filesystem::path> answers;
     std::vector<yesdaw::ui::UiMissingAsset> asked;
+    std::function<void()> whileAsking;   // runs inside the question (the probe's `relink` while it is up)
     std::unique_ptr<juce::Component> shell;
 
     explicit RelinkShell (const std::filesystem::path& sessionFolder, const std::filesystem::path& launchBundle = {})
@@ -221,6 +222,8 @@ struct RelinkShell
         choices.chooseNewProjectBundle = [this] { return open; };
         choices.chooseMissingAudioReplacement = [this] (const yesdaw::ui::UiMissingAsset& missing) {
             asked.push_back (missing);
+            if (whileAsking)
+                whileAsking();
             if (answers.empty())
                 return std::filesystem::path {};
             const std::filesystem::path answer = answers.front();
@@ -314,6 +317,49 @@ TEST_CASE ("ADR-0062 Cancel keeps the current project and names what remains mis
     REQUIRE (r.asked.size() == 1u);
     REQUIRE (r.asked[0].description == "Audio Clip - 0:01.0 48 kHz mono, used by 1 clip");
     REQUIRE (r.snapshot().windowTitle.find ("song") != std::string::npos);
+}
+
+// SS-6: a drive answers the missing-audio question through the real dialog, so the probe shows the question while it is
+// up (its name, the refusal of the last file, damaged or missing), how many were asked, and how the open ended.
+TEST_CASE ("SS-6 the probe shows the missing-audio question while it is up and how the relink ended", "[relink][probe]")
+{
+    ThreeTones f ("probe");
+    std::filesystem::remove (assetFileOf (f.bundle, f.hashes[0]));
+
+    RelinkShell r (f.directory / "session");
+    const auto relinkProbe = [&r] {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*r.shell)), probe).wasOk());
+        return probe["relink"];
+    };
+    REQUIRE_FALSE (static_cast<bool> (relinkProbe()["asking"]));
+    REQUIRE (relinkProbe()["lastOutcome"].toString().isEmpty());
+
+    std::vector<juce::var> seen;
+    r.whileAsking = [&] { seen.push_back (relinkProbe()); };
+    r.open = f.bundle;
+    r.answers = { f.originals[2], f.originals[0] };   // the wrong tone, then the original
+    r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+    REQUIRE (seen.size() == 2u);
+    REQUIRE (static_cast<bool> (seen[0]["asking"]));
+    REQUIRE (seen[0]["name"].toString() == "Audio Clip");
+    REQUIRE (seen[0]["refusal"].toString().isEmpty());
+    REQUIRE_FALSE (static_cast<bool> (seen[0]["damaged"]));
+    REQUIRE (seen[1]["refusal"].toString() == "tone-2.wav is not the missing audio: its content differs");
+    REQUIRE (static_cast<int> (seen[1]["questions"]) == 2);
+    REQUIRE_FALSE (static_cast<bool> (relinkProbe()["asking"]));   // answered: down
+    REQUIRE (relinkProbe()["lastOutcome"].toString() == "relinked");
+
+    // Cancel names its outcome too.
+    ThreeTones g ("probe-cancel");
+    std::filesystem::remove (assetFileOf (g.bundle, g.hashes[0]));
+    RelinkShell c (g.directory / "session");
+    c.open = g.bundle;
+    c.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+    juce::var probe;
+    REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*c.shell)), probe).wasOk());
+    REQUIRE (probe["relink"]["lastOutcome"].toString() == "cancelled");
+    REQUIRE_FALSE (static_cast<bool> (probe["relink"]["asking"]));
 }
 
 TEST_CASE ("ADR-0062 the launch reopen asks the same way; a pad's Asset and an unused one are described", "[relink]")

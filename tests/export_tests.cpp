@@ -133,7 +133,9 @@ TEST_CASE ("ADR-0058 Cancel ends a running export with no file and no count", "[
     latch.holdAfterFrames = 48'000;
     f.model.setExportLatchForTest (&latch);
     const auto destination = f.directory / "cancelled.wav";
+    REQUIRE (f.model.lastExportResult() == "none");   // SS-6: the probe's export.lastResult before any job ends
     REQUIRE (f.model.startAudioExport (destination).dispatched);
+    REQUIRE (f.model.lastExportDestination() == destination);
     waitHeld (latch);
     REQUIRE (f.model.dispatch (UiActionId::ProjectExportAudioCancel).dispatched);
     REQUIRE (f.model.context().audioExportCancelRequested);
@@ -146,6 +148,8 @@ TEST_CASE ("ADR-0058 Cancel ends a running export with no file and no count", "[
     REQUIRE_FALSE (std::filesystem::exists (destination));
     REQUIRE (f.model.statusLineText() == "Export cancelled");
     REQUIRE_FALSE (f.model.statusLineIsError());
+    REQUIRE (f.model.lastExportResult() == "cancelled");
+    REQUIRE (f.model.exportOutcomes() == 1);
 
     // With no job running, Cancel (Esc) keeps its Pointer meaning.
     REQUIRE (f.model.dispatch (UiActionId::ProjectExportAudioCancel).dispatched);

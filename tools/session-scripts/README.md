@@ -98,7 +98,11 @@ controls transport and a slider arrow does not also nudge a Clip.
   case instead of the pick (`ss7` Step 6).
 - **Every assertion reads the probe**, never a screenshot: `mixer.strips[i].inserts / sends / input /
   output / armed`, `fxEditor.{visible, kind, strip, slot, rows}`, `ride.{active, samples}`,
-  `recording.armedTrackCount`, `view.{dock, mixerNarrow, trackCount}`. If a step needs a fact the probe
+  `recording.armedTrackCount`, `view.{dock, mixerNarrow, trackCount}`; for the lifecycle (SS-6):
+  `project.{sampleRateHz, tempoBpm, trackCount, clipCount, midiClipCount, assets[].{hash, sampleRateHz, channels,
+  frames}}`, `autosave.{enabled, intervalMs, writes, failures, lastWritten, recovery}`, `relink.{asking, name, refusal,
+  damaged, questions, lastOutcome}`, `export.{lastResult, outcomes, destination, retiring}`. A drive shortens the
+  autosave cadence with `YESDAW_AUTOSAVE_INTERVAL_MS` (250 .. 600000). If a step needs a fact the probe
   does not carry, add it to the probe (the shell's `mainComponentStateProbeJson`) — that is a code
   change with a gate, not a screenshot read.
 - **File > New goes through the New Project dialog (G5.5).** New shows the in-app dialog (rate, tempo,

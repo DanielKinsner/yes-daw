@@ -8,6 +8,36 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 — SS-6 groundwork: the probe sees the lifecycle; finding: the shipped autosave never writes
+
+**Now:** the state probe carries what the SS-6 drive (`ss8`, drafted) asserts the project lifecycle by. ADR-0067 (G6.4) is
+accepted (149d0c1). **Next:** the recovery contract (ADR-0068, in a design workflow — see the finding below), then
+ADR-0067 cp1 (meters) on the `PeakSinceRead` primitive, then the rest of `ss8`'s needs (an alert-window helper, a hard
+kill, fixtures, a file drop). **Decision still pending (Dan, plan §8.2):** the macOS frame exception — b39cbc2 was green
+on every job, macOS included; 523b320 failed only that check (sustained 20.0 ms). Reported raw, not excused.
+
+**Finding (2026-10-07, by this checkpoint's gate):** the shipped app has **never written an autosave**. The 30 s cadence
+asks, but the write runs only when `PlaybackEngine::needsAutosave()` is true, and nothing in the app calls
+`markProjectEdited()`. Every edit is written straight through to the bundle (SQLite WAL: a killed process keeps every
+edit; a power cut can lose the last ones), so a crash does not lose work — but the power-cut-safe snapshot ADR-0019
+promises does not exist, and once it does, the recovery question as written ("an autosave exists") would offer a
+snapshot older than the bundle. ADR-0068 (the recovery contract) is being designed and reviewed before any fix lands;
+the first draft assumed a save-based model and was withdrawn.
+
+**What the probe carries (for drives):** `project.{sampleRateHz, tempoBpm, trackCount, clipCount, midiClipCount,
+assets[].{hash, sampleRateHz, channels, frames}}` (the hash names the bundle's `audio/<hash>.asset`);
+`autosave.{enabled, intervalMs, writes, failures, lastWritten, recovery.{pending, prompts, restores, discards, tracks,
+clips, midiClips, assets, takes, compSegments, bundlePath}}`; `relink.{asking, name, refusal, damaged, questions,
+lastOutcome}` (the missing-audio question while it is up); `export.{lastResult, outcomes, destination, retiring}`. A
+drive shortens the autosave cadence with `YESDAW_AUTOSAVE_INTERVAL_MS` (250 .. 600000; anything else ignored).
+
+**Gates:** `[project-lifecycle][probe]` — the project's rate, tempo, counts and its Asset by the bundle file's hash; the
+cadence seam; the export's `none` then `succeeded`, its outcome count and destination; `[relink][probe]` — the question
+in the probe while it is up (its name, the refusal of the wrong file, the count) and `relinked` / `cancelled` after;
+`[export-job]` — `cancelled` and the destination on the model. ctest 420/420 (with the next commit's primitive), Clang clean. **Critic:** no blockers;
+the relink question now clears even if the chooser throws, the model floors the cadence at 250 ms, the destination is
+the started job's, the recovery block names its bundle and the takes / comp segments.
+
 ## 2026-10-07 — G6.3 live: a screen reader's view checked on the real app, and its focus move now adopts the target
 
 **Now:** G6.3's desktop proof is in: `ss7` Step 15 reads the app through UI Automation (the tree Narrator and NVDA read)

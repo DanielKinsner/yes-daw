@@ -23,6 +23,8 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
 
     // G0.1 State probe: debug-only; a normal launch leaves the path empty and writes nothing.
     stateProbePath = fileChoices.stateProbePath;
+    if (fileChoices.autosaveIntervalMs > 0)
+        appModel.setAutosaveIntervalMs (fileChoices.autosaveIntervalMs);
     launchStamp = std::chrono::steady_clock::now();
     auto startupStageStamp = launchStamp;
     std::optional<std::ostringstream> startupTimings;

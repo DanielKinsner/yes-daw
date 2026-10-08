@@ -1678,6 +1678,11 @@ private:
     // G0.1 State probe (ADR-0046 §10; plan §7.2). Debug-only: `stateProbePath` is empty in a
     // normal launch and nothing below is ever written. Counters are the feel-budget inputs.
     std::filesystem::path stateProbePath;
+    // SS-6 / ADR-0062: the missing-audio question while it is up (the probe's `relink`), the questions asked, and how the
+    // last relink ended ("" none yet, "cancelled", "relinked").
+    std::optional<UiMissingAsset> relinkAsking;
+    int relinkQuestions = 0;
+    const char* relinkLastOutcome = "";
     std::uint64_t probeTick = 0;
     std::chrono::steady_clock::time_point launchStamp {};
     std::uint64_t audioCallbackAdds = 0;

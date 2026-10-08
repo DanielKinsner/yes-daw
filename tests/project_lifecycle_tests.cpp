@@ -258,6 +258,63 @@ TEST_CASE ("ADR-0060 New creates the project at the chosen rate, tempo and meter
     REQUIRE (yesdaw::ui::snapshotMainComponent (*f).windowTitle.find ("song") != std::string::npos);
 }
 
+// SS-6: what a drive asserts the lifecycle by — the project's own rate and tempo and its Assets by content hash (the
+// bundle's audio/<hash>.asset), the autosave's cadence and counters (the drive's shorter cadence reaches the schedule),
+// the export's outcome and destination.
+TEST_CASE ("SS-6 the probe carries the project's rate, tempo and Assets, the autosave's cadence, and the export's outcome",
+           "[project-lifecycle][probe]")
+{
+    const auto directory = lifecycleScratch ("probe");
+    const std::filesystem::path bundle = directory / "probe.yesdaw";
+    const std::filesystem::path wav = directory / "probe-mix.wav";
+    const std::filesystem::path fixture { YESDAW_WAV_FIXTURE_PATH };
+    juce::MessageManager::getInstance();
+    MainComponentFileChoices choices;
+    choices.sessionStateDirectory = directory / "session";
+    std::filesystem::create_directories (choices.sessionStateDirectory);
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.chooseImportAudioFile = [fixture] { return fixture; };
+    choices.chooseExportAudioFile = [wav] { return wav; };
+    choices.autosaveIntervalMs = 250;   // the drive's seam (YESDAW_AUTOSAVE_INTERVAL_MS)
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    REQUIRE (static_cast<bool> (probeOf (*shell)["projectLoaded"]));
+
+    // The project: its rate and tempo, and the one Asset by the hash its bundle file is named for.
+    const juce::var project = probeOf (*shell)["project"];
+    REQUIRE (static_cast<double> (project["sampleRateHz"]) == readProject (bundle).sampleRate.hz);
+    REQUIRE (static_cast<double> (project["tempoBpm"]) == 120.0);
+    REQUIRE (static_cast<int> (project["clipCount"]) == 1);
+    REQUIRE (project["assets"].size() == 1);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectSave);
+    std::vector<std::string> assetFiles;
+    for (const auto& entry : std::filesystem::directory_iterator (bundle / "audio"))
+        if (entry.path().extension() == ".asset")
+            assetFiles.push_back (entry.path().stem().string());
+    REQUIRE (assetFiles.size() == 1u);
+    REQUIRE (project["assets"][0]["hash"].toString().toStdString() == assetFiles[0]);
+    REQUIRE (static_cast<int> (project["assets"][0]["channels"]) >= 1);
+    REQUIRE (static_cast<juce::int64> (project["assets"][0]["frames"]) > 0);
+
+    // Autosave: the drive's cadence reaches the schedule; the counters start at nothing written.
+    REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["intervalMs"]) == 250);
+    REQUIRE (static_cast<bool> (probeOf (*shell)["autosave"]["enabled"]));
+    REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["failures"]) == 0);
+    REQUIRE_FALSE (static_cast<bool> (probeOf (*shell)["autosave"]["recovery"]["pending"]));
+
+    // Export: none before, then the finished job's outcome and its destination.
+    REQUIRE (probeOf (*shell)["export"]["lastResult"].toString() == "none");
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectExportAudio);
+    yesdaw::ui::mainComponentWaitForExport (*shell);
+    const juce::var exported = probeOf (*shell)["export"];
+    REQUIRE (exported["lastResult"].toString() == "succeeded");
+    REQUIRE (static_cast<int> (exported["outcomes"]) == 1);
+    REQUIRE (std::filesystem::path (exported["destination"].toString().toStdString()) == wav);
+    REQUIRE (std::filesystem::exists (wav));
+}
+
 TEST_CASE ("ADR-0060 the New Project overlay: the keyboard alone creates a project; Esc closes it creating nothing",
            "[project-lifecycle]")
 {

@@ -954,6 +954,70 @@ juce::String MainComponent::buildStateProbeJson()
         prefs->setProperty ("migratedKeymap", appModel.migratedKeymapPreferences());
         root->setProperty ("prefs", juce::var (prefs));
     }
+    if (context.projectLoaded)
+    {
+        // SS-6: the project's own rate and tempo, and its Assets by content hash (the bundle's audio/<hash>.asset).
+        const yesdaw::engine::Project& project = appModel.project();
+        auto* projectObject = new juce::DynamicObject();
+        projectObject->setProperty ("sampleRateHz", project.sampleRate.hz);
+        projectObject->setProperty ("tempoBpm", project.tempoMap.empty() ? 0.0 : project.tempoMap.front().bpm);
+        projectObject->setProperty ("trackCount", static_cast<int> (project.tracks.size()));
+        projectObject->setProperty ("clipCount", static_cast<int> (project.clips.size()));
+        projectObject->setProperty ("midiClipCount", static_cast<int> (project.midiClips.size()));
+        juce::Array<juce::var> assets;
+        for (const yesdaw::engine::Asset& asset : project.assets)
+        {
+            auto* row = new juce::DynamicObject();
+            row->setProperty ("hash", juce::String (yesdaw::persistence::detail::hexBytes (asset.contentHash.bytes)));
+            row->setProperty ("sampleRateHz", asset.sampleRate.hz);
+            row->setProperty ("channels", static_cast<int> (asset.channels));
+            row->setProperty ("frames", static_cast<juce::int64> (asset.frames));
+            assets.add (juce::var (row));
+        }
+        projectObject->setProperty ("assets", assets);
+        root->setProperty ("project", juce::var (projectObject));
+    }
+    {
+        // SS-6: autosave — the cadence, confirmed writes and what the last one held, and the recovery question.
+        auto* autosave = new juce::DynamicObject();
+        autosave->setProperty ("enabled", appModel.autosaveSchedule().enabled);
+        autosave->setProperty ("intervalMs", appModel.autosaveSchedule().intervalMs);
+        autosave->setProperty ("writes", appModel.autosaveWrites());
+        autosave->setProperty ("failures", appModel.autosaveFailures());
+        const yesdaw::ui::UiProjectCounts& written = appModel.lastAutosaved();
+        auto* held = new juce::DynamicObject();
+        held->setProperty ("tracks", static_cast<int> (written.tracks));
+        held->setProperty ("clips", static_cast<int> (written.clips));
+        held->setProperty ("midiClips", static_cast<int> (written.midiClips));
+        held->setProperty ("assets", static_cast<int> (written.assets));
+        autosave->setProperty ("lastWritten", juce::var (held));
+        const yesdaw::ui::UiAutosaveRecoveryPrompt& prompt = appModel.autosaveRecoveryPrompt();
+        auto* recovery = new juce::DynamicObject();
+        recovery->setProperty ("pending", context.autosaveRecoveryPending);
+        recovery->setProperty ("prompts", context.autosaveRecoveryPromptCount);
+        recovery->setProperty ("restores", context.autosaveRecoveryRestoreCount);
+        recovery->setProperty ("discards", context.autosaveRecoveryDiscardCount);
+        recovery->setProperty ("tracks", static_cast<int> (prompt.trackCount));
+        recovery->setProperty ("clips", static_cast<int> (prompt.clipCount));
+        recovery->setProperty ("midiClips", static_cast<int> (prompt.midiClipCount));
+        recovery->setProperty ("assets", static_cast<int> (prompt.assetCount));
+        recovery->setProperty ("takes", static_cast<int> (prompt.recordingTakeCount));
+        recovery->setProperty ("compSegments", static_cast<int> (prompt.recordingCompSegmentCount));
+        recovery->setProperty ("bundlePath", juceFileFromPath (prompt.bundlePath).getFullPathName());
+        autosave->setProperty ("recovery", juce::var (recovery));
+        root->setProperty ("autosave", juce::var (autosave));
+    }
+    {
+        // SS-6 / ADR-0062: the missing-audio question while it is up, how many were asked, and how the last open ended.
+        auto* relink = new juce::DynamicObject();
+        relink->setProperty ("asking", relinkAsking.has_value());
+        relink->setProperty ("name", relinkAsking.has_value() ? juce::String::fromUTF8 (relinkAsking->name.c_str()) : juce::String());
+        relink->setProperty ("refusal", relinkAsking.has_value() ? juce::String::fromUTF8 (relinkAsking->refusal.c_str()) : juce::String());
+        relink->setProperty ("damaged", relinkAsking.has_value() && relinkAsking->damaged);
+        relink->setProperty ("questions", relinkQuestions);
+        relink->setProperty ("lastOutcome", juce::String (relinkLastOutcome));
+        root->setProperty ("relink", juce::var (relink));
+    }
 
     root->setProperty ("layout", buildProbeLayout());
     root->setProperty ("text", buildProbeText());
@@ -1042,6 +1106,11 @@ juce::String MainComponent::buildStateProbeJson()
             exported->setProperty ("count", appModel.context().audioExportCount);
             exported->setProperty ("inProgress", appModel.context().audioExportInProgress);
             exported->setProperty ("percent", appModel.context().audioExportProgressPercent);
+            // SS-6: what the last job came to and where the last one was going; retiring jobs a replacement left behind.
+            exported->setProperty ("lastResult", juce::String (appModel.lastExportResult()));
+            exported->setProperty ("outcomes", appModel.exportOutcomes());
+            exported->setProperty ("destination", juceFileFromPath (appModel.lastExportDestination()).getFullPathName());
+            exported->setProperty ("retiring", static_cast<int> (appModel.retiringExportCount()));
             root->setProperty ("export", juce::var (exported));
         }
         mixer->setProperty ("monitorDim", appModel.context().monitorDimmed);   // ADR-0053: the lit DIM / MUTE
@@ -1643,6 +1712,12 @@ std::unique_ptr<juce::Component> createNativeMainComponent (std::filesystem::pat
     const juce::String probe = juce::SystemStats::getEnvironmentVariable ("YESDAW_STATE_PROBE", {});
     if (probe.isNotEmpty() && juce::File::isAbsolutePath (probe))
         choices.stateProbePath = pathFromJuceFile (juce::File (probe));
+
+    // SS-6: a shorter autosave cadence for a drive that waits on one (whole milliseconds, 250 .. 600000; else ignored).
+    const juce::String autosaveInterval = juce::SystemStats::getEnvironmentVariable ("YESDAW_AUTOSAVE_INTERVAL_MS", {});
+    if (autosaveInterval.containsOnly ("0123456789") && autosaveInterval.length() <= 6)
+        if (const int ms = autosaveInterval.getIntValue(); ms >= 250 && ms <= 600000)
+            choices.autosaveIntervalMs = ms;
 
     const juce::String sessionDir =
         juce::SystemStats::getEnvironmentVariable ("YESDAW_SESSION_STATE_DIR", {});

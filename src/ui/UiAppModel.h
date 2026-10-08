@@ -328,6 +328,15 @@ struct UiRecordingCompSelection
     engine::Tick secondTimelineLength = 0;
 };
 
+// SS-6: what a confirmed autosave held, so a drive can compare the project a recovery brings back.
+struct UiProjectCounts
+{
+    std::size_t tracks = 0;
+    std::size_t clips = 0;
+    std::size_t midiClips = 0;
+    std::size_t assets = 0;
+};
+
 struct UiAutosaveRecoveryPrompt
 {
     bool pending = false;
@@ -2258,8 +2267,27 @@ public:
         if (playback_ == nullptr || ! bundleDb_.isOpen())
             return persistence::autosave_detail::ok();
 
-        return persistence::writeAutosaveFromControlTick (*playback_, bundleDb_, project_);
+        const bool due = playback_->needsAutosave();
+        persistence::AutosaveResult result = persistence::writeAutosaveFromControlTick (*playback_, bundleDb_, project_);
+        if (due)   // SS-6: a write that was due — confirmed (and what it held) or failed — for the probe
+        {
+            if (result.ok())
+            {
+                ++autosaveWrites_;
+                lastAutosaved_ = { project_.tracks.size(), project_.clips.size(), project_.midiClips.size(), project_.assets.size() };
+            }
+            else
+            {
+                ++autosaveFailures_;
+            }
+        }
+        return result;
     }
+    [[nodiscard]] int autosaveWrites() const noexcept { return autosaveWrites_; }
+    [[nodiscard]] int autosaveFailures() const noexcept { return autosaveFailures_; }
+    [[nodiscard]] const UiProjectCounts& lastAutosaved() const noexcept { return lastAutosaved_; }
+    // The Session drive's seam (YESDAW_AUTOSAVE_INTERVAL_MS): a shorter cadence, so a drive waits seconds, not 30 s.
+    void setAutosaveIntervalMs (int intervalMs) noexcept { autosaveSchedule_.intervalMs = std::max (250, intervalMs); }
 
     // Export options (usable-DAW P1): bit depth and range are user-chosen; the sample rate stays the
     // project rate (honest scope — a real sample-rate converter is its own slice, not a resample hack).
@@ -2354,6 +2382,7 @@ public:
         context_.audioExportCancelRequested = false;
         context_.audioExportInProgress = true;
         context_.audioExportProgressPercent = 0;
+        lastExportDestination_ = destinationPath;   // SS-6: the job that starts here
         activeExport_ = std::make_unique<app::ExportJob> (nextExportJobId_++, std::move (snapshot), exportLatchForTest_,
                                                           exportWriteLatchForTest_);
         activeExport_->start();
@@ -2382,6 +2411,7 @@ public:
         activeExport_->join();
         lastExportFailure_ = activeExport_->failure();
         lastExportState_ = activeExport_->state();
+        ++exportOutcomes_;
         context_.audioExportInProgress = false;
         switch (lastExportState_)
         {
@@ -2402,6 +2432,25 @@ public:
     }
 
     [[nodiscard]] bool exportRunning() const noexcept { return activeExport_ != nullptr; }
+    // SS-6: the last finished job's outcome ("none" before one finishes) and how many have finished; the destination of
+    // the job last started.
+    [[nodiscard]] std::string lastExportResult() const
+    {
+        if (exportOutcomes_ == 0)
+            return "none";
+        switch (lastExportState_)
+        {
+            case app::ExportJobState::Succeeded: return "succeeded";
+            case app::ExportJobState::Cancelled: return "cancelled";
+            default: break;
+        }
+        return lastExportFailure_ == app::ExportFailure::Render  ? "failed:render"
+             : lastExportFailure_ == app::ExportFailure::Range   ? "failed:range"
+             : lastExportFailure_ == app::ExportFailure::Write   ? "failed:write"
+                                                                 : "failed";
+    }
+    [[nodiscard]] int exportOutcomes() const noexcept { return exportOutcomes_; }
+    [[nodiscard]] const std::filesystem::path& lastExportDestination() const noexcept { return lastExportDestination_; }
     // Wait for the running job (if any) and report it as the UI tick would — the harness's and scripts' join.
     void waitForExport()
     {
@@ -13515,7 +13564,12 @@ private:
     std::int64_t recordCountInEndFrame_ = 0;
     bool deterministicRecordCountInPending_ = false;
     UiAutosaveRecoveryPrompt autosaveRecovery_;
+    int exportOutcomes_ = 0;                        // SS-6: finished export jobs (any outcome)
+    std::filesystem::path lastExportDestination_;   // SS-6: the destination of the job last started
     AutosaveSchedulePolicy autosaveSchedule_ {};
+    int autosaveWrites_ = 0;      // SS-6: confirmed writes that were due
+    int autosaveFailures_ = 0;
+    UiProjectCounts lastAutosaved_ {};
     struct UiClipClipboardEntry
     {
         engine::EntityId assetId;

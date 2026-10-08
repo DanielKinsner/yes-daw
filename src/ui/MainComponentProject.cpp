@@ -205,7 +205,12 @@ MainComponent::RelinkOutcome MainComponent::relinkMissingAudio (const std::files
     {
         for (;;)
         {
-            const std::filesystem::path chosen = fileChoices.chooseMissingAudioReplacement (asked[i]);
+            relinkAsking = asked[i];   // SS-6: the probe shows the question while it is up
+            ++relinkQuestions;
+            const std::filesystem::path chosen = [this, &asked, i] {
+                struct Down { std::optional<UiMissingAsset>& asking; ~Down() { asking.reset(); } } down { relinkAsking };   // even on a throw
+                return fileChoices.chooseMissingAudioReplacement (asked[i]);
+            }();
             if (chosen.empty())
             {
                 std::string names;
@@ -215,6 +220,7 @@ MainComponent::RelinkOutcome MainComponent::relinkMissingAudio (const std::files
                 appModel.reportStatus ("Open cancelled: " + std::to_string (left) + (left == 1u ? " audio file" : " audio files")
                                            + " still missing (" + names + ")",
                                        true);
+                relinkLastOutcome = "cancelled";
                 return RelinkOutcome::Cancelled;
             }
             const yesdaw::persistence::BundleResult adopted =
@@ -228,6 +234,7 @@ MainComponent::RelinkOutcome MainComponent::relinkMissingAudio (const std::files
                              + adopted.message;
         }
     }
+    relinkLastOutcome = "relinked";
     return RelinkOutcome::Relinked;
 }
 
