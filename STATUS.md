@@ -8,6 +8,21 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0068 cp1/cp2 (autosave writes ON) is ready and held: one autosave freezes the UI for seconds
+
+**Now:** the last ADR-0068 step - the app actually writing autosaves, with the pending-question gate, the sticky
+not-durable flag and the stale-marker clear - is built, gated (five mutations red) and passes the real-app SS-6 drive
+**178 of 178** (run 9: all three autosave laps green, every launch under 1.4 s). It is **not committed**: measured on
+this machine, one autosave of a project carrying 10 x 50 MB of audio takes **2.8-4.9 s on the UI thread** (each
+autosave copies and fsyncs every asset file, then re-hashes every asset to validate the snapshot - ADR-0019's
+mechanism). A real song (~1 GB of audio) would freeze the app for several seconds every 30 s while editing and write
+~1 GB per autosave. Shipping that would trade a missing safety net for the lag Dan already flagged; the safe order
+says writes go on last, so they wait for a cheap snapshot. The work is parked as a patch
+(`.git/yesdaw-wip/adr-0068-cp1-cp2-writes-on.patch`, local to this machine; it reapplies onto 7c5d660).
+**Next:** ADR-0069 - an autosave cheap enough to run every 30 s (a design workflow is choosing between linking
+assets instead of copying, a background writer, and a database-only snapshot); then ADR-0068 cp1/cp2 on top.
+Also measured: a plain project open hashes every asset - 3.0 s for 500 MB (pre-existing; noted for later).
+
 ## 2026-10-08 — ADR-0068 cp3/cp4: a Save, a Save As and a Don't Save retire the autosave
 
 **What changes:** once its work is in a bundle (Save; Save As - the bundle left behind) or the user named it abandoned
