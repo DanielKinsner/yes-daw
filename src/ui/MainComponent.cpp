@@ -80,8 +80,10 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         addAndMakeVisible (button);
     }
 
+    addChildComponent (autosaveRecoveryBanner);   // ADR-0068 §6: under its own two buttons
     configureAutosaveRecoveryButton (autosaveRestoreButton, yesdaw::ui::UiActionId::AutosaveRecoveryRestore);
     configureAutosaveRecoveryButton (autosaveDiscardButton, yesdaw::ui::UiActionId::AutosaveRecoveryDiscard);
+    autosaveRestoreButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::recoveryPrimaryButton());
 
     configureActionComponent (exportAudioButton, yesdaw::ui::UiActionId::ProjectExportAudio, "Export audio");
     exportAudioButton.setButtonText ("Export WAV");
@@ -2198,8 +2200,7 @@ void MainComponent::resized()
     }
 
     headerSoloClear.setBounds (h.soloClear);   // G4.5
-    autosaveRestoreButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveRestoreButtonBounds());
-    autosaveDiscardButton.setBounds (yesdaw::ui::UiTheme::Layout::autosaveDiscardButtonBounds());
+    layoutAutosaveRecoveryBanner();
     audioDeviceChooser.setBounds (h.outputDevice);
     audioInputDeviceChooser.setBounds (h.inputDevice);
     recordingInputChannelChooser.setBounds (h.inputChannel);

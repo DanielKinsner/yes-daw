@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "ui/AutosaveRecoveryBanner.h"
 #include "ui/BrowserPanelComponent.h"   // G5.2 / ADR-0056
 #include "ui/NewProjectDialogComponent.h"   // G5.5 / ADR-0060
 #include "ui/MainComponentInternal.h"
@@ -1163,6 +1164,7 @@ private:
     [[nodiscard]] int automationAreaHeightFor (const yesdaw::engine::Track& track) const;
 
     void refreshAutosaveRecoveryControls();
+    void layoutAutosaveRecoveryBanner();
 
     void refreshInspectorTakesVisibility();
 
@@ -1570,6 +1572,7 @@ private:
     std::uint64_t browserHeaderReads = 0;       // the gate counts header reads (only painted rows read)
     juce::TextButton headerMonitorDim;    // ADR-0053: the monitor's DIM / MUTE on the header MASTER card
     juce::TextButton headerMonitorMute;
+    yesdaw::ui::AutosaveRecoveryBannerComponent autosaveRecoveryBanner;   // ADR-0068 §6: the question's text
     juce::TextButton autosaveRestoreButton;
     juce::TextButton autosaveDiscardButton;
     juce::ComboBox timelineSnapChooser;

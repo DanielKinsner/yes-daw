@@ -2368,6 +2368,19 @@ void MainComponent::refreshActionState()
     syncPaintedAccessibilityProxies();   // ADR-0066 cp2: states and values the elements report follow the action
 }
 
+// ADR-0068 §6: the recovery card over the arrange's ruler, as tall as its text needs; Restore and Discard in its end.
+void MainComponent::layoutAutosaveRecoveryBanner()
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Rectangle<int> timeline = timelineBounds();
+    const int width = L::autosaveBannerBounds (timeline, 0).getWidth();
+    autosaveRecoveryBanner.setBounds (L::autosaveBannerBounds (timeline, autosaveRecoveryBanner.heightFor (width)));
+    auto row = autosaveRecoveryBanner.buttonArea().translated (autosaveRecoveryBanner.getX(), autosaveRecoveryBanner.getY());
+    autosaveRestoreButton.setBounds (row.removeFromLeft (L::autosaveBannerButtonWidth));
+    row.removeFromLeft (L::autosaveBannerButtonGap);
+    autosaveDiscardButton.setBounds (row.removeFromLeft (L::autosaveBannerButtonWidth));
+}
+
 void MainComponent::refreshAutosaveRecoveryControls()
 {
     const bool visible = appModel.context().autosaveRecoveryPending;
@@ -2376,10 +2389,29 @@ void MainComponent::refreshAutosaveRecoveryControls()
     const auto discardState = appModel.registry().stateFor (yesdaw::ui::UiActionId::AutosaveRecoveryDiscard,
                                                             appModel.context());
 
+    // ADR-0068 §6: the card says what the autosave holds beside what the open (saved) project holds; the two buttons
+    // carry the same words, so a screen reader that Tabs to them hears what it is choosing between.
+    const bool shown = autosaveRecoveryBanner.isVisible();
+    if (visible)
+    {
+        autosaveRecoveryBanner.setMessage (juce::String::fromUTF8 (
+            yesdaw::ui::autosaveRecoveryPromptText (appModel.autosaveRecoveryPrompt(), appModel.project()).c_str()));
+        layoutAutosaveRecoveryBanner();
+    }
+    const juce::String described = visible ? autosaveRecoveryBanner.message() : juce::String();
+    autosaveRestoreButton.setDescription (described);
+    autosaveDiscardButton.setDescription (described);
+    autosaveRecoveryBanner.setVisible (visible);
     autosaveRestoreButton.setVisible (visible);
     autosaveDiscardButton.setVisible (visible);
     autosaveRestoreButton.setEnabled (visible && restoreState.enabled);
     autosaveDiscardButton.setEnabled (visible && discardState.enabled);
+    if (visible && ! shown)   // raised once as it appears: over the arrange, under any window opened later
+    {
+        autosaveRecoveryBanner.toFront (false);
+        autosaveRestoreButton.toFront (false);
+        autosaveDiscardButton.toFront (false);
+    }
 }
 
 juce::String MainComponent::exportAudioProgressText() const

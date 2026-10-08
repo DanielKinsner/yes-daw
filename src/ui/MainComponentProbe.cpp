@@ -1009,6 +1009,7 @@ juce::String MainComponent::buildStateProbeJson()
         recovery->setProperty ("takes", static_cast<int> (prompt.recordingTakeCount));
         recovery->setProperty ("compSegments", static_cast<int> (prompt.recordingCompSegmentCount));
         recovery->setProperty ("bundlePath", juceFileFromPath (prompt.bundlePath).getFullPathName());
+        recovery->setProperty ("text", autosaveRecoveryBanner.isVisible() ? autosaveRecoveryBanner.message() : juce::String());
         autosave->setProperty ("recovery", juce::var (recovery));
         root->setProperty ("autosave", juce::var (autosave));
     }

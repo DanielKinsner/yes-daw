@@ -62,6 +62,7 @@ struct UiTheme
         static juce::Colour focusRing() noexcept { return accentPurpleGlow(); }
         static juce::Colour darkControl() noexcept { return juce::Colour (0xff10161c); }
         static juce::Colour warningButton() noexcept { return juce::Colour (0xff201b13); }
+        static juce::Colour recoveryPrimaryButton() noexcept { return juce::Colour (0xff33270e); }   // ADR-0068 §6: Restore
         static juce::Colour separator() noexcept { return juce::Colour (0xff1b242c); }
         static juce::Colour canvasLayer() noexcept { return juce::Colour (0xff0d1218); }
         static juce::Colour selectedLane() noexcept { return juce::Colour (0xff20182c); }
@@ -386,8 +387,25 @@ struct UiTheme
         {
             return { mixer.getX() + 90, mixer.getY() + 10, 78, 28 };
         }
-        static juce::Rectangle<int> autosaveRestoreButtonBounds() noexcept { return { 1180, 50, 132, 26 }; }
-        static juce::Rectangle<int> autosaveDiscardButtonBounds() noexcept { return { 1316, 50, 132, 26 }; }
+        // ADR-0068 §6: the recovery card over the arrange's ruler - its text, then Restore and Discard.
+        static constexpr int autosaveBannerLineHeight = 16;
+        static constexpr int autosaveBannerLineGap = 4;
+        static constexpr int autosaveBannerMaxLines = 4;   // the question wraps at the narrowest window, never clips
+        static constexpr int autosaveBannerKeyWidth = 72;  // the "Autosaved" / "Saved" column
+        static constexpr float autosaveBannerOutlineAlpha = 0.55f;
+        static constexpr int autosaveBannerMargin = 6;
+        static constexpr int autosaveBannerInset = 12;
+        static constexpr int autosaveBannerAccentWidth = 4;
+        static constexpr int autosaveBannerButtonWidth = 132;
+        static constexpr int autosaveBannerButtonHeight = 26;
+        static constexpr int autosaveBannerButtonGap = 8;
+        static constexpr int autosaveBannerButtonsWidth = 2 * autosaveBannerButtonWidth + autosaveBannerButtonGap;
+        static juce::Rectangle<int> autosaveBannerBounds (juce::Rectangle<int> timeline, int height) noexcept
+        {
+            return timeline.withTrimmedTop (timelineCanvasToolbarHeight + autosaveBannerMargin)
+                .reduced (autosaveBannerMargin, 0)
+                .withHeight (height);
+        }
 
         static constexpr int inspectorTabHeight = 40;
         static constexpr int inspectorTabCount = 2;

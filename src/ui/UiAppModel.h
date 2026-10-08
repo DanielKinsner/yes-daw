@@ -394,6 +394,25 @@ struct UiAutosaveRecoveryPrompt
     std::int64_t snapshotWriteStamp = 0;   // ADR-0068 §7: the asking snapshot's write stamp (0 when nothing asks)
 };
 
+// ADR-0068 §6: the recovery question names what each side holds - the autosave's counts beside the open (saved)
+// project's. The §6 sentence and rows, each count's noun singular for exactly one ("1 track").
+[[nodiscard]] inline std::string autosaveRecoveryPromptText (const UiAutosaveRecoveryPrompt& autosaved,
+                                                             const engine::Project& saved)
+{
+    const auto counted = [] (std::size_t n, const char* one, const char* many) {
+        return std::to_string (n) + " " + (n == 1u ? one : many);
+    };
+    const auto holds = [&counted] (std::size_t tracks, std::size_t clips, std::size_t midiClips, std::size_t takes) {
+        return counted (tracks, "track", "tracks") + ", " + counted (clips, "audio clip", "audio clips") + ", "
+             + counted (midiClips, "MIDI clip", "MIDI clips") + ", " + counted (takes, "take", "takes") + ".";
+    };
+    return "A snapshot of this project was autosaved after your last Save. Restore it, or discard it and keep the saved "
+           "version?\nAutosaved: "
+         + holds (autosaved.trackCount, autosaved.clipCount, autosaved.midiClipCount, autosaved.recordingTakeCount)
+         + "\nSaved: "
+         + holds (saved.tracks.size(), saved.clips.size(), saved.midiClips.size(), saved.recordingTakes.size());
+}
+
 class UiAppModel
 {
 public:

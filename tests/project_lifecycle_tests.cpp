@@ -1515,3 +1515,59 @@ TEST_CASE ("ADR-0068 a pre-v35 bundle's pre-v35 autosave is retired silently on 
     REQUIRE (model.project().tracks.size() == 2u);
     REQUIRE_FALSE (markerOf (bundle).has_value());
 }
+
+// ADR-0068 §6: the question names what each side holds - the §6 sentence, then the autosaved and the saved counts.
+TEST_CASE ("ADR-0068 the recovery question's text names the autosaved and the saved counts",
+           "[project-lifecycle][autosave][prompt-text]")
+{
+    yesdaw::ui::UiAutosaveRecoveryPrompt autosaved;
+    autosaved.pending = true;
+    autosaved.trackCount = 3;
+    autosaved.clipCount = 5;
+    autosaved.midiClipCount = 2;
+    autosaved.recordingTakeCount = 1;
+    yesdaw::engine::Project saved;
+    saved.tracks.resize (1);
+    REQUIRE (yesdaw::ui::autosaveRecoveryPromptText (autosaved, saved)
+             == "A snapshot of this project was autosaved after your last Save. Restore it, or discard it and keep the saved "
+                "version?\nAutosaved: 3 tracks, 5 audio clips, 2 MIDI clips, 1 take.\n"
+                "Saved: 1 track, 0 audio clips, 0 MIDI clips, 0 takes.");
+}
+
+// The shell shows that text on a card over the arrange, with Restore and Discard inside it, while the question is up -
+// and nothing once it is answered.
+TEST_CASE ("ADR-0068 the shell's recovery card carries the question's text and its two buttons",
+           "[project-lifecycle][autosave][prompt-text]")
+{
+    const LostWrites f = makeLostWrites ("prompt-card");
+    LifecycleShell shell ("prompt-card-shell", false, true, f.bundle);
+    const juce::var probe = probeOf (*shell);
+    REQUIRE (probe["autosave"]["recovery"]["text"].toString().toStdString()
+             == "A snapshot of this project was autosaved after your last Save. Restore it, or discard it and keep the saved "
+                "version?\nAutosaved: 3 tracks, 0 audio clips, 0 MIDI clips, 0 takes.\n"
+                "Saved: 1 track, 0 audio clips, 0 MIDI clips, 0 takes.");
+    const auto rect = [&probe] (const char* id) {
+        const juce::var r = probe["layout"][id];
+        return juce::Rectangle<int> (static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]));
+    };
+    const auto card = rect ("widget.autosave.recovery.banner");
+    REQUIRE_FALSE (card.isEmpty());
+    REQUIRE (card.contains (rect ("widget.autosave.recovery.restore")));
+    REQUIRE (card.contains (rect ("widget.autosave.recovery.discard")));
+    REQUIRE (rect ("timeline").contains (card));
+    // A screen reader that Tabs to Restore or Discard hears what it is choosing between.
+    for (const char* id : { "autosave.recovery.restore", "autosave.recovery.discard" })
+    {
+        juce::Component* button = nullptr;
+        for (int i = 0; i < (*shell).getNumChildComponents() && button == nullptr; ++i)
+            if ((*shell).getChildComponent (i)->getComponentID() == id)
+                button = (*shell).getChildComponent (i);
+        REQUIRE (button != nullptr);
+        REQUIRE (button->getDescription() == probe["autosave"]["recovery"]["text"].toString());
+    }
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::AutosaveRecoveryDiscard);
+    const juce::var after = probeOf (*shell);
+    REQUIRE (after["autosave"]["recovery"]["text"].toString().isEmpty());
+    REQUIRE (after["layout"]["widget.autosave.recovery.banner"].isVoid());
+}

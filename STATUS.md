@@ -8,6 +8,27 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0068 cp5c: the recovery question is a card that says what each side holds
+
+**What a user sees:** when an open finds an autosave holding work the project lacks, a card over the top of the arrange
+asks "A snapshot of this project was autosaved after your last Save. Restore it, or discard it and keep the saved
+version?" and lists **Autosaved** and **Saved** side by side (tracks, audio clips, MIDI clips, takes), with Restore
+Autosave (warmer, the primary) and Discard Autosave in its right-hand end. It is not modal: the lanes stay in view and
+every control stays live. The two buttons used to float alone at fixed coordinates over the header's master meter.
+**Details:** the card is as tall as its text needs (the question wraps at the narrowest window, never clips); the
+buttons carry the question as their accessible description; nouns are singular for one ("1 track" - the §6 template
+read as English, not "1 tracks"; the [prompt-text] gate pins that rendering). **Judged on the real app** (an ad-hoc
+drive on a bundle with an unanswered question; shots in the session scratchpad): four rounds - a phantom blank line
+(a bold face measured bold but drawn regular; the question is regular weight now, lines counted with the label's own
+fitting routine), weak hierarchy (now a bright key column beside muted counts), a passive primary. **Gates:**
+`[autosave][prompt-text]` (the exact text; the shell's card holds both buttons, sits in the timeline, carries the text
+to both buttons, goes on Discard); the shell's child-count pin (+1, deliberate); the tooltip rule and the token
+contrast table caught the card and its new Restore colour (`recoveryPrimaryButton`, 4.7:1 for muted text) - both
+satisfied, not loosened. ctest 423/423, Clang clean. **Critic:** its should-fixes (narrow-window clipping, screen-reader
+context on the buttons) and two polish notes are done; the card covering the ruler is deliberate (the lanes stay
+visible; nothing on the ruler is needed to answer). **Next:** cp3/cp4 - a Save, a Save As and a Don't Save retire the
+autosave (never while a question is up).
+
 ## 2026-10-08 — ADR-0068 cp5b: an open asks about an autosave only when it holds something the bundle lacks
 
 **What changes for a user:** opening a project no longer asks "restore the autosave?" when the project already holds

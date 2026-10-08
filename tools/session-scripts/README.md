@@ -100,7 +100,8 @@ controls transport and a slider arrow does not also nudge a Clip.
   output / armed`, `fxEditor.{visible, kind, strip, slot, rows}`, `ride.{active, samples}`,
   `recording.armedTrackCount`, `view.{dock, mixerNarrow, trackCount}`; for the lifecycle (SS-6):
   `project.{sampleRateHz, tempoBpm, trackCount, clipCount, midiClipCount, assets[].{hash, sampleRateHz, channels,
-  frames}}`, `autosave.{enabled, intervalMs, writes, failures, lastWritten, bundleWriteStamp, snapshotWriteStamp, recovery}`, `relink.{asking, name, refusal,
+  frames}}`, `autosave.{enabled, intervalMs, writes, failures, lastWritten, bundleWriteStamp, snapshotWriteStamp, recovery}`
+  (`recovery.text`: the question's card while it is up; layout `widget.autosave.recovery.banner`), `relink.{asking, name, refusal,
   damaged, questions, lastOutcome}`, `export.{lastResult, outcomes, destination, retiring}`. A drive shortens the
   autosave cadence with `YESDAW_AUTOSAVE_INTERVAL_MS` (250 .. 600000), and paces every export with
   `YESDAW_EXPORT_PACE_MS` (a pause after the first chunk, 250 .. 60000; `export.paceMs`) so it can cancel, refuse a
