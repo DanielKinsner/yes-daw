@@ -8,6 +8,18 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0069 proposed: a cheap autosave by hard link (awaits Dan on one point)
+
+**Now:** `docs/adr/0069-cheap-autosave-hard-links.md` - from a design workflow (link vs a background worker vs a
+database-only snapshot; three judges; a critic whose valid findings are folded in). Each autosave carries the project's
+audio into the snapshot by a same-volume hard link (a copy on drives that cannot link), checks it by identity instead of
+re-hashing, and still validates every hash at Restore. Measured here: **~11 ms** for the 500 MB case that took
+**2.8-4.9 s** by copying; no audio bytes written per autosave. **Waiting on Dan:** ADR-0019 (which he co-decided) says
+the audio is *copied* into the autosave; linking means the autosave shares the project's audio bytes instead of
+holding a second copy. Recommended: accept (what the autosave protects - lost project edits - is unchanged). Until he
+answers, ADR-0068 cp1/cp2 stays parked and ADR-0069 is not built. **Meanwhile:** ADR-0072 (settling ADR-0067 cp2's
+open points: pointer tints vs text contrast, overlays over the header, rail overlap) is being designed.
+
 ## 2026-10-08 — Fix: a screen reader read stale positions after a mixer or rail scroll, and lost its place
 
 **What was wrong (found planning ADR-0067 cp2):** ADR-0066's accessible elements for painted controls (the rail's
