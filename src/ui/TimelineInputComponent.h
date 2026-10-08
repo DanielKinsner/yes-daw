@@ -348,7 +348,7 @@ public:
                 const auto marquee = marqueeBounds().getIntersection (
                     yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state).clipArea);
                 g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
-                    yesdaw::ui::UiTheme::Tone::pressedHighlightAlpha));
+                    yesdaw::ui::UiTheme::Tone::regionWashAlpha));
                 g.fillRect (marquee);
                 g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
                     yesdaw::ui::UiTheme::Tone::focusRingAlpha));
@@ -367,7 +367,7 @@ public:
                     const juce::Rectangle<int> band { left, geometry.rulerArea.getY(), right - left,
                                                       geometry.clipArea.getBottom() - geometry.rulerArea.getY() };
                     g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
-                        yesdaw::ui::UiTheme::Tone::pressedHighlightAlpha));
+                        yesdaw::ui::UiTheme::Tone::regionWashAlpha));
                     g.fillRect (band);
                     g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
                         yesdaw::ui::UiTheme::Tone::focusRingAlpha));

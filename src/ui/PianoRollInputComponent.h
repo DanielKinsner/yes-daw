@@ -634,7 +634,7 @@ public:
 
         const juce::Rectangle<int> marquee (marqueeState.downPosition, marqueeState.currentPosition);
         g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
-            yesdaw::ui::UiTheme::Tone::pressedHighlightAlpha));
+            yesdaw::ui::UiTheme::Tone::regionWashAlpha));
         g.fillRect (marquee);
         g.setColour (yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (
             yesdaw::ui::UiTheme::Tone::focusRingAlpha));

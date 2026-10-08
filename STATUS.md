@@ -8,6 +8,14 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0067 cp2 S5a: the selection washes get their own token (no visual change)
+
+ADR-0072 retires the old white-fill pointer tints (`hoverHighlightAlpha` 0.10, `pressedHighlightAlpha` 0.16) and
+assumed the look-and-feel was their last user; eight other painters used them for something else. They now read
+**`regionWashAlpha`** (0.16: marquees, the time selection, loop and punch bands, the keymap's selected row) and
+**`recordIconHaloAlpha`** (0.10: the record icon's outer ring) - same values, so nothing looks different. Only the
+look-and-feel still uses the old pair; S5b replaces it with the strokes and removes them. ctest 423/423.
+
 ## 2026-10-08 — ADR-0067 cp2 S4: hover and press show as white lines inside the control
 
 **What changes (visible):** the painted control under the mouse (rail cells, knobs, faders, meters, sends, inserts, I/O

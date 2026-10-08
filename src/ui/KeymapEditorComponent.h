@@ -147,7 +147,7 @@ public:
             return;
         const yesdaw::ui::UiActionId action = rows[static_cast<std::size_t> (rowNumber)];
         const auto& descriptor = yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (action)];
-        g.fillAll (rowIsSelected ? yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (yesdaw::ui::UiTheme::Tone::pressedHighlightAlpha)
+        g.fillAll (rowIsSelected ? yesdaw::ui::UiTheme::Color::accentBlue().withAlpha (yesdaw::ui::UiTheme::Tone::regionWashAlpha)
                                  : yesdaw::ui::UiTheme::Color::controlInset());
         g.setColour (yesdaw::ui::UiTheme::Color::text());
         g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body));

@@ -157,7 +157,7 @@ inline bool drawActionIcon (juce::Graphics& g,
         case UiActionId::TransportRecord:
             g.setColour (UiTheme::Color::dangerRed());
             g.fillEllipse (bounds.reduced (w * 0.27f, h * 0.27f));
-            g.setColour (UiTheme::Color::dangerRed().withAlpha (UiTheme::Tone::hoverHighlightAlpha));
+            g.setColour (UiTheme::Color::dangerRed().withAlpha (UiTheme::Tone::recordIconHaloAlpha));
             g.drawEllipse (bounds.reduced (w * 0.18f, h * 0.18f), UiTheme::Layout::iconFineStrokeWidth);
             return true;
 

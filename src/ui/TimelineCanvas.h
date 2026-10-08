@@ -1089,7 +1089,7 @@ inline void drawRangeSelection (juce::Graphics& g, juce::Rectangle<int> ruler,
 
     const juce::Rectangle<int> band { left, ruler.getY(), right - left,
                                       clipArea.getBottom() - ruler.getY() };
-    g.setColour (UiTheme::Color::accentBlue().withAlpha (UiTheme::Tone::pressedHighlightAlpha));
+    g.setColour (UiTheme::Color::accentBlue().withAlpha (UiTheme::Tone::regionWashAlpha));
     g.fillRect (band);
     g.setColour (UiTheme::Color::accentBlue().withAlpha (UiTheme::Tone::focusRingAlpha));
     g.drawRect (band.toFloat(), UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
@@ -1135,7 +1135,7 @@ inline void drawPunchRegion (juce::Graphics& g, juce::Rectangle<int> ruler,
     if (! punch.valid)
         return;
 
-    g.setColour (UiTheme::Color::dangerRed().withAlpha (UiTheme::Tone::pressedHighlightAlpha));
+    g.setColour (UiTheme::Color::dangerRed().withAlpha (UiTheme::Tone::regionWashAlpha));
     g.fillRect (punch.band);
     g.setColour (UiTheme::Color::dangerRed().withAlpha (UiTheme::Tone::focusRingAlpha));
     g.drawRect (punch.band.toFloat(), UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
@@ -1474,7 +1474,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     // Transport loop brace (E6): accent band across the upper ruler with brighter end handles.
     if (const TimelineLoopBraceRects loopRects = timelineLoopBraceRects (area, state); loopRects.valid)
     {
-        g.setColour (UiTheme::Color::accentTeal().withAlpha (UiTheme::Tone::pressedHighlightAlpha));
+        g.setColour (UiTheme::Color::accentTeal().withAlpha (UiTheme::Tone::regionWashAlpha));
         g.fillRect (loopRects.band);
         g.setColour (UiTheme::Color::accentTeal().withAlpha (UiTheme::Tone::focusRingAlpha));
         g.fillRect (loopRects.startHandle);

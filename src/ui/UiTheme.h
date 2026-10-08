@@ -127,6 +127,11 @@ struct UiTheme
         static constexpr float mutedControlAlpha = 0.72f;
         static constexpr float hoverHighlightAlpha = 0.10f;
         static constexpr float pressedHighlightAlpha = 0.16f;
+        // The translucent wash over a selected range or row: a marquee, the time selection, the loop and punch bands,
+        // the keymap's selected row. (Pointer states are strokes, ADR-0072 - never this.)
+        static constexpr float regionWashAlpha = 0.16f;
+        // The record icon's faint outer ring.
+        static constexpr float recordIconHaloAlpha = 0.10f;
         // ADR-0072: a painted control's hover and press are white inner edge strokes at these alphas - never a fill.
         static constexpr float hoverStrokeAlpha = 0.60f;
         static constexpr float pressedStrokeAlpha = 0.95f;
