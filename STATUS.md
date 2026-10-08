@@ -8,6 +8,23 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0067 cp2 S5b: native buttons, toggles, combo boxes and sliders show the same lines
+
+**What changes (visible):** the app's native widgets drop the old white wash on hover and press and show the painted
+controls' lines instead: a 1 px white line just inside the edge while the pointer is over them, a heavier 2 px one while
+held (over a button's own pressed colour), never both. A widget too short for its text to clear a 2 px line (the
+master's 14 px DIM / MUTE) presses at 1 px - ADR-0072's text-clearance rule, by height for native widgets. On a slider
+the line goes under the thumb (as on the painted fader); on a knob it rings the knob. One shared form
+(`src/ui/PointerStroke.h`) draws both the shell's painted controls and the look-and-feel's widgets. The retired fill
+tokens are gone. **Gates:** `[widget-states]` - a text button and a toggle over and held (JUCE's own states), a 14 px
+button's close width, a combo box held: the line along every edge, nothing else changed; a sweep renders every native
+button, toggle, combo box and value cell the shell shows (default size and the window minimum) with and without text,
+and no text sits inside its line's band (it caught DIM). Six mutations bite. **Not headless:** a combo box's hover and a
+slider's hover / press read the real mouse; S5c's real-app drive step proves them. ctest 423/423, Clang clean.
+**Critic:** no blocker; in - the pressed check reads all four edges, a disabled slider never shows pressed, the toggle's
+tick box is gated clear of the line, and comments say the height rule is a hint (the text sweep is the authority) and
+that a native slider's right-press shows pressed by design (ADR-0072 §8 reads the widget's own state).
+
 ## 2026-10-08 — ADR-0067 cp2 S5a: the selection washes get their own token (no visual change)
 
 ADR-0072 retires the old white-fill pointer tints (`hoverHighlightAlpha` 0.10, `pressedHighlightAlpha` 0.16) and

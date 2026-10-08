@@ -125,8 +125,6 @@ struct UiTheme
         static constexpr float componentHiddenAlpha = 0.0f;
         static constexpr float componentVisibleAlpha = 1.0f;
         static constexpr float mutedControlAlpha = 0.72f;
-        static constexpr float hoverHighlightAlpha = 0.10f;
-        static constexpr float pressedHighlightAlpha = 0.16f;
         // The translucent wash over a selected range or row: a marquee, the time selection, the loop and punch bands,
         // the keymap's selected row. (Pointer states are strokes, ADR-0072 - never this.)
         static constexpr float regionWashAlpha = 0.16f;

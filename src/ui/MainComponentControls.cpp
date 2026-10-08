@@ -9,6 +9,7 @@
 // chooser's onChange, a slider's drag gesture, the painted fader's drag verb) and paints the ring.
 
 #include "ui/MainComponentShell.h"
+#include "ui/PointerStroke.h"   // ADR-0072: the stroke form, shared with the native widgets
 
 using namespace yesdaw::ui::shell;
 
@@ -306,13 +307,13 @@ int pointerPressedStrokeWidthFor (const std::string& id) noexcept
     return closeRow ? L::pointerPressedStrokeWidthClose : L::pointerPressedStrokeWidth;
 }
 
-// ADR-0072 §1: the pressed control's stroke, then the hovered one's (another control during a drag) - white inner edge
-// strokes at the ring's corner radius, never a fill, so no text and no pixel under it changes. A control both hovered
-// and pressed shows the pressed form only. A part painted over the control (the fader's cap) stays over its stroke,
-// read where it is now (a drag moves the cap between record syncs).
+// ADR-0072 §1: the pressed control's stroke, then the hovered one's (another control during a drag), at the ring's
+// corner radius ([pointer-text-contrast] holds every record's text clear of them). A control both hovered and pressed
+// shows the pressed form only. A part painted over the control (the fader's cap) stays over its stroke, read where it
+// is now (a drag moves the cap between record syncs).
 void MainComponent::paintPointerStrokes (juce::Graphics& g)
 {
-    const auto stroke = [this, &g] (const std::string& id, juce::Rectangle<int> bounds, int width, float alpha) {
+    const auto stroke = [this, &g] (const std::string& id, juce::Rectangle<int> bounds, yesdaw::ui::PointerStrokeForm form) {
         if (id.empty() || bounds.isEmpty() || ! g.clipRegionIntersects (bounds))
             return;
         const juce::Graphics::ScopedSaveState saved (g);
@@ -320,29 +321,12 @@ void MainComponent::paintPointerStrokes (juce::Graphics& g)
             if (record.id == id && record.above)
                 if (const juce::Rectangle<int> cap = record.above(); ! cap.isEmpty())
                     g.excludeClipRegion (cap);
-        // The band between the inset outline and one `width` further in. On a control thinner than two strokes (the
-        // rail's 3 px colour swatch) every pixel inside the inset is within a stroke's reach of an edge, so the band is
-        // all of them - still the stroke, never more ([pointer-text-contrast] holds every record's text clear of it).
-        const auto outer = bounds.toFloat().reduced (static_cast<float> (L::pointerStrokeInset));
-        if (outer.isEmpty())
-            return;
-        const auto inner = outer.reduced (static_cast<float> (width));
-        // The ring's radius, but never so round that an edge of a thin control (a meter) is all curve: each keeps a
-        // straight middle at full strength. The inner outline's corners are concentric.
-        const float corner = juce::jlimit (0.0f, yesdaw::ui::UiTheme::Radius::sm,
-                                           (std::min (outer.getWidth(), outer.getHeight()) - 2.0f) / 2.0f);
-        juce::Path band;
-        band.addRoundedRectangle (outer, corner);
-        if (! inner.isEmpty())
-            band.addRoundedRectangle (inner, std::max (0.0f, corner - static_cast<float> (width)));
-        band.setUsingNonZeroWinding (false);
-        g.setColour (yesdaw::ui::UiTheme::Color::white().withAlpha (alpha));
-        g.fillPath (band);
+        yesdaw::ui::paintPointerStroke (g, bounds.toFloat(), form, yesdaw::ui::UiTheme::Radius::sm);
     };
-    stroke (pointerPressed, pointerPressedBounds, pointerPressedStrokeWidthFor (pointerPressed),
-            yesdaw::ui::UiTheme::Tone::pressedStrokeAlpha);
+    stroke (pointerPressed, pointerPressedBounds,
+            yesdaw::ui::pointerStrokeForm (false, true, pointerPressedStrokeWidthFor (pointerPressed)));
     if (pointerHovered != pointerPressed)
-        stroke (pointerHovered, pointerHoveredBounds, L::pointerHoverStrokeWidth, yesdaw::ui::UiTheme::Tone::hoverStrokeAlpha);
+        stroke (pointerHovered, pointerHoveredBounds, yesdaw::ui::pointerStrokeForm (true, false));
 }
 
 // ADR-0072 §10: a gesture that starts from its slop names its record before the press event reaches the tracker.

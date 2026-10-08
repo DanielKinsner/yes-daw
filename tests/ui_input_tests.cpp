@@ -18,6 +18,7 @@
 #include "ui/UiAccessibility.h"
 #include "ui/UiPianoRollSurface.h"   // G3.2: pianoRollKeyName
 #include "ui/UiTheme.h"
+#include "ui/YesDawLookAndFeel.h"   // ADR-0072 §8: the native widgets' pointer forms
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
@@ -25699,6 +25700,164 @@ TEST_CASE ("ADR-0072 no hover or pressed stroke reaches a control's text",
         }
     REQUIRE (checked > 200);
     REQUIRE (close > 0);
+}
+
+// ADR-0072 §8 (S5): a native button and a toggle paint the hover form (a 1 px inner stroke) while the pointer is over them
+// and the pressed form (2 px, never with the hover line) while held - from their own state, through the look-and-feel
+// the app runs - and nothing else changes for hover; a combo box held down paints the pressed form. A pressed button's
+// or combo's own background changes, so its stroke is measured against the unstroked pixel just inside it - on the same
+// row at the left and right edges (their fills are vertical gradients), on the same column at the top
+// and bottom (a few gradient steps away, which the stroke's alpha all but hides: +-4) - and the stroke stops at its width.
+TEST_CASE ("ADR-0072 native buttons, toggles and combo boxes paint the pointer's forms from their own state",
+           "[ui][input][g6-motion][widget-states]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    using Tone = yesdaw::ui::UiTheme::Tone;
+    juce::MessageManager::getInstance();
+    yesdaw::ui::YesDawLookAndFeel lookAndFeel;
+    // `sides`: the left and right edges only (a short button's label fills its middle column top to bottom).
+    const auto requireEdgeStroke = [] (const juce::Image& image, juce::Rectangle<int> bounds, int width, float alpha, bool sides = false) {
+        const juce::Colour white = yesdaw::ui::UiTheme::Color::white().withAlpha (alpha);
+        const int reach = L::pointerStrokeInset + width;
+        const juce::Point<int> mid = bounds.getCentre();
+        const std::array<const char*, 4> names {{ "left", "right", "top", "bottom" }};
+        for (std::size_t edge = 0; edge < (sides ? 2u : names.size()); ++edge)
+        {
+            const auto at = [&] (int depth) {
+                switch (edge)
+                {
+                    case 0: return image.getPixelAt (bounds.getX() + depth, mid.y);
+                    case 1: return image.getPixelAt (bounds.getRight() - 1 - depth, mid.y);
+                    case 2: return image.getPixelAt (mid.x, bounds.getY() + depth);
+                    default: return image.getPixelAt (mid.x, bounds.getBottom() - 1 - depth);
+                }
+            };
+            const int tolerance = edge < 2 ? 2 : 4;
+            for (int d = L::pointerStrokeInset; d < reach; ++d)
+            {
+                INFO (names[edge] << " edge, depth " << d << ": " << at (d).toDisplayString (true)
+                                  << ", the unstroked pixel inside " << at (reach).toDisplayString (true));
+                REQUIRE (channelDelta (at (d), at (reach).overlaidWith (white)) <= tolerance);
+            }
+            INFO (names[edge] << " edge: the stroke stops at its width");
+            REQUIRE (channelDelta (at (reach), at (reach + 1)) <= tolerance);
+        }
+    };
+
+    {
+        juce::TextButton button ("Export");
+        button.setLookAndFeel (&lookAndFeel);
+        button.setSize (120, 28);
+        const juce::Rectangle<int> bounds = button.getLocalBounds();
+        const juce::Image rest = renderSoftware (button);
+        button.setState (juce::Button::buttonOver);
+        const juce::Image hovered = renderSoftware (button);
+        requireStroke (rest, hovered, bounds, L::pointerHoverStrokeWidth, Tone::hoverStrokeAlpha);
+        requireChangesOnlyInStrokes (rest, hovered, { { bounds, L::pointerHoverStrokeWidth } });
+        button.setState (juce::Button::buttonDown);   // JUCE paints it over and down: the pressed form only
+        requireEdgeStroke (renderSoftware (button), bounds, L::pointerPressedStrokeWidth, Tone::pressedStrokeAlpha);
+        button.setState (juce::Button::buttonNormal);
+        requireIdentical (rest, renderSoftware (button));
+        // A button too short for its text to clear the full width (the master's 14 px DIM) presses at the close width.
+        button.setButtonText ("DIM");
+        button.setSize (32, 14);
+        REQUIRE (yesdaw::ui::pointerPressedStrokeWidthForHeight (14) == L::pointerPressedStrokeWidthClose);
+        REQUIRE (yesdaw::ui::pointerPressedStrokeWidthForHeight (17) == L::pointerPressedStrokeWidth);
+        button.setState (juce::Button::buttonDown);
+        requireEdgeStroke (renderSoftware (button), button.getLocalBounds(), L::pointerPressedStrokeWidthClose, Tone::pressedStrokeAlpha, true);
+        button.setState (juce::Button::buttonNormal);
+        button.setLookAndFeel (nullptr);
+    }
+    {
+        juce::ToggleButton toggle ("Quantize ends");
+        toggle.setLookAndFeel (&lookAndFeel);
+        toggle.setSize (160, 24);
+        const juce::Rectangle<int> bounds = toggle.getLocalBounds();
+        const juce::Image rest = renderSoftware (toggle);
+        toggle.setState (juce::Button::buttonOver);
+        const juce::Image hovered = renderSoftware (toggle);
+        requireStroke (rest, hovered, bounds, L::pointerHoverStrokeWidth, Tone::hoverStrokeAlpha);
+        requireChangesOnlyInStrokes (rest, hovered, { { bounds, L::pointerHoverStrokeWidth } });
+        toggle.setState (juce::Button::buttonDown);   // a toggle's box does not change when held: only the stroke does
+        const juce::Image held = renderSoftware (toggle);
+        requireStroke (rest, held, bounds, L::pointerPressedStrokeWidth, Tone::pressedStrokeAlpha);
+        requireChangesOnlyInStrokes (rest, held, { { bounds, L::pointerPressedStrokeWidth } });
+        toggle.setState (juce::Button::buttonNormal);
+        requireIdentical (rest, renderSoftware (toggle));
+        toggle.setLookAndFeel (nullptr);
+    }
+    {
+        juce::ComboBox combo;
+        combo.setLookAndFeel (&lookAndFeel);
+        combo.setSize (140, 26);
+        juce::Image held (juce::Image::ARGB, combo.getWidth(), combo.getHeight(), true, juce::SoftwareImageType());
+        {
+            SoftwareContext context (held, true);
+            juce::Graphics g (context);
+            lookAndFeel.drawComboBox (g, combo.getWidth(), combo.getHeight(), true, 0, 0, combo.getWidth(), combo.getHeight(), combo);
+        }
+        requireEdgeStroke (held, combo.getLocalBounds(), L::pointerPressedStrokeWidth, Tone::pressedStrokeAlpha);
+        combo.setLookAndFeel (nullptr);
+    }
+}
+
+// ADR-0072 §8: no native widget's text reaches its stroke band (the inset plus its pressed width: the close width for a
+// widget too short for its text to clear the full one) - every text button, toggle, combo box and value cell the shell
+// shows, at its default size and the window minimum, rendered with and without its text (the pixels that differ are the
+// text's). So the hover and pressed lines never cross a label.
+TEST_CASE ("ADR-0072 no native widget's text reaches the pointer's stroke band",
+           "[ui][input][g6-motion][widget-states][pointer-text-contrast]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    int checked = 0;
+    for (const juce::Point<int> size : { juce::Point<int> (1280, 800), juce::Point<int> (L::windowMinWidth, L::windowMinHeight) })
+    {
+        PointerRig rig ("g64-widget-text");
+        (*rig).setSize (size.x, size.y);
+        std::function<void (juce::Component&)> visit = [&] (juce::Component& parent) {
+            for (int i = 0; i < parent.getNumChildComponents(); ++i)
+            {
+                juce::Component& child = *parent.getChildComponent (i);
+                if (! child.isVisible() || child.getWidth() <= 0 || child.getHeight() <= 0)
+                    continue;
+                // The widgets that draw text where their line goes. (A slider style that gains a value label, or another
+                // widget type that draws text inside its stroke, belongs here too.)
+                auto* slider = dynamic_cast<juce::Slider*> (&child);
+                auto* toggle = dynamic_cast<juce::ToggleButton*> (&child);
+                const bool widget = dynamic_cast<juce::TextButton*> (&child) != nullptr || toggle != nullptr
+                                 || dynamic_cast<juce::ComboBox*> (&child) != nullptr
+                                 || (slider != nullptr && slider->getSliderStyle() == juce::Slider::LinearBar);
+                if (widget)
+                {
+                    INFO (child.getComponentID() << " \"" << child.getName() << "\" " << child.getBounds().toString() << " at "
+                                                 << size.toString());
+                    const int reach = L::pointerStrokeInset + yesdaw::ui::pointerPressedStrokeWidthForHeight (child.getHeight());
+                    if (toggle != nullptr)
+                    {
+                        // JUCE's tick box (LookAndFeel_V4::drawToggleButton) is centred at 1.1 x its font, min (15, 0.75 h):
+                        // its top edge stays clear of the line's band.
+                        const float tick = std::min (15.0f, static_cast<float> (child.getHeight()) * 0.75f) * 1.1f;
+                        REQUIRE ((static_cast<float> (child.getHeight()) - tick) * 0.5f >= static_cast<float> (reach));
+                    }
+                    const juce::Image rest = renderSoftware (child);
+                    const juce::Image textless = renderSoftware (child, {}, false);
+                    for (int y = 0; y < rest.getHeight(); ++y)
+                        for (int x = 0; x < rest.getWidth(); ++x)
+                            if (rest.getPixelAt (x, y) != textless.getPixelAt (x, y))
+                            {
+                                const juce::Point<int> depth = depthIn (rest.getBounds(), x, y);
+                                if (std::min (depth.x, depth.y) < reach)
+                                    FAIL ("text at " << x << "," << y << " is within the stroke band");
+                            }
+                    ++checked;
+                    continue;   // its own children (a combo's label) are in its render
+                }
+                visit (child);
+            }
+        };
+        visit (*rig);
+    }
+    REQUIRE (checked > 20);
 }
 
 #if JUCE_WINDOWS

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "ui/PointerStroke.h"   // ADR-0072 §8: the native widgets' hover and pressed forms
 #include "ui/UiTheme.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -75,13 +76,6 @@ public:
         g.setGradientFill (gradient);
         g.fillRoundedRectangle (bounds, UiTheme::Radius::md);
 
-        if (highlighted || down)
-        {
-            g.setColour (UiTheme::Color::white().withAlpha (
-                down ? UiTheme::Tone::pressedHighlightAlpha : UiTheme::Tone::hoverHighlightAlpha));
-            g.fillRoundedRectangle (bounds, UiTheme::Radius::md);
-        }
-
         g.setColour (UiTheme::Color::buttonBorder());
         g.drawRoundedRectangle (bounds.reduced (UiTheme::Layout::controlOutlineInset),
                                 UiTheme::Radius::md,
@@ -92,6 +86,10 @@ public:
                               bounds.getX() + UiTheme::Radius::md,
                               bounds.getRight() - UiTheme::Radius::md);
 
+        // ADR-0072 §8: hover a 1 px inner stroke, pressed a 2 px one (over the pressed background), never both.
+        paintPointerStroke (g, bounds, pointerStrokeForm (highlighted, down, pointerPressedStrokeWidthForHeight (button.getHeight())),
+                            UiTheme::Radius::md);
+
         if (button.hasKeyboardFocus (true))
         {
             g.setColour (UiTheme::Color::focusRing().withAlpha (UiTheme::Tone::focusRingAlpha));
@@ -99,6 +97,17 @@ public:
                                     UiTheme::Radius::md,
                                     UiTheme::Layout::controlFocusStrokeWidth);
         }
+    }
+
+    // ADR-0072 §8: JUCE's toggle (tick box and label), with the same hover and pressed forms over it.
+    void drawToggleButton (juce::Graphics& g, juce::ToggleButton& button, bool highlighted, bool down) override
+    {
+        juce::LookAndFeel_V4::drawToggleButton (g, button, highlighted, down);
+        juce::Graphics::ScopedSaveState state (g);
+        g.setOpacity (button.isEnabled() ? 1.0f : UiTheme::Tone::disabledAlpha);
+        paintPointerStroke (g, button.getLocalBounds().toFloat(),
+                            pointerStrokeForm (highlighted, down, pointerPressedStrokeWidthForHeight (button.getHeight())),
+                            UiTheme::Radius::md);
     }
 
     void drawButtonText (juce::Graphics& g,
@@ -144,6 +153,7 @@ public:
         const bool vertical = style == juce::Slider::LinearVertical
                            || style == juce::Slider::LinearBarVertical;
         const float trackThickness = static_cast<float> (UiTheme::Layout::sliderTrackThickness);
+        const auto area = juce::Rectangle<int> (x, y, width, height).toFloat();
 
         // E24: a horizontal LinearBar is a value SCRUB CELL — a quiet filled bar with the value
         // text drawn over it, and NO round thumb (the thumb used to paint over the digits).
@@ -159,6 +169,7 @@ public:
             g.setColour (slider.findColour (juce::Slider::trackColourId)
                              .withAlpha (UiTheme::Tone::trackSliderFillAlpha));
             g.fillRoundedRectangle (fill, UiTheme::Radius::sm);
+            paintPointerStroke (g, cell, sliderStrokeForm (slider), UiTheme::Radius::sm);
             g.setColour (slider.findColour (juce::Slider::textBoxTextColourId));
             g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
             g.drawText (slider.getTextFromValue (slider.getValue()),
@@ -181,6 +192,7 @@ public:
             auto active = rail.withY (sliderPos).withBottom (rail.getBottom());
             g.setColour (slider.findColour (juce::Slider::trackColourId));
             g.fillRoundedRectangle (active, UiTheme::Radius::pill);
+            paintPointerStroke (g, area, sliderStrokeForm (slider), UiTheme::Radius::sm);   // under the thumb
 
             auto thumb = juce::Rectangle<float> (
                 static_cast<float> (x + width / 2 - UiTheme::Layout::sliderThumbLongSide / 2),
@@ -204,6 +216,7 @@ public:
         auto active = rail.withX (left).withRight (right);
         g.setColour (slider.findColour (juce::Slider::trackColourId));
         g.fillRoundedRectangle (active, UiTheme::Radius::pill);
+        paintPointerStroke (g, area, sliderStrokeForm (slider), UiTheme::Radius::sm);   // under the thumb
 
         const float thumbDiameter = static_cast<float> (UiTheme::Layout::sliderThumbDiameter);
         auto thumb = juce::Rectangle<float> (sliderPos - thumbDiameter * 0.5f,
@@ -270,6 +283,7 @@ public:
                     bounds.getCentreX() + std::sin (angle) * radius,
                     bounds.getCentreY() - std::cos (angle) * radius,
                     UiTheme::Layout::iconBoldStrokeWidth);
+        paintPointerStroke (g, bounds, sliderStrokeForm (slider), UiTheme::Radius::sm);   // round the knob, as a painted one
     }
 
     void drawComboBox (juce::Graphics& g,
@@ -293,6 +307,9 @@ public:
         g.drawRoundedRectangle (bounds.reduced (UiTheme::Layout::controlOutlineInset),
                                 UiTheme::Radius::md,
                                 UiTheme::Layout::controlOutlineStrokeWidth);
+        paintPointerStroke (g, bounds,
+                            pointerStrokeForm (box.isEnabled() && box.isMouseOver (true), down, pointerPressedStrokeWidthForHeight (height)),
+                            UiTheme::Radius::md);
 
         const float arrowRight = bounds.getRight() - static_cast<float> (UiTheme::Layout::comboArrowRightInset);
         const float arrowTop = bounds.getCentreY()
@@ -310,6 +327,15 @@ public:
     }
 
 private:
+    // A slider is hovered while the pointer is over it (or it is being dragged) and pressed while a button is down on it -
+    // any button: ADR-0072 §8 reads a native widget's own state (JUCE's isMouseButtonDown), where §5's "a right or middle
+    // press presses nothing" is the painted controls' seam.
+    [[nodiscard]] static PointerStrokeForm sliderStrokeForm (const juce::Slider& slider)
+    {
+        return pointerStrokeForm (slider.isEnabled() && slider.isMouseOverOrDragging(), slider.isEnabled() && slider.isMouseButtonDown(),
+                                  pointerPressedStrokeWidthForHeight (slider.getHeight()));
+    }
+
     static void drawFaderThumb (juce::Graphics& g,
                                 juce::Rectangle<float> thumb,
                                 juce::Colour colour)
