@@ -9,6 +9,7 @@
 // chooser's onChange, a slider's drag gesture, the painted fader's drag verb) and paints the ring.
 
 #include "ui/MainComponentShell.h"
+#include "ui/EmptyStateRow.h"   // ADR-0073: how an empty-state row's action is taken
 #include "ui/PointerStroke.h"   // ADR-0072: the stroke form, shared with the native widgets
 
 using namespace yesdaw::ui::shell;
@@ -293,6 +294,19 @@ void MainComponent::servicePointerStates()
     if (! primaryDown)
         pointerComponent = walkChildrenAt (*pointerPosition);
     setPointerStates (pointerRecordAt (*pointerPosition, pointerComponent.getComponent()), std::move (pressed));
+}
+
+std::string MainComponent::emptyStateHowFor (yesdaw::ui::UiActionId action)
+{
+    const juce::StringArray names = getMenuBarNames();
+    std::vector<yesdaw::ui::EmptyStateMenu> menus;
+    menus.reserve (static_cast<std::size_t> (names.size()));
+    for (int i = 0; i < names.size(); ++i)
+        menus.push_back ({ names[i].toStdString(), menuActionsForIndex (i) });
+    const yesdaw::ui::EmptyStateRouterState router { controlNavigator.navigating(), controlNavigator.interacting(),
+                                                     appModel.context().musicalTypingOn, appModel.context().stepInputOn };
+    return yesdaw::ui::emptyStateHow (appModel.registry().keymap(), action,
+                                      yesdaw::ui::focusContextForPanel (appModel.context().activePanel), menus, router);
 }
 
 int pointerPressedStrokeWidthFor (const std::string& id) noexcept
@@ -989,10 +1003,16 @@ void MainComponent::syncPaintedAccessibilityProxies()
         model.minimum = record->minimum;
         model.maximum = record->maximum;
         if (record->activate)
-            model.press = [record] { record->activate(); };   // the mouse path's effect refreshes the shell itself
+            model.press = [record] {   // the mouse path's effect refreshes the shell itself; a disabled control does nothing
+                if (! record->enabled || record->enabled())
+                    record->activate();
+            };
         if (record->contextMenu)
             model.showMenu = record->contextMenu;
+        if (record->description)
+            model.description = record->description;   // ADR-0073: how its action is taken
         proxy.setModel (std::move (model));
+        proxy.setEnabled (! record->enabled || record->enabled());
     }
 }
 
@@ -1164,10 +1184,17 @@ void MainComponent::activateControlTarget()
         }
         else if (control->painted->activate)
         {
-            // The click's own effect, through the callback the mouse path calls.
-            lastControlActivation = "click:" + id;
+            // The click's own effect, through the callback the mouse path calls - none while the control is disabled.
             const auto painted = control->painted;   // the record outlives a rebuild of the walk
-            painted->activate();
+            if (painted->enabled && ! painted->enabled())
+            {
+                lastControlActivation = "disabled:" + id;
+            }
+            else
+            {
+                lastControlActivation = "click:" + id;
+                painted->activate();
+            }
         }
     }
     else if (auto* button = dynamic_cast<juce::Button*> (widget))

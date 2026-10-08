@@ -41,6 +41,7 @@ public:
         double minimum = 0.0, maximum = 1.0;
         std::function<void()> press;                 // a Button's click, a Toggle's flip
         std::function<void()> showMenu;              // the right-click menu, where one exists
+        std::function<juce::String()> description;   // ADR-0073: its help - how its action is taken (a chord or a menu path)
     };
 
     PaintedAccessibleProxy()
@@ -67,7 +68,8 @@ public:
     struct Description
     {
         juce::AccessibilityRole role = juce::AccessibilityRole::button;
-        juce::String title, value;
+        juce::String title, value, help;
+        bool enabled = true;
         bool readOnly = true, ranged = false, checkable = false, checked = false;
         bool canPress = false, canToggle = false, canShowMenu = false;
     };
@@ -77,6 +79,8 @@ public:
         d.role = roleOf (model.role);
         d.title = getTitle();
         d.value = model.valueText ? model.valueText() : juce::String();
+        d.help = model.description ? model.description() : juce::String();
+        d.enabled = isEnabled();
         d.readOnly = model.role != Role::Value || ! static_cast<bool> (model.setValue);
         d.ranged = model.role == Role::Value && model.maximum > model.minimum;
         d.checkable = model.role == Role::Toggle;
@@ -174,6 +178,11 @@ private:
             : AccessibilityHandler (owner, PaintedAccessibleProxy::roleOf (owner.model.role), actionsOf (owner), interfacesOf (owner)),
               proxy (owner)
         {
+        }
+
+        juce::String getHelp() const override
+        {
+            return proxy.model.description ? proxy.model.description() : juce::String();
         }
 
         juce::AccessibleState getCurrentState() const override

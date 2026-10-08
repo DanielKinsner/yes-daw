@@ -8,6 +8,24 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0073 cp1: how an empty-state row's action is taken (the chord that works here, else the menu)
+
+**What (no visible change yet):** `src/ui/EmptyStateRow.h` resolves, for an action, the chord to show - only if the
+router, asked with the current focus, maps that chord back to the action - else `Menu > Item` from the menu bar's own
+data, else nothing; the shell feeds it its real menus and focus. Painted controls gain `enabled` (a disabled one's
+keyboard activation and accessible press do nothing; its element is disabled) and a `description` their accessible
+element reports as help. **Gates:** a pure resolver test (the default chord; Del, which the piano roll owns, names
+`Edit > Delete Clip` there; Down works everywhere; rebind to F4; unbind -> `Track > Add Track`; unbound and in no menu ->
+nothing) and a shell test that reads the menu bar the shell builds (an unbound action and a focus-shadowed one name
+real menu items). Two mutations bite (a focus-blind resolver; the path from the accessible name). **Caught on the way:**
+the ADR's example "the piano roll owns Down" was wrong (Down selects tracks there too) - an erratum line is added; Del is
+the real shadowed chord; and Delete Clip lives in the Edit menu - the path comes from the menu data, never typed.
+**Critic:** no blocker; in - the router takes some keys before the keymap (the Control target's Tab / Enter / Esc /
+arrows while adjusting, a plain letter while musical typing is on, plain Left / Right during step input), so the resolver
+now asks the router's own law with its live state and names the menu path for a chord it would swallow (three more
+mutations bite); every action a row names is gated to resolve to a chord or a path (none sits only in a submenu). The
+painted controls' `enabled` / description reach the shell's elements through real rows in cp2, where they are gated.
+
 ## 2026-10-08 — ADR-0073 accepted: empty states name the next action; one first-run tip (G6.5)
 
 **Decided (design workflow: three proposals - Logic-minimal, actionable cards, a help surface - two judges, a synthesis;

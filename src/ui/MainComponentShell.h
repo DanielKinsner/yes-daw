@@ -225,6 +225,8 @@ public:
         juce::Component* surface = nullptr;                   // the component that paints it
         std::function<void()> contextMenu;                    // Shift+F10: the zone's right-click menu, where it has one
         std::function<juce::Rectangle<int>()> above;          // ADR-0072: a part painted over its pointer stroke, where it is now
+        std::function<bool()> enabled;                        // ADR-0073: absent = enabled; a disabled control does nothing
+        std::function<juce::String()> description;            // ADR-0073: its accessible help (how the action is taken)
     };
     // G4.0b: one control the router can target — a live widget, or a painted control (ADR-0066).
     struct ShellControl
@@ -939,6 +941,7 @@ private:
     juce::StringArray getMenuBarNames() override;
 
     [[nodiscard]] static std::span<const yesdaw::ui::UiActionId> menuActionsForIndex (int topLevelMenuIndex);
+    [[nodiscard]] std::string emptyStateHowFor (yesdaw::ui::UiActionId action);   // ADR-0073 §2: the chord that works here, else the menu path
 
     // G1.2: the tick a menu item shows — the registry context's own flags, one law for every
     // toggle and every "which one is current" group (views, inspector tabs, snap presets).
@@ -1021,6 +1024,7 @@ public:
         return controls;
     }
     [[nodiscard]] const auto& harnessPointerRecords() const noexcept { return pointerRecords; }   // ADR-0067 §2
+    [[nodiscard]] std::string harnessEmptyStateHow (yesdaw::ui::UiActionId action) { return emptyStateHowFor (action); }
     void harnessPointer (MainComponentPointerKind kind, juce::Point<int> shellPoint, juce::Component* component,
                          juce::ModifierKeys modifiers) { pointerEvent (kind, shellPoint, component, modifiers); }
     [[nodiscard]] MainComponentPointerState harnessPointerState() const

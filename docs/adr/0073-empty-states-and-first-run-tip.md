@@ -14,6 +14,11 @@
   a record, a Control target and its own accessible element); ADR-0067 / ADR-0072 (hover and pressed on records);
   ADR-0068 (the autosave recovery card).
 
+> **Erratum (2026-10-08, cp1).** The piano roll does not own Down: `TrackSelectNext`'s chord works there, so the
+> piano roll's select-track row reads `Select a track  (Down)`, and §3's parenthetical example is wrong. The
+> focus-shadowed case the gates use is Del (`TimelineClipDelete` in the Arrange, `PianoRollNoteDelete` in the piano
+> roll). The decision is unchanged.
+
 ## Context
 
 Every empty surface paints inert prose today - no record, no Control target, nothing in the accessibility tree, no

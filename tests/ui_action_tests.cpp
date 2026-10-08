@@ -1,4 +1,5 @@
 #include "ui/AutomationRide.h"   // G4.6 / ADR-0052: the ride laws
+#include "ui/EmptyStateRow.h"   // ADR-0073: the empty-state row's how
 #include "ui/UiActions.h"
 #include "ui/UiMixerSurface.h"
 #include "ui/UiPianoRollSurface.h"
@@ -1401,4 +1402,77 @@ TEST_CASE ("A loop wrap closes every pass as written; held writers carry on as n
     REQUIRE (closed.size() == 1u);
     REQUIRE (closed[0].samples.front() == yesdaw::ui::AutomationRideSample { 2'000, 0.2 });
     REQUIRE (closed[0].samples.back() == yesdaw::ui::AutomationRideSample { 6'000, 0.3 });
+}
+
+// ADR-0073 §2: an empty-state row names the chord that works where it stands (the router, asked with that Focus context,
+// maps it to the row's action), else the menu path from the menu bar's data, else nothing - live with every rebind.
+TEST_CASE ("ADR-0073 an empty-state row names the chord that works here, else the menu path", "[ui][actions][g65][chord][menu-path]")
+{
+    using yesdaw::ui::UiActionId;
+    using yesdaw::ui::UiFocusContext;
+    yesdaw::ui::UiActionRegistry registry;
+    yesdaw::ui::Keymap& keymap = registry.keymap();
+    const std::array<UiActionId, 3> track { UiActionId::TrackAdd, UiActionId::TrackSelectNext, UiActionId::TrackRemove };
+    const std::array<UiActionId, 1> clip { UiActionId::TimelineMidiClipAdd };
+    const std::array<UiActionId, 1> edits { UiActionId::TimelineClipDelete };
+    const std::array<yesdaw::ui::EmptyStateMenu, 3> menus {{ { "Edit", edits }, { "Track", track }, { "Clip", clip } }};
+    const auto how = [&] (UiActionId action, UiFocusContext focus) { return yesdaw::ui::emptyStateHow (keymap, action, focus, menus); };
+    const auto label = [] (UiActionId action) { return std::string (yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (action)].label); };
+
+    // The default keymap: Add Track's chord works in the Arrange.
+    REQUIRE (how (UiActionId::TrackAdd, UiFocusContext::Arrange) == keymap.chordFor (UiActionId::TrackAdd));
+    REQUIRE (keymap.actionForChord (how (UiActionId::TrackAdd, UiFocusContext::Arrange), UiFocusContext::Arrange) == UiActionId::TrackAdd);
+    // A chord that does something else where the row stands names the menu path instead: in the piano roll Del deletes
+    // notes, not the timeline's clip.
+    REQUIRE_FALSE (keymap.chordFor (UiActionId::TimelineClipDelete).empty());
+    REQUIRE (keymap.actionForChord (keymap.chordFor (UiActionId::TimelineClipDelete), UiFocusContext::PianoRoll) == UiActionId::PianoRollNoteDelete);
+    REQUIRE (how (UiActionId::TimelineClipDelete, UiFocusContext::PianoRoll) == "Edit > " + label (UiActionId::TimelineClipDelete));
+    REQUIRE (how (UiActionId::TimelineClipDelete, UiFocusContext::Arrange) == keymap.chordFor (UiActionId::TimelineClipDelete));
+    // A chord that works everywhere stays a chord everywhere (Down selects the next track in the piano roll too).
+    REQUIRE (how (UiActionId::TrackSelectNext, UiFocusContext::PianoRoll) == keymap.chordFor (UiActionId::TrackSelectNext));
+    // Unbound: the menu path.
+    REQUIRE (keymap.chordFor (UiActionId::TimelineMidiClipAdd).empty());
+    REQUIRE (how (UiActionId::TimelineMidiClipAdd, UiFocusContext::Arrange) == "Clip > Add MIDI Clip");
+    // In no menu and unbound: nothing.
+    REQUIRE (keymap.chordFor (UiActionId::ProjectImportMidi).empty());
+    REQUIRE (how (UiActionId::ProjectImportMidi, UiFocusContext::Arrange).empty());
+
+    // A rebind shows; an unbind falls to the menu path.
+    REQUIRE (keymap.rebind (UiActionId::TrackAdd, "F4") == yesdaw::ui::KeymapRebindStatus::Ok);
+    REQUIRE (how (UiActionId::TrackAdd, UiFocusContext::Arrange) == "F4");
+    keymap.unbind (UiActionId::TrackAdd);
+    REQUIRE (how (UiActionId::TrackAdd, UiFocusContext::Arrange) == "Track > Add Track");
+
+    // A chord the router takes before the keymap in its current state is not named: an arrow while the Control target
+    // adjusts a value, a plain letter while musical typing is on, plain Left / Right while step input is on.
+    yesdaw::ui::EmptyStateRouterState router;
+    const auto howIn = [&] (UiActionId action, UiFocusContext focus) { return yesdaw::ui::emptyStateHow (keymap, action, focus, menus, router); };
+    router.navigating = true;
+    REQUIRE (howIn (UiActionId::TrackSelectNext, UiFocusContext::Arrange) == "Down");   // navigating: arrows are the keymap's
+    router.interacting = true;
+    REQUIRE (howIn (UiActionId::TrackSelectNext, UiFocusContext::Arrange) == "Track > Next Track");
+    router = {};
+    std::string letter;   // a plain letter no action uses
+    for (char c = 'A'; c <= 'Z' && letter.empty(); ++c)
+        if (keymap.actionForChord (std::string (1, c)) == UiActionId::Count)
+            letter = std::string (1, c);
+    REQUIRE_FALSE (letter.empty());
+    REQUIRE (keymap.rebind (UiActionId::TrackAdd, letter) == yesdaw::ui::KeymapRebindStatus::Ok);
+    REQUIRE (howIn (UiActionId::TrackAdd, UiFocusContext::Arrange) == letter);
+    router.musicalTyping = true;
+    REQUIRE (howIn (UiActionId::TrackAdd, UiFocusContext::Arrange) == "Track > Add Track");
+    router = {};
+    const UiActionId right = keymap.actionForChord ("Right", UiFocusContext::Arrange);
+    REQUIRE (right != UiActionId::Count);
+    REQUIRE (howIn (right, UiFocusContext::Arrange) == "Right");
+    router.stepInput = true;
+    REQUIRE (howIn (right, UiFocusContext::Arrange) != "Right");
+    router = {};
+    keymap.unbind (UiActionId::TrackAdd);
+    REQUIRE (yesdaw::ui::emptyStateHow (keymap, UiActionId::Count, UiFocusContext::Arrange, menus).empty());   // no such action
+
+    // The row's text.
+    REQUIRE (yesdaw::ui::emptyStateRowText ("Add audio track", "Ctrl+Shift+N") == "Add audio track  (Ctrl+Shift+N)");
+    REQUIRE (yesdaw::ui::emptyStateRowText ("Add MIDI clip", "Clip > Add MIDI Clip") == "Add MIDI clip  (Clip > Add MIDI Clip)");
+    REQUIRE (yesdaw::ui::emptyStateRowText ("Add audio track", "") == "Add audio track");
 }

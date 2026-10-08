@@ -26242,6 +26242,74 @@ TEST_CASE ("ADR-0067 src/ui starts exactly two timers: the UI tick and the timel
     REQUIRE (has ("TimelineInputComponent.h", "timelineAutoScrollIntervalMs"));
 }
 
+// ADR-0073 §2 in the shell: the resolver reads the menu bar the shell builds - an unbound action names its real menu
+// item; a chord another focus owns names the menu path (the piano roll's Del); a chord that works names the chord.
+TEST_CASE ("ADR-0073 the shell's empty-state how reads its own menus and focus", "[ui][input][g65][menu-path]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("g65-how");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    auto* bar = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (bar != nullptr);
+    juce::MenuBarModel* model = bar->getModel();
+    REQUIRE (model != nullptr);
+    const juce::StringArray names = model->getMenuBarNames();
+    // "Menu > Item" names a top-level menu holding an item with that text that runs the action.
+    const auto requireMenuPath = [&] (const std::string& how, UiActionId action) {
+        INFO (how);
+        const auto split = how.find (" > ");
+        REQUIRE (split != std::string::npos);
+        const int menuIndex = names.indexOf (juce::String (how.substr (0, split)));
+        REQUIRE (menuIndex >= 0);
+        juce::PopupMenu menu = model->getMenuForIndex (menuIndex, names[menuIndex]);
+        bool found = false;
+        juce::PopupMenu::MenuItemIterator iterator (menu);
+        while (iterator.next())
+            if (iterator.getItem().itemID == static_cast<int> (action) + 1 && iterator.getItem().text == juce::String (how.substr (split + 3)))
+                found = true;
+        REQUIRE (found);
+    };
+
+    const std::string midiClip = yesdaw::ui::mainComponentEmptyStateHow (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (midiClip == "Clip > Add MIDI Clip");
+    requireMenuPath (midiClip, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (yesdaw::ui::mainComponentEmptyStateHow (*shell, UiActionId::TrackAdd) == "Ctrl+Shift+N");
+    REQUIRE (yesdaw::ui::mainComponentEmptyStateHow (*shell, UiActionId::TrackSelectNext) == "Down");
+    REQUIRE (yesdaw::ui::mainComponentEmptyStateHow (*shell, UiActionId::TimelineClipDelete) == "Del");
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // the piano roll takes the focus
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    const std::string clipDelete = yesdaw::ui::mainComponentEmptyStateHow (*shell, UiActionId::TimelineClipDelete);   // Del is the roll's
+    REQUIRE (clipDelete == "Edit > Delete Clip");
+    requireMenuPath (clipDelete, UiActionId::TimelineClipDelete);
+    REQUIRE (yesdaw::ui::mainComponentEmptyStateHow (*shell, UiActionId::TrackSelectNext) == "Down");   // Down works here too
+    // Every action ADR-0073's rows name is reachable one way or the other (none sits only in a submenu).
+    for (const UiActionId action : { UiActionId::ProjectNew, UiActionId::ProjectOpen, UiActionId::TrackAdd, UiActionId::ProjectImportAudio,
+                                     UiActionId::TrackSelectNext, UiActionId::TimelineMidiClipAdd, UiActionId::ViewBrowser })
+    {
+        INFO (yesdaw::ui::uiActionDescriptors()[static_cast<std::size_t> (action)].label);
+        REQUIRE_FALSE (yesdaw::ui::mainComponentEmptyStateHow (*shell, action).empty());
+    }
+}
+
+// ADR-0073 §1-§2: a painted control's accessible element carries its help (how its action is taken) and its enabled
+// state (the shell's rows prove the whole path - a disabled row's press doing nothing - in cp2).
+TEST_CASE ("ADR-0073 a painted control's element reports its help and its enabled state", "[ui][input][g65][accessibility]")
+{
+    yesdaw::ui::PaintedAccessibleProxy proxy;
+    yesdaw::ui::PaintedAccessibleProxy::Model model;
+    model.targetId = "empty.arrange.add_track";
+    model.description = [] { return juce::String ("Ctrl+Shift+N"); };
+    proxy.setModel (std::move (model));
+    proxy.setTitle ("Add audio track");
+    REQUIRE (proxy.describe().help == "Ctrl+Shift+N");
+    REQUIRE (proxy.describe().enabled);
+    proxy.setEnabled (false);
+    REQUIRE_FALSE (proxy.describe().enabled);
+}
+
 #if JUCE_WINDOWS
 // ADR-0066 / ADR-0049 on a real window (2026-10-07: the desktop drive's UI Automation step found it). JUCE parents an
 // accessible element on its nearest focus container — the window, not the shell, which is not one — so the shell's own

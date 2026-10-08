@@ -527,6 +527,9 @@ struct MainComponentPointerState
     juce::Rectangle<int> hoveredBounds, pressedBounds;   // where their strokes paint (ADR-0072 §1)
 };
 [[nodiscard]] MainComponentPointerState mainComponentPointerState (juce::Component& component);
+// ADR-0073 §2: how an empty-state row's action is taken from where the shell is - the chord that works there, else the
+// menu path ("Clip > Add MIDI Clip"), else "".
+[[nodiscard]] std::string mainComponentEmptyStateHow (juce::Component& component, UiActionId action);
 // ADR-0072 §1: the pressed stroke's width for a record - the close width for the families whose text sits near their
 // edge (the mixer's insert, send and I/O rows - a strip's and the master's), the full width for every other.
 [[nodiscard]] int pointerPressedStrokeWidthFor (const std::string& id) noexcept;
