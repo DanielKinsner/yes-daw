@@ -2114,6 +2114,7 @@ bool MainComponent::confirmClose()
 // pair brackets the whole shell's paint work for one frame (the B2 budget).
 void MainComponent::paintOverChildren (juce::Graphics& g)
 {
+    regionsPainted = std::exchange (regionsPaintedNow, std::uint8_t { 0 });   // ADR-0067 §1: this pass's regions
     paintControlTargetRing (g);   // G4.0b: above every child, inside the B2 frame
     paintInsertCarry (g);         // G4.2 cp6: a carried insert's landing line
     const auto now = std::chrono::steady_clock::now();
@@ -2130,17 +2131,25 @@ void MainComponent::paintOverChildren (juce::Graphics& g)
     }
 }
 
+// ADR-0067 §1 (paint scope): each region draws only when the clip reaches it, so a pointer or ring repaint of a few
+// pixels re-runs only the drawing of the region those pixels are in; the regions drawn are published for the probe.
 void MainComponent::paint (juce::Graphics& g)
 {
     paintStartStamp = std::chrono::steady_clock::now();
     g.fillAll (kBackground);
-    drawHeader (g);
 
     const auto bounds = getLocalBounds();
     const auto top = bounds.withHeight (headerHeightNow());
-    g.setColour (yesdaw::ui::UiTheme::Color::separator());
-    g.fillRect (top.withBottom (headerHeightNow())
-                    .removeFromBottom (yesdaw::ui::UiTheme::Layout::shellHeaderSeparatorHeight));
+    // A region's reach includes the drop shadow its panels cast below it (fillPanel).
+    const auto reach = [] (juce::Rectangle<int> r) { return r.withBottom (r.getBottom() + yesdaw::ui::UiTheme::Layout::controlShadowOffset); };
+    if (g.clipRegionIntersects (top))
+    {
+        regionsPaintedNow |= kPaintRegionHeader;
+        drawHeader (g);
+        g.setColour (yesdaw::ui::UiTheme::Color::separator());
+        g.fillRect (top.withBottom (headerHeightNow())
+                        .removeFromBottom (yesdaw::ui::UiTheme::Layout::shellHeaderSeparatorHeight));
+    }
 
     auto work = bounds.withTrimmedTop (headerHeightNow());
 
@@ -2151,14 +2160,23 @@ void MainComponent::paint (juce::Graphics& g)
     auto inspector = work.removeFromRight (inspectorWidthNow())
                          .reduced (yesdaw::ui::UiTheme::Layout::shellPanelHorizontalInset,
                                    yesdaw::ui::UiTheme::Layout::shellPanelVerticalInset);
-    drawTrackList (g, left);
-    drawInspector (g, inspector);
+    if (g.clipRegionIntersects (reach (left)))
+    {
+        regionsPaintedNow |= kPaintRegionRail;
+        drawTrackList (g, left);
+    }
+    if (! inspector.isEmpty() && g.clipRegionIntersects (reach (inspector)))
+    {
+        regionsPaintedNow |= kPaintRegionInspector;
+        drawInspector (g, inspector);
+    }
     // V3: a collapsed dock paints NOTHING (the "drop whole" law this codebase already uses
     // elsewhere for sections that don't fit) rather than relying on a zero/negative-height
     // rect to degrade gracefully.
-    if (appModel.context().mixerDockVisible)
+    if (appModel.context().mixerDockVisible && g.clipRegionIntersects (reach (mixerPanelBounds())))
     {
         // G2.1 cp2: the dock shows ONE editor tab. G3.1: the instrument panel paints itself.
+        regionsPaintedNow |= kPaintRegionDock;
         if (dockShowsPianoRoll())
             drawPianoRoll (g, mixerPanelBounds());
         else if (! dockShowsInstrument())

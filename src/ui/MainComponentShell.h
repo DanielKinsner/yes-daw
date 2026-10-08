@@ -1761,6 +1761,10 @@ private:
     std::chrono::steady_clock::time_point paintStartStamp {};
     double lastPaintMs = 0.0;
     double lastParentPaintMs = 0.0;
+    // ADR-0067 §1: the shell regions the last paint pass drew (header, rail, inspector, dock), for the probe.
+    static constexpr std::uint8_t kPaintRegionHeader = 1u, kPaintRegionRail = 2u, kPaintRegionInspector = 4u, kPaintRegionDock = 8u;
+    std::uint8_t regionsPaintedNow = 0;
+    std::uint8_t regionsPainted = 0;
     std::array<double, shell::kStateProbePaintRingSize> paintRing {};
     std::size_t paintRingIndex = 0;
     std::size_t paintRingCount = 0;

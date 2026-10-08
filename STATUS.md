@@ -8,6 +8,19 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0067 cp2 S1: the shell draws only the regions a repaint reaches
+
+**What changes:** the shell's own paint (header, track rail, inspector, dock) now draws a region only when the repaint
+rectangle reaches it, including the drop shadow its panels cast just below them; the probe reports the regions the last
+pass drew (`frame.regionsPainted`). A hover or a ring repaint of a few pixels will re-run only its own region's
+drawing - the ground ADR-0067's pointer states (S3-S5) stand on. Nothing looks different. **Gate (`[repaint-scope]`):**
+a full render draws all four; a render clipped to a small rect inside each draws only that one, and its pixels are the
+full render's (+-2 per channel: a drop shadow's blur, computed over the clip, moves an edge pixel one step); a clip only
+in the shadow band under the rail still draws the rail. Red with a region drawn outside its clip; red without the
+shadow reach. **Caught on the way (Clang):** the new paint-region constants shadowed `MainComponentControls.cpp`'s own
+`kRegion*` (the Tab-order regions) and silently renumbered them - renamed `kPaintRegion*` before commit. ctest 423/423,
+Clang clean. **Critic:** nothing wrong; its shadow-band note is the fix above.
+
 ## 2026-10-08 — ADR-0072 accepted: ADR-0067's hover and pressed, made true to the code and the contrast law
 
 **Why:** planning ADR-0067 cp2 (pointer hover and press) found its white-fill tints would push muted text below 4.5:1

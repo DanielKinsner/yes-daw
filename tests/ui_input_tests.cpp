@@ -24676,6 +24676,86 @@ TEST_CASE ("ADR-0066 every Control target has an accurate accessible element", "
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// ADR-0067 §1 (paint scope): the shell's paint draws only the regions the clip reaches, and a clipped paint's pixels are
+// the full paint's - so a pointer or ring repaint of a few pixels re-runs only its own region's drawing.
+TEST_CASE ("ADR-0067 the shell paints only the regions the clip reaches, and the clipped pixels are the full render's",
+           "[ui][input][shell][g6-motion][repaint-scope]")
+{
+    const auto bundlePath = makeTempBundlePath ("g64-paint-scope");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1280, 800);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, 320);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+
+    const auto regionsOf = [&] {
+        std::vector<std::string> names;
+        const juce::var regions = probeRoot (*shell)["frame"]["regionsPainted"];
+        for (int i = 0; i < regions.size(); ++i)
+            names.push_back (regions[i].toString().toStdString());
+        std::sort (names.begin(), names.end());
+        return names;
+    };
+    const auto render = [&] (std::optional<juce::Rectangle<int>> clip) {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true, juce::SoftwareImageType());
+        juce::Graphics g (image);
+        if (clip)
+            g.reduceClipRegion (*clip);
+        shell->paintEntireComponent (g, false);
+        return image;
+    };
+    const auto rect = [&] (const char* id) {
+        const juce::var r = probeRoot (*shell)["layout"][id];
+        REQUIRE (r.size() == 4);
+        return juce::Rectangle<int> (static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]));
+    };
+
+    const juce::Image full = render (std::nullopt);
+    REQUIRE (regionsOf() == std::vector<std::string> { "dock", "header", "inspector", "rail" });
+
+    // A clip lying only in the 2 px band under the rail's panel still draws the rail: its panel's drop shadow is there.
+    {
+        const juce::Rectangle<int> rail = rect ("rail");
+        const juce::Rectangle<int> band { rail.getCentreX() - 20, rail.getBottom(),
+                                          40, yesdaw::ui::UiTheme::Layout::controlShadowOffset };
+        const juce::Image clipped = render (band);
+        REQUIRE (regionsOf() == std::vector<std::string> { "rail" });
+        for (int y = band.getY(); y < band.getBottom(); ++y)
+            for (int x = band.getX(); x < band.getRight(); ++x)
+            {
+                const juce::Colour a = clipped.getPixelAt (x, y), b = full.getPixelAt (x, y);
+                REQUIRE (std::abs (a.getRed() - b.getRed()) <= 2);   // +-2: a clip edge's one-step drift (below)
+                REQUIRE (std::abs (a.getGreen() - b.getGreen()) <= 2);
+                REQUIRE (std::abs (a.getBlue() - b.getBlue()) <= 2);
+            }
+    }
+
+    struct Case { const char* layoutId; const char* region; };
+    for (const Case c : { Case { "header.gear", "header" }, Case { "rail", "rail" }, Case { "inspector", "inspector" },
+                          Case { "dock", "dock" } })
+    {
+        INFO (c.layoutId);
+        const juce::Rectangle<int> clip = rect (c.layoutId).reduced (4).withSizeKeepingCentre (24, 16);
+        const juce::Image clipped = render (clip);
+        REQUIRE (regionsOf() == std::vector<std::string> { c.region });
+        // +-2 per channel (ADR-0067's tolerance): a drop shadow's blur is computed over the clip, so a pixel at a clip
+        // edge can move by one step; a region skipped wrongly differs by far more.
+        int differing = 0;
+        for (int y = clip.getY(); y < clip.getBottom(); ++y)
+            for (int x = clip.getX(); x < clip.getRight(); ++x)
+            {
+                const juce::Colour a = clipped.getPixelAt (x, y), b = full.getPixelAt (x, y);
+                if (std::abs (a.getRed() - b.getRed()) > 2 || std::abs (a.getGreen() - b.getGreen()) > 2
+                    || std::abs (a.getBlue() - b.getBlue()) > 2 || std::abs (a.getAlpha() - b.getAlpha()) > 2)
+                    ++differing;
+            }
+        REQUIRE (differing == 0);
+    }
+}
+
 // A scroll moves painted controls without an action or a layout pass: their accessible elements must move with them at
 // once, so a screen reader reading the mixer or the rail right after a wheel scroll finds each element on its control.
 TEST_CASE ("ADR-0066 the painted controls' accessible elements follow a mixer or rail scroll at once",

@@ -901,6 +901,14 @@ juce::String MainComponent::buildStateProbeJson()
         // G0.4: how the shell invalidates — full (model/view change) vs dynamic (tick) — and
         // how often the action-state refresh really runs.
         frame->setProperty ("fullInvalidations", static_cast<juce::int64> (fullInvalidations));
+        {   // ADR-0067 §1: the regions the last paint pass drew
+            juce::Array<juce::var> regions;
+            for (const auto& [bit, name] : { std::pair { kPaintRegionHeader, "header" }, std::pair { kPaintRegionRail, "rail" },
+                                             std::pair { kPaintRegionInspector, "inspector" }, std::pair { kPaintRegionDock, "dock" } })
+                if ((regionsPainted & bit) != 0u)
+                    regions.add (juce::String (name));
+            frame->setProperty ("regionsPainted", regions);
+        }
         frame->setProperty ("dynamicInvalidations", static_cast<juce::int64> (dynamicInvalidations));
         frame->setProperty ("actionStateRefreshes", static_cast<juce::int64> (actionStateRefreshes));
         root->setProperty ("frame", juce::var (frame));
