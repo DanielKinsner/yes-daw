@@ -5,11 +5,14 @@
 // them through the acquire/release atomics the UI reads.
 
 #include "engine/nodes/MeterNode.h"
+#include "engine/PeakSinceRead.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
 
+#include <atomic>
 #include <cmath>
+#include <thread>
 #include <vector>
 
 using Catch::Approx;
@@ -150,4 +153,97 @@ TEST_CASE ("MeterNode publishes independent per-channel peak and RMS", "[meter][
     REQUIRE (node.peak() == Approx (0.8f).margin (1.0e-6));
     REQUIRE (node.peak (5) == 0.0f);
     REQUIRE (node.rms  (5) == 0.0f);
+}
+
+// ---- ADR-0067 §5: PeakSinceRead — every block since the last read, silence when none ran -------------------------
+
+TEST_CASE ("PeakSinceRead reads the max of every block since the last read, and silence when none ran",
+           "[meter][g6-motion][peak-since-read]")
+{
+    yesdaw::engine::PeakSinceRead source;
+    REQUIRE_FALSE (source.read().fresh);   // a fresh source: nothing ran
+    REQUIRE (source.read().peak == 0.0f);
+
+    source.publishBlock (0.2f);
+    source.publishBlock (0.9f);   // the loud block is not the last
+    source.publishBlock (0.1f);
+    const auto first = source.read();
+    REQUIRE (first.fresh);
+    REQUIRE (first.peak == 0.9f);
+    REQUIRE (first.throughBlock == 3u);
+
+    const auto none = source.read();   // no block since: silence, whatever the last value was
+    REQUIRE_FALSE (none.fresh);
+    REQUIRE (none.peak == 0.0f);
+
+    source.publishBlock (0.3f);   // a new window starts after the block the reader took
+    REQUIRE (source.read().peak == 0.3f);
+}
+
+TEST_CASE ("PeakSinceRead never drops a block that ran while the reader was between its loads and its store",
+           "[meter][g6-motion][peak-since-read]")
+{
+    yesdaw::engine::PeakSinceRead source;
+    source.publishBlock (0.2f);
+    // The writer runs two blocks inside the reader's gap: the reading is taken through block 1, the two are carried.
+    const auto first = source.read ([&source] {
+        source.publishBlock (0.8f);
+        source.publishBlock (0.4f);
+    });
+    REQUIRE (first.peak >= 0.2f);
+    REQUIRE (first.throughBlock == 1u);
+    source.publishBlock (0.1f);
+    const auto second = source.read();
+    REQUIRE (second.fresh);
+    REQUIRE (second.peak == 0.8f);   // the gap's loud block, not lost to the new window
+
+    // A reader five blocks behind (more than the carry holds) still reads at least every block's peak.
+    yesdaw::engine::PeakSinceRead behind;
+    behind.publishBlock (0.1f);
+    (void) behind.read ([&behind] {
+        for (const float peak : { 0.2f, 0.95f, 0.2f, 0.2f, 0.2f })
+            behind.publishBlock (peak);
+    });
+    behind.publishBlock (0.1f);
+    REQUIRE (behind.read().peak >= 0.95f);
+}
+
+TEST_CASE ("PeakSinceRead under two threads: the first reading through each loud block is at least its peak",
+           "[meter][g6-motion][peak-since-read][threads]")
+{
+    constexpr std::uint64_t kBlocks = 20'000;
+    yesdaw::engine::PeakSinceRead source;
+    std::atomic<bool> done { false };
+    std::vector<yesdaw::engine::PeakSinceRead::Reading> readings;
+    readings.reserve (kBlocks + 1);
+    const auto peakOf = [] (std::uint64_t block) { return block % 97u == 0u ? 0.5f + static_cast<float> (block % 1000u) * 1.0e-4f : 0.1f; };
+    std::thread reader ([&] {
+        std::uint64_t spin = 0;
+        while (! done.load (std::memory_order_acquire))
+        {
+            const auto reading = source.read();
+            if (reading.fresh)
+                readings.push_back (reading);
+            for (std::uint64_t i = 0; i < (++spin % 7u) * 13u; ++i)   // uneven pacing
+                std::atomic_signal_fence (std::memory_order_seq_cst);
+        }
+    });
+    for (std::uint64_t block = 1; block <= kBlocks; ++block)
+        source.publishBlock (peakOf (block));
+    done.store (true, std::memory_order_release);
+    reader.join();
+    if (const auto last = source.read(); last.fresh)
+        readings.push_back (last);
+
+    REQUIRE_FALSE (readings.empty());
+    REQUIRE (readings.back().throughBlock == kBlocks);
+    std::size_t at = 0;
+    for (std::uint64_t block = 97; block <= kBlocks; block += 97)
+    {
+        while (at < readings.size() && readings[at].throughBlock < block)
+            ++at;
+        REQUIRE (at < readings.size());
+        INFO ("block " << block << " read through " << readings[at].throughBlock);
+        REQUIRE (readings[at].peak >= peakOf (block));
+    }
 }
