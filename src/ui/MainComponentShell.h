@@ -1710,7 +1710,7 @@ private:
     // E34: open MIDI inputs + the message-thread note-on pairing map (note -> frame, velocity).
     std::vector<std::unique_ptr<juce::MidiInput>> midiInputs;
     std::uint32_t midiInSeenLast = 0;                                   // G3.10: the lamp's last seen count
-    std::chrono::steady_clock::time_point midiInLitUntil {};            // G3.10: lit until this instant
+    int midiInLitTicks = 0;   // G3.10 / ADR-0067 §7: the UI ticks the lamp stays lit (a hold counted in ticks, not time)
     std::map<int, std::pair<std::int64_t, float>> pendingMidiNoteOns;
     FineDragSlider inspectorStart;
     FineDragSlider inspectorEnd;

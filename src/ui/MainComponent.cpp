@@ -1978,12 +1978,12 @@ void MainComponent::serviceUiTick()
         if (seen != midiInSeenLast)
         {
             midiInSeenLast = seen;
-            midiInLitUntil = std::chrono::steady_clock::now() + std::chrono::milliseconds (yesdaw::ui::UiTheme::Layout::headerMidiInLampHoldMs);
+            // The hold in whole ticks (ADR-0067 §7: like the meters', a visual counted by the tick, never by a clock).
+            midiInLitTicks = (yesdaw::ui::UiTheme::Layout::headerMidiInLampHoldMs + kUiRefreshIntervalMs - 1) / kUiRefreshIntervalMs;
             repaint (headerLayout().midiIn);
         }
-        else if (midiInLitUntil != std::chrono::steady_clock::time_point {} && std::chrono::steady_clock::now() >= midiInLitUntil)
+        else if (midiInLitTicks > 0 && --midiInLitTicks == 0)
         {
-            midiInLitUntil = {};
             repaint (headerLayout().midiIn);
         }
     }
@@ -2688,8 +2688,7 @@ void MainComponent::drawTransportReadouts (juce::Graphics& g) const
     // G3.10: the MIDI input lamp in the time readout's corner — lit while a played note is fresh.
     if (! h.midiIn.isEmpty())
     {
-        const bool lit = midiInLitUntil != std::chrono::steady_clock::time_point {}
-                      && std::chrono::steady_clock::now() < midiInLitUntil;
+        const bool lit = midiInLitTicks > 0;
         g.setColour (lit ? yesdaw::ui::UiTheme::Color::midiInLampLit() : yesdaw::ui::UiTheme::Color::midiInLampOff());
         g.fillRoundedRectangle (h.midiIn.toFloat(), yesdaw::ui::UiTheme::Layout::headerMidiInLampCornerRadius);
         g.setColour (lit ? yesdaw::ui::UiTheme::Color::pianoWhiteKeyText() : yesdaw::ui::UiTheme::Color::mutedText());

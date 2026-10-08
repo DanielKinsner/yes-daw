@@ -1,5 +1,6 @@
 // YES DAW - H12 real-shell UI input harness skeleton.
 
+#include "app/SongFixture.h"   // ADR-0067 cp3: a song with tempo-locked MIDI clips
 #include "interchange/Smf.h"   // G3.7: the [midi-file] gate writes and reads back a Standard MIDI File
 #include "io/AudioFileDecode.h"   // ADR-0054: the [import-formats] shell gate
 #include "ui/MainComponent.h"
@@ -25858,6 +25859,387 @@ TEST_CASE ("ADR-0072 no native widget's text reaches the pointer's stroke band",
         visit (*rig);
     }
     REQUIRE (checked > 20);
+}
+
+// ADR-0067 §6 (cp3): the playhead is the published frame and nothing else. While the song plays, at several published
+// frames the Arrange playhead's painted column (its white line) sits where that frame is in the view - the canvas's own
+// time-to-x law, as the ruler and the clips use it - and the piano roll's sits at that frame's tick in the open clip,
+// read from the roll's grid lines (+-1 px each). Stopped, sixty UI ticks paint the same pixels in both.
+TEST_CASE ("ADR-0067 the playhead paints the published frame, and stopped it stays put", "[ui][input][g6-motion][playhead]")
+{
+    const auto bundlePath = makeTempBundlePath ("g64-playhead");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // a clip at the start, open in the roll
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    const juce::Rectangle<int> timelineArea = (*shell).getLocalArea (&timeline, timeline.getLocalBounds());
+    const juce::Rectangle<int> rollArea = (*shell).getLocalArea (&pianoRoll, pianoRoll.getLocalBounds());   // the shell paints the roll
+
+    // The column nearest `expected` (within 3 px) whose pixels are `colour` down at least `run` rows of `area`; -1: none.
+    const auto columnNear = [] (const juce::Image& image, juce::Rectangle<int> area, int expected, juce::Colour colour, int run) {
+        int best = -1;
+        for (int x = std::max (area.getX(), expected - 3); x <= std::min (area.getRight() - 1, expected + 3); ++x)
+        {
+            int count = 0;
+            for (int y = area.getY(); y < area.getBottom(); ++y)
+                if (image.getPixelAt (x, y) == colour)
+                    ++count;
+            if (count >= run && (best < 0 || std::abs (x - expected) < std::abs (best - expected)))
+                best = x;
+        }
+        return best;
+    };
+    // The roll's x for a tick, from its own grid lines (tick, x) on either side of it.
+    const auto rollX = [] (const yesdaw::ui::MainComponentPianoRollGrid& grid, std::int64_t tick) {
+        std::optional<std::pair<std::int64_t, int>> before, after;
+        for (const auto& [lineTick, lineX, kind] : grid.lines)
+        {
+            if (lineTick <= tick && (! before || lineTick > before->first))
+                before = std::pair { lineTick, lineX };
+            if (lineTick >= tick && (! after || lineTick < after->first))
+                after = std::pair { lineTick, lineX };
+        }
+        REQUIRE (before.has_value());
+        REQUIRE (after.has_value());
+        if (after->first == before->first)
+            return before->second;
+        return before->second + juce::roundToInt (static_cast<double> (tick - before->first) * (after->second - before->second)
+                                                  / static_cast<double> (after->first - before->first));
+    };
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportLocateStart));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.sampleRate.isValid());
+    const int step = static_cast<int> (project.sampleRate.hz * 3 / 10);   // 0.3 s: between the roll's beat lines
+    REQUIRE (project.midiClips.size() == 1u);
+    const yesdaw::engine::MidiClip midiClip = project.midiClips.front();
+    // Where the open clip counts the published frame: in frames from its start when sample-locked, else in ticks through
+    // the project's tempo map - the engine's own law, not the roll's.
+    const auto clipPositionAt = [&project, &midiClip] (std::int64_t frame) -> std::int64_t {
+        if (midiClip.timeBase == yesdaw::engine::TimeBase::SampleLocked)
+            return frame - midiClip.timelineStart;
+        yesdaw::engine::CompiledTempoMap map;
+        REQUIRE (yesdaw::engine::CompiledTempoMap::build (
+            yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() }, project.sampleRate, map));
+        yesdaw::engine::Tick tick = 0;
+        REQUIRE (map.tickForFrame (static_cast<double> (frame), tick));
+        return tick - midiClip.timelineStart;
+    };
+    std::int64_t last = 0;
+    for (int n = 0; n < 4; ++n)
+    {
+        (void) renderMainComponentPlayback (*shell, step, 128);
+        REQUIRE (yesdaw::ui::serviceMainComponentUiTimer (*shell));   // the tick publishes the frame
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        const std::int64_t published = snapshot.context.playheadFrame;
+        INFO ("published frame " << published);
+        REQUIRE (published > last);
+        last = published;
+
+        const juce::Image arrange = renderSoftware (*shell, timelineArea);
+        const int arrangeX = projectRulerPointAtTick (timeline, snapshot, project, published).x;   // timeline-local
+        const int foundArrange = columnNear (arrange, arrange.getBounds(), arrangeX, yesdaw::ui::UiTheme::Color::white(),
+                                             arrange.getHeight() / 2);
+        INFO ("Arrange: expected column " << arrangeX << ", painted " << foundArrange);
+        REQUIRE (foundArrange >= 0);
+        REQUIRE (std::abs (foundArrange - arrangeX) <= 1);
+
+        const yesdaw::ui::MainComponentPianoRollGrid grid = yesdaw::ui::mainComponentPianoRollGrid (*shell);
+        REQUIRE (grid.playheadTick == clipPositionAt (published));   // the roll counts the published frame, nothing else
+        REQUIRE (grid.playheadTick >= grid.viewScrollTicks);
+        REQUIRE (grid.playheadTick <= grid.viewScrollTicks + grid.visibleTicks);
+        REQUIRE (grid.playheadTick > 0);
+        const int expectedRoll = rollX (grid, clipPositionAt (published));
+        const juce::Image roll = renderSoftware (*shell, rollArea);
+        const int foundRoll = columnNear (roll, roll.getBounds(), expectedRoll, yesdaw::ui::UiTheme::Color::text(), roll.getHeight() / 3);
+        INFO ("piano roll: tick " << grid.playheadTick << ", expected column " << expectedRoll << ", painted " << foundRoll);
+        REQUIRE (foundRoll >= 0);
+        REQUIRE (std::abs (foundRoll - expectedRoll) <= 1);
+    }
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    REQUIRE (yesdaw::ui::serviceMainComponentUiTimer (*shell));
+    juce::Rectangle<int> timeReadout;   // the header's clock reads the published frame too
+    for (const auto& [id, bounds] : yesdaw::ui::mainComponentPointerRecords (*shell))
+        if (id == "header.time")
+            timeReadout = bounds;
+    REQUIRE_FALSE (timeReadout.isEmpty());
+    const juce::Image stoppedArrange = renderSoftware (*shell, timelineArea);
+    const juce::Image stoppedRoll = renderSoftware (*shell, rollArea);
+    const juce::Image stoppedClock = renderSoftware (*shell, timeReadout);
+    for (int tick = 0; tick < 60; ++tick)
+    {
+        INFO ("tick " << tick << " after the stop");
+        REQUIRE (yesdaw::ui::serviceMainComponentUiTimer (*shell));
+        requireIdentical (stoppedArrange, renderSoftware (*shell, timelineArea));
+        requireIdentical (stoppedRoll, renderSoftware (*shell, rollArea));
+        requireIdentical (stoppedClock, renderSoftware (*shell, timeReadout));
+    }
+}
+
+// ADR-0067 §6 for a musical-time clip (the song fixture's MIDI clips are tempo-locked; a new one is sample-locked): the
+// open clip counts the published frame in ticks through the project's tempo map, and the roll paints its line there.
+TEST_CASE ("ADR-0067 the piano roll's playhead follows the published frame in a tempo-locked clip", "[ui][input][g6-motion][playhead]")
+{
+    const std::filesystem::path fixtureDir = std::filesystem::temp_directory_path() / "yesdaw-g64-playhead-musical";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (fixtureDir, ec);
+    }
+    yesdaw::app::fixture::SongFixtureSpec spec;
+    spec.tracks = 2;
+    spec.seconds = 4.0;
+    spec.sampleRateHz = 48000;
+    spec.channels = 2;
+    spec.midiTracks = 1;
+    const yesdaw::app::fixture::SongFixtureResult fixture = yesdaw::app::fixture::buildSongFixture (fixtureDir, spec);
+    INFO (fixture.error);
+    REQUIRE (fixture.ok);
+    MainComponentFileChoices choices;
+    const std::filesystem::path bundlePath = fixture.bundlePath;
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.midiClips.size() >= 1u);
+
+    // Select the MIDI clip on the timeline (each clip's rect in turn, until a MIDI clip is the selection), open the roll.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    bool selected = false;
+    const juce::var layout = probeRoot (*shell)["layout"];
+    REQUIRE (layout.getDynamicObject() != nullptr);
+    for (const auto& property : layout.getDynamicObject()->getProperties())
+    {
+        if (selected || ! property.name.toString().startsWith ("clip.") || ! property.value.isArray())
+            continue;
+        const juce::Rectangle<int> rect { static_cast<int> (property.value[0]), static_cast<int> (property.value[1]),
+                                          static_cast<int> (property.value[2]), static_cast<int> (property.value[3]) };
+        mouseDownAt (timeline, timeline.getLocalPoint (shell.get(), rect.getCentre()));
+        selected = snapshotMainComponent (*shell).context.midiClipSelected;
+    }
+    REQUIRE (selected);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewPianoRoll);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    const juce::Rectangle<int> rollArea = (*shell).getLocalArea (&pianoRoll, pianoRoll.getLocalBounds());
+
+    yesdaw::engine::CompiledTempoMap map;
+    REQUIRE (yesdaw::engine::CompiledTempoMap::build (
+        yesdaw::engine::TempoMapView { project.tempoMap.data(), project.tempoMap.size() }, project.sampleRate, map));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportLocateStart));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    std::int64_t last = -1;
+    int painted = 0;
+    for (int n = 0; n < 4; ++n)
+    {
+        (void) renderMainComponentPlayback (*shell, static_cast<int> (project.sampleRate.hz * 3 / 10), 128);
+        REQUIRE (yesdaw::ui::serviceMainComponentUiTimer (*shell));
+        const std::int64_t published = snapshotMainComponent (*shell).context.playheadFrame;
+        const yesdaw::ui::MainComponentPianoRollGrid grid = yesdaw::ui::mainComponentPianoRollGrid (*shell);
+        // The selected clip is the one the roll shows: its start is the published tick minus the roll's tick.
+        yesdaw::engine::Tick tick = 0;
+        REQUIRE (map.tickForFrame (static_cast<double> (published), tick));
+        const bool known = std::any_of (project.midiClips.begin(), project.midiClips.end(), [&] (const yesdaw::engine::MidiClip& clip) {
+            return clip.timeBase == yesdaw::engine::TimeBase::TempoLocked && grid.playheadTick == tick - clip.timelineStart;
+        });
+        INFO ("published frame " << published << ", tick " << tick << ", the roll's " << grid.playheadTick);
+        REQUIRE (published > last);
+        last = published;
+        REQUIRE (known);   // the roll counts the published frame through the tempo map, nothing else
+        if (grid.playheadTick < grid.viewScrollTicks || grid.playheadTick > grid.viewScrollTicks + grid.visibleTicks)
+            continue;   // before the clip's start: nothing to paint yet
+        std::optional<std::pair<std::int64_t, int>> before, after;
+        for (const auto& [lineTick, lineX, kind] : grid.lines)
+        {
+            if (lineTick <= grid.playheadTick && (! before || lineTick > before->first))
+                before = std::pair { lineTick, lineX };
+            if (lineTick >= grid.playheadTick && (! after || lineTick < after->first))
+                after = std::pair { lineTick, lineX };
+        }
+        REQUIRE (before.has_value());
+        REQUIRE (after.has_value());
+        const int expected = after->first == before->first
+                                 ? before->second
+                                 : before->second + juce::roundToInt (static_cast<double> (grid.playheadTick - before->first)
+                                                                      * (after->second - before->second)
+                                                                      / static_cast<double> (after->first - before->first));
+        const juce::Image roll = renderSoftware (*shell, rollArea);
+        int found = -1;
+        for (int x = std::max (0, expected - 3); x <= std::min (roll.getWidth() - 1, expected + 3); ++x)
+        {
+            int count = 0;
+            for (int y = 0; y < roll.getHeight(); ++y)
+                if (roll.getPixelAt (x, y) == yesdaw::ui::UiTheme::Color::text())
+                    ++count;
+            if (count >= roll.getHeight() / 4 && (found < 0 || std::abs (x - expected) < std::abs (found - expected)))
+                found = x;
+        }
+        INFO ("expected column " << expected << ", painted " << found);
+        REQUIRE (found >= 0);
+        REQUIRE (std::abs (found - expected) <= 1);
+        ++painted;
+    }
+    REQUIRE (painted >= 2);   // the walk was inside the clip, not skipped
+    shell.reset();
+    std::error_code ec;
+    std::filesystem::remove_all (fixtureDir, ec);
+}
+
+// ADR-0067 §7 (cp3): nothing animates. A fresh project that has never sounded, transport stopped, no pointer: two
+// renders a UI tick apart are identical at the three plan sizes. After sound (the fixture played, then stopped), once
+// every hold has run out - the meters' held peaks (Meter::peakHoldTicks) and the status line - every tick paints the
+// same pixels again: thirty in a row, then two a tick apart at each plan size; what went out with the holds lies in the
+// meters. A played MIDI note lights the input lamp, which goes out within its hold's ticks (a tick count, never a clock:
+// the test's ticks take no time) and leaves the shell as it was.
+TEST_CASE ("ADR-0067 a still shell paints the same pixels every tick, before and after sound", "[ui][input][g6-motion][static]")
+{
+    const auto bundlePath = makeTempBundlePath ("g64-static");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1280, 720);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    const auto tick = [&shell] { REQUIRE (yesdaw::ui::serviceMainComponentUiTimer (*shell)); };
+
+    for (const juce::Point<int> size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+    {
+        INFO ("never sounded, " << size.toString());
+        shell->setSize (size.x, size.y);
+        tick();
+        const juce::Image first = renderSoftware (*shell);
+        tick();
+        requireIdentical (first, renderSoftware (*shell));
+    }
+
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportLocateStart));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    for (int block = 0; block < 6; ++block)   // the meters light: blocks ran, ticks read them
+    {
+        (void) renderMainComponentPlayback (*shell, 4800, 128);
+        tick();
+    }
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    tick();
+    const juce::Image justStopped = renderSoftware (*shell);   // the held peaks still showing
+    int ticks = 0;
+    for (; ticks < 600; ++ticks)
+    {
+        tick();
+        if (ticks > yesdaw::ui::UiTheme::Meter::peakHoldTicks && probeRoot (*shell)["status"]["text"].toString().isEmpty())
+            break;
+    }
+    INFO ("the holds ran out after " << ticks << " ticks");
+    REQUIRE (ticks < 600);
+    juce::Image previous = renderSoftware (*shell);
+    {
+        // Not vacuous: the sound lit something that has since gone out (the meters' held-peak marks).
+        const juce::Image::BitmapData a (justStopped, juce::Image::BitmapData::readOnly);
+        const juce::Image::BitmapData b (previous, juce::Image::BitmapData::readOnly);
+        int changed = 0;
+        for (int y = 0; y < justStopped.getHeight(); ++y)
+            for (int x = 0; x < justStopped.getWidth(); ++x)
+                if (a.getPixelColour (x, y) != b.getPixelColour (x, y))
+                    ++changed;
+        INFO (changed << " pixels went out with the holds");
+        REQUIRE (changed > 0);
+    }
+    {
+        // Every pixel that went out lies in a meter's record (the held-peak marks), not a stray change elsewhere.
+        std::vector<juce::Rectangle<int>> meters;
+        for (const auto& [id, bounds] : yesdaw::ui::mainComponentPointerRecords (*shell))
+            if (id.size() > 6 && id.compare (id.size() - 6, 6, ".meter") == 0)
+                meters.push_back (bounds);
+        REQUIRE_FALSE (meters.empty());
+        const juce::Image::BitmapData a (justStopped, juce::Image::BitmapData::readOnly);
+        const juce::Image::BitmapData b (previous, juce::Image::BitmapData::readOnly);
+        for (int y = 0; y < justStopped.getHeight(); ++y)
+            for (int x = 0; x < justStopped.getWidth(); ++x)
+                if (a.getPixelColour (x, y) != b.getPixelColour (x, y)
+                    && std::none_of (meters.begin(), meters.end(), [x, y] (const juce::Rectangle<int>& r) { return r.contains (x, y); }))
+                    FAIL ("pixel " << x << "," << y << " went out with the holds outside every meter");
+    }
+    for (int n = 0; n < 30; ++n)
+    {
+        INFO ("still tick " << n);
+        tick();
+        juce::Image now = renderSoftware (*shell);
+        requireIdentical (previous, now);
+        previous = now;
+    }
+
+    // A played note (no track selected: nothing sounds) lights the input lamp for its hold, in ticks.
+    REQUIRE (yesdaw::ui::mainComponentPostMidiInput (*shell, true, 60, 0.8));
+    REQUIRE (yesdaw::ui::mainComponentPostMidiInput (*shell, false, 60, 0.0));
+    tick();
+    REQUIRE (static_cast<bool> (probeRoot (*shell)["transport"]["midiInLit"]));
+    const int holdTicks = (yesdaw::ui::UiTheme::Layout::headerMidiInLampHoldMs + 32) / 33;   // the UI tick is 33 ms
+    for (int n = 0; n < holdTicks && static_cast<bool> (probeRoot (*shell)["transport"]["midiInLit"]); ++n)
+        tick();
+    REQUIRE_FALSE (static_cast<bool> (probeRoot (*shell)["transport"]["midiInLit"]));
+    requireIdentical (previous, renderSoftware (*shell));
+
+    // The settled shell at every plan size: two renders a tick apart.
+    for (const juce::Point<int> size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+    {
+        INFO ("after sound, " << size.toString());
+        shell->setSize (size.x, size.y);
+        tick();
+        const juce::Image first = renderSoftware (*shell);
+        tick();
+        requireIdentical (first, renderSoftware (*shell));
+    }
+}
+
+// ADR-0067 §7: the UI tick (kUiRefreshIntervalMs) and the timeline's auto-scroll timer are the only timers under
+// src/ui/ - no startTimerHz, no VBlankAttachment, no third startTimer: a static control repaints only when its state
+// changes.
+TEST_CASE ("ADR-0067 src/ui starts exactly two timers: the UI tick and the timeline's auto-scroll", "[ui][input][g6-motion][static]")
+{
+    const std::regex timer (R"(\b(startTimer|startTimerHz)\s*\(|\bVBlankAttachment\b)");
+    std::vector<std::string> found;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator (std::filesystem::path { YESDAW_SOURCE_DIR } / "src" / "ui"))
+    {
+        if (! entry.is_regular_file())
+            continue;
+        const std::string extension = entry.path().extension().string();
+        if (extension != ".h" && extension != ".cpp")
+            continue;
+        std::ifstream in (entry.path(), std::ios::binary);
+        std::string line;
+        while (std::getline (in, line))
+        {
+            const std::string code = line.substr (0, line.find ("//"));   // a comment that names one is not one
+            if (std::regex_search (code, timer))
+                found.push_back (entry.path().filename().string() + ": " + code);
+        }
+    }
+    for (const std::string& site : found)
+        UNSCOPED_INFO (site);
+    REQUIRE (found.size() == 2u);
+    const auto has = [&found] (const char* file, const char* interval) {
+        return std::any_of (found.begin(), found.end(), [&] (const std::string& site) {
+            return site.rfind (file, 0) == 0 && site.find ("startTimer (") != std::string::npos && site.find (interval) != std::string::npos;
+        });
+    };
+    REQUIRE (has ("MainComponent.cpp", "kUiRefreshIntervalMs"));
+    REQUIRE (has ("TimelineInputComponent.h", "timelineAutoScrollIntervalMs"));
 }
 
 #if JUCE_WINDOWS

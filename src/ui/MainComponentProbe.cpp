@@ -612,8 +612,7 @@ juce::String MainComponent::buildStateProbeJson()
         transport->setProperty ("rate", context.shuttlePlaybackRate);
         transport->setProperty ("midiInSeen", static_cast<int> (appModel.midiInputQueue().seen()));   // G3.10
         transport->setProperty ("midiInDrained", static_cast<int> (appModel.midiInputDrained()));
-        transport->setProperty ("midiInLit", midiInLitUntil != std::chrono::steady_clock::time_point {}
-                                                 && std::chrono::steady_clock::now() < midiInLitUntil);
+        transport->setProperty ("midiInLit", midiInLitTicks > 0);
         transport->setProperty ("midiThruTarget", static_cast<juce::int64> (appModel.midiInputQueue().thruTarget()));
         transport->setProperty ("metronome", context.metronomeEnabled);
         auto* loop = new juce::DynamicObject();

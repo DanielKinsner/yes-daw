@@ -8,6 +8,26 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0067 cp3a/b: the playhead is the published frame, and a still shell never animates
+
+**What (gates; no product change needed - the code already obeyed):** `[playhead]` - while the song plays, at four
+published frames the Arrange playhead's white line is where that frame sits in the view (the canvas's time-to-x law,
++-1 px), and the piano roll's line is at that frame's position in the open clip (computed from the frame through the
+clip's own time base, then placed by the roll's grid lines, +-1 px); stopped, sixty ticks paint the same pixels.
+`[static]` - a fresh project at 1280x720, 1920x1080 and 2560x1440 paints the same pixels a tick apart; after the fixture
+plays and stops, once the meters' held peaks and the status line run out (24 px of held-peak marks go out - the check
+is not vacuous), thirty ticks in a row paint the same; and `src/ui` starts exactly two timers (the UI tick and the
+timeline's auto-scroll), no `startTimerHz`, no `VBlankAttachment`. Five mutations bite (a playhead leading the frame, one
+moving while stopped, the roll leading the tick, a blink, a third timer); one gate was made independent on the way (it
+had read the roll's expected tick from the value under test).
+**Critic:** no blocker; in - (1) **the header's MIDI-in lamp was a clock-driven visual** (lit until a `steady_clock`
+instant, read in paint: a repaint could change it with no state change, against ADR-0067 §7): it now holds for whole UI
+ticks (150 ms -> 5 ticks, as the meters' holds count), and `[static]` plays a note, sees the lamp, and requires it out
+within its hold's ticks and the shell as before (red with a lamp that never goes out); (2) the settled-after-sound check
+runs at all three sizes, and every pixel that went out lies in a meter's record; (3) a second `[playhead]` case walks a
+tempo-locked clip (the song fixture's) through the tempo map (red with the roll leading the tick there); (4) the
+stopped check covers the header's clock too. ctest 423/423, Clang clean.
+
 ## 2026-10-08 — ADR-0067 cp2 S5c: the real app shows the lines under the real mouse (SS-5 drive)
 
 **What:** the `ss7` session drive (the real `YesDaw.exe`, real Win32 mouse) gains Step 16: it moves the pointer over the
