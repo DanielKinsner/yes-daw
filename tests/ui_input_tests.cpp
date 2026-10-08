@@ -26364,7 +26364,7 @@ TEST_CASE ("ADR-0073 an empty Arrange offers its next actions as rows", "[ui][in
                                            std::tuple<std::string, juce::String, juce::String> { "empty.arrange.import_audio", "Import audio", "Ctrl+Shift+I" } })
     {
         INFO (id);
-        REQUIRE (std::any_of (records.begin(), records.end(), [&id] (const auto& record) { return record.first == id; }));
+        REQUIRE (std::any_of (records.begin(), records.end(), [target = id] (const auto& record) { return record.first == target; }));
         const auto* proxy = paintedProxyNamed (*shell, id);
         REQUIRE (proxy != nullptr);
         const auto described = proxy->describe();
