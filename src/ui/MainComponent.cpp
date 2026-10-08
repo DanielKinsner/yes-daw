@@ -1777,10 +1777,27 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
             if (! answered)
             {
                 if (stored.assets && ! stored.assets->empty())
-                    (void) appModel.loadPreparedProjectBundle (
+                {
+                    const yesdaw::ui::UiAppLoadResult loaded = appModel.loadPreparedProjectBundle (
                         std::move (stored.prepared), std::move (*stored.assets));
+                    if (! loaded.ok())
+                        // R5: a launch open that the engine refuses is a fact, not a shrug — the
+                        // previous launch path cast the result to void and the user saw NOTHING.
+                        appModel.reportStatus (
+                            "Open failed: " + yesdaw::ui::describeUiAppLoadFailure (loaded)
+                                + " (" + yesdaw::io::utf8Text (lastProject.filename()) + ")",
+                            true);
+                }
                 else if (stored.assets)
-                    (void) appModel.openPreparedProjectBundle (std::move (stored.prepared));
+                {
+                    const auto opened = appModel.openPreparedProjectBundle (std::move (stored.prepared));
+                    if (! opened.ok())
+                        appModel.reportStatus (
+                            "Open failed: "
+                                + (opened.message.empty() ? std::string { "the project bundle could not be opened" } : opened.message)
+                                + " (" + yesdaw::io::utf8Text (lastProject.filename()) + ")",
+                            true);
+                }
                 else
                     // R5: the last project failing to reopen is a fact, not a shrug.
                     appModel.reportStatus (

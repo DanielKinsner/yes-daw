@@ -1069,3 +1069,152 @@ TEST_CASE ("ADR-0060 Save as Template asks before replacing a template; a templa
     REQUIRE (statusOf (*f).contains ("New project refused: the template Broken cannot be used"));
     REQUIRE_FALSE (std::filesystem::exists (f.directory / "never.yesdaw"));
 }
+
+// ADR-0041: deleting every Clip in the shipped shell writes the no-Clips project to the bundle
+// synchronously (adoptEditedProject). The 2026-10-08 reopen bug was that the LOAD path, unlike
+// adoptEditedProject, had no EmptyTimeline fallback — so a bundle with assets and no clips (every
+// clip deleted before the process was killed) refused to reopen with projectLoaded=false and NO
+// status text, because both open sites cast the UiAppLoadResult to void. These gates lock the
+// fix: the model opens the bundle (fallback to a transport-only engine), and the shell paths
+// (openProjectBundleAtPath, the launch) report "Open failed: ..." when the engine does refuse.
+TEST_CASE ("ADR-0041 a bundle with assets and no clips reopens with a transport",
+           "[project-lifecycle][reopen]")
+{
+    const auto directory = lifecycleScratch ("reopen-no-clips");
+    const auto original = directory / "song.yesdaw";
+    const auto renamed = directory / "renamed.yesdaw";
+    const std::filesystem::path fixture { YESDAW_WAV_FIXTURE_PATH };
+
+    yesdaw::ui::UiAppModel source;
+    source.setSessionStateDirectory (directory / "session");
+    REQUIRE (source.createProjectBundle (original).ok());
+    yesdaw::ui::shell::UiAudioDecodeResult first = yesdaw::ui::shell::decodeProjectAudio (fixture);
+    REQUIRE (first.decoded.has_value());
+    REQUIRE (source.importAudioFile (fixture, std::move (*first.decoded)).ok());
+    yesdaw::ui::shell::UiAudioDecodeResult second = yesdaw::ui::shell::decodeProjectAudio (fixture);
+    REQUIRE (second.decoded.has_value());
+    REQUIRE (source.importAudioFile (fixture, std::move (*second.decoded)).ok());
+    REQUIRE (source.project().clips.size() == 2u);
+    REQUIRE (source.project().assets.size() == 1u);
+
+    // Save As to a new bundle, then Ctrl+S (the real-app sequence), so the renamed bundle is now
+    // the one on disk.
+    REQUIRE (source.saveProjectBundleAs (renamed).dispatched);
+    REQUIRE (source.saveProjectBundle().ok());
+    REQUIRE (source.bundlePath() == renamed);
+
+    // Ctrl+A, Delete on the project's clips: adoptEditedProject writes the no-clips snapshot to
+    // the bundle synchronously — this is what the shipped shell was persisting before the kill.
+    REQUIRE (source.dispatch (yesdaw::ui::UiActionId::TimelineClipSelectAllProject).dispatched);
+    REQUIRE (source.dispatch (yesdaw::ui::UiActionId::TimelineClipDelete).dispatched);
+    REQUIRE (source.project().clips.empty());
+    REQUIRE (source.project().assets.size() == 1u);
+    REQUIRE (readProject (renamed).clips.empty());
+    REQUIRE (readProject (renamed).assets.size() == 1u);
+
+    // A fresh model reopens the bundle through the SAME two-step the shell runs on open and
+    // launch — decodeStoredProjectAssets, then loadPreparedProjectBundle. Before the fix this
+    // returned PlaybackBuildFailed(EmptyTimeline); after it, the model opens with a transport.
+    yesdaw::ui::UiAppModel reopened;
+    yesdaw::ui::shell::StoredProjectAssetsResult stored = yesdaw::ui::shell::decodeStoredProjectAssets (renamed);
+    REQUIRE (stored.assets.has_value());
+    REQUIRE (stored.assets->size() == 1u);   // ADR-0062: assets stay when their clips go
+    const yesdaw::ui::UiAppLoadResult loaded = reopened.loadPreparedProjectBundle (
+        std::move (stored.prepared), std::move (*stored.assets));
+    INFO ("status " << static_cast<int> (loaded.status)
+          << ", playback " << static_cast<int> (loaded.playbackStatus));
+    REQUIRE (loaded.ok());
+    REQUIRE (reopened.bundlePath() == renamed);
+    REQUIRE (reopened.playbackReady());
+    REQUIRE (reopened.project().clips.empty());
+    REQUIRE (reopened.project().assets.size() == 1u);
+    REQUIRE (reopened.context().projectLoaded);
+}
+
+TEST_CASE ("ADR-0041 the launch path opens a bundle with assets and no clips",
+           "[project-lifecycle][reopen]")
+{
+    const auto directory = lifecycleScratch ("reopen-no-clips-launch");
+    const auto bundle = directory / "song.yesdaw";
+    const std::filesystem::path fixture { YESDAW_WAV_FIXTURE_PATH };
+    {
+        yesdaw::ui::UiAppModel source;
+        source.setSessionStateDirectory (directory / "session-source");
+        REQUIRE (source.createProjectBundle (bundle).ok());
+        yesdaw::ui::shell::UiAudioDecodeResult decoded = yesdaw::ui::shell::decodeProjectAudio (fixture);
+        REQUIRE (decoded.decoded.has_value());
+        REQUIRE (source.importAudioFile (fixture, std::move (*decoded.decoded)).ok());
+        REQUIRE (source.dispatch (yesdaw::ui::UiActionId::TimelineClipSelectAllProject).dispatched);
+        REQUIRE (source.dispatch (yesdaw::ui::UiActionId::TimelineClipDelete).dispatched);
+        REQUIRE (readProject (bundle).clips.empty());
+        REQUIRE (readProject (bundle).assets.size() == 1u);
+    }
+
+    // openBundleAtLaunch is the SAME seam the native shell receives from the command line and the
+    // last-project record: before the fix, projectLoaded stayed false and the status line was
+    // empty (the launch cast the result to void).
+    LifecycleShell f ("reopen-launch", false, true, bundle);
+    const yesdaw::ui::MainComponentSnapshot snap = yesdaw::ui::snapshotMainComponent (*f);
+    INFO ("status: " << snap.statusLineText);
+    REQUIRE (snap.context.projectLoaded);
+    REQUIRE (snap.bundlePath == bundle);
+    REQUIRE (snap.visibleTimelineClipCount == 0);
+    REQUIRE (snap.statusLineText.empty());
+}
+
+TEST_CASE ("R5 an engine refusal names the reason on the launch and on File > Open",
+           "[project-lifecycle][reopen]")
+{
+    // A bundle whose Project passes the schema check but the engine refuses (a TempoLocked Clip is
+    // never built by this engine's graph — buildProjectGraph returns UnsupportedTimeBase). Writing
+    // it through the bundle API matches a shell that imported audio and later ended up with such
+    // a Clip; whichever file the shell encounters, the user hears a reason.
+    const auto directory = lifecycleScratch ("reopen-engine-refuses");
+    const auto bundle = directory / "refuses.yesdaw";
+    const std::filesystem::path fixture { YESDAW_WAV_FIXTURE_PATH };
+    {
+        yesdaw::ui::UiAppModel source;
+        source.setSessionStateDirectory (directory / "session-source");
+        REQUIRE (source.createProjectBundle (bundle).ok());
+        yesdaw::ui::shell::UiAudioDecodeResult decoded = yesdaw::ui::shell::decodeProjectAudio (fixture);
+        REQUIRE (decoded.decoded.has_value());
+        REQUIRE (source.importAudioFile (fixture, std::move (*decoded.decoded)).ok());
+    }
+    // Rewrite the snapshot with the Clip's time base flipped: the schema check accepts
+    // TempoLocked (both bases are schema-legal), but the engine's build does not.
+    {
+        yesdaw::persistence::ProjectBundleDb db;
+        REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundle, db).ok());
+        yesdaw::engine::Project project;
+        REQUIRE (db.readProjectSnapshot (project).ok());
+        REQUIRE (project.clips.size() == 1u);
+        project.clips.front().timeBase = yesdaw::engine::TimeBase::TempoLocked;
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+    }
+
+    // Launch with openBundleAtLaunch: projectLoaded stays false, and the status line names the
+    // reason — the launch path USED to swallow the result with (void).
+    {
+        LifecycleShell launch ("engine-refuses-launch", false, true, bundle);
+        const yesdaw::ui::MainComponentSnapshot snap = yesdaw::ui::snapshotMainComponent (*launch);
+        INFO ("launch status: " << snap.statusLineText);
+        REQUIRE_FALSE (snap.context.projectLoaded);
+        REQUIRE (snap.statusLineText.rfind ("Open failed:", 0) == 0);
+        REQUIRE (snap.statusLineIsError);
+        REQUIRE (snap.statusLineText.find ("refuses.yesdaw") != std::string::npos);
+    }
+
+    // File > Open: the current shell (an untitled session) stays current; the status line names
+    // the reason the picked bundle could not open.
+    LifecycleShell shell ("engine-refuses-open", false, true);   // untitled session
+    const yesdaw::ui::MainComponentSnapshot before = yesdaw::ui::snapshotMainComponent (*shell);
+    REQUIRE (before.context.projectLoaded);
+    shell.nextBundle = bundle;
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectOpen);
+    const yesdaw::ui::MainComponentSnapshot after = yesdaw::ui::snapshotMainComponent (*shell);
+    INFO ("open status: " << after.statusLineText);
+    REQUIRE (after.statusLineText.rfind ("Open failed:", 0) == 0);
+    REQUIRE (after.statusLineIsError);
+    REQUIRE (after.statusLineText.find ("refuses.yesdaw") != std::string::npos);
+    REQUIRE (after.bundlePath == before.bundlePath);   // the shell's own project stays
+}

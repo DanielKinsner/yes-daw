@@ -347,13 +347,30 @@ void MainComponent::openProjectBundleAtPath (const std::filesystem::path& path)
     }
     if (stored.assets && ! stored.assets->empty())
     {
-        if (appModel.loadPreparedProjectBundle (std::move (stored.prepared), std::move (*stored.assets)).ok())
+        const yesdaw::ui::UiAppLoadResult loaded = appModel.loadPreparedProjectBundle (
+            std::move (stored.prepared), std::move (*stored.assets));
+        if (loaded.ok())
             afterProjectAttached();   // ADR-0060: the device at the project's rate
+        else
+            // R5: an engine refusal (invalid timeline, mixer projection, non-finite buffers) is a
+            // fact, not a shrug — the previous open path dropped the result and left the status
+            // line silent, so a user who could not open their project saw NOTHING.
+            appModel.reportStatus (
+                "Open failed: " + yesdaw::ui::describeUiAppLoadFailure (loaded)
+                    + " (" + yesdaw::io::utf8Text (path.filename()) + ")",
+                true);
     }
     else if (stored.assets)
     {
-        if (appModel.openPreparedProjectBundle (std::move (stored.prepared)).ok())
+        const auto opened = appModel.openPreparedProjectBundle (std::move (stored.prepared));
+        if (opened.ok())
             afterProjectAttached();
+        else
+            appModel.reportStatus (
+                "Open failed: "
+                    + (opened.message.empty() ? std::string { "the project bundle could not be opened" } : opened.message)
+                    + " (" + yesdaw::io::utf8Text (path.filename()) + ")",
+                true);
     }
     else
         // R5: a project that cannot open says WHY (naming the bad audio file when one is

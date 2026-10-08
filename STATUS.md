@@ -8,6 +8,20 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — Fix (found by SS-6): a project whose clips were all deleted reopened as nothing, silently
+
+**What a user saw:** delete every clip of a project (its tracks and audio files stay), quit or crash, open it again —
+nothing opened and nothing said why: no project, an empty status line. **Why:** the audio engine refuses to build a
+graph for an empty timeline, and the open path had no transport-only fallback (the edit path already had one,
+ADR-0041); both open paths (the launch reopen and File > Open) ignored the failed load. **Fix:** an empty timeline opens
+with a transport, as after an edit; any load that fails says "Open failed: <reason> (<name>)" (R5). **See-it:** SS-6
+run 5 — after the kill the project reopens with its 5 tracks and 6 audio files. **Gates:** `[project-lifecycle][reopen]`
+— a bundle with audio and no clips reopens through the model and through the launch path; an engine refusal (a
+tempo-locked clip) names its reason at launch and on File > Open and leaves the current project. Each red with its fix
+reverted. ctest 420/420, Clang clean. **Critic:** no blockers. Next, its note: after a failed launch-time open the user
+is left with no project at all (and the next launch tries the same bundle again) — the untitled session should open
+with the reason shown.
+
 ## 2026-10-08 — SS-6 is built: the project-lifecycle drive runs on the real app (151 of 165 on its fourth run)
 
 **Now:** `tools/session-scripts/ss8-project-lifecycle.ps1` — the plan's SS-6, G5's exit — exists and runs end to end on

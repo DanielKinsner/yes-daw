@@ -118,6 +118,50 @@ struct UiAppLoadResult
     [[nodiscard]] bool ok() const noexcept { return status == UiAppLoadStatus::Ok; }
 };
 
+// R5: one shared sentence for every open path that refuses — the launch, File > Open and the
+// recents share the same words, named by `status` and the underlying playback refusal when the
+// engine was the one who said no. An empty string for a successful load.
+[[nodiscard]] inline std::string describeUiAppLoadFailure (const UiAppLoadResult& result)
+{
+    switch (result.status)
+    {
+        case UiAppLoadStatus::Ok:
+            return {};
+        case UiAppLoadStatus::BundleOpenFailed:
+            return result.bundleResult.message.empty()
+                ? std::string { "the project bundle could not be opened" }
+                : result.bundleResult.message;
+        case UiAppLoadStatus::ProjectReadFailed:
+            return result.bundleResult.message.empty()
+                ? std::string { "the project data is invalid or corrupt" }
+                : result.bundleResult.message;
+        case UiAppLoadStatus::PlaybackBuildFailed:
+            switch (result.playbackStatus)
+            {
+                case engine::OfflineRenderStatus::InvalidProject:           return "the project data is invalid";
+                case engine::OfflineRenderStatus::InvalidTimeline:          return "the timeline is invalid";
+                case engine::OfflineRenderStatus::EmptyTimeline:            return "the project is empty";
+                case engine::OfflineRenderStatus::MissingAssetAudio:        return "missing audio for an asset";
+                case engine::OfflineRenderStatus::AssetMetadataMismatch:    return "an audio file no longer matches its asset";
+                case engine::OfflineRenderStatus::UnsupportedAssetChannels: return "an audio asset has an unsupported channel count";
+                case engine::OfflineRenderStatus::UnsupportedTimeBase:      return "an unsupported clip time base";
+                case engine::OfflineRenderStatus::SourceDecodeFailed:       return "an audio asset could not be decoded";
+                case engine::OfflineRenderStatus::MidiProjectionFailed:     return "the MIDI graph could not be built";
+                case engine::OfflineRenderStatus::ProjectProjectionFailed:  return "the project graph could not be built";
+                case engine::OfflineRenderStatus::MixerProjectionFailed:    return "the mixer graph could not be built";
+                case engine::OfflineRenderStatus::OutputTooLarge:           return "the project is too long";
+                case engine::OfflineRenderStatus::RenderProducedNonFinite:  return "the project produced non-finite audio";
+                case engine::OfflineRenderStatus::TimeStretchFailed:        return "a time-stretched clip could not be prepared";
+                case engine::OfflineRenderStatus::GraphNotBlockParallelSafe:return "the project graph is not safe for playback";
+                case engine::OfflineRenderStatus::Cancelled:                return "the audio engine build was cancelled";
+                case engine::OfflineRenderStatus::RangeOutsideRender:       return "the export range is outside the render";
+                case engine::OfflineRenderStatus::Ok:                       return "the audio engine refused the project";
+            }
+            return "the audio engine refused the project";
+    }
+    return "unknown failure";
+}
+
 // A successfully opened bundle and its validated snapshot travel together until adoption.
 // The shell can decode the snapshot's assets without reopening and rehashing the same bundle.
 class UiPreparedProjectBundle final
@@ -9930,20 +9974,37 @@ public:
         result.playbackStatus = built.status;
         result.projectError = built.projectError;
         result.mixerError = built.mixerError;
-        if (! built.ok())
+
+        std::unique_ptr<engine::PlaybackEngine> loadedEngine;
+        if (built.ok())
+        {
+            loadedEngine = std::move (built.engine);
+        }
+        else if (built.status == engine::OfflineRenderStatus::EmptyTimeline)
+        {
+            // ADR-0041: a saved project with assets but no renderable Clips (every Clip deleted
+            // before the shell was killed, or every Clip removed from a template) still opens with
+            // a real transport rendering exact silence — the same fallback adoptEditedProject uses
+            // when a live edit empties the timeline, so a user who deletes their last Clip never
+            // ends up with a bundle that refuses to reopen.
+            loadedEngine = engine::PlaybackEngine::createTransportOnly (loadedProject.sampleRate,
+                                                                         playbackMaxBlockSize_);
+        }
+
+        if (loadedEngine == nullptr)
         {
             result.status = UiAppLoadStatus::PlaybackBuildFailed;
             return result;
         }
 
-        (void) built.engine->stop();
-        drainTransport (*built.engine);
+        (void) loadedEngine->stop();
+        drainTransport (*loadedEngine);
 
         attachProjectBundle (std::move (prepared.db_), bundlePath, std::move (loadedProject));
         decodedAssets_ = std::move (ownedDecoded);
         pruneRateMatchedViews();   // ADR-0055: the old project's views go; this one's (just built) stay
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
-        replacePlayback (std::move (built.engine));
+        replacePlayback (std::move (loadedEngine));
         enqueueWaveformBuildsForDecodedAssets();
 
         resetContextForFreshPlayback();
