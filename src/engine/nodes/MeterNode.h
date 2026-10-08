@@ -1,10 +1,14 @@
 // YES DAW — MeterNode: a metering tap behind the Node contract (ADR-0008).
 //
-// A true passthrough — it reads the signal and leaves it untouched — that publishes this Block's peak
-// (max |sample|) and RMS for the UI to read. The publish is a single std::atomic release-store per metric
-// from the audio thread; the UI does an acquire-load. That is the whole synchronisation: one writer (the
-// audio thread), one reader (the UI). NO compare-exchange loop in the hot path — a CAS loop can spin under
-// contention and buys nothing for a single-writer value (ADR-0006; the design panel's must-fix).
+// A true passthrough — it reads the signal and leaves it untouched — that publishes every processed
+// block's peak (max |sample|) through a PeakSinceRead source and this block's RMS through atomics
+// for the UI to read. The publish is a single std::atomic release-store per metric from the audio
+// thread; the UI does an acquire-load. One writer (the audio thread), one reader (the UI tick, in
+// one place per source — ADR-0067). NO compare-exchange loop in the hot path (ADR-0006).
+//
+// ADR-0067 §5: the peak is a PeakSinceRead source — the max of every block since the last read,
+// silence when no block ran (a stopped transport, a stalled device). RMS stays on this block's
+// store so a stopped meter has nothing to leak forward — nothing meters RMS as a peak.
 //
 // Pure C++ — no JUCE — so RTSan/TSan cover process(). In-place eligible: since it never writes the audio,
 // the compiler may give it the same buffer for input and output.
@@ -12,7 +16,9 @@
 #pragma once
 
 #include "engine/Node.h"
+#include "engine/PeakSinceRead.h"
 
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <span>
@@ -65,7 +71,8 @@ public:
             const float chRms = args.numFrames > 0
                 ? static_cast<float> (std::sqrt (chSumSq / static_cast<double> (args.numFrames)))
                 : 0.0f;
-            peakCh_[static_cast<std::size_t> (c)].store (chPeak, std::memory_order_release);   // per-channel L/R
+            // ADR-0067 §5: the per-channel peak source accumulates every block's peak since the last read.
+            perChannelPeak_[static_cast<std::size_t> (c)].publishBlock (chPeak);
             rmsCh_ [static_cast<std::size_t> (c)].store (chRms,  std::memory_order_release);
 
             if (chPeak > aggPeak)
@@ -74,44 +81,51 @@ public:
             aggCount += static_cast<std::size_t> (args.numFrames);
         }
 
-        // Clear channel slots this Block did not drive so a stale reading cannot linger on a now-silent
-        // (or removed) channel.
+        // A now-silent channel reads 0: this block drives nothing, so the source counts a zero block
+        // (the window's running max is unaffected by a zero, and the count still advances so the
+        // reader cannot linger on a stale non-zero reading).
         for (int c = channels; c < channels_; ++c)
         {
-            peakCh_[static_cast<std::size_t> (c)].store (0.0f, std::memory_order_release);
+            perChannelPeak_[static_cast<std::size_t> (c)].publishBlock (0.0f);
             rmsCh_ [static_cast<std::size_t> (c)].store (0.0f, std::memory_order_release);
         }
 
         const float aggRms = aggCount > 0 ? static_cast<float> (std::sqrt (aggSumSq / static_cast<double> (aggCount))) : 0.0f;
-        peak_.store (aggPeak, std::memory_order_release);   // single writer; UI acquire-loads
+        aggregatePeak_.publishBlock (aggPeak);   // single writer; UI reads via readPeak()
         rms_.store  (aggRms,  std::memory_order_release);
     }
 
     void reset() noexcept override
     {
-        peak_.store (0.0f, std::memory_order_release);
+        // ADR-0067 §5: a reset is NOT a block — the peak sources stay as they are, so a reset
+        // between blocks never drops the running window. RMS is this block's, so it falls to 0.
         rms_.store  (0.0f, std::memory_order_release);
         for (int c = 0; c < channels_; ++c)
-        {
-            peakCh_[static_cast<std::size_t> (c)].store (0.0f, std::memory_order_release);
             rmsCh_ [static_cast<std::size_t> (c)].store (0.0f, std::memory_order_release);
-        }
     }
 
     void release() override {}
 
     void setInput (Node* in) noexcept { input_ = in; }   // builder-only wiring
 
-    // UI / control thread: read the latest published Block metrics.
-    float peak() const noexcept { return peak_.load (std::memory_order_acquire); }   // max across channels
+    // UI / control thread: read the latest published peak reading since the last read (ADR-0067 §5).
+    // Non-const — the read advances the source's `consumed` cursor. Call once per UI tick, in the
+    // one place per source the shell designates (the tick's meter step).
+    [[nodiscard]] PeakSinceRead::Reading readPeak() noexcept   // max across channels
+    {
+        return aggregatePeak_.read();
+    }
+
+    [[nodiscard]] PeakSinceRead::Reading readPeak (int channel) noexcept
+    {
+        if (channel < 0 || channel >= kMaxMeterChannels)
+            return {};   // out of range: empty reading
+        return perChannelPeak_[static_cast<std::size_t> (channel)].read();
+    }
+
     float rms()  const noexcept { return rms_.load  (std::memory_order_acquire); }   // pooled across channels
 
-    // Per-channel readout (a stereo meter shows L and R independently). Out-of-range channels read 0.
-    float peak (int channel) const noexcept
-    {
-        return (channel >= 0 && channel < kMaxMeterChannels)
-            ? peakCh_[static_cast<std::size_t> (channel)].load (std::memory_order_acquire) : 0.0f;
-    }
+    // Per-channel RMS readout (a stereo meter shows L and R independently). Out-of-range channels read 0.
     float rms (int channel) const noexcept
     {
         return (channel >= 0 && channel < kMaxMeterChannels)
@@ -123,9 +137,9 @@ private:
     NodeId             id_;
     int                channels_;
     Node*              input_ = nullptr;
-    std::atomic<float> peak_ { 0.0f };
+    PeakSinceRead      aggregatePeak_;                                                      // ADR-0067 §5
+    std::array<PeakSinceRead, kMaxMeterChannels> perChannelPeak_ {};                         // ADR-0067 §5
     std::atomic<float> rms_  { 0.0f };
-    std::atomic<float> peakCh_[kMaxMeterChannels] {};
     std::atomic<float> rmsCh_ [kMaxMeterChannels] {};
 };
 

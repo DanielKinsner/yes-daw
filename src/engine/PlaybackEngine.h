@@ -84,8 +84,14 @@ public:
         for (const Track& track : project.tracks)
         {
             const NodeId meterNodeId = projectMixerNodeIdForTrack (track.id, ProjectMixerNodeRole::Meter);
+            // ADR-0067 §5: readPeak is non-const (it advances the source's consumed cursor), so the
+            // harvested pointer is mutable too. The engine still has the one writer (the audio thread,
+            // through MeterNode::process) and the one reader (the UI tick, through readPeak).
+            // `nodeForId` returns a const pointer: the graph itself stays unchanged — the mutation
+            // we need is on the audio-thread-written atomics inside the Meter, which the single
+            // reader (this engine's `readTrackMeterPeak`) advances through the Meter's own API.
             if (const auto* meter = dynamic_cast<const MeterNode*> (built.graph->nodeForId (meterNodeId)))
-                engine->trackMeters_.push_back ({ track.id, meter });
+                engine->trackMeters_.push_back ({ track.id, const_cast<MeterNode*> (meter) });
         }
 
         // E22: harvest the per-bus MeterNode taps on the same contract (an unrouted bus with no
@@ -94,7 +100,7 @@ public:
         {
             const NodeId meterNodeId = projectMixerNodeIdForEntity (bus.id, ProjectMixerNodeRole::Meter);
             if (const auto* meter = dynamic_cast<const MeterNode*> (built.graph->nodeForId (meterNodeId)))
-                engine->busMeters_.push_back ({ bus.id, meter });
+                engine->busMeters_.push_back ({ bus.id, const_cast<MeterNode*> (meter) });
         }
 
         // G4.2 cp2: harvest each compressor / limiter insert's gain-reduction tap on the same contract
@@ -150,35 +156,36 @@ public:
     PlaybackEngine (const PlaybackEngine&)            = delete;
     PlaybackEngine& operator= (const PlaybackEngine&) = delete;
 
-    // CONTROL THREAD: the latest per-track meter peak the audio thread published (0 for unknown
-    // Tracks or a transport-only engine). One atomic acquire-load; never blocks the audio thread.
-    [[nodiscard]] float trackMeterPeak (EntityId trackId) const noexcept
+    // CONTROL THREAD: ADR-0067 §5 — read the max of every block processed since the last read
+    // (0 when no block ran, or for unknown Tracks or a transport-only engine). Non-const because the
+    // read advances the source's `consumed` cursor; the UI tick is the one reader per source.
+    [[nodiscard]] float readTrackMeterPeak (EntityId trackId) noexcept
     {
-        for (const auto& [id, meter] : trackMeters_)
+        for (auto& [id, meter] : trackMeters_)
             if (id == trackId)
-                return meter->peak();
+                return meter->readPeak().peak;
 
         return 0.0f;
     }
 
     // V5: the per-channel twin — the rail's stereo L/R meter reads channel 0/1 through the same
-    // single acquire-load contract (0 for unknown Tracks, out-of-range channels, or a
-    // transport-only engine).
-    [[nodiscard]] float trackMeterPeakChannel (EntityId trackId, int channel) const noexcept
+    // PeakSinceRead contract (0 for unknown Tracks, out-of-range channels, or a transport-only
+    // engine).
+    [[nodiscard]] float readTrackMeterPeakChannel (EntityId trackId, int channel) noexcept
     {
-        for (const auto& [id, meter] : trackMeters_)
+        for (auto& [id, meter] : trackMeters_)
             if (id == trackId)
-                return meter->peak (channel);
+                return meter->readPeak (channel).peak;
 
         return 0.0f;
     }
 
     // E22: the per-bus twin — 0 for unknown or unrouted buses.
-    [[nodiscard]] float busMeterPeak (EntityId busId) const noexcept
+    [[nodiscard]] float readBusMeterPeak (EntityId busId) noexcept
     {
-        for (const auto& [id, meter] : busMeters_)
+        for (auto& [id, meter] : busMeters_)
             if (id == busId)
-                return meter->peak();
+                return meter->readPeak().peak;
 
         return 0.0f;
     }
@@ -778,8 +785,8 @@ private:
 
     RuntimeAudioDriver driver_;
     CompiledGraph* liveGraph_ = nullptr;   // R12: the one graph this engine runs (harvested at create())
-    std::vector<std::pair<EntityId, const MeterNode*>> trackMeters_;   // harvested at create()
-    std::vector<std::pair<EntityId, const MeterNode*>> busMeters_;     // harvested at create() (E22)
+    std::vector<std::pair<EntityId, MeterNode*>> trackMeters_;   // harvested at create() (readPeak is non-const)
+    std::vector<std::pair<EntityId, MeterNode*>> busMeters_;     // harvested at create() (E22)
     struct GainReductionTap
     {
         EntityId insertId;

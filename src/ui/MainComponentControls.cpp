@@ -582,6 +582,22 @@ void MainComponent::collectPaintedMixerControls (std::vector<ShellControl>& cont
         }
     }
 
+    // ADR-0067 §5: the master clip indicator is a painted record / Control target like a strip's
+    // meter — clickable, hoverable, keyboard-reachable and in the accessibility tree. Activation
+    // (and a mouse click on this column, routed through meterStripAtPosition) clears both
+    // channels' latch and held peak via clearMasterMeterHold. Bounds = the master meters column,
+    // the same `columns.meters` the probe publishes as `mixer.master.meters`.
+    {
+        const juce::Rectangle<int> masterMeterBounds = paintedMasterMeterColumnBounds();
+        if (! masterMeterBounds.isEmpty())
+        {
+            PaintedControl record;
+            record.activate = [this] { clearMasterMeterHold(); };
+            add ("mixer.master.meter", "Master clip indicator", ControlTargetRole::Button,
+                 masterMeterBounds, std::move (record));
+        }
+    }
+
     // The master pane's insert slots (its fader is a native slider; its meters are indicators).
     for (std::size_t slot = 0; slot < static_cast<std::size_t> (paintedMasterInsertRowCount()); ++slot)
     {

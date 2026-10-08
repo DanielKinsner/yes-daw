@@ -724,7 +724,8 @@ public:
                             peak = std::max (peak, std::abs (samples[frame]));
                     }
                 }
-                armedInputPeaks_[pick].store (peak, std::memory_order_release);
+                // ADR-0067 §5: every processed block's peak reaches the UI, not just the last.
+                armedInputPeaks_[pick].publishBlock (peak);
             }
         }
 
@@ -1360,10 +1361,12 @@ public:
         return chain != nullptr ? chain->latencySamples : 0;
     }
 
-    // E30: the armed input's live block peak (0 when unarmed) — UI meter fuel.
+    // E30: the armed input's latest UI meter reading (0 when unarmed) — UI meter fuel.
+    // ADR-0067 §5: the one reader is readArmedInputPeaks(), run once per UI tick; this returns the
+    // cached value so the sources are never read in two places.
     [[nodiscard]] float inputMeterPeak() const noexcept
     {
-        return armedInputPeaks_[0].load (std::memory_order_acquire);
+        return cachedArmedInputPeaks_[0];
     }
     [[nodiscard]] const UiRecordingDeviceSelection& recordingDeviceSelection() const noexcept { return recordingDevice_; }
     // The PRIMARY armed input (the first armed Track). With one armed Track this is the whole
@@ -1422,14 +1425,31 @@ public:
         return true;
     }
 
-    // M11: the live input block peak for ONE armed Track (0 when that Track is not armed).
+    // M11: the live input meter reading for ONE armed Track (0 when that Track is not armed).
+    // ADR-0067 §5: hands out the cached reading the UI tick's meter step wrote.
     [[nodiscard]] float inputMeterPeakForTrackIndex (std::size_t trackIndex) const noexcept
     {
         for (std::size_t i = 0; i < armedTrackInputs_.size() && i < kMaxArmedRecordingTracks; ++i)
             if (armedTrackInputs_[i].armed && armedTrackInputs_[i].trackIndex == trackIndex)
-                return armedInputPeaks_[i].load (std::memory_order_acquire);
+                return cachedArmedInputPeaks_[i];
 
         return 0.0f;
+    }
+
+    // ADR-0067 §5: the UI tick's meter step — reads every armed input's PeakSinceRead source
+    // ONCE per tick and caches the readings for the control-thread accessors above. EVERY slot
+    // is drained each tick (not just armed ones) so a slot that was armed, published blocks and
+    // then un-armed does not carry its last running max forward into its NEXT arm. Unarmed slots
+    // then report 0 to the control-thread accessors regardless of what their source last held.
+    void readArmedInputPeaks() noexcept
+    {
+        const std::size_t armedCount = std::min (armedPickCount_.load (std::memory_order_acquire),
+                                                 kMaxArmedRecordingTracks);
+        for (std::size_t i = 0; i < kMaxArmedRecordingTracks; ++i)
+        {
+            const float peak = armedInputPeaks_[i].read().peak;   // drains every slot
+            cachedArmedInputPeaks_[i] = i < armedCount ? peak : 0.0f;
+        }
     }
 
     // M11: the last committed take for EACH armed Track of the finished session, in arm order.
@@ -5181,11 +5201,11 @@ public:
         return { id, state, true };
     }
 
-    // Latest per-track meter peak published by the live playback graph (B32): one control-thread
-    // acquire-load of the MeterNode tap; 0 when no engine or no tap exists for the Track.
-    [[nodiscard]] float trackMeterPeak (engine::EntityId trackId) const noexcept
+    // ADR-0067 §5: read the max of every block since the last read (0 when no block ran or no
+    // tap exists for the Track). Non-const because the read advances the source's cursor.
+    [[nodiscard]] float readTrackMeterPeak (engine::EntityId trackId) noexcept
     {
-        return playback_ != nullptr ? playback_->trackMeterPeak (trackId) : 0.0f;
+        return playback_ != nullptr ? playback_->readTrackMeterPeak (trackId) : 0.0f;
     }
 
     // G4.2 cp2: the gain reduction (dB) a compressor / limiter insert published for its last block, on
@@ -5198,15 +5218,15 @@ public:
     }
 
     // V5: the per-channel twin for the rail's stereo L/R meter (channel 0 = left, 1 = right).
-    [[nodiscard]] float trackMeterPeakChannel (engine::EntityId trackId, int channel) const noexcept
+    [[nodiscard]] float readTrackMeterPeakChannel (engine::EntityId trackId, int channel) noexcept
     {
-        return playback_ != nullptr ? playback_->trackMeterPeakChannel (trackId, channel) : 0.0f;
+        return playback_ != nullptr ? playback_->readTrackMeterPeakChannel (trackId, channel) : 0.0f;
     }
 
     // E22: the latest per-bus meter peak (0 for unrouted buses, which project no meter node).
-    [[nodiscard]] float busMeterPeak (engine::EntityId busId) const noexcept
+    [[nodiscard]] float readBusMeterPeak (engine::EntityId busId) noexcept
     {
-        return playback_ != nullptr ? playback_->busMeterPeak (busId) : 0.0f;
+        return playback_ != nullptr ? playback_->readBusMeterPeak (busId) : 0.0f;
     }
 
     // Which Track strip (surface order) the mixer target currently points at; -1 when the target is
@@ -10774,10 +10794,10 @@ private:
         monitorChainBuilt_ = false;
         armedPickCount_.store (0u, std::memory_order_release);
         for (std::size_t index = 0; index < kMaxArmedRecordingTracks; ++index)
-        {
             armedPicksPacked_[index].store (0u, std::memory_order_release);
-            armedInputPeaks_[index].store (0.0f, std::memory_order_release);
-        }
+        // ADR-0067 §5: no control-thread stamp of 0 on the peak sources — silence comes from
+        // "no block ran" (the audio thread's publish loop skips un-armed slots), not from a
+        // second writer. The UI tick's cache fills with 0 for i >= armedCount.
         monitorDirectInput_.store (false, std::memory_order_release);
     }
 
@@ -11020,10 +11040,9 @@ private:
                     | (armedTrackInputs_[index].stereoPair ? 0x10000u : 0u),
                 std::memory_order_release);
         for (std::size_t index = armedTrackInputs_.size(); index < kMaxArmedRecordingTracks; ++index)
-        {
             armedPicksPacked_[index].store (0u, std::memory_order_release);
-            armedInputPeaks_[index].store (0.0f, std::memory_order_release);
-        }
+        // ADR-0067 §5: un-armed slots run no blocks, so no second writer stamps 0 on their peak
+        // sources — silence falls out of "no block ran" (and the UI tick's cache ignores them).
         armedPickCount_.store (armedTrackInputs_.size(), std::memory_order_release);
         // E31: DirectInput is the ONLY policy that routes the RAW input to the output.
         monitorDirectInput_.store (
@@ -13526,10 +13545,17 @@ private:
     std::uint16_t pickedInputChannel_ = 0;
     bool pickedInputStereoPair_ = false;
     // E30: each armed pick packed for the audio thread ((base+1) | stereo<<16; 0 = unarmed)
-    // and the live input block peak it publishes for that Track's UI meter (M11: one per
+    // and the live input peak source each publishes for that Track's UI meter (M11: one per
     // armed Track, so every armed strip meters its own input).
+    // ADR-0067 §5: the peak is a PeakSinceRead source — the max of every block since the last
+    // read, silence when no block ran (an un-armed input runs no blocks, so no second writer
+    // needs to stamp 0: silence falls out of the source itself).
     std::array<std::atomic<std::uint32_t>, kMaxArmedRecordingTracks> armedPicksPacked_ {};
-    std::array<std::atomic<float>, kMaxArmedRecordingTracks> armedInputPeaks_ {};
+    std::array<engine::PeakSinceRead, kMaxArmedRecordingTracks> armedInputPeaks_ {};
+    // ADR-0067 §5: the one reader per source — the UI tick's meter step fills this cache; the
+    // control-thread accessors (inputMeterPeak / inputMeterPeakForTrackIndex) hand out the cached
+    // values and never read the source directly.
+    std::array<float, kMaxArmedRecordingTracks> cachedArmedInputPeaks_ {};
     std::atomic<std::size_t> armedPickCount_ { 0 };
     // E31: DirectInput monitoring routes the armed picks into the live outputs.
     std::atomic<bool> monitorDirectInput_ { false };

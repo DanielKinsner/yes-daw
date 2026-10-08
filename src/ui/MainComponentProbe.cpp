@@ -130,14 +130,16 @@ int MainComponent::harnessVisiblePianoRollNoteCount() const
     return static_cast<int> (currentPianoRollSurface().notes.size());
 }
 
+// ADR-0067 §5: the probe reads the master's visible meter through the hold state the UI tick
+// fills — the source itself is read only in updateMasterMeterHold, so there is just one reader.
 float MainComponent::harnessVisibleMasterPeakLeft() const noexcept
 {
-    return liveMasterPeakLeft.load (std::memory_order_acquire);
+    return masterMeterHold[0].livePeak;
 }
 
 float MainComponent::harnessVisibleMasterPeakRight() const noexcept
 {
-    return liveMasterPeakRight.load (std::memory_order_acquire);
+    return masterMeterHold[1].livePeak;
 }
 
 bool MainComponent::harnessDesktopAudioOpen() const noexcept
@@ -1888,6 +1890,52 @@ bool mainComponentStripClipLatched (const juce::Component& component, int stripI
 {
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
         return mainComponent->harnessStripClipLatched (stripIndex);
+    return false;
+}
+
+bool mainComponentMasterMeterClipLatched (const juce::Component& component, int channel)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessMasterMeterClipLatched (channel);
+    return false;
+}
+
+float mainComponentMasterMeterHeldPeak (const juce::Component& component, int channel)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessMasterMeterHeldPeak (channel);
+    return 0.0f;
+}
+
+void mainComponentPublishMasterBlockForTest (juce::Component& component, float leftPeak, float rightPeak)
+{
+    auto* mainComponent = dynamic_cast<MainComponent*> (&component);
+    if (mainComponent == nullptr)
+        return;
+    // Synthesise one 128-frame block whose per-channel |sample| hits the given peak exactly, then
+    // run it through the device callback's master-meter seam (accountDeviceBlockPeaks). One block
+    // publishes to each of the master's PeakSinceRead sources — the same path the real device
+    // callback uses, no backdoor to the sources themselves.
+    constexpr int kFrames = 128;
+    std::array<float, kFrames> left {};
+    std::array<float, kFrames> right {};
+    left.fill (leftPeak);
+    right.fill (rightPeak);
+    std::array<float*, 2> outputs { left.data(), right.data() };
+    mainComponent->accountDeviceBlockPeaks (outputs.data(), 2, kFrames);
+}
+
+float mainComponentStripMeterLivePeak (const juce::Component& component, int stripIndex)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessStripMeterLivePeak (stripIndex);
+    return 0.0f;
+}
+
+bool mainComponentHarnessSetTrackFaderForTest (juce::Component& component, int trackIndex, float linearGain)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessSetTrackFaderForTest (trackIndex, linearGain);
     return false;
 }
 

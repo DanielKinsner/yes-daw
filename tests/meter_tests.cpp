@@ -59,7 +59,7 @@ TEST_CASE ("MeterNode reports the Block peak", "[meter][peak]")
     MeterNode node (1);
     meter (node, buf);
 
-    REQUIRE (node.peak() == Approx (0.8f).margin (1.0e-6));
+    REQUIRE (node.readPeak().peak == Approx (0.8f).margin (1.0e-6));
 }
 
 TEST_CASE ("MeterNode reports RMS", "[meter][rms]")
@@ -86,16 +86,23 @@ TEST_CASE ("MeterNode reports RMS", "[meter][rms]")
     }
 }
 
-TEST_CASE ("MeterNode reset() clears the published metrics", "[meter][reset]")
+TEST_CASE ("MeterNode reset() leaves the peak reading intact and clears RMS",
+           "[meter][reset][g6-motion][peak-since-read]")
 {
+    // ADR-0067 §5: a reset is NOT a block — it runs on the audio thread between blocks and must
+    // not drop the running window that spans several blocks between two UI reads. RMS is "this
+    // block's", so it still falls on reset.
     std::vector<float> buf (64, 0.9f);
     MeterNode node (1);
     meter (node, buf);
-    REQUIRE (node.peak() > 0.0f);
+    REQUIRE (node.rms() > 0.0f);
 
     node.reset();
-    REQUIRE (node.peak() == 0.0f);
     REQUIRE (node.rms()  == 0.0f);
+    // The peak reading is still the block's loud 0.9: a reset did not swallow it.
+    const auto reading = node.readPeak();
+    REQUIRE (reading.fresh);
+    REQUIRE (reading.peak == Approx (0.9f).margin (1.0e-6));
 }
 
 TEST_CASE ("MeterNode aggregates peak and RMS across channels", "[meter][multichannel]")
@@ -117,7 +124,7 @@ TEST_CASE ("MeterNode aggregates peak and RMS across channels", "[meter][multich
     float* const channels[2] = { left.data(), right.data() };
     iface.process (ProcessArgs { AudioBlock { channels, 2 }, events, transport, n });
 
-    REQUIRE (node.peak() == Approx (0.9f).margin (1.0e-6));   // the peak spans BOTH channels
+    REQUIRE (node.readPeak().peak == Approx (0.9f).margin (1.0e-6));   // the peak spans BOTH channels
 
     const double sumSq = (2.0 * n - 1.0) * (0.2 * 0.2) + (0.9 * 0.9);
     const double expectedRms = std::sqrt (sumSq / (2.0 * n));
@@ -141,8 +148,8 @@ TEST_CASE ("MeterNode publishes independent per-channel peak and RMS", "[meter][
     iface.process (ProcessArgs { AudioBlock { channels, 2 }, events, transport, n });
 
     // Per-channel peaks are distinct: L is flat 0.5, R peaks at its 0.8 spike.
-    REQUIRE (node.peak (0) == Approx (0.5f).margin (1.0e-6));
-    REQUIRE (node.peak (1) == Approx (0.8f).margin (1.0e-6));
+    REQUIRE (node.readPeak (0).peak == Approx (0.5f).margin (1.0e-6));
+    REQUIRE (node.readPeak (1).peak == Approx (0.8f).margin (1.0e-6));
 
     // Per-channel RMS is each channel's own energy, not the pooled value.
     REQUIRE (node.rms (0) == Approx (0.5).margin (1.0e-4));   // constant 0.5 -> rms 0.5
@@ -150,8 +157,9 @@ TEST_CASE ("MeterNode publishes independent per-channel peak and RMS", "[meter][
     REQUIRE (node.rms (1) == Approx (rRms).margin (1.0e-4));
 
     // The aggregate stays the max across channels, and an out-of-range channel reads 0.
-    REQUIRE (node.peak() == Approx (0.8f).margin (1.0e-6));
-    REQUIRE (node.peak (5) == 0.0f);
+    REQUIRE (node.readPeak().peak == Approx (0.8f).margin (1.0e-6));
+    REQUIRE (node.readPeak (5).peak == 0.0f);
+    REQUIRE_FALSE (node.readPeak (5).fresh);
     REQUIRE (node.rms  (5) == 0.0f);
 }
 

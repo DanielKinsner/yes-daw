@@ -104,11 +104,20 @@ void MainComponent::configureMixerControls()
         for (std::size_t i = 0; i < stripTotal; ++i)
             if (paintedMeterBoundsForLane (paintedMixerLaneBounds (i), stripIoRows (i)).contains (positionInShell))
                 return static_cast<int> (i);
+        // ADR-0067 §5: a click on the master meters column clears its latch too, through the
+        // same seam strip meters use. The sentinel is stripTotal (one past the last strip index);
+        // onMeterClicked below routes it to clearMasterMeterHold.
+        if (appModel.context().projectLoaded
+            && paintedMasterMeterColumnBounds().contains (positionInShell))
+            return static_cast<int> (stripTotal);
         return -1;
     };
     mixerStripsInput.onMeterClicked = [this] (int stripIndex) {
         const int trackCount = static_cast<int> (appModel.project().tracks.size());
-        if (stripIndex < trackCount)
+        const int busCount   = static_cast<int> (appModel.project().buses.size());
+        if (stripIndex == trackCount + busCount)
+            clearMasterMeterHold();   // ADR-0067 §5
+        else if (stripIndex < trackCount)
             clearTrackMeterHold (stripIndex);
         else
             clearBusMeterHold (stripIndex - trackCount);   // E22
@@ -1119,20 +1128,23 @@ void MainComponent::advanceMeterHold (MeterHoldState& state, float livePeak)
 
 void MainComponent::updateTrackMeterHoldStates()
 {
-    // A stopped transport reads live silence: the MeterNode atomics keep the last processed
-    // Block's peak, but a meter must fall when playback stops (the held peak still decays on
-    // its own ~2 s law and the clip latch stays until clicked).
-    const bool playing = appModel.context().isPlaying;
+    // ADR-0067 §5: every meter source is read ONCE per tick, right here. Silence comes from
+    // "no block ran" (the engine stops processing when stopped and no live note rings; an
+    // un-armed input runs no blocks either), not from a `playing ? peak : 0` flag — so a
+    // stopped strip that is actually sounding (an audition tail, a held note) meters its
+    // signal, and a clip in any block (not just the tick's last) latches.
     const auto& tracks = appModel.project().tracks;
     trackMeterHold.resize (tracks.size());
     trackMeterHoldLR.resize (tracks.size());
+    // Fill the armed-input cache before the strip loop: one reader per source per tick.
+    appModel.readArmedInputPeaks();
     for (std::size_t i = 0; i < tracks.size(); ++i)
     {
-        float peak = playing ? appModel.trackMeterPeak (tracks[i].id) : 0.0f;
+        float peak  = appModel.readTrackMeterPeak (tracks[i].id);
         // V5: the rail meters L and R independently from the MeterNode's per-channel peaks;
         // the aggregate hold stays for the mixer strip's single-column meter.
-        float peakL = playing ? appModel.trackMeterPeakChannel (tracks[i].id, 0) : 0.0f;
-        float peakR = playing ? appModel.trackMeterPeakChannel (tracks[i].id, 1) : 0.0f;
+        float peakL = appModel.readTrackMeterPeakChannel (tracks[i].id, 0);
+        float peakR = appModel.readTrackMeterPeakChannel (tracks[i].id, 1);
         // E30: the ARMED track's rail meter also shows the live input peak, so signal is
         // visible before recording — playing or stopped. M11: each armed track shows its
         // OWN picked input, so a whole armed kit meters honestly. V5: the picked input is a
@@ -1153,8 +1165,15 @@ void MainComponent::updateTrackMeterHoldStates()
     const auto& buses = appModel.project().buses;
     busMeterHold.resize (buses.size());
     for (std::size_t i = 0; i < buses.size(); ++i)
-        advanceMeterHold (busMeterHold[i],
-                          playing ? appModel.busMeterPeak (buses[i].id) : 0.0f);
+        advanceMeterHold (busMeterHold[i], appModel.readBusMeterPeak (buses[i].id));
+}
+
+// ADR-0067 §5: the master's hold / latch follows the strip law — one reader of each channel's
+// PeakSinceRead source per tick (the device callback is the one writer).
+void MainComponent::updateMasterMeterHold()
+{
+    advanceMeterHold (masterMeterHold[0], masterPeakSource[0].read().peak);
+    advanceMeterHold (masterMeterHold[1], masterPeakSource[1].read().peak);
 }
 
 void MainComponent::clearTrackMeterHold (int trackIndex)
@@ -1187,6 +1206,19 @@ void MainComponent::clearBusMeterHold (int busIndex)
     state.clipLatched = false;
     state.heldPeak = state.livePeak;
     state.holdTicksRemaining = 0;
+    repaintAll();
+}
+
+// ADR-0067 §5: the master's clip indicator (`mixer.master.meter`) or a click on the master meters
+// column clears both channels' latch and held peak on the strip law.
+void MainComponent::clearMasterMeterHold()
+{
+    for (MeterHoldState& state : masterMeterHold)
+    {
+        state.clipLatched = false;
+        state.heldPeak = state.livePeak;
+        state.holdTicksRemaining = 0;
+    }
     repaintAll();
 }
 
@@ -1744,6 +1776,26 @@ MainComponent::MasterMeterColumns MainComponent::masterMeterColumns (juce::Recta
     return columns;
 }
 
+// ADR-0067 §5: the master meters column in SHELL coordinates — the same `columns.meters` the
+// probe publishes as `mixer.master.meters`, so the paint, the painted-record hit test and the
+// mouse-click fallback share one law.
+juce::Rectangle<int> MainComponent::paintedMasterMeterColumnBounds() const
+{
+    const juce::Rectangle<int> masterBounds = paintedMixerMasterBounds();
+    if (masterBounds.isEmpty())
+        return {};
+    auto masterContent = masterBounds.reduced (yesdaw::ui::UiTheme::Layout::mixerMasterContentInsetX, 0);
+    masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterContentTop
+                                 + yesdaw::ui::UiTheme::Layout::mixerMasterLoudnessCardHeight
+                                 + yesdaw::ui::UiTheme::Layout::mixerMasterSectionGap
+                                 + yesdaw::ui::UiTheme::Layout::mixerMasterPeakCardHeight
+                                 + paintedMasterInsertsHeight()
+                                 + yesdaw::ui::UiTheme::Layout::mixerMasterMeterTopGap);
+    const MasterMeterColumns columns = masterMeterColumns (
+        masterContent.withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset));
+    return columns.meters;
+}
+
 // N5: normalized [0,1] breakpoint value for a live linear-gain fader read, matching
 // FaderNode::linearGainForNormalizedEvent's dB-range mapping exactly (its inverse) — so a
 // point recorded here plays back at the SAME gain the fader was actually at.
@@ -1910,7 +1962,10 @@ void MainComponent::drawMasterMeter (juce::Graphics& g) const
                                            - yesdaw::ui::UiTheme::Layout::headerMasterLufsGap);
     auto meter = master.removeFromTop (yesdaw::ui::UiTheme::Layout::headerMasterMeterHeight)
                      .withWidth (juce::jmax (yesdaw::ui::UiTheme::Layout::headerMasterLufsGap, meterWidth));
-    drawHorizontalMeter (g, meter, liveMasterPeakLeft.load (std::memory_order_acquire));
+    // ADR-0067 §5: the header shows the louder of the two held channels' live peak — a clip on
+    // the right alone is no longer missed, and reads come from the hold states, never the source.
+    const float headerLive = std::max (masterMeterHold[0].livePeak, masterMeterHold[1].livePeak);
+    drawHorizontalMeter (g, meter, headerLive);
 
     yesdaw::ui::drawSettingsIcon (
         g,
@@ -2397,8 +2452,10 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
         masterContent.removeFromTop (paintedMasterInsertsHeight());
     }
 
-    const float masterPeakLeft = liveMasterPeakLeft.load (std::memory_order_acquire);
-    const float masterPeakRight = liveMasterPeakRight.load (std::memory_order_acquire);
+    // ADR-0067 §5: the master pane draws its hold / latch like every strip's — the live bar from
+    // the hold state's livePeak, the held peak marker and the clip latch from the same state.
+    const MeterHoldState& masterHoldLeft = masterMeterHold[0];
+    const MeterHoldState& masterHoldRight = masterMeterHold[1];
 
     masterContent.removeFromTop (yesdaw::ui::UiTheme::Layout::mixerMasterMeterTopGap);
     const MasterMeterColumns meterColumns = masterMeterColumns (masterContent.withTrimmedBottom (
@@ -2432,8 +2489,8 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
     meterPair.removeFromLeft (yesdaw::ui::UiTheme::Layout::mixerMasterMeterGap);
     auto rightMeter = meterPair.removeFromLeft (
         yesdaw::ui::UiTheme::Layout::mixerMasterMeterWidth);
-    drawMeter (g, leftMeter, masterPeakLeft);
-    drawMeter (g, rightMeter, masterPeakRight);
+    drawMeterWithHold (g, leftMeter,  masterHoldLeft.livePeak,  masterHoldLeft.heldPeak,  masterHoldLeft.clipLatched);
+    drawMeterWithHold (g, rightMeter, masterHoldRight.livePeak, masterHoldRight.heldPeak, masterHoldRight.clipLatched);
     g.setColour (kMutedText);
     g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
     auto channelLabels = masterLane.withTrimmedTop (

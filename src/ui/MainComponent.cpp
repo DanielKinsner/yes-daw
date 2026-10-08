@@ -1984,6 +1984,7 @@ void MainComponent::serviceUiTick()
     appModel.serviceStatusLineDecay();
     refreshStatusLine();
     updateTrackMeterHoldStates();
+    updateMasterMeterHold();   // ADR-0067 §5: the master follows the strip law in the same tick step
     pushWindowTitle();
 
     // G0.4: the 391-line action-state refresh runs only when the context CHANGED (the

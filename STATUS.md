@@ -8,6 +8,33 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 — G6.4 cp1: meters read every block since the last look (ADR-0067)
+
+**Now:** ADR-0067 cp1 (meters from real state) is in; ADR-0068 (the recovery contract) is accepted (8336ef0). **Next:** a
+stale-layout fix the SS-6 smoke drive found (a drop that adds a track leaves the master pane's fader drawn over the new
+strip), then the SS-6 drive tooling and its first live run, then ADR-0068's checkpoints, then ADR-0067 cp2 (hover and
+pressed). **Decision still pending (Dan, plan §8.2):** the macOS frame exception — 505ad13 failed only that check on macOS
+(sustained 23.8 ms); RTSan and TSan green with the new meter primitive. Reported raw, not excused.
+
+**What a user gets:** a peak or a clip in ANY audio block reaches the meters — before, a meter showed one block in three
+to twelve (only the last before each 33 ms screen tick), so a short peak could be missed and the clip light could miss a
+clip. Stopped with nothing playing, meters fall to silence because no block ran (not because a flag said so), while a
+stopped track that IS sounding — a note's release, an audition — meters it. The master pane has the strips' peak hold and
+clip latch, its clip indicator is a real control (clickable, keyboard-reachable, read by a screen reader as "Master clip
+indicator"), and the header's master meter shows the louder channel (a clip on the right alone used to be missed).
+
+**How:** every metered peak (each track and bus meter tap, the master's left and right, the armed inputs) publishes
+through `PeakSinceRead`, read exactly once per UI tick into the hold states that every painter and the probe read; the
+control thread no longer writes an input's peak.
+
+**Gates:** `[g6-motion][meters]` — a track, a bus, the master and an armed input each latch a clip in a block that is
+not the tick's last; a stopped strip reads silence after a tick though its last block was loud; a stopped instrument
+track sounding an audition reads its signal; an un-armed-then-re-armed input reads silence; no device block reads
+silence and keeps the latch; the master clip indicator (by key and by mouse) clears the latch; a source inventory finds
+each meter source read only in its tick step. Each case was turned red by its own mutation and back. `meter_tests`
+re-grounded (a reset leaves the reading intact). ctest 420/420, Clang clean. **Critic:** the first gate covered the master
+and the input only; the strip, bus, stopped, audition and re-arm cases were added and mutation-checked.
+
 ## 2026-10-07 — SS-6 groundwork: the probe sees the lifecycle; finding: the shipped autosave never writes
 
 **Now:** the state probe carries what the SS-6 drive (`ss8`, drafted) asserts the project lifecycle by. ADR-0067 (G6.4) is

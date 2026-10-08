@@ -830,23 +830,35 @@ TEST_CASE ("the armed input's live meter reads the picked channel", "[ui][app][r
     std::array<float, 128> outRight {};
     std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
 
-    // Unarmed: no live input meter, whatever the device carries.
+    // ADR-0067 §5: the UI tick's meter step is the one reader per source. In the shell it runs
+    // every tick (updateTrackMeterHoldStates calls readArmedInputPeaks); the headless app model
+    // test drives it explicitly between the audio block and the control-thread accessor so the
+    // meter sees every processed block, not just the last.
+    const auto tickMeter = [&] { app.readArmedInputPeaks(); };
+
+    // Unarmed: no live input meter, whatever the device carries. No block publishes to any slot,
+    // so a tick reads silence.
     REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    tickMeter();
     REQUIRE (app.inputMeterPeak() == 0.0f);
 
     // Armed on the PICKED mono channel 1: the meter reads 0.3 — the pick, not the loudest input.
     REQUIRE (app.setRecordingInputChannel (1, false));
     REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
     REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    tickMeter();
     REQUIRE (app.inputMeterPeak() == Approx (0.3f));
 
     // The stereo pair meters the pair's max.
     REQUIRE (app.setRecordingInputChannel (0, true));
     REQUIRE (app.processDeviceAudioBlock (inputs.data(), 2, outputs.data(), 2, 128));
+    tickMeter();
     REQUIRE (app.inputMeterPeak() == Approx (0.9f));
 
-    // Disarm silences the meter immediately.
+    // Disarm: no block publishes to the slot any more, so the next tick's cache reads silence
+    // (the un-armed slot's cache is cleared to 0 by readArmedInputPeaks).
     REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    tickMeter();
     REQUIRE (app.inputMeterPeak() == 0.0f);
 
     std::error_code ec;
@@ -1569,8 +1581,14 @@ TEST_CASE ("M11 an arm SET records one take per armed track", "[ui][app][recordi
     REQUIRE (app.armedRecordingTrackInputs()[2].inputChannel == 1u);
     REQUIRE (app.armedRecordingTrackInputs()[2].stereoPair);
 
-    // Each armed track meters its OWN input, live, before the transport rolls.
+    // Each armed track meters its OWN input, live, before the transport rolls. ADR-0067 §5: the
+    // UI tick's meter step is the one reader per source — call it explicitly in this headless
+    // test so the control-thread accessors see every processed block. A drain BEFORE the publish
+    // flushes any blocks the first capture session published while the UI tick never ran (a real
+    // UI reads every 33 ms, so this is a headless-only step).
+    app.readArmedInputPeaks();   // drain carry-over from the single-arm capture above
     REQUIRE (app.processDeviceAudioBlock (inputs.data(), 4, outputs.data(), 2, 128));
+    app.readArmedInputPeaks();
     REQUIRE (app.inputMeterPeakForTrackIndex (0) == Approx (0.1f));
     REQUIRE (app.inputMeterPeakForTrackIndex (1) == Approx (0.8f));
     REQUIRE (app.inputMeterPeakForTrackIndex (2) == Approx (0.5f));   // the pair's max
@@ -1654,6 +1672,7 @@ TEST_CASE ("M11 an arm SET records one take per armed track", "[ui][app][recordi
     REQUIRE_FALSE (app.isRecordingTrackIndexArmed (1));
     REQUIRE (app.isRecordingTrackIndexArmed (2));
     REQUIRE (app.processDeviceAudioBlock (inputs.data(), 4, outputs.data(), 2, 128));
+    app.readArmedInputPeaks();   // ADR-0067 §5: the tick's one reader fills the cache
     REQUIRE (app.inputMeterPeakForTrackIndex (1) == 0.0f);
 
     runCaptureSession();

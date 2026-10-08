@@ -157,8 +157,10 @@ void MainComponent::accountDeviceBlockPeaks (float* const* outputChannels,
                 }
     }
 
-    liveMasterPeakLeft.store (leftPeak, std::memory_order_release);
-    liveMasterPeakRight.store (rightPeak, std::memory_order_release);
+    // ADR-0067 §5: every device block's L/R peak reaches the UI, not just the last before a tick.
+    // One writer (this device callback), one reader (the UI tick's updateMasterMeterHold).
+    masterPeakSource[0].publishBlock (leftPeak);
+    masterPeakSource[1].publishBlock (rightPeak);
 
     deviceAudioCallbackBlockCount.fetch_add (1u, std::memory_order_relaxed);
     if (peak > 0.000001f)

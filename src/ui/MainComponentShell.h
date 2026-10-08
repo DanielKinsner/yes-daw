@@ -294,6 +294,40 @@ public:
     void harnessLatchStripClip (int stripIndex);
     [[nodiscard]] bool harnessStripClipLatched (int stripIndex) const;
 
+    // ADR-0067 §5: observe the master's hold / latch for the [g6-motion][meters] gate.
+    [[nodiscard]] bool harnessMasterMeterClipLatched (int channel) const
+    {
+        return channel >= 0 && channel < 2 && masterMeterHold[static_cast<std::size_t> (channel)].clipLatched;
+    }
+    [[nodiscard]] float harnessMasterMeterHeldPeak (int channel) const
+    {
+        return channel >= 0 && channel < 2 ? masterMeterHold[static_cast<std::size_t> (channel)].heldPeak : 0.0f;
+    }
+
+    // ADR-0067 §5: the strip's live-meter reading (track or bus, in the same stripIndex space the
+    // probe uses — tracks first, then buses). The hold state's livePeak is what the paint reads.
+    [[nodiscard]] float harnessStripMeterLivePeak (int stripIndex) const
+    {
+        const int trackCount = static_cast<int> (trackMeterHold.size());
+        if (stripIndex >= 0 && stripIndex < trackCount)
+            return trackMeterHold[static_cast<std::size_t> (stripIndex)].livePeak;
+        if (stripIndex >= trackCount && stripIndex - trackCount < static_cast<int> (busMeterHold.size()))
+            return busMeterHold[static_cast<std::size_t> (stripIndex - trackCount)].livePeak;
+        return 0.0f;
+    }
+
+    // ADR-0067 §5 [g6-motion][meters]: boost a track's fader through the model's scalar edit —
+    // selectMixerTrack + setSelectedMixerFader — so a headless gate can push the signal past
+    // clipThreshold without a message-loop drag that fires the shell's own 33 ms timer.
+    [[nodiscard]] bool harnessSetTrackFaderForTest (int trackIndex, float linearGain)
+    {
+        if (trackIndex < 0 || static_cast<std::size_t> (trackIndex) >= appModel.project().tracks.size())
+            return false;
+        if (! appModel.selectMixerTrack (static_cast<std::size_t> (trackIndex), /*showMixerPanel*/ false))
+            return false;
+        return appModel.setSelectedMixerFader (linearGain).dispatched;
+    }
+
     // V3: the dock's OWN reserved rect — height collapses to (near) zero when the toggle hides
     // it, the same law every layout function (timelineBounds/leftRailPanelBounds/inspectorBounds
     // /this) shares via dockedMixerHeight().
@@ -569,10 +603,18 @@ private:
 
     void updateTrackMeterHoldStates();
 
+    // ADR-0067 §5: the master joins the strip law — one reader per source per tick (the master's
+    // own masterPeakSource L/R), then advanceMeterHold against masterMeterHold[0/1].
+    void updateMasterMeterHold();
+
     void clearTrackMeterHold (int trackIndex);
 
     // E22: a click on a painted BUS meter clears its hold and latch, like the track law.
     void clearBusMeterHold (int busIndex);
+
+    // ADR-0067 §5: a click (or the `mixer.master.meter` painted record's activation) clears both
+    // master channels' held peak and clip latch on the strip law.
+    void clearMasterMeterHold();
 
     // Live gain readout in dB (B31): 20*log10(linear gain), "-inf dB" at silence.
     [[nodiscard]] static juce::String dbReadoutText (double linearGain);
@@ -633,6 +675,11 @@ private:
         juce::Rectangle<int> scale, fader, meters;
     };
     [[nodiscard]] static MasterMeterColumns masterMeterColumns (juce::Rectangle<int> meterArea) noexcept;
+
+    // ADR-0067 §5: the master meters column in SHELL coordinates — the same `columns.meters` the
+    // probe publishes as `mixer.master.meters`. Shared by the painted record and the mouse hit
+    // test (so a click on the column clears the master's hold / latch).
+    [[nodiscard]] juce::Rectangle<int> paintedMasterMeterColumnBounds() const;
     void scrollMixerStripsBy (int stripDelta);
     void revealMixerStrip (int stripOrdinal);   // the least offset change that shows it (no-op when it is shown)
     void layoutMixerScrollBar();
@@ -1363,8 +1410,11 @@ private:
     std::atomic<bool> desktopAudioOpen { false };
     std::atomic<std::uint32_t> deviceAudioCallbackBlockCount { 0u };
     std::atomic<std::uint32_t> deviceAudioNonSilentBlockCount { 0u };
-    std::atomic<float> liveMasterPeakLeft { 0.0f };
-    std::atomic<float> liveMasterPeakRight { 0.0f };
+    // ADR-0067 §5: the device callback's master peak is a PeakSinceRead source per channel, so a
+    // loud block that is not the last before a tick cannot be lost; the UI tick's readPeak feeds
+    // the master hold / latch state like every strip's.
+    std::array<yesdaw::engine::PeakSinceRead, 2> masterPeakSource {};
+    std::array<MeterHoldState, 2> masterMeterHold {};
     std::vector<shell::TrackRow> projectTimelineTracks;
     std::vector<yesdaw::ui::Clip> timelineClips;
     std::vector<yesdaw::ui::TimelineClipNote> timelineClipNotes;   // M7: MIDI clip note previews

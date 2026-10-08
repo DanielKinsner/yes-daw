@@ -2263,11 +2263,375 @@ TEST_CASE ("shipped MainComponent device callback renders playing Project audio"
     REQUIRE (peakAbs (left) > 0.01);
     REQUIRE (peakAbs (right) > 0.01);
 
+    // ADR-0067 §5: visibleMasterPeakLeft/Right come from the master's hold state, which the UI
+    // tick fills by reading each master channel's PeakSinceRead source once. A snapshot taken
+    // before the tick would see the hold state's prior values (silence).
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
     const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.deviceAudioCallbackBlockCount == 1u);
     REQUIRE (snapshot.deviceAudioNonSilentBlockCount == 1u);
     REQUIRE (snapshot.visibleMasterPeakLeft > 0.01f);
     REQUIRE (snapshot.visibleMasterPeakRight > 0.01f);
+}
+
+// ADR-0067 §5: every meter in the shell is a PeakSinceRead source — the max of every block since
+// the last UI tick, silence when no block ran. The gate drives several device blocks between two
+// ticks and proves nothing is lost: a loud block in the middle still reaches the meter, a run
+// with no block falls to silence, the clip latch catches it, the master's record clears it.
+TEST_CASE ("[g6-motion][meters]: PeakSinceRead carries every block to master, input and strip meters",
+           "[ui][input][shell][mixer][g6-motion][meters]")
+{
+    using yesdaw::ui::UiActionId;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("g6-motion-meters");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    const auto tick = [&] { yesdaw::ui::mainComponentServiceUiTick (*shell); };
+
+    // -------------------------------------------------- (a) the master latches a mid-run clip ---
+    // Blocks: a loud 1.0 block, then quiet blocks (both channels), then one tick. The loud block
+    // is NOT the last before the tick, so under "last-block only" the master would miss it; under
+    // PeakSinceRead it is in the window and the clip latches.
+    yesdaw::ui::mainComponentPublishMasterBlockForTest (*shell, 1.0f, 1.0f);
+    yesdaw::ui::mainComponentPublishMasterBlockForTest (*shell, 0.1f, 0.1f);
+    yesdaw::ui::mainComponentPublishMasterBlockForTest (*shell, 0.0f, 0.0f);
+    tick();
+    REQUIRE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 0));
+    REQUIRE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 1));
+    REQUIRE (yesdaw::ui::mainComponentMasterMeterHeldPeak (*shell, 0) >= 1.0f);
+    REQUIRE (yesdaw::ui::mainComponentMasterMeterHeldPeak (*shell, 1) >= 1.0f);
+    // Clear the latch for the next sub-case through the record's activation (gate (f)).
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "mixer.master.meter"));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 0));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 1));
+
+    // ------------------------------------- (b) an armed input latches / peaks the same way ---
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+    REQUIRE (snapshotMainComponent (*shell).context.recordingTrackArmed);
+
+    std::array<float, 128> loudIn {};
+    std::array<float, 128> quietIn {};
+    std::array<float, 128> silenceIn {};
+    loudIn.fill (1.0f);
+    quietIn.fill (0.1f);
+    silenceIn.fill (0.0f);
+    std::array<float, 128> outLeft {};
+    std::array<float, 128> outRight {};
+    std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
+
+    const auto inputBlock = [&] (const std::array<float, 128>& ch0, const std::array<float, 128>& ch1) {
+        std::array<const float*, 2> inputs { ch0.data(), ch1.data() };
+        REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (
+            *shell, inputs.data(), 2, outputs.data(), 2, 128));
+    };
+
+    inputBlock (loudIn, silenceIn);     // loud block NOT last
+    inputBlock (quietIn, silenceIn);
+    inputBlock (silenceIn, silenceIn);
+    tick();
+    REQUIRE (snapshotMainComponent (*shell).liveInputMeterPeak == Catch::Approx (1.0f));
+    // The armed track's own strip meter also catches the clip — the 1.0 input peak feeds into
+    // the strip's livePeak through updateTrackMeterHoldStates' armed-input branch, and the strip
+    // law latches at >= clipThreshold just as the input source did.
+    REQUIRE (yesdaw::ui::mainComponentStripClipLatched (*shell, 0));
+
+    // -- (c) no device block between ticks: master and input read silence; the latch stays ------
+    // Re-latch so we can prove silence does NOT clear it.
+    yesdaw::ui::mainComponentPublishMasterBlockForTest (*shell, 1.0f, 1.0f);
+    tick();
+    REQUIRE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 0));
+    REQUIRE (yesdaw::ui::mainComponentMasterMeterHeldPeak (*shell, 0) >= 1.0f);
+    // No publish between the two ticks: the sources have no fresh block, the hold state's live
+    // peak falls to 0 under the strip law, and the latch stays until a click.
+    tick();
+    REQUIRE (snapshotMainComponent (*shell).visibleMasterPeakLeft == 0.0f);
+    REQUIRE (snapshotMainComponent (*shell).visibleMasterPeakRight == 0.0f);
+    REQUIRE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 0));
+    REQUIRE (snapshotMainComponent (*shell).liveInputMeterPeak == 0.0f);   // no new input block either
+
+    // ------------------- (d) + (e) stripped of `playing ? peak : 0` ---------------------------
+    // ADR-0067 §5 drops that gate. The master's MeterNode last ran its graph while playing (one
+    // block); afterwards the engine does not run the graph again. Under PeakSinceRead the next
+    // tick still sees that block; under `playing ? peak : 0` the stop would blank the strip to
+    // 0. Driven here through processMainComponentDeviceAudioBlock + dispatchAction (which does
+    // NOT run the message loop, unlike clickButton) so the shell's own 33 ms timer cannot fire
+    // between the publish and the explicit tick and consume the source behind our backs.
+    //
+    // Clear carry-over from (c) first so this sub-case stands on its own.
+    yesdaw::ui::mainComponentPublishMasterBlockForTest (*shell, 0.0f, 0.0f);
+    tick();
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "mixer.master.meter"));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportPlay);
+    REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*shell, outputs.data(), 2, 128));
+    REQUIRE (peakAbs (outLeft) > 0.01);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    tick();
+    const auto afterStop = snapshotMainComponent (*shell);
+    REQUIRE (afterStop.visibleMasterPeakLeft > 0.0f);   // master saw the real device block
+
+    // (e) stopped with nothing live: the next tick reads silence again (no new publish).
+    tick();
+    REQUIRE (snapshotMainComponent (*shell).visibleMasterPeakLeft == 0.0f);
+
+    // ----------------- (f) a mouse click on the master meters column clears the master latch ---
+    yesdaw::ui::mainComponentPublishMasterBlockForTest (*shell, 1.0f, 1.0f);
+    tick();
+    REQUIRE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 0));
+    // probeRoot's definition sits later in this file; use the direct string the probe emits.
+    const juce::var probeState = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)));
+    const juce::var layout = probeState["layout"];
+    const juce::var mastersMeters = layout.getProperty ("mixer.master.meters", juce::var());
+    REQUIRE (mastersMeters.isArray());
+    REQUIRE (mastersMeters.size() == 4);
+    const juce::Rectangle<int> metersColumn (static_cast<int> (mastersMeters[0]), static_cast<int> (mastersMeters[1]),
+                                             static_cast<int> (mastersMeters[2]), static_cast<int> (mastersMeters[3]));
+    REQUIRE_FALSE (metersColumn.isEmpty());
+    const juce::Point<int> inStrips = metersColumn.getCentre() - strips->getPosition();
+    mouseDownAt (*strips, inStrips);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 0));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 1));
+
+    // --------------------------------------------- (g) source inventory under src/ui/ ---------
+    // The meter-source reads appear ONLY in the UI tick's meter steps:
+    //   - masterPeakSource[0/1].read       → MainComponent::updateMasterMeterHold
+    //   - appModel.readTrackMeterPeak{,Channel}, appModel.readBusMeterPeak,
+    //     appModel.readArmedInputPeaks     → MainComponent::updateTrackMeterHoldStates
+    //
+    // Any new reader (a painter sneaking a .read into drawMaster, a probe adding a direct read)
+    // would show up here and fail the audit. publishBlock sites are not counted (they're writes
+    // on the audio thread, which has one writer per source).
+    {
+        const std::filesystem::path uiDir = std::filesystem::path (YESDAW_SOURCE_DIR) / "src" / "ui";
+        auto readFile = [] (const std::filesystem::path& path) {
+            std::ifstream in (path, std::ios::binary);
+            std::stringstream ss;
+            ss << in.rdbuf();
+            return ss.str();
+        };
+        // Count every match of a needle in src/ui/*.cpp and *.h, except in UiAppModel.h (the
+        // forwarder definitions, not call sites that advance a cursor beyond the shell).
+        auto countAcrossUi = [&] (const std::string& needle, const std::string& skipFile) {
+            std::size_t total = 0;
+            for (const auto& entry : std::filesystem::recursive_directory_iterator (uiDir))
+            {
+                if (! entry.is_regular_file()) continue;
+                const auto path = entry.path();
+                const auto ext = path.extension().string();
+                if (ext != ".cpp" && ext != ".h") continue;
+                if (path.filename().string() == skipFile) continue;
+                const std::string content = readFile (path);
+                std::size_t pos = 0;
+                while ((pos = content.find (needle, pos)) != std::string::npos)
+                {
+                    ++total;
+                    ++pos;
+                }
+            }
+            return total;
+        };
+        // The master source is read in exactly two places (left and right channel), both inside
+        // updateMasterMeterHold in MainComponentMixer.cpp.
+        REQUIRE (countAcrossUi ("masterPeakSource[0].read", "") == 1u);
+        REQUIRE (countAcrossUi ("masterPeakSource[1].read", "") == 1u);
+        // The engine-side readers are called in exactly one site each.
+        REQUIRE (countAcrossUi ("readTrackMeterPeak (", "UiAppModel.h") == 1u);
+        REQUIRE (countAcrossUi ("readTrackMeterPeakChannel (", "UiAppModel.h") == 2u);   // L and R
+        REQUIRE (countAcrossUi ("readBusMeterPeak (", "UiAppModel.h") == 1u);
+        // readArmedInputPeaks is called by the shell in exactly one place.
+        REQUIRE (countAcrossUi ("readArmedInputPeaks()", "UiAppModel.h") == 1u);
+    }
+
+    // -------------------------------------------------------------------------------------------
+    // B1-B5: the ADR's track + bus + stopped-strip + audition + input-rearm clauses, through the
+    // live engine path (no mainComponentLatchStripClip backdoor to strip latches).
+    //
+    // Clear carry-over state so the sub-cases below stand on their own.
+    yesdaw::ui::mainComponentPublishMasterBlockForTest (*shell, 0.0f, 0.0f);
+    tick();
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "mixer.master.meter"));
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+    // Un-arm track 0 so the strip-meter sub-cases below reflect only the engine's post-fader
+    // output (not the armed-input injection path).
+    if (snapshotMainComponent (*shell).context.recordingTrackArmed)
+        clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.recordingTrackArmed);
+    tick();
+    // Clear track 0's clip latch so B1 proves the engine's own post-fader signal reached it (the
+    // armed-input injection in sub-case (b) already latched the strip; the mutation check needs
+    // a false→true transition driven by the engine, not a stale latch).
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    {
+        juce::Component* stripsHit = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+        REQUIRE (stripsHit != nullptr);
+        const juce::var layoutClear = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["layout"];
+        const juce::var meter0 = layoutClear.getProperty ("mixer.strip.0.meter", juce::var());
+        REQUIRE ((meter0.isArray() && meter0.size() == 4));
+        const juce::Rectangle<int> meter0Rect (static_cast<int> (meter0[0]), static_cast<int> (meter0[1]),
+                                               static_cast<int> (meter0[2]), static_cast<int> (meter0[3]));
+        mouseDownAt (*stripsHit, meter0Rect.getCentre() - stripsHit->getPosition());
+    }
+    REQUIRE_FALSE (yesdaw::ui::mainComponentStripClipLatched (*shell, 0));
+
+    // =========================================================================================
+    // B1: a TRACK strip latches a clip in a block that is NOT the tick's last, through the live
+    // path. Boost track 0's fader so the imported sine fixture peaks past clipThreshold at its
+    // MeterNode, drive it through processMainComponentDeviceAudioBlock, then STOP (so later
+    // ticks run with context.isPlaying = false — the mutation point). PeakSinceRead carries the
+    // engine's loud publish forward to the next tick; the `playing ? peak : 0` regression would
+    // blank it.
+    REQUIRE (yesdaw::ui::mainComponentHarnessSetTrackFaderForTest (*shell, 0, 10.0f));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportPlay);
+    REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*shell, outputs.data(), 2, 128));
+    REQUIRE (peakAbs (outLeft) >= yesdaw::ui::UiTheme::Meter::clipThreshold);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    tick();
+    REQUIRE (yesdaw::ui::mainComponentStripClipLatched (*shell, 0));
+
+    // =========================================================================================
+    // B2: a BUS strip latches the same way. Route track 0's output to a NEW bus (one dispatch),
+    // play again, process one block (now also through the bus's own MeterNode), stop, tick.
+    const std::uint64_t replaceBefore = snapshotMainComponent (*shell).playbackReplaceCount;
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerTrackRouteToNewBus);
+    const auto afterRoute = snapshotMainComponent (*shell);
+    const int busStripIndex = static_cast<int> (afterRoute.visibleMixerTrackCount);
+    REQUIRE (busStripIndex >= 1);
+    REQUIRE (afterRoute.visibleMixerBusCount == 1);
+    REQUIRE (afterRoute.playbackReplaceCount > replaceBefore);   // the engine was rebuilt with the bus
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportPlay);
+    // Multiple blocks: the first block out of a fresh engine often ramps / primes; capture a
+    // confirmed-loud block, then stop and tick.
+    for (int i = 0; i < 4; ++i)
+    {
+        REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*shell, outputs.data(), 2, 128));
+        if (peakAbs (outLeft) >= yesdaw::ui::UiTheme::Meter::clipThreshold)
+            break;
+    }
+    REQUIRE (peakAbs (outLeft) >= yesdaw::ui::UiTheme::Meter::clipThreshold);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    tick();
+    INFO ("bus strip livePeak = " << yesdaw::ui::mainComponentStripMeterLivePeak (*shell, busStripIndex));
+    REQUIRE (yesdaw::ui::mainComponentStripClipLatched (*shell, busStripIndex));
+
+    // =========================================================================================
+    // B3: a stopped STRIP whose graph does not run reads SILENCE after one tick though its last
+    // playing block was loud. Starting fresh (clear every strip's latch so the previous B1/B2
+    // state doesn't carry a stale livePeak into the first tick), play one loud block, stop,
+    // tick (shows the loud block — the strip's livePeak reflects it), then tick again with no
+    // intervening block (the source has no fresh data; livePeak falls to 0 while the latch stays).
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    {
+        juce::Component* stripsHit = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+        REQUIRE (stripsHit != nullptr);
+        const juce::var layoutClear = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["layout"];
+        for (int strip = 0; strip <= busStripIndex; ++strip)
+        {
+            if (! yesdaw::ui::mainComponentStripClipLatched (*shell, strip))
+                continue;
+            const juce::String key = "mixer.strip." + juce::String (strip) + ".meter";
+            const juce::var meterRectVar = layoutClear.getProperty (key, juce::var());
+            if (meterRectVar.isArray() && meterRectVar.size() == 4)
+            {
+                const juce::Rectangle<int> meterRect (static_cast<int> (meterRectVar[0]), static_cast<int> (meterRectVar[1]),
+                                                       static_cast<int> (meterRectVar[2]), static_cast<int> (meterRectVar[3]));
+                mouseDownAt (*stripsHit, meterRect.getCentre() - stripsHit->getPosition());
+            }
+        }
+    }
+    tick();
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportPlay);
+    REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*shell, outputs.data(), 2, 128));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    tick();   // the stop tick: strip's livePeak reflects the engine's loud block
+    REQUIRE (yesdaw::ui::mainComponentStripMeterLivePeak (*shell, 0) > 0.0f);
+    const bool b3Latched = yesdaw::ui::mainComponentStripClipLatched (*shell, 0);
+    tick();   // one more tick with no device block
+    REQUIRE (yesdaw::ui::mainComponentStripMeterLivePeak (*shell, 0) == 0.0f);
+    // The latch is sticky: if B3's loud block pushed past clipThreshold, the latch stays after
+    // silence (`playing ? peak : 0` would mean the strip never saw the loud block in the first
+    // place and could not latch). If it didn't, both ticks keep the latch false.
+    REQUIRE (yesdaw::ui::mainComponentStripClipLatched (*shell, 0) == b3Latched);
+
+    // =========================================================================================
+    // B4: a stopped strip sounding an AUDITION TAIL reads its signal (the `playing ? peak : 0`
+    // regression blanks it). Run B4 on a FRESH shell with a MIDI-instrument track so the
+    // audition path makes real audio through processLiveOnlyBlock with the transport stopped.
+    {
+        const std::filesystem::path auditionBundlePath = makeTempBundlePath ("g6-motion-meters-audition");
+        MainComponentFileChoices auditionChoices;
+        auditionChoices.chooseNewProjectBundle = [auditionBundlePath] { return auditionBundlePath; };
+        auto auditionShell = makeShell (std::move (auditionChoices));
+        clickButton (requireButtonForAction (*auditionShell, UiActionId::ProjectNew));
+        // TimelineMidiClipAdd creates the first MIDI track (with its instrument) and the clip;
+        // the piano roll opens with the track's instrument ready to audition through.
+        yesdaw::ui::mainComponentDispatchAction (*auditionShell, UiActionId::TimelineMidiClipAdd);
+        REQUIRE (yesdaw::ui::mainComponentHarnessSetTrackFaderForTest (*auditionShell, 0, 10.0f));
+
+        // Audition middle C: the engine's processLiveOnlyBlock sounds the voice while stopped.
+        REQUIRE (yesdaw::ui::mainComponentAuditionNote (*auditionShell, 60, true));
+        std::array<float, 128> auditionLeft {};
+        std::array<float, 128> auditionRight {};
+        std::array<float*, 2> auditionOutputs { auditionLeft.data(), auditionRight.data() };
+        bool heardSomething = false;
+        for (int i = 0; i < 32 && ! heardSomething; ++i)
+        {
+            REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*auditionShell, auditionOutputs.data(), 2, 128));
+            heardSomething = peakAbs (auditionLeft) > 0.001;
+        }
+        REQUIRE (heardSomething);
+        yesdaw::ui::mainComponentServiceUiTick (*auditionShell);
+        // The track meter's livePeak reflects the audition tail even though transport is stopped
+        // (the OLD `playing ? peak : 0` would blank it to 0).
+        REQUIRE (yesdaw::ui::mainComponentStripMeterLivePeak (*auditionShell, 0) > 0.0f);
+        REQUIRE_FALSE (snapshotMainComponent (*auditionShell).context.isPlaying);
+
+        (void) yesdaw::ui::mainComponentAuditionNote (*auditionShell, 60, false);
+        std::error_code auditionEc;
+        std::filesystem::remove_all (auditionBundlePath, auditionEc);
+    }
+
+    // =========================================================================================
+    // B5: an input un-armed after a loud block and re-armed on silence reads silence, with the UI
+    // tick running between (as the real app does). The ADR's single-writer law: the control
+    // thread must never store 0 on the slot — silence falls out of "no block ran" + the tick
+    // step's drain. Any one-tick carry-over here would be a bug.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+    tick();
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));   // arm track 0 again
+    REQUIRE (snapshotMainComponent (*shell).context.recordingTrackArmed);
+    inputBlock (loudIn, silenceIn);
+    tick();
+    REQUIRE (snapshotMainComponent (*shell).liveInputMeterPeak == Catch::Approx (1.0f));
+
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));   // un-arm
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.recordingTrackArmed);
+    tick();
+    REQUIRE (snapshotMainComponent (*shell).liveInputMeterPeak == 0.0f);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));   // re-arm
+    REQUIRE (snapshotMainComponent (*shell).context.recordingTrackArmed);
+    inputBlock (silenceIn, silenceIn);   // the re-armed slot's first block is silent
+    tick();
+    REQUIRE (snapshotMainComponent (*shell).liveInputMeterPeak == 0.0f);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 // ADR-0053: Master Dim and Mute are the device callback's LAST stage — the header meter still shows the signal,
@@ -2305,7 +2669,14 @@ TEST_CASE ("ADR-0053 Master Dim and Mute act on the speakers only, lit and named
     std::array<float, 128> left {};
     std::array<float, 128> right {};
     std::array<float*, 2> outputs { left.data(), right.data() };
-    const auto block = [&] { REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*shell, outputs.data(), 2, 128)); };
+    const auto block = [&] {
+        REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (*shell, outputs.data(), 2, 128));
+        // ADR-0067 §5: the UI tick's meter step is the one reader of each master channel's
+        // PeakSinceRead source; run it right after the device block so the hold state carries the
+        // block's peak the test will assert against. Calling tick once per block (not once per
+        // snapshot read) keeps the hold state stable across repeated meterPeak() queries.
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+    };
     const auto meterPeak = [&] { return snapshotMainComponent (*shell).visibleMasterPeakLeft; };
 
     block();
@@ -13296,10 +13667,14 @@ TEST_CASE ("the shell's armed rail meter shows the live input peak", "[ui][input
     std::array<float*, 2> outputs { outLeft.data(), outRight.data() };
     REQUIRE (yesdaw::ui::processMainComponentDeviceAudioBlock (
         *shell, inputs.data(), 2, outputs.data(), 2, 128));
+    // ADR-0067 §5: the shell snapshot's liveInputMeterPeak is the cache the UI tick's meter
+    // step fills; run a tick so the audio block's publish reaches the cache.
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
     REQUIRE (snapshotMainComponent (*shell).liveInputMeterPeak == Catch::Approx (0.7f));
 
-    // Disarm: the meter reads silent again.
+    // Disarm: no block publishes to the slot any more, so the next tick's cache reads silence.
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
     REQUIRE (snapshotMainComponent (*shell).liveInputMeterPeak == 0.0f);
 }
 

@@ -233,6 +233,26 @@ struct MainComponentSnapshot
 void mainComponentLatchStripClip (juce::Component& component, int stripIndex);
 [[nodiscard]] bool mainComponentStripClipLatched (const juce::Component& component, int stripIndex);
 
+// ADR-0067 §5 [g6-motion][meters]: observe the master's hold / latch (channel 0 = left, 1 = right).
+[[nodiscard]] bool mainComponentMasterMeterClipLatched (const juce::Component& component, int channel);
+[[nodiscard]] float mainComponentMasterMeterHeldPeak (const juce::Component& component, int channel);
+
+// ADR-0067 §5 [g6-motion][meters]: run one block of synthetic L/R audio through the device
+// callback's master-meter seam (accountDeviceBlockPeaks). The gate drives several blocks between
+// two UI ticks to prove PeakSinceRead carries every block's peak, not just the last.
+void mainComponentPublishMasterBlockForTest (juce::Component& component, float leftPeak, float rightPeak);
+
+// ADR-0067 §5 [g6-motion][meters]: the strip's live meter reading (0 when no strip at that index
+// or the UI tick's meter step has not run). Reads trackMeterHold[i].livePeak for a track strip
+// index, and busMeterHold[i - trackCount].livePeak past the last track.
+[[nodiscard]] float mainComponentStripMeterLivePeak (const juce::Component& component, int stripIndex);
+
+// ADR-0067 §5 [g6-motion][meters]: boost a track's fader straight through the model's scalar
+// edit (selectMixerTrack + setSelectedMixerFader) so the headless gate can push a signal past
+// clipThreshold without a message-loop drag. Returns false if the project is unloaded, the
+// index is out of range, or the gain is invalid.
+[[nodiscard]] bool mainComponentHarnessSetTrackFaderForTest (juce::Component& component, int trackIndex, float linearGain);
+
 // V3: the dock's own reserved rect — collapses (near) zero height when the show/hide toggle
 // hides it. The SAME law every layout function (timeline/rail/inspector/this) shares.
 [[nodiscard]] juce::Rectangle<int> mainComponentMixerPanelBounds (const juce::Component& component);
