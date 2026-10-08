@@ -25,6 +25,8 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     stateProbePath = fileChoices.stateProbePath;
     if (fileChoices.autosaveIntervalMs > 0)
         appModel.setAutosaveIntervalMs (fileChoices.autosaveIntervalMs);
+    if (fileChoices.exportPaceMs > 0)
+        appModel.setExportPaceMilliseconds (static_cast<std::uint32_t> (fileChoices.exportPaceMs));
     launchStamp = std::chrono::steady_clock::now();
     auto startupStageStamp = launchStamp;
     std::optional<std::ostringstream> startupTimings;

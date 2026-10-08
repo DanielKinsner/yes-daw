@@ -156,6 +156,40 @@ TEST_CASE ("ADR-0058 Cancel ends a running export with no file and no count", "[
     REQUIRE (f.model.context().audioExportCancelCount == 1);
 }
 
+// SS-6: the drive's pacing seam (YESDAW_EXPORT_PACE_MS) holds a job mid-write - its temporary on disk - while still
+// answering Cancel, and a paced job left alone finishes whole. Off (0) in every normal run.
+TEST_CASE ("SS-6 a paced export is mid-write until cancelled, and finishes whole when left alone", "[export-job][drive-seam]")
+{
+    ExportModel f ("paced");
+    REQUIRE (f.model.exportPaceMilliseconds() == 0u);
+    f.model.setExportPaceMilliseconds (1500);
+    const auto cancelled = f.directory / "paced-cancel.wav";
+    REQUIRE (f.model.startAudioExport (cancelled).dispatched);
+    bool partialSeen = false;
+    for (int i = 0; i < 1000 && ! partialSeen; ++i)
+    {
+        for (const auto& entry : std::filesystem::directory_iterator (f.directory))
+            partialSeen = partialSeen || entry.path().extension() == ".partial";
+        std::this_thread::sleep_for (std::chrono::milliseconds (2));
+    }
+    REQUIRE (partialSeen);                    // genuinely mid-write
+    REQUIRE (f.model.exportRunning());
+    REQUIRE (f.model.dispatch (UiActionId::ProjectExportAudioCancel).dispatched);
+    f.model.waitForExport();
+    REQUIRE (f.model.lastExportResult() == "cancelled");
+    REQUIRE_FALSE (std::filesystem::exists (cancelled));
+    for (const auto& entry : std::filesystem::directory_iterator (f.directory))
+        REQUIRE (entry.path().extension() != ".partial");
+
+    const auto whole = f.directory / "paced-whole.wav";
+    const auto started = std::chrono::steady_clock::now();
+    REQUIRE (f.model.startAudioExport (whole).dispatched);
+    f.model.waitForExport();
+    REQUIRE (std::chrono::steady_clock::now() - started >= std::chrono::milliseconds (1500));
+    REQUIRE (f.model.lastExportResult() == "succeeded");
+    REQUIRE (std::filesystem::exists (whole));
+}
+
 TEST_CASE ("ADR-0058 opening another project retires a running export silently; destroying the model joins it",
            "[export-job]")
 {

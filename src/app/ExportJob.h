@@ -101,6 +101,11 @@ struct ExportSnapshot
     };
     std::vector<Stem> stems;
     bool includeMix = true;
+
+    // The Session drive's pacing (YESDAW_EXPORT_PACE_MS; 0 = off, as in every normal run): after the first chunk of the
+    // first file is in its temporary, the worker waits this long (still answering Cancel), so a drive can cancel, refuse
+    // a second export and replace the project while a job is genuinely mid-write.
+    std::uint32_t paceMilliseconds = 0;
 };
 
 // ADR-0058 cp3: a strip's name as a file-name part — one rule set on every platform: `< > : " / \ | ? *` and control
@@ -301,6 +306,17 @@ private:
 
     [[nodiscard]] bool cancelled() const noexcept { return cancelRequested_.load (std::memory_order_acquire); }
 
+    // The drive's pacing, once per job, after the first chunk is written (the worker thread; never the audio thread).
+    void paceOnce() noexcept
+    {
+        if (paced_ || snapshot_.paceMilliseconds == 0u)
+            return;
+        paced_ = true;
+        const auto until = std::chrono::steady_clock::now() + std::chrono::milliseconds (snapshot_.paceMilliseconds);
+        while (! cancelled() && std::chrono::steady_clock::now() < until)
+            std::this_thread::sleep_for (std::chrono::milliseconds (5));
+    }
+
     void run()
     {
         if (! snapshot_.stems.empty())
@@ -432,6 +448,7 @@ private:
             }
             done += chunk;
             written_.store (done, std::memory_order_relaxed);
+            paceOnce();
         }
         if (const io::WavResult finished = writer.finish(); ! finished.ok())
         {
@@ -527,6 +544,7 @@ private:
             done += chunk;
             if (countsAsWritten)
                 written_.fetch_add (chunk, std::memory_order_relaxed);
+            paceOnce();
         }
         return true;
     }
@@ -730,6 +748,7 @@ private:
     engine::OfflineRenderLatch* const latch_;
     engine::OfflineRenderLatch* const writeLatch_;
     std::atomic<ExportJobState> state_ { ExportJobState::Preparing };
+    bool paced_ = false;   // the worker's own: the drive's pacing ran
     std::atomic<bool> cancelRequested_ { false };
     std::atomic<std::uint64_t> rendered_ { 0 };
     std::atomic<std::uint64_t> renderTotal_ { 0 };

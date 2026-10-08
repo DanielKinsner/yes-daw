@@ -68,6 +68,7 @@ struct MainComponentFileChoices
     // YESDAW_STATE_PROBE environment variable; a normal launch leaves it empty and writes nothing.
     std::filesystem::path stateProbePath;
     int autosaveIntervalMs = 0;   // SS-6: the Session drive's shorter autosave cadence (YESDAW_AUTOSAVE_INTERVAL_MS); 0 = the policy's
+    int exportPaceMs = 0;         // SS-6: the Session drive's export pacing (YESDAW_EXPORT_PACE_MS); 0 = off
     // G0.1 Session drive: open this bundle at launch instead of the last-project record (the
     // native shell fills it from the command line: `YesDaw.exe <path.yesdaw>`).
     std::filesystem::path openBundleAtLaunch;

@@ -2393,6 +2393,7 @@ public:
 
         app::ExportSnapshot snapshot;
         snapshot.destination = destinationPath;
+        snapshot.paceMilliseconds = exportPaceMilliseconds_;   // the Session drive's seam; 0 in a normal run
         snapshot.dither = exportDither_;
         if (exportNormalize_)
             snapshot.normalizePeakDbfs = kExportNormalizeTargetDbfs;
@@ -2514,6 +2515,9 @@ public:
                                                                  : "failed";
     }
     [[nodiscard]] int exportOutcomes() const noexcept { return exportOutcomes_; }
+    // The Session drive's seam (YESDAW_EXPORT_PACE_MS): every export pauses this long after its first chunk.
+    void setExportPaceMilliseconds (std::uint32_t milliseconds) noexcept { exportPaceMilliseconds_ = milliseconds; }
+    [[nodiscard]] std::uint32_t exportPaceMilliseconds() const noexcept { return exportPaceMilliseconds_; }
     [[nodiscard]] const std::filesystem::path& lastExportDestination() const noexcept { return lastExportDestination_; }
     // Wait for the running job (if any) and report it as the UI tick would — the harness's and scripts' join.
     void waitForExport()
@@ -13652,6 +13656,7 @@ private:
     bool deterministicRecordCountInPending_ = false;
     UiAutosaveRecoveryPrompt autosaveRecovery_;
     int exportOutcomes_ = 0;                        // SS-6: finished export jobs (any outcome)
+    std::uint32_t exportPaceMilliseconds_ = 0;      // SS-6: the drive's pacing seam (0 = off)
     std::filesystem::path lastExportDestination_;   // SS-6: the destination of the job last started
     AutosaveSchedulePolicy autosaveSchedule_ {};
     int autosaveWrites_ = 0;      // SS-6: confirmed writes that were due

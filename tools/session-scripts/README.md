@@ -102,7 +102,9 @@ controls transport and a slider arrow does not also nudge a Clip.
   `project.{sampleRateHz, tempoBpm, trackCount, clipCount, midiClipCount, assets[].{hash, sampleRateHz, channels,
   frames}}`, `autosave.{enabled, intervalMs, writes, failures, lastWritten, recovery}`, `relink.{asking, name, refusal,
   damaged, questions, lastOutcome}`, `export.{lastResult, outcomes, destination, retiring}`. A drive shortens the
-  autosave cadence with `YESDAW_AUTOSAVE_INTERVAL_MS` (250 .. 600000). If a step needs a fact the probe
+  autosave cadence with `YESDAW_AUTOSAVE_INTERVAL_MS` (250 .. 600000), and paces every export with
+  `YESDAW_EXPORT_PACE_MS` (a pause after the first chunk, 250 .. 60000; `export.paceMs`) so it can cancel, refuse a
+  second export and replace the project while a job is mid-write — `Launch -AutosaveIntervalMs` / `-ExportPaceMs`. If a step needs a fact the probe
   does not carry, add it to the probe (the shell's `mainComponentStateProbeJson`) — that is a code
   change with a gate, not a screenshot read.
 - **File > New goes through the New Project dialog (G5.5).** New shows the in-app dialog (rate, tempo,

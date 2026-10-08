@@ -13,9 +13,10 @@
 # A Session script is a PowerShell file dot-sourced into this scope. It uses these primitives
 # (element ids come from the probe's `layout` map, so scripts click by NAME, never by pixel):
 #   Step <n> "<title>"                 - names the step every following Assert belongs to
-#   Launch [-Bundle <path.yesdaw>] [-ReuseSessionDir <dir>] [-AutosaveIntervalMs n]
+#   Launch [-Bundle <path.yesdaw>] [-ReuseSessionDir <dir>] [-AutosaveIntervalMs n] [-ExportPaceMs n]
 #                                      - start the exe (fresh session-state dir unless reused; probe on; a shorter
-#                                        autosave cadence for the lifecycle drive, 250 .. 600000 ms)
+#                                        autosave cadence for the lifecycle drive, 250 .. 600000 ms; an export pause
+#                                        after the first chunk so a drive acts mid-job, 250 .. 60000 ms)
 #   Focus                              - bring the window to the foreground
 #   Click <elementId|"x,y"> [-Right] [-Double] [-Modifiers "Ctrl+Shift"] [-OffsetX n] [-OffsetY n]
 #   Drag <from> <to> [-Modifiers ...]  - press at `from`, move in steps, release at `to`
@@ -866,7 +867,7 @@ function AssertStartupBudget([int] $Milliseconds) {
   [void](Assert ($Milliseconds -ge 0 -and $Milliseconds -le 3000) ("launch to first interactive tick <= 3 s (B6): $Milliseconds ms"))
 }
 
-function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '', [int] $AutosaveIntervalMs = 0) {
+function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '', [int] $AutosaveIntervalMs = 0, [int] $ExportPaceMs = 0) {
   if (-not (Test-Path -LiteralPath $Exe)) { throw "exe not found: $Exe (build first)" }
   $others = @(Get-Process -Name 'YesDaw' -ErrorAction SilentlyContinue)
   if ($others.Count -gt 0) { throw "another YesDaw.exe is running (pid $($others[0].Id)); the shell is single-instance (R9) - close it first" }
@@ -889,6 +890,8 @@ function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '', [int] $Au
   $env:YESDAW_SESSION_STATE_DIR = $script:SessionDir
   if ($AutosaveIntervalMs -gt 0) { $env:YESDAW_AUTOSAVE_INTERVAL_MS = [string]$AutosaveIntervalMs }
   else { Remove-Item Env:\YESDAW_AUTOSAVE_INTERVAL_MS -ErrorAction SilentlyContinue }
+  if ($ExportPaceMs -gt 0) { $env:YESDAW_EXPORT_PACE_MS = [string]$ExportPaceMs }
+  else { Remove-Item Env:\YESDAW_EXPORT_PACE_MS -ErrorAction SilentlyContinue }
 
   $args = @()
   if (-not [string]::IsNullOrWhiteSpace($Bundle)) { $args = @(('"' + $Bundle + '"')) }
@@ -927,6 +930,7 @@ function Close {
   Remove-Item Env:\YESDAW_STATE_PROBE -ErrorAction SilentlyContinue
   Remove-Item Env:\YESDAW_SESSION_STATE_DIR -ErrorAction SilentlyContinue
   Remove-Item Env:\YESDAW_AUTOSAVE_INTERVAL_MS -ErrorAction SilentlyContinue
+  Remove-Item Env:\YESDAW_EXPORT_PACE_MS -ErrorAction SilentlyContinue
 }
 
 # SS-6 step 6: an interruption — the process ends at once, no close path or prompt runs (what a crash or a kill leaves).
@@ -944,6 +948,7 @@ function KillApp {
   Remove-Item Env:\YESDAW_STATE_PROBE -ErrorAction SilentlyContinue
   Remove-Item Env:\YESDAW_SESSION_STATE_DIR -ErrorAction SilentlyContinue
   Remove-Item Env:\YESDAW_AUTOSAVE_INTERVAL_MS -ErrorAction SilentlyContinue
+  Remove-Item Env:\YESDAW_EXPORT_PACE_MS -ErrorAction SilentlyContinue
 }
 
 # SS-6 step 2: files dropped at a chosen lane and time arrive through the window's OLE drop target (JUCE's

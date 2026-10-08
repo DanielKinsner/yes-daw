@@ -1113,6 +1113,7 @@ juce::String MainComponent::buildStateProbeJson()
             exported->setProperty ("outcomes", appModel.exportOutcomes());
             exported->setProperty ("destination", juceFileFromPath (appModel.lastExportDestination()).getFullPathName());
             exported->setProperty ("retiring", static_cast<int> (appModel.retiringExportCount()));
+            exported->setProperty ("paceMs", static_cast<int> (appModel.exportPaceMilliseconds()));
             root->setProperty ("export", juce::var (exported));
         }
         mixer->setProperty ("monitorDim", appModel.context().monitorDimmed);   // ADR-0053: the lit DIM / MUTE
@@ -1720,6 +1721,12 @@ std::unique_ptr<juce::Component> createNativeMainComponent (std::filesystem::pat
     if (autosaveInterval.containsOnly ("0123456789") && autosaveInterval.length() <= 6)
         if (const int ms = autosaveInterval.getIntValue(); ms >= 250 && ms <= 600000)
             choices.autosaveIntervalMs = ms;
+
+    // SS-6: export pacing for a drive that cancels, refuses and replaces mid-job (250 .. 60000 ms; else ignored).
+    const juce::String exportPace = juce::SystemStats::getEnvironmentVariable ("YESDAW_EXPORT_PACE_MS", {});
+    if (exportPace.containsOnly ("0123456789") && exportPace.length() <= 5)
+        if (const int ms = exportPace.getIntValue(); ms >= 250 && ms <= 60000)
+            choices.exportPaceMs = ms;
 
     const juce::String sessionDir =
         juce::SystemStats::getEnvironmentVariable ("YESDAW_SESSION_STATE_DIR", {});
