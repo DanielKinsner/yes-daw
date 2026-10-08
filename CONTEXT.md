@@ -268,6 +268,12 @@ The BS.1770/libebur128-aligned meter used for integrated, short-term, and moment
 It is a measurement surface, not an automatic gain change.
 _Avoid_: auto-master, volume normalizer
 
+**Peak since read**:
+What a meter shows each UI tick: the loudest sample of every block processed since the UI last looked,
+so a clip in any block reaches the meter and no block is skipped; no block since the last look reads as
+silence (ADR-0067). Every metered peak (strips, master, armed inputs) has one.
+_Avoid_: last block's peak, current peak
+
 ### Timeline & arrangement
 
 **Track**:
@@ -698,6 +704,18 @@ Tab and Shift+Tab move it through enabled controls; activation, adjustment, canc
 state follow ADR-0049. Space remains transport outside text entry; Enter activates the target
 during control navigation and returns to zero otherwise. Each key dispatches once.
 _Avoid_: keyboard focus (JUCE widget focus), selected object (timeline/MIDI selection)
+
+**Hovered control**:
+The painted control the mouse pointer is over now, shown by a thin white line just inside its edge. It
+follows what is under a still pointer (a scroll, a closed panel, an opened dialog) and is never a control
+under a dialog. Separate from the Control target, which is the keyboard's (ADR-0067, ADR-0072).
+_Avoid_: focus, highlight (unqualified), mouse-over state (a widget's own JUCE flag)
+
+**Pressed control**:
+The painted control a primary (left) press began on, while that button is down, shown by a heavier white
+line just inside its edge. A right or middle press presses nothing; during a drag it stays on the control
+the press began on while the Hovered control follows the pointer (ADR-0067, ADR-0072).
+_Avoid_: active control, clicked control, down state
 
 **Object selection**:
 The set of selected Clips, Notes, or Tracks that editing verbs act on. Exactly one object kind is

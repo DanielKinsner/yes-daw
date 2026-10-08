@@ -524,8 +524,12 @@ struct MainComponentPointerState
     juce::String hovered;   // the hovered record's id ("" = none)
     juce::String pressed;   // the pressed record's id
     std::vector<juce::Rectangle<int>> lastRepaint;   // the rects the last change repainted (expanded record bounds)
+    juce::Rectangle<int> hoveredBounds, pressedBounds;   // where their strokes paint (ADR-0072 §1)
 };
 [[nodiscard]] MainComponentPointerState mainComponentPointerState (juce::Component& component);
+// ADR-0072 §1: the pressed stroke's width for a record - the close width for the families whose text sits near their
+// edge (the mixer's insert, send and I/O rows - a strip's and the master's), the full width for every other.
+[[nodiscard]] int pointerPressedStrokeWidthFor (const std::string& id) noexcept;
 
 // G4.0b: the keyboard Control target as the Command router holds it (ADR-0049) — separate from the
 // Focus context. `bounds` is the ring's rect (shell-local); `count` the controls in the Tab order now.

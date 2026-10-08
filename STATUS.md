@@ -8,6 +8,29 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0067 cp2 S4: hover and press show as white lines inside the control
+
+**What changes (visible):** the painted control under the mouse (rail cells, knobs, faders, meters, sends, inserts, I/O
+rows, tool cells, the header's gear and time, the Sampler's pads) shows a thin white line 1 px inside its edge; the one
+being pressed shows a heavier one (2 px; 1 px on the mixer's 15 px insert, send and I/O rows, whose text sits 2 px from
+their edges). Never a fill: no text or the colour behind it changes (ADR-0072). Pressed replaces hover on one control;
+during a drag both show (pressed where it began, hover where the pointer is). A fader's line runs round its rail and
+passes under the cap, where the cap is now, mid-drag too. Thin controls keep a straight, full-strength edge (the corner
+radius shrinks to fit). A control that moves (a scroll) takes its line along in the same frame. Probe: `pointer.
+hoveredBounds / pressedBounds`. CONTEXT.md gains **Hovered control**, **Pressed control**, **Peak since read**.
+**Gates (`[g6-motion]`, 13 cases with S3's):** `[pointer-strokes]` - one control of every family (pads too), hovered
+then pressed, rendered by JUCE's software renderer: the line is white at its token's alpha over the resting pixel along
+every edge, and nothing else changed; `[pressed-replaces-hover]` - pixel-identical; `[hover-follows-drag]` - both lines
+at once; `[fader-record-tint]` - the rail's line, the cap untouched, a real drag; `[pointer-text-contrast]` - every
+control at two window sizes is rendered with and without its text, and no text pixel changes under hover or press;
+`[hover-follows-state]` - a scrolled control's line follows before the tick. Eight mutations bite (no lines, wrong
+alpha, stacked, no close width, a fill, no inset, no same-frame follow, full radius on thin controls).
+**Visual check (agent):** crops at 4x of each state read clearly; it caught the line crossing the fader cap's face -
+fixed and gated. **Critic:** no blocker; the thin-swatch case is the stroke by definition (every pixel is within its
+reach), and the text gate now drops every cached image, not just the canvas's. ctest 423/423, Clang clean.
+**Next:** S5 - native buttons, combo boxes and sliders take the same lines; the old fill tokens retire (eight
+non-pointer uses get their own names first).
+
 ## 2026-10-08 — ADR-0067 cp2 S3: the shell knows which painted control the pointer hovers and presses
 
 **What changes:** nothing visible yet - the shell now tracks, for every painted control (rail cells, strip knobs and

@@ -294,6 +294,57 @@ void MainComponent::servicePointerStates()
     setPointerStates (pointerRecordAt (*pointerPosition, pointerComponent.getComponent()), std::move (pressed));
 }
 
+int pointerPressedStrokeWidthFor (const std::string& id) noexcept
+{
+    const auto endsWith = [&id] (const char* suffix) {
+        const std::size_t n = std::char_traits<char>::length (suffix);
+        return id.size() >= n && id.compare (id.size() - n, n, suffix) == 0;
+    };
+    const bool closeRow = id.rfind ("mixer.", 0) == 0
+                       && (id.find (".insert.") != std::string::npos || id.find (".send.") != std::string::npos
+                           || endsWith (".input") || endsWith (".output"));
+    return closeRow ? L::pointerPressedStrokeWidthClose : L::pointerPressedStrokeWidth;
+}
+
+// ADR-0072 §1: the pressed control's stroke, then the hovered one's (another control during a drag) - white inner edge
+// strokes at the ring's corner radius, never a fill, so no text and no pixel under it changes. A control both hovered
+// and pressed shows the pressed form only. A part painted over the control (the fader's cap) stays over its stroke,
+// read where it is now (a drag moves the cap between record syncs).
+void MainComponent::paintPointerStrokes (juce::Graphics& g)
+{
+    const auto stroke = [this, &g] (const std::string& id, juce::Rectangle<int> bounds, int width, float alpha) {
+        if (id.empty() || bounds.isEmpty() || ! g.clipRegionIntersects (bounds))
+            return;
+        const juce::Graphics::ScopedSaveState saved (g);
+        for (const auto& record : pointerRecords)
+            if (record.id == id && record.above)
+                if (const juce::Rectangle<int> cap = record.above(); ! cap.isEmpty())
+                    g.excludeClipRegion (cap);
+        // The band between the inset outline and one `width` further in. On a control thinner than two strokes (the
+        // rail's 3 px colour swatch) every pixel inside the inset is within a stroke's reach of an edge, so the band is
+        // all of them - still the stroke, never more ([pointer-text-contrast] holds every record's text clear of it).
+        const auto outer = bounds.toFloat().reduced (static_cast<float> (L::pointerStrokeInset));
+        if (outer.isEmpty())
+            return;
+        const auto inner = outer.reduced (static_cast<float> (width));
+        // The ring's radius, but never so round that an edge of a thin control (a meter) is all curve: each keeps a
+        // straight middle at full strength. The inner outline's corners are concentric.
+        const float corner = juce::jlimit (0.0f, yesdaw::ui::UiTheme::Radius::sm,
+                                           (std::min (outer.getWidth(), outer.getHeight()) - 2.0f) / 2.0f);
+        juce::Path band;
+        band.addRoundedRectangle (outer, corner);
+        if (! inner.isEmpty())
+            band.addRoundedRectangle (inner, std::max (0.0f, corner - static_cast<float> (width)));
+        band.setUsingNonZeroWinding (false);
+        g.setColour (yesdaw::ui::UiTheme::Color::white().withAlpha (alpha));
+        g.fillPath (band);
+    };
+    stroke (pointerPressed, pointerPressedBounds, pointerPressedStrokeWidthFor (pointerPressed),
+            yesdaw::ui::UiTheme::Tone::pressedStrokeAlpha);
+    if (pointerHovered != pointerPressed)
+        stroke (pointerHovered, pointerHoveredBounds, L::pointerHoverStrokeWidth, yesdaw::ui::UiTheme::Tone::hoverStrokeAlpha);
+}
+
 // ADR-0072 §10: a gesture that starts from its slop names its record before the press event reaches the tracker.
 void MainComponent::pointerPressSeed (std::string id)
 {
@@ -310,6 +361,8 @@ juce::var MainComponent::buildProbePointer() const
     for (const auto& r : pointerLastRepaint)
         rects.add (probeRect (r));
     object->setProperty ("lastRepaint", rects);
+    object->setProperty ("hoveredBounds", probeRect (pointerHoveredBounds));   // where the strokes paint
+    object->setProperty ("pressedBounds", probeRect (pointerPressedBounds));
     return object;
 }
 
@@ -684,6 +737,10 @@ void MainComponent::collectPaintedMixerControls (std::vector<ShellControl>& cont
                 return dbReadoutText (mixerStripsInput.faderGainForStrip ? mixerStripsInput.faderGainForStrip (stripIndex) : 1.0f);
             };
             fader.maximum = yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax;
+            fader.above = [this, i, stripIndex] {   // ADR-0072 §9: the cap sits over the rail, so over the rail's stroke
+                const float gain = mixerStripsInput.faderGainForStrip ? mixerStripsInput.faderGainForStrip (stripIndex) : 1.0f;
+                return paintedFaderThumbForLane (paintedMixerLaneBounds (i), gain, stripIoRows (i));
+            };
             add (base + ".fader", strip.name + " fader", ControlTargetRole::Value, paintedFaderRailForLane (lane, ioRows), std::move (fader));
         }
 
@@ -849,7 +906,9 @@ void MainComponent::syncPaintedAccessibilityProxies()
     pointerRecords.clear();   // ADR-0067 §2: the records hover resolves against, with the surface that paints each
     pointerRecords.reserve (painted.size());
     for (const auto& control : painted)
-        pointerRecords.push_back ({ control.entry.id, juceRectOf (control.entry.bounds), control.painted->surface });
+        pointerRecords.push_back ({ control.entry.id, juceRectOf (control.entry.bounds), control.painted->surface,
+                                    control.painted->above });
+    setPointerStates (pointerHovered, pointerPressed);   // a control that moved takes its strokes along now, not a tick later
 
     std::vector<std::string> shape;
     shape.reserve (painted.size());

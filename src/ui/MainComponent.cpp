@@ -2121,6 +2121,7 @@ bool MainComponent::confirmClose()
 void MainComponent::paintOverChildren (juce::Graphics& g)
 {
     regionsPainted = std::exchange (regionsPaintedNow, std::uint8_t { 0 });   // ADR-0067 §1: this pass's regions
+    paintPointerStrokes (g);      // ADR-0072 §1: under the ring
     paintControlTargetRing (g);   // G4.0b: above every child, inside the B2 frame
     paintInsertCarry (g);         // G4.2 cp6: a carried insert's landing line
     const auto now = std::chrono::steady_clock::now();

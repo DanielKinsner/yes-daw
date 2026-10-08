@@ -24942,6 +24942,235 @@ struct PointerRig
     void tick() { yesdaw::ui::mainComponentServiceUiTick (*shell); }
 };
 
+// ADR-0072 S4: the shell as JUCE's software renderer draws it - the one rasteriser every render a gate compares goes
+// through - optionally without its text (a glyph run draws nothing), so the pixels text covers are known exactly.
+struct SoftwareContext final : juce::LowLevelGraphicsContext
+{
+    SoftwareContext (const juce::Image& image, bool glyphs) : inner (image), drawsGlyphs (glyphs) {}
+    juce::LowLevelGraphicsSoftwareRenderer inner;
+    bool drawsGlyphs;
+
+    bool isVectorDevice() const override { return inner.isVectorDevice(); }
+    void setOrigin (juce::Point<int> origin) override { inner.setOrigin (origin); }
+    void addTransform (const juce::AffineTransform& t) override { inner.addTransform (t); }
+    float getPhysicalPixelScaleFactor() const override { return inner.getPhysicalPixelScaleFactor(); }
+    bool clipToRectangle (const juce::Rectangle<int>& r) override { return inner.clipToRectangle (r); }
+    bool clipToRectangleList (const juce::RectangleList<int>& r) override { return inner.clipToRectangleList (r); }
+    void excludeClipRectangle (const juce::Rectangle<int>& r) override { inner.excludeClipRectangle (r); }
+    void clipToPath (const juce::Path& p, const juce::AffineTransform& t) override { inner.clipToPath (p, t); }
+    void clipToImageAlpha (const juce::Image& i, const juce::AffineTransform& t) override { inner.clipToImageAlpha (i, t); }
+    bool clipRegionIntersects (const juce::Rectangle<int>& r) override { return inner.clipRegionIntersects (r); }
+    juce::Rectangle<int> getClipBounds() const override { return inner.getClipBounds(); }
+    bool isClipEmpty() const override { return inner.isClipEmpty(); }
+    void saveState() override { inner.saveState(); }
+    void restoreState() override { inner.restoreState(); }
+    void beginTransparencyLayer (float opacity) override { inner.beginTransparencyLayer (opacity); }
+    void endTransparencyLayer() override { inner.endTransparencyLayer(); }
+    void setFill (const juce::FillType& fill) override { inner.setFill (fill); }
+    void setOpacity (float opacity) override { inner.setOpacity (opacity); }
+    void setInterpolationQuality (juce::Graphics::ResamplingQuality quality) override { inner.setInterpolationQuality (quality); }
+    void fillAll() override { inner.fillAll(); }
+    void fillRect (const juce::Rectangle<int>& r, bool replace) override { inner.fillRect (r, replace); }
+    void fillRect (const juce::Rectangle<float>& r) override { inner.fillRect (r); }
+    void fillRectList (const juce::RectangleList<float>& r) override { inner.fillRectList (r); }
+    void fillPath (const juce::Path& p, const juce::AffineTransform& t) override { inner.fillPath (p, t); }
+    void drawRect (const juce::Rectangle<float>& r, float thickness) override { inner.drawRect (r, thickness); }
+    void strokePath (const juce::Path& p, const juce::PathStrokeType& s, const juce::AffineTransform& t) override
+    {
+        inner.strokePath (p, s, t);
+    }
+    void drawImage (const juce::Image& i, const juce::AffineTransform& t) override { inner.drawImage (i, t); }
+    void drawLine (const juce::Line<float>& line) override { inner.drawLine (line); }
+    void drawLineWithThickness (const juce::Line<float>& line, float thickness) override { inner.drawLineWithThickness (line, thickness); }
+    void setFont (const juce::Font& font) override { inner.setFont (font); }
+    const juce::Font& getFont() override { return inner.getFont(); }
+    void drawGlyphs (juce::Span<const std::uint16_t> glyphs, juce::Span<const juce::Point<float>> positions,
+                     const juce::AffineTransform& t) override
+    {
+        if (drawsGlyphs)
+            inner.drawGlyphs (glyphs, positions, t);
+    }
+    void drawRoundedRectangle (const juce::Rectangle<float>& r, float corner, float thickness) override
+    {
+        inner.drawRoundedRectangle (r, corner, thickness);
+    }
+    void fillRoundedRectangle (const juce::Rectangle<float>& r, float corner) override { inner.fillRoundedRectangle (r, corner); }
+    void drawEllipse (const juce::Rectangle<float>& r, float thickness) override { inner.drawEllipse (r, thickness); }
+    void fillEllipse (const juce::Rectangle<float>& r) override { inner.fillEllipse (r); }
+    std::uint64_t getFrameId() const override { return inner.getFrameId(); }
+};
+
+// The shell's pixels over `area` (the whole shell by default), with or without its text.
+juce::Image renderSoftware (juce::Component& shell, juce::Rectangle<int> area = {}, bool text = true)
+{
+    if (area.isEmpty())
+        area = shell.getLocalBounds();
+    juce::Image image (juce::Image::ARGB, area.getWidth(), area.getHeight(), true, juce::SoftwareImageType());
+    {
+        SoftwareContext context (image, text);
+        juce::Graphics g (context);
+        g.setOrigin (-area.getPosition());
+        g.reduceClipRegion (area);
+        shell.paintEntireComponent (g, true);
+    }
+    return image;
+}
+
+// A record's family: its id with the numbers taken out (rail.row.#.mute, mixer.strip.#.send.#).
+std::string familyOf (const std::string& id)
+{
+    std::string family;
+    for (std::size_t i = 0; i < id.size(); ++i)
+    {
+        if (id[i] < '0' || id[i] > '9')
+        {
+            family += id[i];
+            continue;
+        }
+        family += '#';
+        while (i + 1 < id.size() && id[i + 1] >= '0' && id[i + 1] <= '9')
+            ++i;
+    }
+    return family;
+}
+
+int channelDelta (juce::Colour a, juce::Colour b)
+{
+    return std::max ({ std::abs (a.getRed() - b.getRed()), std::abs (a.getGreen() - b.getGreen()),
+                       std::abs (a.getBlue() - b.getBlue()), std::abs (a.getAlpha() - b.getAlpha()) });
+}
+
+// How far a pixel lies inside `r` from its nearest edge (0 on the edge's own row or column), per axis.
+juce::Point<int> depthIn (juce::Rectangle<int> r, int x, int y)
+{
+    return { std::min (x - r.getX(), r.getRight() - 1 - x), std::min (y - r.getY(), r.getBottom() - 1 - y) };
+}
+
+// The stroke ADR-0072 §1 draws on a record: along each edge - its middle, and its quarter points where they are clear of
+// the round corners - every pixel from the inset to the inset plus the width is white at `alpha` over what the resting
+// render had there (+-2 per channel; the alpha read from the token). Under `cap` (a part painted over the control: the
+// fader's) the pixel is the resting one. Every edge shows the stroke somewhere.
+void requireStroke (const juce::Image& rest, const juce::Image& now, juce::Rectangle<int> bounds, int width, float alpha,
+                    juce::Rectangle<int> cap = {})
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Colour white = yesdaw::ui::UiTheme::Color::white().withAlpha (alpha);
+    const int reach = L::pointerStrokeInset + width;
+    const int corner = static_cast<int> (std::ceil (yesdaw::ui::UiTheme::Radius::sm));
+    const auto along = [reach, corner] (int start, int length) {
+        std::vector<int> at;
+        for (const int quarter : { 1, 2, 3 })
+        {
+            const int v = start + length * quarter / 4;
+            if (quarter == 2 || std::min (v - start, start + length - 1 - v) >= reach + corner)
+                at.push_back (v);
+        }
+        return at;
+    };
+    std::array<int, 4> stroked {};   // per edge: left, right, top, bottom
+    const auto check = [&] (juce::Point<int> p, bool verticalEdge, std::size_t edge) {
+        // A control thinner than two strokes: a sample that crossed the middle lands in the far edge's inset.
+        const juce::Point<int> depth = depthIn (bounds, p.x, p.y);
+        if ((verticalEdge ? depth.x : depth.y) < L::pointerStrokeInset)
+            return;
+        const bool covered = cap.contains (p);
+        const juce::Colour was = rest.getPixelAt (p.x, p.y);
+        const juce::Colour expected = covered ? was : was.overlaidWith (white);
+        INFO ("stroke pixel " << p.toString() << " of " << bounds.toString() << ", width " << width
+              << (covered ? " (under the cap)" : "") << ": " << now.getPixelAt (p.x, p.y).toDisplayString (true)
+              << ", expected " << expected.toDisplayString (true));
+        REQUIRE (channelDelta (now.getPixelAt (p.x, p.y), expected) <= 2);
+        if (! covered)
+            ++stroked[edge];
+    };
+    for (int d = L::pointerStrokeInset; d < reach; ++d)
+    {
+        for (const int y : along (bounds.getY(), bounds.getHeight()))
+        {
+            check ({ bounds.getX() + d, y }, true, 0);
+            check ({ bounds.getRight() - 1 - d, y }, true, 1);
+        }
+        for (const int x : along (bounds.getX(), bounds.getWidth()))
+        {
+            check ({ x, bounds.getY() + d }, false, 2);
+            check ({ x, bounds.getBottom() - 1 - d }, false, 3);
+        }
+    }
+    INFO ("stroked samples per edge (left, right, top, bottom) of " << bounds.toString() << ": " << stroked[0] << ", "
+          << stroked[1] << ", " << stroked[2] << ", " << stroked[3]);
+    REQUIRE (std::all_of (stroked.begin(), stroked.end(), [] (int n) { return n > 0; }));
+}
+
+// The cap a record's stroke passes under (ADR-0072 §9: a strip fader's), from the probe's layout; none for the others.
+juce::Rectangle<int> capOf (juce::Component& shell, const std::string& id)
+{
+    const std::string suffix = ".fader";
+    if (id.rfind ("mixer.strip.", 0) != 0 || id.size() < suffix.size()
+        || id.compare (id.size() - suffix.size(), suffix.size(), suffix) != 0)
+        return {};
+    const juce::var t = probeRoot (shell)["layout"][juce::Identifier (juce::String (id + ".thumb"))];
+    REQUIRE (t.isArray());
+    return { static_cast<int> (t[0]), static_cast<int> (t[1]), static_cast<int> (t[2]), static_cast<int> (t[3]) };
+}
+
+void requireUnchangedIn (const juce::Image& rest, const juce::Image& now, juce::Rectangle<int> area)
+{
+    area = area.getIntersection (rest.getBounds());
+    for (int y = area.getY(); y < area.getBottom(); ++y)
+        for (int x = area.getX(); x < area.getRight(); ++x)
+            if (channelDelta (rest.getPixelAt (x, y), now.getPixelAt (x, y)) > 2)
+                FAIL ("pixel " << x << "," << y << " under " << area.toString() << " changed");
+}
+
+// Every pixel that changed between two whole-shell renders lies in one of the strokes `strokes` names (a record and its
+// stroke's width): no deeper than the stroke along an edge - deeper only in a corner, where the stroke's round corner
+// curves in - and never outside the record. The record's interior and everything around it are unchanged.
+void requireChangesOnlyInStrokes (const juce::Image& rest, const juce::Image& now,
+                                  const std::vector<std::pair<juce::Rectangle<int>, int>>& strokes)
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    REQUIRE (rest.getBounds() == now.getBounds());
+    const juce::Image::BitmapData a (rest, juce::Image::BitmapData::readOnly);
+    const juce::Image::BitmapData b (now, juce::Image::BitmapData::readOnly);
+    const int corner = static_cast<int> (std::ceil (yesdaw::ui::UiTheme::Radius::sm));
+    for (int y = 0; y < rest.getHeight(); ++y)
+        for (int x = 0; x < rest.getWidth(); ++x)
+        {
+            if (channelDelta (a.getPixelColour (x, y), b.getPixelColour (x, y)) <= 2)
+                continue;
+            const bool inStroke = std::any_of (strokes.begin(), strokes.end(), [x, y, corner] (const auto& stroke) {
+                if (! stroke.first.contains (x, y))
+                    return false;
+                const juce::Point<int> depth = depthIn (stroke.first, x, y);
+                const int reach = L::pointerStrokeInset + stroke.second;
+                return std::min (depth.x, depth.y) < reach || (depth.x < reach + corner && depth.y < reach + corner);
+            });
+            if (! inStroke)
+                FAIL ("pixel " << x << "," << y << " changed outside every stroke");
+        }
+}
+
+void requireIdentical (const juce::Image& a, const juce::Image& b)
+{
+    REQUIRE (a.getBounds() == b.getBounds());
+    const juce::Image::BitmapData da (a, juce::Image::BitmapData::readOnly);
+    const juce::Image::BitmapData db (b, juce::Image::BitmapData::readOnly);
+    for (int y = 0; y < a.getHeight(); ++y)
+        for (int x = 0; x < a.getWidth(); ++x)
+            if (da.getPixelColour (x, y) != db.getPixelColour (x, y))
+                FAIL ("pixel " << x << "," << y << " differs");
+}
+
+// The first record of every family the rig shows (`prefix`: only those whose ids begin with it).
+std::map<std::string, std::string> firstOfEachFamily (PointerRig& rig, const std::string& prefix = {})
+{
+    std::map<std::string, std::string> first;
+    for (const auto& [id, bounds] : rig.records())
+        if (id.rfind (prefix, 0) == 0)
+            first.emplace (familyOf (id), id);
+    return first;
+}
+
 } // namespace
 
 // ADR-0067 §2: every painted control is named by the pointer at its centre - one of every family, in fact every record
@@ -25091,11 +25320,20 @@ TEST_CASE ("ADR-0067 a stationary pointer's hover follows what is under it now",
         juce::MouseWheelDetails wheel {};
         wheel.deltaY = -0.4f;
         strips->mouseWheelMove (makeMouseEvent (*strips, { 20, 40 }, { 20, 40 }, false, 1, juce::ModifierKeys {}), wheel);
+        // The records' re-sync: the hovered control's stroke follows it in the same frame, not a tick later.
+        juce::Rectangle<int> moved;
+        for (const auto& [recordId, bounds] : rig.records())
+            if (recordId == id)
+                moved = bounds;
+        REQUIRE (moved != old);
+        REQUIRE (rig.state().hoveredBounds == moved);
+        auto repainted = rig.state().lastRepaint;
         rig.tick();
         const std::string now = recordAt (old.getCentre());
         REQUIRE (now != id);
         REQUIRE (rig.state().hovered.toStdString() == now);
-        const auto repainted = rig.state().lastRepaint;
+        const auto atTick = rig.state().lastRepaint;
+        repainted.insert (repainted.end(), atTick.begin(), atTick.end());
         REQUIRE (std::find (repainted.begin(), repainted.end(), expanded (old)) != repainted.end());
     }
     // The dock switches to the Instrument tab under it: no mixer record is hovered after a tick.
@@ -25237,6 +25475,230 @@ TEST_CASE ("ADR-0072 the rail volume's record is strict; a drag from its slop pr
     REQUIRE (rig.state().pressed == "rail.row.0.volume");
     rig.at (PointerKind::up, inMeter, &rail, {});
     REQUIRE (rig.state().pressed.isEmpty());
+}
+
+// ADR-0072 §1 (S4): the hovered control shows a 1 px white inner stroke, the pressed one a 2 px stroke (1 px for the
+// mixer's insert, send and I/O rows) - one record of every family, the Sampler's pads too. At each edge's middle the
+// stroke is white at its token's alpha over the resting pixel; nothing else changes: not the record's interior, not a
+// pixel outside it.
+TEST_CASE ("ADR-0072 the hovered and pressed controls paint their inner strokes, and nothing else",
+           "[ui][input][shell][g6-motion][hover][pressed][pointer-strokes]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    using Tone = yesdaw::ui::UiTheme::Tone;
+    for (const bool pads : { false, true })
+    {
+        PointerRig rig (pads ? "g64-strokes-pads" : "g64-strokes", pads);
+        ScopedCurrentModifiers held { kLeft };   // a press stays while the button is down (no tick runs here)
+        rig.at (PointerKind::exit, {}, &*rig);
+        const juce::Image rest = renderSoftware (*rig);
+        const auto families = firstOfEachFamily (rig, pads ? "instrument." : "");
+        REQUIRE (families.size() >= (pads ? 1u : 20u));
+        for (const auto& [family, id] : families)
+        {
+            INFO (id);
+            const juce::Rectangle<int> bounds = rig.rect (id);
+            juce::Component* surface = &rig.surfaceOf (id);
+            rig.moveTo (id);
+            REQUIRE (rig.state().hovered.toStdString() == id);
+            const juce::Rectangle<int> cap = capOf (*rig, id);
+            const juce::Image hovered = renderSoftware (*rig);
+            requireStroke (rest, hovered, bounds, L::pointerHoverStrokeWidth, Tone::hoverStrokeAlpha, cap);
+            requireChangesOnlyInStrokes (rest, hovered, { { bounds, L::pointerHoverStrokeWidth } });
+            requireUnchangedIn (rest, hovered, cap);
+
+            rig.at (PointerKind::down, bounds.getCentre(), surface, kLeft);
+            REQUIRE (rig.state().pressed.toStdString() == id);
+            const int width = yesdaw::ui::pointerPressedStrokeWidthFor (id);
+            const juce::Image pressed = renderSoftware (*rig);
+            requireStroke (rest, pressed, bounds, width, Tone::pressedStrokeAlpha, cap);
+            requireChangesOnlyInStrokes (rest, pressed, { { bounds, width } });
+            requireUnchangedIn (rest, pressed, cap);
+
+            rig.at (PointerKind::up, bounds.getCentre(), surface, {});
+            rig.at (PointerKind::exit, {}, &*rig);
+            REQUIRE (rig.state().hovered.isEmpty());
+            requireIdentical (rest, renderSoftware (*rig));   // gone with the pointer
+        }
+    }
+}
+
+// ADR-0072 §1: a control both hovered and pressed paints exactly what it paints pressed alone - the pressed form
+// replaces the hover form, while the probe still names both.
+TEST_CASE ("ADR-0072 a control both hovered and pressed paints the pressed form only",
+           "[ui][input][shell][g6-motion][pressed-replaces-hover]")
+{
+    PointerRig rig ("g64-replaces");
+    ScopedCurrentModifiers held { kLeft };
+    juce::Component* canvas = findChildWithComponentId (*rig, "timeline.canvas");
+    REQUIRE (canvas != nullptr);
+    const juce::Point<int> away = (*rig).getLocalArea (canvas, canvas->getLocalBounds()).getCentre();   // no control there
+    for (const auto& [family, id] : firstOfEachFamily (rig))
+    {
+        INFO (id);
+        const juce::Rectangle<int> bounds = rig.rect (id);
+        juce::Component* surface = &rig.surfaceOf (id);
+        rig.at (PointerKind::move, bounds.getCentre(), surface);
+        rig.at (PointerKind::down, bounds.getCentre(), surface, kLeft);
+        REQUIRE (rig.state().hovered.toStdString() == id);
+        REQUIRE (rig.state().pressed.toStdString() == id);
+        const juce::Image both = renderSoftware (*rig);
+        rig.at (PointerKind::drag, away, surface, kLeft);
+        REQUIRE (rig.state().hovered.isEmpty());
+        REQUIRE (rig.state().pressed.toStdString() == id);
+        requireIdentical (both, renderSoftware (*rig));
+        rig.at (PointerKind::up, away, surface, {});
+    }
+}
+
+// ADR-0072 §7: during a drag the pressed form stays on the control the press began on while the hover form follows the
+// pointer onto another - both painted at once, nothing else changed; the release clears the press, not the hover.
+TEST_CASE ("ADR-0072 a drag paints the pressed control and the hovered one together",
+           "[ui][input][shell][g6-motion][hover-follows-drag]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    using Tone = yesdaw::ui::UiTheme::Tone;
+    PointerRig rig ("g64-drag-paint");
+    ScopedCurrentModifiers held { kLeft };
+    rig.at (PointerKind::exit, {}, &*rig);
+    const juce::Image rest = renderSoftware (*rig);
+    const std::string from = "rail.row.0.volume";
+    const std::string over = "rail.row.1.pan";
+    juce::Component* rail = &rig.surfaceOf (from);
+    rig.at (PointerKind::down, rig.rect (from).getCentre(), rail, kLeft);
+    rig.at (PointerKind::drag, rig.rect (over).getCentre(), rail, kLeft);
+    REQUIRE (rig.state().pressed.toStdString() == from);
+    REQUIRE (rig.state().hovered.toStdString() == over);
+    const juce::Image dragging = renderSoftware (*rig);
+    const int width = yesdaw::ui::pointerPressedStrokeWidthFor (from);
+    requireStroke (rest, dragging, rig.rect (from), width, Tone::pressedStrokeAlpha);
+    requireStroke (rest, dragging, rig.rect (over), L::pointerHoverStrokeWidth, Tone::hoverStrokeAlpha);
+    requireChangesOnlyInStrokes (rest, dragging, { { rig.rect (from), width }, { rig.rect (over), L::pointerHoverStrokeWidth } });
+    rig.at (PointerKind::up, rig.rect (over).getCentre(), rail, {});
+    REQUIRE (rig.state().pressed.isEmpty());
+    REQUIRE (rig.state().hovered.toStdString() == over);
+    const juce::Image released = renderSoftware (*rig);
+    requireStroke (rest, released, rig.rect (over), L::pointerHoverStrokeWidth, Tone::hoverStrokeAlpha);
+    requireChangesOnlyInStrokes (rest, released, { { rig.rect (over), L::pointerHoverStrokeWidth } });
+}
+
+// ADR-0072 §9: the fader's record is its 18 px rail. Over the rail off the thumb, and over the thumb's centre, the fader
+// is hovered and its stroke is the rail's, passing under the thumb (the cap is painted over the rail, so over its stroke
+// too: no line crosses the cap's face); over the thumb's overhang it is not hovered. A drag moves the cap, and the
+// pressed stroke passes under it where it is now.
+TEST_CASE ("ADR-0072 the fader's stroke is its rail's, from the rail and from the thumb's centre",
+           "[ui][input][shell][g6-motion][fader-record-tint]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    using Tone = yesdaw::ui::UiTheme::Tone;
+    PointerRig rig ("g64-fader");
+    const std::string id = "mixer.strip.0.fader";
+    const juce::Rectangle<int> rail = rig.rect (id);
+    const juce::var t = probeRoot (*rig)["layout"]["mixer.strip.0.fader.thumb"];
+    REQUIRE (t.isArray());
+    const juce::Rectangle<int> thumb { static_cast<int> (t[0]), static_cast<int> (t[1]), static_cast<int> (t[2]), static_cast<int> (t[3]) };
+    INFO ("rail " << rail.toString() << ", thumb " << thumb.toString());
+    REQUIRE (thumb.getX() < rail.getX());           // the overhang
+    REQUIRE (rail.contains (thumb.getCentre()));
+    juce::Component* strips = &rig.surfaceOf (id);
+    rig.at (PointerKind::exit, {}, &*rig);
+    const juce::Image rest = renderSoftware (*rig);
+
+    const int offThumbY = thumb.getY() - rail.getY() > 6 ? rail.getY() + 3 : rail.getBottom() - 3;
+    REQUIRE_FALSE (thumb.contains (rail.getCentreX(), offThumbY));
+    for (const juce::Point<int> point : { juce::Point<int> (rail.getCentreX(), offThumbY), thumb.getCentre() })
+    {
+        INFO ("at " << point.toString());
+        rig.at (PointerKind::move, point, strips);
+        REQUIRE (rig.state().hovered.toStdString() == id);
+        const juce::Image hovered = renderSoftware (*rig);
+        requireStroke (rest, hovered, rail, L::pointerHoverStrokeWidth, Tone::hoverStrokeAlpha, thumb);
+        requireChangesOnlyInStrokes (rest, hovered, { { rail, L::pointerHoverStrokeWidth } });
+        requireUnchangedIn (rest, hovered, thumb);
+    }
+    {
+        ScopedCurrentModifiers held { kLeft };
+        const juce::Point<int> grab = strips->getLocalPoint (&*rig, thumb.getCentre());
+        const juce::Point<int> to = grab + juce::Point<int> (0, -30);
+        rig.at (PointerKind::down, thumb.getCentre(), strips, kLeft);
+        beginDragFromTo (*strips, grab, to);   // the real drag moves the cap
+        const juce::Rectangle<int> moved = capOf (*rig, id);
+        REQUIRE (moved != thumb);
+        REQUIRE (rig.state().pressed.toStdString() == id);
+        const juce::Image pressed = renderSoftware (*rig);
+        rig.at (PointerKind::up, thumb.getCentre(), strips, {});   // the pointer's states only: the drag goes on
+        rig.at (PointerKind::exit, {}, &*rig);
+        const juce::Image movedRest = renderSoftware (*rig);
+        releaseDragAt (*strips, grab, to);
+        const int width = yesdaw::ui::pointerPressedStrokeWidthFor (id);
+        requireStroke (movedRest, pressed, rail, width, Tone::pressedStrokeAlpha, moved);
+        requireChangesOnlyInStrokes (movedRest, pressed, { { rail, width } });
+        requireUnchangedIn (movedRest, pressed, moved);
+    }
+    rig.at (PointerKind::move, { thumb.getX() + 1, thumb.getCentreY() }, strips);
+    REQUIRE (rig.state().hovered.toStdString() != id);
+}
+
+// ADR-0072 §1 / ADR-0063: no hover or pressed stroke reaches a control's text, so every text pixel - and with it every
+// text-on-surface contrast ADR-0063's token table holds to 4.5:1 - is exactly the resting render's. Each record is
+// rendered with and without its text (the pixels that differ are the text's), then hovered and pressed: no text pixel
+// changes. A control pressed at the close width earns it: it is too short for even the smallest text (Type::tiny) to keep
+// clear of the full width's reach above and below. Every record, at two window sizes, the Sampler's pads too.
+TEST_CASE ("ADR-0072 no hover or pressed stroke reaches a control's text",
+           "[ui][input][shell][g6-motion][pointer-text-contrast]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    using Type = yesdaw::ui::UiTheme::Type;
+    int checked = 0;
+    int close = 0;
+    for (const bool pads : { false, true })
+        for (const juce::Point<int> size : { juce::Point<int> (1280, 800), juce::Point<int> (1920, 1080) })
+        {
+            PointerRig rig (pads ? "g64-text-pads" : "g64-text", pads);
+            (*rig).setSize (size.x, size.y);
+            // A cached image (the timeline canvas's, today) would keep its text in the textless render: none is used.
+            std::function<void (juce::Component&)> uncache = [&uncache] (juce::Component& component) {
+                component.setCachedComponentImage (nullptr);
+                for (int i = 0; i < component.getNumChildComponents(); ++i)
+                    uncache (*component.getChildComponent (i));
+            };
+            uncache (*rig);
+            ScopedCurrentModifiers held { kLeft };
+            for (const auto& [id, bounds] : rig.records())
+            {
+                if (pads && id.rfind ("instrument.", 0) != 0)
+                    continue;
+                INFO (id << " " << bounds.toString() << " at " << size.toString());
+                juce::Component* surface = &rig.surfaceOf (id);
+                rig.at (PointerKind::exit, {}, &*rig);
+                const juce::Image rest = renderSoftware (*rig, bounds);
+                const juce::Image textless = renderSoftware (*rig, bounds, false);
+                rig.moveTo (id);
+                const juce::Image hovered = renderSoftware (*rig, bounds);
+                rig.at (PointerKind::down, bounds.getCentre(), surface, kLeft);
+                const juce::Image pressed = renderSoftware (*rig, bounds);
+                rig.at (PointerKind::up, bounds.getCentre(), surface, {});
+
+                if (yesdaw::ui::pointerPressedStrokeWidthFor (id) < L::pointerPressedStrokeWidth)
+                {
+                    REQUIRE (static_cast<float> (bounds.getHeight())
+                             < Type::tiny + 2.0f * static_cast<float> (L::pointerStrokeInset + L::pointerPressedStrokeWidth));
+                    ++close;
+                }
+                for (int y = 0; y < rest.getHeight(); ++y)
+                    for (int x = 0; x < rest.getWidth(); ++x)
+                    {
+                        const juce::Colour pixel = rest.getPixelAt (x, y);
+                        if (pixel == textless.getPixelAt (x, y))
+                            continue;   // not text
+                        if (hovered.getPixelAt (x, y) != pixel || pressed.getPixelAt (x, y) != pixel)
+                            FAIL ("a stroke reaches the text at " << (bounds.getX() + x) << "," << (bounds.getY() + y));
+                    }
+                ++checked;
+            }
+        }
+    REQUIRE (checked > 200);
+    REQUIRE (close > 0);
 }
 
 #if JUCE_WINDOWS

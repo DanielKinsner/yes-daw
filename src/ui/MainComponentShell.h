@@ -224,6 +224,7 @@ public:
         bool checked = false;                                 // a Toggle's state
         juce::Component* surface = nullptr;                   // the component that paints it
         std::function<void()> contextMenu;                    // Shift+F10: the zone's right-click menu, where it has one
+        std::function<juce::Rectangle<int>()> above;          // ADR-0072: a part painted over its pointer stroke, where it is now
     };
     // G4.0b: one control the router can target — a live widget, or a painted control (ADR-0066).
     struct ShellControl
@@ -868,6 +869,7 @@ private:
     bool adoptControlTargetId (const std::string& id);
     void refreshControlTargetRing (const std::vector<ShellControl>& controls);
     void paintControlTargetRing (juce::Graphics& g);
+    void paintPointerStrokes (juce::Graphics& g);   // ADR-0072 §1: the pressed and hovered controls' inner strokes
     void announceControlTarget (const ShellControl& control, bool valueOnly);
     void initialiseControlNavigation();
     [[nodiscard]] juce::var buildProbeControlTarget();
@@ -1023,7 +1025,8 @@ public:
                          juce::ModifierKeys modifiers) { pointerEvent (kind, shellPoint, component, modifiers); }
     [[nodiscard]] MainComponentPointerState harnessPointerState() const
     {
-        return { juce::String (pointerHovered), juce::String (pointerPressed), pointerLastRepaint };
+        return { juce::String (pointerHovered), juce::String (pointerPressed), pointerLastRepaint, pointerHoveredBounds,
+                 pointerPressedBounds };
     }
     void harnessSetViewSizes (int rail, int inspector, int dock)   // ADR-0061: as a splitter released
     {
@@ -1790,6 +1793,7 @@ private:
         std::string id;
         juce::Rectangle<int> bounds;
         juce::Component::SafePointer<juce::Component> surface;
+        std::function<juce::Rectangle<int>()> above;   // the part painted over its stroke (the fader's cap), where it is now
     };
     std::vector<PointerRecord> pointerRecords;
     std::unique_ptr<juce::MouseListener> pointerTracker;

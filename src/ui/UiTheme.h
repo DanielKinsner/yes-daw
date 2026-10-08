@@ -127,6 +127,9 @@ struct UiTheme
         static constexpr float mutedControlAlpha = 0.72f;
         static constexpr float hoverHighlightAlpha = 0.10f;
         static constexpr float pressedHighlightAlpha = 0.16f;
+        // ADR-0072: a painted control's hover and press are white inner edge strokes at these alphas - never a fill.
+        static constexpr float hoverStrokeAlpha = 0.60f;
+        static constexpr float pressedStrokeAlpha = 0.95f;
         static constexpr float innerHighlightAlpha = 0.46f;
         static constexpr float shadowAlpha = 0.72f;
         static constexpr float focusRingAlpha = 0.80f;
@@ -368,6 +371,12 @@ struct UiTheme
         static constexpr float controlTargetRingActiveStrokeWidth = 3.0f;
         static constexpr int controlTargetRingOutset = 4;
         static constexpr int controlTargetRingRepaintMargin = 2;
+        // ADR-0072: the hover (1 px) and pressed (2 px) strokes sit inside the control's record, inset from its edge;
+        // a family whose text comes within the inset plus the pressed width of its edge presses at the close width.
+        static constexpr int pointerStrokeInset = 1;
+        static constexpr int pointerHoverStrokeWidth = 1;
+        static constexpr int pointerPressedStrokeWidth = 2;
+        static constexpr int pointerPressedStrokeWidthClose = 1;
         static constexpr int sliderTrackThickness = 5;
         static constexpr int sliderThumbDiameter = 14;
         static constexpr int sliderThumbShortSide = 16;
