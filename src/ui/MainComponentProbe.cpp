@@ -382,12 +382,6 @@ juce::var MainComponent::buildProbeLayout()
             put ("pianoroll.typing", pianoRollTypingButton.getBounds());   // G3.6
             put ("pianoroll.step", pianoRollStepButton.getBounds());
         }
-        if (newProjectDialog.isVisible())   // G5.5: the New Project dialog's controls, for drives
-            for (juce::Component* control : { static_cast<juce::Component*> (&newProjectDialog.rate), static_cast<juce::Component*> (&newProjectDialog.tempo),
-                                              static_cast<juce::Component*> (&newProjectDialog.meterNumerator), static_cast<juce::Component*> (&newProjectDialog.meterDenominator),
-                                              static_cast<juce::Component*> (&newProjectDialog.templateChooser), static_cast<juce::Component*> (&newProjectDialog.create),
-                                              static_cast<juce::Component*> (&newProjectDialog.cancel) })
-                put (control->getComponentID(), getLocalArea (&newProjectDialog, control->getBounds()));
         if (browserPanel.isVisible())   // G5.2: the browser's widgets, so a drive clicks what it sees
         {
             put ("browser.source", getLocalArea (&browserPanel, browserPanel.source.getBounds()));
@@ -445,6 +439,16 @@ juce::var MainComponent::buildProbeLayout()
         for (int slot = 0; slot < yesdaw::ui::UiTheme::Layout::mixerPaintedInsertRowCount; ++slot)   // G4.7
             put ("mixer.master.insert." + juce::String (slot), harnessPaintedInsertSlotBounds (stripTotal, slot));
     }
+
+    // G5.5: the New Project dialog's controls, for drives. The dialog is a centred overlay over the whole shell, so they
+    // are published whether or not the dock shows (2026-10-07: they sat inside the dock's block, and a drive with the
+    // dock hidden could not find Create).
+    if (newProjectDialog.isVisible())
+        for (juce::Component* control : { static_cast<juce::Component*> (&newProjectDialog.rate), static_cast<juce::Component*> (&newProjectDialog.tempo),
+                                          static_cast<juce::Component*> (&newProjectDialog.meterNumerator), static_cast<juce::Component*> (&newProjectDialog.meterDenominator),
+                                          static_cast<juce::Component*> (&newProjectDialog.templateChooser), static_cast<juce::Component*> (&newProjectDialog.create),
+                                          static_cast<juce::Component*> (&newProjectDialog.cancel) })
+            put (control->getComponentID(), getLocalArea (&newProjectDialog, control->getBounds()));
 
     // G4.1 cp2: the FX editor and its two buttons (grandchildren: the walk below sees children only).
     if (fxEditor.isVisible())

@@ -28,6 +28,11 @@
 #   Shot "<name>"                      - PNG of the window's client area into -Shots
 #   Resize <clientWidth> <clientHeight>
 #   WaitDialog "<title contains>" [-TimeoutMs n] - a native dialog (file chooser) is up
+#   NewProjectChooser [-ViaKey]        - File > New (button, or Ctrl+N): the New Project dialog, its Create, then
+#                                        the native location chooser; returns the chooser's hwnd (Zero = none)
+#   MenuPickByName "<item text>" [-Depth n] - the open JUCE popup's item by its text (UI Automation), clicked
+#   UiaFocused                         - the element UI Automation reports focused (what a screen reader reads)
+#   UiaFind "<name -like>" [-Type t]   - the app's UI Automation elements by name (t: Button, CheckBox, Slider...)
 #   WaitPopup [-Depth n] [-TimeoutMs n] - n JUCE popup menus are modal (keys now reach the popup)
 #   Close                              - WM_CLOSE, then kill if a modal prompt holds it open
 #   Elapsed                            - ms since Launch; $script:FirstProbeMs = ms to the first probe tick (B6)
@@ -738,6 +743,93 @@ function WaitDialog([string] $titleContains, [int] $TimeoutMs = 4000) {
     Start-Sleep -Milliseconds 60
   } while ((Get-Date) -lt $deadline)
   return [IntPtr]::Zero
+}
+
+# G5.5 / ADR-0060: File > New shows the in-app New Project dialog (rate, tempo, meter, template) first; its Create asks
+# for the location through the native chooser. Every script's "New" goes through here so the path is written once
+# (2026-10-07: SS-2..SS-5 still waited for the chooser straight after the click and went red at G6). Asserts each
+# hop, so a dialog that never shows or a Create that opens nothing is its own FAIL.
+function NewProjectChooser([switch] $ViaKey) {
+  if ($ViaKey) { Key 'Ctrl+N' } else { Click 'widget.project.new' }
+  $shown = WaitProbe { param($q) [bool]$q.view.newProjectDialog } -TimeoutMs 3000
+  if (-not $shown -and -not $ViaKey) {   # the first click on a freshly launched window can only activate it
+    Focus
+    Start-Sleep -Milliseconds 300
+    Click 'widget.project.new'
+    $shown = WaitProbe { param($q) [bool]$q.view.newProjectDialog } -TimeoutMs 3000
+  }
+  [void](Assert $shown 'New shows the New Project dialog (G5.5)')
+  if (-not $shown) { return [IntPtr]::Zero }
+  [void](Assert ($null -ne (LayoutRect 'newproject.create')) 'the probe publishes the dialog''s Create')
+  Click 'newproject.create'
+  $dlg = WaitDialog 'Create YES DAW Project' 6000
+  [void](Assert ($dlg -ne [IntPtr]::Zero) 'Create opens the native project location chooser')
+  return $dlg
+}
+
+# --- UI Automation (2026-10-07): what a screen reader sees, and popup items by their text ------------------------------
+# The same tree Narrator / NVDA read (JUCE serves it per handler: juce_AccessibilityElement_windows.cpp). The drive is
+# per-monitor DPI aware, so UI Automation rectangles are physical screen pixels, the same space SendInput uses.
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+
+function UiaDescribe($e) {
+  if ($null -eq $e) { return $null }
+  $c = $e.Current
+  $toggle = ''; $value = ''; $range = $null; $pat = $null
+  if ($e.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern, [ref]$pat)) { $toggle = [string]$pat.Current.ToggleState }
+  if ($e.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern, [ref]$pat)) { $value = [string]$pat.Current.Value }
+  if ($e.TryGetCurrentPattern([System.Windows.Automation.RangeValuePattern]::Pattern, [ref]$pat)) { $range = [double]$pat.Current.Value }
+  $r = $c.BoundingRectangle
+  return [pscustomobject]@{
+    Name = [string]$c.Name; Type = ($c.ControlType.ProgrammaticName -replace '^ControlType\.', ''); ProcessId = [int]$c.ProcessId
+    Enabled = [bool]$c.IsEnabled; Toggle = $toggle; Value = $value; Range = $range
+    X = [int]$r.X; Y = [int]$r.Y; W = [int]$r.Width; H = [int]$r.Height; Element = $e
+  }
+}
+
+function UiaFocused {
+  try { return UiaDescribe ([System.Windows.Automation.AutomationElement]::FocusedElement) } catch { return $null }
+}
+
+function UiaFind([string] $nameLike, [string] $Type = '', [switch] $PopupsOnly) {
+  $A = [System.Windows.Automation.AutomationElement]
+  $byPid = New-Object System.Windows.Automation.PropertyCondition($A::ProcessIdProperty, [int]$script:Proc.Id)
+  $found = New-Object System.Collections.Generic.List[object]
+  foreach ($w in $A::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children, $byPid)) {
+    if ($PopupsOnly -and [IntPtr][int64]$w.Current.NativeWindowHandle -eq $script:Hwnd) { continue }
+    $cond = [System.Windows.Automation.Condition]::TrueCondition
+    if ($Type -ne '') {
+      $ct = [System.Windows.Automation.ControlType]::$Type
+      $cond = New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, $ct)
+    }
+    foreach ($e in $w.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)) {
+      if ($e.Current.Name -like $nameLike) { $found.Add((UiaDescribe $e)) }
+    }
+  }
+  return $found
+}
+
+# A JUCE popup menu's item by its text (a trailing ellipsis aside), clicked with the real mouse. Positions shift as
+# menus grow (2026-10-07: G5 added Save a Copy and Save as Template above Import MIDI File, and SS-5's "7th item" became
+# Import Audio); a name does not. FAILs when the item is missing or disabled.
+function MenuPickByName([string] $text, [int] $Depth = 1, [int] $TimeoutMs = 2500) {
+  [void](WaitPopup -Depth $Depth)
+  $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
+  $item = $null
+  do {
+    $items = @(UiaFind '*' 'MenuItem' -PopupsOnly | Where-Object { ($_.Name -replace '(\.\.\.|\u2026)$', '') -ceq $text })
+    if ($items.Count -gt 0) { $item = $items[0] }
+    else { Start-Sleep -Milliseconds 80 }
+  } while ($null -eq $item -and (Get-Date) -lt $deadline)
+  [void](Assert ($null -ne $item) ("the open menu offers '" + $text + "' (UI Automation)"))
+  [void](Assert ($items.Count -le 1) ("'" + $text + "' names one item of the open menus (" + $items.Count + ")"))   # never a guess between two
+  if ($null -eq $item) { Key 'Esc' -Repeat $Depth; return $false }
+  [void](Assert $item.Enabled ("'" + $text + "' is enabled"))
+  [YesDawDrive]::MouseMoveAbs([int]($item.X + $item.W / 2), [int]($item.Y + $item.H / 2)); Start-Sleep -Milliseconds 150
+  [YesDawDrive]::MouseButton($true, $false); Start-Sleep -Milliseconds 30
+  [YesDawDrive]::MouseButton($false, $false); Start-Sleep -Milliseconds 250
+  return $true
 }
 
 # 2026-10-05: wait until the app runs $Depth JUCE popup menus (the probe's modal.menus; a submenu is

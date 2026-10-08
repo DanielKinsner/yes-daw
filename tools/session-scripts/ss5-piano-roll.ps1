@@ -51,8 +51,7 @@ function NoteIds { return @((Probe).view.pianoRoll.notes | ForEach-Object { "$($
 
 Step 0 'Launch, New'
 Launch
-Click 'widget.project.new'
-$dlg = WaitDialog 'Create YES DAW Project' 6000
+$dlg = NewProjectChooser
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
 [void](Assert (WaitProbe { param($q) [string]$q.bundlePath -eq $bundle } -TimeoutMs 6000) 'New opens the requested bundle, independent of the startup project')
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (D3)')
@@ -251,8 +250,7 @@ $mid = Join-Path ([System.IO.Path]::GetTempPath()) ('ss5-import-' + (Get-Date).T
 $t0 = [int](Probe).view.trackCount
 $menubar = LayoutRect 'widget.shell.menubar'
 Click 'widget.shell.menubar' -OffsetX (20 - [int]($menubar[2] / 2))
-# File (a project loaded, every item enabled): New, Open, Save, Save As, Import Audio, Export Audio, Import MIDI File -> 7th.
-MenuPick 7
+[void](MenuPickByName 'Import MIDI File')   # by name: G5 grew the File menu above it (2026-10-07)
 $dlg = WaitDialog 'Import MIDI File' 4000
 [void](Assert ($dlg -ne [IntPtr]::Zero) 'File > Import MIDI File opens the native chooser')
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $mid }

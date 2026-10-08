@@ -8,6 +8,31 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 — The desktop is free: every earlier real-app drive passes again (SS-1 .. SS-5, seven scripts)
+
+**Now:** Dan freed the desktop. The seven existing drives ran on the real exe: `ss1` passed as it was; `ss2` .. `ss7` went
+red at their first step and are repaired; all seven pass. **Next:** G6.3's live screen-reader step (UI Automation, in
+`ss7`), then G6.4 (its implementation ADR is being designed and critic-reviewed), and the SS-6 script (`ss8`, being
+drafted). **Decision still pending (Dan, plan §8.2):** the macOS frame exception — e0f5d7f and 6c9a3ed fail only that
+check on macOS (sustained 21.5 ms and 22.5 ms against 16.6 ms; every other job green); reported raw, not excused.
+
+**What was wrong:** the drives had not run since G5 (the desktop was busy), and three G5 changes had moved under them:
+File > New now shows the New Project dialog before the location chooser (G5.5), the keymap lives in `prefs.json` (G5.6),
+and the File menu grew (G5.5: Save a Copy, Save as Template), so a "7th item" pick became Import Audio. A script that
+waited for the chooser straight after New left the dialog open over the shell, and every later click and Tab landed in
+it — `ss7`'s 25 failures were almost all that one dialog. **One product bug:** the state probe published the dialog's
+controls only while the mixer dock showed (a drive with the dock hidden could not find Create); fixed, with a gate.
+
+**Repairs:** the runner gains `NewProjectChooser` (New -> the dialog -> Create -> the native chooser, each hop asserted)
+and `MenuPickByName` (a popup item by its text through UI Automation, the tree a screen reader reads; FAIL when missing
+or disabled), plus `UiaFocused` / `UiaFind` for G6.3's live check. Every script's New goes through the helper; `ss5`'s
+and `ss6`'s File-menu picks are by name; `ss2`'s keymap check reads `prefs.json`'s `keymap`. README: the new primitives
+and three lessons.
+
+**Gates:** `[project-lifecycle]` — the New Project dialog's controls are in the probe's layout with the dock hidden (red
+without the fix). **See-it:** ss1 45, ss2 42, ss3 57, ss4 22, ss5 77, ss6 58, ss7 144 assertions — all PASS on this
+machine (Windows 11, the shared desktop, Dan away); every launch 1.2 – 1.5 s to the first interactive tick (B6: 3 s).
+
 ## 2026-10-10 — G6.3 done headless: targets that go away, overlays, a full walk, the ring as drawn (ADR-0066 cp3)
 
 **Now:** G6.3's three checkpoints are in, headless-certified locally. **Next: G6.4** (interaction and motion states —

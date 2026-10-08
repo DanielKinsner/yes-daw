@@ -263,8 +263,19 @@ TEST_CASE ("ADR-0060 the New Project overlay: the keyboard alone creates a proje
 {
     LifecycleShell f ("overlay", true);
     f.nextBundle = f.directory / "keyed.yesdaw";
+    // The dialog's controls are in the probe's layout whatever the dock shows: a drive clicks Create by name
+    // (2026-10-07: they were published only with the dock open). Open the piano roll's tab, then close the dock.
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ViewPianoRoll);
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ViewPianoRoll);
+    REQUIRE (probeOf (*f)["view"]["dock"].toString() == "None");
     REQUIRE (press (*f, 'n', juce::ModifierKeys::ctrlModifier));
     REQUIRE (static_cast<bool> (probeOf (*f)["view"]["newProjectDialog"]));
+    for (const char* id : { "newproject.rate", "newproject.tempo", "newproject.meter.numerator", "newproject.meter.denominator",
+                            "newproject.template", "newproject.create", "newproject.cancel" })
+    {
+        INFO ("layout " << id);
+        REQUIRE (probeOf (*f)["layout"].hasProperty (id));
+    }
 
     // Tab stays inside the overlay.
     const auto order = yesdaw::ui::mainComponentControlTraversal (*f);

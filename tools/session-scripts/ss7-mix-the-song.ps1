@@ -74,14 +74,7 @@ function OpenMixer {
 
 Step 0 'Launch, New'
 Launch
-Click 'widget.project.new'
-$dlg = WaitDialog 'Create YES DAW Project' 6000
-if ($dlg -eq [IntPtr]::Zero) {   # the first click on a freshly launched window can only activate it: click once more
-  Focus
-  Start-Sleep -Milliseconds 300
-  Click 'widget.project.new'
-  $dlg = WaitDialog 'Create YES DAW Project' 6000
-}
+$dlg = NewProjectChooser   # retries the first click itself (a fresh window's first click can only activate it)
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
 [void](Assert (WaitProbe { param($q) [string]$q.bundlePath -eq $bundle } -TimeoutMs 6000) 'New opens the requested bundle, independent of the startup project')
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (D3: created through the real New chooser)')

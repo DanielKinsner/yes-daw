@@ -19,8 +19,7 @@ function MenuPick([int] $itemIndex) {
 
 Step 0 'Launch, New'
 Launch
-Click 'widget.project.new'
-$dlg = WaitDialog 'Create YES DAW Project' 6000
+$dlg = NewProjectChooser
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
 [void](Assert (WaitProbe { param($q) [string]$q.bundlePath -eq $bundle } -TimeoutMs 6000) 'New opens the requested bundle, independent of the startup project')
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (D3)')

@@ -88,14 +88,7 @@ function CreateMidiClipOnLane([int] $lane) {
 
 Step 0 'Launch, New'
 Launch
-Click 'widget.project.new'
-$dlg = WaitDialog 'Create YES DAW Project' 6000
-if ($dlg -eq [IntPtr]::Zero) {   # the first click on a freshly launched window can only activate it: click once more
-  Focus
-  Start-Sleep -Milliseconds 300
-  Click 'widget.project.new'
-  $dlg = WaitDialog 'Create YES DAW Project' 6000
-}
+$dlg = NewProjectChooser   # retries the first click itself (a fresh window's first click can only activate it)
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
 [void](Assert (WaitProbe { param($q) [string]$q.bundlePath -eq $bundle } -TimeoutMs 6000) 'New opens the requested bundle, independent of the startup project')
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (D3: created through the real New chooser)')
@@ -237,7 +230,7 @@ Click 'lane.0' -OffsetX ([int]($lane0[2] / 2) - 40)
 [void](Assert (WaitProbe { param($q) $q.selection.clips.Count -eq 0 } -TimeoutMs 1500) 'an empty-lane click clears the clip selection (the export is the whole project)')
 $menubar = LayoutRect 'widget.shell.menubar'
 Click 'widget.shell.menubar' -OffsetX (20 - [int]($menubar[2] / 2))
-MenuPick 8   # New, Open, Save, Save As, Import Audio, Export Audio, Import MIDI File, Export MIDI File -> 8th
+[void](MenuPickByName 'Export MIDI File')   # by name: G5 grew the File menu above it (2026-10-07)
 $dlg = WaitDialog 'Export MIDI File' 4000
 [void](Assert ($dlg -ne [IntPtr]::Zero) 'File > Export MIDI File opens the native chooser')
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $midPath }
@@ -286,7 +279,7 @@ Click 'rail.row.0'
 $t2 = [int](Probe).view.trackCount
 $menubar = LayoutRect 'widget.shell.menubar'
 Click 'widget.shell.menubar' -OffsetX (20 - [int]($menubar[2] / 2))
-MenuPick 7
+[void](MenuPickByName 'Import MIDI File')
 $dlg = WaitDialog 'Import MIDI File' 4000
 [void](Assert ($dlg -ne [IntPtr]::Zero) 'File > Import MIDI File opens the native chooser')
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $midPath }
@@ -295,7 +288,7 @@ if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $midPath }
 if (-not (WaitProbe { param($q) [int]$q.view.trackCount -eq $t2 + 1 } -TimeoutMs 4000)) {
   Focus
   Click 'widget.shell.menubar' -OffsetX (20 - [int]($menubar[2] / 2))
-  MenuPick 7
+  [void](MenuPickByName 'Import MIDI File')
   $dlg = WaitDialog 'Import MIDI File' 4000
   if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $midPath }
 }

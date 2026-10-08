@@ -29,13 +29,9 @@ if (-not [bool]$p.projectLoaded) {
   # window, not the shell (probe focusOwner == the window title) — the G0.2 bug in its purest
   # form. Record it, then take the shipped mouse path (the New toolbar button) so the rest of
   # the script still runs against a project.
-  Key 'Ctrl+N'
-  $dlg = WaitDialog 'Create YES DAW Project' 2500
+  $dlg = NewProjectChooser -ViaKey
   [void](Assert ($dlg -ne [IntPtr]::Zero) 'Ctrl+N right after launch opens the New chooser (G0.2: keys go to the command router)')
-  if ($dlg -eq [IntPtr]::Zero) {
-    Click 'widget.project.new'
-    $dlg = WaitDialog 'Create YES DAW Project' 5000
-  }
+  if ($dlg -eq [IntPtr]::Zero) { $dlg = NewProjectChooser }
   if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
   [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'the native New chooser creates a project')
 }

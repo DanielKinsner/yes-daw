@@ -36,9 +36,7 @@ function ClipKey {
 
 Step 0 'Launch, New, Import the fixture'
 Launch
-Click 'widget.project.new'
-$dlg = WaitDialog 'Create YES DAW Project' 6000
-[void](Assert ($dlg -ne [IntPtr]::Zero) 'New opens the native project chooser')
+$dlg = NewProjectChooser
 if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $bundle }
 [void](Assert (WaitProbe { param($q) [string]$q.bundlePath -eq $bundle } -TimeoutMs 6000) 'New opens the requested bundle, independent of the startup project')
 [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded } -TimeoutMs 6000) 'a project exists (created through the real New chooser; D3)')
@@ -144,9 +142,15 @@ if ($null -ne $ed) {
 # real Close button (top row, right; 72 px wide inside the 12 px inset).
 if ($null -ne $ed) { Click 'widget.keymap.editor' -OffsetX ([int]($w / 2) - 12 - 36) -OffsetY (12 + 16 - [int]($h / 2)) }
 [void](Assert (WaitProbe { param($q) -not [bool]$q.view.keymapEditor } -TimeoutMs 2000) 'Close hides the keymap editor')
-$overrides = Join-Path $script:SessionDir 'keymap-overrides.txt'
-[void](Assert (Test-Path -LiteralPath $overrides) ('the override is persisted at bind time: ' + $overrides))
-if (Test-Path -LiteralPath $overrides) { Write-Host ('  [keymap] ' + ((Get-Content -LiteralPath $overrides) -join ' | ')) }
+# G5.6 / ADR-0061: the keymap lives in prefs.json's `keymap` object (stableId -> chord), written at bind time.
+$prefsPath = Join-Path $script:SessionDir 'prefs.json'
+$boundChords = @()
+if (Test-Path -LiteralPath $prefsPath) {
+  $prefs = Get-Content -LiteralPath $prefsPath -Raw | ConvertFrom-Json
+  if ($null -ne $prefs.keymap) { $boundChords = @($prefs.keymap.PSObject.Properties | ForEach-Object { [string]$_.Value }) }
+  Write-Host ('  [keymap] ' + ($boundChords -join ' | '))
+}
+[void](Assert (@($boundChords | Where-Object { $_ -match '(?i)ctrl.*shift.*\bT\b' }).Count -ge 1) ('the override is persisted at bind time in ' + $prefsPath))
 Key 'Ctrl+S'
 Start-Sleep -Milliseconds 500
 $sessionDir = $script:SessionDir

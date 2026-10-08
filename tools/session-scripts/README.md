@@ -14,7 +14,9 @@ The runner (`tools/session-drive.ps1`) gives a script these primitives: `Launch`
 'title'`, `Assert cond 'message'`, `Probe` (the state JSON), `WaitProbe { param($q) … } -TimeoutMs`,
 `LayoutRect 'id'`, `Click 'id' [-Right] [-Double] [-OffsetX/-OffsetY]`, `DragWithin 'id' x0 y0 x1 y1`,
 `Key 'Chord' [-Repeat n]`, `Focus`, `Shot 'name'`, `Resize w h`, `WaitDialog 'title'`,
-`FileDialogEnter path`. A click target is a **layout id** from the probe's `layout` map — a painted
+`FileDialogEnter path`, `NewProjectChooser [-ViaKey]` (File > New through the New Project dialog to the
+native chooser), `MenuPickByName 'text'` (an open popup's item by its text), and UI Automation's view —
+`UiaFocused` (the element a screen reader reads) and `UiaFind 'name' [-Type CheckBox]`. A click target is a **layout id** from the probe's `layout` map — a painted
 zone (`mixer.strip.2.insert.0`, `header.gear`, `timeline`) or `widget.<componentId>` for a live
 component (`widget.project.new`, `mixer.fx.editor.close` (the editor's buttons are grandchildren, exported by name)).
 
@@ -99,5 +101,15 @@ controls transport and a slider arrow does not also nudge a Clip.
   `recording.armedTrackCount`, `view.{dock, mixerNarrow, trackCount}`. If a step needs a fact the probe
   does not carry, add it to the probe (the shell's `mainComponentStateProbeJson`) — that is a code
   change with a gate, not a screenshot read.
+- **File > New goes through the New Project dialog (G5.5).** New shows the in-app dialog (rate, tempo,
+  meter, template); its Create opens the native location chooser. Use `NewProjectChooser` — a script that
+  waits for the chooser straight after the click leaves the dialog open over the shell, and every later
+  click and Tab lands in it (2026-10-07: SS-2..SS-5 went red this way at G6).
+- **Pick a popup item by its text, not its position.** Menus grow (G5 put Save a Copy and Save as
+  Template above Import MIDI File, and SS-5's "7th item" became Import Audio). `MenuPickByName` finds the
+  item through UI Automation and clicks it; it FAILs when the item is missing or disabled.
+- **UI Automation is what a screen reader reads.** `UiaFocused` after a router move is the painted
+  control's own element (ADR-0066); compare its name / type / rect with the probe's `controlTarget` and
+  `layout`, and act through its patterns (Toggle, RangeValue, SetFocus) as a screen reader would.
 - **Shots are evidence, not assertions.** Name them for the rubric (`ss7-fx-editor`), take one per
   distinct state, and judge them against §7.4 in the STATUS story's **Rubric** paragraph.
