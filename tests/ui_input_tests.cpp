@@ -6511,6 +6511,55 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
 // M10 — dropping files from the OS. There was no `FileDragAndDropTarget` anywhere in the shell:
 // the only way in was Ctrl+I, which always lands on the SELECTED track at the PLAYHEAD. A drop
 // carries its own target — the lane under the pointer and the tick under the pointer.
+// 2026-10-07 (the SS-6 smoke drive): a drop that adds tracks moves the master pane right; its live fader must move with it.
+// The drop refreshes state without a resize, and the master fader was laid out only on a resize - it stayed at the
+// master's old slot, drawn over the new strip.
+TEST_CASE ("a drop that adds tracks keeps the master fader on the master pane", "[ui][input][shell][mixer][file-drop][layout]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("drop-master-fader");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1536, 960);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
+
+    auto* masterFader = findChildWithComponentId (*shell, "mixer.master.fader");
+    REQUIRE (masterFader != nullptr);
+    const auto masterPane = [&shell] {
+        const juce::var rect = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["layout"]["mixer.master"];
+        REQUIRE (rect.isArray());
+        return juce::Rectangle<int> (static_cast<int> (rect[0]), static_cast<int> (rect[1]), static_cast<int> (rect[2]), static_cast<int> (rect[3]));
+    };
+    REQUIRE (masterPane().contains (masterFader->getBounds()));
+    const juce::Rectangle<int> paneBefore = masterPane();
+
+    // Two files at once on the first lane: the second lands on a new track, the master pane moves right.
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    auto* dropTarget = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (dropTarget != nullptr);
+    const yesdaw::ui::TimelineCanvasGeometry geometry = timelineGeometryForProject (timeline, readProjectSnapshot (bundlePath));
+    const int dropX = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 3;
+    const int firstLaneY = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2;
+    dropTarget->filesDropped (juce::StringArray { juce::String (fixturePath.string()), juce::String (fixturePath.string()) }, dropX, firstLaneY);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
+    REQUIRE (masterPane().getX() > paneBefore.getX());
+    REQUIRE (masterPane().contains (masterFader->getBounds()));   // red before the fix: the old slot, over strip 2
+
+    // The rail's + Track button takes the same refresh-only path.
+    const juce::Rectangle<int> paneTwo = masterPane();
+    clickButton (requireButtonForAction (*shell, UiActionId::TrackAdd));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
+    REQUIRE (masterPane().getX() > paneTwo.getX());
+    REQUIRE (masterPane().contains (masterFader->getBounds()));
+
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("dropping audio files onto the timeline imports them where they land",
            "[ui][input][shell][timeline][file-drop]")
 {

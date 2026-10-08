@@ -8,6 +8,22 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — Fix: a drop that adds tracks left the master fader over the new strip
+
+**Now:** found by the SS-6 smoke drive and fixed. **Next:** the SS-6 drive tooling and its live runs, then ADR-0068's
+checkpoints, then ADR-0067 cp2. **Decision still pending (Dan, plan §8.2):** the macOS frame exception (unchanged).
+
+**What a user saw:** dropping two files onto the first lane of a one-track project added a track, and the master pane's
+fader stayed where the master pane used to be — drawn over the new track's strip (two fader knobs on that strip, none
+on the master). The rail's + Track button had the same fault. **Why:** the mixer's live widgets (the master fader, the
+strip scroll bar, the FX editor's rows) were laid out only on a resize; a drop and the + Track button refresh the
+state without one. **Fix:** every action refresh lays them out (a no-op when nothing moved); the strip scroll bar shows
+only when the dock shows the mixer, whoever lays it out.
+
+**Gates:** `[file-drop][layout]` — a two-file drop and then the + Track button each move the master pane right and the
+master fader stays inside it (red without the fix). The critic's other find — the inspector's widgets have the same
+layout-only-on-resize shape — is the next fix after it is shown to bite. ctest 420/420, Clang clean.
+
 ## 2026-10-07 — G6.4 cp1: meters read every block since the last look (ADR-0067)
 
 **Now:** ADR-0067 cp1 (meters from real state) is in; ADR-0068 (the recovery contract) is accepted (8336ef0). **Next:** a

@@ -2344,6 +2344,10 @@ void MainComponent::refreshActionState()
                                      juce::dontSendNotification);
     inspectorTrackTab.setToggleState (appModel.context().inspectorTrackTabActive,
                                       juce::dontSendNotification);
+    // The mixer's live widgets follow the strip count an action changed without a resize: the master pane's fader, the
+    // strip scroll bar, the FX editor's rows (2026-10-07: a two-file drop added a track and the master fader stayed at the
+    // master's old slot, drawn over the new strip). setBounds is a no-op when nothing moved.
+    layoutMixerControls();
     syncPaintedAccessibilityProxies();   // ADR-0066 cp2: states and values the elements report follow the action
 }
 

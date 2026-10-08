@@ -1353,7 +1353,9 @@ void MainComponent::revealMixerStrip (int stripOrdinal)
 void MainComponent::layoutMixerScrollBar()
 {
     const MixerStripLayout layout = mixerStripLayout();
-    const bool shown = layout.overflow && layout.visible > 0 && ! layout.viewport.isEmpty();   // a collapsed dock has none
+    // A collapsed dock has none; nor does a dock showing another tab (the bar is laid out from every action refresh now,
+    // not only from resized(), whose hideMixerControlsBehindDockTab used to re-hide it).
+    const bool shown = dockShowsMixer() && layout.overflow && layout.visible > 0 && ! layout.viewport.isEmpty();
     mixerStripScrollBar.setBounds (shown ? layout.scrollBar : juce::Rectangle<int>());
     mixerStripScrollBar.setVisible (shown);
     const bool wasRefreshing = refreshingScrollBars;
