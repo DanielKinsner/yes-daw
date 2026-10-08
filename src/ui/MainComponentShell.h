@@ -351,6 +351,9 @@ public:
     [[nodiscard]] bool isUnnamedLaunchProject() const;
     static constexpr const char* unnamedBundleName = "Untitled.yesdaw";
     static constexpr const char* unnamedMarkerName = ".yesdaw-untitled";
+    void openUntitledLaunchSession (const std::function<void (const char*)>& recordStartupStage,
+                                    UiAppModel::LastProjectRecord lastProjectRecord = UiAppModel::LastProjectRecord::Write);
+    void openUntitledLaunchSessionKeepingReason (const std::function<void (const char*)>& recordStartupStage);
     [[nodiscard]] bool saveCurrentProject (bool chooseDestination);
 
     // G0.1 probe: paint() opens the frame stamp and paintOverChildren() closes it — JUCE paints

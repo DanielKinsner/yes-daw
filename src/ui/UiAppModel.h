@@ -1624,10 +1624,16 @@ public:
         return createProjectBundle (bundlePath, makeDefaultSessionProject());
     }
 
+    // Whether attaching a bundle names it the last project (and the top of Open Recent). Keep: the untitled session a
+    // failed launch open falls back to (ADR-0062) leaves the record naming the project that failed, so the next launch
+    // tries that project again rather than an empty session; a Save, New or Open names a project as usual.
+    enum class LastProjectRecord { Write, Keep };
+
     [[nodiscard]] persistence::BundleResult createProjectBundle (
         const std::filesystem::path& bundlePath,
         engine::Project project,
-        const std::function<void (const char*)>& recordStartupStage = {})
+        const std::function<void (const char*)>& recordStartupStage = {},
+        LastProjectRecord lastProjectRecord = LastProjectRecord::Write)
     {
         persistence::ProjectBundleDb opened;
         persistence::BundleResult result = persistence::ProjectBundleDb::openOrCreateBundle (bundlePath, opened);
@@ -1642,7 +1648,7 @@ public:
         if (! result.ok())
             return result;
 
-        attachProjectBundle (std::move (opened), bundlePath, std::move (project));
+        attachProjectBundle (std::move (opened), bundlePath, std::move (project), lastProjectRecord);
         if (recordStartupStage)
             recordStartupStage ("attach-initial-project");
         ++context_.commandDispatchCount;
@@ -12737,7 +12743,8 @@ private:
     void attachProjectBundle (
         persistence::ProjectBundleDb opened,
         const std::filesystem::path& bundlePath,
-        engine::Project project)
+        engine::Project project,
+        LastProjectRecord lastProjectRecord = LastProjectRecord::Write)
     {
         stopAudition();   // ADR-0056: an audition belongs to the project (and rate) it started in
         if (activeExport_ != nullptr)   // ADR-0058: a running export belongs to the project it started in
@@ -12750,7 +12757,8 @@ private:
         }
         bundleDb_ = std::move (opened);
         bundlePath_ = bundlePath;
-        writeLastProjectRecord();
+        if (lastProjectRecord == LastProjectRecord::Write)
+            writeLastProjectRecord();
         project_ = std::move (project);
         editSerial_ = 0;
         lastSavedEditSerial_ = 0;   // a freshly attached bundle starts clean (B37)

@@ -1192,13 +1192,14 @@ TEST_CASE ("R5 an engine refusal names the reason on the launch and on File > Op
         REQUIRE (db.writeProjectSnapshot (project).ok());
     }
 
-    // Launch with openBundleAtLaunch: projectLoaded stays false, and the status line names the
-    // reason — the launch path USED to swallow the result with (void).
+    // Launch with openBundleAtLaunch: the untitled session opens (ADR-0062: a failed launch open leaves it), and the
+    // status line names the reason — the launch path USED to swallow the result with (void) and leave no project.
     {
         LifecycleShell launch ("engine-refuses-launch", false, true, bundle);
         const yesdaw::ui::MainComponentSnapshot snap = yesdaw::ui::snapshotMainComponent (*launch);
         INFO ("launch status: " << snap.statusLineText);
-        REQUIRE_FALSE (snap.context.projectLoaded);
+        REQUIRE (snap.context.projectLoaded);
+        REQUIRE (snap.bundlePath.filename() == "Untitled.yesdaw");
         REQUIRE (snap.statusLineText.rfind ("Open failed:", 0) == 0);
         REQUIRE (snap.statusLineIsError);
         REQUIRE (snap.statusLineText.find ("refuses.yesdaw") != std::string::npos);

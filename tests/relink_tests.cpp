@@ -369,11 +369,15 @@ TEST_CASE ("ADR-0062 the launch reopen asks the same way; a pad's Asset and an u
     RelinkShell r (f.directory / "session", f.bundle);   // the launch opens it
     REQUIRE (r.asked.size() == 1u);   // no answer: Cancel
     REQUIRE (r.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (Audio Clip)");
+    REQUIRE (r.snapshot().context.projectLoaded);   // the untitled session, never no project
+    REQUIRE (r.snapshot().bundlePath.filename() == "Untitled.yesdaw");
     r.shell.reset();
 
     RelinkShell relaunch (f.directory / "session-2", f.bundle);
     REQUIRE (relaunch.asked.size() == 1u);
-    REQUIRE_FALSE (relaunch.snapshot().context.projectLoaded);   // asked, cancelled: no project, as a failed launch open
+    // ADR-0062: "At launch, Cancel leaves the untitled session" — never no project at all; the reason stays on show.
+    REQUIRE (relaunch.snapshot().context.projectLoaded);
+    REQUIRE (relaunch.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (Audio Clip)");
     relaunch.shell.reset();
     RelinkShell found (f.directory / "session-3", {});
     found.answers = { f.originals[2] };

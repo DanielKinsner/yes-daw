@@ -5127,7 +5127,7 @@ TEST_CASE ("fresh native session is backed, recoverable, and named on first Save
 }
 
 TEST_CASE ("native startup honors explicit paths and leaves failed opens unresolved",
-           "[ui][input][shell][empty-startup]")
+           "[ui][input][shell][empty-startup][reopen]")
 {
     const auto stateDirectory = makeTempBundlePath ("startup-priority");
     MainComponentFileChoices choices;
@@ -5148,9 +5148,20 @@ TEST_CASE ("native startup honors explicit paths and leaves failed opens unresol
     REQUIRE (snapshotMainComponent (*shell).visibleTimelineTrackCount == 2);
     shell.reset();
 
+    // ADR-0062: a failed launch open leaves a fresh untitled session (never no project), the reason on the status line;
+    // the record still names the project that failed, so the plain relaunch below goes back to it, not to this session.
     choices.openBundleAtLaunch = makeTempBundlePath ("startup-missing");
     shell = makeShell (choices);
-    REQUIRE_FALSE (snapshotMainComponent (*shell).context.projectLoaded);
+    {
+        const auto failed = snapshotMainComponent (*shell);
+        INFO ("status: " << failed.statusLineText);
+        REQUIRE (failed.context.projectLoaded);
+        REQUIRE (failed.bundlePath.filename() == "Untitled.yesdaw");
+        REQUIRE (failed.bundlePath != original);
+        REQUIRE (failed.statusLineText.rfind ("Open failed: ", 0) == 0);   // the project that failed, by name
+        REQUIRE (failed.statusLineText.find (yesdaw::io::utf8Text (choices.openBundleAtLaunch.filename()))
+                 != std::string::npos);
+    }
     REQUIRE (std::filesystem::exists (original));
     shell.reset();
     choices.openBundleAtLaunch.clear();

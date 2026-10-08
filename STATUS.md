@@ -8,6 +8,22 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — Fix: a launch that cannot open the last project leaves the untitled session, not nothing
+
+**What a user saw:** when the project YES DAW reopens at launch could not open (a missing or damaged bundle, one the
+engine refuses, or Cancel on its missing-audio question), the app came up with no project at all - only File > New or
+Open did anything. **Now (ADR-0062: "At launch, Cancel leaves the untitled session"):** the untitled session opens and
+the reason stays on the status line ("Open failed: ... (<name>)" / "Open cancelled: ..."). The last-project record
+still names the project that failed, so the next launch tries it again (a drive plugged back in, a file restored) -
+the fallback session never takes its place until a Save, New or Open names a project. If the fallback itself cannot be
+created, both reasons show. The deferred (native) question's fallback also sets the device to the session's rate.
+**Gates:** `[empty-startup]` - a missing explicit bundle at launch opens an untitled session, says why by name, keeps the
+earlier untitled bundle, and the next plain launch reopens the last real project (red with the record overwritten);
+`[project-lifecycle]` an engine refusal at launch and `[relink]` a launch Cancel both leave the untitled session.
+ctest 420/420, Clang clean. **Critic:** no blockers; its two should-fixes (the deferred path's device rate, a failed
+fallback hiding its own failure) and test-bite gaps are fixed. Untested: the native deferred path (a modal question;
+no headless seam). **Next:** SS-6 drive fixes (audition, export replacement) and a re-run; then ADR-0068 cp5.
+
 ## 2026-10-08 — Fix (found by SS-6): a project whose clips were all deleted reopened as nothing, silently
 
 **What a user saw:** delete every clip of a project (its tracks and audio files stay), quit or crash, open it again —

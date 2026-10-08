@@ -1763,6 +1763,12 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
                             const std::string now = self->appModel.statusLineText();
                             if (! earlier.empty() && now != earlier && now.rfind ("Open cancelled", 0) == 0)
                                 self->appModel.reportStatus (earlier + "; " + now, true);
+                            if (! self->appModel.context().projectLoaded)   // ADR-0062: the untitled session
+                            {
+                                self->openUntitledLaunchSessionKeepingReason ({});
+                                if (self->appModel.context().projectLoaded)
+                                    self->afterProjectAttached();   // ADR-0060: the device follows its rate
+                            }
                             self->refreshActionState();
                             self->repaintAll();
                         }
@@ -1807,27 +1813,14 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
                             + " (" + yesdaw::io::utf8Text (lastProject.filename()) + ")",
                         true);
             }
+            // ADR-0062: a launch open that leaves no project (refused, failed, or its missing-audio question
+            // cancelled) leaves the untitled session, with the reason still on the status line.
+            if (! appModel.context().projectLoaded && ! (answered && fileChoices.nativePrompts))
+                openUntitledLaunchSessionKeepingReason (recordStartupStage);
         }
         else
         {
-            // A fresh native launch is a real, recoverable session. Keep its backing bundle:
-            // edits already persist here, including across an interrupted first Save.
-            const auto directory = fileChoices.sessionStateDirectory / "Untitled"
-                / juce::Uuid().toString().toStdString();
-            std::error_code error;
-            std::filesystem::create_directories (directory, error);
-            std::ofstream marker (directory / unnamedMarkerName, std::ios::binary);
-            marker << unnamedBundleName << '\n';
-            marker.close();
-            if (error || ! marker)
-                appModel.reportStatus ("New project failed: cannot create the session backing directory", true);
-            else
-            {
-                const auto created = appModel.createProjectBundle (
-                    directory / unnamedBundleName, UiAppModel::makeDefaultSessionProject(), recordStartupStage);
-                if (! created.ok())
-                    appModel.reportStatus ("New project failed: " + created.message, true);
-            }
+            openUntitledLaunchSession (recordStartupStage);
         }
     }
     recordStartupStage ("open-or-create-session");
@@ -2818,6 +2811,45 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
 int MainComponent::headerHeightNow() const
 {
     return kHeaderHeight + (appModel.context().settingsRowVisible ? yesdaw::ui::UiTheme::Layout::settingsRowHeight : 0);
+}
+
+// A fresh native launch is a real, recoverable session. Keep its backing bundle: edits already persist here, including
+// across an interrupted first Save.
+void MainComponent::openUntitledLaunchSession (const std::function<void (const char*)>& recordStartupStage,
+                                               UiAppModel::LastProjectRecord lastProjectRecord)
+{
+    const auto directory = fileChoices.sessionStateDirectory / "Untitled" / juce::Uuid().toString().toStdString();
+    std::error_code error;
+    std::filesystem::create_directories (directory, error);
+    std::ofstream marker (directory / unnamedMarkerName, std::ios::binary);
+    marker << unnamedBundleName << '\n';
+    marker.close();
+    if (error || ! marker)
+    {
+        appModel.reportStatus ("New project failed: cannot create the session backing directory", true);
+        return;
+    }
+    const auto created = appModel.createProjectBundle (directory / unnamedBundleName, UiAppModel::makeDefaultSessionProject(),
+                                                       recordStartupStage, lastProjectRecord);
+    if (! created.ok())
+        appModel.reportStatus ("New project failed: " + created.message, true);
+}
+
+// ADR-0062: a launch open that left no project falls back to the untitled session; the reason it failed (the status
+// line's) stays on the status line, so the user is never left with no project and no word why. The last-project record
+// keeps naming the project that failed: the next launch tries it again (a drive plugged back in, a file found).
+void MainComponent::openUntitledLaunchSessionKeepingReason (const std::function<void (const char*)>& recordStartupStage)
+{
+    const std::string reason = appModel.statusLineText();
+    const bool reasonIsError = appModel.statusLineIsError();
+    openUntitledLaunchSession (recordStartupStage, UiAppModel::LastProjectRecord::Keep);
+    const std::string now = appModel.statusLineText();
+    if (reason.empty() || now == reason)
+        return;
+    if (appModel.context().projectLoaded)
+        appModel.reportStatus (reason, reasonIsError);
+    else
+        appModel.reportStatus (reason + "; " + now, true);   // the fallback failed too: both facts stay on show
 }
 
 } // namespace yesdaw::ui
