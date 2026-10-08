@@ -8,6 +8,17 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0072 accepted: ADR-0067's hover and pressed, made true to the code and the contrast law
+
+**Why:** planning ADR-0067 cp2 (pointer hover and press) found its white-fill tints would push muted text below 4.5:1
+(down to 2.3:1 when hover and press stack), its overlay rule let the header's controls hover through an open dialog,
+its tick kept a stale component, rail widths 180-203 made controls overlap, and its seam could not tell a right-click.
+**Decided (design workflow: two amendments, two judges; critic, then a re-critic):** hover is a 1 px white inner edge,
+press a 2 px one - never a fill, so no text or its background changes (a 1 px press for the mixer's insert, send and
+I/O rows, whose text sits closer to the edge); header controls hover only on an exact match; the tick walks the
+children; the rail's floor rises to 204; the seam carries modifiers. **Next:** ADR-0067 cp2 in five slices (S1, the
+shell painting only the regions a repaint reaches, is built and under review).
+
 ## 2026-10-08 — ADR-0069 proposed: a cheap autosave by hard link (awaits Dan on one point)
 
 **Now:** `docs/adr/0069-cheap-autosave-hard-links.md` - from a design workflow (link vs a background worker vs a

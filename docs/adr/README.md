@@ -87,6 +87,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0067](0067-interaction-and-motion-states.md) | Interaction and motion states: hover and pressed tints from the painted records, re-resolved every tick; meters read every block since the last look (count-stamped peak windows) and fall silent when no block runs; the playhead is the published frame; no timers or animation | Accepted |
 | [0068](0068-autosave-and-recovery-write-stamp.md) | Autosave on the model's edit serial (it never wrote before); a save or a deliberate discard retires it; a v35 write stamp lets recovery offer only what the bundle lacks (silent after a kill, asked after lost writes, asked again until answered); the question names both sides' counts | Accepted |
 | [0069](0069-cheap-autosave-hard-links.md) | A cheap autosave: asset bytes carried into the snapshot by a same-volume hard link (a copy where impossible), checked by identity at write time and fully hashed at Restore - ~11 ms instead of seconds; awaits the owner on ADR-0019's "copied" | Proposed |
+| [0072](0072-hover-and-pressed-amended.md) | ADR-0067 cp2 amended: pointer hover and press are inner edge strokes (1 px / 2 px, white), never fills, so no text loses contrast; only header.gear/time are shell-surfaced for the overlay rule; the tick walks children; the rail floor rises to 204 so records stay disjoint; the seam carries modifiers | Accepted |
 
 ## Decision status (the five research forks)
 
