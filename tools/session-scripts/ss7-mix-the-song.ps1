@@ -38,10 +38,17 @@
 # G4.2 cp6–cp7 (2026-10-05) — Step 8 drags the bus EQ below its Compressor and undoes it; then the
 # Compressor's Presets menu saves a named preset through the prompt, loads it back after an edit, and one
 # Ctrl+Z undoes the load.
+# G6.3 (2026-10-07) — what a screen reader sees: Step 15, read through UI Automation (the tree Narrator and NVDA read).
+# The router's Tab moves UI Automation's focus to the painted control's own element (ADR-0066 cp2): its name and type are
+# the target's and it stands on the control; the rail mute's Toggle mutes the track as the click does; the strip fader's
+# RangeValue sets the gain as one undo step; a screen reader's focus move onto a strip's mute hands the router that
+# target; every painted element the shell keeps is in the tree. Save and close moves to Step 16.
 #
 # Deviations from the plan text (logged in STATUS.md, the G4.1 cp1 story): the recording device on the
 # drive machine may have no inputs — the input-slot and R-cell steps then assert the honest refusal
 # (the popup lists no inputs; the arm set stays empty) instead of the pick.
+# G6.3's live step sits here, not in ss8 (where the README routes G6): SS-5's session has the most painted surfaces
+# (rail rows, track and bus strips, the master), and ss8 does not exist yet (logged in STATUS.md, 2026-10-07).
 
 $bundle = Join-Path ([System.IO.Path]::GetTempPath()) ('ss7-mix-the-song-' + (Get-Date).ToString('HHmmss') + '.yesdaw')
 if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $bundle }
@@ -386,7 +393,9 @@ KeyThenTick 'Shift+Tab'
 [void](Assert (TabTo 'mixer.strip.0.fader' -Back) 'Shift+Tab reaches track 1''s painted fader')
 $located = [int64](Probe).transport.playheadFrame
 KeyThenTick 'Right'
-[void](Assert ([int64](Probe).transport.playheadFrame -gt $located) 'negative control: before Enter, Right is the editor''s and locates the playhead')
+# The locate reaches the probe's playhead through the transport, a tick or two after the key (2026-10-07: one read right
+# after the key saw the old frame while lastAction already said transport.locate_next_grid): wait for it.
+[void](Assert (WaitProbe { param($q) [int64]$q.transport.playheadFrame -gt $located } -TimeoutMs 1500) 'negative control: before Enter, Right is the editor''s and locates the playhead')
 $frame = [int64](Probe).transport.playheadFrame
 KeyThenTick 'Enter'
 KeyThenTick 'Up'
@@ -576,7 +585,79 @@ $size = if (Test-Path -LiteralPath $export) { (Get-Item -LiteralPath $export).Le
 [void](Assert ($size -gt 1000000) ('the exported WAV is on disk (' + $size + ' bytes)'))
 if (Test-Path -LiteralPath $export) { Remove-Item -Force -LiteralPath $export }
 
-Step 15 'Save and close'
+Step 15 'G6.3: a screen reader sees each painted control as its own element (UI Automation, live)'
+# The element UI Automation reports focused once its name is the target's (the router's move is posted to the tree).
+function UiaFocusedNamed([string] $name, [int] $TimeoutMs = 2000) {
+  $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
+  do {
+    $f = UiaFocused
+    if ($null -ne $f -and $f.Name -eq $name) { return $f }
+    Start-Sleep -Milliseconds 100
+  } while ((Get-Date) -lt $deadline)
+  return (UiaFocused)
+}
+# An element stands on a layout zone when its centre is the zone's centre (physical pixels, a pixel of rounding).
+function StandsOn($element, [string] $layoutId) {
+  if ($null -eq $element -or $null -eq (LayoutRect $layoutId)) { return $false }
+  $c = ScreenPoint $layoutId
+  return ([Math]::Abs(($element.X + $element.W / 2) - $c[0]) -le 2 -and [Math]::Abs(($element.Y + $element.H / 2) - $c[1]) -le 2)
+}
+Focus
+Click 'timeline'   # Arrange takes the keys; Tab starts navigation from there
+[void](WaitProbe { param($q) "$($q.focusContext)" -eq 'Arrange' } -TimeoutMs 1500)
+[void](Assert (TabTo 'rail.row.0.mute') 'Tab reaches track 1''s rail mute cell')
+$target = (Probe).controlTarget
+$focused = UiaFocusedNamed "$($target.name)"
+[void](Assert ($null -ne $focused -and $focused.ProcessId -eq $script:Proc.Id) 'UI Automation''s focus is in the app')
+[void](Assert ($null -ne $focused -and $focused.Name -eq "$($target.name)") ('the focused element is the target by name (' + $focused.Name + ' / ' + $target.name + ')'))
+[void](Assert ($null -ne $focused -and $focused.Type -eq 'CheckBox') ('a toggle reads as a check box (' + $focused.Type + ')'))
+[void](Assert (StandsOn $focused 'rail.row.0.mute') ('the element stands on the painted cell (' + $focused.X + ',' + $focused.Y + ' ' + $focused.W + 'x' + $focused.H + ')'))
+[void](Assert ("$((Probe).focusOwner)" -eq 'shell') ('the keyboard stays with the shell (' + (Probe).focusOwner + ')'))
+$mutedBefore = [bool](Probe).mixer.strips[0].muted
+if ($null -ne $focused) { $focused.Element.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle() }
+[void](Assert (WaitProbe { param($q) [bool]$q.mixer.strips[0].muted -ne $mutedBefore } -TimeoutMs 2000) 'the element''s Toggle mutes the track, as the click does')
+$again = UiaFocused
+[void](Assert ($null -ne $again -and $again.Toggle -eq $(if ($mutedBefore) { 'Off' } else { 'On' })) ('the element reads the new state (' + $again.Toggle + ')'))
+if ($null -ne $again) { $again.Element.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Toggle() }
+[void](Assert (WaitProbe { param($q) [bool]$q.mixer.strips[0].muted -eq $mutedBefore } -TimeoutMs 2000) 'a second Toggle puts it back')
+Shot 'ss7-uia-rail-mute'
+
+# The strip fader's RangeValue: one set is one undo step.
+Key 'Esc'
+[void](WaitProbe { param($q) -not [bool]$q.controlTarget.navigating } -TimeoutMs 1500)
+[void](Assert (TabTo 'mixer.strip.1.fader') 'Tab reaches strip 2''s painted fader')
+$fader = UiaFocusedNamed "$((Probe).controlTarget.name)"
+[void](Assert ($null -ne $fader -and $fader.Type -eq 'Slider' -and $null -ne $fader.Range) ('a fader reads as a slider with a range (' + $fader.Type + ' ' + $fader.Range + ')'))
+[void](Assert (StandsOn $fader 'mixer.strip.1.fader') 'the fader element stands on the painted rail')
+$gainBefore = [double](Probe).mixer.strips[1].linearGain
+if ($null -ne $fader) { $fader.Element.GetCurrentPattern([System.Windows.Automation.RangeValuePattern]::Pattern).SetValue(0.5) }
+[void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.mixer.strips[1].linearGain - 0.5) -lt 0.001 } -TimeoutMs 2000) ('RangeValue sets the gain (' + (Probe).mixer.strips[1].linearGain + ')'))
+Key 'Esc'
+[void](WaitProbe { param($q) -not [bool]$q.controlTarget.navigating } -TimeoutMs 1500)
+Key 'Ctrl+Z'
+[void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.mixer.strips[1].linearGain - $gainBefore) -lt 0.001 } -TimeoutMs 2000) 'one Ctrl+Z gives the gain back (the set was one undo step)')
+
+# A screen reader's focus move hands the router the target (ADR-0049 / ADR-0066).
+$stripMute = @(UiaFind "$((Probe).mixer.strips[2].name) mute" 'CheckBox' | Where-Object { StandsOn $_ 'mixer.strip.2.mute' })
+[void](Assert ($stripMute.Count -eq 1) ('strip 3''s mute is one element in the tree (' + $stripMute.Count + ')'))
+if ($stripMute.Count -ge 1) { $stripMute[0].Element.SetFocus() }
+[void](Assert (WaitProbe { param($q) "$($q.controlTarget.id)" -eq 'mixer.strip.2.mute' } -TimeoutMs 2000) ('a screen reader''s focus move adopts the target (' + (Probe).controlTarget.id + ')'))
+
+# Every painted zone the probe lays out has an element of its own standing on it (matched by centre, not by count: a
+# count could be made up by widgets).
+$elements = @(UiaFind '*' | Where-Object { $_.Type -in @('CheckBox', 'Button', 'Slider') -and $_.W -gt 0 })
+$zones = @((Probe).layout.PSObject.Properties.Name | Where-Object { $_ -match '^(rail\.row\.\d+\.(mute|solo|arm|pan|volume)|mixer\.strip\.\d+\.(solo|mute|arm|pan|fader))$' })
+$missing = @()
+foreach ($zone in $zones) {
+  $c = ScreenPoint $zone
+  $hit = @($elements | Where-Object { [Math]::Abs(($_.X + $_.W / 2) - $c[0]) -le 2 -and [Math]::Abs(($_.Y + $_.H / 2) - $c[1]) -le 2 })
+  if ($hit.Count -ne 1) { $missing += ($zone + ':' + $hit.Count) }
+}
+[void](Assert ($zones.Count -ge 20 -and $missing.Count -eq 0) ('every painted zone has exactly one element on it (' + $zones.Count + ' zones; off: ' + ($missing -join ' ') + ')'))
+Shot 'ss7-uia-adopted'   # the ring on strip 3's mute, where the screen reader put it
+Key 'Esc'
+
+Step 16 'Save and close'
 Focus
 Key 'Ctrl+S'
 Start-Sleep -Milliseconds 800

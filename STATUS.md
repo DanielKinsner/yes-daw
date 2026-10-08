@@ -8,6 +8,32 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-07 — G6.3 live: a screen reader's view checked on the real app, and its focus move now adopts the target
+
+**Now:** G6.3's desktop proof is in: `ss7` Step 15 reads the app through UI Automation (the tree Narrator and NVDA read)
+and passes. **Next:** ADR-0067 (G6.4) is through its design workflow and under a second critic round; then the SS-6
+drive's missing pieces (`ss8`, drafted: probe fields, an alert-window helper, a hard kill, fixtures, a file drop).
+**Decision still pending (Dan, plan §8.2):** the macOS frame exception — 523b320 fails only that check on macOS
+(sustained 20.0 ms); every other job green; reported raw, not excused.
+
+**What a user gets:** a screen reader that moves its focus onto a control — a strip's mute, a fader, a widget — now hands
+the keyboard that control as its target (the ring goes there; Enter and the arrows act on it). It never worked on a real
+window: JUCE parents an element on its nearest focus container, the window, not the shell, so the shell's own handler
+never saw the focus move (headless gates could not see it: there is no handler without a native window).
+
+**Found by:** the live step — "a screen reader's focus move adopts the target" was red on the real exe. **Fixed:** the
+shell asks the window's handler for the focused element and keeps only what lies inside the shell.
+
+**Gates:** `[native][accessibility]` (new, Windows) — the shell as the content of a hidden, off-screen window: a screen
+reader's focus move onto a painted element and onto a widget each become the target; the router's own Tab moves the
+screen reader's focus and the next ticks leave it; Esc does not restart navigation (red without the fix). **See-it:**
+`ss7` Step 15 — Tab to track 1's rail mute: UI Automation's focus is that element, by name and type (check box), on the
+painted cell, the keyboard still the shell's; its Toggle mutes the track and reads the new state; strip 2's fader is a
+slider with a range whose set is one undo step; a SetFocus on strip 3's mute moves the router there; every one of the 38
+painted zones laid out has exactly one element standing on it. `ss7` 161/161 (Step 11's playhead read now waits for the
+probe: it raced the transport once). ctest 417/417, Clang clean. **Critic:** no blockers; two checks sharpened (the
+element count matched by position, a tautological assert dropped).
+
 ## 2026-10-07 — The desktop is free: every earlier real-app drive passes again (SS-1 .. SS-5, seven scripts)
 
 **Now:** Dan freed the desktop. The seven existing drives ran on the real exe: `ss1` passed as it was; `ss2` .. `ss7` went

@@ -1124,11 +1124,16 @@ void MainComponent::revalidateControlTarget()
 // outside move adopts. Without that the tick would re-target what the router just set.
 juce::Component* MainComponent::accessibilityFocusComponent()
 {
-    juce::AccessibilityHandler* shellHandler = getAccessibilityHandler();
-    if (shellHandler == nullptr)
+    // JUCE parents an element on its nearest focus container: the window, not this shell (which is not one), so the
+    // shell's own handler never sees a child's focus. Ask the window's, and keep only what lies inside the shell
+    // (2026-10-07: the desktop drive's UI Automation step found a screen reader's focus move was never adopted).
+    juce::Component* top = getTopLevelComponent();
+    juce::AccessibilityHandler* rootHandler = top != nullptr ? top->getAccessibilityHandler() : nullptr;
+    if (rootHandler == nullptr)
         return nullptr;
-    juce::AccessibilityHandler* focused = shellHandler->getChildFocus();
-    return focused != nullptr ? &focused->getComponent() : nullptr;
+    juce::AccessibilityHandler* focused = rootHandler->getChildFocus();
+    juce::Component* component = focused != nullptr ? &focused->getComponent() : nullptr;
+    return component != nullptr && (component == this || isParentOf (component)) ? component : nullptr;
 }
 
 void MainComponent::adoptAccessibilityControlTarget()

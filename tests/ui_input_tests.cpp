@@ -24240,6 +24240,98 @@ TEST_CASE ("ADR-0066 every Control target has an accurate accessible element", "
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+#if JUCE_WINDOWS
+// ADR-0066 / ADR-0049 on a real window (2026-10-07: the desktop drive's UI Automation step found it). JUCE parents an
+// accessible element on its nearest focus container — the window, not the shell, which is not one — so the shell's own
+// handler never saw a child's focus, and a screen reader moving its focus onto a control was never adopted as the
+// target. The shell is the content of a hidden, off-screen DocumentWindow, as in the app: JUCE's real handlers, never
+// shown, never activated, never the keyboard's.
+TEST_CASE ("ADR-0066 on a real window: a screen reader's focus move adopts the target, and the router's own move is not re-adopted",
+           "[ui][input][shell][control-navigation][g6-keyboard][accessibility][native]")
+{
+    const auto bundlePath = makeTempBundlePath ("g63-native-adopt");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
+
+    juce::DocumentWindow window ("YES DAW accessibility gate", juce::Colours::black, 0, false);
+    window.setUsingNativeTitleBar (true);
+    window.setContentNonOwned (shell.get(), true);
+    window.setVisible (false);
+    window.setTopLeftPosition (-20000, -20000);
+    window.addToDesktop();
+    REQUIRE (window.getPeer() != nullptr);
+    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);   // the window's creation messages
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+    REQUIRE (shell->getAccessibilityHandler() != nullptr);
+
+    std::function<juce::Component* (juce::Component&, const juce::String&)> find = [&] (juce::Component& parent, const juce::String& id) -> juce::Component*
+    {
+        for (int i = 0; i < parent.getNumChildComponents(); ++i)
+        {
+            juce::Component* child = parent.getChildComponent (i);
+            if (child->getComponentID() == id)
+                return child;
+            if (auto* proxy = dynamic_cast<yesdaw::ui::PaintedAccessibleProxy*> (child); proxy != nullptr && juce::String (proxy->getModel().targetId) == id)
+                return child;
+            if (juce::Component* found = find (*child, id))
+                return found;
+        }
+        return nullptr;
+    };
+    // What UI Automation's SetFocus does (JUCE's AccessibilityNativeHandle::SetFocus: the focus action, then grabFocus).
+    const auto screenReaderFocus = [&] (const juce::String& id)
+    {
+        juce::Component* element = find (*shell, id);
+        REQUIRE (element != nullptr);
+        juce::AccessibilityHandler* handler = element->getAccessibilityHandler();
+        REQUIRE (handler != nullptr);
+        handler->grabFocus();
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+    };
+
+    // A painted control's element: the screen reader's focus move makes it the target.
+    REQUIRE_FALSE (controlTargetOf (*shell).navigating);
+    screenReaderFocus ("mixer.strip.1.mute");
+    REQUIRE (controlTargetOf (*shell).navigating);
+    REQUIRE (controlTargetOf (*shell).id == "mixer.strip.1.mute");
+    // A widget's element too, and the keyboard stays where it was (widgets never take it: G0.2).
+    screenReaderFocus ("timeline.snap.chooser");
+    REQUIRE (controlTargetOf (*shell).id == "timeline.snap.chooser");
+    REQUIRE_FALSE (find (*shell, "timeline.snap.chooser")->hasKeyboardFocus (true));
+
+    // The router's own move: Tab moves the screen reader's focus onto the next control's element, and the next ticks
+    // leave the target where Tab put it (the poll adopts only an outside move).
+    REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+    const juce::String afterTab = controlTargetOf (*shell).id;
+    REQUIRE (afterTab != "timeline.snap.chooser");
+    juce::AccessibilityHandler* windowHandler = window.getAccessibilityHandler();
+    REQUIRE (windowHandler != nullptr);
+    juce::AccessibilityHandler* focused = windowHandler->getChildFocus();
+    REQUIRE (focused != nullptr);
+    REQUIRE (&focused->getComponent() == find (*shell, afterTab));
+    for (int i = 0; i < 5; ++i)
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+    REQUIRE (controlTargetOf (*shell).id == afterTab);
+    // Esc ends navigation; the element keeps the screen reader's focus, and the ticks do not start navigation again.
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    for (int i = 0; i < 5; ++i)
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+    REQUIRE_FALSE (controlTargetOf (*shell).navigating);
+
+    window.clearContentComponent();
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+#endif
+
 // ADR-0066 cp3: a target whose control goes away (its strip scrolled out, its track deleted, its section dropped) moves to
 // a live control on the next tick; an overlay the walk entered gives the target back when it closes; a full walk of a
 // real session reaches every control class.
