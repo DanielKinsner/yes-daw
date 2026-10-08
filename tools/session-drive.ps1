@@ -735,6 +735,92 @@ function Shot([string] $name) {
   return $path
 }
 
+# ADR-0072 §8 (G6.4): the real pointer over a target without pressing - JUCE's own enter, then its hover repaint.
+function Hover([string] $target, [int] $OffsetX = 0, [int] $OffsetY = 0) {
+  $pt = ScreenPoint $target $OffsetX $OffsetY
+  [YesDawDrive]::MouseMoveAbs($pt[0] - 1, $pt[1]); Start-Sleep -Milliseconds 60
+  [YesDawDrive]::MouseMoveAbs($pt[0], $pt[1]); Start-Sleep -Milliseconds 300
+}
+
+# A shot's pixels, read into memory so the PNG is not held open.
+function LoadShot([string] $path) {
+  $bytes = [System.IO.File]::ReadAllBytes($path)
+  $stream = New-Object System.IO.MemoryStream (, $bytes)
+  return New-Object System.Drawing.Bitmap $stream
+}
+
+# The shot's physical pixels across one logical pixel of a pointer stroke's band - depth $depth (1 = just inside the
+# 1 px inset, ADR-0072 §1) - at the middle of each edge of a layout rect (logical, shell coordinates). A fractional
+# display scale spreads one logical pixel over two physical ones; both are listed.
+function StrokeBand($rect, [int] $depth) {
+  $s = [double](Probe).displayScale; if ($s -le 0) { $s = 1.0 }
+  $x0 = [double]$rect[0] * $s; $y0 = [double]$rect[1] * $s
+  $x1 = ([double]$rect[0] + [double]$rect[2]) * $s; $y1 = ([double]$rect[1] + [double]$rect[3]) * $s
+  $mx = [int][Math]::Floor(($x0 + $x1) / 2); $my = [int][Math]::Floor(($y0 + $y1) / 2)
+  $from = [int][Math]::Floor($depth * $s); $to = [int][Math]::Ceiling(($depth + 1) * $s) - 1
+  $band = [ordered]@{ left = @(); right = @(); top = @(); bottom = @() }
+  for ($d = $from; $d -le $to; $d++) {
+    $band.left += , @(([int][Math]::Floor($x0) + $d), $my)
+    $band.right += , @(([int][Math]::Ceiling($x1) - 1 - $d), $my)
+    $band.top += , @($mx, ([int][Math]::Floor($y0) + $d))
+    $band.bottom += , @($mx, ([int][Math]::Ceiling($y1) - 1 - $d))
+  }
+  return @{ band = $band; scale = $s; mx = $mx; my = $my; x0 = $x0; y0 = $y0; x1 = $x1; y1 = $y1 }
+}
+
+# The smallest channel rise from one pixel to another (white over a colour raises all three).
+function Rise([System.Drawing.Color] $from, [System.Drawing.Color] $to) {
+  return [Math]::Min([int]$to.R - [int]$from.R, [Math]::Min([int]$to.G - [int]$from.G, [int]$to.B - [int]$from.B))
+}
+
+# ADR-0072 §1 / §8 in the window's pixels - the hover line: along every edge of the rect the 1 px band is brighter than
+# in the resting shot (by $MinRise on every channel somewhere across it), and the rect's middle is unchanged. Returns
+# what is off ('' when the line shows).
+function HoverStrokeShown([string] $restPath, [string] $nowPath, $rect, [int] $MinRise = 40) {
+  $rest = LoadShot $restPath; $now = LoadShot $nowPath
+  try {
+    $g = StrokeBand $rect 1
+    $off = @()
+    foreach ($edge in @($g.band.Keys)) {
+      $best = -255
+      foreach ($p in $g.band[$edge]) { $best = [Math]::Max($best, (Rise $rest.GetPixel($p[0], $p[1]) $now.GetPixel($p[0], $p[1]))) }
+      if ($best -lt $MinRise) { $off += ('{0} edge rose {1}' -f $edge, $best) }
+    }
+    $inset = 5 * $g.scale   # beyond the widest stroke's reach (3) and its corner
+    $changed = 0
+    for ($i = 0; $i -le 4; $i++) {
+      for ($j = 0; $j -le 4; $j++) {
+        $x = [int]($g.x0 + $inset + ($g.x1 - $g.x0 - 2 * $inset) * $i / 4)
+        $y = [int]($g.y0 + $inset + ($g.y1 - $g.y0 - 2 * $inset) * $j / 4)
+        $a = $rest.GetPixel($x, $y); $b = $now.GetPixel($x, $y)
+        if ([Math]::Max([Math]::Abs([int]$a.R - [int]$b.R), [Math]::Max([Math]::Abs([int]$a.G - [int]$b.G), [Math]::Abs([int]$a.B - [int]$b.B))) -gt 8) { $changed++ }
+      }
+    }
+    if ($changed -gt 0) { $off += ('{0} of 25 middle pixels changed' -f $changed) }
+    return ($off -join '; ')
+  } finally { $rest.Dispose(); $now.Dispose() }
+}
+
+# The pressed line: on the given edges (left / right: a widget's fill is a vertical gradient, so the pixel just inside the
+# stroke on the same row is the unstroked one) every logical pixel of the band, $Width of them, is far brighter than that
+# pixel - a 2 px line, not the hover's 1 px. Returns what is off.
+function PressedStrokeShown([string] $nowPath, $rect, [int] $Width = 2, [string[]] $Edges = @('left', 'right'), [int] $MinRise = 100) {
+  $now = LoadShot $nowPath
+  try {
+    $off = @()
+    $inside = StrokeBand $rect ($Width + 2)
+    foreach ($edge in $Edges) {
+      $ref = $now.GetPixel($inside.band[$edge][0][0], $inside.band[$edge][0][1])
+      for ($depth = 1; $depth -le $Width; $depth++) {
+        $best = -255
+        foreach ($p in (StrokeBand $rect $depth).band[$edge]) { $best = [Math]::Max($best, (Rise $ref $now.GetPixel($p[0], $p[1]))) }
+        if ($best -lt $MinRise) { $off += ('{0} edge, depth {1}: rose {2} over the pixel inside' -f $edge, $depth, $best) }
+      }
+    }
+    return ($off -join '; ')
+  } finally { $now.Dispose() }
+}
+
 function Resize([int] $clientWidth, [int] $clientHeight) {
   $wr = New-Object YesDawDrive+RECT; [void][YesDawDrive]::GetWindowRect($script:Hwnd, [ref]$wr)
   $cr = New-Object YesDawDrive+RECT; [void][YesDawDrive]::GetClientRect($script:Hwnd, [ref]$cr)

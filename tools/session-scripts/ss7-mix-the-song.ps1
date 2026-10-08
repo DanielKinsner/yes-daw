@@ -22,6 +22,9 @@
 # and MUTE light and clear; the fixture imported onto track 1 plays and the header's LUFS readout shows the
 # measured loudness (when the drive machine has an output device — otherwise the honest "--" is asserted).
 # Save and close moves to Step 14.
+# G6.4 (2026-10-08, ADR-0072 §8) — Step 16: the real pointer over the header's meter chooser and tempo cell (native
+# widgets) shows the 1 px hover line in the window's pixels, and held down each shows the 2 px pressed line. Save and
+# close is Step 17.
 # G4.0b (2026-10-05) — keyboard only: Step 11. Tab starts control navigation (the ring; the probe's
 # controlTarget); Space stays transport; the Snap chooser previews with arrows and Enter applies; strip 1's
 # painted fader moves by dB as one undo step while Right never moves the playhead, and Esc restores; the
@@ -657,7 +660,45 @@ foreach ($zone in $zones) {
 Shot 'ss7-uia-adopted'   # the ring on strip 3's mute, where the screen reader put it
 Key 'Esc'
 
-Step 16 'Save and close'
+Step 16 'G6.4: the real pointer over and down on a native combo box and slider shows their lines (ADR-0072)'
+Focus
+Key 'Esc'
+$meterRect = LayoutRect 'header.meter'; $tempoRect = LayoutRect 'header.tempo'
+[void](Assert ($null -ne $meterRect -and $null -ne $tempoRect) 'the header lays out its meter chooser and tempo cell')
+# The box each draws its line in: the chooser's bounds; the tempo cell's bar, 1 px inside (JUCE's bar border).
+function VisibleBox([string] $target) {
+  $r = LayoutRect $target
+  if ($target -eq 'header.tempo') { return @(($r[0] + 1), ($r[1] + 1), ($r[2] - 2), ($r[3] - 2)) }
+  return $r
+}
+Hover 'timeline'
+$restShot = Shot 'ss7-pointer-rest'
+foreach ($target in @('header.meter', 'header.tempo')) {
+  Hover $target
+  $why = HoverStrokeShown $restShot (Shot ('ss7-pointer-hover-' + $target.Replace('.', '-'))) (VisibleBox $target)
+  [void](Assert ($why -eq '') ('the pointer over ' + $target + ' shows the 1 px line inside its edge' + $(if ($why) { ' (' + $why + ')' })))
+}
+# Held: the tempo cell (a press sets the tempo where it lands; one Ctrl+Z puts it back) and the meter chooser (its
+# list opens; Esc closes it unchanged).
+$bpm = [double](Probe).project.tempoBpm
+$meterBefore = "$((Probe).project.meter)"
+foreach ($target in @('header.tempo', 'header.meter')) {
+  $rect = VisibleBox $target
+  $width = if ([int](LayoutRect $target)[3] -lt 17) { 1 } else { 2 }   # ADR-0072: a widget too short for its text to clear 2 px presses at 1
+  $pt = ScreenPoint $target
+  [YesDawDrive]::MouseMoveAbs($pt[0], $pt[1]); Start-Sleep -Milliseconds 80
+  [YesDawDrive]::MouseButton($true, $false); Start-Sleep -Milliseconds 350
+  $edges = if ($target -eq 'header.meter') { @('right') } else { @('left', 'right') }   # the chooser's text sits at its left
+  $why = PressedStrokeShown (Shot ('ss7-pointer-pressed-' + $target.Replace('.', '-'))) $rect $width $edges
+  [YesDawDrive]::MouseButton($false, $false); Start-Sleep -Milliseconds 200
+  [void](Assert ($why -eq '') ('held down, ' + $target + ' shows the ' + $width + ' px pressed line' + $(if ($why) { ' (' + $why + ')' })))
+  if ($target -eq 'header.meter') { Key 'Esc'; Start-Sleep -Milliseconds 200 }
+}
+if ([Math]::Abs([double](Probe).project.tempoBpm - $bpm) -gt 0.001) { Key 'Ctrl+Z'; Start-Sleep -Milliseconds 300 }
+[void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.project.tempoBpm - $bpm) -le 0.001 } -TimeoutMs 2000) ('the tempo is back at ' + $bpm + ' (' + (Probe).project.tempoBpm + ')'))
+[void](Assert ($meterBefore -ne '' -and "$((Probe).project.meter)" -eq $meterBefore) ('the meter is unchanged (' + (Probe).project.meter + ')'))
+
+Step 17 'Save and close'
 Focus
 Key 'Ctrl+S'
 Start-Sleep -Milliseconds 800

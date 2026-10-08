@@ -8,6 +8,20 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0067 cp2 S5c: the real app shows the lines under the real mouse (SS-5 drive)
+
+**What:** the `ss7` session drive (the real `YesDaw.exe`, real Win32 mouse) gains Step 16: it moves the pointer over the
+header's meter chooser and tempo cell - the two native widgets whose hover only the real mouse sets - and reads the
+window's own pixels: along every edge the 1 px band brightened and the middle unchanged; then holds the button down on
+each and finds both pixels of the 2 px pressed line far brighter than the pixel just inside (so not the hover's 1 px).
+The drive harness gains `Hover`, `HoverStrokeShown` and `PressedStrokeShown` (tools/session-drive.ps1); the probe lays
+out `header.tempo` / `header.meter` and reports `project.meter`. **Result:** ss7 168/168 PASS on this desktop. The
+first run caught the drive measuring the tempo cell 1 px too far out (JUCE draws a bar slider 1 px inside its bounds);
+the cell's visible box is what it now measures. **Visual check (agent, 4x crops):** hover is a thin line inside each
+box, pressed a heavy white one; no text crossed. **Found on the way (parked as its own task):** a plain click on the
+tempo cell jumps the tempo to the click point (120 -> 213); the step undoes it and asserts the tempo is back.
+**Next:** ADR-0067 cp3 ([playhead], [static], the full real-pointer sweep at three sizes), then G6.5.
+
 ## 2026-10-08 — ADR-0067 cp2 S5b: native buttons, toggles, combo boxes and sliders show the same lines
 
 **What changes (visible):** the app's native widgets drop the old white wash on hover and press and show the painted

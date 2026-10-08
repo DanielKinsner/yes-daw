@@ -370,6 +370,8 @@ juce::var MainComponent::buildProbeLayout()
     }
     put ("header.midi.in", headerLayout().midiIn);   // G3.10: the input lamp
     put ("header.solo.clear", headerSoloClear.getBounds());   // G4.5: the SOLO indicator
+    put ("header.tempo", headerTempoControl.getBounds());      // G6.4: the native widgets the real pointer hovers
+    put ("header.meter", headerMeterChooser.getBounds());
     if (appModel.context().mixerDockVisible)
     {
         put ("dock", mixerPanelBounds());
@@ -972,6 +974,9 @@ juce::String MainComponent::buildStateProbeJson()
         auto* projectObject = new juce::DynamicObject();
         projectObject->setProperty ("sampleRateHz", project.sampleRate.hz);
         projectObject->setProperty ("tempoBpm", project.tempoMap.empty() ? 0.0 : project.tempoMap.front().bpm);
+        projectObject->setProperty ("meter", project.meterMap.empty() ? juce::String ("4/4")   // G6.4: the drive's "unchanged"
+                                                                      : juce::String (project.meterMap.front().numerator) + "/"
+                                                                            + juce::String (project.meterMap.front().denominator));
         projectObject->setProperty ("trackCount", static_cast<int> (project.tracks.size()));
         projectObject->setProperty ("clipCount", static_cast<int> (project.clips.size()));
         projectObject->setProperty ("midiClipCount", static_cast<int> (project.midiClips.size()));
