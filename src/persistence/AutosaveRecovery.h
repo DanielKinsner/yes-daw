@@ -260,8 +260,11 @@ namespace autosave_detail {
     return autosave_detail::replaceSnapshotDirectory (tempPath, finalPath);
 }
 
+// `writeStamp` (optional): the snapshot's write stamp - its source bundle's when it was written (ADR-0068 §5; a snapshot
+// from before schema v35 is migrated on open and reads 0).
 [[nodiscard]] inline AutosaveResult readAutosaveSnapshot (const std::filesystem::path& bundlePath,
-                                                          engine::Project& out)
+                                                          engine::Project& out,
+                                                          std::int64_t* writeStamp = nullptr)
 {
     const std::optional<std::filesystem::path> snapshotPath = autosave_detail::pickLiveSnapshot (bundlePath);
     if (! snapshotPath)
@@ -283,6 +286,10 @@ namespace autosave_detail {
 
     if (auto result = snapshot.readProjectSnapshot (out); ! result.ok())
         return autosave_detail::bundleError (std::move (result));
+
+    if (writeStamp != nullptr)
+        if (auto result = snapshot.projectWriteStamp (*writeStamp); ! result.ok())
+            return autosave_detail::bundleError (std::move (result));
 
     return autosave_detail::ok();
 }
@@ -307,7 +314,8 @@ namespace autosave_detail {
     if (auto result = autosave_detail::copyProjectAssets (snapshot.bundlePath(), recovered, targetDb.bundlePath()); ! result.ok())
         return result;
 
-    if (auto result = targetDb.writeProjectSnapshot (recovered); ! result.ok())
+    // ADR-0068 §5: Restore answers the question - the marker clears in the transaction that writes the recovered rows.
+    if (auto result = targetDb.writeProjectSnapshot (recovered, std::nullopt, UnresolvedSnapshotStamp::Clear); ! result.ok())
         return autosave_detail::bundleError (std::move (result));
 
     out = std::move (recovered);

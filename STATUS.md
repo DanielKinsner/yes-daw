@@ -8,6 +8,26 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0068 cp5b: an open asks about an autosave only when it holds something the bundle lacks
+
+**What changes for a user:** opening a project no longer asks "restore the autosave?" when the project already holds
+everything the autosave does (after a plain crash the project file holds every edit) - that autosave is retired
+silently. It asks when the autosave is ahead of the project (writes lost, e.g. a power cut), and keeps asking at every
+open until Restore or Discard answers, even if the user works on, saves and quits meanwhile (a marker in the bundle).
+Nothing writes autosaves yet (cp1/cp2 switch the writes on last), so the shipped app's behaviour is unchanged today.
+**How:** the snapshot's write stamp against the bundle's; raising the question records the marker; Discard clears it
+before deleting the snapshot; Restore clears it in the same transaction as the recovered rows; Save As / Save a Copy
+clear it in the copy (no autosave there), and Save As hands the open question back to the bundle left behind; a marker
+whose autosave is gone is cleared at open. Probe: `autosave.bundleWriteStamp`, `autosave.snapshotWriteStamp`.
+**Gates (`[autosave]`):** `[round-trip-bundle-newer]` (bundle past or equal: no question, autosave gone);
+`[round-trip-bundle-lost-writes]` (asks with both stamps; Restore recovers, Discard keeps the bundle; the launch probe);
+`[unresolved-across-restart]` (asked again after edits + Save + restart; Save As while asked; a dangling marker);
+`[migration-silent-pre-v35]`. The recording fixture now plants real lost writes (its old shape is retired silently by
+design). Nine mutations, each red. ctest 423/423, Clang clean. **Critic:** no data-loss path; its Save As finding is
+fixed (with a gate); its "a corrupt autosave keeps the marker" finding is answered where it matters - cp1's autosave
+write must clear any marker still set (no question is up then, so it is stale); clearing at open would let a transient
+read failure turn into a silent discard. **Next:** cp5c - the question's text on a card over the arrange (ADR-0068 §6).
+
 ## 2026-10-08 — ADR-0068 cp5a: every bundle write counts itself (schema v35, the write stamp)
 
 **Now:** ADR-0068 lands in its safe order - the stamp and the recovery rule first, the autosave writes switched on

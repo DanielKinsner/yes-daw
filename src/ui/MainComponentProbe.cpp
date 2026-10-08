@@ -994,6 +994,9 @@ juce::String MainComponent::buildStateProbeJson()
         held->setProperty ("assets", static_cast<int> (written.assets));
         autosave->setProperty ("lastWritten", juce::var (held));
         const yesdaw::ui::UiAutosaveRecoveryPrompt& prompt = appModel.autosaveRecoveryPrompt();
+        // ADR-0068 §7: the bundle's write stamp, and the asking snapshot's (0 when nothing asks).
+        autosave->setProperty ("bundleWriteStamp", static_cast<juce::int64> (appModel.bundleWriteStamp()));
+        autosave->setProperty ("snapshotWriteStamp", static_cast<juce::int64> (prompt.snapshotWriteStamp));
         auto* recovery = new juce::DynamicObject();
         recovery->setProperty ("pending", context.autosaveRecoveryPending);
         recovery->setProperty ("prompts", context.autosaveRecoveryPromptCount);

@@ -303,6 +303,9 @@ TEST_CASE ("SS-6 the probe carries the project's rate, tempo and Assets, the aut
     REQUIRE (static_cast<bool> (probeOf (*shell)["autosave"]["enabled"]));
     REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["failures"]) == 0);
     REQUIRE_FALSE (static_cast<bool> (probeOf (*shell)["autosave"]["recovery"]["pending"]));
+    // ADR-0068 §7: the bundle's write stamp counts its writes; no snapshot asks.
+    REQUIRE (static_cast<juce::int64> (probeOf (*shell)["autosave"]["bundleWriteStamp"]) > 0);
+    REQUIRE (static_cast<juce::int64> (probeOf (*shell)["autosave"]["snapshotWriteStamp"]) == 0);
 
     // Export: none before, then the finished job's outcome and its destination.
     REQUIRE (probeOf (*shell)["export"]["lastResult"].toString() == "none");
@@ -1218,4 +1221,297 @@ TEST_CASE ("R5 an engine refusal names the reason on the launch and on File > Op
     REQUIRE (after.statusLineIsError);
     REQUIRE (after.statusLineText.find ("refuses.yesdaw") != std::string::npos);
     REQUIRE (after.bundlePath == before.bundlePath);   // the shell's own project stays
+}
+
+// ---- ADR-0068 cp5b: an open asks about an autosave only when it holds something the bundle lacks ----
+
+namespace {
+
+// The shipped open (File > Open and the launch reopen): the stored Assets decoded, then a load or an open.
+void openThroughShippedPath (yesdaw::ui::UiAppModel& model, const std::filesystem::path& bundle)
+{
+    yesdaw::ui::shell::StoredProjectAssetsResult stored = yesdaw::ui::shell::decodeStoredProjectAssets (bundle);
+    REQUIRE (stored.assets.has_value());
+    if (! stored.assets->empty())
+        REQUIRE (model.loadPreparedProjectBundle (std::move (stored.prepared), std::move (*stored.assets)).ok());
+    else
+        REQUIRE (model.openPreparedProjectBundle (std::move (stored.prepared)).ok());
+}
+
+std::int64_t stampOf (const std::filesystem::path& bundle)
+{
+    yesdaw::persistence::ProjectBundleDb db;
+    REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundle, db).ok());
+    std::int64_t stamp = -1;
+    REQUIRE (db.projectWriteStamp (stamp).ok());
+    return stamp;
+}
+
+std::optional<std::int64_t> markerOf (const std::filesystem::path& bundle)
+{
+    yesdaw::persistence::ProjectBundleDb db;
+    REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundle, db).ok());
+    std::optional<std::int64_t> marker;
+    REQUIRE (db.unresolvedSnapshotStamp (marker).ok());
+    return marker;
+}
+
+bool autosaveOnDisk (const std::filesystem::path& bundle)
+{
+    return yesdaw::persistence::autosave_detail::anySnapshotSlotExists (bundle);
+}
+
+// What cp1's due tick will write: the autosave of `project`, carrying the bundle's committed stamp.
+void plantAutosave (const std::filesystem::path& bundle, const yesdaw::engine::Project& project)
+{
+    yesdaw::persistence::ProjectBundleDb db;
+    REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundle, db).ok());
+    REQUIRE (yesdaw::persistence::writeAutosaveSnapshot (db, project).ok());
+}
+
+// Lost writes: the bundle saved at one track, two more tracks autosaved, then the bundle's project.db put back to the
+// one-track state (what a power cut can leave: the autosave flushed, the bundle's last writes gone).
+struct LostWrites
+{
+    std::filesystem::path directory;
+    std::filesystem::path bundle;
+    std::int64_t savedStamp = 0;
+    std::int64_t snapshotStamp = 0;
+    yesdaw::engine::Project autosaved;
+};
+
+LostWrites makeLostWrites (const std::string& label)
+{
+    LostWrites f;
+    f.directory = lifecycleScratch (label);
+    f.bundle = f.directory / "lost.yesdaw";
+    {
+        yesdaw::ui::UiAppModel model;
+        REQUIRE (model.createProjectBundle (f.bundle).ok());   // one track
+    }
+    f.savedStamp = stampOf (f.bundle);
+    std::filesystem::copy_file (f.bundle / "project.db", f.directory / "older.db");
+    {
+        yesdaw::ui::UiAppModel model;
+        openThroughShippedPath (model, f.bundle);
+        REQUIRE (model.addAudioTrack().dispatched);
+        REQUIRE (model.addAudioTrack().dispatched);   // three tracks
+        f.autosaved = model.project();
+        plantAutosave (f.bundle, f.autosaved);
+    }
+    f.snapshotStamp = stampOf (yesdaw::persistence::autosaveSnapshotPath (f.bundle));
+    for (const char* sidecar : { "project.db-wal", "project.db-shm" })
+    {
+        std::error_code removed;
+        std::filesystem::remove (f.bundle / sidecar, removed);
+        REQUIRE_FALSE (std::filesystem::exists (f.bundle / sidecar));   // no WAL can replay the lost writes
+    }
+    std::filesystem::copy_file (f.directory / "older.db", f.bundle / "project.db", std::filesystem::copy_options::overwrite_existing);
+    REQUIRE (stampOf (f.bundle) == f.savedStamp);
+    REQUIRE (f.savedStamp < f.snapshotStamp);
+    REQUIRE (readProject (f.bundle).tracks.size() == 1u);
+    return f;
+}
+
+} // namespace
+
+// The plain kill: the bundle holds every edit, so an autosave it has caught up with (or passed) asks nothing and goes.
+TEST_CASE ("ADR-0068 an autosave the bundle has caught up with is retired silently at open: no question",
+           "[project-lifecycle][autosave][round-trip-bundle-newer]")
+{
+    const auto directory = lifecycleScratch ("bundle-newer");
+    const auto bundle = directory / "newer.yesdaw";
+    std::size_t tracks = 0;
+    {
+        yesdaw::ui::UiAppModel model;
+        REQUIRE (model.createProjectBundle (bundle).ok());
+        REQUIRE (model.addAudioTrack().dispatched);   // E1
+        plantAutosave (bundle, model.project());
+        SECTION ("the bundle went on past the snapshot (more edits, then a kill)")
+        {
+            REQUIRE (model.addAudioTrack().dispatched);   // E2, never autosaved
+            REQUIRE (stampOf (bundle) > stampOf (yesdaw::persistence::autosaveSnapshotPath (bundle)));
+        }
+        SECTION ("the bundle is exactly where the snapshot is (a Save whose retirement was torn)")
+        {
+            REQUIRE (stampOf (bundle) == stampOf (yesdaw::persistence::autosaveSnapshotPath (bundle)));
+        }
+        tracks = model.project().tracks.size();
+    }   // dropped, never closed
+    REQUIRE (readProject (bundle).tracks.size() == tracks);   // the bundle holds every edit
+
+    yesdaw::ui::UiAppModel reopened;
+    openThroughShippedPath (reopened, bundle);
+    REQUIRE_FALSE (reopened.context().autosaveRecoveryPending);
+    REQUIRE (reopened.context().autosaveRecoveryPromptCount == 0);
+    REQUIRE_FALSE (autosaveOnDisk (bundle));
+    REQUIRE (reopened.project().tracks.size() == tracks);
+    REQUIRE (reopened.bundleWriteStamp() == stampOf (bundle));
+    REQUIRE_FALSE (markerOf (bundle).has_value());
+}
+
+TEST_CASE ("ADR-0068 after lost writes the open asks with both sides' stamps; Restore recovers the autosave, Discard keeps the bundle",
+           "[project-lifecycle][autosave][round-trip-bundle-lost-writes]")
+{
+    const LostWrites f = makeLostWrites ("lost-writes");
+    yesdaw::ui::UiAppModel model;
+    openThroughShippedPath (model, f.bundle);
+    REQUIRE (model.context().autosaveRecoveryPending);
+    REQUIRE (model.autosaveRecoveryPrompt().trackCount == 3u);   // the autosaved side
+    REQUIRE (model.project().tracks.size() == 1u);               // the saved side
+    REQUIRE (model.bundleWriteStamp() == f.savedStamp);
+    REQUIRE (model.autosaveRecoveryPrompt().snapshotWriteStamp == f.snapshotStamp);
+    REQUIRE (markerOf (f.bundle) == std::optional<std::int64_t> { f.snapshotStamp });   // asked, not yet answered
+
+    SECTION ("Restore")
+    {
+        REQUIRE (model.dispatch (UiActionId::AutosaveRecoveryRestore).dispatched);
+        REQUIRE_FALSE (model.context().autosaveRecoveryPending);
+        REQUIRE (model.project().tracks == f.autosaved.tracks);
+        REQUIRE (readProject (f.bundle).tracks == f.autosaved.tracks);
+        REQUIRE_FALSE (autosaveOnDisk (f.bundle));
+        REQUIRE_FALSE (markerOf (f.bundle).has_value());
+    }
+    SECTION ("Discard")
+    {
+        REQUIRE (model.dispatch (UiActionId::AutosaveRecoveryDiscard).dispatched);
+        REQUIRE_FALSE (model.context().autosaveRecoveryPending);
+        REQUIRE (model.project().tracks.size() == 1u);
+        REQUIRE (readProject (f.bundle).tracks.size() == 1u);
+        REQUIRE_FALSE (autosaveOnDisk (f.bundle));
+        REQUIRE_FALSE (markerOf (f.bundle).has_value());
+    }
+}
+
+// The launch reopen (the path SS-6 drives): the probe names both stamps while the question is up, and Restore answers it.
+TEST_CASE ("ADR-0068 at launch the probe carries the bundle's and the asking snapshot's stamps",
+           "[project-lifecycle][autosave][round-trip-bundle-lost-writes][probe]")
+{
+    const LostWrites f = makeLostWrites ("lost-writes-launch");
+    LifecycleShell shell ("lost-writes-launch-shell", false, true, f.bundle);
+    const juce::var autosave = probeOf (*shell)["autosave"];
+    REQUIRE (static_cast<bool> (autosave["recovery"]["pending"]));
+    REQUIRE (static_cast<int> (autosave["recovery"]["tracks"]) == 3);
+    REQUIRE (static_cast<juce::int64> (autosave["bundleWriteStamp"]) == f.savedStamp);
+    REQUIRE (static_cast<juce::int64> (autosave["snapshotWriteStamp"]) == f.snapshotStamp);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::AutosaveRecoveryRestore);
+    REQUIRE_FALSE (static_cast<bool> (probeOf (*shell)["autosave"]["recovery"]["pending"]));
+    REQUIRE (static_cast<juce::int64> (probeOf (*shell)["autosave"]["snapshotWriteStamp"]) == 0);
+    REQUIRE (readProject (f.bundle).tracks.size() == 3u);
+}
+
+// The question is not modal: a user can work on, Save and quit without answering. The marker keeps it asked - at the
+// next open it rises again although the bundle's stamp is now past the snapshot's - until Restore or Discard answers.
+TEST_CASE ("ADR-0068 an unanswered recovery question is asked again after edits, a Save and a restart",
+           "[project-lifecycle][autosave][unresolved-across-restart]")
+{
+    const LostWrites f = makeLostWrites ("unresolved");
+    {
+        yesdaw::ui::UiAppModel model;
+        openThroughShippedPath (model, f.bundle);
+        REQUIRE (model.context().autosaveRecoveryPending);
+        for (int i = 0; i < 3; ++i)
+            REQUIRE (model.addAudioTrack().dispatched);   // answer nothing; work on
+        REQUIRE (model.saveProjectBundle().ok());
+        REQUIRE (stampOf (f.bundle) > f.snapshotStamp);   // the bundle has passed the snapshot
+    }
+    yesdaw::ui::UiAppModel again;
+    openThroughShippedPath (again, f.bundle);
+    REQUIRE (again.context().autosaveRecoveryPending);   // asked again
+    REQUIRE (again.autosaveRecoveryPrompt().trackCount == 3u);
+    REQUIRE (again.autosaveRecoveryPrompt().snapshotWriteStamp == f.snapshotStamp);
+    REQUIRE (again.project().tracks.size() == 4u);
+
+    std::size_t answeredTracks = 0;
+    SECTION ("Discard answers it")
+    {
+        REQUIRE (again.dispatch (UiActionId::AutosaveRecoveryDiscard).dispatched);
+        answeredTracks = 4u;
+    }
+    SECTION ("Restore answers it")
+    {
+        REQUIRE (again.dispatch (UiActionId::AutosaveRecoveryRestore).dispatched);
+        answeredTracks = 3u;
+    }
+    REQUIRE_FALSE (markerOf (f.bundle).has_value());
+    REQUIRE_FALSE (autosaveOnDisk (f.bundle));
+    REQUIRE (again.project().tracks.size() == answeredTracks);
+
+    yesdaw::ui::UiAppModel third;
+    openThroughShippedPath (third, f.bundle);
+    REQUIRE_FALSE (third.context().autosaveRecoveryPending);   // answered: never asked again
+    REQUIRE (third.project().tracks.size() == answeredTracks);
+}
+
+TEST_CASE ("ADR-0068 a Save As while the question is up: the copy asks nothing; the bundle left keeps its question",
+           "[project-lifecycle][autosave][unresolved-across-restart]")
+{
+    const LostWrites f = makeLostWrites ("unresolved-save-as");
+    const auto copy = f.directory / "copy.yesdaw";
+    {
+        yesdaw::ui::UiAppModel model;
+        openThroughShippedPath (model, f.bundle);
+        REQUIRE (model.context().autosaveRecoveryPending);
+        REQUIRE (model.saveProjectBundleAs (copy).dispatched);
+        // The question went with the bundle left behind: nothing asks in the copy, and Restore / Discard are off.
+        REQUIRE_FALSE (model.context().autosaveRecoveryPending);
+        REQUIRE_FALSE (model.dispatch (UiActionId::AutosaveRecoveryDiscard).dispatched);
+        REQUIRE_FALSE (model.dispatch (UiActionId::AutosaveRecoveryRestore).dispatched);
+    }
+    REQUIRE_FALSE (markerOf (copy).has_value());
+    REQUIRE_FALSE (autosaveOnDisk (copy));
+    REQUIRE (markerOf (f.bundle) == std::optional<std::int64_t> { f.snapshotStamp });
+    REQUIRE (autosaveOnDisk (f.bundle));
+
+    yesdaw::ui::UiAppModel left;
+    openThroughShippedPath (left, f.bundle);
+    REQUIRE (left.context().autosaveRecoveryPending);
+}
+
+// A marker whose autosave is gone (removed by hand, say) is cleared at the next open, so a later autosave that reaches
+// the same stamp is never taken for the unanswered one.
+TEST_CASE ("ADR-0068 a recovery marker naming no autosave is cleared at open",
+           "[project-lifecycle][autosave][unresolved-across-restart]")
+{
+    const LostWrites f = makeLostWrites ("dangling-marker");
+    {
+        yesdaw::ui::UiAppModel model;
+        openThroughShippedPath (model, f.bundle);
+        REQUIRE (model.context().autosaveRecoveryPending);
+    }
+    REQUIRE (markerOf (f.bundle).has_value());
+    std::filesystem::remove_all (yesdaw::persistence::autosaveDirectory (f.bundle));
+    yesdaw::ui::UiAppModel reopened;
+    openThroughShippedPath (reopened, f.bundle);
+    REQUIRE_FALSE (reopened.context().autosaveRecoveryPending);
+    REQUIRE_FALSE (markerOf (f.bundle).has_value());
+}
+
+// A bundle and its autosave both from before schema v35: both migrate to stamp 0, the autosave holds nothing the
+// always-current bundle lacks (ADR-0060), and it is retired silently on the first open.
+TEST_CASE ("ADR-0068 a pre-v35 bundle's pre-v35 autosave is retired silently on the first open",
+           "[project-lifecycle][autosave][migration-silent-pre-v35]")
+{
+    const auto directory = lifecycleScratch ("pre-v35");
+    const auto bundle = directory / "old.yesdaw";
+    {
+        yesdaw::ui::UiAppModel model;
+        REQUIRE (model.createProjectBundle (bundle).ok());
+        REQUIRE (model.addAudioTrack().dispatched);
+        plantAutosave (bundle, model.project());
+    }
+    for (const auto& path : { bundle, yesdaw::persistence::autosaveSnapshotPath (bundle) })
+    {
+        yesdaw::persistence::ProjectBundleDb db;
+        REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (path, db).ok());
+        REQUIRE (db.executeSql ("DROP TABLE project_write_stamp; DELETE FROM schema_migrations WHERE version = 35; "
+                                "PRAGMA user_version = 34;").ok());
+    }
+    yesdaw::ui::UiAppModel model;
+    openThroughShippedPath (model, bundle);
+    REQUIRE_FALSE (model.context().autosaveRecoveryPending);
+    REQUIRE_FALSE (autosaveOnDisk (bundle));
+    REQUIRE (model.bundleWriteStamp() == 0);
+    REQUIRE (model.project().tracks.size() == 2u);
+    REQUIRE_FALSE (markerOf (bundle).has_value());
 }

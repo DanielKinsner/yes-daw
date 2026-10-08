@@ -199,13 +199,36 @@ AutosaveRecoveryFixture makeAutosaveRecoveryFixture (std::string label)
     REQUIRE (fixture.autosaved.recordingTakes.size() == 2u);
     REQUIRE (fixture.autosaved.midiClips.size() == 2u);
     REQUIRE (fixture.autosaved.recordingCompSegments.size() == 2u);
-    writeAutosaveSnapshotToBundle (fixture.bundlePath, fixture.autosaved);
-
     fixture.abandoned = fixture.autosaved;
     REQUIRE_FALSE (fixture.abandoned.clips.empty());
     fixture.abandoned.clips.front().gain = 0.25f;
     fixture.abandoned.recordingCompSegments.clear();
+
+    // ADR-0068 §5: the autosave must hold something the bundle lacks, or the open retires it silently. The bundle is
+    // left at the abandoned state while the autosave holds a later write (lost writes: a power cut after the autosave).
+    const std::filesystem::path database = fixture.bundlePath / "project.db";
+    const std::filesystem::path older = fixture.bundlePath.parent_path() / (fixture.bundlePath.filename().string() + ".older.db");
     writeProjectSnapshotToBundle (fixture.bundlePath, fixture.abandoned);
+    std::filesystem::copy_file (database, older, std::filesystem::copy_options::overwrite_existing);
+    writeProjectSnapshotToBundle (fixture.bundlePath, fixture.autosaved);
+    writeAutosaveSnapshotToBundle (fixture.bundlePath, fixture.autosaved);
+    for (const char* sidecar : { "project.db-wal", "project.db-shm" })
+    {
+        std::error_code removed;
+        std::filesystem::remove (fixture.bundlePath / sidecar, removed);
+        REQUIRE_FALSE (std::filesystem::exists (fixture.bundlePath / sidecar));   // no WAL can replay the lost writes
+    }
+    std::filesystem::copy_file (older, database, std::filesystem::copy_options::overwrite_existing);
+    {   // the shape the question needs: the autosave's stamp past the bundle's
+        const auto stampOf = [] (const std::filesystem::path& bundle) {
+            ProjectBundleDb db;
+            REQUIRE (ProjectBundleDb::openExistingBundle (bundle, db).ok());
+            std::int64_t stamp = -1;
+            REQUIRE (db.projectWriteStamp (stamp).ok());
+            return stamp;
+        };
+        REQUIRE (stampOf (fixture.bundlePath) < stampOf (yesdaw::persistence::autosaveSnapshotPath (fixture.bundlePath)));
+    }
     return fixture;
 }
 

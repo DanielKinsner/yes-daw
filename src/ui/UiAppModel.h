@@ -391,6 +391,7 @@ struct UiAutosaveRecoveryPrompt
     std::size_t recordingTakeCount = 0;
     std::size_t midiClipCount = 0;
     std::size_t recordingCompSegmentCount = 0;
+    std::int64_t snapshotWriteStamp = 0;   // ADR-0068 §7: the asking snapshot's write stamp (0 when nothing asks)
 };
 
 class UiAppModel
@@ -2248,7 +2249,8 @@ public:
             persistence::ProjectBundleDb copy;
             if (! persistence::ProjectBundleDb::openExistingBundle (partial, copy).ok())
                 return abandon ("the copy did not validate");
-            if (! copy.writeProjectSnapshot (project_).ok())
+            // ADR-0068 §5: the copy carries no autosave (ADR-0060), so no unanswered question either.
+            if (! copy.writeProjectSnapshot (project_, std::nullopt, persistence::UnresolvedSnapshotStamp::Clear).ok())
                 return abandon ("the project could not be written into the copy");
             if (! copy.validateStoredProjectSemantics().ok())
                 return abandon ("the copy did not validate");
@@ -2294,6 +2296,9 @@ public:
 
         bundleDb_ = std::move (reopened);
         bundlePath_ = newBundlePath;
+        // ADR-0068 §5: an unanswered recovery question belongs to the bundle left behind - its marker and autosave ask
+        // again at its next open; the copy (no autosave, no marker) asks nothing.
+        clearAutosaveRecoveryPrompt();
         lastSavedEditSerial_ = editSerial_;
         writeLastProjectRecord();
         waveformService_.start (bundlePath_);
@@ -2354,6 +2359,14 @@ public:
         return result;
     }
     [[nodiscard]] int autosaveWrites() const noexcept { return autosaveWrites_; }
+    // ADR-0068 §7: the open bundle's write stamp (0 when none is open).
+    [[nodiscard]] std::int64_t bundleWriteStamp() const
+    {
+        std::int64_t stamp = 0;
+        if (bundleDb_.isOpen())
+            (void) bundleDb_.projectWriteStamp (stamp);
+        return stamp;
+    }
     [[nodiscard]] int autosaveFailures() const noexcept { return autosaveFailures_; }
     [[nodiscard]] const UiProjectCounts& lastAutosaved() const noexcept { return lastAutosaved_; }
     // The Session drive's seam (YESDAW_AUTOSAVE_INTERVAL_MS): a shorter cadence, so a drive waits seconds, not 30 s.
@@ -11168,7 +11181,7 @@ private:
         context_.autosaveRecoveryPending = false;
     }
 
-    void setAutosaveRecoveryPrompt (const engine::Project& autosaved)
+    void setAutosaveRecoveryPrompt (const engine::Project& autosaved, std::int64_t snapshotStamp)
     {
         autosaveRecovery_ = {
             true,
@@ -11178,24 +11191,54 @@ private:
             autosaved.clips.size(),
             autosaved.recordingTakes.size(),
             autosaved.midiClips.size(),
-            autosaved.recordingCompSegments.size()
+            autosaved.recordingCompSegments.size(),
+            snapshotStamp
         };
         context_.autosaveRecoveryPending = true;
         ++context_.autosaveRecoveryPromptCount;
     }
 
+    // ADR-0068 §5: an open asks about an autosave only when it holds something the bundle lacks (its write stamp is past
+    // the bundle's: lost writes), or when its question was raised and never answered (the marker names it, whatever the
+    // order of the stamps). Any other valid autosave is retired silently. A marker naming no autosave is cleared, so a
+    // later autosave that happens to reach the same stamp is never mistaken for an unanswered one.
     void detectAutosaveRecoveryPrompt()
     {
         clearAutosaveRecoveryPrompt();
-        if (bundlePath_.empty())
+        if (bundlePath_.empty() || ! bundleDb_.isOpen())
             return;
+
+        std::optional<std::int64_t> unresolved;
+        const bool markerRead = bundleDb_.unresolvedSnapshotStamp (unresolved).ok();
 
         engine::Project autosaved;
-        const persistence::AutosaveResult result = persistence::readAutosaveSnapshot (bundlePath_, autosaved);
+        std::int64_t snapshotStamp = 0;
+        const persistence::AutosaveResult result = persistence::readAutosaveSnapshot (bundlePath_, autosaved, &snapshotStamp);
         if (! result.ok())
-            return;
+        {
+            // Only an absent autosave clears the marker. One that fails to read keeps it: the failure may pass (a file
+            // held open elsewhere), and a cleared marker would let the next open retire that autosave silently once the
+            // bundle's stamp passed it. A marker still set when a new autosave is written is stale (writes wait while a
+            // question is up), so the autosave write clears it (ADR-0068 cp1).
+            if (result.status == persistence::AutosaveStatus::NoAutosave && unresolved)
+                (void) bundleDb_.setUnresolvedSnapshotStamp (std::nullopt);
+            return;   // an unreadable snapshot: no question, and nothing retired (unchanged)
+        }
 
-        setAutosaveRecoveryPrompt (autosaved);
+        std::int64_t bundleStamp = 0;
+        const bool comparable = markerRead && bundleDb_.projectWriteStamp (bundleStamp).ok();
+        const bool unanswered = unresolved && *unresolved == snapshotStamp;
+        if (comparable && ! unanswered && snapshotStamp <= bundleStamp)
+        {
+            if (unresolved)
+                (void) bundleDb_.setUnresolvedSnapshotStamp (std::nullopt);
+            (void) persistence::discardAutosaveSnapshot (bundlePath_);   // the bundle holds all it holds
+            return;
+        }
+        // Stamps that cannot be read ask rather than delete.
+        if (! unanswered)
+            (void) bundleDb_.setUnresolvedSnapshotStamp (snapshotStamp);
+        setAutosaveRecoveryPrompt (autosaved, snapshotStamp);
     }
 
     [[nodiscard]] UiActionDispatchResult restorePendingAutosaveSnapshot()
@@ -11240,9 +11283,13 @@ private:
         if (! state.enabled)
             return { id, state, false };
 
-        if (bundlePath_.empty())
+        if (bundlePath_.empty() || ! bundleDb_.isOpen())
             return { id, { false, "no Project bundle is open" }, false };
 
+        // ADR-0068 §5: the marker clears before the snapshot goes - a failure between leaves the snapshot to the stamp
+        // comparison, never a marker naming nothing.
+        if (! bundleDb_.setUnresolvedSnapshotStamp (std::nullopt).ok())
+            return { id, { false, "autosave discard failed" }, false };
         const persistence::AutosaveResult result = persistence::discardAutosaveSnapshot (bundlePath_);
         if (! result.ok())
             return { id, { false, "autosave discard failed" }, false };

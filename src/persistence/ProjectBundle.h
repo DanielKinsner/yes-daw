@@ -1781,6 +1781,14 @@ inline BundleResult configureConnection (sqlite3* db)
     return bundlePath / detail::assetRelativePathForHash (hash);
 }
 
+// ADR-0068 §5: whether a snapshot write also clears the bundle's unresolved recovery question - a Restore answers it, and
+// a copy has no autosave for it to name.
+enum class UnresolvedSnapshotStamp : std::uint8_t
+{
+    Keep,
+    Clear
+};
+
 class ProjectBundleDb final
 {
 public:
@@ -2296,7 +2304,8 @@ public:
     // stamp (`stampOverride`) - inside the snapshot's own transaction, so the stamp commits, checkpoints and rolls back
     // with the rows.
     [[nodiscard]] BundleResult writeProjectSnapshot (const engine::Project& project,
-                                                     std::optional<std::int64_t> stampOverride = std::nullopt)
+                                                     std::optional<std::int64_t> stampOverride = std::nullopt,
+                                                     UnresolvedSnapshotStamp unresolved = UnresolvedSnapshotStamp::Keep)
     {
         if (! detail::projectFitsSchemaV1 (project))
             return BundleResult { BundleStatus::SemanticInvalid, SQLITE_CONSTRAINT, kCodeSchemaVersion, "Project violates schema v1 semantics" };
@@ -2970,6 +2979,13 @@ public:
                 rollback();
                 return detail::semanticInvalid ("the project write stamp row is missing");
             }
+            if (unresolved == UnresolvedSnapshotStamp::Clear)
+                if (auto result = detail::exec (db_, "UPDATE project_write_stamp SET unresolved_snapshot_stamp = NULL WHERE singleton_id = 1;");
+                    ! result.ok())
+                {
+                    rollback();
+                    return result;
+                }
         }
 
         if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
@@ -2997,6 +3013,54 @@ public:
             ! result.ok())
             return result;
         out = static_cast<std::int64_t> (value);
+        return detail::ok();
+    }
+
+    // ADR-0068 §5: the stamp of the autosave whose recovery question was raised and not yet answered, or nothing.
+    [[nodiscard]] BundleResult unresolvedSnapshotStamp (std::optional<std::int64_t>& out) const
+    {
+        detail::Statement stmt;
+        if (auto result = stmt.prepare (db_, "SELECT unresolved_snapshot_stamp FROM project_write_stamp WHERE singleton_id = 1;");
+            ! result.ok())
+            return result;
+        if (stmt.step() != SQLITE_ROW)
+            return detail::semanticInvalid ("the project write stamp row is missing");
+        out = sqlite3_column_type (stmt.get(), 0) == SQLITE_NULL
+                  ? std::nullopt
+                  : std::optional<std::int64_t> { static_cast<std::int64_t> (sqlite3_column_int64 (stmt.get(), 0)) };
+        return detail::ok();
+    }
+
+    // ADR-0068 §5: records (or, with nothing, clears) the unanswered recovery question - its own transaction and
+    // checkpoint, like a snapshot write; it never advances write_count.
+    [[nodiscard]] BundleResult setUnresolvedSnapshotStamp (std::optional<std::int64_t> stamp)
+    {
+        if (auto result = detail::exec (db_, "BEGIN IMMEDIATE;"); ! result.ok())
+            return result;
+        const auto rollback = [this] { (void) detail::exec (db_, "ROLLBACK;"); };
+        {
+            detail::Statement stmt;   // an unbound parameter is NULL: no stamp clears the question
+            if (auto result = stmt.prepare (db_, "UPDATE project_write_stamp SET unresolved_snapshot_stamp = ? WHERE singleton_id = 1;");
+                ! result.ok())
+            {
+                rollback();
+                return result;
+            }
+            if (stamp)
+                if (auto result = stmt.bindInt64 (1, static_cast<sqlite3_int64> (*stamp)); ! result.ok()) { rollback(); return result; }
+            if (auto result = detail::expectDone (db_, stmt); ! result.ok()) { rollback(); return result; }
+            if (sqlite3_changes (db_) != 1)
+            {
+                rollback();
+                return detail::semanticInvalid ("the project write stamp row is missing");
+            }
+        }
+        if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
+        {
+            rollback();
+            return result;
+        }
+        (void) detail::exec (db_, "PRAGMA wal_checkpoint(TRUNCATE);");
         return detail::ok();
     }
 
