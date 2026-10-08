@@ -8,6 +8,20 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — Fix: a screen reader read stale positions after a mixer or rail scroll, and lost its place
+
+**What was wrong (found planning ADR-0067 cp2):** ADR-0066's accessible elements for painted controls (the rail's
+cells and knobs, the strips' zones) were re-placed only on a layout pass or an action. A wheel or scroll-bar scroll of
+the mixer strips or the rail moved the controls but left the elements where the controls had been. And whenever the
+set of visible controls changed (every scroll notch brings one in), the whole pool (~600 elements at 24 tracks) was
+rebuilt, so a screen reader's focus fell off a control that was still on screen. **Fix:** every strip / rail scroll
+re-places the elements at once (not the horizontal timeline scroll - nothing painted moves there); a control that
+stays keeps its element, only the controls that came or went get new or retired ones, and Tab order is restored when a
+control comes in ahead. **Gate (`[accessibility]`):** after one mixer notch and one rail notch, with no tick or action,
+each element sits on its control's new bounds; a kept control keeps the same element object; one notch creates only
+the entering strip's elements. Red with the re-sync removed, red with the full rebuild forced. ctest 423/423, Clang
+clean. **Critic:** confirmed the bite and the paths (dock, rail-width, inspector and tab changes already re-sync).
+
 ## 2026-10-08 — ADR-0068 cp1/cp2 (autosave writes ON) is ready and held: one autosave freezes the UI for seconds
 
 **Now:** the last ADR-0068 step - the app actually writing autosaves, with the pending-question gate, the sticky

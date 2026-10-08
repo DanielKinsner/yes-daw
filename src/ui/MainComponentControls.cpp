@@ -620,9 +620,10 @@ void MainComponent::collectPaintedMixerControls (std::vector<ShellControl>& cont
     }
 }
 
-// ADR-0066 cp2: one accessible element per painted control, on the surface that paints it, in Tab order. The pool is
-// rebuilt only when the set of painted controls (their ids, roles and surfaces) changes; otherwise each element is moved
-// onto its control and its model (the record's effects and readouts) refreshed.
+// ADR-0066 cp2: one accessible element per painted control, on the surface that paints it, in Tab order. When the set
+// of painted controls (their ids, roles and surfaces) changes, a control that stays keeps its element (a screen reader's
+// focus on it survives a scroll), only the controls that came get new ones and only those that went are retired; then
+// each element is moved onto its control and its model (the record's effects and readouts) refreshed.
 void MainComponent::syncPaintedAccessibilityProxies()
 {
     if (! paintedProxiesReady)
@@ -662,27 +663,59 @@ void MainComponent::syncPaintedAccessibilityProxies()
                          + std::to_string (reinterpret_cast<std::uintptr_t> (&surfaceOf (control))));
     if (shape != paintedProxyShape)
     {
+        std::map<std::string, std::unique_ptr<PaintedAccessibleProxy>> kept;
+        for (std::size_t i = 0; i < paintedProxies.size() && i < paintedProxyShape.size(); ++i)
+            kept.emplace (paintedProxyShape[i], std::move (paintedProxies[i]));
+        std::vector<std::unique_ptr<PaintedAccessibleProxy>> pool;
+        pool.reserve (painted.size());
+        bool appended = false;
+        for (std::size_t i = 0; i < painted.size(); ++i)
+        {
+            if (const auto it = kept.find (shape[i]); it != kept.end() && it->second != nullptr)
+            {
+                pool.push_back (std::move (it->second));
+                kept.erase (it);
+                continue;
+            }
+            auto proxy = std::make_unique<PaintedAccessibleProxy>();
+            ++paintedProxyCreations;
+            surfaceOf (painted[i]).addAndMakeVisible (*proxy);
+            appended = true;
+            pool.push_back (std::move (proxy));
+        }
         // Retired, not destroyed: an element's own action can be what changed the set (its handler is on the stack), so
         // it leaves its surface now and is deleted on the next message-loop turn.
-        for (auto& old : paintedProxies)
+        for (auto& [key, old] : kept)
         {
+            if (old == nullptr)
+                continue;
             if (juce::Component* parent = old->getParentComponent())
                 parent->removeChildComponent (old.get());
             retiredPaintedProxies.push_back (std::move (old));
         }
-        paintedProxies.clear();
         if (! retiredPaintedProxies.empty())
             juce::MessageManager::callAsync ([safe = juce::Component::SafePointer<MainComponent> (this)] {
                 if (safe != nullptr)
                     safe->retiredPaintedProxies.clear();
             });
-        for (const auto& control : painted)
+        // A surface's children follow Tab order: when a control came in ahead of kept ones (a scroll back), the
+        // surface's elements are put back in order (each raised in turn lands them, in order, after its other children).
+        if (appended)
         {
-            auto proxy = std::make_unique<PaintedAccessibleProxy>();
-            ++paintedProxyCreations;
-            surfaceOf (control).addAndMakeVisible (*proxy);   // appended: the surface's children follow Tab order
-            paintedProxies.push_back (std::move (proxy));
+            std::map<juce::Component*, std::vector<PaintedAccessibleProxy*>> bySurface;
+            for (auto& proxy : pool)
+                bySurface[proxy->getParentComponent()].push_back (proxy.get());
+            for (auto& [surface, inOrder] : bySurface)
+            {
+                bool ordered = true;
+                for (std::size_t i = 1; i < inOrder.size() && ordered; ++i)
+                    ordered = surface->getIndexOfChildComponent (inOrder[i - 1]) < surface->getIndexOfChildComponent (inOrder[i]);
+                if (! ordered)
+                    for (PaintedAccessibleProxy* proxy : inOrder)
+                        proxy->toFront (false);
+            }
         }
+        paintedProxies = std::move (pool);
         paintedProxyShape = std::move (shape);
     }
 

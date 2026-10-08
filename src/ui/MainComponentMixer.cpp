@@ -1330,6 +1330,7 @@ void MainComponent::scrollMixerStripsBy (int stripDelta)
         return;
     mixerStripScroll = std::clamp (layout.offset + stripDelta, 0, juce::jmax (0, layout.stripCount - layout.visible));
     layoutMixerControls();
+    syncPaintedAccessibilityProxies();   // ADR-0066: each strip's elements move with its controls
     repaint (mixerPanelBounds());
 }
 
@@ -1345,6 +1346,7 @@ void MainComponent::revealMixerStrip (int stripOrdinal)
     else
         return;
     layoutMixerControls();
+    syncPaintedAccessibilityProxies();   // ADR-0066: each strip's elements move with its controls
     repaint (mixerPanelBounds());
 }
 

@@ -639,6 +639,7 @@ void MainComponent::scrollTrackRowsBy (int rowDelta)
         timelineInput.getLocalBounds(), makeTimelineState());
     const int maxRows = std::max (geometry.maxTrackScrollRows, trackListInput.maxScrollRows());
     timelineTrackScrollRows = std::clamp (timelineTrackScrollRows + rowDelta, 0, maxRows);
+    syncPaintedAccessibilityProxies();   // ADR-0066: the rail rows' elements move with their controls
     repaintAll();
 }
 
@@ -716,6 +717,8 @@ void MainComponent::scrollBarMoved (juce::ScrollBar* bar, double newRangeStart)
         mixerStripScroll = std::max (0, juce::roundToInt (newRangeStart));
         layoutMixerControls();
     }
+    if (bar != &timelineHScroll)   // ADR-0066: the rail's and the strips' elements move with their controls
+        syncPaintedAccessibilityProxies();
     repaintAll();
 }
 

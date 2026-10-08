@@ -38,6 +38,7 @@
 #include <array>
 #include <fstream>
 #include <memory>
+#include <optional>
 #include <span>
 #include <sstream>
 #include <stdexcept>
@@ -24673,6 +24674,93 @@ TEST_CASE ("ADR-0066 every Control target has an accurate accessible element", "
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+// A scroll moves painted controls without an action or a layout pass: their accessible elements must move with them at
+// once, so a screen reader reading the mixer or the rail right after a wheel scroll finds each element on its control.
+TEST_CASE ("ADR-0066 the painted controls' accessible elements follow a mixer or rail scroll at once",
+           "[ui][input][shell][control-navigation][g6-keyboard][accessibility]")
+{
+    const auto bundlePath = makeTempBundlePath ("g63-elements-follow-scroll");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1280, 800);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    for (int i = 0; i < 15; ++i)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
+
+    const auto elementFor = [&] (const juce::String& id) -> yesdaw::ui::PaintedAccessibleProxy*
+    {
+        yesdaw::ui::PaintedAccessibleProxy* found = nullptr;
+        std::function<void (juce::Component&)> visit = [&] (juce::Component& parent)
+        {
+            for (int i = 0; i < parent.getNumChildComponents() && found == nullptr; ++i)
+            {
+                juce::Component* child = parent.getChildComponent (i);
+                if (auto* proxy = dynamic_cast<yesdaw::ui::PaintedAccessibleProxy*> (child))
+                    if (juce::String (proxy->getModel().targetId) == id)
+                        found = proxy;
+                visit (*child);
+            }
+        };
+        visit (*shell);
+        return found;
+    };
+    // Where the element for `id` sits right now (shell coordinates), read before anything re-syncs it.
+    const auto elementBounds = [&] (const juce::String& id) -> std::optional<juce::Rectangle<int>>
+    {
+        if (auto* proxy = elementFor (id))
+            return shell->getLocalArea (proxy->getParentComponent(), proxy->getBounds());
+        return std::nullopt;
+    };
+    const auto creations = [&] { return static_cast<int> (probeRoot (*shell)["controlTarget"]["paintedElementCreations"]); };
+    const auto requireElementOnControl = [&] (const juce::String& id, const juce::Rectangle<int>& before, const char* why)
+    {
+        INFO (why << " - " << id);
+        const auto element = elementBounds (id);   // as the scroll left it
+        REQUIRE (element.has_value());
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, id));
+        const juce::Rectangle<int> control = controlTargetOf (*shell).bounds;
+        REQUIRE (control != before);       // the scroll did move the control
+        REQUIRE (*element == control);     // and its element moved with it
+    };
+
+    // The mixer: the strips scroll one place.
+    {
+        const juce::String id = "mixer.strip.3.mute";
+        const auto before = elementBounds (id);
+        REQUIRE (before.has_value());
+        const auto* element = elementFor (id);
+        const int created = creations();
+        juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+        REQUIRE (strips != nullptr);
+        juce::MouseWheelDetails wheel {};
+        wheel.deltaY = -0.4f;
+        const juce::Point<int> local { 20, 40 };
+        strips->mouseWheelMove (makeMouseEvent (*strips, local, local, false, 1, juce::ModifierKeys {}), wheel);
+        // A kept control keeps its element (a screen reader's focus on it survives), and one strip coming in creates
+        // only its own elements - never the whole pool again.
+        REQUIRE (elementFor (id) == element);
+        REQUIRE (creations() - created > 0);
+        REQUIRE (creations() - created <= 40);
+        requireElementOnControl (id, *before, "a mixer strip scroll");
+    }
+    // The rail: the rows scroll one place.
+    {
+        const juce::String id = "rail.row.1.mute";   // stays in view across a one-row scroll
+        const auto before = elementBounds (id);
+        REQUIRE (before.has_value());
+        juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+        REQUIRE (rail != nullptr);
+        juce::MouseWheelDetails wheel {};
+        wheel.deltaY = -0.4f;
+        const juce::Point<int> local { 20, 40 };
+        rail->mouseWheelMove (makeMouseEvent (*rail, local, local, false, 1, juce::ModifierKeys {}), wheel);
+        requireElementOnControl (id, *before, "a rail scroll");
+    }
 }
 
 #if JUCE_WINDOWS
