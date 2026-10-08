@@ -17945,7 +17945,7 @@ TEST_CASE ("G2.1 dock layout: three splitters drag within the plan's ranges, siz
     REQUIRE (viewInt (*shell, "inspectorWidth") == L::inspectorWidth);
     REQUIRE (viewInt (*shell, "dockHeight") == L::mixerHeight);
 
-    // The rail splitter sits on the rail's right edge and drags it within 180–400.
+    // The rail splitter sits on the rail's right edge and drags it within leftRailMinWidth..leftRailMaxWidth.
     juce::Component* rail = splitter (*shell, "shell.splitter.rail");
     REQUIRE (std::abs (rail->getBounds().getCentreX() - L::leftRailWidth) <= L::splitterThickness);
     dragFromTo (*rail, rail->getLocalBounds().getCentre(), rail->getLocalBounds().getCentre().translated (60, 0));
@@ -24802,10 +24802,16 @@ TEST_CASE ("ADR-0066 the painted controls' accessible elements follow a mixer or
         INFO (why << " - " << id);
         const auto element = elementBounds (id);   // as the scroll left it
         REQUIRE (element.has_value());
+        std::optional<juce::Rectangle<int>> record;   // ADR-0067 §2: the record hover resolves against, as the scroll left it
+        for (const auto& [recordId, bounds] : yesdaw::ui::mainComponentPointerRecords (*shell))
+            if (juce::String (recordId) == id)
+                record = bounds;
+        REQUIRE (record.has_value());
         REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, id));
         const juce::Rectangle<int> control = controlTargetOf (*shell).bounds;
         REQUIRE (control != before);       // the scroll did move the control
         REQUIRE (*element == control);     // and its element moved with it
+        REQUIRE (*record == control);      // and so did its record
     };
 
     // The mixer: the strips scroll one place.

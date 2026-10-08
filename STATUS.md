@@ -8,6 +8,18 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0067 cp2 S2: painted controls never overlap; the rail's floor is 204
+
+**What changes:** the track rail can no longer be dragged narrower than 204 px (was 180): below that a row's record-arm
+cell met its volume slider and meter, so one point named two controls. A saved or dragged rail below the floor clamps up.
+The shell keeps the painted controls' records (id, bounds, the surface that paints each) from the same sync that places
+their accessible elements - what hover (S3) will resolve against. **Gate (`[records-disjoint]`, screenshot suite):** at
+the window minimum and every logical size of the scaling matrix, every rail width from the floor to the maximum, the
+inspector at its narrowest, default and widest, a tall dock with the mixer and a bus, then the Sampler's pads - no two
+records overlap, and every family is present. Red with the floor token at 180 (`rail.row.0.arm` overlaps its volume).
+The scroll test now also checks the records follow a scroll; the prefs test witnesses the clamp. ctest 423/423, Clang
+clean. **Critic:** no correctness issue; its coverage notes (window minimum, inspector range, the clamp) are in.
+
 ## 2026-10-08 — ADR-0067 cp2 S1: the shell draws only the regions a repaint reaches
 
 **What changes:** the shell's own paint (header, track rail, inspector, dock) now draws a region only when the repaint

@@ -626,7 +626,7 @@ void MainComponent::collectPaintedMixerControls (std::vector<ShellControl>& cont
 // each element is moved onto its control and its model (the record's effects and readouts) refreshed.
 void MainComponent::syncPaintedAccessibilityProxies()
 {
-    if (! paintedProxiesReady)
+    if (! paintedProxiesReady)   // latched once at the end of construction: the pointer records below follow every sync
         return;
     std::vector<ShellControl> painted;
     collectPaintedControls (painted);
@@ -655,6 +655,10 @@ void MainComponent::syncPaintedAccessibilityProxies()
         juce::Component* surface = control.painted->surface;
         return surface == nullptr || surface == this ? paintedAccessibilityLayer : *surface;
     };
+    pointerRecords.clear();   // ADR-0067 §2: the records hover resolves against, with the surface that paints each
+    pointerRecords.reserve (painted.size());
+    for (const auto& control : painted)
+        pointerRecords.push_back ({ control.entry.id, juceRectOf (control.entry.bounds), control.painted->surface });
 
     std::vector<std::string> shape;
     shape.reserve (painted.size());

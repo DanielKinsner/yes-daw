@@ -2082,6 +2082,15 @@ void mainComponentSetViewSizes (juce::Component& component, int rail, int inspec
         mainComponent->harnessSetViewSizes (rail, inspector, dock);
 }
 
+std::vector<std::pair<std::string, juce::Rectangle<int>>> mainComponentPointerRecords (juce::Component& component)
+{
+    std::vector<std::pair<std::string, juce::Rectangle<int>>> records;
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        for (const auto& record : mainComponent->harnessPointerRecords())
+            records.emplace_back (record.id, record.bounds);
+    return records;
+}
+
 juce::String mainComponentTimelineZoneAt (juce::Component& component, juce::Point<int> shellPoint, juce::ModifierKeys modifiers)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))

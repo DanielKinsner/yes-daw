@@ -277,9 +277,9 @@ struct UiTheme
         static constexpr int leftRailWidth = 260;
         static constexpr int inspectorWidth = 300;
         static constexpr int mixerHeight = 300;   // G2.1 cp2: the plan's 300 — the mixer is a dock tab now: two insert rows + a 96 px fader (D27 lifted; the dock is draggable)
-        // G2.1 (plan §3.4): the three Arrange-window splitters — track header 180–400 by drag,
+        // G2.1 (plan §3.4): the three Arrange-window splitters — track header 204–400 by drag (ADR-0072),
         // inspector 240–420, editor dock min 160; the arrangement itself keeps at least this much.
-        static constexpr int leftRailMinWidth = 180;
+        static constexpr int leftRailMinWidth = 204;   // ADR-0072: the narrowest rail whose row controls stay disjoint
         static constexpr int leftRailMaxWidth = 400;
         static constexpr int inspectorMinWidth = 240;
         static constexpr int inspectorMaxWidth = 420;

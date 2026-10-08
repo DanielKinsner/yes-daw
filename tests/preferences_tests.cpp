@@ -388,14 +388,17 @@ TEST_CASE ("ADR-0061 a project keeps its own sizes; a new one starts from the la
 
         f.create (directory / "b.yesdaw");   // no record of its own: the last arrangement
         REQUIRE (f.sizes().find ("rail\t300\ninspector\t260\ndock\t250\n") == 0u);
-        yesdaw::ui::mainComponentSetViewSizes (*f, 200, 320, 220);
+        yesdaw::ui::mainComponentSetViewSizes (*f, 190, 320, 220);   // below the floor: clamped up (ADR-0072)
+        REQUIRE (f.sizes().find (std::string ("rail\t") + std::to_string (yesdaw::ui::UiTheme::Layout::leftRailMinWidth))
+                 == 0u);
+        yesdaw::ui::mainComponentSetViewSizes (*f, 210, 320, 220);
     }
     PrefsShell relaunched (directory / "session", true);   // reopens b
-    REQUIRE (relaunched.sizes().find ("rail\t200\ninspector\t320\ndock\t220\n") == 0u);
+    REQUIRE (relaunched.sizes().find ("rail\t210\ninspector\t320\ndock\t220\n") == 0u);
     relaunched.open (directory / "a.yesdaw");   // a keeps its own
     REQUIRE (relaunched.sizes().find ("rail\t300\ninspector\t260\ndock\t250\n") == 0u);
     relaunched.create (directory / "c.yesdaw");   // a new one: the last arrangement (b's)
-    REQUIRE (relaunched.sizes().find ("rail\t200\ninspector\t320\ndock\t220\n") == 0u);
+    REQUIRE (relaunched.sizes().find ("rail\t210\ninspector\t320\ndock\t220\n") == 0u);
 }
 
 TEST_CASE ("ADR-0061 the export controls remember a change as it is made and show it after a relaunch", "[prefs]")

@@ -257,7 +257,7 @@ transport centre, master meter right), so a 2560-wide window has no dead island.
 | Menu bar height | 28 px | Windows convention |
 | Toolbar (control bar) height | 60 px | Logic's control bar; today's 118 px header wastes a quarter of a 720p window |
 | Ruler | 44 px (bars row 22, time row 22) + 20 px marker lane | Two time rows are standard |
-| Track header width | 260 px default, drag 180–400 | Reference ≈ 20 % of 1536; Logic 200–300 |
+| Track header width | 260 px default, drag 204–400 (ADR-0072) | Reference ≈ 20 % of 1536; Logic 200–300 |
 | Default track height | 72 px; min 24; max 400; zoom-v adjusts | 9 tracks visible in a 1080p window with a 300 px dock |
 | Inspector width | 300 px, `I` toggles | Reference; Logic 250–320 |
 | Editor dock height | 300 px default, min 160, drag | Reference mixer band |

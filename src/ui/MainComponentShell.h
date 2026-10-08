@@ -1007,6 +1007,7 @@ public:
         add ("view.automation", &automationLaneToggle);
         return controls;
     }
+    [[nodiscard]] const auto& harnessPointerRecords() const noexcept { return pointerRecords; }   // ADR-0067 §2
     void harnessSetViewSizes (int rail, int inspector, int dock)   // ADR-0061: as a splitter released
     {
         setRailWidth (rail);
@@ -1765,6 +1766,15 @@ private:
     static constexpr std::uint8_t kPaintRegionHeader = 1u, kPaintRegionRail = 2u, kPaintRegionInspector = 4u, kPaintRegionDock = 8u;
     std::uint8_t regionsPaintedNow = 0;
     std::uint8_t regionsPainted = 0;
+    // ADR-0067 §2 / ADR-0072: the painted controls' records as the last sync laid them out (id, bounds in the shell,
+    // the surface that paints them) - what hover resolves against.
+    struct PointerRecord
+    {
+        std::string id;
+        juce::Rectangle<int> bounds;
+        juce::Component::SafePointer<juce::Component> surface;
+    };
+    std::vector<PointerRecord> pointerRecords;
     std::array<double, shell::kStateProbePaintRingSize> paintRing {};
     std::size_t paintRingIndex = 0;
     std::size_t paintRingCount = 0;

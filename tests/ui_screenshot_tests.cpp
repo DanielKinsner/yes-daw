@@ -909,6 +909,101 @@ bool matrixReport() { return juce::SystemStats::getEnvironmentVariable ("YESDAW_
 
 } // namespace
 
+// ADR-0067 §2 / ADR-0072 S2: no two painted-control records overlap, so a point names at most one control for hover,
+// the router and the accessible elements - at every logical size of the scaling matrix, at every rail width the
+// splitter allows (from the 204 floor), with a tall dock showing the mixer (a bus too), and with the Sampler's pads.
+TEST_CASE ("ADR-0072 painted-control records are pairwise disjoint at every size and rail width",
+           "[ui][screenshot][layout][g6-motion][records-disjoint]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    juce::MessageManager::getInstance();
+    const std::filesystem::path fixtureDir = std::filesystem::temp_directory_path() / "yesdaw-g64-disjoint-fixture";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (fixtureDir, ec);
+    }
+    yesdaw::app::fixture::SongFixtureSpec spec;
+    spec.tracks = 16;
+    spec.seconds = 4.0;
+    spec.sampleRateHz = 48000;
+    spec.channels = 2;
+    spec.midiTracks = 4;
+    const yesdaw::app::fixture::SongFixtureResult fixture = yesdaw::app::fixture::buildSongFixture (fixtureDir, spec);
+    INFO (fixture.error);
+    REQUIRE (fixture.ok);
+    yesdaw::ui::MainComponentFileChoices choices;
+    const std::filesystem::path bundlePath = fixture.bundlePath;
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (L::defaultWindowWidth, L::defaultWindowHeight);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.projectLoaded);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+
+    const auto requireDisjoint = [&] (const std::string& where) {
+        const auto records = yesdaw::ui::mainComponentPointerRecords (*shell);
+        INFO (where);
+        REQUIRE_FALSE (records.empty());
+        for (std::size_t i = 0; i < records.size(); ++i)
+            for (std::size_t j = i + 1; j < records.size(); ++j)
+                if (records[i].second.intersects (records[j].second))
+                    FAIL (where << ": " << records[i].first << " " << records[i].second.toString() << " overlaps "
+                                << records[j].first << " " << records[j].second.toString());
+        return records;
+    };
+    const auto hasFamily = [] (const auto& records, const std::string& prefix) {
+        return std::any_of (records.begin(), records.end(), [&prefix] (const auto& r) { return r.first.rfind (prefix, 0) == 0; });
+    };
+
+    std::vector<std::pair<int, int>> sizes { { L::windowMinWidth, L::windowMinHeight } };
+    for (const ScalingCell& cell : scalingMatrix())
+        if (std::find (sizes.begin(), sizes.end(), std::pair { cell.width, cell.height }) == sizes.end())
+            sizes.emplace_back (cell.width, cell.height);
+    const std::array<int, 7> railWidths {{ L::leftRailMinWidth, 220, 240, L::leftRailWidth, 300, 340, L::leftRailMaxWidth }};
+
+    // The mixer in a tall dock, the inspector at its narrowest, default and widest.
+    for (const auto& [w, h] : sizes)
+        for (const int rail : railWidths)
+            for (const int inspector : { L::inspectorMinWidth, L::inspectorWidth, L::inspectorMaxWidth })
+        {
+            shell->setSize (w, h);
+            yesdaw::ui::mainComponentSetViewSizes (*shell, rail, inspector, 420);
+            const auto records = requireDisjoint ("mixer, " + std::to_string (w) + "x" + std::to_string (h) + ", rail "
+                                                  + std::to_string (rail) + ", inspector " + std::to_string (inspector));
+            if (w == 1920 && rail == L::leftRailWidth && inspector == L::inspectorWidth)
+                for (const char* family : { "header.gear", "header.time", "tool.", "rail.row.", "mixer.strip.", "mixer.master." })
+                {
+                    INFO (family);
+                    REQUIRE (hasFamily (records, family));
+                }
+        }
+
+    // The Sampler's pads: track 1 a Sampler, the Instrument tab in a tall dock.
+    shell->setSize (L::defaultWindowWidth, L::defaultWindowHeight);
+    yesdaw::ui::mainComponentSetViewSizes (*shell, L::leftRailWidth, L::inspectorWidth, L::mixerHeight);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAtPoint (*rail, juce::Point<int> (L::trackListNameLeftInset + 8, L::trackListHeaderHeight + L::trackListRowMinHeight * 3 / 2));
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowTrackTab));
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "track.inspector.instrument"));
+    REQUIRE (chooser != nullptr);
+    chooser->setSelectedId (3, juce::sendNotificationSync);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewInstrument);
+    for (const auto& [w, h] : sizes)
+    {
+        shell->setSize (w, h);
+        yesdaw::ui::mainComponentSetViewSizes (*shell, L::leftRailMinWidth, L::inspectorWidth, 420);
+        const auto records = requireDisjoint ("pads, " + std::to_string (w) + "x" + std::to_string (h));
+        REQUIRE (hasFamily (records, "instrument.pad."));
+    }
+
+    shell.reset();
+    std::error_code ec;
+    std::filesystem::remove_all (fixtureDir, ec);
+}
+
 // ADR-0064 cp2: every cell of the scaling matrix — the logical size's geometry and reachability, and the shell
 // rendered at the cell's scale.
 TEST_CASE ("ADR-0064 the scaling matrix: geometry, reachable controls and renders at every cell",

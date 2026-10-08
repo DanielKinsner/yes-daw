@@ -488,6 +488,8 @@ void mainComponentSetDockHeight (juce::Component& component, int height);
 // ADR-0061: set the rail, inspector and dock sizes as a released splitter does (the project's record and the
 // user's last arrangement both written).
 void mainComponentSetViewSizes (juce::Component& component, int rail, int inspector, int dock);
+// ADR-0067 §2: the painted controls' records (id, bounds in the shell) as the last sync laid them out.
+[[nodiscard]] std::vector<std::pair<std::string, juce::Rectangle<int>>> mainComponentPointerRecords (juce::Component& component);
 // G2.2: invoke a context-menu item by its id (the submenus above the action range: Add Insert,
 // Time Display) and the id of the ruler menu's Time Display entry for a mode (1 min:sec, 2 SMPTE,
 // 3 samples) — so the gate walks the REAL menu record.
