@@ -264,3 +264,4 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Master Mute (`master.monitor.mute`)
 - Save a Copy (`project.save_a_copy`)
 - Save as Template (`project.save_as_template`)
+- Show Tips Again (`help.show_tips_again`)

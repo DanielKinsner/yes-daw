@@ -87,6 +87,9 @@ struct MainComponentFileChoices
     std::function<bool (double hz)> requestAudioDeviceSampleRate;
     // ADR-0060: the open device's rate as the harness's fake device reports it (the native shell reads JUCE's).
     std::function<double()> currentAudioDeviceSampleRate;
+    // ADR-0073 §4: the native shell shows first-run tips the user has not dismissed; the harness starts with them
+    // dismissed (so no earlier gate meets one) unless a gate sets this or a step brings them back.
+    bool firstRunTips = false;
 };
 
 inline constexpr int kCloseChoiceSave = 0;

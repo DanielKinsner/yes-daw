@@ -8,6 +8,21 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0073 cp4a: dismissed tips live in prefs.json; Help > Show Tips Again
+
+**What changes (visible):** the Help menu gains **Show Tips Again** (after Keymap, no chord), enabled only while a tip
+is dismissed; it brings every dismissed tip back. Nothing shows a tip yet - the strip itself is cp4b. `prefs.json` gains
+`"tips": { "dismissed": [ ... ] }` (ADR-0061: a file without it reads as nothing dismissed and is written back without
+loss; ids this version does not know are kept; a malformed entry falls back alone). The native app shows first-run tips;
+the headless harness starts with the welcome tip dismissed (in memory, and again after any read of `prefs.json`), so no
+earlier gate meets one. The probe reports `prefs.tipsDismissed`. **Gates:** `[prefs][g65][tip]` - the read, the write at
+dismissal, a relaunch, Show Tips Again (enabled only with something to bring back), unknown ids and a newer version's
+keys kept, a malformed list rejected alone, and the harness's start - four mutations bite. The Help menu is re-pinned at 2 items, the keymap
+doc gains the unbound action, and the accessibility gate's fully reachable context gains a dismissed tip (as it holds a
+solo for Clear All Solos). **Local:** build, 423/423 ctest (after that one fixture line), Clang clean.
+**CI evidence (eda3e2f):** the Windows job re-run on the same SHA passed 423/423 - its one GPU-frame red (code identical
+to dfbeadc's for that binary) did not repeat.
+
 ## 2026-10-08 — ADR-0073 cp3: the inspector and the piano roll offer Add MIDI clip when they are empty
 
 **What changes (visible):** the inspector's Clip tab with no clip selected, and the piano roll with no MIDI clip open,

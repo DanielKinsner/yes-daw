@@ -964,6 +964,10 @@ juce::String MainComponent::buildStateProbeJson()
                                                                                             : "none");
         prefs->setProperty ("rejectedKeys", appModel.rejectedPreferenceKeys());
         prefs->setProperty ("migratedKeymap", appModel.migratedKeymapPreferences());
+        juce::Array<juce::var> dismissedTips;   // ADR-0073 §4: tips.dismissed, as the model holds it
+        for (const std::string& tip : appModel.dismissedTips())
+            dismissedTips.add (juce::String::fromUTF8 (tip.c_str()));
+        prefs->setProperty ("tipsDismissed", dismissedTips);
         root->setProperty ("prefs", juce::var (prefs));
     }
     if (context.projectLoaded)
@@ -1575,6 +1579,7 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
 {
     yesdaw::ui::MainComponentFileChoices choices;
     choices.newProjectDialog = true;   // ADR-0060: the New Project overlay
+    choices.firstRunTips = true;       // ADR-0073 §4: the first-run tip the user has not dismissed
     choices.nativePrompts = true;      // and the unsaved-changes box before New / Open
     choices.chooseMissingAudioReplacement = [] (const yesdaw::ui::UiMissingAsset& missing) {   // ADR-0062
         for (;;)

@@ -1795,6 +1795,7 @@ public:
     // the context). No folder: factory values, as before.
     void applyContextPreferences()
     {
+        context_.anyTipDismissed = ! preferences_.tips.dismissed.empty();   // ADR-0073 §4 (with or without a folder)
         if (sessionStateDirectory_.empty())
             return;
         const UiViewPreferences& view = preferences_.view;
@@ -1868,6 +1869,38 @@ public:
     [[nodiscard]] int rejectedPreferenceKeys() const noexcept { return preferences_.rejectedKeys(); }
     [[nodiscard]] bool migratedKeymapPreferences() const noexcept { return migratedKeymap_; }
 
+    // ---- ADR-0073 §4: the first-run tips the user has dismissed (prefs.json's tips.dismissed) ----
+    static constexpr const char* kWelcomeTip = "welcome";
+    [[nodiscard]] const std::vector<std::string>& dismissedTips() const noexcept { return preferences_.tips.dismissed; }
+    [[nodiscard]] bool tipDismissed (std::string_view tip) const
+    {
+        const std::vector<std::string>& dismissed = preferences_.tips.dismissed;
+        return std::find (dismissed.begin(), dismissed.end(), tip) != dismissed.end();
+    }
+    // Dismissed for good: written at once.
+    void dismissTip (std::string_view tip)
+    {
+        if (tipDismissed (tip))
+            return;
+        preferences_.tips.dismissed.emplace_back (tip);
+        context_.anyTipDismissed = true;
+        savePreferences();
+    }
+    // Help > Show Tips Again: every dismissed tip comes back (ids this version does not know too).
+    void showTipsAgain()
+    {
+        preferences_.tips.dismissed.clear();
+        context_.anyTipDismissed = false;
+        savePreferences();
+    }
+    // The headless harness - and so every gate written before the tip - starts with the welcome tip dismissed, in
+    // memory and again after any read of prefs.json, unless a step brings it back.
+    void startWithTipsDismissed()
+    {
+        tipsStartDismissed_ = true;
+        applyTipsStartDismissed();
+    }
+
     void loadPreferences()
     {
         preferences_ = UiPreferences {};
@@ -1876,7 +1909,10 @@ public:
         migratedKeymap_ = false;
         registry_.keymap() = Keymap {};
         if (sessionStateDirectory_.empty())
+        {
+            applyTipsStartDismissed();
             return;
+        }
 
         const std::filesystem::path file = sessionStateDirectory_ / UiPreferences::kFileName;
         std::error_code error;
@@ -1922,7 +1958,15 @@ public:
             std::filesystem::rename (sessionStateDirectory_ / kKeymapOverridesRecordFileName, migrated, error);
             migratedKeymap_ = true;
         }
+        applyTipsStartDismissed();
         applyContextPreferences();
+    }
+
+    void applyTipsStartDismissed()
+    {
+        if (tipsStartDismissed_ && ! tipDismissed (kWelcomeTip))
+            preferences_.tips.dismissed.emplace_back (kWelcomeTip);
+        context_.anyTipDismissed = ! preferences_.tips.dismissed.empty();
     }
 
     // The whole file, after every change (a rebind, a restore; later: the view, editing, export and devices).
@@ -10318,6 +10362,14 @@ public:
                 }
                 return registry_.dispatch (id, context_);   // otherwise Esc's Pointer meaning
 
+            case UiActionId::HelpShowTipsAgain:   // ADR-0073 §4: counted and enabled-checked by the registry, then emptied
+            {
+                const UiActionDispatchResult result = registry_.dispatch (id, context_);
+                if (result.dispatched)
+                    showTipsAgain();
+                return result;
+            }
+
             case UiActionId::HelpShowKeymap:
             case UiActionId::EditShowUndoHistory:   // G2.18
             case UiActionId::ViewInstrument:   // G3.1
@@ -13792,6 +13844,7 @@ private:
     UiPreferencesState preferencesState_ = UiPreferencesState::NotRead;
     std::vector<std::pair<std::string, std::string>> foreignKeymapEntries_;   // bindings of actions this version lacks
     bool migratedKeymap_ = false;
+    bool tipsStartDismissed_ = false;   // ADR-0073 §4: the harness's start (see startWithTipsDismissed)
     UiSnapUnit snapUnit_ = UiSnapUnit::Beat;
     UiNudgeUnit nudgeUnit_ = UiNudgeUnit::Grid;   // G1.4
     int repeatPasteCount_ = kDefaultRepeatPasteCount;

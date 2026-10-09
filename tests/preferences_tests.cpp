@@ -15,6 +15,7 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <vector>
 
 using yesdaw::ui::UiActionId;
 using yesdaw::ui::UiPreferencesState;
@@ -560,4 +561,73 @@ TEST_CASE ("ADR-0061 a missing remembered device leaves the open one, names both
         REQUIRE (devices.input == "Interface In");
         REQUIRE (f.status().empty());
     }
+}
+
+// ADR-0073 §4 (G6.5 cp4): prefs.json's tips.dismissed - a file without the section reads as nothing dismissed and is
+// written back without loss; ids this version does not know are kept; a dismissal is written at once and survives a
+// relaunch; Show Tips Again (enabled only while a tip is dismissed) empties the list; a malformed entry falls back alone.
+TEST_CASE ("ADR-0073 dismissed tips live in prefs.json; unknown ids survive; Show Tips Again empties the list", "[prefs][g65][tip]")
+{
+    using yesdaw::ui::UiAppModel;
+    const auto directory = prefsScratch ("tips");
+    writeText (directory / "prefs.json", "{ \"version\": 1, \"future\": { \"x\": 1 } }\n");
+    {
+        UiAppModel model;
+        model.setSessionStateDirectory (directory);
+        REQUIRE (model.preferencesState() == UiPreferencesState::Loaded);
+        REQUIRE (model.dismissedTips().empty());
+        REQUIRE_FALSE (model.tipDismissed (UiAppModel::kWelcomeTip));
+        REQUIRE_FALSE (model.registry().stateFor (UiActionId::HelpShowTipsAgain, model.context()).enabled);
+        REQUIRE_FALSE (model.dispatch (UiActionId::HelpShowTipsAgain).dispatched);
+        model.dismissTip (UiAppModel::kWelcomeTip);
+        REQUIRE (model.registry().stateFor (UiActionId::HelpShowTipsAgain, model.context()).enabled);
+        const std::string written = textOf (directory / "prefs.json");
+        REQUIRE (written.find ("\"future\"") != std::string::npos);   // the unknown section kept
+        REQUIRE (written.find ("\"welcome\"") != std::string::npos);
+    }
+    {
+        UiAppModel relaunched;
+        relaunched.setSessionStateDirectory (directory);
+        REQUIRE (relaunched.dismissedTips() == std::vector<std::string> { "welcome" });
+        REQUIRE (relaunched.dispatch (UiActionId::HelpShowTipsAgain).dispatched);
+        REQUIRE (relaunched.dismissedTips().empty());
+        REQUIRE_FALSE (relaunched.registry().stateFor (UiActionId::HelpShowTipsAgain, relaunched.context()).enabled);
+    }
+    {
+        UiAppModel again;
+        again.setSessionStateDirectory (directory);
+        REQUIRE (again.dismissedTips().empty());   // the emptied list was written
+    }
+
+    // An id from a newer version is kept on write (and Show Tips Again brings it back too); a non-string entry and a
+    // duplicate fall back alone; a "dismissed" that is not a list is one rejected key.
+    const auto other = prefsScratch ("tips-unknown");
+    writeText (other / "prefs.json", "{ \"tips\": { \"dismissed\": [ \"tip.from.the.future\", 5, \"welcome\", \"welcome\" ], \"more\": true } }");
+    {
+        UiAppModel model;
+        model.setSessionStateDirectory (other);
+        REQUIRE (model.rejectedPreferenceKeys() == 1);
+        REQUIRE (model.dismissedTips() == std::vector<std::string> { "tip.from.the.future", "welcome" });
+        REQUIRE (model.tipDismissed (UiAppModel::kWelcomeTip));
+        model.dismissTip ("another");
+        const std::string written = textOf (other / "prefs.json");
+        REQUIRE (written.find ("tip.from.the.future") != std::string::npos);
+        REQUIRE (written.find ("\"more\"") != std::string::npos);   // the section's unknown key kept
+    }
+    const auto malformed = prefsScratch ("tips-malformed");
+    writeText (malformed / "prefs.json", "{ \"tips\": { \"dismissed\": \"welcome\" }, \"audio\": { \"outputDevice\": \"Speakers\" } }");
+    UiAppModel model;
+    model.setSessionStateDirectory (malformed);
+    REQUIRE (model.rejectedPreferenceKeys() == 1);
+    REQUIRE (model.dismissedTips().empty());
+    REQUIRE (model.audioPreferences().outputDevice == "Speakers");   // the rest still loads
+
+    // The harness's start: the welcome tip dismissed in memory, and again after a read of a file that lacks it.
+    UiAppModel harness;
+    harness.startWithTipsDismissed();
+    REQUIRE (harness.tipDismissed (UiAppModel::kWelcomeTip));
+    harness.setSessionStateDirectory (prefsScratch ("tips-harness"));
+    REQUIRE (harness.tipDismissed (UiAppModel::kWelcomeTip));
+    REQUIRE (harness.dispatch (UiActionId::HelpShowTipsAgain).dispatched);
+    REQUIRE_FALSE (harness.tipDismissed (UiAppModel::kWelcomeTip));
 }

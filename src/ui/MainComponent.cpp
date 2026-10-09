@@ -20,6 +20,8 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
 {
     if (! fileChoices.sessionStateDirectory.empty())
         appModel.setSessionStateDirectory (fileChoices.sessionStateDirectory);
+    if (! fileChoices.firstRunTips)
+        appModel.startWithTipsDismissed();   // ADR-0073 §4: the harness's start
 
     // G0.1 State probe: debug-only; a normal launch leaves the path empty and writes nothing.
     stateProbePath = fileChoices.stateProbePath;

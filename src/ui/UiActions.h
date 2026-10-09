@@ -274,6 +274,7 @@ enum class UiActionId : std::uint8_t
     ViewBrowser,                // G5.2 / ADR-0056: the media browser dock tab (Y)
     ProjectSaveACopy,           // G5.5 / ADR-0060: write a copy of the project; keep working in this one
     ProjectSaveAsTemplate,      // G5.5 / ADR-0060: the project's layout as a template for new projects
+    HelpShowTipsAgain,          // G6.5 / ADR-0073 §4: every dismissed first-run tip comes back
     Count
 };
 
@@ -619,6 +620,7 @@ struct UiActionContext
     bool firstTrackSendAvailable = false;
     bool firstTrackFxSlotAvailable = false;
     bool anySoloActive = false;   // G4.5: any Track or Bus soloed (Clear All Solos has something to clear)
+    bool anyTipDismissed = false;   // ADR-0073 §4: a first-run tip was dismissed (Show Tips Again has one to bring back)
     bool automationFollowsClips = false;   // G4.6 / ADR-0052: the project's Automation Follows Clips setting
     bool recordingCompSelected = false;
     int recordingCompSegmentCount = 0;
@@ -1192,7 +1194,10 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectSaveAsTemplate, "project.save_as_template", "Save as Template", "",
       "Save this project's tracks, buses and routing as a template for new projects",
-      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    // G6.5 / ADR-0073 §4: no default chord (a Help menu item, used rarely).
+    { UiActionId::HelpShowTipsAgain, "help.show_tips_again", "Show Tips Again", "", "Show the first-run tips again",
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -1493,6 +1498,8 @@ public:
             return { false, "no FX in the first Track's first slot" };
         if (id == UiActionId::MixerSoloClear && context.projectLoaded && ! context.anySoloActive)
             return { false, "no solo active" };
+        if (id == UiActionId::HelpShowTipsAgain && ! context.anyTipDismissed)
+            return { false, "no tip dismissed" };
 
         if (descriptor->requiresProject && ! context.projectLoaded)
             return { false, "no project loaded" };
@@ -1911,6 +1918,10 @@ public:
 
             case UiActionId::HelpShowKeymap:
                 context.keymapVisible = ! context.keymapVisible;
+                break;
+
+            case UiActionId::HelpShowTipsAgain:   // ADR-0073 §4: the model empties prefs.json's list
+                context.anyTipDismissed = false;
                 break;
 
             // Tool selection is panel-preserving (E11): the palette drives the piano roll's

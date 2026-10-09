@@ -5715,7 +5715,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     // Copy, Save as Template).
     REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 13);
     REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 35);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes; G2.18: + Undo History…; G4.6: + Automation Follows Clips
-    REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 1);
+    REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 2);   // G6.5 / ADR-0073: + Show Tips Again
 
     // File > New Project through the model creates a real bundle.
     model->menuItemSelected (static_cast<int> (UiActionId::ProjectNew) + 1, 0);

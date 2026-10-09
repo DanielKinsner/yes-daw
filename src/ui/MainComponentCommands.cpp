@@ -722,7 +722,7 @@ std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int 
         UiActionId::MixerTargetToggleSoloSafe,
         UiActionId::DeviceRefreshAudio,   // G0.8: Options ▸ Refresh Device (no toolbar button)
     };
-    static constexpr std::array<UiActionId, 1> kHelpMenu { UiActionId::HelpShowKeymap };
+    static constexpr std::array<UiActionId, 2> kHelpMenu { UiActionId::HelpShowKeymap, UiActionId::HelpShowTipsAgain };
 
     switch (topLevelMenuIndex)
     {

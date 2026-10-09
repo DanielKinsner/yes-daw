@@ -43,6 +43,7 @@ UiActionContext fullyReachableContext()
     context.recordingCompTakesAvailable = true;
     context.firstTrackSendAvailable = true;
     context.anySoloActive = true;   // G4.5: Clear All Solos needs a solo to clear
+    context.anyTipDismissed = true;   // ADR-0073 §4: Show Tips Again needs a dismissed tip
     context.firstTrackFxSlotAvailable = true;
     context.autosaveRecoveryPending = true;
     context.audioExportInProgress = true;

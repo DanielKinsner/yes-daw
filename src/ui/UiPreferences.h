@@ -75,6 +75,14 @@ struct UiAudioPreferences
     friend bool operator== (const UiAudioPreferences&, const UiAudioPreferences&) = default;
 };
 
+// ADR-0073 §4: the first-run tips the user has dismissed, by id (ids this version does not know are kept).
+struct UiTipPreferences
+{
+    std::vector<std::string> dismissed;
+
+    friend bool operator== (const UiTipPreferences&, const UiTipPreferences&) = default;
+};
+
 class UiPreferences
 {
 public:
@@ -88,6 +96,7 @@ public:
     UiEditingPreferences editing;
     UiExportPreferences exportChoices;
     UiAudioPreferences audio;
+    UiTipPreferences tips;
 
     // Parse a file's text. False when it is not a JSON object (the caller keeps the defaults); true otherwise, every
     // known key that is malformed counted in rejectedKeys() and left at its default. A UTF-8 byte-order mark (an
@@ -174,6 +183,27 @@ public:
             readText (section, "outputDevice", audio.outputDevice);
             readText (section, "inputDevice", audio.inputDevice);
         });
+        readSection ("tips", [this] (const choc::value::ValueView& section) {
+            if (! section.hasObjectMember ("dismissed"))
+                return;
+            const choc::value::ValueView ids = section["dismissed"];
+            if (! ids.isArray())
+            {
+                ++rejectedKeys_;
+                return;
+            }
+            for (std::uint32_t i = 0; i < ids.size(); ++i)
+            {
+                if (! ids[i].isString())
+                {
+                    ++rejectedKeys_;
+                    continue;
+                }
+                std::string id (ids[i].getString());
+                if (std::find (tips.dismissed.begin(), tips.dismissed.end(), id) == tips.dismissed.end())
+                    tips.dismissed.push_back (std::move (id));
+            }
+        });
         return true;
     }
 
@@ -222,6 +252,13 @@ public:
         audioSection.setMember ("outputDevice", choc::value::createString (audio.outputDevice));
         audioSection.setMember ("inputDevice", choc::value::createString (audio.inputDevice));
         out.setMember ("audio", audioSection);
+
+        choc::value::Value tipsSection = sectionOf (out, "tips");
+        choc::value::Value dismissedIds = choc::value::createEmptyArray();
+        for (const std::string& id : tips.dismissed)
+            dismissedIds.addArrayElement (choc::value::createString (id));
+        tipsSection.setMember ("dismissed", dismissedIds);
+        out.setMember ("tips", tipsSection);
         return choc::json::toString (out, true) + "\n";
     }
 
