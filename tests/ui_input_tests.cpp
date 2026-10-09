@@ -27062,6 +27062,142 @@ TEST_CASE ("ADR-0073 empty-state rows and the tip meet 4.5:1 on their surfaces",
     REQUIRE (best (strip, textX + width (sentence), textX + width (sentence + "  (Y)")) >= 4.5);
 }
 
+// G6 close-out (rubric line 1): overlapping clips on one lane - the later is drawn on top with a translucent body, and the
+// covered clip's name is hidden where the later clip lies (the song fixture's MIDI lanes printed "MIDIAudio Clip"). Each
+// render is taken with and without its text: no text pixel lies inside the clip on top, while the covered clip's name
+// still prints where nothing covers it, and a lone clip prints its name (the check sees names at all).
+TEST_CASE ("G6 a clip drawn over another hides the covered clip's name there", "[ui][input][timeline][clip-names][paint]")
+{
+    const std::array<yesdaw::ui::TimelineCanvasClipStyle, 2> styles {{ { yesdaw::ui::UiTheme::Color::accentPurple(), 0.75f },
+                                                                        { yesdaw::ui::UiTheme::Color::accentTeal(), 0.75f } }};
+    const auto stateFor = [&styles] (const std::vector<yesdaw::ui::Clip>& clips) {
+        yesdaw::ui::TimelineCanvasState state;
+        state.clips = clips.data();
+        state.clipStyles = styles.data();
+        state.clipCount = static_cast<int> (clips.size());
+        state.trackCount = 1;
+        state.viewport.pixelsPerSecond = 100.0;
+        return state;
+    };
+    const juce::Rectangle<int> bounds (0, 0, 900, 260);
+    // Text pixels in `area` (the pixels a render with text and one without disagree on).
+    const auto textPixelsIn = [&] (const std::vector<yesdaw::ui::Clip>& clips, juce::Rectangle<int> area) {
+        const auto render = [&] (bool text) {
+            juce::Image image (juce::Image::ARGB, bounds.getWidth(), bounds.getHeight(), true, juce::SoftwareImageType());
+            SoftwareContext context (image, text);
+            juce::Graphics g (context);
+            (void) yesdaw::ui::paintTimelineCanvas (g, bounds, stateFor (clips));
+            return image;
+        };
+        const juce::Image withText = render (true);
+        const juce::Image without = render (false);
+        int count = 0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+                count += withText.getPixelAt (x, y) != without.getPixelAt (x, y) ? 1 : 0;
+        return count;
+    };
+    const std::vector<yesdaw::ui::Clip> lone { { 1, 0, 0.0, 4.0, "Under" } };
+    const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (bounds, stateFor (lone));
+    constexpr int pps = 100;
+    const auto columns = [&geometry] (double from, double to) {   // the clip area's columns for [from, to) seconds
+        return juce::Rectangle<int> (geometry.clipArea.getX() + static_cast<int> (from * pps), geometry.clipArea.getY(),
+                                     static_cast<int> ((to - from) * pps), geometry.laneHeight);
+    };
+    REQUIRE (textPixelsIn (lone, columns (0.0, 4.0)) > 20);   // a name prints
+    // Covered wholly by a nameless clip drawn later: no name shows through it.
+    const std::vector<yesdaw::ui::Clip> covered { { 1, 0, 0.0, 4.0, "Under" }, { 2, 0, 0.0, 4.0, "" } };
+    REQUIRE (textPixelsIn (covered, columns (0.0, 4.0)) == 0);
+    // Covered on its right only: its name (at its left) still prints; nothing prints inside the clip on top.
+    const std::vector<yesdaw::ui::Clip> partly { { 1, 0, 0.0, 4.0, "Under" }, { 2, 0, 2.0, 2.0, "" } };
+    REQUIRE (textPixelsIn (partly, columns (0.0, 1.5)) > 20);
+    REQUIRE (textPixelsIn (partly, columns (2.1, 4.0)) == 0);
+    // Two named clips over each other: only the top one's name - a long covered name never runs on past a short top one.
+    const std::vector<yesdaw::ui::Clip> named { { 1, 0, 0.0, 4.0, "MIDI MIDI MIDI MIDI MIDI" }, { 2, 0, 0.0, 4.0, "A" } };
+    REQUIRE (textPixelsIn (named, columns (0.0, 0.3)) > 5);    // the top one's "A"
+    REQUIRE (textPixelsIn (named, columns (0.4, 4.0)) == 0);   // nothing of the covered name past it
+}
+
+// G6 close-out (rubric line 1): the rail paints a row the panel cuts off - its visible part, beside the lane the arrange
+// draws partly. At every height of a sweep with 16 tracks, wherever a lane shows at least 40 px but not whole, the rail
+// beside it carries that row's text (a render with text against one without, over the rail's columns in the lane's span);
+// and a rail control the panel cuts off has no record while every recorded one lies wholly inside the rows.
+TEST_CASE ("G6 the rail paints the row its panel cuts off, beside the partial lane", "[ui][input][shell][rail-partial-row]")
+{
+    const auto bundlePath = makeTempBundlePath ("g6-rail-partial");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    for (int n = 0; n < 15; ++n)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    std::function<void (juce::Component&)> uncache = [&uncache] (juce::Component& component) {
+        component.setCachedComponentImage (nullptr);
+        for (int i = 0; i < component.getNumChildComponents(); ++i)
+            uncache (*component.getChildComponent (i));
+    };
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    int partialsChecked = 0;
+    int cutOffClicks = 0;
+    for (int height = 640; height <= 1100; height += 9)
+    {
+        shell->setSize (1920, height);
+        uncache (*shell);
+        const juce::var layout = probeRoot (*shell)["layout"];
+        const juce::var clipAreaVar = layout["clipArea"];
+        REQUIRE (clipAreaVar.isArray());
+        const juce::Rectangle<int> clipArea (static_cast<int> (clipAreaVar[0]), static_cast<int> (clipAreaVar[1]),
+                                             static_cast<int> (clipAreaVar[2]), static_cast<int> (clipAreaVar[3]));
+        const juce::Rectangle<int> railArea = (*shell).getLocalArea (rail, rail->getLocalBounds());
+        const juce::Rectangle<int> rows = railArea.withTrimmedTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight)
+                                                  .withTrimmedBottom (yesdaw::ui::UiTheme::Layout::trackListFooterHeight);
+        for (int lane = 0; lane < 16; ++lane)
+        {
+            // A control the panel cuts off does not respond (and has no record): a click on the visible part of a cut-off
+            // M cell changes nothing.
+            if (const juce::Rectangle<int> mute = yesdaw::ui::mainComponentPaintedRailCellBounds (*shell, lane, 0);
+                mute.intersects (rows) && ! rows.contains (mute))
+            {
+                INFO ("height " << height << ", lane " << lane << " cut-off M " << mute.toString());
+                mouseDownAt (*rail, mute.getIntersection (rows).getCentre() - rail->getPosition());
+                REQUIRE_FALSE (readProjectSnapshot (bundlePath).tracks[static_cast<std::size_t> (lane)].strip.muted);
+                ++cutOffClicks;
+            }
+            const juce::var r = layout[juce::Identifier ("lane." + juce::String (lane))];
+            if (! r.isArray())
+                continue;
+            const juce::Rectangle<int> laneRect (static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]));
+            const juce::Rectangle<int> shown = laneRect.getIntersection (clipArea);
+            if (shown.getHeight() < 40 || shown.getHeight() >= yesdaw::ui::UiTheme::Layout::timelineCanvasLaneRowHeight)
+                continue;   // not partial (or too little of it to carry a name)
+            INFO ("height " << height << ", lane " << lane << " shown " << shown.toString());
+            const juce::Rectangle<int> span (railArea.getX(), shown.getY(), railArea.getWidth(), shown.getHeight());
+            const juce::Image withText = renderSoftware (*shell, span);
+            const juce::Image without = renderSoftware (*shell, span, false);
+            int textPixels = 0;
+            for (int y = 0; y < span.getHeight(); ++y)
+                for (int x = 0; x < span.getWidth(); ++x)
+                    textPixels += withText.getPixelAt (x, y) != without.getPixelAt (x, y) ? 1 : 0;
+            REQUIRE (textPixels > 20);
+            ++partialsChecked;
+        }
+        for (const auto& [id, bounds] : yesdaw::ui::mainComponentPointerRecords (*shell))
+            if (id.rfind ("rail.row.", 0) == 0)
+            {
+                INFO (id << " " << bounds.toString() << " rows " << rows.toString());
+                REQUIRE (rows.contains (bounds));
+            }
+    }
+    REQUIRE (partialsChecked >= 5);
+    REQUIRE (cutOffClicks >= 1);
+    // A whole row's M cell does respond (the click path the cut-off checks rely on).
+    shell->setSize (1920, 1080);
+    const juce::Rectangle<int> wholeMute = yesdaw::ui::mainComponentPaintedRailCellBounds (*shell, 0, 0);
+    mouseDownAt (*rail, wholeMute.getCentre() - rail->getPosition());
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
+}
+
 #if JUCE_WINDOWS
 // ADR-0066 / ADR-0049 on a real window (2026-10-07: the desktop drive's UI Automation step found it). JUCE parents an
 // accessible element on its nearest focus container — the window, not the shell, which is not one — so the shell's own

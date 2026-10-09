@@ -440,23 +440,27 @@ private:
 
     [[nodiscard]] MiniZone zoneAt (int row, juce::Point<int> position) const
     {
-        if (panKnobBounds (row).contains (position))
+        // G6 close-out: a control the panel cuts off (in the partial row at its bottom) does not respond - only a control
+        // wholly on screen is operable, as only such a control has a record (no click lands on half a control).
+        const auto hit = [rows = rowArea(), position] (juce::Rectangle<int> zone, juce::Rectangle<int> target) {
+            return rows.contains (zone) && target.contains (position);
+        };
+        if (hit (panKnobBounds (row), panKnobBounds (row)))
             return MiniZone::Pan;
         // V5: the fader is vertical, so the hit slop widens it sideways (the vertical extent is
         // already the full column).
-        if (volumeSliderBounds (row).expanded (yesdaw::ui::UiTheme::Layout::trackListLevelHitSlopX,
-                                               yesdaw::ui::UiTheme::Space::none)
-                .contains (position))
+        if (hit (volumeSliderBounds (row), volumeSliderBounds (row).expanded (yesdaw::ui::UiTheme::Layout::trackListLevelHitSlopX,
+                                                                               yesdaw::ui::UiTheme::Space::none)))
             return MiniZone::Volume;
-        if (muteCellBounds (row).contains (position))
+        if (hit (muteCellBounds (row), muteCellBounds (row)))
             return MiniZone::Mute;
-        if (soloCellBounds (row).contains (position))
+        if (hit (soloCellBounds (row), soloCellBounds (row)))
             return MiniZone::Solo;
-        if (armCellBounds (row).contains (position))
+        if (hit (armCellBounds (row), armCellBounds (row)))
             return MiniZone::Arm;
-        if (meterZoneBounds (row).contains (position))
+        if (hit (meterZoneBounds (row), meterZoneBounds (row)))
             return MiniZone::Meter;
-        if (colourSwatchBounds (row).contains (position))
+        if (hit (colourSwatchBounds (row), colourSwatchBounds (row)))
             return MiniZone::Colour;
         return MiniZone::None;
     }

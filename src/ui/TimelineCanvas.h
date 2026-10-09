@@ -1660,15 +1660,18 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
                                             static_cast<int> (visible.size()));
     stats.hitVisibleClipCapacity = stats.visibleClips == static_cast<int> (visible.size());
 
+    // A visible clip's rect as painted: its layout rect inset, inside the clip area.
+    const auto paintedClipRect = [&visible, clipArea] (int index) {
+        const auto& r = visible[static_cast<std::size_t> (index)];
+        return juce::Rectangle<int> (clipArea.getX() + juce::roundToInt (r.x), clipArea.getY() + juce::roundToInt (r.y),
+                                     juce::roundToInt (r.w), juce::roundToInt (r.h))
+            .reduced (UiTheme::Space::xs, UiTheme::Space::xs + UiTheme::Space::hairline)
+            .getIntersection (clipArea);
+    };
     for (int i = 0; i < stats.visibleClips; ++i)
     {
         const auto& rect = visible[static_cast<std::size_t> (i)];
-        auto clipRect = juce::Rectangle<int> (clipArea.getX() + juce::roundToInt (rect.x),
-                                             clipArea.getY() + juce::roundToInt (rect.y),
-                                             juce::roundToInt (rect.w),
-                                             juce::roundToInt (rect.h))
-                            .reduced (UiTheme::Space::xs, UiTheme::Space::xs + UiTheme::Space::hairline);
-        clipRect = clipRect.getIntersection (clipArea);
+        auto clipRect = paintedClipRect (i);
         // Vertically scrolled-out rows clamp to empty here (E5): skip their paint work outright.
         if (clipRect.isEmpty())
             continue;
@@ -1715,12 +1718,27 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
         const Clip* const clip = clipForId (state, rect.id);
         if (clip != nullptr && clip->name != nullptr && clip->name[0] != '\0')
         {
+            // G6 close-out (rubric line 1): a clip drawn later over this one (overlapping clips on a lane; the later is on
+            // top, its body translucent) hides this name there - two names never print into each other.
+            bool covered = false;
+            for (int later = i + 1; later < stats.visibleClips; ++later)
+            {
+                const auto& over = visible[static_cast<std::size_t> (later)];
+                if (over.y != rect.y || over.x >= rect.x + rect.w || over.x + over.w <= rect.x)
+                    continue;   // another lane, or no overlap in time
+                if (! covered)
+                    g.saveState();
+                covered = true;
+                g.excludeClipRegion (paintedClipRect (later));
+            }
             g.setColour (kText);
             g.setFont (UiTheme::Type::font (UiTheme::Type::small, juce::Font::bold));
             g.drawText (clip->name,
                         clipRect.reduced (UiTheme::Space::sm),
                         juce::Justification::topLeft,
                         true);
+            if (covered)
+                g.restoreState();
         }
         if (style.muted)   // G2.12: the muted wash sits over body, waveform, fades and name
         {

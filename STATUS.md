@@ -8,6 +8,34 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — G6 close-out rubric: two FIXes found and gated (a partial row's rail header; covered clip names)
+
+**The rubric pass (plan §7.4, agent judges):** the scaling matrix rendered at every cell (the plan's 3 window sizes x
+100/125/150/200 % and the 8 maximized-display cells) plus the real app's shots (ss1's tip at three sizes, ss1, ss5,
+the song fixture) - five judges, each FIX claim then checked by a separate verifier against the pixels. Two real
+defects, both confirmed, both fixed here with a gate that is red without its fix:
+- **A partial lane beside an empty rail** (rubric 1; the 1080p maximized window at 100 % among others): the arrange draws
+  the lane the panel cuts off at its bottom, the rail stopped at the last whole row - clips with no header beside them,
+  and the rail's empty space there still took clicks for that row. Now the rail paints the row's visible part (its whole
+  geometry clipped to the panel), and only its controls wholly on screen are records. Gate `[rail-partial-row]`: over a
+  height sweep with 16 tracks, every lane shown 40-71 px has its row's text in the rail beside it; every rail record lies
+  inside the rows. Two mutations bite (the old break; a cut-off control's record).
+- **Covered clip names printing into each other** (rubric 1; "MIDIAudio Clip" where the song fixture's MIDI clip lies
+  over audio clips on one lane - clip bodies are translucent): a clip's name is now hidden where a clip drawn later
+  overlaps it (the later is on top, as in Logic). Gate `[clip-names]`: a lone name prints; covered wholly - none shows
+  through; covered on the right - its name still prints at the left and nothing inside the cover; two named clips over
+  each other show only the top one's. The mutation bites. The canvas the GPU frame check times is unchanged in cost:
+  locally 5.66 / 5.95 / 5.56 ms sustained before, 5.53 / 5.68 / 5.35 after.
+Refuted or not defects: none needed refuting; one "FIX" was a shot path the judge was given that the drive does not
+write (ss7 names its shots by step).
+**Critic:** no blocker; in - a control the partial row cuts off no longer responds (the rail's hit-test keeps the
+records' law: only a control wholly on screen is operable; a click on the visible part of a cut-off M cell changes
+nothing - gated, and the mutation bites), and the "two named clips" check no longer compares text-pixel counts across
+backgrounds (font rasterisers differ off Windows): a long covered name must not run on past a short top one.
+**CI:** cp4b (d3f270d) green on every job, macOS's GPU check included - **cp4b certified**; 2aa46c9's Windows GPU red
+did not repeat on its re-run; cp5 (19cbc14) green but macOS's GPU frame check (raw: max 25.5 ms, sustained 20.2 ms, 29
+slow frames - the exception awaiting Dan).
+
 ## 2026-10-08 — ADR-0073 cp5: SS-1 meets the first-run tip on the real app - G6.5 done
 
 **Now:** **G6.5 is complete** (ADR-0073 cp1-cp5, ADR-0074). Every G6 item (G6.1-G6.5) is in. **Next:** the G6

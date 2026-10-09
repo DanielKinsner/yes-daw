@@ -1161,9 +1161,15 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
          i < appModel.project().tracks.size(); ++i)
     {
         const int rowHeight = static_cast<int> (std::llround (rowLaw.heightFor (static_cast<int> (i))));
+        // G6 close-out (rubric line 1): a row the panel cuts off at its bottom paints its visible part, as its lane beside
+        // it does (a partial lane used to sit beside an empty rail). The whole row's geometry, clipped to the panel.
+        const juce::Rectangle<int> panelLeft = area;
         auto row = area.removeFromTop (rowHeight);
-        if (row.getHeight() < rowHeight)
+        if (row.isEmpty())
             break;
+        row.setHeight (rowHeight);
+        juce::Graphics::ScopedSaveState clipToPanel (g);
+        g.reduceClipRegion (panelLeft);
         // G4.6 / ADR-0052: the automation lanes stacked under this row: their own panel, the header above.
         const int lanesHeight = rowHeight - static_cast<int> (std::llround (rowLaw.contentHeightFor (static_cast<int> (i))));
         if (lanesHeight > 0)

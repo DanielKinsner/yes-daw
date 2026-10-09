@@ -745,17 +745,24 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
         add (panel.id, panel.noun.toStdString(), ControlTargetRole::Button, rect, std::move (row));
     }
 
-    // The rail: every whole row on screen — M / S / O, pan, volume, the colour swatch, the meter.
+    // The rail: every control wholly on screen — M / S / O, pan, volume, the colour swatch, the meter (a row the panel cuts
+    // off paints its visible part; its controls that are cut off have no record).
     if (appModel.context().projectLoaded && trackListInput.isVisible())
     {
         const auto& tracks = appModel.project().tracks;
         const juce::Rectangle<int> rows = trackListInput.rowArea().translated (trackListInput.getX(), trackListInput.getY());
         const juce::Point<int> origin = trackListInput.getPosition();
+        const auto addInRows = [&add, &rows] (std::string id, std::string name, ControlTargetRole role, juce::Rectangle<int> bounds,
+                                              PaintedControl record)
+        {
+            if (rows.contains (bounds))
+                add (std::move (id), std::move (name), role, bounds, std::move (record));
+        };
         for (int row = 0; row < static_cast<int> (tracks.size()); ++row)
         {
             const juce::Rectangle<int> rowRect = trackListInput.rowBounds (row).translated (origin.x, origin.y);
-            if (rowRect.isEmpty() || ! rows.contains (rowRect))
-                continue;   // scrolled out, or the partial row the rail does not paint
+            if (rowRect.isEmpty() || ! rows.intersects (rowRect))
+                continue;   // scrolled out
             const auto& track = tracks[static_cast<std::size_t> (row)];
             const std::string base = "rail.row." + std::to_string (row);
             const std::string name = track.strip.name;
@@ -768,7 +775,7 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
                 record.checked = checked;
                 record.surface = &trackListInput;
                 record.contextMenu = rowMenu;
-                add (base + "." + part, name + " " + words, ControlTargetRole::Toggle, cell.translated (origin.x, origin.y), std::move (record));
+                addInRows (base + "." + part, name + " " + words, ControlTargetRole::Toggle, cell.translated (origin.x, origin.y), std::move (record));
             };
             toggle ("mute", "mute", trackListInput.onMuteToggled, track.strip.muted, trackListInput.muteCellBounds (row));
             toggle ("solo", "solo", trackListInput.onSoloToggled, track.strip.soloed, trackListInput.soloCellBounds (row));
@@ -790,7 +797,7 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
                 pan.minimum = -1.0;
                 pan.maximum = 1.0;
                 pan.surface = &trackListInput;
-                add (base + ".pan", name + " pan", ControlTargetRole::Value, trackListInput.panKnobBounds (row).translated (origin.x, origin.y), std::move (pan));
+                addInRows (base + ".pan", name + " pan", ControlTargetRole::Value, trackListInput.panKnobBounds (row).translated (origin.x, origin.y), std::move (pan));
             }
             {
                 PaintedControl volume;
@@ -811,19 +818,19 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
                 volume.maximum = yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax;
                 volume.valueText = [this, row] { return dbReadoutText (trackListInput.volumeValueProvider ? trackListInput.volumeValueProvider (row) : 1.0f); };
                 volume.surface = &trackListInput;
-                add (base + ".volume", name + " volume", ControlTargetRole::Value,
+                addInRows (base + ".volume", name + " volume", ControlTargetRole::Value,
                      trackListInput.volumeSliderBounds (row).translated (origin.x, origin.y), std::move (volume));
             }
             {
                 PaintedControl swatch;
                 swatch.activate = [this, row] { if (trackListInput.onColourSwatchClicked) trackListInput.onColourSwatchClicked (row); };
                 swatch.surface = &trackListInput;
-                add (base + ".colour", name + " colour: next", ControlTargetRole::Button,
+                addInRows (base + ".colour", name + " colour: next", ControlTargetRole::Button,
                      trackListInput.colourSwatchBounds (row).translated (origin.x, origin.y), std::move (swatch));
                 PaintedControl meter;
                 meter.activate = [this, row] { if (trackListInput.onMeterClicked) trackListInput.onMeterClicked (row); };
                 meter.surface = &trackListInput;
-                add (base + ".meter", name + " meter: clear the clip light", ControlTargetRole::Button,
+                addInRows (base + ".meter", name + " meter: clear the clip light", ControlTargetRole::Button,
                      trackListInput.meterZoneBounds (row).translated (origin.x, origin.y), std::move (meter));
             }
         }
