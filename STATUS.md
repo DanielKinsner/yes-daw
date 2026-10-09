@@ -8,6 +8,38 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-09 — Paint repair CI complete; bounded macOS diagnostic ready for its exact-code run
+
+**Now:** the clean rendering correction `dd1ab7304e3689bc429b456be739ef43f103a550` completed exact-code
+CI `37977947876`: nine jobs succeeded; macOS failed only the dense Timeline sustained-frame assertion at
+**17.740833 ms** (16.6 ms limit), maximum **23.9218 ms**, **16** slow frames against **8** allowed. Its other
+425/426 cases passed. The docs successor `d496fdf` also passed its docs-only CI, which supplies no code proof.
+No timing exception was renewed. ADR-0069 recovery/probe cp2 and ADR-0068 writes-on remain dependent on
+required checkpoint proof; the Usable-song milestone is incomplete.
+
+**Diagnostic only:** a target-private compile definition adds seven painter timestamps and two Graphics-context
+markers solely to `YesDawTimelineGpuCheck`. Original fixture, outer timer, pixel sampling, checksum, assertions,
+budgets and CTest invocation are unchanged. Records are preallocated before warmup and copied after the timer;
+aggregation reports instrumented stage costs and the same frame selected by the existing sustained statistic.
+The build log records the diagnostic executable SHA256. Temporary APPLE auto-enablement is for one measurement
+and must be removed before clean certification. App and packaged-checker compile guards reject profiling.
+
+**Local verification:** OFF app/packaged/GPU builds and the GPU gate passed. ON passes **16 assertions / 3 cases**;
+OFF/ON dense output has the same checksum **680587763889**, 336 visible / 20640 total clips and 300 distinct samples.
+The preprocessed OFF painter and measurement-loop bodies match the clean baseline exactly (1084 / 513 tokens).
+All 426 OFF compile commands are macro-free; all nine ON GPU commands carry the macro and no other target does.
+OFF three-TU and ON GPU-TU Clang checks are clean. Full local Release build and CTest **428/428 (284.42 s)** passed.
+Profiling is OFF again locally. Independent correctness/adversarial review is complete with no findings
+(`20261009-macos-stage-diagnostic-final`); final source hashes match its receipt. Simplification reused JUCE's
+allocation-free scope guard and made diagnostic include dependencies explicit. Existing SS1-SS7 / 512-assertion
+app evidence applies to the unchanged production painter; this diagnostic claims no new app drive or visual proof.
+Parsed local measurements and identities are in `docs/evidence/2026-10-09-macos-stage-diagnostic.json`.
+
+**Next:** commit and push this small diagnostic, then inspect every expected job on its exact
+SHA. Collect one macOS profile if the unchanged assertion fails; a quiet passing run gives no stage attribution and
+must not be repeated to seek a failure. Diagnostic timings are not clean certification. Keep the raw result, form
+the next repair hypothesis only from evidence, and remove automatic profiling before a clean verification run.
+
 ## 2026-10-09 — Cheap snapshot implementation passes locally; earlier app verification interrupts advancement
 
 **Now:** ADR-0069 cp1 is implemented and separately reviewed, but not certified. Restore/probe cp2 and ADR-0068's

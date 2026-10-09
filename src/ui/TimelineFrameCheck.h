@@ -22,6 +22,11 @@
 #include <cstdint>
 #include <vector>
 
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+  #include <array>
+  #include <utility>
+#endif
+
 namespace yesdaw::ui {
 
 struct TimelineFrameCheckConfig
@@ -37,6 +42,17 @@ struct TimelineFrameCheckConfig
     double pixelsPerSecond = 100.0;
 };
 
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+struct TimelineFramePaintProfile
+{
+    std::chrono::steady_clock::time_point outerStart {};
+    std::chrono::steady_clock::time_point contextReady {};
+    std::array<std::chrono::steady_clock::time_point, 7> paint {};
+    std::chrono::steady_clock::time_point beforeContextDestruction {};
+    std::chrono::steady_clock::time_point outerEnd {};
+};
+#endif
+
 struct TimelineFrameCheckResult
 {
     std::vector<double> frameTimesMs;          // one entry per measured frame, unsorted
@@ -47,6 +63,10 @@ struct TimelineFrameCheckResult
     int           distinctSamples = 0;         // grid-sampled distinct pixels of the final frame
     std::uint64_t checksum = 0;                // stable anti-elision digest of sampled pixels
     int           totalClips = 0;
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    std::vector<TimelineFramePaintProfile> paintProfile;
+    int nativeImageTypeId = 0;
+#endif
 };
 
 namespace framecheck_detail {
@@ -150,8 +170,23 @@ inline int countDistinctSamples (const juce::Image& image)
     state.viewport.pixelsPerSecond = config.pixelsPerSecond;
     state.totalSeconds = static_cast<double> (config.clipsPerLane) * 3.0;
 
-    const auto paintFrame = [&image, &state] {
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    // Allocate and zero the complete record buffer before warmup; timed frames never grow it.
+    std::vector<TimelineFramePaintProfile> paintProfile (static_cast<std::size_t> (config.measuredFrames));
+    std::array<std::chrono::steady_clock::time_point, 2> contextMarkers {};
+#endif
+    const auto paintFrame = [&image, &state
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+                            , &contextMarkers
+#endif
+                           ] {
         juce::Graphics graphics (image);
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+        contextMarkers[0] = std::chrono::steady_clock::now();
+        const juce::ScopeGuard contextExit { [&contextMarkers] {
+            contextMarkers[1] = std::chrono::steady_clock::now();
+        } };
+#endif
         return paintTimelineCanvas (graphics, image.getBounds(), state);
     };
 
@@ -176,6 +211,10 @@ inline int countDistinctSamples (const juce::Image& image)
         lastStats = paintFrame();
         const auto t1 = std::chrono::steady_clock::now();
 
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+        paintProfile[static_cast<std::size_t> (frame)] =
+            { t0, contextMarkers[0], lastStats.paintProfile, contextMarkers[1], t1 };
+#endif
         const double frameMs = std::chrono::duration<double, std::milli> (t1 - t0).count();
         result.frameTimesMs.push_back (frameMs);
         result.maxFrameMs = std::max (result.maxFrameMs, frameMs);
@@ -187,6 +226,10 @@ inline int countDistinctSamples (const juce::Image& image)
     }
 
     result.distinctSamples = framecheck_detail::countDistinctSamples (image);
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    result.paintProfile = std::move (paintProfile);
+    result.nativeImageTypeId = image.getPixelData()->createType()->getTypeID();
+#endif
     return result;
 }
 

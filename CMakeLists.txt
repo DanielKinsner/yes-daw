@@ -513,6 +513,16 @@ if (YESDAW_BUILD_APPS)
   target_sources(YesDawTimelineGpuCheck PRIVATE tests/timeline_gpu_tests.cpp)
   target_include_directories(YesDawTimelineGpuCheck PRIVATE ${YESDAW_SRC_DIR})
   target_compile_definitions(YesDawTimelineGpuCheck PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
+  option(YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE
+    "Instrument only YesDawTimelineGpuCheck (diagnostic timings are not clean evidence)" OFF)
+  # Temporary APPLE enablement for one failure-stage measurement; remove before clean certification.
+  if(APPLE OR YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE)
+    target_compile_definitions(YesDawTimelineGpuCheck PRIVATE YESDAW_TIMELINE_PAINT_PROFILE=1)
+    add_custom_command(TARGET YesDawTimelineGpuCheck POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E sha256sum $<TARGET_FILE:YesDawTimelineGpuCheck>
+      COMMENT "Diagnostic timeline paint profile executable SHA256"
+      VERBATIM)
+  endif()
   target_link_libraries(YesDawTimelineGpuCheck
     PRIVATE
       Catch2::Catch2WithMain

@@ -11,6 +11,8 @@
 #include "ui/Splitters.h"
 #include "engine/Time.h"
 #include "ui/TimelineCanvas.h"
+static_assert (! yesdaw::ui::kTimelinePaintProfilingEnabled,
+               "Timeline paint profiling must never enter the shipped shell");
 #include "ui/UiAppModel.h"
 #include "ui/UiMixerSurface.h"
 #include "ui/UiPianoRollSurface.h"

@@ -17,6 +17,8 @@
 
 #include "app/HardwareVerification.h"
 #include "ui/TimelineFrameCheck.h"
+static_assert (! yesdaw::ui::kTimelinePaintProfilingEnabled,
+               "Timeline paint profiling must never enter the packaged frame checker");
 
 #include <cstdio>
 #include <string>

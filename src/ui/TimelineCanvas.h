@@ -23,11 +23,21 @@
 #include <optional>
 #include <vector>
 
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+  #include <chrono>
+#endif
+
 namespace yesdaw::persistence {
 struct WaveformPeakCache;
 }
 
 namespace yesdaw::ui {
+
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+inline constexpr bool kTimelinePaintProfilingEnabled = true;
+#else
+inline constexpr bool kTimelinePaintProfilingEnabled = false;
+#endif
 
 struct TimelineCanvasTrack
 {
@@ -282,6 +292,10 @@ struct TimelineCanvasPaintStats
     int readyWaveformColumns = 0;
     int placeholderWaveformClips = 0;
     int sampleWaveformClips = 0;   // G2.19: clips painted from decoded samples (zoomed past the cache)
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    // Entry, geometry, panel, chrome, visible layout, complete clip loop, playhead.
+    std::array<std::chrono::steady_clock::time_point, 7> paintProfile {};
+#endif
 };
 
 struct TimelineCanvasGeometry
@@ -1631,14 +1645,26 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
 {
     using namespace timeline_canvas_detail;
 
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    const auto paintEntry = std::chrono::steady_clock::now();
+#endif
     TimelineCanvasPaintStats stats;
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    stats.paintProfile[0] = paintEntry;
+#endif
     stats.visibleClipCapacity = kVisibleClipCapacity;
 
     if (area.getWidth() <= 0 || area.getHeight() <= 0)
         return stats;
 
     const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    stats.paintProfile[1] = std::chrono::steady_clock::now();
+#endif
     fillVisiblePanel (g, area, geometry);
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    stats.paintProfile[2] = std::chrono::steady_clock::now();
+#endif
     const auto clipArea = geometry.clipArea;
     const auto ruler = geometry.rulerArea;
     const auto vp = geometry.viewport;
@@ -1664,11 +1690,17 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
         g.drawRect (loopRects.band.toFloat(), UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
     }
 
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    stats.paintProfile[3] = std::chrono::steady_clock::now();
+#endif
     std::array<ElementRect, kVisibleClipCapacity> visible {};
     if (state.clips != nullptr && state.clipCount > 0)
         stats.visibleClips = layoutVisible (state.clips, state.clipCount, clipVp, visible.data(),
                                             static_cast<int> (visible.size()));
     stats.hitVisibleClipCapacity = stats.visibleClips == static_cast<int> (visible.size());
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    stats.paintProfile[4] = std::chrono::steady_clock::now();
+#endif
 
     // A visible clip's rect as painted: its layout rect inset, inside the clip area.
     const auto paintedClipRect = [&visible, clipArea] (int index) {
@@ -1767,8 +1799,14 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
         }
     }
 
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    stats.paintProfile[5] = std::chrono::steady_clock::now();
+#endif
     if (state.paintPlayhead)
         drawPlayhead (g, ruler, clipArea, state, vp);
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    stats.paintProfile[6] = std::chrono::steady_clock::now();
+#endif
 
     return stats;
 }

@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "date": "2026-10-09",
+  "purpose": "test-only paint-stage diagnostic; not clean macOS certification",
+  "baselineCodeSha": "dd1ab7304e3689bc429b456be739ef43f103a550",
+  "cleanMacOSFailure": {
+    "run": 37977947876,
+    "sustainedMs": 17.740833,
+    "maxMs": 23.9218,
+    "slowFrames": 16,
+    "allowedOutliers": 8,
+    "budgetMs": 16.6,
+    "checksum": 680584606339,
+    "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37977947876"
+  },
+  "localBuild": "Windows Release working tree; source hashes below",
+  "sourceSha256": {
+    "CMakeLists.txt": "a7fcb54c68dae6e05f29205e8fa600893f8c2975eb6821009f7c66882361efb8",
+    "src/ui/MainComponentInternal.h": "442414e9f5e16f311aa70b1217d6d1df94fad69a5b45453d0c19199daef8b044",
+    "src/ui/TimelineCanvas.h": "8765541fd5d3c8995bea835ee04ea89f0910d0a6c0ec652c7853647d23dc5330",
+    "src/ui/TimelineFrameCheck.h": "e6382e911f5314e56f6b5156dd8fc776261c732e887231270751698aaecf16c0",
+    "tests/timeline_gpu_tests.cpp": "4b52312cc690ae634d23dbea7ca0c393429a4c2ba21938cfe0b419a2a059f441",
+    "tools/hardware/FrameCheckMain.cpp": "aee9a95b821db122030a11b2dffda0c9b9e3ec9343ac2b3708801504193e45ba"
+  },
+  "profileOff": {
+    "fullCTestPassed": 428,
+    "fullCTestSeconds": 284.42,
+    "clangTranslationUnitsClean": 3,
+    "binarySha256": "718c1c889dcd69f721b30dd167219bd437e2450a93ad6d1aa4591b3ea2ee18c0",
+    "preprocessedBodyTokensUnchanged": {
+      "paintTimelineCanvas": 1084,
+      "runTimelineFrameCheck": 513
+    },
+    "compileIsolation": {
+      "mode": "OFF",
+      "compileCommands": 426,
+      "gpuCommands": 9,
+      "profiledCommands": 0,
+      "sha256": "4fd573a90db8f0b0c3ac382a3430e52f75bb392e37993a37134b2f847ee85dfc"
+    }
+  },
+  "profileOn": {
+    "assertionsPassed": 16,
+    "casesPassed": 3,
+    "clangTranslationUnitsClean": 1,
+    "binarySha256": "d0c8e7bebfc2d30fc0cc45b8d70041a1b98d6ad422c85679fd10f17c615d45bc",
+    "compileIsolation": {
+      "mode": "ON",
+      "compileCommands": 426,
+      "gpuCommands": 9,
+      "profiledCommands": 9,
+      "sha256": "f02bdf78f6602c0d1e6724e53b2795be199a9d3471d5a59653c024779b3e4d70"
+    },
+    "sustainedMs": 5.6692,
+    "maxMs": 6.259,
+    "nativeImageTypeId": 1,
+    "stageMs": {
+      "context_setup": {
+        "total": 4.291,
+        "median": 0.025,
+        "p95": 0.0418,
+        "max": 0.0566
+      },
+      "geometry": {
+        "total": 0.3297,
+        "median": 0.0019,
+        "p95": 0.003,
+        "max": 0.0043
+      },
+      "panel": {
+        "total": 2.3558,
+        "median": 0.014,
+        "p95": 0.0204,
+        "max": 0.0258
+      },
+      "chrome": {
+        "total": 106.794,
+        "median": 0.61835,
+        "p95": 0.9182,
+        "max": 1.6128
+      },
+      "layout": {
+        "total": 7.9977,
+        "median": 0.0439,
+        "p95": 0.0778,
+        "max": 0.2504
+      },
+      "clips": {
+        "total": 405.7165,
+        "median": 2.47745,
+        "p95": 2.9455,
+        "max": 3.5602
+      },
+      "playhead": {
+        "total": 8.1383,
+        "median": 0.0454,
+        "p95": 0.0846,
+        "max": 0.0971
+      },
+      "context_teardown": {
+        "total": 205.2423,
+        "median": 1.18235,
+        "p95": 2.0467,
+        "max": 2.2683
+      },
+      "residual": {
+        "total": 0.0973,
+        "median": 0.0005,
+        "p95": 0.0011,
+        "max": 0.0021
+      }
+    }
+  },
+  "localPixelParity": {
+    "checksum": 680587763889,
+    "visibleClips": 336,
+    "totalClips": 20640,
+    "distinctSamples": 300
+  },
+  "reviewRun": "20261009-macos-stage-diagnostic-final",
+  "limits": [
+    "Instrumented stage costs are diagnostic and include added clock/record overhead.",
+    "Windows measurements do not establish macOS stage cost.",
+    "Existing SS1-SS7 512-assertion drive evidence applies to unchanged production paint bodies; no new app drive claimed.",
+    "Temporary APPLE enablement must be removed before clean timing certification."
+  ],
+  "localLogs": [
+    "build-ci/20261009-profile-off-full-ctest.log",
+    "build-ci/20261009-profile-off-final-equivalence.log",
+    "build-ci/20261009-profile-off-clang.log",
+    "build-ci/20261009-profile-on-clang.log",
+    "build-ci/20261009-profile-off-parity.log",
+    "build-ci/20261009-profile-on-test.log"
+  ]
+}

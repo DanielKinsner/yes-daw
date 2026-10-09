@@ -17,6 +17,18 @@
 
 #include <cstdlib>
 
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+  #include <algorithm>
+  #include <array>
+  #include <chrono>
+  #include <iomanip>
+  #include <iterator>
+  #include <sstream>
+  #include <string>
+  #include <vector>
+static_assert (yesdaw::ui::kTimelinePaintProfilingEnabled);
+#endif
+
 using yesdaw::ui::TimelineFrameCheckConfig;
 using yesdaw::ui::TimelineFrameCheckResult;
 using yesdaw::ui::countFramesAtOrOverBudget;
@@ -26,6 +38,79 @@ using yesdaw::ui::sustainedFrameMs;
 namespace hw = yesdaw::app::hardware;
 
 namespace {
+
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+// All aggregation and formatting happens after the single unchanged fixture run.
+std::string paintProfileSummary (const TimelineFrameCheckResult& result, const TimelineFrameCheckConfig& config,
+                                double sustained, int slowFrameCount, int allowedOutlierFrames)
+{
+    constexpr std::array<const char*, 9> stageNames {
+        "context_setup", "geometry", "panel", "chrome", "layout", "clips", "playhead",
+        "context_teardown", "residual"
+    };
+    std::array<std::vector<double>, stageNames.size()> stageValues;
+    for (auto& values : stageValues)
+        values.reserve (result.paintProfile.size());
+
+    // The existing statistic returns a value. Select its original frame (first occurrence on ties),
+    // keeping every stage of that frame together instead of adding unrelated stage percentiles.
+    const auto sustainedIndex = static_cast<std::size_t> (std::distance (
+        result.frameTimesMs.begin(), std::find (result.frameTimesMs.begin(), result.frameTimesMs.end(), sustained)));
+    std::array<double, stageNames.size()> sustainedStages {};
+    for (std::size_t frame = 0; frame < result.paintProfile.size(); ++frame)
+    {
+        const auto& profile = result.paintProfile[frame];
+        const auto elapsedMs = [] (auto start, auto end) {
+            return std::chrono::duration<double, std::milli> (end - start).count();
+        };
+        std::array<double, stageNames.size()> stages {};
+        stages[0] = elapsedMs (profile.outerStart, profile.contextReady);
+        for (std::size_t boundary = 0; boundary + 1 < profile.paint.size(); ++boundary)
+            stages[boundary + 1] = elapsedMs (profile.paint[boundary], profile.paint[boundary + 1]);
+        stages[7] = elapsedMs (profile.beforeContextDestruction, profile.outerEnd);
+        double accountedMs = 0.0;
+        for (std::size_t stage = 0; stage + 1 < stages.size(); ++stage)
+            accountedMs += stages[stage];
+        // Keep entry/exit gaps, scalar assignments and any other outer-timer work visible.
+        stages[8] = result.frameTimesMs[frame] - accountedMs;
+        for (std::size_t stage = 0; stage < stages.size(); ++stage)
+            stageValues[stage].push_back (stages[stage]);
+        if (frame == sustainedIndex)
+            sustainedStages = stages;
+    }
+
+    std::ostringstream summary;
+    summary << std::fixed << std::setprecision (6)
+            << "diagnostic=timeline-paint-v1 mode=instrumented clock_reads_added=9 samples="
+            << result.paintProfile.size()
+            << " image_request=juce::NativeImageType actual_image_type_id=" << result.nativeImageTypeId
+            << " size=" << config.width << 'x' << config.height
+            << " lanes=" << config.lanes << " clips_per_lane=" << config.clipsPerLane
+            << " warmups=" << config.warmupFrames
+            << " outer_max_ms=" << result.maxFrameMs << " outer_sustained_ms=" << sustained
+            << " slow_frames=" << slowFrameCount << " allowed_outliers=" << allowedOutlierFrames
+            << " max_visible_clips=" << result.maxVisibleClips << " total_clips=" << result.totalClips
+            << " distinct_samples=" << result.distinctSamples << " checksum=" << result.checksum;
+    for (std::size_t stage = 0; stage < stageValues.size(); ++stage)
+    {
+        auto& values = stageValues[stage];
+        double totalMs = 0.0;
+        for (const double value : values)
+            totalMs += value;
+        std::sort (values.begin(), values.end());
+        const auto middle = values.size() / 2;
+        const double median = values.size() % 2 == 0 ? (values[middle - 1] + values[middle]) * 0.5
+                                                     : values[middle];
+        const auto p95Index = (values.size() * 95 + 99) / 100 - 1; // nearest rank, not a sum of p95s
+        summary << "\n  " << stageNames[stage] << "_ms total=" << totalMs << " median=" << median
+                << " p95=" << values[p95Index] << " max=" << values.back();
+    }
+    summary << "\n  sustained_frame_index=" << sustainedIndex << " outer_ms=" << sustained;
+    for (std::size_t stage = 0; stage < sustainedStages.size(); ++stage)
+        summary << ' ' << stageNames[stage] << "_ms=" << sustainedStages[stage];
+    return summary.str();
+}
+#endif
 
 // Convert a raw run into the packaged checker's measurement, judged at the given outlier count.
 hw::FrameMeasurement toMeasurement (const TimelineFrameCheckResult& result, int allowedOutlierFrames)
@@ -78,6 +163,9 @@ TEST_CASE ("Timeline canvas scrolls a large arrangement under one 60 fps frame",
                           << ", allowed_outliers=" << allowedOutlierFrames
                           << ", max_visible_clips=" << result.maxVisibleClips
                           << ", total_clips=" << result.totalClips << ", checksum=" << result.checksum);
+#if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE
+    INFO (paintProfileSummary (result, config, sustained, slowFrameCount, allowedOutlierFrames));
+#endif
     REQUIRE (result.maxVisibleClips >= hw::kFrameMinVisibleClips);
     REQUIRE_FALSE (result.hitVisibleClipCapacity);
     REQUIRE (result.distinctSamples >= hw::kFrameMinDistinctSamples);
