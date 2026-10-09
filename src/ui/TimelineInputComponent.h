@@ -115,6 +115,7 @@ public:
     std::function<void (int, double)> onPencilEmptyLane;         // lane, seconds: pencil a MIDI clip — E3
     std::function<void (yesdaw::ui::TimelineTool)> onToolSelected;   // a click on a tool-strip cell
     std::function<void (int)> onEmptyRowClicked;                     // ADR-0073: a left click on an empty Arrange's row (its index)
+    std::function<void()> onTipDismissed;                            // ADR-0073 §4: a left click on the tip's Dismiss
     std::function<void (int)> onVerticalScrollRows;              // +1 down / -1 up, plain wheel — E5
 
     // Loop brace editing (E6): drag either handle to resize, drag the band to move.
@@ -322,6 +323,7 @@ public:
             (void) yesdaw::ui::paintTimelineCanvas (g, getLocalBounds(), state);
             if (dragState.active && dragState.moved)
                 paintDragGhost (g, state);   // G2.3
+            yesdaw::ui::drawTimelineTip (g, getLocalBounds(), state);         // ADR-0073 §4: the first-run tip
             yesdaw::ui::drawTimelineEmptyRows (g, getLocalBounds(), state);   // ADR-0073: an empty Arrange's next actions
 
             if (marqueeState.active)
@@ -520,6 +522,16 @@ public:
     {
         if (! stateProvider)
             return;
+
+        // ADR-0073 §4: the tip's strip - a left click on its Dismiss dismisses it; nothing else starts under the strip, with
+        // any button (the sentence is not a control: no lane gesture, no lane menu).
+        if (const yesdaw::ui::TimelineTipRects tip = yesdaw::ui::timelineTipRects (getLocalBounds(), stateProvider());
+            tip.strip.contains (event.getPosition()))
+        {
+            if (event.mods.isLeftButtonDown() && tip.dismiss.contains (event.getPosition()) && onTipDismissed)
+                onTipDismissed();
+            return;
+        }
 
         if (event.mods.isRightButtonDown())   // the right button itself: on macOS isPopupMenu() also fires for Ctrl+click, which is a gesture modifier here
         {
@@ -1236,6 +1248,8 @@ public:
             return;
 
         const yesdaw::ui::TimelineCanvasState state = stateProvider();
+        if (yesdaw::ui::timelineTipRects (getLocalBounds(), state).strip.contains (event.getPosition()))
+            return;   // ADR-0073 §4: nothing under the tip's strip
         const yesdaw::ui::TimelineHitTestResult hit =
             yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, event.getPosition());
         if (! hit.hit)

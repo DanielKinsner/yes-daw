@@ -26469,7 +26469,9 @@ TEST_CASE ("ADR-0073 an empty Arrange offers its next actions as rows", "[ui][in
 }
 
 // ADR-0073 §5: the rows obscure nothing - at every window size, with the dock open and closed, they lie inside the lanes,
-// meet no other record and no visible widget; where the lanes cannot hold them they are absent, not clipped.
+// meet no other record and no visible widget; where the lanes cannot hold them they are absent, not clipped. A second
+// pass brings the first-run tip back (§4): its strip and its Dismiss meet no other record and no visible widget either
+// (the strip lies over the empty lanes only), and the Arrange's rows sit below it.
 TEST_CASE ("ADR-0073 an empty Arrange's rows obscure nothing at any size", "[ui][input][g65][no-obscured]")
 {
     using L = yesdaw::ui::UiTheme::Layout;
@@ -26481,27 +26483,72 @@ TEST_CASE ("ADR-0073 an empty Arrange's rows obscure nothing at any size", "[ui]
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     juce::Component& timeline = requireTimelineComponent (*shell);
     int shown = 0;
+    int tipShown = 0;
+    // The visible widgets under the shell (a widget's children are its own).
+    const auto requireClearOfWidgets = [&shell] (juce::Rectangle<int> bounds) {
+        std::function<void (juce::Component&)> visit = [&] (juce::Component& parent) {
+            for (int i = 0; i < parent.getNumChildComponents(); ++i)
+            {
+                juce::Component& child = *parent.getChildComponent (i);
+                if (! child.isVisible())
+                    continue;
+                const bool widget = dynamic_cast<juce::Button*> (&child) != nullptr || dynamic_cast<juce::ComboBox*> (&child) != nullptr
+                                 || dynamic_cast<juce::Slider*> (&child) != nullptr || dynamic_cast<juce::TextEditor*> (&child) != nullptr
+                                 || dynamic_cast<juce::ScrollBar*> (&child) != nullptr || dynamic_cast<juce::ListBox*> (&child) != nullptr
+                                 || dynamic_cast<juce::Label*> (&child) != nullptr;
+                if (widget)
+                {
+                    const juce::Rectangle<int> area = (*shell).getLocalArea (&child, child.getLocalBounds());
+                    INFO ("widget " << child.getComponentID() << " " << area.toString());
+                    REQUIRE_FALSE (bounds.intersects (area));
+                    continue;
+                }
+                visit (child);
+            }
+        };
+        visit (*shell);
+    };
+    for (const bool tip : { false, true })
     for (const bool roll : { false, true })
     for (const juce::Point<int> size : { juce::Point<int> (L::windowMinWidth, L::windowMinHeight), juce::Point<int> (1280, 720),
                                          juce::Point<int> (1366, 768), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
         for (const int dock : { 0, L::mixerHeight, 420 })
         {
             shell->setSize (size.x, size.y);
-            if (roll != (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll))
-                clickButton (requireButtonForAction (*shell, roll ? UiActionId::ViewPianoRoll : UiActionId::ViewMixer));
+            if (roll != (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll))   // (the action:
+                yesdaw::ui::mainComponentDispatchAction (*shell, roll ? UiActionId::ViewPianoRoll : UiActionId::ViewMixer);   // a narrow toolbar drops the button)
             yesdaw::ui::mainComponentSetDockHeight (*shell, dock);
-            INFO (size.toString() << ", dock " << dock << (roll ? ", piano roll" : ", mixer"));
+            if (tip && snapshotMainComponent (*shell).context.anyTipDismissed)
+                yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::HelpShowTipsAgain);   // the tip back (§4)
+            INFO (size.toString() << ", dock " << dock << (roll ? ", piano roll" : ", mixer") << (tip ? ", tip" : ""));
             const auto records = yesdaw::ui::mainComponentPointerRecords (*shell);
             std::vector<std::pair<std::string, juce::Rectangle<int>>> rows;
             for (const auto& record : records)
-                if (record.first.rfind ("empty.", 0) == 0)
+                if (record.first.rfind ("empty.", 0) == 0 || record.first.rfind ("tip.", 0) == 0)
                     rows.push_back (record);
             const auto painted = yesdaw::ui::mainComponentEmptyRows (*shell);
-            REQUIRE (painted.size() == rows.size());   // a row is a record exactly when it is painted
+            const juce::Rectangle<int> strip = yesdaw::ui::mainComponentTipStrip (*shell);
+            REQUIRE (painted.size() + (strip.isEmpty() ? 0u : 1u) == rows.size());   // a row is a record exactly when it is painted
+            REQUIRE ((tip || strip.isEmpty()));
+            const juce::Rectangle<int> lanes = (*shell).getLocalArea (&timeline, timeline.getLocalBounds());
+            if (! strip.isEmpty())
+            {
+                INFO ("tip strip " << strip.toString());
+                ++tipShown;
+                REQUIRE (lanes.contains (strip));
+                for (const auto& [otherId, other] : records)
+                {
+                    INFO (otherId << " " << other.toString());
+                    if (otherId == "tip.welcome.dismiss")
+                        REQUIRE (strip.contains (other));
+                    else
+                        REQUIRE_FALSE (strip.intersects (other));
+                }
+                requireClearOfWidgets (strip);
+            }
             if (rows.empty())
                 continue;
             ++shown;
-            const juce::Rectangle<int> lanes = (*shell).getLocalArea (&timeline, timeline.getLocalBounds());
             std::vector<juce::Rectangle<int>> laneRects;   // the tracks' lanes (ADR-0074: a row never sits over one)
             {
                 const juce::var layout = probeRoot (*shell)["layout"];
@@ -26518,33 +26565,16 @@ TEST_CASE ("ADR-0073 an empty Arrange's rows obscure nothing at any size", "[ui]
                     for (const auto& lane : laneRects)
                         REQUIRE_FALSE (bounds.intersects (lane));
                 }
+                if (id.rfind ("empty.arrange.", 0) == 0 && ! strip.isEmpty())
+                    REQUIRE (bounds.getY() >= strip.getBottom());   // below the tip
                 for (const auto& [otherId, other] : records)
                     if (otherId != id)
                         REQUIRE_FALSE (bounds.intersects (other));
-                std::function<void (juce::Component&)> visit = [&] (juce::Component& parent) {
-                    for (int i = 0; i < parent.getNumChildComponents(); ++i)
-                    {
-                        juce::Component& child = *parent.getChildComponent (i);
-                        if (! child.isVisible())
-                            continue;
-                        const bool widget = dynamic_cast<juce::Button*> (&child) != nullptr || dynamic_cast<juce::ComboBox*> (&child) != nullptr
-                                         || dynamic_cast<juce::Slider*> (&child) != nullptr || dynamic_cast<juce::TextEditor*> (&child) != nullptr
-                                         || dynamic_cast<juce::ScrollBar*> (&child) != nullptr || dynamic_cast<juce::ListBox*> (&child) != nullptr
-                                         || dynamic_cast<juce::Label*> (&child) != nullptr;
-                        if (widget)
-                        {
-                            const juce::Rectangle<int> area = (*shell).getLocalArea (&child, child.getLocalBounds());
-                            INFO ("widget " << child.getComponentID() << " " << area.toString());
-                            REQUIRE_FALSE (bounds.intersects (area));
-                            continue;
-                        }
-                        visit (child);
-                    }
-                };
-                visit (*shell);
+                requireClearOfWidgets (bounds);
             }
         }
-    REQUIRE (shown >= 10);   // most sizes and docks show them
+    REQUIRE (shown >= 20);   // most sizes and docks show them, in both passes
+    REQUIRE (tipShown >= 10);   // and the tip at most of them (it needs the sentence's width)
 
     // Empty tracks fill the lanes until no room is left below them: then no row (it never moves over a lane).
     shell->setSize (1280, 720);
@@ -26757,6 +26787,279 @@ TEST_CASE ("ADR-0073 a pointer resting on an empty-state row hovers it", "[ui][i
         hovered.insert (id);
     }
     REQUIRE (hovered == std::set<std::string> { "empty.arrange.import_audio", "empty.inspector.add_midi_clip", "empty.pianoroll.add_midi_clip" });
+}
+
+// ADR-0073 §4 / ADR-0074 §2 (cp4): the first-run tip. A first launch (the welcome tip not dismissed) shows the strip under
+// the ruler with its Dismiss - its element's help is the tip - and the Arrange's rows below it; a new project and an added
+// track keep it; Dismiss (Tab + Enter) hides it for good and writes "welcome" to prefs.json; a relaunch shows none; Show
+// Tips Again (enabled while a tip is dismissed) brings it back; the first clip dismisses it, and undoing the clip does not
+// bring it back; Show Tips Again with a clip on screen is kept for the next empty arrange; a click on the sentence does
+// nothing, a click on Dismiss dismisses; a pointer resting on Dismiss hovers it and paints its stroke, nothing else.
+TEST_CASE ("ADR-0073 the first-run tip shows until dismissed or the first clip, and comes back when asked", "[ui][input][g65][tip]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    using Tone = yesdaw::ui::UiTheme::Tone;
+    const auto sessionDir = makeTempBundlePath ("g65-tip-session");
+    std::filesystem::create_directories (sessionDir);
+    const auto launch = [&sessionDir] (const std::filesystem::path& bundlePath) {
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+        choices.sessionStateDirectory = sessionDir;
+        choices.firstRunTips = true;
+        auto shell = makeShell (std::move (choices));
+        shell->setSize (1920, 1080);
+        return shell;
+    };
+    const auto dismissRect = [] (juce::Component& shell) {
+        for (const auto& [id, bounds] : yesdaw::ui::mainComponentPointerRecords (shell))
+            if (id == "tip.welcome.dismiss")
+                return bounds;
+        return juce::Rectangle<int> {};
+    };
+    const auto prefsListWelcome = [&sessionDir] {
+        std::ifstream in (sessionDir / "prefs.json", std::ios::binary);
+        const std::string text ((std::istreambuf_iterator<char> (in)), std::istreambuf_iterator<char>());
+        return text.find ("\"welcome\"") != std::string::npos;
+    };
+    const auto tipsDismissed = [] (juce::Component& shell) { return probeRoot (shell)["prefs"]["tipsDismissed"].size(); };
+    const auto midiClips = [] (juce::Component& shell) { return static_cast<int> (probeRoot (shell)["project"]["midiClipCount"]); };
+    const std::string tipText = "Tip: drop audio files onto the arrange to import them, or open the browser  (Y)";
+
+    {
+        auto shell = launch (makeTempBundlePath ("g65-tip-a"));
+        // A first launch, no project yet: the strip, its Dismiss inside it, the New / Open rows below it.
+        juce::Rectangle<int> strip = yesdaw::ui::mainComponentTipStrip (*shell);
+        REQUIRE_FALSE (strip.isEmpty());
+        REQUIRE_FALSE (dismissRect (*shell).isEmpty());
+        REQUIRE (strip.contains (dismissRect (*shell)));
+        REQUIRE_FALSE (snapshotMainComponent (*shell).context.anyTipDismissed);   // Show Tips Again has nothing to bring back
+        int rowsBelow = 0;
+        for (const auto& [id, bounds] : yesdaw::ui::mainComponentPointerRecords (*shell))
+            if (id.rfind ("empty.arrange.", 0) == 0)
+            {
+                REQUIRE (bounds.getY() >= strip.getBottom());
+                ++rowsBelow;
+            }
+        REQUIRE (rowsBelow == 2);
+        {
+            const auto* proxy = paintedProxyNamed (*shell, "tip.welcome.dismiss");
+            REQUIRE (proxy != nullptr);
+            REQUIRE (proxy->describe().title == "Dismiss");
+            REQUIRE (proxy->describe().help.toStdString() == tipText);
+        }
+
+        // A new project (one empty track) and an added track keep it (ADR-0074: it keys to clips).
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        REQUIRE_FALSE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+        REQUIRE_FALSE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+
+        // Hover: the pointer resting on Dismiss names it and paints its stroke - nothing else changes.
+        {
+            ScopedCurrentModifiers none { juce::ModifierKeys {} };
+            const juce::Rectangle<int> bounds = dismissRect (*shell);
+            yesdaw::ui::mainComponentPointer (*shell, yesdaw::ui::MainComponentPointerKind::exit, {}, shell.get(), {});
+            const juce::Image rest = renderSoftware (*shell);
+            yesdaw::ui::mainComponentPointer (*shell, yesdaw::ui::MainComponentPointerKind::move, bounds.getCentre(), shell.get(), {});
+            yesdaw::ui::mainComponentServiceUiTick (*shell);
+            REQUIRE (yesdaw::ui::mainComponentPointerState (*shell).hovered.toStdString() == "tip.welcome.dismiss");
+            const juce::Image hovered = renderSoftware (*shell);
+            requireStroke (rest, hovered, bounds, L::pointerHoverStrokeWidth, Tone::hoverStrokeAlpha);
+            requireChangesOnlyInStrokes (rest, hovered, { { bounds, L::pointerHoverStrokeWidth } });
+            yesdaw::ui::mainComponentPointer (*shell, yesdaw::ui::MainComponentPointerKind::exit, {}, shell.get(), {});
+        }
+
+        // Dismiss by keyboard: Tab to it, Enter. Gone, written, and Show Tips Again enabled.
+        for (int n = 0; n < 200 && yesdaw::ui::mainComponentControlTarget (*shell).id != "tip.welcome.dismiss"; ++n)
+            REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+        REQUIRE (yesdaw::ui::mainComponentControlTarget (*shell).id == "tip.welcome.dismiss");
+        REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+        REQUIRE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+        REQUIRE (dismissRect (*shell).isEmpty());
+        REQUIRE (prefsListWelcome());
+        REQUIRE (tipsDismissed (*shell) == 1);
+        REQUIRE (snapshotMainComponent (*shell).context.anyTipDismissed);
+    }
+    {
+        auto shell = launch (makeTempBundlePath ("g65-tip-b"));   // a relaunch: the dismissal was kept
+        REQUIRE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+        REQUIRE (dismissRect (*shell).isEmpty());
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::HelpShowTipsAgain);
+        REQUIRE_FALSE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+        REQUIRE_FALSE (prefsListWelcome());
+        REQUIRE_FALSE (snapshotMainComponent (*shell).context.anyTipDismissed);
+
+        // The first clip dismisses it for good; undoing the clip does not bring it back.
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        REQUIRE_FALSE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+        REQUIRE (midiClips (*shell) == 1);
+        REQUIRE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+        REQUIRE (prefsListWelcome());
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        REQUIRE (midiClips (*shell) == 0);
+        REQUIRE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+
+        // Show Tips Again with a clip on screen: kept (not undone by the clip already there) for the next empty arrange.
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+        REQUIRE (midiClips (*shell) == 1);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::HelpShowTipsAgain);
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        REQUIRE (tipsDismissed (*shell) == 0);
+        REQUIRE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());   // it shows only on empty lanes
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        REQUIRE (midiClips (*shell) == 0);
+        const juce::Rectangle<int> strip = yesdaw::ui::mainComponentTipStrip (*shell);
+        REQUIRE_FALSE (strip.isEmpty());
+
+        // A click on the sentence does nothing - nor does a right click (no lane menu under the strip), while a right click
+        // on the lane just below it opens the lane's menu; a click on Dismiss dismisses.
+        juce::Component& timeline = requireTimelineComponent (*shell);
+        const juce::Point<int> sentence (strip.getX() + L::timelineEmptyRowPaddingX + 20, strip.getCentreY());
+        mouseDownAt (timeline, timeline.getLocalPoint (shell.get(), sentence));
+        REQUIRE_FALSE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+        REQUIRE (tipsDismissed (*shell) == 0);
+        const juce::ModifierKeys right (juce::ModifierKeys::rightButtonModifier);
+        REQUIRE_FALSE (yesdaw::ui::mainComponentLastContextMenu (*shell).shown);
+        mouseDownAt (timeline, timeline.getLocalPoint (shell.get(), sentence), right);
+        REQUIRE_FALSE (yesdaw::ui::mainComponentLastContextMenu (*shell).shown);
+        mouseDownAt (timeline, timeline.getLocalPoint (shell.get(), sentence.withY (strip.getBottom() + 8)), right);
+        REQUIRE (yesdaw::ui::mainComponentLastContextMenu (*shell).shown);   // the lane's, below the strip
+        REQUIRE (yesdaw::ui::mainComponentLastContextMenu (*shell).target == yesdaw::ui::ContextMenuTarget::EmptyLane);
+        mouseDownAt (timeline, timeline.getLocalPoint (shell.get(), dismissRect (*shell).getCentre()));
+        REQUIRE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+        REQUIRE (prefsListWelcome());
+    }
+
+    // The canvas's own layout: where the sentence and Dismiss fit, both lie in the strip, apart; where they do not (a
+    // narrower canvas, or one too short for the strip) there is no strip at all - never a clipped one.
+    yesdaw::ui::TimelineCanvasState state;
+    state.tipText = "Tip: drop audio files onto the arrange to import them, or open the browser";
+    state.tipHow = "Y";
+    REQUIRE_FALSE (yesdaw::ui::timelineTipRects ({ 0, 0, 1600, 600 }, state).strip.isEmpty());
+    bool sawNone = false;
+    for (int widthPx = 1600; widthPx > 100; widthPx -= 7)
+    {
+        INFO ("width " << widthPx);
+        const yesdaw::ui::TimelineTipRects tip = yesdaw::ui::timelineTipRects ({ 0, 0, widthPx, 600 }, state);
+        if (tip.strip.isEmpty())
+        {
+            sawNone = true;
+            REQUIRE (tip.dismiss.isEmpty());
+            continue;
+        }
+        REQUIRE_FALSE (sawNone);   // once too narrow, narrower stays without it
+        REQUIRE (tip.strip.contains (tip.text));
+        REQUIRE (tip.strip.contains (tip.dismiss));
+        REQUIRE (tip.text.getRight() < tip.dismiss.getX());
+        const juce::Font font = yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body);
+        REQUIRE (static_cast<float> (tip.text.getWidth())
+                 >= juce::GlyphArrangement::getStringWidth (font, state.tipText + "  (" + state.tipHow + ")"));   // all of it
+    }
+    REQUIRE (sawNone);
+    REQUIRE (yesdaw::ui::timelineTipRects ({ 0, 0, 1600, 100 }, state).strip.isEmpty());   // no room under the ruler
+
+    // With no tracks the rows share the clip area with the strip: below it at every height that holds them (centred in
+    // the whole area they would climb onto it once the area is short).
+    const std::array<yesdaw::ui::TimelineEmptyRow, 2> rows {{ { "New project", "Ctrl+N", true }, { "Open project", "Ctrl+O", true } }};
+    state.emptyRows = rows.data();
+    state.emptyRowCount = static_cast<int> (rows.size());
+    int laidOut = 0;
+    for (int heightPx = 600; heightPx > 100; heightPx -= 3)
+    {
+        const juce::Rectangle<int> strip = yesdaw::ui::timelineTipRects ({ 0, 0, 1600, heightPx }, state).strip;
+        for (const juce::Rectangle<int>& row : yesdaw::ui::timelineEmptyRowRects ({ 0, 0, 1600, heightPx }, state))
+        {
+            INFO ("height " << heightPx << ", row " << row.toString() << ", strip " << strip.toString());
+            REQUIRE_FALSE (strip.isEmpty());
+            REQUIRE (row.getY() >= strip.getBottom());
+            ++laidOut;
+        }
+    }
+    REQUIRE (laidOut > 0);
+}
+
+// ADR-0073 §6 / ADR-0063: the rows' and the tip's text meet 4.5:1 on the surfaces they are drawn over, as rendered. For
+// every row of a new project (the Arrange's, the inspector's, the piano roll's) and the tip, the pixels its text covers
+// (a render with text against one without) reach 4.5:1 against the surface under them - a row's noun and its "(how)"
+// apart (the how is muted), the tip's sentence and its how apart, and Dismiss. A disabled row's noun takes
+// emptyStateRowInk's disabled ink, held to 4.5:1 on each row's own surface.
+TEST_CASE ("ADR-0073 empty-state rows and the tip meet 4.5:1 on their surfaces", "[ui][input][g65][contrast]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const auto wcag = [] (juce::Colour a, juce::Colour b) {
+        const auto luminance = [] (juce::Colour c) {
+            const auto channel = [] (float value) {
+                const double v = value;
+                return v <= 0.03928 ? v / 12.92 : std::pow ((v + 0.055) / 1.055, 2.4);
+            };
+            return 0.2126 * channel (c.getFloatRed()) + 0.7152 * channel (c.getFloatGreen()) + 0.0722 * channel (c.getFloatBlue());
+        };
+        const double la = luminance (a);
+        const double lb = luminance (b);
+        return (std::max (la, lb) + 0.05) / (std::min (la, lb) + 0.05);
+    };
+    const auto bundlePath = makeTempBundlePath ("g65-contrast");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    if (snapshotMainComponent (*shell).context.activePanel != yesdaw::ui::UiPanel::PianoRoll)
+        clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
+    yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::HelpShowTipsAgain);
+    std::function<void (juce::Component&)> uncache = [&uncache] (juce::Component& component) {
+        component.setCachedComponentImage (nullptr);   // a cached image would keep its text in the textless render
+        for (int i = 0; i < component.getNumChildComponents(); ++i)
+            uncache (*component.getChildComponent (i));
+    };
+    uncache (*shell);
+    const juce::Font font = yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::body);
+    const auto width = [&font] (const juce::String& text) { return juce::GlyphArrangement::getStringWidth (font, text); };
+    // The best contrast a text pixel in columns [x0, x1) of `area` reaches against the surface under it.
+    const auto best = [&] (juce::Rectangle<int> area, float x0, float x1) {
+        const juce::Image text = renderSoftware (*shell, area);
+        const juce::Image surface = renderSoftware (*shell, area, false);
+        double most = 0.0;
+        for (int y = 0; y < area.getHeight(); ++y)
+            for (int x = 0; x < area.getWidth(); ++x)
+            {
+                const float column = static_cast<float> (area.getX() + x);
+                if (column < x0 || column >= x1 || text.getPixelAt (x, y) == surface.getPixelAt (x, y))
+                    continue;
+                most = std::max (most, wcag (text.getPixelAt (x, y), surface.getPixelAt (x, y)));
+            }
+        return most;
+    };
+    const juce::Colour disabledNoun = yesdaw::ui::emptyStateRowInk (false).noun;
+    std::set<std::string> checked;
+    for (const auto& [id, bounds] : yesdaw::ui::mainComponentPointerRecords (*shell))
+    {
+        if (id.rfind ("empty.", 0) != 0 && id.rfind ("tip.", 0) != 0)
+            continue;
+        INFO (id << " " << bounds.toString());
+        const auto* proxy = paintedProxyNamed (*shell, id);
+        REQUIRE (proxy != nullptr);
+        const juce::String noun = proxy->describe().title;
+        const juce::String suffix = id.rfind ("tip.", 0) == 0 ? juce::String() : "  (" + proxy->describe().help + ")";
+        const float left = static_cast<float> (bounds.getCentreX()) - (width (noun) + width (suffix)) / 2.0f;
+        REQUIRE (best (bounds, left, left + width (noun)) >= 4.5);
+        if (suffix.isNotEmpty())
+            REQUIRE (best (bounds, left + width (noun), static_cast<float> (bounds.getRight())) >= 4.5);
+        const juce::Image surface = renderSoftware (*shell, bounds, false);
+        REQUIRE (wcag (disabledNoun, surface.getPixelAt (2, bounds.getHeight() / 2)) >= 4.5);
+        checked.insert (id);
+    }
+    REQUIRE (checked == std::set<std::string> { "empty.arrange.import_audio", "empty.inspector.add_midi_clip",
+                                                "empty.pianoroll.add_midi_clip", "tip.welcome.dismiss" });
+    // The tip's sentence and its "(Y)".
+    const juce::Rectangle<int> strip = yesdaw::ui::mainComponentTipStrip (*shell);
+    REQUIRE_FALSE (strip.isEmpty());
+    const juce::String sentence = "Tip: drop audio files onto the arrange to import them, or open the browser";
+    const float textX = static_cast<float> (strip.getX() + L::timelineEmptyRowPaddingX);
+    REQUIRE (best (strip, textX, textX + width (sentence)) >= 4.5);
+    REQUIRE (best (strip, textX + width (sentence), textX + width (sentence + "  (Y)")) >= 4.5);
 }
 
 #if JUCE_WINDOWS

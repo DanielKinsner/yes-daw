@@ -1423,6 +1423,11 @@ yesdaw::ui::TimelineCanvasState MainComponent::makeTimelineState()
         state.emptyRows = timelineEmptyRows.empty() ? nullptr : timelineEmptyRows.data();
         state.emptyRowCount = static_cast<int> (timelineEmptyRows.size());
     }
+    if (welcomeTipShows())   // ADR-0073 §4: the first-run tip, its browser chord resolved as a row's is
+    {
+        state.tipText = kWelcomeTipText;
+        state.tipHow = juce::String (emptyStateHowFor (UiActionId::ViewBrowser));
+    }
     state.snapLabelShown = timelineSnapChooser.isVisible() && ! timelineSnapChooser.getBounds().isEmpty();   // ADR-0063: the caption goes with its chooser
     if (! appModel.context().projectLoaded)
     {

@@ -1986,6 +1986,7 @@ void MainComponent::refreshActionState()
 {
     ++actionStateRefreshes;   // G0.4 probe: how often the 391-line refresh actually runs
     appModel.notePreferenceChanges();   // ADR-0061: whatever the last action changed that the user keeps
+    updateFirstRunTip();                // ADR-0073 §4: the first clip dismisses the welcome tip
     syncExportControls();               // ADR-0061: the choices preferences restored (read after the controls were made)
     loadViewStateIfBundleChanged();   // G2.1
     // ADR-0065: a NEW selection is brought into view (the least scroll); a manual scroll away from the strip already

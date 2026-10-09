@@ -479,6 +479,8 @@ juce::var MainComponent::buildProbeLayout()
         put ("toolbar", geometry.toolbarArea.translated (origin.x, origin.y));   // ADR-0064: the row its controls sit in
         put ("ruler", geometry.rulerArea.translated (origin.x, origin.y));
         put ("clipArea", geometry.clipArea.translated (origin.x, origin.y));
+        if (const auto tip = yesdaw::ui::timelineTipRects (timelineInput.getLocalBounds(), state); ! tip.strip.isEmpty())
+            put ("tip.strip", tip.strip.translated (origin.x, origin.y));   // ADR-0073 §4: the first-run tip, while it shows
         {   // ADR-0064: each bar number's rect (its tick is just left of it)
             namespace canvas = yesdaw::ui::timeline_canvas_detail;
             const canvas::RulerRows rows = canvas::rulerRows (geometry.rulerArea);
@@ -2097,6 +2099,13 @@ void mainComponentPointer (juce::Component& component, MainComponentPointerKind 
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         mainComponent->harnessPointer (kind, shellPoint, eventComponent, modifiers);
+}
+
+juce::Rectangle<int> mainComponentTipStrip (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessTipStrip();
+    return {};
 }
 
 std::vector<std::string> mainComponentEmptyPanelTexts (juce::Component& component)

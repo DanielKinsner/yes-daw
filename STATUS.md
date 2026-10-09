@@ -8,6 +8,41 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0073 cp4b: the first-run tip under the ruler
+
+**What changes (visible):** a first launch (and every empty arrange until it is dismissed) shows one strip just under
+the Arrange ruler: `Tip: drop audio files onto the arrange to import them, or open the browser  (Y)` with **Dismiss** at
+its right end. The chord is the browser's live one (else its menu path). Dismiss (a click, or Tab + Enter) hides it
+for good and writes it to `prefs.json`; so does the first clip that appears (imported, dropped, recorded, drawn, or a
+project with clips opened - ADR-0074 §2), and undoing that clip does not bring it back. Help > Show Tips Again brings it
+back for the next empty arrange (asked with a clip on screen, it is not undone by that clip). It never shows while the
+autosave recovery question is up (the card wins), never over a clip (it needs every lane empty), and the Arrange's rows
+sit below it. Too narrow for the sentence and Dismiss on one line, it is absent, not clipped. Nothing starts under the
+strip but Dismiss: no lane gesture, no lane menu, no double-click. Dismiss is a real control: hover and pressed strokes,
+an accessible button whose help text is the tip itself. Session drives write `prefs.json` with the tip dismissed for a
+fresh session unless a step asks for it (`Launch -FirstRunTips`); the probe adds `layout."tip.strip"`.
+**Gates:** `[g65][tip]` - the lifecycle across two launches on one `prefs.json`, the element, the hover stroke, Tab +
+Enter, a click on the sentence (nothing) and on Dismiss, right clicks on and below the strip, and the canvas layout
+(whole or absent at every width; rows below it at every height); the recovery card wins (`[project-lifecycle]`);
+`[g65][contrast]` (new, closing a cp2 gap) - every row's noun and how, the tip's sentence and how, and Dismiss, as
+rendered, reach 4.5:1 on the surface under them, and the disabled ink on each row's surface; `[g65][no-obscured]` runs
+a second pass with the tip: the strip and Dismiss meet no record and no visible widget at any size. 13 mutations bite
+(one survived at first - rows centred onto the strip on a short canvas - and gained its layout check).
+**Critic:** no blocker; fixed - a right or middle press on the strip reached the lane under it (the strip now takes
+every press first). Not changed: the New Project overlay (launch opens the last project or an Untitled session, never
+the overlay - ADR-0073 keeps that launch flow - and the overlay is raised above the strip). **Visual check (agent, the
+real app):** a fresh launch at 1280x720, 1920x1080 and 2560x1440 shows the strip legible under the ruler, the Import
+row centred below the lane and Dismiss's hover outline under the real pointer (drive 8/8). **Local:** build, 423/423
+ctest, Clang clean.
+**CI so far:** cp3 (26d0587) green but macOS's GPU frame check (raw: max 24.8 ms, sustained 20.0 ms, 42 slow frames).
+cp4a (2aa46c9): macOS GPU only again (27.7 / 21.1 / 49) - and a second **Windows** GPU-frame red (max 23.1 ms, sustained
+17.5 ms against 16.6, 13 slow frames). Not excused; the evidence so far says runner variance, not our renderer: the
+measured path (`paintTimelineCanvas`, all the check calls) has no change since the last steady-green Windows run - the
+row and tip code is additive and drawn by the input component; CI runs ctest serially (no self-inflicted contention);
+every run used the same runner image (20260925.250.1); and eda3e2f's red and its green re-run ran in the same region
+(westus3) on byte-identical code. 2aa46c9's Windows job is re-run on the same SHA; a third red on a re-run would call
+for an agent critic and a new hypothesis (the plan's three-attempt rule).
+
 ## 2026-10-08 — ADR-0073 cp4a: dismissed tips live in prefs.json; Help > Show Tips Again
 
 **What changes (visible):** the Help menu gains **Show Tips Again** (after Keymap, no chord), enabled only while a tip

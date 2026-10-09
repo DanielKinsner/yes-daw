@@ -422,6 +422,45 @@ void MainComponent::runEmptyRowAction (UiActionId action)
     repaintAll();
 }
 
+bool MainComponent::welcomeTipShows() const
+{
+    if (appModel.tipDismissed (UiAppModel::kWelcomeTip) || appModel.context().autosaveRecoveryPending)
+        return false;   // the recovery card wins (ADR-0073 §4)
+    if (! appModel.context().projectLoaded)
+        return true;
+    return appModel.project().clips.empty() && appModel.project().midiClips.empty();
+}
+
+// ADR-0074 §2: the first time a clip appears - imported, dropped, recorded, drawn, or a project with clips opened - the
+// welcome tip goes for good. An appearance, not a state: Show Tips Again with clips on screen keeps its promise for the
+// next empty project instead of being undone at once.
+void MainComponent::updateFirstRunTip()
+{
+    const bool clips = appModel.context().projectLoaded
+                    && (! appModel.project().clips.empty() || ! appModel.project().midiClips.empty());
+    if (clips && ! tipSawClips)
+        appModel.dismissTip (UiAppModel::kWelcomeTip);
+    tipSawClips = clips;
+    if (const bool shows = welcomeTipShows(); shows != tipShownLast)
+    {
+        tipShownLast = shows;
+        timelineInput.repaint();
+    }
+}
+
+void MainComponent::dismissWelcomeTip()
+{
+    appModel.dismissTip (UiAppModel::kWelcomeTip);
+    refreshActionState();   // its record and element go; the rows move up under the ruler
+    timelineInput.repaint();
+}
+
+juce::Rectangle<int> MainComponent::harnessTipStrip()
+{
+    const juce::Rectangle<int> strip = timelineTipRects (timelineInput.getLocalBounds(), makeTimelineState()).strip;
+    return strip.isEmpty() || ! timelineInput.isVisible() ? juce::Rectangle<int> {} : strip.translated (timelineInput.getX(), timelineInput.getY());
+}
+
 std::vector<std::pair<std::string, std::string>> MainComponent::harnessEmptyRows()
 {
     std::vector<std::pair<std::string, std::string>> rows;
@@ -654,6 +693,22 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
             add ("tool." + toolName.toLowerCase().toStdString(), (toolName + " tool").toStdString(), ControlTargetRole::Toggle,
                  timelineToolStripCell (geometry.toolbarArea, index).translated (timelineInput.getX(), timelineInput.getY()),
                  std::move (cell));
+        }
+    }
+
+    // ADR-0073 §4: the first-run tip's Dismiss - its element's help is the tip itself (a screen reader reads it there).
+    if (timelineInput.isVisible())
+    {
+        if (const TimelineTipRects tip = timelineTipRects (timelineInput.getLocalBounds(), timelineState); ! tip.dismiss.isEmpty())
+        {
+            PaintedControl dismiss;
+            dismiss.activate = [this] { dismissWelcomeTip(); };
+            dismiss.description = [this] {
+                return juce::String (yesdaw::ui::emptyStateRowText (kWelcomeTipText, emptyStateHowFor (UiActionId::ViewBrowser)));
+            };
+            dismiss.surface = &timelineInput;
+            add ("tip.welcome.dismiss", kTimelineTipDismissText, ControlTargetRole::Button,
+                 tip.dismiss.translated (timelineInput.getX(), timelineInput.getY()), std::move (dismiss));
         }
     }
 

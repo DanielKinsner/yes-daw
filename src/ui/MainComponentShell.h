@@ -969,6 +969,14 @@ private:
     // The state's rows: rebuilt in place within the capacity the constructor reserves (4 - every state has at most 2
     // rows), so a state copy's pointer stays valid; a spec list longer than that must raise the reserve.
     std::vector<yesdaw::ui::TimelineEmptyRow> timelineEmptyRows;
+    // ADR-0073 §4 / ADR-0074 §2: the first-run tip - shown while it is not dismissed, no recovery question is pending and
+    // the project has no clip; dismissed for good by Dismiss or the first time a clip appears.
+    static constexpr const char* kWelcomeTipText = "Tip: drop audio files onto the arrange to import them, or open the browser";
+    [[nodiscard]] bool welcomeTipShows() const;
+    void updateFirstRunTip();    // the refresh's and the tick's: a clip's appearance dismisses it; a change repaints
+    void dismissWelcomeTip();    // Dismiss (its click or Enter)
+    bool tipSawClips = false;    // the project had a clip at the last look (an appearance is the change to true)
+    bool tipShownLast = false;
 
     // G1.2: the tick a menu item shows — the registry context's own flags, one law for every
     // toggle and every "which one is current" group (views, inspector tabs, snap presets).
@@ -1053,6 +1061,7 @@ public:
     [[nodiscard]] const auto& harnessPointerRecords() const noexcept { return pointerRecords; }   // ADR-0067 §2
     [[nodiscard]] std::string harnessEmptyStateHow (yesdaw::ui::UiActionId action) { return emptyStateHowFor (action); }
     [[nodiscard]] std::vector<std::pair<std::string, std::string>> harnessEmptyRows();   // ADR-0073: (id, text) as painted
+    [[nodiscard]] juce::Rectangle<int> harnessTipStrip();   // ADR-0073 §4: the tip's strip in the shell (empty: none)
     [[nodiscard]] std::vector<std::string> harnessEmptyPanelTexts() const   // ADR-0073: the panels' plain texts
     {
         std::vector<std::string> texts;

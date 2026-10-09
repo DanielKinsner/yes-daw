@@ -193,6 +193,8 @@ struct TimelineCanvasState
     bool snapLabelShown = true;   // ADR-0063: the toolbar's SNAP caption, shown only with its chooser
     const TimelineEmptyRow* emptyRows = nullptr;   // ADR-0073: the empty Arrange's rows (none while it has tracks)
     int emptyRowCount = 0;
+    juce::String tipText;   // ADR-0073 §4: the first-run tip's sentence ("" = no tip) and how its action is taken
+    juce::String tipHow;
     const TimelineCanvasTrack* tracks = nullptr;
     int trackCount = 0;
 
@@ -1452,8 +1454,19 @@ inline std::vector<juce::Rectangle<int>> emptyStateRowRects (juce::Rectangle<int
     return rects;
 }
 
-// Each row: its noun in the text token (muted while its action is unavailable), then "  (how)" in the muted text token,
-// the pair centred in its row.
+// ADR-0073 / ADR-0063: the inks an empty-state row (and the tip) is drawn in - its noun in the text token, muted while its
+// action is unavailable, and its "  (how)" in the muted text token. The [contrast] gate reads them from here.
+struct EmptyStateRowInk
+{
+    juce::Colour noun;
+    juce::Colour how;
+};
+inline EmptyStateRowInk emptyStateRowInk (bool enabled) noexcept
+{
+    return { enabled ? UiTheme::Color::text() : UiTheme::Color::mutedText(), UiTheme::Color::mutedText() };
+}
+
+// Each row: its noun, then "  (how)", in emptyStateRowInk's inks, the pair centred in its row.
 inline void drawEmptyStateRows (juce::Graphics& g, const std::vector<juce::Rectangle<int>>& rects, const TimelineEmptyRow* rows)
 {
     const juce::Font font = UiTheme::Type::font (UiTheme::Type::body);
@@ -1466,15 +1479,79 @@ inline void drawEmptyStateRows (juce::Graphics& g, const std::vector<juce::Recta
         const float suffixWidth = juce::GlyphArrangement::getStringWidth (font, suffix);
         const auto r = rects[i].toFloat();
         const float x = r.getCentreX() - (nounWidth + suffixWidth) / 2.0f;
-        g.setColour (row.enabled ? UiTheme::Color::text() : UiTheme::Color::mutedText());
+        const EmptyStateRowInk ink = emptyStateRowInk (row.enabled);
+        g.setColour (ink.noun);
         g.drawText (row.noun, juce::Rectangle<float> (x, r.getY(), nounWidth + 1.0f, r.getHeight()), juce::Justification::centredLeft, false);
         if (suffix.isNotEmpty())
         {
-            g.setColour (UiTheme::Color::mutedText());
+            g.setColour (ink.how);
             g.drawText (suffix, juce::Rectangle<float> (x + nounWidth, r.getY(), suffixWidth + 1.0f, r.getHeight()),
                         juce::Justification::centredLeft, false);
         }
     }
+}
+
+// ADR-0073 §4: the first-run tip - a strip just under the ruler across the clip area (over the top of the lanes, which
+// are empty while it shows): its sentence at the left, its Dismiss row at the right end. Nothing when there is no tip, or
+// when the sentence and Dismiss do not fit on one line (dropped whole, as a row is - never clipped).
+inline constexpr const char* kTimelineTipDismissText = "Dismiss";
+
+struct TimelineTipRects
+{
+    juce::Rectangle<int> strip;
+    juce::Rectangle<int> text;      // the sentence and its "  (how)"
+    juce::Rectangle<int> dismiss;   // the Dismiss row
+};
+
+inline TimelineTipRects timelineTipRects (juce::Rectangle<int> area, const TimelineCanvasState& state)
+{
+    if (state.tipText.isEmpty())
+        return {};
+    const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
+    const juce::Rectangle<int> strip = geometry.clipArea.withHeight (UiTheme::Layout::timelineTipStripHeight);
+    if (strip.getBottom() > geometry.clipArea.getBottom())
+        return {};
+    const juce::Font font = UiTheme::Type::font (UiTheme::Type::body);
+    const int pad = UiTheme::Layout::timelineEmptyRowPaddingX;
+    const juce::String text = state.tipHow.isEmpty() ? state.tipText : state.tipText + "  (" + state.tipHow + ")";
+    const int textWidth = static_cast<int> (std::ceil (juce::GlyphArrangement::getStringWidth (font, text)));
+    const int dismissWidth = static_cast<int> (std::ceil (juce::GlyphArrangement::getStringWidth (font, kTimelineTipDismissText))) + 2 * pad;
+    const int rowHeight = UiTheme::Layout::timelineEmptyRowHeight;
+    const juce::Rectangle<int> inner = strip.withSizeKeepingCentre (strip.getWidth(), rowHeight);
+    if (pad + textWidth + pad + dismissWidth > inner.getWidth())
+        return {};
+    return { strip, { inner.getX() + pad, inner.getY(), textWidth, rowHeight },
+             inner.withLeft (inner.getRight() - dismissWidth) };
+}
+
+// The strip: the raised panel's fill and stroke, the sentence in the row inks (its how muted), Dismiss as a row.
+inline void drawTimelineTip (juce::Graphics& g, juce::Rectangle<int> area, const TimelineCanvasState& state)
+{
+    const TimelineTipRects tip = timelineTipRects (area, state);
+    if (tip.strip.isEmpty())
+        return;
+    g.setColour (UiTheme::Color::panelRaised());
+    g.fillRect (tip.strip);
+    g.setColour (UiTheme::Color::panelStroke());
+    g.drawRect (tip.strip, 1);
+    const juce::Font font = UiTheme::Type::font (UiTheme::Type::body);
+    g.setFont (font);
+    const EmptyStateRowInk ink = emptyStateRowInk (true);
+    const float sentenceWidth = juce::GlyphArrangement::getStringWidth (font, state.tipText);
+    const auto r = tip.text.toFloat();
+    g.setColour (ink.noun);
+    g.drawText (state.tipText, juce::Rectangle<float> (r.getX(), r.getY(), sentenceWidth + 1.0f, r.getHeight()),
+                juce::Justification::centredLeft, false);
+    if (state.tipHow.isNotEmpty())
+    {
+        const juce::String suffix = "  (" + state.tipHow + ")";
+        g.setColour (ink.how);
+        g.drawText (suffix, juce::Rectangle<float> (r.getX() + sentenceWidth, r.getY(),
+                                                    juce::GlyphArrangement::getStringWidth (font, suffix) + 1.0f, r.getHeight()),
+                    juce::Justification::centredLeft, false);
+    }
+    const TimelineEmptyRow dismiss { kTimelineTipDismissText, {}, true };
+    drawEmptyStateRows (g, { tip.dismiss }, &dismiss);
 }
 
 // ADR-0073 §3 / §5, ADR-0074: the empty Arrange's rows, centred in the clip area's free space below the last lane (G0.7:
@@ -1486,8 +1563,10 @@ inline std::vector<juce::Rectangle<int>> timelineEmptyRowRects (juce::Rectangle<
     if (state.emptyRows == nullptr || state.emptyRowCount <= 0)
         return rects;
     const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
-    const int lanesBottom = geometry.clipArea.getY()
-                          + static_cast<int> (std::ceil (geometry.laneTop (state.trackCount) - geometry.laneTop (geometry.trackScrollRows)));
+    int lanesBottom = geometry.clipArea.getY()
+                    + static_cast<int> (std::ceil (geometry.laneTop (state.trackCount) - geometry.laneTop (geometry.trackScrollRows)));
+    if (const TimelineTipRects tip = timelineTipRects (area, state); ! tip.strip.isEmpty())
+        lanesBottom = std::max (lanesBottom, tip.strip.getBottom());   // ADR-0073 §4: the rows are laid out below the tip
     const juce::Rectangle<int> lanes = geometry.clipArea.withTop (std::clamp (lanesBottom, geometry.clipArea.getY(), geometry.clipArea.getBottom()));
     return emptyStateRowRects (lanes, state.emptyRows, state.emptyRowCount);
 }

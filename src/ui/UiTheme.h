@@ -379,6 +379,8 @@ struct UiTheme
         static constexpr int timelineEmptyRowGap = 6;
         static constexpr int timelineEmptyRowPaddingX = 14;
         static constexpr int timelineEmptyRowMargin = 8;
+        // ADR-0073 §4: the first-run tip's strip under the ruler - one row high with a margin above and below.
+        static constexpr int timelineTipStripHeight = timelineEmptyRowHeight + 2 * 4;
         // ADR-0072: the hover (1 px) and pressed (2 px) strokes sit inside the control's record, inset from its edge;
         // a family whose text comes within the inset plus the pressed width of its edge presses at the close width.
         static constexpr int pointerStrokeInset = 1;

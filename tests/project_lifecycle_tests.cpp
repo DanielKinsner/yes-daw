@@ -90,11 +90,12 @@ struct LifecycleShell
 
     // `launchSession`: the native launch (the last project or `openAtLaunch`, else the untitled session).
     explicit LifecycleShell (const std::string& label, bool overlay = false, bool launchSession = false,
-                             const std::filesystem::path& openAtLaunch = {})
+                             const std::filesystem::path& openAtLaunch = {}, bool firstRunTips = false)
         : directory (lifecycleScratch (label))
     {
         juce::MessageManager::getInstance();
         MainComponentFileChoices choices;
+        choices.firstRunTips = firstRunTips;   // ADR-0073 §4
         choices.sessionStateDirectory = directory / "session";
         std::filesystem::create_directories (choices.sessionStateDirectory);
         choices.chooseNewProjectBundle = [this] { return nextBundle; };
@@ -1399,6 +1400,26 @@ TEST_CASE ("ADR-0068 at launch the probe carries the bundle's and the asking sna
     REQUIRE_FALSE (static_cast<bool> (probeOf (*shell)["autosave"]["recovery"]["pending"]));
     REQUIRE (static_cast<juce::int64> (probeOf (*shell)["autosave"]["snapshotWriteStamp"]) == 0);
     REQUIRE (readProject (f.bundle).tracks.size() == 3u);
+}
+
+// ADR-0073 §4: while the recovery question is pending the card shows and the first-run tip does not - no strip, no
+// Dismiss (the card wins); once the question is answered the tip shows on the project's empty lanes.
+TEST_CASE ("ADR-0073 the recovery card wins over the first-run tip", "[project-lifecycle][autosave][g65][tip]")
+{
+    const LostWrites f = makeLostWrites ("tip-recovery");
+    LifecycleShell shell ("tip-recovery-shell", false, true, f.bundle, true);
+    (*shell).setSize (1920, 1080);
+    REQUIRE (static_cast<bool> (probeOf (*shell)["autosave"]["recovery"]["pending"]));
+    REQUIRE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());
+    const auto hasDismiss = [&shell] {
+        const auto records = yesdaw::ui::mainComponentPointerRecords (*shell);
+        return std::any_of (records.begin(), records.end(), [] (const auto& record) { return record.first == "tip.welcome.dismiss"; });
+    };
+    REQUIRE_FALSE (hasDismiss());
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::AutosaveRecoveryDiscard);
+    REQUIRE_FALSE (static_cast<bool> (probeOf (*shell)["autosave"]["recovery"]["pending"]));
+    REQUIRE_FALSE (yesdaw::ui::mainComponentTipStrip (*shell).isEmpty());   // one empty track, no clip
+    REQUIRE (hasDismiss());
 }
 
 // The question is not modal: a user can work on, Save and quit without answering. The marker keeps it asked - at the

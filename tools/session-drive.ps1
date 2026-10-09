@@ -953,7 +953,7 @@ function AssertStartupBudget([int] $Milliseconds) {
   [void](Assert ($Milliseconds -ge 0 -and $Milliseconds -le 3000) ("launch to first interactive tick <= 3 s (B6): $Milliseconds ms"))
 }
 
-function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '', [int] $AutosaveIntervalMs = 0, [int] $ExportPaceMs = 0) {
+function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '', [int] $AutosaveIntervalMs = 0, [int] $ExportPaceMs = 0, [switch] $FirstRunTips) {
   if (-not (Test-Path -LiteralPath $Exe)) { throw "exe not found: $Exe (build first)" }
   $others = @(Get-Process -Name 'YesDaw' -ErrorAction SilentlyContinue)
   if ($others.Count -gt 0) { throw "another YesDaw.exe is running (pid $($others[0].Id)); the shell is single-instance (R9) - close it first" }
@@ -967,6 +967,12 @@ function Launch([string] $Bundle = '', [string] $ReuseSessionDir = '', [int] $Au
     $script:SessionDir = Join-Path ([System.IO.Path]::GetTempPath()) ("yesdaw-drive-" + $stamp)
   }
   New-Item -ItemType Directory -Force -Path $script:SessionDir | Out-Null
+  # ADR-0073 §4: a fresh session starts with the first-run tip dismissed (as a user who has seen it) unless the step asks
+  # for it, so no earlier drive meets a new strip. A reused session keeps whatever its prefs.json says.
+  $prefsPath = Join-Path $script:SessionDir 'prefs.json'
+  if ([string]::IsNullOrWhiteSpace($ReuseSessionDir) -and -not $FirstRunTips -and -not (Test-Path -LiteralPath $prefsPath)) {
+    [System.IO.File]::WriteAllText($prefsPath, '{ "version": 1, "tips": { "dismissed": [ "welcome" ] } }' + "`n", (New-Object System.Text.UTF8Encoding($false)))
+  }
   $script:ProbePath = Join-Path $script:SessionDir 'probe.json'
   # Reusing session state preserves the keymap/last-project record, never an earlier process's
   # probe. Otherwise WaitProbe can certify launch against stale geometry before this exe starts.

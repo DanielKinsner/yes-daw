@@ -251,6 +251,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
             }
         return false;
     };
+    timelineInput.onTipDismissed = [this] { dismissWelcomeTip(); };
     timelineInput.onEmptyRowClicked = [this] (int row) {
         const auto specs = timelineEmptyRowSpecs();
         if (row >= 0 && static_cast<std::size_t> (row) < specs.size())
@@ -2023,6 +2024,8 @@ void MainComponent::serviceUiTick()
     updateTrackMeterHoldStates();
     updateMasterMeterHold();   // ADR-0067 §5: the master follows the strip law in the same tick step
     pushWindowTitle();
+
+    updateFirstRunTip();   // ADR-0073 §4: a clip that appeared outside an action (an import finishing) dismisses the tip
 
     // G0.4: the 391-line action-state refresh runs only when the context CHANGED (the
     // playhead position is not a change — it moves every tick while playing), never as a
