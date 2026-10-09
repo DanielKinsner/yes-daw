@@ -8,7 +8,7 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-10-09 — Diagnostic CI complete; clean-mode cleanup ready for verification
+## 2026-10-09 — Diagnostic CI complete; normal build running in CI
 
 **Now:** the clean rendering correction `dd1ab7304e3689bc429b456be739ef43f103a550` completed exact-code
 CI `37977947876`: nine jobs succeeded; macOS failed only the dense Timeline sustained-frame assertion at
@@ -41,13 +41,14 @@ allocation-free scope guard and made diagnostic include dependencies explicit. E
 app evidence applies to the unchanged production painter; this diagnostic claims no new app drive or visual proof.
 Parsed local measurements and identities are in `docs/evidence/2026-10-09-macos-stage-diagnostic.json`.
 
-**Cleanup prepared:** automatic APPLE enablement is removed; the default-OFF option is now the only path to
+**Cleanup pushed:** `3106943fab162a68aea9e8d74d0c4cbb851d2173` is running in exact-code CI `37988272626`.
+Automatic APPLE enablement is removed; the default-OFF option is now the only path to
 profiling. No C++ source, fixture, assertion, threshold, workflow or production painting changed. Fresh local
 configure/build/GPU CTest and OFF body/compile-command isolation passed. Independent correctness/adversarial
 review is complete with no findings (`20261009-macos-profile-cleanup-critic`). The prior full 428-case suite covers
 the same C++ source. This is the planned return to normal mode, not a repeated diagnostic run seeking failure.
 
-**Next:** commit/push the reviewed cleanup and wait for every expected job on its own exact code SHA.
+**Next:** wait for every expected job of normal-build CI `37988272626` on its exact code SHA.
 A clean result is still required before dependent feature
 work. The quiet instrumented pass supplies no attribution and will not be repeated to seek a failure. No new
 renderer repair hypothesis is claimed from it.
