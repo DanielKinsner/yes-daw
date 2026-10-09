@@ -12,12 +12,32 @@
 #    sine fallback applies. Evidence must record the actual fixture used.
 #  - G4.0a requires a real empty startup project and names it through the first Save chooser.
 #    The New fallback retains diagnosis of a regressed empty launch without hiding its FAIL.
+#  - G6.5 / ADR-0073 cp5 (ADR-0074): the launch is a first launch - the first-run tip not yet dismissed. Step 1's
+#    second half checks the tip and the empty Arrange's Import audio row (the startup project has one empty track,
+#    so ADR-0074's row, not ADR-0073's no-tracks pair), takes the rubric's shots at three sizes, and has the real
+#    keyboard Tab to the row and press Enter: the import chooser opens (it is cancelled - Step 2 imports by the
+#    plan's chord). Step 2's clip then dismisses the tip for good (ADR-0074 §2), written to prefs.json.
 
 $bundle = Join-Path ([System.IO.Path]::GetTempPath()) ('ss1-first-minute-' + (Get-Date).ToString('HHmmss') + '.yesdaw')
 if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $bundle }
 
+# The Control target walk the real Tab key drives (ss7's helper): Tab until the target is `id`.
+function KeyThenTick([string] $chord) {
+  $tick = [int](Probe).tick
+  Key $chord
+  [void](WaitProbe { param($q) [int]$q.tick -ge $tick + 2 } -TimeoutMs 600)
+}
+function TabTo([string] $id) {
+  $limit = [int](Probe).controlTarget.count + 2
+  for ($i = 0; $i -lt $limit; $i++) {
+    if ("$((Probe).controlTarget.id)" -eq $id) { return $true }
+    KeyThenTick 'Tab'
+  }
+  return ("$((Probe).controlTarget.id)" -eq $id)
+}
+
 Step 1 'Launch with no project'
-Launch
+Launch -FirstRunTips   # G6.5: a first launch (the first-run tip not yet dismissed)
 $p = Probe
 $launchProbe = $p
 [void](Assert ([int]$p.version -eq 1) 'probe schema v1')
@@ -37,6 +57,35 @@ if (-not [bool]$p.projectLoaded) {
 }
 [void](Assert ($script:FirstProbeMs -le 3000) ('launch to first interactive tick <= 3 s (B6): ' + $script:FirstProbeMs + ' ms'))
 
+Step 1 'The first-run tip and the empty Arrange row (ADR-0073 / ADR-0074, G6.5)'
+$p = Probe
+[void](Assert ($null -ne $p.layout.'tip.strip') 'a first launch shows the first-run tip under the ruler')
+[void](Assert (@($p.prefs.tipsDismissed).Count -eq 0) ('nothing dismissed yet (' + (@($p.prefs.tipsDismissed) -join ',') + ')'))
+$rowIds = @($p.pointer.records | ForEach-Object { "$($_.id)" } | Where-Object { $_ -like 'empty.arrange.*' -or $_ -like 'tip.*' })
+[void](Assert (($rowIds -contains 'tip.welcome.dismiss') -and ($rowIds -contains 'empty.arrange.import_audio')) ('the tip''s Dismiss and the Import audio row are controls (' + ($rowIds -join ', ') + ')'))
+$sizeBefore = @([int]$p.view.width, [int]$p.view.height)
+foreach ($size in @(@(1280, 720), @(1920, 1080), @(2560, 1440))) {
+  [void](Resize $size[0] $size[1])
+  [void](Assert ($null -ne (Probe).layout.'tip.strip') ('the tip shows at ' + $size[0] + 'x' + $size[1]))
+  $shot = Shot ('ss1-tip-' + $size[0] + 'x' + $size[1])
+  [void](Assert ((Test-Path -LiteralPath $shot) -and ((Get-Item -LiteralPath $shot).Length -gt 1024)) ('tip screenshot ' + $size[0] + 'x' + $size[1]))
+}
+[void](Resize $sizeBefore[0] $sizeBefore[1])
+Focus
+[void](Assert (TabTo 'empty.arrange.import_audio') ('the real Tab key reaches the Import audio row (target ' + (Probe).controlTarget.id + ')'))
+Key 'Enter'
+$dlg = WaitDialog 'Import Audio' 2500
+[void](Assert ($dlg -ne [IntPtr]::Zero) 'Enter on the row runs Import audio: the import chooser opens')
+if ($dlg -ne [IntPtr]::Zero) {
+  [void][YesDawDrive]::PostMessage($dlg, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero)   # cancelled: Step 2 imports by the chord
+  $deadline = (Get-Date).AddSeconds(3)
+  while ((Get-Date) -lt $deadline -and [YesDawDrive]::FindTopWindow([uint32]$script:Proc.Id, 'Import Audio') -ne [IntPtr]::Zero) { Start-Sleep -Milliseconds 60 }
+}
+Focus
+Key 'Esc'   # the Control target walk ends
+$p = Probe
+[void](Assert ([int]$p.view.clipCount -eq 0 -and $null -ne $p.layout.'tip.strip') ('a cancelled import leaves no clip and the tip (clips ' + $p.view.clipCount + ')'))
+
 Step 2 'Import the first stem (Ctrl+Shift+I, file chooser)'
 Focus
 Key 'Ctrl+Shift+I'
@@ -54,6 +103,9 @@ if ($dlg -ne [IntPtr]::Zero) { FileDialogEnter $Fixture }
 $launchDevice = [bool]$launchProbe.recording.deviceSelected
 $nowDevice = [bool](Probe).recording.deviceSelected
 [void](Assert ($nowDevice -eq $launchDevice) ('adopted device survives New + Import: launch=' + $launchDevice + ' now=' + $nowDevice + " input chooser='" + (Probe).text.'shell.device.input.channel' + "'"))
+# G6.5 / ADR-0074 §2: the first clip dismisses the first-run tip for good, written to prefs.json.
+[void](Assert (WaitProbe { param($q) $null -eq $q.layout.'tip.strip' } -TimeoutMs 2000) 'the first clip dismisses the first-run tip')
+[void](Assert (@((Probe).prefs.tipsDismissed) -contains 'welcome') ('prefs.json lists the welcome tip (' + (@((Probe).prefs.tipsDismissed) -join ',') + ')'))
 $clipKey = $null
 $p = Probe
 foreach ($prop in $p.layout.PSObject.Properties) { if ($prop.Name -like 'clip.*') { $clipKey = $prop.Name; break } }

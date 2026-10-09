@@ -8,6 +8,25 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0073 cp5: SS-1 meets the first-run tip on the real app - G6.5 done
+
+**Now:** **G6.5 is complete** (ADR-0073 cp1-cp5, ADR-0074). Every G6 item (G6.1-G6.5) is in. **Next:** the G6
+close-out (plan §8.5: the rubric across the scaling matrix, the montage, the evidence record). **G6 and the Usable-song
+milestone cannot be certified yet:** G6's exit keeps SS-1-SS-6 as gates, and SS-6 (`ss8`) still fails only its
+autosave step - ADR-0068's writes wait on ADR-0069, which waits on Dan (one point: linking the project's audio into
+the autosave instead of copying it; recommended: accept). The macOS GPU frame exception renewal also still awaits him.
+
+**What changed:** `ss1-first-minute.ps1` launches as a first launch (`Launch -FirstRunTips`). Step 1's second half: the
+tip shows under the ruler; its Dismiss and the empty Arrange's Import audio row are controls (the startup project has
+one empty track, so ADR-0074's row - ADR-0073's cp5 text named the no-tracks Add track row, amended by ADR-0074); the
+tip at 1280x720, 1920x1080 and 2560x1440 (the rubric's shots); the real Tab key reaches the Import row and Enter opens
+the import chooser (cancelled - Step 2 imports by the plan's chord); then Step 2's first clip dismisses the tip and
+`prefs.json` lists it. **Drives (real app, this commit's exe, desktop free):** ss1 59/59, ss2 42/42, ss3 57/57, ss4
+22/22, ss5 77/77, ss6 58/58, ss7 197/197, ss8 171/177 - its 6 reds are all Step 6, autosave writes off
+(`autosave.writes=0`: no confirmed autosave, so no recovery to prove), the known ADR-0068 state; none touches the tip
+or `prefs.json`. **Visual check (agent):** the three tip shots - the strip legible under the ruler, the Import row centred
+below the lane, the inspector's Add MIDI clip row, nothing overlapping: PASS.
+
 ## 2026-10-08 — ADR-0073 cp4b: the first-run tip under the ruler
 
 **What changes (visible):** a first launch (and every empty arrange until it is dismissed) shows one strip just under
