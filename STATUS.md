@@ -8,7 +8,7 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-10-09 — Paint repair CI complete; bounded macOS diagnostic ready for its exact-code run
+## 2026-10-09 — Paint repair CI complete; bounded macOS diagnostic running in CI
 
 **Now:** the clean rendering correction `dd1ab7304e3689bc429b456be739ef43f103a550` completed exact-code
 CI `37977947876`: nine jobs succeeded; macOS failed only the dense Timeline sustained-frame assertion at
@@ -16,6 +16,8 @@ CI `37977947876`: nine jobs succeeded; macOS failed only the dense Timeline sust
 425/426 cases passed. The docs successor `d496fdf` also passed its docs-only CI, which supplies no code proof.
 No timing exception was renewed. ADR-0069 recovery/probe cp2 and ADR-0068 writes-on remain dependent on
 required checkpoint proof; the Usable-song milestone is incomplete.
+The reviewed diagnostic is pushed at `5454b39f1c5a2f76525a1e7f6f77dce1331531bd`; exact-code CI
+`37983993880` is running. No job from this instrumented run is clean macOS timing certification.
 
 **Diagnostic only:** a target-private compile definition adds seven painter timestamps and two Graphics-context
 markers solely to `YesDawTimelineGpuCheck`. Original fixture, outer timer, pixel sampling, checksum, assertions,
@@ -35,7 +37,7 @@ allocation-free scope guard and made diagnostic include dependencies explicit. E
 app evidence applies to the unchanged production painter; this diagnostic claims no new app drive or visual proof.
 Parsed local measurements and identities are in `docs/evidence/2026-10-09-macos-stage-diagnostic.json`.
 
-**Next:** commit and push this small diagnostic, then inspect every expected job on its exact
+**Next:** inspect every expected job of diagnostic CI `37983993880` on its exact
 SHA. Collect one macOS profile if the unchanged assertion fails; a quiet passing run gives no stage attribution and
 must not be repeated to seek a failure. Diagnostic timings are not clean certification. Keep the raw result, form
 the next repair hypothesis only from evidence, and remove automatic profiling before a clean verification run.
