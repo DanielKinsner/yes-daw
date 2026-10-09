@@ -8,6 +8,18 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-09 — Dan accepted ADR-0069: resume the cheap autosave checkpoints
+
+**Now:** Dan explicitly approved hard links, including the shared-audio consequence, for ADR-0069. The remaining
+Usable-song work resumes: (1) carry autosave assets by link and validate identities, (2) restore safely and expose
+write measurements, (3) enable ADR-0068's edit-serial autosaves, then (4) obtain SS-6, packaged and hardware evidence
+before certifying the milestone. The accepted recovery and audio-thread contracts stay in force.
+**Verified at session start:** main is current and clean at aba1819; exact code SHA cb0bc2e's CI run 37879082179 passed,
+and aba1819's docs-only run 37881898052 passed. The parked `.git/yesdaw-wip/adr-0068-cp1-cp2-writes-on.patch` is absent
+on this machine; reconstruct that step from the accepted ADR and tests after the cheap snapshot gates pass.
+**Pending:** macOS GPU exception renewal has not been approved. Current CI is green without it. Real-app drives need
+a verified isolated input surface or a current hands-off window; missing evidence is not certification.
+
 ## 2026-10-08 — G6 close-out recorded: every item in; certification waits only on SS-6 (ADR-0069, Dan)
 
 **Now:** every G6 item is in (G6.1-G6.5) and the close-out evidence is committed:

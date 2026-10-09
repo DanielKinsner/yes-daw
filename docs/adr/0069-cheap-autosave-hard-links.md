@@ -1,8 +1,9 @@
 # 0069. A cheap autosave: carry asset bytes by hard link, verify by identity at write time
 
-- **Status:** Proposed — awaiting the owner's decision on one point: ADR-0019 says asset bytes are *copied* into the
-  autosave snapshot; this ADR carries them by a same-volume hard link (a copy where that is impossible). Everything
-  else is within the implementation-ADR clause of ADR-0049.
+- **Status:** Accepted (Dan, 2026-10-09: "Approve hard links (Recommended)"). ADR-0019's copied audio bytes may
+  instead be carried by a same-volume hard link, with a copy where that is impossible. Dan approved the shared-byte
+  consequence: the snapshot no longer keeps an independent copy of the audio. Everything else remains within the
+  implementation-ADR clause of ADR-0049.
 - **Date:** 2026-10-08
 - **Deciders:** Dan (owner) for the ADR-0019 point; build agent (proposer); a design workflow (three designs, three
   judges); a separate agent critic (its findings resolved below)
