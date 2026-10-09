@@ -23,8 +23,9 @@ affected translation units, and full CTest **428/428** passed. The actual 10 x 5
 working-tree results, not exact-SHA CI certification. The latest full CTest took 289.67 s. A real Windows
 hydrated-placeholder gate passed 121 assertions, including the actual OS hard-link rejection, copied/hash byte
 counts, recovery, mode restoration and cleanup; its Clang pass is clean. This proves that fallback path, not
-OneDrive/Dropbox synchronization or a real-app drive. The core persistence change is the next separate commit;
-the cloud fixture remains local until its final independent review completes. Neither closes the checkpoint.
+OneDrive/Dropbox synchronization or a real-app drive. Core persistence is pushed at `2c8c7bd`, exact-code run
+`37971282150` queued. The cloud fixture's independent correctness/adversarial review is complete with no findings
+(`20261009-cloud-fixture-critic`); it is the next separate commit. Neither closes the checkpoint.
 
 **App batch:** `build-ci/session-shots/2026-10-09-adr0069-cp1/` (local only). ss1 59/59, ss2 42/42, ss3 57/57, ss4 22/22,
 ss5 77/77 and ss6 58/58 passed. ss7 **196/197**: four driver-reported capture discontinuities during the pointer sweep;
@@ -51,7 +52,9 @@ The UI/engine are not needed to reproduce it, but event delivery versus scheduli
 influence is not excluded. Local evidence: `build-ci/wasapi-duplex-diagnostic/REPORT-20261009.md` and hashes.json.
 The original input default (all three roles) is ASUS; output is Realtek. Stereo Mix was disabled. It is temporarily
 enabled/defaulted for unchanged app checks, with original settings to restore after measurement. On this profile
-SS1 B5 passes with zero xruns since launch, but B2 fails at 8.20 ms (8 ms bound), so SS1 remains 58/59. SS7 is running.
+SS1 B5 passes with zero xruns since launch, but B2 fails at 8.20 ms (8 ms bound), so SS1 remains 58/59. SS7 passes
+197/197 on Stereo Mix (zero xruns since launch, paint p95 4.83 ms). A metadata trace of unchanged SS1 is collecting
+the next paint-cost attribution; no performance pass substitutes for diagnosing the existing miss.
 No threshold/counter changes or runner-noise waiver. Logs/shots under `build-ci/` are local only.
 
 **Next small steps:** push the independently gated Markers repair and inspect every exact-code CI job; finish the

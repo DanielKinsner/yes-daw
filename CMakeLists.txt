@@ -759,7 +759,7 @@ yesdaw_harden(YesDawProjectCheck)
 catch_discover_tests(YesDawProjectCheck)
 
 # --- Persistence check (H1; SQLite .yesdaw bundle schema/migrations/intent log — ADR-0012) ---
-add_executable(YesDawPersistenceCheck tests/persistence_tests.cpp)
+add_executable(YesDawPersistenceCheck tests/persistence_tests.cpp tests/autosave_cloud_tests.cpp)
 target_include_directories(YesDawPersistenceCheck PRIVATE ${YESDAW_SRC_DIR})
 target_compile_definitions(YesDawPersistenceCheck PRIVATE
   YESDAW_AUTOMATION_SCHEMA_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/h15_cp1_automation_schema_v8.yesdaw")
