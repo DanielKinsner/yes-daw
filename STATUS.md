@@ -14,7 +14,7 @@ Older entries below are dated history, not competing "Now" instructions.
 writes-on remain next, after the current checkpoint's required evidence. Dan authorized hands-off app tests for this
 session. The first full drive batch exposed an earlier visual defect and an audio-device gate failure; these take
 priority under plan section 8.2.
-The measured paint correction is committed at `dd1ab73`, awaiting push once the cloud run starts. Independent
+The measured paint correction is pushed at `dd1ab73` (CI `37977947876`, now running). Independent
 preparation is recorded in [the close-out checklist](docs/plans/2026-10-09-cheap-autosave-closeout.md); it preserves
 the active plan and ADRs. Its critic's sole ordering finding is fixed: separate cp7 cleanup precedes final sign-off,
 without blocking cp6. No dependent feature implementation has started.
@@ -31,7 +31,10 @@ OneDrive/Dropbox synchronization or a real-app drive. Core persistence is pushed
 `37971282150`. The cloud fixture is pushed at `8108cda` (run `37971433126`); independent correctness/adversarial
 review is complete with no findings (`20261009-cloud-fixture-critic`). Neither closes the checkpoint. GitHub's
 concurrency group superseded the core run while it was pending despite preserving running main jobs. Requeued
-the core run first, then the cloud run after core started. Wait for both exact-code runs. No queued,
+the core run first, then the cloud run after core started. Core is complete: nine jobs succeeded, macOS failed only
+the frame bound detailed below. Cloud `37971433126` is also complete: nine jobs succeeded; macOS failed only
+the same frame assertion at **22.137125 ms** sustained (maximum 30.7078 ms, 48 slow frames; other 425/426 cases
+passed). Repair `37977947876` is running. No queued,
 cancelled or docs-only result is code certification.
 
 **App batch:** `build-ci/session-shots/2026-10-09-adr0069-cp1/` (local only). ss1 59/59, ss2 42/42, ss3 57/57, ss4 22/22,
@@ -66,8 +69,9 @@ After the final batch below, all six default endpoint roles match the originals 
 the Core Audio inventory confirms restoration. This alternate profile proves its own results, not an ASUS repair.
 No threshold/counter changes or runner-noise waiver. Logs/shots under `build-ci/` are local only.
 
-**Next small steps:** inspect all jobs of the core and cloud exact-code reruns, then push the verified rendering
-correction after the pending cloud run starts (a newer pending run would cancel it), and inspect its own CI.
+**Next small steps:** inspect every job of the rendering correction's exact-code CI. If it remains red only on
+macOS timing, collect a bounded CoreGraphics stage profile before another implementation hypothesis; no timing
+exception has been renewed. The prepared diagnostic remains inactive and changes no production code or gate.
 Restore/probe and writes-on remain dependent on
 required checkpoint proof. The Usable-song milestone remains incomplete.
 
@@ -96,7 +100,7 @@ Parsed drive summaries, measured counters, source hashes and verified endpoint r
 construction in the test; the final 174-assertion gate and test-TU Clang passed again, and the review addendum
 confirms the verdict remains unchanged. Core run `37971282150`'s macOS job also completed red only on the frame
 bound: sustained **23.787291 ms**, maximum 32.1861 ms, 83 slow frames; other 425/426 cases passed. This predates
-the panel repair; its Windows build passed and tests are running. No noise exception is applied.
+the panel repair; all nine other jobs passed, including Windows. No noise exception is applied.
 
 ## 2026-10-09 — Dan accepted ADR-0069: resume the cheap autosave checkpoints
 
