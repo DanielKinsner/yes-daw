@@ -1,7 +1,7 @@
 {
   "date": "2026-10-09",
   "checkpoint": "Cheap autosave close-out unit 1: source-preserving recovery reads",
-  "status": "Local verification complete; exact-code CI pending",
+  "status": "Original macOS build failed; test-formatting correction passes local focused checks; replacement CI pending",
   "baseCodeSha": "ba7ab513da0593718b06832a64b3adb92ba21b63",
   "sourceArtifacts": [
     {
@@ -251,5 +251,43 @@
     "Stable published slots are assumed; raw metadata copying is not an atomic view of an arbitrary concurrent external writer.",
     "Recovery hashes every original referenced asset. Restore asset carry behavior remains unchanged for unit 2.",
     "The real cloud-placeholder persistence fixture is not the later actual-app placeholder drive or OneDrive/Dropbox sync proof."
-  ]
+  ],
+  "codeSha": "f1048a0f5d5a8dbe1ba9ae0da9188d5dfdbf5b9a",
+  "ci": {
+    "runId": 38000812015,
+    "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/38000812015",
+    "status": "in_progress",
+    "expectedJobs": 10
+  },
+  "correction": {
+    "reason": "Catch2 decomposes native filesystem timestamp equality and attempts to stream libc++ __int128; macOS compilation fails.",
+    "change": "Evaluate the identical native equality inside parentheses, passing bool to Catch. No cast, precision loss, production change or gate removal.",
+    "originalMacOSJobId": 114058183918,
+    "originalMacOSLog": {
+      "localPath": "build-ci/ci-38000812015-macos.log",
+      "sha256": "fee706d4ae7f4f5b8f1afb789c9dca45c8aebb242d34535910e9cd6190548765"
+    },
+    "testSource": {
+      "localPath": "tests/persistence_tests.cpp",
+      "sha256": "81201d25a0e40a1919a397411cc2365ef8000efecb26999cb818d287ee48fb93"
+    },
+    "autosave": {
+      "assertions": 7484,
+      "cases": 19,
+      "artifact": {
+        "localPath": "build-ci/20261009-recovery-unit1-file-time-autosave.log",
+        "sha256": "9b7c009c8a71eaa9d0a798874aaef59066bfe83a5f23bebe2dcba9370c536caa"
+      }
+    },
+    "clang": {
+      "localPath": "build-ci/20261009-recovery-unit1-file-time-clang.log",
+      "sha256": "1699b4d5a832c8c1ebe015a0d81a95110a9b052394d354714e9a0a263a52571f"
+    },
+    "build": {
+      "localPath": "build-ci/20261009-recovery-unit1-file-time-build.log",
+      "sha256": "7e042d617b4ef772f943fe2bbaf5e069747b69e2533229ed51a53b732b9b549d"
+    },
+    "critic": "Independent bounded source/compiler-trace review: no residual issue. Native equality remains exact; only operand diagnostics are reduced. macOS execution remains CI proof.",
+    "priorEvidence": "Production sources and executable are unchanged; full Windows suite, app drives and visual evidence retain their original identities. Only focused tests and Clang rerun locally for this test-only correction."
+  }
 }

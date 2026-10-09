@@ -8,9 +8,15 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-10-09 — Recovery reads preserve snapshots; unit 1 passes locally
+## 2026-10-09 — Recovery unit 1: correct macOS test compilation before certification
 
-**Now:** close-out checklist unit 1 is implemented in the working tree; it is not yet certified.
+**Now:** close-out checklist unit 1 is pushed at `f1048a0f5d5a8dbe1ba9ae0da9188d5dfdbf5b9a`;
+exact-code CI `38000812015` failed macOS compilation. Seven jobs pass; Windows/Linux still run.
+Catch2 tries to print libc++'s `__int128` filesystem timestamp in the scratch-preservation assertion.
+The correction compares the same native times inside parentheses, passing only a bool to Catch;
+no cast, precision loss or production change. Fresh focused checks pass **7484/19** and Clang is clean.
+A separate critic found no residual issue; replacement macOS CI remains the compilation proof.
+No timing exception applies and unit 1 is not yet certified.
 Recovery copies only database metadata into private owned scratch, applies existing migrations and
 validators there, and hashes the original audio. It preserves source DB/WAL/SHM, audio and extra files,
 retains concrete refusal reasons, and reuses the validated selection within each invocation. Restore
@@ -56,7 +62,8 @@ Final focused Windows checks pass **7484/19**, and actual cloud-placeholder chec
 **Next:** the three simplification reviews found no worthwhile changes. Local checks, final app drives,
 separate visual addendum and bounded review-repair critic are complete. Parsed measurements and source,
 executable and log hashes are in [the recovery-read record](docs/evidence/2026-10-09-recovery-read.json).
-Commit/push this unit, then inspect every exact-code CI job; Linux/macOS runtime proof is pending.
+Push the small test correction and inspect every exact-code CI job, preserving the original red;
+Linux/macOS runtime proof is pending.
 Only after green CI, advance to unit 2: restore missing audio names by link and report named refusals
 through the shipped Restore action. Autosave remains off; the Usable-song milestone is incomplete.
 No app drive is running. Dan's hands-off authorization remains active for this session.

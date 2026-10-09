@@ -4006,7 +4006,8 @@ TEST_CASE ("ADR-0069 recovery scratch refuses source and target containment befo
         REQUIRE (result.message.find (reason) != std::string::npos);
         REQUIRE (scratch.path.empty());
         REQUIRE (sourceInventory (fixture) == before);
-        REQUIRE (std::filesystem::last_write_time (scratchRoot) == rootTime);
+        // Compare the native times without Catch trying to print libc++'s __int128 clock representation.
+        REQUIRE ((std::filesystem::last_write_time (scratchRoot) == rootTime));
     }
     else
     {
