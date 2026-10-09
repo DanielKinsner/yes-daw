@@ -131,5 +131,23 @@
     "build-ci/20261009-profile-on-clang.log",
     "build-ci/20261009-profile-off-parity.log",
     "build-ci/20261009-profile-on-test.log"
-  ]
+  ],
+  "diagnosticCodeSha": "5454b39f1c5a2f76525a1e7f6f77dce1331531bd",
+  "instrumentedMacOS": {
+    "run": 37983993880,
+    "job": 114001326269,
+    "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37983993880/job/114001326269",
+    "testsPassed": 426,
+    "totalCTestSeconds": 267.97,
+    "binarySha256": "80429e359ff2efbd9ecdb9148ab4ff4504e1c5c5fac187985f6d25db3a22f3ed",
+    "runnerImage": "macos-14-arm64",
+    "runnerImageVersion": "20260831.0302.1",
+    "osVersion": "14.8.9",
+    "osBuild": "23J631",
+    "stageSummaryPresent": false,
+    "sustainedMs": null,
+    "nativeImageTypeId": null,
+    "checksum": null,
+    "interpretation": "Passing output is quiet; no stage attribution or exact sustained time was emitted. No rerun to seek a failure. Clean performance still requires an uninstrumented exact-code run."
+  }
 }

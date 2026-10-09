@@ -8,7 +8,7 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-10-09 — Paint repair CI complete; bounded macOS diagnostic running in CI
+## 2026-10-09 — Diagnostic CI complete; clean-mode cleanup ready for verification
 
 **Now:** the clean rendering correction `dd1ab7304e3689bc429b456be739ef43f103a550` completed exact-code
 CI `37977947876`: nine jobs succeeded; macOS failed only the dense Timeline sustained-frame assertion at
@@ -17,7 +17,11 @@ CI `37977947876`: nine jobs succeeded; macOS failed only the dense Timeline sust
 No timing exception was renewed. ADR-0069 recovery/probe cp2 and ADR-0068 writes-on remain dependent on
 required checkpoint proof; the Usable-song milestone is incomplete.
 The reviewed diagnostic is pushed at `5454b39f1c5a2f76525a1e7f6f77dce1331531bd`; exact-code CI
-`37983993880` is running. No job from this instrumented run is clean macOS timing certification.
+`37983993880` is complete: **all ten expected jobs succeeded**. macOS passed **426/426 (267.97 s)**,
+including the dense frame gate. Passing output is quiet, so it emitted no stage summary, exact sustained time,
+native image type or fixture checksum. The record leaves those fields unavailable. Its diagnostic binary SHA256 is
+`80429e359ff2efbd9ecdb9148ab4ff4504e1c5c5fac187985f6d25db3a22f3ed` on macOS 14.8.9 / image
+`macos-14-arm64` `20260831.0302.1`. No job from this instrumented run is clean macOS timing certification.
 
 **Diagnostic only:** a target-private compile definition adds seven painter timestamps and two Graphics-context
 markers solely to `YesDawTimelineGpuCheck`. Original fixture, outer timer, pixel sampling, checksum, assertions,
@@ -37,10 +41,16 @@ allocation-free scope guard and made diagnostic include dependencies explicit. E
 app evidence applies to the unchanged production painter; this diagnostic claims no new app drive or visual proof.
 Parsed local measurements and identities are in `docs/evidence/2026-10-09-macos-stage-diagnostic.json`.
 
-**Next:** inspect every expected job of diagnostic CI `37983993880` on its exact
-SHA. Collect one macOS profile if the unchanged assertion fails; a quiet passing run gives no stage attribution and
-must not be repeated to seek a failure. Diagnostic timings are not clean certification. Keep the raw result, form
-the next repair hypothesis only from evidence, and remove automatic profiling before a clean verification run.
+**Cleanup prepared:** automatic APPLE enablement is removed; the default-OFF option is now the only path to
+profiling. No C++ source, fixture, assertion, threshold, workflow or production painting changed. Fresh local
+configure/build/GPU CTest and OFF body/compile-command isolation passed. Independent correctness/adversarial
+review is complete with no findings (`20261009-macos-profile-cleanup-critic`). The prior full 428-case suite covers
+the same C++ source. This is the planned return to normal mode, not a repeated diagnostic run seeking failure.
+
+**Next:** commit/push the reviewed cleanup and wait for every expected job on its own exact code SHA.
+A clean result is still required before dependent feature
+work. The quiet instrumented pass supplies no attribution and will not be repeated to seek a failure. No new
+renderer repair hypothesis is claimed from it.
 
 ## 2026-10-09 — Cheap snapshot implementation passes locally; earlier app verification interrupts advancement
 
