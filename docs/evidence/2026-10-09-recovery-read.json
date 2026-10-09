@@ -1,7 +1,7 @@
 {
   "date": "2026-10-09",
   "checkpoint": "Cheap autosave close-out unit 1: source-preserving recovery reads",
-  "status": "Original macOS build failed; test-formatting correction passes local focused checks; replacement CI pending",
+  "status": "Uncertified: compiler correction passes macOS and Linux; Windows again fails only dense-frame timing; one stage diagnostic is being prepared",
   "baseCodeSha": "ba7ab513da0593718b06832a64b3adb92ba21b63",
   "sourceArtifacts": [
     {
@@ -256,8 +256,89 @@
   "ci": {
     "runId": 38000812015,
     "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/38000812015",
-    "status": "in_progress",
-    "expectedJobs": 10
+    "status": "completed",
+    "expectedJobs": 10,
+    "conclusion": "failure",
+    "jobs": [
+      {
+        "name": "Classify diff (docs-only fast path)",
+        "databaseId": 114058143936,
+        "conclusion": "success"
+      },
+      {
+        "name": "TSan (audio<->control data races)",
+        "databaseId": 114058183863,
+        "conclusion": "success"
+      },
+      {
+        "name": "Alpha-verify self-test (Linux)",
+        "databaseId": 114058183904,
+        "conclusion": "success"
+      },
+      {
+        "name": "Alpha-verify self-test (Windows)",
+        "databaseId": 114058183908,
+        "conclusion": "success"
+      },
+      {
+        "name": "macOS",
+        "databaseId": 114058183918,
+        "conclusion": "failure"
+      },
+      {
+        "name": "Package (portable zip + packaged self-check)",
+        "databaseId": 114058183927,
+        "conclusion": "success"
+      },
+      {
+        "name": "Package (Windows zip + packaged hardware-verifier self-test)",
+        "databaseId": 114058183973,
+        "conclusion": "success"
+      },
+      {
+        "name": "RTSan (audio thread no-alloc)",
+        "databaseId": 114058183980,
+        "conclusion": "success"
+      },
+      {
+        "name": "Linux",
+        "databaseId": 114058184000,
+        "conclusion": "success"
+      },
+      {
+        "name": "Windows",
+        "databaseId": 114058184003,
+        "conclusion": "failure"
+      }
+    ],
+    "windows": {
+      "passed": 438,
+      "totalClips": 20640,
+      "maxMs": 19.7969,
+      "checksum": 680587763889,
+      "artifact": {
+        "localPath": "build-ci/ci-38000812015-windows.log",
+        "sha256": "8900f28160e13db17a9c6a1a1fd95e7ca3e8fe4a028b123ddfd4bac8a5081a6c"
+      },
+      "total": 439,
+      "slowFrames": 18,
+      "allowedOutliers": 8,
+      "sustainedMs": 17.2344,
+      "seconds": 648.81,
+      "limitMs": 16.6,
+      "visibleClips": 336,
+      "exceptionApplied": false,
+      "failedTest": "YesDawTimelineGpuCheck"
+    },
+    "linux": {
+      "passed": 436,
+      "total": 436,
+      "artifact": {
+        "localPath": "build-ci/ci-38000812015-linux.log",
+        "sha256": "96f33e8a7db8a5832ca103b21741d7de6438c27b6e94640ba9ced77b8bba7f3c"
+      },
+      "seconds": 210.76
+    }
   },
   "correction": {
     "reason": "Catch2 decomposes native filesystem timestamp equality and attempts to stream libc++ __int128; macOS compilation fails.",
@@ -288,6 +369,104 @@
       "sha256": "7e042d617b4ef772f943fe2bbaf5e069747b69e2533229ed51a53b732b9b549d"
     },
     "critic": "Independent bounded source/compiler-trace review: no residual issue. Native equality remains exact; only operand diagnostics are reduced. macOS execution remains CI proof.",
-    "priorEvidence": "Production sources and executable are unchanged; full Windows suite, app drives and visual evidence retain their original identities. Only focused tests and Clang rerun locally for this test-only correction."
+    "priorEvidence": "Production sources and executable are unchanged; full Windows suite, app drives and visual evidence retain their original identities. Only focused tests and Clang rerun locally for this test-only correction.",
+    "codeSha": "0b1c6b47387a4cc4128e01b4a519cab422cc0e8d",
+    "ci": {
+      "runId": 38002137946,
+      "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/38002137946",
+      "status": "completed",
+      "expectedJobs": 10,
+      "boundary": "Queued for actual macOS compiler correction before original Windows timing result; renderer unchanged, not a Windows performance repair.",
+      "macos": {
+        "total": 436,
+        "seconds": 303.31,
+        "artifact": {
+          "localPath": "build-ci/ci-38002137946-macos.log",
+          "sha256": "fafdd5b2e8a03891b8abdf6c6ea1f219ef6e63cd83f78a5f9bf649982b50da0d"
+        },
+        "passed": 436
+      },
+      "linux": {
+        "total": 436,
+        "seconds": 210.06,
+        "artifact": {
+          "localPath": "build-ci/ci-38002137946-linux.log",
+          "sha256": "9ad33fa34cc431e82d8d207dd4c29230e8fc403872a9b2b23ceacb3d6ed90f48"
+        },
+        "passed": 436
+      },
+      "conclusion": "failure",
+      "jobs": [
+        {
+          "name": "Classify diff (docs-only fast path)",
+          "databaseId": 114069755691,
+          "conclusion": "success"
+        },
+        {
+          "name": "RTSan (audio thread no-alloc)",
+          "databaseId": 114069793749,
+          "conclusion": "success"
+        },
+        {
+          "name": "TSan (audio<->control data races)",
+          "databaseId": 114069793750,
+          "conclusion": "success"
+        },
+        {
+          "name": "Windows",
+          "databaseId": 114069793765,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Package (Windows zip + packaged hardware-verifier self-test)",
+          "databaseId": 114069793777,
+          "conclusion": "success"
+        },
+        {
+          "name": "macOS",
+          "databaseId": 114069793784,
+          "conclusion": "success"
+        },
+        {
+          "name": "Package (portable zip + packaged self-check)",
+          "databaseId": 114069793835,
+          "conclusion": "success"
+        },
+        {
+          "name": "Alpha-verify self-test (Linux)",
+          "databaseId": 114069793841,
+          "conclusion": "success"
+        },
+        {
+          "name": "Alpha-verify self-test (Windows)",
+          "databaseId": 114069793880,
+          "conclusion": "success"
+        },
+        {
+          "name": "Linux",
+          "databaseId": 114069793935,
+          "conclusion": "success"
+        }
+      ],
+      "windows": {
+        "limitMs": 16.6,
+        "visibleClips": 336,
+        "maxMs": 21.7346,
+        "sustainedMs": 18.4398,
+        "total": 439,
+        "passed": 438,
+        "checksum": 680587763889,
+        "slowFrames": 19,
+        "exceptionApplied": false,
+        "seconds": 580.95,
+        "totalClips": 20640,
+        "allowedOutliers": 8,
+        "failedTest": "YesDawTimelineGpuCheck",
+        "artifact": {
+          "localPath": "build-ci/ci-38002137946-windows.log",
+          "sha256": "37f6a554653921fab1e3eed7ebcddaf9723d168d27d1687b4a46db49a7c00067"
+        }
+      }
+    }
   }
 }

@@ -23,6 +23,14 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   # clang-format / clang-tidy / editors co
 # YESDAW_BUILD_APPS=OFF configures ONLY the pure Catch2 test (no JUCE) — used by the RTSan CI leg so
 # it needs neither the JUCE clone nor the X11/ALSA dev libs that JUCE's GUI/audio modules require.
 option(YESDAW_BUILD_APPS "Build the JUCE GUI app + soak tool (off => pure-test-only)" ON)
+option(YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE
+  "Instrument only YesDawTimelineGpuCheck; CTest must execute it (diagnostic timings are not clean evidence)" OFF)
+# Temporary Windows CI observation; remove before normal-mode timing certification.
+if(WIN32 AND "$ENV{GITHUB_ACTIONS}" STREQUAL "true")
+  set(YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE ON)
+endif()
+# Always regenerate: switching an existing diagnostic directory to pure tests must disable its hooks.
+configure_file(tools/timeline-paint-CTestCustom.cmake.in CTestCustom.cmake @ONLY)
 
 # YESDAW_SANITIZER plumbs in the RTSan CI leg (-fsanitize=realtime) that enforces
 # "the audio thread never allocates/locks".
@@ -513,8 +521,6 @@ if (YESDAW_BUILD_APPS)
   target_sources(YesDawTimelineGpuCheck PRIVATE tests/timeline_gpu_tests.cpp)
   target_include_directories(YesDawTimelineGpuCheck PRIVATE ${YESDAW_SRC_DIR})
   target_compile_definitions(YesDawTimelineGpuCheck PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)
-  option(YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE
-    "Instrument only YesDawTimelineGpuCheck (diagnostic timings are not clean evidence)" OFF)
   if(YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE)
     target_compile_definitions(YesDawTimelineGpuCheck PRIVATE YESDAW_TIMELINE_PAINT_PROFILE=1)
     add_custom_command(TARGET YesDawTimelineGpuCheck POST_BUILD
@@ -528,7 +534,11 @@ if (YESDAW_BUILD_APPS)
       juce::juce_gui_basics
       juce::juce_recommended_config_flags)
   yesdaw_harden(YesDawTimelineGpuCheck)
-  add_test(NAME YesDawTimelineGpuCheck COMMAND $<TARGET_FILE:YesDawTimelineGpuCheck>)
+  set(timeline_profile_args)
+  if(YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE)
+    list(APPEND timeline_profile_args --success --out "${CMAKE_CURRENT_BINARY_DIR}/timeline-paint-profile.log")
+  endif()
+  add_test(NAME YesDawTimelineGpuCheck COMMAND $<TARGET_FILE:YesDawTimelineGpuCheck> ${timeline_profile_args})
 
   # --- Hardware verification policy check (H17 packaged verifier U1) ---
   # Deterministic and device-free: schema v1, child-document acceptance, the pass-record

@@ -8,15 +8,40 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-10-09 — Recovery unit 1: correct macOS test compilation before certification
+## 2026-10-09 — Recovery unit 1: Windows frame gate blocks certification
 
 **Now:** close-out checklist unit 1 is pushed at `f1048a0f5d5a8dbe1ba9ae0da9188d5dfdbf5b9a`;
-exact-code CI `38000812015` failed macOS compilation. Seven jobs pass; Windows/Linux still run.
+exact-code CI `38000812015` completed with eight jobs passing, macOS compilation failing and
+Windows failing only the dense Timeline frame gate (**438/439**, 648.81 s). Windows measured
+**17.2344 ms** sustained against 16.6 ms, maximum **19.7969 ms**, and **18** slow frames against
+8 allowed; 336 visible / 20640 total clips, checksum **680587763889**. The raw failure is preserved
+in `build-ci/ci-38000812015-windows.log`; no Windows timing exception exists. Investigation and
+an independent critic take priority over dependent feature work. No renderer cause is established.
+Linux passed **436/436 (210.76 s)** on this original code SHA.
 Catch2 tries to print libc++'s `__int128` filesystem timestamp in the scratch-preservation assertion.
-The correction compares the same native times inside parentheses, passing only a bool to Catch;
+Correction `0b1c6b47387a4cc4128e01b4a519cab422cc0e8d` is pushed; its CI `38002137946` completed:
+nine of ten jobs passed, including macOS **436/436 (303.31 s)** and Linux **436/436 (210.06 s)**.
+Windows again failed only the frame gate (**438/439**, 580.95 s): **18.4398 ms** sustained,
+**21.7346 ms** maximum, **19** slow frames against 8 allowed, same fixture and checksum.
+The second raw failure is in `build-ci/ci-38002137946-windows.log`.
+It was queued for the macOS correction before the Windows result and contains no renderer repair.
+It compares the same native times inside parentheses, passing only a bool to Catch;
 no cast, precision loss or production change. Fresh focused checks pass **7484/19** and Clang is clean.
-A separate critic found no residual issue; replacement macOS CI remains the compilation proof.
+A separate critic found no residual issue; replacement macOS CI now proves the compilation repair.
 No timing exception applies and unit 1 is not yet certified.
+The existing optional stage profiler now has prepared quiet-pass capture: Catch writes one owned
+report, CTest clears it before the run and prints/validates it afterwards. Actual local diagnostic
+checks pass **16/3**, sustained **6.0907 ms**, native image type 1; the fixture/checksum is unchanged.
+Missing/stale/truncated report and failed-producer controls pass. Independent focused review found
+one stale-hook bug when switching to pure-test builds; it was reproduced and repaired. Normal OFF
+configuration has 439 tests, the original GPU command and no profiling definitions. Full OFF CTest
+initially passed 434/439: five helper version checks found stale binaries. The full checkout has been
+rebuilt with matching stamps and the replacement suite passes **439/439 (271.82 s)**. One reviewed temporary switch
+enables profiling only for the Windows GitHub Actions GPU target; the next push will collect one
+instrumented observation. This is not a renderer repair or clean CI timing credit. Remove that
+temporary switch before normal-mode certification; no additional instrumented CI has yet been dispatched.
+The measured diagnostic, plumbing controls, review repair and rebuilt normal suite are recorded in
+[the Windows capture record](docs/evidence/2026-10-09-windows-frame-capture.json).
 Recovery copies only database metadata into private owned scratch, applies existing migrations and
 validators there, and hashes the original audio. It preserves source DB/WAL/SHM, audio and extra files,
 retains concrete refusal reasons, and reuses the validated selection within each invocation. Restore
@@ -30,8 +55,9 @@ and CTest pass **439/439 (260.47 s)**; earlier source versions passed **438/438 
 Review caught ambient temp-permission exposure: the new
 Windows privacy negative control failed seven assertions before the fix. Private directory creation
 now protects copied DB and actual SQLite sidecars; real create-denial and cleanup-denial tests pass.
-POSIX creation also checks actual ownership/mode, and macOS rejects noowners mounts. These branches
-need Linux/macOS CI; unsupported mounts and second-account access were not tested locally.
+POSIX creation also checks actual ownership/mode, and macOS rejects noowners mounts. Linux checks
+pass on the original SHA; Linux and macOS runtime checks now pass on the correction. Unsupported mounts
+and second-account access were not tested locally.
 
 **Final app batch:** SS1-SS7 pass **512 assertions** on the reviewed, repaired binary (SHA256
 `AFF49E96569AA63173F7448241ADEB2E17FF03785912441686399F02291AEF06`).
@@ -56,14 +82,16 @@ are repaired and the separate critic reports no residual finding by inspection. 
 retains scratch ownership and stops fallback, preserving the newer slot and caller outputs. Its real
 Windows deletion-denial negative control failed **20 assertions** before the fix; repaired public
 read/Restore checks pass **286/2**. macOS now removes and verifies inherited ACLs on its owned empty
-scratch directory before copying; an inherited-ACL characterization and privacy fixture await macOS CI.
+scratch directory before copying; its inherited-ACL characterization and privacy fixture now pass macOS CI.
 Final focused Windows checks pass **7484/19**, and actual cloud-placeholder checks pass **121/1**.
 
 **Next:** the three simplification reviews found no worthwhile changes. Local checks, final app drives,
 separate visual addendum and bounded review-repair critic are complete. Parsed measurements and source,
 executable and log hashes are in [the recovery-read record](docs/evidence/2026-10-09-recovery-read.json).
-Push the small test correction and inspect every exact-code CI job, preserving the original red;
-Linux/macOS runtime proof is pending.
+Inspect the single instrumented Windows observation and all its exact-code CI jobs, preserving both
+normal-mode failures. Use its measured stages to support any repair; then restore normal configuration
+and obtain complete exact-code CI. The rebuild restamps the app without changing production C++ or UI;
+earlier app drives retain their actual binary identity and are not relabeled as fresh drive evidence.
 Only after green CI, advance to unit 2: restore missing audio names by link and report named refusals
 through the shipped Restore action. Autosave remains off; the Usable-song milestone is incomplete.
 No app drive is running. Dan's hands-off authorization remains active for this session.

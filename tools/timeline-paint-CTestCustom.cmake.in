@@ -1,0 +1,5 @@
+# Diagnostic runs retain the single measured fixture's output even when CTest passes quietly.
+if(@YESDAW_BUILD_APPS@ AND @YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE@)
+  set(CTEST_CUSTOM_PRE_TEST "\"@CMAKE_COMMAND@\" -E rm -f \"@CMAKE_CURRENT_BINARY_DIR@/timeline-paint-profile.log\"")
+  set(CTEST_CUSTOM_POST_TEST "\"@CMAKE_COMMAND@\" \"-DREPORT_PATH=@CMAKE_CURRENT_BINARY_DIR@/timeline-paint-profile.log\" -P \"@CMAKE_CURRENT_SOURCE_DIR@/tools/timeline-paint-profile-report.cmake\"")
+endif()

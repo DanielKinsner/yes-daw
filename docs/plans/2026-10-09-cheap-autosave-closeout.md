@@ -20,6 +20,13 @@ exception or threshold. Unticked items are pending, not certified.
   exact-code CI. Preserve rejected measurements and fixture/build identity. A docs-only green,
   cancelled run, diagnostic pass or alternate audio profile does not certify different code/hardware.
 
+**Writes-on readiness:** unit 4's implementation and unit 5's pre-shipping app proof share one
+readiness boundary. Prepare independently verifiable drive/helper corrections first. Before the
+first enabled-writer push, prove the complete local packaged candidate through the three SS8 laps
+and the real hydrated-placeholder app drive. Split only independently verified trees; do not credit
+an intermediate commit with a later mixed tree's evidence. Then push and complete exact-code CI.
+This orders the accepted gates; it changes no ADR, threshold or owner contract.
+
 ## Small implementation units
 
 ### 1. Read recovery sources without changing them (ADR-0069 cp2)
@@ -58,12 +65,23 @@ exception or threshold. Unticked items are pending, not certified.
   never remove full recovery validation to make the counter pass. Gate the shipped Restore action's
   named refusal and preserved recovery question as well.
 
+Implementation checks from the separate preparation critic: handle `symlink_status` ENOENT as
+absence, refuse other inspection errors, and keep dangling final symlinks on the existing-name
+adoption path. Measure actual bytes transferred by the copy helper, separately from recovery hash
+reads; equivalence alone cannot prove zero copy work. Flush newly carried final names, including
+missing-name copy fallback, while preserving adoption's already-correct different-inode no-op.
+Gate a real successful-link/failed-flush refusal without claiming rollback of names already carried.
+
 ### 3. Expose real write cost (ADR-0069 cp2)
 
 - [ ] Add only the accepted `autosave.writeMs`, `writeMsPeak`, `linked` and `copied` probe fields,
   measured by the control-thread writer. Preserve existing fields; no-op ticks must not replace
   the last write's measurements. Test actual carries, elapsed-time publication and peak retention.
   Keep the shipped trigger off until the following unit; no synthetic timing or carry credit.
+  Include a real nonzero copied count through model getters and shell JSON, then an all-link write
+  returning it to zero. If test hooks span multiple translation units, enable them uniformly for
+  the test target and keep the shipped app macro-free. Measure actual failed writer attempts as a
+  coherent time/result sample; no-op ticks retain the previous sample and session peak.
 - [ ] Close ADR-0069 cp2 only after its restore/refusal gates, existing cp1/reliability gates and
   checkpoint proof pass. Preserve the hidden local `[hardware-cost]` bound: 10 x 50 MB, under 100 ms.
 
@@ -81,6 +99,26 @@ exception or threshold. Unticked items are pending, not certified.
   cp3/cp4 retirement and cp5 stamp/recovery behavior: exercise them with real scheduled snapshots,
   including Save, Save As, Save a Copy, Don't Save, unresolved restart, Restore and Discard. Retain
   engine helpers until the separate cp7 cleanup. Split commits only at independently safe gates.
+
+Retain the accepted sticky flag until a real successful autosave, including across Save, retirement
+and same-model attach. Canned test overrides retain the last real cost/carry sample. Gate pending
+Save As after a nonzero edit: the new clean serials advance while the old unanswered snapshot and
+marker survive. Discard must leave an unsaved edited tail due; it is not an autosaved clean point.
+
+## Required frame-gate investigation
+
+The original unit-1 CI run `38000812015` fails Windows dense-frame timing (17.2344 ms sustained,
+16.6 ms limit). Its renderer, fixture and sampled checksum match the earlier certified code;
+the cause is unknown. Before another renderer correction, preserve the existing diagnostic's
+measurements even when its test passes: diagnostic-only Catch success output to an owned report,
+cleared before CTest and printed/validated after it. Use documented CTest hooks, leave the workflow,
+fixture, timer and assertions unchanged, and prove missing/stale capture cannot earn evidence.
+One instrumented Windows observation may then separate paint stages from context teardown.
+It is diagnostic only; normal-mode exact-code CI remains required. The compiler-only correction
+`0b1c6b4` is neither a renderer repair nor a repeat requested to obtain a passing timing. Its completed
+CI `38002137946` passed Linux and macOS but again failed Windows timing (18.4398 ms sustained,
+19 slow frames against 8 allowed; other 438 checks pass). Collect one instrumented Windows observation
+using the reviewed temporary GitHub Actions switch; remove that switch before clean certification.
 
 ## App and milestone evidence
 

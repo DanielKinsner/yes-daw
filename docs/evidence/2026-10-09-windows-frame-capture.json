@@ -1,0 +1,127 @@
+{
+  "date": "2026-10-09",
+  "checkpoint": "Retain one Windows CI Timeline stage diagnostic through quiet passes",
+  "status": "Local checks and independent review complete; one instrumented CI observation pending",
+  "baseCodeSha": "0b1c6b47387a4cc4128e01b4a519cab422cc0e8d",
+  "sourceArtifacts": [
+    {
+      "sha256": "b50a5c92c51c41b00cb8b6672bd9d2f0292f6c1ec96688820265fee5a862d664",
+      "localPath": "CMakeLists.txt"
+    },
+    {
+      "sha256": "fbe7bbcb52a893782b7de2bafd3585d0b31c35ed1fb31fd3b934112391c375f2",
+      "localPath": "tools/timeline-paint-CTestCustom.cmake.in"
+    },
+    {
+      "sha256": "5ca4c780db568dd2aba742d2cf61cd20aec24bbf286300a0ab39b9f92a1c43f2",
+      "localPath": "tools/timeline-paint-profile-report.cmake"
+    }
+  ],
+  "unchangedMeasuredSources": [
+    {
+      "sha256": "8765541fd5d3c8995bea835ee04ea89f0910d0a6c0ec652c7853647d23dc5330",
+      "localPath": "src/ui/TimelineCanvas.h"
+    },
+    {
+      "sha256": "e6382e911f5314e56f6b5156dd8fc776261c732e887231270751698aaecf16c0",
+      "localPath": "src/ui/TimelineFrameCheck.h"
+    },
+    {
+      "sha256": "4b52312cc690ae634d23dbea7ca0c393429a4c2ba21938cfe0b419a2a059f441",
+      "localPath": "tests/timeline_gpu_tests.cpp"
+    }
+  ],
+  "localDiagnostic": {
+    "slowFrames": 0.0,
+    "cases": 3,
+    "totalClips": 20640.0,
+    "sustainedMs": 6.0907,
+    "binarySha256": "f162d67675bb16eb235d3092d954af6a23e6850f0dc8e4b3b271b1ac4c2e3f7e",
+    "checksum": 680587763889.0,
+    "visibleClips": 336.0,
+    "nativeImageTypeId": 1.0,
+    "assertions": 16,
+    "boundary": "One local instrumented fixture execution before the configuration-only review repair; C++ measurement sources unchanged. Repeated INFO blocks are the same measurement, not repeats.",
+    "allowedOutliers": 2.0,
+    "artifact": {
+      "sha256": "428a3ea7e714883920c75536a4304166af03d48fc6c97c915541c6e5e816a1b8",
+      "localPath": "build-ci/20261009-windows-profile-capture-test.log"
+    },
+    "maxMs": 6.8422,
+    "distinctSamples": 300.0
+  },
+  "controls": {
+    "script": {
+      "sha256": "b3a829e44ea47c3df019de91cf19c78af63a2d2dbfd08a7f10120950a7024b6b",
+      "localPath": "build-ci/verify-profile-capture.ps1"
+    },
+    "scope": "Disposable report plumbing only; copying a measured report does not earn hardware/performance credit.",
+    "artifact": {
+      "sha256": "b359767df1184bcf3afc74cfdb453defd9516132b2e98861e88315d4009b0fba",
+      "localPath": "build-ci/20261009-profile-capture-final-negative-controls.log"
+    },
+    "cases": [
+      "valid measured report emitted",
+      "failed producer remains failed",
+      "stale report removed and missing capture rejected",
+      "truncated output printed and rejected"
+    ]
+  },
+  "reviewRepair": {
+    "runId": "20261009-windows-profile-capture-review",
+    "change": "Regenerate hooks on every configure; enable only when both apps and profiling are ON.",
+    "fixed": {
+      "sha256": "270cd3f8b80943d6a4a6fb190dab45d2452aab7771144f75335f6a5093655608",
+      "localPath": "build-ci/20261009-profile-capture-apps-off-fixed.log"
+    },
+    "issue": "Stale diagnostic hooks remained when the build directory changed to pure tests.",
+    "negative": {
+      "sha256": "8c22a8cb755a7f141b9a3c4f42e008d1886817e981dd1557aa5005792629c52c",
+      "localPath": "build-ci/20261009-profile-capture-apps-off-red.log"
+    },
+    "result": "Focused correctness plus native adversarial review complete; P2 repaired and bounded critic found no residual. Temporary Windows switch separately checked."
+  },
+  "localNormal": {
+    "priorStaleBuild": {
+      "total": 439,
+      "seconds": 253.11,
+      "passed": 434,
+      "cause": "Five helper version gates expected 0b1c6b4-dirty while old executables reported f0aa9ed-dirty. Rebuilt the full configured tree; no assertion changed.",
+      "artifact": {
+        "sha256": "3dcb44dfec53f6705d6f317a3063e379c636ac03770eb9385318820dbf21e2b6",
+        "localPath": "build-ci/20261009-profile-capture-final-off-full-ctest.log"
+      }
+    },
+    "profileOff": {
+      "sha256": "af9f62eec1b25704d42346d3af52751c066adc059313de1b6f9c44d92fbee34c",
+      "localPath": "build-ci/20261009-profile-capture-final-off-isolation.json"
+    },
+    "fullCtest": {
+      "total": 439,
+      "seconds": 271.82,
+      "passed": 439,
+      "artifact": {
+        "sha256": "12520a5f4f986320b399a81aa506b86ff5ec7e3d5a20722a4922ec8076aefb6c",
+        "localPath": "build-ci/20261009-profile-capture-rebuilt-full-ctest.log"
+      }
+    },
+    "fullBuild": {
+      "sha256": "be163eef8851059bfa9825ad62ae92c71ad04039b58276386c084b1525189028",
+      "localPath": "build-ci/20261009-profile-capture-final-full-build.log"
+    }
+  },
+  "appBoundary": {
+    "currentRestampedBinary": {
+      "sha256": "89a0625a8b9e2062824c48bf17d4b16a54cc3e1f9ae8f966e33096e6961a2e7b",
+      "localPath": "build-ci/YesDaw_artefacts/Release/YesDaw.exe"
+    },
+    "previousDriveBinarySha256": "aff49e96569aa63173f7448241adeb2e17ff03785912441686399f02291aef06",
+    "evidence": "Previous SS1-SS8 drives and visual rubric retain their actual binary identity in 2026-10-09-recovery-read.json. No production C++ or UI source changes; this full rebuild updates build stamps. No fresh drive or visual proof claimed."
+  },
+  "limits": [
+    "Temporary auto-enable is Windows GitHub Actions only and target-private to the GPU check. Remove before clean timing certification.",
+    "Diagnostic mode requires full CTest or GPU test selection; listing/filtering that omits the GPU check fails capture. Normal OFF mode retains original commands.",
+    "Fixture, original timer, budgets, assertions, pixel sampling and workflow are unchanged.",
+    "Stage attribution alone cannot distinguish scheduler delay within a stage from its CPU work. No exception applied; both earlier Windows failures remain recorded."
+  ]
+}
