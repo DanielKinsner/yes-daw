@@ -1,0 +1,63 @@
+{
+  "checkpoint": "G6 close-out (plan section 8.5): every G6 item is in (G6.1-G6.5); the rubric across the scaling matrix and the real app; the montage",
+  "status": "NOT CERTIFIED: G6's exit keeps SS-1-SS-6 as gates and SS-6 (ss8) still fails its autosave step only - ADR-0068's writes wait on ADR-0069, which waits on Dan (one point: link the project's audio into the autosave instead of copying it; recommended: accept). Every other exit condition is met as recorded below.",
+  "date": "2026-10-08",
+  "host": "DESKTOP-7LC339R (Windows 11 Pro 10.0.26200), shared desktop, owner-authorized ('computer is free')",
+  "codeSha": "cb0bc2e",
+  "montage": "docs/evidence/2026-10-08-g6.png (the real app's first launch with the tip and the empty-state rows; Mix the song under the real pointer; the piano roll; the 1080p laptop at 150 %; the 1280x720 floor; 2560x1440 at 200 %)",
+  "items": {
+    "G6.1": "tokens, type scale and WCAG contrast (ADR-0063)",
+    "G6.2": "layout and scaling: density, the 1152x640 minimum, the scaling matrix (ADR-0064, ADR-0065)",
+    "G6.3": "keyboard navigation and accessibility: the router's control target over every painted control (ADR-0066)",
+    "G6.4": "hover, pressed, playhead and meter states from real state; no timer lies (ADR-0067, ADR-0072)",
+    "G6.5": "empty states offer the next action by its live chord; one dismissable first-run tip (ADR-0073, ADR-0074)"
+  },
+  "rubric": {
+    "method": "plan section 7.4; five agent judges (one per scale and one for the real app's shots), every FIX claim checked by a separate verifier against the pixels",
+    "matrix": "20 cells: 1280x720 / 1920x1080 / 2560x1440 at 100 / 125 / 150 / 200 %, and the maximized displays 1280x640 @100, 1920x1000 @100, 2560x1360 @100, 1536x793 @125, 2048x1081 @125, 1280x656 @150, 1706x896 @150, 1280x664 @200 (the song fixture, 16 tracks, a clip selected)",
+    "realApp": "ss1's tip at 1280x720 / 1920x1080 / 2560x1440, ss1, ss5, the G0.7 rubric shots",
+    "fixesFound": [
+      {
+        "what": "a lane the panel cuts off at its bottom was drawn beside an empty rail (the rail stopped at its last whole row; its empty space still took that row's clicks) - rubric line 1, at the maximized-display cells",
+        "fixedIn": "cb0bc2e",
+        "gate": "[rail-partial-row]: over a height sweep with 16 tracks, every lane shown 40-71 px has its row's text in the rail beside it; every rail record lies inside the rows; a click on a cut-off M cell changes nothing (three mutations bite)"
+      },
+      {
+        "what": "overlapping clips on one lane printed both names into each other ('MIDIAudio Clip'; clip bodies are translucent) - rubric line 1, the 2560-wide cells",
+        "fixedIn": "cb0bc2e",
+        "gate": "[clip-names]: a covered clip's name never shows inside a clip drawn over it, still prints where nothing covers it (the mutation bites)"
+      }
+    ],
+    "afterFixes": "re-rendered at cb0bc2e: both defects gone in the pixels (the partial row's header beside its lane; only the top clip's name); every other line PASS at every cell"
+  },
+  "batch": {
+    "tag": "2026-10-08-g6close",
+    "exe": "built from cb0bc2e",
+    "sessions": [
+      { "session": "ss1-first-minute", "assertions": 59, "result": "PASS" },
+      { "session": "ss2-mouse-then-keys", "assertions": 42, "result": "PASS" },
+      { "session": "ss3-edit-a-song", "assertions": 57, "result": "PASS" },
+      { "session": "ss4-track-instrument", "assertions": 22, "result": "PASS" },
+      { "session": "ss5-piano-roll", "assertions": 77, "result": "PASS" },
+      { "session": "ss6-write-a-beat", "assertions": 58, "result": "PASS" },
+      { "session": "ss7-mix-the-song", "assertions": 197, "result": "PASS" },
+      { "session": "ss8-project-lifecycle (SS-6)", "assertions": 177, "result": "FAIL 6 / 177", "detail": "all six in Step 6: autosave writes are off (autosave.writes=0), so no confirmed autosave, no recovery to prove - the known ADR-0068 state parked behind ADR-0069; the same six as the batch before the rubric fixes" }
+    ]
+  },
+  "local": "cb0bc2e: full build, ctest 423/423, Clang -Wall -Wextra clean on every changed translation unit",
+  "ci": {
+    "26d0587": "green except macOS's GPU frame check (raw: max 24.8 ms, sustained 20.0 ms, 42 slow frames)",
+    "2aa46c9": "macOS GPU frame check (raw: 27.7 / 21.1 / 49) and a Windows GPU frame red (raw: max 23.1 ms, sustained 17.5 ms, 13 slow frames); the Windows job re-run on the same SHA passed",
+    "d3f270d": "green on every job, macOS's GPU check included",
+    "19cbc14": "green except macOS's GPU frame check (raw: max 25.5 ms, sustained 20.2 ms, 29 slow frames)",
+    "cb0bc2e": "green on every job (Windows, macOS with its GPU frame check, Linux, TSan, RTSan, packages, alpha-verify)"
+  },
+  "exceptions": {
+    "macOSGpuFrame": "plan section 8.2's macOS GPU timing exception is due for renewal and awaits Dan (recommended: renew); the raw failures above are reported, not excused",
+    "windowsGpuFrame": "two Windows GPU frame reds (eda3e2f, 2aa46c9) did not repeat on re-runs of the same SHAs; the measured paint path had no change since the last steady-green run; same runner image throughout; locally the check measures ~5.6 ms sustained before and after this close-out's canvas change - not excused, recorded as runner variance on the evidence"
+  },
+  "pendingOwnerDecisions": [
+    "ADR-0069: an autosave that links the project's audio instead of copying it (unblocks ADR-0068's writes, SS-6, G5, G6 and the Usable-song milestone) - recommended: accept",
+    "the macOS GPU frame exception renewal (plan section 8.2) - recommended: renew"
+  ]
+}

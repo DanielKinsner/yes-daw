@@ -8,6 +8,20 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — G6 close-out recorded: every item in; certification waits only on SS-6 (ADR-0069, Dan)
+
+**Now:** every G6 item is in (G6.1-G6.5) and the close-out evidence is committed:
+[record](docs/evidence/2026-10-08-g6-closeout.json) · [montage](docs/evidence/2026-10-08-g6.png). The rubric ran across
+the whole scaling matrix (20 cells) and the real app; its two FIXes are fixed and gated (cb0bc2e). Drives on cb0bc2e's
+exe: ss1-ss7 green (509 assertions); ss8 (SS-6) 171/177, its six reds all the autosave step. cb0bc2e's CI: green on
+every job, macOS's GPU frame check included.
+**Blocked on Dan (one decision unblocks G5, G6 and the Usable-song milestone):** ADR-0069 - let each autosave *link*
+the project's audio files instead of copying them (~11 ms instead of 3-5 s of UI freeze per autosave on a 500 MB
+song; what the autosave protects is unchanged). Recommended: **accept**. Then ADR-0068 cp1/cp2 (writes on, built and
+parked) land, SS-6 goes green, and G5/G6 certify. Also his: the macOS GPU frame exception renewal (recommended: renew).
+**Next (agent, meanwhile):** nothing in the active milestone is left that does not need that answer; parked ideas stay
+parked.
+
 ## 2026-10-08 — G6 close-out rubric: two FIXes found and gated (a partial row's rail header; covered clip names)
 
 **The rubric pass (plan §7.4, agent judges):** the scaling matrix rendered at every cell (the plan's 3 window sizes x
