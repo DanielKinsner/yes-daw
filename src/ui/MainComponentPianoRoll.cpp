@@ -66,7 +66,7 @@ void MainComponent::drawPianoRoll (juce::Graphics& g, juce::Rectangle<int> area)
                     header.reduced (yesdaw::ui::UiTheme::Layout::pianoRollHeaderLabelInsetX,
                                     yesdaw::ui::UiTheme::Layout::pianoRollHeaderLabelInsetY));
     // E9: the header names the OPEN clip's owning track so switching clips is legible.
-    juce::String rollTitle = "No MIDI Clip selected";
+    juce::String rollTitle;   // ADR-0073: no clip open - the grid offers the next step, the header names nothing
     if (surface.midiClipSelected)
     {
         rollTitle = "MIDI Clip";
@@ -171,6 +171,9 @@ void MainComponent::drawPianoRoll (juce::Graphics& g, juce::Rectangle<int> area)
                     yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth,
                     geometry.grid.getHeight());
     }
+
+    if (! surface.midiClipSelected)
+        paintPanelEmptyStates (g, &pianoRollInput);   // ADR-0073: a row (Add MIDI clip) or plain text in the empty grid
 
     // G3.2: the shared playhead, clip-relative.
     if (surface.playheadTick >= 0 && surface.playheadTick <= surface.timelineLength)

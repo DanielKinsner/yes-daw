@@ -239,6 +239,16 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
    #endif
     playheadLayer.stateProvider = [this] { return makeTimelineState(); };
     timelineEmptyRows.reserve (4);   // ADR-0073: rebuilt in place by makeTimelineState (a state copy's pointer holds)
+    pianoRollInput.onEmptyRowClick = [this] (juce::Point<int> local) {   // ADR-0073: the empty roll's row
+        const juce::Point<int> point = local + pianoRollInput.getPosition();
+        for (const PanelEmptyState& panel : panelEmptyStates())
+            if (panel.surface == &pianoRollInput && panelEmptyRowRect (panel).contains (point))
+            {
+                runEmptyRowAction (panel.action);
+                return true;
+            }
+        return false;
+    };
     timelineInput.onEmptyRowClicked = [this] (int row) {
         const auto specs = timelineEmptyRowSpecs();
         if (row >= 0 && static_cast<std::size_t> (row) < specs.size())
@@ -2630,6 +2640,13 @@ MainComponent::CounterStrings MainComponent::counterStrings() const
 
 void MainComponent::mouseDown (const juce::MouseEvent& event)
 {
+    if (event.mods.isLeftButtonDown())   // ADR-0073: an empty inspector's row runs its action
+        for (const PanelEmptyState& panel : panelEmptyStates())
+            if (panel.surface == this && panelEmptyRowRect (panel).contains (event.getPosition()))
+            {
+                runEmptyRowAction (panel.action);
+                return;
+            }
     const HeaderLayout header = headerLayout();
     if (header.timeReadout.contains (event.getPosition()))
     {

@@ -281,6 +281,9 @@ class PianoRollInputComponent final : public juce::Component,
 {
 public:
     std::function<yesdaw::ui::UiPianoRollSurfaceSnapshot()> stateProvider;
+    // ADR-0073: a left click on an empty roll's row (true: ran). Checked before the keyboard column's audition: safe only
+    // because the row lies in the grid (pianoRollCanvasGeometry's), never over the keyboard column.
+    std::function<bool (juce::Point<int>)> onEmptyRowClick;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId)> onNoteClicked;
     // E12: a drag moves the WHOLE selection by (tickDelta, keyDelta) anchored on the dragged
     // note; the left edge trims the note head with the end fixed.
@@ -466,6 +469,8 @@ public:
             requestContextMenu (event.getPosition());
             return;
         }
+        if (event.mods.isLeftButtonDown() && onEmptyRowClick && onEmptyRowClick (event.getPosition()))
+            return;   // ADR-0073: an empty roll's row ran its action
 
         const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
 

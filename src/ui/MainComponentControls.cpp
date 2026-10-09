@@ -296,13 +296,17 @@ void MainComponent::servicePointerStates()
     setPointerStates (pointerRecordAt (*pointerPosition, pointerComponent.getComponent()), std::move (pressed));
 }
 
-std::string MainComponent::emptyStateHowFor (yesdaw::ui::UiActionId action)
+std::string MainComponent::emptyStateHowFor (yesdaw::ui::UiActionId action) const
 {
-    const juce::StringArray names = getMenuBarNames();
-    std::vector<yesdaw::ui::EmptyStateMenu> menus;
-    menus.reserve (static_cast<std::size_t> (names.size()));
-    for (int i = 0; i < names.size(); ++i)
-        menus.push_back ({ names[i].toStdString(), menuActionsForIndex (i) });
+    // The menu bar's names and actions are static data: the table is built once (a paint resolves rows with it).
+    static const std::vector<yesdaw::ui::EmptyStateMenu> menus = [] {
+        const juce::StringArray names = menuBarNames();
+        std::vector<yesdaw::ui::EmptyStateMenu> table;
+        table.reserve (static_cast<std::size_t> (names.size()));
+        for (int i = 0; i < names.size(); ++i)
+            table.push_back ({ names[i].toStdString(), menuActionsForIndex (i) });
+        return table;
+    }();
     const yesdaw::ui::EmptyStateRouterState router { controlNavigator.navigating(), controlNavigator.interacting(),
                                                      appModel.context().musicalTypingOn, appModel.context().stepInputOn };
     return yesdaw::ui::emptyStateHow (appModel.registry().keymap(), action,
@@ -334,6 +338,80 @@ std::span<const MainComponent::EmptyRowSpec> MainComponent::timelineEmptyRowSpec
     return {};
 }
 
+std::vector<MainComponent::PanelEmptyState> MainComponent::panelEmptyStates() const
+{
+    std::vector<PanelEmptyState> panels;
+    const bool loaded = appModel.context().projectLoaded;
+    const bool tracks = loaded && ! appModel.project().tracks.empty();
+    // The inspector's Clip tab with no clip selected (and no MIDI clip's quantize panel).
+    if (appModel.context().inspectorVisible && ! appModel.context().inspectorTrackTabActive
+        && findProjectClipById (appModel.selectedTimelineClipId()) == nullptr && ! inspectorShowsQuantizePanel())
+    {
+        auto space = inspectorBounds();
+        space.removeFromTop (L::inspectorTabHeight);
+        space.reduce (L::inspectorContentInsetX, L::inspectorContentInsetY);
+        PanelEmptyState panel;
+        panel.space = space;
+        panel.surface = const_cast<MainComponent*> (this);
+        if (! tracks)
+            panel.noun = "No tracks yet";
+        else if (! appModel.project().clips.empty() || ! appModel.project().midiClips.empty())
+            panel.noun = "Select a clip";
+        else
+        {
+            panel.id = "empty.inspector.add_midi_clip";
+            panel.noun = "Add MIDI clip";
+            panel.action = UiActionId::TimelineMidiClipAdd;
+        }
+        panels.push_back (std::move (panel));
+    }
+    // The piano roll with no MIDI clip open.
+    if (dockShowsPianoRoll() && pianoRollInput.isVisible() && ! currentPianoRollSurface().midiClipSelected)
+    {
+        PanelEmptyState panel;
+        panel.space = pianoRollCanvasGeometry (pianoRollInput.getBounds()).grid;
+        panel.surface = const_cast<PianoRollInputComponent*> (&pianoRollInput);
+        if (! tracks)
+            panel.noun = "No tracks yet";
+        else   // (with a MIDI clip in the project the roll opens one: it is empty only without any)
+        {
+            panel.id = "empty.pianoroll.add_midi_clip";
+            panel.noun = "Add MIDI clip";
+            panel.action = UiActionId::TimelineMidiClipAdd;
+        }
+        panels.push_back (std::move (panel));
+    }
+    return panels;
+}
+
+juce::Rectangle<int> MainComponent::panelEmptyRowRect (const PanelEmptyState& panel) const
+{
+    if (! panel.isRow())
+        return {};
+    const TimelineEmptyRow row { panel.noun, juce::String (emptyStateHowFor (panel.action)),
+                                 appModel.registry().stateFor (panel.action, appModel.context()).enabled };
+    const auto rects = emptyStateRowRects (panel.space, &row, 1);
+    return rects.empty() ? juce::Rectangle<int> {} : rects.front();
+}
+
+// The panel's row (or its plain text) in shell coordinates - the surface paints with the shell's coordinates.
+void MainComponent::paintPanelEmptyStates (juce::Graphics& g, const juce::Component* surface) const
+{
+    for (const PanelEmptyState& panel : panelEmptyStates())
+    {
+        if (panel.surface != surface)
+            continue;
+        if (! panel.isRow())
+        {
+            drawSmallLabel (g, panel.noun, panel.space, juce::Justification::centred);
+            continue;
+        }
+        const TimelineEmptyRow row { panel.noun, juce::String (emptyStateHowFor (panel.action)),
+                                     appModel.registry().stateFor (panel.action, appModel.context()).enabled };
+        drawEmptyStateRows (g, emptyStateRowRects (panel.space, &row, 1), &row);   // one resolution per row per paint
+    }
+}
+
 void MainComponent::runEmptyRowAction (UiActionId action)
 {
     if (! appModel.registry().stateFor (action, appModel.context()).enabled)
@@ -352,6 +430,9 @@ std::vector<std::pair<std::string, std::string>> MainComponent::harnessEmptyRows
     const auto rects = timelineEmptyRowRects (timelineInput.getLocalBounds(), state);
     for (std::size_t i = 0; i < specs.size() && i < rects.size(); ++i)
         rows.emplace_back (specs[i].id, yesdaw::ui::emptyStateRowText (specs[i].noun, emptyStateHowFor (specs[i].action)));
+    for (const PanelEmptyState& panel : panelEmptyStates())   // the inspector's and the piano roll's
+        if (! panelEmptyRowRect (panel).isEmpty())
+            rows.emplace_back (panel.id, yesdaw::ui::emptyStateRowText (panel.noun.toStdString(), emptyStateHowFor (panel.action)));
     return rows;
 }
 
@@ -592,6 +673,21 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
             add (specs[i].id, specs[i].noun, ControlTargetRole::Button,
                  rects[i].translated (timelineInput.getX(), timelineInput.getY()), std::move (row));
         }
+    }
+
+    // ADR-0073: the inspector's and the piano roll's rows.
+    for (const PanelEmptyState& panel : panelEmptyStates())
+    {
+        const juce::Rectangle<int> rect = panelEmptyRowRect (panel);
+        if (rect.isEmpty())
+            continue;
+        const UiActionId action = panel.action;
+        PaintedControl row;
+        row.activate = [this, action] { runEmptyRowAction (action); };
+        row.enabled = [this, action] { return appModel.registry().stateFor (action, appModel.context()).enabled; };
+        row.description = [this, action] { return juce::String (emptyStateHowFor (action)); };
+        row.surface = panel.surface;
+        add (panel.id, panel.noun.toStdString(), ControlTargetRole::Button, rect, std::move (row));
     }
 
     // The rail: every whole row on screen — M / S / O, pan, volume, the colour swatch, the meter.

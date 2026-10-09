@@ -252,7 +252,7 @@ public:
         {
             g.setColour (UiTheme::Color::mutedText());
             g.setFont (UiTheme::Type::font (UiTheme::Type::small));
-            g.drawFittedText ("Nothing here", getLocalBounds(), juce::Justification::centred, 1);
+            g.drawFittedText ("No files here", getLocalBounds(), juce::Justification::centred, 1);   // ADR-0073
         }
     }
 

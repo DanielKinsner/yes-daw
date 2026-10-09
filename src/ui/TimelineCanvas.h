@@ -1424,58 +1424,43 @@ inline TimelineLoopBraceRects timelineLoopBraceRects (juce::Rectangle<int> area,
 
 // The strip cell under `position`, if any — the mouse half of tool selection (the keys are the
 // other half). A click here is a tool pick, never a lane / ruler gesture.
-// ADR-0073 §3 / §5, ADR-0074: the empty Arrange's rows, centred in the clip area's free space below the last lane (G0.7:
-// lanes keep their fixed height and never fill the area), one under another, each as wide as its text - never over a
-// lane; none at all when they do not all fit (a row is dropped whole, never clipped).
-inline std::vector<juce::Rectangle<int>> timelineEmptyRowRects (juce::Rectangle<int> area, const TimelineCanvasState& state)
+// ADR-0073 §3 / §5: empty-state rows centred in `space` one under another (inside a margin), each as wide as its text;
+// none at all when they do not all fit (a row is dropped whole, never clipped). The Arrange, the inspector and the piano
+// roll lay theirs out with it.
+inline std::vector<juce::Rectangle<int>> emptyStateRowRects (juce::Rectangle<int> space, const TimelineEmptyRow* rows, int count)
 {
     std::vector<juce::Rectangle<int>> rects;
-    if (state.emptyRows == nullptr || state.emptyRowCount <= 0)
+    if (rows == nullptr || count <= 0)
         return rects;
-    const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
-    const int lanesBottom = geometry.clipArea.getY()
-                          + static_cast<int> (std::ceil (geometry.laneTop (state.trackCount) - geometry.laneTop (geometry.trackScrollRows)));
-    const juce::Rectangle<int> lanes = geometry.clipArea.withTop (std::clamp (lanesBottom, geometry.clipArea.getY(), geometry.clipArea.getBottom()))
-                                           .reduced (UiTheme::Layout::timelineEmptyRowMargin);
+    const juce::Rectangle<int> area = space.reduced (UiTheme::Layout::timelineEmptyRowMargin);
     const int height = UiTheme::Layout::timelineEmptyRowHeight;
-    const int total = state.emptyRowCount * height + (state.emptyRowCount - 1) * UiTheme::Layout::timelineEmptyRowGap;
-    if (lanes.getHeight() < total)
+    const int total = count * height + (count - 1) * UiTheme::Layout::timelineEmptyRowGap;
+    if (area.getHeight() < total)
         return rects;
     const juce::Font font = UiTheme::Type::font (UiTheme::Type::body);
-    int y = lanes.getCentreY() - total / 2;
-    for (int i = 0; i < state.emptyRowCount; ++i, y += height + UiTheme::Layout::timelineEmptyRowGap)
+    int y = area.getCentreY() - total / 2;
+    for (int i = 0; i < count; ++i, y += height + UiTheme::Layout::timelineEmptyRowGap)
     {
-        const TimelineEmptyRow& row = state.emptyRows[i];
+        const TimelineEmptyRow& row = rows[i];
         const juce::String text = row.how.isEmpty() ? row.noun : row.noun + "  (" + row.how + ")";
         const int width = static_cast<int> (std::ceil (juce::GlyphArrangement::getStringWidth (font, text)))
                         + 2 * UiTheme::Layout::timelineEmptyRowPaddingX;
-        if (width > lanes.getWidth())
+        if (width > area.getWidth())
             return {};
-        rects.emplace_back (lanes.getCentreX() - width / 2, y, width, height);
+        rects.emplace_back (area.getCentreX() - width / 2, y, width, height);
     }
     return rects;
 }
 
-// The row under a point (-1: none).
-inline int timelineEmptyRowAtPoint (juce::Rectangle<int> area, const TimelineCanvasState& state, juce::Point<int> point)
-{
-    const auto rects = timelineEmptyRowRects (area, state);
-    for (std::size_t i = 0; i < rects.size(); ++i)
-        if (rects[i].contains (point))
-            return static_cast<int> (i);
-    return -1;
-}
-
 // Each row: its noun in the text token (muted while its action is unavailable), then "  (how)" in the muted text token,
 // the pair centred in its row.
-inline void drawTimelineEmptyRows (juce::Graphics& g, juce::Rectangle<int> area, const TimelineCanvasState& state)
+inline void drawEmptyStateRows (juce::Graphics& g, const std::vector<juce::Rectangle<int>>& rects, const TimelineEmptyRow* rows)
 {
-    const auto rects = timelineEmptyRowRects (area, state);
     const juce::Font font = UiTheme::Type::font (UiTheme::Type::body);
     g.setFont (font);
     for (std::size_t i = 0; i < rects.size(); ++i)
     {
-        const TimelineEmptyRow& row = state.emptyRows[i];
+        const TimelineEmptyRow& row = rows[i];
         const juce::String suffix = row.how.isEmpty() ? juce::String() : "  (" + row.how + ")";
         const float nounWidth = juce::GlyphArrangement::getStringWidth (font, row.noun);
         const float suffixWidth = juce::GlyphArrangement::getStringWidth (font, suffix);
@@ -1490,6 +1475,36 @@ inline void drawTimelineEmptyRows (juce::Graphics& g, juce::Rectangle<int> area,
                         juce::Justification::centredLeft, false);
         }
     }
+}
+
+// ADR-0073 §3 / §5, ADR-0074: the empty Arrange's rows, centred in the clip area's free space below the last lane (G0.7:
+// lanes keep their fixed height and never fill the area), one under another, each as wide as its text - never over a
+// lane; none at all when they do not all fit (a row is dropped whole, never clipped).
+inline std::vector<juce::Rectangle<int>> timelineEmptyRowRects (juce::Rectangle<int> area, const TimelineCanvasState& state)
+{
+    std::vector<juce::Rectangle<int>> rects;
+    if (state.emptyRows == nullptr || state.emptyRowCount <= 0)
+        return rects;
+    const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
+    const int lanesBottom = geometry.clipArea.getY()
+                          + static_cast<int> (std::ceil (geometry.laneTop (state.trackCount) - geometry.laneTop (geometry.trackScrollRows)));
+    const juce::Rectangle<int> lanes = geometry.clipArea.withTop (std::clamp (lanesBottom, geometry.clipArea.getY(), geometry.clipArea.getBottom()));
+    return emptyStateRowRects (lanes, state.emptyRows, state.emptyRowCount);
+}
+
+// The row under a point (-1: none).
+inline int timelineEmptyRowAtPoint (juce::Rectangle<int> area, const TimelineCanvasState& state, juce::Point<int> point)
+{
+    const auto rects = timelineEmptyRowRects (area, state);
+    for (std::size_t i = 0; i < rects.size(); ++i)
+        if (rects[i].contains (point))
+            return static_cast<int> (i);
+    return -1;
+}
+
+inline void drawTimelineEmptyRows (juce::Graphics& g, juce::Rectangle<int> area, const TimelineCanvasState& state)
+{
+    drawEmptyStateRows (g, timelineEmptyRowRects (area, state), state.emptyRows);
 }
 
 inline std::optional<TimelineTool> timelineToolAtPoint (juce::Rectangle<int> area,

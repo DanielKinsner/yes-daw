@@ -8,6 +8,34 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-08 — ADR-0073 cp3: the inspector and the piano roll offer Add MIDI clip when they are empty
+
+**What changes (visible):** the inspector's Clip tab with no clip selected, and the piano roll with no MIDI clip open,
+show `Add MIDI clip  (Clip > Add MIDI Clip)` (it has no chord, so its menu path) while the project has no clip of that
+kind - a real control (click or Tab + Enter adds the clip and opens it); with clips but none selected the inspector says
+"Select a clip" (no single action is honest there); with no tracks both say "No tracks yet". "No track" (track inspector)
+became "No tracks yet", the browser's "Nothing here" became "No files here", and the roll's header no longer says "No
+MIDI Clip selected". ADR-0073's "Select a track" rows are not built: Add MIDI Clip needs no selection (it picks a track),
+so that state never occurs. **Bug found and fixed on the way:** after an undo removed a MIDI clip the inspector kept
+showing that clip's quantize panel (its id outlived it); the panel now needs the clip to exist (gated - red without the
+fix). **Gates (`[g65]`, 7 cases):** each panel's row and text, its element, Tab + Enter and a click on the inspector row,
+a click on the roll's row, the plain states (an audio song just opened: "Select a clip", no control), no-tracks plain
+text, and the old strings gone from `src/`. Five mutations bite. **Visual check (agent):** a new project with the roll
+open shows the three rows - Arrange, inspector, roll - each legible in its own empty surface.
+**Critic:** no blocker; in - a pointer resting on each row (Arrange, inspector, roll) is gated to hover it through the
+shell's own child walk (as JUCE routes an event), the no-obscured sweep also covers list boxes and labels and runs with
+the piano roll open, the unreachable "Select a MIDI clip" branch is gone (the roll opens a MIDI clip whenever one
+exists), the menu table is built once, and a comment pins why the roll's row never sits over its keyboard column.
+The full suite then caught three older pointer gates (ADR-0067/0072) that now meet the inspector's row: their rig sent
+an `empty.*` record's events through the instrument panel; it now routes each to the surface that paints it.
+**Local:** build, 423/423 ctest, Clang clean. **CI on the way:** cp2's commit (dfbeadc) failed the macOS build - Apple
+Clang rejects capturing a structured binding by reference (`-Wunused-lambda-capture`); corrected in eda3e2f (an
+init-capture). eda3e2f's CI: macOS builds and fails only the GPU frame check (raw: max 32.4 ms, sustained 23.6 ms, 57
+slow frames - the standing exception still awaits Dan's renewal); **Windows** also failed the GPU frame check once (max
+23.3 ms, sustained 18.2 ms, 18 slow frames) on code byte-identical to dfbeadc's for that binary (eda3e2f changed only
+`tests/ui_input_tests.cpp`, which it does not build) where Windows was green - not excused: the Windows job is re-run on
+the same SHA as evidence.
+
 ## 2026-10-08 — ADR-0073 cp2 + ADR-0074: the empty Arrange offers its next action
 
 **What changes (visible):** the Arrange no longer says "Create or open a Project" (which it said even with a project

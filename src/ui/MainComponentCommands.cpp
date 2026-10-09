@@ -616,9 +616,14 @@ void MainComponent::handleAction (yesdaw::ui::UiActionId action)
 // toolbar and keymap use. The model is mechanically testable without opening popups.
 // G1.2 (plan §3, Logic's order): File · Edit · Track · Clip · MIDI · View · Transport ·
 // Options · Help. Every item paints the chord that fires it in the CURRENT Focus context.
-juce::StringArray MainComponent::getMenuBarNames()
+juce::StringArray MainComponent::menuBarNames()
 {
     return { "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" };
+}
+
+juce::StringArray MainComponent::getMenuBarNames()
+{
+    return menuBarNames();
 }
 
 std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int topLevelMenuIndex)

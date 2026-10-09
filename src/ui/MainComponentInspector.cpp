@@ -334,10 +334,14 @@ void MainComponent::setInspectorWidth (int width)
 // is (an audio clip's own card wins; the TRACK tab is the track's).
 bool MainComponent::inspectorShowsQuantizePanel() const
 {
-    return ! appModel.context().inspectorTrackTabActive
-        && appModel.context().projectLoaded
-        && appModel.selectedMidiClipId().isValid()
-        && findProjectClipById (appModel.selectedTimelineClipId()) == nullptr;
+    if (appModel.context().inspectorTrackTabActive || ! appModel.context().projectLoaded
+        || ! appModel.selectedMidiClipId().isValid() || findProjectClipById (appModel.selectedTimelineClipId()) != nullptr)
+        return false;
+    // The selected MIDI clip must still exist: an undo that removed it leaves its id behind (ADR-0073's gate found the
+    // inspector still showing the quantize panel of a clip that was gone).
+    const auto& midiClips = appModel.project().midiClips;
+    return std::any_of (midiClips.begin(), midiClips.end(),
+                        [id = appModel.selectedMidiClipId()] (const yesdaw::engine::MidiClip& clip) { return clip.id == id; });
 }
 
 std::array<juce::Rectangle<int>, MainComponent::kMidiClipInspectorRows> MainComponent::midiClipInspectorRows (juce::Rectangle<int> content) noexcept
@@ -814,7 +818,7 @@ void MainComponent::drawTrackInspector (juce::Graphics& g, juce::Rectangle<int> 
     const auto& tracks = appModel.project().tracks;
     if (! appModel.context().projectLoaded || tracks.empty())
     {
-        drawSmallLabel (g, "No track", area, juce::Justification::centred);
+        drawSmallLabel (g, "No tracks yet", area, juce::Justification::centred);   // ADR-0073: the Arrange offers the next step
         return;
     }
 
@@ -945,7 +949,7 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
             drawMidiClipInspector (g, area);
             return;
         }
-        drawSmallLabel (g, "No clip selected", area, juce::Justification::centred);
+        paintPanelEmptyStates (g, this);   // ADR-0073: a row (Add MIDI clip) or plain text
         return;
     }
 

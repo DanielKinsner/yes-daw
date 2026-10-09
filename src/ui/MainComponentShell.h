@@ -939,9 +939,24 @@ private:
     // G1.2 (plan §3, Logic's order): File · Edit · Track · Clip · MIDI · View · Transport ·
     // Options · Help. Every item paints the chord that fires it in the CURRENT Focus context.
     juce::StringArray getMenuBarNames() override;
+    [[nodiscard]] static juce::StringArray menuBarNames();   // the menu bar's names (getMenuBarNames is non-const)
 
     [[nodiscard]] static std::span<const yesdaw::ui::UiActionId> menuActionsForIndex (int topLevelMenuIndex);
-    [[nodiscard]] std::string emptyStateHowFor (yesdaw::ui::UiActionId action);   // ADR-0073 §2: the chord that works here, else the menu path
+    [[nodiscard]] std::string emptyStateHowFor (yesdaw::ui::UiActionId action) const;   // ADR-0073 §2: the chord that works here, else the menu path
+    // ADR-0073 §3: what an empty inspector Clip tab or piano roll shows - a row (an action) or plain text ("" id), centred
+    // in `space` (shell coordinates) on `surface`.
+    struct PanelEmptyState
+    {
+        std::string id;
+        juce::String noun;
+        yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::Count;
+        juce::Rectangle<int> space;
+        juce::Component* surface = nullptr;
+        [[nodiscard]] bool isRow() const noexcept { return ! id.empty(); }
+    };
+    [[nodiscard]] std::vector<PanelEmptyState> panelEmptyStates() const;
+    [[nodiscard]] juce::Rectangle<int> panelEmptyRowRect (const PanelEmptyState& panel) const;   // empty: plain text, or no room
+    void paintPanelEmptyStates (juce::Graphics& g, const juce::Component* surface) const;
     // ADR-0073 §3: the empty Arrange's rows for the state the shell is in (none while the project has tracks).
     struct EmptyRowSpec
     {
@@ -1038,6 +1053,14 @@ public:
     [[nodiscard]] const auto& harnessPointerRecords() const noexcept { return pointerRecords; }   // ADR-0067 §2
     [[nodiscard]] std::string harnessEmptyStateHow (yesdaw::ui::UiActionId action) { return emptyStateHowFor (action); }
     [[nodiscard]] std::vector<std::pair<std::string, std::string>> harnessEmptyRows();   // ADR-0073: (id, text) as painted
+    [[nodiscard]] std::vector<std::string> harnessEmptyPanelTexts() const   // ADR-0073: the panels' plain texts
+    {
+        std::vector<std::string> texts;
+        for (const PanelEmptyState& panel : panelEmptyStates())
+            if (! panel.isRow())
+                texts.push_back (panel.noun.toStdString());
+        return texts;
+    }
     void harnessPointer (MainComponentPointerKind kind, juce::Point<int> shellPoint, juce::Component* component,
                          juce::ModifierKeys modifiers) { pointerEvent (kind, shellPoint, component, modifiers); }
     [[nodiscard]] MainComponentPointerState harnessPointerState() const

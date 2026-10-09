@@ -24921,11 +24921,13 @@ struct PointerRig
         FAIL ("no record " << id);
         return {};
     }
-    // The component a real event at a record carries: the surface that paints it (the shell for the header's).
+    // The component a real event at a record carries: the surface that paints it (the shell for the header's and the
+    // inspector's empty-state row).
     juce::Component& surfaceOf (const std::string& id)
     {
-        const char* surfaceId = id.rfind ("header.", 0) == 0     ? nullptr
-                              : id.rfind ("tool.", 0) == 0       ? "timeline.canvas"
+        const char* surfaceId = id.rfind ("header.", 0) == 0 || id.rfind ("empty.inspector.", 0) == 0 ? nullptr
+                              : id.rfind ("tool.", 0) == 0 || id.rfind ("empty.arrange.", 0) == 0 ? "timeline.canvas"
+                              : id.rfind ("empty.pianoroll.", 0) == 0 ? kPianoRollComponentId
                               : id.rfind ("rail.", 0) == 0       ? "shell.tracklist.input"
                               : id.rfind ("mixer.", 0) == 0      ? "shell.mixer.strips.input"
                                                                   : "instrument.panel";
@@ -26325,6 +26327,16 @@ static const yesdaw::ui::PaintedAccessibleProxy* paintedProxyNamed (juce::Compon
     return nullptr;
 }
 
+// The empty Arrange's rows among every empty-state row the shell paints.
+static std::vector<std::pair<std::string, std::string>> arrangeRows (juce::Component& shell)
+{
+    std::vector<std::pair<std::string, std::string>> rows;
+    for (auto& row : yesdaw::ui::mainComponentEmptyRows (shell))
+        if (row.first.rfind ("empty.arrange.", 0) == 0)
+            rows.push_back (std::move (row));
+    return rows;
+}
+
 // ADR-0073 §1-§3 / ADR-0074 (cp2): an empty Arrange offers its next action as rows - with no project, New and Open; a
 // new project (its default track, no clip), Import audio; a project with no tracks, Add audio track and Import audio -
 // each naming the chord that works there; the old prose is gone. Each row is a painted control: a record, a Control
@@ -26344,19 +26356,19 @@ TEST_CASE ("ADR-0073 an empty Arrange offers its next actions as rows", "[ui][in
     const auto trackCount = [&shell] { return static_cast<int> (probeRoot (*shell)["project"]["trackCount"]); };
 
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.projectLoaded);
-    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == Rows { { "empty.arrange.new_project", "New project  (Ctrl+N)" },
+    REQUIRE (arrangeRows (*shell) == Rows { { "empty.arrange.new_project", "New project  (Ctrl+N)" },
                                                                   { "empty.arrange.open_project", "Open project  (Ctrl+O)" } });
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
     REQUIRE (trackCount() == 1);   // ADR-0074: a new project's default track
     const Rows noClips { { "empty.arrange.import_audio", "Import audio  (Ctrl+Shift+I)" } };
-    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noClips);
+    REQUIRE (arrangeRows (*shell) == noClips);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackSelectNext);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRemove);
     REQUIRE (trackCount() == 0);
     const Rows noTracks { { "empty.arrange.add_track", "Add audio track  (Ctrl+Shift+N)" },
                           { "empty.arrange.import_audio", "Import audio  (Ctrl+Shift+I)" } };
-    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noTracks);
+    REQUIRE (arrangeRows (*shell) == noTracks);
 
     // Painted controls: records, and elements titled by the noun with the chord as their help.
     const auto records = yesdaw::ui::mainComponentPointerRecords (*shell);
@@ -26400,11 +26412,11 @@ TEST_CASE ("ADR-0073 an empty Arrange offers its next actions as rows", "[ui][in
     tabTo ("empty.arrange.add_track");
     REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
     REQUIRE (trackCount() == 1);
-    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noClips);   // a track, still no clip
+    REQUIRE (arrangeRows (*shell) == noClips);   // a track, still no clip
     REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));   // control navigation ends
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
     REQUIRE (trackCount() == 0);
-    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noTracks);
+    REQUIRE (arrangeRows (*shell) == noTracks);
 
     // The chord the row names runs its action.
     REQUIRE (pressKey (*shell, 'N', juce::ModifierKeys (juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier)));
@@ -26418,13 +26430,13 @@ TEST_CASE ("ADR-0073 an empty Arrange offers its next actions as rows", "[ui][in
     (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
     REQUIRE (trackCount() == 1);
     REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 1);
-    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell).empty());
+    REQUIRE (arrangeRows (*shell).empty());
 
     // Undo the import's clip: one track, no clip - the new-project state (ADR-0074).
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
     REQUIRE (trackCount() == 1);
     REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 0);
-    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noClips);
+    REQUIRE (arrangeRows (*shell) == noClips);
 
     // ADR-0074: the row takes clicks only inside its own rect - the lane's gestures start everywhere else.
     {
@@ -26450,10 +26462,10 @@ TEST_CASE ("ADR-0073 an empty Arrange offers its next actions as rows", "[ui][in
     }
 
     // A MIDI clip alone (no audio) also gives the lanes their content back.
-    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell) == noClips);
+    REQUIRE (arrangeRows (*shell) == noClips);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
     REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["midiClipCount"]) == 1);
-    REQUIRE (yesdaw::ui::mainComponentEmptyRows (*shell).empty());
+    REQUIRE (arrangeRows (*shell).empty());
 }
 
 // ADR-0073 §5: the rows obscure nothing - at every window size, with the dock open and closed, they lie inside the lanes,
@@ -26469,13 +26481,16 @@ TEST_CASE ("ADR-0073 an empty Arrange's rows obscure nothing at any size", "[ui]
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     juce::Component& timeline = requireTimelineComponent (*shell);
     int shown = 0;
+    for (const bool roll : { false, true })
     for (const juce::Point<int> size : { juce::Point<int> (L::windowMinWidth, L::windowMinHeight), juce::Point<int> (1280, 720),
                                          juce::Point<int> (1366, 768), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
         for (const int dock : { 0, L::mixerHeight, 420 })
         {
             shell->setSize (size.x, size.y);
+            if (roll != (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll))
+                clickButton (requireButtonForAction (*shell, roll ? UiActionId::ViewPianoRoll : UiActionId::ViewMixer));
             yesdaw::ui::mainComponentSetDockHeight (*shell, dock);
-            INFO (size.toString() << ", dock " << dock);
+            INFO (size.toString() << ", dock " << dock << (roll ? ", piano roll" : ", mixer"));
             const auto records = yesdaw::ui::mainComponentPointerRecords (*shell);
             std::vector<std::pair<std::string, juce::Rectangle<int>>> rows;
             for (const auto& record : records)
@@ -26497,9 +26512,12 @@ TEST_CASE ("ADR-0073 an empty Arrange's rows obscure nothing at any size", "[ui]
             for (const auto& [id, bounds] : rows)
             {
                 INFO (id << " " << bounds.toString());
-                REQUIRE (lanes.contains (bounds));
-                for (const auto& lane : laneRects)
-                    REQUIRE_FALSE (bounds.intersects (lane));
+                if (id.rfind ("empty.arrange.", 0) == 0)   // the Arrange's: in the lanes' free space, never over a lane
+                {
+                    REQUIRE (lanes.contains (bounds));
+                    for (const auto& lane : laneRects)
+                        REQUIRE_FALSE (bounds.intersects (lane));
+                }
                 for (const auto& [otherId, other] : records)
                     if (otherId != id)
                         REQUIRE_FALSE (bounds.intersects (other));
@@ -26511,7 +26529,8 @@ TEST_CASE ("ADR-0073 an empty Arrange's rows obscure nothing at any size", "[ui]
                             continue;
                         const bool widget = dynamic_cast<juce::Button*> (&child) != nullptr || dynamic_cast<juce::ComboBox*> (&child) != nullptr
                                          || dynamic_cast<juce::Slider*> (&child) != nullptr || dynamic_cast<juce::TextEditor*> (&child) != nullptr
-                                         || dynamic_cast<juce::ScrollBar*> (&child) != nullptr;
+                                         || dynamic_cast<juce::ScrollBar*> (&child) != nullptr || dynamic_cast<juce::ListBox*> (&child) != nullptr
+                                         || dynamic_cast<juce::Label*> (&child) != nullptr;
                         if (widget)
                         {
                             const juce::Rectangle<int> area = (*shell).getLocalArea (&child, child.getLocalBounds());
@@ -26534,7 +26553,7 @@ TEST_CASE ("ADR-0073 an empty Arrange's rows obscure nothing at any size", "[ui]
     for (int n = 0; n < 40 && ! gone; ++n)
     {
         yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
-        gone = yesdaw::ui::mainComponentEmptyRows (*shell).empty();
+        gone = arrangeRows (*shell).empty();
     }
     REQUIRE (gone);
     REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 0);   // still no clip: the room ran out
@@ -26570,13 +26589,174 @@ TEST_CASE ("ADR-0073 the empty Arrange's old prose is gone", "[ui][input][g65][e
         std::ifstream in (entry.path(), std::ios::binary);
         std::string line;
         while (std::getline (in, line))
-            for (const char* old : { "\"No Project\"", "\"Create or open a Project\"", "\"Use New or Open in the top-left toolbar\"" })
+            for (const char* old : { "\"No Project\"", "\"Create or open a Project\"", "\"Use New or Open in the top-left toolbar\"",
+                                     "\"No clip selected\"", "\"No MIDI Clip selected\"", "\"Nothing here\"" })
                 if (line.find (old) != std::string::npos)
                     found.push_back (entry.path().filename().string() + ": " + old);
     }
     for (const std::string& site : found)
         UNSCOPED_INFO (site);
     REQUIRE (found.empty());
+}
+
+// ADR-0073 §3 (cp3): the inspector's Clip tab with no clip, and the piano roll with no MIDI clip, offer Add MIDI clip
+// (by its menu path: it has no chord) while the project has no clip of that kind; with clips they name the selection to
+// make ("Select a clip"), with no tracks "No tracks yet" - plain text, no control. Each row is a painted control on its
+// surface (the shell, the roll): Tab and Enter, or a click, add the clip and the row gives way.
+TEST_CASE ("ADR-0073 the inspector and the piano roll offer Add MIDI clip when they are empty", "[ui][input][g65][empty-rows]")
+{
+    const auto bundlePath = makeTempBundlePath ("g65-panels");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    const auto rowsOf = [&shell] (const char* prefix) {
+        std::vector<std::pair<std::string, std::string>> rows;
+        for (auto& row : yesdaw::ui::mainComponentEmptyRows (*shell))
+            if (row.first.rfind (prefix, 0) == 0)
+                rows.push_back (std::move (row));
+        return rows;
+    };
+    const auto midiClips = [&shell] { return static_cast<int> (probeRoot (*shell)["project"]["midiClipCount"]); };
+    using Rows = std::vector<std::pair<std::string, std::string>>;
+
+    // The Clip tab of a new project (its default track, no clip).
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.inspectorTrackTabActive);
+    REQUIRE (rowsOf ("empty.inspector.") == Rows { { "empty.inspector.add_midi_clip", "Add MIDI clip  (Clip > Add MIDI Clip)" } });
+    {
+        const auto* proxy = paintedProxyNamed (*shell, "empty.inspector.add_midi_clip");
+        REQUIRE (proxy != nullptr);
+        REQUIRE (proxy->describe().title == "Add MIDI clip");
+        REQUIRE (proxy->describe().help == "Clip > Add MIDI Clip");
+    }
+    for (int n = 0; n < 200 && yesdaw::ui::mainComponentControlTarget (*shell).id != "empty.inspector.add_midi_clip"; ++n)
+        REQUIRE (pressKey (*shell, juce::KeyPress::tabKey));
+    REQUIRE (yesdaw::ui::mainComponentControlTarget (*shell).id == "empty.inspector.add_midi_clip");
+    REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    REQUIRE (midiClips() == 1);
+    REQUIRE (rowsOf ("empty.inspector.").empty());   // the clip is open: its quantize panel shows
+    REQUIRE (pressKey (*shell, juce::KeyPress::escapeKey));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    REQUIRE (midiClips() == 0);
+    // A click on the inspector's row does the same (the shell paints it and takes its click).
+    if (snapshotMainComponent (*shell).context.inspectorTrackTabActive)
+        clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+    {
+        juce::Rectangle<int> inspectorRow;
+        for (const auto& [id, bounds] : yesdaw::ui::mainComponentPointerRecords (*shell))
+            if (id == "empty.inspector.add_midi_clip")
+                inspectorRow = bounds;
+        REQUIRE_FALSE (inspectorRow.isEmpty());
+        shell->mouseDown (makeMouseEvent (*shell, inspectorRow.getCentre(), inspectorRow.getCentre(), false, 1,
+                                          juce::ModifierKeys::leftButtonModifier));
+        REQUIRE (midiClips() == 1);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        REQUIRE (midiClips() == 0);
+    }
+
+    // The piano roll, empty: its row, clicked, adds the clip and the roll opens it.
+    if (snapshotMainComponent (*shell).context.activePanel != yesdaw::ui::UiPanel::PianoRoll)   // adding the clip opened it
+        clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, 420);   // the roll's grid has room for its row
+    REQUIRE (rowsOf ("empty.pianoroll.") == Rows { { "empty.pianoroll.add_midi_clip", "Add MIDI clip  (Clip > Add MIDI Clip)" } });
+    juce::Rectangle<int> row;
+    for (const auto& [id, bounds] : yesdaw::ui::mainComponentPointerRecords (*shell))
+        if (id == "empty.pianoroll.add_midi_clip")
+            row = bounds;
+    REQUIRE_FALSE (row.isEmpty());
+    juce::Component& pianoRoll = requirePianoRollComponent (*shell);
+    REQUIRE (pianoRoll.getBounds().contains (row));
+    mouseDownAt (pianoRoll, pianoRoll.getLocalPoint (shell.get(), row.getCentre()));
+    REQUIRE (midiClips() == 1);
+    REQUIRE (rowsOf ("empty.pianoroll.").empty());
+
+    // With no tracks: plain text, no control. (A track holding a clip is not removed: the clip goes first.)
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    REQUIRE (midiClips() == 0);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, juce::Point<int> (kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+                                                               + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2));   // select the track
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRemove);
+    REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["trackCount"]) == 0);
+    REQUIRE (rowsOf ("empty.inspector.").empty());
+    REQUIRE (rowsOf ("empty.pianoroll.").empty());
+    const auto records = yesdaw::ui::mainComponentPointerRecords (*shell);
+    REQUIRE (std::none_of (records.begin(), records.end(), [] (const auto& record) {
+        return record.first.rfind ("empty.inspector.", 0) == 0 || record.first.rfind ("empty.pianoroll.", 0) == 0;
+    }));
+}
+
+// ADR-0073 §1: with clips but none selected there is no single honest action - the inspector's Clip tab names the
+// selection to make in plain text and offers no control (a song with audio clips, just opened, nothing selected).
+TEST_CASE ("ADR-0073 with clips but none selected the inspector names the selection, offering no control", "[ui][input][g65][empty-rows]")
+{
+    const std::filesystem::path fixtureDir = std::filesystem::temp_directory_path() / "yesdaw-g65-select";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (fixtureDir, ec);
+    }
+    yesdaw::app::fixture::SongFixtureSpec spec;
+    spec.tracks = 2;
+    spec.seconds = 2.0;
+    spec.sampleRateHz = 48000;
+    spec.channels = 2;
+    spec.midiTracks = 0;   // audio clips only: none is selected when the song opens
+    const yesdaw::app::fixture::SongFixtureResult fixture = yesdaw::app::fixture::buildSongFixture (fixtureDir, spec);
+    INFO (fixture.error);
+    REQUIRE (fixture.ok);
+    MainComponentFileChoices choices;
+    const std::filesystem::path bundlePath = fixture.bundlePath;
+    choices.chooseOpenProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.midiClipSelected);
+    if (! snapshotMainComponent (*shell).context.inspectorVisible)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewToggleInspector);
+    if (snapshotMainComponent (*shell).context.inspectorTrackTabActive)
+        clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+    const auto texts = yesdaw::ui::mainComponentEmptyPanelTexts (*shell);
+    REQUIRE (texts == std::vector<std::string> { "Select a clip" });
+    const auto rows = yesdaw::ui::mainComponentEmptyRows (*shell);
+    REQUIRE (std::none_of (rows.begin(), rows.end(), [] (const auto& row) { return row.first.rfind ("empty.inspector.", 0) == 0; }));
+    const auto records = yesdaw::ui::mainComponentPointerRecords (*shell);
+    REQUIRE (std::none_of (records.begin(), records.end(), [] (const auto& record) { return record.first.rfind ("empty.inspector.", 0) == 0; }));
+    shell.reset();
+    std::error_code ec;
+    std::filesystem::remove_all (fixtureDir, ec);
+}
+
+// ADR-0072 / ADR-0073: a real pointer resting on an empty-state row hovers it - the shell walks its children as JUCE
+// routes an event (the tick's walk), so a child covering a row would leave it un-hovered. Every row of a new project, the
+// piano roll open: the Arrange's, the inspector's (the shell paints it) and the roll's.
+TEST_CASE ("ADR-0073 a pointer resting on an empty-state row hovers it", "[ui][input][g65][empty-rows][hover]")
+{
+    const auto bundlePath = makeTempBundlePath ("g65-hover");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    if (snapshotMainComponent (*shell).context.activePanel != yesdaw::ui::UiPanel::PianoRoll)
+        clickButton (requireButtonForAction (*shell, UiActionId::ViewPianoRoll));
+    yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
+    ScopedCurrentModifiers none { juce::ModifierKeys {} };
+    std::set<std::string> hovered;
+    for (const auto& [id, bounds] : yesdaw::ui::mainComponentPointerRecords (*shell))
+    {
+        if (id.rfind ("empty.", 0) != 0)
+            continue;
+        INFO (id << " " << bounds.toString());
+        yesdaw::ui::mainComponentPointer (*shell, yesdaw::ui::MainComponentPointerKind::move, bounds.getCentre(), shell.get(), {});
+        yesdaw::ui::mainComponentServiceUiTick (*shell);   // no button down: the walk finds what is under the pointer
+        REQUIRE (yesdaw::ui::mainComponentPointerState (*shell).hovered.toStdString() == id);
+        hovered.insert (id);
+    }
+    REQUIRE (hovered == std::set<std::string> { "empty.arrange.import_audio", "empty.inspector.add_midi_clip", "empty.pianoroll.add_midi_clip" });
 }
 
 #if JUCE_WINDOWS
