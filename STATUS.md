@@ -14,6 +14,10 @@ Older entries below are dated history, not competing "Now" instructions.
 writes-on remain next, after the current checkpoint's required evidence. Dan authorized hands-off app tests for this
 session. The first full drive batch exposed an earlier visual defect and an audio-device gate failure; these take
 priority under plan section 8.2.
+The measured paint correction is committed at `dd1ab73`, awaiting push once the cloud run starts. Independent
+preparation is recorded in [the close-out checklist](docs/plans/2026-10-09-cheap-autosave-closeout.md); it preserves
+the active plan and ADRs. Its critic's sole ordering finding is fixed: separate cp7 cleanup precedes final sign-off,
+without blocking cp6. No dependent feature implementation has started.
 
 **Cheap snapshot:** links immutable audio, copies on link failure, checks linked identity and copied hashes, and keeps
 full recovery validation. Five new default gates cover identity/zero copied bytes, 200-write link counts, fallback,
@@ -92,7 +96,7 @@ Parsed drive summaries, measured counters, source hashes and verified endpoint r
 construction in the test; the final 174-assertion gate and test-TU Clang passed again, and the review addendum
 confirms the verdict remains unchanged. Core run `37971282150`'s macOS job also completed red only on the frame
 bound: sustained **23.787291 ms**, maximum 32.1861 ms, 83 slow frames; other 425/426 cases passed. This predates
-the panel repair; its Windows job is still building. No noise exception is applied.
+the panel repair; its Windows build passed and tests are running. No noise exception is applied.
 
 ## 2026-10-09 — Dan accepted ADR-0069: resume the cheap autosave checkpoints
 
