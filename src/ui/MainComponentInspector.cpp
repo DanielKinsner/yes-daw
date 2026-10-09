@@ -9,6 +9,20 @@ using namespace yesdaw::ui::shell;
 
 namespace yesdaw::ui {
 
+namespace {
+
+juce::Rectangle<int> inspectorTakesSectionBounds (juce::Rectangle<int> content)
+{
+    using L = UiTheme::Layout;
+    const auto takes = content.withTrimmedTop (L::inspectorAutomationSectionTop);
+    // The Markers card owns the next section. The old full-remainder Takes card painted
+    // over its heading, while the child marker list still appeared above that paint.
+    return takes.withHeight (std::min (takes.getHeight(),
+                                      L::inspectorMarkersSectionTop - L::inspectorAutomationSectionTop));
+}
+
+} // namespace
+
 // V7: the inspector's CLIP/TRACK tabs become real buttons — each dispatches a genuine
 // UiActionId, the model owns the active-tab state, and layout/paint follow it.
 void MainComponent::configureInspectorTabs()
@@ -522,8 +536,7 @@ void MainComponent::layoutInspectorControls()
             inspectorMarkerList.setBounds ({});
         inspectorMarkerList.updateContent();
     }
-    auto takesSection = area.withTrimmedTop (
-        yesdaw::ui::UiTheme::Layout::inspectorAutomationSectionTop);
+    auto takesSection = inspectorTakesSectionBounds (area);
     const int takesNeededHeight = yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight
                                 + yesdaw::ui::UiTheme::Layout::inspectorTakeRowHeight
                                 + yesdaw::ui::UiTheme::Layout::inspectorTakeRowGap;
@@ -1152,8 +1165,7 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
             drawSmallLabel (g, "MARKERS", markersCard.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight)
                                               .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelInsetX));
     }
-    auto takes = area.withTrimmedTop (
-        yesdaw::ui::UiTheme::Layout::inspectorAutomationSectionTop);
+    auto takes = inspectorTakesSectionBounds (area);
     if (! drawInspectorSectionCard (takes))
         return;
     drawSmallLabel (

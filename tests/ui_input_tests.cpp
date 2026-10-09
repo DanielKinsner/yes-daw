@@ -27118,6 +27118,87 @@ TEST_CASE ("G6 a clip drawn over another hides the covered clip's name there", "
     REQUIRE (textPixelsIn (named, columns (0.4, 4.0)) == 0);   // nothing of the covered name past it
 }
 
+// Rubric line 1: the Takes card must stop before the Markers card. Its old full-remainder paint covered the MARKERS
+// heading, leaving only the child ListBox's gray background visible. Check the heading's actual text pixels with an
+// empty list and with two markers, including the whole-section fit boundary; a row-count check cannot catch this.
+TEST_CASE ("the inspector Takes card does not cover the Markers heading", "[ui][input][shell][inspector-markers-card]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const auto bundlePath = makeTempBundlePath ("inspector-markers-card");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path { YESDAW_WAV_FIXTURE_PATH }; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::mixerHeight);
+    auto* list = dynamic_cast<juce::ListBox*> (findChildWithComponentId (*shell, "clip.inspector.markers"));
+    REQUIRE (list != nullptr);
+    REQUIRE (list->isVisible());
+
+    const auto contentBounds = [&] {
+        const juce::var rect = probeRoot (*shell)["layout"]["inspector"];
+        REQUIRE (rect.isArray());
+        juce::Rectangle<int> area (static_cast<int> (rect[0]), static_cast<int> (rect[1]),
+                                   static_cast<int> (rect[2]), static_cast<int> (rect[3]));
+        area.removeFromTop (L::inspectorTabHeight);
+        return area.reduced (L::inspectorContentInsetX, L::inspectorContentInsetY);
+    };
+    shell->setSize (2560, 1440);
+    const int fitHeight = shell->getHeight() - contentBounds().getHeight()
+                        + L::inspectorMarkersSectionTop + L::inspectorMarkersSectionHeight;
+    int headingsChecked = 0;
+    int droppedChecked = 0;
+    for (const int markerCount : { 0, 2 })
+    {
+        if (markerCount == 2)
+        {
+            REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys(), 0)));
+            juce::Component& timeline = requireTimelineComponent (*shell);
+            const auto project = readProjectSnapshot (bundlePath);
+            const auto rows = yesdaw::ui::timeline_canvas_detail::rulerRows (
+                yesdaw::ui::timelineCanvasGeometry (timeline.getLocalBounds(), yesdaw::ui::TimelineCanvasState {}).rulerArea);
+            const int x = projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), project,
+                                                  project.clips.front().timelineLength / 2).x;
+            mouseDownAt (timeline, { x, rows.time.getCentreY() });
+            releaseDragAt (timeline, { x, rows.time.getCentreY() }, { x, rows.time.getCentreY() });
+            REQUIRE (shell->keyPressed (juce::KeyPress ('m', juce::ModifierKeys(), 0)));
+        }
+        for (const auto size : { juce::Point<int> { 1280, 720 }, juce::Point<int> { 1920, 1080 },
+                                 juce::Point<int> { 1920, fitHeight - 1 }, juce::Point<int> { 1920, fitHeight },
+                                 juce::Point<int> { 2560, 1440 } })
+        {
+            shell->setSize (size.x, size.y);
+            INFO ("size " << size.x << "x" << size.y << ", markers " << markerCount);
+            REQUIRE (list->getListBoxModel()->getNumRows() == markerCount);
+            const auto content = contentBounds();
+            const auto card = content.withTrimmedTop (L::inspectorMarkersSectionTop)
+                                     .withHeight (L::inspectorMarkersSectionHeight);
+            if (! content.contains (card))
+            {
+                REQUIRE (list->getBounds().isEmpty());
+                ++droppedChecked;
+                continue;
+            }
+            REQUIRE_FALSE (list->getBounds().isEmpty());
+            REQUIRE (card.contains (list->getBounds()));
+            const auto heading = card.withHeight (L::inspectorSectionLabelHeight);
+            REQUIRE_FALSE (heading.intersects (list->getBounds()));
+            const auto withText = renderSoftware (*shell, heading);
+            const auto withoutText = renderSoftware (*shell, heading, false);
+            int textPixels = 0;
+            for (int y = 0; y < heading.getHeight(); ++y)
+                for (int x = 0; x < heading.getWidth(); ++x)
+                    textPixels += withText.getPixelAt (x, y) != withoutText.getPixelAt (x, y) ? 1 : 0;
+            REQUIRE (textPixels > 20);
+            ++headingsChecked;
+        }
+    }
+    REQUIRE (headingsChecked >= 4);
+    REQUIRE (droppedChecked >= 4);
+}
+
 // G6 close-out (rubric line 1): the rail paints a row the panel cuts off - its visible part, beside the lane the arrange
 // draws partly. At every height of a sweep with 16 tracks, wherever a lane shows at least 40 px but not whole, the rail
 // beside it carries that row's text (a render with text against one without, over the rail's columns in the lane's span);

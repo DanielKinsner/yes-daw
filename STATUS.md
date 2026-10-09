@@ -8,6 +8,55 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-09 — Cheap snapshot implementation passes locally; earlier app verification interrupts advancement
+
+**Now:** ADR-0069 cp1 is implemented and separately reviewed, but not certified. Restore/probe cp2 and ADR-0068's
+writes-on remain next, after the current checkpoint's required evidence. Dan authorized hands-off app tests for this
+session. The first full drive batch exposed an earlier visual defect and an audio-device gate failure; these take
+priority under plan section 8.2.
+
+**Cheap snapshot:** links immutable audio, copies on link failure, checks linked identity and copied hashes, and keeps
+full recovery validation. Five new default gates cover identity/zero copied bytes, 200-write link counts, fallback,
+failed publication, and preserving other names of a replaced shared inode. Local Release build, Clang on the three
+affected translation units, and full CTest **428/428** passed. The actual 10 x 50 MB hidden cost check passed at
+**72.0686 ms** against 100 ms (46 assertions). Separate focused/adversarial review found no issue. These are local
+working-tree results, not exact-SHA CI certification. The latest full CTest took 289.67 s. A real Windows
+hydrated-placeholder gate passed 121 assertions, including the actual OS hard-link rejection, copied/hash byte
+counts, recovery, mode restoration and cleanup; its Clang pass is clean. This proves that fallback path, not
+OneDrive/Dropbox synchronization or a real-app drive. Persistence and the cloud fixture are still local work.
+
+**App batch:** `build-ci/session-shots/2026-10-09-adr0069-cp1/` (local only). ss1 59/59, ss2 42/42, ss3 57/57, ss4 22/22,
+ss5 77/77 and ss6 58/58 passed. ss7 **196/197**: four driver-reported capture discontinuities during the pointer sweep;
+zero measured callback deadline misses, maximum callback 1.3001 ms, paint p95 4.89 ms. ss8 **171/177**: exactly the six
+known autosave-off assertions in step 6. The app still writes no autosave; no missing recovery evidence is certified.
+
+**Markers repair ready for exact-code CI:** the large ss1 screenshot's unlabeled 244 x 120 box is the real Markers list. The Takes
+card painted over the Markers heading. Bound the Takes card at the existing Markers section in shared layout/paint;
+new `[inspector-markers-card]` checks actual heading pixels with zero/two rows and at the whole-section fit boundary.
+The old paint fails with zero heading pixels; the repair passes 69 assertions, and four focused inspector cases pass
+281 assertions. Two-TU Clang is clean. Separate correctness/adversarial review found no issue
+(`20261009-104633-inspector-45be84c7`). Independent review of the fresh app screenshots at all three sizes passes
+the relevant rubric: Markers is readable at 2560 x 1440 and lower cards drop whole at smaller sizes. This is not a
+new full scaling-matrix review. The repaired SS1 run is 58/59, with only B5 failing (nine capture discontinuities).
+
+**Audio diagnosis (not a waiver):** current defaults are Realtek Speakers + ASUS AI Noise-Canceling Microphone.
+Pinned JUCE WASAPI's xrun counter counts input discontinuity flags, not specifically output underruns. A direct
+30-second WASAPI capture measured 3,000 packets, only its first packet discontinuous. An empty app measured two
+capture counts while stopped and one while playing (15 seconds each), no callback deadline misses. The cause remains
+unresolved. A copied-JUCE metadata-only input/duplex comparison then measured real 384-frame gaps in all three
+30-second phases (8, 1, 29 post-startup discontinuities); no repeated packets, full reservoir, or zero release.
+The UI/engine are not needed to reproduce it, but event delivery versus scheduling is not resolved. Instrumentation
+influence is not excluded. Local evidence: `build-ci/wasapi-duplex-diagnostic/REPORT-20261009.md` and hashes.json.
+The original input default (all three roles) is ASUS; output is Realtek. Stereo Mix was disabled. It is temporarily
+enabled/defaulted for unchanged app checks, with original settings to restore after measurement. On this profile
+SS1 B5 passes with zero xruns since launch, but B2 fails at 8.20 ms (8 ms bound), so SS1 remains 58/59. SS7 is running.
+No threshold/counter changes or runner-noise waiver. Logs/shots under `build-ci/` are local only.
+
+**Next small steps:** push the independently gated Markers repair and inspect every exact-code CI job; finish the
+Stereo Mix comparison, restore original endpoint state, and diagnose the B2 miss; commit/push the reviewed cp1 and
+cloud fixture separately with their exact CI evidence. Restore/probe and writes-on remain dependent on required
+checkpoint proof. The Usable-song milestone remains incomplete.
+
 ## 2026-10-09 — Dan accepted ADR-0069: resume the cheap autosave checkpoints
 
 **Now:** Dan explicitly approved hard links, including the shared-audio consequence, for ADR-0069. The remaining
