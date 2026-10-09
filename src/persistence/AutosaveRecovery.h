@@ -12,14 +12,37 @@
 
 #include "persistence/ProjectBundle.h"
 
+#include <array>
+#include <cerrno>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include <utility>
 #include <vector>
+
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+// Do not introduce Windows' legacy near/far macros into later engine headers (PanNode uses far).
+#pragma push_macro("near")
+#pragma push_macro("far")
+#include <windows.h>
+#pragma pop_macro("far")
+#pragma pop_macro("near")
+#else
+#include <sys/stat.h>
+#include <unistd.h>
+#if defined(__APPLE__)
+#include <sys/acl.h>
+#include <sys/mount.h>
+#endif
+#endif
 
 namespace yesdaw::persistence {
 
@@ -66,6 +89,8 @@ struct AssetCarry
 inline thread_local std::optional<engine::AssetContentHash> failLinkForTest;
 inline thread_local std::uint64_t assetBytesCopiedForTest = 0;
 inline thread_local void (*afterCarryForTest) (const std::filesystem::path&) = nullptr;
+inline thread_local void (*beforeRecoveryCleanupForTest) (const std::filesystem::path&,
+                                                          const std::filesystem::path&) = nullptr;
 #endif
 
 // Private access keeps the write-time shortcut out of normal opens and recovery reads.
@@ -161,24 +186,334 @@ struct SnapshotValidator
         || std::filesystem::exists (previousSnapshotPath (bundlePath), ec);
 }
 
-// Pick the first slot that opens cleanly through the NORMAL bundle validators (integrity, foreign key,
-// semantic, asset reconciliation). Prefer the live slot, fall back to the previous one. last.tmp is a
-// scratch slot that may hold a partially written snapshot, so it is never trusted here.
-[[nodiscard]] inline std::optional<std::filesystem::path> pickLiveSnapshot (const std::filesystem::path& bundlePath)
+struct RecoverySelection
 {
-    for (const std::filesystem::path& candidate : { autosaveSnapshotPath (bundlePath),
-                                                    previousSnapshotPath (bundlePath) })
+    std::filesystem::path path;
+    engine::Project project;
+    std::int64_t writeStamp = 0;
+};
+
+// Own only a directory this invocation created. Normal returns report cleanup errors; the destructor
+// also removes the copy if an allocation/filesystem exception unwinds the read.
+struct RecoveryScratch
+{
+    std::filesystem::path path;
+    bool cleanupFailed = false;
+
+    ~RecoveryScratch()
     {
         std::error_code ec;
-        if (! std::filesystem::exists (candidate, ec) || ec)
-            continue;
-
-        ProjectBundleDb probe;
-        if (ProjectBundleDb::openExistingBundle (candidate, probe).ok())
-            return candidate;
+        if (! path.empty())
+            std::filesystem::remove_all (path, ec);
     }
 
-    return std::nullopt;
+    [[nodiscard]] AutosaveResult create (const std::filesystem::path& root,
+                                         const std::filesystem::path& protectedBundle,
+                                         const std::filesystem::path& protectedSource)
+    {
+        std::error_code ec;
+        const auto resolvedRoot = std::filesystem::canonical (root, ec);
+        if (ec)
+            return filesystemError ("resolve recovery scratch directory failed", root, ec);
+        // OS temp can be redirected into a project. Refuse before creating anything, resolving
+        // aliases and comparing directory identity so case-insensitive filesystems are covered.
+        for (const auto& protectedPath : { protectedBundle, protectedSource })
+        {
+            const auto resolvedProtected = std::filesystem::canonical (protectedPath, ec);
+            if (ec)
+                return filesystemError ("resolve protected recovery directory failed", protectedPath, ec);
+            for (auto ancestor = resolvedRoot; ! ancestor.empty();)
+            {
+                const bool contained = std::filesystem::equivalent (ancestor, resolvedProtected, ec);
+                if (ec)
+                    return filesystemError ("inspect recovery scratch ancestry failed", ancestor, ec);
+                if (contained)
+                    return filesystemError ("recovery scratch directory is inside the project or snapshot", root,
+                                            std::make_error_code (std::errc::invalid_argument));
+                const auto parent = ancestor.parent_path();
+                if (parent == ancestor)
+                    break;
+                ancestor = parent;
+            }
+        }
+#if defined(__APPLE__) && ! defined(_WIN32)
+        // On a noowners mount even an owner-only mode can appear owned by every caller.
+        struct statfs mountInfo {};
+        if (::statfs (resolvedRoot.c_str(), &mountInfo) != 0)
+            return filesystemError ("inspect recovery scratch mount ownership failed", resolvedRoot,
+                                    { errno, std::generic_category() });
+        if ((mountInfo.f_flags & MNT_IGNORE_OWNERSHIP) != 0)
+            return filesystemError ("recovery scratch mount ignores ownership", resolvedRoot,
+                                    std::make_error_code (std::errc::operation_not_supported));
+#endif
+#if defined(_WIN32)
+        const auto windowsError = [&] (const char* action, DWORD error) {
+            return filesystemError (action, resolvedRoot, { static_cast<int> (error), std::system_category() });
+        };
+        // CreateDirectory silently ignores a security descriptor on a filesystem without ACLs.
+        // Refuse before creating/copying there; a private name alone does not protect its contents.
+        const HANDLE volume = CreateFileW (resolvedRoot.c_str(), FILE_READ_ATTRIBUTES,
+                                           FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+                                           OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+        if (volume == INVALID_HANDLE_VALUE)
+            return windowsError ("open recovery scratch volume failed", GetLastError());
+        DWORD filesystemFlags = 0;
+        const BOOL inspected = GetVolumeInformationByHandleW (volume, nullptr, 0, nullptr, nullptr, &filesystemFlags, nullptr, 0);
+        const DWORD inspectionError = inspected ? ERROR_SUCCESS : GetLastError();
+        const BOOL volumeClosed = CloseHandle (volume);
+        const DWORD volumeCloseError = volumeClosed ? ERROR_SUCCESS : GetLastError();
+        if (! inspected)
+            return windowsError ("inspect recovery scratch volume security failed", inspectionError);
+        if (! volumeClosed)
+            return windowsError ("close recovery scratch volume failed", volumeCloseError);
+        if ((filesystemFlags & FILE_PERSISTENT_ACLS) == 0)
+            return filesystemError ("recovery scratch filesystem cannot protect metadata", resolvedRoot,
+                                    std::make_error_code (std::errc::operation_not_supported));
+
+        HANDLE token = nullptr;
+        if (! OpenProcessToken (GetCurrentProcess(), TOKEN_QUERY, &token))
+            return windowsError ("open recovery process token failed", GetLastError());
+        alignas(TOKEN_USER) std::array<std::uint8_t, sizeof (TOKEN_USER) + SECURITY_MAX_SID_SIZE> userStorage {};
+        DWORD userSize = 0;
+        const BOOL gotUser = GetTokenInformation (token, TokenUser, userStorage.data(),
+                                                 static_cast<DWORD> (userStorage.size()), &userSize);
+        const DWORD userError = gotUser ? ERROR_SUCCESS : GetLastError();
+        const BOOL tokenClosed = CloseHandle (token);
+        const DWORD tokenCloseError = tokenClosed ? ERROR_SUCCESS : GetLastError();
+        if (! gotUser)
+            return windowsError ("read recovery process user failed", userError);
+        if (! tokenClosed)
+            return windowsError ("close recovery process token failed", tokenCloseError);
+
+        alignas(DWORD) std::array<std::uint8_t, sizeof (ACL) + sizeof (ACCESS_ALLOWED_ACE) + SECURITY_MAX_SID_SIZE> aclStorage {};
+        const auto acl = reinterpret_cast<ACL*> (aclStorage.data());
+        SECURITY_DESCRIPTOR descriptor {};
+        if (! InitializeAcl (acl, static_cast<DWORD> (aclStorage.size()), ACL_REVISION)
+            || ! AddAccessAllowedAceEx (acl, ACL_REVISION, OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE, FILE_ALL_ACCESS,
+                                        reinterpret_cast<const TOKEN_USER*> (userStorage.data())->User.Sid)
+            || ! InitializeSecurityDescriptor (&descriptor, SECURITY_DESCRIPTOR_REVISION)
+            || ! SetSecurityDescriptorDacl (&descriptor, TRUE, acl, FALSE)
+            || ! SetSecurityDescriptorControl (&descriptor, SE_DACL_PROTECTED, SE_DACL_PROTECTED))
+            return windowsError ("prepare private recovery scratch permissions failed", GetLastError());
+        SECURITY_ATTRIBUTES attributes { static_cast<DWORD> (sizeof (SECURITY_ATTRIBUTES)), &descriptor, FALSE };
+#endif
+        const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+        for (int n = 0; n < 1000; ++n)
+        {
+            const auto candidate = resolvedRoot / ("yesdaw-recovery-" + std::to_string (ticks) + "-" + std::to_string (n));
+#if defined(_WIN32)
+            const bool created = CreateDirectoryW (candidate.c_str(), &attributes) != FALSE;
+            if (! created)
+                ec = { static_cast<int> (GetLastError()), std::system_category() };
+#else
+            // Set owner-only mode at creation; macOS inherited ACLs are removed below before copying.
+            const bool created = ::mkdir (candidate.c_str(), S_IRWXU) == 0;
+            if (! created)
+                ec = { errno, std::generic_category() };
+#endif
+            if (created)
+            {
+                path = candidate;
+#if ! defined(_WIN32)
+                // Some filesystems report mkdir success while substituting their mount's mode.
+                // Own and remove the empty directory on refusal, before any metadata is copied.
+                struct stat createdInfo {};
+                if (::lstat (path.c_str(), &createdInfo) != 0)
+                    return finish (filesystemError ("inspect private recovery scratch directory failed", path,
+                                                    { errno, std::generic_category() }));
+                if (! S_ISDIR (createdInfo.st_mode) || createdInfo.st_uid != ::geteuid()
+                    || (createdInfo.st_mode & (S_IRWXG | S_IRWXO)) != 0)
+                    return finish (filesystemError ("recovery scratch filesystem did not enforce private ownership and permissions",
+                                                    path, std::make_error_code (std::errc::permission_denied)));
+#if defined(__APPLE__)
+                // Darwin ACL grants can bypass mode 0700. Change only our new empty directory,
+                // then verify the boundary before any project metadata or SQLite sidecar exists.
+                const acl_t emptyAcl = ::acl_init (0);
+                if (emptyAcl == nullptr)
+                    return finish (filesystemError ("prepare private recovery scratch ACL failed", path,
+                                                    { errno, std::generic_category() }));
+                const int setResult = ::acl_set_file (path.c_str(), ACL_TYPE_EXTENDED, emptyAcl);
+                const int setError = errno;
+                (void) ::acl_free (emptyAcl);
+                if (setResult != 0)
+                    return finish (filesystemError ("clear inherited recovery scratch ACL failed", path,
+                                                    { setError, std::generic_category() }));
+                const acl_t actualAcl = ::acl_get_file (path.c_str(), ACL_TYPE_EXTENDED);
+                if (actualAcl == nullptr)
+                {
+                    // Darwin also returns ENOENT when an existing object has no ACL property.
+                    if (errno != ENOENT)
+                        return finish (filesystemError ("inspect private recovery scratch ACL failed", path,
+                                                        { errno, std::generic_category() }));
+                }
+                else
+                {
+                    acl_entry_t entry = nullptr;
+                    const int entryResult = ::acl_get_entry (actualAcl, ACL_FIRST_ENTRY, &entry);
+                    const int entryError = errno;
+                    (void) ::acl_free (actualAcl);
+                    // Darwin returns -1/EINVAL for the first entry of an empty ACL.
+                    if (entryResult != -1 || entryError != EINVAL)
+                        return finish (filesystemError ("recovery scratch ACL is not private", path,
+                                                        std::make_error_code (std::errc::permission_denied)));
+                }
+#endif
+#endif
+                return ok();
+            }
+            if (ec == std::errc::file_exists)
+            {
+                std::error_code statusError;
+                if (std::filesystem::is_directory (candidate, statusError) && ! statusError)
+                    continue; // Exclusively own a newly created name; never reuse an existing directory.
+                if (statusError)
+                    ec = statusError;
+            }
+            return filesystemError ("create recovery scratch directory failed", candidate, ec);
+        }
+        return filesystemError ("create recovery scratch directory failed", root,
+                                std::make_error_code (std::errc::file_exists));
+    }
+
+    [[nodiscard]] AutosaveResult finish (AutosaveResult result)
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (path, ec);
+        if (ec)
+        {
+            cleanupFailed = true;
+            auto cleanup = filesystemError ("remove recovery scratch directory failed", path, ec);
+            if (result.ok())
+                result = std::move (cleanup);
+            else
+            {
+                if (result.message.empty())
+                    result.message = result.bundle.message;
+                result.message += "; " + cleanup.message;
+                result.bundle.message += "; " + cleanup.message;
+            }
+        }
+        else
+            path.clear(); // Retain ownership on failure so the destructor can retry.
+        return result;
+    }
+};
+
+struct RecoveryReader
+{
+    [[nodiscard]] static AutosaveResult read (const std::filesystem::path& bundlePath,
+                                             const std::filesystem::path& source, RecoverySelection& out,
+                                             bool& cleanupFailed)
+    {
+        cleanupFailed = false;
+        // Published slots are stable under the existing control-thread publication lifecycle.
+        // A raw DB/WAL copy is not an atomic snapshot of an arbitrary concurrent external writer.
+        // Never open the source in SQLite: even READONLY may change its SHM or checkpoint on close.
+        std::error_code ec;
+        const auto journal = source / "project.db-journal";
+        const auto journalStatus = std::filesystem::symlink_status (journal, ec);
+        if (ec && ec != std::errc::no_such_file_or_directory)
+            return filesystemError ("stat recovery rollback journal failed", journal, ec);
+        if (std::filesystem::exists (journalStatus))
+            return bundleError ({ BundleStatus::IntegrityFailed, SQLITE_CORRUPT, 0,
+                                  "recovery refuses a rollback journal: " + detail::utf8Path (journal) });
+
+        RecoveryScratch scratch;
+        const auto scratchRoot = std::filesystem::temp_directory_path (ec);
+        if (ec)
+            return filesystemError ("locate recovery scratch directory failed", scratchRoot, ec);
+        if (auto result = scratch.create (scratchRoot, bundlePath, source); ! result.ok())
+        {
+            cleanupFailed = scratch.cleanupFailed;
+            return result;
+        }
+        RecoverySelection selected { source, {}, 0 };
+        auto result = [&]() -> AutosaveResult {
+            for (const char* name : { "project.db", "project.db-wal" })
+            {
+                const auto original = source / name;
+                const auto status = std::filesystem::symlink_status (original, ec);
+                if (ec && ec != std::errc::no_such_file_or_directory)
+                    return filesystemError ("stat recovery metadata failed", original, ec);
+                if (std::string_view (name) == "project.db-wal" && ! std::filesystem::exists (status))
+                    continue;
+                const auto copy = scratch.path / name;
+                std::filesystem::copy_file (original, copy, ec);
+                if (ec)
+                    return filesystemError ("copy recovery metadata failed", original, ec);
+                // copy_file preserves read-only attributes. Only our copy may become writable.
+                std::filesystem::permissions (copy, std::filesystem::perms::owner_read | std::filesystem::perms::owner_write,
+                                               std::filesystem::perm_options::add, ec);
+                if (ec)
+                    return filesystemError ("make recovery metadata copy writable failed", copy, ec);
+            }
+            // SHM has no persistent data; SQLite reconstructs it beside the owned DB/WAL copy.
+            ProjectBundleDb metadata;
+            if (auto opened = ProjectBundleDb::openDatabaseConnection (scratch.path, false, metadata); ! opened.ok())
+                return bundleError (std::move (opened));
+            if (auto read = metadata.readProjectSnapshot (selected.project); ! read.ok())
+                return bundleError (std::move (read));
+            if (auto stamp = metadata.projectWriteStamp (selected.writeStamp); ! stamp.ok())
+                return bundleError (std::move (stamp));
+            std::vector<ProjectBundleDb::StoredAssetFile> assets;
+            if (auto loaded = metadata.loadStoredAssetFiles (assets); ! loaded.ok())
+                return bundleError (std::move (loaded));
+            for (const auto& asset : assets)
+                if (auto verified = metadata.verifyAssetFile (asset.hash, source / asset.relativePath); ! verified.ok())
+                    return bundleError (std::move (verified));
+            return ok();
+        }(); // metadata closes before scratch removal, including on every refusal.
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+        if (beforeRecoveryCleanupForTest != nullptr)
+            beforeRecoveryCleanupForTest (source, scratch.path);
+#endif
+        result = scratch.finish (std::move (result));
+        cleanupFailed = scratch.cleanupFailed;
+        if (result.ok())
+            out = std::move (selected);
+        return result;
+    }
+};
+
+// Prefer live, then previous, preserving concrete errors if neither validates. last.tmp is never a
+// candidate. Reuse this validated selection only within one invocation, never across a recovery prompt.
+[[nodiscard]] inline AutosaveResult pickLiveSnapshot (const std::filesystem::path& bundlePath, RecoverySelection& out)
+{
+    std::optional<AutosaveResult> failure;
+    for (const auto& candidate : { autosaveSnapshotPath (bundlePath), previousSnapshotPath (bundlePath) })
+    {
+        std::error_code ec;
+        const auto status = std::filesystem::symlink_status (candidate, ec);
+        if (ec == std::errc::no_such_file_or_directory || (! ec && ! std::filesystem::exists (status)))
+            continue;
+        bool cleanupFailed = false;
+        auto result = ec ? filesystemError ("stat autosave slot failed", candidate, ec)
+                         : RecoveryReader::read (bundlePath, candidate, out, cleanupFailed);
+        // A cleanup error says nothing about source validity. Do not hide a newer validated
+        // snapshot behind an older success: the caller might then retire both as up to date.
+        if (result.ok())
+            return result;
+        const auto reason = detail::utf8Path (candidate) + ": "
+                          + (result.message.empty() ? result.bundle.message : result.message);
+        if (! failure)
+        {
+            result.message = reason;
+            result.bundle.message = reason;
+            failure = std::move (result);
+        }
+        else
+        {
+            failure->message += "; " + reason;
+            failure->bundle.message += "; " + reason;
+        }
+        if (cleanupFailed)
+            return std::move (*failure);
+    }
+    if (failure)
+        return std::move (*failure);
+    return AutosaveResult { AutosaveStatus::NoAutosave,
+                            { BundleStatus::FilesystemError, SQLITE_NOTFOUND, 0, "no autosave snapshot" },
+                            "no autosave snapshot" };
 }
 
 [[nodiscard]] inline AutosaveResult carryProjectAssets (const std::filesystem::path& sourceBundlePath,
@@ -346,59 +681,31 @@ struct SnapshotValidator
 }
 
 // `writeStamp` (optional): the snapshot's write stamp - its source bundle's when it was written (ADR-0068 §5; a snapshot
-// from before schema v35 is migrated on open and reads 0).
+// from before schema v35 is migrated only in metadata scratch and reads 0).
 [[nodiscard]] inline AutosaveResult readAutosaveSnapshot (const std::filesystem::path& bundlePath,
                                                           engine::Project& out,
                                                           std::int64_t* writeStamp = nullptr)
 {
-    const std::optional<std::filesystem::path> snapshotPath = autosave_detail::pickLiveSnapshot (bundlePath);
-    if (! snapshotPath)
-    {
-        if (autosave_detail::anySnapshotSlotExists (bundlePath))
-            return autosave_detail::bundleError (
-                BundleResult { BundleStatus::IntegrityFailed, SQLITE_CORRUPT, 0, "autosave snapshot failed validation" });
-
-        return AutosaveResult {
-            AutosaveStatus::NoAutosave,
-            BundleResult { BundleStatus::FilesystemError, SQLITE_NOTFOUND, 0, "no autosave snapshot" },
-            "no autosave snapshot",
-        };
-    }
-
-    ProjectBundleDb snapshot;
-    if (auto result = ProjectBundleDb::openExistingBundle (*snapshotPath, snapshot); ! result.ok())
-        return autosave_detail::bundleError (std::move (result));
-
-    if (auto result = snapshot.readProjectSnapshot (out); ! result.ok())
-        return autosave_detail::bundleError (std::move (result));
-
+    autosave_detail::RecoverySelection selected;
+    if (auto result = autosave_detail::pickLiveSnapshot (bundlePath, selected); ! result.ok())
+        return result;
+    out = std::move (selected.project);
     if (writeStamp != nullptr)
-        if (auto result = snapshot.projectWriteStamp (*writeStamp); ! result.ok())
-            return autosave_detail::bundleError (std::move (result));
-
+        *writeStamp = selected.writeStamp;
     return autosave_detail::ok();
 }
 
 [[nodiscard]] inline AutosaveResult restoreAutosaveSnapshot (ProjectBundleDb& targetDb,
                                                              engine::Project& out)
 {
-    const std::optional<std::filesystem::path> snapshotPath =
-        autosave_detail::pickLiveSnapshot (targetDb.bundlePath());
-    if (! snapshotPath)
-        return autosave_detail::bundleError (
-            BundleResult { BundleStatus::FilesystemError, SQLITE_NOTFOUND, 0, "no autosave snapshot to restore" });
-
-    ProjectBundleDb snapshot;
-    if (auto result = ProjectBundleDb::openExistingBundle (*snapshotPath, snapshot); ! result.ok())
-        return autosave_detail::bundleError (std::move (result));
-
-    engine::Project recovered;
-    if (auto result = snapshot.readProjectSnapshot (recovered); ! result.ok())
-        return autosave_detail::bundleError (std::move (result));
+    autosave_detail::RecoverySelection selected;
+    if (auto result = autosave_detail::pickLiveSnapshot (targetDb.bundlePath(), selected); ! result.ok())
+        return result;
+    auto& recovered = selected.project;
 
     for (const auto& asset : recovered.assets)
     {
-        const auto source = storedAssetPathForHash (snapshot.bundlePath(), asset.contentHash);
+        const auto source = storedAssetPathForHash (selected.path, asset.contentHash);
         const auto target = storedAssetPathForHash (targetDb.bundlePath(), asset.contentHash);
         std::error_code error;
         if (std::filesystem::equivalent (source, target, error) && ! error)

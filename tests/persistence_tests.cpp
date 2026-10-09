@@ -11,16 +11,36 @@
 #include <sqlite3.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <map>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
 #include <system_error>
 #include <utility>
 #include <vector>
+
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <aclapi.h>
+#include <sddl.h>
+#else
+#include <sys/stat.h>
+#include <unistd.h>
+#if defined(__APPLE__)
+#include <grp.h>
+#include <membership.h>
+#include <sys/acl.h>
+#endif
+#endif
 
 using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;
@@ -143,6 +163,7 @@ void writeBytes (const std::filesystem::path& path, std::span<const std::uint8_t
 
 std::vector<std::uint8_t> readBytes (const std::filesystem::path& path)
 {
+    CAPTURE (path);
     const auto size = std::filesystem::file_size (path);
     std::vector<std::uint8_t> bytes (static_cast<std::size_t> (size));
 
@@ -151,6 +172,22 @@ std::vector<std::uint8_t> readBytes (const std::filesystem::path& path)
     input.read (reinterpret_cast<char*> (bytes.data()), static_cast<std::streamsize> (bytes.size()));
     REQUIRE (input.good());
     return bytes;
+}
+
+using SourceInventory = std::map<std::filesystem::path,
+                                 std::pair<std::filesystem::file_type, std::vector<std::uint8_t>>>;
+
+SourceInventory sourceInventory (const std::filesystem::path& root)
+{
+    SourceInventory inventory;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator (root))
+    {
+        const auto type = entry.symlink_status().type();
+        inventory.emplace (entry.path().lexically_relative (root),
+                           std::make_pair (type, type == std::filesystem::file_type::regular
+                                                    ? readBytes (entry.path()) : std::vector<std::uint8_t> {}));
+    }
+    return inventory;
 }
 
 std::size_t countAudioAssetFiles (const std::filesystem::path& bundlePath)
@@ -3156,6 +3193,1001 @@ TEST_CASE ("ADR-0068 an autosave snapshot carries its source's write stamp, dura
     Project readback;
     REQUIRE (overridden.readProjectSnapshot (readback).ok());
     REQUIRE (readback.tracks[0].strip.name == "Audio 1");
+}
+
+TEST_CASE ("ADR-0069 recovery reads preserve published source bytes and inventory",
+           "[persistence][autosave][recovery-source-inventory]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("recovery-source-inventory");
+    const auto project = makeProject();
+    {
+        auto db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (writeAutosaveSnapshot (db, project).ok());
+    }
+    const auto snapshot = autosaveSnapshotPath (path);
+    const std::vector<std::uint8_t> extra { 0x11u, 0x22u, 0x33u };
+    const auto orphanHash = hashBytes (extra);
+    const auto orphan = detail::assetRelativePathForHash (orphanHash);
+    const auto pending = detail::assetTempRelativePathForHash (orphanHash);
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openExistingBundle (snapshot, db).ok());
+        sqlite3_int64 rowId = 0;
+        REQUIRE (db.recordPendingFsOp ({ PendingFsOpKind::StageAsset, pending, orphan, orphanHash }, rowId).ok());
+    }
+    writeBytes (snapshot / orphan, extra);
+    writeBytes (snapshot / pending, extra);
+    writeBytes (snapshot / "audio" / "abandoned.tmp", extra);
+    writeBytes (snapshot / ".trash" / "old.asset", extra);
+    writeBytes (snapshot / "unknown" / "leave-me.bin", extra);
+    bool succeeds = true;
+    bool readOnly = false;
+    bool legacy = false;
+    std::string reason;
+    SECTION ("current schema") {}
+    SECTION ("read-only metadata")
+    {
+        readOnly = true;
+        std::filesystem::permissions (snapshot / "project.db", std::filesystem::perms::owner_read,
+                                       std::filesystem::perm_options::replace);
+    }
+    SECTION ("v34 migrates in scratch to stamp zero")
+    {
+        legacy = true;
+        sqlite3* raw = nullptr;
+        REQUIRE (sqlite3_open_v2 (utf8Path (snapshot / "project.db").c_str(), &raw, SQLITE_OPEN_READWRITE, nullptr) == SQLITE_OK);
+        requireRawExec (raw, "DROP TABLE project_write_stamp; DELETE FROM schema_migrations WHERE version=35; PRAGMA user_version=34;");
+        sqlite3_int64 version = 0;
+        REQUIRE (detail::queryInt64 (raw, "PRAGMA user_version;", version).ok());
+        REQUIRE (version == 34);
+        REQUIRE (detail::queryInt64 (raw, "SELECT count(*) FROM sqlite_master WHERE name='project_write_stamp';", version).ok());
+        REQUIRE (version == 0);
+        REQUIRE (sqlite3_close (raw) == SQLITE_OK);
+    }
+    SECTION ("missing source audio refuses without reconciling anything")
+    {
+        succeeds = false;
+        reason = detail::utf8Path (storedAssetPathForHash (snapshot, project.assets.back().contentHash));
+        REQUIRE (std::filesystem::remove (storedAssetPathForHash (snapshot, project.assets.back().contentHash)));
+    }
+    SECTION ("damaged source audio refuses without reconciling anything")
+    {
+        succeeds = false;
+        reason = detail::utf8Path (storedAssetPathForHash (snapshot, project.assets.back().contentHash));
+        writeBytes (storedAssetPathForHash (snapshot, project.assets.back().contentHash), extra);
+    }
+    const auto before = sourceInventory (snapshot);
+    const auto permissions = std::filesystem::status (snapshot / "project.db").permissions();
+    Project sentinel = project;
+    sentinel.tracks.front().strip.name = "output must survive a refusal";
+    Project recovered = sentinel;
+    std::int64_t stamp = -1;
+    detail::assetHashCallsForTest = 0;
+    const auto result = readAutosaveSnapshot (path, recovered, &stamp);
+    INFO (result.message);
+    REQUIRE (result.ok() == succeeds);
+    if (succeeds)
+    {
+        requireSameProjectSurface (recovered, project);
+        REQUIRE (stamp == (legacy ? 0 : 1));
+        REQUIRE (detail::assetHashCallsForTest == project.assets.size());
+    }
+    else
+    {
+        requireSameProjectSurface (recovered, sentinel);
+        REQUIRE (stamp == -1);
+        REQUIRE (result.bundle.message.find (reason) != std::string::npos);
+    }
+    REQUIRE (sourceInventory (snapshot) == before);
+    REQUIRE (std::filesystem::status (snapshot / "project.db").permissions() == permissions);
+    if (readOnly)
+        std::filesystem::permissions (snapshot / "project.db", std::filesystem::perms::owner_write,
+                                       std::filesystem::perm_options::add);
+    std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("ADR-0069 recovery uses committed WAL rows and stamp without touching source sidecars",
+           "[persistence][autosave][recovery-source-wal]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("recovery-source-wal");
+    auto project = makeProject();
+    {
+        auto db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (writeAutosaveSnapshot (db, project).ok());
+    }
+    const auto snapshot = autosaveSnapshotPath (path);
+    const auto originalDb = readBytes (snapshot / "project.db");
+    sqlite3* raw = nullptr;
+    REQUIRE (sqlite3_open_v2 (utf8Path (snapshot / "project.db").c_str(), &raw, SQLITE_OPEN_READWRITE, nullptr) == SQLITE_OK);
+    int persistWal = 1;
+    REQUIRE (sqlite3_file_control (raw, "main", SQLITE_FCNTL_PERSIST_WAL, &persistWal) == SQLITE_OK);
+    requireRawExec (raw, "PRAGMA wal_autocheckpoint=0; BEGIN IMMEDIATE; UPDATE tracks SET name='committed WAL'; "
+                        "UPDATE project_write_stamp SET write_count=41; COMMIT;");
+    REQUIRE (readBytes (snapshot / "project.db") == originalDb);
+    REQUIRE (std::filesystem::file_size (snapshot / "project.db-wal") > 0);
+    REQUIRE (std::filesystem::exists (snapshot / "project.db-shm"));
+    project.tracks.front().strip.name = "committed WAL";
+    bool uncommitted = false;
+    bool readOnly = false;
+    SECTION ("committed WAL") {}
+    SECTION ("read-only DB and WAL copies become writable only in scratch")
+    {
+        readOnly = true;
+    }
+    SECTION ("an actual spilled uncommitted tail is ignored")
+    {
+        uncommitted = true;
+        const auto committedSize = std::filesystem::file_size (snapshot / "project.db-wal");
+        requireRawExec (raw, "PRAGMA cache_size=1; BEGIN IMMEDIATE; UPDATE project_write_stamp SET write_count=99; "
+                            "UPDATE tracks SET name='" + std::string (32000, 'x') + "';");
+        REQUIRE (sqlite3_db_cacheflush (raw) == SQLITE_OK);
+        REQUIRE (std::filesystem::file_size (snapshot / "project.db-wal") > committedSize);
+    }
+    // Freeze the actual DB/WAL bytes before closing the fixture writer. A live Windows SQLite
+    // connection byte-locks SHM, so it cannot serve as the inventory-readable published source.
+    // The restored pair still contains WAL-only committed rows and the real uncommitted tail;
+    // persisted SHM is deliberately stale derived state that recovery must neither use nor edit.
+    const auto walBytes = readBytes (snapshot / "project.db-wal");
+    if (uncommitted)
+        requireRawExec (raw, "ROLLBACK;");
+    REQUIRE (sqlite3_close (raw) == SQLITE_OK);
+    REQUIRE (std::filesystem::exists (snapshot / "project.db-shm"));
+    writeBytes (snapshot / "project.db", originalDb);
+    writeBytes (snapshot / "project.db-wal", walBytes);
+    if (readOnly)
+        for (const char* name : { "project.db", "project.db-wal" })
+            std::filesystem::permissions (snapshot / name, std::filesystem::perms::owner_read,
+                                           std::filesystem::perm_options::replace);
+    const auto before = sourceInventory (snapshot);
+    Project recovered;
+    std::int64_t stamp = -1;
+    detail::assetHashCallsForTest = 0;
+    const auto result = readAutosaveSnapshot (path, recovered, &stamp);
+    INFO (result.message);
+    REQUIRE (result.ok());
+    requireSameProjectSurface (recovered, project);
+    REQUIRE (stamp == 41);
+    REQUIRE (detail::assetHashCallsForTest == project.assets.size());
+    REQUIRE (sourceInventory (snapshot) == before);
+    if (readOnly)
+        for (const char* name : { "project.db", "project.db-wal" })
+        {
+            REQUIRE ((std::filesystem::status (snapshot / name).permissions() & std::filesystem::perms::owner_write)
+                     == std::filesystem::perms::none);
+            std::filesystem::permissions (snapshot / name, std::filesystem::perms::owner_write,
+                                           std::filesystem::perm_options::add);
+        }
+    std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("ADR-0069 recovery rebuilds legacy rows only in metadata scratch",
+           "[persistence][autosave][recovery-source-legacy]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("recovery-source-v3");
+    const auto snapshot = autosaveSnapshotPath (path);
+    const auto asset = makeAsset (idFromLowByte (2), 1000);
+    writeBytes (storedAssetPathForHash (snapshot, asset.contentHash), assetBytesForId (asset.id));
+    writeBytes (snapshot / "audio" / "orphan.asset", { });
+    writeBytes (snapshot / "peaks" / "untouched.cache", assetBytesForId (asset.id));
+    sqlite3* raw = nullptr;
+    REQUIRE (sqlite3_open_v2 (utf8Path (snapshot / "project.db").c_str(), &raw,
+                             SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    requireRawExec (raw, kSchemaV1Sql);
+    requireRawExec (raw, kSchemaV2Sql);
+    requireRawExec (raw, kSchemaV3Sql);
+    requireRawExec (raw, "INSERT INTO schema_migrations(version, app_build) VALUES (1,'legacy'),(2,'legacy'),(3,'legacy'); "
+                        "PRAGMA application_id=1497715505; PRAGMA user_version=3;");
+    requireRawExec (raw, "INSERT INTO project(singleton_id,id,sample_rate_hz) VALUES (1," + blobLiteral (idFromLowByte (1))
+                        + ",48000.0); INSERT INTO assets(id,content_hash,frames,sample_rate_hz,channels,relative_path) VALUES ("
+                        + blobLiteral (asset.id) + "," + blobLiteral (asset.contentHash) + ",1000,48000.0,2,'"
+                        + detail::assetRelativePathForHash (asset.contentHash) + "');");
+    requireRawExec (raw, "INSERT INTO clips(id,asset_id,timeline_start,timeline_length,src_offset,src_len,gain,fade_in,fade_out,time_base) VALUES ("
+                        + blobLiteral (idFromLowByte (4)) + "," + blobLiteral (asset.id) + ",0,15360,100,900,0.75,16,32,1);");
+    REQUIRE (sqlite3_close (raw) == SQLITE_OK);
+    const auto before = sourceInventory (snapshot);
+    Project recovered;
+    std::int64_t stamp = -1;
+    detail::assetHashCallsForTest = 0;
+    const auto result = readAutosaveSnapshot (path, recovered, &stamp);
+    INFO (result.message);
+    REQUIRE (result.ok());
+    REQUIRE (stamp == 0);
+    REQUIRE (recovered.assets == std::vector<Asset> { asset });
+    REQUIRE (recovered.tracks.size() == 1);
+    REQUIRE (recovered.tracks.front().id == kDefaultAudioTrackId);
+    REQUIRE (recovered.clips.size() == 1);
+    REQUIRE (recovered.clips.front().trackId == kDefaultAudioTrackId);
+    REQUIRE (recovered.clips.front().srcOffset == 100);
+    REQUIRE (recovered.clips.front().srcLen == 900);
+    REQUIRE (recovered.clips.front().gain == Approx (0.75f));
+    REQUIRE (detail::assetHashCallsForTest == 1);
+    REQUIRE (sourceInventory (snapshot) == before);
+    std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("ADR-0069 recovery retains database and filesystem refusals without publishing outputs",
+           "[persistence][autosave][recovery-source-refusal]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("recovery-source-refusal");
+    const auto project = makeProject();
+    {
+        auto db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (writeAutosaveSnapshot (db, project).ok());
+    }
+    const auto snapshot = autosaveSnapshotPath (path);
+    std::string sql;
+    std::string reason;
+    SECTION ("semantic ranges")
+    {
+        sql = "UPDATE clips SET src_len=901 WHERE id=" + blobLiteral (project.clips.front().id) + ";";
+    }
+    SECTION ("foreign keys")
+    {
+        sql = "PRAGMA foreign_keys=OFF; UPDATE clips SET asset_id=zeroblob(16);";
+    }
+    SECTION ("storage types")
+    {
+        sql = "UPDATE clips SET src_offset=0.5;";
+        reason = "storage type";
+    }
+    SECTION ("canonical path spelling")
+    {
+        sql = "UPDATE assets SET relative_path='audio/./' || substr(relative_path,7);";
+        reason = "relative path";
+    }
+    SECTION ("missing stamp row does not publish decoded project")
+    {
+        sql = "DELETE FROM project_write_stamp;";
+    }
+    SECTION ("rollback journal is explicitly refused")
+    {
+        writeBytes (snapshot / "project.db-journal", assetBytesForId (project.id));
+        reason = "rollback journal";
+    }
+    SECTION ("unreadable WAL is not treated as absent")
+    {
+        REQUIRE (std::filesystem::create_directory (snapshot / "project.db-wal"));
+        reason = "project.db-wal";
+    }
+    if (! sql.empty())
+    {
+        sqlite3* raw = nullptr;
+        REQUIRE (sqlite3_open_v2 (utf8Path (snapshot / "project.db").c_str(), &raw, SQLITE_OPEN_READWRITE, nullptr) == SQLITE_OK);
+        requireRawExec (raw, sql);
+        REQUIRE (sqlite3_close (raw) == SQLITE_OK);
+    }
+    writeBytes (snapshot / "audio" / "orphan.asset", { });
+    writeBytes (snapshot / "audio" / "abandoned.tmp", { });
+    const auto before = sourceInventory (snapshot);
+    Project sentinel = project;
+    sentinel.tracks.front().strip.name = "do not publish partial output";
+    Project recovered = sentinel;
+    std::int64_t stamp = -73;
+    const auto result = readAutosaveSnapshot (path, recovered, &stamp);
+    REQUIRE_FALSE (result.ok());
+    REQUIRE (result.status != AutosaveStatus::NoAutosave);
+    INFO (result.message);
+    REQUIRE (result.bundle.message.find ("last.yesdaw") != std::string::npos);
+    REQUIRE_FALSE (result.bundle.message.empty());
+    if (! reason.empty())
+        REQUIRE (result.bundle.message.find (reason) != std::string::npos);
+    REQUIRE (stamp == -73);
+    requireSameProjectSurface (recovered, sentinel);
+    REQUIRE (sourceInventory (snapshot) == before);
+    std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("ADR-0069 owned recovery scratch is removed on success refusal and unwinding",
+           "[persistence][autosave][recovery-source-scratch]")
+{
+    using namespace yesdaw::persistence;
+    const auto protectedBundle = makeTempBundlePath ("scratch-protected");
+    const auto protectedSource = autosaveSnapshotPath (protectedBundle);
+    std::filesystem::create_directories (protectedSource);
+    std::filesystem::path owned;
+    SECTION ("successful and refused reads remove their owned metadata")
+    {
+        for (const bool succeeds : { true, false })
+        {
+            autosave_detail::RecoveryScratch scratch;
+            REQUIRE (scratch.create (std::filesystem::temp_directory_path(), protectedBundle, protectedSource).ok());
+            owned = scratch.path;
+            REQUIRE (std::filesystem::is_directory (owned));
+            writeBytes (owned / "project.db", assetBytesForId (idFromLowByte (1)));
+            writeBytes (owned / "project.db-wal", assetBytesForId (idFromLowByte (2)));
+            const auto result = scratch.finish (succeeds ? autosave_detail::ok()
+                : autosave_detail::bundleError (detail::semanticInvalid ("original refusal")));
+            REQUIRE (result.ok() == succeeds);
+            if (! succeeds)
+                REQUIRE (result.bundle.message == "original refusal");
+            REQUIRE_FALSE (std::filesystem::exists (owned));
+        }
+    }
+    SECTION ("exception unwind removes a partially copied database")
+    {
+        try
+        {
+            autosave_detail::RecoveryScratch scratch;
+            REQUIRE (scratch.create (std::filesystem::temp_directory_path(), protectedBundle, protectedSource).ok());
+            owned = scratch.path;
+            writeBytes (owned / "project.db", assetBytesForId (idFromLowByte (1)));
+            throw 1;
+        }
+        catch (int) {}
+        REQUIRE_FALSE (owned.empty());
+        REQUIRE_FALSE (std::filesystem::exists (owned));
+    }
+#if defined(_WIN32)
+    SECTION ("Windows deletion denial preserves the validation and cleanup errors")
+    {
+        for (const bool succeeds : { true, false })
+        {
+            autosave_detail::RecoveryScratch scratch;
+            REQUIRE (scratch.create (std::filesystem::temp_directory_path(), protectedBundle, protectedSource).ok());
+            owned = scratch.path;
+            const auto metadata = owned / "project.db";
+            writeBytes (metadata, assetBytesForId (idFromLowByte (1)));
+            // Even an assertion failure must release the real OS lock and remove the owned fixture.
+            struct HeldScratch
+            {
+                std::filesystem::path path;
+                HANDLE handle = INVALID_HANDLE_VALUE;
+                ~HeldScratch()
+                {
+                    if (handle != INVALID_HANDLE_VALUE)
+                        (void) CloseHandle (handle);
+                    std::error_code ec;
+                    if (! path.empty())
+                        std::filesystem::remove_all (path, ec);
+                }
+            } held { owned, CreateFileW (metadata.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                        nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr) };
+            // Omit FILE_SHARE_DELETE deliberately: remove_all must encounter a genuine sharing violation.
+            CAPTURE (GetLastError());
+            REQUIRE (held.handle != INVALID_HANDLE_VALUE);
+            const auto result = scratch.finish (succeeds ? autosave_detail::ok()
+                : autosave_detail::bundleError (detail::semanticInvalid ("original validation refusal")));
+            REQUIRE_FALSE (result.ok());
+            REQUIRE (result.status == (succeeds ? AutosaveStatus::FilesystemError : AutosaveStatus::BundleError));
+            REQUIRE (result.message.find ("remove recovery scratch directory failed") != std::string::npos);
+            REQUIRE (result.message.find (detail::utf8Path (owned)) != std::string::npos);
+            if (! succeeds)
+            {
+                REQUIRE (result.bundle.status == BundleStatus::SemanticInvalid);
+                REQUIRE (result.message.find ("original validation refusal") != std::string::npos);
+                REQUIRE (result.bundle.message.find ("original validation refusal") != std::string::npos);
+                REQUIRE (result.bundle.message.find ("remove recovery scratch directory failed") != std::string::npos);
+                REQUIRE (result.bundle.message.find (detail::utf8Path (owned)) != std::string::npos);
+            }
+            CHECK (scratch.path == owned); // Keep ownership for a destructor retry after failure.
+            REQUIRE (std::filesystem::exists (metadata));
+            const BOOL closed = CloseHandle (held.handle);
+            if (closed)
+                held.handle = INVALID_HANDLE_VALUE;
+            REQUIRE (closed != FALSE);
+            std::error_code cleanup;
+            std::filesystem::remove_all (owned, cleanup);
+            REQUIRE (! cleanup);
+            REQUIRE_FALSE (std::filesystem::exists (owned));
+            held.path.clear();
+        }
+    }
+#endif
+    std::filesystem::remove_all (protectedBundle);
+}
+
+#if defined(_WIN32)
+TEST_CASE ("ADR-0069 recovery cleanup failure never publishes an older slot",
+           "[persistence][autosave][recovery-cleanup-selection]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("recovery-cleanup-selection");
+    static thread_local HANDLE held = INVALID_HANDLE_VALUE;
+    static thread_local std::filesystem::path heldPath;
+    struct Cleanup
+    {
+        std::filesystem::path bundle;
+        ~Cleanup()
+        {
+            autosave_detail::beforeRecoveryCleanupForTest = nullptr;
+            if (held != INVALID_HANDLE_VALUE)
+                (void) CloseHandle (held);
+            held = INVALID_HANDLE_VALUE;
+            std::error_code ec;
+            if (! heldPath.empty())
+                std::filesystem::remove_all (heldPath, ec);
+            heldPath.clear();
+            std::filesystem::remove_all (bundle, ec);
+        }
+    } cleanup { path };
+    auto db = openFreshBundle (path);
+    const auto project = makeProject();
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+    writeProjectAssetFiles (path, project);
+    REQUIRE (writeAutosaveSnapshot (db, project).ok());
+    const auto live = autosaveSnapshotPath (path);
+    const auto previous = autosave_detail::previousSnapshotPath (path);
+    std::filesystem::copy (live, previous, std::filesystem::copy_options::recursive);
+    {
+        sqlite3* raw = nullptr;
+        REQUIRE (sqlite3_open_v2 (utf8Path (live / "project.db").c_str(), &raw, SQLITE_OPEN_READWRITE, nullptr) == SQLITE_OK);
+        const std::unique_ptr<sqlite3, decltype (&sqlite3_close)> ownedDb (raw, sqlite3_close);
+        requireRawExec (raw, "UPDATE tracks SET name='newer live'; UPDATE project_write_stamp SET write_count=42;");
+    }
+    bool restore = false;
+    bool invalid = false;
+    SECTION ("public read refuses without publishing the older stamp") {}
+    SECTION ("public Restore refuses before changing target rows or output") { restore = true; }
+    SECTION ("validation and cleanup errors survive instead of selecting valid previous") { invalid = true; }
+    if (invalid)
+        REQUIRE (std::filesystem::remove (storedAssetPathForHash (live, project.assets.back().contentHash)));
+    const auto before = sourceInventory (autosaveDirectory (path));
+    autosave_detail::beforeRecoveryCleanupForTest = [] (const std::filesystem::path& source,
+                                                       const std::filesystem::path& scratch) {
+        if (source.filename() != "last.yesdaw")
+            return;
+        heldPath = scratch;
+        // Induce the real OS sharing violation after SQLite closes; no synthetic error result.
+        held = CreateFileW ((scratch / "project.db").c_str(), GENERIC_READ,
+                            FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        REQUIRE (held != INVALID_HANDLE_VALUE);
+    };
+    auto sentinel = project;
+    sentinel.tracks.front().strip.name = "output sentinel";
+    auto recovered = sentinel;
+    std::int64_t stamp = -17;
+    const auto result = restore ? restoreAutosaveSnapshot (db, recovered)
+                                : readAutosaveSnapshot (path, recovered, &stamp);
+    INFO (result.message);
+    CHECK_FALSE (result.ok());
+    CHECK (result.status == (invalid ? AutosaveStatus::BundleError : AutosaveStatus::FilesystemError));
+    CHECK (result.message.find ("remove recovery scratch directory failed") != std::string::npos);
+    CHECK (result.message.find (detail::utf8Path (heldPath)) != std::string::npos);
+    if (invalid)
+        CHECK (result.message.find (detail::utf8Path (storedAssetPathForHash (live, project.assets.back().contentHash)))
+               != std::string::npos);
+    CHECK (stamp == -17);
+    requireSameProjectSurface (recovered, sentinel);
+    REQUIRE (sourceInventory (autosaveDirectory (path)) == before);
+    Project target;
+    REQUIRE (db.readProjectSnapshot (target).ok());
+    requireSameProjectSurface (target, project);
+    std::int64_t targetStamp = 0;
+    REQUIRE (db.projectWriteStamp (targetStamp).ok());
+    REQUIRE (targetStamp == 1);
+    std::optional<std::int64_t> unresolved;
+    REQUIRE (db.unresolvedSnapshotStamp (unresolved).ok());
+    REQUIRE_FALSE (unresolved.has_value());
+    // Once the actual denial is gone, the same public reader recovers the newer live snapshot.
+    REQUIRE (CloseHandle (held) != FALSE);
+    held = INVALID_HANDLE_VALUE;
+    autosave_detail::beforeRecoveryCleanupForTest = nullptr;
+    std::filesystem::remove_all (heldPath);
+    heldPath.clear();
+    if (! invalid)
+    {
+        REQUIRE (readAutosaveSnapshot (path, recovered, &stamp).ok());
+        REQUIRE (stamp == 42);
+        REQUIRE (recovered.tracks.front().strip.name == "newer live");
+    }
+}
+#endif
+
+TEST_CASE ("ADR-0069 recovery scratch keeps copied metadata and SQLite sidecars private",
+           "[persistence][autosave][recovery-scratch-privacy]")
+{
+    using namespace yesdaw::persistence;
+    const auto fixture = makeTempBundlePath ("scratch-privacy");
+    struct FixtureCleanup
+    {
+        std::filesystem::path root;
+#if defined(_WIN32)
+        std::filesystem::path deniedParent;
+        PSECURITY_DESCRIPTOR permissive = nullptr;
+#endif
+        ~FixtureCleanup()
+        {
+#if defined(_WIN32)
+            if (! deniedParent.empty())
+                (void) SetFileSecurityW (deniedParent.c_str(), DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                                        permissive);
+            if (permissive != nullptr)
+                (void) LocalFree (permissive);
+#endif
+            std::error_code ec;
+            if (! root.empty())
+                std::filesystem::remove_all (root, ec);
+        }
+    } cleanup;
+    cleanup.root = fixture;
+    const auto bundle = fixture / "project.yesdaw";
+    const auto source = autosaveSnapshotPath (bundle);
+    const auto tempParent = fixture / "permissive-temp";
+    const auto project = makeProject();
+    {
+        auto db = openFreshBundle (bundle);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundle, project);
+        REQUIRE (writeAutosaveSnapshot (db, project).ok());
+    }
+    bool populate = false;
+    bool denyCreation = false;
+    SECTION ("scratch is private before the first byte is copied") {}
+    SECTION ("copied database and actual SQLite WAL and SHM remain private") { populate = true; }
+#if defined(_WIN32)
+    SECTION ("a real create-subdirectory denial refuses before copying") { denyCreation = true; }
+    // This descriptor is confined to the new empty fixture parent; no ambient temp ACL is changed.
+    REQUIRE (ConvertStringSecurityDescriptorToSecurityDescriptorW (L"D:P(A;OICI;FA;;;WD)", SDDL_REVISION_1,
+                                                                    &cleanup.permissive, nullptr) != FALSE);
+    SECURITY_ATTRIBUTES attributes { static_cast<DWORD> (sizeof (SECURITY_ATTRIBUTES)), cleanup.permissive, FALSE };
+    REQUIRE (CreateDirectoryW (tempParent.c_str(), &attributes) != FALSE);
+    struct LocalDescriptor
+    {
+        PSECURITY_DESCRIPTOR value = nullptr;
+        ~LocalDescriptor() { if (value != nullptr) (void) LocalFree (value); }
+    };
+    {
+        LocalDescriptor parent;
+        PACL dacl = nullptr;
+        REQUIRE (GetNamedSecurityInfoW (tempParent.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+                                        nullptr, nullptr, &dacl, nullptr, &parent.value) == ERROR_SUCCESS);
+        REQUIRE (dacl != nullptr);
+        REQUIRE (dacl->AceCount == 1);
+        void* rawAce = nullptr;
+        REQUIRE (GetAce (dacl, 0, &rawAce) != FALSE);
+        const auto* ace = static_cast<const ACCESS_ALLOWED_ACE*> (rawAce);
+        REQUIRE (ace->Header.AceType == ACCESS_ALLOWED_ACE_TYPE);
+        REQUIRE (IsWellKnownSid (const_cast<DWORD*> (&ace->SidStart), WinWorldSid) != FALSE);
+        REQUIRE ((ace->Mask & FILE_ALL_ACCESS) == FILE_ALL_ACCESS);
+    }
+    if (denyCreation)
+    {
+        LocalDescriptor denied;
+        REQUIRE (ConvertStringSecurityDescriptorToSecurityDescriptorW (L"D:P(D;;0x00000004;;;WD)(A;OICI;FA;;;WD)",
+                    SDDL_REVISION_1, &denied.value, nullptr) != FALSE);
+        cleanup.deniedParent = tempParent; // Restore even if an assertion interrupts the denial case.
+        REQUIRE (SetFileSecurityW (tempParent.c_str(), DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                                   denied.value) != FALSE);
+    }
+    HANDLE token = nullptr;
+    REQUIRE (OpenProcessToken (GetCurrentProcess(), TOKEN_QUERY, &token) != FALSE);
+    alignas(TOKEN_USER) std::array<std::uint8_t, sizeof (TOKEN_USER) + SECURITY_MAX_SID_SIZE> userStorage {};
+    DWORD userSize = 0;
+    const BOOL gotUser = GetTokenInformation (token, TokenUser, userStorage.data(),
+                                             static_cast<DWORD> (userStorage.size()), &userSize);
+    const DWORD userError = GetLastError();
+    const BOOL closedToken = CloseHandle (token);
+    CAPTURE (userError);
+    REQUIRE (gotUser != FALSE);
+    REQUIRE (closedToken != FALSE);
+    const PSID userSid = reinterpret_cast<const TOKEN_USER*> (userStorage.data())->User.Sid;
+#else
+    REQUIRE (std::filesystem::create_directory (tempParent));
+    std::filesystem::permissions (tempParent, std::filesystem::perms::all, std::filesystem::perm_options::replace);
+    REQUIRE ((std::filesystem::status (tempParent).permissions() & std::filesystem::perms::all)
+             == std::filesystem::perms::all);
+#endif
+#if defined(__APPLE__)
+    // An owned parent with a real inheritable Everyone grant reproduces the mode-only gap.
+    // Do not change the ambient temp ACL or claim another-account execution.
+    struct OwnedAcl
+    {
+        acl_t value = nullptr;
+        ~OwnedAcl() { if (value != nullptr) (void) ::acl_free (value); }
+    } parentAcl { ::acl_init (1) };
+    REQUIRE (parentAcl.value != nullptr);
+    acl_entry_t grant = nullptr;
+    REQUIRE (::acl_create_entry (&parentAcl.value, &grant) == 0);
+    REQUIRE (::acl_set_tag_type (grant, ACL_EXTENDED_ALLOW) == 0);
+    const auto* everyone = ::getgrnam ("everyone");
+    REQUIRE (everyone != nullptr);
+    uuid_t everyoneId {};
+    REQUIRE (::mbr_gid_to_uuid (everyone->gr_gid, everyoneId) == 0);
+    REQUIRE (::acl_set_qualifier (grant, everyoneId) == 0);
+    acl_permset_t permissions = nullptr;
+    REQUIRE (::acl_get_permset (grant, &permissions) == 0);
+    REQUIRE (::acl_add_perm (permissions, ACL_READ_DATA) == 0);
+    REQUIRE (::acl_add_perm (permissions, ACL_EXECUTE) == 0);
+    acl_flagset_t flags = nullptr;
+    REQUIRE (::acl_get_flagset_np (grant, &flags) == 0);
+    REQUIRE (::acl_add_flag_np (flags, ACL_ENTRY_FILE_INHERIT) == 0);
+    REQUIRE (::acl_add_flag_np (flags, ACL_ENTRY_DIRECTORY_INHERIT) == 0);
+    REQUIRE (::acl_set_file (tempParent.c_str(), ACL_TYPE_EXTENDED, parentAcl.value) == 0);
+    const auto aclText = [] (const std::filesystem::path& item) {
+        REQUIRE (std::filesystem::exists (item));
+        OwnedAcl acl { ::acl_get_file (item.c_str(), ACL_TYPE_EXTENDED) };
+        if (acl.value == nullptr)
+        {
+            REQUIRE (errno == ENOENT); // Existing object with no ACL property on Darwin.
+            return std::string ("<no ACL property>");
+        }
+        char* raw = ::acl_to_text (acl.value, nullptr);
+        const std::unique_ptr<char, decltype (&::acl_free)> text (raw, ::acl_free);
+        REQUIRE (raw != nullptr);
+        return std::string (raw);
+    };
+    const auto parentAclBefore = aclText (tempParent);
+    const auto sourceAclBefore = aclText (source);
+    const auto modeOnly = tempParent / "mode-only-characterization";
+    REQUIRE (::mkdir (modeOnly.c_str(), S_IRWXU) == 0);
+    {
+        struct stat mode {};
+        REQUIRE (::lstat (modeOnly.c_str(), &mode) == 0);
+        REQUIRE ((mode.st_mode & 0077) == 0);
+        OwnedAcl inherited { ::acl_get_file (modeOnly.c_str(), ACL_TYPE_EXTENDED) };
+        REQUIRE (inherited.value != nullptr);
+        acl_entry_t entry = nullptr;
+        REQUIRE (::acl_get_entry (inherited.value, ACL_FIRST_ENTRY, &entry) == 0);
+        acl_tag_t tag {};
+        REQUIRE (::acl_get_tag_type (entry, &tag) == 0);
+        REQUIRE (tag == ACL_EXTENDED_ALLOW);
+        REQUIRE (::acl_get_flagset_np (entry, &flags) == 0);
+        REQUIRE (::acl_get_flag_np (flags, ACL_ENTRY_INHERITED) == 1);
+        REQUIRE (::acl_get_permset (entry, &permissions) == 0);
+        REQUIRE (::acl_get_perm_np (permissions, ACL_READ_DATA) == 1);
+        REQUIRE (::acl_get_perm_np (permissions, ACL_EXECUTE) == 1);
+    }
+    REQUIRE (std::filesystem::remove (modeOnly));
+#endif
+    const auto sourceBefore = sourceInventory (source);
+    autosave_detail::RecoveryScratch scratch;
+    const auto result = scratch.create (tempParent, bundle, source);
+    INFO (result.message);
+    if (denyCreation)
+    {
+        REQUIRE_FALSE (result.ok());
+        REQUIRE (result.status == AutosaveStatus::FilesystemError);
+        REQUIRE (result.message.find (detail::utf8Path (std::filesystem::canonical (tempParent))) != std::string::npos);
+        REQUIRE (scratch.path.empty());
+        REQUIRE (std::filesystem::is_empty (tempParent));
+    }
+    else
+    {
+        REQUIRE (result.ok());
+        const auto requirePrivate = [&] (const std::filesystem::path& item) {
+            CAPTURE (item);
+            REQUIRE (std::filesystem::exists (item));
+#if defined(_WIN32)
+            // Inspect the actual DACL, not the read-only attribute. This is not a second-account access test.
+            LocalDescriptor descriptor;
+            PACL dacl = nullptr;
+            REQUIRE (GetNamedSecurityInfoW (item.c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+                                            nullptr, nullptr, &dacl, nullptr, &descriptor.value) == ERROR_SUCCESS);
+            REQUIRE (dacl != nullptr);
+            REQUIRE (dacl->AceCount > 0);
+            if (item == scratch.path)
+            {
+                SECURITY_DESCRIPTOR_CONTROL control = 0;
+                DWORD revision = 0;
+                REQUIRE (GetSecurityDescriptorControl (descriptor.value, &control, &revision) != FALSE);
+                CHECK ((control & SE_DACL_PROTECTED) != 0);
+            }
+            for (DWORD i = 0; i < dacl->AceCount; ++i)
+            {
+                void* rawAce = nullptr;
+                REQUIRE (GetAce (dacl, i, &rawAce) != FALSE);
+                const auto* ace = static_cast<const ACCESS_ALLOWED_ACE*> (rawAce);
+                REQUIRE (ace->Header.AceType == ACCESS_ALLOWED_ACE_TYPE);
+                CHECK (EqualSid (const_cast<DWORD*> (&ace->SidStart), userSid) != FALSE);
+                if (item == scratch.path)
+                    CHECK ((ace->Header.AceFlags & (OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE))
+                           == (OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE));
+            }
+#else
+            // POSIX confidentiality comes from the owner-only traversal boundary. A copied 0644
+            // file inside this directory is still inaccessible to another ordinary user.
+            struct stat directory {};
+            REQUIRE (::stat (scratch.path.c_str(), &directory) == 0);
+            CHECK (directory.st_uid == ::geteuid());
+            CHECK ((directory.st_mode & 0077) == 0);
+#if defined(__APPLE__)
+            // The directory must block traversal even if a copied file has permissive mode bits.
+            // Inspect it for every actual DB/WAL/SHM check; mode 0700 alone is insufficient here.
+            OwnedAcl directoryAcl { ::acl_get_file (scratch.path.c_str(), ACL_TYPE_EXTENDED) };
+            if (directoryAcl.value == nullptr)
+                CHECK (errno == ENOENT);
+            else
+            {
+                acl_entry_t entry = nullptr;
+                errno = 0;
+                const int entryResult = ::acl_get_entry (directoryAcl.value, ACL_FIRST_ENTRY, &entry);
+                const int entryError = errno;
+                CHECK (entryResult == -1);
+                CHECK (entryError == EINVAL); // Darwin's empty-ACL iterator result, not POSIX/Linux's 0.
+            }
+#endif
+            if (item != scratch.path)
+            {
+                REQUIRE (item.parent_path() == scratch.path);
+                REQUIRE (std::filesystem::symlink_status (item).type() == std::filesystem::file_type::regular);
+            }
+#endif
+        };
+        requirePrivate (scratch.path);
+        if (populate)
+        {
+            // Same metadata-copy operation as RecoveryReader; never copy a source SHM.
+            REQUIRE (std::filesystem::copy_file (source / "project.db", scratch.path / "project.db"));
+            requirePrivate (scratch.path / "project.db");
+            {
+                sqlite3* raw = nullptr;
+                const int opened = sqlite3_open_v2 (utf8Path (scratch.path / "project.db").c_str(), &raw,
+                                                    SQLITE_OPEN_READWRITE, nullptr);
+                const std::unique_ptr<sqlite3, decltype (&sqlite3_close)> ownedDb (raw, sqlite3_close);
+                REQUIRE (opened == SQLITE_OK);
+                requireRawExec (raw, "PRAGMA journal_mode=WAL; PRAGMA wal_autocheckpoint=0; "
+                                    "UPDATE tracks SET name='private scratch sidecars';");
+                REQUIRE (std::filesystem::file_size (scratch.path / "project.db-wal") > 0);
+                requirePrivate (scratch.path / "project.db-wal");
+                requirePrivate (scratch.path / "project.db-shm");
+            }
+        }
+        REQUIRE (scratch.finish (autosave_detail::ok()).ok());
+        REQUIRE (std::filesystem::is_empty (tempParent));
+    }
+    REQUIRE (sourceInventory (source) == sourceBefore);
+#if defined(__APPLE__)
+    REQUIRE (aclText (tempParent) == parentAclBefore);
+    REQUIRE (aclText (source) == sourceAclBefore);
+#endif
+#if defined(_WIN32)
+    if (! cleanup.deniedParent.empty())
+    {
+        REQUIRE (SetFileSecurityW (tempParent.c_str(), DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                                   cleanup.permissive) != FALSE);
+        cleanup.deniedParent.clear();
+    }
+#endif
+    std::filesystem::remove_all (fixture);
+    REQUIRE_FALSE (std::filesystem::exists (fixture));
+    cleanup.root.clear();
+}
+
+TEST_CASE ("ADR-0069 recovery scratch refuses source and target containment before creating anything",
+           "[persistence][autosave][recovery-scratch-containment]")
+{
+    using namespace yesdaw::persistence;
+    const auto fixture = makeTempBundlePath ("scratch-containment");
+    const auto bundle = fixture / "project.yesdaw";
+    auto source = autosaveSnapshotPath (bundle);
+    const auto outside = fixture / "outside";
+    std::filesystem::create_directories (source / "child");
+    std::filesystem::create_directories (bundle / "audio");
+    std::filesystem::create_directories (outside);
+    auto scratchRoot = outside;
+    bool refuses = true;
+    std::string reason = "inside the project or snapshot";
+    SECTION ("source root") { scratchRoot = source; }
+    SECTION ("source child") { scratchRoot = source / "child"; }
+    SECTION ("target root") { scratchRoot = bundle; }
+    SECTION ("target child") { scratchRoot = bundle / "audio"; }
+    SECTION ("canonical parent traversal alias") { scratchRoot = source / "child" / ".."; }
+#if ! defined(_WIN32)
+    SECTION ("directory symlink alias")
+    {
+        scratchRoot = outside / "source-alias";
+        std::error_code ec;
+        std::filesystem::create_directory_symlink (source, scratchRoot, ec);
+        INFO (ec.message());
+        REQUIRE (! ec);
+    }
+#endif
+    SECTION ("source outside the target tree is protected independently")
+    {
+        source = fixture / "detached-snapshot";
+        std::filesystem::create_directory (source);
+        scratchRoot = source;
+    }
+    SECTION ("an outside sibling is permitted") { refuses = false; }
+    SECTION ("protected source inspection errors are retained")
+    {
+        source = fixture / "missing-source";
+        reason = "missing-source";
+    }
+    const auto before = sourceInventory (fixture);
+    const auto rootTime = std::filesystem::last_write_time (scratchRoot);
+    autosave_detail::RecoveryScratch scratch;
+    const auto result = scratch.create (scratchRoot, bundle, source);
+    INFO (result.message);
+    REQUIRE (result.ok() != refuses);
+    if (refuses)
+    {
+        REQUIRE (result.status == AutosaveStatus::FilesystemError);
+        REQUIRE (result.message.find (reason) != std::string::npos);
+        REQUIRE (scratch.path.empty());
+        REQUIRE (sourceInventory (fixture) == before);
+        REQUIRE (std::filesystem::last_write_time (scratchRoot) == rootTime);
+    }
+    else
+    {
+        REQUIRE (std::filesystem::is_directory (scratch.path));
+        REQUIRE (std::filesystem::equivalent (scratch.path.parent_path(), outside));
+        REQUIRE (scratch.finish (autosave_detail::ok()).ok());
+        REQUIRE (sourceInventory (fixture) == before);
+    }
+    std::filesystem::remove_all (fixture);
+}
+
+TEST_CASE ("ADR-0069 recovery validates live then previous and preserves both sources",
+           "[persistence][autosave][recovery-source-selection]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("recovery-source-selection");
+    const auto project = makeProject();
+    {
+        auto db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (writeAutosaveSnapshot (db, project).ok());
+    }
+    const auto live = autosaveSnapshotPath (path);
+    const auto previous = autosave_detail::previousSnapshotPath (path);
+    std::filesystem::copy (live, previous, std::filesystem::copy_options::recursive);
+    // Distinguish the selected slot by actual rows and stamp, not only the reported path.
+    {
+        sqlite3* raw = nullptr;
+        REQUIRE (sqlite3_open_v2 (utf8Path (previous / "project.db").c_str(), &raw, SQLITE_OPEN_READWRITE, nullptr) == SQLITE_OK);
+        requireRawExec (raw, "UPDATE tracks SET name='previous'; UPDATE project_write_stamp SET write_count=29;");
+        REQUIRE (sqlite3_close (raw) == SQLITE_OK);
+    }
+    writeBytes (live / "audio" / "live-orphan.asset", { });
+    writeBytes (previous / "audio" / "previous-orphan.asset", { });
+    bool usePrevious = false;
+    bool bothInvalid = false;
+    SECTION ("valid live is preferred") {}
+    SECTION ("missing live uses previous")
+    {
+        usePrevious = true;
+        std::filesystem::remove_all (live);
+    }
+    SECTION ("audio-invalid live uses valid previous")
+    {
+        usePrevious = true;
+        REQUIRE (std::filesystem::remove (storedAssetPathForHash (live, project.assets.back().contentHash)));
+    }
+    SECTION ("both invalid retain the live and previous causes")
+    {
+        bothInvalid = true;
+        REQUIRE (std::filesystem::remove (storedAssetPathForHash (live, project.assets.back().contentHash)));
+        REQUIRE (std::filesystem::remove (previous / "project.db"));
+    }
+    const auto before = sourceInventory (autosaveDirectory (path));
+    Project sentinel = project;
+    sentinel.tracks.front().strip.name = "sentinel";
+    Project recovered = sentinel;
+    std::int64_t stamp = -17;
+    detail::assetHashCallsForTest = 0;
+    const auto result = readAutosaveSnapshot (path, recovered, &stamp);
+    INFO (result.message);
+    if (bothInvalid)
+    {
+        REQUIRE_FALSE (result.ok());
+        REQUIRE (result.status != AutosaveStatus::NoAutosave);
+        REQUIRE (result.bundle.status == BundleStatus::IntegrityFailed);
+        REQUIRE (result.bundle.message.find (detail::utf8Path (storedAssetPathForHash (live, project.assets.back().contentHash)))
+                 != std::string::npos);
+        REQUIRE (result.bundle.message.find (detail::utf8Path (previous / "project.db")) != std::string::npos);
+        requireSameProjectSurface (recovered, sentinel);
+        REQUIRE (stamp == -17);
+    }
+    else
+    {
+        REQUIRE (result.ok());
+        Project expected = project;
+        if (usePrevious)
+            expected.tracks.front().strip.name = "previous";
+        requireSameProjectSurface (recovered, expected);
+        REQUIRE (stamp == (usePrevious ? 29 : 1));
+        if (! usePrevious)
+            REQUIRE (detail::assetHashCallsForTest == project.assets.size());
+    }
+    REQUIRE (sourceInventory (autosaveDirectory (path)) == before);
+    std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("ADR-0069 only genuinely absent published slots mean no autosave",
+           "[persistence][autosave][recovery-source-absence]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("recovery-source-absence");
+    const auto live = autosaveSnapshotPath (path);
+    std::filesystem::create_directories (autosaveDirectory (path));
+    bool absent = true;
+    SECTION ("neither published slot exists") {}
+    SECTION ("even a valid last.tmp is never selected")
+    {
+        auto temporary = openFreshBundle (autosave_detail::tempSnapshotPath (path));
+        REQUIRE (temporary.writeProjectSnapshot (makeProject()).ok());
+        writeProjectAssetFiles (temporary.bundlePath(), makeProject());
+    }
+    SECTION ("present live directory without project.db is invalid")
+    {
+        absent = false;
+        std::filesystem::create_directory (live);
+    }
+    SECTION ("stat failure from a non-directory slot is invalid")
+    {
+        absent = false;
+        writeBytes (live, assetBytesForId (idFromLowByte (1)));
+    }
+    const auto before = sourceInventory (path);
+    const auto sentinel = makeProject();
+    Project recovered = sentinel;
+    std::int64_t stamp = -5;
+    const auto result = readAutosaveSnapshot (path, recovered, &stamp);
+    REQUIRE_FALSE (result.ok());
+    REQUIRE ((result.status == AutosaveStatus::NoAutosave) == absent);
+    if (! absent)
+    {
+        REQUIRE (result.status == AutosaveStatus::FilesystemError);
+        REQUIRE (result.message.find ("last.yesdaw") != std::string::npos);
+    }
+    REQUIRE (stamp == -5);
+    requireSameProjectSurface (recovered, sentinel);
+    REQUIRE (sourceInventory (path) == before);
+    std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("ADR-0069 restore validates freshly once and leaves its published source untouched",
+           "[persistence][autosave][recovery-source-restore]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("recovery-source-restore");
+    const auto project = makeProject();
+    auto db = openFreshBundle (path);
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+    writeProjectAssetFiles (path, project);
+    REQUIRE (writeAutosaveSnapshot (db, project).ok());
+    REQUIRE (db.setUnresolvedSnapshotStamp (1).ok());
+    const auto live = autosaveSnapshotPath (path);
+    writeBytes (live / "audio" / "orphan.asset", { });
+    Project promptProject;
+    REQUIRE (readAutosaveSnapshot (path, promptProject).ok());
+    bool succeeds = true;
+    SECTION ("unchanged snapshot validates once and restores") {}
+    SECTION ("source damage after the prompt is validated afresh before any target mutation")
+    {
+        succeeds = false;
+        // Remove only the source name; target audio remains valid. A cached selection would accept it.
+        REQUIRE (std::filesystem::remove (storedAssetPathForHash (live, project.assets.back().contentHash)));
+    }
+    const auto before = sourceInventory (path);
+    const auto sourceBefore = sourceInventory (live);
+    Project sentinel = project;
+    sentinel.tracks.front().strip.name = "restore sentinel";
+    Project restored = sentinel;
+    detail::assetHashCallsForTest = 0;
+    const auto result = restoreAutosaveSnapshot (db, restored);
+    INFO (result.message);
+    REQUIRE (result.ok() == succeeds);
+    if (succeeds)
+    {
+        requireSameProjectSurface (restored, project);
+        REQUIRE (detail::assetHashCallsForTest == project.assets.size());
+    }
+    else
+    {
+        requireSameProjectSurface (restored, sentinel);
+        REQUIRE (sourceInventory (path) == before);
+        REQUIRE (result.bundle.message.find (detail::utf8Path (storedAssetPathForHash (live, project.assets.back().contentHash)))
+                 != std::string::npos);
+    }
+    REQUIRE (sourceInventory (live) == sourceBefore);
+    std::optional<std::int64_t> marker;
+    REQUIRE (db.unresolvedSnapshotStamp (marker).ok());
+    REQUIRE (marker == (succeeds ? std::optional<std::int64_t> {} : std::optional<std::int64_t> { 1 }));
+    db = {};
+    std::filesystem::remove_all (path);
 }
 
 TEST_CASE ("ADR-0069 autosaves share immutable asset bytes and release their links on retirement",

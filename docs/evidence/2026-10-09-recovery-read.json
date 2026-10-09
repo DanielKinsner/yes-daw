@@ -1,0 +1,255 @@
+{
+  "date": "2026-10-09",
+  "checkpoint": "Cheap autosave close-out unit 1: source-preserving recovery reads",
+  "status": "Local verification complete; exact-code CI pending",
+  "baseCodeSha": "ba7ab513da0593718b06832a64b3adb92ba21b63",
+  "sourceArtifacts": [
+    {
+      "localPath": "src/persistence/AutosaveRecovery.h",
+      "sha256": "eb1efff3ea10af54a8884a4ac821d121d01f1025bd20d1dea5a6a34cd9b846f0"
+    },
+    {
+      "localPath": "src/persistence/ProjectBundle.h",
+      "sha256": "6d17d3e768fdb09d7c2ef7cdcd8c912a5991c10617f5c63d2c99c144be9922fa"
+    },
+    {
+      "localPath": "tests/persistence_tests.cpp",
+      "sha256": "388cc6b52f905b927a868777b7f73edfdd753712f5edf9c22b8311a252fab230"
+    }
+  ],
+  "executable": {
+    "localPath": "build-ci/YesDaw_artefacts/Release/YesDaw.exe",
+    "sha256": "aff49e96569aa63173f7448241adeb2e17ff03785912441686399f02291aef06"
+  },
+  "local": {
+    "autosave": {
+      "assertions": 7484,
+      "cases": 19,
+      "artifact": {
+        "localPath": "build-ci/20261009-recovery-unit1-review-fixed-autosave.log",
+        "sha256": "9efcd60889c070a043209cda5fffd1fe458d003aa8cfdba2c61a3be1622f8f6d"
+      }
+    },
+    "realCloudPlaceholder": {
+      "assertions": 121,
+      "cases": 1,
+      "artifact": {
+        "localPath": "build-ci/20261009-recovery-unit1-review-fixed-cloud.log",
+        "sha256": "8a69d7de3fdad4aea7dc8e965adf817e7e4f145b058b20de95c07bcff0332f4a"
+      }
+    },
+    "cleanupRepair": {
+      "assertions": 286,
+      "cases": 2,
+      "artifact": {
+        "localPath": "build-ci/20261009-recovery-unit1-review-cleanup.log",
+        "sha256": "2285144d7387bd57f35e017e1b2c631395072de3120d015e86e8cf6e79e14519"
+      }
+    },
+    "cleanupNegativeControl": {
+      "localPath": "build-ci/20261009-recovery-unit1-review-red.log",
+      "sha256": "3d783c3764e4aaa87d7fe78bf314f1a67df1bea14ba4f053c6cab50060794a00"
+    },
+    "fullCtest": {
+      "passed": 439,
+      "total": 439,
+      "seconds": 260.47,
+      "artifact": {
+        "localPath": "build-ci/20261009-recovery-unit1-reviewed-full-ctest.log",
+        "sha256": "03fc5d57181e9faeade3f3fbcdc899b64f274ac563c7f573d8082127c3485199"
+      }
+    },
+    "fullBuild": {
+      "localPath": "build-ci/20261009-recovery-unit1-reviewed-full-build.log",
+      "sha256": "cf41b3c7dfb02e8f61fa3242bf28c0803ff239a4291b23dc37649e48f5b5db01"
+    },
+    "clang": {
+      "localPath": "build-ci/20261009-recovery-unit1-review-fixed-clang.log",
+      "sha256": "9092aa0fdc30139bdbde4d67b2c6fd426dba8f05e05df7eef612cb695e824a58"
+    }
+  },
+  "app": {
+    "scripts": "tools/session-drive.ps1 with all eight tools/session-scripts/ss1 through ss8 journeys",
+    "audioProfile": "Realtek Speakers render and Realtek Stereo Mix capture; shared desktop under session authorization",
+    "sessions": [
+      {
+        "name": "ss1-first-minute",
+        "exitCode": 0,
+        "passed": 59,
+        "failed": 0,
+        "artifact": {
+          "localPath": "build-ci\\session-shots\\2026-10-09-recovery-reviewed\\ss1-first-minute.log",
+          "sha256": "7a7291c05d50a5a020b17a5ad877e381c52440ef4cfb2315cfdb8f2255790e72"
+        }
+      },
+      {
+        "name": "ss2-mouse-then-keys",
+        "exitCode": 0,
+        "passed": 42,
+        "failed": 0,
+        "artifact": {
+          "localPath": "build-ci\\session-shots\\2026-10-09-recovery-reviewed\\ss2-mouse-then-keys.log",
+          "sha256": "59b14944758e401ab40329ddb08692eb1d7bbeb890205951673a1652004bd4be"
+        }
+      },
+      {
+        "name": "ss3-edit-a-song",
+        "exitCode": 0,
+        "passed": 57,
+        "failed": 0,
+        "artifact": {
+          "localPath": "build-ci\\session-shots\\2026-10-09-recovery-reviewed\\ss3-edit-a-song.log",
+          "sha256": "de1d0e0dbbf039b1a2f9b6fd19cd335fa44005614788278902d619f4fb1ac2cf"
+        }
+      },
+      {
+        "name": "ss4-track-instrument",
+        "exitCode": 0,
+        "passed": 22,
+        "failed": 0,
+        "artifact": {
+          "localPath": "build-ci\\session-shots\\2026-10-09-recovery-reviewed\\ss4-track-instrument.log",
+          "sha256": "61ab43632d34624ff590d1bbef1d2ba9c1942cbe12c891e5f5d3ea6f47340209"
+        }
+      },
+      {
+        "name": "ss5-piano-roll",
+        "exitCode": 0,
+        "passed": 77,
+        "failed": 0,
+        "artifact": {
+          "localPath": "build-ci\\session-shots\\2026-10-09-recovery-reviewed\\ss5-piano-roll.log",
+          "sha256": "9da1790e7d3d54bee3003b0d50fbb5855b606ee164cc61a89ab1886df0155218"
+        }
+      },
+      {
+        "name": "ss6-write-a-beat",
+        "exitCode": 0,
+        "passed": 58,
+        "failed": 0,
+        "artifact": {
+          "localPath": "build-ci\\session-shots\\2026-10-09-recovery-reviewed\\ss6-write-a-beat.log",
+          "sha256": "d3ce32bc282b20e60f7ddaa5936015a3e5e14af288832ed1c028bd42e75583d4"
+        }
+      },
+      {
+        "name": "ss7-mix-the-song",
+        "exitCode": 0,
+        "passed": 197,
+        "failed": 0,
+        "artifact": {
+          "localPath": "build-ci\\session-shots\\2026-10-09-recovery-reviewed\\ss7-mix-the-song.log",
+          "sha256": "a857daf260f6d3aefafd84d2ce1e1a82ee8269054e324e0309fc898e7153ddea"
+        }
+      },
+      {
+        "name": "ss8-project-lifecycle",
+        "exitCode": 1,
+        "passed": 171,
+        "failed": 6,
+        "failureLines": [
+          "  [FAIL] a confirmed autosave follows the edit within 8 s at the drive cadence (autosave.writes=0; ADR-0068)",
+          "  [FAIL] the reopened project equals the last confirmed autosave (5,0,0,7 vs 0,0,0,0)",
+          "  [FAIL] a confirmed autosave follows the second edit within 8 s at the drive cadence (autosave.writes=0; ADR-0068)",
+          "  [FAIL] after lost writes the recovery question rises (ADR-0068)",
+          "  [FAIL] the bundle is behind the snapshot (19 < 0)",
+          "  [FAIL] the recovery question offers its Restore button (widget.autosave.recovery.restore)"
+        ],
+        "artifact": {
+          "localPath": "build-ci\\session-shots\\2026-10-09-recovery-reviewed\\ss8-project-lifecycle.log",
+          "sha256": "d223ce48613a4051b0a58165c841642d8b659b581d19d0d7f57c335857b5df0f"
+        }
+      }
+    ],
+    "feel": [
+      {
+        "name": "ss1-first-minute",
+        "paintP95Ms": 6.98,
+        "underruns": 0,
+        "sinceLaunchUnderruns": 0,
+        "deadlineMisses": 0,
+        "maxCallbackMs": 0.13
+      },
+      {
+        "name": "ss7-mix-the-song",
+        "paintP95Ms": 4.98,
+        "underruns": 0,
+        "sinceLaunchUnderruns": 0,
+        "deadlineMisses": 0,
+        "maxCallbackMs": 1.17
+      }
+    ],
+    "restoredAudioProfile": {
+      "localPath": "build-ci/20261009-recovery-unit1-reviewed-restored-audio-profile.log",
+      "sha256": "75363994087d11ec0a00e6d230c2e02e1dbb11f9bbff137c9c70b8f6c83d7341"
+    },
+    "priorBatch": "build-ci/session-shots/2026-10-09-recovery-read/ (before review repairs; different executable, preserved separately)",
+    "boundary": "Six unchanged SS8 autosave-off failures remain failures. This profile does not certify the earlier ASUS capture delivery gaps as fixed."
+  },
+  "review": {
+    "skill": "compound-engineering:ce-code-review",
+    "runId": "20261009-recovery-unit1-review",
+    "status": "complete",
+    "depth": "full",
+    "reviewers": [
+      "correctness",
+      "security",
+      "adversarial",
+      "project-standards",
+      "testing",
+      "maintainability",
+      "performance",
+      "reliability"
+    ],
+    "route": "Native only; no external source egress",
+    "findings": [
+      {
+        "number": 1,
+        "severity": "P1",
+        "title": "Scratch cleanup failure can discard the newer recovery",
+        "disposition": "Applied inline; real Windows public read/Restore deletion-denial regression reproduced 20 failures before repair, then passed. Cleanup failure stops fallback and retains ownership/reasons. Existing UI failure branch retains published snapshots."
+      },
+      {
+        "number": 2,
+        "severity": "P1",
+        "title": "Inherited macOS ACLs expose recovery metadata",
+        "disposition": "Applied inline; clear and verify ACL on owned empty directory before copy. Added actual inherited-ACL characterization/privacy fixture. macOS execution pending CI."
+      }
+    ],
+    "fixVerification": "Same independent critic inspected both bounded repairs and tests, found no residual finding. It read existing root-run logs and did not execute tests.",
+    "simplification": "Three native reuse/quality/efficiency reviews found no worthwhile changes before full review."
+  },
+  "visual": {
+    "report": {
+      "localPath": "build-ci/recovery-unit1-reviewed-visual-review.md",
+      "sha256": "d48356d7a4c0b30c264a86e21516781e61e7da9528a16d2575d383b318fbbad2"
+    },
+    "priorReport": {
+      "localPath": "build-ci/recovery-unit1-visual-review.md",
+      "sha256": "7942eefc114c49394879aaf0ca5b9821e5c57916a56f80703eabd9070710c2da"
+    },
+    "result": "No new FIX in the final repaired binary, reviewed separately using its current SS1 and SS7 screenshots. Prior screenshots and report retain their actual binary identity.",
+    "inherited": "docs/evidence/2026-10-08-g6-closeout.json: unchanged full density/scaling, exhaustive tooltip, token and unshown loop coverage only; historical milestone/approval state is not adopted."
+  },
+  "reproducerCommands": [
+    "cmake --build --preset ci --parallel 12",
+    "ctest --preset ci",
+    "build-ci/YesDawPersistenceCheck.exe \"[autosave]~[.]\"",
+    "build-ci/YesDawPersistenceCheck.exe \"[cloud-placeholder]\"",
+    "& tools/clang-warnings.ps1 -Files @('tests/persistence_tests.cpp','tests/autosave_cloud_tests.cpp','tests/reliability_tests.cpp','src/ui/MainComponentControls.cpp')"
+  ],
+  "appleApiSources": [
+    "https://developer.apple.com/library/archive/documentation/FileManagement/Conceptual/FileSystemProgrammingGuide/FileSystemDetails/FileSystemDetails.html",
+    "https://raw.githubusercontent.com/apple-oss-distributions/Libc/main/posix1e/acl_entry.c",
+    "https://raw.githubusercontent.com/apple-oss-distributions/Libc/main/gen/filesec.c",
+    "https://raw.githubusercontent.com/apple-oss-distributions/Libc/main/sys/statx_np.c"
+  ],
+  "boundaries": [
+    "This is unit 1 only. Autosave writes remain off; units 2-7 and Usable-song closure remain pending.",
+    "Local artifact paths are this host only; hashes and counts are preserved here, not a claim that raw files are present on another machine.",
+    "No unsupported-filesystem, noowners mount or second-account execution credit is claimed.",
+    "Stable published slots are assumed; raw metadata copying is not an atomic view of an arbitrary concurrent external writer.",
+    "Recovery hashes every original referenced asset. Restore asset carry behavior remains unchanged for unit 2.",
+    "The real cloud-placeholder persistence fixture is not the later actual-app placeholder drive or OneDrive/Dropbox sync proof."
+  ]
+}

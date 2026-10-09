@@ -1796,7 +1796,7 @@ enum class UnresolvedSnapshotStamp : std::uint8_t
     Clear
 };
 
-namespace autosave_detail { struct SnapshotValidator; }
+namespace autosave_detail { struct SnapshotValidator; struct RecoveryReader; }
 
 class ProjectBundleDb final
 {
@@ -4456,6 +4456,8 @@ private:
     // Only a fresh autosave's validator may substitute recorded inode identity for asset hashing.
     // Every ordinary open still reconciles and hashes all referenced files.
     friend struct autosave_detail::SnapshotValidator;
+    // Recovery migrates only an owned metadata copy, then hashes the original asset paths in full.
+    friend struct autosave_detail::RecoveryReader;
 
     [[nodiscard]] static BundleResult openProjectDb (const std::filesystem::path& bundlePath, bool create, ProjectBundleDb& out)
     {

@@ -8,6 +8,59 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-09 — Recovery reads preserve snapshots; unit 1 passes locally
+
+**Now:** close-out checklist unit 1 is implemented in the working tree; it is not yet certified.
+Recovery copies only database metadata into private owned scratch, applies existing migrations and
+validators there, and hashes the original audio. It preserves source DB/WAL/SHM, audio and extra files,
+retains concrete refusal reasons, and reuses the validated selection within each invocation. Restore
+validates afresh after the question; its asset-carry behavior is unchanged until unit 2.
+
+**Measured so far:** the source-preservation negative control failed before implementation. Final
+Windows focused checks pass **7484 assertions / 19 cases**; the real hydrated-placeholder gate passes
+**121 / 1**, and all four affected Clang translation-unit checks are clean. The reviewed-source full build
+and CTest pass **439/439 (260.47 s)**; earlier source versions passed **438/438 (295.27 s)** and
+**437/437 (260.72 s)**.
+Review caught ambient temp-permission exposure: the new
+Windows privacy negative control failed seven assertions before the fix. Private directory creation
+now protects copied DB and actual SQLite sidecars; real create-denial and cleanup-denial tests pass.
+POSIX creation also checks actual ownership/mode, and macOS rejects noowners mounts. These branches
+need Linux/macOS CI; unsupported mounts and second-account access were not tested locally.
+
+**Final app batch:** SS1-SS7 pass **512 assertions** on the reviewed, repaired binary (SHA256
+`AFF49E96569AA63173F7448241ADEB2E17FF03785912441686399F02291AEF06`).
+SS8 is **171/177**; all six failure lines exactly match the earlier autosave-off baseline. Local logs/shots
+are under `build-ci/session-shots/2026-10-09-recovery-reviewed/`. SS1/SS7 paint p95 is **6.98/4.98 ms**;
+both editing bursts report zero underruns and deadline misses. This is the Realtek Stereo Mix profile,
+not proof that the earlier ASUS capture delivery gaps are fixed. All six original audio defaults are
+mechanically verified restored and Stereo Mix was disabled after the batch. The earlier pre-repair batch
+remains under `build-ci/session-shots/2026-10-09-recovery-read/` with its actual different executable identity.
+
+**Visual rubric:** separate agent review found no new FIX in the recorded binary. (1) overlap/clipping:
+PASS in three SS1 sizes and inspected SS7 states; (2) eight-track density: prior unchanged-UI G6 coverage,
+not re-proved by these one-to-three-track shots; (3) labels/tooltips: visible labels PASS, exhaustive
+tooltip coverage inherited; (4) readable type/contrast: observed PASS, numerical token gates inherited;
+(5) selection/playhead/hover/pressed/focus: observed PASS, loop appearance inherited; (6) reference
+structure: PASS; (7) no fake data: PASS for inspected frames coupled to drive logs. Full matrix evidence
+is not renewed. Final-binary addendum: `build-ci/recovery-unit1-reviewed-visual-review.md`; the earlier
+`build-ci/recovery-unit1-visual-review.md` is preserved separately.
+
+**Review repairs:** completed CE review `20261009-recovery-unit1-review` confirmed two issues. Both
+are repaired and the separate critic reports no residual finding by inspection. Cleanup failure now
+retains scratch ownership and stops fallback, preserving the newer slot and caller outputs. Its real
+Windows deletion-denial negative control failed **20 assertions** before the fix; repaired public
+read/Restore checks pass **286/2**. macOS now removes and verifies inherited ACLs on its owned empty
+scratch directory before copying; an inherited-ACL characterization and privacy fixture await macOS CI.
+Final focused Windows checks pass **7484/19**, and actual cloud-placeholder checks pass **121/1**.
+
+**Next:** the three simplification reviews found no worthwhile changes. Local checks, final app drives,
+separate visual addendum and bounded review-repair critic are complete. Parsed measurements and source,
+executable and log hashes are in [the recovery-read record](docs/evidence/2026-10-09-recovery-read.json).
+Commit/push this unit, then inspect every exact-code CI job; Linux/macOS runtime proof is pending.
+Only after green CI, advance to unit 2: restore missing audio names by link and report named refusals
+through the shipped Restore action. Autosave remains off; the Usable-song milestone is incomplete.
+No app drive is running. Dan's hands-off authorization remains active for this session.
+
 ## 2026-10-09 — Normal-build CI passes; cheap autosave cp1 complete
 
 **Now:** all ten expected jobs of normal-build CI `37988272626` passed on exact code SHA
