@@ -1,0 +1,143 @@
+{
+  "checkpoint": "ADR-0067 covered-panel paint repair, interrupting ADR-0069 cp1",
+  "date": "2026-10-09",
+  "baseCommit": "8108cda067caa5b9b64201f5e4613bf43aa7c965",
+  "boundary": "Local working-tree measurements, not exact-commit CI certification. Autosave remains off; SS8 has six known failures. Alternate Stereo Mix input profile, not an ASUS discontinuity repair.",
+  "executable": {
+    "Algorithm": "SHA256",
+    "Hash": "8AF4FD4F4F7695DAD4AAEC1C57181B3F6A3F8E6277D8B2D63EA2C661D39833CE",
+    "Path": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\YesDaw_artefacts\\Release\\YesDaw.exe"
+  },
+  "sources": [
+    {
+      "path": "src/ui/TimelineCanvas.h",
+      "sha256": "67B0D596DE9A778A0D4264D68169DEE20884BF3B12425B891E811C875B4FE2FC"
+    },
+    {
+      "path": "tests/ui_canvas_cache_tests.cpp",
+      "sha256": "BAA5B1B2A62EBD8CEAFBBBF2030CCC6C3308ECA0206F5D0087389EFDF3AFAE5D"
+    }
+  ],
+  "diagnosis": {
+    "unchangedSs1P95Ms": [
+      8.2,
+      8.08
+    ],
+    "instrumentedPanelMs": [
+      2.14,
+      2.5
+    ],
+    "remedy": "Exclude only interiors guaranteed covered by later opaque fills, preserving a one-logical-pixel fringe and original visible drawing. Timing instrumentation removed."
+  },
+  "ctest": {
+    "log": "build-ci/20261009-panel-occlusion-ctest.log",
+    "sha256": "3F39849BAD8D6EEA4F199C658072D71A387D619AABF25130C76338DAF6496278",
+    "summary": "100% tests passed, 0 tests failed out of 428",
+    "elapsed": "Total Test time (real) = 289.00 sec"
+  },
+  "finalFocusedTest": "All tests passed (174 assertions in 4 test cases)",
+  "finalTestClang": "PASS: 1 translation unit(s) clean under Clang -Wall -Wextra",
+  "drives": [
+    {
+      "script": "ss1-first-minute",
+      "summary": "PASS: 59 assertions",
+      "logSha256": "EE710A952E3BADA5F77302148FE209FCA047DBE7F45948B954A7EAE7ED409596",
+      "log": "build-ci/session-shots/2026-10-09-panel-occlusion/ss1-first-minute.log",
+      "timingAndAudio": [
+        "[PASS] underruns during the burst == 0 (B5): 0 [sinceLaunch=0 deadlineMisses=0 maxCallbackMs=0.21 rebuilds=0]",
+        "[PASS] paint per frame p95 <= 8 ms (B2): 5.82 ms, renderer Direct2D"
+      ],
+      "failures": []
+    },
+    {
+      "script": "ss2-mouse-then-keys",
+      "summary": "PASS: 42 assertions",
+      "logSha256": "47FF4249D51BDC8065522D6544C3E18D32474566A0C72BCC04F193F5D3F582CD",
+      "log": "build-ci/session-shots/2026-10-09-panel-occlusion/ss2-mouse-then-keys.log",
+      "timingAndAudio": [],
+      "failures": []
+    },
+    {
+      "script": "ss3-edit-a-song",
+      "summary": "PASS: 57 assertions",
+      "logSha256": "28FCF946DE6777F5FE87467C6689F8152461E655D2C02E27A83FCB430A543496",
+      "log": "build-ci/session-shots/2026-10-09-panel-occlusion/ss3-edit-a-song.log",
+      "timingAndAudio": [],
+      "failures": []
+    },
+    {
+      "script": "ss4-track-instrument",
+      "summary": "PASS: 22 assertions",
+      "logSha256": "E679BE55F99F235962E93349FBE129F41BEEA04829FC606E1B920CA644533B54",
+      "log": "build-ci/session-shots/2026-10-09-panel-occlusion/ss4-track-instrument.log",
+      "timingAndAudio": [],
+      "failures": []
+    },
+    {
+      "script": "ss5-piano-roll",
+      "summary": "PASS: 77 assertions",
+      "logSha256": "A6FD240A1B2611797E15582CB95F8BA56A67E78B6AF45C521BA571E107162271",
+      "log": "build-ci/session-shots/2026-10-09-panel-occlusion/ss5-piano-roll.log",
+      "timingAndAudio": [],
+      "failures": []
+    },
+    {
+      "script": "ss6-write-a-beat",
+      "summary": "PASS: 58 assertions",
+      "logSha256": "A9A7B7A749E4B73F3BBCC5C3065A8B7BAFF4F4589878D441F83AB589DE9A8C01",
+      "log": "build-ci/session-shots/2026-10-09-panel-occlusion/ss6-write-a-beat.log",
+      "timingAndAudio": [],
+      "failures": []
+    },
+    {
+      "script": "ss7-mix-the-song",
+      "summary": "PASS: 197 assertions",
+      "logSha256": "964A637BFBCD3861CB951DE47164167DB2F9047B8651388365D38FC344C318F6",
+      "log": "build-ci/session-shots/2026-10-09-panel-occlusion/ss7-mix-the-song.log",
+      "timingAndAudio": [
+        "[PASS] paint per frame p95 <= 8 ms while sweeping (B2): 4.78 ms, renderer Direct2D",
+        "[PASS] underruns during the sweep == 0 (B5): 0 [sinceLaunch=0 deadlineMisses=0 maxCallbackMs=0.70]"
+      ],
+      "failures": []
+    },
+    {
+      "script": "ss8-project-lifecycle",
+      "summary": "FAIL: 6 failed, 171 passed",
+      "logSha256": "08B6DA4A7E8C5594352C6402E6E371C0B3988A7DEC7BF19E9618DE4FD2D4978D",
+      "log": "build-ci/session-shots/2026-10-09-panel-occlusion/ss8-project-lifecycle.log",
+      "timingAndAudio": [],
+      "failures": [
+        "[FAIL] a confirmed autosave follows the edit within 8 s at the drive cadence (autosave.writes=0; ADR-0068)",
+        "[FAIL] the reopened project equals the last confirmed autosave (5,0,0,7 vs 0,0,0,0)",
+        "[FAIL] a confirmed autosave follows the second edit within 8 s at the drive cadence (autosave.writes=0; ADR-0068)",
+        "[FAIL] after lost writes the recovery question rises (ADR-0068)",
+        "[FAIL] the bundle is behind the snapshot (19 < 0)",
+        "[FAIL] the recovery question offers its Restore button (widget.autosave.recovery.restore)"
+      ]
+    }
+  ],
+  "audioRestoration": {
+    "originalAndRestored": "Realtek Speakers output and ASUS AI Noise-Canceling Microphone input, all three roles each; Stereo Mix disabled.",
+    "duringBatch": "Realtek Speakers output and temporarily enabled Stereo Mix input.",
+    "inventory": "build-ci/session-shots/2026-10-09-panel-occlusion/audio-restored.txt",
+    "inventorySha256": "75363994087D11EC0A00E6D230C2E02E1DBB11F9BBFF137C9C70B8F6C83D7341",
+    "defaults": [
+      "flow=0 role=0 matchesOriginal=True id={0.0.0.00000000}.{a2a2092d-43d5-4f2c-b2a4-225fb5758a21}",
+      "flow=0 role=1 matchesOriginal=True id={0.0.0.00000000}.{a2a2092d-43d5-4f2c-b2a4-225fb5758a21}",
+      "flow=0 role=2 matchesOriginal=True id={0.0.0.00000000}.{a2a2092d-43d5-4f2c-b2a4-225fb5758a21}",
+      "flow=1 role=0 matchesOriginal=True id={0.0.1.00000000}.{daf4ce6c-c518-4a87-9ddc-be3061332a1e}",
+      "flow=1 role=1 matchesOriginal=True id={0.0.1.00000000}.{daf4ce6c-c518-4a87-9ddc-be3061332a1e}",
+      "flow=1 role=2 matchesOriginal=True id={0.0.1.00000000}.{daf4ce6c-c518-4a87-9ddc-be3061332a1e}"
+    ],
+    "stereoMix": [
+      "state=2 name=Stereo Mix (Realtek(R) Audio) format=not queried inactive endpoint id={0.0.1.00000000}.{ea0888cd-1a0b-4350-b7a9-a14c12b9420d}"
+    ]
+  },
+  "review": {
+    "formalRunId": "20261009-timeline-occlusion-critic",
+    "outcome": "Completed correctness and independent adversarial review; no actionable findings.",
+    "simplification": "Three persona passes complete; one equivalent test rectangle construction simplified. Focused test and test Clang rerun passed; production unchanged.",
+    "visual": "Independent agent inspected final actual SS1 shots at logical 1280x720, 1920x1080, 2560x1440 at 150% display scaling. Scoped rubric 1/4/5/6 passed. Not a new full scaling matrix."
+  },
+  "ci": "Exact repair-commit CI pending; prior 2bd0b71 and 2c8c7bd macOS jobs failed the sustained-frame bound. No renewed exception applied. All final exact-commit conclusions belong in STATUS."
+}

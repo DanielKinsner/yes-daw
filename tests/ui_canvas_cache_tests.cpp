@@ -1,4 +1,5 @@
 #include "ui/SoftwareCanvasCache.h"
+#include "ui/TimelineCanvas.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -154,4 +155,85 @@ TEST_CASE ("software canvas cache applies component alpha once when compositing"
     REQUIRE (alpha >= 126);
     REQUIRE (alpha <= 129);
     REQUIRE (image.getPixelAt (0, 0).getAlpha() == 0);
+}
+
+TEST_CASE ("timeline panel omits only pixels hidden by its opaque content",
+           "[ui][input][canvas-cache][canvas-panel-occlusion]")
+{
+    juce::MessageManager::getInstance();
+    using namespace yesdaw::ui;
+    TimelineCanvasState state;
+    state.paintPlayhead = false;
+    state.trackCount = 8;
+    state.trackScrollRows = 2;
+    state.viewport.scrollSeconds = 0.375;
+    state.viewport.pixelsPerSecond = 73.0;
+
+    // The legacy painter's complete background pass. The following clip/overlay stages
+    // are empty in this fixture; production paintTimelineCanvas supplies the new pass.
+    const auto legacy = [&state] (juce::Graphics& g, juce::Rectangle<int> area) {
+        using namespace timeline_canvas_detail;
+        fillPanel (g, area);
+        const auto geometry = timelineCanvasGeometry (area, state);
+        drawToolbar (g, geometry.toolbarArea, state.activeTool, state.snapLabelShown);
+        drawRuler (g, geometry.rulerArea, geometry.clipArea, state, geometry.viewport);
+        drawGrid (g, geometry.clipArea, state, geometry);
+    };
+
+    for (const auto area : { juce::Rectangle<int> { 7, 9, 321, 239 },
+                             juce::Rectangle<int> { 13, 5, 1001, 701 },
+                             juce::Rectangle<int> { 5, 7, 47, 33 },
+                             juce::Rectangle<int> { 3, 11, 3, 3 } })
+    {
+        INFO ("area=" << area.toString().toStdString());
+        const auto geometry = timelineCanvasGeometry (area, state);
+        for (const float scale : { 1.0f, 1.25f, 1.5f, 2.0f })
+        {
+            // Full repaint, a narrow strip across the band joins, and a corner-only repaint.
+            for (const auto clip : { area, area.withWidth (7).withX (area.getCentreX()),
+                                     area.withSize (17, 19) })
+            {
+                INFO ("area=" << area.toString().toStdString() << " scale=" << scale
+                               << " clip=" << clip.toString().toStdString());
+                const auto render = [&] (bool old) {
+                    const auto pixels = juce::Rectangle<int> { 0, 0, area.getRight() + 3, area.getBottom() + 3 } * scale;
+                    juce::Image image (juce::Image::ARGB, pixels.getWidth(), pixels.getHeight(), true,
+                                       juce::SoftwareImageType());
+                    juce::Graphics g (image);
+                    g.addTransform (juce::AffineTransform::scale (scale));
+                    g.reduceClipRegion (area);
+                    g.reduceClipRegion (clip);
+                    if (old)
+                        legacy (g, area);
+                    else
+                        (void) paintTimelineCanvas (g, area, state);
+                    return image;
+                };
+                REQUIRE (differingPixels (render (true), render (false)) == 0);
+            }
+        }
+
+        // This assertion bites if the optimization silently returns to full panel painting.
+        // It also makes the saved scope observable: later opaque fills still reach the interior.
+        juce::Image panel (juce::Image::ARGB, area.getRight() + 3, area.getBottom() + 3, true,
+                           juce::SoftwareImageType());
+        juce::Graphics g (panel);
+        timeline_canvas_detail::fillVisiblePanel (g, area, geometry);
+        juce::Image oldPanel (juce::Image::ARGB, panel.getWidth(), panel.getHeight(), true,
+                              juce::SoftwareImageType());
+        juce::Graphics oldGraphics (oldPanel);
+        timeline_canvas_detail::fillPanel (oldGraphics, area);
+        for (const auto covered : { geometry.toolbarArea, geometry.rulerArea, geometry.clipArea })
+        {
+            const auto interior = covered.reduced (UiTheme::Space::hairline).getIntersection (area);
+            if (! interior.isEmpty())
+            {
+                REQUIRE (panel.getPixelAt (interior.getCentreX(), interior.getCentreY()).getAlpha() == 0);
+                REQUIRE (oldPanel.getPixelAt (interior.getCentreX(), interior.getCentreY()).getAlpha() > 0);
+            }
+        }
+        REQUIRE (panel.getPixelAt (area.getX(), area.getY()) == oldPanel.getPixelAt (area.getX(), area.getY()));
+        if (area.getWidth() > UiTheme::Radius::lg * 2 && area.getHeight() > UiTheme::Radius::lg * 2)
+            REQUIRE (panel.getPixelAt (area.getX(), area.getY()).getAlpha() == 0);
+    }
 }

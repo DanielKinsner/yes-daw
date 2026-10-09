@@ -24,15 +24,20 @@ working-tree results, not exact-SHA CI certification. The latest full CTest took
 hydrated-placeholder gate passed 121 assertions, including the actual OS hard-link rejection, copied/hash byte
 counts, recovery, mode restoration and cleanup; its Clang pass is clean. This proves that fallback path, not
 OneDrive/Dropbox synchronization or a real-app drive. Core persistence is pushed at `2c8c7bd`, exact-code run
-`37971282150` queued. The cloud fixture's independent correctness/adversarial review is complete with no findings
-(`20261009-cloud-fixture-critic`); it is the next separate commit. Neither closes the checkpoint.
+`37971282150`. The cloud fixture is pushed at `8108cda` (run `37971433126`); independent correctness/adversarial
+review is complete with no findings (`20261009-cloud-fixture-critic`). Neither closes the checkpoint. GitHub's
+concurrency group superseded the core run while it was pending despite preserving running main jobs. Requeued
+the core run first, then the cloud run after core started. Wait for both exact-code runs. No queued,
+cancelled or docs-only result is code certification.
 
 **App batch:** `build-ci/session-shots/2026-10-09-adr0069-cp1/` (local only). ss1 59/59, ss2 42/42, ss3 57/57, ss4 22/22,
 ss5 77/77 and ss6 58/58 passed. ss7 **196/197**: four driver-reported capture discontinuities during the pointer sweep;
 zero measured callback deadline misses, maximum callback 1.3001 ms, paint p95 4.89 ms. ss8 **171/177**: exactly the six
 known autosave-off assertions in step 6. The app still writes no autosave; no missing recovery evidence is certified.
 
-**Markers repair pushed at `2bd0b71`:** exact-code CI run `37971162055` is in progress. The large ss1 screenshot's
+**Markers repair pushed at `2bd0b71`:** exact-code CI run `37971162055` completed: nine jobs passed; macOS failed
+only `YesDawTimelineGpuCheck`'s sustained-frame assertion, **24.162042 ms**, with its other 420 CTest cases passing.
+No exception renewal was approved and this red is not certified. The large ss1 screenshot's
 unlabeled 244 x 120 box is the real Markers list. The Takes
 card painted over the Markers heading. Bound the Takes card at the existing Markers section in shared layout/paint;
 new `[inspector-markers-card]` checks actual heading pixels with zero/two rows and at the whole-section fit boundary.
@@ -50,17 +55,44 @@ unresolved. A copied-JUCE metadata-only input/duplex comparison then measured re
 30-second phases (8, 1, 29 post-startup discontinuities); no repeated packets, full reservoir, or zero release.
 The UI/engine are not needed to reproduce it, but event delivery versus scheduling is not resolved. Instrumentation
 influence is not excluded. Local evidence: `build-ci/wasapi-duplex-diagnostic/REPORT-20261009.md` and hashes.json.
-The original input default (all three roles) is ASUS; output is Realtek. Stereo Mix was disabled. It is temporarily
-enabled/defaulted for unchanged app checks, with original settings to restore after measurement. On this profile
-SS1 B5 passes with zero xruns since launch, but B2 fails at 8.20 ms (8 ms bound), so SS1 remains 58/59. SS7 passes
-197/197 on Stereo Mix (zero xruns since launch, paint p95 4.83 ms). A metadata trace of unchanged SS1 is collecting
-the next paint-cost attribution; no performance pass substitutes for diagnosing the existing miss.
+The original input default (all three roles) is ASUS; output is Realtek. Stereo Mix was disabled. It was temporarily
+enabled/defaulted for unchanged app checks. On this profile SS1 B5 passes with zero xruns since launch, but B2 failed
+at 8.20 ms (8 ms bound), so SS1 remained 58/59. SS7 passed 197/197 (zero xruns since launch, paint p95 4.83 ms).
+After the final batch below, all six default endpoint roles match the originals and Stereo Mix is disabled again;
+the Core Audio inventory confirms restoration. This alternate profile proves its own results, not an ASUS repair.
 No threshold/counter changes or runner-noise waiver. Logs/shots under `build-ci/` are local only.
 
-**Next small steps:** push the independently gated Markers repair and inspect every exact-code CI job; finish the
-Stereo Mix comparison, restore original endpoint state, and diagnose the B2 miss; commit/push the reviewed cp1 and
-cloud fixture separately with their exact CI evidence. Restore/probe and writes-on remain dependent on required
-checkpoint proof. The Usable-song milestone remains incomplete.
+**Next small steps:** inspect all jobs of the core and cloud exact-code reruns, then push the verified rendering
+correction after the pending cloud run starts (a newer pending run would cancel it), and inspect its own CI.
+Restore/probe and writes-on remain dependent on
+required checkpoint proof. The Usable-song milestone remains incomplete.
+
+**B2 repair selected under ADR-0067 (2026-10-09):** the unchanged SS1 failed twice at 8.20 and 8.08 ms. Metadata
+traces show the rolling window correctly retaining expensive edit frames. Temporary stage timing measured panel
+painting at 2.14-2.50 ms, toolbar/ruler/grid at 1.32-1.64 ms, and clips at 0.39-0.48 ms. Most panel pixels are then
+covered by opaque toolbar/ruler/grid fills. Skip only these guaranteed-covered interiors, preserving a logical-pixel
+fringe and every original visible drawing operation. This is clip-scoped painting within ADR-0067, with no token,
+cache, invalidation, measurement-window, or threshold change. Alternatives rejected for this repair: wider partial
+edit invalidation and another cache layer. Gates: old/new pixel equality including fractional scaling, existing
+canvas/cache/golden checks, full CTest, unchanged app journeys and independent review. Diagnostic timings alone do
+not certify a repair; the temporary timing code was removed before implementation. The implementation's focused
+cache gate passes 174 assertions in four cases, including 48 old/new pixel comparisons and a control that detects
+unnecessary painting underneath opaque fills. Final Release build and full CTest passed **428/428 (289.00 s)**;
+two-TU Clang is clean. Separate correctness/adversarial review is complete with no findings
+(`20261009-timeline-occlusion-critic`). The uninstrumented app batch in
+`build-ci/session-shots/2026-10-09-panel-occlusion/` passes SS1-SS7: **512 assertions** (59/42/57/22/77/58/197).
+SS1 paint p95 is **5.82 ms**, SS7 **4.78 ms**, both zero xruns since launch and zero measured callback misses.
+SS8 remains **171/177**, exactly the six known autosave-off assertions. Agent visual judgment passes the scoped
+rubric at all three window sizes at 150%; unchanged timeline/inspector pixels, apart from live timestamp/LUFS text.
+This is not a new full scaling matrix. Local app SHA-256:
+`8AF4FD4F4F7695DAD4AAEC1C57181B3F6A3F8E6277D8B2D63EA2C661D39833CE`; the artifact is a working-tree build,
+not an exact-commit CI package. No timing instrumentation, threshold, golden, or CI workflow change remains.
+Parsed drive summaries, measured counters, source hashes and verified endpoint restoration are in
+`docs/evidence/2026-10-09-panel-occlusion.json`. The simplification pass changed only an equivalent rectangle
+construction in the test; the final 174-assertion gate and test-TU Clang passed again, and the review addendum
+confirms the verdict remains unchanged. Core run `37971282150`'s macOS job also completed red only on the frame
+bound: sustained **23.787291 ms**, maximum 32.1861 ms, 83 slow frames; other 425/426 cases passed. This predates
+the panel repair; its Windows job is still building. No noise exception is applied.
 
 ## 2026-10-09 — Dan accepted ADR-0069: resume the cheap autosave checkpoints
 

@@ -533,6 +533,17 @@ inline void fillPanel (juce::Graphics& g, juce::Rectangle<int> area)
                           static_cast<float> (area.getRight()) - UiTheme::Radius::lg);
 }
 
+inline void fillVisiblePanel (juce::Graphics& g, juce::Rectangle<int> area,
+                             const TimelineCanvasGeometry& geometry)
+{
+    const juce::Graphics::ScopedSaveState saved (g);
+    // These later fills are opaque. Keep their edge fringe so fractional-scale coverage
+    // still blends over the original panel, but do not rasterise its hidden interior.
+    for (const auto covered : { geometry.toolbarArea, geometry.rulerArea, geometry.clipArea })
+        g.excludeClipRegion (covered.reduced (UiTheme::Space::hairline));
+    fillPanel (g, area);
+}
+
 inline TimelineCanvasClipStyle styleForClip (const TimelineCanvasState& state, int clipId)
 {
     const TimelineCanvasClipStyle fallback {
@@ -1626,9 +1637,8 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     if (area.getWidth() <= 0 || area.getHeight() <= 0)
         return stats;
 
-    fillPanel (g, area);
-
     const TimelineCanvasGeometry geometry = timelineCanvasGeometry (area, state);
+    fillVisiblePanel (g, area, geometry);
     const auto clipArea = geometry.clipArea;
     const auto ruler = geometry.rulerArea;
     const auto vp = geometry.viewport;
