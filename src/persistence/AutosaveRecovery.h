@@ -14,10 +14,12 @@
 
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <optional>
 #include <string>
 #include <system_error>
 #include <utility>
+#include <vector>
 
 namespace yesdaw::persistence {
 
@@ -34,6 +36,8 @@ struct AutosaveResult
     AutosaveStatus status = AutosaveStatus::Ok;
     BundleResult bundle;
     std::string message;
+    std::size_t linked = 0;
+    std::size_t copied = 0;
 
     [[nodiscard]] bool ok() const noexcept { return status == AutosaveStatus::Ok; }
 };
@@ -51,6 +55,56 @@ struct AutosaveResult
 }
 
 namespace autosave_detail {
+
+struct AssetCarry
+{
+    engine::AssetContentHash hash;
+    bool linked = false;
+};
+
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+inline thread_local std::optional<engine::AssetContentHash> failLinkForTest;
+inline thread_local std::uint64_t assetBytesCopiedForTest = 0;
+inline thread_local void (*afterCarryForTest) (const std::filesystem::path&) = nullptr;
+#endif
+
+// Private access keeps the write-time shortcut out of normal opens and recovery reads.
+struct SnapshotValidator
+{
+    [[nodiscard]] static BundleResult validate (const std::filesystem::path& snapshotPath,
+                                                const std::filesystem::path& sourcePath,
+                                                const std::vector<AssetCarry>& carries)
+    {
+        ProjectBundleDb snapshot;
+        if (auto result = ProjectBundleDb::openDatabaseConnection (snapshotPath, false, snapshot); ! result.ok())
+            return result;
+        std::vector<ProjectBundleDb::StoredAssetFile> assets;
+        if (auto result = snapshot.loadStoredAssetFiles (assets); ! result.ok())
+            return result;
+        if (assets.size() != carries.size())
+            return detail::semanticInvalid ("autosave asset carries do not match its rows");
+        std::map<engine::AssetContentHash::StorageBytes, bool> linkedByHash;
+        for (const auto& carry : carries)
+            linkedByHash.emplace (carry.hash.bytes, carry.linked);
+        for (const auto& asset : assets)
+        {
+            const auto carry = linkedByHash.find (asset.hash.bytes);
+            if (carry == linkedByHash.end())
+                return detail::semanticInvalid ("autosave asset has no carry record");
+            const auto target = snapshotPath / asset.relativePath;
+            if (carry->second)
+            {
+                std::error_code error;
+                if (! std::filesystem::equivalent (sourcePath / asset.relativePath, target, error) || error)
+                    return BundleResult { BundleStatus::IntegrityFailed, SQLITE_CORRUPT, kCodeSchemaVersion,
+                                          "autosave asset link identity differs: " + detail::utf8Path (target) };
+            }
+            else if (auto result = snapshot.verifyAssetFile (asset.hash, target); ! result.ok())
+                return result;
+        }
+        return detail::ok();
+    }
+};
 
 [[nodiscard]] inline std::filesystem::path tempSnapshotPath (const std::filesystem::path& bundlePath)
 {
@@ -127,12 +181,22 @@ namespace autosave_detail {
     return std::nullopt;
 }
 
-[[nodiscard]] inline AutosaveResult copyProjectAssets (const std::filesystem::path& sourceBundlePath,
+[[nodiscard]] inline AutosaveResult carryProjectAssets (const std::filesystem::path& sourceBundlePath,
                                                        const engine::Project& project,
-                                                       const std::filesystem::path& targetBundlePath)
+                                                       const std::filesystem::path& targetBundlePath,
+                                                       std::vector<AssetCarry>& carries)
 {
+    std::map<engine::AssetContentHash::StorageBytes, bool> linkedByHash;
+    for (const auto& carry : carries)
+        linkedByHash.emplace (carry.hash.bytes, carry.linked);
     for (const engine::Asset& asset : project.assets)
     {
+        const auto existing = linkedByHash.find (asset.contentHash.bytes);
+        if (existing != linkedByHash.end())
+        {
+            carries.push_back ({ asset.contentHash, existing->second });
+            continue;
+        }
         const std::string relative = detail::assetRelativePathForHash (asset.contentHash);
         const std::filesystem::path sourcePath = sourceBundlePath / relative;
         const std::filesystem::path targetPath = targetBundlePath / relative;
@@ -142,11 +206,27 @@ namespace autosave_detail {
         if (ec)
             return filesystemError ("create autosave asset directory failed", targetPath.parent_path(), ec);
 
-        std::filesystem::copy_file (sourcePath, targetPath, std::filesystem::copy_options::overwrite_existing, ec);
-        if (ec)
-            return filesystemError ("copy autosave asset failed", sourcePath, ec);
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+        if (failLinkForTest && *failLinkForTest == asset.contentHash)
+            ec = std::make_error_code (std::errc::operation_not_supported);
+        else
+#endif
+            std::filesystem::create_hard_link (sourcePath, targetPath, ec);
+        const bool linked = ! ec;
+        if (! linked)
+        {
+            // The scratch slot is fresh: never overwrite an inode that might have another link.
+            std::filesystem::copy_file (sourcePath, targetPath, ec);
+            if (ec)
+                return filesystemError ("copy autosave asset failed", sourcePath, ec);
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+            assetBytesCopiedForTest += std::filesystem::file_size (sourcePath);
+#endif
+        }
+        carries.push_back ({ asset.contentHash, linked });
+        linkedByHash.emplace (asset.contentHash.bytes, linked);
 
-        // Force the copied bytes out so a crash after publish cannot leave a referenced asset truncated.
+        // Flush each carried name, including hard links (directory flush is a no-op on Windows).
         if (auto result = detail::flushFileToDisk (targetPath); ! result.ok())
             return flushError (std::move (result));
     }
@@ -248,16 +328,21 @@ namespace autosave_detail {
     if (auto result = detail::flushFileToDisk (tempPath / "project.db"); ! result.ok())
         return autosave_detail::flushError (std::move (result));
 
-    if (auto result = autosave_detail::copyProjectAssets (sourceDb.bundlePath(), project, tempPath); ! result.ok())
+    std::vector<autosave_detail::AssetCarry> carries;
+    if (auto result = autosave_detail::carryProjectAssets (sourceDb.bundlePath(), project, tempPath, carries); ! result.ok())
         return result;
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+    if (autosave_detail::afterCarryForTest != nullptr)
+        autosave_detail::afterCarryForTest (tempPath);
+#endif
+    if (auto result = autosave_detail::SnapshotValidator::validate (tempPath, sourceDb.bundlePath(), carries); ! result.ok())
+        return autosave_detail::bundleError (std::move (result));
 
-    {
-        ProjectBundleDb validated;
-        if (auto result = ProjectBundleDb::openExistingBundle (tempPath, validated); ! result.ok())
-            return autosave_detail::bundleError (std::move (result));
-    }
-
-    return autosave_detail::replaceSnapshotDirectory (tempPath, finalPath);
+    auto result = autosave_detail::replaceSnapshotDirectory (tempPath, finalPath);
+    if (result.ok())
+        for (const auto& carry : carries)
+            carry.linked ? ++result.linked : ++result.copied;
+    return result;
 }
 
 // `writeStamp` (optional): the snapshot's write stamp - its source bundle's when it was written (ADR-0068 §5; a snapshot
@@ -311,8 +396,17 @@ namespace autosave_detail {
     if (auto result = snapshot.readProjectSnapshot (recovered); ! result.ok())
         return autosave_detail::bundleError (std::move (result));
 
-    if (auto result = autosave_detail::copyProjectAssets (snapshot.bundlePath(), recovered, targetDb.bundlePath()); ! result.ok())
-        return result;
+    for (const auto& asset : recovered.assets)
+    {
+        const auto source = storedAssetPathForHash (snapshot.bundlePath(), asset.contentHash);
+        const auto target = storedAssetPathForHash (targetDb.bundlePath(), asset.contentHash);
+        std::error_code error;
+        if (std::filesystem::equivalent (source, target, error) && ! error)
+            continue;
+        // A target may itself be linked by an older snapshot. Replace its NAME, never overwrite shared bytes.
+        if (auto result = ProjectBundleDb::adoptAssetFile (targetDb.bundlePath(), asset.contentHash, source); ! result.ok())
+            return autosave_detail::bundleError (std::move (result));
+    }
 
     // ADR-0068 §5: Restore answers the question - the marker clears in the transaction that writes the recovered rows.
     if (auto result = targetDb.writeProjectSnapshot (recovered, std::nullopt, UnresolvedSnapshotStamp::Clear); ! result.ok())

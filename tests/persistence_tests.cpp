@@ -1,5 +1,6 @@
 // YES DAW - headless checks for ADR-0012 SQLite bundle schema/migrations/intent log.
 
+#define YESDAW_PERSISTENCE_TEST_HOOKS 1
 #include "persistence/AutosaveRecovery.h"
 #include "persistence/ProjectBundle.h"
 #include "persistence/WaveformPeakCache.h"
@@ -3155,4 +3156,251 @@ TEST_CASE ("ADR-0068 an autosave snapshot carries its source's write stamp, dura
     Project readback;
     REQUIRE (overridden.readProjectSnapshot (readback).ok());
     REQUIRE (readback.tracks[0].strip.name == "Audio 1");
+}
+
+TEST_CASE ("ADR-0069 autosaves share immutable asset bytes and release their links on retirement",
+           "[persistence][autosave][cheap][inode-identity][link-count][no-asset-bytes]")
+{
+    const auto path = makeTempBundlePath ("linked-autosave");
+    Project project;
+    project.id = idFromLowByte (1);
+    project.sampleRate = SampleRate { 48000.0 };
+    for (std::uint8_t n = 10; n < 20; ++n)
+        project.assets.push_back (makeAsset (idFromLowByte (n)));
+    // Opening a new database sweeps unreferenced files, so populate its rows before the files.
+    auto db = openFreshBundle (path);
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+    writeProjectAssetFiles (path, project);
+
+    for (int i = 0; i < 200; ++i)
+    {
+        yesdaw::persistence::detail::assetHashCallsForTest = 0;
+        yesdaw::persistence::autosave_detail::assetBytesCopiedForTest = 0;
+        const auto result = yesdaw::persistence::writeAutosaveSnapshot (db, project);
+        REQUIRE (result.ok());
+        REQUIRE (result.linked == 10);
+        REQUIRE (result.copied == 0);
+        REQUIRE (yesdaw::persistence::detail::assetHashCallsForTest == 0);
+        REQUIRE (yesdaw::persistence::autosave_detail::assetBytesCopiedForTest == 0);
+        for (const auto& asset : project.assets)
+        {
+            const auto source = yesdaw::persistence::storedAssetPathForHash (path, asset.contentHash);
+            const auto snapshot = yesdaw::persistence::storedAssetPathForHash (
+                yesdaw::persistence::autosaveSnapshotPath (path), asset.contentHash);
+            REQUIRE (std::filesystem::equivalent (source, snapshot));
+            REQUIRE (std::filesystem::hard_link_count (source) == 2);
+        }
+    }
+    REQUIRE (yesdaw::persistence::discardAutosaveSnapshot (path).ok());
+    for (const auto& asset : project.assets)
+        REQUIRE (std::filesystem::hard_link_count (
+            yesdaw::persistence::storedAssetPathForHash (path, asset.contentHash)) == 1);
+    db = {};
+    std::filesystem::remove_all (path);
+}
+
+namespace {
+struct AutosaveHooksScope
+{
+    AutosaveHooksScope()
+    {
+        yesdaw::persistence::detail::assetHashCallsForTest = 0;
+        yesdaw::persistence::autosave_detail::assetBytesCopiedForTest = 0;
+        yesdaw::persistence::autosave_detail::failLinkForTest.reset();
+        yesdaw::persistence::autosave_detail::afterCarryForTest = nullptr;
+    }
+    ~AutosaveHooksScope()
+    {
+        yesdaw::persistence::autosave_detail::failLinkForTest.reset();
+        yesdaw::persistence::autosave_detail::afterCarryForTest = nullptr;
+    }
+};
+} // namespace
+
+TEST_CASE ("ADR-0069 one failed link copies and hashes only that asset, while recovery still hashes every asset",
+           "[persistence][autosave][cheap][copy-fallback]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("autosave-copy-fallback");
+    auto db = openFreshBundle (path);
+    const auto project = makeProject();
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+    writeProjectAssetFiles (path, project);
+    AutosaveHooksScope hooks;
+    autosave_detail::failLinkForTest = project.assets.front().contentHash;
+    const auto result = writeAutosaveSnapshot (db, project);
+    REQUIRE (result.ok());
+    REQUIRE (result.linked == 1);
+    REQUIRE (result.copied == 1);
+    REQUIRE (detail::assetHashCallsForTest == 1);
+    REQUIRE (autosave_detail::assetBytesCopiedForTest == assetBytesForId (project.assets.front().id).size());
+    const auto snapshot = autosaveSnapshotPath (path);
+    REQUIRE_FALSE (std::filesystem::equivalent (storedAssetPathForHash (path, project.assets.front().contentHash),
+                                               storedAssetPathForHash (snapshot, project.assets.front().contentHash)));
+    Project recovered;
+    detail::assetHashCallsForTest = 0;
+    REQUIRE (readAutosaveSnapshot (path, recovered).ok());
+    REQUIRE (detail::assetHashCallsForTest >= project.assets.size());
+    requireSameProjectSurface (recovered, project);
+    // A damaged linked inode is still rejected on recovery and ordinary project open.
+    writeBytes (storedAssetPathForHash (snapshot, project.assets.back().contentHash), { });
+    REQUIRE_FALSE (readAutosaveSnapshot (path, recovered).ok());
+    db = {};
+    REQUIRE_FALSE (ProjectBundleDb::openExistingBundle (path, db).ok());
+    std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("ADR-0069 write validation rejects a detached link, a bad copied hash, or altered stored rows",
+           "[persistence][autosave][cheap][carry-validation]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("autosave-carry-validation");
+    auto db = openFreshBundle (path);
+    const auto project = makeProject();
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+    writeProjectAssetFiles (path, project);
+    REQUIRE (writeAutosaveSnapshot (db, project).ok());
+    const auto temporary = autosave_detail::tempSnapshotPath (path);
+    {
+        auto snapshot = openFreshBundle (temporary);
+        REQUIRE (snapshot.writeProjectSnapshot (project).ok());
+    }
+    AutosaveHooksScope hooks;
+    SECTION ("an equal-content copy cannot stand in for a recorded link")
+    {
+        std::vector<autosave_detail::AssetCarry> carries;
+        REQUIRE (autosave_detail::carryProjectAssets (path, project, temporary, carries).ok());
+        const auto file = storedAssetPathForHash (temporary, project.assets.front().contentHash);
+        REQUIRE (std::filesystem::remove (file));
+        writeBytes (file, assetBytesForId (project.assets.front().id));
+        REQUIRE_FALSE (autosave_detail::SnapshotValidator::validate (temporary, path, carries).ok());
+    }
+    SECTION ("a fallback copy must match its hash")
+    {
+        autosave_detail::failLinkForTest = project.assets.front().contentHash;
+        std::vector<autosave_detail::AssetCarry> carries;
+        REQUIRE (autosave_detail::carryProjectAssets (path, project, temporary, carries).ok());
+        writeBytes (storedAssetPathForHash (temporary, project.assets.front().contentHash), { });
+        REQUIRE_FALSE (autosave_detail::SnapshotValidator::validate (temporary, path, carries).ok());
+        REQUIRE (detail::assetHashCallsForTest == 1);
+    }
+    SECTION ("every stored row needs a carry")
+    {
+        std::vector<autosave_detail::AssetCarry> carries;
+        REQUIRE (autosave_detail::carryProjectAssets (path, project, temporary, carries).ok());
+        carries.pop_back();
+        REQUIRE_FALSE (autosave_detail::SnapshotValidator::validate (temporary, path, carries).ok());
+    }
+    SECTION ("canonical stored paths are still required")
+    {
+        std::vector<autosave_detail::AssetCarry> carries;
+        REQUIRE (autosave_detail::carryProjectAssets (path, project, temporary, carries).ok());
+        {
+            ProjectBundleDb snapshot;
+            REQUIRE (ProjectBundleDb::openExistingBundle (temporary, snapshot).ok());
+            REQUIRE (snapshot.executeSql ("UPDATE assets SET relative_path = '../elsewhere.asset';").ok());
+        }
+        REQUIRE_FALSE (autosave_detail::SnapshotValidator::validate (temporary, path, carries).ok());
+    }
+    SECTION ("semantic validation remains enabled")
+    {
+        std::vector<autosave_detail::AssetCarry> carries;
+        REQUIRE (autosave_detail::carryProjectAssets (path, project, temporary, carries).ok());
+        {
+            ProjectBundleDb snapshot;
+            REQUIRE (ProjectBundleDb::openExistingBundle (temporary, snapshot).ok());
+            REQUIRE (snapshot.executeSql ("PRAGMA ignore_check_constraints=ON; UPDATE assets SET channels=0;").ok());
+        }
+        REQUIRE_FALSE (autosave_detail::SnapshotValidator::validate (temporary, path, carries).ok());
+    }
+    Project recovered;
+    REQUIRE (readAutosaveSnapshot (path, recovered).ok());
+    requireSameProjectSurface (recovered, project);
+    db = {};
+    std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("ADR-0069 ten 50 MB assets autosave in under 100 ms on the local disk",
+           "[.][persistence][autosave][hardware-cost]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("autosave-hardware-cost");
+    auto db = openFreshBundle (path);
+    Project project;
+    project.id = idFromLowByte (1);
+    project.sampleRate = SampleRate { 48000.0 };
+    std::vector<std::uint8_t> bytes (50'000'000, 0x51);
+    for (std::uint8_t n = 10; n < 20; ++n)
+    {
+        auto asset = makeAsset (idFromLowByte (n));
+        bytes.front() = n;
+        asset.contentHash = hashBytes (bytes);
+        const auto file = storedAssetPathForHash (path, asset.contentHash);
+        writeBytes (file, bytes);
+        REQUIRE (detail::flushFileToDisk (file).ok());
+        project.assets.push_back (asset);
+    }
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+    const auto start = std::chrono::steady_clock::now();
+    const auto result = writeAutosaveSnapshot (db, project);
+    const auto elapsed = std::chrono::duration<double, std::milli> (std::chrono::steady_clock::now() - start).count();
+    CAPTURE (elapsed);
+    REQUIRE (result.ok());
+    REQUIRE (result.linked == 10);
+    REQUIRE (result.copied == 0);
+    REQUIRE (elapsed < 100.0);
+    db = {};
+    std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("ADR-0069 a damaged fallback copy cannot replace the previous good autosave",
+           "[persistence][autosave][cheap][no-bad-publish]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("autosave-bad-publish");
+    auto db = openFreshBundle (path);
+    auto project = makeProject();
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+    writeProjectAssetFiles (path, project);
+    REQUIRE (writeAutosaveSnapshot (db, project).ok());
+    const auto snapshotDbBytes = readBytes (autosaveSnapshotPath (path) / "project.db");
+    AutosaveHooksScope hooks;
+    autosave_detail::failLinkForTest = project.assets.front().contentHash;
+    autosave_detail::afterCarryForTest = [] (const std::filesystem::path& temporary) {
+        writeBytes (storedAssetPathForHash (temporary, makeProject().assets.front().contentHash), { });
+    };
+    project.tracks.front().strip.name = "Must not publish";
+    REQUIRE_FALSE (writeAutosaveSnapshot (db, project).ok());
+    REQUIRE (readBytes (autosaveSnapshotPath (path) / "project.db") == snapshotDbBytes);
+    Project recovered;
+    REQUIRE (readAutosaveSnapshot (path, recovered).ok());
+    requireSameProjectSurface (recovered, makeProject());
+    db = {};
+    std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("ADR-0069 restoring over a different inode does not overwrite its other links",
+           "[persistence][autosave][cheap][restore-preserves-shared-bytes]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("autosave-restore-shared-bytes");
+    auto db = openFreshBundle (path);
+    const auto project = makeProject();
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+    writeProjectAssetFiles (path, project);
+    REQUIRE (writeAutosaveSnapshot (db, project).ok());
+    const auto target = storedAssetPathForHash (path, project.assets.front().contentHash);
+    REQUIRE (std::filesystem::remove (target));
+    const std::vector<std::uint8_t> damaged { 1, 2, 3 };
+    writeBytes (target, damaged);
+    const auto sibling = path / "older-snapshot-audio.asset";
+    std::filesystem::create_hard_link (target, sibling);
+    Project recovered;
+    REQUIRE (restoreAutosaveSnapshot (db, recovered).ok());
+    requireSameProjectSurface (recovered, project);
+    REQUIRE (readBytes (sibling) == damaged);
+    REQUIRE (readBytes (target) == assetBytesForId (project.assets.front().id));
+    REQUIRE_FALSE (std::filesystem::equivalent (target, sibling));
+    db = {};
+    std::filesystem::remove_all (path);
 }

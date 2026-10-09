@@ -536,8 +536,15 @@ inline bool pluginBlacklistKeyIsValid (PluginStateFormat format,
     return pluginStateFormatIsKnown (format) && ! pluginUid.empty() && ! pluginVersion.empty();
 }
 
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+inline thread_local std::uint64_t assetHashCallsForTest = 0;
+#endif
+
 inline BundleResult hashFile (const std::filesystem::path& path, engine::AssetContentHash& out)
 {
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+    ++assetHashCallsForTest;
+#endif
     std::error_code ec;
     if (! std::filesystem::is_regular_file (path, ec))
         return BundleResult { BundleStatus::FilesystemError, SQLITE_OK, 0, "file is not readable: " + utf8Path (path) };
@@ -1788,6 +1795,8 @@ enum class UnresolvedSnapshotStamp : std::uint8_t
     Keep,
     Clear
 };
+
+namespace autosave_detail { struct SnapshotValidator; }
 
 class ProjectBundleDb final
 {
@@ -4444,7 +4453,23 @@ public:
     }
 
 private:
+    // Only a fresh autosave's validator may substitute recorded inode identity for asset hashing.
+    // Every ordinary open still reconciles and hashes all referenced files.
+    friend struct autosave_detail::SnapshotValidator;
+
     [[nodiscard]] static BundleResult openProjectDb (const std::filesystem::path& bundlePath, bool create, ProjectBundleDb& out)
+    {
+        ProjectBundleDb opened;
+        if (auto result = openDatabaseConnection (bundlePath, create, opened); ! result.ok())
+            return result;
+        if (auto result = opened.reconcileBundleFilesystem(); ! result.ok())
+            return result;
+        out = std::move (opened);
+        return detail::ok (kCodeSchemaVersion);
+    }
+
+    [[nodiscard]] static BundleResult openDatabaseConnection (const std::filesystem::path& bundlePath, bool create,
+                                                              ProjectBundleDb& out)
     {
         sqlite3* rawDb = nullptr;
         const std::filesystem::path dbPath = bundlePath / "project.db";
@@ -4496,9 +4521,6 @@ private:
             return BundleResult { BundleStatus::MigrationFailed, SQLITE_ERROR, static_cast<int> (userVersion), "schema migration did not publish v1 identity" };
 
         if (auto result = opened.validateStoredProjectSemantics(); ! result.ok())
-            return result;
-
-        if (auto result = opened.reconcileBundleFilesystem(); ! result.ok())
             return result;
 
         out = std::move (opened);

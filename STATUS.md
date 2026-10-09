@@ -23,14 +23,16 @@ affected translation units, and full CTest **428/428** passed. The actual 10 x 5
 working-tree results, not exact-SHA CI certification. The latest full CTest took 289.67 s. A real Windows
 hydrated-placeholder gate passed 121 assertions, including the actual OS hard-link rejection, copied/hash byte
 counts, recovery, mode restoration and cleanup; its Clang pass is clean. This proves that fallback path, not
-OneDrive/Dropbox synchronization or a real-app drive. Persistence and the cloud fixture are still local work.
+OneDrive/Dropbox synchronization or a real-app drive. The core persistence change is the next separate commit;
+the cloud fixture remains local until its final independent review completes. Neither closes the checkpoint.
 
 **App batch:** `build-ci/session-shots/2026-10-09-adr0069-cp1/` (local only). ss1 59/59, ss2 42/42, ss3 57/57, ss4 22/22,
 ss5 77/77 and ss6 58/58 passed. ss7 **196/197**: four driver-reported capture discontinuities during the pointer sweep;
 zero measured callback deadline misses, maximum callback 1.3001 ms, paint p95 4.89 ms. ss8 **171/177**: exactly the six
 known autosave-off assertions in step 6. The app still writes no autosave; no missing recovery evidence is certified.
 
-**Markers repair ready for exact-code CI:** the large ss1 screenshot's unlabeled 244 x 120 box is the real Markers list. The Takes
+**Markers repair pushed at `2bd0b71`:** exact-code CI run `37971162055` is in progress. The large ss1 screenshot's
+unlabeled 244 x 120 box is the real Markers list. The Takes
 card painted over the Markers heading. Bound the Takes card at the existing Markers section in shared layout/paint;
 new `[inspector-markers-card]` checks actual heading pixels with zero/two rows and at the whole-section fit boundary.
 The old paint fails with zero heading pixels; the repair passes 69 assertions, and four focused inspector cases pass
