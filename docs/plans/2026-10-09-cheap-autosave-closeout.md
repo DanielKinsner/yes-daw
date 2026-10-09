@@ -9,11 +9,12 @@ exception or threshold. Unticked items are pending, not certified.
 
 ## Dependency and checkpoint rule
 
-- [ ] Finish required proof for the current rendering repair and ADR-0069 cp1 before any dependent
+- [x] Finish required proof for the current rendering repair and ADR-0069 cp1 before any dependent
   feature implementation, build or advancement. Inspect every required CI job on the exact code SHA;
   retain the current macOS frame failures and raw measurements. No automatic exception renewal:
   proceed only when the required repair proof passes or an applicable owner decision resolves the
-  dependency. Independent preparation may continue meanwhile.
+  dependency. Independent preparation may continue meanwhile. Closed by normal exact-code CI
+  `37988272626` on `3106943` (all ten jobs pass); see the cp1 close-out evidence record and STATUS.
 - [ ] For each small green unit below: applicable local checks and earlier/current Session drives,
   agent visual judgment and separate critic; update STATUS, commit, push, then inspect completed
   exact-code CI. Preserve rejected measurements and fixture/build identity. A docs-only green,

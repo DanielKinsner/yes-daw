@@ -492,8 +492,10 @@ The folder/package on disk holding the project's database, copied assets, and ca
 Working extension `.yesdaw` (not final).
 
 **Autosave snapshot**:
-A bundle-shaped last-good copy under a Project bundle's `autosave/` area. It is restored only after the
-normal Project bundle validators accept it.
+A bundle-shaped last-good Project under a Project bundle's `autosave/` area, with its own database and asset
+names. Immutable audio bytes are carried by hard link, with copying as a fallback (ADR-0069); linked bytes
+are shared with the Project bundle. Recovery validates the database and every referenced asset's hash
+before accepting the snapshot.
 _Avoid_: temp file (too vague), backup (not necessarily user-managed)
 
 **Autosave recovery prompt**:

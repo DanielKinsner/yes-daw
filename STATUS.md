@@ -8,6 +8,27 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-09 — Normal-build CI passes; cheap autosave cp1 complete
+
+**Now:** all ten expected jobs of normal-build CI `37988272626` passed on exact code SHA
+`3106943fab162a68aea9e8d74d0c4cbb851d2173`. macOS passed **426/426 (288.30 s)**, including the unchanged
+dense Timeline frame gate. Profiling is default-OFF and no timing exception was used. The quiet passing log
+does not report an exact sustained frame time; its 2.46 s GPU result is whole-test runtime, not frame latency.
+This closes the rendering interruption and ADR-0069 cp1, together with the local, app and independent-review
+evidence recorded below. The docs successor `008c286` also passed its docs-only run `37988465906`.
+
+**Evidence:** [checkpoint record](docs/evidence/2026-10-09-cheap-autosave-cp1-closeout.json) binds the ten job
+results to the code SHA and preserves the raw macOS log hash. SS1-SS7 passed 512 assertions; SS8 remains
+171/177 with the six known autosave-off failures. The real hydrated-placeholder persistence gate passed;
+the real-app placeholder drive remains pending before writes-on. Earlier rejected timings remain below.
+
+**Next small unit:** read recovery sources without changing them (close-out checklist unit 1 / ADR-0069 cp2).
+Clone only metadata into owned scratch for migration and validation, hash original audio, preserve detailed
+refusals and source bytes, and reuse the validated selection within each read/restore call. Then restore-link
+carry, write-cost probes, and ADR-0068's model writer follow as separate green checkpoints. Autosave writes
+are still off; the Usable-song milestone is not complete. Dan's hands-off app-test authorization remains active
+for this session. Current audio defaults have been restored and no app drive is running.
+
 ## 2026-10-09 — Diagnostic CI complete; normal build running in CI
 
 **Now:** the clean rendering correction `dd1ab7304e3689bc429b456be739ef43f103a550` completed exact-code

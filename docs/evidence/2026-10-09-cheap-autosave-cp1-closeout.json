@@ -1,0 +1,107 @@
+{
+  "date": "2026-10-09",
+  "checkpoint": "ADR-0069 cp1 and rendering interruption close-out",
+  "codeSha": "3106943fab162a68aea9e8d74d0c4cbb851d2173",
+  "ci": {
+    "runId": 37988272626,
+    "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626",
+    "status": "completed",
+    "conclusion": "success",
+    "expectedJobs": 10,
+    "jobs": [
+      {
+        "name": "Classify diff (docs-only fast path)",
+        "databaseId": 114015630707,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626/job/114015630707"
+      },
+      {
+        "name": "RTSan (audio thread no-alloc)",
+        "databaseId": 114015681001,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626/job/114015681001"
+      },
+      {
+        "name": "TSan (audio<->control data races)",
+        "databaseId": 114015681145,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626/job/114015681145"
+      },
+      {
+        "name": "Alpha-verify self-test (Windows)",
+        "databaseId": 114015681175,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626/job/114015681175"
+      },
+      {
+        "name": "Linux",
+        "databaseId": 114015681176,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626/job/114015681176"
+      },
+      {
+        "name": "Package (Windows zip + packaged hardware-verifier self-test)",
+        "databaseId": 114015681212,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626/job/114015681212"
+      },
+      {
+        "name": "Windows",
+        "databaseId": 114015681318,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626/job/114015681318"
+      },
+      {
+        "name": "Package (portable zip + packaged self-check)",
+        "databaseId": 114015681357,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626/job/114015681357"
+      },
+      {
+        "name": "Alpha-verify self-test (Linux)",
+        "databaseId": 114015681424,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626/job/114015681424"
+      },
+      {
+        "name": "macOS",
+        "databaseId": 114015681492,
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/37988272626/job/114015681492"
+      }
+    ]
+  },
+  "macOS": {
+    "testsPassed": 426,
+    "testsTotal": 426,
+    "suiteSeconds": 288.3,
+    "gpuTestSeconds": 2.46,
+    "sustainedFrameMs": null,
+    "note": "Normal profiling-OFF run. Quiet passing output gives whole-test runtime, not exact frame latency.",
+    "rawLogLocalPath": "build-ci/ci-37988272626-macos.log",
+    "rawLogSha256": "cae75a0d934070727404ee86d7d8bebae5d9c048cee2e63d3f66e3ef980eb6aa",
+    "timingExceptionUsed": false
+  },
+  "supportingEvidence": [
+    "docs/evidence/2026-10-09-panel-occlusion.json",
+    "docs/evidence/2026-10-09-macos-stage-diagnostic.json"
+  ],
+  "boundaries": [
+    "Instrumented diagnostic run 37983993880 is not normal-build timing certification.",
+    "Earlier failed timing results remain in STATUS and the diagnostic evidence.",
+    "SS1-SS7 working-tree app evidence: 512 passed assertions; unchanged production painter equivalence is recorded in diagnostic evidence.",
+    "SS8 remains 171/177 with six known autosave-off failures. Autosave writes are off.",
+    "Real hydrated-placeholder persistence evidence is not the pending actual-app placeholder drive.",
+    "Usable-song milestone and ADR-0069 cp2 remain incomplete."
+  ]
+}
