@@ -11,8 +11,9 @@ Older entries below are dated history, not competing "Now" instructions.
 ## 2026-10-09 — Recovery unit 1: diagnostic complete; normal CI still required
 
 **Now:** all ten jobs of instrumented CI `38006384224` pass on `687f986`. The four-line temporary
-profiling switch is removed locally; effective OFF configuration, the full restamped build and
-all seven focused GPU/version gates pass. Normal exact-code CI is still required. Unit 1 remains uncertified,
+profiling switch is removed in pushed cleanup `c6b2e8a370f3b4559f5d177568954d7ad7f2284f`;
+effective OFF configuration, the full restamped build and all seven focused GPU/version gates pass.
+Normal exact-code CI `38007691530` is queued/running. Unit 1 remains uncertified,
 autosave remains off, and dependent feature implementation has not advanced.
 
 **Preserved failures:** close-out checklist unit 1 was pushed at `f1048a0f5d5a8dbe1ba9ae0da9188d5dfdbf5b9a`;
@@ -106,7 +107,7 @@ Final focused Windows checks pass **7484/19**, and actual cloud-placeholder chec
 separate visual addendum and bounded review-repair critic are complete. Parsed measurements and source,
 executable and log hashes are in [the recovery-read record](docs/evidence/2026-10-09-recovery-read.json).
 The single instrumented observation and all ten jobs are complete; preserve both normal-mode failures.
-Push the checked normal-mode cleanup and obtain complete exact-code CI. No speculative renderer repair is
+Inspect all ten exact-code jobs of normal cleanup CI `38007691530`. No speculative renderer repair is
 supported by this passing observation. The rebuild restamps the app without changing production C++ or UI;
 earlier app drives retain their actual binary identity and are not relabeled as fresh drive evidence.
 Only after green CI, advance to unit 2: restore missing audio names by link and report named refusals

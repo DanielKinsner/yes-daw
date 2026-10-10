@@ -1,7 +1,7 @@
 {
   "date": "2026-10-09",
   "checkpoint": "Retain one Windows CI Timeline stage diagnostic through quiet passes",
-  "status": "All ten instrumented CI jobs pass; removal-only cleanup passes effective OFF and focused local gates; clean exact-code CI pending",
+  "status": "All ten instrumented CI jobs pass; normal cleanup pushed with exact-code CI running",
   "baseCodeSha": "0b1c6b47387a4cc4128e01b4a519cab422cc0e8d",
   "sourceArtifacts": [
     {
@@ -379,6 +379,13 @@
       "localPath": "build-ci/windows-profile-cleanup-review.json",
       "sha256": "501a1dc5e0347a593a6fba9a15a443de3a0c281d0800a701c7f121d9b22522fa"
     },
-    "cleanCi": "Pending the removal-only code commit; all ten exact-code jobs required, no timing exception."
+    "cleanCi": {
+      "status": "in_progress",
+      "runId": 38007691530,
+      "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/38007691530",
+      "expectedJobs": 10,
+      "boundary": "Normal OFF configuration; no timing exception"
+    },
+    "codeSha": "c6b2e8a370f3b4559f5d177568954d7ad7f2284f"
   }
 }
