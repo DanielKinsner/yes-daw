@@ -25,10 +25,6 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   # clang-format / clang-tidy / editors co
 option(YESDAW_BUILD_APPS "Build the JUCE GUI app + soak tool (off => pure-test-only)" ON)
 option(YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE
   "Instrument only YesDawTimelineGpuCheck; CTest must execute it (diagnostic timings are not clean evidence)" OFF)
-# Temporary Windows CI observation; remove before normal-mode timing certification.
-if(WIN32 AND "$ENV{GITHUB_ACTIONS}" STREQUAL "true")
-  set(YESDAW_DIAGNOSTIC_TIMELINE_PAINT_PROFILE ON)
-endif()
 # Always regenerate: switching an existing diagnostic directory to pure tests must disable its hooks.
 configure_file(tools/timeline-paint-CTestCustom.cmake.in CTestCustom.cmake @ONLY)
 

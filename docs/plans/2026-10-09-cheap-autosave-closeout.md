@@ -120,6 +120,14 @@ CI `38002137946` passed Linux and macOS but again failed Windows timing (18.4398
 19 slow frames against 8 allowed; other 438 checks pass). Collect one instrumented Windows observation
 using the reviewed temporary GitHub Actions switch; remove that switch before clean certification.
 
+Observation completed at `687f986`, CI `38006384224`: all ten jobs pass, instrumented Windows
+sustained **10.1143 ms**, maximum **11.2174 ms**, zero slow frames and unchanged sampled checksum.
+The same sustained frame spends **3.6355 ms** in clips and **5.4496 ms** in context teardown;
+geometry/layout together are **0.033 ms**. This does not attribute either previous failure or
+support speculative geometry/layout changes. Preserve that uncertainty, remove automatic profiling,
+prove effective OFF configuration and obtain normal exact-code CI. Diagnostic success alone does
+not close unit 1; another clean failure requires a supported new hypothesis rather than a retry.
+
 ## App and milestone evidence
 
 ### 5. Prove the writer through the app (ADR-0068 cp6)

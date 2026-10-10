@@ -1,7 +1,7 @@
 {
   "date": "2026-10-09",
   "checkpoint": "Retain one Windows CI Timeline stage diagnostic through quiet passes",
-  "status": "Local checks and independent review complete; one instrumented CI observation pending",
+  "status": "All ten instrumented CI jobs pass; removal-only cleanup passes effective OFF and focused local gates; clean exact-code CI pending",
   "baseCodeSha": "0b1c6b47387a4cc4128e01b4a519cab422cc0e8d",
   "sourceArtifacts": [
     {
@@ -123,5 +123,262 @@
     "Diagnostic mode requires full CTest or GPU test selection; listing/filtering that omits the GPU check fails capture. Normal OFF mode retains original commands.",
     "Fixture, original timer, budgets, assertions, pixel sampling and workflow are unchanged.",
     "Stage attribution alone cannot distinguish scheduler delay within a stage from its CPU work. No exception applied; both earlier Windows failures remain recorded."
-  ]
+  ],
+  "codeSha": "687f986cb9f18a4b1c239b05e6a3190c800a4cce",
+  "ci": {
+    "runId": 38006384224,
+    "url": "https://github.com/DanielKinsner/yes-daw/actions/runs/38006384224",
+    "status": "completed",
+    "conclusion": "success",
+    "expectedJobs": 10,
+    "jobs": [
+      {
+        "name": "Classify diff (docs-only fast path)",
+        "databaseId": 114076030588,
+        "conclusion": "success"
+      },
+      {
+        "name": "Package (Windows zip + packaged hardware-verifier self-test)",
+        "databaseId": 114076056472,
+        "conclusion": "success"
+      },
+      {
+        "name": "Package (portable zip + packaged self-check)",
+        "databaseId": 114076056479,
+        "conclusion": "success"
+      },
+      {
+        "name": "Alpha-verify self-test (Windows)",
+        "databaseId": 114076056503,
+        "conclusion": "success"
+      },
+      {
+        "name": "macOS",
+        "databaseId": 114076056527,
+        "conclusion": "success"
+      },
+      {
+        "name": "RTSan (audio thread no-alloc)",
+        "databaseId": 114076056548,
+        "conclusion": "success"
+      },
+      {
+        "name": "TSan (audio<->control data races)",
+        "databaseId": 114076056567,
+        "conclusion": "success"
+      },
+      {
+        "name": "Windows",
+        "databaseId": 114076056595,
+        "conclusion": "success"
+      },
+      {
+        "name": "Alpha-verify self-test (Linux)",
+        "databaseId": 114076056604,
+        "conclusion": "success"
+      },
+      {
+        "name": "Linux",
+        "databaseId": 114076056620,
+        "conclusion": "success"
+      }
+    ],
+    "boundary": "Windows GPU fixture instrumented; cannot provide clean timing certification",
+    "windows": {
+      "passed": 439,
+      "failed": 0,
+      "total": 439,
+      "seconds": 372.68,
+      "artifact": {
+        "sha256": "7462ee8236b90197bad208806be88227a21ed58b5898364d397015e8ce7da838",
+        "localPath": "build-ci/ci-38006384224-windows.log"
+      },
+      "profile": {
+        "artifact": {
+          "sha256": "7462ee8236b90197bad208806be88227a21ed58b5898364d397015e8ce7da838",
+          "localPath": "build-ci/ci-38006384224-windows.log"
+        },
+        "mode": "instrumented",
+        "clockReadsAdded": 9.0,
+        "measuredFrames": 160.0,
+        "nativeImageTypeId": 1.0,
+        "lanes": 48.0,
+        "clipsPerLane": 430.0,
+        "warmups": 24.0,
+        "sustainedMs": 10.1143,
+        "maxMs": 11.2174,
+        "slowFrames": 0.0,
+        "allowedOutliers": 8.0,
+        "visibleClips": 336.0,
+        "totalClips": 20640.0,
+        "distinctSamples": 300.0,
+        "checksum": 680587763889.0,
+        "stages": {
+          "context_setup": {
+            "totalMs": 6.6469,
+            "medianMs": 0.0411,
+            "p95Ms": 0.0525,
+            "maxMs": 0.0627
+          },
+          "geometry": {
+            "totalMs": 0.4558,
+            "medianMs": 0.0027,
+            "p95Ms": 0.0037,
+            "maxMs": 0.0081
+          },
+          "panel": {
+            "totalMs": 3.6355,
+            "medianMs": 0.0225,
+            "p95Ms": 0.0269,
+            "maxMs": 0.0314
+          },
+          "chrome": {
+            "totalMs": 127.6581,
+            "medianMs": 0.78195,
+            "p95Ms": 1.0074,
+            "maxMs": 1.0947
+          },
+          "layout": {
+            "totalMs": 4.9056,
+            "medianMs": 0.03,
+            "p95Ms": 0.0357,
+            "maxMs": 0.0532
+          },
+          "clips": {
+            "totalMs": 654.9497,
+            "medianMs": 3.53945,
+            "p95Ms": 6.2697,
+            "maxMs": 7.3571
+          },
+          "playhead": {
+            "totalMs": 15.3827,
+            "medianMs": 0.07875,
+            "p95Ms": 0.0979,
+            "maxMs": 1.7027
+          },
+          "context_teardown": {
+            "totalMs": 513.1407,
+            "medianMs": 3.46105,
+            "p95Ms": 4.7717,
+            "maxMs": 5.4496
+          },
+          "residual": {
+            "totalMs": 0.1248,
+            "medianMs": 0.0007,
+            "p95Ms": 0.0014,
+            "maxMs": 0.0037
+          }
+        },
+        "sustainedFrame": {
+          "index": 96.0,
+          "stages": {
+            "context_setupMs": 0.0507,
+            "geometryMs": 0.0028,
+            "panelMs": 0.0287,
+            "chromeMs": 0.8281,
+            "layoutMs": 0.0302,
+            "clipsMs": 3.6355,
+            "playheadMs": 0.0879,
+            "context_teardownMs": 5.4496,
+            "residualMs": 0.0008
+          },
+          "outerMs": 10.1143
+        },
+        "boundary": "Parsed first complete profile; repeated Catch INFO blocks describe the same measured fixture. Instrumented timings do not certify clean performance.",
+        "binarySha256": "77d7ea7b70e69976edf3d66137a0362ea1bb3476bcc2b7e9fd0e957ff48c7fcf"
+      }
+    },
+    "macos": {
+      "passed": 436,
+      "failed": 0,
+      "total": 436,
+      "seconds": 268.27,
+      "artifact": {
+        "sha256": "e4f1aaf641e8c749d5e13ba01600092a9fa9934a66521115dda2f6e148570cfb",
+        "localPath": "build-ci/ci-38006384224-macos.log"
+      }
+    },
+    "linux": {
+      "passed": 436,
+      "failed": 0,
+      "total": 436,
+      "seconds": 216.98,
+      "artifact": {
+        "sha256": "5635781dbdedd8d46597294256768c12962ad17bf1ce1813fbaa8afae90f4808",
+        "localPath": "build-ci/ci-38006384224-linux.log"
+      }
+    }
+  },
+  "interpretation": {
+    "environment": "All three Windows logs report windows-2025-vs2026 image20260925.250.1 and MSVC19.51.36260.0. Physical host load/graphics-device identity were not measured.",
+    "nativeBoundary": "Image type1 is JUCE NativeImageType, not proof of a particular GPU. Context teardown can finish queued drawing and perform bitmap readback.",
+    "critic": {
+      "localPath": "build-ci/windows-stage-interpretation-critic.md",
+      "sha256": "859b55f7332b5072d42b8c39680b14590b0a762454f3549542b42a3ee7ba5b1f"
+    },
+    "priorFailureAttribution": "Unresolved. No renderer repair or causal explanation of either earlier normal failure is claimed.",
+    "observed": "Same sustained frame96:clips3.6355ms,context teardown5.4496ms,geometry+layout0.0330ms. Do not add unrelated stage percentiles."
+  },
+  "cleanup": {
+    "baseCodeSha": "687f986cb9f18a4b1c239b05e6a3190c800a4cce",
+    "change": "Remove only four temporary auto-enable lines; preserve explicit opt-in capture and all production rendering, fixtures and thresholds.",
+    "source": {
+      "localPath": "CMakeLists.txt",
+      "sha256": "a12f3964632f11ed14527c9f706976ef78b2c401bab303a19dd310d7ea8b198d"
+    },
+    "isolation": {
+      "githubActionsDuringConfigure": true,
+      "startedExplicitOnCommands": 9,
+      "cacheEntryRemovedBeforeFinalConfigure": true,
+      "effectiveFinalProfile": "OFF",
+      "compileCommands": 426,
+      "profiledCommands": 0,
+      "hooks": "if(ON AND OFF)",
+      "diagnosticPostBuildPresent": false,
+      "testCount": 439,
+      "gpuCommand": [
+        "C:/Users/SM - Dan/Documents/GitHub/yes-daw/build-ci/YesDawTimelineGpuCheck_artefacts/Release/YesDawTimelineGpuCheck.exe"
+      ]
+    },
+    "isolationArtifact": {
+      "localPath": "build-ci/20261009-profile-cleanup-isolation.json",
+      "sha256": "999f878df158daad83dd5ef206343ae16cb48e89f67b44a14dc53e4a4b8e6168"
+    },
+    "configureOn": {
+      "localPath": "build-ci/20261009-profile-cleanup-on-configure.log",
+      "sha256": "0185f14d7179188769a76ce198821ec6b2b719dc2b9f2c9cb839c31b30d8d84e"
+    },
+    "configureDefaultOff": {
+      "localPath": "build-ci/20261009-profile-cleanup-default-off-configure.log",
+      "sha256": "89296dcbd4f5418038b3f254793c3684b91a129b01c4e40ac1e74937fb32324e"
+    },
+    "fullBuild": {
+      "localPath": "build-ci/20261009-profile-cleanup-full-build.log",
+      "sha256": "e9bf34317822230f4acd6fc58457991ed0bd8aa61de57d13d5ab8b1712b9c858"
+    },
+    "focusedCtest": {
+      "scope": "GPU gate and six rebuilt executable version gates",
+      "passed": 7,
+      "artifact": {
+        "localPath": "build-ci/20261009-profile-cleanup-focused-ctest.log",
+        "sha256": "b8ddc60d9db692f0666e9b589ced9ebf6ef1515874c1df96d7272c59c0c56774"
+      },
+      "total": 7
+    },
+    "normalGpuBinary": {
+      "localPath": "build-ci/YesDawTimelineGpuCheck_artefacts/Release/YesDawTimelineGpuCheck.exe",
+      "sha256": "d9afa10feb83c73991ff68e800fd3650bb2e6f3bc38e80f85c94310fd7166252"
+    },
+    "currentRestampedApp": {
+      "localPath": "build-ci/YesDaw_artefacts/Release/YesDaw.exe",
+      "sha256": "a9af5522b8c31eb6e1cf0b32d7774402ce45097a07d3d685ec9ee4111f061409"
+    },
+    "priorFullSuite": "The preceding 439/439 suite (271.82s) covers the identical effective OFF C++ configuration and retains its actual earlier build identity. Not relabeled as a new full-suite run.",
+    "appBoundary": "No production C++ or UI change; earlier SS1-SS8 drives and visual review retain actual binary identity. Restamping/rebuilding is not fresh app-drive evidence.",
+    "review": {
+      "localPath": "build-ci/windows-profile-cleanup-review.json",
+      "sha256": "501a1dc5e0347a593a6fba9a15a443de3a0c281d0800a701c7f121d9b22522fa"
+    },
+    "cleanCi": "Pending the removal-only code commit; all ten exact-code jobs required, no timing exception."
+  }
 }
