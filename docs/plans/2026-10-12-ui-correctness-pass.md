@@ -195,13 +195,13 @@ tempo-change and meter-change gate legs. The head-tempo law is wrong after a cha
 
 Three commits, each green on its own.
 
-- [ ] **Commit 1, refactor with no behaviour change.**
+- [x] **Commit 1, refactor with no behaviour change.**
   - `RulerBarLabel` gains `double seconds`. For now it holds today's read-back of the time from the
     rounded pixel.
   - Add `timeline_canvas_detail::rulerTimeLabelText (label, state, vp)`, already in its final
     3-argument signature.
   - `drawRuler` draws through that function.
-- [ ] **Commit 2, the fix plus its gate.**
+- [x] **Commit 2, the fix plus its gate.**
   - Fill `seconds` with the exact bar start.
   - `formatRulerSeconds` floors whole units with formatSmpte's `+1e-9` guard and splits integers
     (`"%lld:%02lld"`, and `"%lld:%02lld.%lld"` for tenths).

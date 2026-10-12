@@ -21411,6 +21411,100 @@ TEST_CASE ("tool strip: a click on each cell selects that tool (mouse, not keys)
 // UI correctness pass unit 4 (rubric FIX 2 + FIX 8): the playhead is a line under a small head in the marker lane. No
 // invented number, nothing over the bar or time rows, nothing past the ruler's ends, and resting on a marker it stops
 // short of the marker's label.
+// UI correctness pass unit 5 (rubric FIX 3): the time row shows each bar's exact time, floored - never the time read
+// back from a rounded tick pixel (bar 9 at 120 BPM read "0:15" for 16 s), and never a rounded "60" seconds.
+TEST_CASE ("ruler time labels: exact bar times, floored", "[ui][timeline][ruler][ruler-time-labels]")
+{
+    namespace d = yesdaw::ui::timeline_canvas_detail;
+    yesdaw::ui::TimelineCanvasState state;
+    state.timeDisplayMode = d::kRulerTimeDisplayMinSec;
+    yesdaw::ui::Viewport vp;
+    vp.scrollSeconds = 0.0;
+
+    state.barSeconds = 240.0 / 44.0;   // 4/4 at 44 BPM: 11 bars are exactly one minute
+    vp.pixelsPerSecond = 10.0;         // whole seconds
+    const yesdaw::ui::RulerBarLabel bar12 { 12, 0, 11.0 * state.barSeconds };
+    REQUIRE (d::rulerTimeLabelText (bar12, state, vp) == "1:00");
+
+    vp.pixelsPerSecond = 100.0;        // tenths, floored: 119.96 s is not "1:60.0"
+    REQUIRE (d::formatRulerSeconds (119.96, vp.pixelsPerSecond) == "1:59.9");
+    REQUIRE (d::formatRulerSeconds (61.5, vp.pixelsPerSecond) == "1:01.5");
+}
+
+TEST_CASE ("ruler time labels: every label at every zoom shows its bar's exact time", "[ui][timeline][ruler][ruler-time-labels]")
+{
+    namespace d = yesdaw::ui::timeline_canvas_detail;
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Rectangle<int> clip (0, 0, 1600, 100);
+    constexpr long long rate = 48000;
+    // The expected text from integer arithmetic only: bar b of 4/4 at `bpm` starts at (b - 1) x 240 / bpm seconds.
+    const auto expected = [] (std::int64_t bar, long long bpm, int mode, bool tenths) {
+        const long long numer = static_cast<long long> (bar - 1) * 240;
+        if (mode == d::kRulerTimeDisplaySamples)
+            return juce::String (numer * rate / bpm);
+        if (mode == d::kRulerTimeDisplaySmpte)
+        {
+            const long long frames = numer * d::kRulerSmpteFramesPerSecond / bpm;
+            const long long whole = frames / d::kRulerSmpteFramesPerSecond;
+            return juce::String::formatted ("%02lld:%02lld:%02lld:%02lld", whole / 3600, (whole / 60) % 60, whole % 60,
+                                            frames % d::kRulerSmpteFramesPerSecond);
+        }
+        if (tenths)
+        {
+            const long long t = numer * 10 / bpm;
+            return juce::String::formatted ("%lld:%02lld.%lld", t / 600, (t / 10) % 60, t % 10);
+        }
+        const long long s = numer / bpm;
+        return juce::String::formatted ("%lld:%02lld", s / 60, s % 60);
+    };
+    struct Case { long long bpm; int mode; };
+    const Case cases[] = { { 120, d::kRulerTimeDisplayMinSec }, { 120, d::kRulerTimeDisplaySamples },
+                           { 120, d::kRulerTimeDisplaySmpte }, { 44, d::kRulerTimeDisplayMinSec } };
+    long long checks = 0, mismatches = 0;
+    std::string first;
+    for (int i = 100; i <= 5500; ++i)
+        for (const double scroll : { 0.0, 7.3 })
+            for (const Case& c : cases)
+            {
+                yesdaw::ui::TimelineCanvasState state;
+                state.barSeconds = 240.0 / static_cast<double> (c.bpm);
+                state.timeDisplayMode = c.mode;
+                state.sampleRateHz = static_cast<double> (rate);
+                yesdaw::ui::Viewport vp;
+                vp.pixelsPerSecond = static_cast<double> (i) / 100.0;
+                vp.scrollSeconds = scroll;
+                const bool tenths = vp.pixelsPerSecond >= L::timelineCanvasRulerMinBarLabelSpacingPx;
+                for (const yesdaw::ui::RulerBarLabel& label : yesdaw::ui::computeRulerBarLabels (clip, state, vp))
+                {
+                    ++checks;
+                    const juce::String want = expected (label.bar, c.bpm, c.mode, tenths);
+                    const juce::String got = d::rulerTimeLabelText (label, state, vp);
+                    if (got != want && mismatches++ == 0)
+                        first = "pps " + std::to_string (vp.pixelsPerSecond) + ", scroll " + std::to_string (scroll) + ", "
+                              + std::to_string (c.bpm) + " BPM, mode " + std::to_string (c.mode) + ", bar "
+                              + std::to_string (label.bar) + ": got " + got.toStdString() + ", want " + want.toStdString();
+                }
+            }
+    CAPTURE (checks, mismatches, first);
+    REQUIRE (checks > 10000);
+    REQUIRE (mismatches == 0);
+
+    // The rubric's own pins: at 5.02 px/s and 120 BPM, bar 9 reads 0:16 and bar 33 reads 1:04.
+    yesdaw::ui::TimelineCanvasState state;
+    state.barSeconds = 2.0;
+    state.timeDisplayMode = d::kRulerTimeDisplayMinSec;
+    yesdaw::ui::Viewport vp;
+    vp.pixelsPerSecond = 5.02;
+    vp.scrollSeconds = 0.0;
+    int pinned = 0;
+    for (const yesdaw::ui::RulerBarLabel& label : yesdaw::ui::computeRulerBarLabels (clip, state, vp))
+    {
+        if (label.bar == 9) { REQUIRE (d::rulerTimeLabelText (label, state, vp) == "0:16"); ++pinned; }
+        if (label.bar == 33) { REQUIRE (d::rulerTimeLabelText (label, state, vp) == "1:04"); ++pinned; }
+    }
+    REQUIRE (pinned == 2);
+}
+
 TEST_CASE ("the playhead paints a head in the marker lane and nothing above it",
            "[ui][timeline][ruler][layout][playhead-head][paint]")
 {

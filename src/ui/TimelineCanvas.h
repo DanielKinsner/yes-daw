@@ -423,10 +423,9 @@ struct RulerBarLabel
         if (x < clipArea.getX() - UiTheme::Layout::timelineCanvasRulerLabelCullPadding)
             continue;
 
-        // The time read back from the rounded tick pixel (unit 5, commit 1: unchanged behaviour).
-        const double readBackSeconds = vp.scrollSeconds
-                                     + static_cast<double> (x - clipArea.getX()) / std::max (1.0, vp.pixelsPerSecond);
-        labels.push_back ({ barIndex + 1, x, readBackSeconds });
+        // The bar's exact start (UI correctness pass unit 5): a time read back from the rounded tick pixel read up to
+        // half a pixel early or late, and the floor below turned that into a whole second wrong at about half the ticks.
+        labels.push_back ({ barIndex + 1, x, barStartSeconds });
     }
 
     return labels;
@@ -938,14 +937,18 @@ inline void drawToolbar (juce::Graphics& g, juce::Rectangle<int> toolbar, Timeli
 
 // G0.7 cp3: the time row's label — minutes:seconds, tenths once a second is wider than the
 // minimum label spacing (the zoomed-in case where whole seconds would repeat).
+// UI correctness pass unit 5: whole units are floored (with formatSmpte's 1e-9 guard against a product like 11 x 240 / 44
+// landing just under 60) and split as integers, so a label never reads a second early or a rounded "1:60.0".
 [[nodiscard]] inline juce::String formatRulerSeconds (double seconds, double pixelsPerSecond)
 {
     const double clamped = std::max (0.0, seconds);
-    const int minutes = static_cast<int> (clamped / 60.0);
-    const double rest = clamped - 60.0 * minutes;
     if (pixelsPerSecond >= UiTheme::Layout::timelineCanvasRulerMinBarLabelSpacingPx)
-        return juce::String::formatted ("%d:%04.1f", minutes, rest);
-    return juce::String::formatted ("%d:%02d", minutes, static_cast<int> (rest));
+    {
+        const long long tenths = static_cast<long long> (std::floor (clamped * 10.0 + 1e-9));
+        return juce::String::formatted ("%lld:%02lld.%lld", tenths / 600, (tenths / 10) % 60, tenths % 10);
+    }
+    const long long whole = static_cast<long long> (std::floor (clamped + 1e-9));
+    return juce::String::formatted ("%lld:%02lld", whole / 60, whole % 60);
 }
 
 // G2.2: the time row's formats (plan §3.1: min:sec / SMPTE / samples via the ruler's context

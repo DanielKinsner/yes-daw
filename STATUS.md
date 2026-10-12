@@ -8,6 +8,20 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 5 (commits 1-2): the ruler's time row shows each bar's exact time
+
+**What changes:** each time-row label read its time back from the tick's rounded pixel, up to half a pixel early or
+late, and the formatter truncated whole seconds - so about half the labels read a second early (bar 9 at 120 BPM showed
+"0:15" for 16 s) or late, and the tenths format could round to "1:60.0". Labels now carry their bar's exact start, and
+whole units are floored with SMPTE's 1e-9 guard and split as integers. Accepted change: the tenths mode floors too (1.96 s
+reads 0:01.9). Commit 1 (`88ac8e3`) was the no-behaviour-change refactor, so the gates ran unchanged on the old code:
+**red there** - the formatter read "0:59" for 11 bars at 44 BPM (exactly one minute), and the sweep found **442,176 wrong
+labels of 816,509** (first: bar 33 at 44 BPM, 1 px/s, "2:55" for 174.5 s). **Gates `[ruler-time-labels]`:** the
+formatter cases, and a sweep of every zoom from 1 to 55 px/s in 0.01 steps at two scroll positions - 120 BPM in min:sec,
+samples and SMPTE, 44 BPM in min:sec - against expected text from integer arithmetic only: zero mismatches, plus the
+rubric's pins (at 5.02 px/s bar 9 reads 0:16, bar 33 reads 1:04). **Local:** full build, ctest 443/443, Clang clean.
+**Next:** unit 5 commit 3 (the time row's contrast, and a scan gate that no text is drawn in a decoration token).
+
 ## 2026-10-12 — UI correctness pass unit 4: the playhead shows no invented number and covers no ruler label
 
 **What changes:** the playhead's purple pill on the bars row printed round(seconds) + 1 as if it were a bar number (bar
