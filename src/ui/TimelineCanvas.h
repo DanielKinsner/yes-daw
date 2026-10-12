@@ -389,6 +389,7 @@ struct RulerBarLabel
 {
     std::int64_t bar = 1;
     int x = 0;
+    double seconds = 0.0;   // the time the time row shows for this bar (UI correctness pass unit 5)
 };
 
 [[nodiscard]] inline std::vector<RulerBarLabel> computeRulerBarLabels (
@@ -422,7 +423,10 @@ struct RulerBarLabel
         if (x < clipArea.getX() - UiTheme::Layout::timelineCanvasRulerLabelCullPadding)
             continue;
 
-        labels.push_back ({ barIndex + 1, x });
+        // The time read back from the rounded tick pixel (unit 5, commit 1: unchanged behaviour).
+        const double readBackSeconds = vp.scrollSeconds
+                                     + static_cast<double> (x - clipArea.getX()) / std::max (1.0, vp.pixelsPerSecond);
+        labels.push_back ({ barIndex + 1, x, readBackSeconds });
     }
 
     return labels;
@@ -972,6 +976,13 @@ inline constexpr int kRulerTimeDisplaySamples = 3;
     return formatRulerSeconds (seconds, pixelsPerSecond);
 }
 
+// UI correctness pass unit 5: the text the time row shows under one bar label - one function for the paint and the gates.
+[[nodiscard]] inline juce::String rulerTimeLabelText (const RulerBarLabel& label, const TimelineCanvasState& state,
+                                                     const Viewport& vp)
+{
+    return formatRulerTime (label.seconds, state.timeDisplayMode, vp.pixelsPerSecond, state.sampleRateHz);
+}
+
 [[nodiscard]] inline const char* rulerTimeFormatName (int timeDisplayMode) noexcept
 {
     if (timeDisplayMode == kRulerTimeDisplaySmpte)
@@ -1055,11 +1066,9 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
                     UiTheme::Layout::timelineCanvasRulerTickWidth,
                     UiTheme::Layout::timelineCanvasRulerTickHeight);
         // Time row: the same position in minutes:seconds, with a shorter tick.
-        const double seconds = vp.scrollSeconds
-                             + static_cast<double> (x - clipArea.getX()) / std::max (1.0, vp.pixelsPerSecond);
         g.setColour (UiTheme::Color::rulerTick());   // ADR-0063: opaque
         g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
-        g.drawText (formatRulerTime (seconds, state.timeDisplayMode, vp.pixelsPerSecond, state.sampleRateHz),
+        g.drawText (rulerTimeLabelText (label, state, vp),
                     x + UiTheme::Layout::timelineCanvasRulerTickWidth + 2,
                     rows.time.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
                     UiTheme::Layout::timelineRulerTimeLabelWidth,
