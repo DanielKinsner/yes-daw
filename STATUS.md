@@ -8,6 +8,19 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass planned: the rubric's fifteen FIXes, worst first
+
+**Plan:** [`docs/plans/2026-10-12-ui-correctness-pass.md`](docs/plans/2026-10-12-ui-correctness-pass.md). A workflow
+(Opus 5.5, 31 agents) investigated each of the fifteen rubric FIXes in the code and screenshots, and a separate agent
+challenged every proposal (13 of 15 corrected); all fifteen are confirmed, none needs an owner decision, and the plan
+uses the corrected versions. Fifteen small units, each with its fix, a gate that a named mutation turns red, and drive
+proof batched on one packaged build: data-changing behaviour first (the tempo cell press; B30's untrue fine-drag
+certification on that cell; a fader ride's readout), then wrong data in the frame (the playhead's invented number, the
+ruler's early time labels and their contrast, bar labels ignoring the tempo map, the master meter's scale, the rail's
+invented instrument icons), then layout and cut text (the dock-hidden dead band, the export Cancel label, a whole-text
+status line - ADR-0075, the inspector cards, mixer strips), then drive tooling (evidence shots that show popups and
+alerts). **Next:** unit 1 (the tempo cell press).
+
 ## 2026-10-12 — Dan's three calls: macOS exception renewed, Vera task headless, Focusrite check next
 
 **macOS frame exception: renewed** (Dan, 2026-10-12) in the plan's §8.2 - the same narrow scope (macOS, the timeline
