@@ -31193,3 +31193,107 @@ TEST_CASE ("ADR-0076 the status line shows its messages whole", "[ui][input][she
     std::filesystem::remove (longName, ec);
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// UI correctness pass unit 12 (rubric FIX 12): the inspector's TAKES card shows whole or not at all. It used to take
+// whatever room was left up to its 74 px slot, so 30 px of room painted its heading over the band below the content.
+// Now it shows only when its tallest content fits (heading 20 + chart 4 + 44 = 68 px). Rooms either side of that line,
+// with the settings row open and closed; the band below the card is pixel-identical between the Clip and Track tabs.
+TEST_CASE ("the inspector's TAKES card shows whole or not at all", "[ui][input][shell][inspector-takes-card]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("inspector-takes-card");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportRecord));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportRecord));   // one take: its clip is selected
+    REQUIRE (readProjectSnapshot (bundlePath).recordingTakes.size() == 1u);
+    auto* takeChooser = findChildWithComponentId (*shell, "clip.inspector.take.chooser");
+    auto* takeDelete = findChildWithComponentId (*shell, "clip.inspector.take.delete");
+    REQUIRE (takeChooser != nullptr);
+    REQUIRE (takeDelete != nullptr);
+
+    const auto content = [&shell] {
+        const juce::var r = probeRoot (*shell)["layout"]["inspector"];
+        REQUIRE (r.isArray());
+        return juce::Rectangle<int> { static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]) }
+            .withTrimmedTop (L::inspectorTabHeight)
+            .reduced (L::inspectorContentInsetX, L::inspectorContentInsetY);
+    };
+    const auto room = [&content] { return content().getHeight() - L::inspectorAutomationSectionTop; };
+    const auto render = [&shell] {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true, juce::SoftwareImageType());
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    const auto identical = [] (const juce::Image& a, const juce::Image& b, juce::Rectangle<int> area) {
+        int differing = 0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+                differing += a.getPixelAt (x, y) != b.getPixelAt (x, y) ? 1 : 0;
+        return differing;
+    };
+
+    int whole = 0, dropped = 0;
+    for (const bool rowOpen : { true, false })
+    {
+        yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, rowOpen);
+        shell->setSize (1536, 960);
+        for (const int target : rowOpen ? std::vector<int> { 30, 10, 50, 67, 68, 108 } : std::vector<int> { 70, 10, 50, 67, 68, 108 })
+        {
+            // Reach the room through the dock's height (a taller dock, a shorter inspector).
+            int dock = 300;
+            yesdaw::ui::mainComponentSetDockHeight (*shell, dock);
+            for (int attempt = 0; attempt < 4 && room() != target; ++attempt)
+            {
+                dock += room() - target;
+                yesdaw::ui::mainComponentSetDockHeight (*shell, dock);
+            }
+            INFO ((rowOpen ? "settings row open" : "settings row closed") << ", room " << room() << " (wanted " << target << ")");
+            REQUIRE (room() == target);
+            const juce::Rectangle<int> c = content();
+            const bool expectWhole = target >= L::inspectorSectionLabelHeight + L::inspectorAutomationChartTop + L::inspectorAutomationChartHeight;
+            const int cardTop = c.getY() + L::inspectorAutomationSectionTop;
+            const juce::Rectangle<int> card (c.getX(), cardTop, c.getWidth(), expectWhole ? std::min (target, L::inspectorMarkersSectionTop - L::inspectorAutomationSectionTop) : 0);
+
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::InspectorShowClipTab);
+            const juce::Image clipTab = render();
+            const juce::Rectangle<int> chooser = takeChooser->getBounds(), remove = takeDelete->getBounds();
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::InspectorShowTrackTab);
+            const juce::Image trackTab = render();
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::InspectorShowClipTab);
+
+            const juce::Rectangle<int> band (c.getX(), card.getBottom(), c.getWidth(), c.getBottom() - card.getBottom());
+            CAPTURE (card.toString(), band.toString(), chooser.toString(), remove.toString());
+            REQUIRE (identical (clipTab, trackTab, band) == 0);   // nothing of the card below it, nor in place of it
+            if (expectWhole)
+            {
+                ++whole;
+                REQUIRE (identical (clipTab, trackTab, card.withHeight (L::inspectorSectionLabelHeight)) > 10);   // its heading
+                REQUIRE_FALSE (chooser.isEmpty());
+                REQUIRE_FALSE (remove.isEmpty());
+                REQUIRE (card.contains (chooser));
+                REQUIRE (card.contains (remove));
+            }
+            else
+            {
+                ++dropped;
+                REQUIRE (chooser.isEmpty());
+                REQUIRE (remove.isEmpty());
+            }
+        }
+    }
+    REQUIRE (whole >= 5);
+    REQUIRE (dropped >= 7);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

@@ -15,10 +15,12 @@ juce::Rectangle<int> inspectorTakesSectionBounds (juce::Rectangle<int> content)
 {
     using L = UiTheme::Layout;
     const auto takes = content.withTrimmedTop (L::inspectorAutomationSectionTop);
-    // The Markers card owns the next section. The old full-remainder Takes card painted
-    // over its heading, while the child marker list still appeared above that paint.
-    return takes.withHeight (std::min (takes.getHeight(),
-                                      L::inspectorMarkersSectionTop - L::inspectorAutomationSectionTop));
+    // UI correctness pass unit 12: whole or not at all - with less room than its tallest content the card drops (a
+    // fragment painted its heading over the band below). The Markers card owns the next section, so it never grows past
+    // that top (the old full-remainder card painted over the Markers heading).
+    if (takes.getHeight() < L::inspectorTakesCardWholeHeight)
+        return {};
+    return takes.withHeight (std::min (takes.getHeight(), L::inspectorTakesCardMostHeight));
 }
 
 } // namespace
@@ -536,11 +538,8 @@ void MainComponent::layoutInspectorControls()
             inspectorMarkerList.setBounds ({});
         inspectorMarkerList.updateContent();
     }
-    auto takesSection = inspectorTakesSectionBounds (area);
-    const int takesNeededHeight = yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight
-                                + yesdaw::ui::UiTheme::Layout::inspectorTakeRowHeight
-                                + yesdaw::ui::UiTheme::Layout::inspectorTakeRowGap;
-    if (sectionFits (takesSection) && takesSection.getHeight() >= takesNeededHeight)
+    auto takesSection = inspectorTakesSectionBounds (area);   // unit 12: the paint's rule - whole, or empty
+    if (! takesSection.isEmpty() && sectionFits (takesSection))
     {
         takesSection.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight);
         takesSection.reduce (yesdaw::ui::UiTheme::Layout::inspectorAutomationChartInsetX,
@@ -1166,7 +1165,7 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
                                               .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelInsetX));
     }
     auto takes = inspectorTakesSectionBounds (area);
-    if (! drawInspectorSectionCard (takes))
+    if (takes.isEmpty() || ! drawInspectorSectionCard (takes))
         return;
     drawSmallLabel (
         g,

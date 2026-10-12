@@ -525,6 +525,12 @@ struct UiTheme
         static constexpr int inspectorMarkerRowHeight = 20;
         static constexpr int inspectorAutomationChartTop = 4;
         static constexpr int inspectorAutomationChartHeight = 44;
+        // UI correctness pass unit 12: the TAKES card's tallest content (its heading and the "No takes" chart) - with less
+        // room than this it drops whole; it never grows past the Markers card's top.
+        static constexpr int inspectorTakesCardWholeHeight = inspectorSectionLabelHeight + inspectorAutomationChartTop
+                                                           + inspectorAutomationChartHeight;
+        static constexpr int inspectorTakesCardMostHeight = inspectorMarkersSectionTop - inspectorAutomationSectionTop;
+        static_assert (inspectorTakesCardWholeHeight <= inspectorTakesCardMostHeight, "the TAKES card fits its slot");
         static constexpr int inspectorAutomationChartInsetX = 6;
         static constexpr int inspectorAutomationChartInsetY = 4;
         static constexpr int inspectorAutomationPointCount = 6;
