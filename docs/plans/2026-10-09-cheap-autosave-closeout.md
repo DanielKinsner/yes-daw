@@ -15,7 +15,7 @@ exception or threshold. Unticked items are pending, not certified.
   proceed only when the required repair proof passes or an applicable owner decision resolves the
   dependency. Independent preparation may continue meanwhile. Closed by normal exact-code CI
   `37988272626` on `3106943` (all ten jobs pass); see the cp1 close-out evidence record and STATUS.
-- [ ] For each small green unit below: applicable local checks and earlier/current Session drives,
+- [x] For each small green unit below: applicable local checks and earlier/current Session drives,
   agent visual judgment and separate critic; update STATUS, commit, push, then inspect completed
   exact-code CI. Preserve rejected measurements and fixture/build identity. A docs-only green,
   cancelled run, diagnostic pass or alternate audio profile does not certify different code/hardware.
@@ -85,7 +85,7 @@ Gate a real successful-link/failed-flush refusal without claiming rollback of na
   returning it to zero. If test hooks span multiple translation units, enable them uniformly for
   the test target and keep the shipped app macro-free. Measure actual failed writer attempts as a
   coherent time/result sample; no-op ticks retain the previous sample and session peak.
-- [ ] Close ADR-0069 cp2 only after its restore/refusal gates, existing cp1/reliability gates and
+- [x] Close ADR-0069 cp2 only after its restore/refusal gates, existing cp1/reliability gates and
   checkpoint proof pass. Preserve the hidden local `[hardware-cost]` bound: 10 x 50 MB, under 100 ms.
 
 ### 4. Enable the model-owned writer safely (ADR-0068 cp1/cp2)

@@ -8,6 +8,19 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-11 — Units 3-6 certified by exact-code CI; ADR-0069 cp2 closed
+
+**CI on `c56e8fe`** (run 38208010592, the head carrying units 3-6 and the drive tooling): **all ten jobs green** -
+Linux, Windows, macOS, TSan, RTSan, both package jobs with their packaged self-checks, both alpha-verify self-tests.
+macOS's GPU frame check passed this run (its unexcused red on unit 3's `9604299` stays recorded above; the exception
+renewal still awaits Dan). That certifies units 3, 4 (writes on), 5 (the drive proof's code is this code, byte for byte
+under `src/` and `tests/`) and 6 (one writer), and closes **ADR-0069 cp2** (restore links back or refuses; the probe
+carries the writer's real cost). The close-out checklist's per-unit box and cp2's box are ticked. **Open:** unit 7, the
+Usable-song milestone close - the visual rubric's FIXes (ranked in the unit 5 entry below, worst first), the packaged
+hardware-playback result (the existing checker; it needs the audio loopback set-up earlier sessions used, which
+changes Windows sound settings - Dan's to authorize), the montage and roadmap pointers. **Next:** the UI correctness
+pass on those FIXes, each with its gate.
+
 ## 2026-10-11 — Close-out unit 5: writes-on proven through the packaged app (SS8 green; full batch green)
 
 **Candidate:** `dist/YesDaw-b28437e-win64-portable.zip` from `b28437e` (units 4-6), `YesDaw.exe` SHA256
