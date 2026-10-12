@@ -21408,6 +21408,72 @@ TEST_CASE ("tool strip: a click on each cell selects that tool (mouse, not keys)
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// UI correctness pass unit 4 (rubric FIX 2 + FIX 8): the playhead is a line under a small head in the marker lane. No
+// invented number, nothing over the bar or time rows, nothing past the ruler's ends, and resting on a marker it stops
+// short of the marker's label.
+TEST_CASE ("the playhead paints a head in the marker lane and nothing above it",
+           "[ui][timeline][ruler][layout][playhead-head][paint]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Rectangle<int> area (0, 0, 900, 300);
+    constexpr double pixelsPerSecond = 40.0;
+    const yesdaw::ui::TimelineMarker marker { 5.0, "Verse" };
+    yesdaw::ui::TimelineCanvasState state;
+    state.totalSeconds = 30.0;
+    state.viewport.pixelsPerSecond = pixelsPerSecond;
+    state.viewport.scrollSeconds = 0.0;
+    state.markers = &marker;
+    state.markerCount = 1;
+    const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (area, state);
+    const juce::Rectangle<int> ruler = geometry.rulerArea;
+    const juce::Rectangle<int> clip = geometry.clipArea;
+    REQUIRE (ruler.getHeight() == L::timelineCanvasRulerHeight);
+    const auto paintAt = [&] (double seconds) {
+        state.playheadSeconds = seconds;
+        juce::Image image (juce::Image::ARGB, area.getWidth(), area.getHeight(), true);
+        juce::Graphics g (image);
+        (void) yesdaw::ui::paintTimelineCanvas (g, area, state);
+        return image;
+    };
+    const juce::Image reference = paintAt (-100.0);   // the playhead off the canvas
+    const int markerLaneTop = ruler.getY() + L::timelineRulerBarsRowHeight + L::timelineRulerTimeRowHeight;
+    const int markerX = clip.getX() + juce::roundToInt (marker.seconds * pixelsPerSecond);
+    const juce::Rectangle<int> markerLabel (markerX + L::timelineCanvasRulerMarkerLabelLeftInset,
+                                            ruler.getY() + L::timelineCanvasRulerMarkerLabelTopInset,
+                                            L::timelineCanvasRulerMarkerLabelWidth,
+                                            L::timelineCanvasRulerMarkerLabelHeight);
+    std::vector<int> positions;
+    for (int x = clip.getX(); x <= clip.getRight(); x += 5)
+        positions.push_back (x);
+    positions.push_back (clip.getRight());
+    positions.push_back (markerX);
+    for (const int x : positions)
+    {
+        INFO ("playhead at x=" << x << " (ruler " << ruler.toString() << ", marker lane from y=" << markerLaneTop << ")");
+        const juce::Image image = paintAt (static_cast<double> (x - clip.getX()) / pixelsPerSecond);
+        const juce::Image::BitmapData now (image, juce::Image::BitmapData::readOnly);
+        const juce::Image::BitmapData before (reference, juce::Image::BitmapData::readOnly);
+        int top = area.getHeight(), left = area.getWidth(), right = -1;
+        bool overLabel = false;
+        for (int py = 0; py < ruler.getBottom(); ++py)
+            for (int px = 0; px < area.getWidth(); ++px)
+                if (now.getPixelColour (px, py) != before.getPixelColour (px, py))
+                {
+                    top = std::min (top, py);
+                    left = std::min (left, px);
+                    right = std::max (right, px);
+                    overLabel = overLabel || markerLabel.contains (px, py);
+                }
+        REQUIRE (right >= 0);                    // the head paints
+        REQUIRE (top >= markerLaneTop);          // nothing over the bar or time rows
+        REQUIRE (left >= ruler.getX());          // kept inside the ruler at both ends
+        REQUIRE (right < ruler.getRight());
+        if (x == markerX)
+            REQUIRE_FALSE (overLabel);           // resting on a marker, the head stops short of its label (a playhead
+                                                 // parked inside a label's span still crosses it with its line, as before)
+    }
+}
+
 TEST_CASE ("tool strip paints the active tool's cell lit, not always the Pointer",
            "[ui][timeline][tool-strip][paint]")
 {

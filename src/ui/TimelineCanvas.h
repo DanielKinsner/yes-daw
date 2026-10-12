@@ -519,7 +519,6 @@ const juce::Colour kGrid = UiTheme::Color::timelineGrid();
 const juce::Colour kCanvasBack = UiTheme::Color::timelineCanvas();
 const juce::Colour kToolbarBack = UiTheme::Color::timelineToolbar();
 const juce::Colour kRulerBack = UiTheme::Color::timelineRuler();
-const juce::Colour kPurple = UiTheme::Color::accentPurple();
 
 inline void drawSmallLabel (juce::Graphics& g, const juce::String& text, juce::Rectangle<int> area,
                             juce::Justification justification = juce::Justification::centredLeft)
@@ -1225,6 +1224,19 @@ inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const Ti
     }
 }
 
+// UI correctness pass unit 4: the playhead's head - a whole-pixel rect centred on the line, its bottom on the ruler's
+// bottom separator (the marker lane, where the reference and Logic put it). Its 6 px width stops short of a marker label
+// 4 px right of the marker's tick. The clamp is defensive: the clip area's inset already keeps the head inside the ruler.
+[[nodiscard]] inline juce::Rectangle<int> playheadHeadRect (juce::Rectangle<int> ruler, int playheadX) noexcept
+{
+    const int width = UiTheme::Layout::timelineCanvasPlayheadHeadWidth;
+    const int height = UiTheme::Layout::timelineCanvasPlayheadHeadHeight;
+    const int left = juce::jlimit (ruler.getX(), std::max (ruler.getX(), ruler.getRight() - width),
+                                   playheadX + (UiTheme::Layout::timelineCanvasPlayheadLineWidth - width) / 2);
+    const int bottom = ruler.getBottom() - UiTheme::Layout::timelineCanvasRulerSeparatorHeight;
+    return { left, bottom - height, width, height };
+}
+
 inline void drawPlayhead (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea,
                           const TimelineCanvasState& state, const Viewport& vp)
 {
@@ -1233,27 +1245,19 @@ inline void drawPlayhead (juce::Graphics& g, juce::Rectangle<int> ruler, juce::R
     if (playheadX < clipArea.getX() || playheadX > clipArea.getRight())
         return;
 
+    // No number (it printed round(seconds) + 1 as if it were a bar - D3): the header counter shows bar|beat.
+    const juce::Rectangle<int> head = playheadHeadRect (ruler, playheadX);
     g.setColour (UiTheme::Color::white());
     g.fillRect (playheadX,
-                ruler.getY(),
+                head.getY(),
                 UiTheme::Layout::timelineCanvasPlayheadLineWidth,
-                clipArea.getBottom() - ruler.getY());
-    g.setColour (kPurple);
-    g.fillRoundedRectangle (
-        static_cast<float> (playheadX - UiTheme::Layout::timelineCanvasPlayheadBadgeHalfWidth),
-        static_cast<float> (ruler.getY() + UiTheme::Layout::timelineCanvasPlayheadBadgeTopInset),
-        static_cast<float> (UiTheme::Layout::timelineCanvasPlayheadBadgeWidth),
-        static_cast<float> (UiTheme::Layout::timelineCanvasPlayheadBadgeHeight),
-        UiTheme::Radius::pill);
-    g.setColour (kText);
-    g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small, juce::Font::bold));
-    g.drawText (juce::String (std::max (1, juce::roundToInt (state.playheadSeconds) + 1)),
-                playheadX - UiTheme::Layout::timelineCanvasPlayheadTextHalfWidth,
-                ruler.getY() + UiTheme::Layout::timelineCanvasPlayheadBadgeTopInset,
-                UiTheme::Layout::timelineCanvasPlayheadTextWidth,
-                UiTheme::Layout::timelineCanvasPlayheadTextHeight,
-                juce::Justification::centred,
-                false);
+                clipArea.getBottom() - head.getY());
+    juce::Path triangle;   // pointing down; built on the integer rect, so no edge spills past it
+    triangle.addTriangle (static_cast<float> (head.getX()), static_cast<float> (head.getY()),
+                          static_cast<float> (head.getRight()), static_cast<float> (head.getY()),
+                          static_cast<float> (head.getX()) + static_cast<float> (head.getWidth()) * 0.5f,
+                          static_cast<float> (head.getBottom()));
+    g.fillPath (triangle);
 }
 
 } // namespace timeline_canvas_detail

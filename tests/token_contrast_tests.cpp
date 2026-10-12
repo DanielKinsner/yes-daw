@@ -236,6 +236,7 @@ TEST_CASE ("ADR-0063 text reaches 4.5:1 and indicators 3:1 wherever they are dra
              { "meterGreen", Color::meterGreen() }, { "meterYellow", Color::meterYellow() }, { "dangerRed", Color::dangerRed() } })
         add (name + " on meterTrack", colour, Color::meterTrack(), 3.0);
     add ("scaleTick on controlInsetDeep", Color::scaleTick(), Color::controlInsetDeep(), 3.0);
+    add ("the playhead's head (white) on timelineRuler", Color::white(), Color::timelineRuler(), 3.0);   // UI pass unit 4
     add ("scaleTick on mixerBack", Color::scaleTick(), Color::mixerBack(), 3.0);
     add ("faderThumb on controlInsetDeep", Color::faderThumb(), Color::controlInsetDeep(), 3.0);
     add ("faderThumbTop on controlInsetDeep", Color::faderThumbTop(), Color::controlInsetDeep(), 3.0);

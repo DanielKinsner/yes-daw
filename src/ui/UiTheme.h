@@ -1204,13 +1204,11 @@ struct UiTheme
         static constexpr int timelineCanvasGridMajorStepSeconds = 16;
         static constexpr int timelineCanvasGridLineWidth = 1;
         static constexpr int timelineCanvasPlayheadLineWidth = 2;
-        static constexpr int timelineCanvasPlayheadBadgeHalfWidth = 15;
-        static constexpr int timelineCanvasPlayheadBadgeTopInset = 4;
-        static constexpr int timelineCanvasPlayheadBadgeWidth = 30;
-        static constexpr int timelineCanvasPlayheadBadgeHeight = 16;
-        static constexpr int timelineCanvasPlayheadTextHalfWidth = 12;
-        static constexpr int timelineCanvasPlayheadTextWidth = 24;
-        static constexpr int timelineCanvasPlayheadTextHeight = 16;
+        // UI correctness pass unit 4: the playhead's head in the marker lane - narrow enough to stop short of a marker
+        // label (it starts timelineCanvasRulerMarkerLabelLeftInset right of the marker's tick).
+        static constexpr int timelineCanvasPlayheadHeadWidth = 2 * timelineCanvasRulerMarkerLabelLeftInset
+                                                             - timelineCanvasPlayheadLineWidth;   // 6
+        static constexpr int timelineCanvasPlayheadHeadHeight = 8;
         static constexpr int timelineCanvasVisibleClipCapacity = 4096;
         static constexpr double timelineCanvasDefaultTotalSeconds = 96.0;
         static constexpr double timelineCanvasDefaultPlayheadSeconds = 32.0;

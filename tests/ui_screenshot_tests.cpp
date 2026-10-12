@@ -1928,10 +1928,10 @@ TEST_CASE ("G0.7 rubric shots: the song fixture at 1280x720, 1920x1080 and 2560x
             INFO ("ruler " << ruler.toString().toStdString());
             REQUIRE (fullDifferentPixelCount (image, barsRow) > 30u);
             REQUIRE (fullDifferentPixelCount (image, timeRow) > 30u);
-            // ADR-0064: a bar's number sits right of its tick — the pixel column above each tick (bar 2 on; bar 1 is
-            // under the playhead) carries no text ink, and the number itself paints.
+            // ADR-0064: a bar's number sits right of its tick — the pixel column above each tick carries no text ink, and
+            // the number itself paints. Bar 1 too: the playhead paints nothing in the bars row (UI correctness pass unit 4).
             int barsChecked = 0;
-            for (int bar = 2; bar < 64; ++bar)
+            for (int bar = 1; bar < 64; ++bar)
             {
                 const juce::var value = layout.getProperty ("ruler.bar." + juce::String (bar), juce::var());
                 if (! value.isArray() || value.size() != 4)

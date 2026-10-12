@@ -173,12 +173,12 @@ changed):** making that task windowless would stop it closing menus - in drives 
 requirement met and every number in the logs; the tooling critic's and the audit's fixes are the tooling changes above.
 The **visual rubric** found real defects that predate this work (no drawing code changed in units 4-6) - parked as the
 next UI correctness pass, ranked: (1) pressing the header tempo cell without dragging changes the tempo (120 -> 213 BPM);
-(2) the playhead badge prints round(seconds)+1 as if it were a bar number (D3: wrong data); (3) ruler min:sec labels
+(2) ~~the playhead badge prints round(seconds)+1 as if it were a bar number~~ (closed by unit 4); (3) ruler min:sec labels
 read 1 s early at about half the bar ticks; (4) after a tempo change, bar labels keep the old spacing while the counter
 follows the tempo map; (5) the master meter's dB labels are evenly spaced over a linear-amplitude fill; (6) the rail's
 instrument icons are chosen by track index, not the track (D3); (7) ruler time-row text is 3.19:1 (rulerTick on
-timelineRuler), under ADR-0063's 4.5:1 text floor, and the token gate misses it; (8) the playhead badge covers the bar
-label under it; (9) the inspector's fade Curve chooser shows 'E...' beside a bare 30 px slider; (10) with the dock hidden
+timelineRuler), under ADR-0063's 4.5:1 text floor, and the token gate misses it; (8) ~~the playhead badge covers the bar
+label under it~~ (closed by unit 4); (9) the inspector's fade Curve chooser shows 'E...' beside a bare 30 px slider; (10) with the dock hidden
 the arrange keeps its docked height (dead band); (11) the export Cancel button renders as '...'; (12) the TAKES card is
 cut by the dock; (13) status-line errors and hover hints ellipsize the useful half; (14) mixer drag readout disagrees
 with the strip's own dB for a moment and overlaps the Out slot; narrow strips overprint their Out label; solo is weak on

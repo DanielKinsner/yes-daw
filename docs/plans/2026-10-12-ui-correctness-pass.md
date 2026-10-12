@@ -161,7 +161,7 @@ The two investigations disagreed: one kept the badge with a corrected number, th
 If a number is ever brought back, it must read `headerBarBeat().bar` (the piecewise law) and carry
 tempo-change and meter-change gate legs. The head-tempo law is wrong after a change.
 
-- [ ] **Fix.**
+- [x] **Fix.**
   - Add `playheadHeadRect (ruler, playheadX)`: a whole-pixel rect, centred on the line, with its
     bottom on the ruler separator, constrained to the ruler.
   - Delete the pill and its `drawText`.
@@ -173,7 +173,7 @@ tempo-change and meter-change gate legs. The head-tempo law is wrong after a cha
   - Delete the unused `kPurple` (TimelineCanvas.h:522).
   - Add a `token_contrast_tests` pair: white on `timelineRuler` >= 3.0.
   - Close the parking-lot entry and STATUS items (2) and (8).
-- [ ] **Gate A.** `tests/ui_input_tests.cpp`, `[ui][timeline][ruler][layout][playhead-head][paint]`.
+- [x] **Gate A.** `tests/ui_input_tests.cpp`, `[ui][timeline][ruler][layout][playhead-head][paint]`.
   - Setup: `paintTimelineCanvas` at 900x300 and 40 px/s, with one marker. Paint one reference with
     no playhead.
   - Positions: every 5 px, plus both ends, plus the marker.
@@ -182,7 +182,7 @@ tempo-change and meter-change gate legs. The head-tempo law is wrong after a cha
     `rulerArea`, and, when resting on the marker, miss the marker's label.
   - **Bites:** restore the pill, or start the line at `ruler.getY()`. Today it fails at every
     position, at both ends and at the marker.
-- [ ] **Gate B.** `tests/ui_screenshot_tests.cpp` G0.7 `[rubric-shots]` (:1931-1934): start the bar
+- [x] **Gate B.** `tests/ui_screenshot_tests.cpp` G0.7 `[rubric-shots]` (:1931-1934): start the bar
   loop at 1 and drop the "bar 1 is under the playhead" exemption. **Bites:** restore the pill, which
   puts purple at about 3.1:1 in bar 1's above-tick column.
 - [ ] **Drive.**
