@@ -1488,8 +1488,10 @@ TEST_CASE ("ADR-0069 the autosave writer reports its real cost and carries", "[p
     REQUIRE (model.autosaveWrites() == 3);
     requireSample (2u, 0u);
 
-    // A write that really takes 200 ms longer (a pause inside the timed write, after its carries): the peak; the next,
-    // ordinary write is cheaper and leaves the peak where it was.
+    // A write that really takes 200 ms longer (a pause inside the timed write, after its carries) measures it. The peak
+    // never falls: ordinary writes until one is cheaper than the peak - the first, unless the disk is contended (a
+    // contended write can take longer than the paused one, so no single write is assumed cheaper) - each sample under
+    // requireSample's running maximum, and the cheaper one leaves the peak where it was.
     yesdaw::persistence::autosave_detail::afterCarryForTest = [] (const std::filesystem::path&) {
         std::this_thread::sleep_for (std::chrono::milliseconds (200));
     };
@@ -1497,14 +1499,17 @@ TEST_CASE ("ADR-0069 the autosave writer reports its real cost and carries", "[p
     REQUIRE (model.writeAutosaveTick().ok());
     yesdaw::persistence::autosave_detail::afterCarryForTest = nullptr;
     requireSample (2u, 0u);
-    const double slow = model.autosaveWriteMs();
-    REQUIRE (slow >= 200.0);
-    REQUIRE (model.autosaveWriteMsPeak() == slow);
-    REQUIRE (model.addAudioTrack().dispatched);   // an edit: the write is due
-    REQUIRE (model.writeAutosaveTick().ok());
-    requireSample (2u, 0u);
-    REQUIRE (model.autosaveWriteMs() < slow);
-    REQUIRE (model.autosaveWriteMsPeak() == slow);
+    REQUIRE (model.autosaveWriteMs() >= 200.0);
+    bool cheaper = false;
+    for (int attempt = 0; attempt < 20 && ! cheaper; ++attempt)
+    {
+        const double peakBefore = model.autosaveWriteMsPeak();
+        REQUIRE (model.addAudioTrack().dispatched);   // an edit: the write is due
+        REQUIRE (model.writeAutosaveTick().ok());
+        requireSample (2u, 0u);
+        cheaper = model.autosaveWriteMs() < peakBefore;
+    }
+    REQUIRE (cheaper);
 
     // A failed attempt: an asset's bundle file is gone, so neither a link nor a copy can carry it. Its own time replaces
     // the last one (one coherent sample), and the peak stays.
@@ -1514,8 +1519,7 @@ TEST_CASE ("ADR-0069 the autosave writer reports its real cost and carries", "[p
     REQUIRE_FALSE (model.writeAutosaveTick().ok());
     REQUIRE (model.autosaveFailures() == 1);
     REQUIRE (model.autosaveWriteMs() != prior);
-    requireSample (0u, 0u);
-    REQUIRE (model.autosaveWriteMsPeak() == slow);
+    requireSample (0u, 0u);   // the peak is still the highest sample (the failed one's included)
 }
 
 // ADR-0069 §4 (close-out unit 3) through the shell: its own UI tick runs the write at the drive's cadence, and the probe's
@@ -1577,17 +1581,28 @@ TEST_CASE ("ADR-0069 the probe carries the autosave writer's cost and carries", 
     REQUIRE (static_cast<juce::int64> (back["copied"]) == 0);
     REQUIRE (static_cast<double> (back["writeMsPeak"]) >= static_cast<double> (copied["writeMsPeak"]));
 
-    // A write that really takes 200 ms longer becomes the peak; the next ordinary write's own time is below it.
+    // A write that really takes 200 ms longer is measured. The peak never falls: ordinary writes until one is cheaper
+    // than the peak (the first, unless the disk is contended), each publishing the running maximum; the cheaper one's own
+    // time is below the peak it leaves standing - so the probe's writeMs and writeMsPeak are told apart.
     yesdaw::persistence::autosave_detail::afterCarryForTest = [] (const std::filesystem::path&) {
         std::this_thread::sleep_for (std::chrono::milliseconds (200));
     };
     const juce::var slow = writeThroughTick();
     yesdaw::persistence::autosave_detail::afterCarryForTest = nullptr;
     REQUIRE (static_cast<double> (slow["writeMs"]) >= 200.0);
-    REQUIRE (static_cast<double> (slow["writeMsPeak"]) == static_cast<double> (slow["writeMs"]));
-    const juce::var after = writeThroughTick();
-    REQUIRE (static_cast<double> (after["writeMs"]) < static_cast<double> (after["writeMsPeak"]));
-    REQUIRE (static_cast<double> (after["writeMsPeak"]) == static_cast<double> (slow["writeMs"]));
+    REQUIRE (static_cast<double> (slow["writeMsPeak"])
+             == std::max (static_cast<double> (back["writeMsPeak"]), static_cast<double> (slow["writeMs"])));
+    double peak = static_cast<double> (slow["writeMsPeak"]);
+    bool cheaper = false;
+    for (int attempt = 0; attempt < 20 && ! cheaper; ++attempt)
+    {
+        const juce::var after = writeThroughTick();
+        const double ms = static_cast<double> (after["writeMs"]);
+        REQUIRE (static_cast<double> (after["writeMsPeak"]) == std::max (peak, ms));
+        cheaper = ms < peak;
+        peak = static_cast<double> (after["writeMsPeak"]);
+    }
+    REQUIRE (cheaper);
 }
 
 // ADR-0068 §1-§2 (close-out unit 4) `[due]`: the model-owned writer writes when there is un-autosaved, unsaved work -

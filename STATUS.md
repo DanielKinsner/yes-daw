@@ -74,6 +74,12 @@ written at once either way; parked for ADR-0068's owner); `[status-sticky]`'s re
 `autosave` blocking the directory, not read-only permissions (Windows does not refuse writes into a read-only
 directory). **Next:** Dan's desktop answer → unit 5's drives → push units 4 and 5 and check CI; unit 6 (cp7: delete the
 engine trigger) after.
+**Found on the way (fixed in its own commit):** unit 3's `[write-cost]` gates were flaky under disk contention - they
+assumed the write after the paused one is cheaper and that the paused one is the highest so far; four concurrent suite
+runs failed 3 of 12 (an ordinary write took 600-850 ms against a 250 ms paused one). Now each sample is checked against
+the running maximum and ordinary writes repeat (at most 20) until one is cheaper than the peak, which must leave it
+standing: 0 of 20 contended runs fail, and both peak mutations (the peak as the last sample; the probe publishing the
+peak as `writeMs`) still bite.
 
 ## 2026-10-11 — Close-out unit 3: the autosave writer's real cost and carries reach the probe
 
