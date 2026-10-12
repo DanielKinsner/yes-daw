@@ -836,6 +836,9 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         refreshActionState();
         repaintAll();
     };
+    // UI correctness pass 2b: one drag, one undo step (feel law 6) - every move's edit coalesces into the first.
+    headerTempoControl.onDragStart = [this] { appModel.beginTempoGesture(); };
+    headerTempoControl.onDragEnd = [this] { appModel.endTempoGesture(); };
     addAndMakeVisible (headerTempoControl);
 
     configureActionComponent (headerMeterChooser, yesdaw::ui::UiActionId::TransportSetMeter, "Set time signature");

@@ -2677,7 +2677,10 @@ namespace detail {
            // N6: a row-boundary height drag coalesces the same way a fader drag does.
            || verb == ProjectEditVerb::SetTrackHeight
            // G3.1: an instrument knob drag coalesces like a fader drag (same track, same param).
-           || verb == ProjectEditVerb::SetTrackInstrumentParam;
+           || verb == ProjectEditVerb::SetTrackInstrumentParam
+           // UI correctness pass 2b: a tempo scrub (the header cell's drag) coalesces like a fader drag.
+           || verb == ProjectEditVerb::SetProjectTempo
+           || verb == ProjectEditVerb::AddTempoChange;
 }
 
 [[nodiscard]] inline bool canCoalesceProjectEditTransactions (const ProjectEditTransaction& older,
@@ -2736,6 +2739,17 @@ namespace detail {
 
     if (older.command.verb == ProjectEditVerb::SetMasterGain)
         return older.masterDiff.after == newer.masterDiff.before;
+
+    // UI correctness pass 2b: a tempo scrub - the head tempo, or one change scrubbed at its own tick with its curve
+    // unchanged (a ramp toggle keeps its own step, as a mute toggle does) - continuing from where the last edit ended.
+    if (older.command.verb == ProjectEditVerb::SetProjectTempo)
+        return older.timeMapDiff.tempoAfter == newer.timeMapDiff.tempoBefore
+               && older.timeMapDiff.meterAfter == newer.timeMapDiff.meterBefore;
+    if (older.command.verb == ProjectEditVerb::AddTempoChange)
+        return older.command.mapTick == newer.command.mapTick
+               && older.command.tempoCurve == newer.command.tempoCurve
+               && older.timeMapDiff.tempoAfter == newer.timeMapDiff.tempoBefore
+               && older.timeMapDiff.meterAfter == newer.timeMapDiff.meterBefore;
 
     return older.command.clipId == newer.command.clipId
            && older.diff.firstClipIndex == newer.diff.firstClipIndex
@@ -3026,6 +3040,11 @@ private:
                     previous.transaction.busDiff.after = transaction.busDiff.after;
                 else if (detail::isMasterEditVerb (transaction.command.verb))
                     previous.transaction.masterDiff.after = transaction.masterDiff.after;
+                else if (detail::isTimeMapEditVerb (transaction.command.verb))
+                {
+                    previous.transaction.timeMapDiff.tempoAfter = transaction.timeMapDiff.tempoAfter;
+                    previous.transaction.timeMapDiff.meterAfter = transaction.timeMapDiff.meterAfter;
+                }
                 else
                     previous.transaction.diff.after = transaction.diff.after;
 
@@ -3050,6 +3069,11 @@ private:
                     previous.transaction.busDiff.after = transaction.busDiff.after;
                 else if (detail::isMasterEditVerb (transaction.command.verb))
                     previous.transaction.masterDiff.after = transaction.masterDiff.after;
+                else if (detail::isTimeMapEditVerb (transaction.command.verb))
+                {
+                    previous.transaction.timeMapDiff.tempoAfter = transaction.timeMapDiff.tempoAfter;
+                    previous.transaction.timeMapDiff.meterAfter = transaction.timeMapDiff.meterAfter;
+                }
                 else
                     previous.transaction.diff.after = transaction.diff.after;
 
@@ -3191,6 +3215,10 @@ private:
                 return transaction.busDiff.before == transaction.busDiff.after;
             case ProjectEditVerb::SetMasterGain:
                 return transaction.masterDiff.before == transaction.masterDiff.after;
+            case ProjectEditVerb::SetProjectTempo:
+            case ProjectEditVerb::AddTempoChange:   // UI correctness pass 2b: a scrub let go where it began
+                return transaction.timeMapDiff.tempoBefore == transaction.timeMapDiff.tempoAfter
+                       && transaction.timeMapDiff.meterBefore == transaction.timeMapDiff.meterAfter;
             default:
                 return false;
         }

@@ -2689,6 +2689,81 @@ TEST_CASE ("A strip gesture that ends where it began leaves no undo step", "[pro
     REQUIRE_FALSE (undo.canRedo());
 }
 
+// UI correctness pass unit 2b: a tempo scrub coalesces like a fader drag (E21) - one gesture, one undo step - and one
+// that comes back to where it began leaves none (ADR-0066). A tempo change at a tick merges only with edits at that tick.
+TEST_CASE ("A tempo scrub is one undo step; one that ends where it began leaves none", "[project][undo][tempo-scrub]")
+{
+    using yesdaw::engine::TempoCurve;
+    Project project = makeTwoClipEditableProject();
+    ProjectUndoStack undo;
+    REQUIRE (undo.apply (project, ProjectEditCommand::setProjectTempo (140.0)).applied());
+    const std::size_t depth = undo.undoDepth();
+
+    undo.beginScalarCoalescing();
+    for (const double bpm : { 141.0, 150.5, 162.0 })
+        REQUIRE (undo.apply (project, ProjectEditCommand::setProjectTempo (bpm)).applied());
+    undo.endScalarCoalescing();
+    REQUIRE (undo.undoDepth() == depth + 1);
+    REQUIRE (project.tempoMap.front().bpm == 162.0);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (project.tempoMap.front().bpm == 140.0);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (project.tempoMap.front().bpm == 162.0);
+
+    // Back where it began: no step, and the step before stays.
+    const std::size_t afterScrub = undo.undoDepth();
+    undo.beginScalarCoalescing();
+    REQUIRE (undo.apply (project, ProjectEditCommand::setProjectTempo (170.0)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::setProjectTempo (162.0)).applied());
+    undo.endScalarCoalescing();
+    REQUIRE (undo.undoDepth() == afterScrub);
+    REQUIRE (project.tempoMap.front().bpm == 162.0);
+
+    // A change at a tick: a scrub of it is one step; a scrub that touches another tick is not merged into it.
+    const Tick at = 7680;
+    const auto bpmAt = [&project] (Tick tick) {
+        for (const auto& change : project.tempoMap)
+            if (change.tick == tick)
+                return change.bpm;
+        return -1.0;
+    };
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (at, 100.0, TempoCurve::Jump)).applied());
+    const std::size_t withChange = undo.undoDepth();
+    undo.beginScalarCoalescing();
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (at, 104.0, TempoCurve::Jump)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (at, 108.0, TempoCurve::Jump)).applied());
+    undo.endScalarCoalescing();
+    REQUIRE (undo.undoDepth() == withChange + 1);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (bpmAt (at) == 100.0);
+    undo.beginScalarCoalescing();
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (at, 104.0, TempoCurve::Jump)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (at * 2, 90.0, TempoCurve::Jump)).applied());
+    undo.endScalarCoalescing();
+    REQUIRE (undo.undoDepth() == withChange + 2);
+
+    // A ramp toggle at the scrubbed tick (same verb, another curve) keeps its own step: two toggles never vanish.
+    const std::size_t beforeRamp = undo.undoDepth();
+    undo.beginScalarCoalescing();
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (at, 110.0, TempoCurve::Jump)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (at, 110.0, TempoCurve::LinearRamp)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (at, 110.0, TempoCurve::Jump)).applied());
+    undo.endScalarCoalescing();
+    REQUIRE (undo.undoDepth() == beforeRamp + 3);
+
+    // A change scrubbed away and back leaves no step, and the redo history it set aside comes back.
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (undo.canRedo());
+    const std::size_t atUndo = undo.undoDepth();
+    const double bpmBefore = bpmAt (at);
+    undo.beginScalarCoalescing();
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (at, bpmBefore + 7.0, TempoCurve::LinearRamp)).applied());
+    REQUIRE (undo.apply (project, ProjectEditCommand::addTempoChange (at, bpmBefore, TempoCurve::LinearRamp)).applied());
+    undo.endScalarCoalescing();
+    REQUIRE (undo.undoDepth() == atUndo);
+    REQUIRE (undo.canRedo());
+}
+
 TEST_CASE ("SetTrackMixScalars edits, undoes, and redoes the scalar strip state",
            "[project][arrangement][undo][mix-scalars]")
 {

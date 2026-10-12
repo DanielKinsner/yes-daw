@@ -7904,6 +7904,79 @@ TEST_CASE ("header tempo cell: a Shift drag moves a tenth of a plain drag, from 
     REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 191.5);
 }
 
+// UI correctness pass unit 2b: a drag on the tempo cell is one undo step (feel law 6), whatever number of moves it sends.
+TEST_CASE ("header tempo cell: a drag is one undo step", "[ui][input][shell][timemap][tempo-press][one-step]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("tempo-one-step");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    auto* tempo = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "transport.set_tempo"));
+    REQUIRE (tempo != nullptr);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tempoMap.empty());
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 120.0);
+    REQUIRE (tempo->getMouseDragSensitivity() == 250);
+
+    tempo->setValue (140.0, juce::sendNotificationSync);   // an earlier, separate edit
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 140.0);
+
+    // Three moves: 140 + 30 x 380 / 250 = 185.6 -> 185.5 on the 0.5 grid.
+    const int w = tempo->getWidth();
+    const int h = tempo->getHeight();
+    const juce::Point<int> press { w / 2, h / 2 };
+    mouseDownAt (*tempo, press);
+    for (const int dx : { 10, 20, 30 })
+        tempo->mouseDrag (makeMouseEvent (*tempo, { w / 2 + dx, h / 2 }, press, true));
+    tempo->mouseUp (makeMouseEvent (*tempo, { w / 2 + 30, h / 2 }, press, true));
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 185.5);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 140.0);   // the whole drag, at once
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 120.0);   // then the edit before it
+}
+
+// UI correctness pass unit 2b (critic): a tempo drag keeps editing the tempo it started on - the playhead crossing a
+// tempo change mid-drag (as it does while playing) neither switches rows nor splits the drag into two undo steps.
+TEST_CASE ("header tempo cell: a drag keeps editing the tempo it started on while the playhead moves",
+           "[ui][input][shell][timemap][tempo-press][one-step][target]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("tempo-gesture-target");
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (bundlePath).ok());
+    const double rate = model.project().sampleRate.hz;
+    REQUIRE (rate > 0.0);
+
+    REQUIRE (model.locatePlaybackFrame (static_cast<std::int64_t> (4.0 * rate)));
+    REQUIRE (model.dispatch (UiActionId::TimelineTempoChangeAdd).dispatched);   // a change at 4 s, at the tempo in force
+    REQUIRE (model.project().tempoMap.size() == 2u);
+    const auto changeTick = model.project().tempoMap[1].tick;
+    const double changeBpm = model.project().tempoMap[1].bpm;
+    const double headBpm = model.project().tempoMap.front().bpm;
+
+    REQUIRE (model.locatePlaybackFrame (static_cast<std::int64_t> (1.0 * rate)));   // the head is in force
+    model.beginTempoGesture();
+    REQUIRE (model.setProjectTempoBpm (130.0).dispatched);
+    REQUIRE (model.locatePlaybackFrame (static_cast<std::int64_t> (6.0 * rate)));   // the playhead crosses the change
+    REQUIRE (model.setProjectTempoBpm (135.0).dispatched);
+    model.endTempoGesture();
+
+    REQUIRE (model.project().tempoMap.size() == 2u);
+    REQUIRE (model.project().tempoMap.front().bpm == 135.0);
+    REQUIRE (model.project().tempoMap[1].tick == changeTick);
+    REQUIRE (model.project().tempoMap[1].bpm == changeBpm);   // the crossed change is untouched
+    REQUIRE (model.dispatch (UiActionId::EditUndo).dispatched);   // one step for the whole drag
+    REQUIRE (model.project().tempoMap.front().bpm == headBpm);
+    REQUIRE (model.project().tempoMap.size() == 2u);
+    REQUIRE (model.project().tempoMap[1].bpm == changeBpm);
+}
+
 TEST_CASE ("shift-drag on the ruler defines a user loop region", "[ui][input][shell][loop]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("loop-region");

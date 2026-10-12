@@ -95,10 +95,10 @@ landed (44185e2). Broken verification is repaired at once. This is its own commi
 cell's `onValueChange` calls it on each drag move, so a 50 px drag leaves about thirty undo steps
 (feel law 6: "Undo everything, one step per gesture").
 
-- [ ] **Design first.** Read `engine::ProjectUndoStack` for a merge or group facility. If one exists,
+- [x] **Design first.** Read `engine::ProjectUndoStack` for a merge or group facility. If one exists,
   bracket the cell's drag (`juce::Slider::onDragStart` / `onDragEnd`) as one gesture. If none exists and
   grouping needs a new undo-stack contract, write an implementation ADR before code.
-- [ ] **Gate.** `tests/ui_input_tests.cpp` `[tempo-press][one-step]`: a drag sent as several moves
+- [x] **Gate.** `tests/ui_input_tests.cpp` `[tempo-press][one-step]`: a drag sent as several moves
   persists its final tempo and leaves exactly one undo step - one Ctrl+Z restores the tempo in force
   before the drag, a second Ctrl+Z restores the step before that. **Bites:** without the bracket, one
   Ctrl+Z only steps back one move.
@@ -611,9 +611,7 @@ close-out rubric pass.
   Windows notch, each notch its own undo step. Decide between no wheel on the cell and a fine, one-step
   wheel when unit 2b's gesture grouping exists.
 
-- Tempo drags make one undo step per pixel: `SetProjectTempo` and `AddTempoChange` are not in
-  `canCoalesceProjectEditVerb` (feel law 6). This changes data, so it is the first candidate for the
-  next pass.
+- ~~Tempo drags make one undo step per pixel~~ - done as unit 2b (2026-10-12).
 - The painted pan knob has the same Touch-ride paint and value bug as unit 3.
 - The header counter's `%06.3f` min:sec can roll over to "0:60.000".
 - Lane grid lines use fixed 4 s / 16 s steps rather than bars, and the snap grid uses only the head

@@ -8,6 +8,27 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 2b: a tempo drag is one undo step
+
+**What changes:** every move of a tempo-cell drag wrote its own undo step (a 50 px drag left about thirty; feel law 6:
+one step per gesture). The engine's E21 gesture coalescing - the mechanism fader, trim and note drags already use -
+now admits the two tempo verbs: the head tempo, and one tempo change scrubbed at its own tick (never merged across
+ticks), each continuing from where the last edit ended; the time-map rows are carried forward in both coalescing paths;
+and ADR-0066's rule extends to them (a scrub let go where it began leaves no step). The cell brackets its drag as one
+gesture. No new contract: the existing E21 / ADR-0066 facility, extended verb by verb as before. **Gates**, both red
+before the fix: `[tempo-scrub]` (engine, `tests/project_tests.cpp`: three edits in a gesture left four steps, not two)
+and `[tempo-press][one-step]` (UI: one Ctrl+Z after a three-move drag stepped back only to 170.5, not the pre-drag
+140). Now a three-move drag persists 185.5 (140 + 30 x 380 / 250) and one Ctrl+Z returns 140, a second 120. A drag
+also keeps editing the tempo it started on when the playhead crosses another change mid-drag (as in playback) - it
+switched rows and split into two steps; gate `[tempo-press][target]`, red before (the crossed change took the edit).
+A ramp toggle at the scrubbed tick keeps its own step (the curve is part of the match), and a change scrubbed away
+and back leaves none with the redo history restored. **Eight mutations bite** (no drag bracket, verbs not coalescable,
+time-map rows not carried, the no-op rule gone for either verb, a merge across ticks, no curve check, no target lock).
+**Local:** full build, ctest 443/443, Clang clean. **Critic (Opus 5.5):** no blocker; in - the target lock, the
+curve rule, meter continuity, the two missing gate cases; parked - a keyboard interaction then a mouse press on the
+cell ends coalescing (the master fader has the same pre-existing gap). **Next:** unit 3 (a fader ride shows and writes
+the value being ridden).
+
 ## 2026-10-12 — UI correctness pass unit 2: Shift fine-drag reaches the tempo cell (B30's record corrected)
 
 **What changes:** B30 (Shift = exactly 10x finer drag) was certified as covering the header tempo, but

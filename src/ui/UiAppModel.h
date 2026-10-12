@@ -5655,6 +5655,19 @@ public:
     // (the stack auto-ends the gesture on any non-coalescable verb).
     void beginStripGesture() noexcept { undo_.beginScalarCoalescing(); }
     void endStripGesture() noexcept { undo_.endScalarCoalescing(); }
+    // UI correctness pass 2b: the header tempo cell's drag is one undo step, the same E21 gesture as a fader's, and it
+    // keeps editing the tempo it started on - the playhead may cross another change while playing.
+    void beginTempoGesture() noexcept
+    {
+        undo_.beginScalarCoalescing();
+        const engine::TempoChange* const inForce = tempoChangeInForceAtPlayhead();
+        tempoGestureTick_ = inForce != nullptr ? std::optional<engine::Tick> { inForce->tick } : std::nullopt;
+    }
+    void endTempoGesture() noexcept
+    {
+        undo_.endScalarCoalescing();
+        tempoGestureTick_.reset();
+    }
 
     [[nodiscard]] UiActionDispatchResult setSelectedMixerFader (float linearGain)
     {
@@ -7159,6 +7172,16 @@ public:
         return tick;
     }
 
+    // The change a tempo edit targets: an open drag's own (UI correctness pass 2b), else the one in force at the playhead.
+    [[nodiscard]] const engine::TempoChange* tempoChangeForTempoEdit() const
+    {
+        if (tempoGestureTick_)
+            for (const engine::TempoChange& change : project_.tempoMap)
+                if (change.tick == *tempoGestureTick_)
+                    return &change;
+        return tempoChangeInForceAtPlayhead();
+    }
+
     [[nodiscard]] const engine::TempoChange* tempoChangeInForceAtPlayhead() const
     {
         const std::optional<engine::Tick> tick = playheadTick();
@@ -7268,8 +7291,9 @@ public:
 
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
-        // G2.15: the field edits the change in force at the playhead (the head before any later change).
-        const engine::TempoChange* const inForce = tempoChangeInForceAtPlayhead();
+        // G2.15: the field edits the change in force at the playhead (the head before any later change); during a drag,
+        // the change the drag started on (UI correctness pass 2b).
+        const engine::TempoChange* const inForce = tempoChangeForTempoEdit();
         const engine::ProjectEditCommand command = inForce != nullptr && inForce->tick > 0
             ? engine::ProjectEditCommand::addTempoChange (inForce->tick, bpm, inForce->curveToNext)
             : engine::ProjectEditCommand::setProjectTempo (bpm);
@@ -13006,6 +13030,7 @@ private:
         lastSavedEditSerial_ = 0;   // a freshly attached bundle starts clean (B37)
         lastAutosavedEditSerial_ = 0;   // ADR-0068 §1 (autosaveNotDurable_ stays until a write succeeds)
         ++attachGeneration_;
+        tempoGestureTick_.reset();   // a drag's target belongs to the project it started in
         autosaveHeldUnreadable_ = false;   // the hold is the opened bundle's (an open's detect raises it again)
         waveformService_.start (bundlePath_);
         selectedTimelineClipIds_.clear();
@@ -13854,6 +13879,7 @@ private:
     int autosaveSkips_ = 0;                       // ticks gated by a pending recovery question
     bool autosaveNotDurable_ = false;             // sticky: a write failed and none has succeeded since
     bool autosaveHeldUnreadable_ = false;         // §5: an asking snapshot this open could not read - held, not replaced
+    std::optional<engine::Tick> tempoGestureTick_;   // UI correctness pass 2b: the tempo change an open drag edits
     std::uint64_t attachGeneration_ = 0;          // bumped by every attach
     std::optional<std::uint64_t> dontSaveAttach_; // the attach a Don't Save retired under (its replace still pending)
     std::function<persistence::AutosaveResult()> autosaveWriteOverride_;   // ADR-0068 §2's test seam
