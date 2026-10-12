@@ -444,18 +444,6 @@ public:
     {
         return publishedPlaybackRate_.load (std::memory_order_acquire);
     }
-    [[nodiscard]] bool          needsAutosave() const noexcept { return editRevision_ != autosavedRevision_; }
-
-    // CONTROL THREAD ONLY (like reclaim()): needsAutosave / markProjectEdited / markAutosaved are plain
-    // non-atomic edit-revision counters — drive them from the control loop, never the audio thread. The
-    // autosave write they gate does disk I/O; see persistence/PlaybackAutosave.h.
-    void markProjectEdited() noexcept
-    {
-        if (editRevision_ < std::numeric_limits<std::uint64_t>::max())
-            ++editRevision_;
-    }
-
-    void markAutosaved() noexcept { autosavedRevision_ = editRevision_; }
 
 private:
     static constexpr int kMaxDeviceOutputChannels = 64;
@@ -823,8 +811,6 @@ private:
     std::int64_t       playheadFrame_ = 0;
     std::int64_t       loopStartFrame_ = 0;
     std::int64_t       loopEndFrame_ = 0;
-    std::uint64_t      editRevision_ = 0;
-    std::uint64_t      autosavedRevision_ = 0;
     bool               playing_ = true;
     bool               loopEnabled_ = false;
     int                playbackRate_ = 1;

@@ -14,6 +14,24 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-11 — Close-out unit 6: one autosave writer - the engine's old trigger is deleted (committed locally)
+
+**What changes:** ADR-0068 cp7. The engine's `needsAutosave` / `markProjectEdited` / `markAutosaved`, their two edit
+counters, and the bridge header `persistence/PlaybackAutosave.h` (`writeAutosaveFromControlTick`) are deleted, with the
+engine test that was their last caller (its law - a clean project writes nothing, an edit writes one snapshot that
+recovers - is the model's `[due]` gate since unit 4). Nothing else changes behaviour.
+**Gate `[autosave][one-writer]`** (static, final form): reads `src/`, `tests/` and `tools/` at run time - none of the
+retired names and no bridge header remain, and outside the tests the snapshot writer is named only by its definition and
+two callers, each pinned to its function: `UiAppModel::writeAutosaveTick` and the self-check's `makeDemo`
+(`src/app/SelfCheck.h`: the scratch fixture alpha-verify inspects, never a user's project - recorded in the close-out
+plan as the reading of the ADR's "its own tests"). Any spelling counts (no space, a line break, a pointer to it); a
+comment line does not. Ten negative controls behave: eight breakages go red (a retired name back; a second writer in
+Save, spaced, unspaced, across a line break or by pointer; a caller in the defining header; a caller under `tools/`; the
+header restored), a comment and a longer name stay green. `docs/alpha-gate.md` now names the model's writer.
+**Critic (separate, Opus 5.5):** no blocker; in - the three gate holes above (one spelling, the defining header skipped,
+`tools/` unscanned), the SelfCheck allowance recorded durably and pinned to `makeDemo`, a leftover include dropped.
+**Local:** full build, ctest **442/442**, Clang clean (12 translation units). **Not pushed:** it sits on unit 4's local commits (same readiness rule). **Next:** as unit 4.
+
 ## 2026-10-11 — Close-out unit 4: the model owns the autosave writer (writes on; committed locally, not pushed)
 
 **What changes:** the app now really autosaves. Every 30 s the model writes a snapshot when there is an edit since the

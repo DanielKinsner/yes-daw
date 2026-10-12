@@ -153,11 +153,14 @@ not close unit 1; another clean failure requires a supported new hypothesis rath
 
 ### 6. Remove the obsolete engine trigger separately (ADR-0068 cp7)
 
-- [ ] After the model writer is established, delete `needsAutosave`, `markProjectEdited`,
+- [x] After the model writer is established, delete `needsAutosave`, `markProjectEdited`,
   `markAutosaved` and `writeAutosaveFromControlTick`, their obsolete state and test remnants in a
   separate green cleanup commit. Require `[autosave][one-writer]` in its final form: no old symbols
   under `src/` or `tests/`; the production snapshot caller is `UiAppModel::writeAutosaveTick`.
   This cleanup does not block cp6 and must not be folded into enabling writes or changing recovery.
+  Recorded reading (2026-10-11): the packaged self-check's `makeDemo` (`src/app/SelfCheck.h`) also writes a snapshot,
+  into the scratch fixture alpha-verify inspects - never a user's project. The gate counts it as the ADR's "its own
+  tests" and pins it to that function; any other caller turns the gate red.
   Complete it before the final milestone sign-off below.
 
 ### 7. Close the named milestone only on complete proof

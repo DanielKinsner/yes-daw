@@ -21,7 +21,6 @@
 #include "interchange/Smf.h"   // G3.7
 #include "io/WavFile.h"
 #include "persistence/AutosaveRecovery.h"
-#include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/AutomationRide.h"   // G4.6 / ADR-0052
 #include "ui/MissingAudio.h"   // ADR-0069 §3: a refused Restore names its asset as ADR-0062 does

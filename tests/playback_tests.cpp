@@ -9,8 +9,6 @@
 #include "engine/nodes/FxDelayNode.h"
 #include "engine/nodes/LimiterNode.h"
 #include "engine/nodes/ReverbNode.h"
-#include "persistence/PlaybackAutosave.h"
-#include "persistence/ProjectBundle.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -65,9 +63,6 @@ using yesdaw::engine::TimeBase;
 using yesdaw::engine::Track;
 using yesdaw::engine::MixerSendTap;
 using yesdaw::engine::unmapToNormalized;
-using yesdaw::persistence::ProjectBundleDb;
-using yesdaw::persistence::readAutosaveSnapshot;
-using yesdaw::persistence::writeAutosaveFromControlTick;
 
 namespace {
 
@@ -866,14 +861,6 @@ std::filesystem::path tempPath (std::string_view label, std::string_view extensi
     return path;
 }
 
-Project makeAutosaveProject()
-{
-    Project project;
-    project.id = idFromLowByte (90);
-    project.sampleRate = SampleRate { 48000.0 };
-    return project;
-}
-
 } // namespace
 
 TEST_CASE ("PlaybackEngine plays a Project through the realtime Runtime, matching an independent reference",
@@ -1289,49 +1276,6 @@ TEST_CASE ("PlaybackEngine drives H5 recording capture from the transport playhe
     REQUIRE (findRecordedSample (read.file, 0, kClickFrame, 0, sample));
     REQUIRE (sample == 1.0f);
     std::filesystem::remove (path);
-}
-
-TEST_CASE ("Playback autosave tick writes and recovers the last dirty Project",
-           "[h8][playback][autosave]")
-{
-    const PlaybackFixture fixture = makePlaybackFixture();
-    PlaybackEngine::Result created = PlaybackEngine::create (
-        fixture.project,
-        std::span<const DecodedAssetAudio> (fixture.decodedAssets.data(), fixture.decodedAssets.size()),
-        OfflineRenderOptions {});
-    REQUIRE (created.ok());
-    PlaybackEngine& engine = *created.engine;
-
-    const std::filesystem::path path = tempPath ("autosave", ".yesdaw");
-    ProjectBundleDb db;
-    Project saved = makeAutosaveProject();
-    Project dirty = saved;
-    dirty.sampleRate = SampleRate { 96000.0 };
-
-    REQUIRE (ProjectBundleDb::openOrCreateBundle (path, db).ok());
-    REQUIRE (db.writeProjectSnapshot (saved).ok());
-
-    // Negative control: a CLEAN engine must SKIP the write — the needsAutosave() guard is the whole point
-    // of the tick. Without this, deleting that guard would still pass the suite. Prove a no-op tick leaves
-    // no autosave snapshot behind.
-    REQUIRE_FALSE (engine.needsAutosave());
-    REQUIRE (writeAutosaveFromControlTick (engine, db, dirty).ok());
-    {
-        Project none;
-        REQUIRE_FALSE (readAutosaveSnapshot (path, none).ok());
-    }
-
-    engine.markProjectEdited();
-    REQUIRE (engine.needsAutosave());
-    REQUIRE (writeAutosaveFromControlTick (engine, db, dirty).ok());
-    REQUIRE_FALSE (engine.needsAutosave());
-
-    Project recovered;
-    REQUIRE (readAutosaveSnapshot (path, recovered).ok());
-    REQUIRE (recovered.id == dirty.id);
-    REQUIRE (recovered.sampleRate == dirty.sampleRate);
-    REQUIRE (recovered.assets.empty());
-    REQUIRE (recovered.clips.empty());
 }
 
 // G0.5 — the live placement lane at the engine boundary (ADR-0046 §6; plan §5.3 lane 2). A

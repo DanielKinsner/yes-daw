@@ -61,7 +61,7 @@ Run against the produced project bundle + exported WAV. Each is exit-0/1; any re
 | Export re-imports **bit-exact** | the WAV is well-formed and reversible (H7 gate pattern) | `writeFloat32WavFile` / WAV reader |
 | Integrated loudness in **−30..−6 LUFS** | the mix isn't silent or clipped-to-hell | libebur128 (already a dep) |
 | Project **reopens with zero validator errors** | the saved bundle is sound | `YesDawSelfCheck --selfcheck` (CP1 slice 1 ✅) |
-| Autosave present | crash-recovery default is on (CP4) | `PlaybackAutosave` / recovery |
+| Autosave present | crash-recovery default is on (CP4) | `UiAppModel::writeAutosaveTick` (ADR-0068) / recovery |
 
 Each assert ships with a **named negative control** in the same change (implementer-brief #8): a
 synthetic failing input (empty export, corrupted WAV, silent mix, truncated bundle, autosave absent)

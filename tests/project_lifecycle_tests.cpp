@@ -11,6 +11,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <juce_gui_extra/juce_gui_extra.h>
 
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -1823,6 +1825,78 @@ TEST_CASE ("ADR-0068 an unanswered autosave that cannot be read is held, never w
     REQUIRE (autosaveOnDisk (other));
     REQUIRE_FALSE (model.autosaveNotDurable());
     REQUIRE (bytesOf (snapshotDb) == held);   // the first bundle's autosave is still exactly as it was
+}
+
+// ADR-0068 cp7 (close-out unit 6) `[autosave][one-writer]`, static and in its final form: the engine's old trigger is
+// gone from src/, tests/ and tools/ (its bridge header too), and outside the tests (which call the writer freely - "its
+// own tests") the snapshot writer is named by exactly its definition and two callers, each attributed to the function it
+// sits in: the model's scheduled write (UiAppModel::writeAutosaveTick) and the self-check's verification fixture
+// (SelfCheck.h's makeDemo: a scratch bundle alpha-verify inspects, never a user's project). Any spelling of the name
+// counts (no space before the call, a line break, a pointer to it); a comment line naming it does not. A caller is
+// attributed to the nearest [[nodiscard]] declaration above it - every function here is declared that way; an unmarked
+// one would borrow its neighbour's name, which this gate accepts as its one blind spot.
+TEST_CASE ("ADR-0068 one autosave writer: the engine trigger is gone and only the model writes a user's snapshot",
+           "[project-lifecycle][autosave][one-writer]")
+{
+    const std::filesystem::path root { YESDAW_SOURCE_DIR };
+    // The retired names, assembled so this gate's own text does not hold them.
+    const std::vector<std::string> retired { std::string ("needs") + "Autosave", std::string ("mark") + "ProjectEdited",
+                                             std::string ("mark") + "Autosaved", std::string ("writeAutosave") + "FromControlTick",
+                                             std::string ("Playback") + "Autosave.h" };
+    const std::string writer = std::string ("writeAutosave") + "Snapshot";
+    const auto identifierChar = [] (char c) { return std::isalnum (static_cast<unsigned char> (c)) != 0 || c == '_'; };
+    REQUIRE_FALSE (std::filesystem::exists (root / "src" / "persistence" / (std::string ("Playback") + "Autosave.h")));
+    std::size_t scanned = 0;
+    std::vector<std::string> named;
+    for (const char* top : { "src", "tests", "tools" })
+    {
+        for (const auto& entry : std::filesystem::recursive_directory_iterator (root / top))
+        {
+            const std::string extension = entry.path().extension().string();
+            if (! entry.is_regular_file()
+                || (extension != ".h" && extension != ".hpp" && extension != ".inl" && extension != ".cpp"
+                    && extension != ".cc" && extension != ".mm"))
+                continue;
+            const std::string text = bytesOf (entry.path());
+            const std::string where = entry.path().lexically_relative (root).generic_string();
+            ++scanned;
+            for (const std::string& name : retired)
+            {
+                INFO (where << " still holds " << name);
+                CHECK (text.find (name) == std::string::npos);
+            }
+            if (std::string (top) == "tests")
+                continue;
+            for (auto at = text.find (writer); at != std::string::npos; at = text.find (writer, at + 1))
+            {
+                const auto after = at + writer.size();
+                if ((at > 0 && identifierChar (text[at - 1])) || (after < text.size() && identifierChar (text[after])))
+                    continue;   // a longer name that contains it
+                const auto lineStart = text.rfind ('\n', at);
+                const auto from = lineStart == std::string::npos ? 0 : lineStart + 1;
+                if (text.substr (from, at - from).find ("//") != std::string::npos)
+                    continue;   // a comment naming it
+                std::string function = "?";
+                if (const auto declared = text.rfind ("[[nodiscard]]", at); declared != std::string::npos)
+                {
+                    auto close = std::min (text.find ('(', declared), after);
+                    while (close > declared && ! identifierChar (text[close - 1]))
+                        --close;
+                    auto open = close;
+                    while (open > declared && identifierChar (text[open - 1]))
+                        --open;
+                    function = text.substr (open, close - open);
+                }
+                named.push_back (where + " :: " + function);
+            }
+        }
+    }
+    REQUIRE (scanned > 100);
+    std::sort (named.begin(), named.end());
+    CAPTURE (named);
+    REQUIRE (named == std::vector<std::string> { "src/app/SelfCheck.h :: makeDemo",
+                                                 "src/persistence/AutosaveRecovery.h :: writeAutosaveSnapshot",
+                                                 "src/ui/UiAppModel.h :: writeAutosaveTick" });
 }
 
 // ADR-0068 §4 (close-out unit 4) through the shipped overlay: New, Don't Save, then Esc closes the New Project dialog -
