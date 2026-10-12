@@ -7806,6 +7806,63 @@ TEST_CASE ("header tempo and time-signature controls edit the project time map u
     REQUIRE ((project.tempoMap.empty() || project.tempoMap.front().bpm != 140.0));
 }
 
+// UI correctness pass unit 1 (rubric FIX 1, 2026-10-11): the header tempo cell is a scrub cell, not a fader. A press
+// without pointer travel never changes the tempo or makes an undo step (Logic and Pro Tools change tempo by a drag or by
+// typing, never by a single click - ADR-0046 law 1); a drag scrubs from the tempo in force.
+TEST_CASE ("header tempo cell: a still press never changes the tempo; a drag scrubs from the tempo in force",
+           "[ui][input][shell][timemap][tempo-press]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("tempo-press");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    auto* tempo = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "transport.set_tempo"));
+    REQUIRE (tempo != nullptr);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE (tempo->isEnabled());
+
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tempoMap.empty());
+    const double before = readProjectSnapshot (bundlePath).tempoMap.front().bpm;
+    REQUIRE (before == 120.0);
+    const int dispatches = snapshotMainComponent (*shell).context.commandDispatchCount;
+    const int w = tempo->getWidth();
+    const int h = tempo->getHeight();
+    REQUIRE (w > 10);
+
+    for (const int x : { 2, w / 2, w - 3 })
+    {
+        for (const auto mods : { juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier),
+                                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier) })
+        {
+            INFO ("still press at x=" << x << (mods.isShiftDown() ? " with Shift" : ""));
+            const juce::Point<int> p { x, h / 2 };
+            mouseDownAt (*tempo, p, mods);
+            tempo->mouseUp (makeMouseEvent (*tempo, p, p, false, 1, mods));
+            REQUIRE (tempo->getValue() == before);
+            REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == before);
+            REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatches);
+        }
+    }
+
+    // A 20 px drag scrubs relative to the tempo in force: 20 px of the 250 px drag extent over the 20..400 range is
+    // 30.4 BPM, snapped to the 0.5 grid - 150.5 (first-principles arithmetic, not the slider's own mapping).
+    dragFromTo (*tempo, { w / 2, h / 2 }, { w / 2 + 20, h / 2 });
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 150.5);
+    REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatches + 1);   // this helper drags in one move
+
+    // Ctrl / Alt never swap the cell into JUCE's velocity drag: releasing the key mid-drag would measure the next move
+    // from the original press and jump the tempo. A Ctrl drag scrubs exactly like a plain one: 150.5 + 30.4 -> 181.0.
+    REQUIRE_FALSE (tempo->getVelocityModeIsSwappable());
+    dragFromTo (*tempo, { w / 2, h / 2 }, { w / 2 + 20, h / 2 },
+                juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier));
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 181.0);
+}
+
 TEST_CASE ("shift-drag on the ruler defines a user loop region", "[ui][input][shell][loop]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("loop-region");

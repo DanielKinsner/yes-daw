@@ -8,6 +8,22 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 1: a press on the tempo cell never changes the tempo
+
+**What changes:** the header tempo cell is a scrub cell, not a fader. A still press, plain or with Shift, no longer
+jumps the tempo to the pointer (it wrote 120 -> 213 BPM and an undo step); a drag scrubs relative to the tempo in force
+(about 1.5 BPM a pixel). Ctrl / Alt no longer swap it into JUCE's velocity drag, whose key release mid-drag would now
+jump it (found by the critic). ADR-0046 law 1: Logic and Pro Tools change tempo by dragging or typing, never by a click.
+**Gate `[tempo-press]`** (`tests/ui_input_tests.cpp`), run before the fix and red: a still press at x=2 set **26.0**
+BPM, and the velocity swap was on. Now: still presses at three points, plain and Shift, leave the value, the persisted
+tempo and the dispatch count unchanged; a 20 px drag persists exactly 150.5 (120 + 20 x 380 / 250, snapped to the 0.5
+grid) and a Ctrl drag 181.0. **Drives (proof batched later on one packaged build):** SS7 Step 16 asserts a still press
+leaves tempo and dispatch count alone (its Ctrl+Z repair is gone); SS3 Step 17 asserts its tempo drag edits.
+**Local:** full build, ctest 442/442, Clang clean. **Critic (Opus 5.5):** no blocker; in - the velocity swap, an
+empty-map guard; added to the plan - unit 2's fine-drag must divide by the drag extent, and a parked item for the
+cell's mouse wheel (about 27 BPM a notch). **Found on the way:** each value change during a tempo drag is its own undo
+step and bundle write (feel law 6) - now plan unit 2b. **Next:** unit 2 (B30's fine-drag certification on this cell).
+
 ## 2026-10-12 — UI correctness pass planned: the rubric's fifteen FIXes, worst first
 
 **Plan:** [`docs/plans/2026-10-12-ui-correctness-pass.md`](docs/plans/2026-10-12-ui-correctness-pass.md). A workflow

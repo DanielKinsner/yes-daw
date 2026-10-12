@@ -255,8 +255,10 @@ Click 'ruler' -Right -OffsetY (RulerTimeRowY)
 $tempo = LayoutRect 'widget.transport.set_tempo'
 [void](Assert ($null -ne $tempo) 'the header tempo control is published')
 if ($null -ne $tempo) {
+  $dTempo = [int](Probe).commandDispatchCount
   DragWithin 'widget.transport.set_tempo' 0 0 20 0 -Steps 8
   Start-Sleep -Milliseconds 300
+  [void](Assert (WaitProbe { param($q) [int]$q.commandDispatchCount -gt $dTempo } -TimeoutMs 2000) ('the 20 px drag on the tempo cell edits the tempo (dispatches ' + $dTempo + ' -> ' + (Probe).commandDispatchCount + ')'))
 }
 Click 'ruler' -OffsetX (RulerOffsetForX ([int]($rect[0] + $rect[2] * 0.9))) -OffsetY (RulerTimeRowY)
 $readoutAfter = (Probe).view.counterPrimary

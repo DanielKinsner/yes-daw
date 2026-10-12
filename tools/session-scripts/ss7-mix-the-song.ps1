@@ -683,10 +683,11 @@ foreach ($target in @('header.meter', 'header.tempo')) {
   $why = HoverStrokeShown $restShot (Shot ('ss7-pointer-hover-' + $target.Replace('.', '-'))) (VisibleBox $target)
   [void](Assert ($why -eq '') ('the pointer over ' + $target + ' shows the 1 px line inside its edge' + $(if ($why) { ' (' + $why + ')' })))
 }
-# Held: the tempo cell (a press sets the tempo where it lands; one Ctrl+Z puts it back) and the meter chooser (its
-# list opens; Esc closes it unchanged).
+# Held: the tempo cell (a still press leaves the tempo and the undo history alone - UI correctness pass unit 1; it once
+# wrote 120 -> 213 BPM) and the meter chooser (its list opens; Esc closes it unchanged).
 $bpm = [double](Probe).project.tempoBpm
 $meterBefore = "$((Probe).project.meter)"
+$dispatchesBefore = [int](Probe).commandDispatchCount
 foreach ($target in @('header.tempo', 'header.meter')) {
   $rect = VisibleBox $target
   $width = if ([int](LayoutRect $target)[3] -lt 17) { 1 } else { 2 }   # ADR-0072: a widget too short for its text to clear 2 px presses at 1
@@ -697,10 +698,12 @@ foreach ($target in @('header.tempo', 'header.meter')) {
   $why = PressedStrokeShown (Shot ('ss7-pointer-pressed-' + $target.Replace('.', '-'))) $rect $width $edges
   [YesDawDrive]::MouseButton($false, $false); Start-Sleep -Milliseconds 200
   [void](Assert ($why -eq '') ('held down, ' + $target + ' shows the ' + $width + ' px pressed line' + $(if ($why) { ' (' + $why + ')' })))
+  if ($target -eq 'header.tempo') {
+    $q = Probe
+    [void](Assert ([Math]::Abs([double]$q.project.tempoBpm - $bpm) -le 0.001 -and [int]$q.commandDispatchCount -eq $dispatchesBefore) ('a still press leaves the tempo at ' + $bpm + ' and makes no edit (tempo=' + $q.project.tempoBpm + ', dispatches ' + $dispatchesBefore + ' -> ' + $q.commandDispatchCount + ')'))
+  }
   if ($target -eq 'header.meter') { Key 'Esc'; Start-Sleep -Milliseconds 200 }
 }
-if ([Math]::Abs([double](Probe).project.tempoBpm - $bpm) -gt 0.001) { Key 'Ctrl+Z'; Start-Sleep -Milliseconds 300 }
-[void](Assert (WaitProbe { param($q) [Math]::Abs([double]$q.project.tempoBpm - $bpm) -le 0.001 } -TimeoutMs 2000) ('the tempo is back at ' + $bpm + ' (' + (Probe).project.tempoBpm + ')'))
 [void](Assert ($meterBefore -ne '' -and "$((Probe).project.meter)" -eq $meterBefore) ('the meter is unchanged (' + (Probe).project.meter + ')'))
 
 Step 17 'G6.4: the real pointer sweeps every rail, strip and master control while the song plays (ADR-0067 cp3)'

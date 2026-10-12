@@ -45,7 +45,7 @@ items are pending, not certified.
 The header tempo cell is a JUCE `LinearBar` slider. It still uses JUCE's default of jumping to the
 pointer, so a still press writes an undoable tempo edit (120 -> 213 BPM).
 
-- [ ] **Fix.** In `src/ui/MainComponent.cpp`, right after
+- [x] **Fix.** In `src/ui/MainComponent.cpp`, right after
   `headerTempoControl.setSliderStyle (juce::Slider::LinearBar)` (~:810), add
   `headerTempoControl.setSliderSnapsToMousePosition (false);`.
   - Write the ADR-0046 law 1 precedent into the comment and the commit. Logic changes the LCD
@@ -53,7 +53,7 @@ pointer, so a still press writes an undoable tempo edit (120 -> 213 BPM).
     drag. Neither changes the value on a single click.
   - A drag now scrubs relative to the tempo in force, at about 1.5 BPM per pixel.
   - Nothing else in `src/` changes.
-- [ ] **Gate.** `tests/ui_input_tests.cpp`, after the case at :7765, tagged
+- [x] **Gate.** `tests/ui_input_tests.cpp`, after the case at :7765, tagged
   `[ui][input][shell][timemap][tempo-press]`.
   - Still presses at x = 2, w/2 and w-3, each plain and with Shift. After each, the slider value,
     the persisted head bpm and `commandDispatchCount` are unchanged.
@@ -78,13 +78,32 @@ B30 is ticked and says it covers the header tempo. But `FineDragSlider::supports
 `axisProportionDelta` (`src/ui/ShellWidgets.h:170-176`) have excluded `LinearBar` since the day B30
 landed (44185e2). Broken verification is repaired at once. This is its own commit after unit 1.
 
-- [ ] **Fix.** Add `LinearBar` to both functions. Correct the B30 note in
+- [ ] **Fix.** Add `LinearBar` to both functions. Since unit 1 a plain drag on the cell moves 1/250 of the
+  range per pixel (`getMouseDragSensitivity()`, snapping off), so for `LinearBar` `axisProportionDelta` must
+  divide by that sensitivity, not by `getWidth()` (67 px) - otherwise Shift moves about 0.37x, not 0.1x
+  (unit 1's critic). Correct the B30 note in
   `docs/goals/2026-08-10-shortcut-and-workflow-parity-backlog.md` (:194-197) in the same commit.
 - [ ] **Gate.** Same file, `[tempo-press][fine-drag]`: a 20 px Shift drag on the tempo cell moves the
   tempo by exactly 0.1x the plain amount, snapped to the 0.5 grid and anchored at the tempo in force.
   **Bites:** take `LinearBar` out of `supportsFineDrag` and the drag moves the full amount.
 - [ ] **Drive.** No new step; the ctest gate is the proof. The SS3 and SS7 batches stay green.
 - Size S.
+
+### 2b. A tempo drag is one undo step (found during unit 1)
+
+`UiAppModel::setProjectTempoBpm` writes an undoable edit and the bundle for every value change, and the
+cell's `onValueChange` calls it on each drag move, so a 50 px drag leaves about thirty undo steps
+(feel law 6: "Undo everything, one step per gesture").
+
+- [ ] **Design first.** Read `engine::ProjectUndoStack` for a merge or group facility. If one exists,
+  bracket the cell's drag (`juce::Slider::onDragStart` / `onDragEnd`) as one gesture. If none exists and
+  grouping needs a new undo-stack contract, write an implementation ADR before code.
+- [ ] **Gate.** `tests/ui_input_tests.cpp` `[tempo-press][one-step]`: a drag sent as several moves
+  persists its final tempo and leaves exactly one undo step - one Ctrl+Z restores the tempo in force
+  before the drag, a second Ctrl+Z restores the step before that. **Bites:** without the bracket, one
+  Ctrl+Z only steps back one move.
+- [ ] **Drive.** SS3 Step 18's twenty-step undo and redo stays green.
+- Size M.
 
 ### 3. A fader ride shows and writes the value being ridden (FIX 14, first part)
 
@@ -587,6 +606,10 @@ close-out rubric pass.
   [unit 7](2026-10-09-cheap-autosave-closeout.md).
 
 ## Parked, recorded in STATUS / parking lot, not in this pass
+
+- The tempo cell's mouse wheel (found by unit 1's critic): JUCE's default wheel moves it about 27 BPM per
+  Windows notch, each notch its own undo step. Decide between no wheel on the cell and a fine, one-step
+  wheel when unit 2b's gesture grouping exists.
 
 - Tempo drags make one undo step per pixel: `SetProjectTempo` and `AddTempoChange` are not in
   `canCoalesceProjectEditVerb` (feel law 6). This changes data, so it is the first candidate for the

@@ -808,6 +808,13 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     // undoable controls. Tempo is a drag/scrub bar over the TEMPO cell; meter picks common signatures.
     configureActionComponent (headerTempoControl, yesdaw::ui::UiActionId::TransportSetTempo, "Set tempo");
     headerTempoControl.setSliderStyle (juce::Slider::LinearBar);
+    // A scrub cell, not a fader: a press never moves the tempo; only pointer travel does, from the tempo in force
+    // (JUCE's default jumps the value to the pointer - a still press wrote 120 -> 213 BPM). ADR-0046 law 1: Logic and
+    // Pro Tools change tempo by dragging or typing, never by a single click.
+    headerTempoControl.setSliderSnapsToMousePosition (false);
+    // No Ctrl / Alt swap into JUCE's velocity drag: releasing the key mid-drag measures the next move from the original
+    // press, which jumps the tempo once the cell no longer snaps to the pointer.
+    headerTempoControl.setVelocityModeParameters (1.0, 1, 0.0, false);
     // E24: the LinearBar shows its value inside the bar; the old separate TextBoxLeft was
     // narrower than "120.00" and the thumb painted over the clipped digits.
     headerTempoControl.setTextBoxStyle (juce::Slider::NoTextBox,
