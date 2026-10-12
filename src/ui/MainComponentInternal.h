@@ -242,18 +242,56 @@ inline void drawMeterWithHold (juce::Graphics& g,
     }
 }
 
-// UI correctness pass unit 7: the master scale's label for mark `markIndex` (UiTheme::Layout::mixerMasterScaleDb) -
-// one law for the paint and the probe's mixer.master.scale.<dB>. The labels are evenly spaced down the scale column.
+// UI correctness pass unit 7 (rubric FIX 5): the master meter's fill law. Its scale's marks
+// (UiTheme::Layout::mixerMasterScaleDb) sit evenly down the meter, so the fill is piecewise-linear
+// in dB between them: a level at a mark fills to that mark, a level between two marks fills to the
+// matching point between them. 1 at or above the first mark, 0 at or below the last. The linear
+// peak (the strips' law) put a -24 dB bar about a quarter of the meter below its "-24".
+[[nodiscard]] inline float masterMeterFractionForDb (double db) noexcept
+{
+    constexpr auto& marks = yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb;
+    static_assert (marks.size() >= 2, "the master scale needs two marks");
+    static_assert ([] {
+        for (std::size_t i = 1; i < yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb.size(); ++i)
+            if (yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb[i] >= yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb[i - 1])
+                return false;
+        return true;
+    }(), "the master scale's marks run strictly down");
+    if (std::isnan (db) || ! (db > static_cast<double> (marks.back())))
+        return 0.0f;
+    if (db >= static_cast<double> (marks.front()))
+        return 1.0f;
+    const double segments = static_cast<double> (marks.size() - 1u);
+    for (std::size_t i = 1; i < marks.size(); ++i)
+        if (db >= static_cast<double> (marks[i]))
+        {
+            const double within = (static_cast<double> (marks[i - 1]) - db) / static_cast<double> (marks[i - 1] - marks[i]);
+            return static_cast<float> (1.0 - (static_cast<double> (i - 1u) + within) / segments);
+        }
+    return 0.0f;
+}
+
+// A linear peak through the law above; 0 for silence, a negative peak or NaN.
+[[nodiscard]] inline float masterMeterFractionForPeak (float peak) noexcept
+{
+    if (! (peak > 0.0f))
+        return 0.0f;
+    return masterMeterFractionForDb (20.0 * std::log10 (static_cast<double> (peak)));
+}
+
+// The master scale's label for mark `markIndex`, centred on that mark's level in the meter's fill
+// (drawMeter's fill: the meter less meterFillInset, the level's height rounded as the fill's is) -
+// one law for the paint and the probe's mixer.master.scale.<dB>.
 [[nodiscard]] inline juce::Rectangle<int> masterScaleLabelBounds (juce::Rectangle<int> scaleColumn,
                                                                  juce::Rectangle<int> meterColumn,
                                                                  std::size_t markIndex) noexcept
 {
     using L = yesdaw::ui::UiTheme::Layout;
-    juce::ignoreUnused (meterColumn);
-    const float fraction = static_cast<float> (markIndex) / static_cast<float> (L::mixerMasterScaleDb.size() - 1u);
-    const int y = scaleColumn.getY()
-                + juce::roundToInt (fraction * static_cast<float> (scaleColumn.getHeight() - L::mixerMasterScaleLabelHeight));
-    return { scaleColumn.getX(), y, scaleColumn.getWidth(), L::mixerMasterScaleLabelHeight };
+    const juce::Rectangle<int> fill = meterColumn.reduced (L::meterFillInset);
+    const int levelY = fill.getBottom()
+                     - juce::roundToInt (static_cast<float> (fill.getHeight())
+                                         * masterMeterFractionForDb (static_cast<double> (L::mixerMasterScaleDb[markIndex])));
+    return { scaleColumn.getX(), levelY - L::mixerMasterScaleLabelHeight / 2, scaleColumn.getWidth(), L::mixerMasterScaleLabelHeight };
 }
 
 inline void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)

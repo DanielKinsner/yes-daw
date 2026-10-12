@@ -8,6 +8,28 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 7 (in progress, paused for a restart): the master meter fills to its scale
+
+**What changes:** the master pane's meters filled by the linear peak while the scale beside them is evenly spaced dB
+marks (0, -12, -24, -60), so a bar sat far below its label. They now fill piecewise-linearly in dB between the marks
+(`masterMeterFractionForDb` / `masterMeterFractionForPeak` in `MainComponentInternal.h`), and each label is centred on
+its level in the fill (`masterScaleLabelBounds`). Hold and latch numbers are unchanged; the other meters stay linear.
+Commit 1 (`196db9a`, no behaviour change) routed the labels through one bounds law and published
+`mixer.master.scale.<dB>`, so the gate ran on the old paint: **red** - "0" 5 px below the fill top, and at 1920x1080
+the -42 dB bar 79.5 px and the -24 dB bar 132 px below their points on the scale. **Gate
+`[master-meter-scale]`** (L/R -42/-24, -18/-12, 0/0 dB x 1280, 1920, 2560): labels present, disjoint, evenly spaced,
+"0" at the fill top and "-60" at the fill bottom; label ink only inside the label rects (background read per row - the
+pane darkens downward); each painted bar top within 1 px of its label centre or dB midpoint (0 dB: the clip light, with
+the fill inset as the tolerance). Green, 200 assertions. **Bites (4):** the linear peak (19.5 px off), the probe moved
+but not the paint, a law right only at the marks (22.5 px off at the midpoint), one channel fixed (33 px off).
+**Not yet done:** full build + ctest + Clang on this commit, the critic, push, SS7 Step 13's shot, and the STATUS note
+that M6's master clause stays open (the master fader's unity reads about -18 on the scale). **Unit 6 CI** (`84d9f61`,
+run 38287406685): macOS red only on `YesDawTimelineGpuCheck`'s sustained-frame `REQUIRE` (raw: sustained 17.14 ms, max
+22.26 ms, 9 slow frames; 440 of 441 passed) - inside the renewed exception; Windows/Linux were still running.
+`f4de0ac` (run 38291320050) was queued. **Not pushed on purpose:** a push now would replace `f4de0ac`'s queued run, so
+unit 6 commit 2 would lose its own CI. **Next:** check both unit 6 runs; run the full local suite on this commit and a
+critic; then push and continue with unit 8.
+
 ## 2026-10-12 — UI correctness pass unit 6 (commit 2): the ruler's bar labels follow the tempo and meter maps
 
 **What changes:** the ruler numbered bars by the head tempo and meter only, so after a tempo or meter change every

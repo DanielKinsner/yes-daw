@@ -30534,3 +30534,144 @@ TEST_CASE ("a fader ride shows and writes the value being ridden", "[ui][input][
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// UI correctness pass unit 7 (rubric FIX 5): the master meter fills to the level its scale names. The scale's marks are
+// evenly spaced (0, -12, -24, -60 dB), so a bar at a mark's level tops out at that label's centre, and a bar halfway in
+// dB between two marks tops out halfway between their labels. Expected positions come from the published label rects
+// and dB arithmetic only; the bar tops are read from the painted pixels.
+TEST_CASE ("the master meter fills to the level its scale names", "[ui][input][shell][mixer][meters][master-meter-scale]")
+{
+    const auto bundlePath = makeTempBundlePath ("master-meter-scale");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+
+    const auto rectOf = [&shell] (const juce::String& id) {
+        const juce::var r = probeRoot (*shell)["layout"][juce::Identifier (id)];
+        if (! r.isArray())
+            return juce::Rectangle<int> {};
+        return juce::Rectangle<int> { static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]) };
+    };
+    const auto render = [&shell] {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    const auto dbToPeak = [] (double db) { return static_cast<float> (std::pow (10.0, db / 20.0)); };
+    const std::array<int, 4> marks { 0, -12, -24, -60 };
+    // The y a level's bar should top out at: a mark's label centre, or the dB-linear point between two marks' centres.
+    const auto expectedTopFor = [&marks] (double db, const std::array<double, 4>& centre) {
+        if (db >= 0.0)
+            return centre[0];
+        for (std::size_t i = 1; i < marks.size(); ++i)
+            if (db >= marks[i])
+                return centre[i - 1] + (static_cast<double> (marks[i - 1]) - db) / static_cast<double> (marks[i - 1] - marks[i])
+                                         * (centre[i] - centre[i - 1]);
+        return centre.back();
+    };
+    const juce::Colour nominal = yesdaw::ui::UiTheme::Meter::nominalFill();
+    const juce::Colour hot = yesdaw::ui::UiTheme::Meter::hotFill();
+    const juce::Colour clip = yesdaw::ui::UiTheme::Meter::clipFill();
+    const auto paintedTop = [&] (const juce::Image& image, juce::Rectangle<int> meter) {
+        const int x = meter.getCentreX();
+        for (int y = meter.getY(); y < meter.getBottom(); ++y)
+        {
+            const juce::Colour c = image.getPixelAt (x, y);
+            if (c == nominal || c == hot || c == clip)
+                return y;
+        }
+        return meter.getBottom();
+    };
+
+    struct Level { double leftDb; double rightDb; };
+    int checkedPairs = 0;
+    for (const Level level : { Level { -42.0, -24.0 }, Level { -18.0, -12.0 }, Level { 0.0, 0.0 } })
+    {
+        // One block and one tick, then no message loop: the hold is at the live peak and does not decay.
+        yesdaw::ui::mainComponentPublishMasterBlockForTest (*shell, dbToPeak (level.leftDb), dbToPeak (level.rightDb));
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
+        REQUIRE (yesdaw::ui::mainComponentMasterMeterHeldPeak (*shell, 0) == snapshot.visibleMasterPeakLeft);
+        REQUIRE (yesdaw::ui::mainComponentMasterMeterHeldPeak (*shell, 1) == snapshot.visibleMasterPeakRight);
+        REQUIRE (snapshot.visibleMasterPeakLeft == Catch::Approx (dbToPeak (level.leftDb)));
+        if (level.leftDb >= 0.0)
+        {
+            REQUIRE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 0));
+            REQUIRE (yesdaw::ui::mainComponentMasterMeterClipLatched (*shell, 1));
+        }
+        for (const auto size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+        {
+            shell->setSize (size.x, size.y);
+            INFO ("levels " << level.leftDb << " / " << level.rightDb << " dB at " << size.x << "x" << size.y);
+            const juce::Rectangle<int> scale = rectOf ("mixer.master.scale");
+            const juce::Rectangle<int> meters = rectOf ("mixer.master.meters");
+            REQUIRE_FALSE (scale.isEmpty());
+            REQUIRE_FALSE (meters.isEmpty());
+
+            // The labels: present, disjoint, evenly spaced, "0" at the fill top and "-60" at the fill bottom.
+            const juce::Rectangle<int> fill = meters.reduced (yesdaw::ui::UiTheme::Layout::meterFillInset);
+            std::array<juce::Rectangle<int>, 4> labels;
+            std::array<double, 4> centre {};
+            for (std::size_t i = 0; i < marks.size(); ++i)
+            {
+                labels[i] = rectOf ("mixer.master.scale." + juce::String (marks[i]));
+                INFO ("label " << marks[i]);
+                REQUIRE_FALSE (labels[i].isEmpty());
+                centre[i] = labels[i].toDouble().getCentreY();
+                for (std::size_t j = 0; j < i; ++j)
+                    REQUIRE_FALSE (labels[i].intersects (labels[j]));
+            }
+            REQUIRE (std::abs (centre[0] - fill.getY()) <= 1.0);
+            REQUIRE (std::abs (centre[3] - fill.getBottom()) <= 1.0);
+            for (std::size_t i = 2; i < marks.size(); ++i)
+                REQUIRE (std::abs ((centre[i] - centre[i - 1]) - (centre[1] - centre[0])) <= 1.0);
+
+            const juce::Image image = render();
+            // Label ink only inside the label rects: every pixel of the scale column (and half a label above and
+            // below it) that is not the column's background lies in some label. The pane's background darkens down
+            // the column, so each row's background is read at the column's left pixel, which right-aligned labels
+            // never reach.
+            const juce::Rectangle<int> scanned = scale.expanded (0, yesdaw::ui::UiTheme::Layout::mixerMasterScaleLabelHeight / 2);
+            int inkPixels = 0, strayInk = 0;
+            juce::Point<int> firstStray;
+            for (int y = scanned.getY(); y < scanned.getBottom(); ++y)
+                for (int x = scanned.getX(); x < scanned.getRight(); ++x)
+                {
+                    const juce::Colour c = image.getPixelAt (x, y);
+                    const juce::Colour background = image.getPixelAt (scanned.getX(), y);
+                    const int diff = std::max ({ std::abs (c.getRed() - background.getRed()), std::abs (c.getGreen() - background.getGreen()),
+                                                 std::abs (c.getBlue() - background.getBlue()) });
+                    if (diff <= 24)
+                        continue;
+                    ++inkPixels;
+                    const bool inLabel = std::any_of (labels.begin(), labels.end(), [x, y] (juce::Rectangle<int> r) { return r.contains (x, y); });
+                    if (! inLabel && strayInk++ == 0)
+                        firstStray = { x, y };
+                }
+            CAPTURE (inkPixels, strayInk, firstStray.x, firstStray.y);
+            REQUIRE (inkPixels > 40);
+            REQUIRE (strayInk == 0);
+
+            // Each bar tops out at its level on the scale: the left meter, then the right one (16 px and a 4 px gap).
+            const int meterWidth = yesdaw::ui::UiTheme::Layout::mixerMasterMeterWidth;
+            const juce::Rectangle<int> leftMeter = meters.withWidth (meterWidth);
+            const juce::Rectangle<int> rightMeter = leftMeter.translated (meterWidth + yesdaw::ui::UiTheme::Layout::mixerMasterMeterGap, 0);
+            // At 0 dB the clip light covers the meter's top cell, from the meter's edge: the fill inset is the tolerance.
+            const double tolerance = level.leftDb >= 0.0 ? 1.0 + yesdaw::ui::UiTheme::Layout::meterFillInset : 1.0;
+            const int leftTop = paintedTop (image, leftMeter);
+            const int rightTop = paintedTop (image, rightMeter);
+            CAPTURE (leftTop, rightTop, expectedTopFor (level.leftDb, centre), expectedTopFor (level.rightDb, centre));
+            REQUIRE (std::abs (leftTop - expectedTopFor (level.leftDb, centre)) <= tolerance);
+            REQUIRE (std::abs (rightTop - expectedTopFor (level.rightDb, centre)) <= tolerance);
+            ++checkedPairs;
+        }
+    }
+    REQUIRE (checkedPairs == 9);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
