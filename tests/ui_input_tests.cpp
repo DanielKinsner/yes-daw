@@ -7829,6 +7829,7 @@ TEST_CASE ("header tempo cell: a still press never changes the tempo; a drag scr
     REQUIRE_FALSE (readProjectSnapshot (bundlePath).tempoMap.empty());
     const double before = readProjectSnapshot (bundlePath).tempoMap.front().bpm;
     REQUIRE (before == 120.0);
+    REQUIRE (tempo->getMouseDragSensitivity() == 250);   // the drag extent the arithmetic below assumes
     const int dispatches = snapshotMainComponent (*shell).context.commandDispatchCount;
     const int w = tempo->getWidth();
     const int h = tempo->getHeight();
@@ -7861,6 +7862,46 @@ TEST_CASE ("header tempo cell: a still press never changes the tempo; a drag scr
     dragFromTo (*tempo, { w / 2, h / 2 }, { w / 2 + 20, h / 2 },
                 juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier));
     REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 181.0);
+}
+
+// UI correctness pass unit 2: B30's Shift fine-drag reaches the tempo cell too (it was certified for the header tempo,
+// but FineDragSlider excluded LinearBar). Shift moves exactly fineDragScale (0.1) of the plain drag, anchored at the
+// tempo in force: a plain 20 px drag is 20 x 380 / 250 = 30.4 BPM, so Shift is 3.04 -> 123.04, snapped to 123.0.
+TEST_CASE ("header tempo cell: a Shift drag moves a tenth of a plain drag, from the tempo in force",
+           "[ui][input][shell][timemap][tempo-press][fine-drag]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("tempo-fine-drag");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+
+    auto shell = makeShell (std::move (choices));
+    auto* tempo = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "transport.set_tempo"));
+    REQUIRE (tempo != nullptr);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    REQUIRE_FALSE (readProjectSnapshot (bundlePath).tempoMap.empty());
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 120.0);
+
+    REQUIRE (tempo->getMouseDragSensitivity() == 250);   // the drag extent the arithmetic below assumes
+    const int w = tempo->getWidth();
+    const int h = tempo->getHeight();
+    const juce::ModifierKeys plain (juce::ModifierKeys::leftButtonModifier);
+    const juce::ModifierKeys shift (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier);
+    dragFromTo (*tempo, { w / 2, h / 2 }, { w / 2 + 20, h / 2 }, shift);
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 123.0);
+
+    // Shift pressed mid-drag anchors at the tempo reached so far, not at the press or the default: a plain 20 px
+    // (123.0 + 30.4 -> 153.5), then 250 px more with Shift (+ 380 x 0.1 = 38.0) -> exactly 191.5. A fine drag measured
+    // from the press would give 164.0; one left plain would hit 400; a divisor off by more than ~1% misses the grid.
+    const juce::Point<int> press { w / 2, h / 2 };
+    mouseDownAt (*tempo, press, plain);
+    tempo->mouseDrag (makeMouseEvent (*tempo, { w / 2 + 20, h / 2 }, press, true, 1, plain));
+    tempo->mouseDrag (makeMouseEvent (*tempo, { w / 2 + 270, h / 2 }, press, true, 1, shift));
+    tempo->mouseUp (makeMouseEvent (*tempo, { w / 2 + 270, h / 2 }, press, true, 1, shift));
+    REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 191.5);
 }
 
 TEST_CASE ("shift-drag on the ruler defines a user loop region", "[ui][input][shell][loop]")

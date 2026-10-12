@@ -78,12 +78,12 @@ B30 is ticked and says it covers the header tempo. But `FineDragSlider::supports
 `axisProportionDelta` (`src/ui/ShellWidgets.h:170-176`) have excluded `LinearBar` since the day B30
 landed (44185e2). Broken verification is repaired at once. This is its own commit after unit 1.
 
-- [ ] **Fix.** Add `LinearBar` to both functions. Since unit 1 a plain drag on the cell moves 1/250 of the
+- [x] **Fix.** Add `LinearBar` to both functions. Since unit 1 a plain drag on the cell moves 1/250 of the
   range per pixel (`getMouseDragSensitivity()`, snapping off), so for `LinearBar` `axisProportionDelta` must
   divide by that sensitivity, not by `getWidth()` (67 px) - otherwise Shift moves about 0.37x, not 0.1x
   (unit 1's critic). Correct the B30 note in
   `docs/goals/2026-08-10-shortcut-and-workflow-parity-backlog.md` (:194-197) in the same commit.
-- [ ] **Gate.** Same file, `[tempo-press][fine-drag]`: a 20 px Shift drag on the tempo cell moves the
+- [x] **Gate.** Same file, `[tempo-press][fine-drag]`: a 20 px Shift drag on the tempo cell moves the
   tempo by exactly 0.1x the plain amount, snapped to the 0.5 grid and anchored at the tempo in force.
   **Bites:** take `LinearBar` out of `supportsFineDrag` and the drag moves the full amount.
 - [ ] **Drive.** No new step; the ctest gate is the proof. The SS3 and SS7 batches stay green.

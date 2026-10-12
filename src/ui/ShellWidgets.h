@@ -172,11 +172,13 @@ private:
         const auto style = getSliderStyle();
         return style == juce::Slider::LinearHorizontal
             || style == juce::Slider::LinearVertical
+            || style == juce::Slider::LinearBar   // the header tempo scrub cell (B30 named it; unit 2 of the UI pass)
             || style == juce::Slider::RotaryHorizontalVerticalDrag;
     }
 
-    // Pointer movement as a proportion of the control's own span, matching each style's plain
+    // Pointer movement as a proportion of the span a plain drag covers, matching each style's plain
     // drag direction: horizontal tracks +x, vertical tracks -y, rotary tracks (+x, -y) combined.
+    // Linear and rotary styles span their own size; a scrub bar spans its drag extent.
     [[nodiscard]] double axisProportionDelta (juce::Point<float> position) const
     {
         const double dx = static_cast<double> (position.x - lastFinePosition.x);
@@ -187,6 +189,10 @@ private:
                 return dx / std::max (1, getWidth());
             case juce::Slider::LinearVertical:
                 return -dy / std::max (1, getHeight());
+            case juce::Slider::LinearBar:
+                // A scrub cell (the header tempo, which does not snap to the pointer): its plain drag spans the full
+                // range over getMouseDragSensitivity() pixels.
+                return dx / std::max (1, getMouseDragSensitivity());
             case juce::Slider::RotaryHorizontalVerticalDrag:
                 return (dx - dy) / std::max (1, getWidth());
             default:

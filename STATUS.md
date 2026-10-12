@@ -8,6 +8,21 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 2: Shift fine-drag reaches the tempo cell (B30's record corrected)
+
+**What changes:** B30 (Shift = exactly 10x finer drag) was certified as covering the header tempo, but
+`FineDragSlider` excluded its `LinearBar` style from the day it landed (44185e2) and no gate exercised it - broken
+verification, repaired. `LinearBar` is now supported, and its fine movement is measured against the same drag extent
+as its plain drag (`getMouseDragSensitivity()` since unit 1; the width only for a bar that snaps). The backlog's B30
+note carries the correction. **Gate `[tempo-press][fine-drag]`**, red before the fix (**150.5**: Shift ignored): a
+20 px Shift drag persists exactly 123.0 BPM (a plain 20 px is 30.4; a tenth is 3.04 -> 123.04, snapped to 0.5), and
+Shift pressed mid-drag anchors at the tempo reached (a plain 20 px to 153.5, then 250 px with Shift: exactly 191.5).
+Mutations dividing by the width or by 240 px turn it red (the second slipped through a weaker first version - the
+critic's catch). **Local:** full build, ctest 442/442, Clang clean. **Critic (Opus 5.5):** no blocker; in - the tighter
+gate, the drag-extent assertion in both tempo gates, the corrected comment, the unused snap branch dropped; parked - a
+Shift+right-drag also fine-edits the cell (a plain right-drag already edits it). **Next:** unit 2b (a tempo drag is
+one undo step).
+
 ## 2026-10-12 — UI correctness pass unit 1: a press on the tempo cell never changes the tempo
 
 **What changes:** the header tempo cell is a scrub cell, not a fader. A still press, plain or with Shift, no longer

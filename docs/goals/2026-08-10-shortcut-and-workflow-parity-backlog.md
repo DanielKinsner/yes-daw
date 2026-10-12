@@ -197,6 +197,9 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     untouched. Covers the mixer fader/pan, sends, FX params, header tempo, inspector sliders, and
     the rail VOL/PAN minis (persisted-value anchoring). The shipped-boundary gate proves exact
     per-style math, interval-grid landing, the no-jump anchor, and a >5x coarse/fine ratio.
+    **Correction (2026-10-12, UI correctness pass unit 2):** the header tempo was not covered -
+    `FineDragSlider` excluded its `LinearBar` style from the day this landed, so Shift did nothing
+    there and no gate exercised it. Now included and gated (`[tempo-press][fine-drag]`).
 31. [x] **dB readout** — landed in `6e95696` (exact-head run `31570461464`, nine jobs green).
     A shared click-transparent label shows `20*log10(gain)` to one decimal (`-inf dB` at exact
     silence) above the mixer fader or rail VOL while its drag is held, live-updating through the
