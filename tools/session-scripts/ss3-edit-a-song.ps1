@@ -263,6 +263,32 @@ if ($null -ne $tempo) {
 Click 'ruler' -OffsetX (RulerOffsetForX ([int]($rect[0] + $rect[2] * 0.9))) -OffsetY (RulerTimeRowY)
 $readoutAfter = (Probe).view.counterPrimary
 [void](Assert ("$readoutBefore" -ne "$readoutAfter") ('the bar readout follows the map: ' + $readoutBefore + ' -> ' + $readoutAfter))
+# UI correctness pass unit 6: a bar label right of the tempo change names the bar the counter reads there. Snap off, so
+# the click lands on the pixel; one pixel right of the label's tick (the label's rect starts 3 px right of its tick).
+Click 'widget.timeline.snap_mode.chooser'
+[void](MenuPickByName 'Snap: Off')
+[void](Assert (WaitProbe { param($q) "$($q.view.snapMode)" -eq 'off' } -TimeoutMs 2000) ('Snap: Off is set for the bar check (snapMode=' + (Probe).view.snapMode + ')'))
+$map0 = LayoutRect 'ruler.map.0'
+[void](Assert ($null -ne $map0) 'the tempo change has a ruler label')
+$barAfter = $null; $barAfterRect = $null
+if ($null -ne $map0) {
+  foreach ($prop in (Probe).layout.PSObject.Properties) {
+    if ($prop.Name -notlike 'ruler.bar.*') { continue }
+    $r = $prop.Value
+    if ([int]$r[0] -le [int]$map0[0]) { continue }
+    if ($null -eq $barAfterRect -or [int]$r[0] -lt [int]$barAfterRect[0]) { $barAfterRect = $r; $barAfter = [int]($prop.Name.Substring(10)) }
+  }
+}
+[void](Assert ($null -ne $barAfter) ('a bar label sits right of the tempo change (map label at x ' + $(if ($null -ne $map0) { $map0[0] } else { '?' }) + ')'))
+if ($null -ne $barAfter) {
+  $tickX = [int]$barAfterRect[0] - 3
+  Click 'ruler' -OffsetX (RulerOffsetForX ($tickX + 1)) -OffsetY (RulerTimeRowY)
+  $want = '{0:D3}|*' -f $barAfter
+  [void](Assert (WaitProbe { param($q) "$($q.view.counterPrimary)" -like $want } -TimeoutMs 2000) ('the counter reads bar ' + $barAfter + ' one pixel right of its label''s tick: ' + (Probe).view.counterPrimary))
+}
+Click 'widget.timeline.snap_mode.chooser'
+[void](MenuPickByName 'Snap: Grid')
+[void](Assert (WaitProbe { param($q) "$($q.view.snapMode)" -eq 'grid' } -TimeoutMs 2000) ('Snap: Grid is restored (snapMode=' + (Probe).view.snapMode + ')'))
 
 Step 18 'Undo twenty steps, redo twenty steps'
 $d0 = [int](Probe).commandDispatchCount
