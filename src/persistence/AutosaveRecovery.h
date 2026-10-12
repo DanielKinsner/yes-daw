@@ -12,6 +12,7 @@
 
 #include "persistence/ProjectBundle.h"
 
+#include <algorithm>
 #include <array>
 #include <cerrno>
 #include <chrono>
@@ -54,13 +55,24 @@ enum class AutosaveStatus : std::uint8_t
     BundleError
 };
 
+// ADR-0069 §3: what a refusal says about one asset (Restore names it on the status line).
+enum class AutosaveAssetProblem : std::uint8_t
+{
+    None = 0,
+    Missing,     // the snapshot's file is gone
+    Damaged,     // the snapshot's file holds other bytes than its hash
+    NotPutBack   // validated, but its name could not be carried back into the bundle
+};
+
 struct AutosaveResult
 {
     AutosaveStatus status = AutosaveStatus::Ok;
     BundleResult bundle;
     std::string message;
-    std::size_t linked = 0;
-    std::size_t copied = 0;
+    std::size_t linked = 0;   // a write: carries by link; a Restore: names linked back into the bundle
+    std::size_t copied = 0;   // ... and carries / names put back by a copy (a link was impossible)
+    std::optional<engine::AssetContentHash> asset {};   // the asset a refusal is about
+    AutosaveAssetProblem assetProblem = AutosaveAssetProblem::None;
 
     [[nodiscard]] bool ok() const noexcept { return status == AutosaveStatus::Ok; }
 };
@@ -87,6 +99,7 @@ struct AssetCarry
 
 #if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
 inline thread_local std::optional<engine::AssetContentHash> failLinkForTest;
+inline thread_local std::optional<engine::AssetContentHash> failRestoreFlushForTest;   // a restored name's flush fails
 inline thread_local std::uint64_t assetBytesCopiedForTest = 0;
 inline thread_local void (*afterCarryForTest) (const std::filesystem::path&) = nullptr;
 inline thread_local void (*beforeRecoveryCleanupForTest) (const std::filesystem::path&,
@@ -460,7 +473,15 @@ struct RecoveryReader
                 return bundleError (std::move (loaded));
             for (const auto& asset : assets)
                 if (auto verified = metadata.verifyAssetFile (asset.hash, source / asset.relativePath); ! verified.ok())
-                    return bundleError (std::move (verified));
+                {
+                    // ADR-0069 §3: keep which asset, and whether it is gone or holds other bytes, for Restore to name.
+                    std::error_code statusError;
+                    const bool present = std::filesystem::exists (source / asset.relativePath, statusError) && ! statusError;
+                    auto refused = bundleError (std::move (verified));
+                    refused.asset = asset.hash;
+                    refused.assetProblem = present ? AutosaveAssetProblem::Damaged : AutosaveAssetProblem::Missing;
+                    return refused;
+                }
             return ok();
         }(); // metadata closes before scratch removal, including on every refusal.
 #if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
@@ -566,6 +587,71 @@ struct RecoveryReader
             return flushError (std::move (result));
     }
 
+    return ok();
+}
+
+// ADR-0069 §3: put one validated asset's name back into the bundle Restore writes to. The name already points at the
+// snapshot's inode: nothing to do. The name is absent (an open swept it to .trash/ after lost writes; the snapshot's link
+// kept the bytes alive): link it back - copy, hash and rename into place where a link is impossible - and flush the new
+// name. The name holds another inode (or dangles): ADR-0062's adoption - hash, write a temporary, rename over the NAME;
+// bytes another link shares are never overwritten, and a name already holding the right bytes is left alone.
+// `restored` counts a name linked back or copied back; `touched` turns true whenever a name may have changed (a link, a
+// copy, an adoption), so the caller flushes the audio directory. The caller validated every snapshot asset first.
+[[nodiscard]] inline AutosaveResult restoreAssetName (const std::filesystem::path& snapshotPath,
+                                                      const std::filesystem::path& bundlePath,
+                                                      const engine::AssetContentHash& hash, AutosaveResult& restored,
+                                                      bool& touched)
+{
+    const auto refuse = [&hash] (AutosaveResult result) {
+        result.asset = hash;
+        result.assetProblem = AutosaveAssetProblem::NotPutBack;
+        return result;
+    };
+    const auto source = storedAssetPathForHash (snapshotPath, hash);
+    const auto target = storedAssetPathForHash (bundlePath, hash);
+    std::error_code ec;
+    const auto status = std::filesystem::symlink_status (target, ec);
+    const bool absent = ec == std::errc::no_such_file_or_directory
+                     || (! ec && status.type() == std::filesystem::file_type::not_found);
+    if (ec && ! absent)
+        return refuse (filesystemError ("inspect the project's asset name failed", target, ec));
+    if (! absent)
+    {
+        std::error_code same;
+        if (std::filesystem::equivalent (source, target, same) && ! same)
+            return ok();
+        if (auto adopted = ProjectBundleDb::adoptAssetFile (bundlePath, hash, source); ! adopted.ok())
+            return refuse (bundleError (std::move (adopted)));
+        touched = true;   // a damaged or dangling name was replaced, or a whole one left alone: flush either way
+        if (auto flushed = detail::flushFileToDisk (target); ! flushed.ok())
+            return refuse (flushError (std::move (flushed)));
+        return ok();
+    }
+
+    ec.clear();
+    std::filesystem::create_directories (target.parent_path(), ec);
+    if (ec)
+        return refuse (filesystemError ("create the project's audio directory failed", target.parent_path(), ec));
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+    if (failLinkForTest && *failLinkForTest == hash)
+        ec = std::make_error_code (std::errc::operation_not_supported);
+    else
+#endif
+        std::filesystem::create_hard_link (source, target, ec);
+    const bool linked = ! ec;
+    if (! linked)
+        if (auto adopted = ProjectBundleDb::adoptAssetFile (bundlePath, hash, source); ! adopted.ok())
+            return refuse (bundleError (std::move (adopted)));
+    touched = true;
+
+    auto flushed = detail::flushFileToDisk (target);
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+    if (failRestoreFlushForTest && *failRestoreFlushForTest == hash)
+        flushed = BundleResult { BundleStatus::FilesystemError, SQLITE_OK, 0, "test: the restored name's flush failed" };
+#endif
+    if (! flushed.ok())
+        return refuse (flushError (std::move (flushed)));
+    linked ? ++restored.linked : ++restored.copied;
     return ok();
 }
 
@@ -703,24 +789,31 @@ struct RecoveryReader
         return result;
     auto& recovered = selected.project;
 
+    // ADR-0069 §3: every snapshot asset was validated (hashed) above, before any name below changes. A carry that fails
+    // stops here: the rows, the marker and `out` are untouched (names already put back hold correct bytes and stay).
+    AutosaveResult restored = autosave_detail::ok();
+    bool touched = false;
+    std::vector<engine::AssetContentHash::StorageBytes> carried;
     for (const auto& asset : recovered.assets)
     {
-        const auto source = storedAssetPathForHash (selected.path, asset.contentHash);
-        const auto target = storedAssetPathForHash (targetDb.bundlePath(), asset.contentHash);
-        std::error_code error;
-        if (std::filesystem::equivalent (source, target, error) && ! error)
+        if (std::find (carried.begin(), carried.end(), asset.contentHash.bytes) != carried.end())
             continue;
-        // A target may itself be linked by an older snapshot. Replace its NAME, never overwrite shared bytes.
-        if (auto result = ProjectBundleDb::adoptAssetFile (targetDb.bundlePath(), asset.contentHash, source); ! result.ok())
-            return autosave_detail::bundleError (std::move (result));
+        carried.push_back (asset.contentHash.bytes);
+        if (auto result = autosave_detail::restoreAssetName (selected.path, targetDb.bundlePath(), asset.contentHash,
+                                                             restored, touched);
+            ! result.ok())
+            return result;
     }
+    if (touched)   // the changed names' directory entries, before the rows that name them (a no-op on Windows)
+        if (auto flushed = detail::flushDirectoryToDisk (targetDb.bundlePath() / "audio"); ! flushed.ok())
+            return autosave_detail::flushError (std::move (flushed));
 
     // ADR-0068 §5: Restore answers the question - the marker clears in the transaction that writes the recovered rows.
     if (auto result = targetDb.writeProjectSnapshot (recovered, std::nullopt, UnresolvedSnapshotStamp::Clear); ! result.ok())
         return autosave_detail::bundleError (std::move (result));
 
     out = std::move (recovered);
-    return autosave_detail::ok();
+    return restored;
 }
 
 [[nodiscard]] inline AutosaveResult discardAutosaveSnapshot (const std::filesystem::path& bundlePath)

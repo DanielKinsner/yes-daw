@@ -4191,6 +4191,238 @@ TEST_CASE ("ADR-0069 restore validates freshly once and leaves its published sou
     std::filesystem::remove_all (path);
 }
 
+// ADR-0069 §3 (cp2): the hooks a Restore gate arms are cleared whatever happens.
+struct RestoreHooksReset
+{
+    ~RestoreHooksReset()
+    {
+        yesdaw::persistence::autosave_detail::failLinkForTest.reset();
+        yesdaw::persistence::autosave_detail::failRestoreFlushForTest.reset();
+    }
+};
+
+// ADR-0069 §3 (cp2): a bundle that lost its last writes - its rows went back to `older` after `project` was autosaved -
+// opened the ordinary way, which sweeps the files its rows no longer name into .trash/ (the snapshot's links keep them).
+yesdaw::persistence::ProjectBundleDb makeSweptBundle (const std::filesystem::path& path, const Project& project, const Project& older)
+{
+    using namespace yesdaw::persistence;
+    {
+        auto db = openFreshBundle (path);
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (path, project);
+        REQUIRE (writeAutosaveSnapshot (db, project).ok());
+        REQUIRE (db.writeProjectSnapshot (older).ok());
+    }
+    ProjectBundleDb db;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, db).ok());
+    for (const Asset& asset : project.assets)
+    {
+        const bool rowed = std::any_of (older.assets.begin(), older.assets.end(),
+                                        [&asset] (const Asset& kept) { return kept.contentHash == asset.contentHash; });
+        REQUIRE (std::filesystem::exists (storedAssetPathForHash (path, asset.contentHash)) == rowed);
+        REQUIRE (std::filesystem::exists (storedAssetPathForHash (autosaveSnapshotPath (path), asset.contentHash)));
+    }
+    return db;
+}
+
+// ADR-0069 §3 (cp2) `[restore-after-sweep]`: lost writes drop an asset's row and the bundle's own open sweeps its file;
+// Restore links the name back to the snapshot's inode with no asset byte copied - the only hash reads are recovery's
+// full validation of every snapshot asset - and the restored bundle passes an ordinary open, which hashes every asset.
+TEST_CASE ("ADR-0069 Restore links a swept asset back without copying, and the bundle validates in full",
+           "[persistence][autosave][cheap][restore-after-sweep]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("restore-after-sweep");
+    const Project project = makeProject();
+    Project older = project;   // the rows before the last writes: no second asset, no clip on it
+    older.assets.pop_back();
+    older.clips.pop_back();
+    auto db = makeSweptBundle (path, project, older);
+    REQUIRE (db.setUnresolvedSnapshotStamp (1).ok());   // the question was asked: Restore answers it
+    const auto name = storedAssetPathForHash (path, project.assets.back().contentHash);
+    const auto snapshotName = storedAssetPathForHash (autosaveSnapshotPath (path), project.assets.back().contentHash);
+
+    detail::assetHashCallsForTest = 0;
+    detail::copiedFileBytesForTest = 0;
+    Project restored;
+    const auto result = restoreAutosaveSnapshot (db, restored);
+    INFO (result.message);
+    REQUIRE (result.ok());
+    REQUIRE (result.linked == 1u);
+    REQUIRE (result.copied == 0u);
+    REQUIRE (detail::copiedFileBytesForTest == 0u);                      // no asset byte copied
+    REQUIRE (detail::assetHashCallsForTest == project.assets.size());    // recovery's validation, nothing more
+    REQUIRE (std::filesystem::equivalent (name, snapshotName));
+    requireSameProjectSurface (restored, project);
+    std::optional<std::int64_t> marker = 7;
+    REQUIRE (db.unresolvedSnapshotStamp (marker).ok());
+    REQUIRE_FALSE (marker.has_value());
+    db = {};
+
+    detail::assetHashCallsForTest = 0;
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());   // reconcile: every asset hashed, nothing swept
+    REQUIRE (detail::assetHashCallsForTest >= project.assets.size());
+    REQUIRE (std::filesystem::exists (name));
+    Project readback;
+    REQUIRE (reopened.readProjectSnapshot (readback).ok());
+    requireSameProjectSurface (readback, project);
+    reopened = {};
+    std::filesystem::remove_all (path);
+}
+
+// ADR-0069 §3 (cp2) `[restore-refuses-missing-asset]`: an asset missing from (or damaged in) the snapshot refuses Restore
+// before anything is written, and the refusal names it - even though the asset before it needed a carry: that asset's
+// swept name is still absent afterwards, so every asset was validated before any name changed. The bundle's rows and
+// files, the snapshot, the unresolved marker and the caller's output are all as they were.
+TEST_CASE ("ADR-0069 Restore refuses a missing or damaged asset before carrying any other",
+           "[persistence][autosave][cheap][restore-refuses-missing-asset]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("restore-refuses");
+    const Project project = makeProject();
+    Project older = project;   // lost writes took both assets' rows: both names are swept, both would need a carry
+    older.assets.clear();
+    older.clips.clear();
+    auto db = makeSweptBundle (path, project, older);
+    REQUIRE (db.setUnresolvedSnapshotStamp (1).ok());
+    const auto& first = project.assets.front();
+    const auto& last = project.assets.back();
+    const auto lastInSnapshot = storedAssetPathForHash (autosaveSnapshotPath (path), last.contentHash);
+    bool damaged = false;
+    SECTION ("missing") { REQUIRE (std::filesystem::remove (lastInSnapshot)); }
+    SECTION ("damaged")
+    {
+        damaged = true;
+        const std::vector<std::uint8_t> other (64, 0x5a);
+        writeBytes (lastInSnapshot, std::span<const std::uint8_t> (other.data(), other.size()));
+    }
+    const auto bundleBefore = sourceInventory (path);
+    Project sentinel = project;
+    sentinel.tracks.front().strip.name = "restore sentinel";
+    Project restored = sentinel;
+    const auto result = restoreAutosaveSnapshot (db, restored);
+    INFO (result.message);
+    REQUIRE_FALSE (result.ok());
+    REQUIRE (result.asset == std::optional<AssetContentHash> { last.contentHash });
+    REQUIRE (result.assetProblem == (damaged ? AutosaveAssetProblem::Damaged : AutosaveAssetProblem::Missing));
+    REQUIRE (result.bundle.message.find (detail::utf8Path (lastInSnapshot)) != std::string::npos);
+    REQUIRE_FALSE (std::filesystem::exists (storedAssetPathForHash (path, first.contentHash)));   // no carry ran first
+    REQUIRE (sourceInventory (path) == bundleBefore);
+    requireSameProjectSurface (restored, sentinel);
+    Project rows;
+    REQUIRE (db.readProjectSnapshot (rows).ok());
+    requireSameProjectSurface (rows, older);
+    std::optional<std::int64_t> marker;
+    REQUIRE (db.unresolvedSnapshotStamp (marker).ok());
+    REQUIRE (marker == std::optional<std::int64_t> { 1 });
+    db = {};
+    std::filesystem::remove_all (path);
+}
+
+// ADR-0069 §3 (cp2): the other ways a name comes back. A link is impossible: the name is copied back (its bytes counted,
+// hashed, a different inode). The name already holds the right bytes in another inode: left alone, nothing copied. The
+// name holds damaged bytes that an older name shares: the name is replaced and the shared bytes are never overwritten.
+// A link that succeeds but whose flush fails refuses: the rows, the marker and the output stay (the linked name, which
+// holds correct bytes, is not claimed to be rolled back).
+TEST_CASE ("ADR-0069 Restore copies where a link is impossible, adopts a foreign name without touching shared bytes, and a failed flush refuses",
+           "[persistence][autosave][cheap][restore-carries]")
+{
+    using namespace yesdaw::persistence;
+    RestoreHooksReset hooks;
+    const auto path = makeTempBundlePath ("restore-carries");
+    const Project project = makeProject();
+    Project older = project;
+    older.assets.pop_back();
+    older.clips.pop_back();
+    auto db = makeSweptBundle (path, project, older);
+    REQUIRE (db.setUnresolvedSnapshotStamp (1).ok());
+    const AssetContentHash hash = project.assets.back().contentHash;
+    const auto name = storedAssetPathForHash (path, hash);
+    const auto snapshotName = storedAssetPathForHash (autosaveSnapshotPath (path), hash);
+    const auto good = readBytes (snapshotName);
+    const auto hashOf = [] (const std::filesystem::path& file) {
+        const auto bytes = readBytes (file);
+        return hashBytes (std::span<const std::uint8_t> (bytes.data(), bytes.size()));
+    };
+    detail::copiedFileBytesForTest = 0;
+    Project restored;
+
+    SECTION ("a link is impossible: the name is copied back")
+    {
+        autosave_detail::failLinkForTest = hash;
+        const auto result = restoreAutosaveSnapshot (db, restored);
+        INFO (result.message);
+        REQUIRE (result.ok());
+        REQUIRE (result.linked == 0u);
+        REQUIRE (result.copied == 1u);
+        REQUIRE (detail::copiedFileBytesForTest == good.size());
+        REQUIRE_FALSE (std::filesystem::equivalent (name, snapshotName));
+        REQUIRE (hashOf (name) == hash);
+        requireSameProjectSurface (restored, project);
+    }
+    SECTION ("the name holds the right bytes in another inode: left alone")
+    {
+        std::filesystem::copy_file (snapshotName, name);
+        detail::copiedFileBytesForTest = 0;
+        const auto result = restoreAutosaveSnapshot (db, restored);
+        INFO (result.message);
+        REQUIRE (result.ok());
+        REQUIRE (result.linked + result.copied == 0u);
+        REQUIRE (detail::copiedFileBytesForTest == 0u);
+        REQUIRE_FALSE (std::filesystem::equivalent (name, snapshotName));
+        REQUIRE (hashOf (name) == hash);
+    }
+    SECTION ("the name holds damaged bytes an older name shares: the name is replaced, the shared bytes stay")
+    {
+        const std::vector<std::uint8_t> damage (good.size(), 0x33);
+        writeBytes (name, std::span<const std::uint8_t> (damage.data(), damage.size()));
+        const auto olderName = path / "older-snapshot.asset";
+        std::filesystem::create_hard_link (name, olderName);
+        const auto result = restoreAutosaveSnapshot (db, restored);
+        INFO (result.message);
+        REQUIRE (result.ok());
+        REQUIRE (hashOf (name) == hash);
+        REQUIRE (readBytes (olderName) == damage);   // the bytes the older name shares were never written over
+        REQUIRE_FALSE (std::filesystem::equivalent (name, olderName));
+    }
+    SECTION ("a copy back whose flush fails refuses before the rows")
+    {
+        autosave_detail::failLinkForTest = hash;
+        autosave_detail::failRestoreFlushForTest = hash;
+        const auto result = restoreAutosaveSnapshot (db, restored);
+        INFO (result.message);
+        REQUIRE_FALSE (result.ok());
+        REQUIRE (result.assetProblem == AutosaveAssetProblem::NotPutBack);
+        REQUIRE (detail::copiedFileBytesForTest == good.size());   // the copy happened; its name was not made durable
+        Project rows;
+        REQUIRE (db.readProjectSnapshot (rows).ok());
+        requireSameProjectSurface (rows, older);
+    }
+    SECTION ("a successful link whose flush fails refuses before the rows")
+    {
+        autosave_detail::failRestoreFlushForTest = hash;
+        Project sentinel = project;
+        sentinel.tracks.front().strip.name = "flush sentinel";
+        restored = sentinel;
+        const auto result = restoreAutosaveSnapshot (db, restored);
+        INFO (result.message);
+        REQUIRE_FALSE (result.ok());
+        REQUIRE (result.status == AutosaveStatus::FilesystemError);
+        REQUIRE (result.asset == std::optional<AssetContentHash> { hash });
+        REQUIRE (result.assetProblem == AutosaveAssetProblem::NotPutBack);
+        requireSameProjectSurface (restored, sentinel);
+        Project rows;
+        REQUIRE (db.readProjectSnapshot (rows).ok());
+        requireSameProjectSurface (rows, older);
+        std::optional<std::int64_t> marker;
+        REQUIRE (db.unresolvedSnapshotStamp (marker).ok());
+        REQUIRE (marker == std::optional<std::int64_t> { 1 });
+    }
+    db = {};
+    std::filesystem::remove_all (path);
+}
+
 TEST_CASE ("ADR-0069 autosaves share immutable asset bytes and release their links on retirement",
            "[persistence][autosave][cheap][inode-identity][link-count][no-asset-bytes]")
 {

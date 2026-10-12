@@ -1422,6 +1422,68 @@ TEST_CASE ("ADR-0073 the recovery card wins over the first-run tip", "[project-l
     REQUIRE (hasDismiss());
 }
 
+// ADR-0069 §3 (cp2) through the shipped Restore action: audio imported after the last save exists only in the autosave
+// (lost writes dropped its row; the open swept its file). After the recovery question rose, that file goes missing from
+// the autosave too. Restore refuses: the status line names the audio as the missing-audio question does - from the asking
+// autosave, the only project that holds it - and the question, the unresolved marker and the open (saved) project stay as
+// they were; Discard still answers it afterwards.
+TEST_CASE ("ADR-0069 a refused Restore names the missing audio and keeps the question",
+           "[project-lifecycle][autosave][restore-named-refusal]")
+{
+    const auto directory = lifecycleScratch ("restore-named-refusal");
+    const auto bundle = directory / "song.yesdaw";
+    writeTone (directory / "tone.wav", 48'000, 0.25f);
+    writeTone (directory / "later.wav", 24'000, 0.5f);
+    {
+        yesdaw::ui::UiAppModel maker;
+        REQUIRE (maker.createProjectBundle (bundle).ok());
+        REQUIRE (maker.importAudioFile (directory / "tone.wav", decodeTone (directory / "tone.wav")).ok());
+    }
+    const std::int64_t savedStamp = stampOf (bundle);
+    std::filesystem::copy_file (bundle / "project.db", directory / "older.db");
+    yesdaw::engine::Project autosaved;
+    {
+        yesdaw::ui::UiAppModel model;
+        openThroughShippedPath (model, bundle);
+        REQUIRE (model.importAudioFile (directory / "later.wav", decodeTone (directory / "later.wav")).ok());
+        autosaved = model.project();
+        plantAutosave (bundle, autosaved);
+    }
+    for (const char* sidecar : { "project.db-wal", "project.db-shm" })
+    {
+        std::error_code removed;
+        std::filesystem::remove (bundle / sidecar, removed);
+    }
+    std::filesystem::copy_file (directory / "older.db", bundle / "project.db", std::filesystem::copy_options::overwrite_existing);
+    REQUIRE (stampOf (bundle) == savedStamp);
+    REQUIRE (autosaved.assets.size() == 2u);
+
+    yesdaw::ui::UiAppModel model;
+    openThroughShippedPath (model, bundle);
+    REQUIRE (model.context().autosaveRecoveryPending);
+    const auto marker = markerOf (bundle);
+    REQUIRE (marker.has_value());
+    const std::size_t savedTracks = model.project().tracks.size();
+    REQUIRE (model.project().assets.size() == 1u);   // the open project does not hold the later audio
+    const auto hash = autosaved.assets.back().contentHash;
+    REQUIRE_FALSE (model.project().assets.front().contentHash == hash);
+    REQUIRE (std::filesystem::remove (yesdaw::persistence::storedAssetPathForHash (yesdaw::persistence::autosaveSnapshotPath (bundle), hash)));
+
+    const auto refused = model.dispatch (UiActionId::AutosaveRecoveryRestore);
+    REQUIRE_FALSE (refused.dispatched);
+    const std::string expectedName = yesdaw::ui::describeMissingAsset (autosaved, hash, false).name;
+    INFO (model.statusLineText());
+    REQUIRE (model.statusLineText().find ("Autosave not restored: " + expectedName + " is missing from the autosave") == 0u);
+    REQUIRE (std::string (refused.state.disabledReason) == "autosave restore refused");
+    REQUIRE (model.statusLineIsError());
+    REQUIRE (model.context().autosaveRecoveryPending);                 // the question stays
+    REQUIRE (model.project().tracks.size() == savedTracks);             // the open project is unchanged
+    REQUIRE (markerOf (bundle) == marker);
+    REQUIRE (stampOf (bundle) == savedStamp);
+    REQUIRE (model.dispatch (UiActionId::AutosaveRecoveryDiscard).dispatched);   // and is still answerable
+    REQUIRE_FALSE (model.context().autosaveRecoveryPending);
+}
+
 // The question is not modal: a user can work on, Save and quit without answering. The marker keeps it asked - at the
 // next open it rises again although the bundle's stamp is now past the snapshot's - until Restore or Discard answers.
 TEST_CASE ("ADR-0068 an unanswered recovery question is asked again after edits, a Save and a restart",

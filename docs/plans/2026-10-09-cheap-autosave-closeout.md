@@ -31,33 +31,36 @@ This orders the accepted gates; it changes no ADR, threshold or owner contract.
 
 ### 1. Read recovery sources without changing them (ADR-0069 cp2)
 
-- [ ] Replace the mutable recovery selection/read path in `AutosaveRecovery.h` / `ProjectBundle.h`.
+- [x] Replace the mutable recovery selection/read path in `AutosaveRecovery.h` / `ProjectBundle.h`.
   Keep live-slot preference, valid-previous fallback and refusal of `last.tmp`; distinguish absent
   slots from invalid ones and retain the concrete validation error. Reuse the validated project,
   stamp and slot rather than opening the selected source again through normal reconciliation.
-- [ ] Preserve all database integrity, foreign-key, semantic, storage-type and canonical asset-path
+- [x] Preserve all database integrity, foreign-key, semantic, storage-type and canonical asset-path
   checks, then hash every referenced source asset before any target mutation. Recovery never uses
   cp1's write-time identity shortcut. Do not run source sweep, pending-operation reconciliation,
   write PRAGMAs or in-place migration. Legacy rows must be read through an isolated metadata view
   migrated with the existing migrations; preserve committed WAL content and pre-v35 stamp-zero
   behavior. The original DB, sidecars, assets and extra files remain untouched.
-- [ ] Gate successful and refused reads, current and legacy schemas, invalid-live/valid-previous
+- [x] Gate successful and refused reads, current and legacy schemas, invalid-live/valid-previous
   fallback, corrupt rows and missing/damaged audio. Compare source file inventories and bytes,
   including sidecars and an orphan that ordinary open would sweep. Preserve existing reliability,
   stamp and `[migration-silent-pre-v35]` gates. `inspectAssetFiles` currently rejects older schemas;
   calling it unchanged does not satisfy this unit.
+- Certified 2026-10-11: normal exact-code CI `38007691530` on `c6b2e8a` passed all ten jobs (unit 1's code from
+  `f1048a0` / `0b1c6b4` plus the diagnostic switch removed); the two earlier normal-mode Windows frame reds stay recorded
+  in STATUS and `docs/evidence/2026-10-09-windows-frame-capture.json`.
 
 ### 2. Restore links or refuse before writing (ADR-0069 cp2)
 
-- [ ] After complete source validation, carry each distinct asset: equivalent target name means
+- [x] After complete source validation, carry each distinct asset: equivalent target name means
   no change; missing target means link back and flush the name, with copy/hash fallback on link
   failure; a different inode uses existing `adoptAssetFile` behavior. Replace names, never overwrite
   shared audio bytes. Commit recovered rows and clear the unresolved marker together only after
   successful carries; publish the recovered output only on success.
-- [ ] Preserve the detailed asset reason through slot selection and
+- [x] Preserve the detailed asset reason through slot selection and
   `UiAppModel::restorePendingAutosaveSnapshot`; report it on the shared status line. Missing/damaged
   source refusal preserves target rows/files, source snapshots, output value, prompt and marker.
-- [ ] Add `[restore-after-sweep]` and `[restore-refuses-missing-asset]`: actually lose a row and let
+- [x] Add `[restore-after-sweep]` and `[restore-refuses-missing-asset]`: actually lose a row and let
   normal open sweep its file; restore must relink it and pass full validation. Put a missing or
   damaged asset after one that would require a carry to prove preflight precedes all mutations.
   Cover forced link failure, an existing different inode and preservation of older shared names.

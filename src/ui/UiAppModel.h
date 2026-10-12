@@ -24,6 +24,7 @@
 #include "persistence/PlaybackAutosave.h"
 #include "persistence/ProjectBundle.h"
 #include "ui/AutomationRide.h"   // G4.6 / ADR-0052
+#include "ui/MissingAudio.h"   // ADR-0069 §3: a refused Restore names its asset as ADR-0062 does
 #include "ui/UiActions.h"
 #include "ui/UiMixerSurface.h"   // ADR-0053: the loudness readout the header and mixer paint
 #include "ui/UiPianoRollSurface.h"
@@ -11268,6 +11269,7 @@ private:
     void clearAutosaveRecoveryPrompt() noexcept
     {
         autosaveRecovery_ = {};
+        autosaveRecoveryProject_ = {};
         context_.autosaveRecoveryPending = false;
     }
 
@@ -11284,6 +11286,7 @@ private:
             autosaved.recordingCompSegments.size(),
             snapshotStamp
         };
+        autosaveRecoveryProject_ = autosaved;   // ADR-0069 §3: a refused Restore names its asset from it
         context_.autosaveRecoveryPending = true;
         ++context_.autosaveRecoveryPromptCount;
     }
@@ -11350,7 +11353,26 @@ private:
         engine::Project restored;
         const persistence::AutosaveResult restoredResult = persistence::restoreAutosaveSnapshot (bundleDb_, restored);
         if (! restoredResult.ok())
-            return { id, { false, "autosave restore failed" }, false };
+        {
+            // ADR-0069 §3 / ADR-0035: the project is unchanged and the question stays; the status line says why, naming
+            // the asset as the missing-audio question does (ADR-0062: its first clip's name, else "Asset <hex>").
+            const std::string why = restoredResult.message.empty() ? restoredResult.bundle.message : restoredResult.message;
+            std::string text = "Autosave not restored: ";
+            if (restoredResult.asset)
+            {
+                using Problem = persistence::AutosaveAssetProblem;
+                text += describeMissingAsset (autosaveRecoveryProject_, *restoredResult.asset,
+                                              restoredResult.assetProblem == Problem::Damaged).name;
+                text += restoredResult.assetProblem == Problem::Damaged   ? " is damaged in the autosave"
+                      : restoredResult.assetProblem == Problem::NotPutBack ? " could not be put back into the project"
+                                                                           : " is missing from the autosave";
+                text += " (" + why + ")";
+            }
+            else
+                text += why;
+            reportStatus (text, true);
+            return { id, { false, "autosave restore refused" }, false };   // the detail is on the status line
+        }
 
         const persistence::AutosaveResult discardedResult = persistence::discardAutosaveSnapshot (bundlePath);
         if (! discardedResult.ok())
@@ -12937,6 +12959,7 @@ private:
         pendingMidiPlacement_ = {};
         recordingCompSelection_ = {};
         autosaveRecovery_ = {};
+        autosaveRecoveryProject_ = {};
         syncProjectEditContext();
     }
 
@@ -13800,6 +13823,7 @@ private:
     std::int64_t recordCountInEndFrame_ = 0;
     bool deterministicRecordCountInPending_ = false;
     UiAutosaveRecoveryPrompt autosaveRecovery_;
+    engine::Project autosaveRecoveryProject_;   // the asking autosave, as the question read it (names a refused asset)
     int exportOutcomes_ = 0;                        // SS-6: finished export jobs (any outcome)
     std::uint32_t exportPaceMilliseconds_ = 0;      // SS-6: the drive's pacing seam (0 = off)
     std::filesystem::path lastExportDestination_;   // SS-6: the destination of the job last started

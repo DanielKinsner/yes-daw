@@ -8,6 +8,39 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-11 — Close-out unit 2: Restore links swept audio back, or refuses before writing and says which
+
+**What changes:** when an autosave is restored after lost writes, audio whose name the bundle's open swept away is put
+back by a hard link to the autosave's file (no audio bytes copied; a copy, hashed, only where a link is impossible);
+a name holding other bytes keeps ADR-0062's adoption (hash, temporary, rename - shared bytes never overwritten). Every
+autosave asset is still validated in full before any name changes, and the rows and the unresolved marker are written
+together only after every name is back. If an asset is missing or damaged in the autosave (or cannot be put back),
+Restore changes nothing, the recovery question stays, and the status line names it the way the missing-audio question
+does: `Autosave not restored: <clip name> is missing from the autosave (<detail>)`. **Unit 1 certified:** its normal
+exact-code CI (`c6b2e8a`, run 38007691530) passed all ten jobs; ticked in the close-out checklist.
+**Gates:** `[restore-after-sweep]` (a real lost-writes bundle swept by its own open: one name linked back, zero bytes
+copied, recovery's hash reads only, the marker answered, an ordinary reopen hashes everything and passes);
+`[restore-refuses-missing-asset]` (missing and damaged: refused naming the asset, and the earlier asset that needed a
+carry is still absent - validation precedes every name change; bundle, snapshot, rows, marker and output unchanged);
+`[restore-carries]` (copy fallback with its bytes counted; a whole foreign name left alone; a damaged name shared with an
+older name replaced without touching the shared bytes; a link's or a copy's failed flush refuses before the rows);
+`[restore-named-refusal]` through the shipped action (audio that only the autosave holds goes missing: named from the
+asking autosave, question kept, marker and project unchanged, Discard still answers).
+**Critic (separate, Opus 5.5):** one blocker, fixed - the new result field lacked a default initializer, which GCC and
+Clang reject under `-Wextra -Werror` (MSVC is silent; the local Clang check confirmed all 75 findings were that one);
+in - a name replaced by adoption is flushed and makes the directory flush run, the app gate's missing audio exists only
+in the autosave (so only the asking autosave can name it), a copy-back's failed flush is gated, the after-sweep marker
+check is no longer vacuous, attach drops the asking autosave's copy. Parked: when both slots fail, only the first
+slot's asset is named; a valid previous slot is still restored when the live slot is missing an asset (unchanged).
+**Local:** fresh full build, ctest **442/442**, Clang clean on every changed translation unit; eight mutations bite
+(copy instead of link, validation skipped, flush failure ignored, a foreign name overwritten in place, the marker cleared
+before the carries, the name dropped from the status line, the name taken from the open project, the question cleared on
+refusal). **Not run:** the real-app drive batch - this change reaches only Restore's carry and refusal paths, which no
+drive exercises until writes are on (unit 4/5's writes-on proof runs the full batch and SS-6); no layout changed, so no
+new visual rubric. **Next:** exact-code CI on this commit; then unit 3 (the probe's write-cost fields).
+**Found on the way:** this machine's `build-ci` had been deleted (today, not by this session) - reconfigured from the
+`ci` preset; local-only evidence STATUS cites under `build-ci/` from 10-09 (CI logs, drive shots) is gone here.
+
 ## 2026-10-11 — SoundCraft reviewed: its design and checks are taken, not its code
 
 **Now:** [storytold/soundcraft](https://github.com/storytold/soundcraft) (Rust/egui, 4 days old, a Pro Tools clone) was

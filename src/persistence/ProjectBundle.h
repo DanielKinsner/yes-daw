@@ -538,6 +538,7 @@ inline bool pluginBlacklistKeyIsValid (PluginStateFormat format,
 
 #if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
 inline thread_local std::uint64_t assetHashCallsForTest = 0;
+inline thread_local std::uint64_t copiedFileBytesForTest = 0;   // bytes copyFileBytes actually wrote (not hash reads)
 #endif
 
 inline BundleResult hashFile (const std::filesystem::path& path, engine::AssetContentHash& out)
@@ -646,6 +647,9 @@ inline BundleResult copyFileBytes (const std::filesystem::path& source, const st
             output.write (buffer.data(), read);
             if (! output)
                 return BundleResult { BundleStatus::FilesystemError, SQLITE_OK, 0, "failed while writing temp asset file: " + utf8Path (destination) };
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+            copiedFileBytesForTest += static_cast<std::uint64_t> (read);
+#endif
         }
     }
 
