@@ -242,6 +242,20 @@ inline void drawMeterWithHold (juce::Graphics& g,
     }
 }
 
+// UI correctness pass unit 7: the master scale's label for mark `markIndex` (UiTheme::Layout::mixerMasterScaleDb) -
+// one law for the paint and the probe's mixer.master.scale.<dB>. The labels are evenly spaced down the scale column.
+[[nodiscard]] inline juce::Rectangle<int> masterScaleLabelBounds (juce::Rectangle<int> scaleColumn,
+                                                                 juce::Rectangle<int> meterColumn,
+                                                                 std::size_t markIndex) noexcept
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    juce::ignoreUnused (meterColumn);
+    const float fraction = static_cast<float> (markIndex) / static_cast<float> (L::mixerMasterScaleDb.size() - 1u);
+    const int y = scaleColumn.getY()
+                + juce::roundToInt (fraction * static_cast<float> (scaleColumn.getHeight() - L::mixerMasterScaleLabelHeight));
+    return { scaleColumn.getX(), y, scaleColumn.getWidth(), L::mixerMasterScaleLabelHeight };
+}
+
 inline void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)
 {
     g.setColour (yesdaw::ui::UiTheme::Color::meterTrack());

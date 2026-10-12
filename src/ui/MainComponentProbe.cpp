@@ -426,6 +426,9 @@ juce::var MainComponent::buildProbeLayout()
                 masterContent.withTrimmedBottom (yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset));
             put ("mixer.master.scale", columns.scale);
             put ("mixer.master.meters", columns.meters);
+            for (std::size_t i = 0; i < yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb.size(); ++i)   // unit 7: each label
+                put ("mixer.master.scale." + juce::String (yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb[i]),
+                     masterScaleLabelBounds (columns.scale, columns.meters, i));
         }
         for (int strip = 0; strip < stripTotal; ++strip)
         {

@@ -2477,24 +2477,9 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
     g.setColour (yesdaw::ui::UiTheme::Color::mutedText());   // ADR-0063: the scale's numbers are text
     g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
         yesdaw::ui::UiTheme::Type::tiny));
-    for (std::size_t i = 0;
-         i < yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb.size();
-         ++i)
-    {
-        const float fraction = static_cast<float> (i)
-                             / static_cast<float> (
-                                   yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb.size() - 1u);
-        const int y = scale.getY()
-                    + juce::roundToInt (fraction * static_cast<float> (
-                          scale.getHeight()
-                          - yesdaw::ui::UiTheme::Layout::mixerMasterScaleLabelHeight));
+    for (std::size_t i = 0; i < yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb.size(); ++i)
         g.drawText (juce::String (yesdaw::ui::UiTheme::Layout::mixerMasterScaleDb[i]),
-                    juce::Rectangle<int> {
-                        scale.getX(), y, scale.getWidth(),
-                        yesdaw::ui::UiTheme::Layout::mixerMasterScaleLabelHeight },
-                    juce::Justification::centredRight,
-                    false);
-    }
+                    masterScaleLabelBounds (scale, meterColumns.meters, i), juce::Justification::centredRight, false);
 
     auto meterPair = meterColumns.meters;
     auto leftMeter = meterPair.removeFromLeft (
