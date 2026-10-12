@@ -158,6 +158,7 @@ public:
     [[nodiscard]] juce::Rectangle<int> harnessPaintedPanKnobBounds (int stripIndex) const;
 
     [[nodiscard]] int harnessPaintedFaderThumbY (int stripIndex, float linearGain) const;
+    [[nodiscard]] juce::String harnessPaintedFaderReadoutText (int stripIndex) const;
 
     // ---- G0.1 State probe ------------------------------------------------------------------
     // One JSON document of what the shell is right now: transport, selection, focus, view,
@@ -1593,6 +1594,19 @@ private:
     };
     PaintedSendDragPreview paintedSendDragPreview;
     int paintedFaderDragStrip = -1;   // G4.1 cp2: the strip whose painted fader / pan is mid-drag (the press begins the ride)
+    // UI correctness pass unit 3: the gain that drag is riding. In a Touch / Latch / Write ride the model keeps the saved
+    // gain while the ride buffers its points (ADR-0052: the riding control's live value wins), so this is what the strip
+    // shows, steps from and releases at. Empty when no fader drag is open.
+    std::optional<float> paintedFaderDragGain;
+    // A strip's fader gain as the strip shows it: the ridden gain for the strip under a drag, else its saved gain.
+    [[nodiscard]] float paintedStripFaderGain (std::size_t stripIndex, float savedGain) const noexcept
+    {
+        return paintedFaderDragGain.has_value() && paintedFaderDragStrip == static_cast<int> (stripIndex)
+                   ? *paintedFaderDragGain
+                   : savedGain;
+    }
+    // The text a strip's painted dB readout shows (the paint and the harness seam both read it).
+    [[nodiscard]] juce::String paintedFaderReadoutText (std::size_t stripIndex, float savedGain) const;
     int paintedPanDragStrip = -1;
     std::size_t lastVisibleFxParamRows = 0;
     juce::TextButton trackAddButton;

@@ -858,7 +858,7 @@ void MainComponent::drawTrackInspector (juce::Graphics& g, juce::Rectangle<int> 
     auto rows = area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionTop);
     std::vector<juce::String> rowText;
     rowText.push_back ("Instrument");   // G3.1: the chooser + Edit ride this row's right
-    rowText.push_back ("Fader   " + dbReadoutText (track.strip.linearGain));
+    rowText.push_back ("Fader   " + dbReadoutText (paintedStripFaderGain (static_cast<std::size_t> (lane), track.strip.linearGain)));
     const int panPercent = juce::roundToInt (std::abs (track.strip.pan) * 100.0f);
     rowText.push_back ("Pan     "
                        + (panPercent == 0 ? juce::String ("C")

@@ -712,7 +712,8 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     trackListInput.volumeValueProvider = [this] (int row) {
         const auto& tracks = appModel.project().tracks;
         return row >= 0 && row < static_cast<int> (tracks.size())
-                   ? juce::jlimit (0.0f, 1.0f, tracks[static_cast<std::size_t> (row)].strip.linearGain)
+                   ? juce::jlimit (0.0f, 1.0f, paintedStripFaderGain (static_cast<std::size_t> (row),   // unit 3: as ridden
+                                                                      tracks[static_cast<std::size_t> (row)].strip.linearGain))
                    : 0.0f;
     };
     trackListInput.onRowDoubleClicked = [this] (int row) {
@@ -2458,7 +2459,8 @@ juce::Rectangle<int> MainComponent::leftRailPanelBounds() const
 // Live gain readout in dB (B31): 20*log10(linear gain), "-inf dB" at silence.
 juce::String MainComponent::dbReadoutText (double linearGain)
 {
-    if (linearGain <= 0.0)
+    // M6: a bare "0.0" is not a level. Silence - at or below the painted readout's floor (-80 dB) - reads as -inf.
+    if (linearGain <= static_cast<double> (yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor))
         return "-inf dB";
 
     return juce::String (20.0 * std::log10 (linearGain), 1) + " dB";

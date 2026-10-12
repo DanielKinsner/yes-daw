@@ -201,8 +201,8 @@ little behaviors — shortcuts, nudges, resets, selections. This is the canonica
     `FineDragSlider` excluded its `LinearBar` style from the day this landed, so Shift did nothing
     there and no gate exercised it. Now included and gated (`[tempo-press][fine-drag]`).
 31. [x] **dB readout** — landed in `6e95696` (exact-head run `31570461464`, nine jobs green).
-    A shared click-transparent label shows `20*log10(gain)` to one decimal (`-inf dB` at exact
-    silence) above the mixer fader or rail VOL while its drag is held, live-updating through the
+    A shared click-transparent label shows `20*log10(gain)` to one decimal (`-inf dB` at or below
+    -80 dB since 2026-10-12, the painted strip readout's floor) above the mixer fader or rail VOL while its drag is held, live-updating through the
     real drag/value paths (`FineDragSlider` fires the drag callbacks on its fine path; the rail
     minis gained a gesture-end signal). Honestly transient view state. The shipped-boundary gate
     proves hidden-at-rest, no-show on programmatic changes, exact live text, `-inf` at zero, and

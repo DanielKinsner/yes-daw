@@ -225,6 +225,8 @@ struct MainComponentSnapshot
 [[nodiscard]] int mainComponentPaintedFaderThumbY (const juce::Component& component,
                                                    int stripIndex,
                                                    float linearGain);
+// UI correctness pass unit 3: the text a strip's painted dB readout shows now (what the paint draws).
+[[nodiscard]] juce::String mainComponentPaintedFaderReadoutText (const juce::Component& component, int stripIndex);
 
 // N3: the painted mixer-strip lane rect (shell coordinates) for a track/bus strip, and the
 // master pane's rect — both come from the SAME single law, so master is always the next

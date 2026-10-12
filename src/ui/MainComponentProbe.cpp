@@ -278,6 +278,17 @@ int MainComponent::harnessPaintedFaderThumbY (int stripIndex, float linearGain) 
     return rail.isEmpty() ? 0 : mixerFaderThumbYForGain (rail, linearGain);
 }
 
+juce::String MainComponent::harnessPaintedFaderReadoutText (int stripIndex) const
+{
+    const auto surface = currentMixerSurface();
+    const auto strip = static_cast<std::size_t> (juce::jmax (0, stripIndex));
+    if (strip < surface.tracks.size())
+        return paintedFaderReadoutText (strip, surface.tracks[strip].linearGain);
+    if (strip - surface.tracks.size() < surface.buses.size())
+        return paintedFaderReadoutText (strip, surface.buses[strip - surface.tracks.size()].linearGain);
+    return {};
+}
+
 juce::var MainComponent::probeRect (juce::Rectangle<int> rect)
 {
     juce::Array<juce::var> values;
@@ -428,9 +439,10 @@ juce::var MainComponent::buildProbeLayout()
             put (base + ".fader", harnessPaintedFaderRailBounds (strip));
             // G4 exit: the knob a press must land on (the rail itself does not take a press).
             put (base + ".fader.thumb", paintedFaderThumbForLane (paintedMixerLaneBounds (static_cast<std::size_t> (strip)),
-                                                                 static_cast<std::size_t> (strip) < surface.tracks.size()
-                                                                     ? surface.tracks[static_cast<std::size_t> (strip)].linearGain
-                                                                     : surface.buses[static_cast<std::size_t> (strip) - surface.tracks.size()].linearGain,
+                                                                 paintedStripFaderGain (static_cast<std::size_t> (strip),
+                                                                     static_cast<std::size_t> (strip) < surface.tracks.size()
+                                                                         ? surface.tracks[static_cast<std::size_t> (strip)].linearGain
+                                                                         : surface.buses[static_cast<std::size_t> (strip) - surface.tracks.size()].linearGain),
                                                                  stripIoRows (static_cast<std::size_t> (strip))));
             put (base + ".pan", harnessPaintedPanKnobBounds (strip));
             put (base + ".meter", paintedMeterBoundsForLane (paintedMixerLaneBounds (static_cast<std::size_t> (strip)),
@@ -1098,6 +1110,7 @@ juce::String MainComponent::buildStateProbeJson()
             strip->setProperty ("soloSafe", state.soloSafe);   // G4 exit (SS-5): the reverb bus is solo-safe
             strip->setProperty ("sidechain", state.sidechainVisible);   // G4.4: the "SC" badge as painted
             strip->setProperty ("linearGain", state.linearGain);   // G4.0b: the fader a keyboard drive adjusts
+            strip->setProperty ("readout", paintedFaderReadoutText (i, state.linearGain));   // UI pass unit 3: as painted
             // G4.1 cp2: the painted inserts and sends, as the strip reads them.
             juce::Array<juce::var> inserts;
             for (const yesdaw::ui::UiMixerFxSlotReadout& insert : state.fxSlots)
@@ -1903,6 +1916,14 @@ int mainComponentPaintedFaderThumbY (const juce::Component& component, int strip
         return mainComponent->harnessPaintedFaderThumbY (stripIndex, linearGain);
 
     return 0;
+}
+
+juce::String mainComponentPaintedFaderReadoutText (const juce::Component& component, int stripIndex)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->harnessPaintedFaderReadoutText (stripIndex);
+
+    return {};
 }
 
 juce::Rectangle<int> mainComponentPaintedMixerStripBounds (const juce::Component& component, int stripIndex)

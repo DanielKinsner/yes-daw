@@ -801,8 +801,11 @@ void MainComponent::collectPaintedControls (std::vector<ShellControl>& controls)
             }
             {
                 PaintedControl volume;
-                volume.currentValue = [this, row] {   // the strip's true gain (the rail paints it capped at unity)
-                    return railRowExists (row) ? static_cast<double> (appModel.project().tracks[static_cast<std::size_t> (row)].strip.linearGain) : 1.0;
+                volume.currentValue = [this, row] {   // the strip's true gain (the rail paints it capped at unity), as ridden
+                    return railRowExists (row)
+                               ? static_cast<double> (paintedStripFaderGain (static_cast<std::size_t> (row),
+                                                                             appModel.project().tracks[static_cast<std::size_t> (row)].strip.linearGain))
+                               : 1.0;
                 };
                 volume.setValue = [this, row] (double value, bool ended) {
                     if (railRowExists (row) && trackListInput.onVolumeEdited)   // a deleted row only closes the gesture
@@ -955,6 +958,7 @@ void MainComponent::collectPaintedMixerControls (std::vector<ShellControl>& cont
                 {
                     // The strip went with its track or bus: only the drag's bracket closes (no edit, no empty step).
                     paintedFaderDragStrip = -1;
+                    paintedFaderDragGain.reset();
                     endAutomationTouchRideIfActive();
                     appModel.endStripGesture();
                     hideDragDbReadout();

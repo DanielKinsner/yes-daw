@@ -147,8 +147,8 @@ void MainComponent::configureMixerControls()
         const std::size_t stripTotal = trackCount + surface.buses.size();
         for (std::size_t i = 0; i < stripTotal; ++i)
         {
-            const float gain = i < trackCount ? surface.tracks[i].linearGain
-                                              : surface.buses[i - trackCount].linearGain;
+            const float gain = paintedStripFaderGain (i, i < trackCount ? surface.tracks[i].linearGain
+                                                                        : surface.buses[i - trackCount].linearGain);
             if (paintedFaderThumbForLane (paintedMixerLaneBounds (i), gain, stripIoRows (i))
                     .expanded (0, yesdaw::ui::UiTheme::Layout::trackListLevelHitSlopX)
                     .contains (positionInShell))
@@ -196,6 +196,13 @@ void MainComponent::configureMixerControls()
     // they carry what those did: one undo step per drag, the dB readout, and the Touch / Latch ride
     // (R15 / N5 — an armed ride buffers the points and commits ONE lane edit on release).
     mixerStripsInput.onFaderDragged = [this, retargetMixerStrip] (int stripIndex, float linearGain, bool ended) {
+        // UI correctness pass unit 3: the gain is the rail's (a Shift fine-drag can step past either end), so what the strip
+        // shows, the transient reads, the ride writes and the model saves are one value.
+        linearGain = juce::jlimit (0.0f, static_cast<float> (yesdaw::ui::UiTheme::Layout::mixerFaderSliderMax), linearGain);
+        // Another strip's ride still open - a keyboard adjustment this press interrupts - releases at its own ridden gain
+        // first: JUCE runs this press before the shell's listener, which would close it at the saved gain.
+        if (paintedFaderDragStrip >= 0 && paintedFaderDragStrip != stripIndex && controlGestureOpen)
+            closeControlGesture (true);
         const bool pressed = paintedFaderDragStrip != stripIndex;
         appModel.beginStripGesture();
         if (retargetMixerStrip (stripIndex))
@@ -206,6 +213,7 @@ void MainComponent::configureMixerControls()
                 beginAutomationTouchRideIfArmed (yesdaw::engine::AutomationTargetRole::TrackFader,
                                                  yesdaw::engine::FaderNode::kGainParameterId);
             }
+            paintedFaderDragGain = std::max (0.0f, linearGain);   // UI correctness pass unit 3: what the strip shows
             if (automationTouchRideActive)
                 recordAutomationTouchSample (automationNormalizedForFaderGain (linearGain));
             else
@@ -217,6 +225,7 @@ void MainComponent::configureMixerControls()
         if (ended)
         {
             paintedFaderDragStrip = -1;
+            paintedFaderDragGain.reset();
             endAutomationTouchRideIfActive();
             appModel.endStripGesture();
             hideDragDbReadout();
@@ -350,9 +359,9 @@ void MainComponent::configureMixerControls()
         const std::size_t trackCount = surface.tracks.size();
         const auto stripIndex = static_cast<std::size_t> (juce::jmax (0, strip));
         if (stripIndex < trackCount)
-            return surface.tracks[stripIndex].linearGain;
+            return paintedStripFaderGain (stripIndex, surface.tracks[stripIndex].linearGain);
         if (stripIndex - trackCount < surface.buses.size())
-            return surface.buses[stripIndex - trackCount].linearGain;
+            return paintedStripFaderGain (stripIndex, surface.buses[stripIndex - trackCount].linearGain);
         return 1.0f;
     };
     mixerStripsInput.panForStrip = [this] (int strip) {
@@ -1462,6 +1471,12 @@ float MainComponent::mixerFaderFractionForGain (float linearGain) noexcept
     return span > 0.0f ? std::clamp (linearGain / span, 0.0f, 1.0f) : 0.0f;
 }
 
+juce::String MainComponent::paintedFaderReadoutText (std::size_t stripIndex, float savedGain) const
+{
+    // One dB text law for the strip readout, the transient readout and the accessible value (ADR-0066).
+    return dbReadoutText (paintedStripFaderGain (stripIndex, savedGain));
+}
+
 float MainComponent::mixerFaderFractionForDb (float db) noexcept
 {
     return mixerFaderFractionForGain (std::pow (10.0f, db / 20.0f));
@@ -2279,7 +2294,7 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
             }
 
             const int thumbY =
-                mixerFaderThumbYForGain (rail, state.linearGain)
+                mixerFaderThumbYForGain (rail, paintedStripFaderGain (stripIndex, state.linearGain))
                 - yesdaw::ui::UiTheme::Layout::mixerPaintedThumbCenterInset;
             auto thumb = juce::Rectangle<int> (
                 rail.getX() - yesdaw::ui::UiTheme::Layout::mixerPaintedThumbWidthOverhang / 2,
@@ -2311,14 +2326,8 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
         g.setColour (kText);
         g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
             yesdaw::ui::UiTheme::Type::caption));
-        const float gainDb = 20.0f * std::log10 (std::max (
-            yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor,
-            state.linearGain));
-        // M6: a bare "0.0" is not a level. Silence reads as -inf, everything else carries dB.
         // G4.1: fitted, so a narrow strip's readout shrinks instead of clipping.
-        g.drawFittedText (state.linearGain <= yesdaw::ui::UiTheme::Mixer::paintedReadoutGainFloor
-                              ? juce::String ("-inf dB")
-                              : juce::String (gainDb, 1) + " dB",
+        g.drawFittedText (paintedFaderReadoutText (stripIndex, state.linearGain),
                           readout,
                           juce::Justification::centred,
                           1);

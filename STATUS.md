@@ -8,6 +8,30 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 3: a fader ride shows and writes the value being ridden
+
+**What changes:** in a Touch / Latch / Write ride the model keeps the saved gain while the ride buffers its points, but
+the strip's thumb, its dB readout, its accessible value, the fader hit-test and the probe all read the saved gain - so
+mid-ride the strip said 0.0 dB beside a -1.3 dB transient readout, and keyboard rides stepped from and released at the
+saved gain, writing the wrong automation. The gain being ridden is now remembered for the strip under the drag
+(cleared on release and when the strip goes) and every reader shows it (ADR-0052: the riding control's live value
+wins). Keyboard rides now build up and release at the held value. The strip readout, the transient readout and the
+accessible value share one dB text (ADR-0066), with the painted readout's -80 dB floor as -inf for all three. **Gate
+`[mixer-states][ride]`**, red before (strip 0.0 dB vs transient -1.3 dB): a held pointer ride shows the ridden text on
+the strip, the transient and the seam, the saved gain stays 1.0, the cap follows the pointer and nothing stale remains
+after release; a keyboard ride (Tab to the fader, Enter, Up x3, Enter) reads 3.0 dB on the strip, the transient and the
+accessible value and commits a last point that maps back to exactly +3 dB. The rail's VOL and the inspector's Fader
+row for the same track show the ridden gain too, the gain is clamped to the rail's range once, and the probe publishes
+each strip's painted readout (`mixer.strips[i].readout`) for drives. **Critic (Opus 5.5):** no blocker; in - a pointer
+press on another strip during a keyboard ride released that ride at the saved gain (the press runs before the shell
+closes the gesture): the open ride now releases at its ridden gain first, gated (+2 dB written); the rail / inspector
+readers; the accessible-value and rail checks mid-ride; the clamp. Four mutations bite (the helper showing the saved
+gain, the ridden gain outliving the release, no cross-strip close, the rail VOL reading the saved gain). Parked (old
+behaviour): the drag state follows a strip index if a track is added or removed mid-drag; Esc during a keyboard Touch
+ride saves the pass ending at the original value rather than discarding it. **Local:** full build, ctest 443/443, Clang
+clean. **Drive:** SS7's sweep-drag shots in the batched run (the sweep drags sideways, not a ride; the probe's readout
+field makes a ride drive step possible). **Next:** unit 4 (the playhead's invented number and the label it covers).
+
 ## 2026-10-12 — UI correctness pass unit 2b: a tempo drag is one undo step
 
 **What changes:** every move of a tempo-cell drag wrote its own undo step (a 50 px drag left about thirty; feel law 6:

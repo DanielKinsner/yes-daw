@@ -26,6 +26,7 @@
 #include <juce_gui_extra/juce_gui_extra.h>
 
 #include "engine/nodes/EqNode.h"
+#include "engine/nodes/FaderNode.h"
 #include "engine/Time.h"
 #include "io/WavFile.h"
 #include "persistence/ProjectBundle.h"
@@ -29992,6 +29993,120 @@ TEST_CASE ("another shown track's last lane offers + Lane; its chooser lane star
     REQUIRE (chooser->getText() == "Pan");
     REQUIRE (findChildWithComponentId (*shell, "timeline.automation.lane.0.0") != nullptr);
     REQUIRE (findChildWithComponentId (*shell, "timeline.automation.canvas")->getY() >= findChildWithComponentId (*shell, "timeline.automation.lane.0.0")->getBottom());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// UI correctness pass unit 3 (rubric FIX 14, first part): during a Touch ride the model keeps the saved gain while the ride
+// buffers its points, but the strip shows, steps from and releases at the gain being ridden. Its own readout, the
+// transient readout and the accessible value read one text (ADR-0066), and the cap moves with the pointer.
+TEST_CASE ("a fader ride shows and writes the value being ridden", "[ui][input][shell][mixer-states][ride]")
+{
+    const auto bundlePath = makeTempBundlePath ("mixer-ride-shows");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+    auto* modeChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.automation.mode"));
+    REQUIRE (modeChooser != nullptr);
+    modeChooser->setSelectedId (2, juce::sendNotificationSync);   // Touch
+    REQUIRE (readProjectSnapshot (bundlePath).automationMode == yesdaw::engine::AutomationMode::Touch);
+    clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    auto* readout = dynamic_cast<juce::Label*> (findChildWithComponentId (*shell, "shell.drag.db"));
+    REQUIRE (readout != nullptr);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);   // a second strip, for the cross-strip leg
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
+    mouseDownAt (*strips, paintedStripCentre (*strips, 0, 3));
+    clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
+    REQUIRE (snapshotMainComponent (*shell).context.isPlaying);
+    (void) renderMainComponentPlayback (*shell, 4'800, 128);
+
+    const auto capOf = [&shell] {
+        const juce::var t = probeRoot (*shell)["layout"]["mixer.strip.0.fader.thumb"];
+        REQUIRE (t.isArray());
+        return juce::Rectangle<int> { static_cast<int> (t[0]), static_cast<int> (t[1]), static_cast<int> (t[2]), static_cast<int> (t[3]) };
+    };
+
+    // A pointer ride, held: the strip shows the gain being ridden; the saved gain stays until the ride commits.
+    const juce::Rectangle<int> capAtUnity = capOf();
+    const juce::Point<int> unity = strips->getLocalPoint (shell.get(), paintedFaderPoint (*shell, 0, 1.0f));
+    const juce::Point<int> lower = unity.translated (0, 25);
+    beginDragFromTo (*strips, unity, lower);
+    (void) renderMainComponentPlayback (*shell, 4'800, 128);
+    REQUIRE (readout->isVisible());
+    const juce::String transient = readout->getText();
+    REQUIRE (transient != "0.0 dB");
+    REQUIRE (yesdaw::ui::mainComponentPaintedFaderReadoutText (*shell, 0) == transient);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.linearGain == 1.0f);
+    REQUIRE (capOf().getCentreY() - capAtUnity.getCentreY() >= 20);   // the cap followed the pointer down
+    REQUIRE (probeRoot (*shell)["mixer"]["strips"][0]["readout"].toString() == transient);
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "mixer.strip.0.fader"));
+    REQUIRE (controlTargetOf (*shell).value == transient);   // what a screen reader hears, mid-ride
+    REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "rail.row.0.volume"));
+    REQUIRE (controlTargetOf (*shell).value == transient);   // the rail's VOL for the same track agrees
+    releaseDragAt (*strips, unity, lower);
+    REQUIRE_FALSE (readout->isVisible());
+    REQUIRE (yesdaw::ui::mainComponentPaintedFaderReadoutText (*shell, 0) == "0.0 dB");   // no stale preview after the ride
+    REQUIRE (capOf() == capAtUnity);
+    (void) renderMainComponentPlayback (*shell, 9'600, 128);
+
+    // A keyboard ride: each step builds on the gain being ridden, and the release writes it.
+    const auto order = yesdaw::ui::mainComponentControlTraversal (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::tabKey)));
+    for (std::size_t i = 0; i < order.size() && yesdaw::ui::mainComponentControlTarget (*shell).id != "mixer.strip.0.fader"; ++i)
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::tabKey)));
+    REQUIRE (yesdaw::ui::mainComponentControlTarget (*shell).id == "mixer.strip.0.fader");
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));   // begin the adjustment
+    for (int step = 0; step < 3; ++step)
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
+        (void) renderMainComponentPlayback (*shell, 4'800, 128);
+    }
+    REQUIRE (readout->getText() == "3.0 dB");
+    REQUIRE (yesdaw::ui::mainComponentPaintedFaderReadoutText (*shell, 0) == "3.0 dB");
+    REQUIRE (controlTargetOf (*shell).value == "3.0 dB");   // what a screen reader hears
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));   // confirm: the ride's release
+
+    // The written lane's last point for track 0's fader, as the gain it plays.
+    const auto lastFaderGain = [&bundlePath] {
+        const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+        const yesdaw::engine::AutomationLaneData* lane = nullptr;
+        for (const auto& candidate : project.automationLanes)
+            if (candidate.role == yesdaw::engine::AutomationTargetRole::TrackFader && candidate.ownerEntity == project.tracks.front().id)
+                lane = &candidate;
+        REQUIRE (lane != nullptr);
+        REQUIRE_FALSE (lane->points.empty());
+        const auto last = std::max_element (lane->points.begin(), lane->points.end(),
+                                            [] (const auto& a, const auto& b) { return a.tick < b.tick; });
+        return static_cast<double> (yesdaw::engine::FaderNode::linearGainForNormalizedEvent (last->value));
+    };
+    REQUIRE (lastFaderGain() == Catch::Approx (std::pow (10.0, 3.0 / 20.0)).epsilon (1e-4));   // +3 dB, from first principles
+
+    // A keyboard ride a pointer press on another strip interrupts still releases at its own ridden gain (+2 dB).
+    (void) renderMainComponentPlayback (*shell, 9'600, 128);
+    REQUIRE (yesdaw::ui::mainComponentControlTarget (*shell).id == "mixer.strip.0.fader");
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+    for (int step = 0; step < 2; ++step)
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::upKey)));
+        (void) renderMainComponentPlayback (*shell, 4'800, 128);
+    }
+    REQUIRE (yesdaw::ui::mainComponentPaintedFaderReadoutText (*shell, 0) == "2.0 dB");
+    const juce::Point<int> otherCap = strips->getLocalPoint (shell.get(), paintedFaderPoint (*shell, 1, 1.0f));
+    mouseDownAt (*strips, otherCap);
+    strips->mouseUp (makeMouseEvent (*strips, otherCap, otherCap, false));
+    REQUIRE (lastFaderGain() == Catch::Approx (std::pow (10.0, 2.0 / 20.0)).epsilon (1e-4));
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

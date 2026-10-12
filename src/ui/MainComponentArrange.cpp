@@ -1327,7 +1327,7 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
             yesdaw::ui::UiTheme::Tone::trackSliderRailAlpha));
         g.fillRoundedRectangle (level.toFloat(), yesdaw::ui::UiTheme::Radius::pill);
         const int liveHeight = juce::roundToInt (
-            static_cast<float> (level.getHeight()) * projectTrack.strip.linearGain);
+            static_cast<float> (level.getHeight()) * paintedStripFaderGain (i, projectTrack.strip.linearGain));   // unit 3: as ridden
         g.setColour (trackColour.withAlpha (yesdaw::ui::UiTheme::Tone::trackSliderFillAlpha));
         g.fillRoundedRectangle (
             level.withTop (level.getBottom() - liveHeight).toFloat(),

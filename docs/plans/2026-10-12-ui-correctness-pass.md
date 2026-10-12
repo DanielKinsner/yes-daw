@@ -112,7 +112,7 @@ readout, its accessible value and the Shift anchor all read the saved gain. So t
 while the transient readout shows -0.1. Keyboard rides start every step from the saved gain and
 release at it, so they write the wrong automation.
 
-- [ ] **Fix.**
+- [x] **Fix.**
   - Add `paintedFaderDragGain` beside `paintedFaderDragStrip`.
   - Set it only in the `retargetMixerStrip` success branch, with the gain clamped to >= 0. Clear it
     wherever the strip index resets: on release, and in the deleted-strip branch
@@ -124,7 +124,7 @@ release at it, so they write the wrong automation.
   - Add the harness seam `mainComponentPaintedFaderReadoutText`.
   - Record in STATUS that keyboard rides now build up and release at the held value (ADR-0052:
     the riding control's live value wins).
-- [ ] **Gate.** `tests/ui_input_tests.cpp`, `[mixer-states][ride]`.
+- [x] **Gate.** `tests/ui_input_tests.cpp`, `[mixer-states][ride]`.
   - **Pointer Touch ride, held:**
     - The transient readout does not read "0.0 dB".
     - Seam text == transient text == the fader's accessible value text.
