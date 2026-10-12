@@ -1065,9 +1065,15 @@ incomplete handoff. This does not require Dan to review code or judge the app.
 **Standing exception:** macOS `YesDawTimelineGpuCheck` failing only its sustained-frame budget,
 with all other jobs/tests passing, is the owner-accepted runner-floor issue. No reruns, no widened
 threshold, no exception for crashes, wrong images or other failing tests. Preserve raw numbers,
-CI run and local real-app/frame evidence. Re-evaluate at G6.2 on a measured runner/machine baseline
-or earlier if the renderer/test/runner changes or the local check fails; no automatic renewal or
-extension to a different failure. Missing SS-1–SS-3 proof is **not** covered by this exception.
+CI run and local real-app/frame evidence. **Renewed by Dan on 2026-10-12** after the G6.2
+re-measurement (`docs/evidence/2026-10-g62-gpu-baseline.md`: his machine 4.1–4.5 ms sustained in ten
+runs; macOS CI failed 41 of 56 runs at 16.7–30.5 ms sustained, passing and failing on adjacent
+commits with nothing the check compiles changed), in the same narrow scope: macOS, this check,
+failing only `REQUIRE (sustained < kFrameBudgetMs)` in `tests/timeline_gpu_tests.cpp`, with every
+other job and test passing - a red on any other assertion (the slow-frame count included) is not
+covered. Re-evaluate when the renderer, this test or the macOS runner image changes, or when Dan's
+machine measures above 8 ms sustained; no automatic renewal or extension to a different failure.
+Missing SS-1–SS-3 proof is **not** covered by this exception.
 
 **Bound retries, not investigation:** after three unsuccessful corrective attempts on the same
 failure, stop repeating that approach and require a separate agent critic. Resume only with a

@@ -8,6 +8,19 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — Dan's three calls: macOS exception renewed, Vera task headless, Focusrite check next
+
+**macOS frame exception: renewed** (Dan, 2026-10-12) in the plan's §8.2 - the same narrow scope (macOS, the timeline
+GPU check, failing only its sustained-frame `REQUIRE`, everything else passing), now re-evaluated when the renderer,
+the test or the runner image changes or Dan's machine measures above 8 ms sustained. Unit 3's `9604299` red (sustained
+19.36 ms, failing at that `REQUIRE`) falls inside it. **Vera WSL Autostart: made headless** (Dan's yes) - the same
+`wsl.exe -d Ubuntu --exec /bin/true` every 5 minutes, now launched by `conhost.exe --headless` so no window takes the
+foreground; the original task is backed up at `%USERPROFILE%era-wsl-autostart.task-backup-2026-10-12.xml`
+(restore: `Register-ScheduledTask -Xml (Get-Content <file> -Raw) -TaskName 'Vera WSL Autostart' -Force`).
+Verified at its 06:39:06 run: result 0 (WSL ran) and a foreground trace saw no change at all. **Hardware playback on the Focusrite:** Dan chose the check on that device; switching Windows' default
+output is his click (a system setting), then the packaged verifier runs again. **Next:** that run, then the UI
+correctness pass.
+
 ## 2026-10-11 — Units 3-6 certified by exact-code CI; ADR-0069 cp2 closed
 
 **CI on `c56e8fe`** (run 38208010592, the head carrying units 3-6 and the drive tooling): **all ten jobs green** -
