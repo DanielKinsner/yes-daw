@@ -1533,7 +1533,9 @@ TEST_CASE ("H16 premium vector asset set covers every shipped shell action and t
         40.0f
     };
 
-    for (const UiActionId action : yesdaw::ui::mainShellToolbarActions())
+    std::vector<UiActionId> iconActions (yesdaw::ui::mainShellToolbarActions().begin(), yesdaw::ui::mainShellToolbarActions().end());
+    iconActions.push_back (UiActionId::ProjectExportAudioCancel);   // unit 10: the export's Cancel cross
+    for (const UiActionId action : iconActions)
     {
         INFO ("action=" << static_cast<int> (action));
         REQUIRE (yesdaw::ui::hasActionIcon (action));

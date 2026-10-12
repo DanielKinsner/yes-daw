@@ -1629,7 +1629,7 @@ private:
     juce::TextButton exportNormalizeToggle;
     juce::ComboBox exportStemsChooser;
     juce::Label exportAudioProgress;
-    juce::TextButton exportAudioCancelButton;
+    ToolbarActionButton exportAudioCancelButton;   // unit 10: paints the Cancel cross (its slot cannot hold the word)
     juce::Label dragDbReadout;
     std::vector<MeterHoldState> trackMeterHold;   // by Track index; advanced per UI tick (B32)
     std::vector<std::array<MeterHoldState, 2>> trackMeterHoldLR;   // V5: rail L/R columns

@@ -8,6 +8,21 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 10: the export Cancel control reads during an export
+
+**What changes:** the header gives an export's Cancel a 28 px slot, and the "Cancel" text button squashed its word
+into it (12 pixels of ink). A wider slot breaks the master card's 2 px slack at the minimum width and ADR-0063 forbids
+smaller text, so the button is now a `ToolbarActionButton` painting a cross (plan §7.4 item 3: an unambiguous icon and
+a tooltip; its accessible name and tooltip still say Cancel). **Gate** (`[export][tokens]`, a real export paced to
+60 s at the minimum window): the control is visible, enabled, inside the window and has a tooltip; if it paints a word
+the word fits with 2 px to spare, else more than 8 pixels of icon against a blank button of the same look; a click
+cancels - one outcome, `cancelled`, none finished, no destination and no `.partial`. `[assets]` covers the cross.
+**Red before the fix:** "Cancel" needs 43.6 + 4 px in 28 px. **Bites:** the text button back (red-before); the cross
+removed (0 pixels of ink - the gate's first blank used JUCE's default look and passed this mutation; it now uses the
+button's own). **Record corrected:** the H16 CP7 export test never clicked Cancel during an export; this gate does. A
+small rendering unit: no critic, per ADR-0075. **Drive:** SS8 Step 5 `ss8-unsaved-during-export` in the batched drive
+proof (SS8 stays 212/212).
+
 ## 2026-10-12 — UI correctness pass unit 9: hiding the dock by key gives its height to the arrangement
 
 **What changes:** a chord that showed or hid the editor dock (Y the browser, X the mixer) changed the model but laid

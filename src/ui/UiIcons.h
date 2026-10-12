@@ -45,6 +45,7 @@ inline bool hasActionIcon (UiActionId action) noexcept
         case UiActionId::TransportToggleLoop:
         case UiActionId::ViewMixer:
         case UiActionId::ViewPianoRoll:
+        case UiActionId::ProjectExportAudioCancel:   // UI correctness pass unit 10: a cross in the export's 28 px slot
             return true;
         default:
             return false;
@@ -66,6 +67,7 @@ inline bool actionUsesIconOnlyChrome (UiActionId action) noexcept
         case UiActionId::TransportStop:
         case UiActionId::TransportLocateStart:
         case UiActionId::TransportToggleLoop:
+        case UiActionId::ProjectExportAudioCancel:
             return true;
         default:
             return false;
@@ -255,6 +257,18 @@ inline bool drawActionIcon (juce::Graphics& g,
                 path.lineTo (left + w * column, bottom - h * 0.20f);
             }
             break;
+
+        case UiActionId::ProjectExportAudioCancel:
+        {
+            // UI correctness pass unit 10: the export's Cancel - a cross, centred in the largest square that fits (the
+            // header's 28 px slot cannot hold the word; plan §7.4 item 3 allows an unambiguous icon with a tooltip).
+            const float half = juce::jmin (w, h) * 0.28f;
+            path.startNewSubPath (cx - half, cy - half);
+            path.lineTo (cx + half, cy + half);
+            path.startNewSubPath (cx + half, cy - half);
+            path.lineTo (cx - half, cy + half);
+            break;
+        }
 
         default:
             return false;

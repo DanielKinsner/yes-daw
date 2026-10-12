@@ -30829,3 +30829,91 @@ TEST_CASE ("hiding the dock by key gives its height to the arrangement", "[ui][i
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// UI correctness pass unit 10 (rubric FIX 11): the export Cancel control reads during an export. The header gives it a
+// 28 px slot, and the "Cancel" text button squashed its 40 px word into it. A real paced export at the narrowest
+// window: the control is visible, enabled and has a tooltip; if it paints a word, the word fits with 2 px to spare,
+// else it paints an icon; and a click cancels the export, leaving no file behind.
+TEST_CASE ("the export Cancel control reads during an export", "[ui][input][shell][export][tokens]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("export-cancel-reads");
+    const std::filesystem::path exportPath = bundlePath.parent_path() / "export-cancel-reads.wav";
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    std::error_code ec;
+    std::filesystem::remove (exportPath, ec);
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    choices.chooseExportAudioFile = [exportPath] { return exportPath; };
+    choices.exportPaceMs = 60'000;   // the job stays in progress while the control is read
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    shell->setSize (L::windowMinWidth, L::windowMinHeight);
+
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    REQUIRE (static_cast<bool> (probeRoot (*shell)["export"]["inProgress"]));
+    auto* cancel = dynamic_cast<juce::TextButton*> (findChildWithComponentId (*shell, "project.export_audio.cancel"));
+    REQUIRE (cancel != nullptr);
+    REQUIRE (cancel->isVisible());
+    REQUIRE (cancel->isEnabled());
+    REQUIRE (cancel->getTooltip().isNotEmpty());
+    REQUIRE (shell->getLocalBounds().contains (cancel->getBoundsInParent()));
+
+    const auto render = [] (juce::Component& c) {
+        juce::Image image (juce::Image::ARGB, c.getWidth(), c.getHeight(), true, juce::SoftwareImageType());
+        juce::Graphics graphics (image);
+        c.paintEntireComponent (graphics, true);
+        return image;
+    };
+    const auto differing = [] (const juce::Image& a, const juce::Image& b) {
+        int count = 0;
+        for (int y = 0; y < a.getHeight(); ++y)
+            for (int x = 0; x < a.getWidth(); ++x)
+            {
+                const juce::Colour p = a.getPixelAt (x, y), q = b.getPixelAt (x, y);
+                if (std::max ({ std::abs (p.getRed() - q.getRed()), std::abs (p.getGreen() - q.getGreen()),
+                                std::abs (p.getBlue() - q.getBlue()) }) > 40)
+                    ++count;
+            }
+        return count;
+    };
+    // The control as painted, then with no text: what differs is its word's ink.
+    const juce::Image painted = render (*cancel);
+    const juce::String word = cancel->getButtonText();
+    cancel->setButtonText ({});
+    const juce::Image noWord = render (*cancel);
+    cancel->setButtonText (word);
+    const int wordInk = differing (painted, noWord);
+    // A plain button of the same size, look and colours, with nothing on it: what differs is what is drawn on the face.
+    juce::TextButton blank;
+    blank.setLookAndFeel (&cancel->getLookAndFeel());
+    blank.setSize (cancel->getWidth(), cancel->getHeight());
+    blank.setColour (juce::TextButton::buttonColourId, cancel->findColour (juce::TextButton::buttonColourId));
+    const int faceInk = differing (painted, render (blank));
+    blank.setLookAndFeel (nullptr);
+    CAPTURE (word, wordInk, faceInk, cancel->getWidth(), cancel->getHeight());
+    if (wordInk > 0)
+    {
+        const juce::Font font = cancel->getLookAndFeel().getTextButtonFont (*cancel, cancel->getHeight());
+        REQUIRE (juce::GlyphArrangement::getStringWidth (font, word) + 4.0f <= static_cast<float> (cancel->getWidth()));
+    }
+    else
+    {
+        REQUIRE (faceInk > 8);
+    }
+
+    // The click cancels: one job, not running, no destination and no partial file.
+    clickButton (*cancel);
+    yesdaw::ui::mainComponentWaitForExport (*shell);
+    const juce::var exported = probeRoot (*shell)["export"];
+    REQUIRE_FALSE (static_cast<bool> (exported["inProgress"]));
+    REQUIRE (exported["lastResult"].toString() == "cancelled");
+    REQUIRE (static_cast<int> (exported["outcomes"]) == 1);   // one job, and it was cancelled
+    REQUIRE (static_cast<int> (exported["count"]) == 0);      // none finished
+    REQUIRE_FALSE (std::filesystem::exists (exportPath));
+    REQUIRE_FALSE (std::filesystem::exists (std::filesystem::path (exportPath.string() + ".partial")));
+
+    std::filesystem::remove_all (bundlePath, ec);
+}

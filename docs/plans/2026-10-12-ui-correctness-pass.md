@@ -399,13 +399,13 @@ A wider slot would break the master card's 2 px slack at `windowMinWidth`, and A
 smaller text. So the 28 px slot gets an icon, which plan section 7.4 item 3 allows ("a label or an
 unambiguous icon **and** a tooltip").
 
-- [ ] **Fix.**
+- [x] **Fix.**
   - Add a cross icon for `ProjectExportAudioCancel` in `hasActionIcon`, `actionUsesIconOnlyChrome`
     and `drawActionIcon`. Use `juce::jmin`, with geometry as fractions of the bounds.
   - Make `exportAudioCancelButton` a `ToolbarActionButton`.
   - Call `setAction (ProjectExportAudioCancel)` before the first paint.
   - No token or layout change.
-- [ ] **Gate.** `tests/ui_input_tests.cpp` `[ui][input][shell][export][tokens]`, with a real paced
+- [x] **Gate.** `tests/ui_input_tests.cpp` `[ui][input][shell][export][tokens]`, with a real paced
   export (`exportPaceMs = 60'000`) at `windowMinWidth`.
   - The export is in progress, and Cancel is visible, enabled and has a tooltip.
   - Render Cancel with and without glyphs. If it paints text, the text must fit with 2 px spare.
@@ -415,7 +415,8 @@ unambiguous icon **and** a tooltip").
   - **Bites:** reverting to `juce::TextButton` (a 12 px box for a 40 px word), or removing the cross.
 - [ ] **Drive.** SS8 Step 5 `ss8-unsaved-during-export` shows "Export N%" plus a cross. The mid-job
   click still ends with `cancelled`, no destination and no `.partial`. SS8 stays 212/212.
-- [ ] **Correct the STATUS record:** the H16 CP7 test never exercised Cancel during an export.
+- [x] **Correct the STATUS record:** the H16 CP7 test never exercised Cancel during an export (recorded in unit
+  10's STATUS entry).
 - Size S. Measure the 48 px progress label in the close-out rubric (unit 15).
 
 ### 11. The status line shows messages whole (FIX 13)

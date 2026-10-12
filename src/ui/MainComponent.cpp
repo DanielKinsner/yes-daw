@@ -185,6 +185,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     configureActionComponent (exportAudioCancelButton,
                               yesdaw::ui::UiActionId::ProjectExportAudioCancel,
                               "Cancel audio export");
+    exportAudioCancelButton.setAction (yesdaw::ui::UiActionId::ProjectExportAudioCancel);   // unit 10: the cross
     exportAudioCancelButton.setButtonText ("Cancel");
     exportAudioCancelButton.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
     exportAudioCancelButton.setColour (juce::TextButton::textColourOffId, kText);
