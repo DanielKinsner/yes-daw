@@ -8,6 +8,47 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 12: inspector cards drop whole and fit
+
+**TAKES card (FIX 12).** The card took whatever room was left up to its 74 px slot, so with 30 px of room it painted
+its heading over the band below the content. It now shows only when its tallest content fits (heading 20 + chart 4 + 44
+= 68 px, a `static_assert` keeping that inside the slot), and layout and paint share that one rule (the dead
+`takesNeededHeight` check is gone). Accepted: with takes and 50-67 px of room the chooser and Delete now drop with the
+card (the scrolling inspector stays parked, D50).
+- **Gate `[inspector-takes-card]`:** a recorded take; at 1536x960 with the settings row open (rooms 30/10/50/67/68/108)
+  and closed (70/10/50/67/68/108), reached through the dock's height. The band below the card is pixel-identical between
+  the Clip and Track tabs; a whole card has its heading and contains the chooser and Delete; a dropped card leaves both
+  empty. 5 whole cells, 7 dropped.
+- **Red before:** at room 30 the band differed by 7668 px. That run is the named mutation (the old rule).
+
+**Fade Curve row (FIX 9).** The shape chooser and the amount slider split the row in half past the fade sliders' 150 px
+inset: at the minimum inspector the chooser was 23 px (no text box), and the chooser's only live tooltip read "H14
+canonical fade law". The row now starts just past the painted "Curve" word (`inspectorFadeCurveControlLeftInset` 48),
+the chooser has a fixed 120 px (`inspectorFadeCurveChooserWidth`), the slider takes the rest, and the controls sit on
+their painted row (top gap 4 -> 1). The stale tooltip override is gone: the chooser says "Clip fade curve shape".
+- **Gate** (`[ui][screenshot][tokens]`, a PNG per cell): 1280x720 (with the smallest dock, since the default one leaves
+  no room for the card), 1920x1080 and 2560x1440, each at the inspector's minimum, default and maximum width. The
+  controls are disjoint; every shape name fits its text box with 2 px spare; the painted "Curve" word ends before the
+  chooser; tooltips start with each control's title. The rail is at least two thumbs at the default width (58 px) and
+  three at the widest - three at the default would need a chooser under 106 px, too narrow for "Equal power" in DejaVu
+  Sans (about 71 px in a 78 px box).
+- **Red before:** a 23 px chooser at the minimum inspector. **Bites:** the H14 tooltip back.
+- **Judged by eye** (agent): at 1920 the row reads "Curve", "Equal power" whole, and a slider with rail on both sides of
+  the thumb. At 240 px the slider is only its thumb - the parked under-42 px rail at widths 240-283.
+
+**Records corrected:**
+- The G6.1 cp1 record that closed the "fade" truncation row was wrong: the chooser still cut its names at the minimum
+  inspector.
+- The painted "Curve" word and the worded tooltips label the amount slider.
+
+**Process:** a small layout unit with no logic, data or shared-law change: no critic, per ADR-0075.
+
+**Local:** full build, ctest 444/444, Clang clean (6 files).
+
+**CI:** unit 11 (`ae427f6`) running.
+
+**Drive:** SS8 and SS1/SS2/SS3 crops in the batched drive proof.
+
 ## 2026-10-12 — UI correctness pass unit 11: the status line shows its messages whole
 
 **Decision:** ADR-0076, accepted after a separate critic. The critic ruled that shortening user or OS text in its middle

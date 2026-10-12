@@ -485,7 +485,7 @@ It amends ADR-0064's tool-row list without editing ADR-0064.
 
 Two commits.
 
-- [ ] **TAKES card (FIX 12).**
+- [x] **TAKES card (FIX 12).**
   - **Fix:** `inspectorTakesSectionBounds` clamps the card height to [68, 74] (constexpr, with
     `static_assert (whole <= most)`). Delete the dead `takesNeededHeight` check, so paint and layout
     share one rule.
@@ -500,7 +500,9 @@ Two commits.
     - At least 5 whole cells and at least 7 dropped cells.
   - **Bites:** reverting to `min (room, 74)` paints the heading and well into the band at room 30.
     The room-67 cell pins the threshold.
-- [ ] **Fade Curve row (FIX 9).**
+- [x] **Fade Curve row (FIX 9).** (As built: the rail is at least two thumbs at the default inspector and three at
+  the widest - three at the default would need the chooser under 106 px, too narrow for "Equal power" in DejaVu Sans;
+  at 1280x720 the gate uses the smallest dock, as the default one drops the whole FADES card.)
   - **Fix:**
     - Add tokens `inspectorFadeCurveControlLeftInset = 48` and `inspectorFadeCurveChooserWidth = 120`.
       The chooser takes the fixed width and the slider takes the rest. Update the comment at :515.
@@ -525,7 +527,7 @@ Two commits.
   - The ctest render `yesdaw-g62-display-1706x896-150.png` has no TAKES fragment.
   - FADES crops of SS3 (1920) and SS2 (2560): the shape name is whole, rail shows on both sides of
     the thumb, and the tooltip is worded.
-- [ ] **STATUS:**
+- [x] **STATUS:**
   - Correct the G6.1 cp1 record that closed the "fade" truncation row.
   - Record that the "Curve" word and worded tooltips label the amount slider.
   - Park the under-42 px rail at inspector widths 240-283.

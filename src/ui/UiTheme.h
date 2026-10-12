@@ -485,7 +485,9 @@ struct UiTheme
         static constexpr int inspectorFadesSectionHeight = 124;
         static constexpr int inspectorFadesControlTopInset = 22;
         static constexpr int inspectorFadeControlHeight = 32;
-        static constexpr int inspectorFadeCurveControlTopGap = 4;
+        static constexpr int inspectorFadeCurveControlTopGap = 1;    // unit 12: on its painted row
+        static constexpr int inspectorFadeCurveControlLeftInset = 48;  // unit 12: just past the painted "Curve" word
+        static constexpr int inspectorFadeCurveChooserWidth = 120;     // unit 12: every shape name whole
         static constexpr int inspectorFadeCurveControlHeight = 26;
         // E24: the fade sliders start past the painted "Fade In 0.000 s" readout, never over it.
         static constexpr int inspectorFadeControlLeftInset = 150;

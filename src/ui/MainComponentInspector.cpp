@@ -223,7 +223,6 @@ void MainComponent::configureInspectorControls()
     inspectorFadeCurve.setTooltip ("Clip fade curve shape");
     inspectorFadeCurve.setName ("Clip fade curve");
     inspectorFadeCurve.setTitle ("Clip fade curve");
-    inspectorFadeCurve.setTooltip ("H14 canonical fade law");
     inspectorFadeCurve.addItem ("Equal power", kInspectorEqualPowerFadeCurveId);
     inspectorFadeCurve.addItem ("Linear", kInspectorLinearFadeCurveId);      // G2.10
     inspectorFadeCurve.addItem ("S-curve", kInspectorSCurveFadeCurveId);
@@ -514,10 +513,11 @@ void MainComponent::layoutInspectorControls()
                         yesdaw::ui::UiTheme::Layout::inspectorFadeControlVerticalInset)
         : juce::Rectangle<int>());
     fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlTopGap);
-    // G2.10: the Curve row carries the shape chooser (left half) and the amount slider (right half).
+    // G2.10 / UI correctness pass unit 12: the Curve row carries the shape chooser (a fixed width just past the painted
+    // "Curve" word, so every shape name is whole) and the amount slider (the rest of the row, a usable rail).
     juce::Rectangle<int> curveRow = fades.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlHeight)
-                                         .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeControlLeftInset);
-    const juce::Rectangle<int> chooserCell = curveRow.removeFromLeft (curveRow.getWidth() / 2);
+                                         .withTrimmedLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveControlLeftInset);
+    const juce::Rectangle<int> chooserCell = curveRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveChooserWidth);
     curveRow.removeFromLeft (yesdaw::ui::UiTheme::Layout::inspectorFadeCurveAmountGap);
     inspectorFadeCurve.setBounds (fadesFit ? chooserCell : juce::Rectangle<int>());
     inspectorFadeCurveAmount.setBounds (fadesFit ? curveRow : juce::Rectangle<int>());

@@ -2398,3 +2398,89 @@ TEST_CASE ("the rail shows only real track data: no instrument picture by row in
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// UI correctness pass unit 12 (rubric FIX 9): the FADES card's Curve row reads. The shape chooser and the amount slider
+// split the row in half past the fade sliders' 150 px inset: the chooser's text box was 13 px (no shape name fit) and
+// the slider's rail a 23 px stub, and the chooser's only live tooltip read "H14 canonical fade law". Now the chooser has
+// a fixed width just past the painted "Curve" word and the slider the rest. Three windows, each at the inspector's
+// minimum, default and maximum width.
+TEST_CASE ("the FADES card's Curve row: whole shape names, a usable rail, worded tooltips", "[ui][screenshot][tokens]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-fade-curve-row.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));   // a clip, selected: its FADES card
+    auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "clip.inspector.fade_curve"));
+    auto* amount = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "clip.inspector.fade_curve_amount"));
+    REQUIRE (chooser != nullptr);
+    REQUIRE (amount != nullptr);
+    juce::Label* chooserText = nullptr;
+    for (int i = 0; i < chooser->getNumChildComponents() && chooserText == nullptr; ++i)
+        chooserText = dynamic_cast<juce::Label*> (chooser->getChildComponent (i));
+    REQUIRE (chooserText != nullptr);
+    const juce::Font wordFont = yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small);
+
+    int cells = 0;
+    for (const auto& size : { std::pair<int, int> { 1280, 720 }, std::pair<int, int> { 1920, 1080 }, std::pair<int, int> { 2560, 1440 } })
+        for (const int inspectorWidth : { L::inspectorMinWidth, L::inspectorWidth, L::inspectorMaxWidth })
+        {
+            shell->setSize (size.first, size.second);
+            // At 1280x720 the default dock leaves the inspector no room for the FADES card (it drops whole): the
+            // smallest dock gives it room.
+            yesdaw::ui::mainComponentSetViewSizes (*shell, L::leftRailWidth, inspectorWidth,
+                                                   size.first == 1280 ? L::editorDockMinHeight : L::mixerHeight);
+            const juce::String cell = juce::String (size.first) + "x" + juce::String (size.second) + ", inspector "
+                                    + juce::String (inspectorWidth);
+            INFO (cell << ": chooser " << chooser->getBounds().toString() << ", slider " << amount->getBounds().toString());
+            REQUIRE (chooser->isVisible());
+            REQUIRE (amount->isVisible());
+            REQUIRE_FALSE (chooser->getBounds().isEmpty());
+            REQUIRE_FALSE (amount->getBounds().isEmpty());
+            REQUIRE_FALSE (chooser->getBounds().intersects (amount->getBounds()));
+            // Every shape name whole in the chooser's own text box, with 2 px to spare.
+            const float textBox = static_cast<float> (chooserText->getWidth() - chooserText->getBorderSize().getLeftAndRight());
+            for (int i = 0; i < chooser->getNumItems(); ++i)
+            {
+                INFO ("item \"" << chooser->getItemText (i) << "\" in " << textBox << " px");
+                REQUIRE (juce::GlyphArrangement::getStringWidth (chooserText->getFont(), chooser->getItemText (i)) + 2.0f <= textBox);
+            }
+            // The painted "Curve" word ends before the chooser starts (it is drawn 8 px into the card's content).
+            const juce::var inspector = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell))["layout"]["inspector"];
+            REQUIRE (inspector.isArray());
+            const int contentX = static_cast<int> (inspector[0]) + L::inspectorContentInsetX;
+            const float wordRight = static_cast<float> (contentX + L::inspectorFadeTextInsetX)
+                                  + juce::GlyphArrangement::getStringWidth (wordFont, "Curve");
+            REQUIRE (wordRight + 2.0f <= static_cast<float> (chooser->getX()));
+            // The slider's rail is a usable length: at least two thumbs at the default inspector, three at the widest.
+            // (Three at the default would need the chooser under 106 px, too narrow for "Equal power" in DejaVu Sans.)
+            if (inspectorWidth >= L::inspectorWidth)
+            {
+                const int thumb = 2 * amount->getLookAndFeel().getSliderThumbRadius (*amount);
+                CAPTURE (thumb);
+                REQUIRE (amount->getWidth() - thumb >= (inspectorWidth == L::inspectorMaxWidth ? 3 : 2) * thumb);
+            }
+            // Worded tooltips that start with the control's own title.
+            REQUIRE (chooser->getTooltip().startsWith (chooser->getTitle()));
+            REQUIRE (amount->getTooltip().startsWith (amount->getTitle()));
+            (void) captureShellPng (renderShellAtScale (*shell, 1.0f),
+                                    ("fade-curve-row-" + juce::String (size.first) + "-" + juce::String (inspectorWidth) + ".png").toRawUTF8());
+            ++cells;
+        }
+    REQUIRE (cells == 9);
+    yesdaw::ui::mainComponentSetViewSizes (*shell, L::leftRailWidth, L::inspectorWidth, L::mixerHeight);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
