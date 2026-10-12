@@ -45,6 +45,13 @@
 #            mixer-strips narrow flag) and verify they survive a close + relaunch under the same
 #            session-state dir (prefs.state=='loaded', view.dock, view.mixerNarrow). Reopen the copy and
 #            assert the copy is loaded as its own bundle.
+#  Step 8 - ADR-0069's copy fallback through the real app (close-out unit 5): a project whose audio is hydrated
+#            cloud placeholders the OS refuses to hard-link (tests/autosave_cloud_tests.cpp's own fixture, a fresh
+#            sync root under USERPROFILE, held across the step by YesDawPersistenceCheck's hidden [cloud-drive-*]
+#            cases). An edit's autosave copies every asset and links none; the copies hash true and are not links;
+#            lost writes raise the question and Restore recovers; the user's audio is still the same hydrated
+#            placeholders at the end. The root is unregistered and removed whatever happens. It proves no OneDrive
+#            or Dropbox synchronisation. Needs a built YesDawPersistenceCheck (build-ci, or YESDAW_PERSISTENCE_CHECK).
 #
 # Deviations from the plan text (also logged in STATUS.md's Deviation log):
 #
@@ -609,10 +616,27 @@ if (Test-Path -LiteralPath $bundleAuto) { Remove-Item -Recurse -Force -LiteralPa
 
 function AutosaveCounts($q) { return @([int]$q.project.trackCount, [int]$q.project.clipCount, [int]$q.project.midiClipCount, @($q.project.assets).Count) }
 function WrittenCounts($w) { if ($null -eq $w) { return @(-1, -1, -1, -1) }; return @([int]$w.tracks, [int]$w.clips, [int]$w.midiClips, [int]$w.assets) }
-function WaitAutosave([string] $what) {
-  $before = [int](Probe).autosave.writes
-  $ok = WaitProbe { param($q) [int]$q.autosave.writes -gt $before } -TimeoutMs 8000
-  [void](Assert $ok ('a confirmed autosave follows ' + $what + ' within 8 s at the drive cadence (autosave.writes=' + (Probe).autosave.writes + '; ADR-0068)'))
+# The baseline is read BEFORE the edit (close-out unit 5): at the 1 s cadence the only due write can land between the
+# edit and a later read, and a wait for one more would then miss it. The write must also hold the edit itself
+# (lastAutosavedEditSerial == editSerial, ADR-0068 §7). ADR-0069 §4 on this linkable fixture: each write stays under
+# 100 ms, and a write that carries assets links them. -Copies is Step 8's fixture, where the OS refuses every link: each
+# asset the write carries is a real copy and none is linked (no cost bound: a copy's cost is the file's size).
+$script:autosaveLinkedSeen = $false
+function AutosaveWrites { return [int](Probe).autosave.writes }
+function WaitAutosave([int] $before, [string] $what, [switch] $Copies) {
+  $ok = WaitProbe { param($q) [int]$q.autosave.writes -gt $before -and [int64]$q.autosave.lastAutosavedEditSerial -eq [int64]$q.autosave.editSerial } -TimeoutMs 8000
+  $a = (Probe).autosave
+  [void](Assert $ok ('a confirmed autosave of ' + $what + ' follows within 8 s at the drive cadence (autosave.writes=' + $a.writes + ' from ' + $before + ', lastAutosavedEditSerial=' + $a.lastAutosavedEditSerial + ', editSerial=' + $a.editSerial + '; ADR-0068)'))
+  if ($Copies) {
+    $carried = if ($null -ne $a.lastWritten) { [int]$a.lastWritten.assets } else { -1 }
+    [void](Assert ($carried -ge 1 -and [int]$a.copied -eq $carried -and [int]$a.linked -eq 0) ('the autosave of ' + $what + ' copies every asset the OS will not link (autosave.copied=' + $a.copied + ' of ' + $carried + ', linked=' + $a.linked + '; ADR-0069)'))
+    return $ok
+  }
+  [void](Assert ([double]$a.writeMsPeak -lt 100) ('the autosave of ' + $what + ' is cheap (autosave.writeMsPeak=' + $a.writeMsPeak + ' ms, bound 100; ADR-0069)'))
+  if ($null -ne $a.lastWritten -and [int]$a.lastWritten.assets -gt 0) {
+    [void](Assert ([int]$a.linked -gt 0) ('the autosave of ' + $what + ' links its assets (autosave.linked=' + $a.linked + ', copied=' + $a.copied + '; ADR-0069)'))
+    $script:autosaveLinkedSeen = $true
+  }
   return $ok
 }
 
@@ -634,6 +658,7 @@ Copy-Item -LiteralPath (Join-Path $bundleAuto 'project.db') -Destination $savedD
 
 # Lap 1 - the interruption.
 $cleanClips = [int](Probe).view.clipCount
+$writes1 = AutosaveWrites
 Focus
 $lane0 = LayoutRect 'lane.0'
 if ($null -ne $lane0) { Click 'lane.0' -OffsetX ([int](-([int]$lane0[2] / 2) + 50)) }
@@ -642,7 +667,7 @@ Key 'Ctrl+A'
 Start-Sleep -Milliseconds 150
 Key 'Delete'
 [void](Assert (WaitProbe { param($q) [int]$q.view.clipCount -ne $cleanClips } -TimeoutMs 2000) ('an edit changed the clip count (' + $cleanClips + ' -> ' + (Probe).view.clipCount + ')'))
-[void](WaitAutosave 'the edit')
+[void](WaitAutosave $writes1 'the edit')
 $written1 = WrittenCounts (Probe).autosave.lastWritten
 KillApp
 Launch -Bundle $bundleAuto -ReuseSessionDir $script:SessionDir -AutosaveIntervalMs 1000
@@ -653,10 +678,12 @@ $now = AutosaveCounts (Probe)
 [void](Assert (($now -join ',') -eq ($written1 -join ',')) ('the reopened project equals the last confirmed autosave (' + ($now -join ',') + ' vs ' + ($written1 -join ',') + ')'))
 
 # Lap 2 - lost writes.
+$writes2 = AutosaveWrites
 Focus
 Key 'Ctrl+Shift+N'   # one more edit: a track
 [void](Assert (WaitProbe { param($q) [int]$q.project.trackCount -eq [int]$now[0] + 1 } -TimeoutMs 2000) 'a second edit adds a track')
-[void](WaitAutosave 'the second edit')
+[void](WaitAutosave $writes2 'the second edit')
+[void](Assert $script:autosaveLinkedSeen 'an autosave on this fixture carried assets, so the link check was exercised (ADR-0069)')
 $written2 = WrittenCounts (Probe).autosave.lastWritten
 KillApp
 Copy-Item -LiteralPath $savedDb -Destination (Join-Path $bundleAuto 'project.db') -Force   # the writes after the Save, lost
@@ -769,3 +796,114 @@ if (Test-Path -LiteralPath $bundleCopy) {
 }
 Shot 'ss8-step7-final'
 Close
+
+# -------------------------------------------------------------------------------------------
+# Step 8 - ADR-0069's copy fallback: audio the OS will not hard-link (close-out unit 5)
+# -------------------------------------------------------------------------------------------
+Step 8 'Autosave over hydrated cloud placeholders: copies, recovery, and the user''s audio untouched (ADR-0069)'
+$persistenceCheck = if ($env:YESDAW_PERSISTENCE_CHECK) { $env:YESDAW_PERSISTENCE_CHECK } else { Join-Path $root 'build-ci\YesDawPersistenceCheck.exe' }
+$cloudState = Join-Path $scratchDir 'cloud-drive-root.txt'
+# One hidden fixture case, its inputs in the environment only while it runs; exit 0 is its PASS.
+function CloudFixture([string] $tag, [hashtable] $vars) {
+  $ErrorActionPreference = 'Continue'   # Catch's stderr must not become a terminating error under Windows PowerShell
+  foreach ($k in $vars.Keys) { Set-Item -LiteralPath ('Env:' + $k) -Value $vars[$k] }
+  try {
+    $out = & $persistenceCheck $tag 2>&1 | Out-String
+    $code = $LASTEXITCODE
+  } finally {
+    foreach ($k in $vars.Keys) { Remove-Item -LiteralPath ('Env:' + $k) -ErrorAction SilentlyContinue }
+  }
+  if ($code -ne 0) { Write-Host $out }
+  return ($code -eq 0)
+}
+
+if (-not (Test-Path -LiteralPath $persistenceCheck)) {
+  [void](Assert $false ('the placeholder fixture helper is built (' + $persistenceCheck + '; or set YESDAW_PERSISTENCE_CHECK)'))
+} else {
+  try {
+    [void](Assert (CloudFixture '[cloud-drive-setup]' @{ YESDAW_CLOUD_DRIVE_STATE = $cloudState }) 'an owned placeholder root is registered under USERPROFILE ([cloud-drive-setup])')
+    $cloudRoot = if (Test-Path -LiteralPath $cloudState) { (Get-Content -LiteralPath $cloudState -Raw -Encoding UTF8).Trim() } else { '' }
+    if ($cloudRoot) {
+      $bundleCloud = Join-Path $cloudRoot 'Cloud.yesdaw'
+      Write-Host ("  [ss8] placeholder root: " + $cloudRoot)
+
+      # The app makes the project inside the root and imports real audio into it.
+      Launch
+      Focus
+      Click 'widget.project.new'
+      $overlay = WaitProbe { param($q) [bool]$q.view.newProjectDialog } -TimeoutMs 3000
+      if (-not $overlay) {   # the first click on a freshly launched window can only activate it
+        Focus
+        Start-Sleep -Milliseconds 300
+        Click 'widget.project.new'
+        $overlay = WaitProbe { param($q) [bool]$q.view.newProjectDialog } -TimeoutMs 3000
+      }
+      [void](Assert $overlay 'New opens the New Project overlay')
+      SelectCombo 'newproject.template' 'Default (one audio track)'
+      Click 'newproject.create'
+      $dlgCloud = WaitDialog 'Create YES DAW Project' 6000
+      [void](Assert ($dlgCloud -ne [IntPtr]::Zero) 'Create opens the native project-location chooser')
+      if ($dlgCloud -ne [IntPtr]::Zero) { FileDialogEnter $bundleCloud }
+      [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded -and [string]$q.bundlePath -eq $bundleCloud } -TimeoutMs 8000) ('the project is created inside the placeholder root: ' + $bundleCloud))
+      Focus
+      $cloudClips = [int](Probe).view.clipCount
+      DropFileOnLane $fixSupportedWav 0 0.1 | Out-Null
+      [void](Assert (WaitProbe { param($q) [int]$q.view.clipCount -ge $cloudClips + 1 -and @($q.project.assets).Count -ge 1 } -TimeoutMs 8000) ('real audio is imported into it (clipCount=' + (Probe).view.clipCount + ', assets=' + @((Probe).project.assets).Count + ')'))
+      Focus
+      Key 'Ctrl+S'
+      [void](Assert (WaitProbe { param($q) [string]$q.windowTitle -eq 'Cloud - YES DAW' } -TimeoutMs 3000) ('the import is saved before the close (windowTitle=' + (Probe).windowTitle + ')'))
+      Close
+      Start-Sleep -Milliseconds 400
+      [void](Assert (CloudFixture '[cloud-drive-convert]' @{ YESDAW_CLOUD_DRIVE_STATE = $cloudState; YESDAW_CLOUD_DRIVE_BUNDLE = $bundleCloud }) 'its stored audio becomes hydrated placeholders the OS refuses to hard-link ([cloud-drive-convert])')
+
+      # An edit, its autosave (copies only), then lost writes and Restore.
+      Launch -Bundle $bundleCloud -AutosaveIntervalMs 1000
+      [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded -and [string]$q.bundlePath -eq $bundleCloud } -TimeoutMs 6000) 'the placeholder project reopens')
+      [void](Assert (-not [bool](Probe).autosave.recovery.pending) 'a clean reopen asks nothing')
+      Focus
+      Key 'Ctrl+S'
+      Start-Sleep -Milliseconds 600
+      $cloudSavedDb = Join-Path $scratchDir 'cloud-saved-project.db'
+      Copy-Item -LiteralPath (Join-Path $bundleCloud 'project.db') -Destination $cloudSavedDb -Force
+      $cloudTracks = [int](Probe).project.trackCount
+      $cloudWrites = AutosaveWrites
+      Focus
+      Key 'Ctrl+Shift+N'   # the edit: a track
+      [void](Assert (WaitProbe { param($q) [int]$q.project.trackCount -eq $cloudTracks + 1 } -TimeoutMs 2000) 'an edit adds a track')
+      [void](WaitAutosave $cloudWrites 'an edit over placeholder audio' -Copies)
+      $cloudWritten = WrittenCounts (Probe).autosave.lastWritten
+      KillApp
+      Start-Sleep -Milliseconds 300
+      [void](Assert (CloudFixture '[cloud-drive-verify]' @{ YESDAW_CLOUD_DRIVE_STATE = $cloudState; YESDAW_CLOUD_DRIVE_BUNDLE = $bundleCloud; YESDAW_CLOUD_DRIVE_EXPECT_SNAPSHOT = '1' }) 'after the kill the audio is still hydrated placeholders that hash true, and the autosave holds real copies that hash true ([cloud-drive-verify])')
+      Copy-Item -LiteralPath $cloudSavedDb -Destination (Join-Path $bundleCloud 'project.db') -Force   # the edit, lost
+      foreach ($side in @('project.db-wal', 'project.db-shm')) {
+        $sidePath = Join-Path $bundleCloud $side
+        if (Test-Path -LiteralPath $sidePath) { Remove-Item -LiteralPath $sidePath -Force }
+      }
+      Launch -Bundle $bundleCloud -AutosaveIntervalMs 1000
+      [void](Assert (WaitProbe { param($q) [bool]$q.autosave.recovery.pending } -TimeoutMs 6000) 'after lost writes the recovery question rises over placeholder audio')
+      $cloudRec = (Probe).autosave.recovery
+      [void](Assert ((@([int]$cloudRec.tracks, [int]$cloudRec.clips, [int]$cloudRec.midiClips, [int]$cloudRec.assets) -join ',') -eq ($cloudWritten -join ',')) ('the question names what the copied autosave holds (' + $cloudRec.tracks + ',' + $cloudRec.clips + ',' + $cloudRec.midiClips + ',' + $cloudRec.assets + ' vs ' + ($cloudWritten -join ',') + ')'))
+      Shot 'ss8-step8-placeholder-recovery'
+      if ($null -ne (LayoutRect 'widget.autosave.recovery.restore')) {
+        Click 'widget.autosave.recovery.restore'
+        [void](Assert (WaitProbe { param($q) -not [bool]$q.autosave.recovery.pending } -TimeoutMs 4000) 'Restore answers the question')
+        $cloudRestored = AutosaveCounts (Probe)
+        [void](Assert (($cloudRestored -join ',') -eq ($cloudWritten -join ',')) ('Restore brings back the copied autosave (' + ($cloudRestored -join ',') + ' vs ' + ($cloudWritten -join ',') + ')'))
+      } else {
+        [void](Assert $false 'the recovery question offers its Restore button (widget.autosave.recovery.restore)')
+      }
+      Focus
+      Key 'Ctrl+S'
+      [void](Assert (WaitProbe { param($q) [string]$q.windowTitle -eq 'Cloud - YES DAW' } -TimeoutMs 3000) ('the recovered project is saved before the close (windowTitle=' + (Probe).windowTitle + ')'))
+      Close
+      Start-Sleep -Milliseconds 400
+      [void](Assert (CloudFixture '[cloud-drive-verify]' @{ YESDAW_CLOUD_DRIVE_STATE = $cloudState; YESDAW_CLOUD_DRIVE_BUNDLE = $bundleCloud }) 'after Restore and Save the user''s audio is still the same hydrated placeholders, hashing true ([cloud-drive-verify])')
+    }
+  } finally {
+    try { KillApp } catch { }   # every handle into the root is closed before it is unregistered
+    if (Test-Path -LiteralPath $cloudState) {
+      [void](Assert (CloudFixture '[cloud-drive-cleanup]' @{ YESDAW_CLOUD_DRIVE_STATE = $cloudState }) 'the placeholder root is unregistered and removed ([cloud-drive-cleanup])')
+    }
+  }
+}

@@ -2,6 +2,12 @@
 // Explicit local gate only: YesDawPersistenceCheck.exe "[cloud-placeholder]" --success
 // This owns a fresh sync root under USERPROFILE; it never uses or changes a user's cloud-provider folders.
 // The host's AppData/Local/Temp rejects CfRegisterSyncRoot, so the gate requires an explicit profile directory.
+// Close-out unit 5's real-app drive (ss8 Step 8) reuses this fixture across processes through four more hidden cases:
+// [cloud-drive-setup] registers an owned root and names it in the file YESDAW_CLOUD_DRIVE_STATE; the app then creates a
+// project there; [cloud-drive-convert] turns that bundle's (YESDAW_CLOUD_DRIVE_BUNDLE) stored audio into hydrated
+// placeholders and proves the OS rejects a hard link to each; [cloud-drive-verify] checks the user's audio is still those
+// placeholders, byte-valid, and (YESDAW_CLOUD_DRIVE_EXPECT_SNAPSHOT=1) that the autosave holds real copies, never links;
+// [cloud-drive-cleanup] unregisters and removes the root the state file names.
 
 #define YESDAW_PERSISTENCE_TEST_HOOKS 1
 #include "persistence/AutosaveRecovery.h"
@@ -17,6 +23,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <string>
 #include <system_error>
 #include <vector>
@@ -181,6 +188,26 @@ private:
     bool needsRestore = false;
 };
 
+std::filesystem::path canonicalProfile()
+{
+    const DWORD required = GetEnvironmentVariableW (L"USERPROFILE", nullptr, 0);
+    const DWORD sizeError = GetLastError();
+    CAPTURE (required, sizeError);
+    REQUIRE (required > 1);
+    std::wstring profile (required, L'\0');
+    const DWORD written = GetEnvironmentVariableW (L"USERPROFILE", profile.data(), required);
+    const DWORD readError = GetLastError();
+    CAPTURE (written, readError);
+    REQUIRE (written > 0);
+    REQUIRE (written < required);
+    profile.resize (written);
+    const std::filesystem::path profilePath (profile);
+    REQUIRE (profilePath.is_absolute());
+    const auto canonical = std::filesystem::canonical (profilePath);
+    REQUIRE (std::filesystem::is_directory (canonical));
+    return canonical;
+}
+
 class OwnedSyncRoot
 {
 public:
@@ -199,23 +226,9 @@ public:
 
     void create()
     {
-        const DWORD required = GetEnvironmentVariableW (L"USERPROFILE", nullptr, 0);
-        const DWORD sizeError = GetLastError();
-        CAPTURE (required, sizeError);
-        REQUIRE (required > 1);
-        std::wstring profile (required, L'\0');
-        const DWORD written = GetEnvironmentVariableW (L"USERPROFILE", profile.data(), required);
-        const DWORD readError = GetLastError();
-        CAPTURE (written, readError);
-        REQUIRE (written > 0);
-        REQUIRE (written < required);
-        profile.resize (written);
-        const std::filesystem::path profilePath (profile);
-        REQUIRE (profilePath.is_absolute());
-        rootParent = std::filesystem::canonical (profilePath);
-        REQUIRE (std::filesystem::is_directory (rootParent));
+        resolveProfile();
         const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
-        const auto prefix = "yesdaw-cloud-placeholder-" + std::to_string (GetCurrentProcessId())
+        const auto prefix = std::string (kPrefix) + std::to_string (GetCurrentProcessId())
                           + "-" + std::to_string (ticks) + "-";
         for (unsigned attempt = 0; attempt < 100; ++attempt)
         {
@@ -245,6 +258,35 @@ public:
         REQUIRE (result == S_OK);
     }
 
+    // The app drive's root outlives this process: release() hands it on, still registered and on disk; adopt() takes a
+    // released one back so its cleanup runs - only an existing direct child of USERPROFILE named like this fixture's.
+    [[nodiscard]] std::filesystem::path release() noexcept
+    {
+        registered = false;
+        ownsDirectory = false;
+        return root;
+    }
+
+    void adopt (const std::filesystem::path& released)
+    {
+        resolveProfile();
+        CAPTURE (released);
+        REQUIRE (released.is_absolute());
+        REQUIRE (std::filesystem::is_directory (released));
+        REQUIRE (std::filesystem::canonical (released) == released);
+        REQUIRE (released.parent_path() == rootParent);
+        REQUIRE (released.filename().wstring().starts_with (L"yesdaw-cloud-placeholder-"));
+        root = released;
+        ownsDirectory = true;
+        registered = true;
+    }
+
+private:
+    static constexpr const char* kPrefix = "yesdaw-cloud-placeholder-";
+
+    void resolveProfile() { rootParent = canonicalProfile(); }
+
+public:
     const std::filesystem::path& path() const noexcept { return root; }
 
     struct CleanupResult
@@ -471,5 +513,215 @@ TEST_CASE ("ADR-0069 a real hydrated cloud placeholder with hard links disabled 
     api.close();
 #else
     FAIL ("The explicit cloud-placeholder gate requires Windows CfAPI and a usable local USERPROFILE directory.");
+#endif
+}
+
+// ---- Close-out unit 5: the same fixture, held across the real app's drive (ss8 Step 8) ----
+
+#if defined(_WIN32)
+namespace {
+
+std::filesystem::path requiredEnvironmentPath (const wchar_t* name)
+{
+    INFO ("environment variable " << std::filesystem::path (name).string());
+    const DWORD required = GetEnvironmentVariableW (name, nullptr, 0);
+    REQUIRE (required > 1);
+    std::wstring value (required, L'\0');
+    const DWORD written = GetEnvironmentVariableW (name, value.data(), required);
+    REQUIRE (written > 0);
+    REQUIRE (written < required);
+    value.resize (written);
+    const std::filesystem::path path (value);
+    REQUIRE (path.is_absolute());
+    return path;
+}
+
+bool environmentFlag (const wchar_t* name)
+{
+    std::array<wchar_t, 4> value {};
+    const DWORD written = GetEnvironmentVariableW (name, value.data(), static_cast<DWORD> (value.size()));
+    return written == 1 && value[0] == L'1';
+}
+
+// The root [cloud-drive-setup] handed on, as its state file names it.
+std::filesystem::path stateRoot()
+{
+    const auto stateFile = requiredEnvironmentPath (L"YESDAW_CLOUD_DRIVE_STATE");
+    std::ifstream state (stateFile, std::ios::binary);
+    REQUIRE (state.good());
+    const std::string text ((std::istreambuf_iterator<char> (state)), std::istreambuf_iterator<char>());
+    std::u8string utf8;
+    for (const char c : text)
+        utf8.push_back (static_cast<char8_t> (c));
+    return std::filesystem::path (utf8);
+}
+
+// The drive's bundle sits directly in the root this fixture registered and handed on - never a user's audio anywhere
+// else (no other folder of that name, no junction out of it).
+void requireDriveBundle (const std::filesystem::path& bundle)
+{
+    const auto root = stateRoot();
+    CAPTURE (bundle, root);
+    REQUIRE (std::filesystem::is_directory (bundle));
+    REQUIRE (bundle.extension() == ".yesdaw");
+    REQUIRE (std::filesystem::canonical (bundle) == bundle);
+    REQUIRE (bundle.parent_path() == root);
+    REQUIRE (root.parent_path() == canonicalProfile());
+    REQUIRE (root.filename().wstring().starts_with (L"yesdaw-cloud-placeholder-"));
+}
+
+// Read-only (ADR-0062's inspection: no journal change, reconcile or sweep), and every Asset's file present and hashing
+// true - the app's own open is the only thing that opens these bundles for writing.
+yesdaw::engine::Project readBundleProject (const std::filesystem::path& bundle)
+{
+    yesdaw::engine::Project project;
+    std::vector<yesdaw::persistence::ProjectBundleDb::MissingAssetFile> missing;
+    const auto inspected = yesdaw::persistence::ProjectBundleDb::inspectAssetFiles (bundle, project, missing);
+    CAPTURE (bundle, inspected.message, missing.size());
+    REQUIRE (inspected.ok());
+    REQUIRE (missing.empty());
+    REQUIRE (project.hasValidAssetClipIndirection());
+    return project;
+}
+
+void requireBytesHash (const std::filesystem::path& file, const yesdaw::engine::AssetContentHash& hash)
+{
+    CAPTURE (file);
+    yesdaw::engine::AssetContentHash actual;
+    const auto hashed = yesdaw::persistence::detail::hashFile (file, actual);
+    CAPTURE (hashed.message);
+    REQUIRE (hashed.ok());
+    REQUIRE (actual == hash);
+}
+
+} // namespace
+#endif
+
+TEST_CASE ("ADR-0069 drive fixture: register an owned placeholder root for the app", "[.][cloud-drive-setup]")
+{
+#if defined(_WIN32)
+    const auto stateFile = requiredEnvironmentPath (L"YESDAW_CLOUD_DRIVE_STATE");
+    CloudApi api;
+    api.load();
+    OwnedSyncRoot syncRoot (api);
+    syncRoot.create();
+    {
+        std::ofstream state (stateFile, std::ios::binary | std::ios::trunc);
+        const auto text = syncRoot.path().u8string();
+        state.write (reinterpret_cast<const char*> (text.data()), static_cast<std::streamsize> (text.size()));
+        REQUIRE (state.good());
+    }
+    const auto handedOn = syncRoot.release();   // registered and on disk until [cloud-drive-cleanup]
+    REQUIRE (std::filesystem::is_directory (handedOn));
+#else
+    FAIL ("The cloud-placeholder drive requires Windows CfAPI.");
+#endif
+}
+
+TEST_CASE ("ADR-0069 drive fixture: the app's stored audio becomes hydrated placeholders that refuse hard links",
+           "[.][cloud-drive-convert]")
+{
+#if defined(_WIN32)
+    using namespace yesdaw::persistence;
+    const auto bundle = requiredEnvironmentPath (L"YESDAW_CLOUD_DRIVE_BUNDLE");
+    requireDriveBundle (bundle);
+    CloudApi api;
+    api.load();
+    const auto project = readBundleProject (bundle);
+    REQUIRE_FALSE (project.assets.empty());
+    for (const auto& asset : project.assets)
+    {
+        const auto source = storedAssetPathForHash (bundle, asset.contentHash);
+        requireBytesHash (source, asset.contentHash);
+        {
+            FileHandle file (source, GENERIC_READ | GENERIC_WRITE, OPEN_EXISTING);
+            const HRESULT converted = api.convert (file.get(), asset.contentHash.bytes.data(),
+                static_cast<DWORD> (asset.contentHash.bytes.size()), CF_CONVERT_FLAG_MARK_IN_SYNC, nullptr, nullptr);
+            CAPTURE (source, converted);
+            REQUIRE (converted == S_OK);
+            file.close();
+        }
+        requireHydratedPlaceholder (api, source, asset.contentHash);
+        const auto probeLink = bundle / "hard-link-probe.asset";
+        const BOOL linked = CreateHardLinkW (probeLink.c_str(), source.c_str(), nullptr);
+        const DWORD linkError = GetLastError();
+        CAPTURE (linkError);
+        REQUIRE (linked == FALSE);
+        REQUIRE (linkError == ERROR_CLOUD_FILE_INCOMPATIBLE_HARDLINKS);
+        REQUIRE_FALSE (std::filesystem::exists (probeLink));
+    }
+    api.close();
+#else
+    FAIL ("The cloud-placeholder drive requires Windows CfAPI.");
+#endif
+}
+
+TEST_CASE ("ADR-0069 drive fixture: the user's audio stays hydrated placeholders and the autosave holds copies",
+           "[.][cloud-drive-verify]")
+{
+#if defined(_WIN32)
+    using namespace yesdaw::persistence;
+    const auto bundle = requiredEnvironmentPath (L"YESDAW_CLOUD_DRIVE_BUNDLE");
+    requireDriveBundle (bundle);
+    CloudApi api;
+    api.load();
+    const auto project = readBundleProject (bundle);
+    REQUIRE_FALSE (project.assets.empty());
+    for (const auto& asset : project.assets)
+    {
+        const auto source = storedAssetPathForHash (bundle, asset.contentHash);
+        requireBytesHash (source, asset.contentHash);
+        requireHydratedPlaceholder (api, source, asset.contentHash);   // nothing the app did replaced the user's file
+    }
+    if (environmentFlag (L"YESDAW_CLOUD_DRIVE_EXPECT_SNAPSHOT"))
+    {
+        const auto snapshot = autosaveSnapshotPath (bundle);
+        const auto held = readBundleProject (snapshot);   // read-only: every copy present and hashing true
+        REQUIRE_FALSE (held.assets.empty());
+        for (const auto& asset : held.assets)
+        {
+            const auto copy = storedAssetPathForHash (snapshot, asset.contentHash);
+            requireBytesHash (copy, asset.contentHash);
+            const auto source = storedAssetPathForHash (bundle, asset.contentHash);
+            if (std::filesystem::exists (source))
+                REQUIRE_FALSE (std::filesystem::equivalent (source, copy));   // a real copy: the OS refused the link
+        }
+    }
+    api.close();
+#else
+    FAIL ("The cloud-placeholder drive requires Windows CfAPI.");
+#endif
+}
+
+TEST_CASE ("ADR-0069 drive fixture: unregister and remove the drive's placeholder root", "[.][cloud-drive-cleanup]")
+{
+#if defined(_WIN32)
+    const auto released = stateRoot();
+    CloudApi api;
+    api.load();
+    {
+        OwnedSyncRoot syncRoot (api);
+        syncRoot.adopt (released);
+        // A scanner or indexer can hold a handle a moment after the app exits: retry the step that failed (cleanup
+        // keeps its progress - an unregistered root is not unregistered twice).
+        OwnedSyncRoot::CleanupResult cleanup;
+        std::uintmax_t removed = 0;
+        for (int attempt = 0; attempt < 10; ++attempt)
+        {
+            cleanup = syncRoot.cleanup();
+            removed += cleanup.removed;
+            if (SUCCEEDED (cleanup.unregistered) && ! cleanup.removalError)
+                break;
+            Sleep (500);
+        }
+        CAPTURE (cleanup.unregistered, cleanup.removalError, removed);
+        REQUIRE (cleanup.unregistered == S_OK);
+        REQUIRE_FALSE (cleanup.removalError);
+        REQUIRE (removed > 0);
+    }
+    REQUIRE_FALSE (std::filesystem::exists (released));
+    api.close();
+#else
+    FAIL ("The cloud-placeholder drive requires Windows CfAPI.");
 #endif
 }

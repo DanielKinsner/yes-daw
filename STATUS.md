@@ -51,8 +51,21 @@ attempt). **Parked (each an ADR-0068 owner call, not taken here):** an unanswere
 that bundle's autosave paused with no in-app way out but Save As (a Discard-only path would change §5); a snapshot with
 no question raised yet that one open cannot read is replaced by the next write (§5 is silent; the same lost-work class);
 Open Recent's failed-open re-arm has no gate of its own.
+**Unit 5 prepared (needs the desktop):** SS-6's `WaitAutosave` now reads `autosave.writes` **before** each edit (it read
+after, and could miss the only due write at the 1 s cadence), requires `lastAutosavedEditSerial == editSerial`, and on
+the linkable fixture asserts `writeMsPeak < 100` and `linked > 0` (non-vacuous: one write must carry assets). New
+**Step 8** runs the real app over hydrated cloud placeholders the OS refuses to hard-link: `YesDawPersistenceCheck`'s
+hidden `[cloud-drive-setup/convert/verify/cleanup]` cases hold `autosave_cloud_tests.cpp`'s own fixture across the
+step (a fresh sync root under USERPROFILE, adopted back only by its exact name and parent); the app creates the project
+there and imports real audio, the edit's autosave must copy every asset and link none, the copies hash true and are not
+links, lost writes ask and Restore recovers, the user's audio is still the same hydrated placeholders, and the root is
+unregistered and removed whatever happens (cleanup retries a held handle). Convert and verify accept only a canonical
+bundle directly inside the root the state file names, directly under USERPROFILE, and read it read-only (ADR-0062's
+inspection, never a normal open). Each close is preceded by a proven clean save (the window title). Run headless here:
+setup/convert/verify/cleanup pass on a copied bundle, verify goes red on never-converted audio and on a damaged
+autosave copy, no root left behind; the original `[cloud-placeholder]` gate still passes.
 **Local:** full build, ctest **442/442**, Clang clean (26 translation units). **Not pushed, on purpose:** the close-out's writes-on
-readiness rule - the first enabled-writer push waits for the three SS8 laps and the placeholder app drive on the packaged candidate,
+readiness rule - the first enabled-writer push waits for the three SS8 laps and Step 8 on the packaged candidate,
 which need Dan's desktop (asked; no answer yet). **Unit 3's CI** (`9604299`, run 38191384767): nine jobs green, macOS
 red only on `YesDawTimelineGpuCheck` (raw: max 44.4 ms, sustained 19.4 ms, 18 slow frames). Not excused - the renewal
 still awaits Dan; unit 3 changed no renderer code (probe, model, tests). ADR-0069 cp2's gates all pass; its close waits
