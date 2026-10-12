@@ -5,6 +5,7 @@
 #include "io/AudioFileDecode.h"   // ADR-0054: the [import-formats] shell gate
 #include "ui/MainComponent.h"
 #include "ui/PaintedAccessibleProxy.h"
+#include "ui/StatusLineText.h"   // ADR-0076: the shortening rule
 #include "ui/ControlTarget.h"   // G4.0b: the pure Control-target rules
 #include "ui/DesktopAudioStartup.h"
 #include "ui/EqResponseComponent.h"
@@ -17635,7 +17636,11 @@ TEST_CASE ("every componentID'd control carries a tooltip naming its action and 
         // A dotted lower-case identifier (an action's stable id, a component id) reads as code.
         const std::regex codeWord { R"(\b[a-z][a-z0-9_]{2,}(\.[a-z][a-z0-9_]*)+\b)" };
         std::function<void (juce::Component&)> walk = [&] (juce::Component& component) {
-            if (auto* client = dynamic_cast<juce::SettableTooltipClient*> (&component))
+            // ADR-0076: a shortened status message's tooltip is the message itself, which may name a file.
+            const auto* label = dynamic_cast<juce::Label*> (&component);
+            const bool shortenedStatus = component.getComponentID() == "shell.statusline" && label != nullptr
+                                      && dynamic_cast<juce::SettableTooltipClient*> (&component)->getTooltip() == label->getText();
+            if (auto* client = dynamic_cast<juce::SettableTooltipClient*> (&component); client != nullptr && ! shortenedStatus)
             {
                 const std::string tooltip = client->getTooltip().toStdString();
                 INFO (component.getComponentID() << ": " << tooltip);
@@ -30915,5 +30920,276 @@ TEST_CASE ("the export Cancel control reads during an export", "[ui][input][shel
     REQUIRE_FALSE (std::filesystem::exists (exportPath));
     REQUIRE_FALSE (std::filesystem::exists (std::filesystem::path (exportPath.string() + ".partial")));
 
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part
+// alone is shortened in its middle, and shortening is by code point. `fits` here is a code-point budget.
+TEST_CASE ("ADR-0076 the status line's shortening rule never mixes a message's parts", "[ui][g6][status-whole][status-shorten]")
+{
+    using yesdaw::ui::statusLineShownText;
+    const juce::String ellipsis = juce::String::charToString (static_cast<juce::juce_wchar> (0x2026));
+    const auto within = [] (int budget) { return [budget] (const juce::String& s) { return s.length() <= budget; }; };
+
+    REQUIRE (statusLineShownText (juce::String(), within (0)).isEmpty());
+    REQUIRE (statusLineShownText ("Saved", within (5)) == "Saved");
+    // Leading whole parts, then how many were left out - never the start of one part beside the end of another.
+    const juce::StringArray joined { "Audio output Focusrite USB is not available - using Speakers",
+                                     "Audio input Focusrite USB is not available - using Microphone Array" };
+    REQUIRE (statusLineShownText (joined, within (1000)) == joined.joinIntoString ("; "));
+    const juce::String kept = statusLineShownText (joined, within (80));
+    REQUIRE (kept == "Audio output Focusrite USB is not available - using Speakers; " + ellipsis + " 1 more");
+    REQUIRE_FALSE (kept.contains ("Microphone"));
+    // The first part alone does not fit: it alone is shortened, its lead and its end kept, and the rest counted.
+    const juce::String shortened = statusLineShownText (joined, within (40));
+    REQUIRE (shortened.length() <= 40);
+    REQUIRE (shortened.startsWith ("Audio output"));
+    REQUIRE (shortened.endsWith ("; " + ellipsis + " 1 more"));
+    REQUIRE (shortened.contains (ellipsis));
+    REQUIRE_FALSE (shortened.contains ("Microphone"));
+    // A single message's own "; " is not a join: it is shortened in its middle, never given an invented "1 more".
+    const juce::String single = "Remove refused: Drum Bus With A Very Long Name keys a compressor's sidechain; set that sidechain to None first";
+    const juce::String singleShown = statusLineShownText (single, within (60));
+    REQUIRE (singleShown.length() <= 60);
+    REQUIRE_FALSE (singleShown.contains ("more"));
+    REQUIRE (singleShown.startsWith ("Remove refused"));
+    REQUIRE (singleShown.endsWith ("None first"));
+    // One part: the middle goes; the lead and the end stay, by code point (a non-ASCII device name).
+    const juce::String path = juce::String::fromUTF8 ("Export failed: could not write C:/Users/J" "\xc3\xb6" "rg/M" "\xc3\xba" "sic/"
+                                                      "\xc3\x9c" "n" "\xc3\xaf" "code/song.wav");
+    const juce::String middle = statusLineShownText (path, within (30));
+    REQUIRE (middle.length() == 30);
+    REQUIRE (middle.startsWith ("Export failed"));
+    REQUIRE (middle.endsWith ("song.wav"));
+    REQUIRE (middle.indexOf (ellipsis) > 0);
+    REQUIRE_FALSE (middle.contains ("..."));
+    // Nothing fits but the marker.
+    REQUIRE (statusLineShownText (joined, within (1)) == ellipsis + "; " + ellipsis + " 1 more");
+}
+
+// ADR-0076 (UI correctness pass unit 11, rubric FIX 13): the status line shows its messages whole. It sits in the menu
+// row, never squashed; every text the app writes in full - every hover hint, every mode hint, every message with no
+// user or OS field - fits the 1280 budget in every platform font present (the label's own, Verdana - Segoe UI
+// Variable's Windows fallback - and the Linux sans); and user or OS text is shortened only by ADR-0076's rule, the full
+// text in the tooltip. The hint sweep walks a 4 px grid over every hint zone, and must meet every zone's prefix.
+TEST_CASE ("ADR-0076 the status line shows its messages whole", "[ui][input][shell][g6][status-whole]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("status-whole");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    std::filesystem::path importPath = fixturePath;
+    const std::filesystem::path blocker = bundlePath.parent_path() / "status-whole-blocker";   // a file where a folder is wanted
+    const std::filesystem::path exportPath = blocker / "song.wav";
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [&importPath] { return importPath; };
+    choices.chooseExportAudioFile = [exportPath] { return exportPath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    auto* label = dynamic_cast<juce::Label*> (findChildWithComponentId (*shell, "shell.statusline"));
+    REQUIRE (label != nullptr);
+    juce::Component* menuBar = findChildWithComponentId (*shell, "shell.menubar");
+    REQUIRE (menuBar != nullptr);
+
+    // Placement: in the menu row, beside the menu bar, visible all the way up, never squashed (box = W - 708).
+    for (const auto size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+    {
+        shell->setSize (size.x, size.y);
+        INFO ("at " << size.x << "x" << size.y << ": " << label->getBounds().toString());
+        for (const juce::Component* c = label; c != shell.get(); c = c->getParentComponent())   // up to the shell (no window here)
+            REQUIRE (c->isVisible());
+        REQUIRE (label->getY() >= 0);
+        REQUIRE (label->getBottom() <= L::menuBarHeight);
+        REQUIRE (label->getX() >= menuBar->getRight());
+        REQUIRE_FALSE (label->getBounds().intersects (menuBar->getBounds()));
+        REQUIRE (label->getWidth() == size.x - 708);
+        REQUIRE (label->getMinimumHorizontalScale() == 1.0f);
+    }
+
+    // The 1280 budget, and the fonts it is measured in.
+    shell->setSize (1280, 720);
+    const juce::BorderSize<int> border = label->getBorderSize();
+    const float budget = static_cast<float> (label->getWidth() - border.getLeftAndRight() - L::statusLineTextSpare);
+    REQUIRE (budget == 560.0f);
+    std::vector<juce::Font> fonts { label->getLookAndFeel().getLabelFont (*label) };
+    const juce::StringArray installed = juce::Font::findAllTypefaceNames();
+    for (const char* name : { "Verdana", "DejaVu Sans" })
+        if (installed.contains (name))
+            fonts.push_back (juce::Font (juce::FontOptions (name, fonts.front().getHeight(), juce::Font::plain)));
+    const auto widest = [&fonts] (const juce::String& text) {
+        float width = 0.0f;
+        for (const juce::Font& font : fonts)
+            width = std::max (width, juce::GlyphArrangement::getStringWidth (font, text));
+        return width;
+    };
+    std::vector<std::string> over;
+    const auto requireFits = [&] (const juce::String& text, const char* what) {
+        const float width = widest (text);
+        if (width > budget)
+            over.push_back (std::string (what) + " (" + std::to_string (juce::roundToInt (width)) + " px): " + text.toStdString());
+    };
+
+    // Hover hints: a 4 px grid over each zone, the arrangement and the rail and the mixer first, then the piano roll.
+    std::set<juce::String> hints;
+    const auto sweep = [&] (juce::Rectangle<int> zone) {
+        for (int y = zone.getY(); y < zone.getBottom(); y += 4)
+            for (int x = zone.getX(); x < zone.getRight(); x += 4)
+                if (const juce::String hint = yesdaw::ui::mainComponentHoverHintAt (*shell, { x, y }); hint.isNotEmpty())
+                    hints.insert (hint);
+    };
+    const auto rectOf = [&shell] (const juce::String& id) {
+        const juce::var r = probeRoot (*shell)["layout"][juce::Identifier (id)];
+        if (! r.isArray())
+            return juce::Rectangle<int> {};
+        return juce::Rectangle<int> { static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]) };
+    };
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMarkerAdd);        // a marker, and a tempo change
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineTempoChangeAdd);   // label, on the ruler
+    addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Eq);                              // a filled insert slot
+    sweep (requireTimelineComponent (*shell).getBounds());
+    sweep (findChildWithComponentId (*shell, "shell.tracklist.input")->getBounds());
+    sweep (rectOf ("mixer.strip.0"));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // a MIDI clip: its roll opens
+    {
+        juce::Component& roll = requirePianoRollComponent (*shell);                         // with a note pencilled in
+        REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
+        mouseDownAt (roll, roll.getLocalBounds().getCentre());
+        releaseDragAt (roll, roll.getLocalBounds().getCentre(), roll.getLocalBounds().getCentre());
+        REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    }
+    sweep (requirePianoRollComponent (*shell).getBounds());
+    if (auto* laneChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "pianoroll.lane.chooser")))
+        for (int item = 0; item < laneChooser->getNumItems(); ++item)   // the control lane's hint names its choice
+        {
+            laneChooser->setSelectedItemIndex (item, juce::sendNotificationSync);
+            sweep (requirePianoRollComponent (*shell).getBounds());
+        }
+    for (const char* prefix : { "Pointer:", "Ruler:", "Marker:", "Lane:", "Clip:", "Track:", "Fader:", "Insert slot:", "Keyboard:",
+                                "Grid:", "Note:", "Control lane (" })
+    {
+        INFO ("no hint met with the prefix " << prefix);
+        REQUIRE (std::any_of (hints.begin(), hints.end(), [prefix] (const juce::String& hint) { return hint.startsWith (prefix); }));
+    }
+    for (const juce::String& hint : hints)
+        requireFits (hint, "hint");
+
+    // Mode hints, each at its longest: musical typing at C-1 and top velocity with step input on, the monitor muted with
+    // Dim on. First, nothing hovered (a hover hint wins over a mode hint).
+    (void) yesdaw::ui::mainComponentHoverHintAt (*shell, { 0, shell->getHeight() - 1 });
+    REQUIRE (yesdaw::ui::mainComponentHoverHintAt (*shell, { 0, shell->getHeight() - 1 }).isEmpty());
+    std::set<juce::String> modeHints;
+    for (const UiActionId mode : { UiActionId::PianoRollStepInputToggle, UiActionId::PianoRollMusicalTypingToggle,
+                                   UiActionId::MasterMonitorDimToggle, UiActionId::MasterMonitorMuteToggle })
+    {
+        if (mode == UiActionId::PianoRollMusicalTypingToggle)
+            modeHints.insert (yesdaw::ui::mainComponentModeHint (*shell));   // step input alone
+        yesdaw::ui::mainComponentDispatchAction (*shell, mode);
+        modeHints.insert (yesdaw::ui::mainComponentModeHint (*shell));
+        if (mode == UiActionId::PianoRollMusicalTypingToggle)
+            for (int step = 0; step < 12; ++step)   // velocity to its top and the base key to C-1: the hint's longest
+            {
+                REQUIRE (shell->keyPressed (juce::KeyPress ('v')));
+                REQUIRE (shell->keyPressed (juce::KeyPress ('z')));
+            }
+        if (mode == UiActionId::PianoRollMusicalTypingToggle)
+            modeHints.insert (yesdaw::ui::mainComponentModeHint (*shell));
+    }
+    modeHints.insert (yesdaw::ui::mainComponentModeHint (*shell));   // muted with Dim, typing at 100 % under it
+    REQUIRE (modeHints.size() >= 4);
+    for (const juce::String& hint : modeHints)
+        if (hint.isNotEmpty())
+            requireFits (hint, "mode hint");
+
+    // The message catalogue: every message the app reports with no user or OS field - a reportStatus call whose text is
+    // a single literal - read from the sources.
+    int messages = 0;
+    const std::regex literalOnly (R"re(reportStatus\s*\(\s*"((?:[^"\\]|\\.)*)"\s*,)re");
+    for (const char* dir : { "src/ui", "src/app" })
+        for (const auto& entry : std::filesystem::recursive_directory_iterator (std::filesystem::path { YESDAW_SOURCE_DIR } / dir))
+        {
+            if (! entry.is_regular_file())
+                continue;
+            std::ifstream in (entry.path(), std::ios::binary);
+            const std::string source ((std::istreambuf_iterator<char> (in)), std::istreambuf_iterator<char>());
+            for (std::sregex_iterator it (source.begin(), source.end(), literalOnly), end; it != end; ++it)
+            {
+                ++messages;
+                requireFits (juce::String::fromUTF8 ((*it)[1].str().c_str()).replace ("\\\"", "\""), "message");
+            }
+        }
+    REQUIRE (messages >= 20);
+
+    for (const std::string& line : over)
+        UNSCOPED_INFO (line);
+    CAPTURE (budget, fonts.size(), hints.size(), modeHints.size(), messages);
+    REQUIRE (over.empty());
+
+    // Messages that name files show whole at 1280: an import refusal.
+    shell->setSize (1280, 720);
+    const std::filesystem::path notAudio = bundlePath.parent_path() / "status-whole-notes.txt";
+    {
+        std::ofstream out (notAudio);
+        out << "not audio";
+    }
+    importPath = notAudio;
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    {
+        const std::string text = snapshotMainComponent (*shell).statusLineText;
+        INFO ("the refusal: " << text);
+        REQUIRE_FALSE (text.empty());
+        REQUIRE (label->getText().toStdString() == text);
+        REQUIRE (yesdaw::ui::mainComponentStatusLinePaintedText (*shell).toStdString() == text);
+    }
+    // ... and an export failure.
+    {
+        std::ofstream out (blocker);
+        out << "a file where a folder is wanted";
+    }
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
+    yesdaw::ui::mainComponentWaitForExport (*shell);
+    {
+        const std::string text = snapshotMainComponent (*shell).statusLineText;
+        INFO ("the export failure: " << text);
+        REQUIRE (text.find ("Export failed") != std::string::npos);
+        REQUIRE (label->getText().toStdString() == text);
+        REQUIRE (yesdaw::ui::mainComponentStatusLinePaintedText (*shell).toStdString() == text);
+    }
+
+    // At 1152 a long message takes ADR-0076's rule: the painted text is the rule's, never JUCE's "...", and while it is
+    // shortened the tooltip is the whole text.
+    shell->setSize (1152, 640);
+    const std::filesystem::path longName = bundlePath.parent_path()
+        / "status-whole-a-very-long-file-name-that-will-never-fit-the-status-line-at-the-narrowest-window-width-anyone-allows.txt";
+    {
+        std::ofstream out (longName);
+        out << "not audio";
+    }
+    importPath = longName;
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    {
+        const juce::String text = label->getText();
+        const juce::String painted = yesdaw::ui::mainComponentStatusLinePaintedText (*shell);
+        INFO ("whole: " << text << "\npainted: " << painted);
+        REQUIRE (text.toStdString() == snapshotMainComponent (*shell).statusLineText);
+        REQUIRE (painted != text);
+        const juce::Font font = label->getLookAndFeel().getLabelFont (*label);
+        const float narrow = static_cast<float> (label->getWidth() - border.getLeftAndRight() - L::statusLineTextSpare);
+        REQUIRE (painted == yesdaw::ui::statusLineShownText (text, [&font, narrow] (const juce::String& s) {
+                     return juce::GlyphArrangement::getStringWidth (font, s) <= narrow; }));
+        REQUIRE (juce::GlyphArrangement::getStringWidth (font, painted) <= narrow);
+        REQUIRE_FALSE (painted.contains ("..."));
+        REQUIRE (yesdaw::ui::mainComponentStatusLineTooltip (*shell) == text);
+        bool selfClicks = false, childClicks = false;
+        label->getInterceptsMouseClicks (selfClicks, childClicks);
+        REQUIRE (selfClicks);
+        REQUIRE_FALSE (label->getWantsKeyboardFocus());
+    }
+
+    std::error_code ec;
+    std::filesystem::remove (notAudio, ec);
+    std::filesystem::remove (blocker, ec);
+    std::filesystem::remove (longName, ec);
     std::filesystem::remove_all (bundlePath, ec);
 }

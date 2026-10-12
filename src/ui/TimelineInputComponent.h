@@ -390,7 +390,7 @@ public:
             for (int markerIndex = 0; markerIndex < state.markerCount; ++markerIndex)
                 if (yesdaw::ui::timelineMarkerLabelRect (getLocalBounds(), state, markerIndex).contains (position))
                     return juce::String::fromUTF8 ("Marker: drag to move \xc2\xb7 double-click to rename \xc2\xb7 Alt-click removes");
-            return juce::String::fromUTF8 ("Ruler: click to locate \xc2\xb7 drag to select a time range \xc2\xb7 Shift-drag sets the loop \xc2\xb7 Alt+Shift-drag sets the punch");
+            return juce::String::fromUTF8 ("Ruler: click to locate \xc2\xb7 drag selects a range \xc2\xb7 Shift-drag: loop \xc2\xb7 Alt+Shift-drag: punch");   // ADR-0076: fits the 1280 budget
         }
         if (! geometry.clipArea.contains (position))
             return {};
@@ -411,7 +411,7 @@ public:
             case TimelineDragMode::Slip:      return juce::String::fromUTF8 ("Clip: Ctrl+Alt-drag slips the audio under the clip \xc2\xb7 the clip stays put");
             case TimelineDragMode::Move:      break;
         }
-        return juce::String::fromUTF8 ("Clip: drag to move \xc2\xb7 Shift-drag sets gain \xc2\xb7 Ctrl-drag defeats snap \xc2\xb7 edges trim \xc2\xb7 right-click for the clip menu");
+        return juce::String::fromUTF8 ("Clip: drag to move \xc2\xb7 Shift-drag: gain \xc2\xb7 Ctrl-drag skips snap \xc2\xb7 edges trim \xc2\xb7 right-click: menu");   // ADR-0076
     }
 
     void mouseMove (const juce::MouseEvent& event) override

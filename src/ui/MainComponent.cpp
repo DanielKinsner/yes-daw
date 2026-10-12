@@ -377,10 +377,10 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         // R6: every refused file is named with its reason — the good files still landed.
         if (! refusals.empty())
         {
-            std::string message = "Import refused: ";
+            std::vector<std::string> parts;   // ADR-0076: one part per refused file
             for (std::size_t i = 0; i < refusals.size(); ++i)
-                message += (i == 0 ? "" : "; ") + refusals[i];
-            appModel.reportStatus (message, true);
+                parts.push_back ((i == 0 ? std::string ("Import refused: ") : std::string()) + refusals[i]);
+            appModel.reportStatusParts (std::move (parts), true);
         }
 
         if (anyImported)
@@ -1794,10 +1794,15 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
                         {
                             // A launch reason already on the status line (a missing device) stays beside a Cancel.
                             const std::string earlier = self->appModel.statusLineIsError() ? self->appModel.statusLineText() : std::string {};
+                            const std::vector<std::string> earlierParts = self->appModel.statusLineParts();
                             self->openProjectBundleAtPath (lastProject);
                             const std::string now = self->appModel.statusLineText();
                             if (! earlier.empty() && now != earlier && now.rfind ("Open cancelled", 0) == 0)
-                                self->appModel.reportStatus (earlier + "; " + now, true);
+                            {
+                                std::vector<std::string> parts = earlierParts;   // ADR-0076: both facts, as parts
+                                parts.insert (parts.end(), self->appModel.statusLineParts().begin(), self->appModel.statusLineParts().end());
+                                self->appModel.reportStatusParts (std::move (parts), true);
+                            }
                             if (! self->appModel.context().projectLoaded)   // ADR-0062: the untitled session
                             {
                                 self->openUntitledLaunchSessionKeepingReason ({});
@@ -1891,13 +1896,14 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     {
         if (! desktopAudioRequested)
             refreshAudioDeviceChooser();   // the harness's lists (the native shell refreshed them above)
-        const std::string deviceReason = restoreRememberedAudioDevices();   // ADR-0061: the devices the user chose
-        requestProjectDeviceRate();                                         // ADR-0060: the launch project's rate
+        std::vector<std::string> deviceReason = restoreRememberedAudioDevices();   // ADR-0061: the devices the user chose
+        requestProjectDeviceRate();                                                // ADR-0060: the launch project's rate
         if (! deviceReason.empty())   // the reason stays readable next to the rate request's warning, not under it
         {
-            const std::string& status = appModel.statusLineText();
-            const bool rateWarning = appModel.statusLineIsError() && status.rfind ("Audio device runs at", 0) == 0;
-            appModel.reportStatus (rateWarning ? deviceReason + "; " + status : deviceReason, true);
+            const std::string status = appModel.statusLineText();
+            if (appModel.statusLineIsError() && status.rfind ("Audio device runs at", 0) == 0)
+                deviceReason.push_back (status);
+            appModel.reportStatusParts (std::move (deviceReason), true);   // ADR-0076: each fact a part
         }
     }
 
@@ -2031,7 +2037,9 @@ void MainComponent::serviceUiTick()
     appModel.serviceLiveLoudness();
     if (const juce::String loudness = masterLoudnessReadoutText(); masterLoudnessReadout.getButtonText() != loudness)
         masterLoudnessReadout.setButtonText (loudness);
-    appModel.serviceStatusLineDecay();
+    // ADR-0076: a shortened message waits while the pointer is over it, so its tooltip can be read.
+    if (! (statusLine.isShortened() && statusLine.isMouseOver (true)))
+        appModel.serviceStatusLineDecay();
     refreshStatusLine();
     updateTrackMeterHoldStates();
     updateMasterMeterHold();   // ADR-0067 §5: the master follows the strip law in the same tick step
@@ -2910,15 +2918,22 @@ void MainComponent::openUntitledLaunchSession (const std::function<void (const c
 void MainComponent::openUntitledLaunchSessionKeepingReason (const std::function<void (const char*)>& recordStartupStage)
 {
     const std::string reason = appModel.statusLineText();
+    const std::vector<std::string> reasonParts = appModel.statusLineParts();
     const bool reasonIsError = appModel.statusLineIsError();
     openUntitledLaunchSession (recordStartupStage, UiAppModel::LastProjectRecord::Keep);
     const std::string now = appModel.statusLineText();
     if (reason.empty() || now == reason)
         return;
     if (appModel.context().projectLoaded)
-        appModel.reportStatus (reason, reasonIsError);
+    {
+        appModel.reportStatusParts (reasonParts, reasonIsError);
+    }
     else
-        appModel.reportStatus (reason + "; " + now, true);   // the fallback failed too: both facts stay on show
+    {
+        std::vector<std::string> parts = reasonParts;   // the fallback failed too: both facts stay on show (ADR-0076: as parts)
+        parts.insert (parts.end(), appModel.statusLineParts().begin(), appModel.statusLineParts().end());
+        appModel.reportStatusParts (std::move (parts), true);
+    }
 }
 
 } // namespace yesdaw::ui

@@ -1023,6 +1023,7 @@ struct UiTheme
         static constexpr int statusLineLeftGap = 12;
         static constexpr int statusLineMenuBarGap = 12;      // ADR-0076: the status line's gap right of the menu bar
         static constexpr int statusLineMenuRightInset = 8;   // ADR-0076: ... and from the window's right edge
+        static constexpr int statusLineTextSpare = 2;        // ADR-0076: px a painted message leaves free
         static constexpr int statusLineRightInset = 8;
         // G2.16: the zoom slider sits right after the zoom trio; the status line starts after it.
         static juce::Rectangle<int> timelineZoomSliderBounds (juce::Rectangle<int> timeline) noexcept

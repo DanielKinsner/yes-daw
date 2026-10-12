@@ -266,6 +266,27 @@ struct PrefsShell
     [[nodiscard]] yesdaw::ui::UiActionContext context() { return yesdaw::ui::snapshotMainComponent (*shell).context; }
     [[nodiscard]] std::string sizes() { return yesdaw::ui::mainComponentViewStateRecord (*shell).toStdString(); }
     [[nodiscard]] std::string status() { return yesdaw::ui::snapshotMainComponent (*shell).statusLineText; }
+    // ADR-0076: what the status line paints at a window width, and its tooltip.
+    [[nodiscard]] std::string painted (int width)
+    {
+        shell->setSize (width, width == 1280 ? 800 : 1080);
+        yesdaw::ui::mainComponentServiceUiTick (*shell);   // the tick hands the line its text
+        return yesdaw::ui::mainComponentStatusLinePaintedText (*shell).toStdString();
+    }
+    [[nodiscard]] std::string tooltip() { return yesdaw::ui::mainComponentStatusLineTooltip (*shell).toStdString(); }
+    // ADR-0076: whole where it fits; else shortened with its lead kept, never mixed with the last part's words, and the
+    // whole message in the tooltip. (Whether a line fits at 1280 is each platform font's own measure.)
+    void requireWholeOrShortened (int width)
+    {
+        const std::string whole = status();
+        const std::string shown = painted (width);
+        if (shown == whole)
+            return;
+        INFO ("at " << width << " the status line paints: " << shown);
+        REQUIRE (shown.rfind ("Audio output", 0) == 0);
+        REQUIRE (tooltip() == whole);
+        REQUIRE (shown.find (whole.substr (whole.rfind ("; ") + 2)) == std::string::npos);
+    }
 };
 
 juce::Component* findComponentById (juce::Component& component, const juce::String& id)
@@ -516,6 +537,8 @@ TEST_CASE ("ADR-0061 a missing remembered device leaves the open one, names both
         PrefsShell f (directory / "both", true, [&devices] (auto& choices) { devices.install (choices); });
         REQUIRE (f.status() == "Audio output Interface is not available - using Speakers; "
                                "Audio input Interface In is not available - using Microphone");
+        REQUIRE (f.painted (1920) == f.status());   // ADR-0076: whole at 1920
+        f.requireWholeOrShortened (1280);
         REQUIRE (devices.output == "Speakers");
         REQUIRE (devices.input == "Microphone");
         const std::string kept = textOf (directory / "both" / "prefs.json");   // a fallback never overwrites the choice
@@ -543,6 +566,19 @@ TEST_CASE ("ADR-0061 a missing remembered device leaves the open one, names both
         PrefsShell f (directory / "rate", true, [&devices] (auto& choices) { devices.install (choices); });
         REQUIRE (f.status() == "Audio output Interface is not available - using Speakers; "
                                "Audio device runs at 44100 Hz but this project is 48000 Hz - playback speed will be wrong");
+        REQUIRE (f.painted (1920) == f.status());
+        f.requireWholeOrShortened (1280);
+    }
+    {
+        // ADR-0076: the rate warning alone is the app's own text with numbers - whole at 1280 and at 1920.
+        writePrefs (directory / "rate-only", "Speakers", "");
+        FakeDevices devices;
+        devices.outputs = { "Speakers" };
+        devices.acceptRate = false;
+        PrefsShell f (directory / "rate-only", true, [&devices] (auto& choices) { devices.install (choices); });
+        REQUIRE (f.status() == "Audio device runs at 44100 Hz but this project is 48000 Hz - playback speed will be wrong");
+        REQUIRE (f.painted (1280) == f.status());
+        REQUIRE (f.painted (1920) == f.status());
     }
     {
         // No device at all.

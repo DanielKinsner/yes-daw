@@ -12,6 +12,7 @@
 #include "ui/BrowserPanelComponent.h"   // G5.2 / ADR-0056
 #include "ui/NewProjectDialogComponent.h"   // G5.5 / ADR-0060
 #include "ui/MainComponentInternal.h"
+#include "ui/StatusLineText.h"
 #include "ui/ControlTarget.h"
 #include "ui/PaintedAccessibleProxy.h"   // ADR-0066 cp2
 #include "ui/KeyTimeModifiers.h"   // ADR-0057
@@ -1166,7 +1167,7 @@ private:
     [[nodiscard]] std::vector<std::string> audioDeviceNamesFor (bool output);
     [[nodiscard]] std::string openAudioDeviceName (bool output);
     void useDeviceTypeListing (const std::string& name, bool input);
-    [[nodiscard]] std::string restoreRememberedAudioDevices();
+    [[nodiscard]] std::vector<std::string> restoreRememberedAudioDevices();   // one fact per device not opened (ADR-0076)
 
     void refreshAudioDeviceChooser();
 
@@ -1318,6 +1319,8 @@ public:
     };
 
     [[nodiscard]] HeaderLayout headerLayout() const;
+    [[nodiscard]] juce::String harnessStatusLinePaintedText() const { return statusLine.paintedText(); }   // ADR-0076
+    [[nodiscard]] juce::String harnessStatusLineTooltip() const { return statusLine.currentTooltip(); }
 
     // G0.7: the header's height right now — the fixed menu + toolbar, plus the settings row when
     // it is shown. Every work-area layout trims THIS, never the constant.
@@ -1723,7 +1726,7 @@ private:
     juce::TextButton timelineZoomOutButton;
     juce::TextButton timelineZoomInButton;
     juce::Label timelineZoomReadout;
-    juce::Label statusLine;
+    StatusLineLabel statusLine;   // ADR-0076: shortens user / OS text in its paint only
     // R4: audioDeviceError fires on the device thread — it may only flip this flag; the UI
     // timer promotes it to a status message on the message thread.
     std::atomic<bool> deviceErrorPending { false };

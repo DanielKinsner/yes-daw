@@ -14,8 +14,17 @@ namespace yesdaw::ui {
 void MainComponent::refreshStatusLine()
 {
     // G1.6: a status message wins; otherwise the hovered zone's gesture hint.
-    statusLine.setText (appModel.statusLineText().empty() ? hoverHintOrModeHint() : juce::String (appModel.statusLineText()),
-                        juce::dontSendNotification);
+    if (appModel.statusLineText().empty())
+    {
+        statusLine.setText (hoverHintOrModeHint(), juce::dontSendNotification);
+    }
+    else
+    {
+        juce::StringArray parts;   // ADR-0076: a joined message's facts, so shortening never mixes them
+        for (const std::string& part : appModel.statusLineParts())
+            parts.add (juce::String (part));
+        statusLine.setMessage (juce::String (appModel.statusLineText()), parts);
+    }
     statusLine.setColour (juce::Label::textColourId,
                           appModel.statusLineIsError()
                               ? yesdaw::ui::UiTheme::Color::dangerRed()
@@ -181,11 +190,12 @@ juce::String MainComponent::hoverHintOrModeHint() const
     if (context.monitorDimmed)
         return "Monitor DIMMED 20 dB: the mix and exports are not";
     if (context.musicalTypingOn)
-        return "Musical typing ON: A W S E D F T G Y H U J K O L P ; play "
-             + juce::String (yesdaw::ui::pianoRollKeyName (context.typingBaseKey)) + juce::String::fromUTF8 (" up \xc2\xb7 Z / X octave \xc2\xb7 C / V velocity (")
-             + juce::String (context.typingVelocityPercent) + " %)" + (context.stepInputOn ? juce::String::fromUTF8 (" \xc2\xb7 step input: notes enter at the playhead") : "") + juce::String::fromUTF8 (" \xc2\xb7 Ctrl+K off");
+        // ADR-0076: every variant fits the status line's 1280 budget, with the Linux font's margin (the longest: C-1, 127 %).
+        return "Musical typing ON: A to ; play from "
+             + juce::String (yesdaw::ui::pianoRollKeyName (context.typingBaseKey)) + juce::String::fromUTF8 (" \xc2\xb7 Z/X octave \xc2\xb7 C/V velocity ")
+             + juce::String (context.typingVelocityPercent) + juce::String::fromUTF8 (" % \xc2\xb7 Ctrl+K off");   // step input shows lit on its button
     if (context.stepInputOn)
-        return "Step input ON: a typed or clicked note enters at the playhead with the snap length, Right = rest, Left = back";
+        return juce::String::fromUTF8 ("Step input ON: notes go in at the playhead, one snap long \xc2\xb7 Right = rest \xc2\xb7 Left = back");
     return {};
 }
 
@@ -1462,7 +1472,7 @@ std::string MainComponent::openAudioDeviceName (bool output)
 // ADR-0061 cp3, at launch after the device opened and before the project-rate request: the remembered output and input
 // when they are listed (switched without remembering; the callback suspended once around both); otherwise the open
 // device stays. Returns the honest reason for the status line (the caller joins it with the rate request's warning).
-std::string MainComponent::restoreRememberedAudioDevices()
+std::vector<std::string> MainComponent::restoreRememberedAudioDevices()
 {
     const yesdaw::ui::UiAudioPreferences remembered = appModel.audioPreferences();
     std::vector<std::string> unavailable;
@@ -1510,10 +1520,7 @@ std::string MainComponent::restoreRememberedAudioDevices()
                 appModel.setPlaybackMaxBlockSize (device->getCurrentBufferSizeSamples());
         refreshAudioDeviceChooser();
     }
-    std::string message;
-    for (const std::string& part : unavailable)
-        message += (message.empty() ? "" : "; ") + part;
-    return message;
+    return unavailable;
 }
 
 void MainComponent::refreshAudioDeviceChooser()

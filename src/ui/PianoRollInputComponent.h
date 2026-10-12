@@ -410,7 +410,7 @@ public:
             juce::String hint ("Control lane");
             if (const auto* lane = pianoRollControlLaneOf (surface))
                 hint << " (" << yesdaw::ui::pianoRollControlLaneChoice (lane->controlLaneChoice).name << ")";
-            hint << juce::String::fromUTF8 (": the pointer (1) places or drags a point \xc2\xb7 the pencil (2) paints \xc2\xb7 Shift+pencil draws a line \xc2\xb7 the eraser (4) removes");
+            hint << juce::String::fromUTF8 (": pointer adds or drags \xc2\xb7 pencil paints, Shift for a line \xc2\xb7 eraser removes");   // ADR-0076
             return hint;
         }
         if (surface.midiClipSelected && pianoRollVelocityLaneArea (geometry).contains (position))
@@ -424,7 +424,7 @@ public:
                 case PianoDragMode::Move:      break;
                 case PianoDragMode::VelocityDrag: break;   // never a pointer verdict; the Velocity tool's own mode
             }
-            return juce::String::fromUTF8 ("Note: drag to move \xc2\xb7 up or down transposes \xc2\xb7 Ctrl-drag copies \xc2\xb7 Shift-drag sets length \xc2\xb7 right-click for the note menu");
+            return juce::String::fromUTF8 ("Note: drag moves or transposes \xc2\xb7 Ctrl-drag copies \xc2\xb7 Shift-drag: length \xc2\xb7 right-click: menu"   /* ADR-0076 */);
         }
         if (surface.midiClipSelected && geometry.grid.contains (position))
             return juce::String::fromUTF8 ("Grid: the pencil (2) draws a note \xc2\xb7 the pointer (1) drags a marquee");

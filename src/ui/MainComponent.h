@@ -619,6 +619,9 @@ struct TimelineClipSourceWindow
 // viewport, so a gate can cross-check a label's x against the tempo map without duplicating the
 // paint math.
 [[nodiscard]] std::vector<RulerBarLabel> mainComponentRulerBarLabels (juce::Component& component);
+// ADR-0076: the status line's text as painted (the whole message, or its shortened form) and its tooltip now.
+[[nodiscard]] juce::String mainComponentStatusLinePaintedText (const juce::Component& component);
+[[nodiscard]] juce::String mainComponentStatusLineTooltip (const juce::Component& component);
 [[nodiscard]] double mainComponentRulerSecondsAtX (juce::Component& component, int x);
 
 // V5: the rail's live L/R meter peaks for one row (the SAME hold-state values the paint reads),

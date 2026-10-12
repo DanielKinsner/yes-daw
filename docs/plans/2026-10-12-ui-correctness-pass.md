@@ -445,16 +445,16 @@ It amends ADR-0064's tool-row list without editing ADR-0064.
 
   If the critic finds that the elision conflicts with section 7.4 line 1, stop and escalate (see
   Owner decisions).
-- [ ] **Commit: move.**
+- [x] **Commit: move.**
   - Set scale 1.0, re-pin the DROPSET and add the contrast pair.
   - Delete only `statusReserve` and its terms (`MainComponentArrange.cpp:558/560/564/569`) and lines
     588-603.
   - Keep the chooser placement, the renamed row anchor and `statusLineRightInset`.
   - Remove "status" from `harnessTimelineToolbarControls`.
-- [ ] **Commit: reword over-budget fixed texts:** the Clip and Note right-click tails, Ruler, Control
+- [x] **Commit: reword over-budget fixed texts:** the Clip and Note right-click tails, Ruler, Control
   lane, musical typing and step input.
-- [ ] **Commit: elision.** Add the elision label and the `mainComponentStatusLinePaintedText` seam.
-- [ ] **Gate.** `tests/ui_input_tests.cpp` `[ui][input][shell][g6][status-whole]`.
+- [x] **Commit: elision.** Add the elision label and the `mainComponentStatusLinePaintedText` seam.
+- [x] **Gate.** `tests/ui_input_tests.cpp` `[ui][input][shell][g6][status-whole]`.
   - **Placement**, at 1280, 1920 and 2560:
     - The label is visible all the way up its parent chain (not `isShowing()`, which is false for a
       test shell with no window).
@@ -664,6 +664,10 @@ close-out rubric pass.
 - The header height has unit 9's bug: restoring an autosave reattaches the same bundle, which resets the settings
   row to hidden without a re-layout, so the shell keeps the taller header's layout until the next resize. Compare a
   combined key (header height, dock height, inspector width) instead of the dock height alone (unit 9's critic).
+- ADR-0076's message sweep reads only `reportStatus` calls whose text is one literal (25 of about 97). App-written
+  messages built from a literal plus an app reason or number (Duplicate Track / Save As / preset refusals, the sends
+  limit, the key-binding conflict, the fixed export failures) are not measured; a catalogue of their longest variants
+  would close it (unit 11's critic).
 - The frame-time gates (`TimelineFrameCheck.h`) paint with no tempo map, so unit 6's map path is not
   under the frame budget. The unit 6 critic measured at most 140 us a paint for a 1000-change meter
   map.

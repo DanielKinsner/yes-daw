@@ -2020,6 +2020,18 @@ juce::Rectangle<int> mainComponentHeaderSectionBounds (const juce::Component& co
     return {};
 }
 
+juce::String mainComponentStatusLinePaintedText (const juce::Component& component)
+{
+    const auto* mainComponent = dynamic_cast<const MainComponent*> (&component);
+    return mainComponent != nullptr ? mainComponent->harnessStatusLinePaintedText() : juce::String();
+}
+
+juce::String mainComponentStatusLineTooltip (const juce::Component& component)
+{
+    const auto* mainComponent = dynamic_cast<const MainComponent*> (&component);
+    return mainComponent != nullptr ? mainComponent->harnessStatusLineTooltip() : juce::String();
+}
+
 std::vector<juce::Rectangle<int>> mainComponentHeaderRects (const juce::Component& component)
 {
     std::vector<juce::Rectangle<int>> rects;

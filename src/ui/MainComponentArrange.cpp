@@ -87,12 +87,11 @@ void MainComponent::configureTimelineZoomControls()
     // here from real model state; success stays quiet and the UI timer decays the text.
     statusLine.setComponentID ("shell.statusline");
     statusLine.setName ("Status line");
-    statusLine.setTooltip ("Status messages: failures from save, export, project create, autosave, and the audio device");
+    statusLine.setRestingTooltip ("Status messages: failures from save, export, project create, autosave, and the audio device");
     statusLine.setJustificationType (juce::Justification::centredLeft);
-    statusLine.setMinimumHorizontalScale (1.0f);   // ADR-0076: never squashed - text that does not fit is shortened
-    statusLine.setMouseClickGrabsKeyboardFocus (false);
+    // ADR-0076 (StatusLineLabel): never squashed, never focused; it takes the mouse only while a shortened message needs
+    // its tooltip.
     statusLine.setColour (juce::Label::textColourId, kMutedText);
-    statusLine.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (statusLine);
 }
 

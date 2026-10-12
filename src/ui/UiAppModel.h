@@ -2121,15 +2121,28 @@ public:
     static constexpr int kStatusLineDecayTicks = 150;   // ~5 s at the shell's 33 ms tick
     void reportStatus (std::string message, bool isError)
     {
+        statusLineParts_ = { message };
         statusLineText_ = std::move (message);
         statusLineIsError_ = isError;
         statusLineTicksRemaining_ = kStatusLineDecayTicks;
     }
+    // ADR-0076: a message joined from separate facts ("; " between them) keeps its parts, so the status line can shorten
+    // it without mixing one fact's words with another's. A single message's own "; " is never a join.
+    void reportStatusParts (std::vector<std::string> parts, bool isError)
+    {
+        std::string joined;
+        for (std::size_t i = 0; i < parts.size(); ++i)
+            joined += (i == 0 ? std::string() : std::string ("; ")) + parts[i];
+        reportStatus (std::move (joined), isError);
+        statusLineParts_ = std::move (parts);
+    }
+    [[nodiscard]] const std::vector<std::string>& statusLineParts() const noexcept { return statusLineParts_; }
     void serviceStatusLineDecay() noexcept
     {
         if (statusLineTicksRemaining_ > 0 && --statusLineTicksRemaining_ == 0)
         {
             statusLineText_.clear();
+            statusLineParts_.clear();
             statusLineIsError_ = false;
         }
     }
@@ -13855,6 +13868,7 @@ private:
     UiActionContext context_;
     // R4: the shared status line (see reportStatus above).
     std::string statusLineText_;
+    std::vector<std::string> statusLineParts_;   // ADR-0076: the facts a joined message was made from
     bool statusLineIsError_ = false;
     int statusLineTicksRemaining_ = 0;
     persistence::ProjectBundleDb bundleDb_;

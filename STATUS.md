@@ -8,6 +8,77 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 11: the status line shows its messages whole
+
+**Decision:** ADR-0076, accepted after a separate critic. The critic ruled that shortening user or OS text in its middle
+does not conflict with plan §7.4 line 1, on two conditions now written into the ADR:
+- every string the app writes in full shows whole at 1280 on every platform font;
+- a shortened message never paints something untrue.
+
+**What changes:**
+- **Placement.** The status line was a tool-row control squashed into about 106-133 px at 1280 (JUCE compressed its
+  glyphs to 70 % before truncating). It now sits in the menu row's free right side - box W - 708 px, budget W - 720
+  (560 px at 1280) - as part of the header layout, and is never squashed.
+- **Layout pins.** The tool row's choosers no longer reserve room for it, so the layout matrix re-pins 1706x896
+  (`clip.inspector.markers timeline.nudge.chooser`) and 1536x793 (fades + `clip.inspector.markers
+  timeline.edit_mode.chooser timeline.nudge.chooser`), as the ADR computed.
+- **Joined messages keep their parts.** The model's `reportStatusParts` is used by the five places that join facts
+  with "; " (import refusals, the device lines, the device and rate warning, open-cancelled, the launch fallback).
+- **One shortening rule** (`statusLineShownText`), applied in the paint only:
+  - parts are never mixed: leading whole parts are shown, then "; … N more";
+  - a single message's own "; " is never a join;
+  - a first part too long on its own is shortened in its middle, by code point, with U+2026.
+- **While a message is shortened** its tooltip is the whole text, the line takes the mouse (never keyboard focus), and
+  the message's decay waits while the pointer is over it. The label's text, the probe and accessibility keep the whole
+  message.
+- **Six fixed texts reworded**, meaning kept, measured in Verdana and DejaVu Sans to leave the Linux font a margin:
+  the Clip, Ruler, Note and Control lane hints, and the step input and musical typing mode hints. Musical typing no
+  longer repeats "step input" (its button shows it lit). The phrases the hover test pins ("drag to move", "click to
+  locate") stay.
+
+**Gates:**
+- `[status-whole]`:
+  - placement at 1280/1920/2560: in the menu row beside the menu bar, visible, box W - 708, scale 1.0;
+  - a 4 px hint sweep over the arrangement (with a marker, a tempo change and a clip), the rail, a mixer strip with an
+    insert, and the piano roll with a pencilled note under every control-lane choice; it must meet twelve zone
+    prefixes and reaches 41 distinct hints;
+  - the mode hints at their longest (musical typing at C-1 and top velocity, step input, the monitor muted with Dim);
+  - the 25 literal-only messages read from the sources;
+  - every one of these within 560 px in each font present (Segoe UI Variable and Verdana here);
+  - an import refusal and an export failure shown whole at 1280;
+  - at 1152, a long file name painted by the rule (never "..."), tooltip whole, the line taking the mouse.
+- `[status-shorten]`: the pure rule's unit cases - parts never mixed, a single message's "; " not split, lead and end
+  kept, non-ASCII by code point.
+- ADR-0061's preferences cases:
+  - the joined device lines whole at 1920, and at 1280 whole where they fit, else their lead kept with the whole text in
+    the tooltip;
+  - the rate warning alone whole at 1280 and 1920.
+- ADR-0063's tooltip code-word check skips the status line only while its tooltip is a shortened message.
+
+**Red before:** five texts over the budget - Clip 579, Ruler 577, Control lane 717, step input 589, musical typing 839
+(and, once the sweep reached it, Note 632 in Verdana). **Bites:** the old Ruler hint back (612 px); squashing allowed
+again (scale 0.7).
+
+**Critics:**
+- The ADR critic, above.
+- The code critic found:
+  - the hover test's "click to locate" pin broken - fixed;
+  - the step-input hint at about 572 px in DejaVu Sans, which Linux CI measures - reworded, with the six texts now at
+    most about 537 px in DejaVu;
+  - the "Note:" hint unreachable by the first sweep, and 632 px - reached and reworded;
+  - a single message's "; " read as a join, which could invent "… 1 more" - fixed with parts.
+  It confirmed the label paint, the decay pause, the layout move and the warnings clean. Parked: the message sweep
+  covers only literal-only messages.
+
+**Local:**
+- full build, ctest 444/444, Clang clean (24 files).
+- One MSVC internal compiler error (C1001, in an unchanged header) on a mid-unit build did not repeat on the retry.
+
+**CI:** unit 9 (`7b0963e`): **all green** - certified. Unit 10 (`9d36a47`): every job green except macOS, red only on `YesDawTimelineGpuCheck`'s sustained-frame `REQUIRE` (raw: sustained 19.54 ms, max 25.81 ms, 22 slow frames; 440 of 441 passed) - inside the renewed exception - certified. Unit 8 (`4b1c4d7`) likewise (raw: 19.18 ms, 14 slow frames) - certified.
+
+**Drive:** in the batched drive proof - SS8 `audition-on` / `refusal`, the SS7 hover sweep at three sizes, a
+control-lane hover and musical typing on, at 100 % and 150 %.
+
 ## 2026-10-12 — UI correctness pass unit 10: the export Cancel control reads during an export
 
 **What changes:** the header gives an export's Cancel a 28 px slot, and the "Cancel" text button squashed its word
