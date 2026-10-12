@@ -21,19 +21,23 @@ Dan works on multiple machines; git is the sync. Keep the handoff clean:
 - **`STATUS.md` is the live handoff** — the single source of truth for "where are we right now." Read
   it first; update it (current task, done, next) before committing.
 - **Pull at session start, push at session end.** Never leave finished work uncommitted on one machine.
-- **Commit frequently, straight to `main`** — every green chunk is its own commit (Dan wants a high
-  commit count and is in a commit contest; **do not squash**). Each commit should be independently
-  green so `git bisect` works; CI runs on every push as the safety net.
+- **Commit per logical change, straight to `main`** — usually one to three commits per unit; no
+  artificial splits, no squashing of real ones. Each commit builds and passes the tests it touches;
+  the full suite runs once per unit before its push, and CI on every push is the gate (ADR-0075).
 - **Break work down in plain English** — `STATUS.md` holds small, plainly-worded, committable steps.
 
-## Autonomous checkpoints (ADR-0049)
+## Autonomous checkpoints (ADR-0049, cadence ADR-0075)
 Work in small, verifiable chunks. A build/continue request defaults to the current named milestone
 in STATUS unless Dan specifies a smaller scope. A plan-edit request alone does not start feature
-work, a goal, a scheduler, or later background runs. At each checkpoint:
-1. Run applicable local checks and current/earlier Session drives; an agent judges the visual rubric.
-   Obtain a separate agent critic pass; verify its findings against the project, not by consensus.
-2. Update STATUS, commit small, and push. Then wait for every expected CI job on that exact code
-   SHA to finish. Fix red with corrective commits; docs-only green never certifies changed code.
+work, a goal, a scheduler, or later background runs. A checkpoint is one unit of work:
+1. Each new gate runs red on the old code and under at least one named mutation. Run the full local
+   suite once and the current/earlier Session drives; an agent judges the visual rubric. A unit that
+   changes logic, engine behaviour, saved data or a shared law gets a separate agent critic pass (a
+   small layout/text-only unit may skip it, saying so in STATUS); verify findings against the
+   project, not by consensus.
+2. Update STATUS, commit per logical change, and push once per unit. Every expected CI job on the
+   unit's head SHA finishes before the unit is certified or a dependent unit starts; independent
+   work continues meanwhile. Fix red with corrective commits; docs-only green never certifies code.
 3. Record results and report useful progress. Continue within the authorized milestone without a
    routine approval request. Phase advancement is automatic when its required evidence is complete.
 

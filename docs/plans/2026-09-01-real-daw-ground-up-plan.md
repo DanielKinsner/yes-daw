@@ -1003,6 +1003,10 @@ or in CI artifacts.
 
 ### 8.1 The loop per checkpoint (agents own the routine work)
 
+Cadence (ADR-0075, 2026-10-12): a checkpoint is one unit of work. Targeted tests run per commit; the full local suite,
+one critic pass (skippable for a small layout or text-only unit, said in STATUS) and one push run per unit, and CI on
+the unit's head SHA is the gate. Steps 3-4 below read with that cadence.
+
 For a build/continue request, the current named milestone in STATUS is the default authorized
 scope unless Dan names a smaller one. A plan-edit request alone starts no build loop. No recurring
 automation, new goal, or background execution is inferred from this policy.

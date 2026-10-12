@@ -11,10 +11,14 @@ Usable-song milestone close).
 
 One agent investigated each defect and a separate agent challenged it against the code and the
 shots. Where the challenge corrected a proposal, this plan uses the corrected version. The plan adds
-no scope. It calls for one implementation ADR (ADR-0075, unit 11) under ADR-0049's clause. Unticked
+no scope. It calls for one implementation ADR (ADR-0076, unit 11) under ADR-0049's clause. Unticked
 items are pending, not certified.
 
 ## Checkpoint rule
+
+Cadence per ADR-0075 (2026-10-12): targeted tests per commit; the full local suite, the critic (skippable for a small
+layout or text-only unit, said in STATUS) and the push once per unit; at least one named mutation per gate, more only
+where a unit names distinct failure modes.
 
 - [ ] Every unit follows the same steps:
   1. Run the new gate on the code before the fix and record the failing assertion in STATUS.
@@ -415,10 +419,10 @@ unambiguous icon **and** a tooltip").
 
 ### 11. The status line shows messages whole (FIX 13)
 
-Moving the line needs ADR-0075, an implementation ADR under ADR-0049 with a separate critic pass.
+Moving the line needs ADR-0076, an implementation ADR under ADR-0049 with a separate critic pass.
 It amends ADR-0064's tool-row list without editing ADR-0064.
 
-- [ ] **ADR-0075 states:**
+- [ ] **ADR-0076 states:**
   - **Placement:** the line moves to the empty right side of the menu-bar row. This costs no height
     and gives about 558 px of text at 1280 and about 1198 at 1920.
   - **Never squashed:** `setMinimumHorizontalScale (1.0f)`.
@@ -658,7 +662,7 @@ close-out rubric pass.
 
 None are needed to start. One is conditional:
 
-- **Unit 11, only if ADR-0075's critic rules that eliding user or OS text conflicts with section 7.4
+- **Unit 11, only if ADR-0076's critic rules that eliding user or OS text conflicts with section 7.4
   line 1** ("Nothing overlaps, clips, or is cut off"). Question: a message containing a long device
   name or path cannot fit the box at 1280. How should it show?
   - **A (recommended):** elide the middle, keep the lead and the final clause, and show the full text
