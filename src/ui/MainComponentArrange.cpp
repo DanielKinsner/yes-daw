@@ -1483,14 +1483,19 @@ yesdaw::ui::TimelineCanvasState MainComponent::makeTimelineState()
                                     : yesdaw::ui::UiTheme::Layout::timelineInitialPlayheadSeconds;
     }
 
-    // V4: the ruler's bar length comes from the SAME head tempo/meter read the transport
-    // readout uses, through the SAME engine grid law (sampleRateHz = 1.0 makes computeBarGrid
-    // yield seconds) — the ruler's bar numbers and the header's bar|beat share one law.
+    // The ruler's bar labels follow the header counter's law (UI correctness pass unit 6): the full
+    // tempo and meter maps when the map compiles, else the head tempo/meter through the V4 grid law
+    // (sampleRateHz = 1.0 makes computeBarGrid yield seconds).
     {
         const HeadTempoMeter head = headTempoMeter();
         state.barSeconds =
             yesdaw::engine::computeBarGrid (head.bpm, head.numerator, head.denominator, 1.0)
                 .barFrames;
+        timelineMeterMap = appModel.project().meterMap;
+        timelineCompiledTempoMapValid = appModel.context().projectLoaded && appModel.project().sampleRate.isValid()
+                                     && appModel.compiledTempoMap (timelineCompiledTempoMap);
+        state.tempoMap = timelineCompiledTempoMapValid ? &timelineCompiledTempoMap : nullptr;
+        state.meterMap = yesdaw::engine::MeterMapView { timelineMeterMap.data(), timelineMeterMap.size() };
     }
     // G2.2: the time row follows the app-wide time display (the header counter's law).
     state.timeDisplayMode = timeDisplayMode;
@@ -1520,9 +1525,8 @@ yesdaw::ui::TimelineCanvasState MainComponent::makeTimelineState()
     timelineMapLabelViews.clear();
     timelineMapLabelFrames.clear();
     {
-        yesdaw::engine::CompiledTempoMap compiled;
-        if (appModel.context().projectLoaded && appModel.project().sampleRate.isValid()
-            && appModel.compiledTempoMap (compiled))
+        const yesdaw::engine::CompiledTempoMap& compiled = timelineCompiledTempoMap;
+        if (timelineCompiledTempoMapValid)
         {
             const double sampleRateHz = appModel.project().sampleRate.hz;
             const auto& tempoMap = appModel.project().tempoMap;

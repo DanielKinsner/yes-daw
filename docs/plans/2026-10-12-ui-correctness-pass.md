@@ -266,7 +266,7 @@ to the piecewise law. Depends on unit 5: label `seconds` becomes the piecewise b
     - Every meter the walk accepts, bars 1..400, from tick 0 and after a change.
   - **Bites:** without the check against the walk, the sweep fails 4,568 cases (first 3/39 bar
     66); with floor and no check, the 3/7 case is red.
-- [ ] **Commit 2, canvas and shell.**
+- [x] **Commit 2, canvas and shell.**
   - `TimelineCanvasState` gains a `tempoMap` pointer and a `meterMap`. A null pointer keeps the V4
     head law.
   - Under the map, `computeRulerBarLabels` places bar N at `frameForTick (barStartTick (N)) / sr`.
@@ -283,7 +283,18 @@ to the piecewise law. Depends on unit 5: label `seconds` becomes the piecewise b
       label spacing holds, some bar is above 60, and the last label is near the right edge.
   - **Bites:** with `state.tempoMap` left null, Shell A's bar 25 sits at 48 s instead of 40 s.
     Stepping from the next bar's start makes Shell C's labels vanish.
-- [ ] **Drive.** SS3 Step 17, after its existing assertion:
+  - Added after the critic:
+    - A bar cut under one tick (a phantom) is never labelled.
+    - The search for the next label starts at the bar under the minimum spacing; without it a map
+      whose bars shrink 64-fold stopped at bar 1.
+    - Ties at exactly 56 px clear the spacing, as the head law's one step does.
+    - Gate: a pure sweep of five maps x six zooms x four scrolls. Each label sits on the counter's
+      bar boundary, ascends and clears the spacing, and no stretch is unlabelled. A flat map
+      matches the head law at 960 views, including the 150 BPM 7/2 tie.
+  - **Bites, added:** no seek leaves one label across 1/64 at 240 (1240 px unlabelled). Phantoms
+    labelled read 2 where the counter reads 3. No tie tolerance gives 19 labels where the head law
+    gives 23.
+- [ ] **Drive.** Written in SS3 Step 17; it runs in the batched drive proof. SS3 Step 17, after its existing assertion:
   1. Set Snap: Off through `widget.timeline.snap_mode.chooser`.
   2. Take the first `ruler.bar.N` to the right of `ruler.map.0`.
   3. Click the time row 1 px right of that tick.
@@ -639,6 +650,9 @@ close-out rubric pass.
   - The rail is under 42 px at inspector widths 240-283.
   - The TAKES heading is missing its label inset.
 - Add the whole-section paint check to every `[layout][scaling]` matrix cell.
+- The frame-time gates (`TimelineFrameCheck.h`) paint with no tempo map, so unit 6's map path is not
+  under the frame budget. The unit 6 critic measured at most 140 us a paint for a 1000-change meter
+  map.
 
 ## Owner decisions
 

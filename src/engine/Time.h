@@ -419,10 +419,11 @@ struct BarBeat
 };
 
 // V4: the bar/beat lengths at a SINGLE tempo/meter, in frames at the given sample rate. This is
-// the ONE shared sub-law under computeBarBeat (the V2 transport readout) and the ruler's bar-label
-// positions (V4) — both derive their grid from this exact float-operation order, so the header
-// readout and the painted ruler can never disagree. Passing sampleRateHz = 1.0 yields the lengths
-// in SECONDS (frames at 1 Hz are seconds), which is how the seconds-based ruler consumes it.
+// the shared sub-law under computeBarBeat (the V2 transport readout's fallback) and the ruler's
+// fallback bar labels (V4) — both derive their grid from this exact float-operation order, so the
+// two fallbacks never disagree; with a compiled tempo map both read the full maps instead (G2.15,
+// UI correctness pass unit 6). Passing sampleRateHz = 1.0 yields the lengths in SECONDS (frames at
+// 1 Hz are seconds), which is how the seconds-based ruler consumes it.
 struct BarGrid
 {
     double barFrames = 0.0;

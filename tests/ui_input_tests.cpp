@@ -8242,6 +8242,269 @@ TEST_CASE ("V4 the ruler labels real tempo-map bars, not elapsed seconds",
     std::filesystem::remove_all (bundleB, ecRuler);
 }
 
+// UI correctness pass unit 6 (rubric FIX 4): the ruler's bar labels follow the tempo and meter maps, the header
+// counter's law. Expected starts are closed-form seconds from each shell's own map (never a call into the law under
+// test); labels and the pixel -> seconds mapping are read through the paint path's own state and viewport.
+TEST_CASE ("ruler bar labels follow the tempo and meter maps", "[ui][input][shell][g2][tempo-map][ruler-bars]")
+{
+    using yesdaw::engine::MeterChange;
+    using yesdaw::engine::TempoChange;
+    using yesdaw::engine::TempoCurve;
+    constexpr yesdaw::engine::Tick bar = 4 * yesdaw::engine::kTicksPerQuarter;   // one 4/4 bar
+    const auto shellWithMaps = [] (const char* name, std::vector<TempoChange> tempo, std::vector<MeterChange> meter,
+                                   std::filesystem::path& bundlePathOut)
+    {
+        bundlePathOut = makeTempBundlePath (name);
+        const std::filesystem::path bundlePath = bundlePathOut;
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+        choices.makeNewProject = [tempo, meter] {
+            yesdaw::engine::Project project = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
+            project.tempoMap = tempo;
+            project.meterMap = meter;
+            return project;
+        };
+        auto shell = makeShell (std::move (choices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        return shell;
+    };
+    const double minSpacing = yesdaw::ui::UiTheme::Layout::timelineCanvasRulerMinBarLabelSpacingPx;
+    const auto requireLabelsOnStarts = [minSpacing] (juce::Component& shell, const std::function<double (std::int64_t)>& startSeconds)
+    {
+        const std::vector<yesdaw::ui::RulerBarLabel> labels = yesdaw::ui::mainComponentRulerBarLabels (shell);
+        REQUIRE (labels.size() >= 3);
+        REQUIRE (labels.front().bar == 1);
+        const double secondsPerPixel = yesdaw::ui::mainComponentRulerSecondsAtX (shell, 1)
+                                     - yesdaw::ui::mainComponentRulerSecondsAtX (shell, 0);
+        REQUIRE (secondsPerPixel > 0.0);
+        for (std::size_t i = 0; i < labels.size(); ++i)
+        {
+            const yesdaw::ui::RulerBarLabel& label = labels[i];
+            INFO ("bar " << label.bar << " at x " << label.x << " (" << yesdaw::ui::mainComponentRulerSecondsAtX (shell, label.x)
+                         << " s), its start is " << startSeconds (label.bar) << " s");
+            REQUIRE (std::abs (yesdaw::ui::mainComponentRulerSecondsAtX (shell, label.x) - startSeconds (label.bar)) <= secondsPerPixel);
+            if (i > 0)
+            {
+                REQUIRE (label.bar > labels[i - 1].bar);
+                REQUIRE (label.x - labels[i - 1].x >= juce::roundToInt (minSpacing) - 1);
+            }
+        }
+        // The labels run to the right edge: the last is within a few label steps of it.
+        const int width = requireTimelineComponent (shell).getWidth();
+        INFO ("last label: bar " << labels.back().bar << " at x " << labels.back().x << " of " << width);
+        REQUIRE (labels.back().x >= width - 4 * juce::roundToInt (minSpacing));
+        return labels;
+    };
+
+    // Shell A: 120 BPM, then 240 from bar 17 (32 s); 4/4, then 3/4 from bar 33 (48 s at 240: a 0.75 s bar).
+    std::filesystem::path bundleA;
+    auto shellA = shellWithMaps ("ruler-bars-map-a",
+                                 { TempoChange { 0, 120.0, TempoCurve::Jump }, TempoChange { 16 * bar, 240.0, TempoCurve::Jump } },
+                                 { MeterChange { 0, 4, 4 }, MeterChange { 32 * bar, 3, 4 } }, bundleA);
+    const auto labelsA = requireLabelsOnStarts (*shellA, [] (std::int64_t n) {
+        const double b = static_cast<double> (n);
+        return n <= 17 ? (b - 1.0) * 2.0 : n <= 33 ? 32.0 + (b - 17.0) : 48.0 + (b - 33.0) * 0.75;
+    });
+    REQUIRE (labelsA.back().bar > 60);
+
+    // Shell B: a ramp 60 -> 120 BPM over the first four bars (S ticks = 16 quarters), then 120. Inside the ramp the tempo
+    // is linear in ticks, so tick t is at 16 ln (1 + t / S) seconds (16 quarters of 1 s each at the opening 60 BPM).
+    std::filesystem::path bundleB;
+    auto shellB = shellWithMaps ("ruler-bars-map-b",
+                                 { TempoChange { 0, 60.0, TempoCurve::LinearRamp }, TempoChange { 4 * bar, 120.0, TempoCurve::Jump } },
+                                 { MeterChange { 0, 4, 4 } }, bundleB);
+    (void) requireLabelsOnStarts (*shellB, [] (std::int64_t n) {
+        const double b = static_cast<double> (n);
+        return n <= 5 ? 16.0 * std::log (1.0 + (b - 1.0) / 4.0) : 16.0 * std::log (2.0) + (b - 5.0) * 2.0;
+    });
+
+    // Shell C: 120 BPM; 3/4 from 100 ticks into bar 9, so bar 9 is 100 ticks (1/307.2 s) and bar 10 starts there.
+    std::filesystem::path bundleC;
+    auto shellC = shellWithMaps ("ruler-bars-map-c", { TempoChange { 0, 120.0, TempoCurve::Jump } },
+                                 { MeterChange { 0, 4, 4 }, MeterChange { 8 * bar + 100, 3, 4 } }, bundleC);
+    const auto labelsC = requireLabelsOnStarts (*shellC, [] (std::int64_t n) {
+        const double b = static_cast<double> (n);
+        return n <= 9 ? (b - 1.0) * 2.0 : 16.0 + 100.0 / 30720.0 + (b - 10.0) * 1.5;
+    });
+    REQUIRE (labelsC.back().bar > 60);
+
+    // A bar a meter change cuts under one tick (3/7, then 4/4 from tick 26332) has no tick of its own: the counter
+    // never reads bar 2, so no label may name it. At 400 px/s every bar is labelled, and bar 3 sits at the change,
+    // 26332 ticks = 26332 / 30720 s at 120 BPM.
+    {
+        const std::array<TempoChange, 1> flat { TempoChange { 0, 120.0, TempoCurve::Jump } };
+        yesdaw::engine::CompiledTempoMap compiled;
+        REQUIRE (yesdaw::engine::CompiledTempoMap::build (yesdaw::engine::TempoMapView { flat.data(), flat.size() },
+                                                          yesdaw::engine::SampleRate { 48000.0 }, compiled));
+        const std::array<MeterChange, 2> phantom { MeterChange { 0, 3, 7 }, MeterChange { 26332, 4, 4 } };
+        yesdaw::ui::TimelineCanvasState state;
+        state.tempoMap = &compiled;
+        state.meterMap = yesdaw::engine::MeterMapView { phantom.data(), phantom.size() };
+        state.sampleRateHz = 48000.0;
+        yesdaw::ui::Viewport vp;
+        vp.pixelsPerSecond = 400.0;
+        vp.scrollSeconds = 0.0;
+        const std::vector<yesdaw::ui::RulerBarLabel> labels =
+            yesdaw::ui::computeRulerBarLabels (juce::Rectangle<int> (0, 0, 1600, 100), state, vp);
+        REQUIRE (labels.size() >= 3);
+        REQUIRE (labels[0].bar == 1);
+        REQUIRE (labels[1].bar == 3);
+        REQUIRE (std::abs (labels[1].seconds - 26332.0 / 30720.0) < 1.0e-9);
+        for (const yesdaw::ui::RulerBarLabel& label : labels)
+            REQUIRE (label.bar != 2);
+    }
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundleA, ec);
+    std::filesystem::remove_all (bundleB, ec);
+    std::filesystem::remove_all (bundleC, ec);
+}
+
+// UI correctness pass unit 6, the critic's cases: the label law on the maps at every zoom and scroll. Each label sits on a
+// bar boundary as the header counter reads it (its frame reads its bar, the frame before an earlier one); labels ascend
+// and clear the spacing; no stretch of the view is left unlabelled (a map whose bars shrink 64-fold once stopped the
+// labels at bar 1); and on a flat map the labels are the head law's, ties at exactly 56 px included.
+TEST_CASE ("ruler bar labels on the maps: every zoom and scroll, on the counter's bars, none missing", "[ui][timeline][ruler][g2][tempo-map][ruler-bars]")
+{
+    using yesdaw::engine::MeterChange;
+    using yesdaw::engine::TempoChange;
+    using yesdaw::engine::TempoCurve;
+    using yesdaw::engine::Tick;
+    constexpr double sr = 48000.0;
+    constexpr Tick bar = 4 * yesdaw::engine::kTicksPerQuarter;
+    const double minSpacing = yesdaw::ui::UiTheme::Layout::timelineCanvasRulerMinBarLabelSpacingPx;
+    const int cullPadding = yesdaw::ui::UiTheme::Layout::timelineCanvasRulerLabelCullPadding;
+    const juce::Rectangle<int> clip (40, 0, 1200, 100);
+
+    struct Maps
+    {
+        const char* name;
+        std::vector<TempoChange> tempo;
+        std::vector<MeterChange> meter;
+    };
+    std::vector<Maps> maps {
+        { "120 then 240 at bar 17, 3/4 at bar 33", { { 0, 120.0, TempoCurve::Jump }, { 16 * bar, 240.0, TempoCurve::Jump } },
+          { { 0, 4, 4 }, { 32 * bar, 3, 4 } } },
+        { "ramp 60 -> 120 over four bars", { { 0, 60.0, TempoCurve::LinearRamp }, { 4 * bar, 120.0, TempoCurve::Jump } },
+          { { 0, 4, 4 } } },
+        { "1/64 at 240 from bar 9", { { 0, 120.0, TempoCurve::Jump }, { 8 * bar, 240.0, TempoCurve::Jump } },
+          { { 0, 4, 4 }, { 8 * bar, 1, 64 } } },
+        { "a phantom bar 2", { { 0, 120.0, TempoCurve::Jump } }, { { 0, 3, 7 }, { 26332, 4, 4 } } },
+    };
+    Maps dense { "a meter change every 500 ticks", { { 0, 120.0, TempoCurve::Jump } }, {} };
+    for (int i = 0; i < 400; ++i)
+        dense.meter.push_back ({ Tick { 500 } * i, static_cast<std::uint16_t> (3 + i % 5), static_cast<std::uint16_t> (i % 2 == 0 ? 4 : 8) });
+    maps.push_back (dense);
+
+    long long labelsChecked = 0, viewsChecked = 0;
+    for (const Maps& m : maps)
+    {
+        yesdaw::engine::CompiledTempoMap compiled;
+        REQUIRE (yesdaw::engine::CompiledTempoMap::build (yesdaw::engine::TempoMapView { m.tempo.data(), m.tempo.size() },
+                                                          yesdaw::engine::SampleRate { sr }, compiled));
+        const yesdaw::engine::MeterMapView meterView { m.meter.data(), m.meter.size() };
+        const auto counterBarAt = [&] (double frame) {
+            yesdaw::engine::BarBeat out;
+            REQUIRE (yesdaw::engine::computeBarBeatPiecewise (compiled, meterView, static_cast<std::int64_t> (frame), out));
+            return out.bar;
+        };
+        // A full bar of the meter in force at a label, in pixels: the most one label step can need is twice the spacing,
+        // or one such bar when a bar alone is wider.
+        const auto nominalPixelsAt = [&] (std::int64_t barNumber, double pps) {
+            Tick start = 0;
+            REQUIRE (yesdaw::engine::barStartTick (meterView, barNumber, start));
+            double a = 0.0, b = 0.0;
+            REQUIRE (compiled.frameForTick (start, a));
+            REQUIRE (compiled.frameForTick (start + static_cast<Tick> (std::llround (yesdaw::engine::nominalBarTicks (meterView, start))), b));
+            return (b - a) / sr * pps;
+        };
+        for (const double pps : { 0.5, 1.0, 5.02, 30.0, 200.0, 2000.0 })
+            for (const double scroll : { 0.0, 7.3, 457.0, 3000.0 })
+            {
+                yesdaw::ui::TimelineCanvasState state;
+                state.tempoMap = &compiled;
+                state.meterMap = meterView;
+                state.sampleRateHz = sr;
+                yesdaw::ui::Viewport vp;
+                vp.pixelsPerSecond = pps;
+                vp.scrollSeconds = scroll;
+                const std::vector<yesdaw::ui::RulerBarLabel> labels = yesdaw::ui::computeRulerBarLabels (clip, state, vp);
+                ++viewsChecked;
+                INFO (m.name << " at " << pps << " px/s, scroll " << scroll << " s: " << labels.size() << " labels");
+                const double rightEdgeSeconds = scroll + static_cast<double> (clip.getWidth() + cullPadding) / pps;
+                if (labels.empty())
+                {
+                    // Nothing to label only when no bar starts in the view.
+                    const double leftEdgeSeconds = std::max (0.0, scroll - static_cast<double> (cullPadding) / pps);
+                    REQUIRE (counterBarAt (std::ceil (leftEdgeSeconds * sr)) == counterBarAt (std::floor (rightEdgeSeconds * sr)));
+                    continue;
+                }
+                for (std::size_t i = 0; i < labels.size(); ++i)
+                {
+                    const yesdaw::ui::RulerBarLabel& label = labels[i];
+                    INFO ("label " << i << ": bar " << label.bar << " at x " << label.x << ", " << label.seconds << " s");
+                    ++labelsChecked;
+                    REQUIRE (label.x == clip.getX() + juce::roundToInt ((label.seconds - scroll) * pps));
+                    REQUIRE (counterBarAt (std::ceil (label.seconds * sr)) == label.bar);
+                    // Four frames back is over a tick at any tempo here (60 BPM: 0.32 ticks a frame).
+                    if (label.seconds > 0.0)
+                        REQUIRE (counterBarAt (std::floor (label.seconds * sr) - 4.0) < label.bar);
+                    if (i > 0)
+                    {
+                        REQUIRE (label.bar > labels[i - 1].bar);
+                        REQUIRE (label.x - labels[i - 1].x >= juce::roundToInt (minSpacing) - 1);
+                        REQUIRE (label.x - labels[i - 1].x
+                                 <= 4.0 * std::max (2.0 * minSpacing, nominalPixelsAt (labels[i - 1].bar, pps)) + 1.0);
+                    }
+                }
+                const double lastGap = static_cast<double> (clip.getRight() + cullPadding - labels.back().x);
+                INFO ("from the last label to the right cull edge: " << lastGap << " px");
+                REQUIRE (lastGap <= 4.0 * std::max (2.0 * minSpacing, nominalPixelsAt (labels.back().bar, pps)) + 1.0);
+            }
+    }
+    CAPTURE (labelsChecked, viewsChecked);
+    REQUIRE (viewsChecked == 5 * 6 * 4);
+    REQUIRE (labelsChecked > 1000);
+
+    // A flat map labels exactly the bars the head law does, at the same pixels (within rounding) - including the exact
+    // tie, 150 BPM 7/2 at 10 px/s, where one bar is 5.6 s = 56 px.
+    struct Flat { double bpm; std::uint16_t numerator; std::uint16_t denominator; };
+    int flatViews = 0;
+    for (const Flat f : { Flat { 150.0, 7, 2 }, Flat { 120.0, 4, 4 }, Flat { 44.0, 3, 4 }, Flat { 97.3, 5, 8 } })
+    {
+        const std::array<TempoChange, 1> tempo { TempoChange { 0, f.bpm, TempoCurve::Jump } };
+        const std::array<MeterChange, 1> meter { MeterChange { 0, f.numerator, f.denominator } };
+        yesdaw::engine::CompiledTempoMap compiled;
+        REQUIRE (yesdaw::engine::CompiledTempoMap::build (yesdaw::engine::TempoMapView { tempo.data(), tempo.size() },
+                                                          yesdaw::engine::SampleRate { sr }, compiled));
+        for (int half = 1; half <= 120; ++half)
+            for (const double scroll : { 0.0, 7.3 })
+            {
+                yesdaw::ui::TimelineCanvasState headLaw;
+                headLaw.barSeconds = yesdaw::engine::computeBarGrid (f.bpm, f.numerator, f.denominator, 1.0).barFrames;
+                headLaw.sampleRateHz = sr;
+                yesdaw::ui::TimelineCanvasState onMap = headLaw;
+                onMap.tempoMap = &compiled;
+                onMap.meterMap = yesdaw::engine::MeterMapView { meter.data(), meter.size() };
+                yesdaw::ui::Viewport vp;
+                vp.pixelsPerSecond = 0.5 * half;
+                vp.scrollSeconds = scroll;
+                const auto expected = yesdaw::ui::computeRulerBarLabels (clip, headLaw, vp);
+                const auto got = yesdaw::ui::computeRulerBarLabels (clip, onMap, vp);
+                ++flatViews;
+                INFO (f.bpm << " BPM " << f.numerator << "/" << f.denominator << " at " << vp.pixelsPerSecond << " px/s, scroll "
+                            << scroll << ": head law " << expected.size() << " labels, on the map " << got.size());
+                REQUIRE (got.size() == expected.size());
+                for (std::size_t i = 0; i < got.size(); ++i)
+                {
+                    REQUIRE (got[i].bar == expected[i].bar);
+                    REQUIRE (std::abs (got[i].x - expected[i].x) <= 1);
+                }
+            }
+    }
+    REQUIRE (flatViews == 4 * 120 * 2);
+}
+
 TEST_CASE ("V5 the rail meters L/R independently and the mini VOL is a vertical fader",
            "[ui][input][shell][track-rail-meters]")
 {

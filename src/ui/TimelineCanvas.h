@@ -6,6 +6,7 @@
 #pragma once
 
 #include "engine/ClipEnvelope.h"
+#include "engine/Time.h"
 #include "ui/TimelineLayout.h"
 #include "ui/UiIcons.h"
 #include "ui/UiTheme.h"
@@ -231,10 +232,14 @@ struct TimelineCanvasState
     double playheadSeconds = UiTheme::Layout::timelineCanvasDefaultPlayheadSeconds;
 
     // V4: seconds per bar at the project's HEAD tempo/meter (engine::computeBarGrid at
-    // sampleRateHz = 1.0) — the ruler's bar-number labels are positioned by this real bar
-    // length, never by elapsed seconds. Defaults to the same 120 BPM 4/4 fallback the
-    // transport readout uses when no project is loaded.
+    // sampleRateHz = 1.0) — the ruler's bar labels use this only when tempoMap below is null
+    // (no project, or a map that does not compile). Defaults to the same 120 BPM 4/4 fallback
+    // the transport readout uses when no project is loaded.
     double barSeconds = UiTheme::Layout::timelineCanvasDefaultBarSeconds;
+    // UI correctness pass unit 6: the FULL tempo and meter maps the ruler's bar labels follow —
+    // the header counter's G2.15 law. Seconds come through sampleRateHz below.
+    const engine::CompiledTempoMap* tempoMap = nullptr;
+    engine::MeterMapView meterMap {};
     double rowZoom = 1.0;   // G2.16: multiplies every auto-height row (Ctrl+Up / Ctrl+Down)
 
     // G2.2: the time row's format — 0 / 1 min:sec (the header shows bars or min:sec primary),
@@ -383,8 +388,9 @@ struct TimelineCanvasGeometry
 
 // V4: the ruler's bar-label law, extracted pure so the paint path and the test harness read the
 // SAME positions (V2's headerBarBeat precedent — a gate must never re-derive this formula).
-// Labels sit at real bar starts ((bar - 1) * state.barSeconds), thinned to power-of-two bar
-// steps until neighbours clear the minimum pixel spacing — never at raw elapsed-seconds steps.
+// Labels sit at real bar starts, thinned to power-of-two bar steps until neighbours clear the
+// minimum pixel spacing — never at raw elapsed-seconds steps. Under the full maps (unit 6) a bar
+// starts at its first tick's frame; with no map, at (bar - 1) * state.barSeconds.
 struct RulerBarLabel
 {
     std::int64_t bar = 1;
@@ -392,9 +398,116 @@ struct RulerBarLabel
     double seconds = 0.0;   // the time the time row shows for this bar (UI correctness pass unit 5)
 };
 
+// UI correctness pass unit 6: the bar labels under the full tempo and meter maps. Bar N sits at
+// the frame of its first tick (engine::barStartTick), the header counter's law. A label's step is
+// the smallest power of two whose nominal bars - full bars of the meter in force, at the tempo
+// there - clear the minimum spacing. The next label is the next multiple of that step that
+// clears it, so a bar a meter change cuts short is passed over and never sets the step. The search
+// starts at the bar under the minimum spacing, so a map whose bars shrink sharply (a change to
+// 1/64) never runs it long. A bar cut under one tick has no tick that reads it
+// (engine::barStartTick), so it is never labelled. Ties at exactly the minimum spacing count as
+// clearing it, as the head law's single step does, whatever the last bit of each bar's width.
+[[nodiscard]] inline std::vector<RulerBarLabel> computeRulerBarLabelsOnMaps (
+    juce::Rectangle<int> clipArea, const TimelineCanvasState& state, const Viewport& vp)
+{
+    std::vector<RulerBarLabel> labels;
+    const engine::CompiledTempoMap& tempoMap = *state.tempoMap;
+    const double minSpacing = UiTheme::Layout::timelineCanvasRulerMinBarLabelSpacingPx;
+    constexpr double tie = 1.0e-6;   // px: a width that rounding puts a bit under the spacing still clears it
+    const int cullPadding = UiTheme::Layout::timelineCanvasRulerLabelCullPadding;
+    const auto secondsAtTick = [&] (engine::Tick tick, double& seconds)
+    {
+        double frame = 0.0;
+        if (! tempoMap.frameForTick (tick, frame))
+            return false;
+        seconds = frame / state.sampleRateHz;
+        return std::isfinite (seconds);
+    };
+    const auto barStart = [&] (std::int64_t barIndex, engine::Tick& tick, double& seconds)
+    {
+        return engine::barStartTick (state.meterMap, barIndex + 1, tick) && secondsAtTick (tick, seconds);
+    };
+    const auto readsAsItself = [&] (std::int64_t barIndex, engine::Tick tick)
+    {
+        return engine::barBeatAtTick (state.meterMap, tick).bar == barIndex + 1;
+    };
+    const auto offsetPixels = [&] (double seconds) { return (seconds - vp.scrollSeconds) * vp.pixelsPerSecond; };
+    const auto stepAt = [&] (engine::Tick tick, double seconds) -> std::int64_t
+    {
+        const auto nominalTicks = static_cast<engine::Tick> (std::llround (engine::nominalBarTicks (state.meterMap, tick)));
+        double nominalEnd = 0.0;
+        if (! secondsAtTick (tick + nominalTicks, nominalEnd))
+            return 0;
+        const double nominalPixels = (nominalEnd - seconds) * vp.pixelsPerSecond;
+        if (! (nominalPixels > 0.0))
+            return 0;
+        std::int64_t step = 1;
+        while (static_cast<double> (step) * nominalPixels < minSpacing - tie && step < (std::int64_t { 1 } << 40))
+            step *= 2;
+        return step;
+    };
+
+    // The first label: the bar at the left cull edge, aligned down to its step (or, when that bar has
+    // no tick of its own, the next bar, which starts at the same tick).
+    engine::Tick tick = 0;
+    double seconds = 0.0;
+    const double leftSeconds = std::max (0.0, vp.scrollSeconds - static_cast<double> (cullPadding) / vp.pixelsPerSecond);
+    if (! tempoMap.tickForFrame (leftSeconds * state.sampleRateHz, tick))
+        return labels;
+    std::int64_t barIndex = std::max<std::int64_t> (0, engine::barBeatAtTick (state.meterMap, tick).bar - 1);
+    if (! barStart (barIndex, tick, seconds))
+        return labels;
+    if (const std::int64_t step = stepAt (tick, seconds); step > 1)
+    {
+        barIndex = (barIndex / step) * step;
+        if (! barStart (barIndex, tick, seconds))
+            return labels;
+    }
+    for (int skip = 0; skip < 64 && ! readsAsItself (barIndex, tick); ++skip)
+        if (! barStart (++barIndex, tick, seconds))
+            return labels;
+
+    for (int guard = 0; guard < 4096; ++guard)
+    {
+        const int x = clipArea.getX() + juce::roundToInt (offsetPixels (seconds));
+        if (x > clipArea.getRight() + cullPadding)
+            break;
+        if (x >= clipArea.getX() - cullPadding)
+            labels.push_back ({ barIndex + 1, x, seconds });
+
+        const std::int64_t step = stepAt (tick, seconds);
+        if (step < 1)
+            break;
+        std::int64_t next = (barIndex / step + 1) * step;
+        // Every bar that starts before (this label + the minimum spacing) is too close, so the search
+        // starts at the step multiple at or below the bar under that point.
+        if (engine::Tick seekTick = 0;
+            tempoMap.tickForFrame ((seconds + minSpacing / vp.pixelsPerSecond) * state.sampleRateHz, seekTick))
+            next = std::max (next, ((engine::barBeatAtTick (state.meterMap, seekTick).bar - 1) / step) * step);
+        engine::Tick nextTick = 0;
+        double nextSeconds = 0.0;
+        bool cleared = false;
+        for (int skip = 0; skip < 64 && barStart (next, nextTick, nextSeconds); ++skip, next += step)
+            if (offsetPixels (nextSeconds) - offsetPixels (seconds) >= minSpacing - tie && readsAsItself (next, nextTick))
+            {
+                cleared = true;
+                break;
+            }
+        if (! cleared)
+            break;
+        barIndex = next;
+        tick = nextTick;
+        seconds = nextSeconds;
+    }
+    return labels;
+}
+
 [[nodiscard]] inline std::vector<RulerBarLabel> computeRulerBarLabels (
     juce::Rectangle<int> clipArea, const TimelineCanvasState& state, const Viewport& vp)
 {
+    if (state.tempoMap != nullptr && state.sampleRateHz > 0.0 && vp.pixelsPerSecond > 0.0 && clipArea.getWidth() > 0)
+        return computeRulerBarLabelsOnMaps (clipArea, state, vp);
+
     std::vector<RulerBarLabel> labels;
     if (! (state.barSeconds > 0.0) || ! (vp.pixelsPerSecond > 0.0) || clipArea.getWidth() <= 0)
         return labels;

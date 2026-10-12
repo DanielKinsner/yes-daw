@@ -1504,6 +1504,9 @@ private:
     std::vector<std::string> timelineMapLabelTexts;                // G2.15
     std::vector<yesdaw::ui::TimelineMapLabel> timelineMapLabelViews;
     std::vector<std::int64_t> timelineMapLabelFrames;   // the change's exact frame per label (a click locates there)
+    yesdaw::engine::CompiledTempoMap timelineCompiledTempoMap;   // UI correctness pass unit 6: the map the ruler's bars follow
+    bool timelineCompiledTempoMapValid = false;
+    std::vector<yesdaw::engine::MeterChange> timelineMeterMap;
     double timelineZoomFactor = 1.0;   // 1.0 == whole timeline fits the window
     double timelineRowZoom = 1.0;      // G2.16: multiplies every auto-height row
     std::optional<ZoomView> lastSelectionZoom;   // G2.16: the view Z produced (Z again goes back)

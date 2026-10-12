@@ -8,6 +8,36 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 6 (commit 2): the ruler's bar labels follow the tempo and meter maps
+
+**What changes:** the ruler numbered bars by the head tempo and meter only, so after a tempo or meter change every
+label drifted from the header counter (the rubric's shot: label 57 at 1:52, where the counter reads about bar 81). The
+canvas state now carries the compiled tempo map and the meter map (`makeTimelineState` builds the map once a state, as
+it already did for the map labels), and `computeRulerBarLabels` places bar N at its first tick's frame - the counter's
+own law. A label's step comes from a full bar of the meter in force, never the next bar's start. A bar a meter change
+cuts under one tick has no label (no tick reads it). The search for the next label starts at the bar under the
+minimum spacing, and spacing ties at exactly 56 px clear it, as the head law's single step does. With no map (no
+project), the V4 head law is unchanged. **Gates `[ruler-bars]`:** red before the fix - Shell A's bar 21 at 40.02 s,
+where its start is 36 s. (1) Three shells - 120 -> 240 at bar 17 and 3/4 at bar 33; a 60 -> 120 ramp; a 100-tick bar -
+against closed-form starts: every label within a pixel, ascending, spaced, running to the right edge, past bar 60. (2)
+A phantom bar at 400 px/s: bar 3 at 26332/30720 s and no bar 2. (3) A pure sweep - five maps (both shells' maps, 1/64
+at 240 from bar 9, the phantom, a meter change every 500 ticks) at six zooms and four scrolls: each label's frame reads
+its bar on the counter and four frames earlier an earlier bar; spaced; no stretch unlabelled - plus a flat map
+matching the head law at 960 views, the 150 BPM 7/2 tie included. **Bites (5):** tempo map left null (Shell A off by 4
+s); the step from the next bar's start (Shell C stops at bar 9); phantoms labelled ("2" where the counter reads 3); no
+seek (one label across 1/64 at 240: 1240 px bare); no tie tolerance (19 labels where the head law has 23). **Critic**
+(separate agent, the law compiled against the real `Time.h`, 20,000 random maps, every label checked against the
+counter): found the stopping bug (13 of 20,000 maps; one view drew no labels), the tie wobble and the coverage gap -
+all fixed and gated as above; lifetime, per-frame cost (no new allocation; at most 140 us a paint for a 1000-change map)
+and warnings clean. Parked: the frame-time gates paint with no tempo map. **Local:** full build, ctest 444/444,
+Clang clean. **Drive:** SS3 Step 17 now sets Snap: Off, clicks one pixel right of the first bar label past the
+tempo change and asserts the counter reads that bar, then restores Snap: Grid - written, parse-checked, and run in the
+batched drive proof. **CI:** unit 5 (`70e5aef`, run 38280748963): nine jobs green; macOS red only on
+`YesDawTimelineGpuCheck`'s sustained-frame `REQUIRE` (raw: sustained 18.18 ms, max 21.83 ms, 19 slow frames; 439 of
+440 passed) - inside the renewed exception. Unit 3's Windows re-run (`733910b`): **green**, so its GPU red did not
+repeat on the same code. Unit 6 commit 1 (`84d9f61`) is running. **Next:** unit 7 (the master meter's fill matches its
+scale).
+
 ## 2026-10-12 — UI correctness pass unit 6 (commit 1): the bar start of any bar under the meter map
 
 **What changes (engine only, no visible change yet):** the G2.15 meter walk under the header's bar|beat counter is now
