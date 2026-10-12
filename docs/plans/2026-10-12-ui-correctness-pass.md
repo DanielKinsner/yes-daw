@@ -220,7 +220,7 @@ Three commits, each green on its own.
     - TC2 at 44 BPM: 3,369 labels are wrong.
 
     Record this red run in STATUS. Accepted change: tenths mode now floors (1.96 s reads 0:01.9).
-- [ ] **Commit 3, contrast plus a scan gate.**
+- [x] **Commit 3, contrast plus a scan gate.**
   - The time-row text uses `kMutedText`, which is 6.19:1 on `timelineRuler`. `rulerTick` is set
     again only for the tick's `fillRect`.
   - Gate in `tests/token_contrast_tests.cpp` `[tokens]`, "text is drawn in text tokens":

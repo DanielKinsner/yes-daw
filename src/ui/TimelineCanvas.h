@@ -1068,8 +1068,9 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
                     rows.bars.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight,
                     UiTheme::Layout::timelineCanvasRulerTickWidth,
                     UiTheme::Layout::timelineCanvasRulerTickHeight);
-        // Time row: the same position in minutes:seconds, with a shorter tick.
-        g.setColour (UiTheme::Color::rulerTick());   // ADR-0063: opaque
+        // Time row: the same position in minutes:seconds, with a shorter tick. The label is text, in a text token
+        // (6.19:1 on the ruler; it was drawn in rulerTick at 3.19:1 - UI correctness pass unit 5); the tick keeps rulerTick.
+        g.setColour (kMutedText);
         g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
         g.drawText (rulerTimeLabelText (label, state, vp),
                     x + UiTheme::Layout::timelineCanvasRulerTickWidth + 2,
@@ -1077,6 +1078,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
                     UiTheme::Layout::timelineRulerTimeLabelWidth,
                     UiTheme::Layout::timelineCanvasRulerLabelHeight,
                     juce::Justification::centredLeft, false);
+        g.setColour (UiTheme::Color::rulerTick());   // ADR-0063: opaque
         g.fillRect (x,
                     rows.time.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight / 2,
                     UiTheme::Layout::timelineCanvasRulerTickWidth,

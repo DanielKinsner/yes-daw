@@ -20,7 +20,19 @@ labels of 816,509** (first: bar 33 at 44 BPM, 1 px/s, "2:55" for 174.5 s). **Gat
 formatter cases, and a sweep of every zoom from 1 to 55 px/s in 0.01 steps at two scroll positions - 120 BPM in min:sec,
 samples and SMPTE, 44 BPM in min:sec - against expected text from integer arithmetic only: zero mismatches, plus the
 rubric's pins (at 5.02 px/s bar 9 reads 0:16, bar 33 reads 1:04). **Local:** full build, ctest 443/443, Clang clean.
-**Next:** unit 5 commit 3 (the time row's contrast, and a scan gate that no text is drawn in a decoration token).
+**Commit 3 - contrast and a scan gate:** the time row's labels were drawn in `rulerTick`, a decoration token, at 3.19:1
+(ADR-0063's text floor is 4.5:1); they are now `kMutedText` (6.19:1) and `rulerTick` is set again only for the tick. The
+new `[tokens]` gate "text is drawn in text tokens" reads every `setColour` of a surface, indicator or decoration token in
+`src/ui` - any spelling of `Color::`, and every `k`-alias of one (an alias naming two tokens fails) - and finds any
+text-drawing call before the next `setColour` or block end: red before the fix with exactly one finding (that time row),
+102 sites seen; a mutation narrowing it to the `UiTheme::Color::` spelling sees 29 and fails its floor of 60. **Local:**
+full build, ctest 443/443, Clang clean. **CI:** unit 3 (`733910b`, run 38274309482): nine jobs green; **Windows** red
+only on `YesDawTimelineGpuCheck`'s sustained-frame `REQUIRE` (raw: sustained 17.63 ms, max 18.99 ms, 17 slow frames;
+442 of 443 passed). Not covered by the macOS exception. The check compiles only `timeline_gpu_tests.cpp` ->
+`TimelineFrameCheck.h` -> `TimelineCanvas.h`, which unit 3 did not touch, so its code is identical to unit 2b's
+(`68e9761`), where Windows passed - the earlier same-SHA Windows reds (10-09) did not repeat either. One same-SHA re-run
+of the failed job follows; a second red would call for a critic and a new hypothesis, not another re-run.
+**Next:** unit 6 (bar labels that follow the tempo and meter maps).
 
 ## 2026-10-12 — UI correctness pass unit 4: the playhead shows no invented number and covers no ruler label
 

@@ -3,6 +3,8 @@
 
 #include "ui/UiTheme.h"
 
+#include <algorithm>
+#include <map>
 #include <catch2/catch_test_macros.hpp>
 
 #include <cmath>
@@ -271,6 +273,94 @@ TEST_CASE ("ADR-0063 text is drawn in opaque tokens: no withAlpha on a text toke
                 findings.push_back (entry.path().filename().string() + ":" + std::to_string (number) + ": " + line);
         }
     }
+    for (const std::string& finding : findings)
+        UNSCOPED_INFO (finding);
+    REQUIRE (findings.empty());
+}
+
+// UI correctness pass unit 5 (rubric FIX 7): text is drawn in text tokens. A surface, indicator or decoration colour set
+// for a stroke must not go on to draw text (the ruler's time row drew its labels in rulerTick at 3.19:1). Every
+// setColour of a guarded token in src/ui - by any spelling of Color::, or by a k-alias of one - opens a span that runs to
+// the next setColour or a line starting with '}'; a drawText-family call in that span is a finding.
+TEST_CASE ("ADR-0063 text is drawn in text tokens: no text drawn in a surface, indicator or decoration colour", "[tokens]")
+{
+    std::set<std::string> guarded;
+    for (const Classified& entry : classification())
+        if (entry.role == Role::Surface || entry.role == Role::Indicator || entry.role == Role::Decoration)
+            guarded.insert (entry.name);
+    REQUIRE (guarded.count ("rulerTick") == 1u);
+
+    std::vector<std::filesystem::path> files;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator (std::filesystem::path { YESDAW_SOURCE_DIR } / "src" / "ui"))
+    {
+        const std::string extension = entry.path().extension().string();
+        if (entry.is_regular_file() && (extension == ".h" || extension == ".cpp"))
+            files.push_back (entry.path());
+    }
+    std::sort (files.begin(), files.end());
+    const auto linesOf = [] (const std::filesystem::path& file) {
+        std::ifstream in (file, std::ios::binary);
+        std::vector<std::string> lines;
+        std::string line;
+        while (std::getline (in, line))
+            lines.push_back (line);
+        return lines;
+    };
+
+    // One alias map across src/ui: `const juce::Colour kName = ...Color::token()` (any qualification). An alias that
+    // names two tokens would make the scan guess, so it fails here.
+    const std::regex aliasDeclaration (R"((?:const\s+juce::Colour|const\s+auto)\s+(k\w+)\s*=\s*(?:[\w:]*::)?Color::(\w+)\s*\(\))");
+    std::map<std::string, std::string> aliases;
+    for (const auto& file : files)
+        for (const std::string& line : linesOf (file))
+        {
+            std::smatch match;
+            if (! std::regex_search (line, match, aliasDeclaration))
+                continue;
+            const auto [it, inserted] = aliases.emplace (match[1].str(), match[2].str());
+            INFO ("alias " << match[1].str() << " in " << file.filename().string());
+            REQUIRE ((inserted || it->second == match[2].str()));
+        }
+    REQUIRE (aliases.count ("kMutedText") == 1u);
+
+    const std::regex setColour (R"(setColour\s*\(\s*(?:(?:[\w:]*::)?Color::(\w+)\s*\(\)|(k\w+)\b))");
+    const std::regex drawsText (R"(\b(drawText|drawFittedText|drawMultiLineText|drawSingleLineText)\s*\()");
+    int sitesSeen = 0;
+    std::vector<std::string> findings;
+    for (const auto& file : files)
+    {
+        const std::vector<std::string> lines = linesOf (file);
+        for (std::size_t i = 0; i < lines.size(); ++i)
+        {
+            std::smatch match;
+            if (! std::regex_search (lines[i], match, setColour))
+                continue;
+            std::string token = match[1].str();
+            if (token.empty())
+            {
+                const auto alias = aliases.find (match[2].str());
+                if (alias == aliases.end())
+                    continue;
+                token = alias->second;
+            }
+            if (guarded.count (token) == 0)
+                continue;
+            ++sitesSeen;
+            std::string span = match.suffix().str();
+            for (std::size_t j = i + 1; j < lines.size(); ++j)
+            {
+                const std::string& next = lines[j];
+                const auto first = next.find_first_not_of (" \t");
+                if (next.find ("setColour") != std::string::npos || (first != std::string::npos && next[first] == '}'))
+                    break;
+                span += "\n" + next;
+            }
+            if (std::regex_search (span, drawsText))
+                findings.push_back (file.filename().string() + ":" + std::to_string (i + 1) + ": text drawn in " + token);
+        }
+    }
+    CAPTURE (sitesSeen);
+    REQUIRE (sitesSeen >= 60);   // the scan saw the src/ui setColour sites (a narrowed spelling would see about half)
     for (const std::string& finding : findings)
         UNSCOPED_INFO (finding);
     REQUIRE (findings.empty());
