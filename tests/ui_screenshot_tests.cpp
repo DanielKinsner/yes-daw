@@ -1568,19 +1568,23 @@ TEST_CASE ("H16 premium vector asset set covers every shipped shell action and t
         REQUIRE (nonTransparentPixelCount (image) > 8u);
     }
 
-    for (std::size_t track = 0; track < 8u; ++track)
+    // The rail's kind badge (unit 8 removed the index-picked instrument picture): both kinds paint, and differently.
+    std::vector<juce::Image> badges;
+    for (const bool midi : { false, true })
     {
         juce::Image image (juce::Image::ARGB, 48, 48, true);
         {
             juce::Graphics graphics (image);
-            yesdaw::ui::drawTrackGlyph (
-                graphics,
-                track,
-                iconBounds,
-                yesdaw::ui::UiTheme::Color::accentPurple());
+            yesdaw::ui::drawTrackKindBadge (graphics, midi, iconBounds, yesdaw::ui::UiTheme::Color::accentPurple());
         }
         REQUIRE (nonTransparentPixelCount (image) > 8u);
+        badges.push_back (image);
     }
+    int badgeDifference = 0;
+    for (int y = 0; y < 48; ++y)
+        for (int x = 0; x < 48; ++x)
+            badgeDifference += badges[0].getPixelAt (x, y) != badges[1].getPixelAt (x, y) ? 1 : 0;
+    REQUIRE (badgeDifference > 8);
 }
 
 // ADR-0063 (G6.1): what the rubric shots showed, made mechanical — the zoom trio slid under the view cluster on a
@@ -2302,4 +2306,92 @@ TEST_CASE ("ADR-0063 the inspector's stretch slider has a label and a value", "[
         REQUIRE (maxContrastInRegion (image, edge) < 1.5);
         REQUIRE (maxContrastInRegion (image, caption) >= 3.0);
     }
+}
+
+// UI correctness pass unit 8 (rubric FIX 6): the rail shows only real track data. It drew an instrument picture picked
+// by the row's index (a drum on the first row, a guitar on the next two, a mic after) for tracks that have no instrument.
+// Now five empty audio tracks read alike: the purple swatch and the audio badge, and the icon cell of every unselected
+// row is pixel-identical.
+TEST_CASE ("the rail shows only real track data: no instrument picture by row index", "[ui][screenshot][tokens][rail-icons]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-rail-icons.yesdaw";
+    {
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    for (int added = 0; added < 4; ++added)   // a new project has one empty track (ADR-0074): five in all
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    shell->setSize (1920, 1080);
+    const juce::Image image = renderShellAtScale (*shell, 1.0f);
+
+    const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
+    std::set<int> selected;
+    if (const juce::Array<juce::var>* lanes = probe["selection"]["tracks"].getArray())
+        for (const juce::var& lane : *lanes)
+            selected.insert (static_cast<int> (lane));
+    selected.insert (static_cast<int> (probe["selection"]["primaryTrack"]));
+    const auto rectOf = [&probe] (const juce::String& id) {
+        const juce::var r = probe["layout"][juce::Identifier (id)];
+        if (! r.isArray())
+            return juce::Rectangle<int> {};
+        return juce::Rectangle<int> { static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]) };
+    };
+    const juce::Rectangle<int> rail = rectOf ("rail");
+    REQUIRE_FALSE (rail.isEmpty());
+    REQUIRE_FALSE (rectOf ("rail.row.4").isEmpty());
+    REQUIRE (rectOf ("rail.row.5").isEmpty());
+
+    const juce::Colour purple = yesdaw::ui::UiTheme::Color::accentPurple();
+    std::vector<juce::Image> cells;
+    int rowsChecked = 0;
+    for (int lane = 0; lane < 5; ++lane)
+    {
+        const juce::Rectangle<int> row = rectOf ("rail.row." + juce::String (lane));
+        INFO ("rail row " << lane << " " << row.toString());
+        // The icon cell: the picture's square and the badge beside it, as the rail lays them out.
+        const juce::Rectangle<int> cell (row.getX() + L::trackListIconLeftInset, row.getY() + L::trackListIconTopInset,
+                                         L::trackListIconSize + L::trackListKindBadgeGap + L::trackListKindBadgeSize,
+                                         L::trackListIconSize);
+        if (row.isEmpty() || selected.count (lane) != 0 || ! rail.contains (cell))
+            continue;
+        ++rowsChecked;
+        // The swatch (the accent bar at the row's left edge) is the track's purple.
+        const juce::Colour swatch = image.getPixelAt (row.getX() + L::trackListAccentWidth / 2, row.getCentreY());
+        CAPTURE (swatch.toDisplayString (true), purple.toDisplayString (true));
+        REQUIRE (swatch == purple);
+        // The audio badge: three bars, the middle one full height, with a gap between them - the middle bar's centre
+        // differs from the gap beside it.
+        const juce::Rectangle<int> badge (row.getX() + L::trackListIconLeftInset + L::trackListIconSize + L::trackListKindBadgeGap,
+                                          row.getY() + L::trackListIconTopInset + L::trackListIconSize - L::trackListKindBadgeSize,
+                                          L::trackListKindBadgeSize, L::trackListKindBadgeSize);
+        const int barWidth = L::trackListKindBadgeSize / 5;
+        const juce::Colour middleBar = image.getPixelAt (badge.getX() + 2 * barWidth + barWidth / 2, badge.getCentreY());
+        const juce::Colour gap = image.getPixelAt (badge.getX() + barWidth + barWidth / 2, badge.getCentreY());
+        CAPTURE (middleBar.toDisplayString (true), gap.toDisplayString (true));
+        REQUIRE (middleBar != gap);
+        cells.push_back (image.getClippedImage (cell).createCopy());
+    }
+    REQUIRE (cells.size() >= 3u);
+    for (std::size_t i = 1; i < cells.size(); ++i)
+    {
+        int differing = 0;
+        for (int y = 0; y < cells[0].getHeight(); ++y)
+            for (int x = 0; x < cells[0].getWidth(); ++x)
+                if (cells[i].getPixelAt (x, y) != cells[0].getPixelAt (x, y))
+                    ++differing;
+        INFO ("unselected row cell " << i << " against the first");
+        REQUIRE (differing == 0);
+    }
+    REQUIRE (rowsChecked == static_cast<int> (cells.size()));
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }

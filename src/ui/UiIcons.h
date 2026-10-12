@@ -351,7 +351,9 @@ inline void drawTimelineToolIcon (juce::Graphics& g,
 }
 
 // G2.17: the track KIND badge — a three-key keyboard for a MIDI track, a three-bar waveform for an
-// audio track — painted beside the row's glyph so the kind reads at a glance (Logic / Pro Tools).
+// audio track — painted beside the rail row's icon square so the kind reads at a glance (Logic /
+// Pro Tools). The square itself is empty: the rail shows no instrument picture until a
+// track-category model exists (UI correctness pass unit 8).
 inline void drawTrackKindBadge (juce::Graphics& g, bool midi, juce::Rectangle<float> bounds, juce::Colour colour)
 {
     g.setColour (colour);
@@ -373,90 +375,6 @@ inline void drawTrackKindBadge (juce::Graphics& g, bool midi, juce::Rectangle<fl
         const float barH = h * heights[b];
         g.fillRect (juce::Rectangle<float> (bounds.getX() + barW * (2.0f * static_cast<float> (b)), bounds.getCentreY() - barH * 0.5f, barW, barH));
     }
-}
-
-inline void drawTrackGlyph (juce::Graphics& g,
-                            std::size_t trackIndex,
-                            juce::Rectangle<float> bounds,
-                            juce::Colour colour)
-{
-    const float left = bounds.getX();
-    const float top = bounds.getY();
-    const float right = bounds.getRight();
-    const float bottom = bounds.getBottom();
-    const float cx = bounds.getCentreX();
-    const float cy = bounds.getCentreY();
-    const float w = bounds.getWidth();
-    const float h = bounds.getHeight();
-    juce::Path path;
-
-    switch (trackIndex)
-    {
-        case 0:
-            path.addEllipse (left + w * 0.16f, top + h * 0.30f, w * 0.68f, h * 0.52f);
-            path.startNewSubPath (left + w * 0.20f, top + h * 0.10f);
-            path.lineTo (right - w * 0.18f, cy);
-            path.startNewSubPath (right - w * 0.20f, top + h * 0.10f);
-            path.lineTo (left + w * 0.18f, cy);
-            break;
-
-        case 1:
-        case 2:
-            path.addEllipse (left + w * 0.12f, cy, w * 0.42f, h * 0.34f);
-            path.addEllipse (left + w * 0.28f, top + h * 0.34f, w * 0.32f, h * 0.28f);
-            path.startNewSubPath (left + w * 0.47f, cy);
-            path.lineTo (right - w * 0.08f, top + h * 0.16f);
-            path.startNewSubPath (right - w * 0.24f, top + h * 0.25f);
-            path.lineTo (right - w * 0.08f, top + h * 0.36f);
-            break;
-
-        case 3:
-        case 4:
-            path.addEllipse (left + w * 0.31f, top + h * 0.08f, w * 0.38f, h * 0.48f);
-            path.startNewSubPath (left + w * 0.25f, cy);
-            path.addCentredArc (cx, cy, w * 0.28f, h * 0.28f, 0.0f,
-                                juce::MathConstants<float>::pi,
-                                juce::MathConstants<float>::twoPi, true);
-            path.startNewSubPath (cx, bottom - h * 0.29f);
-            path.lineTo (cx, bottom - h * 0.08f);
-            path.startNewSubPath (left + w * 0.35f, bottom - h * 0.08f);
-            path.lineTo (right - w * 0.35f, bottom - h * 0.08f);
-            break;
-
-        case 5:
-            path.addRoundedRectangle (left + w * 0.08f, top + h * 0.25f, w * 0.84f, h * 0.52f,
-                                      UiTheme::Radius::xs);
-            for (const float column : std::array<float, 3> { 0.29f, 0.50f, 0.71f })
-            {
-                path.startNewSubPath (left + w * column, top + h * 0.25f);
-                path.lineTo (left + w * column, bottom - h * 0.23f);
-            }
-            break;
-
-        case 6:
-            path.startNewSubPath (left + w * 0.08f, cy);
-            path.cubicTo (left + w * 0.25f, top + h * 0.12f,
-                          left + w * 0.38f, bottom - h * 0.12f,
-                          cx, cy);
-            path.cubicTo (right - w * 0.38f, top + h * 0.12f,
-                          right - w * 0.25f, bottom - h * 0.12f,
-                          right - w * 0.08f, cy);
-            break;
-
-        default:
-            path.startNewSubPath (cx, top + h * 0.06f);
-            path.lineTo (cx + w * 0.10f, cy - h * 0.10f);
-            path.lineTo (right - w * 0.08f, cy);
-            path.lineTo (cx + w * 0.10f, cy + h * 0.10f);
-            path.lineTo (cx, bottom - h * 0.06f);
-            path.lineTo (cx - w * 0.10f, cy + h * 0.10f);
-            path.lineTo (left + w * 0.08f, cy);
-            path.lineTo (cx - w * 0.10f, cy - h * 0.10f);
-            path.closeSubPath();
-            break;
-    }
-
-    strokeIconPath (g, path, colour, UiTheme::Layout::iconFineStrokeWidth);
 }
 
 inline void drawSettingsIcon (juce::Graphics& g,

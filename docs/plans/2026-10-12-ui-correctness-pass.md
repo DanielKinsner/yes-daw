@@ -350,7 +350,7 @@ to the piecewise law. Depends on unit 5: label `seconds` becomes the piecewise b
 
 ### 8. The rail shows only real track data (FIX 6)
 
-- [ ] **Fix.**
+- [x] **Fix.**
   - Delete the `drawTrackGlyph` call (`MainComponentArrange.cpp:1213-1221`) and the function
     (`UiIcons.h:378-460`).
   - Keep `drawTrackKindBadge` exactly where it is, and fix the comments.
@@ -358,7 +358,7 @@ to the piecewise law. Depends on unit 5: label `seconds` becomes the piecewise b
     midi false and true. Each paints more than 8 pixels, and the two images differ.
   - Log the D3 omission in STATUS: the rail shows number, swatch, name, audio/MIDI badge and M/S/O,
     and no instrument icon until a track-category model exists.
-- [ ] **Gate.** `tests/ui_screenshot_tests.cpp` `[ui][screenshot][tokens][rail-icons]`.
+- [x] **Gate.** `tests/ui_screenshot_tests.cpp` `[ui][screenshot][tokens][rail-icons]`.
   - Setup: five empty audio tracks at 1920x1080, rendered with `renderShellAtScale (*shell, 1.0f)`
     (software renderer).
   - Skip the selected and primary lanes, and any clipped rows.

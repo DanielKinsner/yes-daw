@@ -1185,7 +1185,7 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
                                            ? fallbackName
                                            : juce::String (projectTrack.strip.name);
         // N7: a customized colour overrides the historical fixed purple everywhere this
-        // variable is used below (accent bar / swatch, glyph tint, pan indicator, level fill).
+        // variable is used below (accent bar / swatch, kind badge tint, pan indicator, level fill).
         const juce::Colour trackColour = colourForTrack (projectTrack, kPurple);
 
         const auto rowSurface = row.reduced (
@@ -1210,16 +1210,9 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
         g.setColour (kPanelStroke);
         g.fillRect (row.removeFromBottom (yesdaw::ui::UiTheme::Layout::trackListSeparatorHeight));
 
-        yesdaw::ui::drawTrackGlyph (
-            g,
-            i,
-            juce::Rectangle<float> (
-                static_cast<float> (row.getX() + yesdaw::ui::UiTheme::Layout::trackListIconLeftInset),
-                static_cast<float> (row.getY() + yesdaw::ui::UiTheme::Layout::trackListIconTopInset),
-                static_cast<float> (yesdaw::ui::UiTheme::Layout::trackListIconSize),
-                static_cast<float> (yesdaw::ui::UiTheme::Layout::trackListIconSize)),
-            trackColour.withAlpha (yesdaw::ui::UiTheme::Tone::trackIconAlpha));
-        // G2.17: the kind badge — MIDI when the track holds MIDI clips, audio otherwise.
+        // G2.17: the kind badge — MIDI when the track holds MIDI clips, audio otherwise. UI correctness pass unit 8: the
+        // instrument picture that sat in the icon square was picked by row index, not by anything the track holds, so it
+        // is gone; the square stays empty until a track-category model exists, and the badge keeps its place.
         yesdaw::ui::drawTrackKindBadge (
             g,
             trackHoldsMidi (i),

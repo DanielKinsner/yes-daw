@@ -8,6 +8,19 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 8: the rail shows only real track data
+
+**What changes:** each rail row drew an instrument picture picked by its index - a drum on the first row, a guitar on
+the next two, a mic after - for tracks that have no instrument (wrong data, D3). The picture is gone; the icon square
+stays empty and the audio/MIDI badge keeps its place. **Omission logged:** the rail shows number, swatch, name, the
+audio/MIDI badge and M/S/O, and no instrument icon until a track-category model exists. **Gate `[rail-icons]`**
+(screenshot test, software renderer, five empty audio tracks at 1920x1080, selected and primary rows skipped): each
+row's swatch is the track purple, its badge's middle bar differs from the gap, and every unselected row's icon cell is
+pixel-identical: **red before the fix** - two rows' cells differed in 293 pixels. The `[assets]` loop now pins
+`drawTrackKindBadge` (both kinds paint, and differently). **Bites:** the picture back (293 px). A small rendering unit
+with no logic, data or shared-law change: no critic, per ADR-0075. **Local:** UiScreenshotCheck 22/22 test cases;
+full suite with the push. **Drive:** SS1 and SS6 shots in the batched drive proof.
+
 ## 2026-10-12 — UI correctness pass unit 7: the master meter fills to the level its scale names
 
 **Process:** from here units follow ADR-0075 (Dan, 2026-10-12): targeted tests per commit; the full suite, one critic
