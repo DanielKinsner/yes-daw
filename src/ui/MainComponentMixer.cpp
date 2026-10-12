@@ -2474,6 +2474,12 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
     const MasterMeterColumns meterColumns = masterMeterColumns (masterContent.withTrimmedBottom (
         yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset));   // ADR-0065 (amended): the fader's columns too
     const auto scale = meterColumns.scale;
+    // Unit 7: the "-60" label is centred on the fill's bottom, so its lower half hangs into the bottom inset; it must
+    // stay clear of the "L R" row there (one pixel today).
+    static_assert (yesdaw::ui::UiTheme::Layout::mixerMasterMeterBottomInset + yesdaw::ui::UiTheme::Layout::meterFillInset
+                       - yesdaw::ui::UiTheme::Layout::mixerMasterScaleLabelHeight / 2
+                   > yesdaw::ui::UiTheme::Layout::mixerMasterMeterChannelLabelHeight,
+                   "the master scale's lowest label clears the L/R channel labels");
     g.setColour (yesdaw::ui::UiTheme::Color::mutedText());   // ADR-0063: the scale's numbers are text
     g.setFont (yesdaw::ui::UiTheme::Type::numericFont (
         yesdaw::ui::UiTheme::Type::tiny));

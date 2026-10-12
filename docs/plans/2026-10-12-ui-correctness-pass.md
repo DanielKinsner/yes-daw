@@ -311,7 +311,7 @@ to the piecewise law. Depends on unit 5: label `seconds` becomes the piecewise b
 
 ### 7. The master meter fills to the level its scale names (FIX 5)
 
-- [ ] **Fix**, master pane paint only.
+- [x] **Fix**, master pane paint only.
   - Add `masterMeterFractionForDb`: piecewise-linear in dB between the evenly spaced marks
     {0, -12, -24, -60}. A `static_assert` requires the marks to be strictly descending, with at
     least 2.
@@ -320,7 +320,8 @@ to the piecewise law. Depends on unit 5: label `seconds` becomes the piecewise b
   - The labels and the L/R fills use these. The probe publishes `mixer.master.scale.<dB>`.
   - Unchanged: ADR-0067 section 5 hold and latch numbers, and the linear `MeterHoldState`.
   - The scale is the meter's own (ADR-0063).
-- [ ] **Gate.** `tests/ui_input_tests.cpp` `[ui][input][shell][mixer][meters][master-meter-scale]`.
+- [x] **Gate.** `tests/ui_input_tests.cpp` `[ui][input][shell][mixer][meters][master-meter-scale]`. As built after the
+  critic: the held marker and the live bar are measured apart in every segment, plus a 300 px dock.
   - Levels are the outer loop: -42/-24, then -18/-12, then 1.0/1.0. Sizes are the inner loop: 1280,
     1920 and 2560.
   - Precondition: the held peak equals the live peak. Make no message-loop calls after the first
@@ -654,6 +655,9 @@ close-out rubric pass.
   - The rail is under 42 px at inspector widths 240-283.
   - The TAKES heading is missing its label inset.
 - Add the whole-section paint check to every `[layout][scaling]` matrix cell.
+- The master scale's four labels collide when the dock is under about 276 px (the meter column under 46 px), and the
+  INTEGRATED / TRUE PEAK cards overflow at the minimum dock. Pre-existing (unit 7's critic); thin the labels by the
+  height available.
 - The frame-time gates (`TimelineFrameCheck.h`) paint with no tempo map, so unit 6's map path is not
   under the frame budget. The unit 6 critic measured at most 140 us a paint for a 1000-change meter
   map.

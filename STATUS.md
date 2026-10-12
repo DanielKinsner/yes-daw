@@ -8,27 +8,33 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-10-12 — UI correctness pass unit 7 (in progress, paused for a restart): the master meter fills to its scale
+## 2026-10-12 — UI correctness pass unit 7: the master meter fills to the level its scale names
 
+**Process:** from here units follow ADR-0075 (Dan, 2026-10-12): targeted tests per commit; the full suite, one critic
+and one push per unit; commits per logical change (the commit-count rule is retired). Unit 6 is **certified**: CI on
+`84d9f61` and `f4de0ac` - every job green except macOS, red only on `YesDawTimelineGpuCheck`'s sustained-frame
+`REQUIRE` (raw: 17.14 ms / 18.01 ms sustained; 440 of 441 passed) - inside the renewed exception.
 **What changes:** the master pane's meters filled by the linear peak while the scale beside them is evenly spaced dB
 marks (0, -12, -24, -60), so a bar sat far below its label. They now fill piecewise-linearly in dB between the marks
-(`masterMeterFractionForDb` / `masterMeterFractionForPeak` in `MainComponentInternal.h`), and each label is centred on
-its level in the fill (`masterScaleLabelBounds`). Hold and latch numbers are unchanged; the other meters stay linear.
-Commit 1 (`196db9a`, no behaviour change) routed the labels through one bounds law and published
-`mixer.master.scale.<dB>`, so the gate ran on the old paint: **red** - "0" 5 px below the fill top, and at 1920x1080
-the -42 dB bar 79.5 px and the -24 dB bar 132 px below their points on the scale. **Gate
-`[master-meter-scale]`** (L/R -42/-24, -18/-12, 0/0 dB x 1280, 1920, 2560): labels present, disjoint, evenly spaced,
-"0" at the fill top and "-60" at the fill bottom; label ink only inside the label rects (background read per row - the
-pane darkens downward); each painted bar top within 1 px of its label centre or dB midpoint (0 dB: the clip light, with
-the fill inset as the tolerance). Green, 200 assertions. **Bites (4):** the linear peak (19.5 px off), the probe moved
-but not the paint, a law right only at the marks (22.5 px off at the midpoint), one channel fixed (33 px off).
-**Not yet done:** full build + ctest + Clang on this commit, the critic, push, SS7 Step 13's shot, and the STATUS note
-that M6's master clause stays open (the master fader's unity reads about -18 on the scale). **Unit 6 CI** (`84d9f61`,
-run 38287406685): macOS red only on `YesDawTimelineGpuCheck`'s sustained-frame `REQUIRE` (raw: sustained 17.14 ms, max
-22.26 ms, 9 slow frames; 440 of 441 passed) - inside the renewed exception; Windows/Linux were still running.
-`f4de0ac` (run 38291320050) was queued. **Not pushed on purpose:** a push now would replace `f4de0ac`'s queued run, so
-unit 6 commit 2 would lose its own CI. **Next:** check both unit 6 runs; run the full local suite on this commit and a
-critic; then push and continue with unit 8.
+(`masterMeterFractionForDb` / `masterMeterFractionForPeak`), and each label is centred on its level in the fill
+(`masterScaleLabelBounds`, shared by the paint and the probe's `mixer.master.scale.<dB>`). The hold and latch numbers
+are unchanged; the other meters stay linear (parked). Commit 1 (`196db9a`, no behaviour change) published the labels
+where the old paint drew them, so the gate ran on the old paint: **red** - "0" 5 px below the fill top; at 1920x1080 the
+-42 dB bar 79.5 px and the -24 dB bar 132 px below their points on the scale. **Gate `[master-meter-scale]`** (343
+assertions): three steps - a louder block, a tick, the live block, a tick, so the held marker and the live bar are
+measured apart (L held -24/-6/0, live -42/-18/-9; R held -12/-3/0, live -30/-12/-3: every segment) - at 1280x720,
+1920x1080, 2560x1440 (dock at its maximum) and 1280x720 with a 300 px dock: labels present, disjoint, evenly spaced,
+"0" at the fill top and "-60" at the fill bottom; ink only inside the label rects and in each one; the bar within 2 px
+of its level (a segment gap plus rounding) and the marker within 1.5 px; at 0 dB the clip light. A `static_assert` pins
+the "-60" label's 1 px clearance above the "L R" row. **Bites:** both readings linear (19.5 px), the live bar alone
+linear (19.5 px), the marker alone linear (below the bar), a law right only at the marks (20.5 px), the probe moved
+but not the paint, one channel fixed (33 px). **Critic** (separate agent): the law, paint/probe/label agreement,
+hold/latch and warnings clean; it found the first gate measured the held marker where the bar should be (a live-only
+revert passed), never measured the bar at 0 dB, skipped the top segment and could miss a dropped label - all fixed as
+above. It also found the labels collide on docks under about 276 px - pre-existing (the old law collided under a 56 px
+column), parked in the plan. **Local:** full build, ctest 444/444, Clang clean (on the law; the gate rework and the
+`static_assert` re-ran their targets). **Drive:** SS7 Step 13's shot in the batched drive proof. **Still open (parked):**
+M6's master clause - the master fader's unity point reads about -18 on the scale beside it.
 
 ## 2026-10-12 — UI correctness pass unit 6 (commit 2): the ruler's bar labels follow the tempo and meter maps
 
