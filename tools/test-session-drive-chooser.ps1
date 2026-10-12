@@ -216,19 +216,21 @@ if ($null -eq $function) { throw 'Required driver function missing: ForegroundSt
 Invoke-Expression $function.Extent.Text
 foreach ($e in @(@('09:59:59.500', 'Code', 2), @('10:00:00.000', 'claude', 1), @('10:00:01.000', 'YesDaw', 50), @('10:00:05.000', '(none)', 0),
                  @('10:00:05.010', 'WindowsTerminal', 70), @('10:00:05.147', 'YesDaw', 50), @('10:00:09.000', 'claude', 1),
-                 @('10:00:10.000', 'YesDaw', 51), @('10:00:20.000', 'explorer', 80))) {
+                 @('10:00:10.000', 'YesDaw', 51), @('10:00:12.000', 'powershell', $PID), @('10:00:13.000', 'YesDaw', 51),
+                 @('10:00:20.000', 'explorer', 80))) {
     [YesDawForeground]::Add($e[0], $e[1], $e[2])
 }
 function At([string] $t) { return [datetime]::Parse('2026-10-11 ' + $t) }
 $all = @(ForegroundSteals (At '09:59:00') (At '10:00:30'))
-$expected = @('10:00:05.010 WindowsTerminal pid 70 (137 ms)', '10:00:09.000 claude pid 1 (1000 ms)', '10:00:20.000 explorer pid 80 (still)')
+$expected = @('10:00:05.010 WindowsTerminal pid 70 (137 ms)', '10:00:09.000 claude pid 1 (1000 ms)',
+              ('10:00:12.000 powershell (this drive) pid ' + $PID + ' (1000 ms)'), '10:00:20.000 explorer pid 80 (still)')
 if (($all -join '|') -cne ($expected -join '|')) { throw ('ForegroundSteals (all): ' + ($all -join '|')) }
 $flashes = @(ForegroundSteals (At '09:59:00') (At '10:00:30') -Returned)
 if (($flashes -join '|') -cne '10:00:05.010 WindowsTerminal pid 70 (137 ms)') { throw ('ForegroundSteals -Returned: ' + ($flashes -join '|')) }
 $late = @(ForegroundSteals (At '10:00:24') (At '10:00:25'))
 if (($late -join '|') -cne '10:00:20.000 explorer pid 80 (still)') { throw ('ForegroundSteals keeps an ongoing steal from before its window: ' + ($late -join '|')) }
-$quiet = @(ForegroundSteals (At '10:00:12') (At '10:00:15'))
+$quiet = @(ForegroundSteals (At '10:00:14') (At '10:00:16'))
 if ($quiet.Count -ne 0) { throw ('ForegroundSteals reports nothing in a quiet window: ' + ($quiet -join '|')) }
 $edge = @(ForegroundSteals (At '10:00:05.100') (At '10:00:05.120'))
 if (($edge -join '|') -cne '10:00:05.010 WindowsTerminal pid 70 (137 ms)') { throw ('ForegroundSteals keeps a steal overlapping its window: ' + ($edge -join '|')) }
-Write-Host 'PASS: the foreground monitor names steals from YES DAW (flashes, closes, ongoing) and nothing else'
+Write-Host 'PASS: the foreground monitor names steals from YES DAW (flashes, closes, ongoing, its own drags labelled and left out of the summary) and nothing else'

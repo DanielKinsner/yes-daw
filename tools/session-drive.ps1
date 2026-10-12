@@ -440,7 +440,8 @@ $script:DriveStarted = Get-Date
 
 # The foreground taken from YES DAW: a change to another process whose previous foreground (NULL ones aside) was a
 # YesDaw window, overlapping [$From, $To], each with how long it held ('still' if it has not ended). -Returned keeps only
-# the flashes the same YesDaw process got back (not a close or a relaunch).
+# the flashes the same YesDaw process got back (not a close or a relaunch) and leaves out this drive's own windows
+# (FileDrop's drag source takes the foreground on purpose); otherwise those are labelled 'this drive'.
 function ForegroundSteals([datetime] $From, [datetime] $To, [switch] $Returned) {
   $seen = @([YesDawForeground]::Since($From.AddMinutes(-30)) | Where-Object { $_.Process -ne '(none)' })
   $out = @()
@@ -451,8 +452,10 @@ function ForegroundSteals([datetime] $From, [datetime] $To, [switch] $Returned) 
     $next = if ($i + 1 -lt $seen.Count) { $seen[$i + 1] } else { $null }
     if ($null -ne $next -and $next.At -lt $From) { continue }   # over before the window
     if ($Returned -and -not ($null -ne $next -and $next.Process -eq 'YesDaw' -and $next.Pid -eq $prev.Pid)) { continue }
+    if ($Returned -and $c.Pid -eq $PID) { continue }
     $held = if ($null -ne $next) { [string][int]($next.At - $c.At).TotalMilliseconds + ' ms' } else { 'still' }
-    $out += ('{0} {1} pid {2} ({3})' -f $c.At.ToString('HH:mm:ss.fff'), $c.Process, $c.Pid, $held)
+    $who = if ($c.Pid -eq $PID) { $c.Process + ' (this drive)' } else { $c.Process }
+    $out += ('{0} {1} pid {2} ({3})' -f $c.At.ToString('HH:mm:ss.fff'), $who, $c.Pid, $held)
   }
   return $out
 }
