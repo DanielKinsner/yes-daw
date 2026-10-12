@@ -1005,6 +1005,10 @@ juce::String MainComponent::buildStateProbeJson()
         autosave->setProperty ("intervalMs", appModel.autosaveSchedule().intervalMs);
         autosave->setProperty ("writes", appModel.autosaveWrites());
         autosave->setProperty ("failures", appModel.autosaveFailures());
+        autosave->setProperty ("writeMs", appModel.autosaveWriteMs());           // ADR-0069 §4: the last write attempt
+        autosave->setProperty ("writeMsPeak", appModel.autosaveWriteMsPeak());   // the session's highest
+        autosave->setProperty ("linked", static_cast<juce::int64> (appModel.autosaveLinked()));
+        autosave->setProperty ("copied", static_cast<juce::int64> (appModel.autosaveCopied()));
         const yesdaw::ui::UiProjectCounts& written = appModel.lastAutosaved();
         auto* held = new juce::DynamicObject();
         held->setProperty ("tracks", static_cast<int> (written.tracks));
@@ -2093,6 +2097,14 @@ void mainComponentSetViewSizes (juce::Component& component, int rail, int inspec
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
         mainComponent->harnessSetViewSizes (rail, inspector, dock);
 }
+
+#if defined(YESDAW_UI_TEST_HOOKS)
+void mainComponentMarkProjectEditedForTest (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessMarkProjectEditedForTest();
+}
+#endif
 
 void mainComponentPointer (juce::Component& component, MainComponentPointerKind kind, juce::Point<int> shellPoint,
                            juce::Component* eventComponent, juce::ModifierKeys modifiers)

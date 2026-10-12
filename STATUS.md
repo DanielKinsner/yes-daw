@@ -8,6 +8,29 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-11 — Close-out unit 3: the autosave writer's real cost and carries reach the probe
+
+**What changes:** each autosave write that was due now records its own wall time (milliseconds, from the control-thread
+writer), the session's highest, and how many assets it linked and copied; the probe's `autosave` block gains exactly
+ADR-0069 §4's `writeMs`, `writeMsPeak`, `linked` and `copied`. A tick with nothing due keeps the last sample; a failed
+attempt is one coherent sample (its own time, no carries kept). The shipped trigger stays off (unit 4 turns it on), so
+the gates make a write due through a test-only seam: `YESDAW_UI_TEST_HOOKS` and `YESDAW_PERSISTENCE_TEST_HOOKS` are
+defined for the whole `YesDawUiInputCheck` target (every translation unit, the shell sources it compiles included,
+sees one definition); the shipped app has neither.
+**Gates (`[write-cost]`):** through the model - nothing due writes and records nothing; a due write's time and two links;
+a no-op tick keeps the sample; an impossible link makes a real copy (counted) and the next all-link write returns
+`copied` to zero; a write that really takes 200 ms longer (a pause inside the timed write) becomes the peak and a cheaper
+write leaves it standing; a failed attempt replaces the time with its own and carries nothing. Through the shell's own
+UI tick at the drive's 250 ms cadence - the probe's four fields, a real copy, back to zero, and `writeMs` below
+`writeMsPeak` after the slow write. Eight mutations bite (a no-op tick replacing the sample, the peak as the last
+sample, copies unreported, a failed attempt keeping old carries or the old time, the probe dropping `writeMs` or
+publishing the peak in its place).
+**Local:** full build, ctest **442/442**, Clang clean; the hidden `[hardware-cost]` check run alone: ten 50 MB assets
+autosave in **57.4 ms** (bound 100 ms). **Next:** unit 2's and this commit's exact-code CI; when both are green, ADR-0069
+cp2 closes and unit 4 (the model-owned writer, writes on) begins.
+**Critic (separate, Opus 5.5):** no blocker; in - the peak's retention and the failed attempt's time are now proven
+deterministically (they bit only by timing luck before), and the JSON tells `writeMs` from `writeMsPeak`.
+
 ## 2026-10-11 — Close-out unit 2: Restore links swept audio back, or refuses before writing and says which
 
 **What changes:** when an autosave is restored after lost writes, audio whose name the bundle's open swept away is put

@@ -77,7 +77,7 @@ Gate a real successful-link/failed-flush refusal without claiming rollback of na
 
 ### 3. Expose real write cost (ADR-0069 cp2)
 
-- [ ] Add only the accepted `autosave.writeMs`, `writeMsPeak`, `linked` and `copied` probe fields,
+- [x] Add only the accepted `autosave.writeMs`, `writeMsPeak`, `linked` and `copied` probe fields,
   measured by the control-thread writer. Preserve existing fields; no-op ticks must not replace
   the last write's measurements. Test actual carries, elapsed-time publication and peak retention.
   Keep the shipped trigger off until the following unit; no synthetic timing or carry credit.

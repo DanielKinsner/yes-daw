@@ -2414,9 +2414,16 @@ public:
             return persistence::autosave_detail::ok();
 
         const bool due = playback_->needsAutosave();
+        const auto started = std::chrono::steady_clock::now();
         persistence::AutosaveResult result = persistence::writeAutosaveFromControlTick (*playback_, bundleDb_, project_);
         if (due)   // SS-6: a write that was due — confirmed (and what it held) or failed — for the probe
         {
+            // ADR-0069 §4: the attempt's own wall time and carries, as one sample (a failed attempt carried nothing it
+            // kept); the session's peak. A tick with nothing due keeps the last sample.
+            autosaveWriteMs_ = std::chrono::duration<double, std::milli> (std::chrono::steady_clock::now() - started).count();
+            autosaveWriteMsPeak_ = std::max (autosaveWriteMsPeak_, autosaveWriteMs_);
+            autosaveLinked_ = result.linked;
+            autosaveCopied_ = result.copied;
             if (result.ok())
             {
                 ++autosaveWrites_;
@@ -2439,6 +2446,19 @@ public:
         return stamp;
     }
     [[nodiscard]] int autosaveFailures() const noexcept { return autosaveFailures_; }
+    // ADR-0069 §4: the last write attempt's wall time (ms), the session's highest, and the last attempt's carries.
+    [[nodiscard]] double autosaveWriteMs() const noexcept { return autosaveWriteMs_; }
+    [[nodiscard]] double autosaveWriteMsPeak() const noexcept { return autosaveWriteMsPeak_; }
+    [[nodiscard]] std::size_t autosaveLinked() const noexcept { return autosaveLinked_; }
+    [[nodiscard]] std::size_t autosaveCopied() const noexcept { return autosaveCopied_; }
+#if defined(YESDAW_UI_TEST_HOOKS)
+    // Until ADR-0068's edit serials turn the shipped trigger on (close-out unit 4), a gate makes a write due itself.
+    void markProjectEditedForTest() noexcept
+    {
+        if (playback_ != nullptr)
+            playback_->markProjectEdited();
+    }
+#endif
     [[nodiscard]] const UiProjectCounts& lastAutosaved() const noexcept { return lastAutosaved_; }
     // The Session drive's seam (YESDAW_AUTOSAVE_INTERVAL_MS): a shorter cadence, so a drive waits seconds, not 30 s.
     void setAutosaveIntervalMs (int intervalMs) noexcept { autosaveSchedule_.intervalMs = std::max (250, intervalMs); }
@@ -13831,6 +13851,10 @@ private:
     int autosaveWrites_ = 0;      // SS-6: confirmed writes that were due
     int autosaveFailures_ = 0;
     UiProjectCounts lastAutosaved_ {};
+    double autosaveWriteMs_ = 0.0;       // ADR-0069 §4
+    double autosaveWriteMsPeak_ = 0.0;
+    std::size_t autosaveLinked_ = 0;
+    std::size_t autosaveCopied_ = 0;
     struct UiClipClipboardEntry
     {
         engine::EntityId assetId;

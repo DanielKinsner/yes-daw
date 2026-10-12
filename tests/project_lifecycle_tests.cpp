@@ -1422,6 +1422,169 @@ TEST_CASE ("ADR-0073 the recovery card wins over the first-run tip", "[project-l
     REQUIRE (hasDismiss());
 }
 
+// ADR-0069 §4 (close-out unit 3): the autosave writer's real cost and carries, through the model. Nothing due: a tick
+// writes nothing and records nothing. A due write measures its own wall time and reports its carries (every asset
+// linked). A tick with nothing due keeps that sample. A link that is impossible for one asset makes a real copy, counted;
+// the next all-link write returns the copied count to zero. A failed attempt is one coherent sample - its own time, no
+// carries kept. The session peak is always the highest sample so far, never falling.
+TEST_CASE ("ADR-0069 the autosave writer reports its real cost and carries", "[project-lifecycle][autosave][write-cost]")
+{
+    struct HookReset
+    {
+        ~HookReset()
+        {
+            yesdaw::persistence::autosave_detail::failLinkForTest.reset();
+            yesdaw::persistence::autosave_detail::afterCarryForTest = nullptr;
+        }
+    } resetHooks;
+    const auto directory = lifecycleScratch ("write-cost");
+    const auto bundle = directory / "song.yesdaw";
+    writeTone (directory / "a.wav", 48'000, 0.25f);
+    writeTone (directory / "b.wav", 24'000, 0.5f);
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (bundle).ok());
+    REQUIRE (model.importAudioFile (directory / "a.wav", decodeTone (directory / "a.wav")).ok());
+    REQUIRE (model.importAudioFile (directory / "b.wav", decodeTone (directory / "b.wav")).ok());
+    REQUIRE (model.project().assets.size() == 2u);
+    double highest = 0.0;
+    const auto requireSample = [&model, &highest] (std::size_t linked, std::size_t copied) {
+        REQUIRE (model.autosaveWriteMs() > 0.0);
+        REQUIRE (model.autosaveLinked() == linked);
+        REQUIRE (model.autosaveCopied() == copied);
+        highest = std::max (highest, model.autosaveWriteMs());
+        REQUIRE (model.autosaveWriteMsPeak() == highest);
+    };
+
+    REQUIRE (model.writeAutosaveTick().ok());   // nothing due (the shipped trigger is off until unit 4)
+    REQUIRE (model.autosaveWrites() == 0);
+    REQUIRE (model.autosaveWriteMs() == 0.0);
+    REQUIRE (model.autosaveWriteMsPeak() == 0.0);
+
+    model.markProjectEditedForTest();
+    REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveWrites() == 1);
+    requireSample (2u, 0u);
+    const double first = model.autosaveWriteMs();
+
+    REQUIRE (model.writeAutosaveTick().ok());   // nothing due: the sample stays
+    REQUIRE (model.autosaveWrites() == 1);
+    REQUIRE (model.autosaveWriteMs() == first);
+    requireSample (2u, 0u);
+
+    yesdaw::persistence::autosave_detail::failLinkForTest = model.project().assets.back().contentHash;
+    model.markProjectEditedForTest();
+    REQUIRE (model.writeAutosaveTick().ok());
+    yesdaw::persistence::autosave_detail::failLinkForTest.reset();
+    REQUIRE (model.autosaveWrites() == 2);
+    requireSample (1u, 1u);
+
+    model.markProjectEditedForTest();
+    REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveWrites() == 3);
+    requireSample (2u, 0u);
+
+    // A write that really takes 200 ms longer (a pause inside the timed write, after its carries): the peak; the next,
+    // ordinary write is cheaper and leaves the peak where it was.
+    yesdaw::persistence::autosave_detail::afterCarryForTest = [] (const std::filesystem::path&) {
+        std::this_thread::sleep_for (std::chrono::milliseconds (200));
+    };
+    model.markProjectEditedForTest();
+    REQUIRE (model.writeAutosaveTick().ok());
+    yesdaw::persistence::autosave_detail::afterCarryForTest = nullptr;
+    requireSample (2u, 0u);
+    const double slow = model.autosaveWriteMs();
+    REQUIRE (slow >= 200.0);
+    REQUIRE (model.autosaveWriteMsPeak() == slow);
+    model.markProjectEditedForTest();
+    REQUIRE (model.writeAutosaveTick().ok());
+    requireSample (2u, 0u);
+    REQUIRE (model.autosaveWriteMs() < slow);
+    REQUIRE (model.autosaveWriteMsPeak() == slow);
+
+    // A failed attempt: an asset's bundle file is gone, so neither a link nor a copy can carry it. Its own time replaces
+    // the last one (one coherent sample), and the peak stays.
+    REQUIRE (std::filesystem::remove (yesdaw::persistence::storedAssetPathForHash (bundle, model.project().assets.front().contentHash)));
+    const double prior = model.autosaveWriteMs();
+    model.markProjectEditedForTest();
+    REQUIRE_FALSE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveFailures() == 1);
+    REQUIRE (model.autosaveWriteMs() != prior);
+    requireSample (0u, 0u);
+    REQUIRE (model.autosaveWriteMsPeak() == slow);
+}
+
+// ADR-0069 §4 (close-out unit 3) through the shell: its own UI tick runs the write at the drive's cadence, and the probe's
+// autosave block carries the writer's last wall time, the session peak and the carries - a real copy when a link is
+// impossible, back to zero on the next all-link write.
+TEST_CASE ("ADR-0069 the probe carries the autosave writer's cost and carries", "[project-lifecycle][autosave][write-cost][probe]")
+{
+    struct HookReset
+    {
+        ~HookReset()
+        {
+            yesdaw::persistence::autosave_detail::failLinkForTest.reset();
+            yesdaw::persistence::autosave_detail::afterCarryForTest = nullptr;
+        }
+    } resetHooks;
+    const auto directory = lifecycleScratch ("write-cost-probe");
+    const std::filesystem::path bundle = directory / "probe.yesdaw";
+    const std::filesystem::path fixture { YESDAW_WAV_FIXTURE_PATH };
+    juce::MessageManager::getInstance();
+    MainComponentFileChoices choices;
+    choices.sessionStateDirectory = directory / "session";
+    std::filesystem::create_directories (choices.sessionStateDirectory);
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.chooseImportAudioFile = [fixture] { return fixture; };
+    choices.autosaveIntervalMs = 250;
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    REQUIRE (probeOf (*shell)["project"]["assets"].size() == 1);
+    REQUIRE (static_cast<double> (probeOf (*shell)["autosave"]["writeMs"]) == 0.0);
+    // One write through the shell's own tick (bounded: the cadence is 250 ms of ticks).
+    const auto writeThroughTick = [&shell] {
+        const int before = static_cast<int> (probeOf (*shell)["autosave"]["writes"]);
+        yesdaw::ui::mainComponentMarkProjectEditedForTest (*shell);
+        for (int n = 0; n < 100 && static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == before; ++n)
+            yesdaw::ui::mainComponentServiceUiTick (*shell);
+        REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == before + 1);
+        return probeOf (*shell)["autosave"];
+    };
+    const juce::var linked = writeThroughTick();
+    REQUIRE (static_cast<double> (linked["writeMs"]) > 0.0);
+    REQUIRE (static_cast<double> (linked["writeMsPeak"]) >= static_cast<double> (linked["writeMs"]));
+    REQUIRE (static_cast<juce::int64> (linked["linked"]) == 1);
+    REQUIRE (static_cast<juce::int64> (linked["copied"]) == 0);
+
+    const yesdaw::engine::Project stored = readProject (bundle);
+    REQUIRE (stored.assets.size() == 1u);
+    yesdaw::persistence::autosave_detail::failLinkForTest = stored.assets.front().contentHash;
+    const juce::var copied = writeThroughTick();
+    yesdaw::persistence::autosave_detail::failLinkForTest.reset();
+    REQUIRE (static_cast<juce::int64> (copied["linked"]) == 0);
+    REQUIRE (static_cast<juce::int64> (copied["copied"]) == 1);
+    REQUIRE (static_cast<double> (copied["writeMsPeak"])
+             == std::max (static_cast<double> (linked["writeMsPeak"]), static_cast<double> (copied["writeMs"])));
+
+    const juce::var back = writeThroughTick();
+    REQUIRE (static_cast<juce::int64> (back["linked"]) == 1);
+    REQUIRE (static_cast<juce::int64> (back["copied"]) == 0);
+    REQUIRE (static_cast<double> (back["writeMsPeak"]) >= static_cast<double> (copied["writeMsPeak"]));
+
+    // A write that really takes 200 ms longer becomes the peak; the next ordinary write's own time is below it.
+    yesdaw::persistence::autosave_detail::afterCarryForTest = [] (const std::filesystem::path&) {
+        std::this_thread::sleep_for (std::chrono::milliseconds (200));
+    };
+    const juce::var slow = writeThroughTick();
+    yesdaw::persistence::autosave_detail::afterCarryForTest = nullptr;
+    REQUIRE (static_cast<double> (slow["writeMs"]) >= 200.0);
+    REQUIRE (static_cast<double> (slow["writeMsPeak"]) == static_cast<double> (slow["writeMs"]));
+    const juce::var after = writeThroughTick();
+    REQUIRE (static_cast<double> (after["writeMs"]) < static_cast<double> (after["writeMsPeak"]));
+    REQUIRE (static_cast<double> (after["writeMsPeak"]) == static_cast<double> (slow["writeMs"]));
+}
+
 // ADR-0069 §3 (cp2) through the shipped Restore action: audio imported after the last save exists only in the autosave
 // (lost writes dropped its row; the open swept its file). After the recovery question rose, that file goes missing from
 // the autosave too. Restore refuses: the status line names the audio as the missing-audio question does - from the asking
