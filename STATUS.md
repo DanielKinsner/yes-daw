@@ -8,6 +8,28 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 4: the playhead shows no invented number and covers no ruler label
+
+**What changes:** the playhead's purple pill on the bars row printed round(seconds) + 1 as if it were a bar number (bar
+5 read "10" - wrong data, D3), covered the bar label under it and was cut at the canvas edge. It is gone: a small white
+head (6 x 8 px) rides the marker lane at the ruler's bottom, as the reference image and Logic place it, and the line runs
+from the head down; the header counter already shows bar|beat. The head stops short of a marker's label when the
+playhead rests on the marker. Seven badge tokens and an unused purple are deleted; white on the ruler (about 19:1) is a
+new token-contrast pair; the parking-lot entry is closed. **Gates**, both red before: `[playhead-head]` (the canvas at
+900 x 300 / 40 px/s with a marker, the playhead every 5 px, both ends and the marker: what it paints above the ruler's
+bottom starts in the marker lane - it started at the ruler's top, y=29 against 73 - stays inside the ruler and misses
+the marker's label) and `[rubric-shots]` now checks bar 1's tick column too (the pill put 3.1:1 purple there). Two
+mutations bite (the line from the ruler's top; a head wide enough to reach a label). Looked at: the 1080p timeline shows
+bar "1" and "0:00.0" readable and the head beside "Marker 1". **Local:** full build, ctest 443/443, Clang clean.
+**Critic (Opus 5.5):** no blocker; in - STATUS items (2) and (8) closed, the clamp's comment made honest (the clip
+inset already keeps the head inside the ruler), its argument order guarded, the gate's pixel scan 0.9 s. Parked: a
+playhead just right of a marker crosses the bottom of its label's first glyph (the plan's known residual, a little
+wider); the head is smaller than the reference's (the rubric judges it in the batched drives). Committed as `73522dd`;
+this entry followed separately.
+**CI:** unit 2b (`68e9761`, run 38270400380): nine jobs green; macOS red only on `YesDawTimelineGpuCheck`'s
+sustained-frame `REQUIRE` (raw: sustained 17.52 ms, max 20.38 ms, 14 slow frames; 439 of 440 macOS tests passed) - inside
+the exception Dan renewed this morning; 2b changed no renderer. **Next:** unit 5 (the ruler's time labels and contrast).
+
 ## 2026-10-12 — UI correctness pass unit 3: a fader ride shows and writes the value being ridden
 
 **What changes:** in a Touch / Latch / Write ride the model keeps the saved gain while the ride buffers its points, but
