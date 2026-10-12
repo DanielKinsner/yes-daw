@@ -1021,7 +1021,8 @@ struct UiTheme
         static constexpr int inspectorToggleGap = 8;   // G2.1 cp3: four letters fit the 1280 row
         // R4: the status line fills the toolbar row's remaining width right of the zoom cluster.
         static constexpr int statusLineLeftGap = 12;
-        static constexpr int statusLineMinWidth = 80;   // ADR-0064: narrower than this the status line drops
+        static constexpr int statusLineMenuBarGap = 12;      // ADR-0076: the status line's gap right of the menu bar
+        static constexpr int statusLineMenuRightInset = 8;   // ADR-0076: ... and from the window's right edge
         static constexpr int statusLineRightInset = 8;
         // G2.16: the zoom slider sits right after the zoom trio; the status line starts after it.
         static juce::Rectangle<int> timelineZoomSliderBounds (juce::Rectangle<int> timeline) noexcept
@@ -1030,12 +1031,21 @@ struct UiTheme
                 .translated (timelineZoomButtonWidth + timelineZoomSliderGap, 0)
                 .withWidth (timelineZoomSliderWidth);
         }
-        static juce::Rectangle<int> statusLineBounds (juce::Rectangle<int> timeline) noexcept
+        // The tool row's tail after the zoom slider: the choosers and the view cluster are placed in it (ADR-0064; the
+        // status line it was named for moved to the menu row, ADR-0076).
+        static juce::Rectangle<int> toolRowTailBounds (juce::Rectangle<int> timeline) noexcept
         {
             const juce::Rectangle<int> zoomIn = timelineZoomSliderBounds (timeline);
             const int left = zoomIn.getRight() + statusLineLeftGap;
             return zoomIn.withX (left).withWidth (
                 juce::jmax (0, timeline.getRight() - statusLineRightInset - left));
+        }
+        // ADR-0076: the status line - the menu row's free right side, the menu bar's height and centre line.
+        static juce::Rectangle<int> statusLineMenuRowBounds (int windowWidth) noexcept
+        {
+            const juce::Rectangle<int> menu = headerMenuBarBounds();
+            const int left = menu.getRight() + statusLineMenuBarGap;
+            return { left, menu.getY(), juce::jmax (0, windowWidth - statusLineMenuRightInset - left), menu.getHeight() };
         }
         // E20: the lane-target chooser sits beside the delete button on the automation band's header row.
         static constexpr int automationTargetChooserWidth = 172;

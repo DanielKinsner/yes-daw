@@ -202,6 +202,8 @@ TEST_CASE ("ADR-0063 text reaches 4.5:1 and indicators 3:1 wherever they are dra
             add (accentName + " text on " + surfaceName, accent, surface, 4.5);
         add ("dangerRed text on " + surfaceName, Color::dangerRed(), surface, 4.5);
     }
+    // ADR-0076: the status line's error colour on the dark end of the header's gradient (panelRaised is above).
+    add ("dangerRed text on canvasLayer (the menu row)", Color::dangerRed(), Color::canvasLayer(), 4.5);
     // Text on fills: the dark ink on every solid fill it is drawn on; the others' own pairs.
     for (const auto& [accentName, accent] : accents)
         add ("textOnFill on " + accentName, Color::textOnFill(), accent, 4.5);

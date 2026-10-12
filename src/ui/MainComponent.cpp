@@ -2281,6 +2281,7 @@ void MainComponent::resized()
                                               static_cast<juce::Component*> (&exportStemsChooser) })
         settingsControl->setVisible (h.settingsVisible);
     menuBar.setBounds (h.menuBar);
+    statusLine.setBounds (h.statusLine);   // ADR-0076: the status line is in the menu row
     // M9: the LUFS readout rides the master card — it drops with it instead of being clipped.
     masterLoudnessReadout.setBounds (headerMasterLufsBounds());
     masterLoudnessReadout.setVisible (! headerMasterLufsBounds().isEmpty());
@@ -2764,6 +2765,7 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
     HeaderLayout h;
     const int width = getWidth();
     h.menuBar = L::headerMenuBarBounds();
+    h.statusLine = L::statusLineMenuRowBounds (width);   // ADR-0076
     const int controlY = L::menuBarHeight + (L::toolbarHeight - L::headerControlHeight) / 2;
     const int bigY = L::menuBarHeight + (L::toolbarHeight - L::headerTransportButtonSize) / 2;
 

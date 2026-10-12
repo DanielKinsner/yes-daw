@@ -89,6 +89,8 @@ void MainComponent::configureTimelineZoomControls()
     statusLine.setName ("Status line");
     statusLine.setTooltip ("Status messages: failures from save, export, project create, autosave, and the audio device");
     statusLine.setJustificationType (juce::Justification::centredLeft);
+    statusLine.setMinimumHorizontalScale (1.0f);   // ADR-0076: never squashed - text that does not fit is shortened
+    statusLine.setMouseClickGrabsKeyboardFocus (false);
     statusLine.setColour (juce::Label::textColourId, kMutedText);
     statusLine.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (statusLine);
@@ -545,28 +547,26 @@ void MainComponent::layoutAutomationLaneControls()
         timelineZoomInButton.setBounds (zoomFits ? L::timelineZoomInButtonBounds (timeline) : juce::Rectangle<int>());
         timelineZoomSlider.setBounds (sliderFits ? L::timelineZoomSliderBounds (timeline) : juce::Rectangle<int>());   // G2.16
     }
-    // G1.4 toolbar v2: [nudge] … status … [Inspector]; the nudge chooser drops whole when
-    // the row cannot hold it next to the toggle.
+    // G1.4 toolbar v2: [snap mode][edit mode][nudge] … [Inspector]; each chooser drops whole when the row cannot hold
+    // it next to the view cluster. ADR-0076: the status line is in the menu row now, so it reserves nothing here.
     {
-        juce::Rectangle<int> status = L::statusLineBounds (timeline);
+        juce::Rectangle<int> status = L::toolRowTailBounds (timeline);
         const juce::Rectangle<int> toggle = status.withX (timeline.getRight() - L::statusLineRightInset - L::inspectorToggleWidth)
                                                   .withWidth (L::inspectorToggleWidth);
         const int clusterLeft = toggle.getX() - (L::inspectorToggleWidth + L::inspectorToggleGap) * 3;   // G2.1 cp3: [I][X][P][A]
-        // G2.6 / G2.7: [Snap mode][Edit mode][Nudge] lead the status row; each drops whole when
-        // the row cannot hold it. ADR-0064: ... and the status line's minimum after it — the choosers' values are in
-        // the Edit and View menus, the status line's messages are nowhere else.
-        const int statusReserve = L::timelineNudgeChooserGap + L::statusLineMinWidth;
+        // G2.6 / G2.7: [Snap mode][Edit mode][Nudge] lead the row's tail; each drops whole when the row cannot hold it
+        // (the choosers' values are in the Edit and View menus).
         const juce::Rectangle<int> snapMode = status.withWidth (L::timelineSnapModeChooserWidth);
-        const bool snapModeFits = snapMode.getRight() + statusReserve + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
+        const bool snapModeFits = snapMode.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
         snapModeChooser.setBounds (snapModeFits ? snapMode : juce::Rectangle<int>());
         const juce::Rectangle<int> editMode = status.withX (snapModeFits ? snapMode.getRight() + L::timelineNudgeChooserGap : status.getX())
                                                     .withWidth (L::timelineEditModeChooserWidth);
-        const bool editModeFits = editMode.getRight() + statusReserve + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
+        const bool editModeFits = editMode.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
         editModeChooser.setBounds (editModeFits ? editMode : juce::Rectangle<int>());
         juce::Rectangle<int> nudge = status.withX (editModeFits ? editMode.getRight() + L::timelineNudgeChooserGap
                                                    : snapModeFits ? snapMode.getRight() + L::timelineNudgeChooserGap : status.getX())
                                            .withWidth (L::timelineNudgeChooserWidth);
-        const bool nudgeFits = nudge.getRight() + statusReserve + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
+        const bool nudgeFits = nudge.getRight() + L::timelineNudgeChooserGap + L::inspectorToggleGap <= clusterLeft;
         nudgeValueChooser.setBounds (nudgeFits ? nudge : juce::Rectangle<int>());
         // G2.1 cp3: the view cluster [I][X][P][A] (plan §3.1) — inspector, dock (mixer) toggle,
         // piano-roll toggle, automation lane toggle — one row of letters at the status line's
@@ -585,22 +585,6 @@ void MainComponent::layoutAutomationLaneControls()
         if (juce::Component* piano = toolbarButtonFor (yesdaw::ui::UiActionId::ViewPianoRoll))
             piano->toFront (false);
         automationLaneToggle.toFront (false);
-        // ADR-0064: with nothing of the status row shown, the status line starts after the last control the row does
-        // show (the zoom trio and slider drop first on a narrow timeline) — so messages and hover hints stay readable at
-        // the 1280x720 floor; narrower than its minimum it drops.
-        int lastShownRight = timeline.getX() + yesdaw::ui::UiTheme::Space::xl + L::timelineCanvasToolbarWidth;   // the tool strip
-        for (const juce::Component* shown : { static_cast<const juce::Component*> (&timelineSnapChooser),
-                                              static_cast<const juce::Component*> (&timelineZoomInButton),
-                                              static_cast<const juce::Component*> (&timelineZoomSlider) })
-            if (! shown->getBounds().isEmpty())
-                lastShownRight = juce::jmax (lastShownRight, shown->getRight());
-        const int statusLeft = nudgeFits ? nudge.getRight() + L::timelineNudgeChooserGap
-                             : editModeFits ? editMode.getRight() + L::timelineNudgeChooserGap
-                             : snapModeFits ? snapMode.getRight() + L::timelineNudgeChooserGap
-                             : juce::jmin (status.getX(), lastShownRight + L::statusLineLeftGap);
-        const int statusRight = clusterLeft - L::inspectorToggleGap;
-        statusLine.setBounds (statusRight - statusLeft >= L::statusLineMinWidth ? status.withLeft (statusLeft).withRight (statusRight)
-                                                                                 : juce::Rectangle<int>());
     }
 
     // E26: the lane lives in the geometry law's reserved band — a header row (lane label
@@ -827,7 +811,7 @@ void MainComponent::refreshAutomationLaneControls()
     timelineHScroll.setVisible (timelineVisible);
     timelineVScroll.setVisible (timelineVisible);
     timelineZoomReadout.setVisible (timelineVisible);
-    statusLine.setVisible (timelineVisible);
+    statusLine.setVisible (true);   // ADR-0076: in the menu row, its messages show in every view
     refreshTimelineZoomReadout();
     automationLaneToggle.setToggleState (appModel.context().timelineAutomationTrackLaneVisible,
                                          juce::dontSendNotification);

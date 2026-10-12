@@ -426,7 +426,7 @@ It amends ADR-0064's tool-row list without editing ADR-0064.
 
 - [x] **ADR-0076 states** (accepted 2026-10-12; its critic ruled no conflict with §7.4 line 1 on two conditions now in the
   ADR - every app-written string fits the 1280 budget on every platform font, Verdana included, and shortening never
-  mixes a message's "; "-joined parts - and set the budget at W - 718 px: 432 / 560 / 1200 at 1152 / 1280 / 1920):
+  mixes a message's "; "-joined parts - and set the budget at W - 720 px: 432 / 560 / 1200 at 1152 / 1280 / 1920):
   - **Placement:** the line moves to the empty right side of the menu-bar row. This costs no height
     and gives about 558 px of text at 1280 and about 1198 at 1920.
   - **Never squashed:** `setMinimumHorizontalScale (1.0f)`.

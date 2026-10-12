@@ -1225,8 +1225,9 @@ TEST_CASE ("ADR-0064 the scaling matrix: geometry, reachable controls and render
                 { "2560x1440", "" }, { "2560x1360", "" },
                 { "2048x1081", "clip.inspector.markers" },
                 { "1920x1080", "clip.inspector.markers" }, { "1920x1000", "clip.inspector.markers" },
-                { "1706x896", "clip.inspector.markers timeline.edit_mode.chooser timeline.nudge.chooser" },
-                { "1536x793", fades + "clip.inspector.markers " + modes },
+                // ADR-0076: the status line left the tool row, so its reserve no longer drops the choosers here.
+                { "1706x896", "clip.inspector.markers timeline.nudge.chooser" },
+                { "1536x793", fades + "clip.inspector.markers timeline.edit_mode.chooser timeline.nudge.chooser" },
                 { "1280x720", fades + "clip.inspector.markers " + modes + " " + zoom },
                 { "1280x664", shortWindow }, { "1280x656", shortWindow }, { "1280x640", shortWindow },
             };

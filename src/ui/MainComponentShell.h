@@ -1052,7 +1052,6 @@ public:
         add ("snap.mode", &snapModeChooser);
         add ("edit.mode", &editModeChooser);
         add ("nudge", &nudgeValueChooser);
-        add ("status", &statusLine);
         add ("view.inspector", &inspectorToggle);
         add ("view.mixer", &mixerDockToggle);
         add ("view.pianoroll", toolbarButtonFor (yesdaw::ui::UiActionId::ViewPianoRoll));
@@ -1312,6 +1311,7 @@ public:
         juce::Rectangle<int> locateStart, play, stop, record, timeReadout, tempoMeterBox, loop, soloClear;
         juce::Rectangle<int> midiIn;   // G3.10: the MIDI input lamp
         juce::Rectangle<int> masterCard, gear;
+        juce::Rectangle<int> statusLine;   // ADR-0076: the menu row's free right side
         juce::Rectangle<int> bitDepth, range, dither, normalize, stems, outputDevice, inputDevice, inputChannel;
         juce::Rectangle<int> arm, monitor, comp;
         bool settingsVisible = false;
