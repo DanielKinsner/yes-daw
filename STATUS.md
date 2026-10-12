@@ -5,6 +5,12 @@ The [active plan](docs/plans/2026-09-01-real-daw-ground-up-plan.md) and
 [roadmap](docs/goals/roadmap.md) define the work; **this** file's newest entry is the live handoff.
 Older entries below are dated history, not competing "Now" instructions.
 
+> **Open branch (2026-10-11): close-out units 4-6 are on `wip/writes-on-pending-drives`, not yet on main.** Unit 4
+> (writes on), unit 5's drive preparation, a fix for unit 3's flaky `[write-cost]` gate and unit 6 (one writer) are
+> committed and verified there (442/442, Clang clean, separate critics). They stay off main by the close-out's writes-on
+> readiness rule until unit 5's packaged SS8 laps and placeholder drive pass on Dan's desktop. **Do not redo them:**
+> check that branch out, run the drives, then rebase it onto main, drop this note, and push.
+
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
