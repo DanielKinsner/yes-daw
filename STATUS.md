@@ -8,6 +8,24 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 9: hiding the dock by key gives its height to the arrangement
+
+**What changes:** a chord that showed or hid the editor dock (Y the browser, X the mixer) changed the model but laid
+nothing out until the next window resize: the lanes ended 300 px early over an empty band with the dock splitter still
+showing, and a re-shown browser had an empty rect. `resized()` now records the dock height it laid out, and
+`refreshActionState()` lays the shell out again when the dock's height differs (and skips its own mixer layout then,
+as `resized()` does it). **Gate `[dock-layout]`**, driven by key presses (the harness's helpers call `resized()`
+themselves): after each step - Y, Y, a resize, Y, X, X, then the Pencil tool on an empty part of a lane, which opens
+the piano roll - the layout on screen equals a fresh layout, the dock's height goes to the lanes, scroll bars and rail,
+and the browser and the roll fill the dock. **Red before the fix:** after the second Y the lanes ended at 646 where a
+fresh layout puts them at 946, with the splitter shown. **Bites:** that is the fix removed. **Critic** (a logic change
+in the action pipeline): every dock path is covered (chords, menus, buttons, model verbs, the splitter drag, project
+open, the UI tick), no re-entrancy, no spurious re-layouts; it added the pencil step (a pencilled MIDI clip opened its
+roll into an empty rect - fixed by the same line), the either-or ordering, and parked the same bug for the header height
+after an autosave Restore. **Local:** full build, ctest 444/444, Clang clean (before the critic's two edits; their
+targets re-ran). **CI:** unit 7 (`bd4377a`) running - macOS already green this time; unit 8 (`4b1c4d7`) queued.
+**Drive:** SS8 `ss8-after-drops` / `ss8-refusal` in the batched drive proof.
+
 ## 2026-10-12 — UI correctness pass unit 8: the rail shows only real track data
 
 **What changes:** each rail row drew an instrument picture picked by its index - a drum on the first row, a guitar on

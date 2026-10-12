@@ -2225,6 +2225,7 @@ void MainComponent::paint (juce::Graphics& g)
 
 void MainComponent::resized()
 {
+    laidOutDockHeight = dockedMixerHeight();   // unit 9: refreshActionState() compares against this
     restoreControlsHiddenByDockTab();   // G2.1 cp2
     const auto& toolbarActions = yesdaw::ui::mainShellToolbarActions();
     const HeaderLayout h = headerLayout();

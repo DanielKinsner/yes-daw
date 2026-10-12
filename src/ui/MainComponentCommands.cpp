@@ -2372,6 +2372,14 @@ void MainComponent::refreshActionState()
     // The mixer's live widgets follow the strip count an action changed without a resize: the master pane's fader, the
     // strip scroll bar, the FX editor's rows (2026-10-07: a two-file drop added a track and the master fader stayed at the
     // master's old slot, drawn over the new strip). setBounds is a no-op when nothing moved.
+    // Unit 9: an action that showed, hid or resized the dock lays the whole shell out again (a chord used to leave the
+    // lanes ending above an empty band until the next window resize, and a pencilled MIDI clip opened its roll into an
+    // empty rect); resized() also lays out the mixer controls and syncs the proxies.
+    if (laidOutDockHeight >= 0 && laidOutDockHeight != dockedMixerHeight())
+    {
+        resized();
+        return;
+    }
     layoutMixerControls();
     syncPaintedAccessibilityProxies();   // ADR-0066 cp2: states and values the elements report follow the action
 }

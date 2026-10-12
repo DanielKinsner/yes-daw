@@ -30716,3 +30716,116 @@ TEST_CASE ("the master meter fills to the level its scale names", "[ui][input][s
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+// UI correctness pass unit 9 (rubric FIX 10): hiding the dock by key gives its height to the arrangement. A chord that
+// showed or hid the dock changed the model but laid nothing out until the next resize, so the lanes ended 300 px early
+// over an empty band with the splitter still showing, and a re-shown browser had an empty rect. Driven by key presses
+// (the harness's own helpers call resized()): after every step the layout on screen is the one a fresh layout gives.
+TEST_CASE ("hiding the dock by key gives its height to the arrangement", "[ui][input][shell][g2][dock-layout]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("dock-layout");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    const auto require = [&shell] (const char* id) -> juce::Component& {
+        juce::Component* c = findChildWithComponentId (*shell, id);
+        INFO ("component " << id);
+        REQUIRE (c != nullptr);
+        return *c;
+    };
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    juce::Component& rail = require ("shell.tracklist.input");
+    juce::Component& hScroll = require ("timeline.scroll.h");
+    juce::Component& vScroll = require ("timeline.scroll.v");
+    juce::Component& splitter = require ("shell.splitter.dock");
+    juce::Component& browser = require ("browser.panel");
+    const auto dockName = [&shell] {
+        return probeRoot (*shell).getProperty ("view", {}).getProperty ("dock", {}).toString();
+    };
+    struct Layout
+    {
+        int lanesBottom, hScrollBottom, vScrollBottom, railBottom;
+        bool splitterVisible, browserVisible;
+        juce::Rectangle<int> browserBounds, dock;
+        bool operator== (const Layout&) const = default;
+    };
+    const auto layoutNow = [&] {
+        return Layout { timeline.getBottom(), hScroll.getBottom(), vScroll.getBottom(), rail.getBottom(),
+                        splitter.isVisible(), browser.isVisible(), browser.getBounds(),
+                        yesdaw::ui::mainComponentMixerPanelBounds (*shell) };
+    };
+    // The layout on screen is the one a fresh layout gives - nothing waits for the next resize.
+    const auto requireCurrent = [&] (const char* step) {
+        const Layout shown = layoutNow();
+        shell->resized();
+        const Layout fresh = layoutNow();
+        INFO (step << ": lanes end at " << shown.lanesBottom << " (fresh " << fresh.lanesBottom << "), splitter "
+                   << (shown.splitterVisible ? "shown" : "hidden") << " (fresh " << (fresh.splitterVisible ? "shown" : "hidden")
+                   << "), browser " << shown.browserBounds.toString() << " (fresh " << fresh.browserBounds.toString() << ")");
+        REQUIRE (shown == fresh);
+        return shown;
+    };
+    const auto press = [&shell] (char key) { REQUIRE (shell->keyPressed (juce::KeyPress (key))); };
+
+    REQUIRE (dockName() == "Mixer");
+    const Layout docked = requireCurrent ("the default dock");
+
+    press ('y');   // the browser takes the dock
+    REQUIRE (dockName() == "Browser");
+    const Layout withBrowser = requireCurrent ("Y: the browser in the dock");
+    REQUIRE (withBrowser.browserVisible);
+    REQUIRE_FALSE (withBrowser.browserBounds.isEmpty());
+    REQUIRE (withBrowser.browserBounds == withBrowser.dock);
+
+    press ('y');   // and leaves it: no dock
+    const Layout hidden = requireCurrent ("Y again: no dock");
+    REQUIRE_FALSE (hidden.splitterVisible);
+    REQUIRE (hidden.dock.isEmpty());
+    // The dock's height went to the arrangement: the lanes, the scroll bars and the rail all end lower by it.
+    const int given = hidden.lanesBottom - docked.lanesBottom;
+    CAPTURE (given, docked.dock.getHeight());
+    REQUIRE (given >= yesdaw::ui::UiTheme::Layout::editorDockMinHeight);
+    REQUIRE (hidden.hScrollBottom - docked.hScrollBottom == given);
+    REQUIRE (hidden.railBottom - docked.railBottom == given);
+
+    shell->setSize (shell->getWidth() + 40, shell->getHeight() + 20);
+    (void) requireCurrent ("a resize with no dock");
+
+    press ('y');   // the browser comes back with a real rect
+    REQUIRE (dockName() == "Browser");
+    const Layout reshown = requireCurrent ("Y: the browser back");
+    REQUIRE (reshown.browserVisible);
+    REQUIRE_FALSE (reshown.browserBounds.isEmpty());
+    REQUIRE (reshown.browserBounds == reshown.dock);
+    REQUIRE (reshown.splitterVisible);
+
+    press ('x');   // the mixer takes the dock
+    REQUIRE (dockName() == "Mixer");
+    (void) requireCurrent ("X: the mixer in the dock");
+    press ('x');   // and leaves it
+    const Layout mixerHidden = requireCurrent ("X again: no dock");
+    REQUIRE_FALSE (mixerHidden.splitterVisible);
+    REQUIRE (mixerHidden.dock.isEmpty());
+
+    // A model verb that opens a dock tab: the pencil on an empty part of a lane makes a MIDI clip and opens its roll.
+    press ('2');   // the Pencil tool
+    REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pencil);
+    const juce::var lane = probeRoot (*shell)["layout"]["lane.0"];
+    REQUIRE (lane.isArray());
+    const juce::Point<int> emptyPart (static_cast<int> (lane[0]) + static_cast<int> (lane[2]) - 40,
+                                      static_cast<int> (lane[1]) + static_cast<int> (lane[3]) / 2);
+    mouseDownAt (timeline, timeline.getLocalPoint (shell.get(), emptyPart));
+    REQUIRE (dockName() == "PianoRoll");
+    const Layout withRoll = requireCurrent ("the pencil opens the piano roll");
+    REQUIRE (withRoll.splitterVisible);
+    REQUIRE_FALSE (withRoll.dock.isEmpty());
+    REQUIRE (requirePianoRollComponent (*shell).getBounds() == withRoll.dock);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}

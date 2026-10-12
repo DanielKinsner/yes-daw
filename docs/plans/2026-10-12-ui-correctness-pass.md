@@ -374,14 +374,14 @@ to the piecewise law. Depends on unit 5: label `seconds` becomes the piecewise b
 
 ### 9. Hiding the dock by key gives its height to the arrangement (FIX 10)
 
-- [ ] **Fix.**
+- [x] **Fix.**
   - Add `int laidOutDockHeight = -1` to `MainComponentShell.h`.
   - `resized()` records `dockedMixerHeight()` as its first statement.
   - `refreshActionState()` ends with a re-layout when the two differ.
 
   This covers chords, model verbs that open a dock tab, and the UI tick. The button path now lays
   out twice, which is harmless.
-- [ ] **Gate.** A new `[ui][input][shell][g2][dock-layout]` case, driven through `shell->keyPressed`
+- [x] **Gate.** A new `[ui][input][shell][g2][dock-layout]` case, driven through `shell->keyPressed`
   rather than the harness (the harness calls `resized()` itself).
   - Sequence: Y, then Y to hide, then a resize, then Y to show, then an X round trip.
   - Check: the bottoms of the lanes, both scroll bars and the rail input; the splitter's visibility;
@@ -658,6 +658,9 @@ close-out rubric pass.
 - The master scale's four labels collide when the dock is under about 276 px (the meter column under 46 px), and the
   INTEGRATED / TRUE PEAK cards overflow at the minimum dock. Pre-existing (unit 7's critic); thin the labels by the
   height available.
+- The header height has unit 9's bug: restoring an autosave reattaches the same bundle, which resets the settings
+  row to hidden without a re-layout, so the shell keeps the taller header's layout until the next resize. Compare a
+  combined key (header height, dock height, inspector width) instead of the dock height alone (unit 9's critic).
 - The frame-time gates (`TimelineFrameCheck.h`) paint with no tempo map, so unit 6's map path is not
   under the frame budget. The unit 6 critic measured at most 140 us a paint for a 1000-change meter
   map.

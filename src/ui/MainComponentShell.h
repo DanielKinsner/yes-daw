@@ -1518,6 +1518,9 @@ private:
     {
         using juce::ScrollBar::ScrollBar;
     };
+    // UI correctness pass unit 9: the dock height resized() last laid out (-1 before the first layout). An action that
+    // shows or hides the dock without a resize - a chord, a model verb, the UI tick - lays out again when it differs.
+    int laidOutDockHeight = -1;
     TooltipScrollBar timelineHScroll { false };
     TooltipScrollBar timelineVScroll { true };
     mutable double timelineScrollSeconds = yesdaw::ui::UiTheme::Layout::timelineViewportScrollSeconds;
