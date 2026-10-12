@@ -135,17 +135,17 @@ not close unit 1; another clean failure requires a supported new hypothesis rath
 
 ### 5. Prove the writer through the app (ADR-0068 cp6)
 
-- [ ] In `ss8-project-lifecycle.ps1` (logical SS-6), capture `autosave.writes` **before each edit** and
+- [x] In `ss8-project-lifecycle.ps1` (logical SS-6), capture `autosave.writes` **before each edit** and
   pass that baseline into the wait. The current helper samples after the edit and can miss the only
   due write. Require a new confirmed write and `lastAutosavedEditSerial == editSerial`, then capture
   its counts; do not add sleeps or relax the wait to hide the race.
-- [ ] Run the three accepted laps on the candidate packaged exe: kill/reopen preserves the current
+- [x] Run the three accepted laps on the candidate packaged exe: kill/reopen preserves the current
   bundle without a question; restoring the saved scratch DB after a kill raises the lost-writes
   question and shipped Restore recovers the confirmed snapshot; Save/close/reopen retires it without
   a question. Keep the stamp and recovered-state assertions. On the linkable fixture add
   `autosave.writeMsPeak < 100` and `autosave.linked > 0`. The recorded 171/177 autosave-off result is
   a failure baseline, not cp6 completion.
-- [ ] Before writes-on ships, run a self-asserting real-app drive on actual hydrated placeholder
+- [x] Before writes-on ships, run a self-asserting real-app drive on actual hydrated placeholder
   assets where the OS rejects hard links: verify copied carries, valid hashes and recovery, with
   isolated scratch setup and cleanup. Reuse the verified fixture approach in
   `tests/autosave_cloud_tests.cpp`; its persistence result alone is not app-drive evidence or proof

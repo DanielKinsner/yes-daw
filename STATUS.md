@@ -5,16 +5,10 @@ The [active plan](docs/plans/2026-09-01-real-daw-ground-up-plan.md) and
 [roadmap](docs/goals/roadmap.md) define the work; **this** file's newest entry is the live handoff.
 Older entries below are dated history, not competing "Now" instructions.
 
-> **Open branch (2026-10-11): close-out units 4-6 are on `wip/writes-on-pending-drives`, not yet on main.** Unit 4
-> (writes on), unit 5's drive preparation, a fix for unit 3's flaky `[write-cost]` gate and unit 6 (one writer) are
-> committed and verified there (442/442, Clang clean, separate critics). They stay off main by the close-out's writes-on
-> readiness rule until unit 5's packaged SS8 laps and placeholder drive pass on Dan's desktop. **Do not redo them:**
-> check that branch out, run the drives, then rebase it onto main, drop this note, and push.
-
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## 2026-10-11 — Close-out unit 5: writes-on proven through the packaged app (SS8 209/209; batch green)
+## 2026-10-11 — Close-out unit 5: writes-on proven through the packaged app (SS8 green; full batch green)
 
 **Candidate:** `dist/YesDaw-b28437e-win64-portable.zip` from `b28437e` (units 4-6), `YesDaw.exe` SHA256
 `2DC987F0445EA97CCF942A547744D0232C289D1789E6E42C0BB851C0B15FDCEF`; its packaged self-check (make-demo, then
@@ -69,8 +63,13 @@ cut by the dock; (13) status-line errors and hover hints ellipsize the useful ha
 with the strip's own dB for a moment and overlaps the Out slot; narrow strips overprint their Out label; solo is weak on
 strips; (15) evidence shots cannot show popups or alerts (the drive captures only the main window). Each FIX gets a gate
 when fixed (plan section 7.4); they gate the milestone close (unit 7), not this push.
-**Next:** commit the tooling; re-run the full batch on the committed tooling; then rebase onto main (dropping the
-pointer note), push and check exact-code CI.
+**Final batch on the committed tooling** (`fe42284`, same exe): SS1 59/59, SS2 42/42, SS3 72/72, SS4 22/22, SS5 77/77,
+SS6 58/58 (the monitor caught one Terminal flash at 22:19:06, 172 ms - no menu was open), SS7 197/197, **SS8 212/212**
+(209 + Lap 3's proven save and reload, every snapshot slot, the stamp field). Its summary listed FileDrop's own drag
+window nine times; `f2a77b0` leaves the drive's own process out of the summary (labelled 'this drive' on a FAIL), gated
+headlessly; SS8 re-run on it: 212/212, summary 0 flashes. **Unit 5 closed** (its three boxes ticked). **Next:** rebase onto
+main (this push answers main's pointer note, now removed), push, exact-code CI on that SHA; then unit 7 (milestone
+close: the rubric FIXes above, the montage, roadmap pointers).
 
 ## 2026-10-11 — Close-out unit 6: one autosave writer - the engine's old trigger is deleted (committed locally)
 
