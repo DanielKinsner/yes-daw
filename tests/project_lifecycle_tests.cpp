@@ -304,6 +304,15 @@ TEST_CASE ("SS-6 the probe carries the project's rate, tempo and Assets, the aut
     REQUIRE (static_cast<bool> (probeOf (*shell)["autosave"]["enabled"]));
     REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["failures"]) == 0);
     REQUIRE_FALSE (static_cast<bool> (probeOf (*shell)["autosave"]["recovery"]["pending"]));
+    // ADR-0068 (close-out unit 4): after an edit since the Save, the shell's own tick writes an autosave.
+    REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == 0);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    for (int n = 0; n < 100 && static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == 0; ++n)
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+    REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["writes"]) > 0);
+    REQUIRE (static_cast<juce::int64> (probeOf (*shell)["autosave"]["lastAutosavedEditSerial"])
+             == static_cast<juce::int64> (probeOf (*shell)["autosave"]["editSerial"]));
+    REQUIRE_FALSE (static_cast<bool> (probeOf (*shell)["autosave"]["notDurable"]));
     // ADR-0068 §7: the bundle's write stamp counts its writes; no snapshot asks.
     REQUIRE (static_cast<juce::int64> (probeOf (*shell)["autosave"]["bundleWriteStamp"]) > 0);
     REQUIRE (static_cast<juce::int64> (probeOf (*shell)["autosave"]["snapshotWriteStamp"]) == 0);
@@ -1263,14 +1272,6 @@ bool autosaveOnDisk (const std::filesystem::path& bundle)
     return yesdaw::persistence::autosave_detail::anySnapshotSlotExists (bundle);
 }
 
-// What cp1's due tick will write: the autosave of `project`, carrying the bundle's committed stamp.
-void plantAutosave (const std::filesystem::path& bundle, const yesdaw::engine::Project& project)
-{
-    yesdaw::persistence::ProjectBundleDb db;
-    REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundle, db).ok());
-    REQUIRE (yesdaw::persistence::writeAutosaveSnapshot (db, project).ok());
-}
-
 // Lost writes: the bundle saved at one track, two more tracks autosaved, then the bundle's project.db put back to the
 // one-track state (what a power cut can leave: the autosave flushed, the bundle's last writes gone).
 struct LostWrites
@@ -1299,7 +1300,8 @@ LostWrites makeLostWrites (const std::string& label)
         REQUIRE (model.addAudioTrack().dispatched);
         REQUIRE (model.addAudioTrack().dispatched);   // three tracks
         f.autosaved = model.project();
-        plantAutosave (f.bundle, f.autosaved);
+        REQUIRE (model.writeAutosaveTick().ok());     // the model's own scheduled write (ADR-0068 §2)
+        REQUIRE (model.autosaveWrites() == 1);
     }
     f.snapshotStamp = stampOf (yesdaw::persistence::autosaveSnapshotPath (f.bundle));
     for (const char* sidecar : { "project.db-wal", "project.db-shm" })
@@ -1328,7 +1330,8 @@ TEST_CASE ("ADR-0068 an autosave the bundle has caught up with is retired silent
         yesdaw::ui::UiAppModel model;
         REQUIRE (model.createProjectBundle (bundle).ok());
         REQUIRE (model.addAudioTrack().dispatched);   // E1
-        plantAutosave (bundle, model.project());
+        REQUIRE (model.writeAutosaveTick().ok());     // the scheduled write at E1
+        REQUIRE (model.autosaveWrites() == 1);
         SECTION ("the bundle went on past the snapshot (more edits, then a kill)")
         {
             REQUIRE (model.addAudioTrack().dispatched);   // E2, never autosaved
@@ -1422,7 +1425,8 @@ TEST_CASE ("ADR-0073 the recovery card wins over the first-run tip", "[project-l
     REQUIRE (hasDismiss());
 }
 
-// ADR-0069 §4 (close-out unit 3): the autosave writer's real cost and carries, through the model. Nothing due: a tick
+// ADR-0069 §4 (close-out unit 3): the autosave writer's real cost and carries, through the model (each write made due by a
+// real edit since unit 4). Nothing due: a tick
 // writes nothing and records nothing. A due write measures its own wall time and reports its carries (every asset
 // linked). A tick with nothing due keeps that sample. A link that is impossible for one asset makes a real copy, counted;
 // the next all-link write returns the copied count to zero. A failed attempt is one coherent sample - its own time, no
@@ -1446,6 +1450,7 @@ TEST_CASE ("ADR-0069 the autosave writer reports its real cost and carries", "[p
     REQUIRE (model.importAudioFile (directory / "a.wav", decodeTone (directory / "a.wav")).ok());
     REQUIRE (model.importAudioFile (directory / "b.wav", decodeTone (directory / "b.wav")).ok());
     REQUIRE (model.project().assets.size() == 2u);
+    REQUIRE (model.saveProjectBundle().ok());   // a clean point: nothing is due until the next edit
     double highest = 0.0;
     const auto requireSample = [&model, &highest] (std::size_t linked, std::size_t copied) {
         REQUIRE (model.autosaveWriteMs() > 0.0);
@@ -1455,12 +1460,12 @@ TEST_CASE ("ADR-0069 the autosave writer reports its real cost and carries", "[p
         REQUIRE (model.autosaveWriteMsPeak() == highest);
     };
 
-    REQUIRE (model.writeAutosaveTick().ok());   // nothing due (the shipped trigger is off until unit 4)
+    REQUIRE (model.writeAutosaveTick().ok());   // nothing due (saved, no edit since)
     REQUIRE (model.autosaveWrites() == 0);
     REQUIRE (model.autosaveWriteMs() == 0.0);
     REQUIRE (model.autosaveWriteMsPeak() == 0.0);
 
-    model.markProjectEditedForTest();
+    REQUIRE (model.addAudioTrack().dispatched);   // an edit: the write is due
     REQUIRE (model.writeAutosaveTick().ok());
     REQUIRE (model.autosaveWrites() == 1);
     requireSample (2u, 0u);
@@ -1472,13 +1477,13 @@ TEST_CASE ("ADR-0069 the autosave writer reports its real cost and carries", "[p
     requireSample (2u, 0u);
 
     yesdaw::persistence::autosave_detail::failLinkForTest = model.project().assets.back().contentHash;
-    model.markProjectEditedForTest();
+    REQUIRE (model.addAudioTrack().dispatched);   // an edit: the write is due
     REQUIRE (model.writeAutosaveTick().ok());
     yesdaw::persistence::autosave_detail::failLinkForTest.reset();
     REQUIRE (model.autosaveWrites() == 2);
     requireSample (1u, 1u);
 
-    model.markProjectEditedForTest();
+    REQUIRE (model.addAudioTrack().dispatched);   // an edit: the write is due
     REQUIRE (model.writeAutosaveTick().ok());
     REQUIRE (model.autosaveWrites() == 3);
     requireSample (2u, 0u);
@@ -1488,14 +1493,14 @@ TEST_CASE ("ADR-0069 the autosave writer reports its real cost and carries", "[p
     yesdaw::persistence::autosave_detail::afterCarryForTest = [] (const std::filesystem::path&) {
         std::this_thread::sleep_for (std::chrono::milliseconds (200));
     };
-    model.markProjectEditedForTest();
+    REQUIRE (model.addAudioTrack().dispatched);   // an edit: the write is due
     REQUIRE (model.writeAutosaveTick().ok());
     yesdaw::persistence::autosave_detail::afterCarryForTest = nullptr;
     requireSample (2u, 0u);
     const double slow = model.autosaveWriteMs();
     REQUIRE (slow >= 200.0);
     REQUIRE (model.autosaveWriteMsPeak() == slow);
-    model.markProjectEditedForTest();
+    REQUIRE (model.addAudioTrack().dispatched);   // an edit: the write is due
     REQUIRE (model.writeAutosaveTick().ok());
     requireSample (2u, 0u);
     REQUIRE (model.autosaveWriteMs() < slow);
@@ -1505,7 +1510,7 @@ TEST_CASE ("ADR-0069 the autosave writer reports its real cost and carries", "[p
     // the last one (one coherent sample), and the peak stays.
     REQUIRE (std::filesystem::remove (yesdaw::persistence::storedAssetPathForHash (bundle, model.project().assets.front().contentHash)));
     const double prior = model.autosaveWriteMs();
-    model.markProjectEditedForTest();
+    REQUIRE (model.addAudioTrack().dispatched);   // an edit: the write is due
     REQUIRE_FALSE (model.writeAutosaveTick().ok());
     REQUIRE (model.autosaveFailures() == 1);
     REQUIRE (model.autosaveWriteMs() != prior);
@@ -1545,7 +1550,7 @@ TEST_CASE ("ADR-0069 the probe carries the autosave writer's cost and carries", 
     // One write through the shell's own tick (bounded: the cadence is 250 ms of ticks).
     const auto writeThroughTick = [&shell] {
         const int before = static_cast<int> (probeOf (*shell)["autosave"]["writes"]);
-        yesdaw::ui::mainComponentMarkProjectEditedForTest (*shell);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);   // an edit: the write is due
         for (int n = 0; n < 100 && static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == before; ++n)
             yesdaw::ui::mainComponentServiceUiTick (*shell);
         REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == before + 1);
@@ -1585,6 +1590,296 @@ TEST_CASE ("ADR-0069 the probe carries the autosave writer's cost and carries", 
     REQUIRE (static_cast<double> (after["writeMsPeak"]) == static_cast<double> (slow["writeMs"]));
 }
 
+// ADR-0068 §1-§2 (close-out unit 4) `[due]`: the model-owned writer writes when there is un-autosaved, unsaved work -
+// never before the first edit after a Save, once per edit however many ticks pass - and the snapshot holds the project
+// as it was at that edit.
+TEST_CASE ("ADR-0068 an autosave is written once per edit, only when there is unsaved work", "[project-lifecycle][autosave][due]")
+{
+    const auto directory = lifecycleScratch ("autosave-due");
+    const auto bundle = directory / "song.yesdaw";
+    writeTone (directory / "tone.wav", 48'000, 0.25f);
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (bundle).ok());
+    REQUIRE (model.importAudioFile (directory / "tone.wav", decodeTone (directory / "tone.wav")).ok());
+    REQUIRE (model.saveProjectBundle().ok());
+    for (int n = 0; n < 10; ++n)
+        REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveWrites() == 0);
+    REQUIRE_FALSE (autosaveOnDisk (bundle));
+
+    const auto requireSnapshotIsProject = [&model, &bundle] {
+        yesdaw::engine::Project snapshot;
+        REQUIRE (yesdaw::persistence::readAutosaveSnapshot (bundle, snapshot).ok());
+        REQUIRE (snapshot.tracks == model.project().tracks);
+        REQUIRE (snapshot.clips == model.project().clips);
+        REQUIRE (snapshot.assets == model.project().assets);
+    };
+    REQUIRE (model.addAudioTrack().dispatched);
+    REQUIRE (model.editSerial() != model.lastSavedEditSerial());
+    REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveWrites() == 1);
+    REQUIRE (model.lastAutosavedEditSerial() == model.editSerial());
+    requireSnapshotIsProject();
+    for (int n = 0; n < 5; ++n)
+        REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveWrites() == 1);   // this edit is already autosaved
+
+    REQUIRE (model.addAudioTrack().dispatched);
+    REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveWrites() == 2);
+    requireSnapshotIsProject();
+    REQUIRE (model.autosaveSkips() == 0);
+    REQUIRE_FALSE (model.autosaveNotDurable());
+}
+
+// ADR-0068 §2 (close-out unit 4) `[pending-gate]` / `[no-write-while-pending]`: while the recovery question is up, twenty
+// edits across twenty ticks write nothing (each tick a skip) and the asking snapshot's bytes stay as they were. Discard
+// answers it and is not an autosaved clean point: the edited tail is still due, so the next tick writes it.
+TEST_CASE ("ADR-0068 no autosave is written while the recovery question is pending", "[project-lifecycle][autosave][pending-gate][no-write-while-pending]")
+{
+    const LostWrites f = makeLostWrites ("pending-gate");
+    yesdaw::ui::UiAppModel model;
+    openThroughShippedPath (model, f.bundle);
+    REQUIRE (model.context().autosaveRecoveryPending);
+    const auto snapshotDb = yesdaw::persistence::autosaveSnapshotPath (f.bundle) / "project.db";
+    const std::string before = bytesOf (snapshotDb);
+    REQUIRE_FALSE (before.empty());
+    for (int n = 0; n < 20; ++n)
+    {
+        REQUIRE (model.addAudioTrack().dispatched);
+        REQUIRE (model.writeAutosaveTick().ok());
+    }
+    REQUIRE (model.autosaveSkips() == 20);
+    REQUIRE (model.autosaveWrites() == 0);
+    REQUIRE (bytesOf (snapshotDb) == before);
+
+    REQUIRE (model.dispatch (UiActionId::AutosaveRecoveryDiscard).dispatched);
+    REQUIRE (model.editSerial() != model.lastAutosavedEditSerial());   // Discard is not an autosaved clean point
+    REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveWrites() == 1);
+    REQUIRE (model.autosaveSkips() == 20);
+    REQUIRE (model.lastAutosavedEditSerial() == model.editSerial());
+}
+
+// ADR-0068 §2 (close-out unit 4) `[status-sticky]`: a failed write reports "Autosave failed" on the status line and raises
+// the sticky not-durable flag; the edit stays due and every tick retries it; the flag survives a Save and a re-attach of
+// the same bundle, and only a write that succeeds clears it. Through the named seam (a canned failure, which leaves the
+// last real cost and carries untouched) and through a real filesystem failure (`autosave/` replaced by a plain file).
+TEST_CASE ("ADR-0068 a failed autosave stays visible until a write succeeds", "[project-lifecycle][autosave][status-sticky]")
+{
+    const auto directory = lifecycleScratch ("autosave-sticky");
+    const auto bundle = directory / "song.yesdaw";
+    writeTone (directory / "tone.wav", 48'000, 0.25f);
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (bundle).ok());
+    REQUIRE (model.importAudioFile (directory / "tone.wav", decodeTone (directory / "tone.wav")).ok());
+    REQUIRE (model.writeAutosaveTick().ok());   // a real write: the last real sample
+    REQUIRE (model.autosaveWrites() == 1);
+    const double realMs = model.autosaveWriteMs();
+    const std::size_t realLinked = model.autosaveLinked();
+    REQUIRE (realLinked == 1u);
+
+    SECTION ("the named seam")
+    {
+        model.autosaveWriteOverrideForTest ([] {
+            yesdaw::persistence::AutosaveResult failed;
+            failed.status = yesdaw::persistence::AutosaveStatus::FilesystemError;
+            failed.message = "canned failure";
+            return failed;
+        });
+        REQUIRE (model.addAudioTrack().dispatched);
+        REQUIRE_FALSE (model.writeAutosaveTick().ok());
+        REQUIRE (model.statusLineText() == "Autosave failed");
+        REQUIRE (model.statusLineIsError());
+        REQUIRE (model.autosaveNotDurable());
+        REQUIRE (model.autosaveWriteMs() == realMs);   // a canned result is not a measured write
+        REQUIRE (model.autosaveLinked() == realLinked);
+        for (int n = 0; n < 5; ++n)
+            REQUIRE_FALSE (model.writeAutosaveTick().ok());   // the edit stays due: every tick retries
+        REQUIRE (model.autosaveFailures() == 6);
+        REQUIRE (model.autosaveNotDurable());
+        REQUIRE (model.lastAutosavedEditSerial() != model.editSerial());
+
+        REQUIRE (model.saveProjectBundle().ok());
+        REQUIRE (model.autosaveNotDurable());   // a Save is not a durable autosave
+        REQUIRE (model.writeAutosaveTick().ok());   // nothing due: a tick that writes nothing clears nothing
+        REQUIRE (model.autosaveNotDurable());
+        openThroughShippedPath (model, bundle);
+        REQUIRE (model.autosaveNotDurable());   // nor is a re-attach of the same bundle
+        REQUIRE (model.writeAutosaveTick().ok());
+        REQUIRE (model.autosaveNotDurable());
+
+        model.autosaveWriteOverrideForTest ([] { return yesdaw::persistence::autosave_detail::ok(); });
+        REQUIRE (model.addAudioTrack().dispatched);
+        REQUIRE (model.writeAutosaveTick().ok());   // a canned success
+        REQUIRE (model.autosaveNotDurable());       // is not a real durable write
+
+        model.autosaveWriteOverrideForTest ({});
+        REQUIRE (model.addAudioTrack().dispatched);
+        REQUIRE (model.writeAutosaveTick().ok());
+        REQUIRE_FALSE (model.autosaveNotDurable());
+    }
+    SECTION ("a real filesystem failure")
+    {
+        REQUIRE (yesdaw::persistence::discardAutosaveSnapshot (bundle).ok());
+        { std::ofstream blocker (bundle / "autosave"); blocker << "not a folder"; }
+        REQUIRE (model.addAudioTrack().dispatched);
+        REQUIRE_FALSE (model.writeAutosaveTick().ok());
+        REQUIRE (model.statusLineText() == "Autosave failed");
+        REQUIRE (model.autosaveNotDurable());
+        REQUIRE (model.autosaveFailures() == 1);
+        REQUIRE (model.autosaveWriteMs() > 0.0);   // a real attempt is measured, failed or not
+        REQUIRE (model.autosaveLinked() == 0u);
+
+        REQUIRE (std::filesystem::remove (bundle / "autosave"));
+        REQUIRE (model.writeAutosaveTick().ok());   // the same edit, retried
+        REQUIRE_FALSE (model.autosaveNotDurable());
+        REQUIRE (model.lastAutosavedEditSerial() == model.editSerial());
+        REQUIRE (autosaveOnDisk (bundle));
+    }
+}
+
+// ADR-0068 §3 (close-out unit 4): a Save As while the recovery question is up, after a real edit - the new bundle's clean
+// serials advance (saved and autosaved both at the edit), while the old bundle's unanswered snapshot and its marker stay
+// for its next open.
+TEST_CASE ("ADR-0068 a Save As under a pending question advances the new bundle's clean point and keeps the old question",
+           "[project-lifecycle][autosave][pending-save-as]")
+{
+    const LostWrites f = makeLostWrites ("pending-save-as");
+    yesdaw::ui::UiAppModel model;
+    openThroughShippedPath (model, f.bundle);
+    REQUIRE (model.context().autosaveRecoveryPending);
+    const auto marker = markerOf (f.bundle);
+    REQUIRE (marker.has_value());
+    REQUIRE (model.addAudioTrack().dispatched);
+    REQUIRE (model.editSerial() != 0u);
+    const auto copy = f.directory / "copy.yesdaw";
+    REQUIRE (model.saveProjectBundleAs (copy).dispatched);
+    REQUIRE (model.bundlePath() == copy);
+    REQUIRE (model.lastSavedEditSerial() == model.editSerial());
+    REQUIRE (model.lastAutosavedEditSerial() == model.editSerial());
+    REQUIRE (autosaveOnDisk (f.bundle));          // the unanswered snapshot stays with the bundle left
+    REQUIRE (markerOf (f.bundle) == marker);
+    REQUIRE_FALSE (autosaveOnDisk (copy));
+    REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveWrites() == 0);         // nothing un-autosaved on the new bundle
+}
+
+// ADR-0068 §5 with writes on (close-out unit 4): a snapshot whose question was raised and never answered, unreadable at
+// a later open, is still the user's lost work. That open asks nothing (it cannot read it), says so on the status line,
+// and holds it: edits and ticks write no autosave over it (each tick a skip), and a Save does not retire it.
+TEST_CASE ("ADR-0068 an unanswered autosave that cannot be read is held, never written over", "[project-lifecycle][autosave][held-unreadable]")
+{
+    const LostWrites f = makeLostWrites ("held-unreadable");
+    {
+        yesdaw::ui::UiAppModel asking;
+        openThroughShippedPath (asking, f.bundle);
+        REQUIRE (asking.context().autosaveRecoveryPending);   // the question rises; it is left unanswered
+    }
+    REQUIRE (markerOf (f.bundle) == std::optional<std::int64_t> { f.snapshotStamp });
+    const auto snapshotDb = yesdaw::persistence::autosaveSnapshotPath (f.bundle) / "project.db";
+    { std::ofstream damage (snapshotDb, std::ios::binary | std::ios::trunc); damage << "not a database"; }
+    const std::string held = bytesOf (snapshotDb);
+
+    yesdaw::ui::UiAppModel model;
+    openThroughShippedPath (model, f.bundle);
+    REQUIRE_FALSE (model.context().autosaveRecoveryPending);   // it cannot be read, so nothing asks
+    REQUIRE (model.statusLineText().find ("An earlier autosave could not be read") == 0u);
+    for (int n = 0; n < 5; ++n)
+    {
+        REQUIRE (model.addAudioTrack().dispatched);
+        REQUIRE (model.writeAutosaveTick().ok());
+    }
+    REQUIRE (model.autosaveWrites() == 0);
+    REQUIRE (model.autosaveSkips() == 5);
+    REQUIRE (model.autosaveNotDurable());   // unsaved work no autosave holds: visible, not silent
+    REQUIRE (model.statusLineText().find ("Autosave paused") == 0u);
+    REQUIRE (model.saveProjectBundle().ok());
+    REQUIRE (autosaveOnDisk (f.bundle));            // a Save does not retire what only an answer may
+    REQUIRE (bytesOf (snapshotDb) == held);
+    REQUIRE (markerOf (f.bundle) == std::optional<std::int64_t> { f.snapshotStamp });
+
+    // The hold is that bundle's: a project created next autosaves (a real write clears the flag).
+    const auto other = f.directory / "other.yesdaw";
+    REQUIRE (model.createProjectBundle (other).ok());
+    REQUIRE (model.addAudioTrack().dispatched);
+    REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveWrites() == 1);
+    REQUIRE (autosaveOnDisk (other));
+    REQUIRE_FALSE (model.autosaveNotDurable());
+    REQUIRE (bytesOf (snapshotDb) == held);   // the first bundle's autosave is still exactly as it was
+}
+
+// ADR-0068 §4 (close-out unit 4) through the shipped overlay: New, Don't Save, then Esc closes the New Project dialog -
+// nothing replaced the project, so its edited tail is autosaved again.
+TEST_CASE ("ADR-0068 Don't Save then Esc on the New Project overlay autosaves the open project again",
+           "[project-lifecycle][autosave][dont-save-retires]")
+{
+    const auto directory = lifecycleScratch ("dont-save-overlay-src");
+    const auto bundle = directory / "song.yesdaw";
+    {
+        yesdaw::ui::UiAppModel model;
+        REQUIRE (model.createProjectBundle (bundle).ok());
+    }
+    LifecycleShell f ("dont-save-overlay", true, true, bundle);
+    REQUIRE (static_cast<bool> (probeOf (*f)["projectLoaded"]));
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::TrackAdd);   // unsaved changes
+    const auto tickUntilAutosaved = [&f, &bundle] {   // the shell's own tick at its 30 s cadence
+        for (int n = 0; n < 2000 && ! autosaveOnDisk (bundle); ++n)
+            yesdaw::ui::mainComponentServiceUiTick (*f);
+        return autosaveOnDisk (bundle);
+    };
+    REQUIRE (tickUntilAutosaved());
+    f.closeChoice = yesdaw::ui::kCloseChoiceClose;
+    f.nextBundle = f.directory / "never.yesdaw";
+    REQUIRE (press (*f, 'n', juce::ModifierKeys::ctrlModifier));
+    REQUIRE (f.prompts == 1);
+    REQUIRE (dialogOpen (*f));
+    REQUIRE_FALSE (autosaveOnDisk (bundle));   // Don't Save retired it
+    REQUIRE (press (*f, juce::KeyPress::escapeKey));
+    REQUIRE_FALSE (dialogOpen (*f));
+    REQUIRE_FALSE (std::filesystem::exists (f.directory / "never.yesdaw"));
+    REQUIRE (tickUntilAutosaved());
+}
+
+// ADR-0068 §3 (close-out unit 4): a retirement that fails does not fail the Save, reports on the status line and raises
+// the sticky not-durable flag.
+TEST_CASE ("ADR-0068 a failed retirement raises the not-durable flag", "[project-lifecycle][autosave][retire-fails]")
+{
+    struct DiscardReset
+    {
+        ~DiscardReset() { yesdaw::persistence::autosave_detail::failDiscardForTest = false; }
+    } reset;
+    const auto directory = lifecycleScratch ("retire-fails");
+    const auto bundle = directory / "song.yesdaw";
+    yesdaw::ui::UiAppModel model;
+    REQUIRE (model.createProjectBundle (bundle).ok());
+    REQUIRE (model.addAudioTrack().dispatched);
+    REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE_FALSE (model.autosaveNotDurable());
+    yesdaw::persistence::autosave_detail::failDiscardForTest = true;
+    SECTION ("Save")
+    {
+        REQUIRE (model.saveProjectBundle().ok());   // the Save itself stands
+        REQUIRE (model.statusLineText().find ("Autosave cleanup failed") == 0u);
+        REQUIRE (model.autosaveNotDurable());
+        REQUIRE (autosaveOnDisk (bundle));
+    }
+    SECTION ("Don't Save")
+    {
+        REQUIRE (model.addAudioTrack().dispatched);
+        model.retireAutosaveOnDontSave();
+        REQUIRE (model.statusLineText().find ("Autosave cleanup failed") == 0u);
+        REQUIRE (model.autosaveNotDurable());
+        REQUIRE (autosaveOnDisk (bundle));
+        REQUIRE (model.lastAutosavedEditSerial() != model.editSerial());   // nothing retired: the tail stays due
+        yesdaw::persistence::autosave_detail::failDiscardForTest = false;
+        REQUIRE (model.writeAutosaveTick().ok());
+        REQUIRE (model.autosaveWrites() == 2);
+        REQUIRE_FALSE (model.autosaveNotDurable());
+    }
+}
+
 // ADR-0069 §3 (cp2) through the shipped Restore action: audio imported after the last save exists only in the autosave
 // (lost writes dropped its row; the open swept its file). After the recovery question rose, that file goes missing from
 // the autosave too. Restore refuses: the status line names the audio as the missing-audio question does - from the asking
@@ -1610,7 +1905,8 @@ TEST_CASE ("ADR-0069 a refused Restore names the missing audio and keeps the que
         openThroughShippedPath (model, bundle);
         REQUIRE (model.importAudioFile (directory / "later.wav", decodeTone (directory / "later.wav")).ok());
         autosaved = model.project();
-        plantAutosave (bundle, autosaved);
+        REQUIRE (model.writeAutosaveTick().ok());
+        REQUIRE (model.autosaveWrites() == 1);
     }
     for (const char* sidecar : { "project.db-wal", "project.db-shm" })
     {
@@ -1745,7 +2041,8 @@ TEST_CASE ("ADR-0068 a pre-v35 bundle's pre-v35 autosave is retired silently on 
         yesdaw::ui::UiAppModel model;
         REQUIRE (model.createProjectBundle (bundle).ok());
         REQUIRE (model.addAudioTrack().dispatched);
-        plantAutosave (bundle, model.project());
+        REQUIRE (model.writeAutosaveTick().ok());
+        REQUIRE (model.autosaveWrites() == 1);
     }
     for (const auto& path : { bundle, yesdaw::persistence::autosaveSnapshotPath (bundle) })
     {
@@ -1829,31 +2126,44 @@ TEST_CASE ("ADR-0068 Save and Save As retire the autosave; Save a Copy keeps the
     yesdaw::ui::UiAppModel model;
     REQUIRE (model.createProjectBundle (bundle).ok());
     REQUIRE (model.addAudioTrack().dispatched);
-    plantAutosave (bundle, model.project());   // what cp1's due tick will write
+    REQUIRE (model.writeAutosaveTick().ok());   // the model's own scheduled write
+    REQUIRE (model.autosaveWrites() == 1);
     REQUIRE (autosaveOnDisk (bundle));
 
     SECTION ("Save")
     {
+        REQUIRE (model.addAudioTrack().dispatched);   // an edit the autosave has not taken yet
+        REQUIRE (model.lastAutosavedEditSerial() != model.editSerial());
         REQUIRE (model.saveProjectBundle().ok());
         REQUIRE_FALSE (autosaveOnDisk (bundle));
+        REQUIRE (model.lastAutosavedEditSerial() == model.editSerial());   // the clean point is the autosaved one too
+        REQUIRE (model.writeAutosaveTick().ok());
+        REQUIRE (model.autosaveWrites() == 1);   // nothing due after the Save
     }
     SECTION ("Save As")
     {
+        REQUIRE (model.addAudioTrack().dispatched);   // an edit the autosave has not taken yet
+        REQUIRE (model.lastAutosavedEditSerial() != model.editSerial());
         const auto copy = directory / "as.yesdaw";
         REQUIRE (model.saveProjectBundleAs (copy).dispatched);
         REQUIRE (model.bundlePath() == copy);
         REQUIRE_FALSE (autosaveOnDisk (bundle));   // the bundle left behind
         REQUIRE_FALSE (autosaveOnDisk (copy));
+        REQUIRE (model.lastAutosavedEditSerial() == model.editSerial());
+        REQUIRE (model.writeAutosaveTick().ok());
+        REQUIRE (model.autosaveWrites() == 1);
     }
     SECTION ("Save a Copy")
     {
         const auto before = bytesOf (yesdaw::persistence::autosaveSnapshotPath (bundle) / "project.db");
+        const auto serial = model.lastAutosavedEditSerial();
         const auto copy = directory / "copy.yesdaw";
         REQUIRE (model.saveProjectBundleCopy (copy).dispatched);
         REQUIRE (model.bundlePath() == bundle);   // this project stays current, with its unsaved tail
         REQUIRE (autosaveOnDisk (bundle));
         REQUIRE (bytesOf (yesdaw::persistence::autosaveSnapshotPath (bundle) / "project.db") == before);
         REQUIRE_FALSE (autosaveOnDisk (copy));
+        REQUIRE (model.lastAutosavedEditSerial() == serial);   // a copy is no clean point for this project
     }
 }
 
@@ -1867,10 +2177,15 @@ TEST_CASE ("ADR-0068 while the recovery question is up, Save and Don't Save leav
     REQUIRE (model.addAudioTrack().dispatched);
     REQUIRE (model.saveProjectBundle().ok());
     REQUIRE (autosaveOnDisk (f.bundle));
+    REQUIRE (model.addAudioTrack().dispatched);
     model.retireAutosaveOnDontSave();
     REQUIRE (autosaveOnDisk (f.bundle));
     REQUIRE (markerOf (f.bundle) == std::optional<std::int64_t> { f.snapshotStamp });
     REQUIRE (model.context().autosaveRecoveryPending);   // still Restore or Discard to decide
+    REQUIRE (model.lastAutosavedEditSerial() != model.editSerial());   // nothing retired: nothing marked autosaved
+    REQUIRE (model.dispatch (UiActionId::AutosaveRecoveryDiscard).dispatched);
+    REQUIRE (model.writeAutosaveTick().ok());
+    REQUIRE (model.autosaveWrites() == 1);   // the edited tail after Discard is written
 }
 
 TEST_CASE ("ADR-0068 Don't Save retires the autosave, replacing the project and closing; Cancel keeps it",
@@ -1880,8 +2195,12 @@ TEST_CASE ("ADR-0068 Don't Save retires the autosave, replacing the project and 
     f.newProject ("first", choicesOf (48'000.0, 120.0, 4, 4));
     const auto first = f.directory / "first.yesdaw";
     yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::TrackAdd);   // unsaved changes
-    plantAutosave (first, readProject (first));
-    REQUIRE (autosaveOnDisk (first));
+    const auto tickUntilAutosaved = [&f, &first] {   // the shell's own tick at its 30 s cadence (about 900 ticks)
+        for (int n = 0; n < 2000 && ! autosaveOnDisk (first); ++n)
+            yesdaw::ui::mainComponentServiceUiTick (*f);
+        return autosaveOnDisk (first);
+    };
+    REQUIRE (tickUntilAutosaved());
 
     SECTION ("New, Don't Save")
     {
@@ -1898,6 +2217,26 @@ TEST_CASE ("ADR-0068 Don't Save retires the autosave, replacing the project and 
         f.newProject ("second", choicesOf (48'000.0, 120.0, 4, 4));
         REQUIRE (f.prompts == 1);
         REQUIRE (autosaveOnDisk (first));
+    }
+    SECTION ("New, Don't Save, then the dialog cancelled: the open project's tail is autosaved again")
+    {
+        f.closeChoice = yesdaw::ui::kCloseChoiceClose;
+        f.newProject ("second", std::nullopt);   // the dialog's Cancel
+        REQUIRE (f.prompts == 1);
+        REQUIRE_FALSE (std::filesystem::exists (f.directory / "second.yesdaw"));
+        REQUIRE_FALSE (autosaveOnDisk (first));   // Don't Save retired it
+        REQUIRE (static_cast<juce::int64> (probeOf (*f)["autosave"]["lastAutosavedEditSerial"])
+                 != static_cast<juce::int64> (probeOf (*f)["autosave"]["editSerial"]));   // due again
+        REQUIRE (tickUntilAutosaved());
+    }
+    SECTION ("Open, Don't Save, then the chooser cancelled: the open project's tail is autosaved again")
+    {
+        f.closeChoice = yesdaw::ui::kCloseChoiceClose;
+        f.nextBundle.clear();   // the chooser's Cancel
+        yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectOpen);
+        REQUIRE (f.prompts == 1);
+        REQUIRE_FALSE (autosaveOnDisk (first));
+        REQUIRE (tickUntilAutosaved());
     }
     SECTION ("closing, Close without saving")
     {

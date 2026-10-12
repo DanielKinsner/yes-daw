@@ -14,6 +14,54 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-11 — Close-out unit 4: the model owns the autosave writer (writes on; committed locally, not pushed)
+
+**What changes:** the app now really autosaves. Every 30 s the model writes a snapshot when there is an edit since the
+last Save that no autosave holds yet and no recovery question is up (ADR-0068 §1-§2: edit serials, checked in that
+order; the old engine trigger is no longer consulted and goes in unit 6). A failed write says "Autosave failed", keeps
+the edit due so the next tick retries, and raises a sticky `notDurable` flag that only a real successful write clears
+(a test's canned result never does). Save, Save As and Don't Save make the clean point the autosaved one too; Save a
+Copy does not. Don't Save marks the tail autosaved only when it really retired the autosave, and if the New / Open /
+Open Recent it was for is then cancelled or fails, the shell ends the attempt and the open project's tail is due again.
+A retirement that fails reports and raises the sticky flag; the Save still stands. **Held, never overwritten:** a
+snapshot whose question was raised but never answered, and that a later open cannot read, is the user's lost work
+(ADR-0068 §5): that open asks nothing, says "An earlier autosave could not be read (...) - autosave waits until a
+later open can read it", and neither writes over it nor retires it (Save As leaves it with the bundle left behind).
+The probe gains ADR-0068 §7's `editSerial`, `lastSavedEditSerial`, `lastAutosavedEditSerial`, `skips`, `notDurable`;
+CONTEXT gains **Save** and **Autosaved vs saved** (§8). Unit 3's test-only `YESDAW_UI_TEST_HOOKS` seam is gone (its
+gates now make real edits); `YESDAW_PERSISTENCE_TEST_HOOKS` stays target-wide, the shipped app macro-free.
+**Gates:** `[due]`, `[pending-gate]` / `[no-write-while-pending]` (each gated tick a skip, the asking snapshot's bytes
+unchanged), `[status-sticky]` (canned and real filesystem failure; the flag holds across no-op ticks after Save and
+after re-attach and across a canned success), `[held-unreadable]`, `[retire-fails]`, `[pending-save-as]`; the existing
+cp3-cp5 retirement / stamp / Restore / refusal gates re-grounded on real scheduled writes (no planted snapshots), Save
+and Save As advance the autosaved serial, a pending Don't Save does not, Discard leaves the edited tail due, and two
+shell sections prove New-then-dialog-Cancel and Open-then-chooser-Cancel autosave the tail again. **Ten mutations bite**
+(an autosaved edit rewritten, the pending gate or the held gate removed, a held snapshot retired by Save, a canned
+success or a real failure mishandling the sticky flag, Save not advancing the serial - green at first, the test now
+edits before the Save -, Don't Save advancing under a question, a cancelled replace not re-armed, a failed retirement
+not flagged).
+**Critic (separate, Opus 5.5, two rounds):** round 1 had no blocker and six should-fixes, all in (the hold, Don't
+Save's honesty, canned success, failed retirement, real scheduled writes, a stronger sticky gate). Round 2 found one
+**blocker, fixed**: the hold followed the user into a New project, which then never autosaved - any attach now drops it
+(an open re-detects at once); gated, a project created after a held bundle autosaves and clears the flag. Also in: a
+held bundle with a due edit raises `notDurable` and re-reports "Autosave paused: an earlier autosave could not be read
+and is kept" on each due tick (it went silent after 5 s); gates for the overlay's Esc re-arm and a Don't Save whose
+retirement fails. Three more mutations bite (the hold surviving an attach, a held due edit silent, Esc not ending the
+attempt). **Parked (each an ADR-0068 owner call, not taken here):** an unanswered snapshot that stays unreadable keeps
+that bundle's autosave paused with no in-app way out but Save As (a Discard-only path would change §5); a snapshot with
+no question raised yet that one open cannot read is replaced by the next write (§5 is silent; the same lost-work class);
+Open Recent's failed-open re-arm has no gate of its own.
+**Local:** full build, ctest **442/442**, Clang clean (26 translation units). **Not pushed, on purpose:** the close-out's writes-on
+readiness rule - the first enabled-writer push waits for the three SS8 laps and the placeholder app drive on the packaged candidate,
+which need Dan's desktop (asked; no answer yet). **Unit 3's CI** (`9604299`, run 38191384767): nine jobs green, macOS
+red only on `YesDawTimelineGpuCheck` (raw: max 44.4 ms, sustained 19.4 ms, 18 slow frames). Not excused - the renewal
+still awaits Dan; unit 3 changed no renderer code (probe, model, tests). ADR-0069 cp2's gates all pass; its close waits
+on that decision. **Recorded, not changed:** scale / loop / locate settings do not bump the edit serial (the bundle is
+written at once either way; parked for ADR-0068's owner); `[status-sticky]`'s real failure is a plain file named
+`autosave` blocking the directory, not read-only permissions (Windows does not refuse writes into a read-only
+directory). **Next:** Dan's desktop answer → unit 5's drives → push units 4 and 5 and check CI; unit 6 (cp7: delete the
+engine trigger) after.
+
 ## 2026-10-11 — Close-out unit 3: the autosave writer's real cost and carries reach the probe
 
 **What changes:** each autosave write that was due now records its own wall time (milliseconds, from the control-thread

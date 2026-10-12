@@ -90,15 +90,15 @@ Gate a real successful-link/failed-flush refusal without claiming rollback of na
 
 ### 4. Enable the model-owned writer safely (ADR-0068 cp1/cp2)
 
-- [ ] Use the accepted model serials and due predicate: open bundle/engine, no pending question,
+- [x] Use the accepted model serials and due predicate: open bundle/engine, no pending question,
   unsaved work and an edit not already autosaved. Call `writeAutosaveSnapshot` directly; advance the
   autosaved serial/counts only on success. Reset/retire serials on the accepted lifecycle paths.
   Preserve the 30 s cadence and existing drive interval seam.
-- [ ] Add pending skips, sticky `notDurable`, the accepted failure-injection seam and status report;
+- [x] Add pending skips, sticky `notDurable`, the accepted failure-injection seam and status report;
   failure leaves the serial due for retry, success clears the sticky flag. Expose ADR-0068 section 7
   fields and update its CONTEXT vocabulary. Gates: `[due]`, `[pending-gate]`,
   `[no-write-while-pending]`, `[status-sticky]`, including real filesystem failure.
-- [ ] Re-ground the no-op/probe tests in actual due writes. Reuse, do not rebuild, the already-landed
+- [x] Re-ground the no-op/probe tests in actual due writes. Reuse, do not rebuild, the already-landed
   cp3/cp4 retirement and cp5 stamp/recovery behavior: exercise them with real scheduled snapshots,
   including Save, Save As, Save a Copy, Don't Save, unresolved restart, Restore and Discard. Retain
   engine helpers until the separate cp7 cleanup. Split commits only at independently safe gates.

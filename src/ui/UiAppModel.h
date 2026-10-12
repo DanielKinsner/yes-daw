@@ -2151,6 +2151,7 @@ public:
         if (result.ok())
         {
             lastSavedEditSerial_ = editSerial_;   // an explicit Save marks the session clean (B37)
+            lastAutosavedEditSerial_ = editSerial_;
             retireAutosaveOf (bundlePath_);       // ADR-0068 §3: the bundle now holds all the autosave did
             ++context_.saveCount;
             ++context_.commandDispatchCount;
@@ -2161,7 +2162,21 @@ public:
 
     // ADR-0068 §4: "Don't Save" names this state abandoned - its autosave goes (the bundle keeps every edit, ADR-0060).
     // A crash or a kill never comes here: their autosave stays for the next open.
-    void retireAutosaveOnDontSave() { retireAutosaveOf (bundlePath_); }
+    void retireAutosaveOnDontSave()
+    {
+        if (! retireAutosaveOf (bundlePath_))
+            return;   // nothing retired (a question is up, or it failed): the edits stay due
+        lastAutosavedEditSerial_ = editSerial_;
+        dontSaveAttach_ = attachGeneration_;
+    }
+    // ADR-0068 §4: the shell's New / Open / Open Recent attempt is over. If it retired the autosave on Don't Save but no
+    // other project was attached (cancelled, refused), this project stays open with its unsaved tail: due again.
+    void endReplaceAttempt() noexcept
+    {
+        if (dontSaveAttach_ && *dontSaveAttach_ == attachGeneration_)
+            lastAutosavedEditSerial_ = lastSavedEditSerial_;
+        dontSaveAttach_.reset();
+    }
 
     // Edits since the last explicit Save (B37/B38). The bundle on disk is always current — every
     // edit persists synchronously — so this tracks the user's saved-state intent, never data risk.
@@ -2367,6 +2382,8 @@ public:
         bundleDb_ = std::move (reopened);
         bundlePath_ = newBundlePath;
         retireAutosaveOf (previousBundlePath);   // ADR-0068 §3: the copy holds all it did (never while a question is up)
+        lastAutosavedEditSerial_ = editSerial_;
+        autosaveHeldUnreadable_ = false;   // a held, unreadable autosave stays with the bundle left (the copy has none)
         // ADR-0068 §5: an unanswered recovery question belongs to the bundle left behind - its marker and autosave ask
         // again at its next open; the copy (no autosave, no marker) asks nothing.
         clearAutosaveRecoveryPrompt();
@@ -2405,36 +2422,72 @@ public:
     // juce::Timer off this; keeping it here means the shell never reaches into the engine/bundle itself.
     [[nodiscard]] const AutosaveSchedulePolicy& autosaveSchedule() const noexcept { return autosaveSchedule_; }
 
-    // One scheduled autosave attempt, called from the shell's control-tick Timer. No-ops safely when no
-    // bundle/engine is live yet; the underlying write itself no-ops unless the project is dirty
-    // (PlaybackEngine::needsAutosave). CONTROL-THREAD ONLY (heavy SQLite/asset I/O) — never the audio callback.
+    // One scheduled autosave attempt, called from the shell's control-tick Timer. CONTROL-THREAD ONLY (heavy SQLite and
+    // asset I/O) - never the audio callback. ADR-0068 §2: it writes only when there is un-autosaved, unsaved work and no
+    // recovery question is pending, in this order - no bundle or engine (nothing); the question is up (a skip: the
+    // asking snapshot IS the user's lost work); nothing since the last Save; this edit already autosaved.
     [[nodiscard]] persistence::AutosaveResult writeAutosaveTick()
     {
         if (playback_ == nullptr || ! bundleDb_.isOpen())
             return persistence::autosave_detail::ok();
-
-        const bool due = playback_->needsAutosave();
-        const auto started = std::chrono::steady_clock::now();
-        persistence::AutosaveResult result = persistence::writeAutosaveFromControlTick (*playback_, bundleDb_, project_);
-        if (due)   // SS-6: a write that was due — confirmed (and what it held) or failed — for the probe
+        if (context_.autosaveRecoveryPending || autosaveHeldUnreadable_)
         {
+            ++autosaveSkips_;   // the asking snapshot (readable or not) IS the user's lost work: never written over
+            if (autosaveHeldUnreadable_ && editSerial_ != lastSavedEditSerial_ && editSerial_ != lastAutosavedEditSerial_)
+            {
+                // Unsaved work no autosave can hold while the unreadable one is kept: a persistent gap, visible as one
+                // (§2's sticky flag, and the status line on every due tick) until a real write succeeds.
+                autosaveNotDurable_ = true;
+                reportStatus ("Autosave paused: an earlier autosave could not be read and is kept", true);
+            }
+            return persistence::autosave_detail::ok();
+        }
+        if (editSerial_ == lastSavedEditSerial_ || editSerial_ == lastAutosavedEditSerial_)
+            return persistence::autosave_detail::ok();
+
+        const std::uint64_t snapshotSerial = editSerial_;
+        persistence::AutosaveResult result;
+        if (autosaveWriteOverride_)
+            result = autosaveWriteOverride_();   // a canned result: the last real cost and carries stay as they were
+        else
+        {
+            const auto started = std::chrono::steady_clock::now();
+            result = persistence::writeAutosaveSnapshot (bundleDb_, project_);
             // ADR-0069 §4: the attempt's own wall time and carries, as one sample (a failed attempt carried nothing it
-            // kept); the session's peak. A tick with nothing due keeps the last sample.
+            // kept); the session's peak.
             autosaveWriteMs_ = std::chrono::duration<double, std::milli> (std::chrono::steady_clock::now() - started).count();
             autosaveWriteMsPeak_ = std::max (autosaveWriteMsPeak_, autosaveWriteMs_);
             autosaveLinked_ = result.linked;
             autosaveCopied_ = result.copied;
-            if (result.ok())
-            {
-                ++autosaveWrites_;
-                lastAutosaved_ = { project_.tracks.size(), project_.clips.size(), project_.midiClips.size(), project_.assets.size() };
-            }
-            else
-            {
-                ++autosaveFailures_;
-            }
+        }
+        if (result.ok())
+        {
+            lastAutosavedEditSerial_ = snapshotSerial;
+            if (! autosaveWriteOverride_)
+                autosaveNotDurable_ = false;   // a real write succeeded: the tail is durable again (a canned one is not)
+            ++autosaveWrites_;
+            lastAutosaved_ = { project_.tracks.size(), project_.clips.size(), project_.midiClips.size(), project_.assets.size() };
+        }
+        else
+        {
+            // The serial stays due: the next tick retries the same tail. The flag stays up until a write succeeds.
+            ++autosaveFailures_;
+            autosaveNotDurable_ = true;
+            reportStatus ("Autosave failed", true);
         }
         return result;
+    }
+    // ADR-0068 §1 / §7: the edit serials and the writer's gate and sticky state.
+    [[nodiscard]] std::uint64_t editSerial() const noexcept { return editSerial_; }
+    [[nodiscard]] std::uint64_t lastSavedEditSerial() const noexcept { return lastSavedEditSerial_; }
+    [[nodiscard]] std::uint64_t lastAutosavedEditSerial() const noexcept { return lastAutosavedEditSerial_; }
+    [[nodiscard]] int autosaveSkips() const noexcept { return autosaveSkips_; }
+    [[nodiscard]] bool autosaveNotDurable() const noexcept { return autosaveNotDurable_; }
+    // ADR-0068 §2's named failure-injection seam (control thread only): while set, a due tick takes this canned result
+    // instead of writing. An empty function restores the real writer.
+    void autosaveWriteOverrideForTest (std::function<persistence::AutosaveResult()> canned)
+    {
+        autosaveWriteOverride_ = std::move (canned);
     }
     [[nodiscard]] int autosaveWrites() const noexcept { return autosaveWrites_; }
     // ADR-0068 §7: the open bundle's write stamp (0 when none is open).
@@ -2451,14 +2504,7 @@ public:
     [[nodiscard]] double autosaveWriteMsPeak() const noexcept { return autosaveWriteMsPeak_; }
     [[nodiscard]] std::size_t autosaveLinked() const noexcept { return autosaveLinked_; }
     [[nodiscard]] std::size_t autosaveCopied() const noexcept { return autosaveCopied_; }
-#if defined(YESDAW_UI_TEST_HOOKS)
-    // Until ADR-0068's edit serials turn the shipped trigger on (close-out unit 4), a gate makes a write due itself.
-    void markProjectEditedForTest() noexcept
-    {
-        if (playback_ != nullptr)
-            playback_->markProjectEdited();
-    }
-#endif
+
     [[nodiscard]] const UiProjectCounts& lastAutosaved() const noexcept { return lastAutosaved_; }
     // The Session drive's seam (YESDAW_AUTOSAVE_INTERVAL_MS): a shorter cadence, so a drive waits seconds, not 30 s.
     void setAutosaveIntervalMs (int intervalMs) noexcept { autosaveSchedule_.intervalMs = std::max (250, intervalMs); }
@@ -11278,12 +11324,19 @@ private:
     // abandoned (Don't Save). Never while a recovery question is up: that autosave holds work the bundle lacks, and
     // only Restore or Discard decides it. A failure fails nothing (the Save stands): it is reported, and the stamp
     // rule (§5) retires the snapshot at the next open.
-    void retireAutosaveOf (const std::filesystem::path& bundle)
+    // True when the autosave was retired. Never while a question is pending or held (§5: nothing but an answer retires
+    // it); a failure reports and raises the sticky flag (§3) - the Save itself still stands.
+    bool retireAutosaveOf (const std::filesystem::path& bundle)
     {
-        if (context_.autosaveRecoveryPending || bundle.empty())
-            return;
+        if (context_.autosaveRecoveryPending || autosaveHeldUnreadable_ || bundle.empty())
+            return false;
         if (const persistence::AutosaveResult result = persistence::discardAutosaveSnapshot (bundle); ! result.ok())
+        {
             reportStatus ("Autosave cleanup failed: " + result.message, true);
+            autosaveNotDurable_ = true;
+            return false;
+        }
+        return true;
     }
 
     void clearAutosaveRecoveryPrompt() noexcept
@@ -11318,6 +11371,7 @@ private:
     void detectAutosaveRecoveryPrompt()
     {
         clearAutosaveRecoveryPrompt();
+        autosaveHeldUnreadable_ = false;
         if (bundlePath_.empty() || ! bundleDb_.isOpen())
             return;
 
@@ -11335,7 +11389,17 @@ private:
             // question is up), so the autosave write clears it (ADR-0068 cp1).
             if (result.status == persistence::AutosaveStatus::NoAutosave && unresolved)
                 (void) bundleDb_.setUnresolvedSnapshotStamp (std::nullopt);
-            return;   // an unreadable snapshot: no question, and nothing retired (unchanged)
+            // ADR-0068 §5 with writes on: a snapshot whose question was raised (or whose marker cannot be read) and that
+            // cannot be read now is still the user's unanswered lost work - no write and no retirement replaces it this
+            // session; a later open that can read it asks again.
+            if (result.status != persistence::AutosaveStatus::NoAutosave && (unresolved || ! markerRead))
+            {
+                autosaveHeldUnreadable_ = true;
+                reportStatus ("An earlier autosave could not be read (" + (result.message.empty() ? result.bundle.message : result.message)
+                                  + ") - autosave waits until a later open can read it",
+                              true);
+            }
+            return;   // an unreadable snapshot: no question, and nothing retired
         }
 
         std::int64_t bundleStamp = 0;
@@ -12941,6 +13005,9 @@ private:
         project_ = std::move (project);
         editSerial_ = 0;
         lastSavedEditSerial_ = 0;   // a freshly attached bundle starts clean (B37)
+        lastAutosavedEditSerial_ = 0;   // ADR-0068 §1 (autosaveNotDurable_ stays until a write succeeds)
+        ++attachGeneration_;
+        autosaveHeldUnreadable_ = false;   // the hold is the opened bundle's (an open's detect raises it again)
         waveformService_.start (bundlePath_);
         selectedTimelineClipIds_.clear();
         selectedTimelineClipId_ = {};
@@ -13784,6 +13851,13 @@ private:
     // every edit synchronously — this tracks the user's saved-state intent only.
     std::uint64_t editSerial_ = 0;
     std::uint64_t lastSavedEditSerial_ = 0;
+    std::uint64_t lastAutosavedEditSerial_ = 0;   // ADR-0068 §1: the edit the last autosave (or clean point) holds
+    int autosaveSkips_ = 0;                       // ticks gated by a pending recovery question
+    bool autosaveNotDurable_ = false;             // sticky: a write failed and none has succeeded since
+    bool autosaveHeldUnreadable_ = false;         // §5: an asking snapshot this open could not read - held, not replaced
+    std::uint64_t attachGeneration_ = 0;          // bumped by every attach
+    std::optional<std::uint64_t> dontSaveAttach_; // the attach a Don't Save retired under (its replace still pending)
+    std::function<persistence::AutosaveResult()> autosaveWriteOverride_;   // ADR-0068 §2's test seam
     std::uint64_t playbackReplaceCount_ = 0;   // R12: engine rebuild counter (see replacePlayback)
     MixerTargetSelection selectedMixerTarget_ {};
     UiRecordingDeviceSelection recordingDevice_;

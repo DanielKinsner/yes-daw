@@ -520,10 +520,6 @@ enum class MainComponentPointerKind
     down,
     up
 };
-#if defined(YESDAW_UI_TEST_HOOKS)
-// ADR-0069 §4 gates (test builds only): make the open project's autosave due, as an edit will once unit 4 lands.
-void mainComponentMarkProjectEditedForTest (juce::Component& component);
-#endif
 void mainComponentPointer (juce::Component& component, MainComponentPointerKind kind, juce::Point<int> shellPoint,
                            juce::Component* eventComponent, juce::ModifierKeys modifiers);
 struct MainComponentPointerState

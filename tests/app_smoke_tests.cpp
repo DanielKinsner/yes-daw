@@ -217,7 +217,7 @@ TEST_CASE ("H11 app model loads a Project bundle and drives transport through ac
     std::filesystem::remove_all (bundlePath, ec);
 }
 
-TEST_CASE ("H17 CP4 autosave scheduling default is on and writeAutosaveTick is a safe no-op",
+TEST_CASE ("H17 CP4 autosave scheduling default is on; writeAutosaveTick writes nothing until an edit, then writes it",
            "[ui][app][autosave]")
 {
     UiAppModel app;
@@ -230,8 +230,8 @@ TEST_CASE ("H17 CP4 autosave scheduling default is on and writeAutosaveTick is a
     // With no bundle/engine live yet, a scheduled tick must no-op cleanly — not crash, not error.
     REQUIRE (app.writeAutosaveTick().ok());
 
-    // With a real bundle open, a tick still returns ok: a freshly-loaded project is clean, so the
-    // underlying write no-ops via PlaybackEngine::needsAutosave rather than doing spurious disk I/O.
+    // With a real bundle open, a freshly loaded project is clean: a tick writes nothing (ADR-0068 §2: nothing since the
+    // last Save). After an edit the next tick writes the autosave.
     const std::filesystem::path bundlePath = makeTempBundlePath ("autosave-tick");
     const Project project = makeSmokeProject();
 
@@ -245,6 +245,12 @@ TEST_CASE ("H17 CP4 autosave scheduling default is on and writeAutosaveTick is a
     UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
     REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
     REQUIRE (app.writeAutosaveTick().ok());
+    REQUIRE (app.autosaveWrites() == 0);
+    REQUIRE_FALSE (yesdaw::persistence::autosave_detail::anySnapshotSlotExists (bundlePath));
+    REQUIRE (app.addAudioTrack().dispatched);
+    REQUIRE (app.writeAutosaveTick().ok());
+    REQUIRE (app.autosaveWrites() == 1);
+    REQUIRE (yesdaw::persistence::autosave_detail::anySnapshotSlotExists (bundlePath));
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

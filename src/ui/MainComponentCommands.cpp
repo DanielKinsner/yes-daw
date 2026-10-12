@@ -1350,6 +1350,7 @@ void MainComponent::menuItemSelected (int menuItemID, int /*topLevelMenuIndex*/)
         const std::size_t index = static_cast<std::size_t> (menuItemID - kRecentMenuBaseId);
         if (index < recents.size() && confirmReplaceProject())   // ADR-0060: unsaved changes first
             openProjectBundleAtPath (recents[index]);
+        appModel.endReplaceAttempt();   // ADR-0068 §4: a failed open leaves this project's tail due again
         refreshActionState();
         repaintAll();
         return;
@@ -1631,6 +1632,7 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
                 if (! path.empty())
                     openProjectBundleAtPath (path);
             }
+            appModel.endReplaceAttempt();   // ADR-0068 §4: a cancelled chooser or failed open re-arms the tail
             return;
 
         case yesdaw::ui::UiActionId::ProjectExportAudio:

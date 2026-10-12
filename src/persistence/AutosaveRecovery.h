@@ -100,6 +100,7 @@ struct AssetCarry
 #if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
 inline thread_local std::optional<engine::AssetContentHash> failLinkForTest;
 inline thread_local std::optional<engine::AssetContentHash> failRestoreFlushForTest;   // a restored name's flush fails
+inline thread_local bool failDiscardForTest = false;   // discardAutosaveSnapshot fails
 inline thread_local std::uint64_t assetBytesCopiedForTest = 0;
 inline thread_local void (*afterCarryForTest) (const std::filesystem::path&) = nullptr;
 inline thread_local void (*beforeRecoveryCleanupForTest) (const std::filesystem::path&,
@@ -818,6 +819,11 @@ struct RecoveryReader
 
 [[nodiscard]] inline AutosaveResult discardAutosaveSnapshot (const std::filesystem::path& bundlePath)
 {
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+    if (autosave_detail::failDiscardForTest)
+        return autosave_detail::filesystemError ("remove failed (test)", autosaveDirectory (bundlePath),
+                                                 std::make_error_code (std::errc::permission_denied));
+#endif
     return autosave_detail::removeTreeIfExists (autosaveDirectory (bundlePath));
 }
 

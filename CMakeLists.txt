@@ -433,9 +433,8 @@ if (YESDAW_BUILD_APPS)
     JUCE_MODAL_LOOPS_PERMITTED=1
     YESDAW_WAV_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sine_440_48k_mono.wav"
     YESDAW_IMPORT_FIXTURE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/import"   # ADR-0054
-    # Close-out unit 3: test-only seams, defined for the WHOLE target so every translation unit (the shell sources this
-    # target compiles too) sees one definition of each header; the shipped app is built without them.
-    YESDAW_UI_TEST_HOOKS=1
+    # Close-out unit 3: test-only persistence seams, defined for the WHOLE target so every translation unit (the shell
+    # sources this target compiles too) sees one definition of each header; the shipped app is built without them.
     YESDAW_PERSISTENCE_TEST_HOOKS=1)
   target_link_libraries(YesDawUiInputCheck
     PRIVATE

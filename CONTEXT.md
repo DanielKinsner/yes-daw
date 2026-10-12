@@ -498,6 +498,19 @@ are shared with the Project bundle. Recovery validates the database and every re
 before accepting the snapshot.
 _Avoid_: temp file (too vague), backup (not necessarily user-managed)
 
+**Save**:
+Marking the current state as the user's saved version - a clean point in the model, not a flush of unsaved edits (the
+bundle is always current, ADR-0060). On success, the autosave of the open bundle is retired (ADR-0068).
+_Avoid_: flush, write-out
+
+**Autosaved vs saved**:
+The bundle is always current; "saved" is the user's clean point and "autosaved" is a validated, fsynced snapshot that
+recovers the tail across a hard kill or power cut (ADR-0012, ADR-0019). The bundle carries a `project_write_stamp` so
+recovery offers only what the bundle lacks (ADR-0068). An autosave is written only when there is un-autosaved, unsaved
+work and no recovery question is pending - nor while an earlier autosave whose question was raised cannot be read
+(it is kept, never written over; the status line and `autosave.notDurable` say so).
+_Avoid_: "saved" for an autosave
+
 **Autosave recovery prompt**:
 The user-facing choice to restore or discard a valid Autosave snapshot when opening a Project after an
 interrupted edit.

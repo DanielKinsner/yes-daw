@@ -14,11 +14,13 @@ void MainComponent::initialiseNewProjectDialog()
     newProjectDialog.onCreate = [this] (UiNewProjectChoices choices) {
         newProjectDialog.setVisible (false);
         createNewProject (choices, true);
+        appModel.endReplaceAttempt();   // ADR-0068 §4: a refused create leaves this project's tail due again
         refreshActionState();
         repaintAll();
     };
     newProjectDialog.onCancel = [this] {
         newProjectDialog.setVisible (false);
+        appModel.endReplaceAttempt();   // ADR-0068 §4: cancelled - this project's unsaved tail is due again
         refreshActionState();
         repaintAll();
     };
@@ -34,6 +36,7 @@ void MainComponent::beginNewProject()
     {
         if (const std::optional<UiNewProjectChoices> choices = fileChoices.newProjectDialogChoices())
             createNewProject (*choices, true);
+        appModel.endReplaceAttempt();   // ADR-0068 §4 (the overlay below ends its attempt when it closes)
         return;
     }
     if (fileChoices.newProjectDialog)
@@ -45,6 +48,7 @@ void MainComponent::beginNewProject()
         return;
     }
     createNewProject (appModel.newProjectChoices(), false);   // the harness's default: at once, as before
+    appModel.endReplaceAttempt();
 }
 
 // `chosenInDialog`: the dialog's rate, tempo and meter win over an injected project's (the harness's immediate

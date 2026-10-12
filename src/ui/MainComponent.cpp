@@ -2069,9 +2069,7 @@ void MainComponent::serviceUiTick()
     if (autosaveElapsedMs >= appModel.autosaveSchedule().intervalMs)
     {
         autosaveElapsedMs = 0;
-        const yesdaw::persistence::AutosaveResult ticked = appModel.writeAutosaveTick();
-        if (! ticked.ok())
-            appModel.reportStatus ("Autosave failed", true);
+        (void) appModel.writeAutosaveTick();   // ADR-0068 §2: the model reports a failure itself (and keeps it sticky)
     }
 }
 

@@ -1070,9 +1070,6 @@ public:
                 texts.push_back (panel.noun.toStdString());
         return texts;
     }
-#if defined(YESDAW_UI_TEST_HOOKS)
-    void harnessMarkProjectEditedForTest() noexcept { appModel.markProjectEditedForTest(); }
-#endif
     void harnessPointer (MainComponentPointerKind kind, juce::Point<int> shellPoint, juce::Component* component,
                          juce::ModifierKeys modifiers) { pointerEvent (kind, shellPoint, component, modifiers); }
     [[nodiscard]] MainComponentPointerState harnessPointerState() const
