@@ -1,0 +1,244 @@
+{
+ "checkpoint": "cheap-autosave close-out unit 5 - writes-on proven through the packaged app (ADR-0068 cp6, ADR-0069)",
+ "candidate": {
+  "commit": "b28437e (rebased onto main as c8af967; src/, tests/, CMake byte-identical to main c56e8fe)",
+  "package": "dist/YesDaw-b28437e-win64-portable.zip",
+  "yesdaw_exe_sha256": "2DC987F0445EA97CCF942A547744D0232C289D1789E6E42C0BB851C0B15FDCEF",
+  "packaged_selfcheck": "make-demo then selfcheck PASS, version b28437e",
+  "exact_code_ci": "c56e8fe run 38208010592: all ten jobs success"
+ },
+ "drives": {
+  "tooling_commit": "fe42284 (rebased 557c855) - SS8 re-run on f2a77b0 (rebased 8a39df6)",
+  "machine": "Dan's Windows 11 box (DESKTOP-7LC339R), shared desktop, hands-off with his go-ahead, current audio defaults",
+  "results": {
+   "ss1": "59/59",
+   "ss2": "42/42",
+   "ss3": "72/72",
+   "ss4": "22/22",
+   "ss5": "77/77",
+   "ss6": "58/58",
+   "ss7": "197/197",
+   "ss8": "212/212 (re-run 212/212, foreground summary 0)"
+  },
+  "ss8_autosave": {
+   "linkable_fixture": {
+    "write_ms_peaks": [
+     45.07,
+     41.96
+    ],
+    "bound_ms": 100,
+    "linked": 7,
+    "copied": 0,
+    "kill_reopen": "no question, equals confirmed autosave (5,0,0,7)",
+    "lost_writes": "question names (6,0,0,7), bundle stamp 19 < snapshot 21, Restore recovers",
+    "save_close_reopen": "no question, every snapshot slot retired"
+   },
+   "hydrated_cloud_placeholders": {
+    "copied": 1,
+    "linked": 0,
+    "hashes": "copies and source hash true, not links",
+    "recovery": "question (2,1,0,1), Restore recovers",
+    "placeholders_after": "same hydrated placeholders",
+    "fixture_cleanup": "sync root unregistered and removed"
+   }
+  },
+  "feel": {
+   "ss1_paint_p95_ms": 3.15,
+   "ss7_sweep_paint_p95_ms": 2.99,
+   "burst_underruns": 0,
+   "burst_deadline_misses": 0,
+   "launch_ms_range": [
+    1058,
+    1398
+   ],
+   "xruns_since_launch_outside_bursts": {
+    "ss1": 1,
+    "ss7": 1
+   }
+  },
+  "ss3_environment_failures": {
+   "cause": "scheduled task 'Vera WSL Autostart' (wsl.exe every 5 min) flashes Windows Terminal into the foreground; JUCE closes open popups",
+   "failed_runs": [
+    "batch ss3 56/57 (Step 7)",
+    "ss3-byname run2 69/71 (Step 10)"
+   ],
+   "controlled_reproductions": [
+    {
+     "flash_ms": 137,
+     "menu_closed_after_ms": 10
+    },
+    {
+     "flash_ms": 158,
+     "menu_closed_after_ms": 28
+    }
+   ],
+   "control_hold_stayed_open_s": [
+    5.63,
+    5.6
+   ]
+  }
+ },
+ "packaged_hardware_verifier": {
+  "command": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\verify-hardware.ps1 (in the unzipped package)",
+  "exit_code": 1,
+  "note": "Generated output, committed verbatim. Playback fails only on the locked 128-frame block: the default output (HyperX Cloud Alpha Wireless) grants 480 frames in every WASAPI mode; callbacks were healthy. Recording is silent without a loopback route (not required for the Usable-song milestone).",
+  "result": {
+   "exit_code": 1,
+   "machine": "DESKTOP-7LC339R",
+   "run_id": "run-20261012-061520-592426be",
+   "schema_version": 1,
+   "failure_codes": [
+    "playback_block_exceeds_target",
+    "recording_silent"
+   ],
+   "started_at": "2026-10-12T06:15:20Z",
+   "integrity_details": {},
+   "host_os": "Microsoft Windows NT 10.0.26200.0",
+   "asio_compiled": false,
+   "package_manifest_sha256": "1ea230d2c3632e1fd3887b0c72d7013af62e5e627237a3a1f8701f326f93b30f",
+   "stages": {
+    "recording": {
+     "claim_level": "",
+     "detail": "recording capture/persistence violated the gate",
+     "failure_codes": "recording_silent",
+     "stage": "recording",
+     "state": "fail"
+    },
+    "playback": {
+     "claim_level": "",
+     "detail": "real-Project playback violated the locked gate",
+     "failure_codes": "playback_block_exceeds_target",
+     "stage": "playback",
+     "state": "fail"
+    },
+    "frame": {
+     "claim_level": "headless_dense_timeline",
+     "detail": "headless dense-Timeline proxy within budget",
+     "failure_codes": {},
+     "stage": "frame",
+     "state": "pass"
+    }
+   },
+   "package_version": "b28437e",
+   "completed_at": "2026-10-12T06:16:04Z",
+   "generated_row_path": "reality-lane-rows.txt",
+   "overall_state": "fail"
+  },
+  "playback": {
+   "schema_version": 1,
+   "run_id": "run-20261012-061520-592426be",
+   "stage": "playback",
+   "checker_version": "b28437e",
+   "state": "fail",
+   "claim_level": "",
+   "started_at": "2026-10-11T23:15:21.085-07:00",
+   "completed_at": "2026-10-11T23:15:57.478-07:00",
+   "duration_ms": 36393.01010000706,
+   "measurements": {
+    "requested_sample_rate_hz": 48000.0,
+    "granted_sample_rate_hz": 48000.0,
+    "requested_block_frames": 128,
+    "granted_block_frames": 480,
+    "seconds": 30.0,
+    "xruns": -1,
+    "xrun_reporting_supported": false,
+    "deadline_misses_diagnostic": 0,
+    "max_callback_ms": 0.1438,
+    "block_budget_ms": 10.0,
+    "device_error": false,
+    "output_rms": 0.08999999848115,
+    "min_output_rms": 0.01,
+    "device": "Headphones (HyperX Cloud Alpha Wireless)",
+    "backend": "Windows Audio",
+    "backend_attempts": [
+     {
+      "backend": "Windows Audio (Low Latency Mode)",
+      "device": "Headphones (HyperX Cloud Alpha Wireless)",
+      "open_error": "",
+      "reason_code": "block_above_target",
+      "granted_sample_rate_hz": 48000.0,
+      "granted_block_frames": 480
+     },
+     {
+      "backend": "Windows Audio (Exclusive Mode)",
+      "device": "Headphones (HyperX Cloud Alpha Wireless)",
+      "open_error": "",
+      "reason_code": "block_above_target",
+      "granted_sample_rate_hz": 48000.0,
+      "granted_block_frames": 480
+     },
+     {
+      "backend": "Windows Audio",
+      "device": "Headphones (HyperX Cloud Alpha Wireless)",
+      "open_error": "",
+      "reason_code": "block_above_target",
+      "granted_sample_rate_hz": 48000.0,
+      "granted_block_frames": 480
+     }
+    ]
+   },
+   "failure_codes": [
+    "playback_block_exceeds_target"
+   ],
+   "detail": "real-Project playback violated the locked gate"
+  },
+  "recording": {
+   "schema_version": 1,
+   "run_id": "run-20261012-061520-592426be",
+   "stage": "recording",
+   "checker_version": "b28437e",
+   "state": "fail",
+   "claim_level": "",
+   "started_at": "2026-10-11T23:15:57.547-07:00",
+   "completed_at": "2026-10-11T23:16:03.268-07:00",
+   "duration_ms": 5720.46649992466,
+   "measurements": {
+    "sample_rate_hz": 48000.0,
+    "channels": 2,
+    "captured_frames": 193440,
+    "dropped_frames": 0,
+    "capture_rms": 0.0,
+    "min_capture_rms": 0.0001,
+    "wav_valid": true,
+    "linkage_valid": true,
+    "sample_hash_match": true,
+    "input_route": "microphone",
+    "device": "Microphone (HyperX Cloud Alpha Wireless)",
+    "backend": "Windows Audio",
+    "alignment_status": "",
+    "correlation_found": false,
+    "correlation_snr": 0.0
+   },
+   "failure_codes": [
+    "recording_silent"
+   ],
+   "detail": "recording capture/persistence violated the gate"
+  },
+  "frame": {
+   "schema_version": 1,
+   "run_id": "run-20261012-061520-592426be",
+   "stage": "frame",
+   "checker_version": "b28437e",
+   "state": "pass",
+   "claim_level": "headless_dense_timeline",
+   "started_at": "2026-10-11T23:16:03.296-07:00",
+   "completed_at": "2026-10-11T23:16:04.230-07:00",
+   "duration_ms": 933.5475000143051,
+   "measurements": {
+    "sustained_frame_ms": 4.6915,
+    "max_frame_ms": 4.7918,
+    "slow_frame_count": 0,
+    "measured_frames": 160,
+    "frame_budget_ms": 16.6,
+    "allowed_outlier_frames": 2,
+    "max_visible_clips": 336,
+    "distinct_samples": 300,
+    "hit_visible_clip_capacity": false,
+    "total_clips": 20640,
+    "checksum": "680587763889"
+   },
+   "failure_codes": [],
+   "detail": "headless dense-Timeline proxy within budget"
+  }
+ }
+}

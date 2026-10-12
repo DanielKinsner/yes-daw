@@ -17,8 +17,14 @@ renewal still awaits Dan). That certifies units 3, 4 (writes on), 5 (the drive p
 under `src/` and `tests/`) and 6 (one writer), and closes **ADR-0069 cp2** (restore links back or refuses; the probe
 carries the writer's real cost). The close-out checklist's per-unit box and cp2's box are ticked. **Open:** unit 7, the
 Usable-song milestone close - the visual rubric's FIXes (ranked in the unit 5 entry below, worst first), the packaged
-hardware-playback result (the existing checker; it needs the audio loopback set-up earlier sessions used, which
-changes Windows sound settings - Dan's to authorize), the montage and roadmap pointers. **Next:** the UI correctness
+hardware-playback result, the montage and roadmap pointers. **Packaged hardware verifier run** (the candidate's own
+`verify-hardware.ps1`, generated rows committed verbatim to `docs/reality-lane.md`, evidence
+`docs/evidence/2026-10-11-writes-on-drives-and-hardware.json`): frame PASS; **playback FAIL
+`playback_block_exceeds_target`** - the default output is now the HyperX Cloud Alpha Wireless headset, which grants
+480-frame blocks in every WASAPI mode against the locked 128 (callbacks healthy: worst 0.14 ms, zero deadline misses,
+real output); recording FAIL `recording_silent` (no loopback route; recording is not part of this milestone). The
+128-frame target has never been granted on this machine (the Focusrite gave 480 in shared mode on 07-28); the checker
+uses only the default device. An equipment decision for Dan, not a code change or a threshold change. **Next:** the UI correctness
 pass on those FIXes, each with its gate.
 
 ## 2026-10-11 — Close-out unit 5: writes-on proven through the packaged app (SS8 green; full batch green)
