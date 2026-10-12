@@ -443,11 +443,11 @@ struct BarGrid
 }
 
 // V2/V4: bar|beat at a frame position, for a SINGLE tempo/meter (the project's head values) — the
-// same scope the existing headBarFrames() family (UiAppModel.h) already commits to; piecewise
-// tempo/meter changes are not supported by ANY bar-length law in this codebase yet, and extending
-// to piecewise is a materially larger task (accurate tempo-ramp inversion) than this presentation
-// fix calls for. Clamp ranges mirror headQuarterNoteFrames/headMeterBeatFrames/headBarFramesExact
-// exactly, so a bar|beat computed here always agrees with those existing bar-length helpers.
+// same scope the headBarFrames() family (UiAppModel.h) commits to. The full tempo and meter maps
+// have their own law below (G2.15 computeBarBeatPiecewise over barBeatAtTick, and its inverse
+// barStartTick); this one is the fallback when no compiled map is at hand. Clamp ranges mirror
+// headQuarterNoteFrames/headMeterBeatFrames/headBarFramesExact exactly, so a bar|beat computed
+// here always agrees with those existing bar-length helpers.
 [[nodiscard]] inline BarBeat computeBarBeat (double bpm,
                                              std::uint16_t numerator,
                                              std::uint16_t denominator,
@@ -619,10 +619,114 @@ private:
     bool                     empty_ = true;
 };
 
+namespace detail {
+
+// G2.15: one meter's beat and full-bar lengths in ticks. Beat lengths follow the denominator; the
+// clamps are the head law's (computeBarGrid).
+[[nodiscard]] inline double meterBeatTicks (const MeterChange& meter) noexcept
+{
+    const double den = std::clamp (static_cast<double> (meter.denominator), 1.0, 64.0);
+    return static_cast<double> (kTicksPerQuarter) * 4.0 / den;
+}
+
+[[nodiscard]] inline double meterBarTicks (const MeterChange& meter) noexcept
+{
+    return meterBeatTicks (meter) * std::clamp (static_cast<double> (meter.numerator), 1.0, 32.0);
+}
+
+// One stretch of the meter map under a single meter: the tick it starts at and the bar that starts there.
+struct MeterSegment
+{
+    Tick         start = 0;
+    std::int64_t firstBar = 1;
+    MeterChange  meter { 0, 4, 4 };
+};
+
+// The G2.15 meter walk, the one law under barBeatAtTick, barStartTick and nominalBarTicks. Each valid
+// change past the last one starts a bar, so a change inside a bar cuts that bar short. The head
+// meter covers everything before the first change (4/4 when the head is invalid). The walk stops at
+// the first invalid or out-of-order change after the head, and before the first change
+// `stopsBefore (changeTick, barItStarts)` accepts.
+template <typename StopsBefore>
+[[nodiscard]] inline MeterSegment walkMeterMap (MeterMapView meterMap, StopsBefore stopsBefore) noexcept
+{
+    MeterSegment segment;
+    if (meterMap.count > 0 && meterMap.changes != nullptr && meterMap.changes[0].isValid())
+        segment.meter = meterMap.changes[0];
+    for (std::size_t i = 1; meterMap.changes != nullptr && i < meterMap.count; ++i)
+    {
+        const MeterChange& next = meterMap.changes[i];
+        if (! next.isValid() || next.tick <= segment.start)
+            break;
+        const std::int64_t nextBar = segment.firstBar
+                                   + static_cast<std::int64_t> (std::ceil (static_cast<double> (next.tick - segment.start)
+                                                                           / meterBarTicks (segment.meter)));
+        if (stopsBefore (next.tick, nextBar))
+            break;
+        segment = MeterSegment { next.tick, nextBar, next };
+    }
+    return segment;
+}
+
+} // namespace detail
+
+// G2.15: bar|beat at a tick under the meter map (the walk above).
+[[nodiscard]] inline BarBeat barBeatAtTick (MeterMapView meterMap, Tick tick) noexcept
+{
+    const detail::MeterSegment segment =
+        detail::walkMeterMap (meterMap, [tick] (Tick changeTick, std::int64_t) noexcept { return changeTick > tick; });
+    const double beatTicks = detail::meterBeatTicks (segment.meter);
+    const double barTicks = detail::meterBarTicks (segment.meter);
+    const double local = static_cast<double> (tick - segment.start);
+    const auto barsIn = static_cast<std::int64_t> (std::floor (local / barTicks));
+    const double inBar = local - static_cast<double> (barsIn) * barTicks;
+    BarBeat out;
+    out.bar = segment.firstBar + barsIn;
+    out.beat = 1 + static_cast<std::int64_t> (std::floor (inBar / beatTicks));
+    return out;
+}
+
+// UI correctness pass unit 6: the first tick barBeatAtTick reads as `bar` or later - its exact
+// inverse on whole ticks. A bar that starts between two ticks starts at the next one (the walk
+// floors), and the estimate is checked against the walk's own arithmetic, because bar x length can
+// round onto the wrong side of a whole tick (3/39 at bar 66). A bar that a meter change cuts to less
+// than one tick starts at that change. False for bar < 1 and for a start past 2^52 ticks.
+[[nodiscard]] inline bool barStartTick (MeterMapView meterMap, std::int64_t bar, Tick& out) noexcept
+{
+    out = 0;
+    if (bar < 1)
+        return false;
+    const detail::MeterSegment segment =
+        detail::walkMeterMap (meterMap, [bar] (Tick, std::int64_t barItStarts) noexcept { return barItStarts > bar; });
+    const double barTicks = detail::meterBarTicks (segment.meter);
+    const std::int64_t barsIn = bar - segment.firstBar;
+    const double estimate = std::ceil (static_cast<double> (barsIn) * barTicks);
+    if (! (estimate <= 4503599627370496.0 - static_cast<double> (segment.start)))
+        return false;
+    const auto readsEarlier = [&] (Tick tick) noexcept
+    {
+        return static_cast<std::int64_t> (std::floor (static_cast<double> (tick - segment.start) / barTicks)) < barsIn;
+    };
+    Tick start = segment.start + static_cast<Tick> (estimate);
+    while (start > segment.start && ! readsEarlier (start - 1))
+        --start;
+    while (readsEarlier (start))
+        ++start;
+    out = start;
+    return true;
+}
+
+// UI correctness pass unit 6: the ticks in one full bar of the meter in force at `tick` - the step a
+// ruler thins its labels by. Not the length of the bar at `tick`, which a meter change can cut short.
+[[nodiscard]] inline double nominalBarTicks (MeterMapView meterMap, Tick tick) noexcept
+{
+    return detail::meterBarTicks (
+        detail::walkMeterMap (meterMap, [tick] (Tick changeTick, std::int64_t) noexcept { return changeTick > tick; }).meter);
+}
+
 // G2.15: bar|beat at a frame under the FULL tempo and meter maps — frame → tick through the
-// compiled tempo map's inverse, then a walk over the meter changes (each change starts a bar).
-// Beat lengths follow each meter's denominator; the head meter covers everything before the first
-// change. Falls back to the single-tempo law when the maps are empty.
+// compiled tempo map's inverse, then the meter walk. Falls back to the single-tempo law when the
+// maps are empty.
 [[nodiscard]] inline bool computeBarBeatPiecewise (const CompiledTempoMap& tempoMap,
                                                    MeterMapView meterMap,
                                                    std::int64_t frame,
@@ -632,35 +736,7 @@ private:
     Tick tick = 0;
     if (! tempoMap.tickForFrame (static_cast<double> (std::max<std::int64_t> (0, frame)), tick))
         return false;
-    const auto ticksPerBeat = [] (const MeterChange& meter) noexcept -> double
-    {
-        const double den = std::clamp (static_cast<double> (meter.denominator), 1.0, 64.0);
-        return static_cast<double> (kTicksPerQuarter) * 4.0 / den;
-    };
-    MeterChange head { 0, 4, 4 };
-    if (meterMap.count > 0 && meterMap.changes != nullptr && meterMap.changes[0].isValid())
-        head = meterMap.changes[0];
-    std::int64_t bar = 1;
-    Tick segmentStart = 0;
-    MeterChange current = head;
-    for (std::size_t i = 1; meterMap.changes != nullptr && i < meterMap.count; ++i)
-    {
-        const MeterChange& next = meterMap.changes[i];
-        if (! next.isValid() || next.tick <= segmentStart || next.tick > tick)
-            break;
-        const double barTicks = ticksPerBeat (current) * std::clamp (static_cast<double> (current.numerator), 1.0, 32.0);
-        bar += static_cast<std::int64_t> (std::ceil (static_cast<double> (next.tick - segmentStart) / barTicks));
-        segmentStart = next.tick;
-        current = next;
-    }
-    const double beatTicks = ticksPerBeat (current);
-    const double numerator = std::clamp (static_cast<double> (current.numerator), 1.0, 32.0);
-    const double barTicks = beatTicks * numerator;
-    const double local = static_cast<double> (tick - segmentStart);
-    const auto barsIn = static_cast<std::int64_t> (std::floor (local / barTicks));
-    const double inBar = local - static_cast<double> (barsIn) * barTicks;
-    out.bar = bar + barsIn;
-    out.beat = 1 + static_cast<std::int64_t> (std::floor (inBar / beatTicks));
+    out = barBeatAtTick (meterMap, tick);
     return true;
 }
 

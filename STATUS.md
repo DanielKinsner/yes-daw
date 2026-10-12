@@ -8,6 +8,27 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 6 (commit 1): the bar start of any bar under the meter map
+
+**What changes (engine only, no visible change yet):** the G2.15 meter walk under the header's bar|beat counter is now
+one shared law (`walkMeterMap`), read by `barBeatAtTick` (the walk itself, unchanged; `computeBarBeatPiecewise` now
+calls it), its new inverse `barStartTick` (the first tick that reads as bar N), and `nominalBarTicks` (a full bar of the
+meter in force, the step commit 2's ruler thins its labels by). The stale `computeBarBeat` comment that said no
+piecewise bar law exists is corrected. **Finding:** the plan's "round the fractional start up" is not the exact
+inverse - in doubles, bar x length lands on the wrong side of a whole tick (3/39 at bar 66: 307200.00000000006, so the
+rounded-up start is one tick late); a Python sweep found 2,284 such cases in 821,248. `barStartTick` therefore checks its
+estimate against the walk's own arithmetic and moves by a tick. The plan's 7/7 example has a whole-tick bar (61440), so
+the rounding case is 3/7 (26331 3/7 ticks). **Gate `[time][g2][tempo][inverse]`** (new test case): hand-written starts
+for a map with a 7/8 change mid-bar and a 100-tick bar; bars 1..200 round-trip to {N, 1} with the tick before reading
+N-1; the 3/7 starts 87772 and 114103; every meter the walk accepts (1..32 over 1..64, from tick 0 and after a change
+100 ticks into bar 2) for 400 bars each - 1,638,400 exact inverses; a phantom bar (a change 4/7 of a tick after a 3/7
+bar line: no tick reads bar 2, which starts where bar 3 does); bar < 1 refused; the nominal bar in force. **Bites:**
+without the check against the walk, 4,568 failures (first 3/39 bar 66 -> 307201); with floor and no check, the 3/7 start
+is 87771. **Critic** (separate agent, a Python port of the doubles plus fuzzing): no blocker; old and new walk agree on
+240k fuzzed ticks; the inverse exact on 540k random maps; it asked for the phantom-bar literals, a corrected plan (the
+7/7 wording and the bite) and two comment fixes - all applied. **Local:** full build, ctest 444/444, Clang clean. **CI:** unit 5 (`70e5aef`) (run 38280748963): macOS red only on `YesDawTimelineGpuCheck`'s sustained-frame `REQUIRE` (raw: sustained 18.18 ms, max 21.83 ms, 19 slow frames; 439 of 440 passed) - inside the renewed macOS exception; Windows still running, the other eight green; unit 3's
+Windows re-run is still queued. **Next:** unit 6 commit 2 (the ruler's bar labels on the maps).
+
 ## 2026-10-12 — UI correctness pass unit 5 (commits 1-2): the ruler's time row shows each bar's exact time
 
 **What changes:** each time-row label read its time back from the tick's rounded pixel, up to half a pixel early or

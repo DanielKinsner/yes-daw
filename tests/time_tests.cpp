@@ -10,6 +10,7 @@
 #include <array>
 #include <cstdint>
 #include <limits>
+#include <string>
 #include <type_traits>
 
 using yesdaw::engine::MeterChange;
@@ -33,6 +34,9 @@ using yesdaw::engine::tickToFrame;
 using yesdaw::engine::BarBeat;               // G2.15
 using yesdaw::engine::computeBarBeat;
 using yesdaw::engine::computeBarBeatPiecewise;
+using yesdaw::engine::barBeatAtTick;        // UI correctness pass unit 6
+using yesdaw::engine::barStartTick;
+using yesdaw::engine::nominalBarTicks;
 
 static_assert (std::is_same_v<Tick, std::int64_t>);
 static_assert (kTicksPerQuarter == 15360);
@@ -344,4 +348,100 @@ TEST_CASE ("CompiledTempoMap tickForFrame inverts frameForTick and computeBarBea
         REQUIRE (piecewise.bar == single.bar);
         REQUIRE (piecewise.beat == single.beat);
     }
+}
+
+// UI correctness pass unit 6: barStartTick is the exact inverse of the meter walk, in whole ticks. Expected starts are
+// hand-written; every other check asks the walk itself (barBeatAtTick), never the inverse's own arithmetic.
+TEST_CASE ("barStartTick inverts the meter walk exactly, and nominalBarTicks is the full bar in force", "[time][g2][tempo][inverse]")
+{
+    // 4/4; 7/8 from the middle of bar 2 (bar 2 is half a bar); 3/4 from 100 ticks into bar 5 (bar 5 is 100 ticks).
+    const std::array<MeterChange, 3> meters { MeterChange { 0, 4, 4 }, MeterChange { 92160, 7, 8 }, MeterChange { 199780, 3, 4 } };
+    const MeterMapView view { meters.data(), meters.size() };
+    const std::array<Tick, 9> handStarts { 0, 61440, 92160, 145920, 199680, 199780, 245860, 291940, 338020 };
+    for (std::size_t i = 0; i < handStarts.size(); ++i)
+    {
+        Tick start = -1;
+        REQUIRE (barStartTick (view, static_cast<std::int64_t> (i) + 1, start));
+        INFO ("bar " << i + 1);
+        REQUIRE (start == handStarts[i]);
+    }
+
+    // Bars 1..200 round-trip to {N, 1}, and the tick before each start reads bar N - 1.
+    Tick previous = -1;
+    for (std::int64_t bar = 1; bar <= 200; ++bar)
+    {
+        Tick start = -1;
+        INFO ("bar " << bar);
+        REQUIRE (barStartTick (view, bar, start));
+        INFO ("starts at " << start);
+        REQUIRE (start > previous);
+        previous = start;
+        const BarBeat at = barBeatAtTick (view, start);
+        REQUIRE (at.bar == bar);
+        REQUIRE (at.beat == 1);
+        REQUIRE (barBeatAtTick (view, start - 1).bar == bar - 1);
+    }
+
+    // A 3/7 bar is 26331 3/7 ticks, so bar 3 below starts between two ticks: at the next one, 61440 + 26332.
+    const std::array<MeterChange, 2> sevenths { MeterChange { 0, 4, 4 }, MeterChange { 61440, 3, 7 } };
+    const MeterMapView sevenView { sevenths.data(), sevenths.size() };
+    Tick start = -1;
+    REQUIRE (barStartTick (sevenView, 3, start));
+    REQUIRE (start == 87772);
+    REQUIRE (barStartTick (sevenView, 4, start));
+    REQUIRE (start == 114103);   // 61440 + 52663 (52662 6/7)
+
+    // A change 26332 ticks in, 4/7 of a tick after the first 3/7 bar line, cuts bar 2 to under one tick: no whole tick
+    // reads bar 2 (26331 is bar 1, 26332 is bar 3), so bar 2 starts where bar 3 does - at the change.
+    const std::array<MeterChange, 2> phantom { MeterChange { 0, 3, 7 }, MeterChange { 26332, 4, 4 } };
+    const MeterMapView phantomView { phantom.data(), phantom.size() };
+    REQUIRE (barStartTick (phantomView, 2, start));
+    REQUIRE (start == 26332);
+    REQUIRE (barStartTick (phantomView, 3, start));
+    REQUIRE (start == 26332);
+    REQUIRE (barBeatAtTick (phantomView, 26331).bar == 1);
+    REQUIRE (barBeatAtTick (phantomView, 26332).bar == 3);
+    REQUIRE (barStartTick (phantomView, 4, start));
+    REQUIRE (start == 26332 + 61440);
+
+    // Every meter the walk accepts (numerators 1..32, denominators 1..64), from tick 0 and from a change 100 ticks into
+    // bar 2, bars 1..400: the start reads the bar and the tick before reads the bar before. Bar x length rounds onto the
+    // wrong side of a whole tick for some (3/39 at bar 66), so a rounded-up product alone is not the inverse.
+    long long checks = 0, failures = 0;
+    std::string first;
+    for (std::uint16_t numerator = 1; numerator <= 32; ++numerator)
+        for (std::uint16_t denominator = 1; denominator <= 64; ++denominator)
+            for (const Tick offset : { Tick { 0 }, Tick { 61540 } })
+            {
+                const std::array<MeterChange, 2> pair { MeterChange { 0, 4, 4 }, MeterChange { offset, numerator, denominator } };
+                const MeterMapView pairView = offset == 0 ? MeterMapView { pair.data() + 1, 1 } : MeterMapView { pair.data(), 2 };
+                const std::int64_t firstBar = offset == 0 ? 1 : 3;
+                for (std::int64_t bar = firstBar; bar < firstBar + 400; ++bar)
+                {
+                    ++checks;
+                    Tick barStart = -1;
+                    const bool ok = barStartTick (pairView, bar, barStart) && barBeatAtTick (pairView, barStart).bar == bar
+                                 && barBeatAtTick (pairView, barStart - 1).bar == bar - 1;
+                    if (! ok && failures++ == 0)
+                        first = std::to_string (numerator) + "/" + std::to_string (denominator) + " offset "
+                              + std::to_string (offset) + " bar " + std::to_string (bar) + " -> " + std::to_string (barStart);
+                }
+            }
+    CAPTURE (checks, failures, first);
+    REQUIRE (checks == 32LL * 64 * 2 * 400);
+    REQUIRE (failures == 0);
+
+    // No bar 0 or below; an empty map is 4/4 from tick 0.
+    REQUIRE_FALSE (barStartTick (view, 0, start));
+    REQUIRE_FALSE (barStartTick (view, -3, start));
+    REQUIRE (barStartTick (MeterMapView {}, 5, start));
+    REQUIRE (start == 4 * 61440);
+
+    // The nominal bar is the meter in force's full bar, however short the bar at that tick is.
+    REQUIRE (nominalBarTicks (view, 0) == 61440.0);
+    REQUIRE (nominalBarTicks (view, 92159) == 61440.0);
+    REQUIRE (nominalBarTicks (view, 92160) == 53760.0);
+    REQUIRE (nominalBarTicks (view, 199779) == 53760.0);   // bar 5, 100 ticks long
+    REQUIRE (nominalBarTicks (view, 199780) == 46080.0);
+    REQUIRE (nominalBarTicks (MeterMapView {}, 12345) == 61440.0);
 }

@@ -248,17 +248,24 @@ Three commits, each green on its own.
 Plan G2.15 asked for a "piecewise `computeBarBeat` and ruler", but only the header counter was moved
 to the piecewise law. Depends on unit 5: label `seconds` becomes the piecewise bar start.
 
-- [ ] **Commit 1, engine.**
-  - Extract the meter walk from `computeBarBeatPiecewise`, unchanged, into `barBeatAtTick`.
-  - Add `barStartTick (meterMap, bar, out)`: the exact inverse, rounding fractional starts up, and
-    returning false for bar < 1.
+- [x] **Commit 1, engine.**
+  - Extract the meter walk from `computeBarBeatPiecewise`, unchanged, into `detail::walkMeterMap`,
+    shared by `barBeatAtTick` (the walk's reading), `barStartTick` and `nominalBarTicks`.
+  - Add `barStartTick (meterMap, bar, out)`: the exact inverse, the first tick that reads bar N,
+    returning false for bar < 1. Rounding the fractional start up is only the estimate: in doubles
+    bar x length lands on the wrong side of a whole tick (3/39 at bar 66), so the start is checked
+    against the walk's own arithmetic and moved by a tick. A bar a change cuts under one tick starts
+    at that change.
   - Add `nominalBarTicks`.
   - Fix the stale comment at `Time.h:445-449`.
   - Gate: `tests/time_tests.cpp` `[time][g2][tempo][inverse]`, entirely in ticks.
     - Hand-written starts for a meter map with a 7/8 change mid-bar and a 100-tick partial bar.
     - N = 1..200 round-trips to {N, 1}, and the tick before each start reads bar N-1.
-    - One 7/7 case checks the rounding up.
-  - **Bites:** `barStartTick` without the round-up turns the 7/7 case red.
+    - A 3/7 case checks the rounding up (a 7/7 bar is a whole 61440 ticks, so it rounds nothing).
+    - A phantom bar (a 3/7 bar line, then a change 4/7 of a tick later).
+    - Every meter the walk accepts, bars 1..400, from tick 0 and after a change.
+  - **Bites:** without the check against the walk, the sweep fails 4,568 cases (first 3/39 bar
+    66); with floor and no check, the 3/7 case is red.
 - [ ] **Commit 2, canvas and shell.**
   - `TimelineCanvasState` gains a `tempoMap` pointer and a `meterMap`. A null pointer keeps the V4
     head law.
