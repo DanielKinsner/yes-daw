@@ -14,6 +14,64 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-11 — Close-out unit 5: writes-on proven through the packaged app (SS8 209/209; batch green)
+
+**Candidate:** `dist/YesDaw-b28437e-win64-portable.zip` from `b28437e` (units 4-6), `YesDaw.exe` SHA256
+`2DC987F0445EA97CCF942A547744D0232C289D1789E6E42C0BB851C0B15FDCEF`; its packaged self-check (make-demo, then
+selfcheck) passes and reports `b28437e`. Every drive below ran on that exe, on Dan's shared desktop with his go-ahead
+(hands off), on the machine's current audio defaults (no endpoint switching). Local shots/logs:
+`build-ci/session-shots/2026-10-11-writes-on/`.
+**SS8 (SS-6) 209/209** - the first full pass (171/177 while writes were off). The three laps on the linkable fixture:
+each edit's autosave confirmed with `lastAutosavedEditSerial == editSerial` from a pre-edit baseline, **45.1 / 42.0
+ms** peak (bound 100), **7 linked, 0 copied**; kill + reopen asks nothing and equals the confirmed autosave (5,0,0,7);
+lost writes raise the question naming it (6,0,0,7; bundle stamp 19 behind snapshot 21) and Restore brings it back;
+Save + close + reopen asks nothing and the autosave is retired. **Step 8** (hydrated cloud placeholders the OS will not
+hard-link): the app creates the project in a fresh sync root and imports real audio, the edit's autosave copies 1 of 1
+and links none, the copies and the user's audio hash true and stay distinct, lost writes ask and Restore recovers
+(2,1,0,1), the audio is still the same hydrated placeholders after Restore and Save, and the root is unregistered and
+removed (none left).
+**Batch:** SS1 59/59, SS2 42/42, SS4 22/22, SS5 77/77, SS6 58/58, **SS7 197/197** (196/197 on 10-09), SS3 72/72 after
+the investigation below. Feel: paint p95 **3.15 ms** (SS1) and **2.99 ms** (SS7 sweep) against 6.98 / 4.98 ms on 10-09,
+zero underruns and deadline misses in the measured bursts (SS1 and SS7 each report one counted xrun since launch,
+outside the bursts - recorded raw; the audio endpoints were not logged), launch 1.06-1.40 s.
+**SS3's red, root-caused (not a product regression):** the batch's SS3 failed one clip-menu pick (56/57) and a later
+run another: both times the menu had opened, then closed by itself before the pick. Autosave is ruled out (ticks 588 /
+716, before the writer's first possible write at ~909). An investigation workflow (Opus 5.5: JUCE, app code, history,
+synthesis) named the cause, then it was proven: the scheduled task **'Vera WSL Autostart'** (Dan's other project) runs
+`wsl.exe` in his session every 5 minutes and Windows Terminal takes the foreground for ~140-160 ms; JUCE closes any open
+popup when another process takes the foreground (correct desktop behaviour). Both failing menu shots were within 0.2 s
+of the task's recorded run time (hh:mm:06) and no passing menu shot closer than 0.5 s; a raw foreground trace caught a
+141 ms Terminal flash (`fg-trace-2144.txt`); and a controlled reproduction, twice, held the File menu open across a
+fire - it closed by itself 10 ms and 28 ms after Terminal took the foreground (137 / 158 ms flashes), while a control
+hold away from a fire stayed open.
+**Drive tooling (agent scope):** `session-drive.ps1` hooks `EVENT_SYSTEM_FOREGROUND` on its own message-loop thread and
+records every foreground change exactly; a FAIL prints any window that took the foreground from YES DAW in the 5 s
+before it (including one still holding), and every summary lists the flashes over a running YES DAW (launch, close and
+relaunch gaps excluded); each log starts with the exe path and SHA256. Diagnostics only - a FAIL stays a FAIL. The
+monitor's reading is gated headlessly in `test-session-drive-chooser.ps1` (ctest; three mutations bite).
+`MenuPickByName` asserts uniqueness only when the item was found, never clicks a guess between two, says when an item is
+there but disabled, and survives a popup vanishing mid-search. SS3's five positional menu picks now pick by label
+(57 -> 72 assertions). SS8's Lap 3 now proves the save (window title) and the reload, checks every snapshot slot is
+gone, and the stamp check can no longer skip silently; its stale "known-red" comments are gone. **Dan's call (not
+changed):** making that task windowless would stop it closing menus - in drives and in his own use of the app.
+**Review (workflow, Opus 5.5, every finding put to a refuting verifier):** the evidence audit found every unit-5
+requirement met and every number in the logs; the tooling critic's and the audit's fixes are the tooling changes above.
+The **visual rubric** found real defects that predate this work (no drawing code changed in units 4-6) - parked as the
+next UI correctness pass, ranked: (1) pressing the header tempo cell without dragging changes the tempo (120 -> 213 BPM);
+(2) the playhead badge prints round(seconds)+1 as if it were a bar number (D3: wrong data); (3) ruler min:sec labels
+read 1 s early at about half the bar ticks; (4) after a tempo change, bar labels keep the old spacing while the counter
+follows the tempo map; (5) the master meter's dB labels are evenly spaced over a linear-amplitude fill; (6) the rail's
+instrument icons are chosen by track index, not the track (D3); (7) ruler time-row text is 3.19:1 (rulerTick on
+timelineRuler), under ADR-0063's 4.5:1 text floor, and the token gate misses it; (8) the playhead badge covers the bar
+label under it; (9) the inspector's fade Curve chooser shows 'E...' beside a bare 30 px slider; (10) with the dock hidden
+the arrange keeps its docked height (dead band); (11) the export Cancel button renders as '...'; (12) the TAKES card is
+cut by the dock; (13) status-line errors and hover hints ellipsize the useful half; (14) mixer drag readout disagrees
+with the strip's own dB for a moment and overlaps the Out slot; narrow strips overprint their Out label; solo is weak on
+strips; (15) evidence shots cannot show popups or alerts (the drive captures only the main window). Each FIX gets a gate
+when fixed (plan section 7.4); they gate the milestone close (unit 7), not this push.
+**Next:** commit the tooling; re-run the full batch on the committed tooling; then rebase onto main (dropping the
+pointer note), push and check exact-code CI.
+
 ## 2026-10-11 — Close-out unit 6: one autosave writer - the engine's old trigger is deleted (committed locally)
 
 **What changes:** ADR-0068 cp7. The engine's `needsAutosave` / `markProjectEdited` / `markAutosaved`, their two edit

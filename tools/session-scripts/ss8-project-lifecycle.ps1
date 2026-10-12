@@ -30,7 +30,7 @@
 #            all at the project rate. Cancel a second export mid-job (widget.project.export_audio.cancel):
 #            export.lastResult=='cancelled', the destination is NOT on disk, no .partial sidecar lingers.
 #            Start a third export; while in progress, trigger project replacement through
-#            widget.project.new, answer the Unsaved-changes alert with 'Cancel' (so SongA stays current),
+#            widget.project.new, answer the Unsaved-changes alert with "Don't Save" (SongA's bundle already holds its edits),
 #            and assert the active export yielded by itself (ADR-0058: setExportCancelRequested fires along
 #            with the native unsaved-changes question).
 #  Step 6 - ADR-0068's three laps on a Save As'd scratch bundle at the drive's autosave cadence (Launch
@@ -39,7 +39,7 @@
 #            confirmed autosave. Lost writes (a power cut, simulated): edit, wait for the autosave, Kill, put the
 #            saved project.db back (-wal / -shm removed), relaunch - the question rises naming the autosave's
 #            counts, Restore brings back the last confirmed autosave. A clean session: Save, close, relaunch - no
-#            question, the autosave retired. Red until ADR-0068 lands (the shipped autosave never wrote).
+#            question, the autosave retired. Green since ADR-0068's writer landed (close-out unit 4, 2026-10-11).
 #  Step 7 - Save As and Save a Copy. Save As re-points the bundle; Save a Copy writes a copy and the active
 #            bundle stays unchanged. Flip two settings that persist to prefs.json (dock = Browser and the
 #            mixer-strips narrow flag) and verify they survive a close + relaunch under the same
@@ -62,9 +62,8 @@
 #      ExportCancelRequested seam, ADR-0058 cp1) and asserts the refusal when a second concurrent export is
 #      attempted. A sibling-process scenario would need a cross-process probe multiplexer and a second
 #      Launch primitive; neither is in-scope for SS-6.
-#  D2 "Autosave recovery through the shipped path" (Step 6) is known-red on today's shipped app
-#      (ADR-0068, Proposed 2026-10-07). The step runs the full sequence, the FAIL message names the ADR
-#      so the drive goes green by itself once the ADR lands.
+#  D2 "Autosave recovery through the shipped path" (Step 6) was known-red while the shipped app never wrote an
+#      autosave; it went green with ADR-0068's model-owned writer (close-out unit 4, first full pass 2026-10-11).
 
 $ErrorActionPreference = 'Stop'
 
@@ -602,14 +601,14 @@ if ($dlgNew -ne [IntPtr]::Zero) { FileDialogEnter $bundleReplacement }
 [void](Assert (@(Get-ChildItem -LiteralPath $exportDir -Filter '*.partial' -ErrorAction SilentlyContinue).Count -eq 0) 'nor a .partial temporary')
 
 # -------------------------------------------------------------------------------------------
-# Step 6 - Autosave + recovery (ADR-0068 known-red until the fix lands)
+# Step 6 - Autosave + recovery (ADR-0068's three laps)
 # -------------------------------------------------------------------------------------------
 Step 6 'Save, edit, wait for autosave, interrupt the scratch session, recover (ADR-0068: three laps)'
 # ADR-0068: every edit is already in the bundle, so the autosave is the flushed fallback for LOST writes, and recovery
 # offers only a snapshot newer than the bundle. Lap 1, the interruption: after a kill the bundle is the recovery - no
 # question, and the project equals the last confirmed autosave. Lap 2, lost writes (a power cut, simulated by putting the
 # saved project.db back): the question rises and Restore brings back the last confirmed autosave. Lap 3, a clean session:
-# Save and close - no question, the autosave retired. Red until ADR-0068 lands (the shipped autosave never wrote).
+# Save and close - no question, the autosave retired.
 Close
 Start-Sleep -Milliseconds 400
 if (Test-Path -LiteralPath $bundleAuto) { Remove-Item -Recurse -Force -LiteralPath $bundleAuto }
@@ -695,6 +694,7 @@ Launch -Bundle $bundleAuto -ReuseSessionDir $script:SessionDir -AutosaveInterval
 [void](Assert (WaitProbe { param($q) [bool]$q.autosave.recovery.pending } -TimeoutMs 6000) 'after lost writes the recovery question rises (ADR-0068)')
 $rec = (Probe).autosave.recovery
 [void](Assert ((@([int]$rec.tracks, [int]$rec.clips, [int]$rec.midiClips, [int]$rec.assets) -join ',') -eq ($written2 -join ',')) ('the question names what the autosave holds (' + $rec.tracks + ',' + $rec.clips + ',' + $rec.midiClips + ',' + $rec.assets + ' vs ' + ($written2 -join ',') + ')'))
+[void](Assert ($null -ne (Probe).autosave.PSObject.Properties['bundleWriteStamp']) 'the probe publishes the write stamps (ADR-0068)')
 if ($null -ne (Probe).autosave.PSObject.Properties['bundleWriteStamp']) {
   [void](Assert ([int64](Probe).autosave.bundleWriteStamp -lt [int64](Probe).autosave.snapshotWriteStamp) ('the bundle is behind the snapshot (' + (Probe).autosave.bundleWriteStamp + ' < ' + (Probe).autosave.snapshotWriteStamp + ')'))
 }
@@ -711,13 +711,16 @@ if ($null -ne (LayoutRect 'widget.autosave.recovery.restore')) {
 # Lap 3 - a clean session.
 Focus
 Key 'Ctrl+S'
-Start-Sleep -Milliseconds 600
+$autoTitle = [System.IO.Path]::GetFileNameWithoutExtension($bundleAuto) + ' - YES DAW'
+[void](Assert (WaitProbe { param($q) [string]$q.windowTitle -eq $autoTitle } -TimeoutMs 3000) ('the restored project is saved (windowTitle=' + (Probe).windowTitle + ')'))
 Close
 Start-Sleep -Milliseconds 400
 Launch -Bundle $bundleAuto -ReuseSessionDir $script:SessionDir
+[void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded -and [string]$q.bundlePath -eq $bundleAuto } -TimeoutMs 6000) 'the saved bundle reopens')
 Start-Sleep -Milliseconds 500
 [void](Assert (-not [bool](Probe).autosave.recovery.pending) 'after Save and close there is no recovery question')
-[void](Assert (-not (Test-Path -LiteralPath (Join-Path $bundleAuto 'autosave\last.yesdaw'))) 'the Save retired the autosave')
+$slots = @('autosave\last.yesdaw', 'autosave\last.previous', 'autosave\last.tmp') | Where-Object { Test-Path -LiteralPath (Join-Path $bundleAuto $_) }
+[void](Assert ($slots.Count -eq 0) ('the Save retired the autosave - no snapshot slot remains (' + ($slots -join ', ') + ')'))
 
 # -------------------------------------------------------------------------------------------
 # Step 7 - Save As and Save a Copy; preferences and per-project view state retain

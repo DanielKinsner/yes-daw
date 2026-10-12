@@ -366,6 +366,100 @@ public static class YesDawDrive
 '@
 [YesDawDrive]::MakeDpiAware()
 
+# --- Foreground monitor (2026-10-11) -------------------------------------------------------------
+# JUCE correctly closes an open popup menu the moment another process takes the foreground, and keys then go to that
+# process. On the shared desktop something can (2026-10-11: a scheduled task's wsl.exe flashed Windows Terminal into the
+# foreground for ~140 ms every 5 minutes and closed SS3's clip menus twice). A thread with its own message loop hooks
+# EVENT_SYSTEM_FOREGROUND, so every change is recorded exactly (no polling gap), stamped before any lookup. A FAIL then
+# names any window that took the foreground from YES DAW around it, and each drive's summary lists every flash away
+# from a running YES DAW. Diagnostics only: a FAIL stays a FAIL.
+Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Threading;
+public static class YesDawForeground
+{
+    delegate void WinEventProc (IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint thread, uint time);
+    [StructLayout(LayoutKind.Sequential)] struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam; public IntPtr lParam; public uint time; public int x; public int y; }
+    [DllImport("user32.dll")] static extern IntPtr SetWinEventHook (uint min, uint max, IntPtr module, WinEventProc proc, uint pid, uint tid, uint flags);
+    [DllImport("user32.dll")] static extern int GetMessage (out MSG m, IntPtr hwnd, uint min, uint max);
+    [DllImport("user32.dll")] static extern bool TranslateMessage (ref MSG m);
+    [DllImport("user32.dll")] static extern IntPtr DispatchMessage (ref MSG m);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId (IntPtr h, out uint pid);
+    const uint EVENT_SYSTEM_FOREGROUND = 3, WINEVENT_OUTOFCONTEXT = 0;
+    public class Change { public DateTime At; public string Process; public int Pid; }
+    static readonly object gate = new object();
+    static readonly List<Change> changes = new List<Change>();
+    static readonly Dictionary<int, string> names = new Dictionary<int, string>();
+    static WinEventProc callback;   // kept alive for as long as the hook
+    static Thread thread;
+    public static void Start()
+    {
+        if (thread != null) return;
+        thread = new Thread (Run);
+        thread.IsBackground = true;
+        thread.Name = "yesdaw-foreground-monitor";
+        thread.Start();
+    }
+    static string NameOf (int pid)
+    {
+        string name;
+        lock (gate) { if (names.TryGetValue (pid, out name)) return name; }
+        try { name = Process.GetProcessById (pid).ProcessName; } catch { name = "?"; }
+        lock (gate) { names[pid] = name; }
+        return name;
+    }
+    static void Record (IntPtr hwnd)
+    {
+        DateTime at = DateTime.Now;   // stamped first: a lookup must not delay it
+        uint pid = 0;
+        string name = "(none)";       // a NULL foreground (mid-activation): JUCE does not dismiss on it
+        if (hwnd != IntPtr.Zero) { GetWindowThreadProcessId (hwnd, out pid); name = NameOf ((int) pid); }
+        Change c = new Change(); c.At = at; c.Process = name; c.Pid = (int) pid;
+        lock (gate) { changes.Add (c); if (changes.Count > 5000) changes.RemoveRange (0, 1000); }
+    }
+    static void Run()
+    {
+        callback = new WinEventProc (delegate (IntPtr hook, uint ev, IntPtr hwnd, int idObject, int idChild, uint t, uint time) { Record (hwnd); });
+        Record (GetForegroundWindow());
+        SetWinEventHook (EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND, IntPtr.Zero, callback, 0, 0, WINEVENT_OUTOFCONTEXT);
+        MSG m;
+        while (GetMessage (out m, IntPtr.Zero, 0, 0) > 0) { TranslateMessage (ref m); DispatchMessage (ref m); }
+    }
+    public static Change[] Since (DateTime from)
+    {
+        lock (gate) { return changes.FindAll (delegate (Change c) { return c.At >= from; }).ToArray(); }
+    }
+}
+'@
+[YesDawForeground]::Start()
+$script:DriveStarted = Get-Date
+
+# The foreground taken from YES DAW: a change to another process whose previous foreground (NULL ones aside) was a
+# YesDaw window, overlapping [$From, $To], each with how long it held ('still' if it has not ended). -Returned keeps only
+# the flashes the same YesDaw process got back (not a close or a relaunch).
+function ForegroundSteals([datetime] $From, [datetime] $To, [switch] $Returned) {
+  $seen = @([YesDawForeground]::Since($From.AddMinutes(-30)) | Where-Object { $_.Process -ne '(none)' })
+  $out = @()
+  for ($i = 1; $i -lt $seen.Count; $i++) {
+    $c = $seen[$i]; $prev = $seen[$i - 1]
+    if ($c.At -gt $To) { break }
+    if ($prev.Process -ne 'YesDaw' -or $c.Process -eq 'YesDaw') { continue }
+    $next = if ($i + 1 -lt $seen.Count) { $seen[$i + 1] } else { $null }
+    if ($null -ne $next -and $next.At -lt $From) { continue }   # over before the window
+    if ($Returned -and -not ($null -ne $next -and $next.Process -eq 'YesDaw' -and $next.Pid -eq $prev.Pid)) { continue }
+    $held = if ($null -ne $next) { [string][int]($next.At - $c.At).TotalMilliseconds + ' ms' } else { 'still' }
+    $out += ('{0} {1} pid {2} ({3})' -f $c.At.ToString('HH:mm:ss.fff'), $c.Process, $c.Pid, $held)
+  }
+  return $out
+}
+
+# Which build this drive runs, in its own log.
+try { Write-Host ('[drive] exe ' + $Exe + ' sha256 ' + (Get-FileHash -LiteralPath $Exe -Algorithm SHA256).Hash) } catch { Write-Host ('[drive] exe ' + $Exe + ' (no hash: ' + $_.Exception.Message + ')') }
+
 # --- Drive state ----------------------------------------------------------------------------------
 $script:Results = New-Object System.Collections.Generic.List[object]
 $script:CurrentStep = 'setup'
@@ -398,6 +492,13 @@ function Assert([bool] $condition, [string] $message) {
       $ctx += ' foreground=' + ([YesDawDrive]::GetForegroundWindow() -eq $script:Hwnd)
       Write-Host $ctx
     } catch { Write-Host ('    [ctx] unavailable: ' + $_.Exception.Message) }
+  }
+  if (-not $condition) {
+    # Another process taking the foreground from YES DAW closes its popups and takes keys: name any around this FAIL.
+    try {
+      $away = @(ForegroundSteals (Get-Date).AddSeconds(-5) (Get-Date))
+      if ($away.Count -gt 0) { Write-Host ('    [env] the foreground was taken from YES DAW in the last 5 s: ' + ($away -join '; ')) -ForegroundColor Yellow }
+    } catch { Write-Host ('    [env] unavailable: ' + $_.Exception.Message) }
   }
   return $condition
 }
@@ -900,15 +1001,18 @@ function UiaFind([string] $nameLike, [string] $Type = '', [switch] $PopupsOnly) 
   $byPid = New-Object System.Windows.Automation.PropertyCondition($A::ProcessIdProperty, [int]$script:Proc.Id)
   $found = New-Object System.Collections.Generic.List[object]
   foreach ($w in $A::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children, $byPid)) {
-    if ($PopupsOnly -and [IntPtr][int64]$w.Current.NativeWindowHandle -eq $script:Hwnd) { continue }
-    $cond = [System.Windows.Automation.Condition]::TrueCondition
-    if ($Type -ne '') {
-      $ct = [System.Windows.Automation.ControlType]::$Type
-      $cond = New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, $ct)
-    }
-    foreach ($e in $w.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)) {
-      if ($e.Current.Name -like $nameLike) { $found.Add((UiaDescribe $e)) }
-    }
+    try {   # a window or element that vanishes mid-search (a popup closed under it) is skipped, not a drive abort
+      if ($PopupsOnly -and [IntPtr][int64]$w.Current.NativeWindowHandle -eq $script:Hwnd) { continue }
+      $cond = [System.Windows.Automation.Condition]::TrueCondition
+      if ($Type -ne '') {
+        $ct = [System.Windows.Automation.ControlType]::$Type
+        $cond = New-Object System.Windows.Automation.PropertyCondition($A::ControlTypeProperty, $ct)
+      }
+      foreach ($e in $w.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)) {
+        try { if ($e.Current.Name -like $nameLike) { $found.Add((UiaDescribe $e)) } }
+        catch [System.Windows.Automation.ElementNotAvailableException] { }
+      }
+    } catch [System.Windows.Automation.ElementNotAvailableException] { }
   }
   return $found
 }
@@ -919,16 +1023,24 @@ function UiaFind([string] $nameLike, [string] $Type = '', [switch] $PopupsOnly) 
 function MenuPickByName([string] $text, [int] $Depth = 1, [int] $TimeoutMs = 2500) {
   [void](WaitPopup -Depth $Depth)
   $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
-  $item = $null
+  $items = @()
   do {
     $items = @(UiaFind '*' 'MenuItem' -PopupsOnly | Where-Object { ($_.Name -replace '(\.\.\.|\u2026)$', '') -ceq $text })
-    if ($items.Count -gt 0) { $item = $items[0] }
-    else { Start-Sleep -Milliseconds 80 }
-  } while ($null -eq $item -and (Get-Date) -lt $deadline)
-  [void](Assert ($null -ne $item) ("the open menu offers '" + $text + "' (UI Automation)"))
-  [void](Assert ($items.Count -le 1) ("'" + $text + "' names one item of the open menus (" + $items.Count + ")"))   # never a guess between two
-  if ($null -eq $item) { Key 'Esc' -Repeat $Depth; return $false }
-  [void](Assert $item.Enabled ("'" + $text + "' is enabled"))
+    if ($items.Count -eq 0) { Start-Sleep -Milliseconds 80 }
+  } while ($items.Count -eq 0 -and (Get-Date) -lt $deadline)
+  if ($items.Count -eq 0) {
+    # A disabled JUCE item is not a MenuItem to UI Automation (its role is 'ignored'): look for the name in any role.
+    $any = @(UiaFind '*' -PopupsOnly | Where-Object { ($_.Name -replace '(\.\.\.|\u2026)$', '') -ceq $text })
+    $why = if ($any.Count -gt 0) { ' - it is there but disabled' } else { '' }
+    [void](Assert $false ("the open menu offers '" + $text + "' (UI Automation)" + $why))
+    Key 'Esc' -Repeat $Depth
+    return $false
+  }
+  [void](Assert $true ("the open menu offers '" + $text + "' (UI Automation)"))
+  [void](Assert ($items.Count -eq 1) ("'" + $text + "' names one item of the open menus (" + $items.Count + ")"))
+  if ($items.Count -gt 1) { Key 'Esc' -Repeat $Depth; return $false }   # never a guess between two
+  $item = $items[0]
+  [void](Assert $item.Enabled ("'" + $text + "' is enabled"))   # defensive: UI Automation reports only enabled JUCE items as MenuItems
   [YesDawDrive]::MouseMoveAbs([int]($item.X + $item.W / 2), [int]($item.Y + $item.H / 2)); Start-Sleep -Milliseconds 150
   [YesDawDrive]::MouseButton($true, $false); Start-Sleep -Milliseconds 30
   [YesDawDrive]::MouseButton($false, $false); Start-Sleep -Milliseconds 250
@@ -1243,6 +1355,10 @@ try {
 }
 
 Write-Host "`n== Session drive summary"
+try {
+  $away = @(ForegroundSteals $script:DriveStarted (Get-Date) -Returned)
+  Write-Host ('[env] windows that flashed into the foreground over YES DAW during the drive: ' + $away.Count + $(if ($away.Count -gt 0) { ' - ' + ($away -join '; ') } else { '' }))
+} catch { Write-Host ('[env] unavailable: ' + $_.Exception.Message) }
 $script:Results | Format-Table -AutoSize Step, Verdict, Message | Out-String -Width 200 | Write-Host
 $failed = @($script:Results | Where-Object { $_.Verdict -eq 'FAIL' }).Count
 $passed = @($script:Results | Where-Object { $_.Verdict -eq 'PASS' }).Count

@@ -20,6 +20,11 @@ native chooser), `MenuPickByName 'text'` (an open popup's item by its text), and
 zone (`mixer.strip.2.insert.0`, `header.gear`, `timeline`) or `widget.<componentId>` for a live
 component (`widget.project.new`, `mixer.fx.editor.close` (the editor's buttons are grandchildren, exported by name)).
 
+Every drive log starts with the exe's path and SHA256, and records each time another process takes the foreground from
+YES DAW (JUCE then closes any open popup and keys go elsewhere): a FAIL prints `[env]` naming any such window in the
+5 s before it, and the summary lists every flash. Diagnostics only - a FAIL stays a FAIL; rerun only when `[env]`
+names an outside window.
+
 ## The scripts
 
 | script | plan exit | grown by |

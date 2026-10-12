@@ -16,14 +16,6 @@
 $bundle = Join-Path ([System.IO.Path]::GetTempPath()) ('ss3-edit-a-song-' + (Get-Date).ToString('HHmmss') + '.yesdaw')
 if (Test-Path -LiteralPath $bundle) { Remove-Item -Recurse -Force -LiteralPath $bundle }
 
-function MenuPick([int] $itemIndex) {
-  [void](WaitPopup)
-  Key 'Down' -Repeat $itemIndex
-  Start-Sleep -Milliseconds 80
-  Key 'Enter'
-  Start-Sleep -Milliseconds 250
-}
-
 function ClipKeys {
   $p = Probe
   $keys = @()
@@ -134,8 +126,10 @@ Click $dup -OffsetX ([int]($rd[2] * 0.4)) -Modifiers 'Shift'   # the copy's righ
 $d0 = [int](Probe).commandDispatchCount
 Click $dup -Right -OffsetX ([int]($rd[2] * 0.4))
 [void](WaitPopup); Shot 'ss3-evidence-clip-menu-two-selected'
-# Enabled (observed): Cut, Copy, Duplicate, Delete, Split, Heal, Crossfade (Paste disabled) -> 7th.
-MenuPick 7
+# By name (2026-10-11): each menu pick takes the item by its own label, not its position, and asserts it is offered,
+# unique and enabled. (That day's two SS3 menu failures were not the pick: an outside window took the foreground and
+# JUCE closed the menu - session-drive.ps1's foreground monitor now names any such window.)
+[void](MenuPickByName 'Crossfade Clips')
 [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.clip.crossfade' } -TimeoutMs 2000) ('Crossfade from the clip menu dispatches (lastAction=' + (Probe).lastAction + ')'))
 
 Step 8 'Slip a clip (Ctrl+Alt drag keeps its place, moves its content)'
@@ -153,8 +147,7 @@ Click $second
 $menubar = LayoutRect 'widget.shell.menubar'
 Click 'widget.shell.menubar' -OffsetX (190 - [int]($menubar[2] / 2))
 [void](WaitPopup); Shot 'ss3-evidence-clip-menubar'
-# Clip menu enabled (observed, the pair still selected): Split, Heal, Apply Default Fades, Set Fades, Crossfade, Set Gain, Gain+, Gain-, Move, Trim, Time Stretch, Stretch to Loop -> 12th.
-MenuPick 12
+[void](MenuPickByName 'Stretch to Loop Length')
 [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.clip.stretch_to_loop' } -TimeoutMs 2000) ('Stretch to Loop Length from the Clip menu dispatches (lastAction=' + (Probe).lastAction + ')'))
 
 Step 10 'Colour and rename a clip'
@@ -162,8 +155,7 @@ Click $second
 $d0 = [int](Probe).commandDispatchCount
 Click $second -Right
 [void](WaitPopup); Shot 'ss3-evidence-clip-menu-one-selected'
-# Enabled (observed): Cut, Copy, Duplicate, Delete, Split, Heal, Crossfade, Rename, Gain, Fades, Stretch, Mute, Colour -> 13th.
-MenuPick 13
+[void](MenuPickByName 'Clip Colour: Next')
 [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.clip.colour_next' } -TimeoutMs 2000) ('Clip Colour: Next from the clip menu dispatches (lastAction=' + (Probe).lastAction + ')'))
 Key 'Esc'   # in case a wrong pick left an editor open
 Click $second
@@ -254,12 +246,11 @@ Click 'ruler' -OffsetX (RulerOffsetForX ([int]($rect[0] + $rect[2] * 0.5))) -Off
 $readoutBefore = (Probe).view.counterPrimary
 Click 'ruler' -Right -OffsetY (RulerTimeRowY)
 [void](WaitPopup); Shot 'ss3-evidence-ruler-menu'
-# Ruler menu at a playhead away from tick 0 with no change there yet: Add Marker, Set Tempo, Set Meter, Add Tempo Change (4th; Remove disabled).
-MenuPick 4
+[void](MenuPickByName 'Add Tempo Change at Playhead')
 [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.tempo.change_add' } -TimeoutMs 2000) ('Add Tempo Change at the playhead dispatches (lastAction=' + (Probe).lastAction + ')'))
 Click 'ruler' -Right -OffsetY (RulerTimeRowY)
-# Now a change sits at the playhead: Add Marker, Set Tempo, Set Meter, Add Tempo Change, Remove Tempo Change, Toggle Ramp -> 6th.
-MenuPick 6
+# Now a change sits at the playhead, so its ramp toggle is offered.
+[void](MenuPickByName 'Tempo Change: Ramp to Next')
 [void](Assert (WaitProbe { param($q) $q.lastAction -eq 'timeline.tempo.change_toggle_ramp' } -TimeoutMs 2000) ('Toggle Ramp dispatches (lastAction=' + (Probe).lastAction + ')'))
 $tempo = LayoutRect 'widget.transport.set_tempo'
 [void](Assert ($null -ne $tempo) 'the header tempo control is published')

@@ -193,3 +193,42 @@ try {
     }
     if (Test-Path -LiteralPath $testSession) { Remove-Item -LiteralPath $testSession }
 }
+
+# 2026-10-11: the foreground monitor's reading. Only a change from a YesDaw window to another process counts, NULL
+# foregrounds are skipped, -Returned keeps only flashes the same YesDaw process got back (not a close or relaunch),
+# and a window keeps a steal that overlaps it - including one that began earlier and still holds.
+Add-Type @'
+using System;
+using System.Collections.Generic;
+public static class YesDawForeground
+{
+    public class Change { public DateTime At; public string Process; public int Pid; }
+    public static List<Change> Entries = new List<Change>();
+    public static void Add (string at, string process, int pid)
+    {
+        Change c = new Change(); c.At = DateTime.Parse ("2026-10-11 " + at); c.Process = process; c.Pid = pid; Entries.Add (c);
+    }
+    public static Change[] Since (DateTime from) { return Entries.FindAll (delegate (Change c) { return c.At >= from; }).ToArray(); }
+}
+'@
+$function = $ast.Find({ param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -eq 'ForegroundSteals' }, $true)
+if ($null -eq $function) { throw 'Required driver function missing: ForegroundSteals' }
+Invoke-Expression $function.Extent.Text
+foreach ($e in @(@('09:59:59.500', 'Code', 2), @('10:00:00.000', 'claude', 1), @('10:00:01.000', 'YesDaw', 50), @('10:00:05.000', '(none)', 0),
+                 @('10:00:05.010', 'WindowsTerminal', 70), @('10:00:05.147', 'YesDaw', 50), @('10:00:09.000', 'claude', 1),
+                 @('10:00:10.000', 'YesDaw', 51), @('10:00:20.000', 'explorer', 80))) {
+    [YesDawForeground]::Add($e[0], $e[1], $e[2])
+}
+function At([string] $t) { return [datetime]::Parse('2026-10-11 ' + $t) }
+$all = @(ForegroundSteals (At '09:59:00') (At '10:00:30'))
+$expected = @('10:00:05.010 WindowsTerminal pid 70 (137 ms)', '10:00:09.000 claude pid 1 (1000 ms)', '10:00:20.000 explorer pid 80 (still)')
+if (($all -join '|') -cne ($expected -join '|')) { throw ('ForegroundSteals (all): ' + ($all -join '|')) }
+$flashes = @(ForegroundSteals (At '09:59:00') (At '10:00:30') -Returned)
+if (($flashes -join '|') -cne '10:00:05.010 WindowsTerminal pid 70 (137 ms)') { throw ('ForegroundSteals -Returned: ' + ($flashes -join '|')) }
+$late = @(ForegroundSteals (At '10:00:24') (At '10:00:25'))
+if (($late -join '|') -cne '10:00:20.000 explorer pid 80 (still)') { throw ('ForegroundSteals keeps an ongoing steal from before its window: ' + ($late -join '|')) }
+$quiet = @(ForegroundSteals (At '10:00:12') (At '10:00:15'))
+if ($quiet.Count -ne 0) { throw ('ForegroundSteals reports nothing in a quiet window: ' + ($quiet -join '|')) }
+$edge = @(ForegroundSteals (At '10:00:05.100') (At '10:00:05.120'))
+if (($edge -join '|') -cne '10:00:05.010 WindowsTerminal pid 70 (137 ms)') { throw ('ForegroundSteals keeps a steal overlapping its window: ' + ($edge -join '|')) }
+Write-Host 'PASS: the foreground monitor names steals from YES DAW (flashes, closes, ongoing) and nothing else'
