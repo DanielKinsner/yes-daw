@@ -142,3 +142,15 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 - **The FX editor's rows are raw ParamSpec names (2026-09-05, G4.1 cp2 rubric).** `MainComponent.cpp` `FxEditorComponent` hosts the lane's parameter rows as they were ("eq.band.freq 1000.0Hz", a page chooser for the EQ's 24). G4.2 cp1 (2026-09-08) replaces the EQ's raw names with numbered bands, named controls and Bands 1-2 / 3-4 / 5-6 pages beside its response display. Other kinds still await their G4.2 faces (including the compressor GR meter). Owner: G4.2.
 
 - **Four capped strips are a hair under half the widened mixer panel at 1920 (2026-09-05, G4.1 cp2).** `UiTheme.h` `mixerPaintedStripMaxWidth` 220 — with the tools lane gone the panel is 180 px wider and the N3 "≥ half the panel" pin needed the "or every strip at its cap" clause. A strip width law that grows with the panel (Logic's strips are fixed-width; the room is honest empty space), or a higher cap at large windows. Owner: G6's type-scale / layout pass.
+
+## From the SoundCraft review (2026-10-11)
+
+Full list and reasons: [`docs/research/2026-10-11-soundcraft-takeaways.md`](../research/2026-10-11-soundcraft-takeaways.md).
+
+- [ ] 2026-10-11 · ui · density pass: ruler stack, fuller track headers, tracks/clips lists, transport cluster, inserts/sends on every strip, overview strip, command palette, clip names from file names · takeaways §1 · promote-to: after Usable-song, before G4.8 (Dan picks the order; needs an ADR)
+- [ ] 2026-10-11 · ui · UiActionId is `std::uint8_t` with 16 ids left (239 of 255) - widen before any bulk feature work · `src/ui/UiActions.h:19` · promote-to: the density pass (first unit)
+- [ ] 2026-10-11 · dsp · FX suite 2: gate/expander, saturator with oversampling, chorus/flanger, phaser (natively, golden-tested) · takeaways §2 · promote-to: with or after the density pass (needs an ADR; ADR-0038 deferred these)
+- [ ] 2026-10-11 · export · AIFF/FLAC export and a peak/true-peak/LUFS report at the end of an export · takeaways §2 · promote-to: later
+- [ ] 2026-10-11 · project · Project Audio Health report (missing media, rate mismatches, clip windows out of bounds) · `src/ui/MissingAudio.h` · promote-to: later
+- [ ] 2026-10-11 · agents · UiActionId registry over a headless CLI, a JSON control port and MCP, with an inspect read-back (drives that cannot steal focus) · takeaways §2 · promote-to: later
+- [ ] 2026-10-11 · verification · every action in every state; random edit/undo sequences; mutated-bundle fuzz; FX fuzz; a test-count ratchet; an RTSan canary; a layering gate · takeaways §3 · promote-to: the next checkpoints, as small units

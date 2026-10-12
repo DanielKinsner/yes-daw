@@ -8,6 +8,17 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-11 — SoundCraft reviewed: its design and checks are taken, not its code
+
+**Now:** [storytold/soundcraft](https://github.com/storytold/soundcraft) (Rust/egui, 4 days old, a Pro Tools clone) was
+compared and audited for reuse (two independent five-dimension reviews with skeptics, the second on Opus 5.5; its build,
+its tests 533/540 on Windows, its demo bounce). Its code does not come over (Rust; its engine breaks ADR-0002; egui), but
+its UI design, a set of features and a set of checks are worth rebuilding natively: the list, reasons and landing spots
+are in [`docs/research/2026-10-11-soundcraft-takeaways.md`](docs/research/2026-10-11-soundcraft-takeaways.md), parked
+in `docs/goals/parking-lot.md`. Recommended order (Dan's call): finish the Usable-song milestone, then a UI density pass
+built from that list (an ADR first), then G4.8 plugins. Unit 1's normal CI (c6b2e8a, run 38007691530) is green on all
+ten jobs; **next: close-out unit 2** (restore by link or refuse before writing).
+
 ## 2026-10-09 — Recovery unit 1: diagnostic complete; normal CI still required
 
 **Now:** all ten jobs of instrumented CI `38006384224` pass on `687f986`. The four-line temporary
