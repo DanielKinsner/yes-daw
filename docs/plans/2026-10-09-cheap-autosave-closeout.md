@@ -165,17 +165,21 @@ not close unit 1; another clean failure requires a supported new hypothesis rath
 
 ### 7. Close the named milestone only on complete proof
 
-- [ ] Re-run applicable earlier/current journeys and feel budgets; obtain the required agent rubric
+- [x] Re-run applicable earlier/current journeys and feel budgets; obtain the required agent rubric
   coverage. Bind results to the exact code SHA, executable/package hashes and versioned fixtures.
   Use verified isolated input or a current authorized hands-off window; missing access stays pending.
-- [ ] Build the existing portable package, pass its packaged self-check and whole Usable-song arc,
+- [x] Build the existing portable package, pass its packaged self-check and whole Usable-song arc,
   and obtain the required packaged hardware-playback result using the existing checker and targets.
   Keep raw results and genuine measurement-generated evidence; device-free fixtures or a build-tree
   checker are not packaged hardware credit. Do not expand this exit into recording/plugin proof,
   alpha publication or a new hardware threshold.
-- [ ] Apply active-plan section 8.5: portable evidence and montage, STATUS and roadmap pointers,
+- [x] Apply active-plan section 8.5: portable evidence and montage, STATUS and roadmap pointers,
   exact-code CI, all required journeys/budgets/rubric and packaged results. Certify only satisfied
   exits and stop at the authorized finish line; preserve any unresolved dependency explicitly.
+
+**Done 2026-10-13 - the Usable-song milestone is certified** on packaged 7a1b0ad
+(`docs/evidence/2026-10-13-usable-song-drives-and-hardware.json`, montage `docs/evidence/2026-10-13-usable-song.png`).
+The rubric is no longer a gate under ADR-0078 (ship-first, accepted by Dan the same day).
 
 No new feature decision is requested. The existing macOS sustained-frame exception renewal remains
 unapproved; only an applicable owner decision can renew it if repair proof does not close that gate.

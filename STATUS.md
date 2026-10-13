@@ -28,10 +28,9 @@ Older entries below are dated history, not competing "Now" instructions.
 - Playback timing - PARTLY: clean at 10 ms blocks; low latency is not built (accepted for this milestone).
 
 **Shortest path to a whole song**
-1. Close the Usable-song milestone (S). It needs one clean "mix the song" drive (Dan: close the Chrome Sign In /
-   Success windows) and an answer for one unexplained SS3 failure today, which passed on a re-run.
+1. ~~Close the Usable-song milestone~~ - **done 2026-10-13** (packaged 7a1b0ad).
 2. Dan makes one real song in the app (S). Nothing since the 1 Sept verdict has been felt by hand.
-3. Low-latency audio, WASAPI exclusive or ASIO (M-L), needed to sing or play live through it.
+3. Low-latency audio, WASAPI exclusive or ASIO (M-L), needed to sing or play live through it. **Next.**
 4. Third-party VST3 plugins (L). Today there are 5 built-in effects and 2 instruments.
 5. Recording: prove it (S: loop an output into input 1, rerun the hardware check), then take lanes and punch-in (L).
 6. Smaller gaps (S-M each): the sustain pedal / controllers from a live keyboard, a snap grid that follows tempo
@@ -44,9 +43,16 @@ Older entries below are dated history, not competing "Now" instructions.
 - The drives hear one audio glitch right after launch. The cause is unknown (parked since 1 Sept).
 - Unfinished or confusing (parked): the denser Logic-style layout, a dead "Export DAWproject" menu item, no MIDI input
   chooser, and a clock that can read "0:60.000".
-- Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus (Chrome's
-  sign-in pop-ups); SS3 failed once today, then passed.
+- Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus; SS3
+  failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-10-13 — Usable-song milestone CERTIFIED; ship-first is the way of working (ADR-0078)
+
+SS7 passed 203/203 on packaged 7a1b0ad (Chrome's pop-ups were gone), so every journey passes on one package. The
+packaged self-check is 5/5, and playback is clean at the accepted 480-frame block; SS3's one blip is noted. Dan
+confirmed ship-first: ADR-0078 is accepted and CLAUDE.md/AGENTS.md updated. **Next:** low-latency audio (scoreboard
+item 3), starting with a short architecture ADR.
 
 ## 2026-10-13 — Usable-song close (close-out unit 7): evidence on packaged 7a1b0ad; two items open
 
