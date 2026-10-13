@@ -577,7 +577,7 @@ struct UiActionContext
     // V3: the always-on bottom mixer dock (inside Timeline/Piano Roll) can be collapsed to
     // reclaim vertical space. True (visible) matches today's historical always-on behaviour, so
     // no existing screenshot/layout gate changes unless a test explicitly toggles it off.
-    bool mixerDockVisible = true;
+    bool mixerDockVisible = true;   // no preferences folder (the bare harness): shown; the app's prefs default hides it (the layout pass, step 8)
     UiEditorDockTab editorDockTab = UiEditorDockTab::Mixer;   // G2.1: the tab the dock shows
     UiEditMode editMode = UiEditMode::Overlap;                // G2.6
     UiSnapMode snapMode = UiSnapMode::Grid;                   // G2.7

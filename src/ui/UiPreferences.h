@@ -41,7 +41,7 @@ struct UiViewPreferences
     bool narrowStrips = false;
     bool inspectorVisible = true;
     bool inspectorTrackTab = false;
-    bool dockVisible = true;
+    bool dockVisible = false;   // the layout pass, step 8 (Dan, 2026-10-13): the mixer opens hidden; the timeline gets the room
     UiEditorDockTab dockTab = UiEditorDockTab::Mixer;
 
     friend bool operator== (const UiViewPreferences&, const UiViewPreferences&) = default;

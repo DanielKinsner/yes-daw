@@ -177,7 +177,9 @@ TEST_CASE ("state probe: schema v1 with the required sections and element ids",
     const juce::var layout = probe["layout"];
     REQUIRE (layout.isObject());
     const juce::Rectangle<int> shellBounds = shell->getLocalBounds();
-    for (const char* key : { "header", "rail", "timeline", "inspector", "dock",
+    // The layout pass, step 8: with a preferences folder the dock starts hidden, so the map has no "dock" yet.
+    REQUIRE_FALSE (layout.hasProperty ("dock"));
+    for (const char* key : { "header", "rail", "timeline", "inspector",
                              "widget.transport.play", "widget.transport.stop",
                              "widget.project.import_audio", "widget.edit.undo",
                              "widget.timeline.snap.chooser", "widget.shell.menubar" })

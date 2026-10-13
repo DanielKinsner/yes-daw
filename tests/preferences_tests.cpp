@@ -353,6 +353,7 @@ TEST_CASE ("ADR-0061 the dock, inspector, snap and metronome follow the user acr
         f.create (directory / "a.yesdaw");
         const yesdaw::ui::UiActionContext factory = f.context();
         REQUIRE (factory.editorDockTab == yesdaw::ui::UiEditorDockTab::Mixer);
+        REQUIRE_FALSE (factory.mixerDockVisible);   // the layout pass, step 8 (Dan): the mixer starts hidden
         REQUIRE (factory.inspectorVisible);
         REQUIRE_FALSE (factory.metronomeEnabled);
         REQUIRE (factory.snapMode == yesdaw::ui::UiSnapMode::Grid);
