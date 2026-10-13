@@ -1610,6 +1610,42 @@ void askNativeFile (const juce::String& title, const juce::File& start, const ju
     });
 }
 
+// ADR-0062 / ADR-0077: the missing-audio question - Locate... (Enter) / Cancel (Esc), then the file chooser; a chooser
+// closed without a file shows the question again. Asked without a nested loop; the asset is copied (the reference the
+// seam is handed does not outlive the call).
+void askMissingAudioNative (std::shared_ptr<const yesdaw::ui::UiMissingAsset> missing,
+                            yesdaw::ui::QuestionReply<std::filesystem::path> reply)
+{
+    juce::String message = juce::String::fromUTF8 (missing->description.c_str())
+                         + "\n\nLocate the original file to put it back, or cancel the open.";
+    if (! missing->refusal.empty())
+        message = juce::String::fromUTF8 (missing->refusal.c_str()) + "\n\n" + message;
+    juce::AlertWindow::showAsync (juce::MessageBoxOptions()
+                                      .withIconType (juce::MessageBoxIconType::WarningIcon)
+                                      .withTitle (missing->damaged ? "Damaged audio" : "Missing audio")
+                                      .withMessage (message)
+                                      .withButton ("Locate...")
+                                      .withButton ("Cancel"),
+                                  [missing, reply] (int result) {
+                                      if (result != 1)
+                                      {
+                                          reply (std::filesystem::path {});
+                                          return;
+                                      }
+                                      auto chooser = std::make_shared<juce::FileChooser> (
+                                          "Locate " + juce::String::fromUTF8 (missing->name.c_str()),
+                                          juce::File::getSpecialLocation (juce::File::userDocumentsDirectory),
+                                          juce::String (yesdaw::io::importAudioFilePatterns()), true);
+                                      chooser->launchAsync (kNativeOpenFile, [chooser, missing, reply] (const juce::FileChooser& done) {
+                                          const juce::File chosen = done.getResult();
+                                          if (chosen == juce::File())
+                                              askMissingAudioNative (missing, reply);   // the question again
+                                          else
+                                              reply (pathFromJuceFile (chosen));
+                                      });
+                                  });
+}
+
 std::filesystem::path pathFromJuceFile (const juce::File& file)
 {
     const std::string utf8 = file.getFullPathName().toStdString();
@@ -1631,23 +1667,9 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
     choices.newProjectDialog = true;   // ADR-0060: the New Project overlay
     choices.firstRunTips = true;       // ADR-0073 §4: the first-run tip the user has not dismissed
     choices.nativePrompts = true;      // and the unsaved-changes box before New / Open
-    choices.chooseMissingAudioReplacement = [] (const yesdaw::ui::UiMissingAsset& missing) {   // ADR-0062
-        for (;;)
-        {
-            juce::String message = juce::String::fromUTF8 (missing.description.c_str())
-                                  + "\n\nLocate the original file to put it back, or cancel the open.";
-            if (! missing.refusal.empty())
-                message = juce::String::fromUTF8 (missing.refusal.c_str()) + "\n\n" + message;
-            if (! juce::AlertWindow::showOkCancelBox (juce::MessageBoxIconType::WarningIcon,
-                                                      missing.damaged ? "Damaged audio" : "Missing audio",
-                                                      message, "Locate...", "Cancel"))
-                return std::filesystem::path {};
-            const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-            juce::FileChooser chooser ("Locate " + juce::String::fromUTF8 (missing.name.c_str()), documents,
-                                       juce::String (yesdaw::io::importAudioFilePatterns()), true);
-            if (chooser.browseForFileToOpen())
-                return pathFromJuceFile (chooser.getResult());
-        }
+    choices.chooseMissingAudioReplacement = [] (const yesdaw::ui::UiMissingAsset& missing,   // ADR-0062 / ADR-0077
+                                                yesdaw::ui::QuestionReply<std::filesystem::path> reply) {
+        askMissingAudioNative (std::make_shared<const yesdaw::ui::UiMissingAsset> (missing), std::move (reply));
     };
     choices.chooseSaveAsTemplateName = [] (yesdaw::ui::QuestionReply<std::string> reply) {   // ADR-0060 / ADR-0077
         auto* window = new juce::AlertWindow ("Save as Template", "The template's name (its tracks, buses and routing are saved):",
@@ -2825,6 +2847,12 @@ bool serviceMainComponentUiTimer (juce::Component& component)
     }
 
     return false;
+}
+
+void mainComponentRunLaunchQuestion (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->harnessRunLaunchQuestion();
 }
 
 bool mainComponentQuestionOpen (juce::Component& component)

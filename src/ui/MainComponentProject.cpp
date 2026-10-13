@@ -264,54 +264,88 @@ void MainComponent::requestProjectDeviceRate()
 // ADR-0062: an open that refused over its Asset files asks about each missing or damaged one (Locate... / Cancel);
 // only a file with the Asset's own bytes is taken (anything else is refused with its reason and the same one asked
 // again). Relinked: every one put back (the caller opens again). Cancelled: the status line names what remains missing.
-// NothingMissing: the refusal was something else, or no one can be asked (the caller reports it as before).
-MainComponent::RelinkOutcome MainComponent::relinkMissingAudio (const std::filesystem::path& bundle)
+// NothingMissing: the refusal was something else, or no one can be asked (the caller reports it as before). ADR-0077:
+// each question is answered at once or later and the next is asked from its answer; Refused: another question was open,
+// the reply was dropped unanswered, or the project was replaced meanwhile (nothing said, nothing changed).
+struct MainComponent::RelinkState
 {
-    if (! fileChoices.chooseMissingAudioReplacement)
-        return RelinkOutcome::NothingMissing;
-    engine::Project stored;
+    std::filesystem::path bundle;
     std::vector<yesdaw::persistence::ProjectBundleDb::MissingAssetFile> missing;
-    if (! yesdaw::persistence::ProjectBundleDb::inspectAssetFiles (bundle, stored, missing).ok() || missing.empty())
-        return RelinkOutcome::NothingMissing;
-
     std::vector<UiMissingAsset> asked;
-    for (const auto& file : missing)
-        asked.push_back (describeMissingAsset (stored, file.hash, file.damaged));
-    for (std::size_t i = 0; i < missing.size(); ++i)
+    std::size_t index = 0;
+    std::function<void (RelinkOutcome)> then;
+};
+
+void MainComponent::relinkMissingAudio (const std::filesystem::path& bundle, std::function<void (RelinkOutcome)> then)
+{
+    auto state = std::make_shared<RelinkState>();
+    engine::Project stored;
+    if (! fileChoices.chooseMissingAudioReplacement
+        || ! yesdaw::persistence::ProjectBundleDb::inspectAssetFiles (bundle, stored, state->missing).ok()
+        || state->missing.empty())
     {
-        for (;;)
-        {
-            relinkAsking = asked[i];   // SS-6: the probe shows the question while it is up
-            ++relinkQuestions;
-            const std::filesystem::path chosen = [this, &asked, i] {
-                struct Down { std::optional<UiMissingAsset>& asking; ~Down() { asking.reset(); } } down { relinkAsking };   // even on a throw
-                return fileChoices.chooseMissingAudioReplacement (asked[i]);
-            }();
-            if (chosen.empty())
-            {
-                std::string names;
-                for (std::size_t j = i; j < asked.size(); ++j)
-                    names += (names.empty() ? "" : ", ") + asked[j].name;
-                const std::size_t left = asked.size() - i;
-                appModel.reportStatus ("Open cancelled: " + std::to_string (left) + (left == 1u ? " audio file" : " audio files")
-                                           + " still missing (" + names + ")",
-                                       true);
-                relinkLastOutcome = "cancelled";
-                return RelinkOutcome::Cancelled;
-            }
-            const yesdaw::persistence::BundleResult adopted =
-                yesdaw::persistence::ProjectBundleDb::adoptAssetFile (bundle, missing[i].hash, chosen);
-            if (adopted.ok())
-                break;
-            // Only a content mismatch says the file is not the audio; a read or write failure says what failed.
-            asked[i].refusal = yesdaw::io::utf8Text (chosen.filename())
-                             + (adopted.status == yesdaw::persistence::BundleStatus::IntegrityFailed ? " is not the missing audio: "
-                                                                                                      : " could not be put back: ")
-                             + adopted.message;
-        }
+        then (RelinkOutcome::NothingMissing);
+        return;
     }
-    relinkLastOutcome = "relinked";
-    return RelinkOutcome::Relinked;
+    state->bundle = bundle;
+    for (const auto& file : state->missing)
+        state->asked.push_back (describeMissingAsset (stored, file.hash, file.damaged));
+    state->then = std::move (then);
+    askRelink (std::move (state));
+}
+
+void MainComponent::askRelink (std::shared_ptr<RelinkState> state)
+{
+    if (aQuestionIsOpen() || closing)
+    {
+        state->then (RelinkOutcome::Refused);   // not asked, not counted
+        return;
+    }
+    relinkAsking = state->asked[state->index];   // SS-6: the probe shows the question until its answer
+    ++relinkQuestions;
+    const UiMissingAsset asking = state->asked[state->index];
+    ask (fileChoices.chooseMissingAudioReplacement, true, [this, state] (std::optional<std::filesystem::path> chosen) {
+        relinkAsking.reset();
+        const std::size_t i = state->index;
+        if (! chosen)
+        {
+            state->then (RelinkOutcome::Refused);
+            return;
+        }
+        if (chosen->empty())
+        {
+            std::string names;
+            for (std::size_t j = i; j < state->asked.size(); ++j)
+                names += (names.empty() ? "" : ", ") + state->asked[j].name;
+            const std::size_t left = state->asked.size() - i;
+            appModel.reportStatus ("Open cancelled: " + std::to_string (left) + (left == 1u ? " audio file" : " audio files")
+                                       + " still missing (" + names + ")",
+                                   true);
+            relinkLastOutcome = "cancelled";
+            state->then (RelinkOutcome::Cancelled);
+            return;
+        }
+        const yesdaw::persistence::BundleResult adopted =
+            yesdaw::persistence::ProjectBundleDb::adoptAssetFile (state->bundle, state->missing[i].hash, *chosen);
+        if (adopted.ok())
+        {
+            if (++state->index == state->missing.size())
+            {
+                relinkLastOutcome = "relinked";
+                state->then (RelinkOutcome::Relinked);
+                return;
+            }
+        }
+        else
+        {
+            // Only a content mismatch says the file is not the audio; a read or write failure says what failed.
+            state->asked[i].refusal = yesdaw::io::utf8Text (chosen->filename())
+                                    + (adopted.status == yesdaw::persistence::BundleStatus::IntegrityFailed ? " is not the missing audio: "
+                                                                                                             : " could not be put back: ")
+                                    + adopted.message;
+        }
+        askRelink (state);   // the next file, or the same one again with its refusal
+    }, asking);
 }
 
 // File > Save as Template (ADR-0060): a name, the replace question when that name is taken, then the layout. ADR-0077:

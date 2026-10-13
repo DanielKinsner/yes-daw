@@ -698,7 +698,8 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
     `[project-lifecycle][questions]` (STATUS). Notes from 29a's critic: on Linux the
     zenity chooser is not modal, so a quit is refused by the open-question mark, not by modal state; `MainComponent.cpp`
     is at 2995 of its 3000-line pin (`theme_audit_tests.cpp`), so 29b's flows go in the other shell files.
-  - **29c** the relink loop, an open completion, the launch-question tail; SS8 runs.
+  - [x] **29c** the relink loop, an open completion, the launch-question tail; SS8 runs. **Done 2026-10-13**; gates
+    `[relink][questions]`, SS8 214/214 (STATUS).
   - **29d** `JUCE_MODAL_LOOPS_PERMITTED=0` on `YesDaw` and the text gate; the gate also bans calling a seam outside the
     ask helper (`fileChoices.choose...(` / `fileChoices.confirm...(` in `src/`): `Question`'s friend is the whole shell
     class, so the compiler alone does not keep every ask on the helper (unit 29a critic); and `Main.cpp`'s close button

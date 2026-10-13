@@ -1808,30 +1808,39 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
                             // A launch reason already on the status line (a missing device) stays beside a Cancel.
                             const std::string earlier = self->appModel.statusLineIsError() ? self->appModel.statusLineText() : std::string {};
                             const std::vector<std::string> earlierParts = self->appModel.statusLineParts();
-                            self->openProjectBundleAtPath (lastProject);
-                            const std::string now = self->appModel.statusLineText();
-                            if (! earlier.empty() && now != earlier && now.rfind ("Open cancelled", 0) == 0)
-                            {
-                                std::vector<std::string> parts = earlierParts;   // ADR-0076: both facts, as parts
-                                parts.insert (parts.end(), self->appModel.statusLineParts().begin(), self->appModel.statusLineParts().end());
-                                self->appModel.reportStatusParts (std::move (parts), true);
-                            }
-                            if (! self->appModel.context().projectLoaded)   // ADR-0062: the untitled session
-                            {
-                                self->openUntitledLaunchSessionKeepingReason ({});
-                                if (self->appModel.context().projectLoaded)
-                                    self->afterProjectAttached();   // ADR-0060: the device follows its rate
-                            }
-                            self->refreshActionState();
-                            self->repaintAll();
+                            // ADR-0077: the tail waits for the last answer - no untitled session before it.
+                            self->openProjectBundleAtPath (lastProject, [self, earlier, earlierParts] {
+                                if (self == nullptr)
+                                    return;
+                                const std::string now = self->appModel.statusLineText();
+                                if (! earlier.empty() && now != earlier && now.rfind ("Open cancelled", 0) == 0)
+                                {
+                                    std::vector<std::string> parts = earlierParts;   // ADR-0076: both facts, as parts
+                                    parts.insert (parts.end(), self->appModel.statusLineParts().begin(), self->appModel.statusLineParts().end());
+                                    self->appModel.reportStatusParts (std::move (parts), true);
+                                }
+                                if (! self->appModel.context().projectLoaded)   // ADR-0062: the untitled session
+                                {
+                                    self->openUntitledLaunchSessionKeepingReason ({});
+                                    if (self->appModel.context().projectLoaded)
+                                        self->afterProjectAttached();   // ADR-0060: the device follows its rate
+                                }
+                                self->refreshActionState();
+                                self->repaintAll();
+                            });
                         }
                     };
                 }
                 else
                 {
-                    const RelinkOutcome relink = relinkMissingAudio (lastProject);
-                    answered = relink == RelinkOutcome::Cancelled;   // its status line says what remains missing
-                    if (relink == RelinkOutcome::Relinked)
+                    // The harness's launch: its answers come at once (ADR-0077 rule 7); one that does not counts as
+                    // Cancel here (it asserts), and a late one's outcome lands only in this heap cell.
+                    const auto relink = std::make_shared<RelinkOutcome> (RelinkOutcome::Cancelled);
+                    relinkMissingAudio (lastProject, [relink] (RelinkOutcome outcome) { *relink = outcome; });
+                    if (questionOpen)
+                        jassertfalse;
+                    answered = *relink == RelinkOutcome::Cancelled || *relink == RelinkOutcome::Refused;
+                    if (*relink == RelinkOutcome::Relinked)
                         stored = decodeStoredProjectAssets (lastProject);
                 }
             }
@@ -1964,16 +1973,37 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     }
 }
 
-// UI pass unit 17: the launch-time question, once, from its own posted message - never inside the UI tick that posts it
-// (a modal loop inside a timer callback would hold back the tick, and the probe with it, while the question is up). A
-// project the user opened or made in the moment before it wins: the question is dropped.
+// UI pass unit 17: the launch-time question, once, from its own posted message - never inside the UI tick that posts it.
+// A project the user opened or made in the moment before it wins: the question is dropped. ADR-0077 rule 5: it is never
+// refused - while another question is open it waits for a later tick.
 void MainComponent::postLaunchQuestion()
 {
-    if (! launchQuestion)
+    if (! launchQuestion || launchQuestionPosted)
         return;
-    if (! appModel.context().projectLoaded)
-        juce::MessageManager::callAsync (std::move (launchQuestion));   // the question checks its own SafePointer
-    launchQuestion = nullptr;
+    if (appModel.context().projectLoaded)
+    {
+        launchQuestion = nullptr;
+        return;
+    }
+    launchQuestionPosted = true;
+    juce::MessageManager::callAsync ([self = juce::Component::SafePointer<MainComponent> (this)] {
+        if (self != nullptr)
+            self->runLaunchQuestion();
+    });
+}
+
+void MainComponent::runLaunchQuestion()
+{
+    launchQuestionPosted = false;
+    if (! launchQuestion || appModel.context().projectLoaded)
+    {
+        launchQuestion = nullptr;
+        return;
+    }
+    if (aQuestionIsOpen())
+        return;   // kept: the next tick that finds no question open posts it again
+    const std::function<void()> question = std::exchange (launchQuestion, nullptr);
+    question();
 }
 
 MainComponent::~MainComponent()
@@ -2012,7 +2042,7 @@ void MainComponent::timerCallback()
 void MainComponent::serviceUiTick()
 {
     // UI pass unit 17: the launch-time question, once the window is showing (a launch minimised waits for it).
-    if (launchQuestion && isShowing())
+    if (launchQuestion && isShowing() && ! aQuestionIsOpen())
         postLaunchQuestion();
     // G0.3: the janitor runs on the control thread every tick — retired engines / monitor
     // chains are freed once the device thread is provably past them.

@@ -59,7 +59,7 @@ struct MainComponentFileChoices
     // ADR-0062: an open that finds missing or damaged audio asks about each one; the answer is the original file
     // (empty = Cancel the open). The native shell asks with a box (Locate... / Cancel) and the file chooser; with no
     // answer at all (the harness's default) the open refuses as before.
-    std::function<std::filesystem::path (const UiMissingAsset&)> chooseMissingAudioReplacement;
+    Question<std::filesystem::path, UiMissingAsset> chooseMissingAudioReplacement;   // ADR-0077: at once or later
     // Close-confirm seam (B37): asked when the app closes with edits since the last explicit Save.
     // Answers kCloseChoiceSave, kCloseChoiceClose, or kCloseChoiceCancel; the native shell shows a
     // three-way box when unset (ADR-0077: answered at once or later).
@@ -189,6 +189,8 @@ struct MainComponentSnapshot
 void mainComponentRequestQuit (juce::Component& component, std::function<void()> quit);
 // ADR-0077: whether one of the shell's questions is waiting for its answer.
 [[nodiscard]] bool mainComponentQuestionOpen (juce::Component& component);
+// ADR-0077: run the launch-time missing-audio question the UI tick would post (it posts only once the window shows).
+void mainComponentRunLaunchQuestion (juce::Component& component);
 
 // R9: one instance only. Every edit writes a full project snapshot and both instances
 // auto-open the same last project, so two instances editing one bundle is last-writer-wins

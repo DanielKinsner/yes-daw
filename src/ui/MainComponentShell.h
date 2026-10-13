@@ -88,6 +88,7 @@ public:
     [[nodiscard]] const std::filesystem::path& harnessBundlePath() const noexcept { return appModel.bundlePath(); }
     [[nodiscard]] bool harnessPrimaryFileChoicesReady() const noexcept;
     [[nodiscard]] bool harnessQuestionOpen() const noexcept { return questionOpen; }   // ADR-0077
+    void harnessRunLaunchQuestion() { runLaunchQuestion(); }   // ADR-0077: the posted launch question, without a window
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
     [[nodiscard]] std::uint64_t harnessPlaybackReplaceCount() const noexcept { return appModel.playbackReplaceCount(); }
     [[nodiscard]] std::uint64_t harnessPlaybackLiveScalarsApplied() const noexcept { return appModel.playbackLiveScalarsApplied(); }
@@ -539,8 +540,12 @@ private:
     // (its own modal window; it counts as a question too).
     [[nodiscard]] bool aQuestionIsOpen() const noexcept { return questionOpen || fxPresetPrompt != nullptr; }
     // ADR-0062: the missing-audio questions of an open that refused over its Asset files.
-    enum class RelinkOutcome { NothingMissing, Relinked, Cancelled };
-    [[nodiscard]] RelinkOutcome relinkMissingAudio (const std::filesystem::path& bundle);
+    // ADR-0077: Refused - another question was open, the reply was dropped, or the project was replaced meanwhile
+    // (nothing said, nothing changed).
+    enum class RelinkOutcome { NothingMissing, Relinked, Cancelled, Refused };
+    struct RelinkState;
+    void relinkMissingAudio (const std::filesystem::path& bundle, std::function<void (RelinkOutcome)> then);
+    void askRelink (std::shared_ptr<RelinkState> state);
     void syncExportControls();   // ADR-0061
     void saveProjectAsTemplate();
     void browserAudition (const yesdaw::ui::BrowserRow& row);   // G5.2 cp2
@@ -683,7 +688,9 @@ private:
     void duplicateSelectedTrack();
 
     // Open a project bundle at a known path (B39): shared by File > Open and Open Recent.
-    void openProjectBundleAtPath (const std::filesystem::path& path);
+    // ADR-0077: `done` runs once the open has ended, whatever its outcome (after any missing-audio questions).
+    void openProjectBundleAtPath (const std::filesystem::path& path, std::function<void()> done);
+    void attachOpenedBundle (const std::filesystem::path& path, shell::StoredProjectAssetsResult stored);
 
     // V3: the always-on bottom dock's height — 0 collapses it entirely, reclaiming the space for
     // the timeline/rail/inspector, when the user has toggled it off (the full-view Mixer panel
@@ -1922,7 +1929,9 @@ private:
     std::vector<PointerRecord> pointerRecords;
     std::unique_ptr<juce::MouseListener> pointerTracker;
     std::function<void()> launchQuestion;   // UI pass unit 17: the launch-time missing-audio question, until a tick posts it
+    bool launchQuestionPosted = false;      // ADR-0077: posted, not yet run
     void postLaunchQuestion();
+    void runLaunchQuestion();
     std::optional<juce::Point<int>> pointerPosition;               // the pointer's last position in the shell (none: away)
     juce::Component::SafePointer<juce::Component> pointerComponent;   // the component under it
     std::string pointerHovered, pointerPressed;                      // record ids ("" = none)

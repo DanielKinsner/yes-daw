@@ -211,24 +211,41 @@ struct RelinkShell
     std::vector<std::filesystem::path> answers;
     std::vector<yesdaw::ui::UiMissingAsset> asked;
     std::function<void()> whileAsking;   // runs inside the question (the probe's `relink` while it is up)
+    bool hold = false;                   // ADR-0077: keep the reply in `held`, to answer later
+    std::optional<yesdaw::ui::QuestionReply<std::filesystem::path>> held;
     std::unique_ptr<juce::Component> shell;
 
-    explicit RelinkShell (const std::filesystem::path& sessionFolder, const std::filesystem::path& launchBundle = {})
+    // `nativePrompts`: the native shell's launch, its question posted for a tick (ADR-0077). `dontSave`: the unsaved-changes
+    // question is asked and answered Don't Save.
+    explicit RelinkShell (const std::filesystem::path& sessionFolder, const std::filesystem::path& launchBundle = {},
+                          bool nativePrompts = false, bool dontSave = false)
     {
         juce::MessageManager::getInstance();
         yesdaw::ui::MainComponentFileChoices choices;
         choices.sessionStateDirectory = sessionFolder;
+        choices.nativePrompts = nativePrompts;
+        if (dontSave)
+            choices.confirmCloseUnsavedChanges = [] { return yesdaw::ui::kCloseChoiceClose; };
         choices.chooseOpenProjectBundle = [this] { return open; };
         choices.chooseNewProjectBundle = [this] { return open; };
-        choices.chooseMissingAudioReplacement = [this] (const yesdaw::ui::UiMissingAsset& missing) {
+        choices.chooseMissingAudioReplacement = [this] (const yesdaw::ui::UiMissingAsset& missing,
+                                                        yesdaw::ui::QuestionReply<std::filesystem::path> reply) {
             asked.push_back (missing);
             if (whileAsking)
                 whileAsking();
+            if (hold)
+            {
+                held = std::move (reply);
+                return;
+            }
             if (answers.empty())
-                return std::filesystem::path {};
+            {
+                reply (std::filesystem::path {});
+                return;
+            }
             const std::filesystem::path answer = answers.front();
             answers.erase (answers.begin());
-            return answer;
+            reply (answer);
         };
         if (! launchBundle.empty())
         {
@@ -420,4 +437,130 @@ TEST_CASE ("ADR-0062 a right file that cannot be written is not called the wrong
     REQUIRE (r.asked.size() == 2u);
     REQUIRE (r.asked[1].refusal.rfind ("tone-0.wav could not be put back: ", 0) == 0);
     REQUIRE (r.asked[1].refusal.find ("is not the missing audio") == std::string::npos);
+}
+
+// ADR-0077 unit 29c: the missing-audio question answered later. While it waits the probe shows it, the current project
+// stays and the shell's one question is open; a wrong file asks again with its reason; the original's answer opens the
+// project. Cancel's answer names what remains missing and keeps the current project.
+TEST_CASE ("ADR-0077 the missing-audio question answered later: shown until its answer, asked again, then opened or cancelled",
+           "[relink][questions]")
+{
+    const auto relinkProbe = [] (RelinkShell& r) {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*r.shell)), probe).wasOk());
+        return probe["relink"];
+    };
+    const auto takeHeld = [] (RelinkShell& r) {
+        REQUIRE (r.held.has_value());
+        yesdaw::ui::QuestionReply<std::filesystem::path> reply = std::move (*r.held);
+        r.held.reset();
+        return reply;
+    };
+
+    ThreeTones f ("held");
+    std::filesystem::remove (assetFileOf (f.bundle, f.hashes[0]));
+    RelinkShell r (f.directory / "session");
+    r.open = f.directory / "current.yesdaw";
+    r.dispatch (yesdaw::ui::UiActionId::ProjectNew);
+    r.hold = true;
+    r.open = f.bundle;
+    r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+    REQUIRE (r.held.has_value());
+    CHECK (static_cast<bool> (relinkProbe (r)["asking"]));
+    CHECK (r.snapshot().windowTitle.find ("current") != std::string::npos);   // not opened yet
+    CHECK (yesdaw::ui::mainComponentQuestionOpen (*r.shell));
+
+    takeHeld (r) (f.originals[2]);   // the wrong tone: asked again, with the reason
+    REQUIRE (r.held.has_value());
+    REQUIRE (r.asked.size() == 2u);
+    CHECK (r.asked[1].refusal == "tone-2.wav is not the missing audio: its content differs");
+    CHECK (static_cast<bool> (relinkProbe (r)["asking"]));
+    CHECK (r.snapshot().windowTitle.find ("current") != std::string::npos);
+
+    // A reply dropped unanswered is a refusal: nothing said, nothing opened, the question freed - then asked again.
+    {
+        const std::string statusBefore = r.snapshot().statusLineText;
+        r.held.reset();
+        CHECK (r.snapshot().statusLineText == statusBefore);
+        CHECK (r.snapshot().windowTitle.find ("current") != std::string::npos);
+        CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*r.shell));
+        CHECK_FALSE (static_cast<bool> (relinkProbe (r)["asking"]));
+        r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+        REQUIRE (r.held.has_value());
+        CHECK (r.asked.back().refusal.empty());   // the open runs again from the start
+    }
+
+    takeHeld (r) (f.originals[0]);   // the original: opened
+    CHECK_FALSE (static_cast<bool> (relinkProbe (r)["asking"]));
+    CHECK (relinkProbe (r)["lastOutcome"].toString() == "relinked");
+    CHECK (r.snapshot().windowTitle.find ("song") != std::string::npos);
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*r.shell));
+
+    ThreeTones g ("held-cancel");
+    std::filesystem::remove (assetFileOf (g.bundle, g.hashes[0]));
+    RelinkShell c (g.directory / "session");
+    c.open = g.directory / "current.yesdaw";
+    c.dispatch (yesdaw::ui::UiActionId::ProjectNew);
+    c.hold = true;
+    c.open = g.bundle;
+    c.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
+    takeHeld (c) (std::filesystem::path {});   // Cancel
+    CHECK (c.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (Audio Clip)");
+    CHECK (c.snapshot().windowTitle.find ("current") != std::string::npos);
+    CHECK (relinkProbe (c)["lastOutcome"].toString() == "cancelled");
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*c.shell));
+}
+
+// ADR-0077 rule 3 / ADR-0068 §4: Open ends its replace attempt only after the missing-audio question is answered. After
+// Don't Save the open project's tail is not due while the question waits; a Cancel answer leaves the current project and
+// makes its tail due again.
+TEST_CASE ("ADR-0077 Open's replace attempt ends with the missing-audio answer, not before", "[relink][questions]")
+{
+    const auto autosave = [] (RelinkShell& r) {
+        juce::var probe;
+        REQUIRE (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*r.shell)), probe).wasOk());
+        return probe["autosave"];
+    };
+    const auto due = [&autosave] (RelinkShell& r) {
+        return static_cast<juce::int64> (autosave (r)["lastAutosavedEditSerial"]) != static_cast<juce::int64> (autosave (r)["editSerial"]);
+    };
+    ThreeTones f ("held-replace");
+    std::filesystem::remove (assetFileOf (f.bundle, f.hashes[0]));
+    RelinkShell r (f.directory / "session", {}, false, true);
+    r.open = f.directory / "current.yesdaw";
+    r.dispatch (yesdaw::ui::UiActionId::ProjectNew);
+    r.dispatch (yesdaw::ui::UiActionId::TrackAdd);   // unsaved changes: due
+    REQUIRE (due (r));
+    for (int n = 0; n < 2000 && due (r); ++n)   // the shell's own tick autosaves it (so Don't Save has one to retire)
+        yesdaw::ui::mainComponentServiceUiTick (*r.shell);
+    REQUIRE_FALSE (due (r));
+    r.hold = true;
+    r.open = f.bundle;
+    r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);   // Don't Save, then the relink question, held
+    REQUIRE (r.held.has_value());
+    CHECK_FALSE (due (r));   // Don't Save named this state abandoned; the attempt has not ended yet
+    yesdaw::ui::QuestionReply<std::filesystem::path> reply = std::move (*r.held);
+    r.held.reset();
+    reply (std::filesystem::path {});   // Cancel: the current project stays
+    CHECK (r.snapshot().windowTitle.find ("current") != std::string::npos);
+    CHECK (due (r));                 // the attempt ended: its tail is due again
+}
+
+// ADR-0077 rule 8: the launch-time question (the native shell's, posted for a tick) leaves no project until its answer -
+// no untitled session under the question; a Cancel answer then leaves the untitled session, with the reason.
+TEST_CASE ("ADR-0077 the launch-time missing-audio question: no untitled session before its answer", "[relink][questions]")
+{
+    ThreeTones f ("held-launch");
+    std::filesystem::remove (assetFileOf (f.bundle, f.hashes[0]));
+    RelinkShell r (f.directory / "session", f.bundle, true);
+    r.hold = true;
+    CHECK_FALSE (r.snapshot().context.projectLoaded);   // the constructor left it for the tick
+    yesdaw::ui::mainComponentRunLaunchQuestion (*r.shell);
+    REQUIRE (r.held.has_value());
+    CHECK_FALSE (r.snapshot().context.projectLoaded);   // still none under the question
+    yesdaw::ui::QuestionReply<std::filesystem::path> reply = std::move (*r.held);
+    r.held.reset();
+    reply (std::filesystem::path {});   // Cancel
+    CHECK (r.snapshot().context.projectLoaded);   // the untitled session
+    CHECK (r.snapshot().statusLineText.rfind ("Open cancelled: 1 audio file still missing", 0) == 0);
 }

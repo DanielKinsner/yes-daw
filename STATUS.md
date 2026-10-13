@@ -8,6 +8,28 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 29c: the missing-audio questions ask without a nested loop (ADR-0077)
+
+**What changed:**
+- The relink seam is a Question. The loop asks each next file from the previous answer; a wrong file is asked again with
+  its reason.
+- `openProjectBundleAtPath` takes a completion, so Open and Open Recent end their replace attempt after the last answer.
+- The launch question's tail (the status merge, then the untitled session) waits for that answer. The question is never
+  refused: a tick posts it only when no question is open.
+- The native question uses `showAsync` with a self-owning chooser. No synchronous dialog is left in `src/`.
+
+**Gates `[relink][questions]`:**
+- a held answer: the probe shows the question until it arrives; a wrong file is asked again; a dropped reply is a
+  silent refusal; the original opens the project; Cancel names what is missing;
+- Open's attempt ends with the answer, not before;
+- no untitled session under the launch question.
+
+Bites M1-M5. Critic: no blockers; its two test gaps (the launch tail, Refused) are gated here. SS8: 214/214 on this
+code, the launch-time relink path included. 29b's CI is fully green.
+
+**Next:** 29d (`JUCE_MODAL_LOOPS_PERMITTED=0` and the text gate), then 29e (the Windows paint drive), then the
+close-out's unit 7.
+
 ## 2026-10-13 — Direction: finish FIX 29, then close the Usable-song milestone
 
 Owner direction (Dan, 2026-10-13, relayed to this session by the "YES DAW progress review" session after its review of the week):

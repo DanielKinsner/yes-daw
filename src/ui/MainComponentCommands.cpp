@@ -343,18 +343,31 @@ void MainComponent::saveViewState()
                                      appModel.context().mixerStripsNarrow);
 }
 
-// Open a project bundle at a known path (B39): shared by File > Open and Open Recent.
-void MainComponent::openProjectBundleAtPath (const std::filesystem::path& path)
+// Open a project bundle at a known path (B39): shared by File > Open and Open Recent. ADR-0077: `done` runs once the open
+// has ended - after any missing-audio questions, answered at once or later.
+void MainComponent::openProjectBundleAtPath (const std::filesystem::path& path, std::function<void()> done)
 {
     StoredProjectAssetsResult stored = decodeStoredProjectAssets (path);
-    if (! stored.assets)   // ADR-0062: missing or damaged audio is asked for, then the open runs again from the start
+    if (stored.assets)
     {
-        const RelinkOutcome relink = relinkMissingAudio (path);
-        if (relink == RelinkOutcome::Cancelled)
-            return;   // the status line names what remains missing; the current project stays
-        if (relink == RelinkOutcome::Relinked)
-            stored = decodeStoredProjectAssets (path);
+        attachOpenedBundle (path, std::move (stored));
+        done();
+        return;
     }
+    // ADR-0062: missing or damaged audio is asked for, then the open runs again from the start.
+    auto pending = std::make_shared<StoredProjectAssetsResult> (std::move (stored));
+    relinkMissingAudio (path, [this, path, pending, done] (RelinkOutcome relink) {
+        if (relink == RelinkOutcome::Relinked)
+            *pending = decodeStoredProjectAssets (path);
+        // Cancelled: the status line names what remains missing; Refused: nothing said - the current project stays.
+        if (relink != RelinkOutcome::Cancelled && relink != RelinkOutcome::Refused)
+            attachOpenedBundle (path, std::move (*pending));
+        done();
+    });
+}
+
+void MainComponent::attachOpenedBundle (const std::filesystem::path& path, StoredProjectAssetsResult stored)
+{
     if (stored.assets && ! stored.assets->empty())
     {
         const yesdaw::ui::UiAppLoadResult loaded = appModel.loadPreparedProjectBundle (
@@ -1361,9 +1374,10 @@ void MainComponent::menuItemSelected (int menuItemID, int /*topLevelMenuIndex*/)
         if (index >= recents.size())
             return;
         confirmReplaceProject ([this, bundle = recents[index]] (bool proceed) {   // ADR-0060: unsaved changes first
-            if (proceed)
-                openProjectBundleAtPath (bundle);
-            endReplaceAttemptAndRefresh();   // ADR-0068 §4: a failed open leaves this project's tail due again
+            if (proceed)   // ADR-0068 §4: a failed open leaves this project's tail due again
+                openProjectBundleAtPath (bundle, [this] { endReplaceAttemptAndRefresh(); });
+            else
+                endReplaceAttemptAndRefresh();
         });
         refreshActionState();
         repaintAll();
@@ -1655,9 +1669,11 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
                     return;
                 }
                 ask (fileChoices.chooseOpenProjectBundle, true, [this] (std::optional<std::filesystem::path> path) {
+                    // ADR-0068 §4: a cancelled chooser or failed open re-arms the tail
                     if (path && ! path->empty())
-                        openProjectBundleAtPath (*path);
-                    endReplaceAttemptAndRefresh();   // ADR-0068 §4: a cancelled chooser or failed open re-arms the tail
+                        openProjectBundleAtPath (*path, [this] { endReplaceAttemptAndRefresh(); });
+                    else
+                        endReplaceAttemptAndRefresh();
                 });
             });
             return;
