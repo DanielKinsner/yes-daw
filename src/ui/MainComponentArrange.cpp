@@ -1120,6 +1120,29 @@ void MainComponent::serviceAutomationRide()
     commitAutomationRidePasses (closed, writeRun);
 }
 
+// The layout pass, step 5: the volume readout sits on the VOL label's line, from the label's end to the mini fader's
+// column; the effects line on the kind badge's line, from the badge to the mix cluster.
+juce::Rectangle<int> MainComponent::railVolumeReadoutBounds (juce::Rectangle<int> row) noexcept
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const int mixSummaryX = row.getRight() - L::trackListMixSummaryRightInset - L::trackListMixSummaryWidth;
+    const int left = mixSummaryX + L::trackListMixLabelLeftInset + L::trackListMixLabelWidth;
+    const int right = row.getRight() - L::trackListLevelColumnRightInset - L::trackListLevelColumnWidth - yesdaw::ui::UiTheme::Space::xxs;
+    return { left, row.getY() + L::trackListMixSummaryVerticalInset + L::trackListVolumeLabelTopInset,
+             std::max (0, right - left), L::trackListMixLabelHeight };
+}
+
+juce::Rectangle<int> MainComponent::railFxSummaryBounds (juce::Rectangle<int> row) noexcept
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const int left = row.getX() + L::trackListIconLeftInset + L::trackListIconSize + L::trackListKindBadgeGap
+                   + L::trackListKindBadgeSize + yesdaw::ui::UiTheme::Space::xs;
+    const int right = row.getRight() - L::trackListMixSummaryRightInset - L::trackListMixSummaryWidth - L::trackListButtonInsetX;
+    const int badgeTop = row.getY() + L::trackListIconTopInset + L::trackListIconSize - L::trackListKindBadgeSize;
+    return { left, badgeTop + L::trackListKindBadgeSize / 2 - L::trackListMixLabelHeight / 2,
+             std::max (0, right - left), L::trackListMixLabelHeight };
+}
+
 void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area) const
 {
     fillPanel (g, area);
@@ -1295,6 +1318,21 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
                             yesdaw::ui::UiTheme::Layout::trackListMixLabelHeight),
                     juce::Justification::centred,
                     false);
+        // The layout pass, step 5: the volume in dB beside the VOL label - the strip readout's law, as ridden, without
+        // the unit - between the label and the mini fader.
+        g.drawText (dbReadoutText (paintedStripFaderGain (i, projectTrack.strip.linearGain)).upToFirstOccurrenceOf (" dB", false, false),
+                    railVolumeReadoutBounds (row), juce::Justification::centred, false);
+        // The layout pass, step 5: the track's effects in a line under its name ("EQ · Comp"), as SoundCraft's headers
+        // show them; a long chain ends in an ellipsis.
+        if (! projectTrack.strip.fxChain.empty())
+        {
+            juce::StringArray names;
+            for (const yesdaw::engine::FxInsert& insert : projectTrack.strip.fxChain)
+                names.add (fxKindStripName (insert.kind));
+            g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+            g.drawText (names.joinIntoString (juce::String::fromUTF8 (" \xc2\xb7 ")), railFxSummaryBounds (row),
+                        juce::Justification::centredLeft, true);
+        }
 
         // V5: the mini VOL is a VERTICAL fader (top = loud), the same rect law
         // volumeSliderBounds hit-tests and the same orientation the mixer strip fader uses.

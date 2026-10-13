@@ -1410,6 +1410,9 @@ private:
     void drawMasterMeter (juce::Graphics& g) const;
 
     void drawTrackList (juce::Graphics& g, juce::Rectangle<int> area) const;
+    // The layout pass, step 5: a rail row's volume readout (beside its VOL label) and its effects line (under its name).
+    [[nodiscard]] static juce::Rectangle<int> railVolumeReadoutBounds (juce::Rectangle<int> row) noexcept;
+    [[nodiscard]] static juce::Rectangle<int> railFxSummaryBounds (juce::Rectangle<int> row) noexcept;
 
     yesdaw::ui::TimelineCanvasState makeTimelineState();
 

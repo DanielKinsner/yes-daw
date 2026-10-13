@@ -678,6 +678,65 @@ TEST_CASE ("the layout pass, step 3: a strip shows its pan value, its fader's dB
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// The layout pass, step 5: a rail row shows its effects in a line under its name and its volume in dB beside VOL; a
+// row with no effects leaves that line blank.
+TEST_CASE ("the layout pass, step 5: a rail row shows its effects and its volume", "[ui][screenshot][layout-pass]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-layout-pass-rail.yesdaw";
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);   // track 1: no effects
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    {
+        const juce::Rectangle<int> lane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+        REQUIRE_FALSE (lane.isEmpty());
+        for (const yesdaw::engine::FxKind kind : { yesdaw::engine::FxKind::Eq, yesdaw::engine::FxKind::Compressor })
+        {
+            (void) yesdaw::ui::mainComponentRequestContextMenu (*shell, lane.withHeight (L::mixerPaintedHeaderHeight).getCentre());
+            yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::MixerFxInsertAdd, static_cast<int> (kind));
+        }
+    }
+    const juce::Image image = renderShell (*shell);
+    (void) captureShellPng (image, "yesdaw-layout-pass-rail.png");
+
+    const auto fxLine = [] (juce::Rectangle<int> row) {
+        const int left = row.getX() + L::trackListIconLeftInset + L::trackListIconSize + L::trackListKindBadgeGap
+                       + L::trackListKindBadgeSize + yesdaw::ui::UiTheme::Space::xs;
+        const int right = row.getRight() - L::trackListMixSummaryRightInset - L::trackListMixSummaryWidth - L::trackListButtonInsetX;
+        const int badgeTop = row.getY() + L::trackListIconTopInset + L::trackListIconSize - L::trackListKindBadgeSize;
+        return juce::Rectangle<int> (left, badgeTop + L::trackListKindBadgeSize / 2 - L::trackListMixLabelHeight / 2,
+                                     right - left, L::trackListMixLabelHeight);
+    };
+    const auto volume = [] (juce::Rectangle<int> row) {
+        const int mixSummaryX = row.getRight() - L::trackListMixSummaryRightInset - L::trackListMixSummaryWidth;
+        const int left = mixSummaryX + L::trackListMixLabelLeftInset + L::trackListMixLabelWidth;
+        const int right = row.getRight() - L::trackListLevelColumnRightInset - L::trackListLevelColumnWidth - yesdaw::ui::UiTheme::Space::xxs;
+        return juce::Rectangle<int> (left, row.getY() + L::trackListMixSummaryVerticalInset + L::trackListVolumeLabelTopInset,
+                                     right - left, L::trackListMixLabelHeight);
+    };
+    const juce::Rectangle<int> row0 = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 0);
+    const juce::Rectangle<int> row1 = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 1);
+    REQUIRE_FALSE (row0.isEmpty());
+    REQUIRE_FALSE (row1.isEmpty());
+    INFO ("row 0 " << row0.toString().toStdString() << " fx line " << fxLine (row0).toString().toStdString());
+    REQUIRE (fxLine (row0).getWidth() >= 40);
+    REQUIRE (maxContrastInRegion (image, fxLine (row0)) >= 3.0);   // "EQ · Comp"
+    REQUIRE (maxContrastInRegion (image, fxLine (row1)) < 1.5);    // no effects: blank
+    REQUIRE (maxContrastInRegion (image, volume (row0)) >= 3.0);   // "0.0"
+    REQUIRE (maxContrastInRegion (image, volume (row1)) >= 3.0);
+
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("Piano roll and automation lane render honestly with real notes and breakpoints",
            "[ui][screenshot][roll-sizes]")
 {
