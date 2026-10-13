@@ -4002,6 +4002,7 @@ private:
         clip.fadeIn = 0;
         clip.fadeOut = 0;
         clip.timeBase = engine::TimeBase::SampleLocked;
+        clip.name = clipNameForFile (sourcePath);   // the layout pass, step 1
 
         // R8: the CLIP is the undoable act. The asset row (and any auto-created default
         // track) stays outside the transaction, like the asset file in the bundle — inert
@@ -9239,11 +9240,13 @@ public:
         return { id, state, true };
     }
 
-    // G2.12: the clip's own colour cycle — the SAME six swatches the rail row cycles through
-    // (0 = follow the track, then the five theme accents), so a clip colour always looks native.
-    static constexpr std::array<std::uint32_t, 6> kClipColourCycle {
-        engine::kTrackColourUnset, colours::accentBlue, colours::accentTeal, colours::accentAmber,   // ADR-0063: shared values
-        colours::accentPurple, colours::accentCyan };
+    // G2.12: the clip's own colour cycle - 0 = follow the track, then the SAME track palette the rail row cycles through
+    // (the layout pass, step 1), so a clip colour always looks native. ADR-0063: shared values.
+    static constexpr std::array<std::uint32_t, 1u + colours::trackPaletteSize> kClipColourCycle {
+        engine::kTrackColourUnset, colours::trackPalette[0], colours::trackPalette[1], colours::trackPalette[2],
+        colours::trackPalette[3], colours::trackPalette[4], colours::trackPalette[5], colours::trackPalette[6],
+        colours::trackPalette[7] };
+    static_assert (colours::trackPaletteSize == 8u, "kClipColourCycle lists every palette entry");
 
     [[nodiscard]] UiActionDispatchResult cycleSelectedTimelineClipColour()
     {
@@ -12857,6 +12860,33 @@ private:
         return nullptr;
     }
 
+    // The layout pass, step 1: a clip is named after the file it came from ("Kick" for Kick.wav) instead of "Audio Clip",
+    // cut to ClipName's limit on a whole UTF-8 character; a file with no usable name keeps the default.
+    [[nodiscard]] static engine::ClipName clipNameForFile (const std::filesystem::path& file)
+    {
+        std::string stem = yesdaw::io::utf8Text (file.stem());
+        if (stem.size() > engine::ClipName::kMaxLength)
+        {
+            std::size_t cut = engine::ClipName::kMaxLength;
+            while (cut > 0u && (static_cast<unsigned char> (stem[cut]) & 0xC0u) == 0x80u)
+                --cut;
+            stem.resize (cut);
+        }
+        engine::ClipName name;
+        (void) name.assign (stem);
+        return name;
+    }
+
+    // A project Asset placed again (from the Browser's project list) takes the name of a clip already playing it, so a
+    // second "Kick" reads "Kick" too; an Asset no clip plays keeps the default.
+    [[nodiscard]] engine::ClipName clipNameForProjectAsset (const engine::Project& project, const engine::EntityId& assetId) const
+    {
+        for (const engine::Clip& clip : project.clips)
+            if (clip.assetId == assetId)
+                return clip.name;
+        return {};
+    }
+
     // ADR-0054 / ADR-0056: one clip to land — an Asset (new, with its decode; or the project's own, without) and the
     // file it came from (for Recent; empty for a project Asset).
     struct ClipLanding
@@ -12909,6 +12939,8 @@ private:
             clip.fadeIn = 0;
             clip.fadeOut = 0;
             clip.timeBase = engine::TimeBase::SampleLocked;
+            clip.name = landing.sourcePath.empty() ? clipNameForProjectAsset (nextProject, landing.asset.id)
+                                                   : clipNameForFile (landing.sourcePath);
             applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied();
             if (! applied)
                 break;

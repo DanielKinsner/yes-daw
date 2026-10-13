@@ -2035,7 +2035,7 @@ TEST_CASE ("F2 renames the selected Clip through the shipped shell and preserves
     REQUIRE (afterRename == beforeRename);
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (readProjectSnapshot (bundlePath).clips.front().name == "Audio Clip");
+    REQUIRE (readProjectSnapshot (bundlePath).clips.front().name == fixturePath.stem().string());   // the layout pass, step 1
     REQUIRE (shell->keyPressed (juce::KeyPress ('z',
         juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).clips.front().name == "Lead Vocal Comp");
@@ -8637,29 +8637,27 @@ TEST_CASE ("V6 a clip paints its name, its fade curves, and an unmistakable sele
         return false;
     };
 
-    // Give the track the FIRST palette colour (accent blue) through the shipped N7 swatch, so
-    // the selection claim below is colour-proof: the retired swap-to-accent-blue law was
-    // pixel-invisible on exactly this track colour.
+    // Give the track its own palette colour through the shipped N7 swatch (the layout pass, step 1: the entry after the
+    // one its row shows), so the selection claim below is colour-proof whatever the colour.
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     const juce::Rectangle<int> swatch = yesdaw::ui::mainComponentPaintedColourSwatchBounds (*shell, 0);
     REQUIRE_FALSE (swatch.isEmpty());
     mouseDownAt (*rail, swatch.getCentre() - rail->getPosition());
-    REQUIRE (juce::Colour (readProjectSnapshot (bundlePath).tracks.front().colour)
-             == yesdaw::ui::UiTheme::Color::accentBlue());
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().colour == yesdaw::ui::colours::trackPalette[1]);
 
     // Deselect (import auto-selects) so the baseline is the plain painted clip.
     mouseDownAt (timeline, { timeline.getWidth() - 2, timeline.getHeight() - 2 });
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.timelineClipSelected);
     const juce::Image plain = renderShell();
 
-    // (a) The clip's NAME paints on its body: exact text-colour pixels inside the lane region
-    // (the only kText painted there — toolbar/ruler text is excluded by the region).
+    // (a) The clip's NAME paints on its name bar: exact dark-ink (textOnFill, the layout pass, step 1) pixels inside the
+    // lane region (the only textOnFill painted there — toolbar/ruler text is excluded by the region).
     {
         bool sawName = false;
         for (int y = lanes.getY(); y < lanes.getBottom() && ! sawName; ++y)
             for (int x = lanes.getX(); x < lanes.getRight(); ++x)
-                if (plain.getPixelAt (x, y) == yesdaw::ui::UiTheme::Color::text())
+                if (plain.getPixelAt (x, y) == yesdaw::ui::UiTheme::Color::textOnFill())
                 {
                     sawName = true;
                     break;
@@ -14709,6 +14707,45 @@ TEST_CASE ("N6 a row-boundary drag resizes exactly one track's row, persists, cl
     std::filesystem::remove_all (bundlePath, ec3);
 }
 
+TEST_CASE ("the layout pass, step 1: an imported clip is named after its file, and an uncoloured track wears its "
+           "position's palette colour on its rail and its clips",
+           "[ui][input][shell][track-colour][layout-pass]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("clip-file-name");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+
+    // The saved project carries the name, so it survives a reopen.
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+    REQUIRE (project.clips[0].name == fixturePath.stem().string());
+    REQUIRE (project.tracks[0].colour == yesdaw::engine::kTrackColourUnset);
+
+    const juce::Colour first (yesdaw::ui::colours::trackPalette[0]);
+    REQUIRE (yesdaw::ui::mainComponentTimelineClipColour (*shell, project.clips[0].id) == first);
+    juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+    {
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+    }
+    const juce::Rectangle<int> swatch = yesdaw::ui::mainComponentPaintedColourSwatchBounds (*shell, 0);
+    REQUIRE_FALSE (swatch.isEmpty());
+    bool swatchPainted = false;
+    for (int y = swatch.getY(); y < swatch.getBottom() && ! swatchPainted; ++y)
+        for (int x = swatch.getX(); x < swatch.getRight() && ! swatchPainted; ++x)
+            swatchPainted = image.getPixelAt (x, y) == first;
+    REQUIRE (swatchPainted);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists, paints "
            "everywhere, and undoes as one step",
            "[ui][input][shell][track-colour]")
@@ -14811,11 +14848,14 @@ TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists
 
     const juce::Colour expected (project.tracks[1].colour);
 
-    // Rail: the swatch itself paints the exact persisted colour (full-alpha fill — no blending to
-    // account for), and neither OTHER row's swatch does.
+    // Rail: the swatch itself paints the exact persisted colour (full-alpha fill — no blending to account for). The
+    // layout pass, step 1: an uncoloured row shows its position's palette entry, and the click moved track 1 to the
+    // entry after its own.
+    REQUIRE (project.tracks[1].colour == yesdaw::ui::colours::trackPalette[2]);
     REQUIRE (rectContainsColour (swatch1, expected));
     REQUIRE_FALSE (rectContainsColour (yesdaw::ui::mainComponentPaintedColourSwatchBounds (*shell, 0), expected));
-    REQUIRE_FALSE (rectContainsColour (yesdaw::ui::mainComponentPaintedColourSwatchBounds (*shell, 2), expected));
+    REQUIRE (rectContainsColour (yesdaw::ui::mainComponentPaintedColourSwatchBounds (*shell, 0),
+                                 juce::Colour (yesdaw::ui::colours::trackPalette[0])));
 
     // Clip: track 1's clip now paints the new colour; track 0's clip (still unset) does not —
     // read through the SAME cached style array the canvas paints from, so it cannot drift.
@@ -19866,15 +19906,15 @@ TEST_CASE ("G2.12 clip properties: mute is silent and undoable, colour cycles, t
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (clipNow() == base);
 
-    // Colour: the verb cycles follow-track -> the five accents -> follow-track; undo walks back.
+    // Colour: the verb cycles follow-track -> the eight track-palette colours -> follow-track; undo walks back.
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipColourNext);
-    REQUIRE (clipNow().colour == 0xff3b8cffu);
-    for (int i = 0; i < 5; ++i)
+    REQUIRE (clipNow().colour == yesdaw::ui::colours::trackPalette[0]);
+    for (std::size_t i = 0; i < yesdaw::ui::colours::trackPaletteSize; ++i)
         yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipColourNext);
     REQUIRE (clipNow().colour == yesdaw::engine::kTrackColourUnset);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (clipNow().colour == 0xff20c8d8u);
-    for (int i = 0; i < 5; ++i)
+    REQUIRE (clipNow().colour == yesdaw::ui::colours::trackPalette[yesdaw::ui::colours::trackPaletteSize - 1u]);
+    for (std::size_t i = 0; i < yesdaw::ui::colours::trackPaletteSize; ++i)
         REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (clipNow() == base);
 
@@ -20079,12 +20119,12 @@ TEST_CASE ("G2.14 markers v2: colour cycles and persists, the inspector list loc
         yesdaw::ui::mainComponentInvokeContextMenuId (*shell, static_cast<int> (UiActionId::TimelineMarkerColourNext) + 1);
         REQUIRE (snapshotMainComponent (*shell).context.commandDispatchCount == dispatchesBefore + 1);
     }
-    REQUIRE (markersNow()[0].colour == 0xff3b8cffu);
+    REQUIRE (markersNow()[0].colour == yesdaw::ui::colours::trackPalette[0]);
     REQUIRE (markersNow()[1].colour == yesdaw::engine::kTrackColourUnset);
     REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (markersNow()[0].colour == yesdaw::engine::kTrackColourUnset);
     REQUIRE (shell->keyPressed (juce::KeyPress ('y', juce::ModifierKeys::ctrlModifier, 0)));
-    REQUIRE (markersNow()[0].colour == 0xff3b8cffu);
+    REQUIRE (markersNow()[0].colour == yesdaw::ui::colours::trackPalette[0]);
 
     // The inspector list: make room (a tall window, the settings row hidden, the dock at its
     // minimum — at 720 rows the card drops whole, D50), two rows in tick order, and a click on

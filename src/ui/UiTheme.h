@@ -143,14 +143,15 @@ struct UiTheme
         static constexpr float mixerHeaderAlpha = 0.36f;
         static constexpr float mixerKnobHighlightAlpha = 0.75f;
         static constexpr float clipSurfaceTopAlpha = 0.22f;
-        static constexpr float timelineCanvasClipSurfaceTopBrightness = 0.10f;
-        static constexpr float timelineCanvasClipSurfaceTopAlpha = 0.5f;   // ADR-0063: a clip's name on the top reads >= 4.5:1
         static constexpr float timelineCanvasFallbackClipAmplitude = 0.7f;
-        static constexpr float timelineCanvasWaveformBrightness = 0.42f;
-        static constexpr float timelineCanvasCompactClipAlpha = 0.44f;
-        static constexpr float timelineCanvasCompactHighlightBrightness = 0.3f;
-        static constexpr float timelineCanvasClipFillAlpha = 0.42f;
-        static constexpr float timelineCanvasClipOutlineBrightness = 0.35f;
+        static constexpr float timelineCanvasWaveformBrightness = 0.42f;   // the fade curve's stroke
+        // The layout pass, step 1 (the Logic / Pro Tools / SoundCraft clip): a solid body in a darker shade of the track
+        // colour, a name bar in the full colour with dark text (textOnFill), and a dark two-tone waveform on the body.
+        static constexpr float timelineClipBodyBrightness = 0.82f;   // the RMS ink reads >= 3:1 on every palette body
+        static constexpr float timelineClipOutlineDarkness = 0.7f;
+        static constexpr float timelineClipWaveformPeakAlpha = 0.5f;
+        static constexpr float timelineClipWaveformRmsAlpha = 0.85f;
+        static constexpr float timelineClipNoteInkAlpha = 0.78f;
         static constexpr float timelineDragGhostFillAlpha = 0.30f;      // G2.3
         static constexpr float timelineClipMutedWashAlpha = 0.55f;   // G2.12: the panel wash over a muted clip
         static constexpr float timelineDragGhostOutlineAlpha = 0.95f;   // G2.3
@@ -161,6 +162,23 @@ struct UiTheme
         static constexpr float mainComponentProjectClipAlpha = 0.82f;
         // V6: the fade region shades the clip body above the gain curve at this alpha.
         static constexpr float timelineCanvasFadeShadeAlpha = 0.45f;
+    };
+
+    // The layout pass, step 1: a clip's colours, as painted - opaque, so a gate can match a pixel exactly and the paint
+    // blends nothing. The body is a darker shade of the clip's colour; the name bar is the colour itself; the wave and
+    // the notes are dark ink on the body.
+    struct ClipInk
+    {
+        static juce::Colour body (juce::Colour clipColour) noexcept
+        {
+            return clipColour.withMultipliedBrightness (Tone::timelineClipBodyBrightness).withAlpha (1.0f);
+        }
+        static juce::Colour onBody (juce::Colour clipColour, float alpha) noexcept
+        {
+            return body (clipColour).overlaidWith (Color::appBackground().withAlpha (alpha));   // ink, not a text token
+        }
+        static juce::Colour wavePeak (juce::Colour clipColour) noexcept { return onBody (clipColour, Tone::timelineClipWaveformPeakAlpha); }
+        static juce::Colour waveRms (juce::Colour clipColour) noexcept { return onBody (clipColour, Tone::timelineClipWaveformRmsAlpha); }
     };
 
     struct Space
@@ -1205,6 +1223,8 @@ struct UiTheme
         // UI pass unit 22: the strip a clip's name takes at its top (the name sits Space::sm in, in the small type); a
         // MIDI clip's note preview stays under it.
         static constexpr int timelineCanvasClipNameStripHeight = Space::sm + static_cast<int> (Type::small) + Space::xxs;
+        // The layout pass, step 1: a clip shows its name bar only with at least this much body under it.
+        static constexpr int timelineCanvasClipNameStripMinBody = 10;
         static constexpr float timelineCanvasWaveformMinAmplitude = 0.1f;
         static constexpr float timelineCanvasWaveformMaxAmplitude = 1.0f;
         static constexpr float timelineCanvasWaveformHeightScale = 0.42f;

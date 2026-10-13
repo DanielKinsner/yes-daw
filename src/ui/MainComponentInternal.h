@@ -241,41 +241,34 @@ inline void drawSmallLabel (juce::Graphics& g, const juce::String& text, juce::R
     return { scaleColumn.getX(), levelY - L::mixerMasterScaleLabelHeight / 2, scaleColumn.getWidth(), L::mixerMasterScaleLabelHeight };
 }
 
+// The layout pass, step 1: the palette entry for a strip or track position (UiColourValues.h's trackPalette).
+[[nodiscard]] inline std::uint32_t trackPaletteValue (std::size_t index) noexcept
+{
+    return yesdaw::ui::colours::trackPalette[index % yesdaw::ui::colours::trackPaletteSize];
+}
+
 inline juce::Colour stripColourForIndex (std::size_t index)
 {
-    const std::array colours { kBlue, kTeal, kAmber, kPurple, kCyan };
-    return colours[index % colours.size()];
+    return juce::Colour (trackPaletteValue (index));
 }
 
-// N7: the fixed swatch palette a rail-row colour click cycles through. Position 0 is "no
-// override" (kTrackColourUnset); positions 1..5 mirror the SAME five accents
-// stripColourForIndex already draws from (kBlue/kTeal/kAmber/kPurple/kCyan), so a customized
-// track colour always looks native to this theme instead of introducing a new arbitrary hue.
-// ADR-0063: the shared ARGB values (UiColourValues.h), so the array can be constexpr and still be the theme's own.
-inline constexpr std::array<std::uint32_t, 6> kTrackColourCycle {
-    yesdaw::engine::kTrackColourUnset,
-    yesdaw::ui::colours::accentBlue,
-    yesdaw::ui::colours::accentTeal,
-    yesdaw::ui::colours::accentAmber,
-    yesdaw::ui::colours::accentPurple,
-    yesdaw::ui::colours::accentCyan,
-};
-
-[[nodiscard]] inline std::uint32_t nextTrackColourInCycle (std::uint32_t current) noexcept
+// N7: a rail-row colour click moves the track to the NEXT palette entry after the colour it shows (a track with no
+// colour of its own shows its position's entry), so every click visibly changes it; the palette wraps.
+[[nodiscard]] inline std::uint32_t nextTrackColourInCycle (std::uint32_t current, std::size_t trackIndex) noexcept
 {
-    const auto it = std::find (kTrackColourCycle.begin(), kTrackColourCycle.end(), current);
-    const std::size_t index = it == kTrackColourCycle.end()
-                                   ? 0
-                                   : static_cast<std::size_t> (it - kTrackColourCycle.begin());
-    return kTrackColourCycle[(index + 1) % kTrackColourCycle.size()];
+    const std::uint32_t shown = current == yesdaw::engine::kTrackColourUnset ? trackPaletteValue (trackIndex) : current;
+    for (std::size_t i = 0; i < yesdaw::ui::colours::trackPaletteSize; ++i)
+        if (yesdaw::ui::colours::trackPalette[i] == shown)
+            return trackPaletteValue (i + 1u);
+    return trackPaletteValue (0);
 }
 
-// N7: what the rail/mixer/clips actually paint for a track — its own persisted colour when set,
-// otherwise the surface's historical fallback (so an untouched Project renders bit-identically
-// to before this field existed).
-[[nodiscard]] inline juce::Colour colourForTrack (const yesdaw::engine::Track& track, juce::Colour fallbackColour) noexcept
+// N7 / the layout pass, step 1: what the rail, the clips, the inspector and the mixer paint for a track - its own
+// persisted colour when set, otherwise the palette entry for its position. One law, so a track looks the same
+// everywhere (the timeline used to fall back to purple while the mixer cycled five accents).
+[[nodiscard]] inline juce::Colour colourForTrack (const yesdaw::engine::Track& track, std::size_t trackIndex) noexcept
 {
-    return track.colour == yesdaw::engine::kTrackColourUnset ? fallbackColour : juce::Colour (track.colour);
+    return track.colour == yesdaw::engine::kTrackColourUnset ? stripColourForIndex (trackIndex) : juce::Colour (track.colour);
 }
 
 // Translate a JUCE KeyPress into the keymap's chord vocabulary ("Ctrl+Alt+Shift+B", "Space", "Del",

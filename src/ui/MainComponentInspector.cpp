@@ -837,7 +837,7 @@ void MainComponent::drawTrackInspector (juce::Graphics& g, juce::Rectangle<int> 
     const int lane = std::clamp (selectedTrackLane, 0, static_cast<int> (tracks.size()) - 1);
     const yesdaw::engine::Track& track = tracks[static_cast<std::size_t> (lane)];
 
-    g.setColour (colourForTrack (track, kPurple));
+    g.setColour (colourForTrack (track, static_cast<std::size_t> (lane)));
     g.fillRoundedRectangle (static_cast<float> (area.getX()),
                             static_cast<float> (area.getY()
                                                 + yesdaw::ui::UiTheme::Layout::inspectorTitleAccentTopInset),
@@ -965,7 +965,17 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
         return;
     }
 
-    g.setColour (kPurple);
+    // The layout pass, step 1: the title's dot is the clip's colour as the timeline paints it (its own, else its track's).
+    {
+        const auto& tracks = appModel.project().tracks;
+        const auto track = std::find_if (tracks.begin(), tracks.end(), [selectedClip] (const yesdaw::engine::Track& t) {
+            return t.id == selectedClip->trackId;
+        });
+        g.setColour (selectedClip->colour != yesdaw::engine::kTrackColourUnset
+                         ? juce::Colour (selectedClip->colour)
+                         : track != tracks.end() ? colourForTrack (*track, static_cast<std::size_t> (track - tracks.begin()))
+                                                 : kPurple);
+    }
     g.fillRoundedRectangle (static_cast<float> (area.getX()),
                             static_cast<float> (area.getY()
                                                 + yesdaw::ui::UiTheme::Layout::inspectorTitleAccentTopInset),

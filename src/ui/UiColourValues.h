@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 namespace yesdaw::ui::colours {
@@ -15,5 +16,20 @@ inline constexpr std::uint32_t accentTeal = 0xff1bb5a6u;
 inline constexpr std::uint32_t accentAmber = 0xffd29118u;
 inline constexpr std::uint32_t accentPurple = 0xffa578ffu;
 inline constexpr std::uint32_t accentCyan = 0xff20c8d8u;
+
+// The layout pass, step 1: the track colours, in the order new tracks take them (the Logic / SoundCraft rainbow). A
+// track with no colour of its own wears the entry for its position, on the rail, its clips and its mixer strip alike;
+// dark text and dark waveforms read on every entry (each is at least 4.5:1 against appBackground).
+inline constexpr std::uint32_t trackPalette[] = {
+    0xffe0583au,   // red
+    0xffe8902au,   // orange
+    0xffd8c02au,   // yellow
+    0xff5cc45au,   // green
+    accentTeal,
+    accentBlue,
+    accentPurple,
+    0xffe05a9cu,   // pink
+};
+inline constexpr std::size_t trackPaletteSize = sizeof (trackPalette) / sizeof (trackPalette[0]);
 
 } // namespace yesdaw::ui::colours

@@ -217,14 +217,16 @@ TEST_CASE ("ADR-0063 text reaches 4.5:1 and indicators 3:1 wherever they are dra
     add ("pianoWhiteKeyMutedText on pianoWhiteKey", Color::pianoWhiteKeyMutedText(), Color::pianoWhiteKey(), 4.5);
     add ("text on samplerPadLoaded", Color::text(), Color::samplerPadLoaded(), 4.5);
     add ("text on accentPurpleDeep", Color::text(), Color::accentPurpleDeep(), 4.5);
-    // A clip's name on its body as painted: the accent's brighter top and its fill, each over the canvas.
-    for (const auto& [accentName, accent] : accents)
+    // The layout pass, step 1: a clip's name is dark ink on its name bar (the track colour itself), and its wave is dark
+    // ink on its body, for every track-palette colour.
+    for (std::size_t i = 0; i < yesdaw::ui::colours::trackPaletteSize; ++i)
     {
-        const juce::Colour top = Color::timelineCanvas().overlaidWith (
-            accent.brighter (Tone::timelineCanvasClipSurfaceTopBrightness).withAlpha (Tone::timelineCanvasClipSurfaceTopAlpha));
-        const juce::Colour body = Color::timelineCanvas().overlaidWith (accent.withAlpha (Tone::timelineCanvasClipFillAlpha));
-        add ("clip name on the top of a " + accentName + " clip", Color::text(), top, 4.5);
-        add ("clip name on the body of a " + accentName + " clip", Color::text(), body, 4.5);
+        const juce::Colour colour (yesdaw::ui::colours::trackPalette[i]);
+        const std::string name = "track palette " + std::to_string (i);
+        add ("clip name (textOnFill) on the name bar of a " + name + " clip", Color::textOnFill(), colour, 4.5);
+        add ("clip wave RMS ink on the body of a " + name + " clip",
+             yesdaw::ui::UiTheme::ClipInk::waveRms (colour),
+             yesdaw::ui::UiTheme::ClipInk::body (colour), 3.0);
     }
 
     // Indicators: 3:1 against the surfaces they sit on.

@@ -804,7 +804,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         if (row < 0 || row >= static_cast<int> (tracks.size()))
             return;
         const auto& track = tracks[static_cast<std::size_t> (row)];
-        (void) appModel.setTrackColour (track.id, nextTrackColourInCycle (track.colour));
+        (void) appModel.setTrackColour (track.id, nextTrackColourInCycle (track.colour, static_cast<std::size_t> (row)));
         refreshActionState();
         repaintAll();
     };

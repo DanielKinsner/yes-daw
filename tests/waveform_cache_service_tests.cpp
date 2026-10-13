@@ -645,7 +645,10 @@ TEST_CASE ("timeline paint reads each clip's OWN source window, not the whole fi
     const auto ready = std::make_shared<const yesdaw::persistence::WaveformPeakCache> (built.cache);
 
     const TimelineCanvasClipStyle style { juce::Colour { 0xff7c5cff }, 0.65f };
-    const juce::Colour peak = style.colour.brighter (yesdaw::ui::UiTheme::Tone::timelineCanvasWaveformBrightness);
+    // The layout pass, step 1: the wave is two-tone on the clip's body - a wave pixel is the peak ink or the RMS ink.
+    const juce::Colour peakInk = yesdaw::ui::UiTheme::ClipInk::wavePeak (style.colour);
+    const juce::Colour rmsInk = yesdaw::ui::UiTheme::ClipInk::waveRms (style.colour);
+    const auto isWave = [peakInk, rmsInk] (juce::Colour pixel) { return pixel == peakInk || pixel == rmsInk; };
 
     // Paint one clip (id 0, 2 s long at t = 0) with the given source window; return the image.
     const auto paintWindow = [&] (std::uint64_t startFrame, std::uint64_t frameCount) {
@@ -665,7 +668,7 @@ TEST_CASE ("timeline paint reads each clip's OWN source window, not the whole fi
         int n = 0;
         for (int y = 0; y < image.getHeight(); ++y)
             for (int x = 0; x < image.getWidth(); ++x)
-                if (image.getPixelAt (x, y) == peak)
+                if (isWave (image.getPixelAt (x, y)))
                     ++n;
         return n;
     };
@@ -727,7 +730,10 @@ TEST_CASE ("zoomed past the peak cache, the paint reads decoded samples: a ramp'
 
     const Clip clip { 0, 0, 0.0, 1.0, nullptr, 0, kFrames };
     const TimelineCanvasClipStyle style { juce::Colour { 0xff7c5cff }, 0.65f };
-    const juce::Colour peak = style.colour.brighter (yesdaw::ui::UiTheme::Tone::timelineCanvasWaveformBrightness);
+    // The layout pass, step 1: the wave is two-tone on the clip's body - a wave pixel is the peak ink or the RMS ink.
+    const juce::Colour peakInk = yesdaw::ui::UiTheme::ClipInk::wavePeak (style.colour);
+    const juce::Colour rmsInk = yesdaw::ui::UiTheme::ClipInk::waveRms (style.colour);
+    const auto isWave = [peakInk, rmsInk] (juce::Colour pixel) { return pixel == peakInk || pixel == rmsInk; };
 
     const auto paint = [&] (bool withSamples, TimelineCanvasPaintStats& stats) {
         TimelineCanvasState state = makePaintState (&clip, &style, 1);
@@ -754,7 +760,7 @@ TEST_CASE ("zoomed past the peak cache, the paint reads decoded samples: a ramp'
     // The ramp: the topmost peak pixel climbs (y shrinks) as x advances across the clip.
     const auto topAt = [&] (const juce::Image& image, int x) {
         for (int y = 0; y < image.getHeight(); ++y)
-            if (image.getPixelAt (x, y) == peak)
+            if (isWave (image.getPixelAt (x, y)))
                 return y;
         return -1;
     };

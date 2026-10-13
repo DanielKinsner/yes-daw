@@ -1169,7 +1169,7 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
                                            : juce::String (projectTrack.strip.name);
         // N7: a customized colour overrides the historical fixed purple everywhere this
         // variable is used below (accent bar / swatch, kind badge tint, pan indicator, level fill).
-        const juce::Colour trackColour = colourForTrack (projectTrack, kPurple);
+        const juce::Colour trackColour = colourForTrack (projectTrack, i);
 
         const auto rowSurface = row.reduced (
             yesdaw::ui::UiTheme::Layout::trackListRowHorizontalInset,
@@ -1610,13 +1610,16 @@ void MainComponent::rebuildTimelineClipViews()
     }
 
     projectTimelineTracks.reserve (project.tracks.size());
-    for (const yesdaw::engine::Track& track : project.tracks)
+    for (std::size_t trackIndex = 0; trackIndex < project.tracks.size(); ++trackIndex)
+    {
+        const yesdaw::engine::Track& track = project.tracks[trackIndex];
         projectTimelineTracks.push_back ({ track.strip.name.empty() ? "Track" : track.strip.name.c_str(),
-                                           colourForTrack (track, kPurple),
+                                           colourForTrack (track, trackIndex),
                                            0.0f,
                                            track.heightPx,
                                            automationAreaHeightFor (track),     // G4.6 / ADR-0052
                                            automationLaneHeightFor (track) });
+    }
 
     double endSeconds = 0.0;
     const double sampleRate = project.sampleRate.hz;
@@ -1651,7 +1654,7 @@ void MainComponent::rebuildTimelineClipViews()
         // the exact false-positive risk the N7 gate had to work around).
         timelineClipStyles.push_back ({ clip.colour != yesdaw::engine::kTrackColourUnset
                                             ? juce::Colour (clip.colour)                 // G2.12: the clip's own colour
-                                            : colourForTrack (*track, kPurple),
+                                            : colourForTrack (*track, static_cast<std::size_t> (lane)),
                                         yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha,
                                         appModel.isTimelineClipSelected (clip.id),
                                         static_cast<long long> (clip.timelineLength),
@@ -1692,7 +1695,7 @@ void MainComponent::rebuildTimelineClipViews()
         timelineClipNotes.insert (timelineClipNotes.end(), preview.notes.begin(), preview.notes.end());
         // V6: same ring law as audio clips; MIDI clips have no fade model, so the fade tick
         // fields stay honestly zero (nothing paints).
-        timelineClipStyles.push_back ({ colourForTrack (*track, yesdaw::ui::UiTheme::Color::accentCyan()),
+        timelineClipStyles.push_back ({ colourForTrack (*track, static_cast<std::size_t> (lane)),
                                         yesdaw::ui::UiTheme::Tone::mainComponentProjectClipAlpha,
                                         appModel.isTimelineClipSelected (midiClip.id),
                                         static_cast<long long> (midiClip.timelineLength),

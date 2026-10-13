@@ -2352,7 +2352,6 @@ TEST_CASE ("the rail shows only real track data: no instrument picture by row in
     REQUIRE_FALSE (rectOf ("rail.row.4").isEmpty());
     REQUIRE (rectOf ("rail.row.5").isEmpty());
 
-    const juce::Colour purple = yesdaw::ui::UiTheme::Color::accentPurple();
     std::vector<juce::Image> cells;
     int rowsChecked = 0;
     for (int lane = 0; lane < 5; ++lane)
@@ -2366,10 +2365,12 @@ TEST_CASE ("the rail shows only real track data: no instrument picture by row in
         if (row.isEmpty() || selected.count (lane) != 0 || ! rail.contains (cell))
             continue;
         ++rowsChecked;
-        // The swatch (the accent bar at the row's left edge) is the track's purple.
+        // The swatch (the accent bar at the row's left edge) is the track's colour - with none of its own, its position's
+        // palette entry (the layout pass, step 1).
         const juce::Colour swatch = image.getPixelAt (row.getX() + L::trackListAccentWidth / 2, row.getCentreY());
-        CAPTURE (swatch.toDisplayString (true), purple.toDisplayString (true));
-        REQUIRE (swatch == purple);
+        const juce::Colour expected (yesdaw::ui::colours::trackPalette[static_cast<std::size_t> (lane)]);
+        CAPTURE (swatch.toDisplayString (true), expected.toDisplayString (true));
+        REQUIRE (swatch == expected);
         // The audio badge: three bars, the middle one full height, with a gap between them - the middle bar's centre
         // differs from the gap beside it.
         const juce::Rectangle<int> badge (row.getX() + L::trackListIconLeftInset + L::trackListIconSize + L::trackListKindBadgeGap,
@@ -2383,12 +2384,17 @@ TEST_CASE ("the rail shows only real track data: no instrument picture by row in
         cells.push_back (image.getClippedImage (cell).createCopy());
     }
     REQUIRE (cells.size() >= 3u);
+    // The icon square is the same on every row; only the badge beside it differs, by its track's colour (its shape and
+    // place do not: the badge rect holds every differing pixel).
+    const juce::Rectangle<int> badgeInCell (L::trackListIconSize + L::trackListKindBadgeGap,
+                                            L::trackListIconSize - L::trackListKindBadgeSize,
+                                            L::trackListKindBadgeSize, L::trackListKindBadgeSize);
     for (std::size_t i = 1; i < cells.size(); ++i)
     {
         int differing = 0;
         for (int y = 0; y < cells[0].getHeight(); ++y)
             for (int x = 0; x < cells[0].getWidth(); ++x)
-                if (cells[i].getPixelAt (x, y) != cells[0].getPixelAt (x, y))
+                if (! badgeInCell.contains (x, y) && cells[i].getPixelAt (x, y) != cells[0].getPixelAt (x, y))
                     ++differing;
         INFO ("unselected row cell " << i << " against the first");
         REQUIRE (differing == 0);

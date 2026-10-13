@@ -719,19 +719,35 @@ inline const Clip* clipForId (const TimelineCanvasState& state, int clipId)
     return nullptr;
 }
 
+// The layout pass, step 1: a clip tall enough for its name bar and some body under it shows the bar (and its name in it); a shorter one is all
+// body. One law for the frame, the name, the waveform's area and the notes' area.
+[[nodiscard]] inline bool clipShowsNameStrip (juce::Rectangle<int> area) noexcept
+{
+    return area.getHeight() >= UiTheme::Layout::timelineCanvasClipNameStripHeight
+                                   + UiTheme::Layout::timelineCanvasClipNameStripMinBody;
+}
+
+// The body's part of a clip: under the name bar when it shows (the waveform and the notes centre in it), else all of it.
+[[nodiscard]] inline juce::Rectangle<int> clipBodyArea (juce::Rectangle<int> area) noexcept
+{
+    return clipShowsNameStrip (area) ? area.withTrimmedTop (UiTheme::Layout::timelineCanvasClipNameStripHeight
+                                                            - UiTheme::Layout::timelineCanvasWaveformInsetY)
+                                     : area;
+}
+
 // M7: a clip whose peaks are not ready yet paints an honest PENDING body — a single centre line,
 // no invented peaks. This used to synthesize a waveform from a hash of the clip id, which meant the
 // timeline drew confident audio detail for content it had never read (and for MIDI clips, which
 // have no audio at all).
 inline void drawClipPendingBody (juce::Graphics& g, juce::Rectangle<int> area, juce::Colour colour)
 {
+    area = clipBodyArea (area);
     area.reduce (UiTheme::Layout::timelineCanvasWaveformInsetX,
                  UiTheme::Layout::timelineCanvasWaveformInsetY);
     if (area.isEmpty())
         return;
 
-    g.setColour (colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness)
-                       .withAlpha (UiTheme::Tone::timelineCanvasGridMinorLineAlpha));
+    g.setColour (UiTheme::ClipInk::wavePeak (colour));
     g.fillRect (area.getX(),
                 area.getCentreY(),
                 area.getWidth(),
@@ -793,7 +809,7 @@ inline int drawClipNotePreview (juce::Graphics& g, juce::Rectangle<int> area, ju
     const int rowHeight = std::max (UiTheme::Layout::timelineCanvasGridLineWidth, juce::roundToInt (rowPitch));
     const int stride = std::max (1, noteCount / UiTheme::Layout::timelineCanvasNotePreviewMaxNotes);
 
-    g.setColour (colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness));
+    g.setColour (UiTheme::ClipInk::onBody (colour, UiTheme::Tone::timelineClipNoteInkAlpha));
     int drawn = 0;
     int seen = 0;
     for (int i = 0; i < state.clipNoteCount; ++i)
@@ -832,6 +848,7 @@ inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area,
 {
     if (paintedFromSamples != nullptr)
         *paintedFromSamples = false;
+    area = clipBodyArea (area);   // the layout pass, step 1: the wave centres in the body, under the name bar
     area.reduce (UiTheme::Layout::timelineCanvasWaveformInsetX,
                  UiTheme::Layout::timelineCanvasWaveformInsetY);
     if (area.isEmpty()
@@ -900,8 +917,9 @@ inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area,
                      * UiTheme::Layout::timelineCanvasWaveformHeightScale;
     const float minValue = -UiTheme::Layout::timelineCanvasWaveformMaxAmplitude;
     const float maxValue = UiTheme::Layout::timelineCanvasWaveformMaxAmplitude;
-    const juce::Colour peakColour = colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness);
-    const juce::Colour rmsColour = peakColour.withAlpha (UiTheme::Tone::timelineCanvasGridMinorLineAlpha);
+    // The layout pass, step 1: a dark two-tone wave on the clip's body - the peaks lighter, the RMS core darker over them.
+    const juce::Colour peakColour = UiTheme::ClipInk::wavePeak (colour);
+    const juce::Colour rmsColour = UiTheme::ClipInk::waveRms (colour);
 
     int x = area.getX();
     const std::size_t columnCount = columns.columns.size();
@@ -920,10 +938,13 @@ inline int drawClipCachedWaveform (juce::Graphics& g, juce::Rectangle<int> area,
         const float rms = half * std::clamp (column.rms, UiTheme::Layout::timelineCanvasWaveformMinAmplitude,
                                             UiTheme::Layout::timelineCanvasWaveformMaxAmplitude);
 
-        g.setColour (rmsColour);
-        g.drawVerticalLine (x, midY - rms, midY + rms);
         g.setColour (peakColour);
         g.drawVerticalLine (x, top, bottom);
+        if (! useSamples)   // a sample-level column is one sample: its trace alone, no RMS core over it
+        {
+            g.setColour (rmsColour);
+            g.drawVerticalLine (x, std::max (top, midY - rms), std::min (bottom, midY + rms));
+        }
 
         ++x;
         if (x >= area.getRight())
@@ -940,41 +961,50 @@ inline bool drawClipFrame (juce::Graphics& g, juce::Rectangle<int> area,
         || area.getHeight() <= UiTheme::Layout::timelineCanvasClipMinPaintHeight)
         return false;
 
+    // The layout pass, step 1: every tier paints a SOLID body (the Logic / Pro Tools / SoundCraft clip); a clip tall
+    // enough wears its name bar in the full colour across the top.
+    const juce::Colour body = UiTheme::ClipInk::body (style.colour);
+    const juce::Colour outline = body.darker (UiTheme::Tone::timelineClipOutlineDarkness);
     if (area.getHeight() <= UiTheme::Layout::timelineCanvasClipCompactHeight)
     {
-        g.setColour (style.colour.withAlpha (UiTheme::Tone::timelineCanvasCompactClipAlpha));
+        g.setColour (body);
         g.fillRect (area);
-        g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasCompactHighlightBrightness));
+        g.setColour (style.colour);
         g.fillRect (area.withHeight (UiTheme::Layout::timelineCanvasClipCompactHighlightHeight));
         return false;
     }
 
-    // Mid tier (E5): row-height clips draw a FLAT frame — no antialiased gradient or rounded
-    // corners — so a dense overflow arrangement stays inside the 60fps frame budget; the
-    // waveform still draws on top.
+    const int stripHeight = clipShowsNameStrip (area) ? UiTheme::Layout::timelineCanvasClipNameStripHeight : 0;
+
+    // Mid tier (E5): row-height clips draw a FLAT frame — no antialiased rounded corners — so a dense overflow
+    // arrangement stays inside the 60fps frame budget; the waveform still draws on top.
     if (area.getHeight() < UiTheme::Layout::timelineCanvasClipRichPaintHeight)
     {
-        g.setColour (style.colour.withAlpha (UiTheme::Tone::timelineCanvasClipFillAlpha));
+        g.setColour (body);
         g.fillRect (area);
-        g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasCompactHighlightBrightness));
-        g.fillRect (area.withHeight (UiTheme::Layout::timelineCanvasClipCompactHighlightHeight));
-        g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasClipOutlineBrightness));
+        g.setColour (style.colour);
+        g.fillRect (area.withHeight (stripHeight > 0 ? stripHeight : UiTheme::Layout::timelineCanvasClipCompactHighlightHeight));
+        g.setColour (outline);
         g.drawRect (area, UiTheme::Layout::timelineCanvasGridLineWidth);
         return true;
     }
 
+    // Rich tier: the rounded body, then the bar - rounded at the top only (a rounded bar a radius taller, its bottom
+    // corners covered by a band of body).
     const auto clipBounds = area.toFloat();
-    juce::ColourGradient clipGradient (
-        style.colour.brighter (UiTheme::Tone::timelineCanvasClipSurfaceTopBrightness)
-            .withAlpha (UiTheme::Tone::timelineCanvasClipSurfaceTopAlpha),
-        clipBounds.getCentreX(), clipBounds.getY(),
-        style.colour.withAlpha (UiTheme::Tone::timelineCanvasClipFillAlpha),
-        clipBounds.getCentreX(), clipBounds.getBottom(), false);
-    g.setGradientFill (clipGradient);
-    g.fillRoundedRectangle (clipBounds, UiTheme::Radius::md);
-    g.setColour (style.colour.brighter (UiTheme::Tone::timelineCanvasClipOutlineBrightness));
+    const float radius = UiTheme::Radius::md;
+    g.setColour (body);
+    g.fillRoundedRectangle (clipBounds, radius);
+    if (stripHeight > 0)
+    {
+        g.setColour (style.colour);
+        g.fillRoundedRectangle (clipBounds.withHeight (static_cast<float> (stripHeight) + radius), radius);
+        g.setColour (body);
+        g.fillRect (clipBounds.withTrimmedTop (static_cast<float> (stripHeight)).withHeight (radius));
+    }
+    g.setColour (outline);
     g.drawRoundedRectangle (area.toFloat().reduced (UiTheme::Layout::timelineCanvasOutlineInset),
-                            UiTheme::Radius::md,
+                            radius,
                             UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
     return true;
 }
@@ -987,12 +1017,8 @@ inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const Timeli
     if (! drawClipFrame (g, area, style))
         return;
 
-    // UI pass unit 22: a named clip's notes stay under the strip its name takes (a high note's bar ran through the name).
-    const bool named = clip != nullptr && clip->name != nullptr && clip->name[0] != '\0';
-    const juce::Rectangle<int> notesArea = named ? area.withTrimmedTop (UiTheme::Layout::timelineCanvasClipNameStripHeight
-                                                                        - UiTheme::Layout::timelineCanvasWaveformInsetY)
-                                                 : area;
-    if (clip != nullptr && drawClipNotePreview (g, notesArea, style.colour, state, *clip) > 0)
+    // UI pass unit 22: a clip's notes stay under its name bar (a high note's bar ran through the name).
+    if (clip != nullptr && drawClipNotePreview (g, clipBodyArea (area), style.colour, state, *clip) > 0)
         return;
 
     drawClipPendingBody (g, area, style.colour);
@@ -1997,7 +2023,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
         drawClipFadeOverlays (g, clipRect, style);
 
         const Clip* const clip = clipForId (state, rect.id);
-        if (clip != nullptr && clip->name != nullptr && clip->name[0] != '\0')
+        if (clip != nullptr && clip->name != nullptr && clip->name[0] != '\0' && clipShowsNameStrip (clipRect))
         {
             // G6 close-out (rubric line 1): a clip drawn later over this one (overlapping clips on a lane; the later is on
             // top, its body translucent) hides this name there - two names never print into each other.
@@ -2012,11 +2038,13 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
                 covered = true;
                 g.excludeClipRegion (paintedClipRect (later));
             }
-            g.setColour (kText);
+            // The layout pass, step 1: the name in dark ink on the clip's name bar (ADR-0063 textOnFill on a solid fill).
+            g.setColour (UiTheme::Color::textOnFill());
             g.setFont (UiTheme::Type::font (UiTheme::Type::small, juce::Font::bold));
             g.drawText (clip->name,
-                        clipRect.reduced (UiTheme::Space::sm),
-                        juce::Justification::topLeft,
+                        clipRect.withHeight (UiTheme::Layout::timelineCanvasClipNameStripHeight)
+                                .reduced (UiTheme::Space::sm, 0),
+                        juce::Justification::centredLeft,
                         true);
             if (covered)
                 g.restoreState();

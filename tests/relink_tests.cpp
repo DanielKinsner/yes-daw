@@ -276,12 +276,12 @@ TEST_CASE ("ADR-0062 the open asks about each missing or damaged audio file, ref
     r.answers = { f.originals[2], f.originals[0], f.originals[1] };   // the wrong tone first
     r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
     REQUIRE (r.asked.size() == 3u);
-    REQUIRE (r.asked[0].description == "Audio Clip - 0:00.5 48 kHz mono, used by 1 clip");   // ADR-0056: its first clip's name
+    REQUIRE (r.asked[0].description == "tone-0 - 0:00.5 48 kHz mono, used by 1 clip");   // ADR-0056: its first clip's name
     REQUIRE (r.asked[0].refusal.empty());
     REQUIRE_FALSE (r.asked[0].damaged);
     REQUIRE (r.asked[1].description == r.asked[0].description);   // asked again, with the reason
     REQUIRE (r.asked[1].refusal == "tone-2.wav is not the missing audio: its content differs");
-    REQUIRE (r.asked[2].description == "Audio Clip - 0:01.0 48 kHz mono, used by 1 clip");
+    REQUIRE (r.asked[2].description == "tone-1 - 0:01.0 48 kHz mono, used by 1 clip");
     REQUIRE (r.asked[2].damaged);
     REQUIRE (r.snapshot().context.projectLoaded);
     REQUIRE (r.snapshot().windowTitle.find ("song") != std::string::npos);
@@ -316,7 +316,7 @@ TEST_CASE ("ADR-0062 Cancel keeps the current project and names what remains mis
     r.open = f.bundle;
     r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);   // Cancel at the first question
     REQUIRE (r.asked.size() == 1u);
-    REQUIRE (r.snapshot().statusLineText == "Open cancelled: 2 audio files still missing (Audio Clip, Audio Clip)");
+    REQUIRE (r.snapshot().statusLineText == "Open cancelled: 2 audio files still missing (tone-0, tone-1)");
     REQUIRE (r.snapshot().windowTitle.find ("current") != std::string::npos);
     REQUIRE (r.snapshot().context.canUndo);
     REQUIRE (snapshotOf (f.bundle) == untouched);
@@ -325,14 +325,14 @@ TEST_CASE ("ADR-0062 Cancel keeps the current project and names what remains mis
     r.answers = { f.originals[0] };   // one put back, then Cancel
     r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
     REQUIRE (r.asked.size() == 2u);
-    REQUIRE (r.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (Audio Clip)");
+    REQUIRE (r.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (tone-1)");
     REQUIRE (r.snapshot().windowTitle.find ("current") != std::string::npos);
 
     r.asked.clear();
     r.answers = { f.originals[1] };   // the next open asks only about the other
     r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
     REQUIRE (r.asked.size() == 1u);
-    REQUIRE (r.asked[0].description == "Audio Clip - 0:01.0 48 kHz mono, used by 1 clip");
+    REQUIRE (r.asked[0].description == "tone-1 - 0:01.0 48 kHz mono, used by 1 clip");
     REQUIRE (r.snapshot().windowTitle.find ("song") != std::string::npos);
 }
 
@@ -359,7 +359,7 @@ TEST_CASE ("SS-6 the probe shows the missing-audio question while it is up and h
     r.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
     REQUIRE (seen.size() == 2u);
     REQUIRE (static_cast<bool> (seen[0]["asking"]));
-    REQUIRE (seen[0]["name"].toString() == "Audio Clip");
+    REQUIRE (seen[0]["name"].toString() == "tone-0");
     REQUIRE (seen[0]["refusal"].toString().isEmpty());
     REQUIRE_FALSE (static_cast<bool> (seen[0]["damaged"]));
     REQUIRE (seen[1]["refusal"].toString() == "tone-2.wav is not the missing audio: its content differs");
@@ -385,7 +385,7 @@ TEST_CASE ("ADR-0062 the launch reopen asks the same way; a pad's Asset and an u
     std::filesystem::remove (assetFileOf (f.bundle, f.hashes[2]));
     RelinkShell r (f.directory / "session", f.bundle);   // the launch opens it
     REQUIRE (r.asked.size() == 1u);   // no answer: Cancel
-    REQUIRE (r.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (Audio Clip)");
+    REQUIRE (r.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (tone-2)");
     REQUIRE (r.snapshot().context.projectLoaded);   // the untitled session, never no project
     REQUIRE (r.snapshot().bundlePath.filename() == "Untitled.yesdaw");
     r.shell.reset();
@@ -394,7 +394,7 @@ TEST_CASE ("ADR-0062 the launch reopen asks the same way; a pad's Asset and an u
     REQUIRE (relaunch.asked.size() == 1u);
     // ADR-0062: "At launch, Cancel leaves the untitled session" — never no project at all; the reason stays on show.
     REQUIRE (relaunch.snapshot().context.projectLoaded);
-    REQUIRE (relaunch.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (Audio Clip)");
+    REQUIRE (relaunch.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (tone-2)");
     relaunch.shell.reset();
     RelinkShell found (f.directory / "session-3", {});
     found.answers = { f.originals[2] };
@@ -505,7 +505,7 @@ TEST_CASE ("ADR-0077 the missing-audio question answered later: shown until its 
     c.open = g.bundle;
     c.dispatch (yesdaw::ui::UiActionId::ProjectOpen);
     takeHeld (c) (std::filesystem::path {});   // Cancel
-    CHECK (c.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (Audio Clip)");
+    CHECK (c.snapshot().statusLineText == "Open cancelled: 1 audio file still missing (tone-0)");
     CHECK (c.snapshot().windowTitle.find ("current") != std::string::npos);
     CHECK (relinkProbe (c)["lastOutcome"].toString() == "cancelled");
     CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*c.shell));
