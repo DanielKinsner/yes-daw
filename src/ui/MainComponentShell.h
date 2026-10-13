@@ -1873,6 +1873,8 @@ private:
     };
     std::vector<PointerRecord> pointerRecords;
     std::unique_ptr<juce::MouseListener> pointerTracker;
+    std::function<void()> launchQuestion;   // UI pass unit 17: the launch-time missing-audio question, until a tick posts it
+    void postLaunchQuestion();
     std::optional<juce::Point<int>> pointerPosition;               // the pointer's last position in the shell (none: away)
     juce::Component::SafePointer<juce::Component> pointerComponent;   // the component under it
     std::string pointerHovered, pointerPressed;                      // record ids ("" = none)

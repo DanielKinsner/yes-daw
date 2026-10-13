@@ -642,8 +642,9 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
 - [x] **16.** The export progress label squashes "Export 10%"-"Export 99%" and "Cancelling..." (about 64-69 px of
   text in its 48 px box, in Verdana / DejaVu). Line 1. **Done 2026-10-12:** the percent alone over a foot bar;
   "Cancelling…" takes the whole slot with the cross hidden; gate `[export-progress]` (STATUS).
-- **17.** The main window is white under the launch-time missing-media alert (`ss8-missing-cancel` 91.5 % white,
-  `ss8-missing-rejected` 90.3 %). Line 1 / 6.
+- [x] **17.** The main window is white under the launch-time missing-media alert (`ss8-missing-cancel` 91.5 % white,
+  `ss8-missing-rejected` 90.3 %). Line 1 / 6. **Done 2026-10-12:** the first UI tick with the window showing posts the
+  question; SS8 Step 4 asserts the window painted under it (STATUS).
 - [x] **18.** The stock JUCE alert style: its icon is clipped at the alert's top-left corner and sits under about 35 px of
   the title and body text (`ss8-unsaved-during-export`, `ss8-missing-*`). Line 1. **Done 2026-10-12:** the theme draws
   alerts (a 28 px icon whole in the gutter, theme colours and type) and is the app's default look; gate `[alert-style]`.
@@ -657,6 +658,13 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
 - **25.** The last ruler label is cut at the right edge ("12" / "4:", "0:19."). Line 1.
 - **26.** A status message outlives its undo ("Routed to new Bus 2" after Bus 2 was undone). Line 7.
 - **27.** Bars beside a tempo label go unlabelled (265 px between "33" and "57" at 1920). Information.
+- **29.** (found by unit 17's critic, measured) While a modal question runs inside a batch of JUCE's posted messages,
+  later messages of that batch wait - on Windows the window's vblank among them - so the main window and the question's
+  own alert stop repainting: hover, press and Tab focus on its buttons are not drawn. Measured on the unit 17 build: the
+  shell's paint count holds at 2 for 3 s under the launch-time question, while the UI tick asks for about 30 repaints a
+  second (30 in 0.8 s once it is answered). Before unit 17 the same question also left the window white. The likely
+  fix is asking without a nested modal loop (`AlertWindow::showAsync`, `FileChooser::launchAsync`) for the ADR-0062
+  relink questions. Gate: the paint count climbs while a question is up. Line 1 / 4.
 - **28.** Evidence hygiene: the end-of-drive size shots now include the resting pointer's tooltip (it hides the ruler at
   the tempo change in `ss3-2560`); park the pointer or use `-MainOnly` for size shots. Tooling.
 

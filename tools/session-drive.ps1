@@ -919,6 +919,39 @@ function LoadShot([string] $path) {
   return New-Object System.Drawing.Bitmap $stream
 }
 
+# UI pass unit 17: whether a main-window shot shows the app, not a window that never put a frame on screen (captured white
+# here; a driver may capture it black). A fresh capture (any earlier file of that name is removed first) whose samples,
+# every 8th pixel each way, are under 25 % near-white overall, and whose menu row (the top 3 %) carries its words: 0.5-40 %
+# light pixels - a white capture has ~100 %, a black one none. Returns the white share, or 1.0 when any test fails.
+function MainShotPainted([string] $name) {
+  $path = Join-Path $Shots ($name + '.png')
+  if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
+  [void](Shot $name -MainOnly)
+  if (-not (Test-Path -LiteralPath $path)) { return 1.0 }
+  $bmp = LoadShot $path
+  try {
+    $white = 0; $total = 0; $light = 0; $row = 0
+    $rowBottom = [math]::Max(8, [int]($bmp.Height * 0.03))
+    for ($y = 0; $y -lt $bmp.Height; $y += 8) {
+      for ($x = 0; $x -lt $bmp.Width; $x += 8) {
+        $p = $bmp.GetPixel($x, $y); $total++
+        if ($p.R -ge 240 -and $p.G -ge 240 -and $p.B -ge 240) { $white++ }
+      }
+    }
+    for ($y = 0; $y -lt $rowBottom; $y += 1) {
+      for ($x = 0; $x -lt $bmp.Width; $x += 2) {
+        $p = $bmp.GetPixel($x, $y); $row++
+        if ($p.R -ge 180 -and $p.G -ge 180 -and $p.B -ge 180) { $light++ }
+      }
+    }
+    $whiteShare = [double]$white / [math]::Max(1, $total)
+    $lightShare = [double]$light / [math]::Max(1, $row)
+    Write-Host ("  [painted] {0}: {1:P1} near-white, menu row {2:P1} light" -f $name, $whiteShare, $lightShare)
+    if ($lightShare -lt 0.005 -or $lightShare -gt 0.40) { return 1.0 }
+    return $whiteShare
+  } finally { $bmp.Dispose() }
+}
+
 # The shot's physical pixels across one logical pixel of a pointer stroke's band - depth $depth (1 = just inside the
 # 1 px inset, ADR-0072 §1) - at the middle of each edge of a layout rect (logical, shell coordinates). A fractional
 # display scale spreads one logical pixel over two physical ones; both are listed.

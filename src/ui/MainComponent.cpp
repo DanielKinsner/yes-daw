@@ -1790,10 +1790,15 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
             {
                 if (fileChoices.nativePrompts)
                 {
-                    // A modal question waits until the window exists: the open runs again from the message loop.
+                    // A modal question waits until the window exists and has shown a frame: the open runs again from
+                    // the message loop. UI pass unit 17: JUCE dispatches posted messages in batches, and a modal loop
+                    // started inside one holds back the rest of that batch - here the message that lets JUCE's
+                    // Direct2D window put its first frame on screen, so a question posted from this constructor left
+                    // the window white until it was answered. The first UI tick that finds the window showing posts
+                    // the question, after those messages have run (ADR-0067 §7: no timer of its own).
                     answered = true;
                     juce::Component::SafePointer<MainComponent> self (this);
-                    juce::MessageManager::callAsync ([self, lastProject] {
+                    launchQuestion = [self, lastProject] {
                         if (self != nullptr)
                         {
                             // A launch reason already on the status line (a missing device) stays beside a Cancel.
@@ -1816,7 +1821,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
                             self->refreshActionState();
                             self->repaintAll();
                         }
-                    });
+                    };
                 }
                 else
                 {
@@ -1955,6 +1960,18 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     }
 }
 
+// UI pass unit 17: the launch-time question, once, from its own posted message - never inside the UI tick that posts it
+// (a modal loop inside a timer callback would hold back the tick, and the probe with it, while the question is up). A
+// project the user opened or made in the moment before it wins: the question is dropped.
+void MainComponent::postLaunchQuestion()
+{
+    if (! launchQuestion)
+        return;
+    if (! appModel.context().projectLoaded)
+        juce::MessageManager::callAsync (std::move (launchQuestion));   // the question checks its own SafePointer
+    launchQuestion = nullptr;
+}
+
 MainComponent::~MainComponent()
 {
     if (controlNavigationMouseListener != nullptr)
@@ -1989,6 +2006,9 @@ void MainComponent::timerCallback()
 
 void MainComponent::serviceUiTick()
 {
+    // UI pass unit 17: the launch-time question, once the window is showing (a launch minimised waits for it).
+    if (launchQuestion && isShowing())
+        postLaunchQuestion();
     // G0.3: the janitor runs on the control thread every tick — retired engines / monitor
     // chains are freed once the device thread is provably past them.
     appModel.setDeviceCallbackLive (desktopAudioCallbackRegistered

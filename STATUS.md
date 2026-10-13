@@ -8,6 +8,55 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 17: the window is painted under the launch-time question
+
+**The defect (FIX 17):** launching with a project whose audio is missing (ADR-0062) asks "Missing audio" before the open.
+Under that question the main window was white: 100 % of a drive shot, against 0.1 % once answered.
+
+**Measured** (a scratch drive on the `3f8dc35` exe, reading the probe under the question): the shell's paint count held at 1
+while its timer kept ticking, and rose to 30 within 0.8 s of Cancel.
+
+**Why, in JUCE 8's source** (the separate critic's reading, which corrected my first one):
+1. JUCE dispatches its posted messages in batches, and a modal loop started inside one holds back the rest of that batch.
+2. The shell posted the question from its constructor, before the window existed.
+3. So the question sat in the first batch, ahead of the message that lets the Direct2D window put its first frame on
+   screen. That frame was painted but never shown until the question was answered.
+
+**What changes:**
+- The question is kept until the first UI tick that finds the window showing, and that tick posts it; the posting hop puts
+  it in a later batch, after those messages. ADR-0067 §7 allows only two timers, and my first version's vblank hook broke
+  that law (its gate caught it), so the existing tick does the posting.
+- If a project was opened or made in the moment before the question, the question is dropped.
+- A launch minimised waits until the window shows.
+
+**Gate, in the Session drive:**
+- SS8 Step 4 shoots the main window alone under the launch-time question, and under the question asked again after the
+  Locate chooser. It asserts the shot is fresh (`MainShotPainted`, new in `tools/session-drive.ps1`), under 25 %
+  near-white, and that its menu row carries its words (0.5-40 % light). A black capture cannot pass either.
+- **Red on the old exe:** SS8 on `3f8dc35`, 2 failed (100 % white), 212 passed.
+- **Green on this build:** 214/214 (0.3 % white, menu row 2.0 % light), and on each earlier build of this unit.
+
+**Bites** (a short drive with the same assertion plus SS8's probe check, rebuilt per mutation):
+- M1 the question posted from the constructor, the old timing (100 % white);
+- M3 the question run inside the UI tick instead of posted (100 % white: the tick's batch is held).
+- M2, the first tick posting it whether or not the window shows, stays green: the posting hop is what matters, and the
+  showing check only serves a minimised launch.
+
+**Critic (separate agent), each finding verified against the code:**
+- **Should-fix, taken:** the mechanism is the batch holding back the frame's on-screen message, not the vblank message;
+  the comments now say so. The fix works through the posting hop.
+- **Should-fix, new unit:** with the question up, the window is frozen after its first frame. Verified: the UI tick asks
+  for repaints every tick (`repaintDynamicLayers`), yet the paint count holds at 2 for 3 s. The question's own buttons
+  then do not show hover or Tab focus. This predates this unit (the old build was frozen and white), so it is FIX 29 in
+  the plan, its fix being questions without a nested modal loop.
+- **Should-fix, taken:** the gate could pass on a stale or black capture. It now removes the old file and checks the menu
+  row.
+- **Nit, taken:** a launch-time gap for input. The question is dropped if a project is already loaded.
+- **Clean:** lifetime, the posting order, macOS / Linux, and warnings.
+
+**Also:** the drive-activation error seen once in unit 18 ("could not restore the topmost state") did not recur in these
+runs: five SS8 runs and thirteen short drives.
+
 ## 2026-10-12 — UI correctness pass unit 18: alerts draw in the theme
 
 **The defect (FIX 18):** every alert used JUCE's stock V4 look. That look draws a 130 px translucent icon bleeding off

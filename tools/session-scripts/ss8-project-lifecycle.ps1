@@ -421,6 +421,9 @@ if ($null -eq $alertUp) { $alertUp = WaitAlert 'Damaged audio' 2000 }
 if ($null -ne $alertUp) {
   [void](Assert ([bool](Probe).relink.asking) ('probe shows a relink question is up (name=' + (Probe).relink.name + ')'))
   Shot 'ss8-missing-cancel'
+  # UI pass unit 17: the window under the launch-time question has shown a frame (it was white, never presented).
+  $white = MainShotPainted 'ss8-missing-cancel-main'
+  [void](Assert ($white -lt 0.25) ('the main window is painted under the launch-time question (' + [math]::Round(100 * $white, 1) + ' % white)'))
   [void](AlertButton 'Cancel' -Title 'Missing audio' -TimeoutMs 2000)
   [void](Assert (WaitProbe { param($q) "$($q.relink.lastOutcome)" -eq 'cancelled' } -TimeoutMs 4000) ('relink.lastOutcome=cancelled (' + (Probe).relink.lastOutcome + ')'))
   # ADR-0062: "At launch, Cancel leaves the untitled session" - never no project; the reason stays on the status line,
@@ -448,6 +451,8 @@ if ($null -ne $alert2) {
   [void](Assert ($null -ne $alert3) 'the shell re-asks after an incompatible file is fed')
   [void](Assert (WaitProbe { param($q) "$($q.relink.refusal)" -like '*is not the missing audio*' } -TimeoutMs 4000) ('relink.refusal names the content mismatch (' + (Probe).relink.refusal + ')'))
   Shot 'ss8-missing-rejected'
+  $white = MainShotPainted 'ss8-missing-rejected-main'
+  [void](Assert ($white -lt 0.25) ('the main window is painted under the question asked again after the Locate chooser (' + [math]::Round(100 * $white, 1) + ' % white)'))
   # Second attempt: feed it the sidelined original. The adopt succeeds; the inner for(;;) exits; the project attaches.
   [void](AlertButton 'Locate...' -Title 'Missing audio' -TimeoutMs 2000)
   $chooser2 = WaitDialog ('Locate ') 6000
