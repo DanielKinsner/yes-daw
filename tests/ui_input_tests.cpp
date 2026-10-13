@@ -24963,7 +24963,8 @@ TEST_CASE ("ADR-0066 painted controls are Control targets: the mixer's zones, th
             {
                 const juce::String key = property.name.toString();
                 const bool zone = (key.startsWith ("mixer.strip.") && key.fromFirstOccurrenceOf ("mixer.strip.", false, false).containsChar ('.')
-                                   && ! key.endsWith (".thumb"))
+                                   && ! key.endsWith (".thumb")
+                                   && ! key.endsWith (".readout"))   // unit 13: the gain readout is a display, not a control
                                || key.startsWith ("mixer.master.insert.");
                 if (! zone || ! property.value.isArray() || property.value.size() != 4)
                     continue;
@@ -31295,6 +31296,180 @@ TEST_CASE ("the inspector's TAKES card shows whole or not at all", "[ui][input][
     }
     REQUIRE (whole >= 5);
     REQUIRE (dropped >= 7);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// UI correctness pass unit 13 (rubric FIX 14, rest): the mixer strip's parts each say their own thing. (a2) A strip
+// fader drag's transient readout sits in the strip's own readout cell, never floating over the I/O rows above the rail;
+// (b) a narrow strip's I/O rows read their target whole ("Bus 1", "Master") inside their box; (c) a lit S or M cell is
+// filled with the strip's colour and lettered in textOnFill, and a lit R cell is lettered in textOnFill too (ADR-0063).
+TEST_CASE ("mixer strip parts: the drag readout in its cell, narrow I/O whole, lit cells legible", "[ui][input][shell][mixer-states][strip-parts]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const auto bundlePath = makeTempBundlePath ("mixer-strip-parts");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.makeNewProject = [] {
+        yesdaw::engine::Project project = yesdaw::ui::UiAppModel::makeDefaultSessionProject();
+        yesdaw::engine::Bus bus;
+        bus.id = idFromLowByte (91);
+        bus.strip.name = "Bus 1";
+        project.buses.push_back (bus);
+        project.tracks.front().outputBusId = bus.id;   // the track's output row reads the bus; the bus's reads Master
+        project.tracks.front().colour = 0xff3fa9f5u;     // a set colour: the lit cells' fill
+        yesdaw::engine::SendRow send;
+        send.id = idFromLowByte (92);
+        send.busId = bus.id;
+        send.tap = yesdaw::engine::SendTap::PostFader;
+        send.linearGain = 0.5f;
+        project.tracks.front().sends.push_back (send);
+        return project;
+    };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    auto* readout = dynamic_cast<juce::Label*> (findChildWithComponentId (*shell, "shell.drag.db"));
+    REQUIRE (readout != nullptr);
+    const auto rectOf = [&shell] (const juce::String& id) {
+        const juce::var r = probeRoot (*shell)["layout"][juce::Identifier (id)];
+        if (! r.isArray())
+            return juce::Rectangle<int> {};
+        return juce::Rectangle<int> { static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]) };
+    };
+    const auto render = [&shell] {
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true, juce::SoftwareImageType());
+        juce::Graphics graphics (image);
+        shell->paintEntireComponent (graphics, true);
+        return image;
+    };
+    const auto colourNear = [] (juce::Colour a, juce::Colour b, int tolerance) {
+        return std::abs (a.getRed() - b.getRed()) <= tolerance && std::abs (a.getGreen() - b.getGreen()) <= tolerance
+            && std::abs (a.getBlue() - b.getBlue()) <= tolerance;
+    };
+    const auto countNear = [&colourNear] (const juce::Image& image, juce::Rectangle<int> area, juce::Colour colour, int tolerance) {
+        int count = 0;
+        for (int y = area.getY(); y < area.getBottom(); ++y)
+            for (int x = area.getX(); x < area.getRight(); ++x)
+                count += colourNear (image.getPixelAt (x, y), colour, tolerance) ? 1 : 0;
+        return count;
+    };
+
+    // (a2) The drag readout, held at mid-rail on a Track strip (0) and a Bus strip (1), wide and narrow, at three sizes.
+    int placements = 0;
+    for (const bool narrow : { false, true })
+    {
+        if (narrow != snapshotMainComponent (*shell).context.mixerStripsNarrow)
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerStripsNarrowToggle);
+        for (const auto size : { juce::Point<int> (1280, 720), juce::Point<int> (1920, 1080), juce::Point<int> (2560, 1440) })
+        {
+            shell->setSize (size.x, size.y);
+            yesdaw::ui::mainComponentSetDockHeight (*shell, L::windowMaxHeight);
+            for (const int strip : { 0, 1 })
+            {
+                const juce::String base = "mixer.strip." + juce::String (strip);
+                const juce::Rectangle<int> lane = rectOf (base);
+                const juce::Rectangle<int> rail = rectOf (base + ".fader");
+                REQUIRE_FALSE (rail.isEmpty());
+                const juce::Point<int> thumbAt = rectOf (base + ".fader.thumb").getCentre();
+                const juce::Point<int> mid { thumbAt.x, rail.getCentreY() };
+                beginDragFromTo (*strips, strips->getLocalPoint (shell.get(), thumbAt), strips->getLocalPoint (shell.get(), mid));
+                INFO ((narrow ? "narrow" : "wide") << " " << size.x << "x" << size.y << " strip " << strip << ": readout "
+                      << readout->getBounds().toString() << " in " << lane.toString());
+                REQUIRE (readout->isVisible());
+                const juce::Rectangle<int> cell = rectOf (base + ".readout");
+                REQUIRE_FALSE (cell.isEmpty());
+                REQUIRE (readout->getBounds() == cell);
+                REQUIRE (lane.contains (cell));
+                {
+                    // It reads as the cell does: the same pixels whether the label is shown or hidden (the cell paints the
+                    // ridden gain too), the cell's rounded corners aside.
+                    const juce::Image withLabel = render();
+                    readout->setVisible (false);
+                    const juce::Image cellOnly = render();
+                    readout->setVisible (true);
+                    const juce::Rectangle<int> inner = cell.reduced (static_cast<int> (std::ceil (yesdaw::ui::UiTheme::Radius::sm)), 0);
+                    int differing = 0;
+                    for (int y = inner.getY(); y < inner.getBottom(); ++y)
+                        for (int x = inner.getX(); x < inner.getRight(); ++x)
+                            differing += colourNear (withLabel.getPixelAt (x, y), cellOnly.getPixelAt (x, y), 8) ? 0 : 1;
+                    REQUIRE (differing == 0);
+                }
+                for (const juce::String& part : { juce::String (".input"), juce::String (".output"), juce::String (".solo"),
+                                                  juce::String (".mute"), juce::String (".arm"), juce::String (".pan"),
+                                                  juce::String (".fader"), juce::String (".fader.thumb"), juce::String (".send.0"),
+                                                  juce::String (".insert.0") })
+                {
+                    INFO ("against " << part);
+                    REQUIRE_FALSE (cell.intersects (rectOf (base + part)));
+                }
+                releaseDragAt (*strips, strips->getLocalPoint (shell.get(), thumbAt), strips->getLocalPoint (shell.get(), mid));
+                REQUIRE_FALSE (readout->isVisible());
+                ++placements;
+            }
+        }
+    }
+    REQUIRE (placements == 12);
+
+    // (b) Narrow I/O rows: the output targets whole, inside their box, the clearance on both sides free of ink.
+    shell->setSize (1920, 1080);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::windowMaxHeight);
+    REQUIRE (snapshotMainComponent (*shell).context.mixerStripsNarrow);
+    REQUIRE (yesdaw::ui::mainComponentMixerStripIo (*shell, 0).output == "Bus 1");
+    REQUIRE (yesdaw::ui::mainComponentMixerStripIo (*shell, 1).output == "Master");
+    {
+        const juce::Image image = render();
+        const juce::Font ioFont = yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny);
+        for (const int strip : { 0, 1 })
+        {
+            const juce::Rectangle<int> row = rectOf ("mixer.strip." + juce::String (strip) + ".output");
+            const juce::String text = yesdaw::ui::mainComponentMixerStripIo (*shell, strip).output;
+            const juce::Rectangle<int> box = row.reduced (L::mixerPaintedIoLabelInsetX, 0);
+            INFO ("strip " << strip << " output \"" << text << "\" in " << box.toString());
+            REQUIRE (juce::GlyphArrangement::getStringWidth (ioFont, text) + 2.0f <= static_cast<float> (box.getWidth()));
+            const juce::Colour ink = yesdaw::ui::UiTheme::Color::text();
+            const juce::Colour muted = yesdaw::ui::UiTheme::Color::mutedText();
+            for (const juce::Rectangle<int> clearance : { row.withWidth (L::mixerPaintedIoLabelInsetX - 1).withTrimmedLeft (1),
+                                                          row.withTrimmedLeft (row.getWidth() - L::mixerPaintedIoLabelInsetX + 1).withTrimmedRight (1) })
+            {
+                INFO ("clearance " << clearance.toString());
+                REQUIRE (countNear (image, clearance.reduced (0, 3), ink, 40) == 0);
+                REQUIRE (countNear (image, clearance.reduced (0, 3), muted, 30) == 0);
+            }
+        }
+    }
+
+    // (c) Lit cells: solo and mute lit on the Track strip, its R cell armed; the Bus strip's S unlit.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerStripsNarrowToggle);   // wide again
+    for (const int cell : { 0, 1 })   // solo, then mute
+        mouseDownAt (*strips, strips->getLocalPoint (shell.get(), yesdaw::ui::mainComponentPaintedMuteSoloCellBounds (*shell, 0, cell).getCentre()));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);
+    clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.soloed);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().strip.muted);
+    {
+        const juce::Image image = render();
+        const juce::Colour textOnFill = yesdaw::ui::UiTheme::Color::textOnFill();
+        const juce::Colour stripColour (0xff3fa9f5u);   // the track's own colour, set above
+        for (const char* lit : { ".solo", ".mute" })
+        {
+            const juce::Rectangle<int> cell = rectOf (juce::String ("mixer.strip.0") + lit);
+            const juce::Rectangle<int> inside = cell.reduced (static_cast<int> (std::ceil (yesdaw::ui::UiTheme::Radius::md)));
+            INFO ("lit " << lit << " " << cell.toString());
+            REQUIRE (colourNear (image.getPixelAt (cell.getX() + 3, cell.getCentreY()), stripColour, 2));
+            REQUIRE (countNear (image, inside, textOnFill, 12) >= 6);
+            REQUIRE (countNear (image, inside, yesdaw::ui::UiTheme::Color::text(), 12) == 0);
+        }
+        const juce::Rectangle<int> unlit = rectOf ("mixer.strip.1.solo");
+        REQUIRE (colourNear (image.getPixelAt (unlit.getX() + 3, unlit.getCentreY()), yesdaw::ui::UiTheme::Color::controlInset(), 2));
+        const juce::Rectangle<int> arm = rectOf ("mixer.strip.0.arm");
+        const juce::Rectangle<int> armInside = arm.reduced (static_cast<int> (std::ceil (yesdaw::ui::UiTheme::Radius::md)));
+        REQUIRE (countNear (image, armInside, textOnFill, 12) >= 6);
+        REQUIRE (countNear (image, armInside, yesdaw::ui::UiTheme::Color::text(), 12) == 0);
+    }
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

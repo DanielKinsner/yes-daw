@@ -218,9 +218,7 @@ void MainComponent::configureMixerControls()
                 recordAutomationTouchSample (automationNormalizedForFaderGain (linearGain));
             else
                 (void) appModel.setSelectedMixerFader (linearGain);
-            showDragDbReadout (paintedFaderRailForLane (paintedMixerLaneBounds (static_cast<std::size_t> (stripIndex)),
-                                                        stripIoRows (static_cast<std::size_t> (stripIndex))),
-                               linearGain);
+            showStripDragReadout (stripIndex, linearGain);   // unit 13: in the strip's readout cell, not over its I/O rows
         }
         if (ended)
         {
@@ -1482,6 +1480,17 @@ float MainComponent::mixerFaderFractionForDb (float db) noexcept
     return mixerFaderFractionForGain (std::pow (10.0f, db / 20.0f));
 }
 
+juce::Rectangle<int> MainComponent::paintedFaderReadoutBoundsForLane (juce::Rectangle<int> lane) noexcept
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    if (lane.isEmpty())
+        return {};
+    return lane.removeFromBottom (L::mixerPaintedReadoutBottomInset)
+               .translated (0, -L::mixerPaintedReadoutHeight)
+               .withHeight (L::mixerPaintedReadoutHeight)
+               .reduced (L::mixerPaintedReadoutHorizontalInset, yesdaw::ui::UiTheme::Space::xxs);
+}
+
 juce::Rectangle<int> MainComponent::paintedFaderRailForLane (juce::Rectangle<int> lane, int ioRows)
 {
     if (lane.isEmpty())
@@ -1856,17 +1865,20 @@ juce::String MainComponent::stripInputText (std::size_t trackIndex) const
 {
     for (const yesdaw::ui::UiRecordingTrackInputSelection& armed : appModel.armedRecordingTrackInputs())
         if (armed.armed && armed.trackIndex == trackIndex)
-            return "In: " + juce::String (static_cast<int> (armed.inputChannel) + 1)
+            return (appModel.context().mixerStripsNarrow ? juce::String() : juce::String ("In: "))   // unit 13
+                 + juce::String (static_cast<int> (armed.inputChannel) + 1)
                  + (armed.stereoPair ? "+" + juce::String (static_cast<int> (armed.inputChannel) + 2) : juce::String());
-    return juce::String::fromUTF8 ("In: \xe2\x80\x94");
+    return juce::String::fromUTF8 (appModel.context().mixerStripsNarrow ? "\xe2\x80\x94" : "In: \xe2\x80\x94");
 }
 
 juce::String MainComponent::stripOutputText (const yesdaw::ui::UiMixerStrip& strip) const
 {
+    // Unit 13: a narrow strip's row is too short for the prefix and a bus name both - it reads the target alone.
+    const juce::String prefix = appModel.context().mixerStripsNarrow ? juce::String() : juce::String ("Out: ");
     if (strip.outputBusId.isValid())
         if (const yesdaw::engine::Bus* const bus = appModel.project().findBus (strip.outputBusId))
-            return "Out: " + juce::String (bus->strip.name);
-    return "Out: Master";
+            return prefix + juce::String (bus->strip.name);
+    return prefix + "Master";
 }
 
 const char* MainComponent::fxKindStripName (yesdaw::engine::FxKind kind) noexcept
@@ -2124,10 +2136,13 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
                 const bool on = cellIndex == 0 ? state.soloed
                               : cellIndex == 1 ? state.muted
                                                : (! isBus && appModel.isRecordingTrackIndexArmed (stripIndex));
-                g.setColour (armCell && on ? yesdaw::ui::UiTheme::Color::recordArm()
-                                           : yesdaw::ui::UiTheme::Color::controlInset());
+                // Unit 13: a lit cell is a solid fill lettered in textOnFill (ADR-0063) - R in the record colour, S and M
+                // in the strip's (the reference's tinted letter read only 1.64:1 against an unlit one; the rail fills
+                // its lit cells too).
+                g.setColour (! on ? yesdaw::ui::UiTheme::Color::controlInset()
+                                  : armCell ? yesdaw::ui::UiTheme::Color::recordArm() : stripColour);
                 g.fillRoundedRectangle (cell.toFloat(), yesdaw::ui::UiTheme::Radius::md);
-                g.setColour (on && ! armCell ? stripColour.brighter (0.55f) : kText);
+                g.setColour (on ? yesdaw::ui::UiTheme::Color::textOnFill() : kText);
                 g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small, juce::Font::bold));
                 g.drawText (cellLabels[cellIndex], cell, juce::Justification::centred, false);
             }
@@ -2231,9 +2246,12 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
                                         yesdaw::ui::UiTheme::Layout::mixerPaintedStripStrokeWidth);
                 g.setColour (picked ? kText : kMutedText);
                 g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
-                g.drawFittedText (text,
-                                  row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::mixerPaintedIoLabelInsetX),
-                                  juce::Justification::centredLeft, 1);
+                // Unit 13: a box clear of the well's edges on both sides; text that cannot fit ends in an ellipsis
+                // instead of being squashed (a narrow strip's rows drop their "In: " / "Out: " prefix first).
+                g.drawText (text,
+                            row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::mixerPaintedIoLabelInsetX)
+                               .withTrimmedRight (yesdaw::ui::UiTheme::Layout::mixerPaintedIoLabelInsetX),
+                            juce::Justification::centredLeft, true);
             };
             const auto input = paintedInputRowBoundsForLane (lane, ioRows);
             if (! input.isEmpty())
@@ -2313,14 +2331,7 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
             g.fillRoundedRectangle (thumb.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
         }
 
-        auto readout = lane.removeFromBottom (
-                                yesdaw::ui::UiTheme::Layout::mixerPaintedReadoutBottomInset)
-                           .translated (0,
-                                       -yesdaw::ui::UiTheme::Layout::mixerPaintedReadoutHeight)
-                           .withHeight (yesdaw::ui::UiTheme::Layout::mixerPaintedReadoutHeight)
-                           .reduced (
-                               yesdaw::ui::UiTheme::Layout::mixerPaintedReadoutHorizontalInset,
-                               yesdaw::ui::UiTheme::Space::xxs);
+        const auto readout = paintedFaderReadoutBoundsForLane (lane);   // unit 13: one law with the drag's readout
         g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
         g.fillRoundedRectangle (readout.toFloat(), yesdaw::ui::UiTheme::Radius::sm);
         g.setColour (kText);

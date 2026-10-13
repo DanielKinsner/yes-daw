@@ -2479,6 +2479,12 @@ juce::String MainComponent::dbReadoutText (double linearGain)
 
 void MainComponent::showDragDbReadout (juce::Rectangle<int> anchorBounds, double linearGain)
 {
+    // The rail's VOL drag: a small readout floated above the control, in the theme's label font, as before unit 13 (a
+    // strip drag uses its own cell, below).
+    static const juce::BorderSize<int> labelDefaultBorder = juce::Label().getBorderSize();
+    dragDbReadout.getProperties().set (yesdaw::ui::YesDawLookAndFeel::kOwnFontLabel, false);
+    dragDbReadout.setBorderSize (labelDefaultBorder);
+    dragDbReadout.setColour (juce::Label::backgroundColourId, yesdaw::ui::UiTheme::Color::darkControl());
     dragDbReadout.setText (dbReadoutText (linearGain), juce::dontSendNotification);
     dragDbReadout.setBounds (
         juce::Rectangle<int> (yesdaw::ui::UiTheme::Layout::dbReadoutWidth,
@@ -2487,6 +2493,20 @@ void MainComponent::showDragDbReadout (juce::Rectangle<int> anchorBounds, double
                            anchorBounds.getY()
                                - yesdaw::ui::UiTheme::Layout::dbReadoutHeight / 2 })
             .constrainedWithin (getLocalBounds()));
+    dragDbReadout.setVisible (true);
+    dragDbReadout.toFront (false);
+}
+
+// UI correctness pass unit 13: a strip fader drag's transient shows in the strip's own readout cell, drawn as the cell is
+// (its numeric caption font, the controlInset fill, centred, no border) - it used to float over the I/O rows above the rail.
+void MainComponent::showStripDragReadout (int stripIndex, double linearGain)
+{
+    dragDbReadout.getProperties().set (yesdaw::ui::YesDawLookAndFeel::kOwnFontLabel, true);   // the cell's font, not the theme's
+    dragDbReadout.setFont (yesdaw::ui::UiTheme::Type::numericFont (yesdaw::ui::UiTheme::Type::caption));
+    dragDbReadout.setBorderSize (juce::BorderSize<int> (yesdaw::ui::UiTheme::Space::none));
+    dragDbReadout.setColour (juce::Label::backgroundColourId, yesdaw::ui::UiTheme::Color::controlInset());
+    dragDbReadout.setText (dbReadoutText (linearGain), juce::dontSendNotification);
+    dragDbReadout.setBounds (paintedFaderReadoutBoundsForLane (paintedMixerLaneBounds (static_cast<std::size_t> (std::max (0, stripIndex)))));
     dragDbReadout.setVisible (true);
     dragDbReadout.toFront (false);
 }

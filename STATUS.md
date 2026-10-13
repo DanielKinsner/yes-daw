@@ -8,6 +8,52 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 13: mixer strip parts - the drag readout in its cell, narrow I/O whole, lit cells legible
+
+**What changes:**
+- **(a2) The drag readout sits in its cell.** A strip fader drag's transient floated over the strip's I/O rows above the
+  rail. It now sits on the strip's own readout cell (`paintedFaderReadoutBoundsForLane`, one law for the paint and the
+  drag), drawn as the cell is: its numeric caption font (the theme's label font is now overridable per label,
+  `YesDawLookAndFeel::kOwnFontLabel`), the controlInset fill, centred, no border. The rail's VOL readout keeps its
+  place and look.
+- **(b) Narrow I/O reads whole.** The I/O rows' text box clears the well on both sides and ends in an ellipsis rather
+  than squashing. Narrow strips drop the "In: " / "Out: " prefix and read their target ("Bus 1", "Master").
+- **(c) Lit cells use textOnFill.** A lit R cell letters in textOnFill (ADR-0063). A lit S or M cell is filled with the
+  strip's colour and lettered in textOnFill. This is an **agent rubric call**: a deliberate departure from the
+  reference's tinted letter, which read only 1.64:1 against an unlit one; the rail already fills its lit cells.
+
+**Gate `[mixer-states][strip-parts]`:**
+- **The drag readout:** held at mid-rail on a Track and a Bus strip, wide and narrow, at 1280/1920/2560. It equals the
+  readout cell, lies inside the strip, and misses the I/O rows, sends, inserts, S/M/R, pan, rail and thumb. Its pixels
+  equal the cell's own paint (the cell shows the ridden gain), corners aside.
+- **Narrow I/O:** "Bus 1" and "Master", fitting their box, with ink-free clearance columns.
+- **Lit cells:** S and M are filled with the strip colour, with at least 6 textOnFill pixels and no kText inside the
+  rounded cell. The Bus strip's unlit S stays controlInset. R is textOnFill, never kText.
+
+**Red before:** the readout floated at y 551, over the output row, with no cell to sit in.
+
+**Bites (6):**
+- the transient back above the rail;
+- the "Out: " prefix back on narrow strips;
+- the lit fill reverted;
+- kText on R;
+- the readout in the theme's font (162 px differ);
+- S and M lettered in kText.
+
+**Critic** (the readout law is shared by paint and drag): it found
+- the new `.readout` probe key broke the ADR-0066 control walk - it is a display, now excluded;
+- the label's font was ignored by the look-and-feel, so the readout drew 13 px body type over an 11 px numeric cell -
+  fixed and gated by pixels;
+- the lit-ink check could pass on corner pixels - now counted inside the rounded cell.
+It confirmed the geometry, the exit paths, accessibility (the I/O names are unchanged) and the warnings. Parked: a dark
+custom track colour would give a lit cell about 1.3:1 (pick the ink by luminance).
+
+**Local:** full build, ctest 444/444, Clang clean (11 files).
+
+**CI:** unit 11 (`ae427f6`, run 38320663121): macOS red on [status-whole] - the gate read the label before the UI tick that hands it an import refusal on macOS (fixed in `9c092be`), and on `YesDawTimelineGpuCheck`'s sustained frame (raw 24.01 ms, inside the exception); **Windows red only on `YesDawTimelineGpuCheck`'s sustained-frame `REQUIRE`** (raw: sustained 16.95 ms, max 19.17 ms, 9 slow frames; 443 of 444 passed) - not covered by the exception; unit 11 changed nothing the GPU check paints, and unit 3's same red did not repeat on a re-run, so one same-code re-run follows (a second red calls for a critic and a new hypothesis). Unit 12 (`5d686a9`) running.
+
+**Drive:** SS7 `ss7-sweep-drag-*`, `ss7-narrow` and `ss7-solo`, in the batched drive proof.
+
 ## 2026-10-12 — UI correctness pass unit 12: inspector cards drop whole and fit
 
 **TAKES card (FIX 12).** The card took whatever room was left up to its 74 px slot, so with 30 px of room it painted

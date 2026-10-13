@@ -535,7 +535,7 @@ Two commits.
 
 ### 13. Mixer strip layout and lit cells (FIX 14, rest)
 
-- [ ] **Fix.**
+- [x] **Fix.**
   - **(a2) The drag readout moves into the strip.** Add `paintedFaderReadoutBoundsForLane`. A strip
     drag shows the transient in that cell, drawn like the cell itself (caption numeric font,
     controlInset fill, centred, border `Space::none`). The rail VOL readout keeps its place.
@@ -547,7 +547,7 @@ Two commits.
     - A lit S or M cell fills with the strip colour and draws textOnFill. This is an agent rubric
       call: lit and unlit letters differ by only 1.64:1 today, and the rail already fills its lit
       cells. Record it in STATUS as a deliberate departure from the reference's tinted letter.
-- [ ] **Gate.** `tests/ui_input_tests.cpp` `[mixer-states]`.
+- [x] **Gate.** `tests/ui_input_tests.cpp` `[mixer-states]`.
   - **Readout placement:** at three sizes, wide and narrow, on a Track strip and a Bus strip, with the
     drag held at mid-rail. The readout equals the cell, lies inside the strip, and misses the I/O
     rows, sends, inserts, M/S cells, pan knob, rail and thumb.
@@ -670,6 +670,9 @@ close-out rubric pass.
   messages built from a literal plus an app reason or number (Duplicate Track / Save As / preset refusals, the sends
   limit, the key-binding conflict, the fixed export failures) are not measured; a catalogue of their longest variants
   would close it (unit 11's critic).
+- A lit S / M cell letters textOnFill on the strip's colour; a project file may carry any opaque track colour, and a dark
+  one would give about 1.3:1 (the old tint failed there too; the colour cycle's accents pass). Pick the ink by the
+  fill's luminance (unit 13's critic).
 - The frame-time gates (`TimelineFrameCheck.h`) paint with no tempo map, so unit 6's map path is not
   under the frame budget. The unit 6 critic measured at most 140 us a paint for a 1000-change meter
   map.

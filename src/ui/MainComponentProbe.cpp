@@ -440,6 +440,7 @@ juce::var MainComponent::buildProbeLayout()
             put (base + ".input", harnessPaintedIoRowBounds (strip, kMixerIoInputRow));
             put (base + ".output", harnessPaintedIoRowBounds (strip, kMixerIoOutputRow));
             put (base + ".fader", harnessPaintedFaderRailBounds (strip));
+            put (base + ".readout", paintedFaderReadoutBoundsForLane (paintedMixerLaneBounds (static_cast<std::size_t> (strip))));   // unit 13
             // G4 exit: the knob a press must land on (the rail itself does not take a press).
             put (base + ".fader.thumb", paintedFaderThumbForLane (paintedMixerLaneBounds (static_cast<std::size_t> (strip)),
                                                                  paintedStripFaderGain (static_cast<std::size_t> (strip),

@@ -17,6 +17,9 @@ public:
     // ADR-0053: a TextButton whose properties carry this flag (true) paints the compact face — the small type
     // and a narrow inset — for words in a tight pill (the header card's DIM / MUTE). Opt-in, never inferred.
     static constexpr const char* kCompactTextButton = "yesdaw.compactTextButton";
+    // A label that draws in its own font (UI correctness pass unit 13: the strip drag readout matches its cell's numeric
+    // caption); every other label keeps the theme's body font.
+    static constexpr const char* kOwnFontLabel = "yesdaw.ownFontLabel";
     [[nodiscard]] static bool isCompactTextButton (const juce::Button& button)
     {
         return static_cast<bool> (button.getProperties()[kCompactTextButton]);
@@ -49,8 +52,10 @@ public:
         return UiTheme::Type::font (UiTheme::Type::body);
     }
 
-    juce::Font getLabelFont (juce::Label&) override
+    juce::Font getLabelFont (juce::Label& label) override
     {
+        if (static_cast<bool> (label.getProperties()[kOwnFontLabel]))
+            return label.getFont();
         return UiTheme::Type::font (UiTheme::Type::body);
     }
 

@@ -629,6 +629,7 @@ private:
     [[nodiscard]] static juce::String dbReadoutText (double linearGain);
 
     void showDragDbReadout (juce::Rectangle<int> anchorBounds, double linearGain);
+    void showStripDragReadout (int stripIndex, double linearGain);   // UI correctness pass unit 13: in the strip's cell
 
     void hideDragDbReadout();
 
@@ -724,6 +725,8 @@ private:
     [[nodiscard]] static float mixerFaderFractionForDb (float db) noexcept;
 
     [[nodiscard]] static juce::Rectangle<int> paintedFaderRailForLane (juce::Rectangle<int> lane, int ioRows);
+    // UI correctness pass unit 13: the strip's readout cell (its gain, under the rail) - the paint's and the drag's.
+    [[nodiscard]] static juce::Rectangle<int> paintedFaderReadoutBoundsForLane (juce::Rectangle<int> lane) noexcept;
 
     // The painted pan knob's disc for a strip lane — the SAME rect the strip paint fills, so the
     // drag hit-test and the picture cannot drift.
