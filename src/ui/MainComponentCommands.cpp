@@ -2078,7 +2078,8 @@ void MainComponent::refreshActionState()
                                        || (action == yesdaw::ui::UiActionId::RecordingAssembleComp
                                            && appModel.context().recordingCompSelected)
                                        || (action == yesdaw::ui::UiActionId::ViewMixer && dockShowsMixer())
-                                       || (action == yesdaw::ui::UiActionId::ViewPianoRoll && dockShowsPianoRoll()),
+                                       || (action == yesdaw::ui::UiActionId::ViewPianoRoll && dockShowsPianoRoll())
+                                       || (action == yesdaw::ui::UiActionId::ViewMixWindow && appModel.context().mixWindowShown),
                                    juce::dontSendNotification);
     }
     refreshAutosaveRecoveryControls();

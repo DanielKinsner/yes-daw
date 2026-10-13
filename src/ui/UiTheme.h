@@ -268,6 +268,7 @@ struct UiTheme
         static constexpr int headerSmallButtonWidth = 30;
         static constexpr int headerUndoButtonWidth = 28;
         static constexpr int headerExportButtonWidth = 88;
+        static constexpr int headerMixButtonWidth = 64;   // the layout pass, step 10: the Mix button (icon + "Mix")
         static constexpr int headerExportProgressWidth = 58;
         static constexpr int headerExportCancelWidth = 28;
         static constexpr int headerExportProgressBarHeight = 3;   // UI pass unit 16: the progress bar along the readout's foot
@@ -339,7 +340,10 @@ struct UiTheme
         static constexpr int timelineAutoScrollIntervalMs = 40;
         static constexpr double timelineAutoScrollStepFraction = 0.02;   // of the visible window per tick
         static constexpr float timelineDragGhostOutlineWidth = 1.5f;
-        static juce::Rectangle<int> headerMenuBarBounds() noexcept { return { 8, 2, 680, 24 }; }   // G1.4: nine menus (G1.2) need the room
+        // G1.4: nine menus (G1.2) need the room. The layout pass, step 10: the row's first 680 px end with the Mix button
+        // (the nine menus end near 550), so the status line beside them keeps its place.
+        static constexpr int headerMenuRowLeftWidth = 680;
+        static juce::Rectangle<int> headerMenuBarBounds() noexcept { return { 8, 2, headerMenuRowLeftWidth - headerMixButtonWidth - statusLineMenuBarGap, 24 }; }
         static constexpr int headerMenuStartX = 22;
         static constexpr int headerMenuY = 5;
         static constexpr int headerMenuWidth = 70;
@@ -1105,8 +1109,14 @@ struct UiTheme
         static juce::Rectangle<int> statusLineMenuRowBounds (int windowWidth) noexcept
         {
             const juce::Rectangle<int> menu = headerMenuBarBounds();
-            const int left = menu.getRight() + statusLineMenuBarGap;
+            const int left = 8 + headerMenuRowLeftWidth + statusLineMenuBarGap;   // beside the Mix button, as before it
             return { left, menu.getY(), juce::jmax (0, windowWidth - statusLineMenuRightInset - left), menu.getHeight() };
+        }
+        // The layout pass, step 10: the Edit / Mix button, after the menus (SoundCraft shows Edit / Mix in its menu row).
+        static juce::Rectangle<int> mixWindowButtonBounds (int) noexcept
+        {
+            const juce::Rectangle<int> menu = headerMenuBarBounds();
+            return { 8 + headerMenuRowLeftWidth - headerMixButtonWidth, menu.getY(), headerMixButtonWidth, menu.getHeight() };
         }
         // E20: the lane-target chooser sits beside the delete button on the automation band's header row.
         static constexpr int automationTargetChooserWidth = 172;

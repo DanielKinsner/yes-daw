@@ -14744,6 +14744,24 @@ TEST_CASE ("the layout pass, step 10: Ctrl+= switches between the Edit window an
     REQUIRE (yesdaw::ui::mainComponentTimelineBounds (*shell) == editTimeline);
     REQUIRE (snapChooser->isVisible());
 
+    // The header's Mix button does the same, and stays in the header in both windows.
+    juce::Button& mixButton = requireButtonForAction (*shell, UiActionId::ViewMixWindow);
+    REQUIRE (mixButton.isVisible());
+    clickButton (mixButton);
+    REQUIRE (snapshotMainComponent (*shell).context.mixWindowShown);
+    REQUIRE (mixButton.isVisible());
+    REQUIRE (mixButton.getToggleState());
+    clickButton (mixButton);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.mixWindowShown);
+
+    // X (the mixer dock's toggle) in the Mix window returns to the Edit window, the dock as it was.
+    REQUIRE (shell->keyPressed (mixChord));
+    REQUIRE (snapshotMainComponent (*shell).context.mixWindowShown);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToggleMixerDock);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.mixWindowShown);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.mixerDockVisible);
+    REQUIRE (yesdaw::ui::mainComponentTimelineBounds (*shell) == editTimeline);
+
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }

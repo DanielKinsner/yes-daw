@@ -36,8 +36,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    none is selected (step 4); track rows show their effects and volume (step 5); the header shows the selection's
    Start / End / Length on wide windows (step 6); the view buttons show icons instead of I X P A (step 7); the mixer
    starts hidden and the colours are softer (step 8, Dan); the window opens maximised and remembers its place and size
-   (step 9); Ctrl+= (or View > Mix Window) switches to a full-window mixer and back (step 10). Next: a visible Edit /
-   Mix switch in the header; an overview strip; a command palette.
+   (step 9); a Mix button after the menus (or Ctrl+=, View > Mix Window) switches to a full-window mixer and back
+   (step 10). Next: an overview strip; a command palette; a demo song on first launch.
    Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1.
 3. Editing gaps (S-M each): clip names from file names, a clip-gain line, a snap grid that follows tempo changes,
    audio that follows tempo, MP3/FLAC export.
@@ -70,7 +70,8 @@ mixer, piano roll, automation) show icons instead of the letters I X P A. Step 8
 hidden (the prefs default; Dan's own prefs.json set to match) and the track palette is muted. Suite green locally
 (444/444). Step 9: the window opens maximised the first time and then comes back where and as big as it was left
 (prefs.json view.windowState). Step 10: Ctrl+= (View > Mix Window) switches to the Mix window - the mixer under the
-header, the arrangement's controls hidden - and back, with the dock as it was. **Next:** a visible Edit / Mix switch.
+header, the arrangement's controls hidden - and back, with the dock as it was; a Mix button after the menus does the
+same, and a dock key (X, P, Y) in the Mix window returns to the Edit window first. **Next:** an overview strip.
 
 ## 2026-10-13 — Direction: an editing suite first; live recording and low latency move to later
 

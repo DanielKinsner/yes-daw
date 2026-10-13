@@ -48,6 +48,7 @@ inline bool hasActionIcon (UiActionId action) noexcept
         case UiActionId::ViewToggleInspector:                 // the layout pass, step 7: the view cluster's icons
         case UiActionId::TimelineToggleMixerDock:
         case UiActionId::TimelineAutomationToggleTrackLane:
+        case UiActionId::ViewMixWindow:                       // the layout pass, step 10: the header's Mix button
         case UiActionId::ProjectExportAudioCancel:   // UI correctness pass unit 10: a cross in the export's 28 px slot
             return true;
         default:
@@ -239,6 +240,7 @@ inline bool drawActionIcon (juce::Graphics& g,
 
         case UiActionId::ViewMixer:
         case UiActionId::TimelineToggleMixerDock:   // the layout pass, step 7: the view cluster's mixer toggle
+        case UiActionId::ViewMixWindow:             // step 10: the header's Mix button
             for (const float column : std::array<float, 3> { 0.24f, 0.50f, 0.76f })
             {
                 path.startNewSubPath (left + w * column, top + h * 0.12f);

@@ -2284,6 +2284,7 @@ void MainComponent::resized()
             case yesdaw::ui::UiActionId::TransportPlay:      buttons[i].setBounds (h.play); break;
             case yesdaw::ui::UiActionId::TransportStop:      buttons[i].setBounds (h.stop); break;
             case yesdaw::ui::UiActionId::TransportToggleLoop: buttons[i].setBounds (h.loop); break;
+            case yesdaw::ui::UiActionId::ViewMixWindow:      buttons[i].setBounds (h.mixWindow); break;   // step 10
             // G2.1 cp2: ViewMixer / ViewPianoRoll sit in the status row's view cluster (below).
             default: buttons[i].setBounds ({});
         }
@@ -2820,6 +2821,7 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
     const int width = getWidth();
     h.menuBar = L::headerMenuBarBounds();
     h.statusLine = L::statusLineMenuRowBounds (width);   // ADR-0076
+    h.mixWindow = L::mixWindowButtonBounds (width);       // the layout pass, step 10: Edit / Mix, the menu row's right end
     const int controlY = L::menuBarHeight + (L::toolbarHeight - L::headerControlHeight) / 2;
     const int bigY = L::menuBarHeight + (L::toolbarHeight - L::headerTransportButtonSize) / 2;
 

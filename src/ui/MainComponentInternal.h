@@ -143,6 +143,7 @@ inline juce::String actionButtonText (yesdaw::ui::UiActionId id)
         case yesdaw::ui::UiActionId::AutosaveRecoveryRestore: return "Restore Autosave";
         case yesdaw::ui::UiActionId::AutosaveRecoveryDiscard: return "Discard Autosave";
         case yesdaw::ui::UiActionId::ViewPianoRoll: return "P";   // G2.1 cp3: the plan's letter cluster
+        case yesdaw::ui::UiActionId::ViewMixWindow: return "Mix";   // the layout pass, step 10
         default: break;
     }
     return "?";

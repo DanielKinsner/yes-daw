@@ -1373,6 +1373,7 @@ public:
         juce::Rectangle<int> menuBar, toolsSection, transportSection, masterSection, settingsRow;
         juce::Rectangle<int> newButton, openButton, saveButton, importButton, undoButton, redoButton;
         juce::Rectangle<int> exportButton, exportProgress, exportCancel;
+        juce::Rectangle<int> mixWindow;   // the layout pass, step 10: the Mix button
         juce::Rectangle<int> locateStart, play, stop, record, timeReadout, tempoMeterBox, loop, soloClear;
         juce::Rectangle<int> selection;   // the layout pass, step 6: Start / End / Length (empty when there is no room)
         juce::Rectangle<int> midiIn;   // G3.10: the MIDI input lamp

@@ -1214,7 +1214,7 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
 // test device is a harness-only verb (no chord, no control) so fake provenance cannot be stamped
 // from the UI.
-inline constexpr std::array<UiActionId, 15> kMainShellToolbarActions {{
+inline constexpr std::array<UiActionId, 16> kMainShellToolbarActions {{
     UiActionId::ProjectNew,
     UiActionId::ProjectOpen,
     UiActionId::ProjectSave,
@@ -1229,7 +1229,8 @@ inline constexpr std::array<UiActionId, 15> kMainShellToolbarActions {{
     UiActionId::TransportStop,
     UiActionId::TransportLocateStart,
     UiActionId::TransportToggleLoop,
-    UiActionId::ViewPianoRoll   // G2.1 cp3: the Mixer button retired — the cluster's X (the dock toggle) is the control
+    UiActionId::ViewPianoRoll,  // G2.1 cp3: the Mixer button retired — the cluster's X (the dock toggle) is the control
+    UiActionId::ViewMixWindow   // the layout pass, step 10: the header's Mix button (Edit / Mix, Ctrl+=)
 }};
 
 inline const std::array<UiActionDescriptor, kUiActionCount>& uiActionDescriptors()
@@ -1237,7 +1238,7 @@ inline const std::array<UiActionDescriptor, kUiActionCount>& uiActionDescriptors
     return kUiActionDescriptors;
 }
 
-inline const std::array<UiActionId, 15>& mainShellToolbarActions()
+inline const std::array<UiActionId, 16>& mainShellToolbarActions()
 {
     return kMainShellToolbarActions;
 }
@@ -1576,6 +1577,23 @@ public:
         const UiActionState state = stateFor (id, context);
         if (! state.enabled)
             return { id, state, false };
+
+        // The layout pass, step 10: a dock verb in the Mix window first returns to the Edit window, the dock as it was;
+        // X (the mixer dock's toggle) does only that there.
+        if (context.mixWindowShown
+            && (id == UiActionId::ViewMixer || id == UiActionId::ViewPianoRoll || id == UiActionId::ViewBrowser
+                || id == UiActionId::ViewInstrument || id == UiActionId::TimelineToggleMixerDock))
+        {
+            context.mixWindowShown = false;
+            context.mixerDockVisible = context.mixWindowPriorDockVisible;
+            context.editorDockTab = context.mixWindowPriorDockTab;
+            context.activePanel = UiPanel::Timeline;
+            if (id == UiActionId::TimelineToggleMixerDock)
+            {
+                ++context.commandDispatchCount;
+                return { id, state, true };
+            }
+        }
 
         switch (id)
         {
