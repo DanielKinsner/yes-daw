@@ -17,6 +17,7 @@ void MainComponent::configureMixerDockToggle()
     constexpr yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::TimelineToggleMixerDock;
     configureActionComponent (mixerDockToggle, action, "Mixer dock");
     mixerDockToggle.setButtonText ("X");   // G2.1 cp3: the view cluster's X (tooltip carries the name + chord)
+    mixerDockToggle.setAction (action);   // the layout pass, step 7: its icon paints
     mixerDockToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
     mixerDockToggle.setColour (juce::TextButton::buttonOnColourId, kPurple.darker (0.45f));
     mixerDockToggle.setColour (juce::TextButton::textColourOffId, kText);

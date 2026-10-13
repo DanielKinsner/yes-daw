@@ -409,6 +409,7 @@ struct UiTheme
         static constexpr int controlInnerHighlightHeight = 1;
         static constexpr int controlTextHorizontalInset = 8;
         static constexpr int controlIconInset = 7;
+        static constexpr int viewClusterIconInset = 3;   // the layout pass, step 7: the view cluster's icons fill their buttons
         static constexpr int controlIconTextGap = 5;
         static constexpr int controlFocusInset = 1;
         static constexpr float controlFocusStrokeWidth = 1.5f;

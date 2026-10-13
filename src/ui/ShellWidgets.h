@@ -42,15 +42,16 @@ public:
 
     void paintButton (juce::Graphics& g, bool highlighted, bool down) override
     {
-        // G2.1 cp3: a cluster-narrow button ([I][X][P][A]) paints its letter, never its icon —
-        // but icon-only chrome (the header's New / Open / Save / transport) stays an icon at any width.
-        if (! yesdaw::ui::hasActionIcon (action)
-            || (getWidth() <= yesdaw::ui::UiTheme::Layout::inspectorToggleWidth
-                && ! yesdaw::ui::actionUsesIconOnlyChrome (action)))
+        // The layout pass, step 7: a cluster-narrow button (the view cluster - inspector, mixer, piano roll, automation)
+        // paints its icon alone, as icon-only chrome does; its letter stays its text (the name and chord are its
+        // tooltip). A button with no icon paints its text.
+        if (! yesdaw::ui::hasActionIcon (action))
         {
             juce::TextButton::paintButton (g, highlighted, down);
             return;
         }
+        const bool iconOnly = yesdaw::ui::actionUsesIconOnlyChrome (action)
+                           || getWidth() <= yesdaw::ui::UiTheme::Layout::inspectorToggleWidth;
 
         getLookAndFeel().drawButtonBackground (
             g,
@@ -68,14 +69,16 @@ public:
                                         isEnabled() ? yesdaw::ui::UiTheme::Tone::componentVisibleAlpha
                                                     : yesdaw::ui::UiTheme::Tone::disabledAlpha);
         auto content = getLocalBounds();
-        if (yesdaw::ui::actionUsesIconOnlyChrome (action))
+        if (iconOnly)
         {
-            (void) yesdaw::ui::drawActionIcon (
-                g,
-                action,
-                content.toFloat().reduced (
-                    static_cast<float> (yesdaw::ui::UiTheme::Layout::controlIconInset)),
-                iconColour);
+            auto iconBounds = content.toFloat().reduced (static_cast<float> (yesdaw::ui::UiTheme::Layout::controlIconInset));
+            if (! yesdaw::ui::actionUsesIconOnlyChrome (action))   // the view cluster: a near-square, never squashed
+            {
+                const auto room = content.toFloat().reduced (static_cast<float> (yesdaw::ui::UiTheme::Layout::viewClusterIconInset));
+                const float side = juce::jmin (room.getWidth(), room.getHeight());
+                iconBounds = room.withSizeKeepingCentre (juce::jmin (room.getWidth(), side * 1.3f), side);
+            }
+            (void) yesdaw::ui::drawActionIcon (g, action, iconBounds, iconColour);
             return;
         }
 

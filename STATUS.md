@@ -34,7 +34,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    per track everywhere and clips named after their files (step 1); the ruler's rows labelled (step 2); mixer strips
    show pan values, fader dB numbers and "+ Insert" / "+ Send" hints (step 3); the inspector lists every clip when
    none is selected (step 4); track rows show their effects and volume (step 5); the header shows the selection's
-   Start / End / Length on wide windows (step 6). Next: an overview strip, a command palette.
+   Start / End / Length on wide windows (step 6); the view buttons show icons instead of I X P A (step 7). Next: an
+   overview strip, a command palette.
    Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1.
 3. Editing gaps (S-M each): clip names from file names, a clip-gain line, a snap grid that follows tempo changes,
    audio that follows tempo, MP3/FLAC export.
@@ -54,7 +55,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
-## 2026-10-13 — Layout pass steps 1-6: colours, clip names, ruler labels, mixer strips, clips list, track rows, selection
+## 2026-10-13 — Layout pass steps 1-7: colours, clip names, rulers, mixer strips, clips list, track rows, selection, icons
 
 Every track wears one colour (its own, or an 8-colour palette by position) on its row, clips and mixer strip; clips
 are solid with a coloured name bar and a dark wave, named after their files. The rail's header now labels the ruler's
@@ -62,8 +63,9 @@ rows (Bars, Min:Sec, Markers) beside them. Step 3: mixer strips show their pan v
 "+ Insert" / "+ Send" in the first empty wells. Step 4: with no clip selected, the inspector's Clip tab lists every
 clip (colour, name, track, start); a click selects it and scrolls it into view. Step 5: each track row shows its
 effects ("EQ · Comp") under its name and its volume in dB beside VOL. Step 6: a Start / End / Length box beside
-the transport (range, else the selected clip), when the window is wide enough. Suite green locally (444/444).
-**Next:** an overview strip.
+the transport (range, else the selected clip), when the window is wide enough. Step 7: the view buttons (inspector,
+mixer, piano roll, automation) show icons instead of the letters I X P A. Suite green locally (444/444). **Next:** an
+overview strip.
 
 ## 2026-10-13 — Direction: an editing suite first; live recording and low latency move to later
 

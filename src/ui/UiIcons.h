@@ -45,6 +45,9 @@ inline bool hasActionIcon (UiActionId action) noexcept
         case UiActionId::TransportToggleLoop:
         case UiActionId::ViewMixer:
         case UiActionId::ViewPianoRoll:
+        case UiActionId::ViewToggleInspector:                 // the layout pass, step 7: the view cluster's icons
+        case UiActionId::TimelineToggleMixerDock:
+        case UiActionId::TimelineAutomationToggleTrackLane:
         case UiActionId::ProjectExportAudioCancel:   // UI correctness pass unit 10: a cross in the export's 28 px slot
             return true;
         default:
@@ -235,6 +238,7 @@ inline bool drawActionIcon (juce::Graphics& g,
             break;
 
         case UiActionId::ViewMixer:
+        case UiActionId::TimelineToggleMixerDock:   // the layout pass, step 7: the view cluster's mixer toggle
             for (const float column : std::array<float, 3> { 0.24f, 0.50f, 0.76f })
             {
                 path.startNewSubPath (left + w * column, top + h * 0.12f);
@@ -249,14 +253,38 @@ inline bool drawActionIcon (juce::Graphics& g,
             break;
 
         case UiActionId::ViewPianoRoll:
-            path.addRoundedRectangle (left + w * 0.08f, top + h * 0.20f, w * 0.84f, h * 0.60f,
-                                      UiTheme::Radius::xs);
-            for (const float column : std::array<float, 4> { 0.29f, 0.50f, 0.71f, 0.84f })
-            {
-                path.startNewSubPath (left + w * column, top + h * 0.20f);
-                path.lineTo (left + w * column, bottom - h * 0.20f);
-            }
+            // The layout pass, step 7: a piano roll's notes - three staggered bars (the keys-and-lines picture read as a
+            // battery at the view cluster's size).
+            path.startNewSubPath (left + w * 0.12f, top + h * 0.24f);
+            path.lineTo (left + w * 0.46f, top + h * 0.24f);
+            path.startNewSubPath (left + w * 0.38f, cy);
+            path.lineTo (right - w * 0.12f, cy);
+            path.startNewSubPath (left + w * 0.20f, bottom - h * 0.24f);
+            path.lineTo (left + w * 0.62f, bottom - h * 0.24f);
             break;
+
+        // The layout pass, step 7: the view cluster's inspector (a window with its right-hand panel) and automation lanes
+        // (a line through three breakpoints), in place of the letters I and A.
+        case UiActionId::ViewToggleInspector:
+            path.addRoundedRectangle (left + w * 0.08f, top + h * 0.12f, w * 0.84f, h * 0.76f, UiTheme::Radius::xs);
+            path.startNewSubPath (left + w * 0.60f, top + h * 0.12f);
+            path.lineTo (left + w * 0.60f, bottom - h * 0.12f);
+            break;
+
+        case UiActionId::TimelineAutomationToggleTrackLane:
+        {
+            const std::array<juce::Point<float>, 4> points { juce::Point<float> { left + w * 0.10f, bottom - h * 0.28f },
+                                                             juce::Point<float> { left + w * 0.38f, top + h * 0.30f },
+                                                             juce::Point<float> { left + w * 0.64f, top + h * 0.56f },
+                                                             juce::Point<float> { right - w * 0.10f, top + h * 0.22f } };
+            path.startNewSubPath (points[0]);
+            for (std::size_t i = 1; i < points.size(); ++i)
+                path.lineTo (points[i]);
+            const float dot = juce::jmin (w, h) * 0.07f;
+            for (std::size_t i = 1; i < points.size() - 1; ++i)
+                path.addEllipse (points[i].x - dot, points[i].y - dot, dot * 2.0f, dot * 2.0f);
+            break;
+        }
 
         case UiActionId::ProjectExportAudioCancel:
         {

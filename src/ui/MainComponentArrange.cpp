@@ -100,6 +100,7 @@ void MainComponent::configureAutomationLaneControls()
     constexpr yesdaw::ui::UiActionId action = yesdaw::ui::UiActionId::TimelineAutomationToggleTrackLane;
     configureActionComponent (automationLaneToggle, action, "Automation lanes");
     automationLaneToggle.setButtonText ("A");   // G2.1 cp3: the view cluster's A (the tooltip carries the name + chord)
+    automationLaneToggle.setAction (action);   // the layout pass, step 7: its icon paints
     automationLaneToggle.setColour (juce::TextButton::buttonColourId, yesdaw::ui::UiTheme::Color::buttonSurface());
     automationLaneToggle.setColour (juce::TextButton::buttonOnColourId, kPurple.darker (0.45f));
     automationLaneToggle.setColour (juce::TextButton::textColourOffId, kText);

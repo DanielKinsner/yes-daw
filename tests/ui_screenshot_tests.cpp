@@ -778,6 +778,36 @@ TEST_CASE ("the layout pass, step 6: the header's selection box reads the select
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// The layout pass, step 7: the view cluster (inspector, mixer, piano roll, automation) paints icons, not the letters
+// I X P A - every one of its actions has an icon, and each button paints it legibly.
+TEST_CASE ("the layout pass, step 7: the view cluster paints icons", "[ui][screenshot][layout-pass]")
+{
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-layout-pass-views.yesdaw";
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    const juce::Image image = renderShell (*shell);
+    (void) captureShellPng (image, "yesdaw-layout-pass-views.png");
+    for (const UiActionId action : { UiActionId::ViewToggleInspector, UiActionId::TimelineToggleMixerDock,
+                                     UiActionId::ViewPianoRoll, UiActionId::TimelineAutomationToggleTrackLane })
+    {
+        INFO ("action " << static_cast<int> (action));
+        REQUIRE (yesdaw::ui::hasActionIcon (action));
+        juce::Component* button = yesdaw::ui::findMainComponentChildForAction (*shell, action);
+        REQUIRE (button != nullptr);
+        REQUIRE (button->isVisible());
+        REQUIRE (maxContrastInRegion (image, button->getBounds().reduced (4)) >= 3.0);
+    }
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("Piano roll and automation lane render honestly with real notes and breakpoints",
            "[ui][screenshot][roll-sizes]")
 {

@@ -1751,7 +1751,7 @@ private:
     InstrumentPanelComponent instrumentPanel;   // G3.1
     juce::ComboBox inspectorInstrumentChooser;   // G3.1
     juce::TextButton inspectorInstrumentEdit;
-    juce::TextButton inspectorToggle;      // G1.4
+    ToolbarActionButton inspectorToggle;      // G1.4; the layout pass, step 7: paints its icon
     juce::ComboBox editModeChooser;        // G2.6
     bool refreshingEditModeChooser = false;
     juce::ComboBox snapModeChooser;        // G2.7
@@ -1790,8 +1790,8 @@ private:
     std::vector<std::unique_ptr<juce::TextButton>> automationAddLaneButtons;   // G4.6: other shown tracks' last lane
     bool refreshingAutomationTarget = false;
     juce::ComboBox automationTargetChooser;
-    juce::TextButton automationLaneToggle;
-    juce::TextButton mixerDockToggle;
+    ToolbarActionButton automationLaneToggle;   // the layout pass, step 7: paints its icon
+    ToolbarActionButton mixerDockToggle;        // the layout pass, step 7: paints its icon
     // V7: the inspector's REAL tab buttons (the painted CLIP/TRACK cells used to be decorative).
     juce::TextButton inspectorClipTab;
     juce::TextButton inspectorTrackTab;

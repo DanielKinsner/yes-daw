@@ -1014,6 +1014,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     // G1.4: the Inspector toggle (I) at the toolbar's right end.
     configureActionComponent (inspectorToggle, yesdaw::ui::UiActionId::ViewToggleInspector, "Inspector");
     inspectorToggle.setButtonText ("I");   // G2.1 cp3: the letter cluster (tooltip carries the name + chord)
+    inspectorToggle.setAction (yesdaw::ui::UiActionId::ViewToggleInspector);   // the layout pass, step 7: its icon paints
     inspectorToggle.setClickingTogglesState (false);
     inspectorToggle.onClick = [this] {
         handleAction (yesdaw::ui::UiActionId::ViewToggleInspector);
