@@ -8,6 +8,84 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 15: the drive batch, the rubric, FIXes 1-15 closed
+
+**Candidate:** `dist/YesDaw-3f8dc35-win64-portable.zip` (units 1-14), `YesDaw.exe` SHA256
+`CEC920BEA4266504944D27DF5F85E1C091F66858A2B47EB3CBE25659B69CCA24`; its packaged self-check passes (make-demo, then
+selfcheck; render, export and reimport bit-exact) and reports `3f8dc35`. Drives on Dan's shared desktop, hands-off with
+his go-ahead (he was away). Shots: `build-ci/session-shots/2026-10-12-ui-pass/` (the 10-11 before-shots untouched).
+Evidence: `docs/evidence/2026-10-12-ui-pass-drives-and-hardware.json`.
+
+**Batch:**
+- **Green:** SS1 59/59, SS3 84/84, SS4 22/22, SS5 77/77, SS8 212/212.
+- **Green on re-run:** SS2 42/42 (first run 39/42), SS6 58/58 (first run 45/47).
+- **SS7 pending - no clean run.** First run 180/199; re-runs 104/124, 123/124, 48/51, 48/55.
+- **Why the reds were the environment, not the product:** every failing step in SS2, SS6 and SS7, across eight runs,
+  followed Google Chrome taking the foreground from YES DAW within 5 s, with the app out of the foreground at the failing
+  step (the drive's foreground monitor: pid 31700, once 41840; 5 ms to 3195 ms). Chrome's visible windows were "Sign In"
+  and "Success!", raising themselves every few seconds; they are Dan's browser and a sign-in, so they were not touched.
+  SS2 and SS6 re-ran with no flashes and passed whole. SS7 had no flash-free run, so it stays pending until one.
+- **Unit drive checks inside the batch:**
+  - SS3: the counter reads bar 57 one pixel right of its label's tick (`057|01`; before the fix, about bar 81 there);
+  - unit 14: the menu and alert evidence shots log `(+1 app windows)`, and SS7 Step 16's pointer shots log "main only".
+
+**Rubric (§7.4),** judged by a separate agent on the batch's shots and checked against the 10-11 before-shots, plus my
+own look at the ctest matrix renders at 150 % (`yesdaw-g62-display-1706x896-150`, `-window-*-150`, regenerated on this
+build): **FIXes 1-15 are all fixed at 1280, 1920 and 2560**, each with its shot cited:
+- the tempo press, the ruler bars and times, and the playhead head;
+- the master meter (-18 dBTP between "-12" and "-24");
+- the rail, the dock re-layout, the export cross;
+- the status line whole in the menu row;
+- the TAKES card and the Curve row (whole at 150 % too);
+- the strip readout, narrow I/O and lit cells;
+- the composited popups.
+The table, by line:
+- line 2 (eight tracks at 1080p) PASS;
+- lines 3, 5, 6, 7 PASS;
+- **lines 1 and 4 FIX** - on older defects not on the FIX list, now new units 16-28 in the plan.
+
+**New FIXes (16-28, in the plan, worst first):**
+- 16 the export progress label squashes "Export 10%"-"99%" and "Cancelling..." (about 64-69 px in a 48 px box; unit
+  15's measurement);
+- 17 the main window is white under the launch alert;
+- 18 the stock JUCE alert's clipped icon;
+- 19 squashed device choosers;
+- 20 clipped piano-roll key labels;
+- 21 the loop handle over the tempo label;
+- 22 the MIDI clip name;
+- 23 PRE / PST at 3.59:1;
+- 24 the meter's yellow band follows height, not level;
+- 25 the last ruler label cut;
+- 26 a stale status after undo;
+- 27 unlabelled bars beside a tempo label;
+- 28 resting tooltips in the size shots.
+
+**Packaged hardware verifier** (the candidate's own `verify-hardware.ps1`; rows committed verbatim in
+`docs/reality-lane.md`):
+- **playback FAIL** `playback_block_exceeds_target`. The default output is now **Speakers (Focusrite USB Audio)**,
+  and three backend attempts each granted 480 frames at 48 kHz against the locked 128-frame target - as the HyperX
+  headset did on 10-12. So the device is not the cause: the shared-mode audio path grants the system engine's 10 ms
+  period whatever the interface.
+- **recording FAIL** `recording_silent`: a round trip with nothing feeding the default input (the HyperX microphone)
+  while Dan was away.
+- **frame PASS** (headless dense timeline).
+- The playback target therefore needs an owner decision (see Next).
+
+**CI:**
+- units 7-10 certified;
+- unit 11 (`ae427f6`): its macOS status-gate timing is fixed in `9c092be`; its Windows GPU red gets one same-code
+  re-run, queued;
+- unit 12 (`5d686a9`): red only on that macOS status-gate timing (fixed in the next push), Windows green;
+- units 13 and 14 running.
+
+**Next:**
+1. SS7 one clean run, once the Chrome sign-in windows are closed.
+2. Units 16-28.
+3. The close-out's unit 7 (the Usable-song milestone close) - unblocked by FIXes 1-15, with the hardware playback
+   result above.
+4. An owner choice on the playback target: an exclusive-mode / ASIO path for 128-frame blocks, or a target that the
+   shared-mode path can meet.
+
 ## 2026-10-12 — UI correctness pass unit 14: evidence shots show the app's popups and alerts
 
 **What changes (tools only):** the drive's `Shot` captured the main window alone, so a shot of an open menu or an

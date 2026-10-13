@@ -624,14 +624,39 @@ close-out rubric pass.
 
 ### 15. Re-run the rubric and close the FIX list
 
-- [ ] After units 1-14, run the full SS1-SS8 batch on one packaged candidate with the new capture,
-  into a fresh folder. Judge the rubric at 1280, 1920 and 2560 and at 150% scaling. Record each
+- [x] After units 1-14, run the full SS1-SS8 batch on one packaged candidate with the new capture,
+  into a fresh folder. (2026-10-12, candidate `3f8dc35`: all green but SS7, which had no clean run - a
+  foreign window kept taking the foreground; see STATUS.) Judge the rubric at 1280, 1920 and 2560 and at 150% scaling. Record each
   section 7.4 line in STATUS as PASS or FIX, with its gate name. Any new FIX gets its own unit.
-- [ ] Measure the export progress label with unit 10's text-fit method. While an export runs it
+- [x] Measure the export progress label with unit 10's text-fit method. (It squashes: new unit 16.) While an export runs it
   shows "Export 10%" to "Export 99%" and "Cancelling...", and two-digit values probably squash. If
   they do, it becomes a new FIX.
-- [ ] Tick STATUS rubric FIXes 1-15. This unblocks the close-out's
+- [x] Tick STATUS rubric FIXes 1-15. This unblocks the close-out's
   [unit 7](2026-10-09-cheap-autosave-closeout.md).
+
+### Units 16-28: the close-out rubric's new FIXes (2026-10-12, not yet built)
+
+The unit 15 rubric pass found these, each in the before-shots too except 18, which only became visible once alerts
+were composited. Each is its own unit, worst first, under the same checkpoint rule (ADR-0075 cadence).
+
+- **16.** The export progress label squashes "Export 10%"-"Export 99%" and "Cancelling..." (about 64-69 px of
+  text in its 48 px box, in Verdana / DejaVu). Line 1.
+- **17.** The main window is white under the launch-time missing-media alert (`ss8-missing-cancel` 91.5 % white,
+  `ss8-missing-rejected` 90.3 %). Line 1 / 6.
+- **18.** The stock JUCE alert style: its icon is clipped at the alert's top-left corner and sits under about 35 px of
+  the title and body text (`ss8-unsaved-during-export`, `ss8-missing-*`). Line 1.
+- **19.** The settings row's device choosers are squashed, then elided ("Speakers (Focusrite USB A...").
+  Line 1 / 4.
+- **20.** The piano roll's key labels C3-B3 lose their tops and bottoms to the key rows. Line 1.
+- **21.** The loop's right end-handle covers the tempo label ("150~") at 1280. Line 1.
+- **22.** A MIDI clip's note-preview bar cuts through its name. Line 1.
+- **23.** The send rows' PRE / PST text is 3.59:1 on the strip header colour. Line 4.
+- **24.** A meter's yellow band follows the bar's height, not the level (yellow at about -41 dBFS). Line 7.
+- **25.** The last ruler label is cut at the right edge ("12" / "4:", "0:19."). Line 1.
+- **26.** A status message outlives its undo ("Routed to new Bus 2" after Bus 2 was undone). Line 7.
+- **27.** Bars beside a tempo label go unlabelled (265 px between "33" and "57" at 1920). Information.
+- **28.** Evidence hygiene: the end-of-drive size shots now include the resting pointer's tooltip (it hides the ruler at
+  the tempo change in `ss3-2560`); park the pointer or use `-MainOnly` for size shots. Tooling.
 
 ## Parked, recorded in STATUS / parking lot, not in this pass
 
