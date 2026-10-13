@@ -88,6 +88,12 @@ struct LifecycleShell
     bool replaceTemplate = false;            // the replace question's answer
     int replaceAsks = 0;
     std::string replaceAskedFor;
+    // ADR-0077: with `holdQuestions` the close question, Save As and Open hold their replies here, to be answered later;
+    // without it they answer at once through the same reply.
+    bool holdQuestions = false;
+    std::optional<yesdaw::ui::QuestionReply<int>> heldClose;
+    std::optional<yesdaw::ui::QuestionReply<std::filesystem::path>> heldSaveAs;
+    std::optional<yesdaw::ui::QuestionReply<std::filesystem::path>> heldOpen;
     std::unique_ptr<juce::Component> shell;
 
     // `launchSession`: the native launch (the last project or `openAtLaunch`, else the untitled session).
@@ -101,13 +107,21 @@ struct LifecycleShell
         choices.sessionStateDirectory = directory / "session";
         std::filesystem::create_directories (choices.sessionStateDirectory);
         choices.chooseNewProjectBundle = [this] { return nextBundle; };
-        choices.chooseOpenProjectBundle = [this] { return nextBundle; };
+        choices.chooseOpenProjectBundle = [this] (yesdaw::ui::QuestionReply<std::filesystem::path> reply) {
+            if (holdQuestions)
+                heldOpen = std::move (reply);
+            else
+                reply (nextBundle);
+        };
         if (! overlay)
             choices.newProjectDialogChoices = [this] { return dialogAnswer; };
         choices.newProjectDialog = overlay;
-        choices.confirmCloseUnsavedChanges = [this] {
+        choices.confirmCloseUnsavedChanges = [this] (yesdaw::ui::QuestionReply<int> reply) {
             ++prompts;
-            return closeChoice;
+            if (holdQuestions)
+                heldClose = std::move (reply);
+            else
+                reply (closeChoice);
         };
         choices.requestAudioDeviceSampleRate = [this] (double hz) {
             rateRequests.push_back (hz);
@@ -116,9 +130,12 @@ struct LifecycleShell
             return deviceAccepts;
         };
         choices.currentAudioDeviceSampleRate = [this] { return deviceRate; };
-        choices.chooseSaveAsProjectBundle = [this] {
+        choices.chooseSaveAsProjectBundle = [this] (yesdaw::ui::QuestionReply<std::filesystem::path> reply) {
             ++saveAsAsks;
-            return saveAsBundle;
+            if (holdQuestions)
+                heldSaveAs = std::move (reply);
+            else
+                reply (saveAsBundle);
         };
         choices.chooseSaveACopyProjectBundle = [this] { return saveACopyBundle; };
         choices.chooseSaveAsTemplateName = [this] { return templateName; };
@@ -2339,4 +2356,142 @@ TEST_CASE ("ADR-0068 Don't Save retires the autosave, replacing the project and 
         REQUIRE_FALSE (yesdaw::ui::mainComponentConfirmsClose (*f));
         REQUIRE (autosaveOnDisk (first));
     }
+}
+
+// ---- ADR-0077 unit 29b: New, Open, Save As and quit with their answers given later ----
+
+// Open, with the unsaved-changes question and the chooser answered later: nothing is retired before Don't Save arrives;
+// the chooser is asked from that answer; cancelling it ends the replace attempt, so the open project's tail is due again
+// (ADR-0068 §4).
+TEST_CASE ("ADR-0077 Open answered later: Don't Save, then the chooser cancelled - the open project's tail is due again",
+           "[project-lifecycle][questions]")
+{
+    LifecycleShell f ("questions-open-held");
+    f.newProject ("first", choicesOf (48'000.0, 120.0, 4, 4));
+    const auto first = f.directory / "first.yesdaw";
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::TrackAdd);   // unsaved changes
+    const auto tickUntilAutosaved = [&f, &first] {
+        for (int n = 0; n < 2000 && ! autosaveOnDisk (first); ++n)
+            yesdaw::ui::mainComponentServiceUiTick (*f);
+        return autosaveOnDisk (first);
+    };
+    REQUIRE (tickUntilAutosaved());
+
+    f.holdQuestions = true;
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectOpen);
+    REQUIRE (f.heldClose.has_value());
+    CHECK (f.prompts == 1);
+    CHECK (autosaveOnDisk (first));            // nothing retired before the answer
+    CHECK_FALSE (f.heldOpen.has_value());      // the chooser waits for it
+    (*f.heldClose) (yesdaw::ui::kCloseChoiceClose);   // Don't Save
+    CHECK_FALSE (autosaveOnDisk (first));
+    REQUIRE (f.heldOpen.has_value());
+    (*f.heldOpen) (std::filesystem::path {});  // the chooser's Cancel
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*f));
+    CHECK (yesdaw::ui::snapshotMainComponent (*f).bundlePath == first);
+    CHECK (tickUntilAutosaved());              // due again
+}
+
+// Quit (rule 7): refused while a question is open, even with nothing unsaved; with unsaved changes it asks once - Save
+// on the untitled session goes through Save As, a cancelled Save As keeps the app open, and a saved one quits exactly
+// once.
+TEST_CASE ("ADR-0077 a quit answered later: refused while a question is open; Save through Save As quits once",
+           "[project-lifecycle][questions]")
+{
+    LifecycleShell f ("questions-quit-held", false, true);
+    REQUIRE (yesdaw::ui::snapshotMainComponent (*f).context.projectLoaded);   // the untitled session
+    int quits = 0;
+    const auto requestQuit = [&f, &quits] { yesdaw::ui::mainComponentRequestQuit (*f, [&quits] { ++quits; }); };
+
+    // A clean session with the Open chooser up: no quit.
+    f.holdQuestions = true;
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectOpen);
+    REQUIRE (f.heldOpen.has_value());
+    requestQuit();
+    CHECK (quits == 0);
+    (*f.heldOpen) (std::filesystem::path {});
+    f.heldOpen.reset();
+
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::TrackAdd);   // unsaved changes
+    requestQuit();
+    REQUIRE (f.heldClose.has_value());
+    CHECK (f.prompts == 1);
+    requestQuit();                             // a second request while the question is up: not asked again
+    CHECK (f.prompts == 1);
+    CHECK (quits == 0);
+
+    // Save -> Save As cancelled: the app stays.
+    (*f.heldClose) (yesdaw::ui::kCloseChoiceSave);
+    REQUIRE (f.heldSaveAs.has_value());
+    CHECK (f.saveAsAsks == 1);
+    (*f.heldSaveAs) (std::filesystem::path {});
+    CHECK (quits == 0);
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*f));
+
+    // Save -> Save As to kept: quits, once.
+    f.heldClose.reset();
+    f.heldSaveAs.reset();
+    requestQuit();
+    REQUIRE (f.heldClose.has_value());
+    (*f.heldClose) (yesdaw::ui::kCloseChoiceSave);
+    REQUIRE (f.heldSaveAs.has_value());
+    CHECK (quits == 0);
+    (*f.heldSaveAs) (f.directory / "kept.yesdaw");
+    CHECK (quits == 1);
+    CHECK (f.prompts == 2);
+    CHECK (readProject (f.directory / "kept.yesdaw").tracks.size() == 2u);
+}
+
+// The held-answer twin of "Save -> Save As to kept, then New" (ADR-0060): Save As changes the bundle path without a new
+// attach, and the New it was asked for still goes ahead from Save As's answer.
+TEST_CASE ("ADR-0077 New answered later on the untitled session: Save, Save As to kept, then the new project",
+           "[project-lifecycle][questions]")
+{
+    LifecycleShell f ("questions-new-held", false, true);
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::TrackAdd);   // unsaved changes in the untitled session
+    f.holdQuestions = true;
+    f.newProject ("next", choicesOf (48'000.0, 120.0, 4, 4));
+    REQUIRE (f.heldClose.has_value());
+    (*f.heldClose) (yesdaw::ui::kCloseChoiceSave);
+    REQUIRE (f.heldSaveAs.has_value());
+    CHECK_FALSE (std::filesystem::exists (f.directory / "next.yesdaw"));
+    (*f.heldSaveAs) (f.directory / "kept.yesdaw");
+    CHECK (readProject (f.directory / "kept.yesdaw").tracks.size() == 2u);
+    CHECK (std::filesystem::exists (f.directory / "next.yesdaw"));
+    CHECK (yesdaw::ui::snapshotMainComponent (*f).windowTitle.find ("next") != std::string::npos);
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*f));
+}
+
+// Rule 5 for the replace flows: with Save As's chooser up, Open and Open Recent are refused at their unsaved-changes
+// question - not asked, nothing retired, the project and the status line as they were - and the attempt ends.
+TEST_CASE ("ADR-0077 Open and Open Recent are refused while another question is open", "[project-lifecycle][questions]")
+{
+    LifecycleShell f ("questions-replace-refused");
+    f.newProject ("older", choicesOf (48'000.0, 120.0, 4, 4));   // in Open Recent
+    f.newProject ("first", choicesOf (48'000.0, 120.0, 4, 4));
+    const auto first = f.directory / "first.yesdaw";
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::TrackAdd);   // unsaved changes
+    for (int n = 0; n < 2000 && ! autosaveOnDisk (first); ++n)
+        yesdaw::ui::mainComponentServiceUiTick (*f);
+    REQUIRE (autosaveOnDisk (first));
+
+    f.holdQuestions = true;
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectSaveAs);
+    REQUIRE (f.heldSaveAs.has_value());
+    const int promptsBefore = f.prompts;
+    const std::string statusBefore = yesdaw::ui::snapshotMainComponent (*f).statusLineText;
+
+    yesdaw::ui::mainComponentDispatchAction (*f, UiActionId::ProjectOpen);
+    auto* menuBar = dynamic_cast<juce::MenuBarComponent*> ((*f).findChildWithID ("shell.menubar"));
+    REQUIRE (menuBar != nullptr);
+    menuBar->getModel()->menuItemSelected (1000 + 1, 0);   // Open Recent (kRecentMenuBaseId 1000): the older project
+
+    CHECK (f.prompts == promptsBefore);
+    CHECK_FALSE (f.heldOpen.has_value());
+    CHECK (autosaveOnDisk (first));
+    CHECK (yesdaw::ui::snapshotMainComponent (*f).bundlePath == first);
+    CHECK (yesdaw::ui::snapshotMainComponent (*f).statusLineText == statusBefore);
+    CHECK (yesdaw::ui::mainComponentQuestionOpen (*f));   // Save As's question is still the open one
+    (*f.heldSaveAs) (std::filesystem::path {});
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*f));
 }

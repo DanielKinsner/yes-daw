@@ -32031,8 +32031,11 @@ TEST_CASE ("ADR-0077 a question answered later: one at a time, and an answer act
         heldReplace = std::move (reply);
     };
     auto shell = makeShell (std::move (choices));
+    nextBundle = otherPath;   // made first, so it is in Open Recent
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
-    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
+    nextBundle = bundlePath;
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    REQUIRE (snapshotMainComponent (*shell).bundlePath == bundlePath);
     const auto clipCount = [] (const std::filesystem::path& bundle) { return readProjectSnapshot (bundle).clips.size(); };
 
     // Asked: held, nothing imported yet, the question open.
@@ -32074,12 +32077,23 @@ TEST_CASE ("ADR-0077 a question answered later: one at a time, and an answer act
     (*heldReplace) (false);
     CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
 
-    // Asked under one project, answered under another (New replaced it meanwhile): the answer does nothing.
+    // New is itself a question now (unit 29b), so it is refused while this one is open.
     heldFile.reset();
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
     REQUIRE (heldFile.has_value());
-    nextBundle = otherPath;
+    nextBundle = makeTempBundlePath ("questions-later-refused");
+    const std::string statusBeforeNew = snapshotMainComponent (*shell).statusLineText;
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    CHECK (snapshotMainComponent (*shell).bundlePath == bundlePath);
+    CHECK_FALSE (std::filesystem::exists (nextBundle));
+    CHECK (snapshotMainComponent (*shell).statusLineText == statusBeforeNew);
+    CHECK (yesdaw::ui::mainComponentQuestionOpen (*shell));   // the import's question is still the open one
+
+    // Asked under one project, answered under another (Open Recent - which asks nothing here - replaced it meanwhile):
+    // the answer does nothing.
+    auto* menuBar = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (menuBar != nullptr);
+    menuBar->getModel()->menuItemSelected (1000 + 1, 0);   // Open Recent (kRecentMenuBaseId 1000): the older, otherPath
     REQUIRE (snapshotMainComponent (*shell).bundlePath == otherPath);
     (*heldFile) (fixturePath);
     CHECK (clipCount (otherPath) == 0u);

@@ -1597,6 +1597,7 @@ std::filesystem::path pathFromJuceFile (const juce::File& file);
 constexpr int kNativeOpenFile = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 constexpr int kNativeSaveFile = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles
                               | juce::FileBrowserComponent::warnAboutOverwriting;
+constexpr int kNativeOpenFolder = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectDirectories;
 
 void askNativeFile (const juce::String& title, const juce::File& start, const juce::String& patterns, int flags,
                     std::function<std::filesystem::path (const juce::File&)> answerFor,
@@ -1676,42 +1677,24 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
                                       [reply] (int result) { reply (result == 1); });
     };
 
-    choices.chooseNewProjectBundle = [] {
-        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Create YES DAW Project",
-                                   documents.getChildFile ("Untitled.yesdaw"),
-                                   "*.yesdaw",
-                                   true);
-        if (! chooser.browseForFileToSave (true))
-            return std::filesystem::path {};
-
-        return withExtension (pathFromJuceFile (chooser.getResult()), ".yesdaw");
-    };
-
-    choices.chooseOpenProjectBundle = [] {
-        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Open YES DAW Project Folder", documents, {}, true);
-        if (! chooser.browseForDirectory())
-            return std::filesystem::path {};
-
-        return pathFromJuceFile (chooser.getResult());
-    };
-
-    choices.chooseSaveAsProjectBundle = [] {
-        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Save YES DAW Project As",
-                                   documents.getChildFile ("Untitled.yesdaw"),
-                                   "*.yesdaw",
-                                   true);
-        if (! chooser.browseForFileToSave (true))
-            return std::filesystem::path {};
-
-        return withExtension (pathFromJuceFile (chooser.getResult()), ".yesdaw");
-    };
-
     // ADR-0077: the choosers below are asked without a nested loop and answer through their reply.
     using PathReply = yesdaw::ui::QuestionReply<std::filesystem::path>;
     const auto documents = [] { return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory); };
+    choices.chooseNewProjectBundle = [documents] (PathReply reply) {
+        askNativeFile ("Create YES DAW Project", documents().getChildFile ("Untitled.yesdaw"), "*.yesdaw", kNativeSaveFile,
+                       [] (const juce::File& file) { return withExtension (pathFromJuceFile (file), ".yesdaw"); }, std::move (reply));
+    };
+
+    choices.chooseOpenProjectBundle = [documents] (PathReply reply) {
+        askNativeFile ("Open YES DAW Project Folder", documents(), {}, kNativeOpenFolder,
+                       [] (const juce::File& file) { return pathFromJuceFile (file); }, std::move (reply));
+    };
+
+    choices.chooseSaveAsProjectBundle = [documents] (PathReply reply) {
+        askNativeFile ("Save YES DAW Project As", documents().getChildFile ("Untitled.yesdaw"), "*.yesdaw", kNativeSaveFile,
+                       [] (const juce::File& file) { return withExtension (pathFromJuceFile (file), ".yesdaw"); }, std::move (reply));
+    };
+
     choices.chooseSaveACopyProjectBundle = [documents] (PathReply reply) {   // ADR-0060
         askNativeFile ("Save a Copy of the YES DAW Project", documents().getChildFile ("Untitled copy.yesdaw"), "*.yesdaw",
                        kNativeSaveFile, [] (const juce::File& file) { return withExtension (pathFromJuceFile (file), ".yesdaw"); },
@@ -2853,10 +2836,24 @@ bool mainComponentQuestionOpen (juce::Component& component)
 
 bool mainComponentConfirmsClose (juce::Component& component)
 {
-    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
-        return mainComponent->confirmClose();
+    auto* mainComponent = dynamic_cast<MainComponent*> (&component);
+    if (mainComponent == nullptr)
+        return true;
+    // ADR-0077 rule 7: the answer must come at once; one that comes later sets a flag no one reads.
+    const bool openBefore = mainComponent->harnessQuestionOpen();
+    const auto quits = std::make_shared<bool> (false);
+    mainComponent->requestQuit ([quits] { *quits = true; });
+    if (! openBefore && mainComponent->harnessQuestionOpen())
+        jassertfalse;   // asked, and not answered at once: counts as Cancel here
+    return *quits;
+}
 
-    return true;
+void mainComponentRequestQuit (juce::Component& component, std::function<void()> quit)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->requestQuit (std::move (quit));
+    else if (quit)
+        quit();
 }
 
 bool processMainComponentDeviceAudioBlock (juce::Component& component,

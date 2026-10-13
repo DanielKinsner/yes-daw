@@ -2145,44 +2145,6 @@ void MainComponent::pushWindowTitle()
         window->setName (title);
 }
 
-// Close-confirm flow (B37): a clean session closes silently; edits since the last explicit
-// Save ask through the injectable seam (native three-way box otherwise). Closing never rolls
-// back the always-persisted bundle; Save records this state as the saved version.
-bool MainComponent::confirmClose()
-{
-    if (! appModel.hasUnsavedChanges())
-        return true;
-
-    int choice = yesdaw::ui::kCloseChoiceCancel;
-    if (fileChoices.confirmCloseUnsavedChanges)
-    {
-        choice = fileChoices.confirmCloseUnsavedChanges();
-    }
-    else
-    {
-        const int native = juce::AlertWindow::showYesNoCancelBox (
-            juce::MessageBoxIconType::QuestionIcon,
-            "Unsaved changes",
-            "Save this state as your saved version before closing?\n"
-            "(Every edit is already stored in the project bundle.)",
-            "Save",
-            "Close without saving",
-            "Cancel");
-        choice = native == 1 ? yesdaw::ui::kCloseChoiceSave
-               : native == 2 ? yesdaw::ui::kCloseChoiceClose
-                             : yesdaw::ui::kCloseChoiceCancel;
-    }
-
-    if (choice == yesdaw::ui::kCloseChoiceSave)
-    {
-        return saveCurrentProject (false);   // canceled naming or a failed save keeps the app open
-    }
-
-    if (choice == yesdaw::ui::kCloseChoiceClose)
-        appModel.retireAutosaveOnDontSave();   // ADR-0068 §4: named abandoned, not interrupted
-    return choice == yesdaw::ui::kCloseChoiceClose;
-}
-
 // G0.1 probe: paint() opens the frame stamp and paintOverChildren() closes it — JUCE paints
 // this component, then every child, then paintOverChildren on the same component, so the
 // pair brackets the whole shell's paint work for one frame (the B2 budget).

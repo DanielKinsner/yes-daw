@@ -1358,9 +1358,13 @@ void MainComponent::menuItemSelected (int menuItemID, int /*topLevelMenuIndex*/)
     {
         const std::vector<std::filesystem::path> recents = appModel.recentProjectBundles();
         const std::size_t index = static_cast<std::size_t> (menuItemID - kRecentMenuBaseId);
-        if (index < recents.size() && confirmReplaceProject())   // ADR-0060: unsaved changes first
-            openProjectBundleAtPath (recents[index]);
-        appModel.endReplaceAttempt();   // ADR-0068 §4: a failed open leaves this project's tail due again
+        if (index >= recents.size())
+            return;
+        confirmReplaceProject ([this, bundle = recents[index]] (bool proceed) {   // ADR-0060: unsaved changes first
+            if (proceed)
+                openProjectBundleAtPath (bundle);
+            endReplaceAttemptAndRefresh();   // ADR-0068 §4: a failed open leaves this project's tail due again
+        });
         refreshActionState();
         repaintAll();
         return;
@@ -1605,19 +1609,25 @@ bool MainComponent::isUnnamedLaunchProject() const
     return std::getline (marker, leaf) && leaf == unnamedBundleName;
 }
 
-bool MainComponent::saveCurrentProject (bool chooseDestination)
+// ADR-0077: Save As's location answered at once or later; `then` hears whether the project was saved.
+void MainComponent::saveCurrentProject (bool chooseDestination, std::function<void (bool saved)> then)
 {
     if (! chooseDestination && ! isUnnamedLaunchProject())
-        return appModel.dispatch (UiActionId::ProjectSave).dispatched;
-    if (! fileChoices.chooseSaveAsProjectBundle)
-        return false;
-    const auto path = fileChoices.chooseSaveAsProjectBundle();
-    if (path.empty())
-        return false;
-    const auto saved = appModel.saveProjectBundleAs (path);
-    if (! saved.dispatched)
-        appModel.reportStatus (std::string ("Save As failed: ") + saved.state.disabledReason, true);
-    return saved.dispatched;
+    {
+        then (appModel.dispatch (UiActionId::ProjectSave).dispatched);
+        return;
+    }
+    ask (fileChoices.chooseSaveAsProjectBundle, true, [this, then] (std::optional<std::filesystem::path> path) {
+        if (! path || path->empty())
+        {
+            then (false);
+            return;
+        }
+        const auto saved = appModel.saveProjectBundleAs (*path);
+        if (! saved.dispatched)
+            appModel.reportStatus (std::string ("Save As failed: ") + saved.state.disabledReason, true);
+        then (saved.dispatched);
+    });
 }
 
 void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action)
@@ -1633,13 +1643,23 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
             return;
 
         case yesdaw::ui::UiActionId::ProjectOpen:
-            if (fileChoices.chooseOpenProjectBundle && confirmReplaceProject())   // ADR-0060: unsaved changes first
+            if (! fileChoices.chooseOpenProjectBundle)
             {
-                const std::filesystem::path path = fileChoices.chooseOpenProjectBundle();
-                if (! path.empty())
-                    openProjectBundleAtPath (path);
+                appModel.endReplaceAttempt();
+                return;
             }
-            appModel.endReplaceAttempt();   // ADR-0068 §4: a cancelled chooser or failed open re-arms the tail
+            confirmReplaceProject ([this] (bool proceed) {   // ADR-0060: unsaved changes first; ADR-0077: then the chooser
+                if (! proceed)
+                {
+                    endReplaceAttemptAndRefresh();
+                    return;
+                }
+                ask (fileChoices.chooseOpenProjectBundle, true, [this] (std::optional<std::filesystem::path> path) {
+                    if (path && ! path->empty())
+                        openProjectBundleAtPath (*path);
+                    endReplaceAttemptAndRefresh();   // ADR-0068 §4: a cancelled chooser or failed open re-arms the tail
+                });
+            });
             return;
 
         case yesdaw::ui::UiActionId::ProjectExportAudio:
@@ -1685,7 +1705,7 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
 
         case yesdaw::ui::UiActionId::ProjectSave:
         case yesdaw::ui::UiActionId::ProjectSaveAs:
-            (void) saveCurrentProject (action == UiActionId::ProjectSaveAs);
+            saveCurrentProject (action == UiActionId::ProjectSaveAs, [this] (bool) { afterQuestion(); });
             return;
 
         case yesdaw::ui::UiActionId::ProjectSaveACopy:   // G5.5 / ADR-0060

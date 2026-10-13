@@ -8,6 +8,73 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 29b: New, Open, Save As and quit ask without a nested loop (ADR-0077)
+
+**What changes (ADR-0077 rules 3, 5 and 7):**
+- Four more seams are Questions: New's and Open's locations, Save As, and the unsaved-changes question. The shell's own
+  three-way boxes ("Don't Save" for New and Open, "Close without saving" for quitting) are asked through the same
+  helper, with `AlertWindow::showAsync`.
+- `confirmReplaceProject`, `saveCurrentProject` and `createNewProject` take their continuations. New, Open and Open
+  Recent run ADR-0068 §4's closing step (`endReplaceAttempt`) on every outcome, in the answer's callback. Before, it ran
+  right after a question that now returns at once.
+- Quit: `requestQuit` replaces `confirmClose`. It is refused while another question is open, even with nothing
+  unsaved. Save goes through Save As on the untitled session; a cancelled Save As keeps the app open.
+  - `Main.cpp`'s close button calls `systemRequestedQuit`, now overridden to ask the same question. macOS Cmd+Q and a
+    Windows logoff confirm unsaved changes for the first time (B37's intent); before, they quit without asking.
+  - It quits with `JUCEApplication::quit()`.
+  - `mainComponentConfirmsClose` stays for the harness: its answer must come at once, and a later one sets a flag no
+    one reads.
+- The native New, Open (a folder) and Save As choosers use `launchAsync`, like 29a's.
+- The lifecycle fixture's close, Save As and Open seams now answer through a reply: at once by default, or held with
+  `holdQuestions`. So every existing lifecycle test also runs the reply path.
+
+**Gates `[project-lifecycle][questions]`:**
+- Open, answered later: nothing is retired before Don't Save arrives; the chooser is asked from that answer; cancelling
+  it leaves the open project's tail due again.
+- Quit, answered later: refused while a question is open, even when clean; a second request is not asked again; Save
+  then a cancelled Save As stays; Save then Save As to kept quits exactly once.
+- New on the untitled session, answered later: Save, then Save As to kept, then the new project goes ahead (the
+  held-answer twin of ADR-0060's test).
+- One 29a gate changed: it had replaced the project with New while a question was held. New is a question now and is
+  correctly refused, so the gate now checks that refusal and replaces the project through Open Recent, which asks
+  nothing there.
+
+**Bites:**
+- M1 Open's closing step dropped from the chooser's answer: its tail never comes due again;
+- M2 a clean quit not refused while a question is open; M3 a cancelled Save As quits anyway;
+- M4 New does not go on after Save As (the ADR-0060 twin);
+- M5 a refused unsaved-changes question goes on replacing (Open Recent opens); M6 a refused one retires the autosave.
+
+**Critic:**
+One pass, no blockers. It confirmed:
+- parity on the at-once path for every flow;
+- ADR-0068 §4 on every outcome;
+- quit on Windows, macOS and Linux: no skipped question, no double ask, no stuck quit. `quit()` only posts a message,
+  and JUCE ignores `WM_CLOSE` under a modal.
+- the only synchronous dialogs left are the relink loop's (29c);
+- no warnings.
+
+Taken here:
+- `mainComponentConfirmsClose` now asserts when its answer does not come at once, and its comment says what a late
+  answer still does.
+- The FX preset prompt counts as an open question (rule 5) for `ask` and quit. Its gate is the drive: the prompt
+  exists only with a window.
+- A gate for a refused unsaved-changes question: with Save As up, Open and Open Recent are not asked, nothing is
+  retired, and the project and status line stay as they were (M5, M6).
+- The 29a "New refused" check now also asserts the status line and the open question.
+
+For 29d's text gate: `Main.cpp`'s close button must call `systemRequestedQuit`, and the quit lambda must call `quit()`,
+never `systemRequestedQuit()`.
+
+Noted, not changed:
+- `endReplaceAttempt` is global, so a second New under the overlay can end the first attempt's Don't Save early: a
+  stale autosave equal to the bundle, no data risk. This was already true for Open's cancel.
+- Open Recent and the New overlay ask nothing on a clean project, so they go ahead while a question is open. ADR rule 5
+  allows it, and in the app it is reachable only on Linux, whose zenity chooser is not modal.
+- Until 29c, a relink alert raised from Ctrl+O's chooser answer runs under FIX 29's freeze.
+- On a macOS logout with unsaved changes the question cancels the logout. This is the macOS twin of the Windows logoff
+  blocking the ADR accepts.
+
 ## 2026-10-13 — UI correctness pass unit 29a: seven of the shell's questions asked without a nested loop (ADR-0077)
 
 **What changes (ADR-0077 rules 2-6, the first of five units):**

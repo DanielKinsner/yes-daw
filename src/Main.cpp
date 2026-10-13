@@ -38,6 +38,16 @@ public:
             mainWindow->toFront (true);
     }
 
+    // ADR-0077 rule 7 (B37): every quit request - the close button, macOS Cmd+Q, a logoff - asks about unsaved changes
+    // first, without a nested loop, and quits from the answer (refused while another question is open).
+    void systemRequestedQuit() override
+    {
+        if (mainWindow != nullptr && mainWindow->getContentComponent() != nullptr)
+            yesdaw::ui::mainComponentRequestQuit (*mainWindow->getContentComponent(), [] { juce::JUCEApplicationBase::quit(); });
+        else
+            quit();
+    }
+
     void initialise (const juce::String&) override
     {
         const auto probe = juce::SystemStats::getEnvironmentVariable ("YESDAW_STATE_PROBE", {});
@@ -95,11 +105,10 @@ private:
 
         // Confirm on close (B37): edits since the last explicit Save prompt Save / Close without
         // saving / Cancel before the app quits. The bundle on disk stays current either way.
+        // ADR-0077 rule 7: the close button asks as a quit request does.
         void closeButtonPressed() override
         {
-            if (getContentComponent() == nullptr
-                || yesdaw::ui::mainComponentConfirmsClose (*getContentComponent()))
-                app.systemRequestedQuit();
+            app.systemRequestedQuit();
         }
 
     private:

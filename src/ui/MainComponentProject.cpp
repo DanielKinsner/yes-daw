@@ -13,10 +13,8 @@ void MainComponent::initialiseNewProjectDialog()
 {
     newProjectDialog.onCreate = [this] (UiNewProjectChoices choices) {
         newProjectDialog.setVisible (false);
-        createNewProject (choices, true);
-        appModel.endReplaceAttempt();   // ADR-0068 §4: a refused create leaves this project's tail due again
-        refreshActionState();
-        repaintAll();
+        // ADR-0068 §4: a refused create leaves this project's tail due again.
+        createNewProject (choices, true, [this] { endReplaceAttemptAndRefresh(); });
     };
     newProjectDialog.onCancel = [this] {
         newProjectDialog.setVisible (false);
@@ -27,39 +25,53 @@ void MainComponent::initialiseNewProjectDialog()
     addChildComponent (newProjectDialog);
 }
 
-// File > New: unsaved changes first, then the dialog (or its seam), then the location.
+// File > New: unsaved changes first, then the dialog (or its seam), then the location. ADR-0077: each question answered
+// at once or later; every outcome ends the replace attempt (ADR-0068 §4).
 void MainComponent::beginNewProject()
 {
-    if (! confirmReplaceProject())
-        return;
-    if (fileChoices.newProjectDialogChoices)
-    {
-        if (const std::optional<UiNewProjectChoices> choices = fileChoices.newProjectDialogChoices())
-            createNewProject (*choices, true);
-        appModel.endReplaceAttempt();   // ADR-0068 §4 (the overlay below ends its attempt when it closes)
-        return;
-    }
-    if (fileChoices.newProjectDialog)
-    {
-        newProjectDialog.show (appModel.newProjectChoices(), appModel.listTemplates());
-        resized();
-        refreshActionState();
-        repaintAll();
-        return;
-    }
-    createNewProject (appModel.newProjectChoices(), false);   // the harness's default: at once, as before
+    confirmReplaceProject ([this] (bool proceed) {
+        if (! proceed)
+        {
+            endReplaceAttemptAndRefresh();
+            return;
+        }
+        if (fileChoices.newProjectDialogChoices)
+        {
+            if (const std::optional<UiNewProjectChoices> choices = fileChoices.newProjectDialogChoices())
+                createNewProject (*choices, true, [this] { endReplaceAttemptAndRefresh(); });
+            else
+                endReplaceAttemptAndRefresh();
+            return;
+        }
+        if (fileChoices.newProjectDialog)
+        {
+            newProjectDialog.show (appModel.newProjectChoices(), appModel.listTemplates());   // it ends the attempt as it closes
+            resized();
+            refreshActionState();
+            repaintAll();
+            return;
+        }
+        // the harness's default: at once, as before
+        createNewProject (appModel.newProjectChoices(), false, [this] { endReplaceAttemptAndRefresh(); });
+    });
+}
+
+void MainComponent::endReplaceAttemptAndRefresh()
+{
     appModel.endReplaceAttempt();
+    afterQuestion();
 }
 
 // `chosenInDialog`: the dialog's rate, tempo and meter win over an injected project's (the harness's immediate
 // path keeps an injected project exactly as injected). A template (ADR-0060 cp3) is read before the location is
 // asked for, and arrives with fresh identities.
-void MainComponent::createNewProject (const UiNewProjectChoices& choices, bool chosenInDialog)
+void MainComponent::createNewProject (const UiNewProjectChoices& choices, bool chosenInDialog, std::function<void()> done)
 {
     newProjectDialog.setVisible (false);
     if (! UiAppModel::newProjectChoicesValid (choices))
     {
         appModel.reportStatus ("New project refused: the sample rate, tempo or meter is out of range", true);
+        done();
         return;
     }
     engine::Project project = UiAppModel::makeDefaultSessionProject();
@@ -74,67 +86,125 @@ void MainComponent::createNewProject (const UiNewProjectChoices& choices, bool c
         if (! layout.has_value())
         {
             appModel.reportStatus ("New project refused: the template " + choices.templateName + " cannot be used (" + reason + ")", true);
+            done();
             return;
         }
         project = UiAppModel::instantiateTemplate (*layout);
     }
     if (chosenInDialog || ! fileChoices.makeNewProject)
         UiAppModel::applyNewProjectChoices (project, choices);
-    if (! fileChoices.chooseNewProjectBundle)
-        return;
-    const std::filesystem::path path = fileChoices.chooseNewProjectBundle();
-    if (path.empty())
-        return;
-    std::error_code error;
-    if (std::filesystem::exists (path, error))   // ADR-0060: never open or overwrite a project already there
-    {
-        appModel.reportStatus ("New project refused: a project already exists at " + yesdaw::io::utf8Text (path.filename()), true);
-        return;
-    }
-    // R4: a failed create paints its reason instead of vanishing; what it wrote goes, the current project stays.
-    const yesdaw::persistence::BundleResult created = appModel.createProjectBundle (path, std::move (project));
-    if (! created.ok())
-    {
-        std::error_code removed;
-        std::filesystem::remove_all (path, removed);
-        appModel.reportStatus ("New project failed: " + created.message, true);
-        return;
-    }
-    appModel.setNewProjectChoices (choices);
-    afterProjectAttached();
+    // ADR-0077: the location, answered at once or later; the built project waits for it (shared: a continuation is copied).
+    auto pending = std::make_shared<engine::Project> (std::move (project));
+    ask (fileChoices.chooseNewProjectBundle, true, [this, pending, choices, done] (std::optional<std::filesystem::path> path) {
+        if (! path || path->empty())
+        {
+            done();
+            return;
+        }
+        std::error_code error;
+        if (std::filesystem::exists (*path, error))   // ADR-0060: never open or overwrite a project already there
+        {
+            appModel.reportStatus ("New project refused: a project already exists at " + yesdaw::io::utf8Text (path->filename()), true);
+            done();
+            return;
+        }
+        // R4: a failed create paints its reason instead of vanishing; what it wrote goes, the current project stays.
+        const yesdaw::persistence::BundleResult created = appModel.createProjectBundle (*path, std::move (*pending));
+        if (! created.ok())
+        {
+            std::error_code removed;
+            std::filesystem::remove_all (*path, removed);
+            appModel.reportStatus ("New project failed: " + created.message, true);
+            done();
+            return;
+        }
+        appModel.setNewProjectChoices (choices);
+        afterProjectAttached();
+        done();
+    });
 }
 
 // Before New or Open replaces a project with edits since its last Save: Save / Don't Save / Cancel (the hook quitting
 // uses, or a native box in the native shell). Every edit is already in the bundle; Save marks this state as saved.
-bool MainComponent::confirmReplaceProject()
+// ADR-0077: answered at once or later; `then` hears whether to go on (a refused question does not).
+void MainComponent::confirmReplaceProject (std::function<void (bool proceed)> then)
 {
-    if (! appModel.context().projectLoaded || ! appModel.hasUnsavedChanges())
-        return true;
-    int choice = kCloseChoiceCancel;
+    if (! appModel.context().projectLoaded || ! appModel.hasUnsavedChanges()
+        || (! fileChoices.confirmCloseUnsavedChanges && ! fileChoices.nativePrompts))
+    {
+        then (true);   // nothing to ask (or the harness's default: as before)
+        return;
+    }
+    askUnsavedChanges (false, [this, then] (std::optional<int> choice) {
+        if (choice == kCloseChoiceSave)
+        {
+            saveCurrentProject (false, then);   // the untitled session goes through Save As; a cancelled name cancels
+            return;
+        }
+        if (choice == kCloseChoiceClose)
+            appModel.retireAutosaveOnDontSave();   // ADR-0068 §4: named abandoned, not interrupted
+        then (choice == kCloseChoiceClose);
+    });
+}
+
+// The unsaved-changes question (ADR-0060 / B37): the seam when set, else the shell's own three-way box - New and Open
+// say "Don't Save", closing says "Close without saving". ADR-0077: asked without a nested loop.
+void MainComponent::askUnsavedChanges (bool closingTheApp, std::function<void (std::optional<int>)> then)
+{
     if (fileChoices.confirmCloseUnsavedChanges)
     {
-        choice = fileChoices.confirmCloseUnsavedChanges();
+        ask (fileChoices.confirmCloseUnsavedChanges, true, std::move (then));
+        return;
     }
-    else if (fileChoices.nativePrompts)
+    const Question<int> box = [closingTheApp] (QuestionReply<int> reply) {
+        juce::AlertWindow::showAsync (
+            juce::MessageBoxOptions()
+                .withIconType (juce::MessageBoxIconType::QuestionIcon)
+                .withTitle ("Unsaved changes")
+                .withMessage (closingTheApp ? "Save this state as your saved version before closing?\n"
+                                              "(Every edit is already stored in the project bundle.)"
+                                            : "Save this state as your saved version first?\n"
+                                              "(Every edit is already stored in the project bundle.)")
+                .withButton ("Save")
+                .withButton (closingTheApp ? "Close without saving" : "Don't Save")
+                .withButton ("Cancel"),
+            [reply] (int result) { reply (result == 1 ? kCloseChoiceSave : result == 2 ? kCloseChoiceClose : kCloseChoiceCancel); });
+    };
+    ask (box, true, std::move (then));
+}
+
+// Close-confirm flow (B37): a clean session closes silently; edits since the last explicit Save ask through the
+// injectable seam (native three-way box otherwise). Closing never rolls back the always-persisted bundle; Save records
+// this state as the saved version. ADR-0077 rule 7: answered at once or later; refused while another question is open.
+void MainComponent::requestQuit (std::function<void()> quit)
+{
+    if (aQuestionIsOpen() || closing)
+        return;
+    if (! appModel.hasUnsavedChanges())
     {
-        const int native = juce::AlertWindow::showYesNoCancelBox (
-            juce::MessageBoxIconType::QuestionIcon,
-            "Unsaved changes",
-            "Save this state as your saved version first?\n(Every edit is already stored in the project bundle.)",
-            "Save",
-            "Don't Save",
-            "Cancel");
-        choice = native == 1 ? kCloseChoiceSave : native == 2 ? kCloseChoiceClose : kCloseChoiceCancel;
+        quit();
+        return;
     }
-    else
-    {
-        return true;   // the harness's default: as before
-    }
-    if (choice == kCloseChoiceSave)
-        return saveCurrentProject (false);   // the untitled session goes through Save As; a cancelled name cancels
-    if (choice == kCloseChoiceClose)
-        appModel.retireAutosaveOnDontSave();   // ADR-0068 §4: named abandoned, not interrupted
-    return choice == kCloseChoiceClose;
+    askUnsavedChanges (true, [this, quit] (std::optional<int> choice) {
+        if (choice == kCloseChoiceSave)
+        {
+            // canceled naming or a failed save keeps the app open
+            saveCurrentProject (false, [this, quit] (bool saved) {
+                if (saved)
+                    quit();
+                else
+                    afterQuestion();
+            });
+            return;
+        }
+        if (choice == kCloseChoiceClose)
+        {
+            appModel.retireAutosaveOnDontSave();   // ADR-0068 §4: named abandoned, not interrupted
+            quit();
+            return;
+        }
+        afterQuestion();
+    });
 }
 
 void MainComponent::afterProjectAttached()

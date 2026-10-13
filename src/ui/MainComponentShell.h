@@ -355,14 +355,15 @@ public:
     // Close-confirm flow (B37): a clean session closes silently; edits since the last explicit
     // Save ask through the injectable seam (native three-way box otherwise). Closing never rolls
     // back the always-persisted bundle; Save records this state as the saved version.
-    [[nodiscard]] bool confirmClose();
+    void requestQuit (std::function<void()> quit);   // ADR-0077 rule 7 (B37)
     [[nodiscard]] bool isUnnamedLaunchProject() const;
     static constexpr const char* unnamedBundleName = "Untitled.yesdaw";
     static constexpr const char* unnamedMarkerName = ".yesdaw-untitled";
     void openUntitledLaunchSession (const std::function<void (const char*)>& recordStartupStage,
                                     UiAppModel::LastProjectRecord lastProjectRecord = UiAppModel::LastProjectRecord::Write);
     void openUntitledLaunchSessionKeepingReason (const std::function<void (const char*)>& recordStartupStage);
-    [[nodiscard]] bool saveCurrentProject (bool chooseDestination);
+    // ADR-0077: `then` hears whether the project was saved (a cancelled or refused Save As is not).
+    void saveCurrentProject (bool chooseDestination, std::function<void (bool saved)> then);
 
     // G0.1 probe: paint() opens the frame stamp and paintOverChildren() closes it — JUCE paints
     // this component, then every child, then paintOverChildren on the same component, so the
@@ -489,8 +490,12 @@ private:
     // G5.5 / ADR-0060: New and Open.
     void initialiseNewProjectDialog();
     void beginNewProject();
-    void createNewProject (const yesdaw::ui::UiNewProjectChoices& choices, bool chosenInDialog);
-    [[nodiscard]] bool confirmReplaceProject();
+    // ADR-0077: `done` runs once the create has ended, whatever its outcome (the caller's closing steps).
+    void createNewProject (const yesdaw::ui::UiNewProjectChoices& choices, bool chosenInDialog, std::function<void()> done);
+    // ADR-0060 / ADR-0077: unsaved changes first; `then` hears whether to go on replacing the project.
+    void confirmReplaceProject (std::function<void (bool proceed)> then);
+    void askUnsavedChanges (bool closingTheApp, std::function<void (std::optional<int>)> then);
+    void endReplaceAttemptAndRefresh();   // ADR-0068 §4: a New / Open / Open Recent attempt's closing steps
     void afterProjectAttached();
     void requestProjectDeviceRate();
     void saveProjectCopy();
@@ -505,7 +510,7 @@ private:
               std::type_identity_t<std::function<void (std::optional<Answer>)>> then,
               const std::type_identity_t<Args>&... args)
     {
-        if (! question || questionOpen || closing)
+        if (! question || aQuestionIsOpen() || closing)
         {
             then (std::nullopt);
             return;
@@ -530,6 +535,9 @@ private:
         // Nothing after the seam call (ADR-0077 rule 5): an answer given at once has already run.
     }
     void afterQuestion();   // ADR-0077: the closing steps a dispatch tail would have run
+    // ADR-0077 rule 5: one of the shell's questions awaits its answer - the open-question mark, or the FX preset prompt
+    // (its own modal window; it counts as a question too).
+    [[nodiscard]] bool aQuestionIsOpen() const noexcept { return questionOpen || fxPresetPrompt != nullptr; }
     // ADR-0062: the missing-audio questions of an open that refused over its Asset files.
     enum class RelinkOutcome { NothingMissing, Relinked, Cancelled };
     [[nodiscard]] RelinkOutcome relinkMissingAudio (const std::filesystem::path& bundle);

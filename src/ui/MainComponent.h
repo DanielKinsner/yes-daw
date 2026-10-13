@@ -27,9 +27,10 @@ namespace yesdaw::ui {
 
 struct MainComponentFileChoices
 {
-    std::function<std::filesystem::path()> chooseNewProjectBundle;
-    std::function<std::filesystem::path()> chooseOpenProjectBundle;
-    std::function<std::filesystem::path()> chooseSaveAsProjectBundle;
+    // ADR-0077: answered at once (the harness) or later (the native shell's chooser); an empty path cancels.
+    Question<std::filesystem::path> chooseNewProjectBundle;
+    Question<std::filesystem::path> chooseOpenProjectBundle;
+    Question<std::filesystem::path> chooseSaveAsProjectBundle;
     // ADR-0077: a Question is answered at once (a function returning the answer, as the harness sets it) or later (a
     // function handed a QuestionReply, as the native shell's chooser or alert answers); an empty path or name cancels.
     Question<std::filesystem::path> chooseSaveACopyProjectBundle;   // ADR-0060: File > Save a Copy
@@ -60,9 +61,9 @@ struct MainComponentFileChoices
     // answer at all (the harness's default) the open refuses as before.
     std::function<std::filesystem::path (const UiMissingAsset&)> chooseMissingAudioReplacement;
     // Close-confirm seam (B37): asked when the app closes with edits since the last explicit Save.
-    // Returns kCloseChoiceSave, kCloseChoiceClose, or kCloseChoiceCancel; the native shell shows a
-    // three-way box when unset.
-    std::function<int()> confirmCloseUnsavedChanges;
+    // Answers kCloseChoiceSave, kCloseChoiceClose, or kCloseChoiceCancel; the native shell shows a
+    // three-way box when unset (ADR-0077: answered at once or later).
+    Question<int> confirmCloseUnsavedChanges;
     // Session-state directory seam (B39): the harness points last-project/recent-projects records
     // at a test-local directory; the native shell keeps its real per-user location when unset.
     std::filesystem::path sessionStateDirectory;
@@ -179,9 +180,13 @@ struct MainComponentSnapshot
                                                               std::uint64_t frames,
                                                               int blockSize);
 [[nodiscard]] bool serviceMainComponentUiTimer (juce::Component& component);
-// Ask the shell whether the app may close (B37): true when the session is clean or the user chose
-// Save or Close through the confirm seam; false when the user cancelled.
+// B37 for the harness: whether a close request quits now - true when the session is clean or Save / Close without
+// saving was answered at once, false otherwise. Its answers must come at once (ADR-0077 rule 7; one that does not
+// asserts and counts as Cancel - a later Save still saves, only the quit is lost).
 [[nodiscard]] bool mainComponentConfirmsClose (juce::Component& component);
+// ADR-0077 rule 7: a close request - the close button, Cmd+Q, a logoff. Asks about unsaved changes (at once or later) and
+// calls `quit` on Save (once saved) or Close without saving; refused while another question is open.
+void mainComponentRequestQuit (juce::Component& component, std::function<void()> quit);
 // ADR-0077: whether one of the shell's questions is waiting for its answer.
 [[nodiscard]] bool mainComponentQuestionOpen (juce::Component& component);
 
