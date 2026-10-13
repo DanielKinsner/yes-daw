@@ -2148,6 +2148,16 @@ public:
     }
     [[nodiscard]] const std::string& statusLineText() const noexcept { return statusLineText_; }
     [[nodiscard]] bool statusLineIsError() const noexcept { return statusLineIsError_; }
+    // UI pass unit 26: an undo or redo takes down a success message - it told of an edit the step may have reversed
+    // ("Routed to new Bus 2" after Bus 2's undo). The step itself stays quiet, as success does; an error stays up to decay.
+    void retireSuccessStatus() noexcept
+    {
+        if (statusLineIsError_)
+            return;
+        statusLineText_.clear();
+        statusLineParts_.clear();
+        statusLineTicksRemaining_ = 0;
+    }
 
     [[nodiscard]] persistence::BundleResult saveProjectBundle()
     {
@@ -12487,6 +12497,7 @@ private:
         }
 
         pruneTimelineClipSelection();   // G2.5: an undone edit may have removed a selected clip
+        retireSuccessStatus();          // UI pass unit 26
         ++context_.commandDispatchCount;
         ++context_.undoCount;
         return { id, state, true };
@@ -12529,6 +12540,7 @@ private:
         }
 
         pruneTimelineClipSelection();   // G2.5
+        retireSuccessStatus();          // UI pass unit 26
         ++context_.commandDispatchCount;
         ++context_.redoCount;
         return { id, state, true };

@@ -31732,6 +31732,60 @@ TEST_CASE ("a ruler label is drawn whole or not at all at the right edge", "[ui]
     }
 }
 
+// UI pass unit 26: an undo or redo takes down a success message, so the status line never keeps one about the edit it
+// reversed; the step itself stays quiet, as success does (R4), and an error stays up to decay. Routing a track to a new
+// bus reports "Routed to new Bus 1"; Ctrl+Z, which removes the bus, leaves the line empty. On the model: a redo takes a
+// success message down too, and neither takes down an error.
+TEST_CASE ("an undo takes down the message about the edit it reversed", "[ui][input][shell][status-undo]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("status-undo");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, { kRailRowClickX, L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerTrackRouteToNewBus);
+    const std::string routed = snapshotMainComponent (*shell).statusLineText;
+    CAPTURE (routed);
+    REQUIRE (routed.rfind ("Routed to new ", 0) == 0);
+    REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
+
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).buses.empty());
+    CAPTURE (snapshotMainComponent (*shell).statusLineText);
+    CHECK (snapshotMainComponent (*shell).statusLineText.empty());
+    shell.reset();
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+
+    const std::filesystem::path modelPath = makeTempBundlePath ("status-undo-model");
+    {
+        yesdaw::ui::UiAppModel model;
+        REQUIRE (model.createProjectBundle (modelPath).ok());
+        REQUIRE (model.addAudioTrack().dispatched);
+        model.reportStatus ("Added a track", false);
+        REQUIRE (model.dispatch (UiActionId::EditUndo).dispatched);
+        CHECK (model.statusLineText().empty());
+        model.reportStatus ("Added a track", false);
+        REQUIRE (model.dispatch (UiActionId::EditRedo).dispatched);
+        CHECK (model.statusLineText().empty());
+        model.reportStatus ("Import failed: no project is open", true);
+        REQUIRE (model.dispatch (UiActionId::EditUndo).dispatched);
+        CHECK (model.statusLineText() == "Import failed: no project is open");
+        CHECK (model.statusLineIsError());
+        REQUIRE (model.dispatch (UiActionId::EditRedo).dispatched);
+        CHECK (model.statusLineText() == "Import failed: no project is open");
+    }
+    std::filesystem::remove_all (modelPath, ec);
+}
+
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part
 // alone is shortened in its middle, and shortening is by code point. `fits` here is a code-point budget.
 TEST_CASE ("ADR-0076 the status line's shortening rule never mixes a message's parts", "[ui][g6][status-whole][status-shorten]")

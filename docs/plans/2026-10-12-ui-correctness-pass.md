@@ -665,7 +665,9 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   held marker in its zone's colour; gates `[meter-zones]` (STATUS).
 - [x] **25.** The last ruler label is cut at the right edge ("12" / "4:", "0:19."). Line 1. **Done 2026-10-13:** a
   ruler label is drawn whole or not at all; gate `[ruler-edge]` (STATUS).
-- **26.** A status message outlives its undo ("Routed to new Bus 2" after Bus 2 was undone). Line 7.
+- [x] **26.** A status message outlives its undo ("Routed to new Bus 2" after Bus 2 was undone). Line 7. **Done
+  2026-10-13:** an undo or redo takes a success message down and itself stays quiet; an error stays up to decay; gate
+  `[status-undo]` (STATUS).
 - **27.** Bars beside a tempo label go unlabelled (265 px between "33" and "57" at 1920). Information.
 - **29.** (found by unit 17's critic, measured) While a modal question runs inside a batch of JUCE's posted messages,
   later messages of that batch wait - on Windows the window's vblank among them - so the main window and the question's
@@ -680,6 +682,10 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   the tempo change in `ss3-2560`); park the pointer or use `-MainOnly` for size shots. Tooling.
 
 ## Parked, recorded in STATUS / parking lot, not in this pass
+
+- (unit 26 critic) The undo history window names a multi-edit group by its newest edit while it can be undone and by
+  its oldest once undone (`ProjectUndo.h` `foldSteps`), so the row "Track Output (2 edits)" becomes "Add Bus (2 edits)"
+  on Ctrl+Z. Naming the redo side by the group's newest entry would fix it; it changes the engine's history view.
 
 - (unit 18 critic) An alert's text field (Save as Template, Save Preset) keeps JUCE's stock slate field inside the
   themed alert: readable, not in theme colours. Theming `TextEditor` colours is app-wide, so it waits for its own unit.

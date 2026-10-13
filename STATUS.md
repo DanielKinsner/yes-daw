@@ -8,6 +8,37 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 26: an undo takes down the message about the edit it reversed
+
+**The defect (FIX 26):** the status line kept the last edit's message after that edit was undone. "Routed to new Bus 2"
+stayed up after the undo removed Bus 2, as if still true.
+
+**What changes:**
+- A successful undo or redo takes down a success message. The line is then empty, so the hover hints and the "Monitor
+  MUTED" mode hint show again.
+- The undo or redo says nothing itself. The status line's rule (R4, cited by ADR-0058's amendment) is that success stays
+  quiet, and Undo is the most frequent command.
+- An error message stays up until it decays: it was about an action that failed, which no undo reverses.
+
+**First design, replaced after the critic:** each undo said "Undo: <step>" in the undo history's words. The critic
+showed it broke the quiet-success rule an Accepted ADR cites, hid the mute hint for 5 s on every Ctrl+Z, and named a
+grouped step differently from the open history window. So the line is cleared instead, and the rule stays as written.
+
+**Gate `[status-undo]`:**
+- Shell: a track is routed to a new bus ("Routed to new Bus 1"); Ctrl+Z, which removes the bus, must leave the line
+  empty.
+- Model: a redo takes a success message down too, and neither an undo nor a redo takes down an error.
+
+**Bites:**
+- M1 an undo keeps the message (the old behaviour): the shell and model checks fail;
+- M2 a redo keeps the message: the model check fails;
+- M3 an undo takes down an error too: the error checks fail.
+
+**Critic:** one pass on the first design (above). The revision is its own option (b): one small function and two calls.
+
+**Noted, not changed:** the undo history window names a multi-edit group by its newest edit on the undo side and its
+oldest on the redo side (`ProjectUndo.h` `foldSteps`), so a group's row changes name as it is undone. Parked.
+
 ## 2026-10-13 — UI correctness pass unit 25: a ruler label is drawn whole or not at all
 
 **The defect (FIX 25):** the ruler culled its labels by their tick's position only. A label whose tick sat just inside the
