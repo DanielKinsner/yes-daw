@@ -31135,6 +31135,7 @@ TEST_CASE ("ADR-0076 the status line shows its messages whole", "[ui][input][she
     }
     importPath = notAudio;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentServiceUiTick (*shell);   // the tick hands the line its text (macOS reports the refusal then)
     {
         const std::string text = snapshotMainComponent (*shell).statusLineText;
         INFO ("the refusal: " << text);
@@ -31168,6 +31169,7 @@ TEST_CASE ("ADR-0076 the status line shows its messages whole", "[ui][input][she
     }
     importPath = longName;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    yesdaw::ui::mainComponentServiceUiTick (*shell);
     {
         const juce::String text = label->getText();
         const juce::String painted = yesdaw::ui::mainComponentStatusLinePaintedText (*shell);
