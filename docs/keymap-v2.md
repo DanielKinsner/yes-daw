@@ -60,6 +60,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 | `I` | Inspector | `view.toggle_inspector` |
 | `Ctrl+K` | Musical Typing | `piano_roll.musical_typing` |
 | `Y` | Browser | `view.browser` |
+| `Ctrl+=` | Mix Window | `view.mix_window` |
 
 ## Arrange
 

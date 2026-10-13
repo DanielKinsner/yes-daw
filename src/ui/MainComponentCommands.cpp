@@ -704,7 +704,8 @@ std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int 
         UiActionId::PianoRollNoteSetVelocity,
         UiActionId::PianoRollNoteSelectPrevious, UiActionId::PianoRollNoteSelectNext,   // G3.2
     };
-    static constexpr std::array<UiActionId, 33> kViewMenu {
+    static constexpr std::array<UiActionId, 34> kViewMenu {
+        UiActionId::ViewMixWindow,     // the layout pass, step 10: the Edit / Mix switch leads the View menu
         UiActionId::ViewTimeline,      UiActionId::ViewMixer,          UiActionId::ViewPianoRoll,
         UiActionId::ViewInstrument,   // G3.1
         UiActionId::ViewBrowser,      // G5.2 / ADR-0056
@@ -787,6 +788,7 @@ bool MainComponent::menuTickState (yesdaw::ui::UiActionId action) const noexcept
         case UiActionId::EditNudgeValueFrame:               return c.nudgeValue == 6;
         case UiActionId::EditNudgeValueSample:              return c.nudgeValue == 7;
         case UiActionId::TimelineToggleMixerDock:           return c.mixerDockVisible;
+        case UiActionId::ViewMixWindow:                     return c.mixWindowShown;   // the layout pass, step 10
         case UiActionId::EditModeOverlap:                   return c.editMode == yesdaw::ui::UiEditMode::Overlap;    // G2.6
         case UiActionId::EditModeNoOverlap:                 return c.editMode == yesdaw::ui::UiEditMode::NoOverlap;
         case UiActionId::EditModeShuffle:                   return c.editMode == yesdaw::ui::UiEditMode::Shuffle;

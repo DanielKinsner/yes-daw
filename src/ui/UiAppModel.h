@@ -1829,8 +1829,8 @@ public:
         UiViewPreferences view = preferences_.view;
         view.inspectorVisible = context_.inspectorVisible;
         view.inspectorTrackTab = context_.inspectorTrackTabActive;
-        view.dockVisible = context_.mixerDockVisible;
-        view.dockTab = context_.editorDockTab;
+        view.dockVisible = context_.mixWindowShown ? context_.mixWindowPriorDockVisible : context_.mixerDockVisible;
+        view.dockTab = context_.mixWindowShown ? context_.mixWindowPriorDockTab : context_.editorDockTab;   // step 10
         UiEditingPreferences editing = preferences_.editing;
         editing.snapEnabled = snapUnit_ != UiSnapUnit::Off;
         if (snapUnit_ != UiSnapUnit::Off)   // an Off snap keeps the grid it returns to
@@ -10546,6 +10546,7 @@ public:
             case UiActionId::ViewToggleInspector:
             case UiActionId::TimelineAutomationToggleTrackLane:
             case UiActionId::TimelineToggleMixerDock:
+            case UiActionId::ViewMixWindow:   // the layout pass, step 10: the flag lives in the context
             case UiActionId::InspectorShowClipTab:
             case UiActionId::InspectorShowTrackTab:
             case UiActionId::EditModeOverlap:          // G2.6: the mode lives in the context

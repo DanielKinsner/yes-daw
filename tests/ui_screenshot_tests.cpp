@@ -808,6 +808,31 @@ TEST_CASE ("the layout pass, step 7: the view cluster paints icons", "[ui][scree
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// The layout pass, step 10: the Mix window renders its strips across the whole window under the header.
+TEST_CASE ("the layout pass, step 10: the Mix window renders the strips full-window", "[ui][screenshot][layout-pass]")
+{
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-layout-pass-mix.yesdaw";
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (2560, 1440);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    for (int added = 0; added < 7; ++added)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixWindow);
+    const juce::Image image = renderShell (*shell);
+    (void) captureShellPng (image, "yesdaw-layout-pass-mix-window.png");
+    REQUIRE (hasMixerSurfaceCoverage (image));
+    const juce::Rectangle<int> strip = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+    REQUIRE (strip.getHeight() > 1000);
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("Piano roll and automation lane render honestly with real notes and breakpoints",
            "[ui][screenshot][roll-sizes]")
 {

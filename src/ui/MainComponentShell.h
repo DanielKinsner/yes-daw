@@ -564,6 +564,7 @@ private:
     void restoreControlsHiddenByDockTab();
 
     void hideMixerControlsBehindDockTab();
+    void hideArrangeControlsBehindMixWindow();   // the layout pass, step 10
 
     [[nodiscard]] std::string viewStateRecordText() const;
 

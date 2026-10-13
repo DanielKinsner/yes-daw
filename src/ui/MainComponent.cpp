@@ -2162,7 +2162,8 @@ juce::String MainComponent::computedWindowTitle() const
         return {};
 
     const juce::String stem (yesdaw::io::utf8Text (appModel.bundlePath().stem()));
-    return stem + (appModel.hasUnsavedChanges() ? "*" : "") + " - YES DAW";
+    return stem + (appModel.hasUnsavedChanges() ? "*" : "") + (appModel.context().mixWindowShown ? " - Mix" : "")   // step 10
+         + " - YES DAW";
 }
 
 void MainComponent::pushWindowTitle()
@@ -2337,7 +2338,7 @@ void MainComponent::resized()
         const int top = headerHeightNow();
         const int dockTop = getHeight() - dockedMixerHeight();
         dockSplitter.setBounds (getLocalBounds().withY (dockTop - half).withHeight (thickness));
-        dockSplitter.setVisible (dockedMixerHeight() > 0);
+        dockSplitter.setVisible (dockedMixerHeight() > 0 && ! appModel.context().mixWindowShown);   // step 10: no edge to drag
         railSplitter.setBounds (viewState.railWidth - half, top, thickness, dockTop - top);
         railSplitter.setVisible (true);
         inspectorSplitter.setBounds (getWidth() - inspectorWidthNow() - half, top, thickness, dockTop - top);

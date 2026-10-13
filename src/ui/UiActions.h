@@ -275,6 +275,7 @@ enum class UiActionId : std::uint8_t
     ProjectSaveACopy,           // G5.5 / ADR-0060: write a copy of the project; keep working in this one
     ProjectSaveAsTemplate,      // G5.5 / ADR-0060: the project's layout as a template for new projects
     HelpShowTipsAgain,          // G6.5 / ADR-0073 §4: every dismissed first-run tip comes back
+    ViewMixWindow,              // the layout pass, step 10: the Edit / Mix window switch (Ctrl+=, Pro Tools' chord)
     Count
 };
 
@@ -579,6 +580,11 @@ struct UiActionContext
     // no existing screenshot/layout gate changes unless a test explicitly toggles it off.
     bool mixerDockVisible = true;   // no preferences folder (the bare harness): shown; the app's prefs default hides it (the layout pass, step 8)
     UiEditorDockTab editorDockTab = UiEditorDockTab::Mixer;   // G2.1: the tab the dock shows
+    // The layout pass, step 10: the Mix window - the mixer fills the window under the header; the dock's own state
+    // before it opened comes back when it closes (and is what the preferences remember).
+    bool mixWindowShown = false;
+    bool mixWindowPriorDockVisible = false;
+    UiEditorDockTab mixWindowPriorDockTab = UiEditorDockTab::Mixer;
     UiEditMode editMode = UiEditMode::Overlap;                // G2.6
     UiSnapMode snapMode = UiSnapMode::Grid;                   // G2.7
     // V7: which inspector tab is active — false = CLIP (the historical content), true = TRACK.
@@ -1197,7 +1203,12 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     // G6.5 / ADR-0073 §4: no default chord (a Help menu item, used rarely).
     { UiActionId::HelpShowTipsAgain, "help.show_tips_again", "Show Tips Again", "", "Show the first-run tips again",
-      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Command, false, false, false, false },
+    // The layout pass, step 10 (Dan, 2026-10-13): the mixer as its own full window, the timeline keeping its room
+    // otherwise - SoundCraft's and Pro Tools' Edit / Mix windows, on Pro Tools' chord.
+    { UiActionId::ViewMixWindow, "view.mix_window", "Mix Window", "Ctrl+=",
+      "Switch between the Edit window and the full-window mixer",
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -2071,6 +2082,25 @@ public:
                 context.timelineAutomationTrackLaneVisible = ! context.timelineAutomationTrackLaneVisible;
                 context.timelineAutomationTrackIndex = context.timelineAutomationTrackLaneVisible ? 0 : -1;
                 ++context.timelineAutomationShowHideCount;
+                break;
+
+            case UiActionId::ViewMixWindow:   // the layout pass, step 10
+                if (context.mixWindowShown)
+                {
+                    context.mixWindowShown = false;
+                    context.mixerDockVisible = context.mixWindowPriorDockVisible;
+                    context.editorDockTab = context.mixWindowPriorDockTab;
+                    context.activePanel = UiPanel::Timeline;
+                }
+                else
+                {
+                    context.mixWindowShown = true;
+                    context.mixWindowPriorDockVisible = context.mixerDockVisible;
+                    context.mixWindowPriorDockTab = context.editorDockTab;
+                    context.mixerDockVisible = true;
+                    context.editorDockTab = UiEditorDockTab::Mixer;
+                    context.activePanel = UiPanel::Mixer;
+                }
                 break;
 
             case UiActionId::TimelineToggleMixerDock:

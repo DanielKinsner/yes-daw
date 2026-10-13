@@ -14707,6 +14707,47 @@ TEST_CASE ("N6 a row-boundary drag resizes exactly one track's row, persists, cl
     std::filesystem::remove_all (bundlePath, ec3);
 }
 
+// The layout pass, step 10 (Dan): Ctrl+= switches to the Mix window - the mixer fills the window under the header, the
+// arrangement gives up its room, the title says Mix - and back to the Edit window with the dock as it was before.
+TEST_CASE ("the layout pass, step 10: Ctrl+= switches between the Edit window and the full-window mixer",
+           "[ui][input][shell][layout-pass]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("mix-window");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToggleMixerDock);   // the dock hidden first
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.mixerDockVisible);
+    const juce::Rectangle<int> editTimeline = yesdaw::ui::mainComponentTimelineBounds (*shell);
+    REQUIRE (editTimeline.getHeight() > 400);
+
+    const juce::KeyPress mixChord ('=', juce::ModifierKeys::ctrlModifier, 0);
+    REQUIRE (shell->keyPressed (mixChord));
+    auto snapshot = snapshotMainComponent (*shell);
+    REQUIRE (snapshot.context.mixWindowShown);
+    REQUIRE (yesdaw::ui::mainComponentTimelineBounds (*shell).getHeight() <= 0);
+    const juce::Rectangle<int> mixer = yesdaw::ui::mainComponentMixerPanelBounds (*shell);
+    REQUIRE (mixer.getHeight() > editTimeline.getHeight());
+    REQUIRE (mixer.getBottom() >= shell->getHeight() - 16);
+    REQUIRE_FALSE (yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0).isEmpty());
+    REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::ViewMixWindow).enabled);
+    juce::Component* snapChooser = findChildWithComponentId (*shell, "timeline.snap.chooser");
+    REQUIRE (snapChooser != nullptr);
+    REQUIRE_FALSE (snapChooser->isVisible());   // the arrangement's tool row is not over the strips
+
+    REQUIRE (shell->keyPressed (mixChord));
+    snapshot = snapshotMainComponent (*shell);
+    REQUIRE_FALSE (snapshot.context.mixWindowShown);
+    REQUIRE_FALSE (snapshot.context.mixerDockVisible);   // the dock as it was: hidden
+    REQUIRE (yesdaw::ui::mainComponentTimelineBounds (*shell) == editTimeline);
+    REQUIRE (snapChooser->isVisible());
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("the layout pass, step 1: an imported clip is named after its file, and an uncoloured track wears its "
            "position's palette colour on its rail and its clips",
            "[ui][input][shell][track-colour][layout-pass]")
@@ -20731,7 +20772,7 @@ TEST_CASE ("G3.1 track instrument: chooser, panel rows, undoable knob, lane choo
     REQUIRE (probeView().getProperty ("dock", {}).toString() == "None");
     REQUIRE_FALSE (yesdaw::ui::mainComponentInstrumentPanel (*shell).visible);
     juce::MenuBarModel& menus = requireMenuBarModel (*shell);
-    REQUIRE (menus.getMenuForIndex (5, "View").getNumItems() == 33);   // G5.2: + Browser; G4.1: + Narrow Strips; G3.2: + the Eraser and Velocity tools
+    REQUIRE (menus.getMenuForIndex (5, "View").getNumItems() == 34);   // the layout pass, step 10: + Mix Window; G5.2: + Browser; G4.1: + Narrow Strips; G3.2: + the Eraser and Velocity tools
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);

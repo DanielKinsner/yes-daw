@@ -997,12 +997,37 @@ std::vector<juce::Component*> MainComponent::mixerLaneControls()
 
 void MainComponent::hideMixerControlsBehindDockTab()
 {
+    if (appModel.context().mixWindowShown)
+        hideArrangeControlsBehindMixWindow();
     if (dockShowsMixer())
         return;
     for (juce::Component* control : mixerLaneControls())
     {
         hiddenByDockTab.try_emplace (control, control->isVisible());
         control->setVisible (false);
+    }
+}
+
+// The layout pass, step 10: the Mix window shows the header and the mixer only. Every other control under the header -
+// the arrangement's tool row, the rail's add button, the view cluster, the inspector's controls, the scroll bars - hides
+// while it shows and comes back with the Edit window (the dock tab's restore law). The mixer's own controls and the
+// overlays (dialogs, editors, the recovery banner, the rename fields) stay.
+void MainComponent::hideArrangeControlsBehindMixWindow()
+{
+    std::vector<juce::Component*> keep = mixerLaneControls();
+    for (juce::Component* overlay : std::initializer_list<juce::Component*> {
+             &keymapEditor, &undoHistory, &newProjectDialog, &busRenameEditor, &trackRenameEditor,
+             &autosaveRecoveryBanner, &autosaveRestoreButton, &autosaveDiscardButton })
+        keep.push_back (overlay);
+    const int headerBottom = headerHeightNow();
+    for (int i = 0; i < getNumChildComponents(); ++i)
+    {
+        juce::Component* child = getChildComponent (i);
+        if (child->getY() < headerBottom || ! child->isVisible()
+            || std::find (keep.begin(), keep.end(), child) != keep.end())
+            continue;
+        hiddenByDockTab.try_emplace (child, true);
+        child->setVisible (false);
     }
 }
 
@@ -1238,6 +1263,8 @@ int MainComponent::dockedMixerHeight() const
 {
     if (! appModel.context().mixerDockVisible)
         return 0;
+    if (appModel.context().mixWindowShown)   // the layout pass, step 10: the Mix window - the mixer under the header
+        return juce::jmax (0, getHeight() - headerHeightNow());
     // G2.1: the dragged height, never eating the arrangement below its minimum.
     const int maxDock = getHeight() - headerHeightNow() - yesdaw::ui::UiTheme::Layout::arrangeMinHeight;
     return juce::jlimit (yesdaw::ui::UiTheme::Layout::editorDockMinHeight,
