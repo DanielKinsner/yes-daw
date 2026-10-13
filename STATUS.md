@@ -8,6 +8,46 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## Scoreboard - where the app stands (kept current; last updated 2026-10-13)
+
+**Make a song today** (evidence: the real-app drives on packaged build 7a1b0ad, 2026-10-13)
+- Import audio - WORKING: WAV/AIFF/FLAC/Ogg/MP3 at any sample rate, drag-drop, browser preview.
+- MIDI instruments - WORKING (basic): a synth and a drum-pad sampler. No third-party instruments.
+- MIDI editing - WORKING: piano roll tools, quantize/swing, step input, MIDI files in and out.
+- Audio editing - WORKING: split, trim, slip, fades, crossfades, stretch, reverse, normalize, tempo ramps. No audio
+  quantize/warp; audio does not follow tempo changes.
+- Arrangement - WORKING: tracks, markers, loop, range edits, zoom. No folder tracks or groups.
+- Mixing - WORKING: faders, pan, mute/solo, sends, buses, sidechain, meters, loudness. No VCA groups.
+- Automation - WORKING: read/touch/latch/write while playing, and drawn lines.
+- Effects - PARTLY: built-in EQ, compressor, delay, reverb, limiter, with presets. No VST3 plugins; no
+  gate/saturation/chorus.
+- Record audio - PARTLY: arm, record, count-in and a basic comp exist, but recording has never been proven with a real
+  input signal; no take lanes or punch-in.
+- Export - WORKING: WAV 16/24/32-bit, stems, MIDI. No MP3/FLAC.
+- Save / open / autosave / crash recovery / relink missing audio - WORKING.
+- Playback timing - PARTLY: clean at 10 ms blocks; low latency is not built (accepted for this milestone).
+
+**Shortest path to a whole song**
+1. Close the Usable-song milestone (S). It needs one clean "mix the song" drive (Dan: close the Chrome Sign In /
+   Success windows) and an answer for one unexplained SS3 failure today, which passed on a re-run.
+2. Dan makes one real song in the app (S). Nothing since the 1 Sept verdict has been felt by hand.
+3. Low-latency audio, WASAPI exclusive or ASIO (M-L), needed to sing or play live through it.
+4. Third-party VST3 plugins (L). Today there are 5 built-in effects and 2 instruments.
+5. Recording: prove it (S: loop an output into input 1, rerun the hardware check), then take lanes and punch-in (L).
+6. Smaller gaps (S-M each): the sustain pedal / controllers from a live keyboard, a snap grid that follows tempo
+   changes, MP3/FLAC export, more effects.
+
+**Known pain points**
+- Feel since the 1 Sept "laggy, half-working" verdict: Space is reliable, audio no longer restarts per action, a frame
+  paints in about 3 ms, launch takes 1.1-1.4 s, and windows no longer freeze under dialogs. All measured; none felt
+  by Dan yet.
+- The drives hear one audio glitch right after launch. The cause is unknown (parked since 1 Sept).
+- Unfinished or confusing (parked): the denser Logic-style layout, a dead "Export DAWproject" menu item, no MIDI input
+  chooser, and a clock that can read "0:60.000".
+- Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus (Chrome's
+  sign-in pop-ups); SS3 failed once today, then passed.
+- Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
 ## 2026-10-13 — UI correctness pass unit 29e: the window repaints under every question - FIX 29 closed
 
 **What changed (drive tooling only):**
