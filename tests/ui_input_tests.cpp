@@ -31277,6 +31277,7 @@ TEST_CASE ("ADR-0076 the status line shows its messages whole", "[ui][input][she
     }
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
     yesdaw::ui::mainComponentWaitForExport (*shell);
+    yesdaw::ui::mainComponentServiceUiTick (*shell);   // as for the refusal: the tick hands the line its text
     {
         const std::string text = snapshotMainComponent (*shell).statusLineText;
         INFO ("the export failure: " << text);
