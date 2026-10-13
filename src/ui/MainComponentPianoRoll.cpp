@@ -129,33 +129,40 @@ void MainComponent::drawPianoRoll (juce::Graphics& g, juce::Rectangle<int> area)
                                          geometry.grid.getWidth(),
                                          yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth));
 
+        // UI pass unit 20: a name sits whole in the key's light face, its ink centred, or is not drawn (never cut).
+        const auto drawKeyName = [&g, &keyRow] (const juce::String& name, const juce::Font& font, juce::Colour colour)
+        {
+            const auto baseline = pianoRollKeyLabelBaseline (pianoRollKeyFace (keyRow), font);
+            if (! baseline)
+                return;
+            const int left = keyRow.getX() + yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetX;
+            juce::GlyphArrangement glyphs;
+            glyphs.addCurtailedLineOfText (font, name, static_cast<float> (left), static_cast<float> (*baseline),
+                                           static_cast<float> (keyRow.getRight() - yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetX - left),
+                                           true);
+            g.setColour (colour);
+            glyphs.draw (g);
+        };
         // G3.9: drum mode — a Sampler's pad names its key (bold, over the key body); a key
         // without a pad keeps the note name, dimmed.
         const std::string* const padName = surface.drumMode ? surface.padNameForKey (key) : nullptr;
         if (padName != nullptr)
         {
-            g.setColour (yesdaw::ui::UiTheme::Color::pianoWhiteKeyText());
-            g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::caption, juce::Font::bold));
-            g.drawText (juce::String (*padName),
-                        keyRow.reduced (yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetX,
-                                        yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetY),
-                        juce::Justification::centredLeft, true);
+            drawKeyName (juce::String (*padName),
+                         yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::caption, juce::Font::bold),
+                         yesdaw::ui::UiTheme::Color::pianoWhiteKeyText());
         }
         // G3.2: every white key names itself once its row is tall enough; C keeps its bold octave
-        // label at any height (the landmark Logic paints).
+        // label whenever its name fits (the landmark Logic paints).
         else if (key % 12 == 0
             || (! isBlackMidiKey (key)
                 && juce::roundToInt (geometry.rowHeight) >= yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelMinRowHeight))
         {
-            g.setColour (surface.drumMode ? yesdaw::ui::UiTheme::Color::pianoWhiteKeyMutedText()   // ADR-0063: opaque
+            drawKeyName (juce::String (yesdaw::ui::pianoRollKeyName (key)),
+                         yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::caption,
+                                                          key % 12 == 0 ? juce::Font::bold : juce::Font::plain),
+                         surface.drumMode ? yesdaw::ui::UiTheme::Color::pianoWhiteKeyMutedText()   // ADR-0063: opaque
                                           : yesdaw::ui::UiTheme::Color::pianoWhiteKeyText());
-            g.setFont (yesdaw::ui::UiTheme::Type::font (
-                yesdaw::ui::UiTheme::Type::caption,
-                key % 12 == 0 ? juce::Font::bold : juce::Font::plain));
-            g.drawText (juce::String (yesdaw::ui::pianoRollKeyName (key)),
-                        keyRow.reduced (yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetX,
-                                        yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelInsetY),
-                        juce::Justification::centredLeft, false);
         }
     }
 

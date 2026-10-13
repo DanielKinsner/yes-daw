@@ -7,6 +7,7 @@
 #include "ui/PaintedAccessibleProxy.h"
 #include "ui/StatusLineText.h"   // ADR-0076: the shortening rule
 #include "ui/ExportProgressReadout.h"   // UI pass unit 16
+#include "ui/PianoRollInputComponent.h"   // UI pass unit 20: the key face and its name's placement
 #include "ui/ControlTarget.h"   // G4.0b: the pure Control-target rules
 #include "ui/DesktopAudioStartup.h"
 #include "ui/EqResponseComponent.h"
@@ -31244,6 +31245,97 @@ TEST_CASE ("the device choosers show a device's name whole or shortened in its m
         CAPTURE (text, channelArea.getWidth());
         REQUIRE (juce::GlyphArrangement::getStringWidth (channelFont, text) <= static_cast<float> (channelArea.getWidth()));
     }
+}
+
+// UI pass unit 20: a key's name sits whole inside its key's light face (the row less its 1 px stroke), its ink centred
+// on the font's own outlines, or is not drawn - never cut by the key's edges. Pure placement over row heights, then the
+// painted keyboard: no name's ink on any key's stroke, a named key's face carries its name, at the default dock and at
+// a dock whose rows are too short for any name (none drawn).
+TEST_CASE ("piano roll key names sit whole in their keys, or are not drawn", "[ui][input][shell][piano-key-labels]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    using Color = yesdaw::ui::UiTheme::Color;
+    for (const bool bold : { false, true })
+    {
+        const juce::Font font = yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::caption,
+                                                                 bold ? juce::Font::bold : juce::Font::plain);
+        const juce::Rectangle<float> ink = yesdaw::ui::pianoRollKeyNameInk (font);
+        REQUIRE (ink.getHeight() > 4.0f);   // measured from the outlines
+        for (int height = 4; height <= 40; ++height)
+        {
+            const juce::Rectangle<int> face = yesdaw::ui::pianoRollKeyFace ({ 0, 100, 64, height });
+            const auto baseline = yesdaw::ui::pianoRollKeyLabelBaseline (face, font);
+            CAPTURE (bold, height, ink.getY(), ink.getBottom());
+            if (baseline)
+            {
+                REQUIRE (static_cast<float> (*baseline) + ink.getY() >= static_cast<float> (face.getY()));
+                REQUIRE (static_cast<float> (*baseline) + ink.getBottom() <= static_cast<float> (face.getBottom()));
+            }
+            if (height >= L::pianoRollRowTargetHeight)
+                REQUIRE (baseline.has_value());   // the rows the roll aims for name their keys
+        }
+    }
+
+    const std::filesystem::path bundlePath = makeTempBundlePath ("piano-key-labels");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    juce::Component& roll = requirePianoRollComponent (*shell);
+
+    // A dock whose rows are short but present (5 px to under the target): no name fits there, so none may be drawn.
+    int shortDock = 0;
+    for (int dock = L::mixerHeight; dock >= L::editorDockMinHeight && shortDock == 0; dock -= 2)
+    {
+        yesdaw::ui::mainComponentSetDockHeight (*shell, dock);
+        const auto rows = yesdaw::ui::mainComponentPianoRollKeyRows (*shell);
+        if (! rows.empty() && rows.front().row.getHeight() >= 5 && rows.front().row.getHeight() < L::pianoRollRowTargetHeight - 1)
+            shortDock = dock;
+    }
+    REQUIRE (shortDock > 0);
+    for (const int dock : { L::mixerHeight, shortDock })
+    {
+        yesdaw::ui::mainComponentSetDockHeight (*shell, dock);
+        const auto rows = yesdaw::ui::mainComponentPianoRollKeyRows (*shell);
+        REQUIRE_FALSE (rows.empty());
+        const juce::Image image = shell->createComponentSnapshot (roll.getBoundsInParent(), true, 1.0f);
+        int named = 0;
+        for (const auto& key : rows)
+        {
+            const int note = ((key.key % 12) + 12) % 12;
+            if (key.row.getHeight() < 3 || note == 1 || note == 3 || note == 6 || note == 8 || note == 10)   // black keys carry no name
+                continue;
+            const int left = key.row.getX() + L::pianoRollKeyLabelInsetX;
+            const int right = juce::jmin (key.row.getRight() - 2, left + 28);
+            CAPTURE (dock, key.key, key.row, key.nameBaseline);
+            // The key's own stroke rows carry nothing but the stroke where a name would sit.
+            for (const int y : { key.row.getY(), key.row.getBottom() - 1 })
+                for (int x = left; x < right; ++x)
+                    if (y >= 0 && y < image.getHeight())
+                        REQUIRE (image.getPixelAt (x, y).withAlpha (1.0f) == Color::panelStroke());
+            // A named key's face carries its name.
+            if (key.nameBaseline >= 0)
+            {
+                ++named;
+                int inkPixels = 0;
+                const juce::Rectangle<int> face = yesdaw::ui::pianoRollKeyFace (key.row);
+                for (int y = face.getY(); y < face.getBottom(); ++y)
+                    for (int x = left; x < right; ++x)
+                        if (image.getPixelAt (x, y).withAlpha (1.0f) != Color::pianoWhiteKey())
+                            ++inkPixels;
+                REQUIRE (inkPixels > 6);
+            }
+        }
+        CAPTURE (dock, named, rows.front().row.getHeight());
+        if (dock == L::mixerHeight)
+            REQUIRE (named > 0);   // the default dock names its keys
+        else
+            REQUIRE (named == 0);  // rows too short for a whole name carry none
+    }
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
 }
 
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part

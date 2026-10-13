@@ -455,6 +455,15 @@ struct MainComponentPianoRollAudition
     int gridRight = 0;
 };
 [[nodiscard]] MainComponentPianoRollAudition mainComponentPianoRollAudition (juce::Component& component, int key);
+// UI pass unit 20: the roll's keyboard as painted - each visible key's row (roll-local) and its name's baseline when the
+// name is drawn (-1 when it is not).
+struct MainComponentPianoRollKeyRow
+{
+    int key = 0;
+    juce::Rectangle<int> row;
+    int nameBaseline = -1;
+};
+[[nodiscard]] std::vector<MainComponentPianoRollKeyRow> mainComponentPianoRollKeyRows (juce::Component& component);
 // G3.3: the roll's control lane as painted — roll-local rects (the data area right of the chooser
 // gutter, and the chooser), the lane's name and value range, and its points (tick, value) with
 // their ids (hex) — so a gate can place, drag and erase what the user sees.

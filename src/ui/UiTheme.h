@@ -1129,10 +1129,9 @@ struct UiTheme
         static constexpr int pianoRollHeaderLabelInsetY = 0;
         static constexpr int pianoRollKeyRowMinHeight = 1;
         static constexpr int pianoRollKeyRowInsetX = 0;
-        static constexpr int pianoRollKeyRowInsetY = 1;
+        static constexpr int pianoRollKeyRowInsetY = 0;   // UI pass unit 20: the key's own 1 px stroke is the only separator
         static constexpr int pianoRollGridLineWidth = 1;
         static constexpr int pianoRollKeyLabelInsetX = 8;
-        static constexpr int pianoRollKeyLabelInsetY = 0;
         static constexpr int pianoRollSelectedNoteHalo = 1;
         static constexpr int pianoRollExpressionInsetX = 0;
         static constexpr int pianoRollExpressionInsetY = 6;

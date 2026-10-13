@@ -65,6 +65,40 @@ struct PianoRollCanvasGeometry
     return geometry;
 }
 
+// UI pass unit 20: a key's light face - its row less the 1 px stroke drawn round it.
+[[nodiscard]] inline juce::Rectangle<int> pianoRollKeyFace (juce::Rectangle<int> keyRow) noexcept
+{
+    return keyRow.reduced (yesdaw::ui::UiTheme::Layout::pianoRollGridLineWidth);
+}
+
+// UI pass unit 20: the ink of a key's name relative to its baseline - the outlines of every character a key or pad name
+// starts with (letters, digits, '-'), from the font itself; cached per font (the paint asks for every key).
+[[nodiscard]] inline juce::Rectangle<float> pianoRollKeyNameInk (const juce::Font& font)
+{
+    static std::map<std::pair<float, bool>, juce::Rectangle<float>> cache;
+    const auto key = std::make_pair (font.getHeight(), font.isBold());
+    if (const auto found = cache.find (key); found != cache.end())
+        return found->second;
+    juce::GlyphArrangement glyphs;
+    glyphs.addLineOfText (font, "ABCDEFG-0123456789", 0.0f, 0.0f);
+    juce::Path outline;
+    glyphs.createPath (outline);
+    return cache[key] = outline.getBounds();
+}
+
+// UI pass unit 20: where a key's name sits - the baseline that centres its ink in the key's light face, or nothing when the
+// face is shorter than that ink (a name is never cut by the key's edges).
+[[nodiscard]] inline std::optional<int> pianoRollKeyLabelBaseline (juce::Rectangle<int> face, const juce::Font& font)
+{
+    const juce::Rectangle<float> ink = pianoRollKeyNameInk (font);
+    const int baseline = juce::roundToInt (static_cast<float> (face.getY()) + static_cast<float> (face.getHeight()) * 0.5f
+                                           - ink.getCentreY());
+    if (static_cast<float> (baseline) + ink.getY() < static_cast<float> (face.getY())
+        || static_cast<float> (baseline) + ink.getBottom() > static_cast<float> (face.getBottom()))
+        return std::nullopt;
+    return baseline;
+}
+
 [[nodiscard]] inline yesdaw::engine::Tick pianoRollTimelineLength (
     const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface) noexcept
 {

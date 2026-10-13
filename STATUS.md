@@ -8,6 +8,43 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 20: piano-roll key names whole in their keys
+
+**The defect (FIX 20):** every white key's name (C3-B3) lost its top and bottom.
+- A key row was inset 1 px top and bottom and then stroked 1 px inside. At the roll's 11-12 px rows that left a 7-8 px
+  light face, under an 11 px caption.
+- The letters ran onto the dark edges, where dark text vanishes; the next row also painted over any overflow.
+
+**What changes:**
+- **Keys:** the row is no longer inset. The key's own 1 px stroke is its only separator, so the light face is the row less
+  2 px.
+- **Names:** a name's baseline centres the ink of a key name inside that face (`pianoRollKeyLabelBaseline`). The ink is
+  measured once per font from the outlines of every character a name starts with. A face shorter than the ink gets no
+  name: a name is never cut.
+- **Pad names in drum mode:** the same placement, still shortened with an ellipsis.
+
+**Gate `[piano-key-labels]`:**
+- **Placement:** for faces of 4-40 px, in plain and bold, a placed name's ink lies inside the face, and rows of the roll's
+  target height (11 px) always name their keys.
+- **The painted roll,** through the new probe of the keyboard as painted:
+  - no key's stroke rows carry ink where a name sits, and a named key's face carries its name;
+  - at the default dock, names show;
+  - at a dock the gate finds with short but present rows (5-9 px), no name is drawn.
+
+**Bites:**
+- M1 the old 1 px gaps between keys (a stroke row holds something else);
+- M2 the fit rule removed (a placed name's ink leaves its face);
+- M3 names never drawn (a named face carries no ink);
+- M4 the ink taken from the font box instead of the outlines (no name fits an 11 px row).
+
+**Seen:** the roll at the 300 px and 160 px docks (scratch renders). The names are whole and C is bold.
+- At 160 px the roll has no key rows at all; that is new **FIX 30** in the plan.
+- That is also why the gate looks for its own short-row dock: at 160 px its "too short" half would have checked
+  nothing.
+
+**Process:** this unit changes the keyboard's drawing only (no logic, data or shared law), so it has no critic, per
+ADR-0075.
+
 ## 2026-10-12 — UI correctness pass unit 19: device names whole, or shortened in the middle, never squashed
 
 **The defect (FIX 19):** the settings row's 150 px device choosers squashed a device's name to 70 %, then cut it with "..."

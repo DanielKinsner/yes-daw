@@ -2417,6 +2417,36 @@ MainComponentPianoRollAudition mainComponentPianoRollAudition (juce::Component& 
     return out;
 }
 
+std::vector<MainComponentPianoRollKeyRow> mainComponentPianoRollKeyRows (juce::Component& component)
+{
+    std::vector<MainComponentPianoRollKeyRow> out;
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+    {
+        const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = mainComponent->harnessPianoRollSurface();
+        const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (mainComponent->harnessPianoRollBounds().withZeroOrigin());
+        for (int key = pianoRollViewHighKey (surface); key >= surface.viewLowKey; --key)
+        {
+            MainComponentPianoRollKeyRow row;
+            row.key = key;
+            row.row = juce::Rectangle<int> (geometry.keyboard.getX(), pianoRollKeyY (geometry, surface, key),
+                                            geometry.keyboard.getWidth(),
+                                            juce::jmax (yesdaw::ui::UiTheme::Layout::pianoRollKeyRowMinHeight,
+                                                        juce::roundToInt (geometry.rowHeight)));
+            const bool named = key % 12 == 0
+                            || (! isBlackMidiKey (key)
+                                && juce::roundToInt (geometry.rowHeight) >= yesdaw::ui::UiTheme::Layout::pianoRollKeyLabelMinRowHeight);
+            if (named && ! surface.drumMode)
+                if (const auto baseline = pianoRollKeyLabelBaseline (
+                        pianoRollKeyFace (row.row),
+                        yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::caption,
+                                                         key % 12 == 0 ? juce::Font::bold : juce::Font::plain)))
+                    row.nameBaseline = *baseline;
+            out.push_back (row);
+        }
+    }
+    return out;
+}
+
 void mainComponentServiceUiTick (juce::Component& component)
 {
     if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))

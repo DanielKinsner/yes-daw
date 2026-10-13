@@ -651,7 +651,9 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
 - [x] **19.** The settings row's device choosers are squashed, then elided ("Speakers (Focusrite USB A...").
   Line 1 / 4. **Done 2026-10-12:** device names whole or shortened in the middle (ADR-0076's rule), never squashed; the
   choosers grow into the row's spare width; the channel chooser's texts whole; gate `[device-choosers]` (STATUS).
-- **20.** The piano roll's key labels C3-B3 lose their tops and bottoms to the key rows. Line 1.
+- [x] **20.** The piano roll's key labels C3-B3 lose their tops and bottoms to the key rows. Line 1. **Done
+  2026-10-12:** a key's name sits whole in its light face, placed on the font's own outlines, or is not drawn; gate
+  `[piano-key-labels]` (STATUS).
 - **21.** The loop's right end-handle covers the tempo label ("150~") at 1280. Line 1.
 - **22.** A MIDI clip's note-preview bar cuts through its name. Line 1.
 - **23.** The send rows' PRE / PST text is 3.59:1 on the strip header colour. Line 4.
@@ -666,6 +668,8 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   second (30 in 0.8 s once it is answered). Before unit 17 the same question also left the window white. The likely
   fix is asking without a nested modal loop (`AlertWindow::showAsync`, `FileChooser::launchAsync`) for the ADR-0062
   relink questions. Gate: the paint count climbs while a question is up. Line 1 / 4.
+- **30.** (found in unit 20) At the shortest editor dock (160 px) the piano roll has no key rows: its header and the
+  velocity / control lanes take the whole dock, so the grid is about 1 px. Line 1 / 3.
 - **28.** Evidence hygiene: the end-of-drive size shots now include the resting pointer's tooltip (it hides the ruler at
   the tempo change in `ss3-2560`); park the pointer or use `-MainOnly` for size shots. Tooling.
 
