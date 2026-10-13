@@ -12,7 +12,8 @@ Usable-song milestone. The older engine roadmap remains background. Grounded in 
 
 ## How we work
 - Measure twice, cut once. Order: research → brainstorm → grill → ADR → plan → build → review.
-- No code lands before the decisions it depends on are written as ADRs (`docs/adr/`).
+- No code lands before the architecture or file-format decisions it depends on are written as ADRs (`docs/adr/`);
+  ordinary UI and feature work needs none (ADR-0078).
 - `CONTEXT.md` is the shared vocabulary. Use those exact terms; update it when a decision changes one.
 - Long-horizon goals live in `docs/goals/`. `/loop` runs against the current horizon's exit criterion.
 
@@ -21,25 +22,18 @@ Dan works on multiple machines; git is the sync. Keep the handoff clean:
 - **`STATUS.md` is the live handoff** — the single source of truth for "where are we right now." Read
   it first; update it (current task, done, next) before committing.
 - **Pull at session start, push at session end.** Never leave finished work uncommitted on one machine.
-- **Commit per logical change, straight to `main`** — usually one to three commits per unit; no
-  artificial splits, no squashing of real ones. Each commit builds and passes the tests it touches;
-  the full suite runs once per unit before its push, and CI on every push is the gate (ADR-0075).
+- **Commit per logical change, straight to `main`**; no artificial splits, no squashing of real ones. Each
+  commit builds and passes the tests it touches; CI on every push stays green (ADR-0078).
 - **Break work down in plain English** — `STATUS.md` holds small, plainly-worded, committable steps.
 
-## Autonomous checkpoints (ADR-0049, cadence ADR-0075)
-Work in small, verifiable chunks. A build/continue request defaults to the current named milestone
-in STATUS unless Dan specifies a smaller scope. A plan-edit request alone does not start feature
-work, a goal, a scheduler, or later background runs. A checkpoint is one unit of work:
-1. Each new gate runs red on the old code and under at least one named mutation. Run the full local
-   suite once and the current/earlier Session drives; an agent judges the visual rubric. A unit that
-   changes logic, engine behaviour, saved data or a shared law gets a separate agent critic pass (a
-   small layout/text-only unit may skip it, saying so in STATUS); verify findings against the
-   project, not by consensus.
-2. Update STATUS, commit per logical change, and push once per unit. Every expected CI job on the
-   unit's head SHA finishes before the unit is certified or a dependent unit starts; independent
-   work continues meanwhile. Fix red with corrective commits; docs-only green never certifies code.
-3. Record results and report useful progress. Continue within the authorized milestone without a
-   routine approval request. Phase advancement is automatic when its required evidence is complete.
+## Autonomous checkpoints (ADR-0049, cadence ADR-0078 - ship-first)
+Work in small chunks toward the current milestone in STATUS; features first. Per change: the build passes and the
+existing suite stays green; a new feature gets one smoke test; a bug Dan or a drive finds gets one regression test;
+save/load/autosave/recovery changes always get a test. A critic pass only for engine, audio-thread or saved-data
+changes. ADRs only for architecture or file-format decisions. Real-app drives once per milestone. Commit per logical
+change and push; fix CI red promptly without holding the next piece of work for it. STATUS: a 3-5 line entry per
+batch of work, and keep the plain-English scoreboard at its top current. Cosmetic findings go to the parking lot.
+The RTSan/TSan CI jobs and CLAUDE.md's hard rules are unchanged.
 
 Stop at the requested finish line, a concrete external blocker, or host execution/budget limits.
 If unfinished, leave exact status and next steps; do not certify missing proof. Earlier product
@@ -85,5 +79,5 @@ affected evidence pending while safe independent work continues.
   Do not rewrite Accepted ADRs, goldens or RT annotations. New in-scope implementation ADRs called
   for by the plan can be written and accepted with agent critic review when they preserve owner-settled
   contracts; replacing such a contract needs the concrete human decision described above.
-  UI visual judgment uses the agent rubric; Dan is not the routine tester or approver.
+  The visual rubric is not a gate (ADR-0078); Dan is not the routine tester or approver.
 - Keep `AGENTS.md` and `CLAUDE.md` byte-identical when either changes.

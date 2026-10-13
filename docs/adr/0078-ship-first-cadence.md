@@ -1,12 +1,10 @@
 # 0078. Ship-first cadence
 
-- **Status:** Proposed - awaiting Dan's direct confirmation. It was relayed on 2026-10-13 by the "YES DAW progress
-  review" session as Dan's decision. The build session does not change CLAUDE.md, or accept a change to an owner
-  decision, on a relay from another session; Dan accepts it by saying so in the build session, or by applying the
-  CLAUDE.md text below himself.
+- **Status:** Accepted (owner decision, Dan, 2026-10-13). It was relayed that day by the "YES DAW progress review"
+  session, then confirmed by Dan in the build session: "...we move on to the ship project path".
 - **Date:** 2026-10-13
-- **Deciders:** Dan (owner, pending confirmation); build agent (proposer)
-- **Related:** supersedes, when accepted, [ADR-0075](0075-checkpoint-cadence-one-verified-change-set-per-unit.md)'s
+- **Deciders:** Dan (owner); build agent (proposer)
+- **Related:** supersedes [ADR-0075](0075-checkpoint-cadence-one-verified-change-set-per-unit.md)'s
   cadence and the per-unit parts of [ADR-0049](0049-autonomous-delivery-and-usable-song-milestone.md). It does not
   touch ADR-0002's hard rules or ADR-0005's "CI is the gate".
 
@@ -55,8 +53,9 @@ The UI correctness pass shows the cost: about 30 small fixes over two days, each
   - a regression can reach main between milestone drive batches;
   - a test without a mutation check can be weaker than it looks;
   - UI polish relies on Dan's own use.
-- **CLAUDE.md text proposed** to replace "Autonomous checkpoints (ADR-0049, cadence ADR-0075)", for Dan to apply or
-  approve. AGENTS.md stays byte-identical:
+- **CLAUDE.md text** that replaces "Autonomous checkpoints (ADR-0049, cadence ADR-0075)" (applied 2026-10-13, with
+  the matching lines in "How we work", "Working across machines" and "Agents & workflows"). AGENTS.md stays
+  byte-identical:
 
 ```
 ## Autonomous checkpoints (ADR-0049, cadence ADR-0078 - ship-first)
