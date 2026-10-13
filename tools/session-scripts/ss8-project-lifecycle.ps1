@@ -420,6 +420,7 @@ if ($null -eq $alertUp) { $alertUp = WaitAlert 'Damaged audio' 2000 }
 [void](Assert ($null -ne $alertUp) 'the shell asks through a Missing/Damaged audio juce::AlertWindow')
 if ($null -ne $alertUp) {
   [void](Assert ([bool](Probe).relink.asking) ('probe shows a relink question is up (name=' + (Probe).relink.name + ')'))
+  $paintsUnderQuestion = PaintsPerSecond   # ADR-0077 (29e): compared below with a second with no question
   Shot 'ss8-missing-cancel'
   # UI pass unit 17: the window under the launch-time question has shown a frame (it was white, never presented).
   $white = MainShotPainted 'ss8-missing-cancel-main'
@@ -430,6 +431,8 @@ if ($null -ne $alertUp) {
   # and the next launch asks about this bundle again (b) because the last-project record still names it.
   [void](Assert (WaitProbe { param($q) [bool]$q.projectLoaded -and (Split-Path -Leaf "$($q.bundlePath)") -eq 'Untitled.yesdaw' } -TimeoutMs 4000) ('Cancel at launch leaves the untitled session (projectLoaded=' + (Probe).projectLoaded + ', bundle=' + (Probe).bundlePath + ')'))
   [void](Assert ("$((Probe).status.text)" -like 'Open cancelled:*') ('the status line names the missing audio (' + (Probe).status.text + ')'))
+  $paintsAfter = PaintsPerSecond   # no question up now
+  [void](Assert ($paintsUnderQuestion -ge [math]::Max(5, [int]($paintsAfter / 2))) ('the window keeps painting under the launch-time question (' + $paintsUnderQuestion + ' paints in a second; ' + $paintsAfter + ' with none up)'))
 }
 Close
 Start-Sleep -Milliseconds 400

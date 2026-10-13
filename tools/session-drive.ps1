@@ -32,6 +32,7 @@
 #                                        alerts composited over it (never another app's window); -MainOnly: the main
 #                                        window alone (a pointer shot a reappearing tooltip would spoil)
 #   Resize <clientWidth> <clientHeight>
+#   PaintsPerSecond                    - the shell's paints in one second (the probe's frame.paintCount; ADR-0077)
 #   SizeShot <clientWidth> <clientHeight> "<name>" - Resize, the pointer parked on the window's caption, then a Shot;
 #                                        asserts the resize settled and no app window (a tooltip, a menu) is over it
 #   WaitDialog "<title contains>" [-TimeoutMs n] - a native dialog (file chooser) is up
@@ -1064,6 +1065,15 @@ function SizeShot([int] $clientWidth, [int] $clientHeight, [string] $name) {
   $over = [YesDawDrive]::AppWindowsAbove($script:Hwnd).Count
   [void](Assert ($parked -and $over -eq 0) ('the ' + $name + ' shot is the window alone (pointer on its caption: ' + $parked + '; app windows over it: ' + $over + ')'))
   return (Shot $name)
+}
+
+# ADR-0077 (UI pass unit 29e): how many times the shell painted in one second - a window frozen under a question paints
+# none, whatever its UI tick asks for.
+function PaintsPerSecond {
+  $a = [long](Probe).frame.paintCount
+  Start-Sleep -Milliseconds 1000
+  $b = [long](Probe).frame.paintCount
+  return [int]($b - $a)
 }
 
 function WaitDialog([string] $titleContains, [int] $TimeoutMs = 4000) {

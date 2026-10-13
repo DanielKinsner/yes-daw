@@ -8,6 +8,27 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 29e: the window repaints under every question - FIX 29 closed
+
+**What changed (drive tooling only):**
+- `PaintsPerSecond` in the drive.
+- A new drive `ss11-questions-repaint.ps1` (31 assertions). It opens File > Open, then the unsaved-changes alert from
+  File > New, by mouse; it checks that Space plays after an import chooser with no Focus step; and it runs the
+  launch-time missing-audio question. Under each question the shell must paint at least max(5, half the idle rate).
+- SS8's launch question gets the same check.
+
+**Result:**
+- SS11 31/31: 29-31 paints a second under every question, against 31 idle. SS8 215/215 with its new launch-question paint check (30 paints a second; 30 idle).
+- Red on the old code: an app rebuilt with the launch question synchronous again painted **0 times a second** under
+  it. That is FIX 29's freeze, now gone.
+- The File-menu questions did not freeze even on the old code (28-30 paints a second). A freeze needs the vblank
+  message to queue behind the question's message, which the UI tick's post nearly always does and a menu command rarely
+  does. Those checks stay as regression checks; the launch question is the gate.
+
+**Process:** tools only, so no critic and no C++ suite run; the C++ last passed in full at 29d.
+
+**Next:** the UI correctness pass ends here (owner direction). The close-out's unit 7, the Usable-song close, is next.
+
 ## 2026-10-13 — UI correctness pass unit 29d: the app is built without modal loops (ADR-0077 rule 1)
 
 **What changed:** the `YesDaw` target now builds with `JUCE_MODAL_LOOPS_PERMITTED=0`, so any blocking JUCE dialog call

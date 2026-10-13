@@ -37,6 +37,7 @@ names an outside window.
 | `ss6-write-a-beat.ps1` | SS-4 "write a beat and a chord progression" | G3 (the exit) |
 | `ss7-mix-the-song.ps1` | SS-5 "mix the song" | G4 (grown per item) |
 | `ss8-project-lifecycle.ps1` | SS-6 project lifecycle / Usable-song journey | G5–G6 (Step 6 known-red until ADR-0068 lands) |
+| `ss11-questions-repaint.ps1` | the window repaints under the shell's questions (ADR-0077, FIX 29) | UI pass 29e |
 | `ss9-record-a-take.ps1` | SS-7 recording journey | G7 (**planned; not built**) |
 | `ss10-plugin-lifecycle.ps1` | separate plugin lifecycle journey | G4.8/H18 (**planned; not built**) |
 

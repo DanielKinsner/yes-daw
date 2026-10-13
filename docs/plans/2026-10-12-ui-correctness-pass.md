@@ -704,8 +704,9 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
     ask helper (`fileChoices.choose...(` / `fileChoices.confirm...(` in `src/`): `Question`'s friend is the whole shell
     class, so the compiler alone does not keep every ask on the helper (unit 29a critic); and `Main.cpp`'s close button
     calls `systemRequestedQuit` while its quit lambda calls `quit()`, never `systemRequestedQuit()` (unit 29b critic).
-  - **29e** (Windows drive, off CI) the paint count climbs under the SS8 launch alert and File-menu questions opened by
-    mouse; Space works after a chooser without a Focus step.
+  - [x] **29e** (Windows drive, off CI) the paint count climbs under the SS8 launch alert and File-menu questions opened by
+    mouse; Space works after a chooser without a Focus step. **Done 2026-10-13** (`ss11-questions-repaint.ps1`, STATUS).
+    FIX 29 is closed; the UI correctness pass ends here (stop rule above).
 - [x] **30.** (found in unit 20) At the shortest editor dock (160 px) the piano roll has no key rows: its header and the
   velocity / control lanes take the whole dock, so the grid is about 1 px. Line 1 / 3. **Done 2026-10-13:** the lanes
   give way, whole and the last first, while the grid would hold fewer than 10 keys at the 11 px target row; gate
