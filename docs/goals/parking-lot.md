@@ -33,7 +33,7 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 
 ## New findings (append below)
 
-- [ ] 2026-10-13 · audio · low-latency playback (WASAPI exclusive / ASIO) toward the 128-frame target; the shared-mode path grants 480 frames (10 ms) on every device here · `docs/plans/2026-10-09-cheap-autosave-closeout.md` (unit 7 owner decision) · promote-to: first item after Usable-song (owner decision, Dan, 2026-10-13)
+- [ ] 2026-10-13 · audio · low-latency playback (WASAPI exclusive / ASIO) toward the 128-frame target; the shared-mode path grants 480 frames (10 ms) on every device here · `docs/plans/2026-10-09-cheap-autosave-closeout.md` (unit 7 owner decision) · promote-to: with live recording, after the editing-suite work (Dan, 2026-10-13: editing first; it was briefly first after Usable-song)
 
 
 - [ ] 2026-09-01 · arrange · with the counter at 010|04 and playhead-follow on, no playhead line is visible in the lanes at 2560×1440 (SS-1 step 13 shot, zoom "2x") · `src/ui/MainComponent.cpp` `followPlaybackPlayhead` · promote-to: G2.16 (follow modes)
@@ -148,7 +148,7 @@ Format: `- [ ] <date> · <area> · <one line> · <file:line> · promote-to: <pha
 
 Full list and reasons: [`docs/research/2026-10-11-soundcraft-takeaways.md`](../research/2026-10-11-soundcraft-takeaways.md).
 
-- [ ] 2026-10-11 · ui · density pass: ruler stack, fuller track headers, tracks/clips lists, transport cluster, inserts/sends on every strip, overview strip, command palette, clip names from file names · takeaways §1 · promote-to: after Usable-song, before G4.8 (Dan picks the order; needs an ADR)
+- [x] 2026-10-11 · ui · density pass: ruler stack, fuller track headers, tracks/clips lists, transport cluster, inserts/sends on every strip, overview strip, command palette, clip names from file names · takeaways §1 · **promoted 2026-10-13** (Dan: editing suite and a familiar look first); ordinary UI work, no ADR under ADR-0078 · see the STATUS scoreboard
 - [ ] 2026-10-11 · ui · UiActionId is `std::uint8_t` with 16 ids left (239 of 255) - widen before any bulk feature work · `src/ui/UiActions.h:19` · promote-to: the density pass (first unit)
 - [ ] 2026-10-11 · dsp · FX suite 2: gate/expander, saturator with oversampling, chorus/flanger, phaser (natively, golden-tested) · takeaways §2 · promote-to: with or after the density pass (needs an ADR; ADR-0038 deferred these)
 - [ ] 2026-10-11 · export · AIFF/FLAC export and a peak/true-peak/LUFS report at the end of an export · takeaways §2 · promote-to: later

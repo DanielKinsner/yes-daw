@@ -27,14 +27,18 @@ Older entries below are dated history, not competing "Now" instructions.
 - Save / open / autosave / crash recovery / relink missing audio - WORKING.
 - Playback timing - PARTLY: clean at 10 ms blocks; low latency is not built (accepted for this milestone).
 
-**Shortest path to a whole song**
+**Next, in order** (Dan, 2026-10-13: an editing suite first, with a clean, familiar look he enjoys sitting down at;
+MIDI is written in the piano roll, not played live; voiceover is the only recording; live recording comes later)
 1. ~~Close the Usable-song milestone~~ - **done 2026-10-13** (packaged 7a1b0ad).
-2. Dan makes one real song in the app (S). Nothing since the 1 Sept verdict has been felt by hand.
-3. Low-latency audio, WASAPI exclusive or ASIO (M-L), needed to sing or play live through it. **Next.**
-4. Third-party VST3 plugins (L). Today there are 5 built-in effects and 2 instruments.
-5. Recording: prove it (S: loop an output into input 1, rerun the hardware check), then take lanes and punch-in (L).
-6. Smaller gaps (S-M each): the sustain pedal / controllers from a live keyboard, a snap grid that follows tempo
-   changes, MP3/FLAC export, more effects.
+2. A clean, familiar look - the SoundCraft-style layout pass (M), in small steps: ruler stack, fuller track headers,
+   tracks/clips side lists, transport readouts, inserts and sends on every mixer strip, an overview strip, a command
+   palette. Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1. **Next.**
+3. Editing gaps (S-M each): clip names from file names, a clip-gain line, a snap grid that follows tempo changes,
+   audio that follows tempo, MP3/FLAC export.
+4. Dan makes one real song in the app (S), when he has time.
+5. Later: more built-in effects, then third-party VST3 plugins (L).
+6. Later: live recording - prove it with a real input, take lanes and punch-in, then low-latency audio (WASAPI
+   exclusive or ASIO). Voiceover works without it: the interface's direct monitoring has no delay.
 
 **Known pain points**
 - Feel since the 1 Sept "laggy, half-working" verdict: Space is reliable, audio no longer restarts per action, a frame
@@ -46,6 +50,12 @@ Older entries below are dated history, not competing "Now" instructions.
 - Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus; SS3
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-10-13 — Direction: an editing suite first; live recording and low latency move to later
+
+Dan: the editing layer was the priority from day one; he writes MIDI in the piano roll, records only voiceover, and
+wants a clean, familiar UI (the SoundCraft look) he enjoys using. The scoreboard is reordered: the SoundCraft-style
+layout pass is next, then editing gaps; low-latency audio and live recording move to the end.
 
 ## 2026-10-13 — Usable-song milestone CERTIFIED; ship-first is the way of working (ADR-0078)
 

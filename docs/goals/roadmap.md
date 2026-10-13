@@ -10,9 +10,9 @@
 > [ADR-0049](../adr/0049-autonomous-delivery-and-usable-song-milestone.md), and the
 > [Real-DAW plan G0–G8](../plans/2026-09-01-real-daw-ground-up-plan.md). G0–G6 and the **Usable-song milestone
 > are certified** (2026-10-13, packaged 7a1b0ad). Work now runs ship-first
-> ([ADR-0078](../adr/0078-ship-first-cadence.md)) down the scoreboard at the top of `STATUS.md`: low-latency audio
-> first, then G4.8/H18 plugin hosting (entered only after a recorded real-VST3 worker PASS), G7 recording, then G8
-> alpha. See `STATUS.md` for the exact live checkpoint. The engine horizons and recorded status below
+> ([ADR-0078](../adr/0078-ship-first-cadence.md)) down the scoreboard at the top of `STATUS.md`: the editing suite
+> first (Dan, 2026-10-13) - the SoundCraft-style layout pass, then editing gaps - then more effects, G4.8/H18 plugin
+> hosting (entered only after a recorded real-VST3 worker PASS), G7 recording with low-latency audio, then G8 alpha. See `STATUS.md` for the exact live checkpoint. The engine horizons and recorded status below
 > remain history; where their ordering text differs, ADR-0049 and this active arc govern.
 
 Build order: **playable spine first**, then widen. **Editing-first** (recording is later). MIDI is
