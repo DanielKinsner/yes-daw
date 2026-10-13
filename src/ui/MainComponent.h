@@ -287,6 +287,8 @@ void mainComponentPublishMasterBlockForTest (juce::Component& component, float l
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderSectionBounds (const juce::Component& component, int section);
 [[nodiscard]] std::vector<juce::Rectangle<int>> mainComponentHeaderRects (const juce::Component& component);
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderTimeReadoutBounds (const juce::Component& component);
+// The layout pass, step 6: the header's selection box (Start / End / Length); empty when the window has no room for it.
+[[nodiscard]] juce::Rectangle<int> mainComponentHeaderSelectionBounds (const juce::Component& component);
 [[nodiscard]] int mainComponentHeaderHeight (const juce::Component& component);
 void mainComponentSetSettingsRowVisible (juce::Component& component, bool visible);
 // G1.3: the context menu a right-click at a shell point produces — the clicked object becomes

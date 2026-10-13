@@ -377,6 +377,10 @@ struct UiTheme
         // included) instead of keeping a label over a clipped meter — E27's whole-section law,
         // applied to the header.
         static constexpr int headerMasterMinWidth = 150;
+        // The layout pass, step 6: the selection box (Start / End / Length) right of the transport group - shown only
+        // while the master card keeps its full width beside it.
+        static constexpr int headerSelectionWidth = 150;
+        static constexpr int headerSelectionLabelWidth = 44;
         static constexpr int headerMasterGearGap = 12;
         static constexpr int headerMasterLufsGap = 8;
         // ADR-0053: the monitor's DIM and MUTE sit in the card's label row, right-aligned over the LUFS readout

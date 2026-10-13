@@ -1373,6 +1373,7 @@ public:
         juce::Rectangle<int> newButton, openButton, saveButton, importButton, undoButton, redoButton;
         juce::Rectangle<int> exportButton, exportProgress, exportCancel;
         juce::Rectangle<int> locateStart, play, stop, record, timeReadout, tempoMeterBox, loop, soloClear;
+        juce::Rectangle<int> selection;   // the layout pass, step 6: Start / End / Length (empty when there is no room)
         juce::Rectangle<int> midiIn;   // G3.10: the MIDI input lamp
         juce::Rectangle<int> masterCard, gear;
         juce::Rectangle<int> statusLine;   // ADR-0076: the menu row's free right side
@@ -1382,6 +1383,11 @@ public:
     };
 
     [[nodiscard]] HeaderLayout headerLayout() const;
+    // The layout pass, step 6: the span the selection box reads - the range selection, else the selected clip - in
+    // project frames; nullopt with neither.
+    [[nodiscard]] std::optional<std::pair<std::int64_t, std::int64_t>> headerSelectionSpan() const;
+    [[nodiscard]] juce::String headerSelectionTimeText (std::int64_t frames) const;
+    void drawHeaderSelection (juce::Graphics& g, juce::Rectangle<int> box) const;
     [[nodiscard]] juce::String harnessStatusLinePaintedText() const { return statusLine.paintedText(); }   // ADR-0076
     [[nodiscard]] juce::String harnessStatusLineTooltip() const { return statusLine.currentTooltip(); }
 

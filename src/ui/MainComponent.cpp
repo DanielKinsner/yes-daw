@@ -2657,6 +2657,8 @@ void MainComponent::drawHeader (juce::Graphics& g) const
     }
 
     drawTransportReadouts (g);
+    if (! h.selection.isEmpty())
+        drawHeaderSelection (g, h.selection);   // the layout pass, step 6
     drawMasterMeter (g);
     g.setColour (kPanelStroke);
     g.fillRect (getLocalBounds()
@@ -2865,6 +2867,10 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
     // Master card: right-anchored against the gear, shrinks toward the transport group,
     // drops WHOLE below its minimum (M9's law, now relative to the centred group).
     const int cardRight = h.gear.getX() - L::headerMasterGearGap;
+    // The layout pass, step 6: the selection box right of the transport group, only while the card keeps its full width.
+    const int selectionX = cx + centreWidth + L::headerGroupGap;
+    if (cardRight - (selectionX + L::headerSelectionWidth + L::headerGroupGap) >= L::headerMasterWidth)
+        h.selection = juce::Rectangle<int> (selectionX, bigY, L::headerSelectionWidth, L::headerTransportButtonSize);
     const int cardWidth = juce::jmin (L::headerMasterWidth, cardRight - (cx + centreWidth + L::headerGroupGap));
     if (cardWidth >= L::headerMasterMinWidth)
         h.masterCard = juce::Rectangle<int> (cardRight - cardWidth, L::headerMasterY, cardWidth, L::headerMasterHeight);

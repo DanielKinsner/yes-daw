@@ -737,6 +737,47 @@ TEST_CASE ("the layout pass, step 5: a rail row shows its effects and its volume
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// The layout pass, step 6: the header's Start / End / Length box - beside the transport at 1920, reading the selected
+// clip's span; gone at 1280 (the master card keeps its width), and never over the transport group or the master card.
+TEST_CASE ("the layout pass, step 6: the header's selection box reads the selected clip", "[ui][screenshot][layout-pass]")
+{
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-layout-pass-selection.yesdaw";
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));   // the import selects its clip
+    REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.timelineClipSelected);
+
+    const juce::Rectangle<int> box = yesdaw::ui::mainComponentHeaderSelectionBounds (*shell);
+    REQUIRE_FALSE (box.isEmpty());
+    REQUIRE_FALSE (box.intersects (yesdaw::ui::mainComponentHeaderSectionBounds (*shell, 1)));
+    REQUIRE_FALSE (box.intersects (yesdaw::ui::mainComponentHeaderMasterCardBounds (*shell)));
+    REQUIRE (yesdaw::ui::mainComponentHeaderMasterCardBounds (*shell).getWidth() == yesdaw::ui::UiTheme::Layout::headerMasterWidth);
+    const juce::Image image = renderShell (*shell);
+    (void) captureShellPng (image, "yesdaw-layout-pass-selection.png");
+    // Each row's value paints on the right of the box.
+    const juce::Rectangle<int> values = box.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::headerSelectionLabelWidth + 8).reduced (0, 4);
+    for (int row = 0; row < 3; ++row)
+    {
+        const juce::Rectangle<int> line = values.withHeight (values.getHeight() / 3).translated (0, row * values.getHeight() / 3);
+        INFO ("row " << row);
+        REQUIRE (maxContrastInRegion (image, line) >= 3.0);
+    }
+
+    shell->setSize (1280, 720);
+    REQUIRE (yesdaw::ui::mainComponentHeaderSelectionBounds (*shell).isEmpty());
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("Piano roll and automation lane render honestly with real notes and breakpoints",
            "[ui][screenshot][roll-sizes]")
 {

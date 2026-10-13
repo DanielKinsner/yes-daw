@@ -1894,4 +1894,61 @@ bool mainComponentAccessibilityTargetControl (juce::Component& component, const 
     return false;
 }
 
+// The layout pass, step 6: the range selection when there is one, else the selected audio or MIDI clip's span.
+std::optional<std::pair<std::int64_t, std::int64_t>> MainComponent::headerSelectionSpan() const
+{
+    if (! appModel.context().projectLoaded)
+        return std::nullopt;
+    const std::int64_t rangeStart = appModel.timelineRangeStartFrame();
+    const std::int64_t rangeEnd = appModel.timelineRangeEndFrame();
+    if (appModel.context().timelineRangeSelected && rangeStart >= 0 && rangeEnd > rangeStart)
+        return std::pair { rangeStart, rangeEnd };
+    if (const yesdaw::engine::Clip* const clip = findProjectClipById (appModel.selectedTimelineClipId()))
+        return std::pair { static_cast<std::int64_t> (clip->timelineStart),
+                           static_cast<std::int64_t> (clip->timelineStart + clip->timelineLength) };
+    if (const yesdaw::engine::EntityId midiId = appModel.selectedMidiClipId(); midiId.isValid())
+        for (const yesdaw::engine::MidiClip& clip : appModel.project().midiClips)
+            if (clip.id == midiId)
+                return std::pair { static_cast<std::int64_t> (clip.timelineStart),
+                                   static_cast<std::int64_t> (clip.timelineStart + clip.timelineLength) };
+    return std::nullopt;
+}
+
+// Minutes:seconds to the millisecond, or the ruler's SMPTE / samples when the counter shows those.
+juce::String MainComponent::headerSelectionTimeText (std::int64_t frames) const
+{
+    const double sampleRate = appModel.project().sampleRate.isValid() ? appModel.project().sampleRate.hz : 48000.0;
+    const double seconds = std::max (0.0, static_cast<double> (frames) / sampleRate);
+    if (timeDisplayMode == yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySmpte
+        || timeDisplayMode == yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples)
+        return yesdaw::ui::timeline_canvas_detail::formatRulerTime (seconds, timeDisplayMode, 0.0, sampleRate);
+    const long long millis = static_cast<long long> (std::floor (seconds * 1000.0 + 1e-6));
+    return juce::String::formatted ("%lld:%02lld.%03lld", millis / 60000, (millis / 1000) % 60, millis % 1000);
+}
+
+// The layout pass, step 6: Start / End / Length, as Pro Tools and SoundCraft show them beside the counter.
+void MainComponent::drawHeaderSelection (juce::Graphics& g, juce::Rectangle<int> box) const
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    fillPanel (g, box, yesdaw::ui::UiTheme::Radius::panel);
+    const auto span = headerSelectionSpan();
+    const std::array<std::pair<const char*, juce::String>, 3> rows {{
+        { "Start", span ? headerSelectionTimeText (span->first) : juce::String (juce::CharPointer_UTF8 ("\xe2\x80\x94")) },
+        { "End", span ? headerSelectionTimeText (span->second) : juce::String (juce::CharPointer_UTF8 ("\xe2\x80\x94")) },
+        { "Length", span ? headerSelectionTimeText (span->second - span->first) : juce::String (juce::CharPointer_UTF8 ("\xe2\x80\x94")) },
+    }};
+    auto content = box.reduced (yesdaw::ui::UiTheme::Space::sm, yesdaw::ui::UiTheme::Space::xxs);
+    const int rowHeight = content.getHeight() / static_cast<int> (rows.size());
+    for (const auto& [label, value] : rows)
+    {
+        auto row = content.removeFromTop (rowHeight);
+        g.setColour (kMutedText);
+        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+        g.drawText (label, row.removeFromLeft (L::headerSelectionLabelWidth), juce::Justification::centredLeft, false);
+        g.setColour (span ? kText : kMutedText);
+        g.setFont (yesdaw::ui::UiTheme::Type::numericFont (yesdaw::ui::UiTheme::Type::tiny));
+        g.drawText (value, row, juce::Justification::centredRight, true);
+    }
+}
+
 } // namespace yesdaw::ui

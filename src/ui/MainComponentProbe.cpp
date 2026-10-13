@@ -2067,6 +2067,13 @@ juce::Rectangle<int> mainComponentHeaderTimeReadoutBounds (const juce::Component
     return {};
 }
 
+juce::Rectangle<int> mainComponentHeaderSelectionBounds (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->headerLayout().selection;
+    return {};
+}
+
 int mainComponentHeaderHeight (const juce::Component& component)
 {
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
