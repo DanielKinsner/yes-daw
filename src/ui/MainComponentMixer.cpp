@@ -2218,7 +2218,9 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
                 auto tapCell = row.withTrimmedLeft (
                     juce::jmax (yesdaw::ui::UiTheme::Space::none,
                                 row.getWidth() - yesdaw::ui::UiTheme::Layout::mixerPaintedSendTapWidth));
-                g.setColour (kMutedText);
+                // UI pass unit 23: the tap reads in the text colour - at a high level it sits on the level bar, where the
+                // muted colour fell to 2.9-3.6:1 (the bar is the strip's accent over the row's inset).
+                g.setColour (kText);
                 g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
                 g.drawText (send.preFader ? "PRE" : "PST", tapCell, juce::Justification::centred, false);
 

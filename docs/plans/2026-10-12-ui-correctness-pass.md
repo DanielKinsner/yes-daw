@@ -658,7 +658,8 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   loop paints a strip at the top of the bars row, the row's labels sit under it; gate `[ruler-loop-strip]` (STATUS).
 - [x] **22.** A MIDI clip's note-preview bar cuts through its name. Line 1. **Done 2026-10-12:** a named clip's notes
   stay under its name strip, their rows placed by fractions; gate `[clip-notes-name]` (STATUS).
-- **23.** The send rows' PRE / PST text is 3.59:1 on the strip header colour. Line 4.
+- [x] **23.** The send rows' PRE / PST text is 3.59:1 on the strip header colour. Line 4. **Done 2026-10-13:** the tap
+  is drawn in the text colour; contrast pairs for a send row's level bar; gate `[send-tap-contrast]` (STATUS).
 - **24.** A meter's yellow band follows the bar's height, not the level (yellow at about -41 dBFS). Line 7.
 - **25.** The last ruler label is cut at the right edge ("12" / "4:", "0:19."). Line 1.
 - **26.** A status message outlives its undo ("Routed to new Bus 2" after Bus 2 was undone). Line 7.

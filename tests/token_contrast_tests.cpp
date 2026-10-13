@@ -248,6 +248,11 @@ TEST_CASE ("ADR-0063 text reaches 4.5:1 and indicators 3:1 wherever they are dra
     add ("accentBlue (the export progress bar) on darkControl", Color::accentBlue(), Color::darkControl(), 3.0);   // UI pass unit 16
     add ("accentAmber (an alert's warning icon) on panelRaised", Color::accentAmber(), Color::panelRaised(), 3.0);   // UI pass unit 18
     add ("accentBlue (an alert's question icon) on panelRaised", Color::accentBlue(), Color::panelRaised(), 3.0);
+    // UI pass unit 23: a send row's text (its bus and its PRE / PST tap) over the row's level bar - the strip's accent at
+    // mixerHeaderAlpha over the row's inset - and over the bare inset.
+    for (const auto& [accentName, accent] : accents)
+        add ("text on a send row's " + accentName + " level bar", Color::text(),
+             Color::controlInset().overlaidWith (accent.withAlpha (Tone::mixerHeaderAlpha)), 4.5);
 
     for (const Pair& pair : pairs)
     {

@@ -31471,6 +31471,57 @@ TEST_CASE ("a MIDI clip's notes stay under its name", "[ui][input][timeline][cli
     REQUIRE (notesBottom <= clipBottom);
 }
 
+// UI pass unit 23: a send row's tap (PRE / PST) reads over its level bar. At a full level the bar - the strip's accent
+// over the row's inset - lies under the tap, where the muted colour read 2.9-3.6:1; the tap is drawn in the text colour
+// (7.8:1 or more, the contrast gate). Pixels: the tap cell's ink reaches the text colour.
+TEST_CASE ("a send row's PRE / PST reads over its level bar", "[ui][input][shell][mixer][send-tap-contrast]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("send-tap-contrast");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
+    juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (railComponent != nullptr);
+    mouseDownAt (*railComponent, { kRailRowClickX, L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::windowMaxHeight);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+    juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    REQUIRE (strips != nullptr);
+    addSendFromStrip (*shell, 0, 0);
+    dragPaintedSendTo (*shell, *strips, 0, 0, 1.0);   // the level bar under the whole row, the tap cell included
+    REQUIRE (readProjectSnapshot (bundlePath).tracks.front().sends.front().linearGain > 0.95f);
+
+    const juce::Rectangle<int> row = yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 0, 0);
+    REQUIRE_FALSE (row.isEmpty());
+    const juce::Image image = renderSoftware (*shell, row);
+    const juce::Rectangle<int> tap = juce::Rectangle<int> (image.getWidth(), image.getHeight())
+                                         .withTrimmedLeft (std::max (0, image.getWidth() - L::mixerPaintedSendTapWidth));
+    const juce::Colour text = yesdaw::ui::UiTheme::Color::text();
+    int nearText = 0;
+    float brightest = 0.0f;
+    for (int y = tap.getY(); y < tap.getBottom(); ++y)
+        for (int x = tap.getX(); x < tap.getRight(); ++x)
+        {
+            const juce::Colour p = image.getPixelAt (x, y);
+            brightest = std::max (brightest, p.getPerceivedBrightness());
+            if (std::abs (p.getRed() - text.getRed()) <= 24 && std::abs (p.getGreen() - text.getGreen()) <= 24
+                && std::abs (p.getBlue() - text.getBlue()) <= 24)
+                ++nearText;
+        }
+    // The tap's thin glyphs never cover a whole pixel, so the ink is read by its brightest pixel: brighter than the muted
+    // colour can reach, halfway or more toward the text colour.
+    const float mutedBrightness = yesdaw::ui::UiTheme::Color::mutedText().getPerceivedBrightness();
+    CAPTURE (row, tap, nearText, brightest, mutedBrightness, text.getPerceivedBrightness());
+    REQUIRE (brightest > (mutedBrightness + text.getPerceivedBrightness()) * 0.5f);
+}
+
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part
 // alone is shortened in its middle, and shortening is by code point. `fits` here is a code-point budget.
 TEST_CASE ("ADR-0076 the status line's shortening rule never mixes a message's parts", "[ui][g6][status-whole][status-shorten]")

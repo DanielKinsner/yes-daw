@@ -8,6 +8,26 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 23: a send row's PRE / PST reads over its level bar
+
+**The defect (FIX 23):** a send row's tap label (PRE / PST) was drawn in the muted colour. At a high level the row's level
+bar lies under it: the strip's accent at `mixerHeaderAlpha` over the row's inset. Measured on the five accents, the muted
+colour gets 2.86-3.59:1 there (the judge's 3.59:1 was blue); the text colour gets 7.83-9.83:1.
+
+**What changes:**
+- The tap is drawn in the text colour, as the bus name beside it already is.
+- New contrast pairs require 4.5:1 for a send row's text on each accent's level bar.
+
+**Gate `[send-tap-contrast]`:**
+- On a real shell (a track, a bus, a send dragged to full level), the send row is rendered in software.
+- The tap cell's brightest ink must lie past halfway from the muted colour toward the text colour. The 11 px glyphs never
+  cover a whole pixel, so the gate reads the brightest one: 0.85 measured, against a 0.77 line.
+- Plus the contrast pairs.
+
+**Bites:** M1, the tap back in the muted colour.
+
+**Process:** a colour change in one label, so no critic, per ADR-0075.
+
 ## 2026-10-12 — Verification repair: the Windows timeline frame gate (YesDawTimelineGpuCheck)
 
 **The broken verification:** the Windows job's `YesDawTimelineGpuCheck` went red on its first attempt at `733910b`,
