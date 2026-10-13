@@ -2409,7 +2409,7 @@ void MainComponent::resized()
         trackAddButton.setBounds (
             rail.getRight() - yesdaw::ui::UiTheme::Layout::trackListAddButtonWidth
                 - yesdaw::ui::UiTheme::Layout::trackListAddButtonInset,
-            rail.getY() + yesdaw::ui::UiTheme::Layout::trackListAddButtonInset,
+            rail.getY() + yesdaw::ui::UiTheme::Layout::trackListAddButtonTop,   // the layout pass, step 2: in the tool row's band
             yesdaw::ui::UiTheme::Layout::trackListAddButtonWidth,
             yesdaw::ui::UiTheme::Layout::trackListAddButtonHeight);
     }

@@ -1972,6 +1972,53 @@ TEST_CASE ("G0.7 rubric shots: the song fixture at 1280x720, 1920x1080 and 2560x
     std::filesystem::remove_all (fixtureDir, ec);
 }
 
+// The layout pass, step 2: the rail's header names the ruler's rows beside them (SoundCraft / Pro Tools label their
+// ruler stack) - each name paints legibly beside its row - and the title and the add button sit in the tool row's band.
+TEST_CASE ("the layout pass, step 2: the rail's header names the ruler's rows beside them", "[ui][screenshot][layout-pass]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-layout-pass-legend.yesdaw";
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (L::defaultWindowWidth, L::defaultWindowHeight);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+
+    const juce::Rectangle<int> row0 = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 0);
+    REQUIRE_FALSE (row0.isEmpty());
+    const int headerTop = row0.getY() - L::trackListHeaderHeight;
+    const int bandTop = headerTop + L::timelineCanvasOuterInset + L::timelineCanvasToolbarHeight;
+
+    // The legend sits level with the canvas's ruler.
+    const juce::var layout = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell)).getProperty ("layout", juce::var());
+    const juce::var rulerVar = layout.getProperty ("ruler", juce::var());
+    REQUIRE ((rulerVar.isArray() && rulerVar.size() == 4));
+    REQUIRE (static_cast<int> (rulerVar[1]) == bandTop);
+    REQUIRE (static_cast<int> (rulerVar[3]) == L::timelineCanvasRulerHeight);
+
+    const juce::Image image = renderShell (*shell);
+    (void) captureShellPng (image, "yesdaw-layout-pass-ruler-legend.png");
+    const juce::Rectangle<int> bars (row0.getX(), bandTop, row0.getWidth(), L::timelineRulerBarsRowHeight);
+    const juce::Rectangle<int> time = bars.translated (0, L::timelineRulerBarsRowHeight).withHeight (L::timelineRulerTimeRowHeight);
+    const juce::Rectangle<int> markers (row0.getX(), time.getBottom(), row0.getWidth(), L::timelineRulerMarkerLaneHeight);
+    for (const juce::Rectangle<int>& row : { bars, time, markers })
+    {
+        const juce::Rectangle<int> nameArea = row.withLeft (row.getRight() - 72).reduced (0, 3);
+        INFO ("legend row " << row.toString().toStdString());
+        REQUIRE (maxContrastInRegion (image, nameArea) >= 3.0);
+    }
+
+    const juce::Button& add = requireButtonForAction (*shell, UiActionId::TrackAdd);
+    REQUIRE (add.getY() >= headerTop);
+    REQUIRE (add.getBottom() <= bandTop);
+
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // G4.6 / ADR-0052: stacked automation lanes render honestly — the Fader lane stacked under the clip, the Pan
 // lane in the chooser lane under it, both with real curves; the clip keeps its own part of the row.
 TEST_CASE ("stacked automation lanes render under their track's clips", "[ui][screenshot][automation-stack]")

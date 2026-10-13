@@ -1199,6 +1199,9 @@ struct UiTheme
         // its footer the canvas's scroll bar and outer inset — so both panels show and clamp the same rows.
         static constexpr int trackListHeaderHeight = timelineCanvasOuterInset + timelineCanvasToolbarHeight
                                                    + timelineCanvasRulerHeight;   // 93
+        // The layout pass, step 2: the add button centres in the rail header's tool-row band (the ruler legend is under it).
+        static constexpr int trackListAddButtonTop = timelineCanvasOuterInset
+                                                   + (timelineCanvasToolbarHeight - trackListAddButtonHeight) / 2;
         static constexpr int trackListFooterHeight = timelineScrollBarThickness + timelineCanvasOuterInset;   // 11
         static constexpr int timelineRulerTimeLabelWidth = 48;
         static constexpr int timelineCanvasClipAreaInsetX = 12;

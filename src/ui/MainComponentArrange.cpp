@@ -1125,11 +1125,16 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
     fillPanel (g, area);
     auto header = area.removeFromTop (yesdaw::ui::UiTheme::Layout::trackListHeaderHeight);
     area.removeFromBottom (yesdaw::ui::UiTheme::Layout::trackListFooterHeight);   // ADR-0064: rows end with the lanes
+    // The layout pass, step 2: the title (and the add button) sit in the tool row's band; under them, beside the ruler,
+    // the legend names the ruler's rows.
+    const auto titleBand = header.removeFromTop (yesdaw::ui::UiTheme::Layout::timelineCanvasOuterInset
+                                                 + yesdaw::ui::UiTheme::Layout::timelineCanvasToolbarHeight);
     drawSmallLabel (g,
                     "TRACKS",
-                    header.reduced (yesdaw::ui::UiTheme::Layout::trackListHeaderInsetX,
-                                    yesdaw::ui::UiTheme::Layout::trackListHeaderInsetY)
-                        .withHeight (yesdaw::ui::UiTheme::Layout::trackListHeaderLabelHeight));
+                    titleBand.reduced (yesdaw::ui::UiTheme::Layout::trackListHeaderInsetX,
+                                       yesdaw::ui::UiTheme::Layout::trackListHeaderInsetY));
+    yesdaw::ui::timeline_canvas_detail::drawRulerLegend (
+        g, header.reduced (yesdaw::ui::UiTheme::Layout::timelineCanvasOuterInset, yesdaw::ui::UiTheme::Space::none), timeDisplayMode);
 
     if (! appModel.context().projectLoaded || appModel.project().tracks.empty())
         return;   // ADR-0073: an empty rail; the lanes beside it offer the next action

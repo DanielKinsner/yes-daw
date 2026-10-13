@@ -1272,6 +1272,44 @@ struct RulerMapLabelSpans
     return true;
 }
 
+// The layout pass, step 2: the name of each ruler row, as SoundCraft / Pro Tools label their ruler stack. The time row
+// is named by its display mode (the ruler menu's words).
+[[nodiscard]] inline juce::String rulerLegendTimeLabel (int timeDisplayMode)
+{
+    if (timeDisplayMode == kRulerTimeDisplaySmpte)
+        return "SMPTE";
+    if (timeDisplayMode == kRulerTimeDisplaySamples)
+        return "Samples";
+    return "Min:Sec";
+}
+
+// The layout pass, step 2: the ruler's legend - a band beside the ruler (the rail's header under its title) in the
+// ruler's own colour and separators, each row's name right-aligned against the ruler. `band` is the ruler's height.
+inline void drawRulerLegend (juce::Graphics& g, juce::Rectangle<int> band, int timeDisplayMode)
+{
+    if (band.isEmpty())
+        return;
+    const RulerRows rows = rulerRows (band);
+    g.setColour (kRulerBack);
+    g.fillRect (band);
+    g.setColour (kGrid);
+    for (const juce::Rectangle<int>& row : { rows.bars, rows.time })
+        g.fillRect (row.withHeight (UiTheme::Layout::timelineCanvasRulerSeparatorHeight)
+                        .withY (row.getBottom() - UiTheme::Layout::timelineCanvasRulerSeparatorHeight));
+    g.fillRect (band.withHeight (UiTheme::Layout::timelineCanvasRulerSeparatorHeight)
+                    .withY (band.getBottom() - UiTheme::Layout::timelineCanvasRulerSeparatorHeight));
+    g.setColour (kMutedText);
+    g.setFont (UiTheme::Type::font (UiTheme::Type::small, juce::Font::bold));
+    const auto name = [&g] (const juce::String& text, juce::Rectangle<int> row) {
+        g.drawText (text, row.withTrimmedBottom (UiTheme::Layout::timelineCanvasRulerSeparatorHeight)
+                             .reduced (UiTheme::Space::sm, UiTheme::Space::none),
+                    juce::Justification::centredRight, true);
+    };
+    name ("Bars", rows.bars);
+    name (rulerLegendTimeLabel (timeDisplayMode), rows.time);
+    name ("Markers", rows.markers);
+}
+
 inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea,
                        const TimelineCanvasState& state, const Viewport& vp)
 {
@@ -2043,7 +2081,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
             g.setFont (UiTheme::Type::font (UiTheme::Type::small, juce::Font::bold));
             g.drawText (clip->name,
                         clipRect.withHeight (UiTheme::Layout::timelineCanvasClipNameStripHeight)
-                                .reduced (UiTheme::Space::sm, 0),
+                                .reduced (UiTheme::Space::sm, UiTheme::Space::none),
                         juce::Justification::centredLeft,
                         true);
             if (covered)

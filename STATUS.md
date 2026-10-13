@@ -30,9 +30,10 @@ Older entries below are dated history, not competing "Now" instructions.
 **Next, in order** (Dan, 2026-10-13: an editing suite first, with a clean, familiar look he enjoys sitting down at;
 MIDI is written in the piano roll, not played live; voiceover is the only recording; live recording comes later)
 1. ~~Close the Usable-song milestone~~ - **done 2026-10-13** (packaged 7a1b0ad).
-2. A clean, familiar look - the SoundCraft-style layout pass (M), in small steps: ruler stack, fuller track headers,
-   tracks/clips side lists, transport readouts, inserts and sends on every mixer strip, an overview strip, a command
-   palette. Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1. **Next.**
+2. A clean, familiar look - the SoundCraft-style layout pass (M), in small steps. **In progress.** Done: one colour
+   per track everywhere and clips named after their files (step 1); the ruler's rows labelled (step 2). Next: fuller
+   track headers, a clips list, mixer strips, transport readouts, a status bar, an overview strip, a command palette.
+   Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1.
 3. Editing gaps (S-M each): clip names from file names, a clip-gain line, a snap grid that follows tempo changes,
    audio that follows tempo, MP3/FLAC export.
 4. Dan makes one real song in the app (S), when he has time.
@@ -50,6 +51,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus; SS3
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-10-13 — Layout pass steps 1-2: track colours, clip names, ruler labels
+
+Every track wears one colour (its own, or an 8-colour palette by position) on its row, clips and mixer strip; clips
+are solid with a coloured name bar and a dark wave, named after their files. The rail's header now labels the ruler's
+rows (Bars, Min:Sec, Markers) beside them. Suite green locally (444/444). **Next:** fuller track headers.
 
 ## 2026-10-13 — Direction: an editing suite first; live recording and low latency move to later
 
