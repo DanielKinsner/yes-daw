@@ -1688,7 +1688,8 @@ juce::Rectangle<int> MainComponent::paintedInsertRowBounds (int stripIndex, std:
 }
 
 void MainComponent::paintInsertSlotRow (juce::Graphics& g, juce::Rectangle<int> row,
-                                        const yesdaw::ui::UiMixerFxSlotReadout* insert, bool selected) const
+                                        const yesdaw::ui::UiMixerFxSlotReadout* insert, bool selected,
+                                        bool firstEmpty) const
 {
     g.setColour (insert != nullptr ? yesdaw::ui::UiTheme::Color::darkControl()
                                    : yesdaw::ui::UiTheme::Color::controlInset());
@@ -1701,7 +1702,11 @@ void MainComponent::paintInsertSlotRow (juce::Graphics& g, juce::Rectangle<int> 
                             yesdaw::ui::UiTheme::Radius::sm,
                             yesdaw::ui::UiTheme::Layout::mixerPaintedStripStrokeWidth);
     if (insert == nullptr)
+    {
+        if (firstEmpty)   // the layout pass, step 3: the first empty well says what a click on it does
+            paintEmptyWellHint (g, row, "+ Insert");
         return;
+    }
 
     auto dot = juce::Rectangle<int> (
         row.getX() + yesdaw::ui::UiTheme::Layout::mixerPaintedInsertBypassDotInset,
@@ -1719,6 +1724,55 @@ void MainComponent::paintInsertSlotRow (juce::Graphics& g, juce::Rectangle<int> 
         row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::mixerPaintedInsertLabelInsetX),
         juce::Justification::centredLeft,
         1);
+}
+
+// The layout pass, step 3: the pan value's box, right of the knob to the strip's inset edge - empty on a strip too
+// narrow for "R 100".
+juce::Rectangle<int> MainComponent::paintedPanReadoutForLane (juce::Rectangle<int> lane)
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Rectangle<int> knob = paintedPanKnobForLane (lane);
+    if (knob.isEmpty())
+        return {};
+    const int left = knob.getRight() + yesdaw::ui::UiTheme::Space::xs;
+    const int right = lane.getRight() - L::mixerPaintedInsertsInsetX;
+    if (right - left < L::mixerPaintedPanReadoutMinWidth)
+        return {};
+    return { left, knob.getY(), right - left, knob.getHeight() };
+}
+
+void MainComponent::paintFaderScaleLabels (juce::Graphics& g, juce::Rectangle<int> lane, juce::Rectangle<int> rail)
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const int right = rail.getX() - L::mixerPaintedScaleTickGap - L::mixerPaintedScaleTickWidth - yesdaw::ui::UiTheme::Space::xxs;
+    const int left = lane.getX() + L::mixerPaintedInsertsInsetX;
+    if (rail.isEmpty() || right - left < L::mixerPaintedScaleLabelMinWidth)
+        return;
+    g.setColour (kMutedText);
+    g.setFont (yesdaw::ui::UiTheme::Type::numericFont (yesdaw::ui::UiTheme::Type::tiny));
+    int lastBottom = std::numeric_limits<int>::min();
+    for (const float markDb : L::mixerPaintedScaleDbMarks)   // top down; a number that would touch the one above is left out
+    {
+        const int tickY = juce::roundToInt (static_cast<float> (rail.getBottom())
+                                            - mixerFaderFractionForDb (markDb) * static_cast<float> (rail.getHeight()));
+        const juce::Rectangle<int> box (left, tickY - L::mixerMasterScaleLabelHeight / 2, right - left, L::mixerMasterScaleLabelHeight);
+        if (box.getY() < lastBottom)
+            continue;
+        g.drawText (juce::String (juce::roundToInt (markDb)), box, juce::Justification::centredRight, false);
+        lastBottom = box.getBottom();
+    }
+}
+
+// The layout pass, step 3: an empty insert or send well's hint ("+ Insert", "+ Send"), in muted text - a click on the
+// well opens its add menu.
+void MainComponent::paintEmptyWellHint (juce::Graphics& g, juce::Rectangle<int> row, const char* text)
+{
+    g.setColour (kMutedText);
+    g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
+    g.drawText (text,
+                row.withTrimmedLeft (yesdaw::ui::UiTheme::Layout::mixerPaintedIoLabelInsetX)
+                   .withTrimmedRight (yesdaw::ui::UiTheme::Layout::mixerPaintedIoLabelInsetX),
+                juce::Justification::centredLeft, true);
 }
 
 juce::Rectangle<int> MainComponent::paintedMeterBoundsForLane (juce::Rectangle<int> lane, int ioRows)
@@ -2115,6 +2169,15 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
                         panCentreX + std::cos (panAngle) * panIndicatorRadius,
                         panCentreY - std::sin (panAngle) * panIndicatorRadius,
                         yesdaw::ui::UiTheme::Layout::iconBoldStrokeWidth);
+            // The layout pass, step 3: the pan value beside the knob ("C", "L 30"), the rail's words, when the strip has
+            // room for it.
+            const juce::Rectangle<int> panValue = paintedPanReadoutForLane (lane);
+            if (! panValue.isEmpty())
+            {
+                g.setColour (kMutedText);
+                g.setFont (yesdaw::ui::UiTheme::Type::numericFont (yesdaw::ui::UiTheme::Type::tiny));
+                g.drawText (panReadoutText (state.pan), panValue, juce::Justification::centredLeft, false);
+            }
         }
 
         // N1: EVERY strip paints its Mute/Solo cells — the selected strip used to skip them
@@ -2176,7 +2239,7 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
                 const bool slotSelected = selected && selectedFxParamSlot >= 0
                                        && static_cast<std::size_t> (selectedFxParamSlot) == slot;
                 paintInsertSlotRow (g, paintedInsertRowBoundsForLane (lane, slot, ioRows),
-                                    slot < chain.size() ? &chain[slot] : nullptr, slotSelected);
+                                    slot < chain.size() ? &chain[slot] : nullptr, slotSelected, slot == chain.size());
             }
         }
 
@@ -2198,7 +2261,11 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
                                         yesdaw::ui::UiTheme::Radius::sm,
                                         yesdaw::ui::UiTheme::Layout::mixerPaintedStripStrokeWidth);
                 if (! routed)
+                {
+                    if (sendIndex == sends.size())   // the layout pass, step 3: the first empty send row's hint
+                        paintEmptyWellHint (g, row, "+ Send");
                     continue;
+                }
 
                 const yesdaw::ui::UiMixerSendReadout& send = sends[sendIndex];
                 // The level paints as a filled bar across the row — the drag law reads the same
@@ -2300,6 +2367,8 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
                     static_cast<float> (rail.getX()
                                         - yesdaw::ui::UiTheme::Layout::mixerPaintedScaleTickGap));
             }
+
+            paintFaderScaleLabels (g, lane, rail);   // the layout pass, step 3
 
             // Unity reads at a glance: a wider, brighter mark straight across the rail.
             {
@@ -2474,7 +2543,8 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
         for (std::size_t slot = 0; slot < static_cast<std::size_t> (paintedMasterInsertRowCount()); ++slot)
             paintInsertSlotRow (g, paintedMasterInsertRowBounds (slot), slot < chain.size() ? &chain[slot] : nullptr,
                                 masterSelected && selectedFxParamSlot >= 0
-                                    && static_cast<std::size_t> (selectedFxParamSlot) == slot);
+                                    && static_cast<std::size_t> (selectedFxParamSlot) == slot,
+                                slot == chain.size());
         masterContent.removeFromTop (paintedMasterInsertsHeight());
     }
 

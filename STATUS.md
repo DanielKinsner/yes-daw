@@ -31,8 +31,9 @@ Older entries below are dated history, not competing "Now" instructions.
 MIDI is written in the piano roll, not played live; voiceover is the only recording; live recording comes later)
 1. ~~Close the Usable-song milestone~~ - **done 2026-10-13** (packaged 7a1b0ad).
 2. A clean, familiar look - the SoundCraft-style layout pass (M), in small steps. **In progress.** Done: one colour
-   per track everywhere and clips named after their files (step 1); the ruler's rows labelled (step 2). Next: fuller
-   track headers, a clips list, mixer strips, transport readouts, a status bar, an overview strip, a command palette.
+   per track everywhere and clips named after their files (step 1); the ruler's rows labelled (step 2); mixer strips
+   show pan values, fader dB numbers and "+ Insert" / "+ Send" hints (step 3). Next: a clips list, fuller track
+   headers, transport readouts, a status bar, an overview strip, a command palette.
    Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1.
 3. Editing gaps (S-M each): clip names from file names, a clip-gain line, a snap grid that follows tempo changes,
    audio that follows tempo, MP3/FLAC export.
@@ -52,11 +53,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
-## 2026-10-13 — Layout pass steps 1-2: track colours, clip names, ruler labels
+## 2026-10-13 — Layout pass steps 1-3: track colours, clip names, ruler labels, mixer strips
 
 Every track wears one colour (its own, or an 8-colour palette by position) on its row, clips and mixer strip; clips
 are solid with a coloured name bar and a dark wave, named after their files. The rail's header now labels the ruler's
-rows (Bars, Min:Sec, Markers) beside them. Suite green locally (444/444). **Next:** fuller track headers.
+rows (Bars, Min:Sec, Markers) beside them. Step 3: mixer strips show their pan value, the fader's dB numbers and
+"+ Insert" / "+ Send" in the first empty wells. Suite green locally (444/444). **Next:** a clips list.
 
 ## 2026-10-13 — Direction: an editing suite first; live recording and low latency move to later
 

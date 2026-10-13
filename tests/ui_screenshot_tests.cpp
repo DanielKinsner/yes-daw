@@ -631,6 +631,53 @@ TEST_CASE ("Mixer renders honestly at laptop, default, and large window sizes wi
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// The layout pass, step 3: a mixer strip reads like SoundCraft's / Pro Tools' - its pan value beside the knob, dB numbers
+// beside the fader's ticks, and its first empty insert and send wells saying "+ Insert" / "+ Send". Each paints legibly.
+TEST_CASE ("the layout pass, step 3: a strip shows its pan value, its fader's dB numbers and its empty wells' hints",
+           "[ui][screenshot][layout-pass]")
+{
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-layout-pass-strip.yesdaw";
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (1536, 960);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    const juce::Image image = renderShell (*shell);
+    (void) captureShellPng (image, "yesdaw-layout-pass-strip.png");
+
+    // The pan value, right of the knob.
+    const juce::Rectangle<int> knob = yesdaw::ui::mainComponentPaintedPanKnobBounds (*shell, 0);
+    REQUIRE_FALSE (knob.isEmpty());
+    REQUIRE (maxContrastInRegion (image, knob.withX (knob.getRight() + 2).withWidth (28)) >= 3.0);
+
+    // The dB numbers, left of the rail's ticks.
+    const juce::Rectangle<int> rail = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 0);
+    REQUIRE_FALSE (rail.isEmpty());
+    const juce::Rectangle<int> lane = yesdaw::ui::mainComponentPaintedMixerStripBounds (*shell, 0);
+    const juce::Rectangle<int> scale (lane.getX() + 8, rail.getY(), rail.getX() - 10 - (lane.getX() + 8), rail.getHeight());
+    REQUIRE (maxContrastInRegion (image, scale) >= 3.0);
+
+    // The first empty insert well and the first empty send row carry their hints; the second empty well stays blank.
+    const juce::Rectangle<int> insert0 = yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 0);
+    const juce::Rectangle<int> insert1 = yesdaw::ui::mainComponentPaintedInsertSlotBounds (*shell, 0, 1);
+    const juce::Rectangle<int> send0 = yesdaw::ui::mainComponentPaintedSendRowBounds (*shell, 0, 0);
+    REQUIRE_FALSE (insert0.isEmpty());
+    REQUIRE_FALSE (insert1.isEmpty());
+    REQUIRE_FALSE (send0.isEmpty());
+    REQUIRE (maxContrastInRegion (image, insert0.reduced (3, 2)) >= 3.0);
+    REQUIRE (maxContrastInRegion (image, send0.reduced (3, 2)) >= 3.0);
+    REQUIRE (maxContrastInRegion (image, insert1.reduced (3, 2)) < 1.5);
+
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("Piano roll and automation lane render honestly with real notes and breakpoints",
            "[ui][screenshot][roll-sizes]")
 {

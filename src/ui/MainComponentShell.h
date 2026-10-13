@@ -830,9 +830,15 @@ private:
     [[nodiscard]] int paintedMasterInsertsHeight() const;
     // Any strip's slot row by its ordinal — the master is the ordinal past the buses.
     [[nodiscard]] juce::Rectangle<int> paintedInsertRowBounds (int stripIndex, std::size_t slotIndex) const;
-    // One slot row as every strip paints it: a well, or the insert's bypass dot and name; selected in purple.
+    // One slot row as every strip paints it: a well, or the insert's bypass dot and name; selected in purple. The first
+    // empty well of a chain carries the "+ Insert" hint (the layout pass, step 3).
     void paintInsertSlotRow (juce::Graphics& g, juce::Rectangle<int> row,
-                             const yesdaw::ui::UiMixerFxSlotReadout* insert, bool selected) const;
+                             const yesdaw::ui::UiMixerFxSlotReadout* insert, bool selected, bool firstEmpty) const;
+    static void paintEmptyWellHint (juce::Graphics& g, juce::Rectangle<int> row, const char* text);
+    // The layout pass, step 3: a strip fader's dB numbers, left of its scale ticks, when the lane has room for them; the
+    // pan value's box beside the knob (empty when the strip is too narrow).
+    static void paintFaderScaleLabels (juce::Graphics& g, juce::Rectangle<int> lane, juce::Rectangle<int> rail);
+    [[nodiscard]] static juce::Rectangle<int> paintedPanReadoutForLane (juce::Rectangle<int> lane);
 
     // G3.4: the quantize panel shows on the CLIP tab when a MIDI clip is selected and no audio clip
     // is (an audio clip's own card wins; the TRACK tab is the track's).

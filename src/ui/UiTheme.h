@@ -708,6 +708,9 @@ struct UiTheme
         static constexpr int mixerPaintedScaleTickCount = 7;
         static constexpr int mixerPaintedScaleTickWidth = 5;
         static constexpr int mixerPaintedScaleTickGap = 2;
+        // The layout pass, step 3: the room a strip needs for its fader's dB numbers ("-12") and its pan value ("R 100").
+        static constexpr int mixerPaintedScaleLabelMinWidth = 18;
+        static constexpr int mixerPaintedPanReadoutMinWidth = 28;
         static constexpr int mixerPaintedReadoutHeight = 22;
         static constexpr int mixerPaintedReadoutBottomInset = 4;
         static constexpr int mixerPaintedReadoutHorizontalInset = 8;
