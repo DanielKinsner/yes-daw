@@ -8,6 +8,63 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 27: a tempo change hides only the bar numbers its label meets
+
+**The defect (FIX 27):** bars beside a tempo label went unlabelled: 265 px between "33" and "57" at 1920. A tempo or
+meter change's label was a fixed 76 px box right of its tick. Any bar number whose 36 px box met it was left out, so a
+short "120" hid one or two neighbouring numbers with its empty right part. The empty part also took clicks and hover
+there ("Tempo / meter change"), so a click on the ruler there jumped to the change.
+
+**What changes:**
+- A change's label is as wide as its text (plus 2 px), never wider than the old box. That rect is one law for the paint,
+  the click and hover test, and the probe.
+- A bar number is left out only when its tick-to-text-end comes within 4 px of a change's tick-to-label-end, on either
+  side. A number on the change's own tick still gives way (ADR-0064: the change's label names the tempo there).
+- The text is measured only when a number's whole box comes near a change, so a frame measures one or two.
+- A change whose label is not drawn (out of view, or cut at the right edge, unit 25) takes no room but its tick, no
+  click or hover, and no probe key. Before, it still hid a bar number beside it and answered clicks with nothing drawn
+  there. The click test now rejects a change by position before measuring its text.
+- The probe now uses the same law as the paint. It had re-derived it and ignored unit 25's right-edge rule, so it could
+  report a number the paint left out. A probed number's rect is now its text's width, not 36 px.
+
+**Gate `[ruler-map-gap]`:** bars every 80 px, with four "150~" changes:
+- 20 px past bar 3's tick: bars 3 and 4 keep their numbers and are drawn (the old box hid both);
+- on bar 7's tick: bar 7 gives way;
+- 2 px past bar 10's number: bar 10 gives way, and its spot is drawn blank;
+- a whole gap past bar 13's number: bar 13 keeps its number;
+- its label ending 2 px before bar 15's tick: bar 15 gives way, bar 14 keeps its number.
+- A click on bar 4's number is not a click on the change; a click on the change's text is.
+- A change whose label would end 4 px past the right edge has no rect, takes no click, and spans its tick alone.
+
+**Bites:**
+- M1 a change takes the fixed 76 px box again (the old law);
+- M2 no gap between a number and a change;
+- M3 a change hides no bar number;
+- M4 the click target keeps the 76 px box;
+- M5 the paint draws every bar number, ignoring the law;
+- M6 no gap right of a change;
+- M7 an undrawn label still takes its whole span;
+- M8 a label cut at the edge counts as drawn.
+
+**Critic:**
+One pass, no blockers or should-fix findings. It confirmed:
+- the interval logic (both sides, ties, the unmeasured early-out);
+- every consumer of the rects (hit-test, probe keys, the ADR-0064, unit 21 and unit 25 tests, SS3, the screenshot gate);
+- the click targets: about 21-27 px wide, the old box's empty part now the ruler's own click;
+- the frame cost: the timeline is a cached image, re-rendered only on edits and scrolls;
+- the gate on any OS font;
+- no warnings.
+
+Of its nits, three were taken here:
+- the gate's missing right-side gap case (bar 15, M6);
+- an undrawn label at the right edge still hid a number and took clicks (M7, M8);
+- the click test measured every change in the project on each mouse move; it now rejects by position first.
+
+Left as they were:
+- a click on a change's amber tick itself still does a snapped locate (the label starts 4 px right of it);
+- the 16-change cap on the spans;
+- a change's text is measured twice per render.
+
 ## 2026-10-13 — UI correctness pass unit 26: an undo takes down the message about the edit it reversed
 
 **The defect (FIX 26):** the status line kept the last edit's message after that edit was undone. "Routed to new Bus 2"

@@ -497,23 +497,23 @@ juce::var MainComponent::buildProbeLayout()
         put ("clipArea", geometry.clipArea.translated (origin.x, origin.y));
         if (const auto tip = yesdaw::ui::timelineTipRects (timelineInput.getLocalBounds(), state); ! tip.strip.isEmpty())
             put ("tip.strip", tip.strip.translated (origin.x, origin.y));   // ADR-0073 §4: the first-run tip, while it shows
-        {   // ADR-0064: each bar number's rect (its tick is just left of it)
+        {   // ADR-0064: each drawn bar number's rect, as wide as its text (its tick is just left of it)
             namespace canvas = yesdaw::ui::timeline_canvas_detail;
             const canvas::RulerRows rows = canvas::rulerRows (geometry.rulerArea);
+            const canvas::RulerMapLabelSpans changes = canvas::rulerMapLabelSpans (geometry.clipArea, rows.bars, state, geometry.viewport);
             for (const yesdaw::ui::RulerBarLabel& bar : yesdaw::ui::computeRulerBarLabels (geometry.clipArea, state, geometry.viewport))
             {
                 const juce::Rectangle<int> label = canvas::rulerBarLabelBounds (bar.x, rows.bars);
-                bool underMapLabel = false;   // the paint's law: a tempo / meter label wins the spot
-                for (int mapIndex = 0; mapIndex < state.mapLabelCount; ++mapIndex)
-                    underMapLabel = underMapLabel
-                                 || yesdaw::ui::timelineMapLabelRect (timelineInput.getLocalBounds(), state, mapIndex).intersects (label);
-                if (! underMapLabel)
-                    put ("ruler.bar." + juce::String (bar.bar), label.translated (origin.x, origin.y));
+                const juce::String text (bar.bar);
+                if (canvas::rulerBarLabelShown (bar.x, label, text, changes, geometry.clipArea.getRight()))   // the paint's law
+                    put ("ruler.bar." + text,
+                         label.withWidth (static_cast<int> (std::ceil (canvas::rulerLabelTextWidth (text)))).translated (origin.x, origin.y));
             }
         }
-        for (int mapIndex = 0; mapIndex < state.mapLabelCount; ++mapIndex)   // the tempo / meter change labels
-            put ("ruler.map." + juce::String (mapIndex),
-                 yesdaw::ui::timelineMapLabelRect (timelineInput.getLocalBounds(), state, mapIndex).translated (origin.x, origin.y));
+        for (int mapIndex = 0; mapIndex < state.mapLabelCount; ++mapIndex)   // the tempo / meter change labels drawn
+            if (const juce::Rectangle<int> label = yesdaw::ui::timelineMapLabelRect (timelineInput.getLocalBounds(), state, mapIndex);
+                ! label.isEmpty())
+                put ("ruler.map." + juce::String (mapIndex), label.translated (origin.x, origin.y));
         // The tool strip's cells by name (tool.pointer … tool.hand): drives click by NAME.
         for (std::size_t index = 0; index < yesdaw::ui::kTimelineToolStripOrder.size(); ++index)
             put ("tool." + juce::String (probeToolName (yesdaw::ui::kTimelineToolStripOrder[index])).toLowerCase(),

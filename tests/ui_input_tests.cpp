@@ -31389,7 +31389,7 @@ TEST_CASE ("the loop brace never covers a ruler label", "[ui][input][timeline][r
     REQUIRE (loop.valid);
     const int stripBottom = rows.bars.getY() + L::timelineCanvasLoopStripHeight;
     const int changeX = geometry.clipArea.getX() + juce::roundToInt ((4.0 - state.viewport.scrollSeconds) * 100.0);
-    const juce::Rectangle<int> changeLabel = canvas::rulerMapLabelBounds (changeX, rows.bars);
+    const juce::Rectangle<int> changeLabel = canvas::rulerMapLabelBounds (changeX, rows.bars, change.label);
     CAPTURE (rows.bars, loop.band, loop.endHandle, changeLabel, stripBottom);
     REQUIRE (changeLabel.intersects (loop.endHandle));   // the case: the end handle's grab zone meets the label
 
@@ -31784,6 +31784,100 @@ TEST_CASE ("an undo takes down the message about the edit it reversed", "[ui][in
         CHECK (model.statusLineText() == "Import failed: no project is open");
     }
     std::filesystem::remove_all (modelPath, ec);
+}
+
+// UI pass unit 27: a tempo / meter change hides a bar's number only where the number's tick and text come within a gap
+// of the change's tick and text - not across a fixed 76 px box. Bars every 80 px; a "150~" 20 px past bar 3's tick (the
+// old box hid bars 3 and 4), one on bar 7's own tick, one 2 px past bar 10's number (inside the gap), one a whole gap
+// past bar 13's number and one whose label ends 2 px before bar 15's tick. Bars 3, 4, 13 and 14 keep their numbers,
+// drawn; bars 7, 10 and 15 give way, bar 10's spot left blank. A click on bar 4's number is not a click on the change; a
+// click on the change's text is. A change whose label is cut at the right edge is not drawn, so it takes no click and
+// hides no number but those its tick meets.
+TEST_CASE ("a tempo change hides only the bar numbers its label meets", "[ui][input][timeline][ruler-map-gap][paint]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    namespace canvas = yesdaw::ui::timeline_canvas_detail;
+    constexpr int gap = yesdaw::ui::UiTheme::Space::xs;
+    const juce::Rectangle<int> bounds (0, 0, 1400, 220);
+    yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = 1;
+    state.viewport.pixelsPerSecond = 40.0;   // the default 2 s bar: 80 px a bar, every bar numbered
+    const auto geometry = yesdaw::ui::timelineCanvasGeometry (bounds, state);
+    const auto rows = canvas::rulerRows (geometry.rulerArea);
+    const int clipX = geometry.clipArea.getX();
+    const auto tickOf = [clipX] (int bar) { return clipX + (bar - 1) * 80; };
+    const auto boxOf = [&] (int bar) { return canvas::rulerBarLabelBounds (tickOf (bar), rows.bars); };
+    const auto textRightOf = [&] (int bar) {
+        return static_cast<float> (boxOf (bar).getX()) + canvas::rulerLabelTextWidth (juce::String (bar));
+    };
+    const auto secondsAt = [&] (int x) { return (x - clipX) / state.viewport.pixelsPerSecond; };
+    const int insideGap = static_cast<int> (std::ceil (textRightOf (10))) + 2;
+    const int pastGap = static_cast<int> (std::ceil (textRightOf (13))) + gap;
+    const int labelSpan = canvas::rulerMapLabelBounds (0, rows.bars, "150~").getRight();   // a change's tick to its label's end
+    const int beforeBar15 = tickOf (15) - 2 - labelSpan;
+    const std::array<yesdaw::ui::TimelineMapLabel, 5> changes { {
+        { secondsAt (tickOf (3) + 20), "150~" },
+        { secondsAt (tickOf (7)), "150~" },
+        { secondsAt (insideGap), "150~" },
+        { secondsAt (pastGap), "150~" },
+        { secondsAt (beforeBar15), "150~" } } };
+    state.mapLabels = changes.data();
+    state.mapLabelCount = static_cast<int> (changes.size());
+    REQUIRE (tickOf (16) < geometry.clipArea.getRight() - 80);
+
+    // The law: which numbers are kept.
+    const auto spans = canvas::rulerMapLabelSpans (geometry.clipArea, rows.bars, state, geometry.viewport);
+    REQUIRE (spans.count == changes.size());
+    const auto shown = [&] (int bar) {
+        return canvas::rulerBarLabelShown (tickOf (bar), boxOf (bar), juce::String (bar), spans, geometry.clipArea.getRight());
+    };
+    CAPTURE (clipX, insideGap, pastGap, textRightOf (10), textRightOf (13), spans.spans[0].getEnd());
+    CHECK (shown (3));
+    CHECK (shown (4));
+    CHECK_FALSE (shown (7));
+    CHECK_FALSE (shown (10));
+    CHECK (shown (13));
+    CHECK (shown (14));
+    CHECK_FALSE (shown (15));   // the gap on a change's right
+
+    // The paint follows it: ink in a kept number's text, none in bar 10's.
+    juce::Image image (juce::Image::ARGB, bounds.getWidth(), bounds.getHeight(), true, juce::SoftwareImageType());
+    {
+        juce::Graphics g (image);
+        (void) yesdaw::ui::paintTimelineCanvas (g, bounds, state);
+    }
+    const juce::Colour back = image.getPixelAt (tickOf (2) + 40, rows.bars.getY() + L::timelineCanvasRulerBarsLabelTopInset + 1);
+    const auto inkIn = [&] (int bar) {
+        const juce::Rectangle<int> text = boxOf (bar).withWidth (static_cast<int> (std::ceil (canvas::rulerLabelTextWidth (juce::String (bar)))));
+        int ink = 0;
+        for (int y = text.getY(); y < text.getBottom(); ++y)
+            for (int x = text.getX(); x < text.getRight(); ++x)
+                ink += image.getPixelAt (x, y) != back ? 1 : 0;
+        return ink;
+    };
+    CHECK (inkIn (3) > 5);
+    CHECK (inkIn (4) > 5);
+    CHECK (inkIn (13) > 5);
+    CHECK (inkIn (10) == 0);
+
+    // A click on a kept number beside a change is the ruler's, not the change's; a click on the change's text is its.
+    const juce::Point<int> onBar4 = boxOf (4).withWidth (static_cast<int> (std::ceil (canvas::rulerLabelTextWidth ("4")))).getCentre();
+    CHECK (yesdaw::ui::timelineMapLabelAt (bounds, state, onBar4) == -1);
+    CHECK (yesdaw::ui::timelineMapLabelAt (bounds, state, yesdaw::ui::timelineMapLabelRect (bounds, state, 0).getCentre()) == 0);
+
+    // At the right edge: a change whose label would be cut is not drawn - no rect, no click, and a bar number just right
+    // of its tick is clear of it (only the tick counts).
+    const int edge = geometry.clipArea.getRight();
+    const int edgeX = edge - labelSpan + 4;   // its label would end 4 px past the edge
+    const yesdaw::ui::TimelineMapLabel cut { secondsAt (edgeX), "150~" };
+    yesdaw::ui::TimelineCanvasState edgeState = state;
+    edgeState.mapLabels = &cut;
+    edgeState.mapLabelCount = 1;
+    CHECK (yesdaw::ui::timelineMapLabelRect (bounds, edgeState, 0).isEmpty());
+    CHECK (yesdaw::ui::timelineMapLabelAt (bounds, edgeState, { edgeX + 10, boxOf (2).getCentreY() }) == -1);
+    const auto edgeSpans = canvas::rulerMapLabelSpans (geometry.clipArea, rows.bars, edgeState, geometry.viewport);
+    REQUIRE (edgeSpans.count == 1u);
+    CHECK (edgeSpans.spans[0].getEnd() == edgeX + L::timelineCanvasRulerTickWidth);
 }
 
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part

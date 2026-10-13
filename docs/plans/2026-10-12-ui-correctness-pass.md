@@ -668,7 +668,9 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
 - [x] **26.** A status message outlives its undo ("Routed to new Bus 2" after Bus 2 was undone). Line 7. **Done
   2026-10-13:** an undo or redo takes a success message down and itself stays quiet; an error stays up to decay; gate
   `[status-undo]` (STATUS).
-- **27.** Bars beside a tempo label go unlabelled (265 px between "33" and "57" at 1920). Information.
+- [x] **27.** Bars beside a tempo label go unlabelled (265 px between "33" and "57" at 1920). Information. **Done
+  2026-10-13:** a change's label is as wide as its text, and a bar number gives way only within a 4 px gap of a change's
+  tick or text; gate `[ruler-map-gap]` (STATUS).
 - **29.** (found by unit 17's critic, measured) While a modal question runs inside a batch of JUCE's posted messages,
   later messages of that batch wait - on Windows the window's vblank among them - so the main window and the question's
   own alert stop repainting: hover, press and Tab focus on its buttons are not drawn. Measured on the unit 17 build: the

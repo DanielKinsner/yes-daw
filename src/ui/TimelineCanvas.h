@@ -1152,14 +1152,98 @@ struct RulerRows
              UiTheme::Layout::timelineCanvasRulerBarsLabelHeight };
 }
 
-// G2.15: a tempo / meter change's label, right of its tick in the bars row — one law for the paint, the hit-test and
-// the probe. ADR-0064: a bar number whose rect meets one is not drawn (the change's label names that bar's tempo).
-[[nodiscard]] inline juce::Rectangle<int> rulerMapLabelBounds (int tickX, juce::Rectangle<int> barsRow) noexcept
+// UI pass unit 27: the ruler's label font, and a label's text width in it - one measure for the paint, the hit-test and
+// the probe.
+[[nodiscard]] inline juce::Font rulerLabelFont()
 {
+    return UiTheme::Type::numericFont (UiTheme::Type::small);
+}
+
+[[nodiscard]] inline float rulerLabelTextWidth (const juce::String& text)
+{
+    return juce::GlyphArrangement::getStringWidth (rulerLabelFont(), text);
+}
+
+// UI pass unit 25: a label is drawn whole or not at all - its text must end inside the clip area's right edge (the
+// canvas's edge and its scroll bar lie beyond). A label whose whole box fits is not measured.
+[[nodiscard]] inline bool rulerLabelFitsWhole (const juce::String& text, int textX, int boxWidth, int labelRight)
+{
+    return textX + boxWidth <= labelRight
+        || static_cast<float> (textX) + rulerLabelTextWidth (text) <= static_cast<float> (labelRight);
+}
+
+// G2.15: a tempo / meter change's label, right of its tick in the bars row — one law for the paint, the hit-test and
+// the probe. UI pass unit 27: as wide as its text (a fixed 76 px box hid the bar numbers beside a short "120" and took
+// their clicks), never wider than that box.
+[[nodiscard]] inline juce::Rectangle<int> rulerMapLabelBounds (int tickX, juce::Rectangle<int> barsRow, const juce::String& text)
+{
+    const int width = static_cast<int> (std::ceil (rulerLabelTextWidth (text))) + UiTheme::Space::xxs;
     return { tickX + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,
              barsRow.getY() + UiTheme::Layout::timelineCanvasRulerBarsLabelTopInset,   // UI pass unit 21: under the loop strip
-             UiTheme::Layout::timelineCanvasRulerMarkerLabelWidth,
+             std::min (width, UiTheme::Layout::timelineCanvasRulerMarkerLabelWidth),
              UiTheme::Layout::timelineCanvasRulerBarsLabelHeight };
+}
+
+// UI pass unit 27: a tempo / meter change's label as drawn - in view (its tick inside the clip area, or within the cull
+// padding left of it) and whole at the clip area's right edge (UI pass unit 25) - else empty. One law for the paint, the
+// click and hover test and the probe: a label that is not drawn takes no space, no click and no probe key.
+[[nodiscard]] inline juce::Rectangle<int> rulerMapLabelDrawn (int tickX, juce::Rectangle<int> barsRow, const juce::String& text,
+                                                              juce::Rectangle<int> clipArea)
+{
+    if (tickX < clipArea.getX() - UiTheme::Layout::timelineCanvasRulerMarkerCullPadding || tickX > clipArea.getRight())
+        return {};
+    const juce::Rectangle<int> label = rulerMapLabelBounds (tickX, barsRow, text);
+    return rulerLabelFitsWhole (text, label.getX(), label.getWidth(), clipArea.getRight()) ? label : juce::Rectangle<int>();
+}
+
+// UI pass unit 27: the tempo / meter changes in view, each as the bars row's columns it takes - its tick to its label's
+// end, or its tick alone when its label is not drawn. The paint and the probe share it, so a bar number they keep or drop
+// is the same.
+struct RulerMapLabelSpans
+{
+    std::array<juce::Range<int>, 16> spans {};
+    std::size_t count = 0;
+};
+
+[[nodiscard]] inline RulerMapLabelSpans rulerMapLabelSpans (juce::Rectangle<int> clipArea, juce::Rectangle<int> barsRow,
+                                                            const TimelineCanvasState& state, const Viewport& vp)
+{
+    RulerMapLabelSpans changes;
+    for (int i = 0; state.mapLabels != nullptr && i < state.mapLabelCount && changes.count < changes.spans.size(); ++i)
+    {
+        const int mapX = clipArea.getX() + juce::roundToInt ((state.mapLabels[i].seconds - vp.scrollSeconds) * vp.pixelsPerSecond);
+        if (mapX >= clipArea.getX() - UiTheme::Layout::timelineCanvasRulerMarkerCullPadding && mapX <= clipArea.getRight())
+        {
+            const juce::Rectangle<int> label = rulerMapLabelDrawn (mapX, barsRow, juce::String (state.mapLabels[i].label), clipArea);
+            changes.spans[changes.count++] = { mapX, label.isEmpty() ? mapX + UiTheme::Layout::timelineCanvasRulerTickWidth
+                                                                     : label.getRight() };
+        }
+    }
+    return changes;
+}
+
+// Whether a bar's number is drawn (and probed - one law). It is drawn whole or not at all (UI pass unit 25), and its tick
+// to its text's end keeps a gap from each change's tick to its label's end (ADR-0064: the change's label names the tempo
+// there and wins the spot; UI pass unit 27: measured by the text, not a fixed box, so the bars beside a short "120" keep
+// their numbers). The text is measured only when the number's whole box comes within the gap of a change.
+[[nodiscard]] inline bool rulerBarLabelShown (int tickX, juce::Rectangle<int> box, const juce::String& text,
+                                              const RulerMapLabelSpans& changes, int labelRight)
+{
+    if (! rulerLabelFitsWhole (text, box.getX(), box.getWidth(), labelRight))
+        return false;
+    constexpr int gap = UiTheme::Space::xs;
+    float textRight = -1.0f;
+    for (std::size_t i = 0; i < changes.count; ++i)
+    {
+        const juce::Range<int> change = changes.spans[i];
+        if (tickX - gap >= change.getEnd() || box.getRight() + gap <= change.getStart())
+            continue;   // even its whole box keeps the gap
+        if (textRight < 0.0f)
+            textRight = static_cast<float> (box.getX()) + rulerLabelTextWidth (text);
+        if (textRight + static_cast<float> (gap) > static_cast<float> (change.getStart()))
+            return false;
+    }
+    return true;
 }
 
 inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea,
@@ -1176,24 +1260,12 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
     g.fillRect (ruler.withHeight (UiTheme::Layout::timelineCanvasRulerSeparatorHeight)
                       .withY (ruler.getBottom() - UiTheme::Layout::timelineCanvasRulerSeparatorHeight));
 
-    // ADR-0064: the tempo / meter labels shown in the bars row, so a bar number never paints under one.
-    std::array<juce::Rectangle<int>, 16> mapLabelRects {};
-    std::size_t mapLabelRectCount = 0;
-    for (int i = 0; state.mapLabels != nullptr && i < state.mapLabelCount && mapLabelRectCount < mapLabelRects.size(); ++i)
-    {
-        const int mapX = clipArea.getX() + juce::roundToInt ((state.mapLabels[i].seconds - vp.scrollSeconds) * vp.pixelsPerSecond);
-        if (mapX >= clipArea.getX() - UiTheme::Layout::timelineCanvasRulerMarkerCullPadding && mapX <= clipArea.getRight())
-            mapLabelRects[mapLabelRectCount++] = rulerMapLabelBounds (mapX, rows.bars);
-    }
-    // UI pass unit 25: a label is drawn whole or not at all - one whose text would run past the clip area's right edge (the
-    // canvas's edge and its scroll bar lie beyond) is left out, as one under a tempo label is. A label whose whole box fits
-    // is not measured, so only the one or two by the edge are.
-    const juce::Font labelFont = UiTheme::Type::numericFont (UiTheme::Type::small);
+    // ADR-0064: the tempo / meter changes in the bars row, so a bar number never paints under one (UI pass unit 27: nor
+    // within a gap of one's tick or text). UI pass unit 25: a label whose text would run past the clip area's right edge
+    // is left out.
+    const RulerMapLabelSpans mapLabelSpans = rulerMapLabelSpans (clipArea, rows.bars, state, vp);
+    const juce::Font labelFont = rulerLabelFont();
     const int labelRight = clipArea.getRight();
-    const auto fitsWhole = [&labelFont, labelRight] (const juce::String& text, int textX, int boxWidth) {
-        return textX + boxWidth <= labelRight
-            || static_cast<float> (textX) + juce::GlyphArrangement::getStringWidth (labelFont, text) <= static_cast<float> (labelRight);
-    };
     for (const RulerBarLabel& label : computeRulerBarLabels (clipArea, state, vp))
     {
         const int x = label.x;
@@ -1202,9 +1274,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
         g.setFont (labelFont);
         const juce::Rectangle<int> barLabel = rulerBarLabelBounds (x, rows.bars);
         const juce::String barText (label.bar);
-        if (std::none_of (mapLabelRects.begin(), mapLabelRects.begin() + static_cast<std::ptrdiff_t> (mapLabelRectCount),
-                          [&barLabel] (juce::Rectangle<int> mapLabel) { return mapLabel.intersects (barLabel); })
-            && fitsWhole (barText, barLabel.getX(), barLabel.getWidth()))
+        if (rulerBarLabelShown (x, barLabel, barText, mapLabelSpans, labelRight))
             g.drawText (barText, barLabel, juce::Justification::centredLeft, false);
         g.setColour (UiTheme::Color::rulerTick());   // ADR-0063: opaque
         g.fillRect (x,
@@ -1217,7 +1287,7 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
         g.setFont (labelFont);
         const juce::String timeText = rulerTimeLabelText (label, state, vp);
         const int timeX = x + UiTheme::Layout::timelineCanvasRulerTickWidth + 2;
-        if (fitsWhole (timeText, timeX, UiTheme::Layout::timelineRulerTimeLabelWidth))
+        if (rulerLabelFitsWhole (timeText, timeX, UiTheme::Layout::timelineRulerTimeLabelWidth, labelRight))
             g.drawText (timeText,
                         timeX,
                         rows.time.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
@@ -1242,9 +1312,9 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
         g.setColour (UiTheme::Color::accentAmber());
         g.fillRect (x, mapRows.bars.getY(), UiTheme::Layout::timelineCanvasRulerTickWidth, mapRows.bars.getHeight());
         g.setFont (labelFont);
-        const juce::Rectangle<int> changeLabel = rulerMapLabelBounds (x, mapRows.bars);
-        if (fitsWhole (juce::String (change.label), changeLabel.getX(), changeLabel.getWidth()))
-            g.drawText (change.label, changeLabel, juce::Justification::centredLeft, false);
+        const juce::String changeText (change.label);
+        if (const juce::Rectangle<int> changeLabel = rulerMapLabelDrawn (x, mapRows.bars, changeText, clipArea); ! changeLabel.isEmpty())
+            g.drawText (changeText, changeLabel, juce::Justification::centredLeft, false);
     }
 
     if (state.markers == nullptr)
@@ -1562,7 +1632,8 @@ inline juce::Rectangle<int> timelineMapLabelRect (juce::Rectangle<int> area,
                 + juce::roundToInt ((state.mapLabels[mapIndex].seconds - geometry.viewport.scrollSeconds)
                                     * geometry.viewport.pixelsPerSecond);
     const timeline_canvas_detail::RulerRows rows = timeline_canvas_detail::rulerRows (geometry.rulerArea);
-    return timeline_canvas_detail::rulerMapLabelBounds (x, rows.bars);
+    // UI pass unit 27: empty when the label is not drawn (out of view, or cut at the right edge) - culled before measuring.
+    return timeline_canvas_detail::rulerMapLabelDrawn (x, rows.bars, juce::String (state.mapLabels[mapIndex].label), geometry.clipArea);
 }
 
 // The tempo / meter change label under `position`, or -1.
