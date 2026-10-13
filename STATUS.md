@@ -167,6 +167,14 @@ whole beneath it.
 **Process:** this unit changes the keyboard's drawing only (no logic, data or shared law), so it has no critic, per
 ADR-0075.
 
+**CI on `f4d4849`:**
+- **macOS red in this gate,** at its first step: the roll was not visible after the MIDI clip's add. The test had made
+  its project with a button click, which posts the click and pumps the message loop for 50 ms; on that runner the New had
+  likely not run when the clip was added, so there was no track.
+- **Corrective commit:** the steps are now the shell's synchronous dispatch (exactly a click's action). Each is required,
+  so a repeat names the step that did not happen.
+- **Windows:** its red there was the GPU gate, fixed in `87dd116`.
+
 ## 2026-10-12 — UI correctness pass unit 19: device names whole, or shortened in the middle, never squashed
 
 **The defect (FIX 19):** the settings row's 150 px device choosers squashed a device's name to 70 %, then cut it with "..."

@@ -31283,8 +31283,12 @@ TEST_CASE ("piano roll key names sit whole in their keys, or are not drawn", "[u
     choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
     auto shell = makeShell (std::move (choices));
     shell->setSize (1920, 1080);
-    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    // The dispatch is exactly the button's click, without a click's message-loop wait (macOS CI ran the clip's add before
+    // the click's New had run, 2026-10-13): each step is required, so a repeat names the one that did not happen.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     juce::Component& roll = requirePianoRollComponent (*shell);
 
     // A dock whose rows are short but present (5 px to under the target): no name fits there, so none may be drawn.
