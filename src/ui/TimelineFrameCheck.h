@@ -6,9 +6,11 @@
 //     policy is FIXED in src/app/HardwareVerification.h and never reads ambient CI)
 //
 // This header only MEASURES: it builds the deterministic dense arrangement fixture, scrolls it
-// through the same offscreen TimelineCanvas paint path the app shell uses, and reports raw numbers
-// (per-frame paint times, visible-clip stats, image-sampling counts). What those numbers MEAN —
-// budgets, outliers, failure codes — is the verdict policy's business, not this file's.
+// through the app shell's TimelineCanvas renderer (paintTimelineCanvas) offscreen, into an image of
+// the platform's native type, and reports raw numbers (per-frame paint times, visible-clip stats,
+// image-sampling counts). What those numbers MEAN — budgets, outliers, failure codes — is the verdict
+// policy's business, not this file's. (On Windows the native image is Direct2D, while the app paints the
+// timeline into its software cache, so the two take different branches of fillVisiblePanel - 2026-10-12.)
 //
 // The evidence this produces is the accepted headless dense-Timeline proxy. It is NOT a real
 // window / GPU presentation proof, and nothing here may be labeled as one (R18-R19).

@@ -665,6 +665,18 @@ inline void fillPanel (juce::Graphics& g, juce::Rectangle<int> area)
 inline void fillVisiblePanel (juce::Graphics& g, juce::Rectangle<int> area,
                              const TimelineCanvasGeometry& geometry)
 {
+#if JUCE_WINDOWS
+    // Windows CI GPU gate (2026-10-12): JUCE's Direct2D turns a clip of several rectangles into a full-surface masked
+    // layer - about 1.5 ms more a frame on CI's GPU-less renderer, which pushed YesDawTimelineGpuCheck over its budget 18 %
+    // of the time - so a native (non-software) context fills the panel whole, as before the exclusion; one opaque fill is
+    // a single pass there. (Splitting the panel into one-rectangle pieces instead is not pixel-identical in the software
+    // renderer: a piece's last column comes out a step short, and at fractional scales neighbouring pieces overlap.)
+    if (dynamic_cast<juce::LowLevelGraphicsSoftwareRenderer*> (&g.getInternalContext()) == nullptr)
+    {
+        fillPanel (g, area);
+        return;
+    }
+#endif
     const juce::Graphics::ScopedSaveState saved (g);
     // These later fills are opaque. Keep their edge fringe so fractional-scale coverage
     // still blends over the original panel, but do not rasterise its hidden interior.

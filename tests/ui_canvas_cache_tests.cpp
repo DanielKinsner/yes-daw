@@ -237,3 +237,120 @@ TEST_CASE ("timeline panel omits only pixels hidden by its opaque content",
             REQUIRE (panel.getPixelAt (area.getX(), area.getY()).getAlpha() == 0);
     }
 }
+
+#if JUCE_WINDOWS
+// Windows CI GPU gate (2026-10-12): on Windows, a native (non-software) context's timeline paints nothing under a clip of
+// several rectangles. JUCE's Direct2D turns such a clip into a full-surface masked layer (about 1.5 ms a frame on CI's
+// GPU-less Windows runner, which pushed YesDawTimelineGpuCheck over its budget 18 % of the time). A forwarding context -
+// not the software renderer, so it takes the native path as Direct2D does - counts every draw made while the clip is not
+// one rectangle, over the GPU check's kind of arrangement. (The software renderer keeps its exclusion: the test above.)
+TEST_CASE ("on Windows, a native context's timeline paints nothing under a clip of several rectangles",
+           "[ui][input][canvas-cache][canvas-panel-occlusion][simple-clips]")
+{
+    juce::MessageManager::getInstance();
+    using namespace yesdaw::ui;
+
+    struct ClipShapeContext final : juce::LowLevelGraphicsContext
+    {
+        explicit ClipShapeContext (const juce::Image& image) : inner (image) {}
+        juce::LowLevelGraphicsSoftwareRenderer inner;
+        std::vector<int> complexStack { 0 };   // per saved state: whether the clip is more than one rectangle
+        int drawsUnderComplexClip = 0;
+        int draws = 0;
+
+        int& complex() { return complexStack.back(); }
+        void draw() { ++draws; drawsUnderComplexClip += complex() != 0 ? 1 : 0; }
+
+        bool isVectorDevice() const override { return inner.isVectorDevice(); }
+        void setOrigin (juce::Point<int> origin) override { inner.setOrigin (origin); }
+        void addTransform (const juce::AffineTransform& t) override { inner.addTransform (t); }
+        float getPhysicalPixelScaleFactor() const override { return inner.getPhysicalPixelScaleFactor(); }
+        bool clipToRectangle (const juce::Rectangle<int>& r) override { return inner.clipToRectangle (r); }
+        bool clipToRectangleList (const juce::RectangleList<int>& r) override
+        {
+            complex() = complex() != 0 || r.getNumRectangles() > 1 ? 1 : 0;
+            return inner.clipToRectangleList (r);
+        }
+        void excludeClipRectangle (const juce::Rectangle<int>& r) override { complex() = 1; inner.excludeClipRectangle (r); }
+        void clipToPath (const juce::Path& p, const juce::AffineTransform& t) override { complex() = 1; inner.clipToPath (p, t); }
+        void clipToImageAlpha (const juce::Image& i, const juce::AffineTransform& t) override { complex() = 1; inner.clipToImageAlpha (i, t); }
+        bool clipRegionIntersects (const juce::Rectangle<int>& r) override { return inner.clipRegionIntersects (r); }
+        juce::Rectangle<int> getClipBounds() const override { return inner.getClipBounds(); }
+        bool isClipEmpty() const override { return inner.isClipEmpty(); }
+        void saveState() override { const int now = complex(); complexStack.push_back (now); inner.saveState(); }
+        void restoreState() override
+        {
+            if (complexStack.size() > 1)
+                complexStack.pop_back();
+            inner.restoreState();
+        }
+        void beginTransparencyLayer (float opacity) override { inner.beginTransparencyLayer (opacity); }
+        void endTransparencyLayer() override { inner.endTransparencyLayer(); }
+        void setFill (const juce::FillType& fill) override { inner.setFill (fill); }
+        void setOpacity (float opacity) override { inner.setOpacity (opacity); }
+        void setInterpolationQuality (juce::Graphics::ResamplingQuality quality) override { inner.setInterpolationQuality (quality); }
+        void fillAll() override { draw(); inner.fillAll(); }
+        void fillRect (const juce::Rectangle<int>& r, bool replace) override { draw(); inner.fillRect (r, replace); }
+        void fillRect (const juce::Rectangle<float>& r) override { draw(); inner.fillRect (r); }
+        void fillRectList (const juce::RectangleList<float>& r) override { draw(); inner.fillRectList (r); }
+        void fillPath (const juce::Path& p, const juce::AffineTransform& t) override { draw(); inner.fillPath (p, t); }
+        void drawRect (const juce::Rectangle<float>& r, float thickness) override { draw(); inner.drawRect (r, thickness); }
+        void strokePath (const juce::Path& p, const juce::PathStrokeType& s, const juce::AffineTransform& t) override
+        {
+            draw();
+            inner.strokePath (p, s, t);
+        }
+        void drawImage (const juce::Image& i, const juce::AffineTransform& t) override { draw(); inner.drawImage (i, t); }
+        void drawLine (const juce::Line<float>& line) override { draw(); inner.drawLine (line); }
+        void drawLineWithThickness (const juce::Line<float>& line, float thickness) override { draw(); inner.drawLineWithThickness (line, thickness); }
+        void setFont (const juce::Font& font) override { inner.setFont (font); }
+        const juce::Font& getFont() override { return inner.getFont(); }
+        void drawGlyphs (juce::Span<const std::uint16_t> glyphs, juce::Span<const juce::Point<float>> positions,
+                         const juce::AffineTransform& t) override
+        {
+            draw();
+            inner.drawGlyphs (glyphs, positions, t);
+        }
+        void drawRoundedRectangle (const juce::Rectangle<float>& r, float corner, float thickness) override
+        {
+            draw();
+            inner.drawRoundedRectangle (r, corner, thickness);
+        }
+        void fillRoundedRectangle (const juce::Rectangle<float>& r, float corner) override { draw(); inner.fillRoundedRectangle (r, corner); }
+        void drawEllipse (const juce::Rectangle<float>& r, float thickness) override { draw(); inner.drawEllipse (r, thickness); }
+        void fillEllipse (const juce::Rectangle<float>& r) override { draw(); inner.fillEllipse (r); }
+        std::uint64_t getFrameId() const override { return inner.getFrameId(); }
+    };
+
+    // The GPU check's kind of arrangement: many lanes of unnamed clips under the ruler and tool row.
+    std::vector<Clip> clips;
+    std::vector<TimelineCanvasClipStyle> styles;
+    for (int lane = 0; lane < 12; ++lane)
+        for (int i = 0; i < 20; ++i)
+        {
+            clips.push_back (Clip { static_cast<int> (clips.size()), lane, i * 1.5, 1.2, nullptr });
+            styles.push_back ({ UiTheme::Color::accentBlue(), 0.6f });
+        }
+    TimelineCanvasState state;
+    state.clips = clips.data();
+    state.clipStyles = styles.data();
+    state.clipCount = static_cast<int> (clips.size());
+    state.trackCount = 12;
+    state.viewport.pixelsPerSecond = 40.0;
+    for (const float scale : { 1.0f, 1.5f })
+    {
+        const juce::Rectangle<int> area (0, 0, 1280, 640);
+        juce::Image image (juce::Image::ARGB, juce::roundToInt (1280 * scale), juce::roundToInt (640 * scale), true,
+                           juce::SoftwareImageType());
+        ClipShapeContext context (image);
+        {
+            juce::Graphics g (context);
+            g.addTransform (juce::AffineTransform::scale (scale));
+            (void) paintTimelineCanvas (g, area, state);
+        }
+        CAPTURE (scale, context.draws, context.drawsUnderComplexClip);
+        REQUIRE (context.draws > 100);                    // the arrangement was painted
+        REQUIRE (context.drawsUnderComplexClip == 0);     // all of it under one-rectangle clips
+    }
+}
+#endif

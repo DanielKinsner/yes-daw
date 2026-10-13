@@ -1,7 +1,8 @@
 // YES DAW - H11 Timeline canvas frame-time gate.
 //
 // This is a self-asserting offscreen JUCE paint harness: it scrolls a dense arrangement fixture through
-// the same Timeline canvas renderer used by the app shell and fails if sustained measured paint exceeds
+// the app shell's Timeline canvas renderer (into a native image: Direct2D on Windows, where the app itself
+// paints the timeline into a software cache) and fails if sustained measured paint exceeds
 // the 16.6 ms frame budget. Two outliers are tolerated so shared CI scheduler pauses do not masquerade as
 // renderer regressions.
 //

@@ -8,6 +8,57 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — Verification repair: the Windows timeline frame gate (YesDawTimelineGpuCheck)
+
+**The broken verification:** the Windows job's `YesDawTimelineGpuCheck` went red on its first attempt at `733910b`,
+`ae427f6`, `96367b8`, `9160004` and `cc9f5e3`, each at 16.7-20.9 ms against 16.6, each green on a same-code re-run.
+That is broken required verification, so it interrupts the FIX list (CLAUDE.md).
+
+**Supported cause** (a separate investigating agent; CI logs of 244 Windows jobs plus Linux and macOS controls):
+- Commit `dd1ab73` (10-09) excluded the toolbar, ruler and clip areas from the clip before filling the timeline's panel.
+- JUCE's Direct2D turns a clip of several rectangles into a full-surface masked layer. On CI's GPU-less Windows runner that
+  cost about 1.5 ms a frame (speed-corrected against `YesDawReverbCheck`; Mann-Whitney p = 5e-8). Linux and macOS got
+  faster from the same commit.
+- Windows' red rate on the gate rose from 5.7 % to 18 % (Fisher p = 0.037). The runner image did not change, and today's
+  ruler, playhead and tempo-map commits add nothing measurable.
+- This machine measures 4.6-5.4 ms (a real GPU).
+
+**What changes:** on Windows, a native (non-software) context fills the panel whole, as before `dd1ab73`; one opaque fill
+is a single pass there. The software renderer and macOS keep the exclusion, with its pixel-identity gate.
+
+**Tried first and rejected, with evidence:** the investigator's suggestion, the panel in one-rectangle pieces.
+- **Not pixel-identical in JUCE's software renderer.** A path's coverage comes out a step short in its clip's last column:
+  289 pixels at 1x, in a 2 px strip.
+- **At fractional scales neighbouring pieces overlap one device row,** double-painting the stroke's edge: 12 pixels at
+  1.25x.
+- Banded pieces fixed the first problem but not the second.
+
+**Gate** (Windows-only, new): `[simple-clips]`. A forwarding context paints a 240-clip timeline at 1x and 1.5x. It is not
+the software renderer, so it takes the native path as Direct2D does. Nothing may be drawn under a clip of several
+rectangles. The existing `[canvas-panel-occlusion]` pixel-identity gate stays green.
+
+**Bites:**
+- M1 the exclusion on every context (`dd1ab73`'s behaviour) reddens the new gate;
+- M2 no exclusion anywhere reddens the occlusion gate.
+
+**Expected effect:** Windows' red rate back to the old slow-runner tail (about 6 %), not zero. Reaching zero would take
+further Direct2D work, never a budget change. CI on this push and the next runs will show it.
+
+**Critic (separate agent), each finding verified against the code:**
+- **No blockers.**
+- **The app is unaffected.** It paints the timeline into its software cache (`SoftwareCanvasCache`, a software image),
+  so on Windows it keeps the exclusion and its measured win (SS1 p95 8.2 to 5.82 ms). Only the GPU check and the packaged
+  `YesDawFrameCheck`, which use native Direct2D images, take the full fill. If Direct2D cannot start, JUCE falls back to
+  software, which keeps the exclusion.
+- **No better option within JUCE 8.0.4.** Its Direct2D has no cheap clip for a list of rectangles; only one axis-aligned
+  rectangle is cheap.
+- **Should-fix, taken:** two comments said the gate runs the app's own paint path. On Windows it never did (the app paints
+  in software), and now it takes the other branch too. Both comments now say so.
+- **Should-fix, taken as process:** one green Windows run proves little at an 18 % red rate. The fix is recorded as an
+  expected effect and is judged on the red rate over the next CI runs, not on a single green.
+- **Nits:** the gate counts any exclusion as complex (strict side). Overlapping named clips still take a geometry layer
+  on Direct2D, but nothing paints them there.
+
 ## 2026-10-12 — UI correctness pass unit 22: a MIDI clip's notes stay under its name
 
 **The defect (FIX 22):** a MIDI clip's note preview used the whole clip body, so a high note over the clip's start ran
