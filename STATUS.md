@@ -48,6 +48,12 @@ Older entries below are dated history, not competing "Now" instructions.
   sign-in pop-ups); SS3 failed once today, then passed.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-10-13 — Ship-first process change: drafted, awaiting Dan's direct yes
+
+A ship-first change was relayed from Dan via the progress-review session: fewer gates, critics, ADRs and drive runs,
+with CI, RTSan/TSan and data-safety tests kept. [ADR-0078](docs/adr/0078-ship-first-cadence.md) is **Proposed**, with
+the exact CLAUDE.md text inside. CLAUDE.md is unchanged until Dan confirms it directly or applies that text himself.
+
 ## 2026-10-13 — UI correctness pass unit 29e: the window repaints under every question - FIX 29 closed
 
 **What changed (drive tooling only):**
