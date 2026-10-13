@@ -680,8 +680,9 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   relink questions. Gate: the paint count climbs while a question is up. Line 1 / 4.
 - **30.** (found in unit 20) At the shortest editor dock (160 px) the piano roll has no key rows: its header and the
   velocity / control lanes take the whole dock, so the grid is about 1 px. Line 1 / 3.
-- **28.** Evidence hygiene: the end-of-drive size shots now include the resting pointer's tooltip (it hides the ruler at
-  the tempo change in `ss3-2560`); park the pointer or use `-MainOnly` for size shots. Tooling.
+- [x] **28.** Evidence hygiene: the end-of-drive size shots now include the resting pointer's tooltip (it hides the ruler at
+  the tempo change in `ss3-2560`); park the pointer or use `-MainOnly` for size shots. Tooling. **Done 2026-10-13:**
+  `SizeShot` parks the pointer on the window's caption and asserts no app window is over the shot (STATUS).
 
 ## Parked, recorded in STATUS / parking lot, not in this pass
 

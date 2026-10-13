@@ -8,6 +8,26 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 28: a size shot is the window alone
+
+**The defect (FIX 28, tooling):** the drives' window-size shots were taken with the pointer wherever the last step left
+it. Its resting tooltip was composited into the shot: in `ss3-2560x1440` one covered the ruler at the tempo change, the
+very spot the rubric judges.
+
+**What changes:**
+- `SizeShot <w> <h> <name>` in `tools/session-drive.ps1` resizes, parks the pointer on the window's own caption (left
+  of the title, clear of the caption buttons), waits half a second, then takes the shot.
+- It asserts that the resize settled, that the pointer is on the caption (`WM_NCHITTEST` says so), and that no app
+  window (a tooltip, a menu) lies over the main window when the shot is taken.
+- Every size shot uses it: SS1 (both loops), SS2-SS6 (the end-of-drive shots) and SS7 (the EQ editor at three sizes).
+  The drive self-test takes its shot through it too, so the check runs on every self-test.
+
+**Gate:** the size shot's own assertion. Self-test green; **M1** (the pointer left resting on the Play button, the old
+behaviour) fails it with one app window, the tooltip, over the shot.
+
+**Process:** drive tooling only; no product code, so no critic, per ADR-0075. The drives run again in the close-out
+batch.
+
 ## 2026-10-13 — UI correctness pass unit 27: a tempo change hides only the bar numbers its label meets
 
 **The defect (FIX 27):** bars beside a tempo label went unlabelled: 265 px between "33" and "57" at 1920. A tempo or

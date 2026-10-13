@@ -211,12 +211,10 @@ Click 'mixer.fx.editor.bypass'
 Click 'mixer.fx.editor.bypass'
 [void](Assert (WaitProbe { param($q) -not [bool]$q.fxEditor.bypassed -and [double]$q.fxEditor.eqResponseDb1000 -gt 1.0 } -TimeoutMs 2000) 'unbypass restores the configured curve')
 foreach ($size in @(@(1280,720), @(1920,1080), @(2560,1440))) {
-  Resize $size[0] $size[1]
-  Start-Sleep -Milliseconds 250
+  [void](SizeShot $size[0] $size[1] ('ss7-eq-' + $size[0]))
   $graph = LayoutRect 'mixer.fx.editor.eq.response'
   $pager = LayoutRect 'mixer.fx.param.page'
   [void](Assert ([int]$graph[1] + [int]$graph[3] -le [int]$pager[1]) ('graph above controls at ' + $size[0] + 'x' + $size[1]))
-  Shot ('ss7-eq-' + $size[0])
 }
 Resize 1920 1080
 

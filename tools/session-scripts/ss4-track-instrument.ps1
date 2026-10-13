@@ -95,7 +95,7 @@ Step 6 'G3.10 the header''s MIDI input lamp is laid out in the time readout (unl
 [void](Assert (-not [bool](Probe).transport.midiInLit) 'the lamp is unlit with nothing played')
 
 Step 4 'Screenshots at the three rubric sizes with the panel open'
-Resize 1280 720;  Start-Sleep -Milliseconds 400; Shot 'ss4-1280x720'
-Resize 1920 1080; Start-Sleep -Milliseconds 400; Shot 'ss4-1920x1080'
-Resize 2560 1440; Start-Sleep -Milliseconds 400; Shot 'ss4-2560x1440'
+[void](SizeShot 1280 720 'ss4-1280x720')
+[void](SizeShot 1920 1080 'ss4-1920x1080')
+[void](SizeShot 2560 1440 'ss4-2560x1440')
 Close

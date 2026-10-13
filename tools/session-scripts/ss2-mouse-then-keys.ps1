@@ -203,9 +203,9 @@ Click 'mixer.strip.0.mute'   # restore
 Click 'widget.timeline.mixer_dock.toggle'    # and close the dock for the screenshots
 
 Step 9 'Screenshots at the three rubric sizes'
-Resize 1280 720;  Start-Sleep -Milliseconds 400; Shot 'ss2-1280x720'
-Resize 1920 1080; Start-Sleep -Milliseconds 400; Shot 'ss2-1920x1080'
-Resize 2560 1440; Start-Sleep -Milliseconds 400; Shot 'ss2-2560x1440'
+[void](SizeShot 1280 720 'ss2-1280x720')
+[void](SizeShot 1920 1080 'ss2-1920x1080')
+[void](SizeShot 2560 1440 'ss2-2560x1440')
 
 Step 10 'A chord that waits behind a busy UI means what was held when its key went down (ADR-0057)'
 # The UI thread is held while the chord goes in and every key comes back up, so the app reads the whole

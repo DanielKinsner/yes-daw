@@ -297,8 +297,8 @@ if (-not (WaitProbe { param($q) [int]$q.view.trackCount -eq $t2 + 1 } -TimeoutMs
 Shot 'ss6-reopened'
 
 Step 14 'Screenshots at the three rubric sizes'
-Resize 1280 720;  Start-Sleep -Milliseconds 400; Shot 'ss6-1280x720'
-Resize 1920 1080; Start-Sleep -Milliseconds 400; Shot 'ss6-1920x1080'
-Resize 2560 1440; Start-Sleep -Milliseconds 400; Shot 'ss6-2560x1440'
+[void](SizeShot 1280 720 'ss6-1280x720')
+[void](SizeShot 1920 1080 'ss6-1920x1080')
+[void](SizeShot 2560 1440 'ss6-2560x1440')
 foreach ($f in @($midPath, $wav1, $wav2)) { Remove-Item -Force -LiteralPath $f -ErrorAction SilentlyContinue }
 Close

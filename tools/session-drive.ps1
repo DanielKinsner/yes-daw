@@ -32,6 +32,8 @@
 #                                        alerts composited over it (never another app's window); -MainOnly: the main
 #                                        window alone (a pointer shot a reappearing tooltip would spoil)
 #   Resize <clientWidth> <clientHeight>
+#   SizeShot <clientWidth> <clientHeight> "<name>" - Resize, the pointer parked on the window's caption, then a Shot;
+#                                        asserts the resize settled and no app window (a tooltip, a menu) is over it
 #   WaitDialog "<title contains>" [-TimeoutMs n] - a native dialog (file chooser) is up
 #   NewProjectChooser [-ViaKey]        - File > New (button, or Ctrl+N): the New Project dialog, its Create, then
 #                                        the native location chooser; returns the chooser's hwnd (Zero = none)
@@ -134,6 +136,16 @@ public static class YesDawDrive
         return SetWindowPos(window, new IntPtr(topmost ? -1 : -2), 0, 0, 0, 0, 0x0013); // NOMOVE|NOSIZE|NOACTIVATE
     }
     static string captionFrame = "";
+    // UI pass unit 28: the pointer on the window's own caption, left of its title and clear of its buttons, so no control
+    // under it shows a hover state or a resting tooltip. True when the point is the caption (WM_NCHITTEST says so).
+    public static bool ParkOnCaption(IntPtr window) {
+        RECT frame; POINT client = new POINT();
+        if (!GetWindowRect(window, out frame) || !ClientToScreen(window, ref client) || client.Y <= frame.Top) return false;
+        var point = new POINT(); point.X = frame.Left + Math.Min(120, (frame.Right - frame.Left) / 4);
+        point.Y = frame.Top + (client.Y - frame.Top) / 2;
+        MouseMoveAbs(point.X, point.Y);
+        return IsCaptionPoint(window, point);
+    }
     static bool IsCaptionPoint(IntPtr window, POINT point) {
         IntPtr hitChild = WindowFromPoint(point), hitWindow = GetAncestor(hitChild, 2); // GA_ROOT
         CaptionDiagnostic = captionFrame + " point=" + point.X + "," + point.Y + " expected=" + window
@@ -1040,6 +1052,20 @@ function Resize([int] $clientWidth, [int] $clientHeight) {
   return $ok
 }
 
+# UI pass unit 28: a shot of the window at a size, judged on its layout. The pointer is parked on the window's caption
+# first, so no control shows a hover state or a resting tooltip in it (one covered the ruler's tempo change in
+# ss3-2560x1440), and the shot is taken only after checking that no app window - a tooltip, a menu - lies over the main
+# window. Returns the shot's path.
+function SizeShot([int] $clientWidth, [int] $clientHeight, [string] $name) {
+  $ok = Resize $clientWidth $clientHeight
+  [void](Assert $ok ('window resized to ' + $clientWidth + 'x' + $clientHeight))
+  $parked = [YesDawDrive]::ParkOnCaption($script:Hwnd)
+  Start-Sleep -Milliseconds 500
+  $over = [YesDawDrive]::AppWindowsAbove($script:Hwnd).Count
+  [void](Assert ($parked -and $over -eq 0) ('the ' + $name + ' shot is the window alone (pointer on its caption: ' + $parked + '; app windows over it: ' + $over + ')'))
+  return (Shot $name)
+}
+
 function WaitDialog([string] $titleContains, [int] $TimeoutMs = 4000) {
   $script:LastDialog = [IntPtr]::Zero
   $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
@@ -1436,7 +1462,7 @@ try {
     [void](Assert ($null -ne (LayoutRect 'widget.transport.play')) 'layout publishes widget.transport.play')
     [void](Assert ($null -ne (LayoutRect 'timeline')) 'layout publishes the timeline panel')
     [void](Assert ([int]$p.audio.callbackRemovals -eq 0) 'no audio-callback removals at launch')
-    $shot = Shot 'selftest'
+    $shot = SizeShot 1280 720 'selftest'   # UI pass unit 28: the size shot's own checks run here too
     [void](Assert ((Test-Path -LiteralPath $shot) -and ((Get-Item -LiteralPath $shot).Length -gt 1024)) 'screenshot written')
     Close
   } elseif (-not [string]::IsNullOrWhiteSpace($Script)) {

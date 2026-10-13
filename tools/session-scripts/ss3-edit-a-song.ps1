@@ -334,7 +334,7 @@ $p = Probe
 [void](Assert ("$($p.view.dock)" -eq $dockBefore) ('dock restored: ' + $dockBefore + ' -> ' + $p.view.dock))
 
 Step 20 'Screenshots at the three rubric sizes'
-Resize 1280 720;  Start-Sleep -Milliseconds 400; Shot 'ss3-1280x720'
-Resize 1920 1080; Start-Sleep -Milliseconds 400; Shot 'ss3-1920x1080'
-Resize 2560 1440; Start-Sleep -Milliseconds 400; Shot 'ss3-2560x1440'
+[void](SizeShot 1280 720 'ss3-1280x720')
+[void](SizeShot 1920 1080 'ss3-1920x1080')
+[void](SizeShot 2560 1440 'ss3-2560x1440')
 Close

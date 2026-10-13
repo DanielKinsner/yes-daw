@@ -154,9 +154,9 @@ Click 'widget.piano-roll.canvas' -OffsetX $p4[0] -OffsetY $p4[1] -Double
 [void](Assert (WaitProbe { param($q) [int]$q.view.noteCount -eq 4 } -TimeoutMs 1500) 'a double-click on the empty grid adds a note')
 
 Step 9 'Screenshots at the three rubric sizes with the roll open'
-Resize 1280 720;  Start-Sleep -Milliseconds 400; Shot 'ss5-1280x720'
-Resize 1920 1080; Start-Sleep -Milliseconds 400; Shot 'ss5-1920x1080'
-Resize 2560 1440; Start-Sleep -Milliseconds 400; Shot 'ss5-2560x1440'
+[void](SizeShot 1280 720 'ss5-1280x720')
+[void](SizeShot 1920 1080 'ss5-1920x1080')
+[void](SizeShot 2560 1440 'ss5-2560x1440')
 
 Step 10 'The tool strip: a click on each cell selects that tool (mouse, not keys)'
 foreach ($pair in @(@('tool.pencil','Pencil'), @('tool.scissors','Scissors'), @('tool.eraser','Eraser'),

@@ -65,9 +65,8 @@ $rowIds = @($p.pointer.records | ForEach-Object { "$($_.id)" } | Where-Object { 
 [void](Assert (($rowIds -contains 'tip.welcome.dismiss') -and ($rowIds -contains 'empty.arrange.import_audio')) ('the tip''s Dismiss and the Import audio row are controls (' + ($rowIds -join ', ') + ')'))
 $sizeBefore = @([int]$p.view.width, [int]$p.view.height)
 foreach ($size in @(@(1280, 720), @(1920, 1080), @(2560, 1440))) {
-  [void](Resize $size[0] $size[1])
+  $shot = SizeShot $size[0] $size[1] ('ss1-tip-' + $size[0] + 'x' + $size[1])
   [void](Assert ($null -ne (Probe).layout.'tip.strip') ('the tip shows at ' + $size[0] + 'x' + $size[1]))
-  $shot = Shot ('ss1-tip-' + $size[0] + 'x' + $size[1])
   [void](Assert ((Test-Path -LiteralPath $shot) -and ((Get-Item -LiteralPath $shot).Length -gt 1024)) ('tip screenshot ' + $size[0] + 'x' + $size[1]))
 }
 [void](Resize $sizeBefore[0] $sizeBefore[1])
@@ -217,9 +216,7 @@ if ([bool](Probe).transport.isPlaying) { Click 'widget.transport.stop' }
 
 Step 13 'Screenshots at three sizes'
 foreach ($size in @(@(1280, 720), @(1920, 1080), @(2560, 1440))) {
-  $ok = Resize $size[0] $size[1]
-  [void](Assert $ok ('window resized to ' + $size[0] + 'x' + $size[1]))
-  $shot = Shot ('ss1-' + $size[0] + 'x' + $size[1])
+  $shot = SizeShot $size[0] $size[1] ('ss1-' + $size[0] + 'x' + $size[1])
   [void](Assert ((Test-Path -LiteralPath $shot) -and ((Get-Item -LiteralPath $shot).Length -gt 1024)) ('screenshot ' + $size[0] + 'x' + $size[1]))
 }
 
