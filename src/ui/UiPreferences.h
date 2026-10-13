@@ -43,6 +43,9 @@ struct UiViewPreferences
     bool inspectorTrackTab = false;
     bool dockVisible = false;   // the layout pass, step 8 (Dan, 2026-10-13): the mixer opens hidden; the timeline gets the room
     UiEditorDockTab dockTab = UiEditorDockTab::Mixer;
+    // The layout pass, step 9: the main window's place and size as JUCE writes it ("fs x y w h" when maximised); ""
+    // = none yet, and the window opens maximised.
+    std::string windowState;
 
     friend bool operator== (const UiViewPreferences&, const UiViewPreferences&) = default;
 };
@@ -164,6 +167,7 @@ public:
             readName (section, "dockTab", view.dockTab,
                         { { "mixer", UiEditorDockTab::Mixer }, { "pianoRoll", UiEditorDockTab::PianoRoll },
                           { "instrument", UiEditorDockTab::Instrument }, { "browser", UiEditorDockTab::Browser } });
+            readText (section, "windowState", view.windowState);
         });
         readSection ("editing", [this] (const choc::value::ValueView& section) {
             readBool (section, "snapEnabled", editing.snapEnabled);
@@ -230,6 +234,7 @@ public:
                                                                      : view.dockTab == UiEditorDockTab::Instrument ? "instrument"
                                                                      : view.dockTab == UiEditorDockTab::Browser    ? "browser"
                                                                                                                    : "mixer"));
+        viewSection.setMember ("windowState", choc::value::createString (view.windowState));
         out.setMember ("view", viewSection);
 
         choc::value::Value editingSection = sectionOf (out, "editing");

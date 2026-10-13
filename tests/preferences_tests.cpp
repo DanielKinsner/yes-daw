@@ -398,6 +398,30 @@ TEST_CASE ("ADR-0061 the dock, inspector, snap and metronome follow the user acr
     REQUIRE (plain.context().inspectorVisible);
 }
 
+// The layout pass, step 9: the main window's place and size live in prefs.json (view.windowState) across launches;
+// a first launch has none (the app's window then opens maximised).
+TEST_CASE ("the layout pass, step 9: the window's place and size are remembered across launches", "[prefs][layout-pass]")
+{
+    const auto directory = prefsScratch ("window");
+    {
+        PrefsShell first (directory / "session", false);
+        REQUIRE (yesdaw::ui::mainComponentWindowState (*first).empty());
+        yesdaw::ui::mainComponentSetWindowState (*first, "fs 120 80 1600 900");
+    }
+    {
+        PrefsShell relaunched (directory / "session", false);
+        REQUIRE (yesdaw::ui::mainComponentWindowState (*relaunched) == "fs 120 80 1600 900");
+        yesdaw::ui::mainComponentSetWindowState (*relaunched, "40 30 1280 800");
+    }
+    PrefsShell third (directory / "session", false);
+    REQUIRE (yesdaw::ui::mainComponentWindowState (*third) == "40 30 1280 800");
+
+    // No session folder (the harness): nothing is remembered.
+    PrefsShell plain ({}, false);
+    yesdaw::ui::mainComponentSetWindowState (*plain, "10 10 800 600");
+    REQUIRE (yesdaw::ui::mainComponentWindowState (*plain).empty());
+}
+
 TEST_CASE ("ADR-0061 a project keeps its own sizes; a new one starts from the last arrangement; A and B keep separate "
            "values across a relaunch",
            "[prefs]")

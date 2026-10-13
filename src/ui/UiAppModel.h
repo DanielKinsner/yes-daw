@@ -1866,6 +1866,15 @@ public:
         preferences_.view = view;
         savePreferences();
     }
+    // The layout pass, step 9: the main window's place and size (prefs.json's view.windowState), written at once.
+    [[nodiscard]] const std::string& windowStatePreference() const noexcept { return preferences_.view.windowState; }
+    void setWindowStatePreference (std::string state)
+    {
+        if (sessionStateDirectory_.empty() || state == preferences_.view.windowState)
+            return;
+        preferences_.view.windowState = std::move (state);
+        savePreferences();
+    }
     [[nodiscard]] int rejectedPreferenceKeys() const noexcept { return preferences_.rejectedKeys(); }
     [[nodiscard]] bool migratedKeymapPreferences() const noexcept { return migratedKeymap_; }
 

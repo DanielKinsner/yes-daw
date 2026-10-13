@@ -287,6 +287,10 @@ void mainComponentPublishMasterBlockForTest (juce::Component& component, float l
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderSectionBounds (const juce::Component& component, int section);
 [[nodiscard]] std::vector<juce::Rectangle<int>> mainComponentHeaderRects (const juce::Component& component);
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderTimeReadoutBounds (const juce::Component& component);
+// The layout pass, step 9: the main window's remembered place and size (prefs.json), "" when none - the app's window
+// restores it at launch (else opens maximised) and stores it at quit.
+[[nodiscard]] std::string mainComponentWindowState (const juce::Component& component);
+void mainComponentSetWindowState (juce::Component& component, const std::string& state);
 // The layout pass, step 6: the header's selection box (Start / End / Length); empty when the window has no room for it.
 [[nodiscard]] juce::Rectangle<int> mainComponentHeaderSelectionBounds (const juce::Component& component);
 [[nodiscard]] int mainComponentHeaderHeight (const juce::Component& component);

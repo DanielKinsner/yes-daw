@@ -2067,6 +2067,19 @@ juce::Rectangle<int> mainComponentHeaderTimeReadoutBounds (const juce::Component
     return {};
 }
 
+std::string mainComponentWindowState (const juce::Component& component)
+{
+    if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))
+        return mainComponent->windowStatePreference();
+    return {};
+}
+
+void mainComponentSetWindowState (juce::Component& component, const std::string& state)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        mainComponent->setWindowStatePreference (state);
+}
+
 juce::Rectangle<int> mainComponentHeaderSelectionBounds (const juce::Component& component)
 {
     if (const auto* mainComponent = dynamic_cast<const MainComponent*> (&component))

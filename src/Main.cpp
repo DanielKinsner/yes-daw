@@ -78,7 +78,14 @@ public:
                 + "\nwindowReadyUnixMs\t" + juce::String (juce::Time::currentTimeMillis()) + "\n");
     }
 
-    void shutdown() override { mainWindow = nullptr; }
+    void shutdown() override
+    {
+        // The layout pass, step 9: the window's place and size are remembered for the next launch.
+        if (mainWindow != nullptr && mainWindow->getContentComponent() != nullptr)
+            yesdaw::ui::mainComponentSetWindowState (*mainWindow->getContentComponent(),
+                                                     mainWindow->getWindowStateAsString().toStdString());
+        mainWindow = nullptr;
+    }
 
 private:
     class MainWindow : public juce::DocumentWindow
@@ -100,6 +107,11 @@ private:
             // Configure the final styles before creating the native peer. Changing the title
             // bar and resizability on an existing peer recreates the Windows window repeatedly.
             addToDesktop();
+            // The layout pass, step 9 (Dan, 2026-10-13): the window comes back where and as big as it was left; the
+            // first launch opens maximised (the fixed default was about 40% of a 1440p screen).
+            const std::string saved = yesdaw::ui::mainComponentWindowState (*content);
+            if (saved.empty() || ! restoreWindowStateFromString (juce::String (saved)))
+                setFullScreen (true);
             setVisible (true);
         }
 

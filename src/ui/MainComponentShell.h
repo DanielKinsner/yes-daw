@@ -1383,6 +1383,10 @@ public:
     };
 
     [[nodiscard]] HeaderLayout headerLayout() const;
+    // The layout pass, step 9: the main window's remembered place and size (the app's window reads it at launch and
+    // writes it at quit).
+    [[nodiscard]] std::string windowStatePreference() const { return appModel.windowStatePreference(); }
+    void setWindowStatePreference (std::string state) { appModel.setWindowStatePreference (std::move (state)); }
     // The layout pass, step 6: the span the selection box reads - the range selection, else the selected clip - in
     // project frames; nullopt with neither.
     [[nodiscard]] std::optional<std::pair<std::int64_t, std::int64_t>> headerSelectionSpan() const;
