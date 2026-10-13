@@ -2072,7 +2072,7 @@ void MainComponent::refreshActionState()
     timelineInput.setVisible (true);
     playheadLayer.setVisible (true);
     pianoRollInput.setVisible (dockShowsPianoRoll());
-    pianoRollLaneChooser.setVisible (dockShowsPianoRoll());   // G3.3
+    pianoRollLaneChooser.setVisible (pianoRollLaneChooserShown());   // G3.3; UI pass unit 30
     pianoRollKeyChooser.setVisible (dockShowsPianoRoll());    // G3.8
     pianoRollScaleChooser.setVisible (dockShowsPianoRoll());
     pianoRollKeyChooser.setSelectedId (appModel.context().pianoRollScaleRoot + 1, juce::dontSendNotification);

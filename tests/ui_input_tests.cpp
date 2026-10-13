@@ -31880,6 +31880,103 @@ TEST_CASE ("a tempo change hides only the bar numbers its label meets", "[ui][in
     CHECK (edgeSpans.spans[0].getEnd() == edgeX + L::timelineCanvasRulerTickWidth);
 }
 
+// UI pass unit 30: at the shortest editor dock the piano roll keeps its notes. The expression lanes (velocity, then the
+// control lane) are whole or given up - the last first - while the note grid would be shorter than the key window's
+// fewest keys at the target row. A lane given up takes no input, paints nothing, and its chooser hides.
+TEST_CASE ("the piano roll keeps its note rows at the shortest dock: the lanes give way", "[ui][input][shell][pianoroll-dock-min]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    // The law, for every roll height: lanes only while the grid keeps its height, and then rows at least the target;
+    // fewer lanes only on a shorter roll.
+    int lanesBefore = 0;
+    for (int height = 40; height <= 420; ++height)
+    {
+        const auto geometry = yesdaw::ui::pianoRollCanvasGeometry ({ 0, 0, 900, height });
+        CAPTURE (height, geometry.grid.getHeight(), geometry.expressionLanes, geometry.rowHeight);
+        if (geometry.expressionLanes > 0)
+        {
+            REQUIRE (geometry.grid.getHeight() >= L::pianoRollGridKeepHeight);
+            REQUIRE (geometry.rowHeight >= static_cast<float> (L::pianoRollRowTargetHeight));
+        }
+        REQUIRE (geometry.expressionLanes >= lanesBefore);
+        lanesBefore = geometry.expressionLanes;
+        REQUIRE (yesdaw::ui::pianoRollVelocityLaneArea (geometry).isEmpty() == (geometry.expressionLanes < 1));
+        REQUIRE (yesdaw::ui::pianoRollControlLaneArea (geometry).isEmpty() == (geometry.expressionLanes < 2));
+    }
+    REQUIRE (lanesBefore == L::pianoRollExpressionLaneCount);
+
+    const std::filesystem::path bundlePath = makeTempBundlePath ("pianoroll-dock-min");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
+    juce::Component& roll = requirePianoRollComponent (*shell);
+    juce::Component* chooser = findChildWithComponentId (*shell, "pianoroll.lane.chooser");
+    REQUIRE (chooser != nullptr);
+
+    // The default dock: both lanes and the chooser. Three notes (each has a velocity mark) and the Bend lane (its centre
+    // line), so a lane given up has marks it could stray.
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::mixerHeight);
+    const auto full = yesdaw::ui::pianoRollCanvasGeometry (roll.getLocalBounds());
+    CHECK (full.expressionLanes == L::pianoRollExpressionLaneCount);
+    CHECK (chooser->isVisible());
+    for (const double along : { 0.2, 0.5, 0.8 })
+        doubleClickAt (roll, { full.grid.getX() + juce::roundToInt (full.grid.getWidth() * along), full.grid.getCentreY() });
+    REQUIRE (readProjectSnapshot (bundlePath).midiClips.front().notes.size() == 3u);
+    yesdaw::ui::mainComponentSelectPianoRollControlLane (*shell, 2);
+    REQUIRE (yesdaw::ui::mainComponentPianoRollControlLane (*shell).valueMin < 0.0);   // Bend: a centre line at 0
+
+    // Nothing paints in the room a lane gave up: the roll's rows below the lanes kept, short of its outline, are the panel's
+    // own background.
+    const auto requireBlankBelow = [&] (int top, int dock) {
+        const juce::Rectangle<int> bounds = roll.getBoundsInParent();
+        const juce::Image image = shell->createComponentSnapshot (bounds, true, 1.0f);
+        const auto geometry = yesdaw::ui::pianoRollCanvasGeometry (roll.getLocalBounds());
+        const juce::Rectangle<int> below (geometry.grid.getX() + 8, top, geometry.grid.getWidth() - 8, roll.getHeight() - 4 - top);   // clear of the panel's outline
+        REQUIRE_FALSE (below.isEmpty());
+        const juce::Colour back = image.getPixelAt (below.getX(), below.getY());
+        int differ = 0;
+        for (int y = below.getY(); y < below.getBottom(); ++y)
+            for (int x = below.getX(); x < below.getRight(); ++x)
+                differ += image.getPixelAt (x, y) != back ? 1 : 0;
+        CAPTURE (dock, below, geometry.expressionLanes);
+        CHECK (differ == 0);
+    };
+
+    // A dock with the velocity lane alone.
+    int oneLaneDock = 0;
+    for (int dock = L::mixerHeight; dock >= L::editorDockMinHeight && oneLaneDock == 0; --dock)
+    {
+        yesdaw::ui::mainComponentSetDockHeight (*shell, dock);
+        if (yesdaw::ui::pianoRollCanvasGeometry (roll.getLocalBounds()).expressionLanes == 1)
+            oneLaneDock = dock;
+    }
+    REQUIRE (oneLaneDock > 0);
+    CHECK_FALSE (chooser->isVisible());
+    requireBlankBelow (yesdaw::ui::pianoRollVelocityLaneArea (yesdaw::ui::pianoRollCanvasGeometry (roll.getLocalBounds())).getBottom(),
+                       oneLaneDock);
+
+    // The shortest dock: no lanes; at least the fewest keys, each a note's height (to a pixel of rounding).
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::editorDockMinHeight);
+    const auto rows = yesdaw::ui::mainComponentPianoRollKeyRows (*shell);
+    CAPTURE (roll.getHeight(), rows.size(), rows.empty() ? 0 : rows.front().row.getHeight());
+    CHECK (yesdaw::ui::pianoRollCanvasGeometry (roll.getLocalBounds()).expressionLanes == 0);
+    CHECK_FALSE (rows.empty());
+    for (const auto& key : rows)
+        CHECK (key.row.getHeight() >= L::pianoRollNoteMinHeight - 1);
+    CHECK_FALSE (chooser->isVisible());
+    requireBlankBelow (yesdaw::ui::pianoRollCanvasGeometry (roll.getLocalBounds()).grid.getBottom()
+                           + L::pianoRollGridInsetY,
+                       L::editorDockMinHeight);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part
 // alone is shortened in its middle, and shortening is by code point. `fits` here is a code-point budget.
 TEST_CASE ("ADR-0076 the status line's shortening rule never mixes a message's parts", "[ui][g6][status-whole][status-shorten]")

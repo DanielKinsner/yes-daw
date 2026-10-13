@@ -8,6 +8,44 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 30: the piano roll keeps its note rows at the shortest dock
+
+**The defect (FIX 30):** at the shortest editor dock (160 px) the piano roll had no key rows. Its header, insets and a
+fixed 84 px expression area (the velocity lane and the control lane) took the whole dock, so the note grid was about
+1 px and its 10 keys were a tenth of a pixel each.
+
+**What changes:**
+- The expression area holds whole lanes. It gives them up, the control lane first, while the note grid would hold fewer
+  than the key window's 10 keys at the 11 px target row.
+- At the 160 px dock: no lanes, 10 keys at about 8.6 px.
+- The velocity lane comes back at a 232 px dock and the control lane at 268. A lane comes back only with rows of at
+  least 11 px, so a taller dock never makes the notes smaller. The default 300 px dock is unchanged.
+- A lane given up takes no input (its areas are empty), paints nothing, and its chooser hides.
+- Velocity can still be set with the Velocity tool or Alt+wheel on a note. Controller editing needs a dock of 268 px or
+  more.
+
+**Gate `[pianoroll-dock-min]`:**
+- The layout law at every roll height from 40 to 420 px: lanes only while the grid keeps its height, then rows of at
+  least the target; fewer lanes only on a shorter roll; a given-up lane's areas are empty.
+- In the shell: three notes and the Bend lane are added at the default dock, which has both lanes and the chooser. At a
+  one-lane dock and at the 160 px dock, the roll's rows below the lanes kept are blank in a snapshot of the shell, and
+  the chooser is hidden. At 160 px every key row is at least a note's height.
+
+**Bites:**
+- M1 the lanes never give way (the old layout): the grid falls under its keep height;
+- M2 a lane given up still paints its marks: the blank band under the lanes is not blank;
+- M3 the control lane chooser always shows;
+- M4 a lane comes back with rows under the target (the 8 px keep): rows of 8 px with a lane shown.
+
+**Critic:** it caught a real defect. I had removed the paint's skip of a given-up lane because its mutation stayed green.
+The lane's marks are placed from its area's bottom, so the old paint drew velocity marks and the Bend centre line below
+the grid. The gate missed it because it snapshotted the roll component, which paints only its marquee (the shell paints
+the roll), and the clip had no notes. The gate now reads the shell and seeds notes, and the restored skip is mutation M2.
+
+The critic also suggested the 11 px keep height (it was 8 px), so dragging the dock taller never shrinks the rows.
+Noted, not changed: four test helpers re-derive the lane layout with raw numbers. They are correct at the default and
+maximum docks they are used at.
+
 ## 2026-10-13 — ADR-0077 accepted: the shell asks its questions without a nested modal loop (FIX 29, unit 29 step 0)
 
 **The defect (FIX 29):** on Windows, a question started from a menu command or a posted message (the launch-time

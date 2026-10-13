@@ -36,6 +36,14 @@ bool MainComponent::dockShowsPianoRoll() const noexcept
         && appModel.context().editorDockTab == yesdaw::ui::UiEditorDockTab::PianoRoll;
 }
 
+// UI pass unit 30: the control lane's chooser shows with its lane - not when the dock gave the lane up to the grid.
+bool MainComponent::pianoRollLaneChooserShown() const noexcept
+{
+    return dockShowsPianoRoll()
+        && pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin()).expressionLanes
+               >= yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneCount;
+}
+
 // G3.2: the roll pages after the playhead while it shows and the transport rolls — the same
 // page law as the arrangement, in the clip's ticks. Returns true when the view moved.
 bool MainComponent::followPianoRollPlayhead()
@@ -223,6 +231,10 @@ void MainComponent::drawPianoRoll (juce::Graphics& g, juce::Rectangle<int> area)
         auto laneArea = expression.removeFromTop (yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneHeight)
                             .reduced (yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneInsetX,
                                       yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneInsetY);
+        // UI pass unit 30: a lane the dock gave up to the grid paints nothing (its marks are placed from its area's
+        // bottom, so an empty area would still put them below the grid).
+        if (laneArea.isEmpty())
+            continue;
         g.setColour (yesdaw::ui::UiTheme::Color::controlInset());
         g.fillRect (laneArea);
         // G3.3: the control lane's name is its chooser (a child in the gutter); the velocity lane keeps its label.

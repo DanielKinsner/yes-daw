@@ -688,8 +688,10 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   - **29d** `JUCE_MODAL_LOOPS_PERMITTED=0` on `YesDaw` and the text gate.
   - **29e** (Windows drive, off CI) the paint count climbs under the SS8 launch alert and File-menu questions opened by
     mouse; Space works after a chooser without a Focus step.
-- **30.** (found in unit 20) At the shortest editor dock (160 px) the piano roll has no key rows: its header and the
-  velocity / control lanes take the whole dock, so the grid is about 1 px. Line 1 / 3.
+- [x] **30.** (found in unit 20) At the shortest editor dock (160 px) the piano roll has no key rows: its header and the
+  velocity / control lanes take the whole dock, so the grid is about 1 px. Line 1 / 3. **Done 2026-10-13:** the lanes
+  give way, whole and the last first, while the grid would hold fewer than 10 keys at the 11 px target row; gate
+  `[pianoroll-dock-min]` (STATUS).
 - [x] **28.** Evidence hygiene: the end-of-drive size shots now include the resting pointer's tooltip (it hides the ruler at
   the tempo change in `ss3-2560`); park the pointer or use `-MainOnly` for size shots. Tooling. **Done 2026-10-13:**
   `SizeShot` parks the pointer on the window's caption and asserts no app window is over the shot (STATUS).

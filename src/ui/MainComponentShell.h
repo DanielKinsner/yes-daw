@@ -470,6 +470,7 @@ private:
     [[nodiscard]] bool dockShowsMixer() const noexcept;
 
     [[nodiscard]] bool dockShowsPianoRoll() const noexcept;
+    [[nodiscard]] bool pianoRollLaneChooserShown() const noexcept;   // UI pass unit 30
 
     [[nodiscard]] bool dockShowsInstrument() const noexcept;   // G3.1
     // G5.2 / ADR-0056: the media browser.

@@ -2374,6 +2374,7 @@ void MainComponent::resized()
     pianoRollInput.setBounds (mixerPanelBounds());   // G2.1 cp2: the piano roll is a dock tab
     pianoRollLaneChooser.setBounds (pianoRollControlLaneChooserArea (pianoRollCanvasGeometry (pianoRollInput.getBounds().withZeroOrigin()))
                                         .translated (pianoRollInput.getX(), pianoRollInput.getY()));   // G3.3
+    pianoRollLaneChooser.setVisible (pianoRollLaneChooserShown());   // UI pass unit 30: not over a lane given up
     {
         // G3.6: the header toggles sit after the "PIANO ROLL" label on the header row.
         using L = yesdaw::ui::UiTheme::Layout;

@@ -1137,6 +1137,15 @@ struct UiTheme
         static constexpr int pianoRollExpressionInsetX = 0;
         static constexpr int pianoRollExpressionInsetY = 6;
         static constexpr int pianoRollExpressionLaneHeight = 36;
+        // UI pass unit 30: the expression area holds whole lanes (velocity, then the control lane), and gives them up -
+        // the last first - while the note grid would be shorter than the key window's fewest keys at the roll's target
+        // row. At the shortest dock the roll keeps its notes, and a lane comes back only with rows at least the target
+        // (so a taller dock never makes the rows shorter than the target).
+        static constexpr int pianoRollExpressionLaneCount = 2;
+        static constexpr int pianoRollGridKeepHeight = pianoRollViewKeysMin * pianoRollRowTargetHeight;
+        static_assert (pianoRollExpressionHeight
+                           == 2 * pianoRollExpressionInsetY + pianoRollExpressionLaneCount * pianoRollExpressionLaneHeight,
+                       "the expression area is its lanes and its insets");
         static constexpr int pianoRollExpressionLaneInsetX = 0;
         static constexpr int pianoRollExpressionLaneInsetY = 2;
         static constexpr int pianoRollExpressionLabelInsetX = 8;

@@ -46,6 +46,7 @@ struct PianoRollCanvasGeometry
     juce::Rectangle<int> grid;
     float rowHeight = 1.0f;
     int visibleKeys = yesdaw::ui::UiTheme::Layout::pianoRollKeyCount;   // G3.2 FIX 3: the key window
+    int expressionLanes = yesdaw::ui::UiTheme::Layout::pianoRollExpressionLaneCount;   // UI pass unit 30: the lanes shown
 };
 
 [[nodiscard]] inline PianoRollCanvasGeometry pianoRollCanvasGeometry (juce::Rectangle<int> area) noexcept
@@ -54,7 +55,17 @@ struct PianoRollCanvasGeometry
     area.reduce (yesdaw::ui::UiTheme::Layout::pianoRollPanelInsetX,
                  yesdaw::ui::UiTheme::Layout::pianoRollPanelInsetY);
     PianoRollCanvasGeometry geometry;
-    geometry.expression = area.removeFromBottom (yesdaw::ui::UiTheme::Layout::pianoRollExpressionHeight);
+    // UI pass unit 30: whole lanes, the last given up first, while the grid would be shorter than its keep height. The
+    // expression rect holds exactly the lanes kept, so a lane given up has an empty area: the paint skips it, it takes no
+    // input, and its chooser hides (MainComponent::pianoRollLaneChooserShown).
+    using L = yesdaw::ui::UiTheme::Layout;
+    const auto expressionHeight = [] (int lanes) {
+        return lanes <= 0 ? 0 : 2 * L::pianoRollExpressionInsetY + lanes * L::pianoRollExpressionLaneHeight;
+    };
+    while (geometry.expressionLanes > 0
+           && area.getHeight() - expressionHeight (geometry.expressionLanes) - 2 * L::pianoRollGridInsetY < L::pianoRollGridKeepHeight)
+        --geometry.expressionLanes;
+    geometry.expression = area.removeFromBottom (expressionHeight (geometry.expressionLanes));
     geometry.keyboard = area.removeFromLeft (yesdaw::ui::UiTheme::Layout::pianoRollKeyboardWidth);
     geometry.grid = area.reduced (yesdaw::ui::UiTheme::Layout::pianoRollGridInsetX,
                                   yesdaw::ui::UiTheme::Layout::pianoRollGridInsetY);
