@@ -54,7 +54,8 @@ Older entries below are dated history, not competing "Now" instructions.
 - Self-check 5/5 (bit-exact export round trip, loudness, reopen, autosave).
 - Drives: SS1 68, SS2 48, SS4 28, SS5 83, SS6 64, SS8 215 and SS11 31, all passing in full.
 - SS3: 80/89 on the first run (a ruler drag and a ruler right-click did nothing for a while, with no outside window),
-  then 90/90 on a re-run. The cause is unknown and stays open.
+  then 90/90 on a re-run and in four more runs (5 clean in a row). The one failure came mid-batch, right after
+  SS2; its cause is unknown and stays open.
 - Hardware verifier: playback is clean at 480-frame blocks (worst callback 0.1 ms; accepted for this milestone by
   Dan's decision; raw FAIL row kept). Recording is silent, with no input connected (not in this milestone). The frame
   stage passes.
