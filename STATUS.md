@@ -8,6 +8,39 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 21: the loop never covers a ruler label
+
+**The defect (FIX 21):** the loop brace filled the top 12 px of the ruler's bars row, the same rows as that row's labels.
+Its near-opaque end handle hid the tempo change label "150~" in the SS3 song at 1280, and any bar number under a handle.
+
+**What changes:**
+- The brace paints a 6 px strip at the top of the bars row.
+- The row's labels (bar numbers, tempo and meter changes) sit under it, 7 px down and 14 px tall. A `static_assert` keeps
+  them clear of the strip.
+- The handles keep their 12 px grab zones, so dragging the loop is unchanged.
+- The time row keeps its own label inset.
+
+**Gate `[ruler-loop-strip]`,** on a canvas whose loop ends just past a "150~" change, so the end handle's zone lies over
+the label (as in SS3):
+- the labels sit under the strip;
+- the bars row below the strip is pixel-identical with the loop on and off;
+- the strip shows the loop, with its handles brighter than the band;
+- the label is drawn.
+
+**Bites:**
+- M1 the brace painted at its old 12 px;
+- M2 a change label at the old inset;
+- M3 the handles not painted;
+- M4 no brace at all.
+
+M3's first run stayed green: the band's wash alone still changed the strip. The gate gained the handle-brightness check,
+and M3 then bit.
+
+**Seen:** a scratch render of the ruler. The loop is a thin teal strip with brighter ends; "150~" and the bar numbers sit
+whole beneath it.
+
+**Process:** a layout and paint change in the ruler, so no critic, per ADR-0075.
+
 ## 2026-10-12 — UI correctness pass unit 20: piano-roll key names whole in their keys
 
 **The defect (FIX 20):** every white key's name (C3-B3) lost its top and bottom.

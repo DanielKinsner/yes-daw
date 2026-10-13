@@ -1223,9 +1223,17 @@ struct UiTheme
         // seconds-step label tokens (the ruler now labels real tempo-map bars, never seconds).
         static constexpr double timelineCanvasRulerMinBarLabelSpacingPx = 56.0;
         static constexpr int timelineCanvasRulerLabelCullPadding = 40;
-        static constexpr int timelineCanvasRulerLabelTopInset = 3;   // within the bars row
+        static constexpr int timelineCanvasRulerLabelTopInset = 3;   // within the time row
         static constexpr int timelineCanvasRulerLabelWidth = 36;
         static constexpr int timelineCanvasRulerLabelHeight = 16;
+        // UI pass unit 21: the loop brace paints a strip at the top of the bars row (its handles keep their taller grab
+        // zones), and the row's labels - bar numbers, tempo and meter changes - sit under it, never under the brace.
+        static constexpr int timelineCanvasLoopStripHeight = 6;
+        static constexpr int timelineCanvasRulerBarsLabelTopInset = timelineCanvasLoopStripHeight + 1;
+        static constexpr int timelineCanvasRulerBarsLabelHeight = timelineRulerBarsRowHeight - timelineCanvasRulerBarsLabelTopInset - 1;
+        static_assert (timelineCanvasLoopStripHeight < timelineCanvasRulerBarsLabelTopInset
+                           && timelineCanvasRulerBarsLabelHeight >= 14,
+                       "the bars row's labels sit whole under the loop strip");
         static constexpr int timelineCanvasRulerTickHeight = 14;
         static constexpr int timelineCanvasRulerTickWidth = 1;
         static constexpr int timelineCanvasRulerMarkerCullPadding = 60;

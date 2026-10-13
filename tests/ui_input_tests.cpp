@@ -31338,6 +31338,78 @@ TEST_CASE ("piano roll key names sit whole in their keys, or are not drawn", "[u
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// UI pass unit 21: the loop brace paints a strip at the top of the ruler's bars row and the row's labels sit under it, so
+// a loop whose end meets a tempo change ("150~", the SS3 song at 1280) or spans bar numbers never covers a label: the
+// bars row below the strip is the same pixels with the loop on and off, the strip itself shows the loop, and no label
+// reaches into the strip.
+TEST_CASE ("the loop brace never covers a ruler label", "[ui][input][timeline][ruler-loop-strip][paint]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    namespace canvas = yesdaw::ui::timeline_canvas_detail;
+    const yesdaw::ui::TimelineMapLabel change { 4.0, "150~" };
+    const auto stateFor = [&change] (bool loop) {
+        yesdaw::ui::TimelineCanvasState state;
+        state.trackCount = 1;
+        state.viewport.pixelsPerSecond = 100.0;
+        state.mapLabels = &change;
+        state.mapLabelCount = 1;
+        state.loopActive = loop;
+        state.loopStartSeconds = 0.5;
+        state.loopEndSeconds = 4.08;   // just past the change, so the end handle lies over its label (as in SS3)
+        return state;
+    };
+    const juce::Rectangle<int> bounds (0, 0, 900, 260);
+    const auto render = [&] (bool loop) {
+        juce::Image image (juce::Image::ARGB, bounds.getWidth(), bounds.getHeight(), true, juce::SoftwareImageType());
+        juce::Graphics g (image);
+        (void) yesdaw::ui::paintTimelineCanvas (g, bounds, stateFor (loop));
+        return image;
+    };
+    const juce::Image withLoop = render (true);
+    const juce::Image without = render (false);
+
+    const yesdaw::ui::TimelineCanvasState state = stateFor (true);
+    const auto geometry = yesdaw::ui::timelineCanvasGeometry (bounds, state);
+    const auto rows = canvas::rulerRows (geometry.rulerArea);
+    const auto loop = yesdaw::ui::timelineLoopBraceRects (bounds, state);
+    REQUIRE (loop.valid);
+    const int stripBottom = rows.bars.getY() + L::timelineCanvasLoopStripHeight;
+    const int changeX = geometry.clipArea.getX() + juce::roundToInt ((4.0 - state.viewport.scrollSeconds) * 100.0);
+    const juce::Rectangle<int> changeLabel = canvas::rulerMapLabelBounds (changeX, rows.bars);
+    CAPTURE (rows.bars, loop.band, loop.endHandle, changeLabel, stripBottom);
+    REQUIRE (changeLabel.intersects (loop.endHandle));   // the case: the end handle's grab zone meets the label
+
+    // Every label of the row sits under the strip.
+    REQUIRE (changeLabel.getY() >= stripBottom);
+    REQUIRE (canvas::rulerBarLabelBounds (loop.band.getX(), rows.bars).getY() >= stripBottom);
+
+    // Below the strip, the bars row is the same with and without the loop, across the loop's span and its handles.
+    int differ = 0;
+    for (int y = stripBottom; y < rows.bars.getBottom(); ++y)
+        for (int x = loop.band.getX(); x < loop.band.getRight(); ++x)
+            differ += withLoop.getPixelAt (x, y) != without.getPixelAt (x, y) ? 1 : 0;
+    REQUIRE (differ == 0);
+    // The strip shows the loop, both handles included.
+    int shown = 0;
+    for (const auto& r : { loop.startHandle, loop.endHandle })
+        for (int y = rows.bars.getY(); y < stripBottom; ++y)
+            for (int x = r.getX(); x < r.getRight(); ++x)
+                shown += withLoop.getPixelAt (x, y) != without.getPixelAt (x, y) ? 1 : 0;
+    REQUIRE (shown > L::timelineCanvasLoopHandleWidth * 4);
+    // ...its handles brighter than the band between them.
+    const int stripMiddle = rows.bars.getY() + L::timelineCanvasLoopStripHeight / 2;
+    for (const auto& handle : { loop.startHandle, loop.endHandle })
+        REQUIRE (withLoop.getPixelAt (handle.getCentreX(), stripMiddle).getPerceivedBrightness()
+                 > withLoop.getPixelAt (loop.band.getCentreX(), stripMiddle).getPerceivedBrightness());
+    // And the change's label is drawn: its ink is in the row (it differs from the empty row's background).
+    int ink = 0;
+    const juce::Colour background = without.getPixelAt (changeLabel.getRight() - 2, changeLabel.getBottom() - 1);
+    for (int y = changeLabel.getY(); y < changeLabel.getBottom(); ++y)
+        for (int x = changeLabel.getX(); x < changeLabel.getX() + 30; ++x)
+            ink += without.getPixelAt (x, y) != background ? 1 : 0;
+    REQUIRE (ink > 10);
+}
+
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part
 // alone is shortened in its middle, and shortening is by code point. `fits` here is a code-point budget.
 TEST_CASE ("ADR-0076 the status line's shortening rule never mixes a message's parts", "[ui][g6][status-whole][status-shorten]")

@@ -1128,9 +1128,9 @@ struct RulerRows
 [[nodiscard]] inline juce::Rectangle<int> rulerBarLabelBounds (int tickX, juce::Rectangle<int> barsRow) noexcept
 {
     return { tickX + UiTheme::Layout::timelineCanvasRulerTickWidth + UiTheme::Space::xxs,
-             barsRow.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
+             barsRow.getY() + UiTheme::Layout::timelineCanvasRulerBarsLabelTopInset,   // UI pass unit 21: under the loop strip
              UiTheme::Layout::timelineCanvasRulerLabelWidth,
-             UiTheme::Layout::timelineCanvasRulerLabelHeight };
+             UiTheme::Layout::timelineCanvasRulerBarsLabelHeight };
 }
 
 // G2.15: a tempo / meter change's label, right of its tick in the bars row — one law for the paint, the hit-test and
@@ -1138,9 +1138,9 @@ struct RulerRows
 [[nodiscard]] inline juce::Rectangle<int> rulerMapLabelBounds (int tickX, juce::Rectangle<int> barsRow) noexcept
 {
     return { tickX + UiTheme::Layout::timelineCanvasRulerMarkerLabelLeftInset,
-             barsRow.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
+             barsRow.getY() + UiTheme::Layout::timelineCanvasRulerBarsLabelTopInset,   // UI pass unit 21: under the loop strip
              UiTheme::Layout::timelineCanvasRulerMarkerLabelWidth,
-             UiTheme::Layout::timelineCanvasRulerLabelHeight };
+             UiTheme::Layout::timelineCanvasRulerBarsLabelHeight };
 }
 
 inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea,
@@ -1810,15 +1810,17 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     drawRangeSelection (g, ruler, clipArea, state, vp);
     drawPunchRegion (g, ruler, clipArea, state, vp);
 
-    // Transport loop brace (E6): accent band across the upper ruler with brighter end handles.
+    // Transport loop brace (E6): accent band across the upper ruler with brighter end handles. UI pass unit 21: painted
+    // in the strip at the top of the bars row, above the row's labels (the handles' grab zones stay the taller rects).
     if (const TimelineLoopBraceRects loopRects = timelineLoopBraceRects (area, state); loopRects.valid)
     {
+        const auto strip = [] (juce::Rectangle<int> r) { return r.withHeight (UiTheme::Layout::timelineCanvasLoopStripHeight); };
         g.setColour (UiTheme::Color::accentTeal().withAlpha (UiTheme::Tone::regionWashAlpha));
-        g.fillRect (loopRects.band);
+        g.fillRect (strip (loopRects.band));
         g.setColour (UiTheme::Color::accentTeal().withAlpha (UiTheme::Tone::focusRingAlpha));
-        g.fillRect (loopRects.startHandle);
-        g.fillRect (loopRects.endHandle);
-        g.drawRect (loopRects.band.toFloat(), UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
+        g.fillRect (strip (loopRects.startHandle));
+        g.fillRect (strip (loopRects.endHandle));
+        g.drawRect (strip (loopRects.band).toFloat(), UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
     }
 
 #if defined(YESDAW_TIMELINE_PAINT_PROFILE) && YESDAW_TIMELINE_PAINT_PROFILE

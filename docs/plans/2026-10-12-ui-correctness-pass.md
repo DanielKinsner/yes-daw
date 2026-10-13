@@ -654,7 +654,8 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
 - [x] **20.** The piano roll's key labels C3-B3 lose their tops and bottoms to the key rows. Line 1. **Done
   2026-10-12:** a key's name sits whole in its light face, placed on the font's own outlines, or is not drawn; gate
   `[piano-key-labels]` (STATUS).
-- **21.** The loop's right end-handle covers the tempo label ("150~") at 1280. Line 1.
+- [x] **21.** The loop's right end-handle covers the tempo label ("150~") at 1280. Line 1. **Done 2026-10-12:** the
+  loop paints a strip at the top of the bars row, the row's labels sit under it; gate `[ruler-loop-strip]` (STATUS).
 - **22.** A MIDI clip's note-preview bar cuts through its name. Line 1.
 - **23.** The send rows' PRE / PST text is 3.59:1 on the strip header colour. Line 4.
 - **24.** A meter's yellow band follows the bar's height, not the level (yellow at about -41 dBFS). Line 7.
