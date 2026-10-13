@@ -8,6 +8,26 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — ADR-0077 accepted: the shell asks its questions without a nested modal loop (FIX 29, unit 29 step 0)
+
+**The defect (FIX 29):** on Windows, a question started from a menu command or a posted message (the launch-time
+relink question) froze every window until it was answered. JUCE dispatches its posted messages in batches, a modal
+loop holds back the rest of its batch, and the Direct2D vblank message in that batch is what lets windows repaint.
+Measured: the paint count held at 2 for 3 s under the launch question.
+
+**The decision ([ADR-0077](docs/adr/0077-questions-without-a-nested-modal-loop.md)):**
+- The app is built with `JUCE_MODAL_LOOPS_PERMITTED=0`; tests keep `=1`.
+- Every question seam answers through a one-shot reply, and a function that asks returns nothing and asks last.
+- One question at a time. A refused question is told apart from a cancel.
+- The close button, macOS Cmd+Q and a Windows logoff all confirm unsaved changes through one asynchronous entry point.
+
+**Process:** two separate critic passes. The first found that the "same project" check must use the model's attach
+generation, not the bundle path (Save As changes the path), and that callers' code after a question would run before
+the answer. The second found the refused/cancelled clash and made the close question and quit land in one unit. Both
+passes' edits are in the ADR.
+
+**Next:** units 29a-29e, in the plan's order (29a: the `Question` type, the ask helper, the single-question flows).
+
 ## 2026-10-13 — UI correctness pass unit 28: a size shot is the window alone
 
 **The defect (FIX 28, tooling):** the drives' window-size shots were taken with the pointer wherever the last step left

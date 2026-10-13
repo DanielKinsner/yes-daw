@@ -677,7 +677,17 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   shell's paint count holds at 2 for 3 s under the launch-time question, while the UI tick asks for about 30 repaints a
   second (30 in 0.8 s once it is answered). Before unit 17 the same question also left the window white. The likely
   fix is asking without a nested modal loop (`AlertWindow::showAsync`, `FileChooser::launchAsync`) for the ADR-0062
-  relink questions. Gate: the paint count climbs while a question is up. Line 1 / 4.
+  relink questions. Gate: the paint count climbs while a question is up. Line 1 / 4. **Decided 2026-10-13:**
+  [ADR-0077](../adr/0077-questions-without-a-nested-modal-loop.md) (two critic passes): every question, not only the
+  relink ones. Units, each landing whole:
+  - **29a** the `Question` type and reply, the ask helper (open-question mark, focus restore), `attachGeneration()`; the
+    single-question flows (Import / Export Audio and MIDI, the Sampler pad, Save a Copy, Save as Template).
+  - **29b** Save / Save As, both unsaved-changes questions, New / Open / Open Recent with ADR-0068's closing steps, and
+    quit (`mainComponentRequestQuit`, the close button, `systemRequestedQuit`).
+  - **29c** the relink loop, an open completion, the launch-question tail; SS8 runs.
+  - **29d** `JUCE_MODAL_LOOPS_PERMITTED=0` on `YesDaw` and the text gate.
+  - **29e** (Windows drive, off CI) the paint count climbs under the SS8 launch alert and File-menu questions opened by
+    mouse; Space works after a chooser without a Focus step.
 - **30.** (found in unit 20) At the shortest editor dock (160 px) the piano roll has no key rows: its header and the
   velocity / control lanes take the whole dock, so the grid is about 1 px. Line 1 / 3.
 - [x] **28.** Evidence hygiene: the end-of-drive size shots now include the resting pointer's tooltip (it hides the ruler at

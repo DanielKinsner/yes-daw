@@ -92,6 +92,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0074](0074-empty-arrange-of-a-new-project.md) | ADR-0073 amended: a new project starts with one empty track (not none), so its Arrange offers Import audio over the empty lanes; the first-run tip lasts until the first clip, not the first track | Accepted |
 | [0075](0075-checkpoint-cadence-one-verified-change-set-per-unit.md) | Checkpoint cadence (amends ADR-0049): one verified change set per unit - targeted tests per commit; the full suite, one critic (skippable for small layout/text units), one named mutation per gate and one push per unit; CI on the unit head is the gate | Accepted |
 | [0076](0076-status-line-in-the-menu-row-messages-whole.md) | The status line moves to the menu row (amends ADR-0064's tool-row list); never squashed; the app's own texts fit the 1280 budget on every platform font; user/OS text shortened without mixing a message's parts, full text in the tooltip, probe and accessibility | Accepted |
+| [0077](0077-questions-without-a-nested-modal-loop.md) | The shell asks its questions (file choosers, alerts, the close confirmation, the relink loop) without a nested modal loop: `JUCE_MODAL_LOOPS_PERMITTED=0` on the app, seams answered through a one-shot reply, a function that asks returns nothing and asks last, one question at a time; Cmd+Q and a logoff confirm like the close button | Accepted |
 
 ## Decision status (the five research forks)
 
