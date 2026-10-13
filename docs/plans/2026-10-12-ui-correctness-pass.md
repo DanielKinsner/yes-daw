@@ -700,7 +700,7 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
     is at 2995 of its 3000-line pin (`theme_audit_tests.cpp`), so 29b's flows go in the other shell files.
   - [x] **29c** the relink loop, an open completion, the launch-question tail; SS8 runs. **Done 2026-10-13**; gates
     `[relink][questions]`, SS8 214/214 (STATUS).
-  - **29d** `JUCE_MODAL_LOOPS_PERMITTED=0` on `YesDaw` and the text gate; the gate also bans calling a seam outside the
+  - [x] **29d** `JUCE_MODAL_LOOPS_PERMITTED=0` on `YesDaw` and the text gate (**done 2026-10-13**, STATUS); the gate also bans calling a seam outside the
     ask helper (`fileChoices.choose...(` / `fileChoices.confirm...(` in `src/`): `Question`'s friend is the whole shell
     class, so the compiler alone does not keep every ask on the helper (unit 29a critic); and `Main.cpp`'s close button
     calls `systemRequestedQuit` while its quit lambda calls `quit()`, never `systemRequestedQuit()` (unit 29b critic).

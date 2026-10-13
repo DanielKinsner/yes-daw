@@ -32236,6 +32236,86 @@ TEST_CASE ("ADR-0077 each question flow does its work on the answer, not before"
     std::filesystem::remove_all (scratch, ec);
 }
 
+// ADR-0077 rule 1: the app runs no nested modal loop. It is built with JUCE_MODAL_LOOPS_PERMITTED=0, which takes JUCE's
+// blocking dialog calls out at compile time; this gate covers what the compiler cannot see: the flag on the app's own
+// target; and in src/ no JUCE_MODAL_LOOPS_PERMITTED (the tests, built with 1, would run code the app does not), no
+// dispatch loop, no AlertWindow::show...Box (a null callback still compiles and loses the answer), no raw Win32 dialog or
+// message loop, and no question seam called outside the shell's ask helper. And Main.cpp's quit routing: the close
+// button asks (systemRequestedQuit), and the answer quits (quit(), never systemRequestedQuit() again).
+TEST_CASE ("ADR-0077 the app runs no nested modal loop", "[ui][input][questions][static]")
+{
+    const std::filesystem::path root { YESDAW_SOURCE_DIR };
+    const auto codeLines = [] (const std::filesystem::path& path, char comment) {
+        std::vector<std::string> lines;
+        std::ifstream in (path, std::ios::binary);
+        std::string line;
+        while (std::getline (in, line))
+        {
+            const auto cut = comment == '#' ? line.find ('#') : line.find ("//");   // a comment that names one is not one
+            lines.push_back (line.substr (0, cut));
+        }
+        return lines;
+    };
+
+    // The flag on the app's target.
+    std::string definitions;
+    bool inBlock = false;
+    for (const std::string& line : codeLines (root / "CMakeLists.txt", '#'))
+    {
+        if (line.find ("target_compile_definitions(YesDaw PRIVATE") != std::string::npos)
+            inBlock = true;
+        if (! inBlock)
+            continue;
+        definitions += line + "\n";
+        if (line.find (')') != std::string::npos)
+            break;
+    }
+    CAPTURE (definitions);
+    CHECK (definitions.find ("JUCE_MODAL_LOOPS_PERMITTED=0") != std::string::npos);
+    CHECK (definitions.find ("JUCE_MODAL_LOOPS_PERMITTED=1") == std::string::npos);
+
+    // What src/ may not contain.
+    const std::vector<std::pair<std::regex, std::string>> banned {
+        { std::regex (R"(\bJUCE_MODAL_LOOPS_PERMITTED\b)"), "a JUCE_MODAL_LOOPS_PERMITTED branch" },
+        { std::regex (R"(\brunDispatchLoop\w*\s*\()"), "a dispatch loop" },
+        { std::regex (R"(AlertWindow\s*::\s*show\w*Box\s*\()"), "an AlertWindow box with a blocking form" },
+        { std::regex (R"(\b(MessageBox[AW]?|DialogBox\w*|TrackPopupMenu\w*|GetMessage[AW]?)\s*\()"), "a raw Win32 dialog or message loop" },
+        { std::regex (R"(\bfileChoices\s*\.\s*(choose|confirm)\w+\s*\()"), "a question seam called outside the ask helper" },
+    };
+    std::vector<std::string> found;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator (root / "src"))
+    {
+        const std::string extension = entry.path().extension().string();
+        if (! entry.is_regular_file() || (extension != ".h" && extension != ".cpp"))
+            continue;
+        for (const std::string& code : codeLines (entry.path(), '/'))
+            for (const auto& [pattern, what] : banned)
+                if (std::regex_search (code, pattern))
+                    found.push_back (entry.path().filename().string() + " (" + what + "): " + code);
+    }
+    for (const std::string& site : found)
+        UNSCOPED_INFO (site);
+    CHECK (found.empty());
+
+    // Main.cpp's quit routing (rule 7).
+    std::string mainSource;
+    for (const std::string& line : codeLines (root / "src" / "Main.cpp", '/'))
+        mainSource += line + "\n";
+    const auto close = mainSource.find ("void closeButtonPressed() override");
+    REQUIRE (close != std::string::npos);
+    const std::string closeBody = mainSource.substr (close, mainSource.find ('}', close) - close);
+    CAPTURE (closeBody);
+    CHECK (closeBody.find ("systemRequestedQuit()") != std::string::npos);
+    CHECK (closeBody.find ("::quit") == std::string::npos);
+    CHECK (mainSource.find ("void systemRequestedQuit() override") != std::string::npos);
+    const auto request = mainSource.find ("mainComponentRequestQuit (");
+    REQUIRE (request != std::string::npos);
+    const std::string requestLine = mainSource.substr (request, mainSource.find ('\n', request) - request);
+    CAPTURE (requestLine);
+    CHECK (requestLine.find ("JUCEApplicationBase::quit()") != std::string::npos);
+    CHECK (requestLine.find ("systemRequestedQuit") == std::string::npos);
+}
+
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part
 // alone is shortened in its middle, and shortening is by code point. `fits` here is a code-point budget.
 TEST_CASE ("ADR-0076 the status line's shortening rule never mixes a message's parts", "[ui][g6][status-whole][status-shorten]")

@@ -8,6 +8,23 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 29d: the app is built without modal loops (ADR-0077 rule 1)
+
+**What changed:** the `YesDaw` target now builds with `JUCE_MODAL_LOOPS_PERMITTED=0`, so any blocking JUCE dialog call
+fails to compile. All 24 shell files rebuilt clean. The test harnesses keep `1`.
+
+**Gate** `ADR-0077 the app runs no nested modal loop`, a text gate for what the compiler cannot see:
+- the flag on the app's target;
+- in `src/`: no `JUCE_MODAL_LOOPS_PERMITTED`, no dispatch loop, no `AlertWindow::show...Box`, no raw Win32 dialog or
+  message loop, and no seam called outside `ask`;
+- `Main.cpp`'s quit routing.
+
+**Bites:** five mutations, one per rule (the flag back to 1, a blocking box, a direct seam call, the close button
+quitting at once, the quit answer asking again). There is no separate critic: the unit is a build flag plus a text
+gate, the ADR had two passes, and CI compiles the app on all three platforms.
+
+**Next:** 29e (the Windows paint drive), then the close-out's unit 7.
+
 ## 2026-10-13 — UI correctness pass unit 29c: the missing-audio questions ask without a nested loop (ADR-0077)
 
 **What changed:**
