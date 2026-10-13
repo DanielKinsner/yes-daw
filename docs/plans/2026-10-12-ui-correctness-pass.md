@@ -571,7 +571,7 @@ Two commits.
 This unit touches only `tools/` and is independent of the product units. It must land before the
 close-out rubric pass.
 
-- [ ] **Fix**, `tools/session-drive.ps1` C#.
+- [x] **Fix**, `tools/session-drive.ps1` C#.
   - Add `AppWindowsAbove (main)`. It walks up the z-order with `GW_HWNDPREV`, capped at 1024 steps.
     It keeps a window only if it is in the same process, visible, not minimised, not cloaked and not
     `WS_EX_LAYERED`. Layered windows are JUCE's drop-shadow strips.
@@ -583,7 +583,7 @@ close-out rubric pass.
     would trip `HoverStrokeShown`.
   - Update the header at line 31.
   - A plain screen copy is rejected: it pulls in other apps' windows (D3).
-- [ ] **Gate.** A new Windows-only ctest, `YesDawSessionDriveCaptureCheck`, running
+- [x] **Gate.** A new Windows-only ctest, `YesDawSessionDriveCaptureCheck`, running
   `tools/test-session-drive-capture.ps1`. The headless chooser check stays untouched.
   - **Windows** (WinForms, on the real `YesDawDrive` type):
     - a main window;

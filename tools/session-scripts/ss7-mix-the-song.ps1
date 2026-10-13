@@ -677,10 +677,10 @@ function VisibleBox([string] $target) {
   return $r
 }
 Hover 'timeline'
-$restShot = Shot 'ss7-pointer-rest'
+$restShot = Shot 'ss7-pointer-rest' -MainOnly   # a reappearing JUCE tooltip would trip HoverStrokeShown
 foreach ($target in @('header.meter', 'header.tempo')) {
   Hover $target
-  $why = HoverStrokeShown $restShot (Shot ('ss7-pointer-hover-' + $target.Replace('.', '-'))) (VisibleBox $target)
+  $why = HoverStrokeShown $restShot (Shot ('ss7-pointer-hover-' + $target.Replace('.', '-')) -MainOnly) (VisibleBox $target)
   [void](Assert ($why -eq '') ('the pointer over ' + $target + ' shows the 1 px line inside its edge' + $(if ($why) { ' (' + $why + ')' })))
 }
 # Held: the tempo cell (a still press leaves the tempo and the undo history alone - UI correctness pass unit 1; it once
@@ -695,7 +695,7 @@ foreach ($target in @('header.tempo', 'header.meter')) {
   [YesDawDrive]::MouseMoveAbs($pt[0], $pt[1]); Start-Sleep -Milliseconds 80
   [YesDawDrive]::MouseButton($true, $false); Start-Sleep -Milliseconds 350
   $edges = if ($target -eq 'header.meter') { @('right') } else { @('left', 'right') }   # the chooser's text sits at its left
-  $why = PressedStrokeShown (Shot ('ss7-pointer-pressed-' + $target.Replace('.', '-'))) $rect $width $edges
+  $why = PressedStrokeShown (Shot ('ss7-pointer-pressed-' + $target.Replace('.', '-')) -MainOnly) $rect $width $edges
   [YesDawDrive]::MouseButton($false, $false); Start-Sleep -Milliseconds 200
   [void](Assert ($why -eq '') ('held down, ' + $target + ' shows the ' + $width + ' px pressed line' + $(if ($why) { ' (' + $why + ')' })))
   if ($target -eq 'header.tempo') {

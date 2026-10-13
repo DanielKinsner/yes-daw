@@ -8,6 +8,44 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 14: evidence shots show the app's popups and alerts
+
+**What changes (tools only):** the drive's `Shot` captured the main window alone, so a shot of an open menu or an
+alert showed neither - the rubric could not judge them. `CaptureClient` now composites the app's own windows above the
+main window over its client area (the canvas stays the client's size) and returns how many it drew; `Shot` logs
+`(+N app windows)`. `AppWindowsAbove` walks up the z-order (`GW_HWNDPREV`, at most 1024 steps) and keeps a window only if
+it is the same process, visible, not minimised, not cloaked and not layered (JUCE's drop-shadow strips). A plain screen
+copy was rejected: it pulls in other apps' windows (D3). `Shot -MainOnly` keeps the old capture; SS7 Step 16's three
+pointer shots use it (a reappearing JUCE tooltip would trip `HoverStrokeShown`).
+
+**Gate:** the Windows-only ctest `YesDawSessionDriveCaptureCheck` (`tools/test-session-drive-capture.ps1`) on the real
+`YesDawDrive` type, with real windows: a main window; above it a topmost "menu", an unowned non-topmost "alert" (a JUCE
+alert's shape) and a layered window; below it a same-process window; over it another process's window.
+- **Preconditions** come from `WindowFromPoint`, plus the alert's owner and topmost state; a failed precondition is a
+  FAIL naming the window in the way.
+- **Asserts:** the PNG is exactly main's client size; the menu and alert show; the layered, below and foreign windows'
+  places show main's colour; 2 composited; and main only leaves the menu's place main's colour.
+- **Run here** (the desktop free, Dan away): PASS, 14 checks.
+
+**Bites, M1-M7, all red for their own reason:**
+- M1 today's code (0 composited);
+- M2 the z-order walked the other way (the window below shows);
+- M3 a screen copy (the layered and foreign windows show);
+- M4 topmost only (no alert);
+- M5 owned or topmost only (no alert);
+- M6 no layered filter (3 composited);
+- M7 no process filter (the foreign window, 3 composited).
+
+The first M5 run did not bite: WinForms had given the test's "alert" an owner, so it was no longer a JUCE alert's shape.
+The test now clears the owner and checks it as a precondition. The first M6 run's red was a compile error (an
+unreachable-code warning); the mutation was rewritten so the compiler cannot see the condition is false, and it then
+went red for the right reason.
+
+**Process:** tools only, no critic, per ADR-0075. **Risk the plan names:** the first exact-code CI run must show the
+Windows runner has an interactive desktop; if not, the gate is redesigned with a critic, never skipped.
+
+**Drive:** the capture shots (SS3/SS4/SS8 evidence with N >= 1, SS7 Step 16 "main only") in unit 15's batch.
+
 ## 2026-10-12 — UI correctness pass unit 13: mixer strip parts - the drag readout in its cell, narrow I/O whole, lit cells legible
 
 **What changes:**

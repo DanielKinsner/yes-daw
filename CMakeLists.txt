@@ -564,6 +564,11 @@ if (YESDAW_BUILD_APPS)
     add_test(NAME YesDawSessionDriveChooserCheck
              COMMAND powershell -NoProfile -ExecutionPolicy Bypass
                      -File ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-session-drive-chooser.ps1)
+    # UI correctness pass unit 14: the drive's shots composite the app's own popups and alerts, nothing else. It opens real
+    # windows, so it needs an interactive desktop (the Windows CI runner has one).
+    add_test(NAME YesDawSessionDriveCaptureCheck
+             COMMAND powershell -NoProfile -ExecutionPolicy Bypass
+                     -File ${CMAKE_CURRENT_SOURCE_DIR}/tools/test-session-drive-capture.ps1)
     add_test(NAME YesDawVerifyHardwareSelfTest
              COMMAND powershell -NoProfile -ExecutionPolicy Bypass
                      -File ${CMAKE_CURRENT_SOURCE_DIR}/tools/verify-hardware.ps1 -SelfTest)

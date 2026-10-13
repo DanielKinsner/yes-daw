@@ -28,7 +28,9 @@
 #   Probe                              - the latest probe document (PSObject)
 #   WaitProbe { <predicate on $p> } [-TimeoutMs n] - polls; returns $true/$false
 #   Assert <bool> "<message>"          - records PASS/FAIL under the current step; continues
-#   Shot "<name>"                      - PNG of the window's client area into -Shots
+#   Shot "<name>" [-MainOnly]          - PNG of the window's client area into -Shots, with the app's own popup menus and
+#                                        alerts composited over it (never another app's window); -MainOnly: the main
+#                                        window alone (a pointer shot a reappearing tooltip would spoil)
 #   Resize <clientWidth> <clientHeight>
 #   WaitDialog "<title contains>" [-TimeoutMs n] - a native dialog (file chooser) is up
 #   NewProjectChooser [-ViaKey]        - File > New (button, or Ctrl+N): the New Project dialog, its Create, then
@@ -73,6 +75,7 @@ New-Item -ItemType Directory -Force -Path $Shots | Out-Null
 # --- Win32 --------------------------------------------------------------------------------------
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @'
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Drawing;
@@ -95,6 +98,9 @@ public static class YesDawDrive
     [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr h, ref POINT p);
     [DllImport("user32.dll")] public static extern bool MoveWindow(IntPtr h, int x, int y, int w, int hh, bool repaint);
     [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint flags);
+    [DllImport("user32.dll")] static extern IntPtr GetWindow(IntPtr h, uint cmd);
+    [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+    [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int attribute, out int value, int size);
     [DllImport("user32.dll")] public static extern int GetSystemMetrics(int i);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr ctx);
@@ -336,9 +342,38 @@ public static class YesDawDrive
         Inject(a);
     }
 
+    // UI correctness pass unit 14 (rubric FIX 15): the app's own top-level windows above its main window - its popup menus
+    // and alerts - nearest first, walking up the z-order (GW_HWNDPREV, at most 1024 steps). Kept: the same process,
+    // visible, not minimised, not cloaked, not layered (JUCE's drop-shadow strips are layered). Never another app's (D3).
+    public static List<IntPtr> AppWindowsAbove(IntPtr main)
+    {
+        List<IntPtr> found = new List<IntPtr>();
+        uint pid; GetWindowThreadProcessId(main, out pid);
+        IntPtr h = main;
+        for (int step = 0; step < 1024; step++)
+        {
+            h = GetWindow(h, 3 /* GW_HWNDPREV */);
+            if (h == IntPtr.Zero)
+                break;
+            uint owner; GetWindowThreadProcessId(h, out owner);
+            if (owner != pid || !IsWindowVisible(h) || IsIconic(h))
+                continue;
+            int cloaked;
+            if (DwmGetWindowAttribute(h, 14 /* DWMWA_CLOAKED */, out cloaked, 4) == 0 && cloaked != 0)
+                continue;
+            if ((GetWindowLongPtr(h, -20 /* GWL_EXSTYLE */).ToInt64() & 0x80000 /* WS_EX_LAYERED */) != 0)
+                continue;
+            found.Add(h);
+        }
+        return found;
+    }
+
     // Client-area PNG of a window. PrintWindow with PW_RENDERFULLCONTENT (2) renders
     // GPU-composed content; falls back to a screen copy when PrintWindow refuses.
-    public static void CaptureClient(IntPtr h, string path)
+    // Unit 14: with `composite`, the app's own windows above it (AppWindowsAbove) are printed the same way and drawn over
+    // it at their screen offsets, clipped to its client area - the canvas stays the client's size. Returns how many were
+    // drawn there.
+    public static int CaptureClient(IntPtr h, string path, bool composite)
     {
         RECT wr; GetWindowRect(h, out wr);
         RECT cr; GetClientRect(h, out cr);
@@ -358,8 +393,39 @@ public static class YesDawDrive
             }
             Rectangle client = new Rectangle(origin.X - wr.Left, origin.Y - wr.Top, cw, ch);
             client.Intersect(new Rectangle(0, 0, ww, wh));
+            int drawn = 0;
+            if (composite)
+            {
+                List<IntPtr> above = AppWindowsAbove(h);
+                using (Graphics g = Graphics.FromImage(whole))
+                {
+                    g.SetClip(client);
+                    for (int i = above.Count - 1; i >= 0; i--)   // the farthest first, so the topmost is drawn last
+                    {
+                        RECT ovr; GetWindowRect(above[i], out ovr);
+                        Rectangle at = new Rectangle(ovr.Left - wr.Left, ovr.Top - wr.Top, Math.Max(1, ovr.Right - ovr.Left), Math.Max(1, ovr.Bottom - ovr.Top));
+                        if (!at.IntersectsWith(client))
+                            continue;
+                        using (Bitmap overlay = new Bitmap(at.Width, at.Height, PixelFormat.Format32bppRgb))
+                        {
+                            bool printed;
+                            using (Graphics og = Graphics.FromImage(overlay))
+                            {
+                                IntPtr ohdc = og.GetHdc();
+                                printed = PrintWindow(above[i], ohdc, 2);
+                                og.ReleaseHdc(ohdc);
+                            }
+                            if (!printed)
+                                continue;
+                            g.DrawImage(overlay, at, new Rectangle(0, 0, at.Width, at.Height), GraphicsUnit.Pixel);
+                            drawn++;
+                        }
+                    }
+                }
+            }
             using (Bitmap clipped = whole.Clone(client, PixelFormat.Format32bppArgb))
                 clipped.Save(path, ImageFormat.Png);
+            return drawn;
         }
     }
 }
@@ -828,11 +894,11 @@ function DragWithin([string] $target, [int] $fromX, [int] $fromY, [int] $toX, [i
   Start-Sleep -Milliseconds 100
 }
 
-function Shot([string] $name) {
+function Shot([string] $name, [switch] $MainOnly) {
   $path = Join-Path $Shots ($name + '.png')
   try {
-    [YesDawDrive]::CaptureClient($script:Hwnd, $path)
-    Write-Host ("  [shot] {0}" -f $path)
+    $composited = [YesDawDrive]::CaptureClient($script:Hwnd, $path, -not $MainOnly)
+    Write-Host ("  [shot] {0} {1}" -f $path, $(if ($MainOnly) { '(main only)' } else { "(+$composited app windows)" }))
   } catch {
     Write-Host ("  [shot] FAILED {0}: {1}" -f $path, $_.Exception.Message) -ForegroundColor Yellow
   }
