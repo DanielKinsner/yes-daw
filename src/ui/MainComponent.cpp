@@ -1114,11 +1114,15 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
             (void) appModel.toggleSamplerPadModeOnSelectedTrack (padKey);
             recordLastAction (yesdaw::ui::UiActionId::SamplerPadModeToggle);
         }
-        else if (fileChoices.chooseSamplerPadFile)
+        else
         {
-            const std::filesystem::path path = fileChoices.chooseSamplerPadFile();
-            if (! path.empty())
-                loadSamplerPadFromPath (padKey, path);
+            ask (fileChoices.chooseSamplerPadFile, true, [this, padKey] (std::optional<std::filesystem::path> path) {   // ADR-0077
+                if (path && ! path->empty())
+                    loadSamplerPadFromPath (padKey, *path);
+                refreshActionState();
+                resized();
+                repaintAll();
+            });
         }
         refreshActionState();
         resized();
@@ -1974,6 +1978,7 @@ void MainComponent::postLaunchQuestion()
 
 MainComponent::~MainComponent()
 {
+    closing = true;   // ADR-0077 rule 4: a question answered from here on does nothing
     if (controlNavigationMouseListener != nullptr)
         removeMouseListener (controlNavigationMouseListener.get());
     if (pointerTracker != nullptr)

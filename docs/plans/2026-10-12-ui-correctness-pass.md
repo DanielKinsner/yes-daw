@@ -680,12 +680,17 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   relink questions. Gate: the paint count climbs while a question is up. Line 1 / 4. **Decided 2026-10-13:**
   [ADR-0077](../adr/0077-questions-without-a-nested-modal-loop.md) (two critic passes): every question, not only the
   relink ones. Units, each landing whole:
-  - **29a** the `Question` type and reply, the ask helper (open-question mark, focus restore), `attachGeneration()`; the
-    single-question flows (Import / Export Audio and MIDI, the Sampler pad, Save a Copy, Save as Template).
+  - [x] **29a** the `Question` type and reply, the ask helper (open-question mark, focus restore), `attachGeneration()`; the
+    single-question flows (Import / Export Audio and MIDI, the Sampler pad, Save a Copy, Save as Template). **Done
+    2026-10-13**; gates `[questions]` (STATUS). Its focus restore is gated by 29e's drive.
   - **29b** Save / Save As, both unsaved-changes questions, New / Open / Open Recent with ADR-0068's closing steps, and
-    quit (`mainComponentRequestQuit`, the close button, `systemRequestedQuit`).
+    quit (`mainComponentRequestQuit`, the close button, `systemRequestedQuit`). Notes from 29a's critic: on Linux the
+    zenity chooser is not modal, so a quit is refused by the open-question mark, not by modal state; `MainComponent.cpp`
+    is at 2995 of its 3000-line pin (`theme_audit_tests.cpp`), so 29b's flows go in the other shell files.
   - **29c** the relink loop, an open completion, the launch-question tail; SS8 runs.
-  - **29d** `JUCE_MODAL_LOOPS_PERMITTED=0` on `YesDaw` and the text gate.
+  - **29d** `JUCE_MODAL_LOOPS_PERMITTED=0` on `YesDaw` and the text gate; the gate also bans calling a seam outside the
+    ask helper (`fileChoices.choose...(` / `fileChoices.confirm...(` in `src/`): `Question`'s friend is the whole shell
+    class, so the compiler alone does not keep every ask on the helper (unit 29a critic).
   - **29e** (Windows drive, off CI) the paint count climbs under the SS8 launch alert and File-menu questions opened by
     mouse; Space works after a chooser without a Focus step.
 - [x] **30.** (found in unit 20) At the shortest editor dock (160 px) the piano roll has no key rows: its header and the

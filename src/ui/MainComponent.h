@@ -8,6 +8,7 @@
 #include "engine/Project.h"
 #include "ui/ContextMenus.h"
 #include "ui/MissingAudio.h"   // ADR-0062
+#include "ui/Question.h"       // ADR-0077
 #include "ui/TimelineCanvas.h"
 #include "ui/UiAppModel.h"
 
@@ -29,18 +30,20 @@ struct MainComponentFileChoices
     std::function<std::filesystem::path()> chooseNewProjectBundle;
     std::function<std::filesystem::path()> chooseOpenProjectBundle;
     std::function<std::filesystem::path()> chooseSaveAsProjectBundle;
-    std::function<std::filesystem::path()> chooseSaveACopyProjectBundle;   // ADR-0060: File > Save a Copy
+    // ADR-0077: a Question is answered at once (a function returning the answer, as the harness sets it) or later (a
+    // function handed a QuestionReply, as the native shell's chooser or alert answers); an empty path or name cancels.
+    Question<std::filesystem::path> chooseSaveACopyProjectBundle;   // ADR-0060: File > Save a Copy
     // ADR-0060: File > Save as Template asks for a name (empty = cancelled), and whether to replace a template of
     // that name (no answer = keep it).
-    std::function<std::string()> chooseSaveAsTemplateName;
-    std::function<bool (const std::string& name)> confirmReplaceTemplate;
-    std::function<std::filesystem::path()> chooseImportAudioFile;
-    std::function<std::filesystem::path()> chooseExportAudioFile;
+    Question<std::string> chooseSaveAsTemplateName;
+    Question<bool, std::string> confirmReplaceTemplate;
+    Question<std::filesystem::path> chooseImportAudioFile;
+    Question<std::filesystem::path> chooseExportAudioFile;
     // G3.7: the MIDI file choosers (the native shell opens a file box; the harness injects a path).
-    std::function<std::filesystem::path()> chooseImportMidiFile;
-    std::function<std::filesystem::path()> chooseExportMidiFile;
+    Question<std::filesystem::path> chooseImportMidiFile;
+    Question<std::filesystem::path> chooseExportMidiFile;
     // G3.9: the Sampler pad's WAV chooser (a click on a pad cell; the harness injects a path).
-    std::function<std::filesystem::path()> chooseSamplerPadFile;
+    Question<std::filesystem::path> chooseSamplerPadFile;
     std::function<engine::Project()> makeNewProject;
     // Audio device seams (usable-DAW P1 real device chooser): the native shell defaults these to the
     // JUCE device manager; the harness injects deterministic fakes so the chooser is gate-testable.
@@ -179,6 +182,8 @@ struct MainComponentSnapshot
 // Ask the shell whether the app may close (B37): true when the session is clean or the user chose
 // Save or Close through the confirm seam; false when the user cancelled.
 [[nodiscard]] bool mainComponentConfirmsClose (juce::Component& component);
+// ADR-0077: whether one of the shell's questions is waiting for its answer.
+[[nodiscard]] bool mainComponentQuestionOpen (juce::Component& component);
 
 // R9: one instance only. Every edit writes a full project snapshot and both instances
 // auto-open the same last project, so two instances editing one bundle is last-writer-wins

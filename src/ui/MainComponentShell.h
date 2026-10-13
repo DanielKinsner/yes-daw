@@ -87,6 +87,7 @@ public:
     [[nodiscard]] const yesdaw::ui::UiAutosaveRecoveryPrompt& harnessAutosaveRecovery() const noexcept;
     [[nodiscard]] const std::filesystem::path& harnessBundlePath() const noexcept { return appModel.bundlePath(); }
     [[nodiscard]] bool harnessPrimaryFileChoicesReady() const noexcept;
+    [[nodiscard]] bool harnessQuestionOpen() const noexcept { return questionOpen; }   // ADR-0077
     [[nodiscard]] bool harnessPlaybackReady() const noexcept { return appModel.playbackReady(); }
     [[nodiscard]] std::uint64_t harnessPlaybackReplaceCount() const noexcept { return appModel.playbackReplaceCount(); }
     [[nodiscard]] std::uint64_t harnessPlaybackLiveScalarsApplied() const noexcept { return appModel.playbackLiveScalarsApplied(); }
@@ -493,6 +494,42 @@ private:
     void afterProjectAttached();
     void requestProjectDeviceRate();
     void saveProjectCopy();
+    // ADR-0077: ask `question` and continue with its answer, given at once or later - never in a nested loop. The
+    // continuation hears nothing (std::nullopt) when the question was refused: another is open, there is no one to ask,
+    // the reply was dropped, or - for a project-bound question - the project was replaced meanwhile. The open-question
+    // mark is set just before the seam is called and cleared before the continuation runs, so a chain may ask its next
+    // question; keyboard focus returns to where it was.
+    template <typename Answer, typename... Args>
+    void ask (const yesdaw::ui::Question<Answer, Args...>& question,
+              bool projectBound,
+              std::type_identity_t<std::function<void (std::optional<Answer>)>> then,
+              const std::type_identity_t<Args>&... args)
+    {
+        if (! question || questionOpen || closing)
+        {
+            then (std::nullopt);
+            return;
+        }
+        questionOpen = true;
+        juce::Component::SafePointer<MainComponent> self (this);
+        juce::Component::SafePointer<juce::Component> focus (juce::Component::getCurrentlyFocusedComponent());
+        const std::uint64_t generation = appModel.attachGeneration();
+        question (args...,
+                  yesdaw::ui::QuestionReply<Answer> ([self, focus, generation, projectBound, then = std::move (then)] (
+                                                         std::optional<Answer> answer) {
+                      if (self == nullptr || self->closing)
+                          return;
+                      self->questionOpen = false;
+                      if (focus != nullptr && focus->isShowing()
+                          && juce::Component::getCurrentlyFocusedComponent() != focus.getComponent())
+                          focus->grabKeyboardFocus();
+                      if (projectBound && self->appModel.attachGeneration() != generation)
+                          answer.reset();
+                      then (std::move (answer));
+                  }));
+        // Nothing after the seam call (ADR-0077 rule 5): an answer given at once has already run.
+    }
+    void afterQuestion();   // ADR-0077: the closing steps a dispatch tail would have run
     // ADR-0062: the missing-audio questions of an open that refused over its Asset files.
     enum class RelinkOutcome { NothingMissing, Relinked, Cancelled };
     [[nodiscard]] RelinkOutcome relinkMissingAudio (const std::filesystem::path& bundle);
@@ -1476,6 +1513,8 @@ private:
     yesdaw::ui::YesDawLookAndFeel lookAndFeel;
     yesdaw::ui::UiAppModel appModel;
     yesdaw::ui::MainComponentFileChoices fileChoices;
+    bool questionOpen = false;   // ADR-0077 rule 5: one question at a time
+    bool closing = false;        // ADR-0077 rule 4: set first in the destructor; no answer runs during it
     juce::AudioDeviceManager audioDeviceManager;
     shell::TooltippedMenuBar menuBar;
     juce::TooltipWindow tooltipWindow { nullptr };   // native tooltip display (B40)

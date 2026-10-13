@@ -777,9 +777,9 @@ if ($pickedCopy) {
   [void](Assert ($dlgCopy -ne [IntPtr]::Zero) 'Save a Copy opens its own native chooser')
   if (Test-Path -LiteralPath $bundleCopy) { Remove-Item -Recurse -Force -LiteralPath $bundleCopy }
   if ($dlgCopy -ne [IntPtr]::Zero) { FileDialogEnter $bundleCopy }
-  Start-Sleep -Milliseconds 1000
+  # ADR-0077: the copy is written when the chooser's answer arrives, after the dialog has closed - wait for it.
+  [void](Assert (WaitProbe { param($q) -not [bool]$q.modal.questionOpen -and (Test-Path -LiteralPath $bundleCopy) } -TimeoutMs 8000) ('the copy exists on disk at ' + $bundleCopy))
   [void](Assert ([string](Probe).bundlePath -eq $bundleSaveAs) ('Save a Copy does NOT re-point the project (bundlePath=' + (Probe).bundlePath + ')'))
-  [void](Assert (Test-Path -LiteralPath $bundleCopy) ('the copy exists on disk at ' + $bundleCopy))
   $copyAssets = (Get-BundleAssetFiles $bundleCopy).Count
   [void](Assert ($copyAssets -ge $saveAsAssets) ('the copy carries at least the same assets (' + $copyAssets + ' vs ' + $saveAsAssets + ')'))
 }

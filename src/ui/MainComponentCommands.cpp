@@ -1643,48 +1643,44 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
             return;
 
         case yesdaw::ui::UiActionId::ProjectExportAudio:
-            if (fileChoices.chooseExportAudioFile)
-            {
-                const std::filesystem::path path = fileChoices.chooseExportAudioFile();
-                if (! path.empty())
-                    (void) appModel.startAudioExport (path);   // ADR-0058: a worker job; the UI tick reports it
-            }
+            ask (fileChoices.chooseExportAudioFile, true, [this] (std::optional<std::filesystem::path> path) {   // ADR-0077
+                if (path && ! path->empty())
+                    (void) appModel.startAudioExport (*path);   // ADR-0058: a worker job; the UI tick reports it
+                afterQuestion();
+            });
             return;
 
         // G3.7: a MIDI file lands on the SELECTED track (else the first) at the playhead; the
         // export takes the selection, else the whole project. The model names every refusal.
         case yesdaw::ui::UiActionId::ProjectImportMidi:
-            if (fileChoices.chooseImportMidiFile)
-            {
-                const std::filesystem::path path = fileChoices.chooseImportMidiFile();
+            ask (fileChoices.chooseImportMidiFile, true, [this] (std::optional<std::filesystem::path> path) {   // ADR-0077
                 const auto& tracks = appModel.project().tracks;
-                if (! path.empty() && ! tracks.empty())
+                if (path && ! path->empty() && ! tracks.empty())
                 {
                     const std::size_t lane = selectedTrackLane >= 0 && selectedTrackLane < static_cast<int> (tracks.size())
                         ? static_cast<std::size_t> (selectedTrackLane) : std::size_t {};
                     (void) appModel.importMidiFileAt (
-                        path, tracks[lane].id,
+                        *path, tracks[lane].id,
                         static_cast<yesdaw::engine::Tick> (std::max<std::int64_t> (0, appModel.context().playheadFrame)));
                 }
-            }
+                afterQuestion();
+            });
             return;
 
         case yesdaw::ui::UiActionId::ProjectExportMidi:
-            if (fileChoices.chooseExportMidiFile)
-            {
-                const std::filesystem::path path = fileChoices.chooseExportMidiFile();
-                if (! path.empty())
-                    (void) appModel.exportMidiFile (path);
-            }
+            ask (fileChoices.chooseExportMidiFile, true, [this] (std::optional<std::filesystem::path> path) {   // ADR-0077
+                if (path && ! path->empty())
+                    (void) appModel.exportMidiFile (*path);
+                afterQuestion();
+            });
             return;
 
         case yesdaw::ui::UiActionId::ProjectImportAudio:
-            if (fileChoices.chooseImportAudioFile)
-            {
-                const std::filesystem::path path = fileChoices.chooseImportAudioFile();
-                if (! path.empty())
-                    importAudioFromPath (path);   // ADR-0054 / ADR-0056: the one import any surface uses
-            }
+            ask (fileChoices.chooseImportAudioFile, true, [this] (std::optional<std::filesystem::path> path) {   // ADR-0077
+                if (path && ! path->empty())
+                    importAudioFromPath (*path);   // ADR-0054 / ADR-0056: the one import any surface uses
+                afterQuestion();
+            });
             return;
 
         case yesdaw::ui::UiActionId::ProjectSave:

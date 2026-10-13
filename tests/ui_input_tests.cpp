@@ -31977,6 +31977,251 @@ TEST_CASE ("the piano roll keeps its note rows at the shortest dock: the lanes g
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// ADR-0077 rule 2: a reply answers once - a second answer is ignored - and a reply dropped unanswered tells its asker
+// the question was refused (no answer).
+TEST_CASE ("ADR-0077 a question's reply answers once, and a reply dropped unanswered is a refusal", "[ui][input][questions]")
+{
+    std::vector<std::optional<int>> heard;
+    {
+        const yesdaw::ui::QuestionReply<int> reply ([&heard] (std::optional<int> answer) { heard.push_back (answer); });
+        const yesdaw::ui::QuestionReply<int> copy = reply;   // copies share the one answer
+        copy (7);
+        reply (8);   // ignored (asserts in a debug build)
+    }
+    REQUIRE (heard.size() == 1u);
+    REQUIRE (heard.front() == std::optional<int> (7));
+
+    heard.clear();
+    {
+        const yesdaw::ui::QuestionReply<int> reply ([&heard] (std::optional<int> answer) { heard.push_back (answer); });
+        const yesdaw::ui::QuestionReply<int> copy = reply;
+    }   // the last copy goes unanswered
+    REQUIRE (heard.size() == 1u);
+    REQUIRE_FALSE (heard.front().has_value());
+}
+
+// ADR-0077 rules 3-5: a question answered later. Until its answer nothing changes and it holds the shell's one question
+// (another is refused: never asked, the status line unchanged); its answer does the work and frees the question. A reply
+// dropped unanswered frees it too; an answer that arrives after the project was replaced, or after the shell closed, does
+// nothing. The replace-template question is asked from the name's answer (a chain).
+TEST_CASE ("ADR-0077 a question answered later: one at a time, and an answer acts only on the project it was asked under",
+           "[ui][input][shell][questions]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("questions-later");
+    const std::filesystem::path otherPath = makeTempBundlePath ("questions-later-other");
+    const std::filesystem::path sessionDirectory = bundlePath.parent_path() / (bundlePath.stem().string() + "-session");
+    std::filesystem::create_directories (sessionDirectory);
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    std::filesystem::path nextBundle = bundlePath;
+    std::optional<yesdaw::ui::QuestionReply<std::filesystem::path>> heldFile;
+    std::optional<yesdaw::ui::QuestionReply<bool>> heldReplace;
+    std::string replaceAskedFor;
+    int midiAsked = 0;
+    MainComponentFileChoices choices;
+    choices.sessionStateDirectory = sessionDirectory;
+    choices.chooseNewProjectBundle = [&nextBundle] { return nextBundle; };
+    choices.chooseImportAudioFile = [&heldFile] (yesdaw::ui::QuestionReply<std::filesystem::path> reply) { heldFile = std::move (reply); };
+    choices.chooseExportMidiFile = [&midiAsked] {
+        ++midiAsked;
+        return std::filesystem::path {};
+    };
+    choices.chooseSaveAsTemplateName = [] { return std::string ("Held chain"); };
+    choices.confirmReplaceTemplate = [&heldReplace, &replaceAskedFor] (const std::string& name, yesdaw::ui::QuestionReply<bool> reply) {
+        replaceAskedFor = name;
+        heldReplace = std::move (reply);
+    };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
+    const auto clipCount = [] (const std::filesystem::path& bundle) { return readProjectSnapshot (bundle).clips.size(); };
+
+    // Asked: held, nothing imported yet, the question open.
+    REQUIRE_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    REQUIRE (heldFile.has_value());
+    CHECK (yesdaw::ui::mainComponentQuestionOpen (*shell));
+    CHECK (clipCount (bundlePath) == 0u);
+
+    // Another question meanwhile is refused: never asked, and the status line says nothing new.
+    const std::string statusBefore = snapshotMainComponent (*shell).statusLineText;
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectExportMidi);
+    CHECK (midiAsked == 0);
+    CHECK (snapshotMainComponent (*shell).statusLineText == statusBefore);
+    CHECK (yesdaw::ui::mainComponentQuestionOpen (*shell));
+
+    // The answer imports, and frees the question: the next one is asked.
+    (*heldFile) (fixturePath);
+    CHECK (clipCount (bundlePath) == 1u);
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectExportMidi);
+    CHECK (midiAsked == 1);
+
+    // A reply dropped unanswered is a refusal: nothing imported, the question freed.
+    heldFile.reset();
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    REQUIRE (heldFile.has_value());
+    heldFile.reset();
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
+    CHECK (clipCount (bundlePath) == 1u);
+
+    // A chain: the replace question is asked from the name's answer, and holds the question in turn.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectSaveAsTemplate);
+    CHECK_FALSE (heldReplace.has_value());   // a new name: saved without asking
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectSaveAsTemplate);
+    REQUIRE (heldReplace.has_value());       // taken now: asked
+    CHECK (replaceAskedFor.find ("Held chain") != std::string::npos);
+    CHECK (yesdaw::ui::mainComponentQuestionOpen (*shell));
+    (*heldReplace) (false);
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
+
+    // Asked under one project, answered under another (New replaced it meanwhile): the answer does nothing.
+    heldFile.reset();
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    REQUIRE (heldFile.has_value());
+    nextBundle = otherPath;
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    REQUIRE (snapshotMainComponent (*shell).bundlePath == otherPath);
+    (*heldFile) (fixturePath);
+    CHECK (clipCount (otherPath) == 0u);
+    CHECK (clipCount (bundlePath) == 1u);
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
+
+    // Asked, then the shell closes: the answer does nothing (and nothing crashes).
+    heldFile.reset();
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    REQUIRE (heldFile.has_value());
+    shell.reset();
+    (*heldFile) (fixturePath);
+    CHECK (clipCount (otherPath) == 0u);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove_all (otherPath, ec);
+    std::filesystem::remove_all (sessionDirectory, ec);
+}
+
+// ADR-0077 rule 3, flow by flow: each of unit 29a's questions answered later does its work on the answer and not
+// before - Export Audio, Export MIDI, Import MIDI, Save a Copy, Save as Template's name and the Sampler pad's file.
+TEST_CASE ("ADR-0077 each question flow does its work on the answer, not before", "[ui][input][shell][questions]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("questions-flows");
+    const std::filesystem::path scratch = bundlePath.parent_path() / (bundlePath.stem().string() + "-files");
+    std::filesystem::create_directories (scratch);
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    std::optional<yesdaw::ui::QuestionReply<std::filesystem::path>> heldPath;
+    std::optional<yesdaw::ui::QuestionReply<std::string>> heldName;
+    std::string asked;
+    int replaceAsked = 0;
+    const auto holdPathAs = [&heldPath, &asked] (std::string name) {
+        return [&heldPath, &asked, name] (yesdaw::ui::QuestionReply<std::filesystem::path> reply) {
+            asked = name;
+            heldPath = std::move (reply);
+        };
+    };
+    MainComponentFileChoices choices;
+    choices.sessionStateDirectory = scratch / "session";
+    std::filesystem::create_directories (choices.sessionStateDirectory);
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    choices.chooseExportAudioFile = holdPathAs ("export audio");
+    choices.chooseExportMidiFile = holdPathAs ("export midi");
+    choices.chooseImportMidiFile = holdPathAs ("import midi");
+    choices.chooseSaveACopyProjectBundle = holdPathAs ("save a copy");
+    choices.chooseSamplerPadFile = holdPathAs ("sampler pad");
+    choices.chooseSaveAsTemplateName = [&heldName, &asked] (yesdaw::ui::QuestionReply<std::string> reply) {
+        asked = "template name";
+        heldName = std::move (reply);
+    };
+    choices.confirmReplaceTemplate = [&replaceAsked] (const std::string&) {
+        ++replaceAsked;
+        return false;
+    };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    const auto project = [&] { return readProjectSnapshot (bundlePath); };
+    REQUIRE (project().clips.size() == 1u);
+    const auto askHeld = [&] (UiActionId action, const std::string& expected) {
+        heldPath.reset();
+        heldName.reset();
+        asked.clear();
+        yesdaw::ui::mainComponentDispatchAction (*shell, action);
+        CAPTURE (expected, asked);
+        REQUIRE (asked == expected);
+        REQUIRE (yesdaw::ui::mainComponentQuestionOpen (*shell));
+    };
+
+    // Export Audio: no file until the answer; then the worker writes it.
+    const std::filesystem::path wav = scratch / "held.wav";
+    askHeld (UiActionId::ProjectExportAudio, "export audio");
+    CHECK_FALSE (std::filesystem::exists (wav));
+    (*heldPath) (wav);
+    yesdaw::ui::mainComponentWaitForExport (*shell);
+    CHECK (std::filesystem::exists (wav));
+
+    // Export MIDI (a MIDI clip with a note to export): no file until the answer.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    juce::Component& roll = requirePianoRollComponent (*shell);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::mixerHeight);
+    const auto rollGrid = yesdaw::ui::pianoRollCanvasGeometry (roll.getLocalBounds()).grid;
+    doubleClickAt (roll, rollGrid.getCentre());
+    REQUIRE (project().midiClips.size() == 1u);
+    REQUIRE (project().midiClips.front().notes.size() == 1u);
+    const std::filesystem::path mid = scratch / "held.mid";
+    askHeld (UiActionId::ProjectExportMidi, "export midi");
+    CHECK_FALSE (std::filesystem::exists (mid));
+    (*heldPath) (mid);
+    REQUIRE (std::filesystem::exists (mid));
+
+    // Import MIDI: no clip until the answer.
+    askHeld (UiActionId::ProjectImportMidi, "import midi");
+    CHECK (project().midiClips.size() == 1u);
+    (*heldPath) (mid);
+    CHECK (project().midiClips.size() == 2u);
+
+    // Save a Copy: no copy until the answer.
+    const std::filesystem::path copy = scratch / "held copy.yesdaw";
+    askHeld (UiActionId::ProjectSaveACopy, "save a copy");
+    CHECK_FALSE (std::filesystem::exists (copy));
+    (*heldPath) (copy);
+    CHECK (std::filesystem::exists (copy));
+    CHECK (snapshotMainComponent (*shell).bundlePath == bundlePath);   // this project stays current
+
+    // Save as Template: no template until the name arrives (a second save of that name asks to replace it).
+    askHeld (UiActionId::ProjectSaveAsTemplate, "template name");
+    (*heldName) (std::string ("Held flow"));
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
+    CHECK (replaceAsked == 0);
+    askHeld (UiActionId::ProjectSaveAsTemplate, "template name");
+    (*heldName) (std::string ("Held flow"));
+    CHECK (replaceAsked == 1);   // the first answer saved it
+
+    // The Sampler pad: no pad until the file arrives.
+    juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    mouseDownAt (*rail, { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowTrackTab));
+    auto* kind = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "track.inspector.instrument"));
+    REQUIRE (kind != nullptr);
+    kind->setSelectedId (3, juce::sendNotificationSync);   // Sampler
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewInstrument);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    heldPath.reset();
+    asked.clear();
+    yesdaw::ui::mainComponentInstrumentPanelClickPad (*shell, 36, false, false);
+    REQUIRE (asked == "sampler pad");
+    CHECK (project().tracks[0].samplerPads.empty());
+    (*heldPath) (fixturePath);
+    CHECK (project().tracks[0].samplerPads.size() == 1u);
+    CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
+
+    shell.reset();
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove_all (scratch, ec);
+}
+
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part
 // alone is shortened in its middle, and shortening is by code point. `fits` here is a code-point budget.
 TEST_CASE ("ADR-0076 the status line's shortening rule never mixes a message's parts", "[ui][g6][status-whole][status-shorten]")

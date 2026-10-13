@@ -244,33 +244,57 @@ MainComponent::RelinkOutcome MainComponent::relinkMissingAudio (const std::files
     return RelinkOutcome::Relinked;
 }
 
-// File > Save as Template (ADR-0060): a name, the replace question when that name is taken, then the layout.
+// File > Save as Template (ADR-0060): a name, the replace question when that name is taken, then the layout. ADR-0077:
+// each question answered at once or later; the replace question is asked from the name's answer.
 void MainComponent::saveProjectAsTemplate()
 {
-    if (! fileChoices.chooseSaveAsTemplateName)
-        return;
-    const std::string name = fileChoices.chooseSaveAsTemplateName();
-    if (name.empty())
-        return;
-    const bool taken = appModel.templateExists (name);
-    if (taken && ! (fileChoices.confirmReplaceTemplate && fileChoices.confirmReplaceTemplate (appModel.templateListedName (name))))
-        return;
-    const UiActionDispatchResult saved = appModel.saveProjectAsTemplate (name, taken);
-    if (! saved.dispatched)
-        appModel.reportStatus (std::string ("Save as Template failed: ") + saved.state.disabledReason, true);
+    ask (fileChoices.chooseSaveAsTemplateName, true, [this] (std::optional<std::string> name) {
+        if (! name || name->empty())
+        {
+            afterQuestion();
+            return;
+        }
+        const auto save = [this] (const std::string& chosen, bool replace) {
+            const UiActionDispatchResult saved = appModel.saveProjectAsTemplate (chosen, replace);
+            if (! saved.dispatched)
+                appModel.reportStatus (std::string ("Save as Template failed: ") + saved.state.disabledReason, true);
+            afterQuestion();
+        };
+        if (! appModel.templateExists (*name))
+        {
+            save (*name, false);
+            return;
+        }
+        ask (fileChoices.confirmReplaceTemplate, true,
+             [this, save, chosen = *name] (std::optional<bool> replace) {
+                 if (replace.value_or (false))
+                     save (chosen, true);
+                 else
+                     afterQuestion();
+             },
+             appModel.templateListedName (*name));
+    });
 }
 
 // File > Save a Copy (ADR-0060): the copy is written and closed; this project stays current, saved or not.
 void MainComponent::saveProjectCopy()
 {
-    if (! fileChoices.chooseSaveACopyProjectBundle)
-        return;
-    const std::filesystem::path path = fileChoices.chooseSaveACopyProjectBundle();
-    if (path.empty())
-        return;
-    const UiActionDispatchResult copied = appModel.saveProjectBundleCopy (path);
-    if (! copied.dispatched)
-        appModel.reportStatus (std::string ("Save a Copy failed: ") + copied.state.disabledReason, true);
+    ask (fileChoices.chooseSaveACopyProjectBundle, true, [this] (std::optional<std::filesystem::path> path) {   // ADR-0077
+        if (path && ! path->empty())
+        {
+            const UiActionDispatchResult copied = appModel.saveProjectBundleCopy (*path);
+            if (! copied.dispatched)
+                appModel.reportStatus (std::string ("Save a Copy failed: ") + copied.state.disabledReason, true);
+        }
+        afterQuestion();
+    });
+}
+
+// ADR-0077: what a dispatch tail would have run after the question, run when its answer arrives.
+void MainComponent::afterQuestion()
+{
+    refreshActionState();
+    repaintAll();
 }
 
 } // namespace yesdaw::ui

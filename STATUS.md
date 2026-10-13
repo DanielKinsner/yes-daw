@@ -8,6 +8,59 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 29a: seven of the shell's questions asked without a nested loop (ADR-0077)
+
+**What changes (ADR-0077 rules 2-6, the first of five units):**
+- `src/ui/Question.h`: a `Question<Answer, Args...>` is answered at once (a function returning the answer, as every
+  test sets a seam) or later (a function handed a `QuestionReply`, as the native shell's chooser or alert answers).
+  - A reply answers once; a second call is ignored.
+  - A reply dropped unanswered tells the asker the question was refused.
+- Seven seams are Questions now: Save a Copy, Save as Template's name and replace confirmation, Import / Export Audio,
+  Import / Export MIDI, and the Sampler pad's file. The other six follow in 29b and 29c.
+- `MainComponent::ask` is the one helper that asks. Each flow continues in its callback, and a function that asks returns
+  nothing.
+  - It holds the shell's one open question: a second question meanwhile is refused, never asked, and the status line
+    says nothing new.
+  - It clears the mark before the continuation runs, so a chain (the template name, then the replace question) can ask
+    its next question.
+  - It puts keyboard focus back.
+  - A project-bound answer does nothing if the project was replaced meanwhile. This uses the model's new
+    `attachGeneration()`, not the bundle path, which Save As changes.
+  - Nothing is asked once the shell is closing.
+- The native shell asks these seven with `FileChooser::launchAsync` (a chooser that owns itself until it answers), an
+  `AlertWindow` entered into modal state with a callback (the template's name, its field focused), and
+  `AlertWindow::showAsync` (the replace confirmation). No nested loop runs for any of them.
+- The probe publishes `modal.questionOpen`. SS8's Save a Copy step waits for the copy rather than sleeping, because the
+  copy is now written after the dialog closes.
+
+**Gates `[questions]`:**
+- A reply answers once, and a reply dropped unanswered is a refusal.
+- One question at a time, with the answer acting only on the project it was asked under. Covered: nothing changes before
+  the answer; a second question is refused; the answer frees the mark; a dropped reply frees it; the template chain;
+  an answer after New replaced the project does nothing; an answer after the shell closed does nothing.
+- Each of the six other flows does its work on the answer, not before: Export Audio, Export MIDI, Import MIDI, Save a
+  Copy, the template name, and the Sampler pad.
+
+**Bites:**
+- M1 a question is asked while another is open; M2 the mark is cleared when the seam returns rather than by the answer;
+  M3 an answer acts on whatever project is open; M4 a reply dropped unanswered is not a refusal;
+- M5-M10, one per flow: Save a Copy, the template name, Import MIDI, Export MIDI, the Sampler pad and Export Audio each
+  ignore their answer.
+
+**Critic:** no blockers. Taken here:
+- held-answer gates for every flow (only Import Audio and the replace question were held at first);
+- the probe's `questionOpen`;
+- a safe pointer for the template window;
+- refusing a question while the shell closes;
+- SS8's wait for the copy.
+
+For later:
+- the ban on calling a seam outside `ask` (29d's text gate);
+- Linux's non-modal chooser and the 3000-line pin on `MainComponent.cpp` (29b).
+
+The focus restore needs a real focused window, which a background test process cannot hold reliably, so its gate is
+29e's Windows drive (Space works after a chooser without a Focus step), as the ADR planned.
+
 ## 2026-10-13 — UI correctness pass unit 30: the piano roll keeps its note rows at the shortest dock
 
 **The defect (FIX 30):** at the shortest editor dock (160 px) the piano roll had no key rows. Its header, insets and a

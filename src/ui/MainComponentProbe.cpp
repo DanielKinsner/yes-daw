@@ -718,6 +718,7 @@ juce::String MainComponent::buildStateProbeJson()
                 ++menus;
         modal->setProperty ("count", modalManager->getNumModalComponents());
         modal->setProperty ("menus", menus);
+        modal->setProperty ("questionOpen", questionOpen);   // ADR-0077: one of the shell's questions awaits its answer
         root->setProperty ("modal", juce::var (modal));
     }
     root->setProperty ("lastAction", juce::String (lastActionStableId));
@@ -1589,6 +1590,25 @@ juce::String stableIdForAction (yesdaw::ui::UiActionId action)
     return {};
 }
 
+std::filesystem::path pathFromJuceFile (const juce::File& file);
+
+// ADR-0077 rule 6: a native file chooser asked without a nested loop. It owns itself until it answers - its callback
+// holds it, and JUCE moves the callback out before calling it, so the chooser goes once the answer is given.
+constexpr int kNativeOpenFile = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+constexpr int kNativeSaveFile = juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles
+                              | juce::FileBrowserComponent::warnAboutOverwriting;
+
+void askNativeFile (const juce::String& title, const juce::File& start, const juce::String& patterns, int flags,
+                    std::function<std::filesystem::path (const juce::File&)> answerFor,
+                    yesdaw::ui::QuestionReply<std::filesystem::path> reply)
+{
+    auto chooser = std::make_shared<juce::FileChooser> (title, start, patterns, true);
+    chooser->launchAsync (flags, [chooser, answerFor = std::move (answerFor), reply] (const juce::FileChooser& done) {
+        const juce::File result = done.getResult();
+        reply (result == juce::File() ? std::filesystem::path {} : answerFor (result));
+    });
+}
+
 std::filesystem::path pathFromJuceFile (const juce::File& file)
 {
     const std::string utf8 = file.getFullPathName().toStdString();
@@ -1628,21 +1648,32 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
                 return pathFromJuceFile (chooser.getResult());
         }
     };
-    choices.chooseSaveAsTemplateName = [] {   // ADR-0060: File > Save as Template
-        juce::AlertWindow window ("Save as Template", "The template's name (its tracks, buses and routing are saved):",
-                                  juce::MessageBoxIconType::NoIcon);
-        window.addTextEditor ("name", "My template");
-        window.addButton ("Save", 1, juce::KeyPress (juce::KeyPress::returnKey));
-        window.addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
-        if (window.runModalLoop() != 1)
-            return std::string {};
-        return window.getTextEditorContents ("name").trim().toStdString();
+    choices.chooseSaveAsTemplateName = [] (yesdaw::ui::QuestionReply<std::string> reply) {   // ADR-0060 / ADR-0077
+        auto* window = new juce::AlertWindow ("Save as Template", "The template's name (its tracks, buses and routing are saved):",
+                                              juce::MessageBoxIconType::NoIcon);
+        window->addTextEditor ("name", "My template");
+        window->addButton ("Save", 1, juce::KeyPress (juce::KeyPress::returnKey));
+        window->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
+        // Modal without a loop; the callback reads the name before the window is deleted.
+        window->enterModalState (true,
+                                 juce::ModalCallbackFunction::create (
+                                     [safeWindow = juce::Component::SafePointer<juce::AlertWindow> (window), reply] (int result) {
+                                         reply (result == 1 && safeWindow != nullptr
+                                                    ? safeWindow->getTextEditorContents ("name").trim().toStdString()
+                                                    : std::string {});
+                                     }),
+                                 true);
+        if (juce::TextEditor* field = window->getTextEditor ("name"))
+            field->grabKeyboardFocus();
     };
-    choices.confirmReplaceTemplate = [] (const std::string& name) {
-        return juce::AlertWindow::showOkCancelBox (juce::MessageBoxIconType::WarningIcon, "Replace template?",
-                                                   "A template named " + juce::String::fromUTF8 (name.c_str())
-                                                       + " exists. Replace it?",
-                                                   "Replace", "Cancel");
+    choices.confirmReplaceTemplate = [] (const std::string& name, yesdaw::ui::QuestionReply<bool> reply) {
+        juce::AlertWindow::showAsync (juce::MessageBoxOptions()
+                                          .withIconType (juce::MessageBoxIconType::WarningIcon)
+                                          .withTitle ("Replace template?")
+                                          .withMessage ("A template named " + juce::String::fromUTF8 (name.c_str()) + " exists. Replace it?")
+                                          .withButton ("Replace")
+                                          .withButton ("Cancel"),
+                                      [reply] (int result) { reply (result == 1); });
     };
 
     choices.chooseNewProjectBundle = [] {
@@ -1678,66 +1709,40 @@ yesdaw::ui::MainComponentFileChoices makeNativeFileChoices()
         return withExtension (pathFromJuceFile (chooser.getResult()), ".yesdaw");
     };
 
-    choices.chooseSaveACopyProjectBundle = [] {   // ADR-0060
-        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Save a Copy of the YES DAW Project",
-                                   documents.getChildFile ("Untitled copy.yesdaw"),
-                                   "*.yesdaw",
-                                   true);
-        if (! chooser.browseForFileToSave (true))
-            return std::filesystem::path {};
-
-        return withExtension (pathFromJuceFile (chooser.getResult()), ".yesdaw");
+    // ADR-0077: the choosers below are asked without a nested loop and answer through their reply.
+    using PathReply = yesdaw::ui::QuestionReply<std::filesystem::path>;
+    const auto documents = [] { return juce::File::getSpecialLocation (juce::File::userDocumentsDirectory); };
+    choices.chooseSaveACopyProjectBundle = [documents] (PathReply reply) {   // ADR-0060
+        askNativeFile ("Save a Copy of the YES DAW Project", documents().getChildFile ("Untitled copy.yesdaw"), "*.yesdaw",
+                       kNativeSaveFile, [] (const juce::File& file) { return withExtension (pathFromJuceFile (file), ".yesdaw"); },
+                       std::move (reply));
     };
 
-    choices.chooseImportAudioFile = [] {
-        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Import Audio", documents, juce::String (yesdaw::io::importAudioFilePatterns()), true);   // ADR-0054
-        if (! chooser.browseForFileToOpen())
-            return std::filesystem::path {};
-
-        return pathFromJuceFile (chooser.getResult());
+    choices.chooseImportAudioFile = [documents] (PathReply reply) {
+        askNativeFile ("Import Audio", documents(), juce::String (yesdaw::io::importAudioFilePatterns()), kNativeOpenFile,   // ADR-0054
+                       [] (const juce::File& file) { return pathFromJuceFile (file); }, std::move (reply));
     };
 
-    choices.chooseExportAudioFile = [] {
-        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Export YES DAW Mix",
-                                   documents.getChildFile ("YES DAW Mix.wav"),
-                                   "*.wav",
-                                   true);
-        if (! chooser.browseForFileToSave (true))
-            return std::filesystem::path {};
-
-        return withExtension (pathFromJuceFile (chooser.getResult()), ".wav");
+    choices.chooseExportAudioFile = [documents] (PathReply reply) {
+        askNativeFile ("Export YES DAW Mix", documents().getChildFile ("YES DAW Mix.wav"), "*.wav", kNativeSaveFile,
+                       [] (const juce::File& file) { return withExtension (pathFromJuceFile (file), ".wav"); }, std::move (reply));
     };
 
     // G3.7: the MIDI file choosers.
-    choices.chooseImportMidiFile = [] {
-        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Import MIDI File", documents, "*.mid;*.midi", true);
-        if (! chooser.browseForFileToOpen())
-            return std::filesystem::path {};
-
-        return pathFromJuceFile (chooser.getResult());
+    choices.chooseImportMidiFile = [documents] (PathReply reply) {
+        askNativeFile ("Import MIDI File", documents(), "*.mid;*.midi", kNativeOpenFile,
+                       [] (const juce::File& file) { return pathFromJuceFile (file); }, std::move (reply));
     };
 
     // G3.9: the Sampler pad's WAV chooser.
-    choices.chooseSamplerPadFile = [] {
-        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Load Sample onto Pad", documents, juce::String (yesdaw::io::importAudioFilePatterns()), true);   // ADR-0054
-        if (! chooser.browseForFileToOpen())
-            return std::filesystem::path {};
-
-        return pathFromJuceFile (chooser.getResult());
+    choices.chooseSamplerPadFile = [documents] (PathReply reply) {
+        askNativeFile ("Load Sample onto Pad", documents(), juce::String (yesdaw::io::importAudioFilePatterns()), kNativeOpenFile,   // ADR-0054
+                       [] (const juce::File& file) { return pathFromJuceFile (file); }, std::move (reply));
     };
 
-    choices.chooseExportMidiFile = [] {
-        const juce::File documents = juce::File::getSpecialLocation (juce::File::userDocumentsDirectory);
-        juce::FileChooser chooser ("Export MIDI File", documents.getChildFile ("YES DAW.mid"), "*.mid", true);
-        if (! chooser.browseForFileToSave (true))
-            return std::filesystem::path {};
-
-        return withExtension (pathFromJuceFile (chooser.getResult()), ".mid");
+    choices.chooseExportMidiFile = [documents] (PathReply reply) {
+        askNativeFile ("Export MIDI File", documents().getChildFile ("YES DAW.mid"), "*.mid", kNativeSaveFile,
+                       [] (const juce::File& file) { return withExtension (pathFromJuceFile (file), ".mid"); }, std::move (reply));
     };
 
     return choices;
@@ -2836,6 +2841,13 @@ bool serviceMainComponentUiTimer (juce::Component& component)
         return true;
     }
 
+    return false;
+}
+
+bool mainComponentQuestionOpen (juce::Component& component)
+{
+    if (auto* mainComponent = dynamic_cast<MainComponent*> (&component))
+        return mainComponent->harnessQuestionOpen();
     return false;
 }
 

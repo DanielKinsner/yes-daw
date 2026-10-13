@@ -2200,6 +2200,10 @@ public:
         dontSaveAttach_.reset();
     }
 
+    // ADR-0077 rule 4: which attach the open project is - a question's answer acts only on the project it was asked
+    // under (Save As keeps the attach; New, Open and a relaunch make a new one).
+    [[nodiscard]] std::uint64_t attachGeneration() const noexcept { return attachGeneration_; }
+
     // Edits since the last explicit Save (B37/B38). The bundle on disk is always current — every
     // edit persists synchronously — so this tracks the user's saved-state intent, never data risk.
     [[nodiscard]] bool hasUnsavedChanges() const noexcept
