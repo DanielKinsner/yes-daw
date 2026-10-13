@@ -48,6 +48,23 @@ Older entries below are dated history, not competing "Now" instructions.
   sign-in pop-ups); SS3 failed once today, then passed.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-10-13 — Usable-song close (close-out unit 7): evidence on packaged 7a1b0ad; two items open
+
+**Packaged build 7a1b0ad:**
+- Self-check 5/5 (bit-exact export round trip, loudness, reopen, autosave).
+- Drives: SS1 68, SS2 48, SS4 28, SS5 83, SS6 64, SS8 215 and SS11 31, all passing in full.
+- SS3: 80/89 on the first run (a ruler drag and a ruler right-click did nothing for a while, with no outside window),
+  then 90/90 on a re-run. The cause is unknown and stays open.
+- Hardware verifier: playback is clean at 480-frame blocks (worst callback 0.1 ms; accepted for this milestone by
+  Dan's decision; raw FAIL row kept). Recording is silent, with no input connected (not in this milestone). The frame
+  stage passes.
+
+Evidence: `docs/evidence/2026-10-13-usable-song-drives-and-hardware.json`, montage `docs/evidence/2026-10-13-usable-song.png`,
+reality-lane rows appended.
+
+**Open before certifying:** SS7 ("mix the song") needs Dan to close the Chrome sign-in windows; the SS3 first-run
+failure needs an explanation.
+
 ## 2026-10-13 — Ship-first process change: drafted, awaiting Dan's direct yes
 
 A ship-first change was relayed from Dan via the progress-review session: fewer gates, critics, ADRs and drive runs,
