@@ -2920,8 +2920,11 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
         h.dither = cell (L::settingsDitherWidth);   // ADR-0058 cp3
         h.normalize = cell (L::settingsNormalizeWidth);
         h.stems = cell (L::settingsStemsWidth);
-        h.outputDevice = cell (L::settingsDeviceWidth);
-        h.inputDevice = cell (L::settingsDeviceWidth);
+        // UI pass unit 19: the device choosers share the row's spare width, up to settingsDeviceMaxWidth each.
+        const int spare = juce::jmax (0, width - 2 * L::headerEdgeInset - L::settingsRowBaseWidth);
+        const int deviceWidth = L::settingsDeviceWidth + juce::jmin (spare / 2, L::settingsDeviceMaxWidth - L::settingsDeviceWidth);
+        h.outputDevice = cell (deviceWidth);
+        h.inputDevice = cell (deviceWidth);
         h.inputChannel = cell (L::settingsChannelWidth);
         h.arm = cell (L::settingsArmWidth);
         h.monitor = cell (L::settingsMonitorWidth);

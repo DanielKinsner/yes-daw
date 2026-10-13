@@ -648,8 +648,9 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
 - [x] **18.** The stock JUCE alert style: its icon is clipped at the alert's top-left corner and sits under about 35 px of
   the title and body text (`ss8-unsaved-during-export`, `ss8-missing-*`). Line 1. **Done 2026-10-12:** the theme draws
   alerts (a 28 px icon whole in the gutter, theme colours and type) and is the app's default look; gate `[alert-style]`.
-- **19.** The settings row's device choosers are squashed, then elided ("Speakers (Focusrite USB A...").
-  Line 1 / 4.
+- [x] **19.** The settings row's device choosers are squashed, then elided ("Speakers (Focusrite USB A...").
+  Line 1 / 4. **Done 2026-10-12:** device names whole or shortened in the middle (ADR-0076's rule), never squashed; the
+  choosers grow into the row's spare width; the channel chooser's texts whole; gate `[device-choosers]` (STATUS).
 - **20.** The piano roll's key labels C3-B3 lose their tops and bottoms to the key rows. Line 1.
 - **21.** The loop's right end-handle covers the tempo label ("150~") at 1280. Line 1.
 - **22.** A MIDI clip's note-preview bar cuts through its name. Line 1.

@@ -31122,6 +31122,130 @@ TEST_CASE ("alerts draw in the theme: the icon whole in the gutter, clear of the
     REQUIRE (&juce::LookAndFeel::getDefaultLookAndFeel() != shellLook);
 }
 
+// UI pass unit 19: the settings row's device choosers show a device's name whole or shortened in its middle (ADR-0076's
+// rule for OS text), never squashed; they share the row's spare width up to settingsDeviceMaxWidth, so a wide window shows
+// whole names; the tooltip, over the chooser or its text, names the whole device.
+TEST_CASE ("the device choosers show a device's name whole or shortened in its middle, never squashed",
+           "[ui][input][shell][device-choosers]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::vector<std::string> outputs { "Speakers (Focusrite USB Audio)", "Headphones (HyperX Cloud Alpha Wireless)" };
+    const std::vector<std::string> inputs { "Microphone (HyperX Cloud Alpha Wireless)", "Analogue 1 + 2 (Focusrite USB Audio)" };
+    MainComponentFileChoices choices;
+    choices.listAudioOutputDevices = [outputs] { return outputs; };
+    choices.listAudioInputDevices = [inputs] { return inputs; };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewToggleSettingsRow);
+    REQUIRE (snapshotMainComponent (*shell).context.settingsRowVisible);
+    auto* output = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.device.chooser"));
+    auto* input = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.device.input.chooser"));
+    juce::Component* comp = &requireRegisteredButtonForAction (*shell, UiActionId::RecordingAssembleComp);   // the row's last cell
+    REQUIRE (output != nullptr);
+    REQUIRE (input != nullptr);
+    REQUIRE (output->getNumItems() == 2);
+    REQUIRE (input->getNumItems() == 2);
+    output->setSelectedId (2, juce::dontSendNotification);   // the longest names
+    input->setSelectedId (1, juce::dontSendNotification);
+    const juce::String ellipsis = juce::String::charToString (static_cast<juce::juce_wchar> (0x2026));
+
+    // A chooser's label as the theme paints it, and a plain label of the same look, size and colours showing `text` at
+    // full width: the same pixels mean the chooser painted `text`, unsquashed.
+    const auto render = [] (juce::Component& c) {
+        juce::Image image (juce::Image::ARGB, c.getWidth(), c.getHeight(), true, juce::SoftwareImageType());
+        juce::Graphics g (image);
+        c.paintEntireComponent (g, true);
+        return image;
+    };
+    const auto sameImage = [] (const juce::Image& a, const juce::Image& b) {
+        if (a.getWidth() != b.getWidth() || a.getHeight() != b.getHeight())
+            return false;
+        for (int y = 0; y < a.getHeight(); ++y)
+            for (int x = 0; x < a.getWidth(); ++x)
+                if (a.getPixelAt (x, y) != b.getPixelAt (x, y))
+                    return false;
+        return true;
+    };
+    const auto chooserLabel = [] (juce::ComboBox& box) -> juce::Label* {
+        for (int i = 0; i < box.getNumChildComponents(); ++i)
+            if (auto* label = dynamic_cast<juce::Label*> (box.getChildComponent (i)))
+                return label;
+        return nullptr;
+    };
+
+    bool shortenedSomewhere = false;
+    for (const int width : { L::windowMinWidth, 1280, 1920 })
+    {
+        shell->setSize (width, L::windowMinHeight);
+        for (juce::ComboBox* box : { output, input })
+        {
+            REQUIRE (chooserLabel (*box) != nullptr);
+            juce::Label& label = *chooserLabel (*box);
+            const juce::String whole = box->getText();
+            const auto area = label.getBorderSize().subtractedFrom (label.getLocalBounds());
+            const juce::Font font = label.getLookAndFeel().getLabelFont (label);
+            const juce::String shown = yesdaw::ui::YesDawLookAndFeel::osTextShown (whole, font, area.getWidth());
+            CAPTURE (width, whole, shown, box->getBounds(), area.getWidth());
+
+            // Grows into the spare width, never past its cap or the row's end.
+            REQUIRE (box->getWidth() >= L::settingsDeviceWidth);
+            REQUIRE (box->getWidth() <= L::settingsDeviceMaxWidth);
+            REQUIRE (box->getRight() <= comp->getX());
+            REQUIRE (comp->getRight() <= width - L::headerEdgeInset);
+            if (width >= 1920)
+                REQUIRE (shown == whole);   // a wide window shows the whole name
+
+            // Whole, or ADR-0076's middle form - its lead and end kept - and it fits.
+            if (shown != whole)
+            {
+                shortenedSomewhere = true;
+                REQUIRE (shown.contains (ellipsis));
+                REQUIRE (shown.substring (0, 1) == whole.substring (0, 1));
+                REQUIRE (shown.getLastCharacter() == whole.getLastCharacter());
+            }
+            REQUIRE (juce::GlyphArrangement::getStringWidth (font, shown) <= static_cast<float> (area.getWidth()));
+
+            // Painted exactly so: the same pixels as a plain label showing `shown` at full width.
+            juce::Label reference;
+            reference.setLookAndFeel (&label.getLookAndFeel());
+            reference.setBounds (label.getLocalBounds());
+            reference.setBorderSize (label.getBorderSize());
+            reference.setJustificationType (label.getJustificationType());
+            reference.setFont (label.getFont());
+            for (const int id : { juce::Label::backgroundColourId, juce::Label::textColourId, juce::Label::outlineColourId })
+                reference.setColour (id, label.findColour (id));
+            reference.setMinimumHorizontalScale (1.0f);
+            reference.setText (shown, juce::dontSendNotification);
+            const bool same = sameImage (render (label), render (reference));
+            reference.setLookAndFeel (nullptr);
+            REQUIRE (same);
+
+            // The tooltip names the whole device, once, over the chooser and over its text - also after JUCE rebuilds the
+            // text box (it does when the chooser's parents change, three times as the app's window comes up).
+            box->sendLookAndFeelChange();
+            box->sendLookAndFeelChange();
+            REQUIRE (chooserLabel (*box) != nullptr);
+            REQUIRE (box->getTooltip() == box->getTitle() + ": " + whole);
+            REQUIRE (chooserLabel (*box)->getTooltip() == box->getTooltip());
+        }
+    }
+    REQUIRE (shortenedSomewhere);   // the narrow window really exercises the shortening
+
+    // The recorded-channel chooser beside them is ours, not OS text: every text it shows is whole at its width.
+    shell->setSize (L::windowMinWidth, L::windowMinHeight);
+    auto* channel = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.device.input.channel"));
+    REQUIRE (channel != nullptr);
+    REQUIRE (chooserLabel (*channel) != nullptr);
+    juce::Label& channelLabel = *chooserLabel (*channel);
+    const auto channelArea = channelLabel.getBorderSize().subtractedFrom (channelLabel.getLocalBounds());
+    const juce::Font channelFont = channelLabel.getLookAndFeel().getLabelFont (channelLabel);
+    // What the box itself shows (its no-choices text appears only in the popup): its placeholder and its widest item.
+    for (const juce::String& text : { channel->getTextWhenNothingSelected(), juce::String ("In 31+32") })   // a 32-channel interface's last pair
+    {
+        CAPTURE (text, channelArea.getWidth());
+        REQUIRE (juce::GlyphArrangement::getStringWidth (channelFont, text) <= static_cast<float> (channelArea.getWidth()));
+    }
+}
+
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part
 // alone is shortened in its middle, and shortening is by code point. `fits` here is a code-point budget.
 TEST_CASE ("ADR-0076 the status line's shortening rule never mixes a message's parts", "[ui][g6][status-whole][status-shorten]")

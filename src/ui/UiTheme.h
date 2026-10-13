@@ -274,8 +274,12 @@ struct UiTheme
         static constexpr int settingsDitherWidth = 72;    // ADR-0058 cp3: the export Dither toggle
         static constexpr int settingsNormalizeWidth = 92; // ADR-0058 cp3: the export Normalize toggle
         static constexpr int settingsStemsWidth = 116;    // ADR-0058 cp3: the export stems chooser
-        static constexpr int settingsDeviceWidth = 150;
-        static constexpr int settingsChannelWidth = 64;
+        // UI pass unit 19: a device chooser's width at the narrowest window (its name shortened in its middle, never
+        // squashed); it grows into the settings row's spare width up to the max, so a wide window shows the whole name
+        // (the longest common names are about 245 px; JUCE leaves a chooser's text 40 px less than the chooser).
+        static constexpr int settingsDeviceWidth = 134;
+        static constexpr int settingsDeviceMaxWidth = 300;
+        static constexpr int settingsChannelWidth = 96;   // unit 19: "Input" / "In 31+32" whole (about 52 px of text)
         static constexpr int settingsRefreshWidth = 76;
         static constexpr int settingsTestDeviceWidth = 90;
         static constexpr int settingsArmWidth = 56;
@@ -286,6 +290,13 @@ struct UiTheme
         // E27: the window resize floor is the smallest size every shipped layout stays honest
         // at (the judged laptop size) — below it the header rows and panels collide.
         static constexpr int windowMinWidth = 1152;
+        // UI pass unit 19: the settings row at its base widths (eleven cells, ten gaps) fits the narrowest window.
+        static constexpr int settingsRowBaseWidth = settingsBitDepthWidth + settingsRangeWidth + settingsDitherWidth
+                                                  + settingsNormalizeWidth + settingsStemsWidth + 2 * settingsDeviceWidth
+                                                  + settingsChannelWidth + settingsArmWidth + settingsMonitorWidth
+                                                  + settingsCompWidth + 10 * headerButtonGap;
+        static_assert (settingsRowBaseWidth + 2 * headerEdgeInset <= windowMinWidth,
+                       "the settings row fits the narrowest window");
         static constexpr int windowMinHeight = 640;   // ADR-0064: a maximized window fits every display of the matrix (1280x720 @ 100 % -> 640)
         static constexpr int windowMaxWidth = 8192;
         static constexpr int windowMaxHeight = 4320;

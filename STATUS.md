@@ -8,6 +8,75 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 19: device names whole, or shortened in the middle, never squashed
+
+**The defect (FIX 19):** the settings row's 150 px device choosers squashed a device's name to 70 %, then cut it with "..."
+("Speakers (Focusrite USB A..."). The 64 px recorded-channel chooser beside them squashed "Input" and "No Inputs" too
+(found here, the same defect).
+
+**What changes:**
+- **Device names are OS text, so they take ADR-0076's rule:** whole when they fit; otherwise shortened in the middle,
+  with the lead and the end kept and U+2026 between; never squashed. The tooltip names the whole device, e.g. "Audio output
+  device: Headphones (HyperX Cloud Alpha Wireless)".
+  - `OsTextComboBox` marks a chooser of OS text. The theme gives it an `OsTextLabel` text box, which paints that form and
+    owns that tooltip (a JUCE chooser's tooltip is its text box's).
+- **The two device choosers grow:** they share the row's spare width, up to 300 px each. 1280 shows "Speakers (Focusrite
+  USB Audio)" whole; 1536 and up show both long names whole.
+- **Widths:** the base width is 134 px (was 150), to pay for the channel chooser at 96 px (was 64), which shows all its
+  texts whole. A `static_assert` keeps the row inside the narrowest window.
+
+**Gate `[device-choosers]`,** on injected long names at 1152, 1280 and 1920:
+- the choosers' widths, and the row's end inside the window;
+- each name whole, or the middle form, which fits;
+- whole at 1920;
+- the chooser's text box painted pixel-identical to a plain label showing that form at full width (so never squashed);
+- the tooltip, over the chooser and over its text;
+- the channel chooser's texts whole.
+
+**Bites:**
+- M1 JUCE's squashing label for the device names;
+- M2 the flag ignored (a plain text box);
+- M3 no growth;
+- M4 each chooser taking all the spare width (the row overflows);
+- M5 the tooltip without the name;
+- M6 the channel chooser at 64 px;
+- M8 the tooltip's subject taken from the text box (it compounds at each rebuild).
+
+Two mutations needed a second look:
+- **M1's first spelling** turned out to be the same condition as the original, so it could not bite. Rewritten, it bites.
+- **M7, the subclass forcing a rebuild of its text box, stayed green, and the rebuild was removed.** The theme's text box
+  is built anyway: JUCE builds a chooser's first text box in the base constructor, but joining the shell (whose look is
+  its own) always rebuilds it.
+
+**Critic (separate agent), each finding verified against the code:**
+- **Blocker, fixed: the tooltip compounded.** JUCE copies a text box's tooltip into the box it rebuilds, and the app
+  rebuilds three times as its window comes up. My text box built its tooltip from its own, so the result would have been
+  "Audio output device: X: X: X", the screen reader's help text too.
+  - The subject now comes from the chooser's own stored tooltip.
+  - The gate forces two rebuilds and asserts the exact form. My first check only used `endsWith`, so it could not see
+    this.
+  - M8 (the subject from the text box) bites.
+- **Blocker, fixed: a null reference in the test helper.** The local Clang check confirmed it (one finding on the test
+  file); it would have broken the macOS build. The helper now returns a pointer, required non-null.
+- **Nit, taken:** "No Inputs" appears only in the chooser's popup, never in the box. The gate now checks what the box
+  shows: "Input" and "In 31+32".
+- **Clean:**
+  - the theme's text box is always rebuilt under the shell's look (as M7 showed);
+  - the drawing matches JUCE's;
+  - the layout is sound from 1152 to 8192 (no overflow; the existing `[shell-sizes]` gate covers overlap);
+  - no drive or pin depended on the old widths;
+  - the ADRs: ADR-0076's rule names device names, and ADR-0063 asks for a wider box, never a smaller size;
+  - pixel identity, and warnings.
+
+**CI on `96367b8` (units 17 and 18, and the Linux fix):**
+- Linux green.
+- macOS: only the standing GPU exception.
+- Windows: first attempt red only on `YesDawTimelineGpuCheck`, 20.93 ms against 16.6; the same-code re-run was green,
+  445/445.
+- **Watch item:** that is the second Windows first-attempt GPU red today (`ae427f6`: 16.95 ms), both green on re-run.
+  This machine measures 5.2 ms alone. My local suite went red on it once only while running six tests in parallel; local
+  suites now run it alone, as CI does. A third Windows red brings a critic and a new hypothesis, per the policy.
+
 ## 2026-10-12 — UI correctness pass unit 17: the window is painted under the launch-time question
 
 **The defect (FIX 17):** launching with a project whose audio is missing (ADR-0062) asks "Missing audio" before the open.

@@ -1478,10 +1478,10 @@ private:
     juce::AudioDeviceManager audioDeviceManager;
     shell::TooltippedMenuBar menuBar;
     juce::TooltipWindow tooltipWindow { nullptr };   // native tooltip display (B40)
-    juce::ComboBox audioDeviceChooser;
+    yesdaw::ui::OsTextComboBox audioDeviceChooser;   // UI pass unit 19: a device's name, never squashed
     std::vector<std::string> audioDeviceChooserNames;
     // E29: input device chooser + recorded-channel pick.
-    juce::ComboBox audioInputDeviceChooser;
+    yesdaw::ui::OsTextComboBox audioInputDeviceChooser;
     std::vector<std::string> audioInputDeviceChooserNames;
     juce::ComboBox recordingInputChannelChooser;
     std::uint32_t recordingChannelChooserGeneration = 0xFFFFFFFFu;

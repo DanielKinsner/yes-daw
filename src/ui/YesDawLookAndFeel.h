@@ -3,6 +3,7 @@
 #pragma once
 
 #include "ui/PointerStroke.h"   // ADR-0072 §8: the native widgets' hover and pressed forms
+#include "ui/StatusLineText.h"  // UI pass unit 19: ADR-0076's shortening rule for OS text
 #include "ui/UiTheme.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -10,6 +11,25 @@
 #include <cmath>
 
 namespace yesdaw::ui {
+
+// UI pass unit 19: the text box of a chooser of OS text (a device's name). The theme draws it whole or shortened in its
+// middle, never squashed. A chooser's tooltip is its text box's (JUCE's ComboBox::getTooltip), and this one names the
+// whole chosen item after the subject the chooser was given: "Audio output device: Speakers (Focusrite USB Audio)".
+class OsTextLabel final : public juce::Label
+{
+public:
+    juce::String getTooltip() override
+    {
+        auto* box = dynamic_cast<juce::ComboBox*> (getParentComponent());
+        if (box == nullptr)
+            return juce::Label::getTooltip();
+        // The subject is the chooser's own (ComboBox::setTooltip stores it there too), never this text box's: JUCE copies a
+        // text box's tooltip into the one it rebuilds, so the name would join the subject again at every rebuild.
+        const juce::String subject = box->juce::SettableTooltipClient::getTooltip();
+        const juce::String name = box->getSelectedId() > 0 ? box->getText() : juce::String();
+        return name.isEmpty() ? subject : subject + ": " + name;
+    }
+};
 
 class YesDawLookAndFeel final : public juce::LookAndFeel_V4
 {
@@ -20,6 +40,16 @@ public:
     // A label that draws in its own font (UI correctness pass unit 13: the strip drag readout matches its cell's numeric
     // caption); every other label keeps the theme's body font.
     static constexpr const char* kOwnFontLabel = "yesdaw.ownFontLabel";
+    // A ComboBox whose properties carry this flag (true) shows OS text - a device's name (UI pass unit 19): its text box is
+    // an OsTextLabel, never squashed; a name that does not fit is shortened in its middle by ADR-0076's rule.
+    static constexpr const char* kOsTextComboBox = "yesdaw.osTextComboBox";
+    [[nodiscard]] static juce::String osTextShown (const juce::String& text, const juce::Font& font, int width)
+    {
+        const float budget = static_cast<float> (width - UiTheme::Layout::statusLineTextSpare);
+        return statusLineShownText (text, [&font, budget] (const juce::String& candidate) {
+            return juce::GlyphArrangement::getStringWidth (font, candidate) <= budget;
+        });
+    }
     [[nodiscard]] static bool isCompactTextButton (const juce::Button& button)
     {
         return static_cast<bool> (button.getProperties()[kCompactTextButton]);
@@ -54,6 +84,31 @@ public:
     juce::Font getComboBoxFont (juce::ComboBox&) override
     {
         return UiTheme::Type::font (UiTheme::Type::body);
+    }
+
+    juce::Label* createComboBoxTextBox (juce::ComboBox& box) override
+    {
+        if (static_cast<bool> (box.getProperties()[kOsTextComboBox]))
+            return new OsTextLabel();
+        return juce::LookAndFeel_V4::createComboBoxTextBox (box);
+    }
+
+    void drawLabel (juce::Graphics& g, juce::Label& label) override
+    {
+        if (dynamic_cast<const OsTextLabel*> (&label) == nullptr || label.isBeingEdited())
+        {
+            juce::LookAndFeel_V4::drawLabel (g, label);
+            return;
+        }
+        // As JUCE's label draws, but at full width: the whole name, or ADR-0076's shortened form of it.
+        g.fillAll (label.findColour (juce::Label::backgroundColourId));
+        const juce::Font font = getLabelFont (label);
+        const auto area = getLabelBorderSize (label).subtractedFrom (label.getLocalBounds());
+        g.setColour (label.findColour (juce::Label::textColourId).withMultipliedAlpha (label.isEnabled() ? 1.0f : 0.5f));
+        g.setFont (font);
+        g.drawFittedText (osTextShown (label.getText(), font, area.getWidth()), area, label.getJustificationType(), 1, 1.0f);
+        g.setColour (label.findColour (juce::Label::outlineColourId).withMultipliedAlpha (label.isEnabled() ? 1.0f : 0.5f));
+        g.drawRect (label.getLocalBounds());
     }
 
     juce::Font getLabelFont (juce::Label& label) override
@@ -420,6 +475,15 @@ private:
             thumb.withHeight (static_cast<float> (UiTheme::Layout::sliderThumbHighlightHeight)),
             UiTheme::Radius::sm);
     }
+};
+
+// UI pass unit 19: a chooser of OS text (a device's name): its text box is an OsTextLabel under the theme. (JUCE builds a
+// first text box inside ComboBox's constructor, before this flag exists; the theme builds the one that shows when the
+// chooser joins the shell, whose look is its own, so that change always comes.)
+class OsTextComboBox final : public juce::ComboBox
+{
+public:
+    OsTextComboBox() { getProperties().set (YesDawLookAndFeel::kOsTextComboBox, true); }
 };
 
 } // namespace yesdaw::ui
