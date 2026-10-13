@@ -245,6 +245,7 @@ TEST_CASE ("ADR-0063 text reaches 4.5:1 and indicators 3:1 wherever they are dra
     add ("faderThumb on controlInsetDeep", Color::faderThumb(), Color::controlInsetDeep(), 3.0);
     add ("faderThumbTop on controlInsetDeep", Color::faderThumbTop(), Color::controlInsetDeep(), 3.0);
     add ("white (the playhead) on timelineCanvas", Color::white(), Color::timelineCanvas(), 3.0);
+    add ("accentBlue (the export progress bar) on darkControl", Color::accentBlue(), Color::darkControl(), 3.0);   // UI pass unit 16
 
     for (const Pair& pair : pairs)
     {

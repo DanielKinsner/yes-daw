@@ -2049,9 +2049,10 @@ void MainComponent::refreshActionState()
     }
     refreshAutosaveRecoveryControls();
     const bool exportInProgress = appModel.context().audioExportInProgress;
+    const bool exportCancelling = exportInProgress && appModel.context().audioExportCancelRequested;
     exportAudioButton.setVisible (! exportInProgress);
     exportAudioProgress.setVisible (exportInProgress);
-    exportAudioCancelButton.setVisible (exportInProgress);
+    exportAudioCancelButton.setVisible (exportInProgress && ! exportCancelling);   // unit 16: nothing left to cancel
     exportAudioButton.setEnabled (
         appModel.registry().stateFor (yesdaw::ui::UiActionId::ProjectExportAudio,
                                       appModel.context()).enabled);
@@ -2060,6 +2061,9 @@ void MainComponent::refreshActionState()
         && appModel.registry().stateFor (yesdaw::ui::UiActionId::ProjectExportAudioCancel,
                                          appModel.context()).enabled);
     exportAudioProgress.setText (exportAudioProgressText(), juce::dontSendNotification);
+    exportAudioProgress.setFraction (exportInProgress && ! exportCancelling
+                                         ? appModel.context().audioExportProgressPercent / 100.0 : -1.0);
+    exportAudioProgress.setBounds (headerLayout().exportProgress);   // unit 16: the whole slot while cancelling
     masterLoudnessReadout.setEnabled (
         appModel.registry().stateFor (yesdaw::ui::UiActionId::MixerReadLoudness,
                                       appModel.context()).enabled);
@@ -2442,10 +2446,12 @@ juce::String MainComponent::exportAudioProgressText() const
     const int percent = appModel.context().audioExportProgressPercent;
     if (appModel.context().audioExportInProgress && appModel.context().audioExportCancelRequested)
         return juce::String::fromUTF8 ("Cancelling\xe2\x80\xa6");   // ADR-0058: until the job stops
+    // UI pass unit 16: the percent alone - "Export 99%" does not fit beside the cross; the readout stands in the Export
+    // button's place, its bar shows the share done, and its name and tooltip say what it is.
     if (percent < 0)
-        return "Export --";
+        return "--";
 
-    return "Export " + juce::String (percent) + "%";
+    return juce::String (percent) + "%";
 }
 
 } // namespace yesdaw::ui

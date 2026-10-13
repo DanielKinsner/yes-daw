@@ -13,6 +13,7 @@
 #include "ui/NewProjectDialogComponent.h"   // G5.5 / ADR-0060
 #include "ui/MainComponentInternal.h"
 #include "ui/StatusLineText.h"
+#include "ui/ExportProgressReadout.h"   // UI pass unit 16
 #include "ui/ControlTarget.h"
 #include "ui/PaintedAccessibleProxy.h"   // ADR-0066 cp2
 #include "ui/KeyTimeModifiers.h"   // ADR-0057
@@ -1634,7 +1635,7 @@ private:
     juce::TextButton exportDitherToggle;   // ADR-0058 cp3
     juce::TextButton exportNormalizeToggle;
     juce::ComboBox exportStemsChooser;
-    juce::Label exportAudioProgress;
+    yesdaw::ui::ExportProgressReadout exportAudioProgress;   // unit 16: the percent over a bar; "Cancelling…" across the slot
     ToolbarActionButton exportAudioCancelButton;   // unit 10: paints the Cancel cross (its slot cannot hold the word)
     juce::Label dragDbReadout;
     std::vector<MeterHoldState> trackMeterHold;   // by Track index; advanced per UI tick (B32)

@@ -639,8 +639,9 @@ close-out rubric pass.
 The unit 15 rubric pass found these, each in the before-shots too except 18, which only became visible once alerts
 were composited. Each is its own unit, worst first, under the same checkpoint rule (ADR-0075 cadence).
 
-- **16.** The export progress label squashes "Export 10%"-"Export 99%" and "Cancelling..." (about 64-69 px of
-  text in its 48 px box, in Verdana / DejaVu). Line 1.
+- [x] **16.** The export progress label squashes "Export 10%"-"Export 99%" and "Cancelling..." (about 64-69 px of
+  text in its 48 px box, in Verdana / DejaVu). Line 1. **Done 2026-10-12:** the percent alone over a foot bar;
+  "Cancelling…" takes the whole slot with the cross hidden; gate `[export-progress]` (STATUS).
 - **17.** The main window is white under the launch-time missing-media alert (`ss8-missing-cancel` 91.5 % white,
   `ss8-missing-rejected` 90.3 %). Line 1 / 6.
 - **18.** The stock JUCE alert style: its icon is clipped at the alert's top-left corner and sits under about 35 px of

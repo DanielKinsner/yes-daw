@@ -251,6 +251,7 @@ struct UiTheme
         static constexpr int headerExportButtonWidth = 88;
         static constexpr int headerExportProgressWidth = 58;
         static constexpr int headerExportCancelWidth = 28;
+        static constexpr int headerExportProgressBarHeight = 3;   // UI pass unit 16: the progress bar along the readout's foot
         static constexpr int headerTransportButtonSize = 44;
         static constexpr int headerLoopButtonWidth = 56;
         static constexpr int headerSoloClearWidth = 40;   // G4.5: the SOLO indicator; 40 keeps the master card at windowMinWidth

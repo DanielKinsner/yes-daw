@@ -176,7 +176,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     exportAudioProgress.setComponentID (kExportAudioProgressComponentId);
     exportAudioProgress.setTooltip ("Audio export progress");
     exportAudioProgress.setName ("Export audio progress");
-    exportAudioProgress.setText ("Export --", juce::dontSendNotification);
+    exportAudioProgress.setText ("--", juce::dontSendNotification);
     exportAudioProgress.setJustificationType (juce::Justification::centred);
     exportAudioProgress.setColour (juce::Label::backgroundColourId, yesdaw::ui::UiTheme::Color::darkControl());
     exportAudioProgress.setColour (juce::Label::textColourId, kMutedText);
@@ -2814,7 +2814,10 @@ MainComponent::HeaderLayout MainComponent::headerLayout() const
     h.redoButton = small (L::headerUndoButtonWidth);
     x += L::headerClusterGap - L::headerButtonGap;
     h.exportButton = small (L::headerExportButtonWidth);
-    h.exportProgress = h.exportButton.withWidth (L::headerExportProgressWidth);
+    // UI pass unit 16: the readout shares the slot with the cancel cross; once a cancel is asked, the cross has nothing
+    // left to do and hides, and "Cancelling…" takes the whole slot.
+    const bool exportCancelling = appModel.context().audioExportInProgress && appModel.context().audioExportCancelRequested;
+    h.exportProgress = exportCancelling ? h.exportButton : h.exportButton.withWidth (L::headerExportProgressWidth);
     h.exportCancel = juce::Rectangle<int> (h.exportButton.getRight() - L::headerExportCancelWidth,
                                            controlY, L::headerExportCancelWidth, L::headerControlHeight);
     const int toolsRight = x - L::headerButtonGap;

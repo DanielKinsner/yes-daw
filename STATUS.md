@@ -8,6 +8,44 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 16: the export progress readout reads whole
+
+**The defect (FIX 16):** while an export runs, its readout stands in the Export button's 88 px slot beside the 28 px
+cancel cross. That leaves 48 px for text, but "Export 37%" needs about 64-72 px and "Cancelling…" about 73-76 px, in
+Verdana / DejaVu, so both were squashed.
+
+**Why the slot cannot grow:** at the minimum window (1152) the master card needs every pixel of the header.
+
+**What changes:**
+- **Running:** the readout reads the percent alone ("37%", at most 25 px). A 3 px bar along its foot is as wide as the
+  share done (`accentBlue` on `darkControl`, held to 3:1 in the contrast gate). Its name and tooltip still say "Export
+  audio progress"; it stands where the Export button was.
+- **Cancelling:** the cross has nothing left to do and hides. "Cancelling…" (ADR-0058's word, unchanged) takes the whole
+  slot, whole, with 78 px of room.
+- **The next export** gets its cross back.
+- New: `src/ui/ExportProgressReadout.h`.
+
+**Gate:** `[export-progress]` at the minimum window, on a real paced export.
+- **Running:** the text is a bare percent, whole at its widest ("100%"); the readout and the cross are inside the slot
+  and do not overlap; the bar's share is the job's.
+- **Cancelling,** through the cross's own dispatch and through Esc: the cross is hidden, the readout is exactly the
+  slot, "Cancelling…" is whole, and there is no bar.
+- **The bar as painted:** only its 3 foot rows are lit, half the width at half done, clear of the text.
+- Plus the contrast pair. The H16 export test now reads "100%".
+
+**Bites, all red for their own reason:**
+- M1 today's text, "Export N%" (the bare-percent check);
+- M2 the cross stays while cancelling (the cross-hidden check);
+- M3 the readout stays narrow while cancelling (the readout-is-the-slot check);
+- M4 no bar painted (the foot rows' lit count);
+- M5 the bar never fed the job's share (the fraction check);
+- M6 the bar the readout's whole height (no bar above the foot).
+
+**Also in this push:** unit 11's status-line gate now ticks before it reads the export failure too. That was macOS CI's
+red on `4b8f080`: the same cause `9c092be` fixed for the import refusal, at the gate's second read.
+
+**Process:** layout and text with a small paint, so no critic, per ADR-0075.
+
 ## 2026-10-12 — UI correctness pass unit 15: the drive batch, the rubric, FIXes 1-15 closed
 
 **Candidate:** `dist/YesDaw-3f8dc35-win64-portable.zip` (units 1-14), `YesDaw.exe` SHA256

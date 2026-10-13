@@ -6,6 +6,7 @@
 #include "ui/MainComponent.h"
 #include "ui/PaintedAccessibleProxy.h"
 #include "ui/StatusLineText.h"   // ADR-0076: the shortening rule
+#include "ui/ExportProgressReadout.h"   // UI pass unit 16
 #include "ui/ControlTarget.h"   // G4.0b: the pure Control-target rules
 #include "ui/DesktopAudioStartup.h"
 #include "ui/EqResponseComponent.h"
@@ -3476,7 +3477,7 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
     REQUIRE_FALSE (cancelExport.isEnabled());
     REQUIRE_FALSE (cancelExport.isVisible());
     REQUIRE_FALSE (exportProgress.isVisible());
-    REQUIRE (exportProgress.getText() == "Export --");
+    REQUIRE (exportProgress.getText() == "--");
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
@@ -3503,7 +3504,7 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
     REQUIRE_FALSE (snapshot.context.audioExportCancelRequested);
     REQUIRE (snapshot.context.audioExportCancelCount == 0);
     REQUIRE (snapshot.context.commandDispatchCount == beforeCommandCount + 1);
-    REQUIRE (exportProgress.getText() == "Export 100%");
+    REQUIRE (exportProgress.getText() == "100%");
     REQUIRE_FALSE (cancelExport.isEnabled());
     REQUIRE (std::filesystem::exists (exportPath));
 
@@ -30920,6 +30921,131 @@ TEST_CASE ("the export Cancel control reads during an export", "[ui][input][shel
     REQUIRE (static_cast<int> (exported["count"]) == 0);      // none finished
     REQUIRE_FALSE (std::filesystem::exists (exportPath));
     REQUIRE_FALSE (std::filesystem::exists (std::filesystem::path (exportPath.string() + ".partial")));
+
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// UI pass unit 16: the export's progress readout reads whole at the window's minimum - the percent beside the cancel
+// cross, over a bar of the share done; once a cancel is asked (the cross, or Esc), the cross hides and "Cancelling…"
+// (ADR-0058) takes the whole slot. The next export gets its cross back.
+TEST_CASE ("the export progress readout reads whole: the percent beside the cross, Cancelling across the slot",
+           "[ui][input][shell][export][export-progress]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const std::filesystem::path bundlePath = makeTempBundlePath ("export-progress-reads");
+    const std::filesystem::path exportPath = bundlePath.parent_path() / "export-progress-reads.wav";
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    std::error_code ec;
+    std::filesystem::remove (exportPath, ec);
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    choices.chooseExportAudioFile = [exportPath] { return exportPath; };
+    choices.exportPaceMs = 60'000;   // the job stays in progress while the readout is read
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    shell->setSize (L::windowMinWidth, L::windowMinHeight);
+
+    juce::Button& exportAudio = requireButtonForAction (*shell, UiActionId::ProjectExportAudio);
+    const juce::Rectangle<int> slot = exportAudio.getBounds();
+    auto* readout = dynamic_cast<yesdaw::ui::ExportProgressReadout*> (
+        findChildWithComponentId (*shell, kExportAudioProgressComponentId));
+    auto* cancel = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "project.export_audio.cancel"));
+    REQUIRE (readout != nullptr);
+    REQUIRE (cancel != nullptr);
+    const auto textWidth = [readout] {
+        return static_cast<float> (readout->getBorderSize().subtractedFrom (readout->getLocalBounds()).getWidth());
+    };
+    const auto inkWidth = [readout] (const juce::String& text) {
+        return juce::GlyphArrangement::getStringWidth (readout->getLookAndFeel().getLabelFont (*readout), text);
+    };
+    const juce::String cancelling = juce::String::fromUTF8 ("Cancelling\xe2\x80\xa6");
+
+    // Running: the percent alone, whole beside the cross at every value it can read; the bar follows the job's share.
+    const auto requireRunning = [&] {
+        REQUIRE (static_cast<bool> (probeRoot (*shell)["export"]["inProgress"]));
+        REQUIRE_FALSE (exportAudio.isVisible());
+        REQUIRE (readout->isVisible());
+        REQUIRE (cancel->isVisible());
+        const juce::String running = readout->getText();
+        CAPTURE (running, readout->getBounds(), cancel->getBounds(), slot, textWidth(), inkWidth (running));
+        REQUIRE (std::regex_match (running.toStdString(), std::regex (R"re(\d{1,3}%)re")));
+        REQUIRE (inkWidth (running) <= textWidth());
+        REQUIRE (inkWidth ("100%") <= textWidth());   // the widest it reads
+        REQUIRE (slot.contains (readout->getBounds()));
+        REQUIRE (slot.contains (cancel->getBounds()));
+        REQUIRE (readout->getRight() <= cancel->getX());
+        REQUIRE (readout->fraction() == static_cast<int> (probeRoot (*shell)["export"]["percent"]) / 100.0);
+    };
+    // Cancelling: the cross has nothing left to do; "Cancelling…" takes the whole slot, whole, with no bar.
+    const auto requireCancelling = [&] {
+        REQUIRE (static_cast<bool> (probeRoot (*shell)["export"]["inProgress"]));
+        REQUIRE (readout->isVisible());
+        REQUIRE_FALSE (cancel->isVisible());
+        REQUIRE (readout->getText() == cancelling);
+        CAPTURE (readout->getBounds(), slot, textWidth(), inkWidth (cancelling));
+        REQUIRE (readout->getBounds() == slot);
+        REQUIRE (inkWidth (cancelling) <= textWidth());
+        REQUIRE (readout->barBounds().isEmpty());
+    };
+
+    // The cancel is read before a UI tick can end it: a real click pumps the message loop, and the job stops within a
+    // render block. The dispatch is exactly the cross's click; Esc goes through the shell's own key handling.
+    clickButton (exportAudio);
+    requireRunning();
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectExportAudioCancel);
+    requireCancelling();
+    yesdaw::ui::mainComponentWaitForExport (*shell);
+    REQUIRE_FALSE (readout->isVisible());
+    REQUIRE (exportAudio.isVisible());
+    REQUIRE (probeRoot (*shell)["export"]["lastResult"].toString() == "cancelled");
+
+    // The next export: its cross is back beside the percent; Esc cancels it the same way.
+    clickButton (exportAudio);
+    requireRunning();
+    REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+    requireCancelling();
+    yesdaw::ui::mainComponentWaitForExport (*shell);
+    REQUIRE_FALSE (std::filesystem::exists (exportPath));
+
+    // The bar as painted, on a readout of the same size, look and colours: along the foot, as wide as the share done,
+    // in the bar's colour, and nowhere above the foot (under the text).
+    yesdaw::ui::ExportProgressReadout bar;
+    bar.setLookAndFeel (&readout->getLookAndFeel());
+    bar.setColour (juce::Label::backgroundColourId, readout->findColour (juce::Label::backgroundColourId));
+    bar.setColour (juce::Label::textColourId, readout->findColour (juce::Label::textColourId));
+    bar.setJustificationType (readout->getJustificationType());
+    bar.setText ("50%", juce::dontSendNotification);
+    bar.setSize (L::headerExportProgressWidth, L::headerControlHeight);
+    bar.setFraction (0.5);
+    juce::Image image (juce::Image::ARGB, bar.getWidth(), bar.getHeight(), true, juce::SoftwareImageType());
+    {
+        juce::Graphics g (image);
+        bar.paintEntireComponent (g, true);
+    }
+    bar.setLookAndFeel (nullptr);
+    const auto isBar = [] (juce::Colour c) {
+        const juce::Colour b = yesdaw::ui::UiTheme::Color::accentBlue();
+        return std::max ({ std::abs (c.getRed() - b.getRed()), std::abs (c.getGreen() - b.getGreen()),
+                           std::abs (c.getBlue() - b.getBlue()) }) <= 8;
+    };
+    for (int y = 0; y < image.getHeight(); ++y)
+    {
+        int lit = 0;
+        for (int x = 0; x < image.getWidth(); ++x)
+            lit += isBar (image.getPixelAt (x, y)) ? 1 : 0;
+        CAPTURE (y, lit);
+        if (y >= image.getHeight() - L::headerExportProgressBarHeight)
+            REQUIRE (lit == juce::roundToInt (image.getWidth() * 0.5));
+        else
+            REQUIRE (lit == 0);
+    }
+    // The text sits clear of the bar.
+    const juce::Font font = bar.getLookAndFeel().getLabelFont (bar);
+    const auto textArea = bar.getBorderSize().subtractedFrom (bar.getLocalBounds());
+    REQUIRE (static_cast<float> (textArea.getCentreY()) + font.getHeight() / 2.0f
+             <= static_cast<float> (bar.getHeight() - L::headerExportProgressBarHeight));
 
     std::filesystem::remove_all (bundlePath, ec);
 }
