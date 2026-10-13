@@ -1902,9 +1902,11 @@ TEST_CASE ("clips paint what they contain: MIDI notes, and no invented waveform"
     const juce::Image spread = renderClip (std::span<const yesdaw::ui::TimelineClipNote> (chord));
     REQUIRE (changedPixelsIn (early, spread, leftHalf) > 0);
 
-    // The chord reaches rows the lone mid-band note never touches, top AND bottom of the lane.
-    const juce::Rectangle<int> topBand { leftHalf.getX(), leftHalf.getY() + 2,
-                                         leftHalf.getWidth(), leftHalf.getHeight() / 4 };
+    // The chord reaches rows the lone mid-band note never touches, top AND bottom of the notes' area - the lane under the
+    // strip the clip's name takes (UI pass unit 22: the notes stay out of it).
+    const int nameStrip = yesdaw::ui::UiTheme::Layout::timelineCanvasClipNameStripHeight;
+    const juce::Rectangle<int> topBand { leftHalf.getX(), leftHalf.getY() + nameStrip + 2,
+                                         leftHalf.getWidth(), (leftHalf.getHeight() - nameStrip) / 4 };
     const juce::Rectangle<int> bottomBand { leftHalf.getX(),
                                             leftHalf.getBottom() - leftHalf.getHeight() / 4 - 2,
                                             leftHalf.getWidth(), leftHalf.getHeight() / 4 };
@@ -31408,6 +31410,61 @@ TEST_CASE ("the loop brace never covers a ruler label", "[ui][input][timeline][r
         for (int x = changeLabel.getX(); x < changeLabel.getX() + 30; ++x)
             ink += without.getPixelAt (x, y) != background ? 1 : 0;
     REQUIRE (ink > 10);
+}
+
+// UI pass unit 22: a MIDI clip's note preview stays under the strip its name takes - a note at the clip's top pitch, over
+// its start, never runs through the name. Pixels: the name's ink lies inside the strip, every note's ink under it, and
+// the notes are drawn.
+TEST_CASE ("a MIDI clip's notes stay under its name", "[ui][input][timeline][clip-notes-name][paint]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const yesdaw::ui::TimelineCanvasClipStyle style { yesdaw::ui::UiTheme::Color::accentCyan(), 0.75f };
+    // The highest note spans the clip's start, under where the name is written.
+    const std::array<yesdaw::ui::TimelineClipNote, 3> notes { { { 1, 0.0, 1.5, 84 }, { 1, 1.0, 1.0, 60 }, { 1, 2.0, 1.5, 72 } } };
+    const auto render = [&style] (const char* name, std::span<const yesdaw::ui::TimelineClipNote> clipNotes, bool withClip) {
+        juce::Image image (juce::Image::ARGB, 640, 240, true, juce::SoftwareImageType());
+        juce::Graphics graphics (image);
+        const yesdaw::ui::Clip clip { 1, 0, 0.0, 4.0, name };
+        yesdaw::ui::TimelineCanvasState state;
+        state.clips = withClip ? &clip : nullptr;
+        state.clipStyles = withClip ? &style : nullptr;
+        state.clipCount = withClip ? 1 : 0;
+        state.trackCount = 1;
+        state.viewport.pixelsPerSecond = 100.0;
+        state.clipNotes = clipNotes.empty() ? nullptr : clipNotes.data();
+        state.clipNoteCount = static_cast<int> (clipNotes.size());
+        (void) yesdaw::ui::paintTimelineCanvas (graphics, image.getBounds(), state);
+        return image;
+    };
+    const auto differingRows = [] (const juce::Image& a, const juce::Image& b) {
+        int top = a.getHeight(), bottom = -1, count = 0;
+        for (int y = 0; y < a.getHeight(); ++y)
+            for (int x = 0; x < a.getWidth(); ++x)
+                if (a.getPixelAt (x, y) != b.getPixelAt (x, y))
+                {
+                    top = std::min (top, y);
+                    bottom = std::max (bottom, y);
+                    ++count;
+                }
+        return std::make_tuple (top, bottom, count);
+    };
+    const std::span<const yesdaw::ui::TimelineClipNote> none;
+    const juce::Image empty = render ("", none, false);
+    const juce::Image bodyOnly = render ("", none, true);
+    const juce::Image named = render ("MIDI", none, true);
+    const juce::Image namedWithNotes = render ("MIDI", notes, true);
+
+    const auto [clipTop, clipBottom, clipPixels] = differingRows (bodyOnly, empty);
+    const auto [nameTop, nameBottom, namePixels] = differingRows (named, bodyOnly);
+    const auto [notesTop, notesBottom, notePixels] = differingRows (namedWithNotes, named);
+    CAPTURE (clipTop, clipBottom, nameTop, nameBottom, notesTop, notesBottom, L::timelineCanvasClipNameStripHeight);
+    REQUIRE (clipPixels > 0);
+    REQUIRE (namePixels > 0);
+    REQUIRE (notePixels > 0);   // the notes are drawn
+    const int stripBottom = clipTop + L::timelineCanvasClipNameStripHeight;
+    REQUIRE (nameBottom < stripBottom);   // the name sits in its strip
+    REQUIRE (notesTop >= stripBottom);    // every note under it
+    REQUIRE (notesBottom <= clipBottom);
 }
 
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part

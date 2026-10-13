@@ -656,7 +656,8 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   `[piano-key-labels]` (STATUS).
 - [x] **21.** The loop's right end-handle covers the tempo label ("150~") at 1280. Line 1. **Done 2026-10-12:** the
   loop paints a strip at the top of the bars row, the row's labels sit under it; gate `[ruler-loop-strip]` (STATUS).
-- **22.** A MIDI clip's note-preview bar cuts through its name. Line 1.
+- [x] **22.** A MIDI clip's note-preview bar cuts through its name. Line 1. **Done 2026-10-12:** a named clip's notes
+  stay under its name strip, their rows placed by fractions; gate `[clip-notes-name]` (STATUS).
 - **23.** The send rows' PRE / PST text is 3.59:1 on the strip header colour. Line 4.
 - **24.** A meter's yellow band follows the bar's height, not the level (yellow at about -41 dBFS). Line 7.
 - **25.** The last ruler label is cut at the right edge ("12" / "4:", "0:19."). Line 1.

@@ -1192,6 +1192,9 @@ struct UiTheme
         static constexpr float timelineCanvasOutlineStrokeWidth = 1.0f;
         static constexpr int timelineCanvasWaveformInsetX = 7;
         static constexpr int timelineCanvasWaveformInsetY = 5;
+        // UI pass unit 22: the strip a clip's name takes at its top (the name sits Space::sm in, in the small type); a
+        // MIDI clip's note preview stays under it.
+        static constexpr int timelineCanvasClipNameStripHeight = Space::sm + static_cast<int> (Type::small) + Space::xxs;
         static constexpr float timelineCanvasWaveformMinAmplitude = 0.1f;
         static constexpr float timelineCanvasWaveformMaxAmplitude = 1.0f;
         static constexpr float timelineCanvasWaveformHeightScale = 0.42f;

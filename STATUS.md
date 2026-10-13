@@ -8,6 +8,44 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 22: a MIDI clip's notes stay under its name
+
+**The defect (FIX 22):** a MIDI clip's note preview used the whole clip body, so a high note over the clip's start ran
+through its name ("MIDI").
+
+**What changes:**
+- A named clip's notes stay under the strip its name takes (`timelineCanvasClipNameStripHeight`: the name's inset and
+  type).
+- The preview places note rows by fractions of its area. With whole-pixel rows, the shorter area left a two-octave chord
+  in its top half; now the pitch range spans the whole area at any height.
+- Audio waveforms are unchanged here.
+
+**Gate `[clip-notes-name]`,** pixels of a named clip with a high note over its start:
+- the name's ink lies inside the strip;
+- every note's ink lies under it;
+- the notes are drawn.
+
+**M7's older pitch check now measures its top band under the strip.** Its intent is unchanged: a chord reaches the top and
+the bottom of the notes' own area.
+
+**Bites:**
+- M1 notes over the whole body (no strip);
+- M2 whole-pixel rows (the chord no longer reaches the bottom band);
+- M3 notes never drawn. Its first spelling did not compile (an unused variable under `/WX`), so it was rewritten to bite.
+
+**Process:** a paint change in the clip body, so no critic, per ADR-0075.
+
+**Found while waiting on CI, and next (it interrupts the FIX list, per CLAUDE.md):**
+- The Windows `YesDawTimelineGpuCheck` reds have a supported cause (a separate investigating agent; 244 Windows jobs plus
+  Linux and macOS controls).
+- Commit `dd1ab73` (10-09) cut the covered areas out of the timeline's panel fill with a clip of several rectangles.
+  JUCE's Direct2D turns that into a full-surface masked layer, so on CI's GPU-less Windows runner every frame pays about
+  1.5 ms more. Linux and macOS got faster from the same commit.
+- Windows' red rate on this gate rose from 5.7 % to 18 % (Fisher p = 0.037), with the runners no slower. Today's ruler,
+  playhead and tempo-map commits add nothing measurable.
+- The fix keeps the occlusion but paints the panel through single rectangles, with a gate that no fill happens under a
+  clip of several rectangles.
+
 ## 2026-10-12 — UI correctness pass unit 21: the loop never covers a ruler label
 
 **The defect (FIX 21):** the loop brace filled the top 12 px of the ruler's bars row, the same rows as that row's labels.

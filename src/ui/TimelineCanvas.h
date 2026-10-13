@@ -775,8 +775,10 @@ inline int drawClipNotePreview (juce::Graphics& g, juce::Rectangle<int> area, ju
     // band rather than pretending the pitch means a position.
     const bool degenerateSpan = highKey == lowKey;
     const int keySpan = std::max (UiTheme::Layout::timelineCanvasNotePreviewMinKeySpan, highKey - lowKey);
-    const int rowHeight = std::max (UiTheme::Layout::timelineCanvasGridLineWidth,
-                                    area.getHeight() / (keySpan + 1));
+    // UI pass unit 22: rows placed by fractions, so the pitch range spans the whole area however short it is (whole-pixel
+    // rows left a two-octave chord in the top half once the name strip shortened it).
+    const float rowPitch = static_cast<float> (area.getHeight()) / static_cast<float> (keySpan + 1);
+    const int rowHeight = std::max (UiTheme::Layout::timelineCanvasGridLineWidth, juce::roundToInt (rowPitch));
     const int stride = std::max (1, noteCount / UiTheme::Layout::timelineCanvasNotePreviewMaxNotes);
 
     g.setColour (colour.brighter (UiTheme::Tone::timelineCanvasWaveformBrightness));
@@ -800,7 +802,7 @@ inline int drawClipNotePreview (juce::Graphics& g, juce::Rectangle<int> area, ju
                                                       * static_cast<double> (area.getWidth())));
         const int keyOffset = degenerateSpan ? keySpan / 2
                                             : std::clamp (highKey - note.key, 0, keySpan);
-        const int y = area.getY() + keyOffset * rowHeight;
+        const int y = area.getY() + juce::roundToInt (static_cast<float> (keyOffset) * rowPitch);
         g.fillRect (x, std::min (y, area.getBottom() - rowHeight), width, rowHeight);
         ++drawn;
     }
@@ -973,7 +975,12 @@ inline void drawClip (juce::Graphics& g, juce::Rectangle<int> area, const Timeli
     if (! drawClipFrame (g, area, style))
         return;
 
-    if (clip != nullptr && drawClipNotePreview (g, area, style.colour, state, *clip) > 0)
+    // UI pass unit 22: a named clip's notes stay under the strip its name takes (a high note's bar ran through the name).
+    const bool named = clip != nullptr && clip->name != nullptr && clip->name[0] != '\0';
+    const juce::Rectangle<int> notesArea = named ? area.withTrimmedTop (UiTheme::Layout::timelineCanvasClipNameStripHeight
+                                                                        - UiTheme::Layout::timelineCanvasWaveformInsetY)
+                                                 : area;
+    if (clip != nullptr && drawClipNotePreview (g, notesArea, style.colour, state, *clip) > 0)
         return;
 
     drawClipPendingBody (g, area, style.colour);
