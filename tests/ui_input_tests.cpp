@@ -31055,8 +31055,6 @@ TEST_CASE ("the export progress readout reads whole: the percent beside the cros
 // left of the text, beside the title, never clipped by the alert's edge or under its text.
 TEST_CASE ("alerts draw in the theme: the icon whole in the gutter, clear of the text", "[ui][input][shell][alert-style]")
 {
-    using L = yesdaw::ui::UiTheme::Layout;
-    using Color = yesdaw::ui::UiTheme::Color;
     const juce::LookAndFeel* shellLook = nullptr;
     {
         auto shell = makeShell();
@@ -31064,6 +31062,8 @@ TEST_CASE ("alerts draw in the theme: the icon whole in the gutter, clear of the
         REQUIRE (&juce::LookAndFeel::getDefaultLookAndFeel() == shellLook);
 
        #if JUCE_WINDOWS || JUCE_MAC   // an alert is a native top-level window: the Linux runner has no display
+        using L = yesdaw::ui::UiTheme::Layout;   // (inside the guard: unused elsewhere, GCC's -Werror=unused-local-typedefs)
+        using Color = yesdaw::ui::UiTheme::Color;
         const auto colourNear = [] (juce::Colour a, juce::Colour b, int tolerance) {
             return std::max ({ std::abs (a.getRed() - b.getRed()), std::abs (a.getGreen() - b.getGreen()),
                                std::abs (a.getBlue() - b.getBlue()) }) <= tolerance;

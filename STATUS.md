@@ -53,6 +53,16 @@ default, and the stock alerts are top-level windows built with no component.
 - **Nits:** the last check guards JUCE's weak reference rather than our code (its comment now says so). An alert's text
   field keeps JUCE's stock colours (parked: theming `TextEditor` is app-wide).
 
+**CI on `ed17058`:**
+- **Linux red, fixed by the next commit:** GCC's `-Werror=unused-local-typedefs`. The test's two type aliases were used
+  only inside the Windows / macOS guard, so on Linux they were unused. They now sit inside it.
+  - Reproduced here with Clang by forcing the guard false (the same two errors, lines 31058 / 31059); clean with the
+    fix.
+  - The Windows-side Clang check compiles the guarded block, so it could not see this.
+- **macOS:** only the standing GPU exception (`timeline_gpu_tests.cpp:172`, `sustained < kFrameBudgetMs`). The
+  `[alert-style]` drawing checks passed there.
+- **Windows** and the rest green.
+
 **Drive:** the built app at launch over a missing-audio bundle (`x17b`, scratch): the themed alert is on screen, its icon
 whole. The window under it is still white; that is unit 17. One drive run failed in the drive's own activation step,
 "could not restore the YES DAW window topmost state". It came before any assertion and was the first such line in any
