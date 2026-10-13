@@ -8,6 +8,20 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — Direction: finish FIX 29, then close the Usable-song milestone
+
+Owner direction (Dan, 2026-10-13, relayed to this session by the "YES DAW progress review" session after its review of the week):
+1. Finish FIX 29 (29c-29e), then stop the UI correctness pass.
+2. The fix list is frozen. New rubric findings go to the parking lot unless they are broken behaviour, wrong data, or
+   unreadable or missing text.
+3. Next is the close-out's unit 7, the Usable-song close.
+4. Playback target: this milestone accepts the shared-mode 480-frame (10 ms) block. The raw checker rows stay; low
+   latency is parked first after Usable-song.
+5. STATUS entries stay short.
+6. SS7 waits for Dan to close the Chrome sign-in windows.
+
+Recorded in the pass plan, the close-out plan and the parking lot.
+
 ## 2026-10-13 — UI correctness pass unit 29b: New, Open, Save As and quit ask without a nested loop (ADR-0077)
 
 **What changes (ADR-0077 rules 3, 5 and 7):**

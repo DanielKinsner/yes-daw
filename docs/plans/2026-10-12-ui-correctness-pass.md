@@ -14,6 +14,16 @@ shots. Where the challenge corrected a proposal, this plan uses the corrected ve
 no scope. It calls for one implementation ADR (ADR-0076, unit 11) under ADR-0049's clause. Unticked
 items are pending, not certified.
 
+## Stop rule and frozen list (owner direction, Dan, 2026-10-13, relayed to this session by the "YES DAW progress review" session after its review of the week)
+
+- The pass ends with FIX 29 (29d, 29e). The close-out's unit 7 (the Usable-song milestone close) comes next; no new
+  correctness units open before it.
+- The fix list is frozen. A new rubric or screenshot finding goes to
+  [the parking lot](../goals/parking-lot.md) unless it is broken behaviour, wrong data, or unreadable or missing text.
+  Cosmetic polish (pixel nudges, contrast tweaks, label trimming) does not block the milestone.
+- Lighter paperwork: a STATUS entry is about 5-10 lines (what changed, gate, CI, next); an ADR only when a change alters
+  a contract. The verification rules (gates, mutations, CI) are unchanged.
+
 ## Checkpoint rule
 
 Cadence per ADR-0075 (2026-10-12): targeted tests per commit; the full local suite, the critic (skippable for a small

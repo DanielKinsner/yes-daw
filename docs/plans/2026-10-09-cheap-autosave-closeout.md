@@ -179,3 +179,13 @@ not close unit 1; another clean failure requires a supported new hypothesis rath
 
 No new feature decision is requested. The existing macOS sustained-frame exception renewal remains
 unapproved; only an applicable owner decision can renew it if repair proof does not close that gate.
+
+**Owner decision on the playback target (Dan, 2026-10-13, relayed to this session by the "YES DAW progress review" session after its review of the week):** for this milestone the packaged
+playback result accepts the 480-frame (10 ms) block that the Windows shared-mode path grants. Recording
+is not in this milestone, and 10 ms is fine for playback and mixing. The checker's 128-frame target and
+its raw `playback_block_exceeds_target` rows stay exactly as measured - no threshold is changed; the
+milestone certifies against this decision, named. Low latency (WASAPI exclusive / ASIO toward the
+128-frame target) is the first item after Usable-song (parking lot).
+
+**SS7** is pending only because Chrome sign-in windows take the focus during the drive: it needs Dan to
+close them, then one run. No runs are spent on it before that.
