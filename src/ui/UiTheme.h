@@ -252,6 +252,15 @@ struct UiTheme
         static constexpr int headerExportProgressWidth = 58;
         static constexpr int headerExportCancelWidth = 28;
         static constexpr int headerExportProgressBarHeight = 3;   // UI pass unit 16: the progress bar along the readout's foot
+        // UI pass unit 18: an alert's icon, whole in the gutter JUCE's AlertWindow leaves left of its text (the text starts
+        // 80 px in when there is an icon), beside the title.
+        static constexpr int alertTextLeftWithIcon = 80;   // JUCE AlertWindow::updateLayout's iconWidth
+        static constexpr int alertIconSize = 28;
+        static constexpr int alertIconLeft = 26;
+        static constexpr int alertIconTop = 26;
+        static constexpr int alertIconTextGap = 8;
+        static_assert (alertIconLeft + alertIconSize + alertIconTextGap <= alertTextLeftWithIcon,
+                       "the alert icon stays clear of the alert's text");
         static constexpr int headerTransportButtonSize = 44;
         static constexpr int headerLoopButtonWidth = 56;
         static constexpr int headerSoloClearWidth = 40;   // G4.5: the SOLO indicator; 40 keeps the master card at windowMinWidth

@@ -644,8 +644,9 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   "Cancelling…" takes the whole slot with the cross hidden; gate `[export-progress]` (STATUS).
 - **17.** The main window is white under the launch-time missing-media alert (`ss8-missing-cancel` 91.5 % white,
   `ss8-missing-rejected` 90.3 %). Line 1 / 6.
-- **18.** The stock JUCE alert style: its icon is clipped at the alert's top-left corner and sits under about 35 px of
-  the title and body text (`ss8-unsaved-during-export`, `ss8-missing-*`). Line 1.
+- [x] **18.** The stock JUCE alert style: its icon is clipped at the alert's top-left corner and sits under about 35 px of
+  the title and body text (`ss8-unsaved-during-export`, `ss8-missing-*`). Line 1. **Done 2026-10-12:** the theme draws
+  alerts (a 28 px icon whole in the gutter, theme colours and type) and is the app's default look; gate `[alert-style]`.
 - **19.** The settings row's device choosers are squashed, then elided ("Speakers (Focusrite USB A...").
   Line 1 / 4.
 - **20.** The piano roll's key labels C3-B3 lose their tops and bottoms to the key rows. Line 1.
@@ -660,6 +661,9 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   the tempo change in `ss3-2560`); park the pointer or use `-MainOnly` for size shots. Tooling.
 
 ## Parked, recorded in STATUS / parking lot, not in this pass
+
+- (unit 18 critic) An alert's text field (Save as Template, Save Preset) keeps JUCE's stock slate field inside the
+  themed alert: readable, not in theme colours. Theming `TextEditor` colours is app-wide, so it waits for its own unit.
 
 - The tempo cell's mouse wheel (found by unit 1's critic): JUCE's default wheel moves it about 27 BPM per
   Windows notch, each notch its own undo step. Decide between no wheel on the cell and a fine, one-step

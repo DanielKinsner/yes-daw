@@ -39,6 +39,10 @@ public:
         setColour (juce::Slider::backgroundColourId, UiTheme::Color::meterTrack());
         setColour (juce::Slider::trackColourId, UiTheme::Color::accentPurple());
         setColour (juce::Slider::thumbColourId, UiTheme::Color::faderThumb());
+        // UI pass unit 18: alerts in the theme's raised panel, text and stroke.
+        setColour (juce::AlertWindow::backgroundColourId, UiTheme::Color::panelRaised());
+        setColour (juce::AlertWindow::textColourId, UiTheme::Color::text());
+        setColour (juce::AlertWindow::outlineColourId, UiTheme::Color::panelStroke());
     }
 
     juce::Font getTextButtonFont (juce::TextButton& button, int) override
@@ -329,6 +333,64 @@ public:
                       juce::PathStrokeType (UiTheme::Layout::iconStrokeWidth,
                                             juce::PathStrokeType::curved,
                                             juce::PathStrokeType::rounded));
+    }
+
+    // UI pass unit 18: the alerts. JUCE's V4 alert draws a 130 px translucent icon bleeding off its top-left corner and
+    // under the title; ours draws the icon whole in the alert's left gutter, beside the title, in the theme's type.
+    juce::Font getAlertWindowTitleFont() override { return UiTheme::Type::font (UiTheme::Type::title, juce::Font::bold); }
+    juce::Font getAlertWindowMessageFont() override { return UiTheme::Type::font (UiTheme::Type::body); }
+    juce::Font getAlertWindowFont() override { return UiTheme::Type::font (UiTheme::Type::body); }
+
+    // Where an alert of this kind draws its icon (empty for none), in the alert's own coordinates.
+    [[nodiscard]] static juce::Rectangle<int> alertIconBounds (juce::MessageBoxIconType type) noexcept
+    {
+        if (type == juce::MessageBoxIconType::NoIcon)
+            return {};
+        return { UiTheme::Layout::alertIconLeft, UiTheme::Layout::alertIconTop,
+                 UiTheme::Layout::alertIconSize, UiTheme::Layout::alertIconSize };
+    }
+    // The icon's fill: amber for a warning, blue for a question or a note.
+    [[nodiscard]] static juce::Colour alertIconColour (juce::MessageBoxIconType type) noexcept
+    {
+        return type == juce::MessageBoxIconType::WarningIcon ? UiTheme::Color::accentAmber() : UiTheme::Color::accentBlue();
+    }
+
+    void drawAlertBox (juce::Graphics& g, juce::AlertWindow& alert, const juce::Rectangle<int>&,
+                       juce::TextLayout& textLayout) override
+    {
+        const auto bounds = alert.getLocalBounds();
+        g.setColour (alert.findColour (juce::AlertWindow::backgroundColourId));
+        g.fillRect (bounds);
+        g.setColour (alert.findColour (juce::AlertWindow::outlineColourId));
+        g.drawRect (bounds, 1);
+
+        const auto type = alert.getAlertType();
+        if (const auto icon = alertIconBounds (type).toFloat(); ! icon.isEmpty())
+        {
+            const bool warning = type == juce::MessageBoxIconType::WarningIcon;
+            juce::Path shape;
+            if (warning)
+            {
+                shape.addTriangle (icon.getCentreX(), icon.getY(), icon.getRight(), icon.getBottom(), icon.getX(), icon.getBottom());
+                shape = shape.createPathWithRoundedCorners (UiTheme::Radius::sm);
+            }
+            else
+            {
+                shape.addEllipse (icon);
+            }
+            g.setColour (alertIconColour (type));
+            g.fillPath (shape);
+            g.setColour (UiTheme::Color::textOnFill());
+            g.setFont (UiTheme::Type::font (UiTheme::Type::title, juce::Font::bold));
+            const juce::String mark = warning ? "!" : type == juce::MessageBoxIconType::InfoIcon ? "i" : "?";
+            g.drawText (mark, warning ? icon.withTrimmedTop (icon.getHeight() * 0.3f) : icon, juce::Justification::centred, false);
+        }
+
+        // The text where JUCE laid it out: past the icon's gutter when there is an icon, above the buttons.
+        const int textLeft = type == juce::MessageBoxIconType::NoIcon ? 0 : UiTheme::Layout::alertTextLeftWithIcon;
+        g.setColour (alert.findColour (juce::AlertWindow::textColourId));
+        textLayout.draw (g, juce::Rectangle<int> (bounds.getX() + textLeft, 30, bounds.getWidth(),
+                                                  bounds.getHeight() - getAlertWindowButtonHeight() - 20).toFloat());
     }
 
 private:

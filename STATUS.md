@@ -8,6 +8,56 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-12 — UI correctness pass unit 18: alerts draw in the theme
+
+**The defect (FIX 18):** every alert used JUCE's stock V4 look. That look draws a 130 px translucent icon bleeding off
+the alert's top-left corner and under about 35 px of the title and text. The app had never made its own look the
+default, and the stock alerts are top-level windows built with no component.
+
+**What changes:**
+- **Drawing:** `YesDawLookAndFeel` draws alerts in the theme:
+  - `panelRaised`, `text` and `panelStroke`, in the title and body type;
+  - a 28 px icon whole in the 80 px gutter JUCE leaves left of the text, beside the title (an amber triangle with "!"
+    for a warning; a blue circle with "?" or "i" otherwise);
+  - a `static_assert` keeps the icon clear of the text.
+- **Wiring:** the shell makes its look the app's default when it is built. JUCE holds the default by weak reference,
+  so nothing is left dangling when the shell goes.
+
+**Gate `[alert-style]`:**
+- A shell's look is the default.
+- On a display (Windows / macOS; the Linux runner has none), a warning, a question and a note alert, built as
+  `showOkCancelBox` builds them, draw their icon:
+  - in its colour;
+  - whole, at least 8 px inside the alert;
+  - at least 8 px left of the text;
+  - on the theme's panel.
+- Once the shell is gone, the default is JUCE's own again.
+- Two contrast pairs: the icons at 3:1 on `panelRaised`.
+
+**Bites:**
+- M1 JUCE's V4 alert (the icon's ink);
+- M2 the icon clipped at the corner;
+- M3 the icon under the text;
+- M4 the shell not the default;
+- M6 JUCE's alert colours.
+- M5 (the shell leaves the default pointing at its look) stays green, correctly: JUCE's weak reference makes that state
+  harmless, so it has no behaviour to bite.
+
+**Critic (separate agent), each finding verified against the code:**
+- **Blocker, fixed:** an alert is a native top-level window, and the Linux runner has no display. JUCE would dereference
+  a null display (`getParentMonitorArea`), so the drawing part now runs on Windows / macOS only, as the other
+  native-window tests do (`ci.yml`: "runners have no display").
+- **Should-fix, fixed:** clearing the default in the shell's destructor broadcast a look change while the closing window
+  still existed. `ResizableWindow::lookAndFeelChanged` then re-adds it to the desktop with different style flags, so
+  the window would rebuild itself on every quit. Removed; JUCE's weak reference makes it unnecessary.
+- **Nits:** the last check guards JUCE's weak reference rather than our code (its comment now says so). An alert's text
+  field keeps JUCE's stock colours (parked: theming `TextEditor` is app-wide).
+
+**Drive:** the built app at launch over a missing-audio bundle (`x17b`, scratch): the themed alert is on screen, its icon
+whole. The window under it is still white; that is unit 17. One drive run failed in the drive's own activation step,
+"could not restore the YES DAW window topmost state". It came before any assertion and was the first such line in any
+log this pass. The identical rerun passed. It is watched in unit 17's SS8 runs.
+
 ## 2026-10-12 — UI correctness pass unit 16: the export progress readout reads whole
 
 **The defect (FIX 16):** while an export runs, its readout stands in the Export button's 88 px slot beside the 28 px

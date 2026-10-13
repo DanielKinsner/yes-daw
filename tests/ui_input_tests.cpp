@@ -31050,6 +31050,78 @@ TEST_CASE ("the export progress readout reads whole: the percent beside the cros
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// UI pass unit 18: alerts draw in the theme. A shell makes its look the app's default while it lives (the stock alerts are
+// top-level windows built with no component) and clears it when it goes; the icon sits whole in the gutter JUCE leaves
+// left of the text, beside the title, never clipped by the alert's edge or under its text.
+TEST_CASE ("alerts draw in the theme: the icon whole in the gutter, clear of the text", "[ui][input][shell][alert-style]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    using Color = yesdaw::ui::UiTheme::Color;
+    const juce::LookAndFeel* shellLook = nullptr;
+    {
+        auto shell = makeShell();
+        shellLook = &shell->getLookAndFeel();
+        REQUIRE (&juce::LookAndFeel::getDefaultLookAndFeel() == shellLook);
+
+       #if JUCE_WINDOWS || JUCE_MAC   // an alert is a native top-level window: the Linux runner has no display
+        const auto colourNear = [] (juce::Colour a, juce::Colour b, int tolerance) {
+            return std::max ({ std::abs (a.getRed() - b.getRed()), std::abs (a.getGreen() - b.getGreen()),
+                               std::abs (a.getBlue() - b.getBlue()) }) <= tolerance;
+        };
+        for (const auto type : { juce::MessageBoxIconType::WarningIcon, juce::MessageBoxIconType::QuestionIcon,
+                                 juce::MessageBoxIconType::InfoIcon })
+        {
+            CAPTURE (static_cast<int> (type));
+            // As AlertWindow::showOkCancelBox builds it: the default look's alert, with no component.
+            std::unique_ptr<juce::AlertWindow> alert (juce::LookAndFeel::getDefaultLookAndFeel().createAlertWindow (
+                "Missing audio",
+                "Audio Clip - 0:00.5 48 kHz stereo, used by 1 clip\n\nLocate the original file to put it back, or cancel the open.",
+                "Locate...", "Cancel", {}, type, 2, nullptr));
+            REQUIRE (alert != nullptr);
+            REQUIRE (&alert->getLookAndFeel() == shellLook);
+            juce::Image image (juce::Image::ARGB, alert->getWidth(), alert->getHeight(), true, juce::SoftwareImageType());
+            {
+                juce::Graphics g (image);
+                alert->paintEntireComponent (g, true);
+            }
+            int buttonsTop = alert->getHeight();
+            for (int i = 0; i < alert->getNumChildComponents(); ++i)
+                if (auto* button = dynamic_cast<juce::Button*> (alert->getChildComponent (i)))
+                    buttonsTop = std::min (buttonsTop, button->getY());
+            REQUIRE (buttonsTop < alert->getHeight());
+
+            // The icon's ink (its fill) and the text's ink (the theme's text colour), above the buttons.
+            const juce::Colour iconColour = type == juce::MessageBoxIconType::WarningIcon ? Color::accentAmber() : Color::accentBlue();
+            juce::Rectangle<int> icon;
+            int iconInk = 0, textLeft = alert->getWidth();
+            for (int y = 0; y < buttonsTop; ++y)
+                for (int x = 0; x < alert->getWidth(); ++x)
+                {
+                    const juce::Colour p = image.getPixelAt (x, y);
+                    if (colourNear (p, iconColour, 12))
+                    {
+                        ++iconInk;
+                        icon = icon.isEmpty() ? juce::Rectangle<int> (x, y, 1, 1) : icon.getUnion ({ x, y, 1, 1 });
+                    }
+                    else if (colourNear (p, Color::text(), 40))
+                    {
+                        textLeft = std::min (textLeft, x);
+                    }
+                }
+            CAPTURE (alert->getBounds(), icon, iconInk, textLeft, buttonsTop);
+            REQUIRE (iconInk >= L::alertIconSize * L::alertIconSize / 4);   // it is drawn, in its colour
+            REQUIRE (alert->getLocalBounds().reduced (8).contains (icon));    // whole, clear of the alert's edge
+            REQUIRE (icon.getRight() + L::alertIconTextGap <= textLeft);      // and clear of the text
+            REQUIRE (textLeft < alert->getWidth());                            // (the text is there)
+            REQUIRE (colourNear (image.getPixelAt (alert->getWidth() - 4, 4), Color::panelRaised(), 2));   // the theme's panel
+        }
+       #endif
+    }
+    // The shell is gone: JUCE holds the default by weak reference, so the default is JUCE's own again, never one that is
+    // gone.
+    REQUIRE (&juce::LookAndFeel::getDefaultLookAndFeel() != shellLook);
+}
+
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part
 // alone is shortened in its middle, and shortening is by code point. `fits` here is a code-point budget.
 TEST_CASE ("ADR-0076 the status line's shortening rule never mixes a message's parts", "[ui][g6][status-whole][status-shorten]")

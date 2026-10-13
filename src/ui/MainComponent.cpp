@@ -45,6 +45,10 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
 
     setOpaque (true);
     setLookAndFeel (&lookAndFeel);
+    // UI pass unit 18: the app's default look too, so alerts (top-level windows built with no component - the
+    // missing-audio question, Unsaved changes) draw in the theme. JUCE holds the default by weak reference, so the look's
+    // end needs no clean-up; clearing it in the destructor would make the closing window rebuild its native window.
+    juce::LookAndFeel::setDefaultLookAndFeel (&lookAndFeel);
     setWantsKeyboardFocus (true);   // the declared keymap chords dispatch through keyPressed
     setSize (yesdaw::ui::UiTheme::Layout::defaultWindowWidth,
              yesdaw::ui::UiTheme::Layout::defaultWindowHeight);
