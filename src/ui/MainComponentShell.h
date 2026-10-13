@@ -1842,6 +1842,35 @@ private:
     };
     MarkerListModel inspectorMarkerListModel;
     juce::ListBox inspectorMarkerList;
+    // The layout pass, step 4: the CLIP tab's clips list (SoundCraft's CLIPS column) - with no clip selected, every clip
+    // in timeline order: its colour, its name, its track and start. A click selects the clip and brings it into view.
+    struct ClipListRow
+    {
+        yesdaw::engine::EntityId id;
+        juce::String name;
+        juce::String detail;   // "Stem 1 · 0:12.5"
+        juce::Colour colour;
+    };
+    struct ClipListModel final : public juce::ListBoxModel
+    {
+        const std::vector<ClipListRow>* rows = nullptr;
+        std::function<void (int)> onRowClicked;
+        int getNumRows() override { return rows != nullptr ? static_cast<int> (rows->size()) : 0; }
+        void paintListBoxItem (int row, juce::Graphics& g, int width, int height, bool selected) override;
+        void listBoxItemClicked (int row, const juce::MouseEvent&) override
+        {
+            if (onRowClicked)
+                onRowClicked (row);
+        }
+    };
+    std::vector<ClipListRow> inspectorClipRows;
+    ClipListModel inspectorClipListModel;
+    juce::ListBox inspectorClipList;
+    void rebuildInspectorClipRows();
+    [[nodiscard]] bool inspectorShowsClipList() const;
+    [[nodiscard]] juce::Rectangle<int> inspectorClipListBounds() const;
+    void layoutInspectorClipList();
+    void revealTimelineClip (const yesdaw::engine::EntityId& clipId);
     juce::TextButton inspectorTakeDelete;
     std::vector<yesdaw::ui::UiClipTakeView> inspectorTakeViews;
     // E34: open MIDI inputs + the message-thread note-on pairing map (note -> frame, velocity).

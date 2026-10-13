@@ -343,9 +343,11 @@ std::vector<MainComponent::PanelEmptyState> MainComponent::panelEmptyStates() co
     std::vector<PanelEmptyState> panels;
     const bool loaded = appModel.context().projectLoaded;
     const bool tracks = loaded && ! appModel.project().tracks.empty();
-    // The inspector's Clip tab with no clip selected (and no MIDI clip's quantize panel).
+    // The inspector's Clip tab with no clip selected (and no MIDI clip's quantize panel). The layout pass, step 4: with
+    // clips in the project the tab shows their list instead.
     if (appModel.context().inspectorVisible && ! appModel.context().inspectorTrackTabActive
-        && findProjectClipById (appModel.selectedTimelineClipId()) == nullptr && ! inspectorShowsQuantizePanel())
+        && findProjectClipById (appModel.selectedTimelineClipId()) == nullptr && ! inspectorShowsQuantizePanel()
+        && ! inspectorShowsClipList())
     {
         auto space = inspectorBounds();
         space.removeFromTop (L::inspectorTabHeight);

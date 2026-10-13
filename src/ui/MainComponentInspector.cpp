@@ -110,6 +110,29 @@ void MainComponent::configureInspectorControls()
     inspectorMarkerList.setModel (&inspectorMarkerListModel);
     addAndMakeVisible (inspectorMarkerList);
 
+    // The layout pass, step 4: the clips list (rows rebuilt by refreshActionState).
+    inspectorClipList.setComponentID ("clip.inspector.clips");
+    inspectorClipList.setName ("Clips");
+    inspectorClipList.setTitle ("Clips");
+    inspectorClipList.setTooltip ("Clips: click one to select it and bring it into view");
+    inspectorClipList.setRowHeight (yesdaw::ui::UiTheme::Layout::inspectorClipRowHeight);
+    inspectorClipList.setColour (juce::ListBox::backgroundColourId, yesdaw::ui::UiTheme::Color::transparent());
+    inspectorClipListModel.rows = &inspectorClipRows;
+    inspectorClipListModel.onRowClicked = [this] (int row)
+    {
+        if (row < 0 || row >= static_cast<int> (inspectorClipRows.size()))
+            return;
+        const yesdaw::engine::EntityId id = inspectorClipRows[static_cast<std::size_t> (row)].id;
+        dismissClipRenameEditor();
+        (void) appModel.selectTimelineClipForGesture (id, false);
+        revealTimelineClip (id);
+        refreshActionState();
+        resized();
+        repaintAll();
+    };
+    inspectorClipList.setModel (&inspectorClipListModel);
+    addChildComponent (inspectorClipList);
+
     inspectorTakeDelete.setComponentID ("clip.inspector.take.delete");
     inspectorTakeDelete.setButtonText ("Delete Take");
     inspectorTakeDelete.setTooltip ("Delete the chosen take (its clip goes with it)");
@@ -345,6 +368,156 @@ void MainComponent::setInspectorWidth (int width)
     repaintAll();
 }
 
+// The layout pass, step 4: a clips-list row - the clip's colour, its name, and its track and start on the right.
+void MainComponent::ClipListModel::paintListBoxItem (int row, juce::Graphics& g, int width, int height, bool selected)
+{
+    using namespace yesdaw::ui;
+    if (rows == nullptr || row < 0 || row >= static_cast<int> (rows->size()))
+        return;
+    const ClipListRow& clip = (*rows)[static_cast<std::size_t> (row)];
+    if (selected)
+    {
+        g.setColour (UiTheme::Color::controlInset());
+        g.fillRect (0, 0, width, height);
+    }
+    juce::Rectangle<int> cell (0, 0, width, height);
+    cell.reduce (UiTheme::Space::xs, UiTheme::Space::none);
+    const juce::Rectangle<int> swatch = cell.removeFromLeft (UiTheme::Layout::inspectorClipSwatchSize)
+                                            .withSizeKeepingCentre (UiTheme::Layout::inspectorClipSwatchSize,
+                                                                    UiTheme::Layout::inspectorClipSwatchSize);
+    g.setColour (clip.colour);
+    g.fillRoundedRectangle (swatch.toFloat(), UiTheme::Radius::sm);
+    cell.removeFromLeft (UiTheme::Space::sm);
+    g.setColour (UiTheme::Color::mutedText());
+    g.setFont (UiTheme::Type::font (UiTheme::Type::tiny));
+    const int detailWidth = std::min (cell.getWidth() / 2, UiTheme::Layout::inspectorClipDetailWidth);
+    g.drawText (clip.detail, cell.removeFromRight (detailWidth), juce::Justification::centredRight, true);
+    g.setColour (UiTheme::Color::text());
+    g.setFont (UiTheme::Type::font (UiTheme::Type::small, juce::Font::bold));
+    g.drawText (clip.name, cell.withTrimmedRight (UiTheme::Space::xs), juce::Justification::centredLeft, true);
+}
+
+// The layout pass, step 4: every audio and MIDI clip in timeline order (start, then lane), each as the timeline paints it.
+void MainComponent::rebuildInspectorClipRows()
+{
+    inspectorClipRows.clear();
+    if (! appModel.context().projectLoaded || ! appModel.project().sampleRate.isValid())
+        return;
+    const yesdaw::engine::Project& project = appModel.project();
+    struct Entry { yesdaw::engine::Tick start; std::size_t lane; ClipListRow row; };
+    std::vector<Entry> entries;
+    const auto laneOf = [&project] (const yesdaw::engine::EntityId& trackId) -> std::optional<std::size_t> {
+        for (std::size_t i = 0; i < project.tracks.size(); ++i)
+            if (project.tracks[i].id == trackId)
+                return i;
+        return std::nullopt;
+    };
+    const auto detailFor = [&project] (std::size_t lane, yesdaw::engine::Tick start) {
+        const yesdaw::engine::Track& track = project.tracks[lane];
+        const juce::String trackName = track.strip.name.empty() ? "Track " + juce::String (static_cast<int> (lane + 1))
+                                                                : juce::String (track.strip.name);
+        const double seconds = static_cast<double> (std::max<yesdaw::engine::Tick> (0, start)) / project.sampleRate.hz;
+        const long long tenths = static_cast<long long> (std::floor (seconds * 10.0 + 1e-9));
+        return trackName + juce::String::fromUTF8 (" \xc2\xb7 ")
+             + juce::String::formatted ("%lld:%02lld.%lld", tenths / 600, (tenths / 10) % 60, tenths % 10);
+    };
+    for (const yesdaw::engine::Clip& clip : project.clips)
+        if (const auto lane = laneOf (clip.trackId))
+            entries.push_back ({ clip.timelineStart, *lane,
+                                 { clip.id, juce::String (clip.name.c_str()), detailFor (*lane, clip.timelineStart),
+                                   clip.colour != yesdaw::engine::kTrackColourUnset ? juce::Colour (clip.colour)
+                                                                                     : colourForTrack (project.tracks[*lane], *lane) } });
+    for (const yesdaw::engine::MidiClip& clip : project.midiClips)
+        if (const auto lane = laneOf (clip.trackId))
+            entries.push_back ({ clip.timelineStart, *lane,
+                                 { clip.id, "MIDI", detailFor (*lane, clip.timelineStart),
+                                   colourForTrack (project.tracks[*lane], *lane) } });
+    std::stable_sort (entries.begin(), entries.end(), [] (const Entry& a, const Entry& b) {
+        return a.start != b.start ? a.start < b.start : a.lane < b.lane;
+    });
+    inspectorClipRows.reserve (entries.size());
+    for (Entry& entry : entries)
+        inspectorClipRows.push_back (std::move (entry.row));
+}
+
+// The list fills the CLIP tab's content under its painted label, or has no bounds.
+juce::Rectangle<int> MainComponent::inspectorClipListBounds() const
+{
+    if (! inspectorShowsClipList())
+        return {};
+    auto area = inspectorBounds();
+    area.removeFromTop (yesdaw::ui::UiTheme::Layout::inspectorTabHeight);
+    area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX, yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
+    return area.withTrimmedTop (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight);
+}
+
+void MainComponent::layoutInspectorClipList()
+{
+    inspectorClipList.setBounds (inspectorClipListBounds());
+    inspectorClipList.setVisible (inspectorShowsClipList());
+    inspectorClipList.updateContent();
+}
+
+bool MainComponent::inspectorShowsClipList() const
+{
+    return appModel.context().inspectorVisible && ! appModel.context().inspectorTrackTabActive
+        && appModel.context().projectLoaded && ! inspectorClipRows.empty()
+        && findProjectClipById (appModel.selectedTimelineClipId()) == nullptr && ! inspectorShowsQuantizePanel();
+}
+
+// The layout pass, step 4: scroll the timeline so the clip's start and its lane are in view (a clip already in view
+// leaves the view alone).
+void MainComponent::revealTimelineClip (const yesdaw::engine::EntityId& clipId)
+{
+    const yesdaw::engine::Project& project = appModel.project();
+    if (! project.sampleRate.isValid())
+        return;
+    std::optional<yesdaw::engine::Tick> start;
+    yesdaw::engine::EntityId trackId;
+    for (const yesdaw::engine::Clip& clip : project.clips)
+        if (clip.id == clipId)
+        {
+            start = clip.timelineStart;
+            trackId = clip.trackId;
+        }
+    for (const yesdaw::engine::MidiClip& clip : project.midiClips)
+        if (clip.id == clipId)
+        {
+            start = clip.timelineStart;
+            trackId = clip.trackId;
+        }
+    if (! start)
+        return;
+
+    const double startSeconds = static_cast<double> (std::max<yesdaw::engine::Tick> (0, *start)) / project.sampleRate.hz;
+    const double visibleSeconds = timelineVisibleSecondsFor (timelineTotalSeconds);
+    if (visibleSeconds > 0.0
+        && (startSeconds < timelineScrollSeconds || startSeconds > timelineScrollSeconds + visibleSeconds * 0.9))
+    {
+        const double maxScroll = std::max (0.0, timelineTotalSeconds - visibleSeconds);
+        timelineScrollSeconds = std::clamp (startSeconds - visibleSeconds * 0.1, 0.0, maxScroll);
+        refreshTimelineScrollBars();
+    }
+
+    for (std::size_t lane = 0; lane < project.tracks.size(); ++lane)
+    {
+        if (project.tracks[lane].id != trackId)
+            continue;
+        const yesdaw::ui::TimelineCanvasGeometry geometry = yesdaw::ui::timelineCanvasGeometry (
+            timelineInput.getLocalBounds(), makeTimelineState());
+        const int row = static_cast<int> (lane);
+        if (geometry.laneTopPixels.size() <= lane || geometry.laneHeightPixelsPerLane.size() <= lane)
+            break;
+        const double top = geometry.laneTopPixels[lane];
+        const double scrolledTop = geometry.trackScrollRows < static_cast<int> (geometry.laneTopPixels.size())
+                                       ? geometry.laneTopPixels[static_cast<std::size_t> (geometry.trackScrollRows)]
+                                       : 0.0;
+        if (top < scrolledTop || top + geometry.laneHeightPixelsPerLane[lane] > scrolledTop + geometry.clipArea.getHeight())
+            scrollTrackRowsBy (row - timelineTrackScrollRows);
+        break;
+    }
+}
+
 // G3.4: the quantize panel shows on the CLIP tab when a MIDI clip is selected and no audio clip
 // is (an audio clip's own card wins; the TRACK tab is the track's).
 bool MainComponent::inspectorShowsQuantizePanel() const
@@ -392,6 +565,7 @@ void MainComponent::layoutInspectorControls()
     inspectorTrackTab.setBounds (tabStrip);
     area.reduce (yesdaw::ui::UiTheme::Layout::inspectorContentInsetX,
                  yesdaw::ui::UiTheme::Layout::inspectorContentInsetY);
+    layoutInspectorClipList();   // the layout pass, step 4
 
     // V7: the TRACK tab shows track-scoped painted content only — every clip-scoped overlay
     // control drops WHOLE (the same empty-bounds law the section-fit drop already uses).
@@ -959,6 +1133,12 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
         if (inspectorShowsQuantizePanel())
         {
             drawMidiClipInspector (g, area);
+            return;
+        }
+        if (inspectorShowsClipList())   // the layout pass, step 4: the list's label; the list paints itself
+        {
+            drawSmallLabel (g, "CLIPS  " + juce::String (static_cast<int> (inspectorClipRows.size())),
+                            area.withHeight (yesdaw::ui::UiTheme::Layout::inspectorSectionLabelHeight));
             return;
         }
         paintPanelEmptyStates (g, this);   // ADR-0073: a row (Add MIDI clip) or plain text

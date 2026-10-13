@@ -2380,6 +2380,8 @@ void MainComponent::refreshActionState()
     inspectorFadeCurve.setVisible (inspectorVisible);
     inspectorFadeCurveAmount.setVisible (inspectorVisible);
     inspectorMarkerList.setVisible (inspectorVisible);   // G2.14
+    rebuildInspectorClipRows();   // the layout pass, step 4
+    layoutInspectorClipList();
     refreshAutomationLaneControls();
     refreshInspectorControls();
     refreshMixerControls();

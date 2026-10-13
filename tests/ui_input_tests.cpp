@@ -1425,7 +1425,7 @@ TEST_CASE ("H12 UI input harness constructs the shipped MainComponent", "[ui][in
     // R4 bumped the deliberate child-count pin for the status line (136 -> 137); R10 for the
     // solo-safe button (137 -> 138); G0.4 for the playhead layer above the buffered timeline
     // canvas (138 -> 139).
-    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 95u));   // ADR-0068 §6: + the autosave recovery card; ADR-0066: + the painted-controls accessibility layer; ADR-0065: + the mixer strips' scroll bar; G5.5: + the New Project dialog; G5.3: + the export Dither / Normalize toggles and the stems chooser; G5.2: + the media browser; G4.7: + the header DIM / MUTE; G4.5: + the header SOLO; G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
+    REQUIRE (snapshot.childCount == static_cast<int> (mainShellToolbarActions().size() + 96u));   // the layout pass, step 4: + the inspector clips list; ADR-0068 §6: + the autosave recovery card; ADR-0066: + the painted-controls accessibility layer; ADR-0065: + the mixer strips' scroll bar; G5.5: + the New Project dialog; G5.3: + the export Dither / Normalize toggles and the stems chooser; G5.2: + the media browser; G4.7: + the header DIM / MUTE; G4.5: + the header SOLO; G4.1 cp2: - the tools lane's 79 widgets (the Add FX chooser, five slot rows x five buttons, + Bus / - Bus, Out:, + Send, four send rows x five controls, the eight parameter rows' label + slider + chooser and the pager reparented into the FX editor, the live fader / pan / M / S) + the FX editor; G4.1: - the seven readout rows, the solo-safe button and the first-track select button (the strip is the mixer); G3.8: + the roll header's Key / Scale choosers; G3.6: + the roll header's Typing / Step; G3.5: + the four MIDI clip rows; G3.4: + the six quantize panel controls; G3.3: + the piano roll's control lane chooser; G2.1: + three splitters; G2.6: + the edit mode chooser; G2.7: + the snap mode chooser; G2.9b: + the stretch field; G2.10: + the curve amount; G2.14: + the marker list; G2.16: + the zoom slider and two scroll bars; G2.18: + the undo history window; G3.1: + the instrument panel, the inspector's instrument chooser and Edit   // G1.4: nudge chooser + inspector toggle; G1.5: keymap editor; G1.7: the repeat combo is gone
     // G4.0a restores SS-1's native empty project; it contains one empty audio track.
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE_FALSE (snapshot.context.isPlaying);
@@ -27402,12 +27402,27 @@ TEST_CASE ("ADR-0073 with clips but none selected the inspector names the select
         yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewToggleInspector);
     if (snapshotMainComponent (*shell).context.inspectorTrackTabActive)
         clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+    // The layout pass, step 4: with clips in the song the CLIP tab lists them instead of "Select a clip".
     const auto texts = yesdaw::ui::mainComponentEmptyPanelTexts (*shell);
-    REQUIRE (texts == std::vector<std::string> { "Select a clip" });
+    REQUIRE (texts.empty());
     const auto rows = yesdaw::ui::mainComponentEmptyRows (*shell);
     REQUIRE (std::none_of (rows.begin(), rows.end(), [] (const auto& row) { return row.first.rfind ("empty.inspector.", 0) == 0; }));
     const auto records = yesdaw::ui::mainComponentPointerRecords (*shell);
     REQUIRE (std::none_of (records.begin(), records.end(), [] (const auto& record) { return record.first.rfind ("empty.inspector.", 0) == 0; }));
+
+    // The list: every clip, a click selects one (the tab then shows that clip, so the list steps aside).
+    auto* list = dynamic_cast<juce::ListBox*> (findChildWithComponentId (*shell, "clip.inspector.clips"));
+    REQUIRE (list != nullptr);
+    REQUIRE (list->isVisible());
+    REQUIRE_FALSE (list->getBounds().isEmpty());
+    const yesdaw::engine::Project song = readProjectSnapshot (bundlePath);
+    REQUIRE_FALSE (song.clips.empty());
+    REQUIRE (list->getListBoxModel()->getNumRows() == static_cast<int> (song.clips.size()));
+    list->getListBoxModel()->listBoxItemClicked (
+        0, juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), {}, {}, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, list, list,
+                             juce::Time(), {}, juce::Time(), 1, false));
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    REQUIRE_FALSE (list->isVisible());
     shell.reset();
     std::error_code ec;
     std::filesystem::remove_all (fixtureDir, ec);

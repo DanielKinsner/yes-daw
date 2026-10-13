@@ -565,6 +565,10 @@ struct UiTheme
         static constexpr int inspectorMarkersSectionTop = 500;    // G2.14: the marker list card
         static constexpr int inspectorMarkersSectionHeight = 140;
         static constexpr int inspectorMarkerRowHeight = 20;
+        // The layout pass, step 4: the CLIP tab's clips list - a row, its colour swatch and its track-and-start column.
+        static constexpr int inspectorClipRowHeight = 24;
+        static constexpr int inspectorClipSwatchSize = 10;
+        static constexpr int inspectorClipDetailWidth = 120;
         static constexpr int inspectorAutomationChartTop = 4;
         static constexpr int inspectorAutomationChartHeight = 44;
         // UI correctness pass unit 12: the TAKES card's tallest content (its heading and the "No takes" chart) - with less
