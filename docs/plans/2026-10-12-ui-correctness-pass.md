@@ -660,7 +660,9 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
   stay under its name strip, their rows placed by fractions; gate `[clip-notes-name]` (STATUS).
 - [x] **23.** The send rows' PRE / PST text is 3.59:1 on the strip header colour. Line 4. **Done 2026-10-13:** the tap
   is drawn in the text colour; contrast pairs for a send row's level bar; gate `[send-tap-contrast]` (STATUS).
-- **24.** A meter's yellow band follows the bar's height, not the level (yellow at about -41 dBFS). Line 7.
+- [x] **24.** A meter's yellow band follows the bar's height, not the level (yellow at about -41 dBFS). Line 7. **Done
+  2026-10-13:** yellow from -6 dBFS on each meter's own scale (half a linear meter, the top 17 % of the master's), the
+  held marker in its zone's colour; gates `[meter-zones]` (STATUS).
 - **25.** The last ruler label is cut at the right edge ("12" / "4:", "0:19."). Line 1.
 - **26.** A status message outlives its undo ("Routed to new Bus 2" after Bus 2 was undone). Line 7.
 - **27.** Bars beside a tempo label go unlabelled (265 px between "33" and "57" at 1920). Information.

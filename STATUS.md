@@ -8,6 +8,50 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 24: a meter's yellow begins at a level
+
+**The defect (FIX 24):** every meter painted the top 22 % (vertical) or 18 % (horizontal) of its live bar yellow, so any bar,
+even one at about -41 dBFS, wore a yellow cap.
+
+**What changes:**
+- A meter's yellow zone is a level, `UiTheme::Meter::hotFromDb` = -6 dBFS (the clip light marks 0 dBFS). It sits on each
+  meter's own scale:
+  - half of a linear-peak meter (the rail, strips, buses and the header);
+  - the top 17 % of the master's dB scale (unit 7's law).
+- A segment reaching the line paints yellow.
+- The held-peak marker takes its zone's colour, by the bar's own pixel rule.
+- No ADR fixes meter colours (ADR-0063 asks only 3:1 for indicators, which these tokens have), so the level is a theme
+  token, named here and in the plan.
+- The painters moved to `src/ui/MeterPaint.h` so gates can draw them directly.
+
+**Gates `[meter-zones]`:**
+- **The master meter,** through unit 7's seam: a -40 dB block paints no yellow at all (bar or marker), and a -3 dB block
+  paints yellow only above, and green only below, the -6 dB line. The line comes from the published "0" and "-12" labels.
+- **A linear meter, vertical (with its marker) and horizontal,** drawn directly at -40, -12 and -3 dB: yellow only past
+  `10^(-6/20)` of the fill, and only when the level is past it.
+
+**Bites:**
+- M1 the old law, the top of any bar hot (a -40 dB bar wears yellow);
+- M2 the held marker always yellow;
+- M3 the master on the linear threshold (yellow below its -6 dB line);
+- M4 a linear meter never hot;
+- M5 a linear meter always hot;
+- M6 the horizontal meter on its old band.
+
+**Critic (separate agent), each finding verified against the code:**
+- **Blocker, fixed:** B32's hold phase holds about -12 dBFS (fader 0.35, post-pan). Its marker is now green, and the gate
+  counted only yellow.
+  - The suite confirmed it: red at line 16917.
+  - The gate now counts the marker in either fill, with its expiry check intact.
+- **Should-fix, taken:** only the master meter was gated. The linear and horizontal meters now have their own gates.
+- **Nit, taken:** the marker used a value test where the bar used a pixel test, so they could disagree at the line. Both
+  now use the pixel test.
+- **Nit, taken:** the level is named in the plan.
+- **Clean:**
+  - every caller's value is on the scale its threshold assumes;
+  - the rounding is consistent;
+  - unit 7's gate, the drives and the theme audit are unaffected.
+
 ## 2026-10-13 — UI correctness pass unit 23: a send row's PRE / PST reads over its level bar
 
 **The defect (FIX 23):** a send row's tap label (PRE / PST) was drawn in the muted colour. At a high level the row's level

@@ -8,6 +8,7 @@
 #include "ui/StatusLineText.h"   // ADR-0076: the shortening rule
 #include "ui/ExportProgressReadout.h"   // UI pass unit 16
 #include "ui/PianoRollInputComponent.h"   // UI pass unit 20: the key face and its name's placement
+#include "ui/MeterPaint.h"                // UI pass unit 24: the meters' painters
 #include "ui/ControlTarget.h"   // G4.0b: the pure Control-target rules
 #include "ui/DesktopAudioStartup.h"
 #include "ui/EqResponseComponent.h"
@@ -16914,12 +16915,19 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     REQUIRE (serviceMainComponentUiTimer (*shell));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);   // G1.1: no default chord
     REQUIRE (serviceMainComponentUiTimer (*shell));   // live falls silent; the held marker stays
-    REQUIRE (pixelsOfColour (renderShell(), railMeter, holdColour) > 0);
+    // UI pass unit 24: the marker takes its zone's colour, and this hold (fader 0.35, post-pan: about -12 dBFS) sits in the
+    // green zone - the marker is whichever fill is there (the rail is silent, so it is the only fill).
+    const auto heldMarkerPixels = [&] {
+        const juce::Image image = renderShell();
+        return pixelsOfColour (image, railMeter, holdColour)
+             + pixelsOfColour (image, railMeter, yesdaw::ui::UiTheme::Meter::nominalFill());
+    };
+    REQUIRE (heldMarkerPixels() > 0);
     REQUIRE (pixelsOfColour (renderShell(), railMeter, clipColour) == 0);
 
     for (int tick = 0; tick < yesdaw::ui::UiTheme::Meter::peakHoldTicks; ++tick)
         REQUIRE (serviceMainComponentUiTimer (*shell));
-    REQUIRE (pixelsOfColour (renderShell(), railMeter, holdColour) == 0);
+    REQUIRE (heldMarkerPixels() == 0);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
@@ -31520,6 +31528,140 @@ TEST_CASE ("a send row's PRE / PST reads over its level bar", "[ui][input][shell
     const float mutedBrightness = yesdaw::ui::UiTheme::Color::mutedText().getPerceivedBrightness();
     CAPTURE (row, tap, nearText, brightest, mutedBrightness, text.getPerceivedBrightness());
     REQUIRE (brightest > (mutedBrightness + text.getPerceivedBrightness()) * 0.5f);
+}
+
+// UI pass unit 24: a meter's yellow zone is a level (UiTheme::Meter::hotFromDb, -6 dBFS) on its own scale, not a share of
+// the live bar. On the master meter (its own dB scale, unit 7's seam): a -40 dB block paints no yellow at all - bar or
+// held marker - and a -3 dB block paints yellow only above the -6 dB line and green only below it. The -6 dB line comes
+// from the published "0" and "-12" labels (dB-linear between their centres), never from the code under test.
+TEST_CASE ("a meter's yellow begins at a level, not at the top of any bar", "[ui][input][shell][mixer][meters][meter-zones]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const auto bundlePath = makeTempBundlePath ("meter-zones");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    shell->setSize (1920, 1080);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::windowMaxHeight);
+
+    const auto rectOf = [&shell] (const juce::String& id) {
+        const juce::var r = probeRoot (*shell)["layout"][juce::Identifier (id)];
+        if (! r.isArray())
+            return juce::Rectangle<int> {};
+        return juce::Rectangle<int> { static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]) };
+    };
+    const auto dbToPeak = [] (double db) { return static_cast<float> (std::pow (10.0, db / 20.0)); };
+    const juce::Colour hot = yesdaw::ui::UiTheme::Meter::hotFill();
+    const juce::Colour nominal = yesdaw::ui::UiTheme::Meter::nominalFill();
+
+    for (const double db : { -40.0, -3.0 })
+    {
+        yesdaw::ui::mainComponentPublishMasterBlockForTest (*shell, dbToPeak (db), dbToPeak (db));
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        const juce::Rectangle<int> meters = rectOf ("mixer.master.meters");
+        const juce::Rectangle<int> zero = rectOf ("mixer.master.scale.0");
+        const juce::Rectangle<int> twelve = rectOf ("mixer.master.scale.-12");
+        REQUIRE_FALSE (meters.isEmpty());
+        REQUIRE_FALSE (zero.isEmpty());
+        REQUIRE_FALSE (twelve.isEmpty());
+        const double hotLine = zero.toDouble().getCentreY()
+                             + (0.0 - static_cast<double> (yesdaw::ui::UiTheme::Meter::hotFromDb)) / 12.0
+                                   * (twelve.toDouble().getCentreY() - zero.toDouble().getCentreY());
+        juce::Image image (juce::Image::ARGB, shell->getWidth(), shell->getHeight(), true);
+        {
+            juce::Graphics graphics (image);
+            shell->paintEntireComponent (graphics, true);
+        }
+        int hotPixels = 0, nominalPixels = 0, hotBelow = 0, nominalAbove = 0;
+        for (int y = meters.getY(); y < meters.getBottom(); ++y)
+            for (int x = meters.getX(); x < meters.getRight(); ++x)
+            {
+                const juce::Colour p = image.getPixelAt (x, y);
+                if (p == hot)
+                {
+                    ++hotPixels;
+                    hotBelow += static_cast<double> (y) > hotLine + L::meterSegmentSize + 1 ? 1 : 0;   // a segment reaching the line is hot
+                }
+                else if (p == nominal)
+                {
+                    ++nominalPixels;
+                    nominalAbove += static_cast<double> (y) < hotLine - 1 ? 1 : 0;
+                }
+            }
+        CAPTURE (db, meters, hotLine, hotPixels, nominalPixels, hotBelow, nominalAbove);
+        REQUIRE (nominalPixels > 0);   // the bar is drawn
+        if (db < static_cast<double> (yesdaw::ui::UiTheme::Meter::hotFromDb))
+            REQUIRE (hotPixels == 0);   // a quiet bar, and its held marker, are all green
+        else
+            REQUIRE (hotPixels > 0);
+        REQUIRE (hotBelow == 0);
+        REQUIRE (nominalAbove == 0);
+    }
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// UI pass unit 24, the linear-peak meters (the rail, strips, buses, the header): drawn directly at -40 dB and -3 dB on a
+// linear scale - the -6 dB line is 10^(-6/20) of the fill, computed here - vertical and horizontal alike, with a held marker.
+TEST_CASE ("a linear meter's yellow begins at -6 dBFS, vertical and horizontal", "[ui][input][meters][meter-zones]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const juce::Colour hot = yesdaw::ui::UiTheme::Meter::hotFill();
+    const juce::Colour nominal = yesdaw::ui::UiTheme::Meter::nominalFill();
+    const double hotFraction = std::pow (10.0, -6.0 / 20.0);
+    const auto peak = [] (double db) { return static_cast<float> (std::pow (10.0, db / 20.0)); };
+    for (const double db : { -40.0, -12.0, -3.0 })
+    {
+        CAPTURE (db);
+        // Vertical, with its held marker at the same level.
+        {
+            const juce::Rectangle<int> area (0, 0, 12, 200);
+            juce::Image image (juce::Image::ARGB, area.getWidth(), area.getHeight(), true, juce::SoftwareImageType());
+            {
+                juce::Graphics g (image);
+                yesdaw::ui::shell::drawMeterWithHold (g, area, peak (db), peak (db), false);
+            }
+            const auto fill = area.reduced (L::meterFillInset);
+            const double hotLine = fill.getBottom() - fill.getHeight() * hotFraction;
+            int hotPixels = 0, nominalPixels = 0, hotBelow = 0, nominalAbove = 0;
+            for (int y = 0; y < image.getHeight(); ++y)
+            {
+                const juce::Colour p = image.getPixelAt (fill.getCentreX(), y);
+                if (p == hot) { ++hotPixels; hotBelow += y > hotLine + L::meterSegmentSize + 1 ? 1 : 0; }
+                else if (p == nominal) { ++nominalPixels; nominalAbove += y < hotLine - 1 ? 1 : 0; }
+            }
+            CAPTURE (hotLine, hotPixels, nominalPixels, hotBelow, nominalAbove);
+            REQUIRE (nominalPixels > 0);
+            REQUIRE ((hotPixels > 0) == (db > -6.0));
+            REQUIRE (hotBelow == 0);
+            REQUIRE (nominalAbove == 0);
+        }
+        // Horizontal.
+        {
+            const juce::Rectangle<int> area (0, 0, 200, 10);
+            juce::Image image (juce::Image::ARGB, area.getWidth(), area.getHeight(), true, juce::SoftwareImageType());
+            {
+                juce::Graphics g (image);
+                yesdaw::ui::shell::drawHorizontalMeter (g, area, peak (db));
+            }
+            const auto fill = area.reduced (L::meterFillInset);
+            const double hotLine = fill.getX() + fill.getWidth() * hotFraction;
+            int hotPixels = 0, nominalPixels = 0, hotLeft = 0, nominalRight = 0;
+            for (int x = 0; x < image.getWidth(); ++x)
+            {
+                const juce::Colour p = image.getPixelAt (x, fill.getCentreY());
+                if (p == hot) { ++hotPixels; hotLeft += x < hotLine - L::meterSegmentSize - 1 ? 1 : 0; }
+                else if (p == nominal) { ++nominalPixels; nominalRight += x > hotLine + 1 ? 1 : 0; }
+            }
+            CAPTURE (hotLine, hotPixels, nominalPixels, hotLeft, nominalRight);
+            REQUIRE (nominalPixels > 0);
+            REQUIRE ((hotPixels > 0) == (db > -6.0));
+            REQUIRE (hotLeft == 0);
+            REQUIRE (nominalRight == 0);
+        }
+    }
 }
 
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part

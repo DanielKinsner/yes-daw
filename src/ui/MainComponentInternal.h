@@ -18,6 +18,7 @@ static_assert (! yesdaw::ui::kTimelinePaintProfilingEnabled,
 #include "ui/UiPianoRollSurface.h"
 #include "ui/UiTheme.h"
 #include "ui/YesDawLookAndFeel.h"
+#include "ui/MeterPaint.h"   // UI pass unit 24: the meters' painters
 #include "ui/TimelineInputComponent.h"
 #include "ui/PianoRollInputComponent.h"
 #include "ui/ShellWidgets.h"
@@ -188,60 +189,6 @@ inline void drawSmallLabel (juce::Graphics& g, const juce::String& text, juce::R
     g.drawText (text, area, justification, false);
 }
 
-inline void drawMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)
-{
-    g.setColour (yesdaw::ui::UiTheme::Color::meterTrack());
-    g.fillRoundedRectangle (area.toFloat(), yesdaw::ui::UiTheme::Radius::xs);
-
-    const auto fill = area.reduced (yesdaw::ui::UiTheme::Layout::meterFillInset);
-    const int height = juce::roundToInt (
-        static_cast<float> (fill.getHeight()) * juce::jlimit (0.0f, 1.0f, value));
-    const int liveTop = fill.getBottom() - height;
-    const int hotBottom = liveTop + juce::roundToInt (
-        static_cast<float> (height) * yesdaw::ui::UiTheme::Meter::verticalHotBand);
-    const int segmentStep = yesdaw::ui::UiTheme::Layout::meterSegmentSize
-                          + yesdaw::ui::UiTheme::Layout::meterSegmentGap;
-    for (int bottom = fill.getBottom(); bottom > liveTop; bottom -= segmentStep)
-    {
-        const int top = juce::jmax (liveTop,
-                                    bottom - yesdaw::ui::UiTheme::Layout::meterSegmentSize);
-        g.setColour (top < hotBottom ? yesdaw::ui::UiTheme::Meter::hotFill()
-                                    : yesdaw::ui::UiTheme::Meter::nominalFill());
-        g.fillRect (fill.getX(), top, fill.getWidth(), bottom - top);
-    }
-}
-
-// B32: vertical meter with a peak-hold marker and a latched clip light. The live bar paints
-// exactly like drawMeter; the held peak paints as a marker line while its hold lasts; the clip
-// light fills the meter's top cell while latched.
-inline void drawMeterWithHold (juce::Graphics& g,
-                        juce::Rectangle<int> area,
-                        float liveValue,
-                        float heldValue,
-                        bool clipLatched)
-{
-    drawMeter (g, area, liveValue);
-
-    const auto fill = area.reduced (yesdaw::ui::UiTheme::Layout::meterFillInset);
-    if (heldValue > 0.0f)
-    {
-        const int heldHeight = juce::roundToInt (
-            static_cast<float> (fill.getHeight()) * juce::jlimit (0.0f, 1.0f, heldValue));
-        g.setColour (yesdaw::ui::UiTheme::Meter::hotFill());
-        g.fillRect (fill.getX(),
-                    fill.getBottom() - heldHeight,
-                    fill.getWidth(),
-                    yesdaw::ui::UiTheme::Meter::peakTickThickness);
-    }
-
-    if (clipLatched)
-    {
-        g.setColour (yesdaw::ui::UiTheme::Meter::clipFill());
-        g.fillRect (fill.getX(), area.getY(), fill.getWidth(),
-                    yesdaw::ui::UiTheme::Meter::clipLightSize);
-    }
-}
-
 // UI correctness pass unit 7 (rubric FIX 5): the master meter's fill law. Its scale's marks
 // (UiTheme::Layout::mixerMasterScaleDb) sit evenly down the meter, so the fill is piecewise-linear
 // in dB between them: a level at a mark fills to that mark, a level between two marks fills to the
@@ -292,28 +239,6 @@ inline void drawMeterWithHold (juce::Graphics& g,
                      - juce::roundToInt (static_cast<float> (fill.getHeight())
                                          * masterMeterFractionForDb (static_cast<double> (L::mixerMasterScaleDb[markIndex])));
     return { scaleColumn.getX(), levelY - L::mixerMasterScaleLabelHeight / 2, scaleColumn.getWidth(), L::mixerMasterScaleLabelHeight };
-}
-
-inline void drawHorizontalMeter (juce::Graphics& g, juce::Rectangle<int> area, float value)
-{
-    g.setColour (yesdaw::ui::UiTheme::Color::meterTrack());
-    g.fillRoundedRectangle (area.toFloat(), yesdaw::ui::UiTheme::Radius::xs);
-    const auto fill = area.reduced (yesdaw::ui::UiTheme::Layout::meterFillInset);
-    const int width = juce::roundToInt (
-        static_cast<float> (fill.getWidth()) * juce::jlimit (0.0f, 1.0f, value));
-    const int liveRight = fill.getX() + width;
-    const int hotLeft = liveRight - juce::roundToInt (
-        static_cast<float> (width) * yesdaw::ui::UiTheme::Meter::horizontalHotBand);
-    const int segmentStep = yesdaw::ui::UiTheme::Layout::meterSegmentSize
-                          + yesdaw::ui::UiTheme::Layout::meterSegmentGap;
-    for (int left = fill.getX(); left < liveRight; left += segmentStep)
-    {
-        const int right = juce::jmin (liveRight,
-                                      left + yesdaw::ui::UiTheme::Layout::meterSegmentSize);
-        g.setColour (left >= hotLeft ? yesdaw::ui::UiTheme::Meter::hotFill()
-                                    : yesdaw::ui::UiTheme::Meter::nominalFill());
-        g.fillRect (left, fill.getY(), right - left, fill.getHeight());
-    }
 }
 
 inline juce::Colour stripColourForIndex (std::size_t index)

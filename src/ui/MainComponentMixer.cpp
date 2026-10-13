@@ -2507,10 +2507,12 @@ void MainComponent::drawMixer (juce::Graphics& g, juce::Rectangle<int> area) con
     auto rightMeter = meterPair.removeFromLeft (
         yesdaw::ui::UiTheme::Layout::mixerMasterMeterWidth);
     // Unit 7: the master's meters fill by its own dB scale (masterMeterFractionForPeak); the hold and latch are unchanged.
+    // Unit 24: their yellow zone starts at Meter::hotFromDb on that same scale.
+    const float masterHotFrom = masterMeterFractionForDb (static_cast<double> (yesdaw::ui::UiTheme::Meter::hotFromDb));
     drawMeterWithHold (g, leftMeter, masterMeterFractionForPeak (masterHoldLeft.livePeak),
-                       masterMeterFractionForPeak (masterHoldLeft.heldPeak), masterHoldLeft.clipLatched);
+                       masterMeterFractionForPeak (masterHoldLeft.heldPeak), masterHoldLeft.clipLatched, masterHotFrom);
     drawMeterWithHold (g, rightMeter, masterMeterFractionForPeak (masterHoldRight.livePeak),
-                       masterMeterFractionForPeak (masterHoldRight.heldPeak), masterHoldRight.clipLatched);
+                       masterMeterFractionForPeak (masterHoldRight.heldPeak), masterHoldRight.clipLatched, masterHotFrom);
     g.setColour (kMutedText);
     g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
     auto channelLabels = masterLane.withTrimmedTop (

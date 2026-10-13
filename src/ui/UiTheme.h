@@ -101,8 +101,9 @@ struct UiTheme
         // Latched clip indicator (B32): an exact, scan-friendly red so gates can pixel-assert it.
         static juce::Colour clipFill() noexcept { return juce::Colour (0xffff1f1f); }
 
-        static constexpr float verticalHotBand = 0.22f;
-        static constexpr float horizontalHotBand = 0.18f;
+        // UI pass unit 24: a meter's colour zones sit at a fixed level on its own scale - yellow from this level up (the
+        // clip light marks 0 dBFS) - never at a share of the live bar, which capped any bar in yellow (one at -41 dBFS).
+        static constexpr float hotFromDb = -6.0f;
         // Peak-hold and clip-latch law (B32): the held peak survives this many 33 ms UI refresh
         // ticks (~2 s); the clip light latches at or above this linear peak (0 dBFS).
         static constexpr int peakHoldTicks = 60;
