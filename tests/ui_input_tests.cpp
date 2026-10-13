@@ -31664,6 +31664,74 @@ TEST_CASE ("a linear meter's yellow begins at -6 dBFS, vertical and horizontal",
     }
 }
 
+// UI pass unit 25: a ruler label is drawn whole or not at all. A two-digit bar's tick is placed 10-14 px short of the clip
+// area's right edge, so its number and its time would run past it into the margin the canvas's edge and scroll bar
+// occupy; then a tempo change ("150~") is put on that tick instead. Either way the margin past the edge, in the bars and
+// time rows' label bands, stays the ruler's own background (nothing runs into it to be cut), while the labels further
+// left are drawn - read inside their own boxes, so the ticks never count as text. (A label may end right at the edge.)
+TEST_CASE ("a ruler label is drawn whole or not at all at the right edge", "[ui][input][timeline][ruler-edge][paint]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    namespace canvas = yesdaw::ui::timeline_canvas_detail;
+    const juce::Rectangle<int> bounds (0, 0, 700, 220);
+    yesdaw::ui::TimelineCanvasState state;
+    state.trackCount = 1;
+    state.viewport.pixelsPerSecond = 100.0;
+    const int edge = yesdaw::ui::timelineCanvasGeometry (bounds, state).clipArea.getRight();
+
+    // Scroll until a bar numbered 10 or more lands its tick 10-14 px short of the edge.
+    bool placed = false;
+    double tickSeconds = 0.0;
+    for (int step = 0; step < 20000 && ! placed; ++step)
+    {
+        state.viewport.scrollSeconds = step * 0.005;
+        const auto geometry = yesdaw::ui::timelineCanvasGeometry (bounds, state);
+        for (const auto& label : yesdaw::ui::computeRulerBarLabels (geometry.clipArea, state, geometry.viewport))
+            if (label.bar >= 10 && label.x >= edge - 14 && label.x <= edge - 10)
+            {
+                placed = true;
+                tickSeconds = state.viewport.scrollSeconds + (label.x - geometry.clipArea.getX()) / state.viewport.pixelsPerSecond;
+            }
+    }
+    REQUIRE (placed);
+
+    const yesdaw::ui::TimelineMapLabel change { tickSeconds, "150~" };
+    for (const bool withChange : { false, true })
+    {
+        CAPTURE (withChange, edge, tickSeconds);
+        state.mapLabels = withChange ? &change : nullptr;
+        state.mapLabelCount = withChange ? 1 : 0;
+        juce::Image image (juce::Image::ARGB, bounds.getWidth(), bounds.getHeight(), true, juce::SoftwareImageType());
+        {
+            juce::Graphics g (image);
+            (void) yesdaw::ui::paintTimelineCanvas (g, bounds, state);
+        }
+        const auto geometry = yesdaw::ui::timelineCanvasGeometry (bounds, state);
+        const auto rows = canvas::rulerRows (geometry.rulerArea);
+        const juce::Colour back = image.getPixelAt (edge + 4, rows.bars.getY() + 2);   // the bars row, above its labels
+        const auto inkIn = [&] (juce::Rectangle<int> r) {
+            int ink = 0;
+            for (int y = r.getY(); y < r.getBottom(); ++y)
+                for (int x = r.getX(); x < r.getRight(); ++x)
+                    ink += image.getPixelAt (x, y) != back ? 1 : 0;
+            return ink;
+        };
+        const int margin = L::timelineCanvasClipAreaInsetX - 4;   // past the edge, short of the panel's own stroke
+        const juce::Rectangle<int> barsMargin (edge, rows.bars.getY() + L::timelineCanvasRulerBarsLabelTopInset,
+                                               margin, L::timelineCanvasRulerBarsLabelHeight - 2);
+        const juce::Rectangle<int> timeMargin (edge, rows.time.getY() + L::timelineCanvasRulerLabelTopInset,
+                                               margin, L::timelineCanvasRulerLabelHeight - 2);
+        REQUIRE (inkIn (barsMargin) == 0);
+        REQUIRE (inkIn (timeMargin) == 0);
+        // The labels away from the edge are drawn: ink inside their own boxes (right of their ticks).
+        int innerInk = 0;
+        for (const auto& label : yesdaw::ui::computeRulerBarLabels (geometry.clipArea, state, geometry.viewport))
+            if (label.x < edge - 80)
+                innerInk += inkIn (canvas::rulerBarLabelBounds (label.x, rows.bars).withTrimmedRight (2));
+        REQUIRE (innerInk > 10);
+    }
+}
+
 // ADR-0076: the status line's shortening rule, pure - a message's "; "-joined parts are never mixed, the first part
 // alone is shortened in its middle, and shortening is by code point. `fits` here is a code-point budget.
 TEST_CASE ("ADR-0076 the status line's shortening rule never mixes a message's parts", "[ui][g6][status-whole][status-shorten]")

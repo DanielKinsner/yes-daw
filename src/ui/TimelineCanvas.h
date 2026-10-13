@@ -1185,16 +1185,27 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
         if (mapX >= clipArea.getX() - UiTheme::Layout::timelineCanvasRulerMarkerCullPadding && mapX <= clipArea.getRight())
             mapLabelRects[mapLabelRectCount++] = rulerMapLabelBounds (mapX, rows.bars);
     }
+    // UI pass unit 25: a label is drawn whole or not at all - one whose text would run past the clip area's right edge (the
+    // canvas's edge and its scroll bar lie beyond) is left out, as one under a tempo label is. A label whose whole box fits
+    // is not measured, so only the one or two by the edge are.
+    const juce::Font labelFont = UiTheme::Type::numericFont (UiTheme::Type::small);
+    const int labelRight = clipArea.getRight();
+    const auto fitsWhole = [&labelFont, labelRight] (const juce::String& text, int textX, int boxWidth) {
+        return textX + boxWidth <= labelRight
+            || static_cast<float> (textX) + juce::GlyphArrangement::getStringWidth (labelFont, text) <= static_cast<float> (labelRight);
+    };
     for (const RulerBarLabel& label : computeRulerBarLabels (clipArea, state, vp))
     {
         const int x = label.x;
         // Bars row: the bar number and its tick.
         g.setColour (kMutedText);
-        g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
+        g.setFont (labelFont);
         const juce::Rectangle<int> barLabel = rulerBarLabelBounds (x, rows.bars);
+        const juce::String barText (label.bar);
         if (std::none_of (mapLabelRects.begin(), mapLabelRects.begin() + static_cast<std::ptrdiff_t> (mapLabelRectCount),
-                          [&barLabel] (juce::Rectangle<int> mapLabel) { return mapLabel.intersects (barLabel); }))
-            g.drawText (juce::String (label.bar), barLabel, juce::Justification::centredLeft, false);
+                          [&barLabel] (juce::Rectangle<int> mapLabel) { return mapLabel.intersects (barLabel); })
+            && fitsWhole (barText, barLabel.getX(), barLabel.getWidth()))
+            g.drawText (barText, barLabel, juce::Justification::centredLeft, false);
         g.setColour (UiTheme::Color::rulerTick());   // ADR-0063: opaque
         g.fillRect (x,
                     rows.bars.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight,
@@ -1203,13 +1214,16 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
         // Time row: the same position in minutes:seconds, with a shorter tick. The label is text, in a text token
         // (6.19:1 on the ruler; it was drawn in rulerTick at 3.19:1 - UI correctness pass unit 5); the tick keeps rulerTick.
         g.setColour (kMutedText);
-        g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
-        g.drawText (rulerTimeLabelText (label, state, vp),
-                    x + UiTheme::Layout::timelineCanvasRulerTickWidth + 2,
-                    rows.time.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
-                    UiTheme::Layout::timelineRulerTimeLabelWidth,
-                    UiTheme::Layout::timelineCanvasRulerLabelHeight,
-                    juce::Justification::centredLeft, false);
+        g.setFont (labelFont);
+        const juce::String timeText = rulerTimeLabelText (label, state, vp);
+        const int timeX = x + UiTheme::Layout::timelineCanvasRulerTickWidth + 2;
+        if (fitsWhole (timeText, timeX, UiTheme::Layout::timelineRulerTimeLabelWidth))
+            g.drawText (timeText,
+                        timeX,
+                        rows.time.getY() + UiTheme::Layout::timelineCanvasRulerLabelTopInset,
+                        UiTheme::Layout::timelineRulerTimeLabelWidth,
+                        UiTheme::Layout::timelineCanvasRulerLabelHeight,
+                        juce::Justification::centredLeft, false);
         g.setColour (UiTheme::Color::rulerTick());   // ADR-0063: opaque
         g.fillRect (x,
                     rows.time.getBottom() - UiTheme::Layout::timelineCanvasRulerTickHeight / 2,
@@ -1227,8 +1241,10 @@ inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rect
         const RulerRows mapRows = rulerRows (ruler);
         g.setColour (UiTheme::Color::accentAmber());
         g.fillRect (x, mapRows.bars.getY(), UiTheme::Layout::timelineCanvasRulerTickWidth, mapRows.bars.getHeight());
-        g.setFont (UiTheme::Type::numericFont (UiTheme::Type::small));
-        g.drawText (change.label, rulerMapLabelBounds (x, mapRows.bars), juce::Justification::centredLeft, false);
+        g.setFont (labelFont);
+        const juce::Rectangle<int> changeLabel = rulerMapLabelBounds (x, mapRows.bars);
+        if (fitsWhole (juce::String (change.label), changeLabel.getX(), changeLabel.getWidth()))
+            g.drawText (change.label, changeLabel, juce::Justification::centredLeft, false);
     }
 
     if (state.markers == nullptr)

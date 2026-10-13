@@ -663,7 +663,8 @@ were composited. Each is its own unit, worst first, under the same checkpoint ru
 - [x] **24.** A meter's yellow band follows the bar's height, not the level (yellow at about -41 dBFS). Line 7. **Done
   2026-10-13:** yellow from -6 dBFS on each meter's own scale (half a linear meter, the top 17 % of the master's), the
   held marker in its zone's colour; gates `[meter-zones]` (STATUS).
-- **25.** The last ruler label is cut at the right edge ("12" / "4:", "0:19."). Line 1.
+- [x] **25.** The last ruler label is cut at the right edge ("12" / "4:", "0:19."). Line 1. **Done 2026-10-13:** a
+  ruler label is drawn whole or not at all; gate `[ruler-edge]` (STATUS).
 - **26.** A status message outlives its undo ("Routed to new Bus 2" after Bus 2 was undone). Line 7.
 - **27.** Bars beside a tempo label go unlabelled (265 px between "33" and "57" at 1920). Information.
 - **29.** (found by unit 17's critic, measured) While a modal question runs inside a batch of JUCE's posted messages,

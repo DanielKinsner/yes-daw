@@ -8,6 +8,36 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
+## 2026-10-13 — UI correctness pass unit 25: a ruler label is drawn whole or not at all
+
+**The defect (FIX 25):** the ruler culled its labels by their tick's position only. A label whose tick sat just inside the
+right edge drew its text past it, where the canvas's edge and its scroll bar cut it: "12" left as "4:", "0:19." losing its
+end.
+
+**What changes:**
+- A bar number, a time or a tempo / meter change is drawn only if its text ends inside the clip area's right edge,
+  otherwise left out. This is the same rule as a bar number under a tempo label.
+- The clip area's edge is the bound because the scroll bar column covers the ruler beyond it.
+- A label whose whole box fits is not measured, so only the one or two by the edge cost a text measurement. The
+  frame-time gate is tight.
+
+**Gate `[ruler-edge]`:**
+- A canvas is scrolled until a two-digit bar's tick lands 10-14 px short of the edge. It is tried bare, then with a
+  "150~" change on that tick.
+- The margin past the edge, in the bars and time rows' label bands, must stay the ruler's background: nothing runs into
+  it to be cut. A label may end right at the edge.
+- Labels further left are drawn, read inside their own boxes so ticks never count.
+- The first version checked the edge columns themselves. It wrongly failed a whole "5", and three mutations stayed green
+  because of how the scenario was set up. It was rewritten until all bit.
+
+**Bites:**
+- M1 bar numbers drawn past the edge;
+- M2 times drawn past the edge;
+- M3 tempo changes drawn past the edge;
+- M4 no label ever fits (the inner labels vanish).
+
+**Process:** a paint rule in the ruler, so no critic, per ADR-0075.
+
 ## 2026-10-13 — UI correctness pass unit 24: a meter's yellow begins at a level
 
 **The defect (FIX 24):** every meter painted the top 22 % (vertical) or 18 % (horizontal) of its live bar yellow, so any bar,
