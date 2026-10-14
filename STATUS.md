@@ -38,7 +38,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    starts hidden and the colours are softer (step 8, Dan); the window opens maximised and remembers its place and size
    (step 9); a Mix button after the menus (or Ctrl+=, View > Mix Window) switches to a full-window mixer and back
    (step 10); an overview strip above the ruler shows the whole song, and a click or drag on it moves the view
-   (step 11, Dan kept it at one lane's cost with the dock open). Next: a demo song on first launch; a command palette.
+   (step 11, Dan kept it at one lane's cost with the dock open). Editing gaps begun: a clip-gain line with its dB on
+   each selected or boosted clip, Shift-drag moves it (step 12). Next: MP3/FLAC export; a snap grid that follows tempo.
    Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1.
 3. Editing gaps (S-M each): clip names from file names, a clip-gain line, a snap grid that follows tempo changes,
    audio that follows tempo, MP3/FLAC export.
@@ -73,7 +74,9 @@ hidden (the prefs default; Dan's own prefs.json set to match) and the track pale
 (prefs.json view.windowState). Step 10: Ctrl+= (View > Mix Window) switches to the Mix window - the mixer under the
 header, the arrangement's controls hidden - and back, with the dock as it was; a Mix button after the menus does the
 same, and a dock key (X, P, Y) in the Mix window returns to the Edit window first. Step 11: the overview strip (Dan
-chose it over ADR-0064's eighth lane with the dock open; owner note added to ADR-0064). **Next:** a demo song.
+chose it over ADR-0064's eighth lane with the dock open; owner note added to ADR-0064), drawn from a cached picture so
+the 20,640-clip frame check stays at ~3.5 ms. Step 12: Pro Tools' clip-gain line (0 dB a quarter down the body) with its
+dB, on selected or boosted clips; Shift-drag moves it. **Next:** MP3/FLAC export.
 
 ## 2026-10-13 — Direction: an editing suite first; live recording and low latency move to later
 

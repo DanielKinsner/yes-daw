@@ -97,6 +97,7 @@ public:
     std::function<void (int)> onClipRenameRequested;              // G2.12: layoutClipId (a double-click in the name band)
     std::function<void (int, double, bool)> onClipTrimmedLeft;   // layoutClipId, seconds, snapInvert
     std::function<void (int, int)> onClipGainAdjusted;
+    std::function<void (int, float)> onClipGainSet;   // the layout pass, step 12: layout id, the gain the line was dragged to
     std::function<void (int, bool, double, double)> onClipFadeAdjusted;   // G2.10: + the curve bend
     std::function<void (double)> onTimelineLocated;
     std::function<void (double, double, bool)> onLoopRegionDragged;   // startSeconds, endSeconds, snapInvert
@@ -281,6 +282,14 @@ public:
             }
             case TimelineDragMode::Gain:
             {
+                // The layout pass, step 12: an audio clip's gain line moves with the pointer, its gain over it.
+                if (const std::optional<float> gain = gainLineDragGain (state, geometry, dragState.layoutClipId, deltaY))
+                {
+                    yesdaw::ui::timeline_canvas_detail::drawClipGainLine (
+                        g, yesdaw::ui::timeline_canvas_detail::paintedClipBounds (geometry.clipArea, base.x, base.y, base.w, base.h),
+                        *gain, true);
+                    break;
+                }
                 const float y = juce::jlimit (clipRect.getY(), clipRect.getBottom() - 1.0f,
                                               clipRect.getCentreY() + static_cast<float> (deltaY));
                 g.setColour (fill);
@@ -1154,6 +1163,15 @@ public:
             if (std::abs (deltaY) < yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels)
                 return;
 
+            // The layout pass, step 12: an audio clip's gain is where its line was dragged to.
+            if (const std::optional<float> gain = gainLineDragGain (state, yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state),
+                                                                    drag.layoutClipId, deltaY);
+                gain && onClipGainSet)
+            {
+                onClipGainSet (drag.layoutClipId, *gain);
+                return;
+            }
+
             if (onClipGainAdjusted)
                 onClipGainAdjusted (drag.layoutClipId, -deltaY);
             return;
@@ -1557,6 +1575,27 @@ private:
     // Hand tool (E3): a press-drag pans the viewport horizontally; transient view state only.
     bool handDragActive = false;
     bool overviewDragActive = false;   // the layout pass, step 11
+
+    // The layout pass, step 12: the gain a Shift-drag of deltaY pixels gives an audio clip - its gain line moved with the
+    // pointer; nullopt for a clip with no gain line (a MIDI clip, or one too short for its name bar).
+    [[nodiscard]] static std::optional<float> gainLineDragGain (const yesdaw::ui::TimelineCanvasState& state,
+                                                                const yesdaw::ui::TimelineCanvasGeometry& geometry,
+                                                                int layoutClipId, int deltaY)
+    {
+        const yesdaw::ui::Clip* const clip = findClipByLayoutId (state, layoutClipId);
+        const yesdaw::ui::TimelineCanvasClipStyle style = yesdaw::ui::timeline_canvas_detail::styleForClip (state, layoutClipId);
+        if (clip == nullptr || ! style.gainLine)
+            return std::nullopt;
+        const yesdaw::ui::ClipPixelRect base = yesdaw::ui::visibleClipPixelRect (*clip, yesdaw::ui::viewportForClipLayout (geometry));
+        const juce::Rectangle<int> painted =
+            yesdaw::ui::timeline_canvas_detail::paintedClipBounds (geometry.clipArea, base.x, base.y, base.w, base.h);
+        const juce::Rectangle<int> body = yesdaw::ui::timeline_canvas_detail::clipGainLineBody (painted);
+        if (! yesdaw::ui::timeline_canvas_detail::clipShowsNameStrip (painted)
+            || body.getHeight() < yesdaw::ui::UiTheme::Layout::timelineClipGainLineMinBody)
+            return std::nullopt;
+        const float lineY = yesdaw::ui::timeline_canvas_detail::clipGainLineY (body, style.gain);
+        return yesdaw::ui::timeline_canvas_detail::clipGainAtY (body, lineY + static_cast<float> (deltaY));
+    }
 
     void scrubOverview (const yesdaw::ui::TimelineCanvasState& state, const yesdaw::ui::TimelineCanvasGeometry& geometry, int x)
     {

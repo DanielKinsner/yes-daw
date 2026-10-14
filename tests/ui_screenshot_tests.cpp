@@ -833,6 +833,30 @@ TEST_CASE ("the layout pass, step 10: the Mix window renders the strips full-win
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+// The layout pass, step 12: a clip whose gain is not 0 dB shows its gain line and the gain in dB over it.
+TEST_CASE ("the layout pass, step 12: a boosted clip paints its gain line and its dB", "[ui][screenshot][layout-pass]")
+{
+    juce::MessageManager::getInstance();
+    const std::filesystem::path bundlePath = std::filesystem::temp_directory_path() / "yesdaw-layout-pass-gain.yesdaw";
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    yesdaw::ui::MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = yesdaw::ui::createMainComponent (std::move (choices));
+    REQUIRE (shell != nullptr);
+    shell->setVisible (true);
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    for (int i = 0; i < 6; ++i)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipGainIncrease);   // +6 dB
+    const juce::Image image = renderShell (*shell);
+    (void) captureShellPng (image, "yesdaw-layout-pass-gain-line.png");
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 TEST_CASE ("Piano roll and automation lane render honestly with real notes and breakpoints",
            "[ui][screenshot][roll-sizes]")
 {

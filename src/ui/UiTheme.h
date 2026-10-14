@@ -155,6 +155,7 @@ struct UiTheme
         // The layout pass, step 11: the overview's view box - a light wash and a firmer outline.
         static constexpr float timelineOverviewViewFillAlpha = 0.10f;
         static constexpr float timelineOverviewViewOutlineAlpha = 0.65f;
+        static constexpr float timelineClipGainLineAlpha = 0.75f;   // the layout pass, step 12: the clip-gain line
         static constexpr float timelineDragGhostFillAlpha = 0.30f;      // G2.3
         static constexpr float timelineClipMutedWashAlpha = 0.55f;   // G2.12: the panel wash over a muted clip
         static constexpr float timelineDragGhostOutlineAlpha = 0.95f;   // G2.3
@@ -1216,6 +1217,9 @@ struct UiTheme
         // The layout pass, step 11: the overview band between the tool row and the ruler - the whole song in miniature.
         static constexpr int timelineCanvasOverviewHeight = 18;
         static constexpr int timelineCanvasOverviewInsetY = 2;
+        // The layout pass, step 12: the clip-gain line - drawn on a body this tall or more, its dB label this wide.
+        static constexpr int timelineClipGainLineMinBody = 12;
+        static constexpr int timelineClipGainLabelWidth = 64;
         // G0.7 cp3 (plan §3.4): the ruler is two 22 px time rows (bars · minutes:seconds) over a
         // 20 px marker lane. The whole band stays ONE hit zone (locate, range, loop, punch).
         static constexpr int timelineRulerBarsRowHeight = 22;

@@ -18,6 +18,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <limits>
 #include <memory>
@@ -72,6 +73,8 @@ struct TimelineCanvasClipStyle
     float fadeOutCurve = 0.0f;
     bool muted = false;       // G2.12: painted dim (a panel wash over everything but the ring)
     bool reversed = false;    // G2.13: the waveform paints mirrored
+    float gain = 1.0f;        // the layout pass, step 12: the clip's gain (linear), for its gain line
+    bool gainLine = false;    // an audio clip: it has a gain line (a MIDI clip has none)
 };
 
 // G2.15: a tempo or meter change painted in the ruler's bars row ("120", "120~" for a ramp, "3/4").
@@ -736,6 +739,81 @@ inline const Clip* clipForId (const TimelineCanvasState& state, int clipId)
                                      : area;
 }
 
+// The layout pass, step 12: a clip as painted - its layout rect inset, inside the clip area. One law for the paint, the
+// clip-gain line's grab and its gate.
+[[nodiscard]] inline juce::Rectangle<int> paintedClipBounds (juce::Rectangle<int> clipArea, double x, double y, double w,
+                                                             double h) noexcept
+{
+    return juce::Rectangle<int> (clipArea.getX() + juce::roundToInt (x), clipArea.getY() + juce::roundToInt (y),
+                                 juce::roundToInt (w), juce::roundToInt (h))
+        .reduced (UiTheme::Space::xs, UiTheme::Space::xs + UiTheme::Space::hairline)
+        .getIntersection (clipArea);
+}
+
+// The layout pass, step 12: the clip-gain line (Pro Tools'). +12 dB at the top of the clip's body, -36 dB at its bottom,
+// 0 dB a quarter of the way down. Shown on a selected audio clip and on any whose gain is not 0 dB; a Shift-drag on the
+// clip moves it with the pointer and sets the gain it then shows (a plain drag still moves the clip).
+inline constexpr float kClipGainLineTopDb = 12.0f;
+inline constexpr float kClipGainLineBottomDb = -36.0f;
+
+[[nodiscard]] inline juce::Rectangle<int> clipGainLineBody (juce::Rectangle<int> clipRect) noexcept
+{
+    return clipBodyArea (clipRect).reduced (0, UiTheme::Layout::timelineCanvasWaveformInsetY);
+}
+
+[[nodiscard]] inline float clipGainDb (float gain) noexcept
+{
+    return gain > 0.0f ? 20.0f * std::log10 (gain) : kClipGainLineBottomDb;
+}
+
+[[nodiscard]] inline float clipGainLineY (juce::Rectangle<int> body, float gain) noexcept
+{
+    const float fraction = (std::clamp (clipGainDb (gain), kClipGainLineBottomDb, kClipGainLineTopDb) - kClipGainLineBottomDb)
+                         / (kClipGainLineTopDb - kClipGainLineBottomDb);
+    return static_cast<float> (body.getBottom() - 1) - fraction * static_cast<float> (std::max (0, body.getHeight() - 1));
+}
+
+[[nodiscard]] inline float clipGainAtY (juce::Rectangle<int> body, float y) noexcept
+{
+    const float span = static_cast<float> (std::max (1, body.getHeight() - 1));
+    const float fraction = std::clamp ((static_cast<float> (body.getBottom() - 1) - y) / span, 0.0f, 1.0f);
+    return std::pow (10.0f, (kClipGainLineBottomDb + fraction * (kClipGainLineTopDb - kClipGainLineBottomDb)) / 20.0f);
+}
+
+[[nodiscard]] inline bool clipGainLineShown (const TimelineCanvasClipStyle& style) noexcept
+{
+    return style.gainLine && (style.selected || std::abs (clipGainDb (style.gain)) >= 0.05f);
+}
+
+[[nodiscard]] inline juce::String clipGainText (float gain)
+{
+    const float db = clipGainDb (gain);
+    return (db >= 0.0f ? "+" : "") + juce::String (db, 1) + " dB";
+}
+
+// The line across the body, and the gain in dB over it (under it when the line is near the top) when it is not 0 dB.
+inline void drawClipGainLine (juce::Graphics& g, juce::Rectangle<int> clipRect, float gain, bool labelled)
+{
+    const juce::Rectangle<int> body = clipGainLineBody (clipRect);
+    if (body.getHeight() < UiTheme::Layout::timelineClipGainLineMinBody)
+        return;
+    const float y = std::floor (clipGainLineY (body, gain));
+    g.setColour (UiTheme::Color::white().withAlpha (UiTheme::Tone::timelineClipGainLineAlpha));
+    g.fillRect (juce::Rectangle<float> (static_cast<float> (body.getX()), y, static_cast<float> (body.getWidth()), 1.0f));
+    if (! labelled)
+        return;
+    const int labelHeight = static_cast<int> (UiTheme::Type::tiny) + UiTheme::Space::xxs;
+    const int labelY = static_cast<int> (y) - labelHeight >= body.getY() ? static_cast<int> (y) - labelHeight
+                                                                          : static_cast<int> (y) + UiTheme::Space::xxs;
+    g.setColour (UiTheme::Color::textOnFill());   // dark ink: it reads on every palette body
+    g.setFont (UiTheme::Type::font (UiTheme::Type::tiny, juce::Font::bold));
+    g.drawText (clipGainText (gain),
+                juce::Rectangle<int> (body.getX() + UiTheme::Space::xs, labelY,
+                                      std::min (UiTheme::Layout::timelineClipGainLabelWidth, body.getWidth() - UiTheme::Space::xs),
+                                      labelHeight),
+                juce::Justification::centredLeft, true);
+}
+
 // M7: a clip whose peaks are not ready yet paints an honest PENDING body — a single centre line,
 // no invented peaks. This used to synthesize a waveform from a hash of the clip id, which meant the
 // timeline drew confident audio detail for content it had never read (and for MIDI clips, which
@@ -1348,18 +1426,73 @@ inline void drawOverview (juce::Graphics& g, juce::Rectangle<int> overview, juce
     const auto xAt = [mapX, mapW, total] (double seconds) {
         return mapX + mapW * static_cast<float> (std::clamp (seconds / total, 0.0, 1.0));
     };
+    // The clips land in a grid of the band's pixels (a later clip over an earlier one, as the lanes paint), each row's runs
+    // of one colour fill once, into an image kept until the song, its colours or the band's size change - so a scroll or a
+    // playhead frame blits it (the frame budget's 20,640-clip arrangement went from 3.5 to 11 ms a frame with a fill per
+    // clip). The key covers everything the picture shows.
+    const int columns = map.getWidth();
+    const int rows = map.getHeight();
     const int lanes = std::max (1, state.trackCount);
-    const float laneHeight = static_cast<float> (map.getHeight()) / static_cast<float> (lanes);
-    const float sliver = laneHeight >= 3.0f ? laneHeight - 1.0f : std::max (1.0f, laneHeight);
+    std::uint64_t key = 1469598103934665603ull;
+    const auto mix = [&key] (std::uint64_t value) { key = (key ^ value) * 1099511628211ull; };
+    const auto bitsOf = [] (double value) { std::uint64_t bits = 0; std::memcpy (&bits, &value, sizeof bits); return bits; };
+    mix (static_cast<std::uint64_t> (columns));
+    mix (static_cast<std::uint64_t> (rows));
+    mix (static_cast<std::uint64_t> (lanes));
+    mix (bitsOf (total));
     for (int i = 0; state.clips != nullptr && i < state.clipCount; ++i)
     {
-        const Clip& clip = state.clips[i];
-        const float x = xAt (clip.startSeconds);
-        const float width = std::max (1.0f, xAt (clip.startSeconds + clip.lengthSeconds) - x);
-        const float y = static_cast<float> (map.getY()) + laneHeight * static_cast<float> (std::clamp (clip.lane, 0, lanes - 1));
-        g.setColour (state.clipStyles != nullptr ? state.clipStyles[i].colour : UiTheme::Color::accentBlue());
-        g.fillRect (juce::Rectangle<float> (x, y, width, sliver));
+        mix (static_cast<std::uint64_t> (state.clips[i].lane));
+        mix (bitsOf (state.clips[i].startSeconds));
+        mix (bitsOf (state.clips[i].lengthSeconds));
+        mix (state.clipStyles != nullptr ? state.clipStyles[i].colour.getARGB() : 0u);
     }
+    struct OverviewPicture
+    {
+        std::uint64_t key = 0;
+        juce::Image image;
+    };
+    thread_local OverviewPicture picture;
+    if (picture.key != key || ! picture.image.isValid() || picture.image.getWidth() != columns || picture.image.getHeight() != rows)
+    {
+        const double laneRows = static_cast<double> (rows) / static_cast<double> (lanes);
+        std::vector<std::uint32_t> cells (static_cast<std::size_t> (columns) * static_cast<std::size_t> (rows), 0u);
+        for (int i = 0; state.clips != nullptr && i < state.clipCount; ++i)
+        {
+            const Clip& clip = state.clips[i];
+            const int lane = std::clamp (clip.lane, 0, lanes - 1);
+            const int top = std::min (rows - 1, static_cast<int> (std::floor (laneRows * lane)));
+            const int bottom = std::clamp (static_cast<int> (std::floor (laneRows * (lane + 1))) - (laneRows >= 3.0 ? 1 : 0), top + 1, rows);
+            const int left = std::clamp (static_cast<int> (std::floor (xAt (clip.startSeconds) - mapX)), 0, columns - 1);
+            const int right = std::clamp (static_cast<int> (std::ceil (xAt (clip.startSeconds + clip.lengthSeconds) - mapX)), left + 1, columns);
+            const std::uint32_t argb = (state.clipStyles != nullptr ? state.clipStyles[i].colour : UiTheme::Color::accentBlue()).getARGB();
+            for (int row = top; row < bottom; ++row)
+                std::fill_n (cells.begin() + static_cast<std::ptrdiff_t> (row) * columns + left, right - left, argb);
+        }
+        juce::Image image (juce::Image::ARGB, columns, rows, true, juce::SoftwareImageType());
+        {
+            juce::Graphics ig (image);
+            for (int row = 0; row < rows; ++row)
+            {
+                const std::uint32_t* line = cells.data() + static_cast<std::size_t> (row) * static_cast<std::size_t> (columns);
+                for (int column = 0; column < columns;)
+                {
+                    const std::uint32_t argb = line[column];
+                    int end = column + 1;
+                    while (end < columns && line[end] == argb)
+                        ++end;
+                    if (argb != 0u)
+                    {
+                        ig.setColour (juce::Colour (argb));
+                        ig.fillRect (column, row, end - column, 1);
+                    }
+                    column = end;
+                }
+            }
+        }
+        picture = { key, image };
+    }
+    g.drawImageAt (picture.image, map.getX(), map.getY());
     if (vp.pixelsPerSecond > 0.0)
     {
         const double visibleSeconds = static_cast<double> (clipArea.getWidth()) / vp.pixelsPerSecond;
@@ -2071,13 +2204,10 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     stats.paintProfile[4] = std::chrono::steady_clock::now();
 #endif
 
-    // A visible clip's rect as painted: its layout rect inset, inside the clip area.
+    // A visible clip's rect as painted: its layout rect inset, inside the clip area (the layout pass, step 12: one law).
     const auto paintedClipRect = [&visible, clipArea] (int index) {
         const auto& r = visible[static_cast<std::size_t> (index)];
-        return juce::Rectangle<int> (clipArea.getX() + juce::roundToInt (r.x), clipArea.getY() + juce::roundToInt (r.y),
-                                     juce::roundToInt (r.w), juce::roundToInt (r.h))
-            .reduced (UiTheme::Space::xs, UiTheme::Space::xs + UiTheme::Space::hairline)
-            .getIntersection (clipArea);
+        return paintedClipBounds (clipArea, r.x, r.y, r.w, r.h);
     };
     for (int i = 0; i < stats.visibleClips; ++i)
     {
@@ -2125,6 +2255,8 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
         // V6: the fade wedges shade OVER the body/waveform (the standard DAW look), then the
         // name, then the selection ring on top of everything so it is unmistakable.
         drawClipFadeOverlays (g, clipRect, style);
+        if (clipGainLineShown (style) && clipShowsNameStrip (clipRect))   // the layout pass, step 12
+            drawClipGainLine (g, clipRect, style.gain, std::abs (clipGainDb (style.gain)) >= 0.05f);
 
         const Clip* const clip = clipForId (state, rect.id);
         if (clip != nullptr && clip->name != nullptr && clip->name[0] != '\0' && clipShowsNameStrip (clipRect))

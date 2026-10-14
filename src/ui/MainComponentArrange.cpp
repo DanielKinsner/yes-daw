@@ -707,8 +707,22 @@ void MainComponent::scrollBarMoved (juce::ScrollBar* bar, double newRangeStart)
 }
 
 // The layout pass, step 11: a click or drag on the overview centres the view on that moment (clamped to the song).
+// Step 12: a drag on a clip's gain line sets its gain (one undo step).
 void MainComponent::configureTimelineOverview()
 {
+    timelineInput.onClipGainSet = [this] (int layoutClipId, float gain) {
+        if (layoutClipId < 0 || layoutClipId >= static_cast<int> (timelineClipIds.size()))
+            return;
+        const yesdaw::engine::EntityId clipId = timelineClipIds[static_cast<std::size_t> (layoutClipId)];
+        const yesdaw::engine::Clip* const clip = findProjectClipById (clipId);
+        const float nextGain = std::clamp (gain, 0.0f, yesdaw::ui::UiTheme::Layout::timelineClipMaxGestureGain);
+        if (clip == nullptr || std::fabs (nextGain - clip->gain) <= 0.000001f)
+            return;
+        (void) appModel.selectTimelineClip (clipId);
+        (void) appModel.setSelectedTimelineClipGain (nextGain);
+        refreshActionState();
+        repaintAll();
+    };
     timelineInput.onOverviewScrubbed = [this] (double seconds) {
         const double visibleSeconds = timelineVisibleSecondsFor (timelineTotalSeconds);
         const double maxScroll = std::max (0.0, timelineTotalSeconds - visibleSeconds);
@@ -1732,6 +1746,8 @@ void MainComponent::rebuildTimelineClipViews()
                                         clip.fadeOutCurve,
                                         clip.muted,      // G2.12
                                         clip.reversed });   // G2.13
+        timelineClipStyles.back().gain = clip.gain;   // the layout pass, step 12: the clip-gain line
+        timelineClipStyles.back().gainLine = true;
         timelineClipIds.push_back (clip.id);
         timelineClipAssetHashes.push_back (asset->contentHash);
         timelineClipAssetIds.push_back (asset->id);

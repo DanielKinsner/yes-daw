@@ -4266,8 +4266,8 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     REQUIRE (gained.clips[0].srcLen == trimRedone.clips[0].srcLen);
     REQUIRE (gained.clips[0].fadeIn == trimRedone.clips[0].fadeIn);
     REQUIRE (gained.clips[0].fadeOut == trimRedone.clips[0].fadeOut);
-    REQUIRE (gained.clips[0].gain > trimRedone.clips[0].gain);
-    REQUIRE (std::fabs (gained.clips[0].gain - 1.2f) < 0.000001f);
+    REQUIRE (gained.clips[0].gain > trimRedone.clips[0].gain);   // the layout pass, step 12: the gain follows the clip's
+                                                                  // gain line (the law the step-12 test pins exactly)
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.timelineClipSelected);
@@ -19028,6 +19028,49 @@ TEST_CASE ("G2.3 drag previews: a mid-drag paints a ghost while the model stays 
     REQUIRE (yesdaw::ui::mainComponentTimelineAutoScrollTick (*shell) == 0.0);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
     REQUIRE (readProjectSnapshot (bundlePath).clips == original.clips);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+// The layout pass, step 12: a selected audio clip shows its gain line (0 dB a quarter down its body); a Shift-drag moves
+// the line with the pointer and sets the gain it then shows, as one undo step. A plain drag there still moves the clip.
+TEST_CASE ("the layout pass, step 12: a Shift-drag moves a clip's gain line and sets its gain, one undo step",
+           "[ui][input][shell][layout-pass][gain-line]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("gain-line");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));   // the import selects its clip
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
+    REQUIRE (project.clips.size() == 1u);
+    REQUIRE (project.clips[0].gain == 1.0f);
+
+    namespace detail = yesdaw::ui::timeline_canvas_detail;
+    const juce::Rectangle<int> clip = timelineClipHitBounds (timeline, project, 0u);
+    const juce::Rectangle<int> painted = clip.reduced (yesdaw::ui::UiTheme::Space::xs,
+                                                       yesdaw::ui::UiTheme::Space::xs + yesdaw::ui::UiTheme::Space::hairline);
+    const juce::Rectangle<int> body = detail::clipGainLineBody (painted);
+    const int lineY = static_cast<int> (std::floor (detail::clipGainLineY (body, 1.0f)));
+    const int midX = body.getCentreX();
+    INFO ("clip " << clip.toString().toStdString() << " body " << body.toString().toStdString() << " line " << lineY);
+    const juce::ModifierKeys shift (juce::ModifierKeys::shiftModifier | juce::ModifierKeys::leftButtonModifier);
+    REQUIRE (yesdaw::ui::mainComponentTimelineZoneAt (*shell, juce::Point<int> (midX, lineY) + timeline.getPosition(), {})
+             == "move");   // a plain drag on the line moves the clip
+    REQUIRE (yesdaw::ui::mainComponentTimelineZoneAt (*shell, juce::Point<int> (midX, lineY) + timeline.getPosition(), shift)
+             == "gain");
+
+    dragFromTo (timeline, { midX, lineY }, { midX, lineY - 8 }, shift);
+    const float gain = readProjectSnapshot (bundlePath).clips[0].gain;
+    REQUIRE (gain > 1.0f);
+    REQUIRE (std::abs (gain - detail::clipGainAtY (body, static_cast<float> (lineY - 8))) < 1.0e-3f);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundlePath).clips[0].gain == 1.0f);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
