@@ -4,6 +4,7 @@
 // "can we afford 100+ elements at 60 fps?" risk is answered mechanically. The GPU rendering smoothness
 // is the real-hardware soak's job; this is the part that can regress silently and must be gated.
 
+#include "ui/MusicalGrid.h"   // the layout pass, step 13
 #include "ui/TimelineLayout.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -181,4 +182,49 @@ TEST_CASE ("A row's clips keep its top part when automation lanes are stacked un
     vp.clipHeightPixelsPerLane = nullptr;
     REQUIRE (layoutVisible (clips, 2, vp, out, 2) == 2);
     REQUIRE (out[0].h == 192.0f);
+}
+
+// The layout pass, step 13: the musical grid follows a tempo change - 120 BPM for bars 1-2, 60 BPM from bar 3 (4/4,
+// 48 kHz): bars start at 0, 2, 4, 8 and 12 s, the beats between them halve their pace at bar 3, and the Grid snap lands
+// on a 60 BPM beat there (the old uniform grid, 0.5 s beats from the head tempo, landed between them).
+TEST_CASE ("the musical grid's bars and beats and its snap follow a tempo change", "[timeline][musical-grid]")
+{
+    using namespace yesdaw;
+    const engine::Tick barTicks = engine::kTicksPerQuarter * 4;
+    const engine::TempoChange tempo[] = { { 0, 120.0 }, { barTicks * 2, 60.0 } };
+    const engine::MeterChange meter[] = { { 0, 4, 4 } };
+    engine::CompiledTempoMap compiled;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 2 }, engine::SampleRate { 48000.0 }, compiled));
+    const engine::MeterMapView meterMap { meter, 1 };
+
+    // 0.4 s spacing: every beat (0.5 s at least) shows, no sixteenth (0.25 s at most) does.
+    const std::vector<ui::MusicalGridLine> lines = ui::musicalGridLines (compiled, meterMap, 0.0, 48000.0 * 12.5, 19200.0);
+    std::vector<double> bars, beats;
+    for (const ui::MusicalGridLine& line : lines)
+    {
+        REQUIRE (line.level != ui::MusicalGridLevel::Sixteenth);
+        (line.level == ui::MusicalGridLevel::Bar ? bars : beats).push_back (line.frame / 48000.0);
+    }
+    REQUIRE (bars.size() == 5u);
+    const double expectedBars[] = { 0.0, 2.0, 4.0, 8.0, 12.0 };
+    for (std::size_t i = 0; i < bars.size(); ++i)
+        REQUIRE (approx (bars[i], expectedBars[i], 1.0e-6));
+    // Three beats inside each bar: 0.5 s apart in bars 1-2, 1 s apart from bar 3.
+    REQUIRE (beats.size() == 12u);
+    REQUIRE (approx (beats[0], 0.5, 1.0e-6));
+    REQUIRE (approx (beats[6], 5.0, 1.0e-6));
+    REQUIRE (approx (beats[7], 6.0, 1.0e-6));
+
+    // Lines closer than the spacing thin out: at 2 s spacing only bars show.
+    for (const ui::MusicalGridLine& line : ui::musicalGridLines (compiled, meterMap, 0.0, 48000.0 * 12.5, 48000.0 * 2.0))
+        REQUIRE (line.level == ui::MusicalGridLevel::Bar);
+
+    // The snap: 8.6 s lies between the beats at 8 s and 9 s (60 BPM there); it lands on 9 s. In bar 1 (120 BPM), 1.3 s
+    // lands on the beat at 1.5 s, and a sixteenth snap at 1.3 s lands on 1.25 s.
+    REQUIRE (ui::snapFrameToMusicalGrid (compiled, meterMap, 48000.0 * 8.6, ui::MusicalGridLevel::Beat, 0) == std::int64_t { 432000 });
+    REQUIRE (ui::snapFrameToMusicalGrid (compiled, meterMap, 48000.0 * 1.3, ui::MusicalGridLevel::Beat, 0) == std::int64_t { 72000 });
+    REQUIRE (ui::snapFrameToMusicalGrid (compiled, meterMap, 48000.0 * 1.3, ui::MusicalGridLevel::Sixteenth, 0) == std::int64_t { 60000 });
+    // A bar snap at 6.5 s (bar 3 runs 4-8 s) lands on 8 s; halved once, on 6 s.
+    REQUIRE (ui::snapFrameToMusicalGrid (compiled, meterMap, 48000.0 * 6.5, ui::MusicalGridLevel::Bar, 0) == std::int64_t { 384000 });
+    REQUIRE (ui::snapFrameToMusicalGrid (compiled, meterMap, 48000.0 * 6.5, ui::MusicalGridLevel::Bar, 1) == std::int64_t { 288000 });
 }

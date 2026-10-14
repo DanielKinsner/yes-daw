@@ -7,6 +7,7 @@
 
 #include "engine/ClipEnvelope.h"
 #include "engine/Time.h"
+#include "ui/MusicalGrid.h"   // the layout pass, step 13
 #include "ui/TimelineLayout.h"
 #include "ui/UiIcons.h"
 #include "ui/UiTheme.h"
@@ -791,14 +792,16 @@ inline constexpr float kClipGainLineBottomDb = -36.0f;
     return (db >= 0.0f ? "+" : "") + juce::String (db, 1) + " dB";
 }
 
-// The line across the body, and the gain in dB over it (under it when the line is near the top) when it is not 0 dB.
-inline void drawClipGainLine (juce::Graphics& g, juce::Rectangle<int> clipRect, float gain, bool labelled)
+// The line across the body - strong on a selected clip, faint on another - and, when labelled, the gain in dB over it
+// (under it when the line is near the top).
+inline void drawClipGainLine (juce::Graphics& g, juce::Rectangle<int> clipRect, float gain, bool labelled, bool strong = true)
 {
     const juce::Rectangle<int> body = clipGainLineBody (clipRect);
     if (body.getHeight() < UiTheme::Layout::timelineClipGainLineMinBody)
         return;
     const float y = std::floor (clipGainLineY (body, gain));
-    g.setColour (UiTheme::Color::white().withAlpha (UiTheme::Tone::timelineClipGainLineAlpha));
+    g.setColour (UiTheme::Color::white().withAlpha (strong ? UiTheme::Tone::timelineClipGainLineAlpha
+                                                           : UiTheme::Tone::timelineClipGainLineFaintAlpha));
     g.fillRect (juce::Rectangle<float> (static_cast<float> (body.getX()), y, static_cast<float> (body.getWidth()), 1.0f));
     if (! labelled)
         return;
@@ -1702,6 +1705,26 @@ inline void drawGrid (juce::Graphics& g, juce::Rectangle<int> clipArea, const Ti
     }
 
     const double rightSeconds = vp.scrollSeconds + static_cast<double> (clipArea.getWidth()) / vp.pixelsPerSecond;
+    // The layout pass, step 13: with a project's maps, the lines are the music's - bars, beats, sixteenths when zoomed
+    // in - through every tempo and meter change (they were every 4 seconds, whatever the tempo).
+    if (state.tempoMap != nullptr && state.sampleRateHz > 0.0 && vp.pixelsPerSecond > 0.0)
+    {
+        const double framesPerPixel = state.sampleRateHz / vp.pixelsPerSecond;
+        for (const MusicalGridLine& line : musicalGridLines (*state.tempoMap, state.meterMap,
+                                                             (vp.scrollSeconds * state.sampleRateHz) - framesPerPixel,
+                                                             (rightSeconds * state.sampleRateHz) + framesPerPixel,
+                                                             UiTheme::Layout::timelineCanvasMusicalGridMinSpacingPx * framesPerPixel))
+        {
+            const int x = clipArea.getX() + juce::roundToInt ((line.frame / state.sampleRateHz - vp.scrollSeconds) * vp.pixelsPerSecond);
+            if (x < clipArea.getX() || x > clipArea.getRight())
+                continue;
+            g.setColour (line.level == MusicalGridLevel::Bar  ? kGrid.brighter (UiTheme::Tone::timelineCanvasGridMajorLineBrightness)
+                       : line.level == MusicalGridLevel::Beat ? kGrid.withAlpha (UiTheme::Tone::timelineCanvasGridMinorLineAlpha)
+                                                              : kGrid.withAlpha (UiTheme::Tone::timelineCanvasGridSixteenthLineAlpha));
+            g.fillRect (x, clipArea.getY(), UiTheme::Layout::timelineCanvasGridLineWidth, clipArea.getHeight());
+        }
+        return;
+    }
     const double gridStepSeconds = UiTheme::Layout::timelineCanvasGridStepSeconds;
     const double firstGrid = std::floor (vp.scrollSeconds / gridStepSeconds) * gridStepSeconds;
     for (double seconds = firstGrid; seconds <= rightSeconds + gridStepSeconds; seconds += gridStepSeconds)
@@ -2256,7 +2279,8 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
         // name, then the selection ring on top of everything so it is unmistakable.
         drawClipFadeOverlays (g, clipRect, style);
         if (clipGainLineShown (style) && clipShowsNameStrip (clipRect))   // the layout pass, step 12
-            drawClipGainLine (g, clipRect, style.gain, std::abs (clipGainDb (style.gain)) >= 0.05f);
+            drawClipGainLine (g, clipRect, style.gain, style.selected && std::abs (clipGainDb (style.gain)) >= 0.05f,
+                              style.selected);   // a selected clip's line is strong and says its dB; another's is faint
 
         const Clip* const clip = clipForId (state, rect.id);
         if (clip != nullptr && clip->name != nullptr && clip->name[0] != '\0' && clipShowsNameStrip (clipRect))

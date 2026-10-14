@@ -156,6 +156,7 @@ struct UiTheme
         static constexpr float timelineOverviewViewFillAlpha = 0.10f;
         static constexpr float timelineOverviewViewOutlineAlpha = 0.65f;
         static constexpr float timelineClipGainLineAlpha = 0.75f;   // the layout pass, step 12: the clip-gain line
+        static constexpr float timelineClipGainLineFaintAlpha = 0.35f;   // ... on a clip that is not selected
         static constexpr float timelineDragGhostFillAlpha = 0.30f;      // G2.3
         static constexpr float timelineClipMutedWashAlpha = 0.55f;   // G2.12: the panel wash over a muted clip
         static constexpr float timelineDragGhostOutlineAlpha = 0.95f;   // G2.3
@@ -163,6 +164,7 @@ struct UiTheme
         static constexpr float timelineCanvasGridTrackTintAlpha = 0.20f;
         static constexpr float timelineCanvasGridMajorLineBrightness = 0.25f;
         static constexpr float timelineCanvasGridMinorLineAlpha = 0.38f;
+        static constexpr float timelineCanvasGridSixteenthLineAlpha = 0.18f;   // the layout pass, step 13
         static constexpr float mainComponentProjectClipAlpha = 0.82f;
         // V6: the fade region shades the clip body above the gain curve at this alpha.
         static constexpr float timelineCanvasFadeShadeAlpha = 0.45f;
@@ -1082,6 +1084,7 @@ struct UiTheme
         // G2.7: the zoom-adaptive grid subdivides while a cell stays at least this wide; Events
         // snapping catches an edge within this many pixels.
         static constexpr int timelineSnapMinGridPx = 24;
+        static constexpr int timelineCanvasMusicalGridMinSpacingPx = 8;   // the layout pass, step 13: the grid's closest lines
         static constexpr int timelineSnapMaxSubdivisions = 4;
         static constexpr int timelineSnapEventTolerancePx = 8;
         static constexpr int timelineNudgeChooserGap = 12;

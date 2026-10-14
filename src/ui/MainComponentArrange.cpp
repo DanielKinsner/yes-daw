@@ -2396,6 +2396,26 @@ yesdaw::engine::Tick MainComponent::snappedTimelineTickFrom (yesdaw::engine::Tic
     if (gridTicks <= 0)
         return tick;
     yesdaw::engine::Tick snapped = 0;
+    // The layout pass, step 13: a project with a tempo or meter change snaps to the music's lines (bars, beats,
+    // sixteenths, the zoom's finer cells) through the maps - the uniform grid drifted off the bars after a change.
+    if (const yesdaw::engine::Project& project = appModel.project();
+        (project.tempoMap.size() > 1 || project.meterMap.size() > 1) && ! (! modeOff && mode == yesdaw::ui::UiSnapMode::Relative && origin))
+    {
+        yesdaw::engine::CompiledTempoMap compiled;
+        if (appModel.compiledTempoMap (compiled))
+        {
+            const auto unit = appModel.snapUnit();
+            const yesdaw::ui::MusicalGridLevel level = unit == yesdaw::ui::UiAppModel::UiSnapUnit::Bar ? yesdaw::ui::MusicalGridLevel::Bar
+                                                     : unit == yesdaw::ui::UiAppModel::UiSnapUnit::Sixteenth ? yesdaw::ui::MusicalGridLevel::Sixteenth
+                                                                                                             : yesdaw::ui::MusicalGridLevel::Beat;
+            int subdivisions = 0;
+            for (std::int64_t whole = appModel.context().snapGridTicks; ! modeOff && whole > gridTicks && subdivisions < 16; whole /= 2)
+                ++subdivisions;
+            if (const std::optional<std::int64_t> frame = yesdaw::ui::snapFrameToMusicalGrid (
+                    compiled, { project.meterMap.data(), project.meterMap.size() }, static_cast<double> (tick), level, subdivisions))
+                return std::max<yesdaw::engine::Tick> (0, static_cast<yesdaw::engine::Tick> (*frame));
+        }
+    }
     if (! modeOff && mode == yesdaw::ui::UiSnapMode::Relative && origin)
     {
         const auto delta = static_cast<yesdaw::engine::Tick> (static_cast<long long> (tick) - static_cast<long long> (*origin));

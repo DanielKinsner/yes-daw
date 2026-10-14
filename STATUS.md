@@ -39,10 +39,11 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    (step 9); a Mix button after the menus (or Ctrl+=, View > Mix Window) switches to a full-window mixer and back
    (step 10); an overview strip above the ruler shows the whole song, and a click or drag on it moves the view
    (step 11, Dan kept it at one lane's cost with the dock open). Editing gaps begun: a clip-gain line with its dB on
-   each selected or boosted clip, Shift-drag moves it (step 12). Next: MP3/FLAC export; a snap grid that follows tempo.
+   each selected or boosted clip, Shift-drag moves it (step 12); the timeline's grid lines are bars and beats that
+   follow tempo changes, and Grid snap lands on them (step 13). Export stays WAV (Dan: WAV is his format).
    Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1.
 3. Editing gaps (S-M each): clip names from file names, a clip-gain line, a snap grid that follows tempo changes,
-   audio that follows tempo, MP3/FLAC export.
+   audio that follows tempo. (MP3/FLAC export dropped: Dan exports WAV.)
 4. Dan makes one real song in the app (S), when he has time.
 5. Later: more built-in effects, then third-party VST3 plugins (L).
 6. Later: live recording - prove it with a real input, take lanes and punch-in, then low-latency audio (WASAPI
@@ -76,7 +77,10 @@ header, the arrangement's controls hidden - and back, with the dock as it was; a
 same, and a dock key (X, P, Y) in the Mix window returns to the Edit window first. Step 11: the overview strip (Dan
 chose it over ADR-0064's eighth lane with the dock open; owner note added to ADR-0064), drawn from a cached picture so
 the 20,640-clip frame check stays at ~3.5 ms. Step 12: Pro Tools' clip-gain line (0 dB a quarter down the body) with its
-dB, on selected or boosted clips; Shift-drag moves it. **Next:** MP3/FLAC export.
+dB, on selected or boosted clips; Shift-drag moves it. Step 13: the grid lines were every 4 seconds whatever the
+tempo; they are now bars, beats and (zoomed in) sixteenths under the tempo and meter maps, and Grid snap in a project
+with a tempo or meter change lands on them. Dan: WAV is his export format, so MP3/FLAC are dropped. **Next:** Dan
+uses it; fixes from his use come first.
 
 ## 2026-10-13 — Direction: an editing suite first; live recording and low latency move to later
 
