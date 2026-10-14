@@ -176,6 +176,7 @@ TEST_CASE ("timeline panel omits only pixels hidden by its opaque content",
         fillPanel (g, area);
         const auto geometry = timelineCanvasGeometry (area, state);
         drawToolbar (g, geometry.toolbarArea, state.activeTool, state.snapLabelShown);
+        drawOverview (g, geometry.overviewArea, geometry.clipArea, state, geometry.viewport);   // the layout pass, step 11
         drawRuler (g, geometry.rulerArea, geometry.clipArea, state, geometry.viewport);
         drawGrid (g, geometry.clipArea, state, geometry);
     };

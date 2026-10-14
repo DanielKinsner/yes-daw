@@ -414,6 +414,7 @@ private:
     void configureTimelineZoomControls();
 
     void configureAutomationLaneControls();
+    void configureTimelineOverview();   // the layout pass, step 11
 
     void configureInspectorControls();
 

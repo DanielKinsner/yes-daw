@@ -14707,6 +14707,49 @@ TEST_CASE ("N6 a row-boundary drag resizes exactly one track's row, persists, cl
     std::filesystem::remove_all (bundlePath, ec3);
 }
 
+// The layout pass, step 11: the overview above the ruler - a click near its right end moves the view to the song's end,
+// a drag back to its left end returns it to the start; neither moves the playhead.
+TEST_CASE ("the layout pass, step 11: a click or drag on the overview moves the view", "[ui][input][shell][layout-pass]")
+{
+    const std::filesystem::path bundlePath = makeTempBundlePath ("overview");
+    const std::filesystem::path fixturePath { YESDAW_WAV_FIXTURE_PATH };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    choices.chooseImportAudioFile = [fixturePath] { return fixturePath; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    for (int i = 0; i < 6; ++i)   // zoomed in, so the view is a part of the song
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomIn);
+
+    const juce::var layout = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell))["layout"];
+    const juce::var rect = layout["overview"];
+    REQUIRE (rect.isArray());
+    const juce::Rectangle<int> overview (static_cast<int> (rect[0]), static_cast<int> (rect[1]),
+                                         static_cast<int> (rect[2]), static_cast<int> (rect[3]));
+    REQUIRE (overview.getHeight() == yesdaw::ui::UiTheme::Layout::timelineCanvasOverviewHeight);
+    const juce::var ruler = layout["ruler"];
+    REQUIRE (static_cast<int> (ruler[1]) == overview.getBottom());   // the ruler sits right under it
+
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const juce::Point<int> origin = timeline.getPosition();
+    const auto playheadBefore = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == 0.0);
+    const juce::Point<int> nearEnd (overview.getRight() - 20 - origin.x, overview.getCentreY() - origin.y);
+    mouseDownAt (timeline, nearEnd);
+    releaseDragAt (timeline, nearEnd, nearEnd);
+    const double scrolled = snapshotMainComponent (*shell).timelineScrollSeconds;
+    REQUIRE (scrolled > 0.0);
+    const juce::Point<int> nearStart (overview.getX() + 20 - origin.x, overview.getCentreY() - origin.y);
+    dragFromTo (timeline, nearEnd, nearStart);
+    REQUIRE (snapshotMainComponent (*shell).timelineScrollSeconds == 0.0);
+    REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == playheadBefore);
+
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
 // The layout pass, step 10 (Dan): Ctrl+= switches to the Mix window - the mixer fills the window under the header, the
 // arrangement gives up its room, the title says Mix - and back to the Edit window with the dock as it was before.
 TEST_CASE ("the layout pass, step 10: Ctrl+= switches between the Edit window and the full-window mixer",
@@ -17863,8 +17906,9 @@ TEST_CASE ("first-minute density: a dozen tracks at 1080p show at least eight wh
             REQUIRE (std::abs (railRow.getHeight() - L::trackListRowMinHeight) <= L::trackListSeparatorHeight);
     }
     // ADR-0064: the panel runs 92–776 (88 header + 4 inset; 300 dock + 4 inset), the canvas to 766 (10 px scroll
-    // bar) and its content 93–765: a 28 px tool row, the 64 px ruler, then eight 72 px lanes to 761.
-    REQUIRE (wholeLanes >= 8);
+    // bar) and its content 93–765: a 28 px tool row, the 18 px overview (Dan's 2026-10-13 decision, ADR-0064's owner
+    // note), the 64 px ruler, then seven whole 72 px lanes.
+    REQUIRE (wholeLanes >= 7);
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
@@ -24864,7 +24908,7 @@ TEST_CASE ("ADR-0066 painted controls are Control targets: the rail, the tool st
     {
         const auto order = yesdaw::ui::mainComponentControlTraversal (*shell);
         const std::set<juce::String> walk (order.begin(), order.end());
-        const juce::var layout = probeRoot (*shell)["layout"];
+        const juce::var layout = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell))["layout"];
         const auto rectOf = [&layout] (const juce::String& key)
         {
             const juce::var value = layout.getProperty (key, juce::var());
@@ -25067,7 +25111,7 @@ TEST_CASE ("ADR-0066 painted controls are Control targets: the mixer's zones, th
     {
         const auto order = yesdaw::ui::mainComponentControlTraversal (*shell);
         const std::set<juce::String> walk (order.begin(), order.end());
-        const juce::var layout = probeRoot (*shell)["layout"];
+        const juce::var layout = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell))["layout"];
         int covered = 0;
         if (auto* object = layout.getDynamicObject())
             for (const auto& property : object->getProperties())
@@ -26732,7 +26776,7 @@ TEST_CASE ("ADR-0067 the piano roll's playhead follows the published frame in a 
     // Select the MIDI clip on the timeline (each clip's rect in turn, until a MIDI clip is the selection), open the roll.
     juce::Component& timeline = requireTimelineComponent (*shell);
     bool selected = false;
-    const juce::var layout = probeRoot (*shell)["layout"];
+    const juce::var layout = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell))["layout"];
     REQUIRE (layout.getDynamicObject() != nullptr);
     for (const auto& property : layout.getDynamicObject()->getProperties())
     {
@@ -27263,7 +27307,7 @@ TEST_CASE ("ADR-0073 an empty Arrange's rows obscure nothing at any size", "[ui]
             ++shown;
             std::vector<juce::Rectangle<int>> laneRects;   // the tracks' lanes (ADR-0074: a row never sits over one)
             {
-                const juce::var layout = probeRoot (*shell)["layout"];
+                const juce::var layout = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell))["layout"];
                 for (int lane = 0; lane < 64; ++lane)
                     if (const juce::var r = layout[juce::Identifier ("lane." + juce::String (lane))]; r.isArray())
                         laneRects.push_back ({ static_cast<int> (r[0]), static_cast<int> (r[1]), static_cast<int> (r[2]), static_cast<int> (r[3]) });
@@ -27952,7 +27996,7 @@ TEST_CASE ("G6 the rail paints the row its panel cuts off, beside the partial la
     {
         shell->setSize (1920, height);
         uncache (*shell);
-        const juce::var layout = probeRoot (*shell)["layout"];
+        const juce::var layout = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell))["layout"];
         const juce::var clipAreaVar = layout["clipArea"];
         REQUIRE (clipAreaVar.isArray());
         const juce::Rectangle<int> clipArea (static_cast<int> (clipAreaVar[0]), static_cast<int> (clipAreaVar[1]),
@@ -31562,9 +31606,12 @@ TEST_CASE ("a MIDI clip's notes stay under its name", "[ui][input][timeline][cli
         (void) yesdaw::ui::paintTimelineCanvas (graphics, image.getBounds(), state);
         return image;
     };
-    const auto differingRows = [] (const juce::Image& a, const juce::Image& b) {
+    // The layout pass, step 11: the clip area only - the overview above the ruler draws the clip in miniature too.
+    const int clipAreaTop = yesdaw::ui::timelineCanvasGeometry (juce::Rectangle<int> (0, 0, 640, 240),
+                                                                yesdaw::ui::TimelineCanvasState {}).clipArea.getY();
+    const auto differingRows = [clipAreaTop] (const juce::Image& a, const juce::Image& b) {
         int top = a.getHeight(), bottom = -1, count = 0;
-        for (int y = 0; y < a.getHeight(); ++y)
+        for (int y = clipAreaTop; y < a.getHeight(); ++y)
             for (int x = 0; x < a.getWidth(); ++x)
                 if (a.getPixelAt (x, y) != b.getPixelAt (x, y))
                 {

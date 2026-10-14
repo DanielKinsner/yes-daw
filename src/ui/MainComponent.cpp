@@ -1360,6 +1360,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
 
 
     configureAutomationLaneControls();
+    configureTimelineOverview();   // the layout pass, step 11
     configureMixerDockToggle();
     configureInspectorTabs();
     configureTimelineZoomControls();

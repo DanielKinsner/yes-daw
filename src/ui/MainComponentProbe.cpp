@@ -494,6 +494,7 @@ juce::var MainComponent::buildProbeLayout()
         const juce::Point<int> origin = timelineInput.getPosition();
         put ("toolbar", geometry.toolbarArea.translated (origin.x, origin.y));   // ADR-0064: the row its controls sit in
         put ("ruler", geometry.rulerArea.translated (origin.x, origin.y));
+        put ("overview", geometry.overviewArea.translated (origin.x, origin.y));   // the layout pass, step 11
         put ("clipArea", geometry.clipArea.translated (origin.x, origin.y));
         if (const auto tip = yesdaw::ui::timelineTipRects (timelineInput.getLocalBounds(), state); ! tip.strip.isEmpty())
             put ("tip.strip", tip.strip.translated (origin.x, origin.y));   // ADR-0073 §4: the first-run tip, while it shows

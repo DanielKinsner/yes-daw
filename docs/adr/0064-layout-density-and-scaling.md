@@ -164,3 +164,11 @@ Gates at every cell (`[layout][scaling]`):
   the dock open (the dock collapses); rendering the matrix costs headless test time; the exception's fate may need Dan.
 - **Follow-ups:** the G6 montage at the phase close; the Direct2D on-screen check with the real-app drive; any renderer
   work the baseline calls for.
+
+## Owner decision, 2026-10-13: seven whole lanes at 1080p with the dock open
+
+Dan chose (build session, asked directly) to keep the song overview strip - an 18 px band between the tool row and the
+ruler, the layout pass's step 11 - at the cost of this ADR's eighth whole lane at 1080p **with the 300 px dock open**:
+seven lanes are whole there now. His reasons: the dock opens hidden by default (step 8) and mixing has its own Mix
+window (step 10), so the dock-open case is rare; on his 2560x1440 screens and with the dock closed, eleven or more
+lanes show. The gates now require seven at 1080p with the dock open. The rest of this ADR stands.

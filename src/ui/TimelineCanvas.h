@@ -306,6 +306,7 @@ struct TimelineCanvasPaintStats
 struct TimelineCanvasGeometry
 {
     juce::Rectangle<int> toolbarArea;
+    juce::Rectangle<int> overviewArea;   // the layout pass, step 11: the whole song in miniature, above the ruler
     juce::Rectangle<int> rulerArea;
     // N4: empty unless a track row is targeted — carved from the BOTTOM of that row's own rect
     // (see timelineCanvasGeometry), never a fixed strip above every track.
@@ -680,7 +681,7 @@ inline void fillVisiblePanel (juce::Graphics& g, juce::Rectangle<int> area,
     const juce::Graphics::ScopedSaveState saved (g);
     // These later fills are opaque. Keep their edge fringe so fractional-scale coverage
     // still blends over the original panel, but do not rasterise its hidden interior.
-    for (const auto covered : { geometry.toolbarArea, geometry.rulerArea, geometry.clipArea })
+    for (const auto covered : { geometry.toolbarArea, geometry.overviewArea, geometry.rulerArea, geometry.clipArea })
         g.excludeClipRegion (covered.reduced (UiTheme::Space::hairline));
     fillPanel (g, area);
 }
@@ -1310,6 +1311,69 @@ inline void drawRulerLegend (juce::Graphics& g, juce::Rectangle<int> band, int t
     name ("Markers", rows.markers);
 }
 
+// The layout pass, step 11: the overview's map - the clip area's columns (so a clip sits over its own place), inside
+// the band's top and bottom insets. 0 s at its left edge, the song's whole length at its right.
+[[nodiscard]] inline juce::Rectangle<int> overviewMapArea (juce::Rectangle<int> overview, juce::Rectangle<int> clipArea) noexcept
+{
+    return juce::Rectangle<int> (clipArea.getX(), overview.getY(), clipArea.getWidth(), overview.getHeight())
+        .reduced (0, UiTheme::Layout::timelineCanvasOverviewInsetY);
+}
+
+// The seconds an x in the overview stands for (clamped to the song), for the click and drag that move the view.
+[[nodiscard]] inline double overviewSecondsAt (juce::Rectangle<int> map, double totalSeconds, int x) noexcept
+{
+    if (map.getWidth() <= 0 || totalSeconds <= 0.0)
+        return 0.0;
+    return std::clamp (static_cast<double> (x - map.getX()) / static_cast<double> (map.getWidth()), 0.0, 1.0) * totalSeconds;
+}
+
+// The layout pass, step 11: the whole song in miniature (SoundCraft's overview, Pro Tools' Universe) - every clip a
+// sliver in its colour on its lane's band, the part of the song in view as a box. Clips are never culled here.
+inline void drawOverview (juce::Graphics& g, juce::Rectangle<int> overview, juce::Rectangle<int> clipArea,
+                          const TimelineCanvasState& state, const Viewport& vp)
+{
+    if (overview.isEmpty())
+        return;
+    g.setColour (kToolbarBack);
+    g.fillRect (overview);
+    g.setColour (kGrid);
+    g.fillRect (overview.withHeight (UiTheme::Layout::timelineCanvasRulerSeparatorHeight)
+                        .withY (overview.getBottom() - UiTheme::Layout::timelineCanvasRulerSeparatorHeight));
+    const juce::Rectangle<int> map = overviewMapArea (overview, clipArea);
+    const double total = state.totalSeconds;
+    if (map.isEmpty() || total <= 0.0)
+        return;
+    const float mapX = static_cast<float> (map.getX());
+    const float mapW = static_cast<float> (map.getWidth());
+    const auto xAt = [mapX, mapW, total] (double seconds) {
+        return mapX + mapW * static_cast<float> (std::clamp (seconds / total, 0.0, 1.0));
+    };
+    const int lanes = std::max (1, state.trackCount);
+    const float laneHeight = static_cast<float> (map.getHeight()) / static_cast<float> (lanes);
+    const float sliver = laneHeight >= 3.0f ? laneHeight - 1.0f : std::max (1.0f, laneHeight);
+    for (int i = 0; state.clips != nullptr && i < state.clipCount; ++i)
+    {
+        const Clip& clip = state.clips[i];
+        const float x = xAt (clip.startSeconds);
+        const float width = std::max (1.0f, xAt (clip.startSeconds + clip.lengthSeconds) - x);
+        const float y = static_cast<float> (map.getY()) + laneHeight * static_cast<float> (std::clamp (clip.lane, 0, lanes - 1));
+        g.setColour (state.clipStyles != nullptr ? state.clipStyles[i].colour : UiTheme::Color::accentBlue());
+        g.fillRect (juce::Rectangle<float> (x, y, width, sliver));
+    }
+    if (vp.pixelsPerSecond > 0.0)
+    {
+        const double visibleSeconds = static_cast<double> (clipArea.getWidth()) / vp.pixelsPerSecond;
+        const float left = xAt (vp.scrollSeconds);
+        const float right = std::max (left + 2.0f, xAt (vp.scrollSeconds + visibleSeconds));
+        const juce::Rectangle<float> box (left, static_cast<float> (overview.getY()) + 1.0f, right - left,
+                                          static_cast<float> (overview.getHeight()) - 2.0f);
+        g.setColour (UiTheme::Color::white().withAlpha (UiTheme::Tone::timelineOverviewViewFillAlpha));
+        g.fillRect (box);
+        g.setColour (UiTheme::Color::white().withAlpha (UiTheme::Tone::timelineOverviewViewOutlineAlpha));
+        g.drawRect (box, 1.0f);
+    }
+}
+
 inline void drawRuler (juce::Graphics& g, juce::Rectangle<int> ruler, juce::Rectangle<int> clipArea,
                        const TimelineCanvasState& state, const Viewport& vp)
 {
@@ -1567,6 +1631,7 @@ inline TimelineCanvasGeometry timelineCanvasGeometry (juce::Rectangle<int> area,
 
     auto content = area.reduced (UiTheme::Layout::timelineCanvasOuterInset);
     geometry.toolbarArea = content.removeFromTop (UiTheme::Layout::timelineCanvasToolbarHeight);
+    geometry.overviewArea = content.removeFromTop (UiTheme::Layout::timelineCanvasOverviewHeight);
     geometry.rulerArea = content.removeFromTop (UiTheme::Layout::timelineCanvasRulerHeight);
     geometry.clipArea = content.reduced (UiTheme::Layout::timelineCanvasClipAreaInsetX,
                                          UiTheme::Layout::timelineCanvasClipAreaInsetY);
@@ -1975,6 +2040,7 @@ inline TimelineCanvasPaintStats paintTimelineCanvas (juce::Graphics& g, juce::Re
     const Viewport clipVp = viewportForClipLayout (geometry);
 
     drawToolbar (g, geometry.toolbarArea, state.activeTool, state.snapLabelShown);
+    drawOverview (g, geometry.overviewArea, clipArea, state, vp);   // the layout pass, step 11
     drawRuler (g, ruler, clipArea, state, vp);
     drawGrid (g, clipArea, state, geometry);
     drawRangeSelection (g, ruler, clipArea, state, vp);

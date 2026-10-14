@@ -152,6 +152,9 @@ struct UiTheme
         static constexpr float timelineClipWaveformPeakAlpha = 0.5f;
         static constexpr float timelineClipWaveformRmsAlpha = 0.85f;
         static constexpr float timelineClipNoteInkAlpha = 0.78f;
+        // The layout pass, step 11: the overview's view box - a light wash and a firmer outline.
+        static constexpr float timelineOverviewViewFillAlpha = 0.10f;
+        static constexpr float timelineOverviewViewOutlineAlpha = 0.65f;
         static constexpr float timelineDragGhostFillAlpha = 0.30f;      // G2.3
         static constexpr float timelineClipMutedWashAlpha = 0.55f;   // G2.12: the panel wash over a muted clip
         static constexpr float timelineDragGhostOutlineAlpha = 0.95f;   // G2.3
@@ -1210,6 +1213,9 @@ struct UiTheme
         static constexpr int timelineCanvasToolCellInsetY = 0;
         static constexpr int timelineCanvasOuterInset = 1;
         static constexpr int timelineCanvasToolbarHeight = 28;   // ADR-0064: the reference tool-row height (was 36)
+        // The layout pass, step 11: the overview band between the tool row and the ruler - the whole song in miniature.
+        static constexpr int timelineCanvasOverviewHeight = 18;
+        static constexpr int timelineCanvasOverviewInsetY = 2;
         // G0.7 cp3 (plan §3.4): the ruler is two 22 px time rows (bars · minutes:seconds) over a
         // 20 px marker lane. The whole band stays ONE hit zone (locate, range, loop, punch).
         static constexpr int timelineRulerBarsRowHeight = 22;
@@ -1220,7 +1226,8 @@ struct UiTheme
         // ADR-0064: the rail's rows sit beside their lanes — its header is the canvas's outer inset, tool row and ruler,
         // its footer the canvas's scroll bar and outer inset — so both panels show and clamp the same rows.
         static constexpr int trackListHeaderHeight = timelineCanvasOuterInset + timelineCanvasToolbarHeight
-                                                   + timelineCanvasRulerHeight;   // 93
+                                                   + timelineCanvasOverviewHeight   // the layout pass, step 11
+                                                   + timelineCanvasRulerHeight;   // 111
         // The layout pass, step 2: the add button centres in the rail header's tool-row band (the ruler legend is under it).
         static constexpr int trackListAddButtonTop = timelineCanvasOuterInset
                                                    + (timelineCanvasToolbarHeight - trackListAddButtonHeight) / 2;

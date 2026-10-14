@@ -108,6 +108,7 @@ public:
     std::function<void()> onRulerRangeCleared;                   // plain ruler click collapses the range
     std::function<void (double, double)> onZoomWheel;            // anchorSeconds, wheelDelta
     std::function<void (double)> onRulerAltClicked;              // seconds: remove nearest marker
+    std::function<void (double)> onOverviewScrubbed;             // the layout pass, step 11: centre the view on these seconds
     std::function<void (double)> onScrollWheel;                  // wheelDelta (view-widths per notch)
     std::function<void (double, bool)> onZoomToolClicked;        // anchorSeconds, zoomOut (Alt) — E3
     std::function<void (double)> onHandToolScrolled;             // secondsDelta from a Hand drag — E3
@@ -564,6 +565,18 @@ public:
             return;
         }
 
+        // The layout pass, step 11: a left click on the overview moves the view there; a drag keeps moving it.
+        if (const yesdaw::ui::TimelineCanvasGeometry overviewGeometry = yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state);
+            overviewGeometry.overviewArea.contains (event.getPosition()))
+        {
+            if (event.mods.isLeftButtonDown())
+            {
+                overviewDragActive = true;
+                scrubOverview (state, overviewGeometry, event.getPosition().x);
+            }
+            return;
+        }
+
         const yesdaw::ui::TimelineHitTestResult hit =
             yesdaw::ui::hitTestTimelineCanvas (getLocalBounds(), state, event.getPosition());
 
@@ -797,6 +810,13 @@ public:
         if (markerDragIndex >= 0)
             return;
 
+        if (overviewDragActive && stateProvider)   // the layout pass, step 11
+        {
+            const yesdaw::ui::TimelineCanvasState state = stateProvider();
+            scrubOverview (state, yesdaw::ui::timelineCanvasGeometry (getLocalBounds(), state), event.getPosition().x);
+            return;
+        }
+
         if (loopBraceDrag != LoopBraceEdit::None && stateProvider)
         {
             const yesdaw::ui::TimelineCanvasState state = stateProvider();
@@ -924,6 +944,8 @@ public:
     {
         stopTimer();   // G2.3
         autoScrollDirection = 0;
+        if (std::exchange (overviewDragActive, false))   // the layout pass, step 11
+            return;
         if (markerDragIndex >= 0)
         {
             const int markerIndex = markerDragIndex;
@@ -1534,6 +1556,15 @@ private:
     TimelineMarqueeState marqueeState;
     // Hand tool (E3): a press-drag pans the viewport horizontally; transient view state only.
     bool handDragActive = false;
+    bool overviewDragActive = false;   // the layout pass, step 11
+
+    void scrubOverview (const yesdaw::ui::TimelineCanvasState& state, const yesdaw::ui::TimelineCanvasGeometry& geometry, int x)
+    {
+        if (onOverviewScrubbed)
+            onOverviewScrubbed (yesdaw::ui::timeline_canvas_detail::overviewSecondsAt (
+                yesdaw::ui::timeline_canvas_detail::overviewMapArea (geometry.overviewArea, geometry.clipArea),
+                state.totalSeconds, x));
+    }
     int handDragLastX = 0;
     // Loop brace drag (E6): raw-pointer preview state; the commit applies the snap chooser.
     LoopBraceEdit loopBraceDrag = LoopBraceEdit::None;

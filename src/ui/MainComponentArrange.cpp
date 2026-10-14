@@ -706,6 +706,18 @@ void MainComponent::scrollBarMoved (juce::ScrollBar* bar, double newRangeStart)
     repaintAll();
 }
 
+// The layout pass, step 11: a click or drag on the overview centres the view on that moment (clamped to the song).
+void MainComponent::configureTimelineOverview()
+{
+    timelineInput.onOverviewScrubbed = [this] (double seconds) {
+        const double visibleSeconds = timelineVisibleSecondsFor (timelineTotalSeconds);
+        const double maxScroll = std::max (0.0, timelineTotalSeconds - visibleSeconds);
+        timelineScrollSeconds = std::clamp (seconds - visibleSeconds * 0.5, 0.0, maxScroll);
+        refreshTimelineScrollBars();
+        repaintAll();
+    };
+}
+
 // G2.19: the zoom ceiling — one sample per pixel at the project's rate (never below the old
 // 64x floor). It follows the fit width, so it is a function, not a token.
 double MainComponent::timelineZoomCeiling() const noexcept
@@ -1157,6 +1169,16 @@ void MainComponent::drawTrackList (juce::Graphics& g, juce::Rectangle<int> area)
                     "TRACKS",
                     titleBand.reduced (yesdaw::ui::UiTheme::Layout::trackListHeaderInsetX,
                                        yesdaw::ui::UiTheme::Layout::trackListHeaderInsetY));
+    {   // the layout pass, step 11: the overview band's name, level with it
+        const auto overviewBand = header.removeFromTop (yesdaw::ui::UiTheme::Layout::timelineCanvasOverviewHeight)
+                                        .reduced (yesdaw::ui::UiTheme::Layout::timelineCanvasOuterInset, yesdaw::ui::UiTheme::Space::none);
+        g.setColour (yesdaw::ui::UiTheme::Color::timelineToolbar());
+        g.fillRect (overviewBand);
+        g.setColour (kMutedText);
+        g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::small, juce::Font::bold));
+        g.drawText ("Overview", overviewBand.reduced (yesdaw::ui::UiTheme::Space::sm, yesdaw::ui::UiTheme::Space::none),
+                    juce::Justification::centredRight, true);
+    }
     yesdaw::ui::timeline_canvas_detail::drawRulerLegend (
         g, header.reduced (yesdaw::ui::UiTheme::Layout::timelineCanvasOuterInset, yesdaw::ui::UiTheme::Space::none), timeDisplayMode);
 

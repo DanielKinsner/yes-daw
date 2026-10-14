@@ -2162,10 +2162,10 @@ TEST_CASE ("G0.7 rubric shots: the song fixture at 1280x720, 1920x1080 and 2560x
         INFO ("whole lanes at " << width << "x" << height << ": " << wholeLanes);
         // G2.1 cp2: the plan's 300 px dock at 720p leaves two whole rows and a third partial
         // (88 + 28 + 64 + 3×72 + 300 + insets does not fit 720); the dock is one drag from 160,
-        // where four fit. ADR-0064: at 1080p the 28 px tool row and 4 px insets leave eight whole lanes (the plan's
-        // rubric line 2).
+        // where four fit. ADR-0064: at 1080p the 28 px tool row and 4 px insets left eight whole lanes (the plan's
+        // rubric line 2); Dan's 2026-10-13 decision (ADR-0064's owner note) gave one to the overview strip: seven.
         if (height >= 1080)
-            REQUIRE (wholeLanes >= 8);
+            REQUIRE (wholeLanes >= 7);
         else
             REQUIRE (wholeLanes >= 2);
     }
@@ -2193,7 +2193,7 @@ TEST_CASE ("the layout pass, step 2: the rail's header names the ruler's rows be
     const juce::Rectangle<int> row0 = yesdaw::ui::mainComponentPaintedRailRowBounds (*shell, 0);
     REQUIRE_FALSE (row0.isEmpty());
     const int headerTop = row0.getY() - L::trackListHeaderHeight;
-    const int bandTop = headerTop + L::timelineCanvasOuterInset + L::timelineCanvasToolbarHeight;
+    const int bandTop = headerTop + L::timelineCanvasOuterInset + L::timelineCanvasToolbarHeight + L::timelineCanvasOverviewHeight;   // step 11: under the overview
 
     // The legend sits level with the canvas's ruler.
     const juce::var layout = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell)).getProperty ("layout", juce::var());
