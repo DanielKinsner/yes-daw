@@ -8,7 +8,7 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## Scoreboard - where the app stands (kept current; last updated 2026-10-13)
+## Scoreboard - where the app stands (kept current; last updated 2026-11-03)
 
 **Make a song today** (evidence: the real-app drives on packaged build 7a1b0ad, 2026-10-13)
 - Import audio - WORKING: WAV/AIFF/FLAC/Ogg/MP3 at any sample rate, drag-drop, browser preview.
@@ -30,7 +30,7 @@ Older entries below are dated history, not competing "Now" instructions.
 **Next, in order** (Dan, 2026-10-13: an editing suite first, with a clean, familiar look he enjoys sitting down at;
 MIDI is written in the piano roll, not played live; voiceover is the only recording; live recording comes later)
 1. ~~Close the Usable-song milestone~~ - **done 2026-10-13** (packaged 7a1b0ad).
-2. A clean, familiar look - the SoundCraft-style layout pass (M), in small steps. **In progress.** Done: one colour
+2. A clean, familiar look - the SoundCraft-style layout pass (M), in small steps. **Steps 1-13 done.** Done: one colour
    per track everywhere and clips named after their files (step 1); the ruler's rows labelled (step 2); mixer strips
    show pan values, fader dB numbers and "+ Insert" / "+ Send" hints (step 3); the inspector lists every clip when
    none is selected (step 4); track rows show their effects and volume (step 5); the header shows the selection's
@@ -42,10 +42,14 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    each selected or boosted clip, Shift-drag moves it (step 12); the timeline's grid lines are bars and beats that
    follow tempo changes, and Grid snap lands on them (step 13). Export stays WAV (Dan: WAV is his format).
    Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1.
-3. Editing gaps (S-M each): clip names from file names, a clip-gain line, a snap grid that follows tempo changes,
-   audio that follows tempo. (MP3/FLAC export dropped: Dan exports WAV.)
-4. Dan makes one real song in the app (S), when he has time.
-5. Later: more built-in effects, then third-party VST3 plugins (L).
+3. **Option A authorized 2026-11-03:** continuous MIDI editing, background media preparation, full Tempo map
+   consistency, musical audio tempo-follow, linked Track editing/organization, then piano-roll reference notes.
+   First: correct addressed note release and publish note changes without replacing playback. The implementation
+   brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
+4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
+   for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
+5. Diagnose the recorded launch Underrun and intermittent SS3 failure with available headless evidence; confirmed
+   regressions take priority. Later: more built-in effects, then third-party VST3 plugins (L).
 6. Later: live recording - prove it with a real input, take lanes and punch-in, then low-latency audio (WASAPI
    exclusive or ASIO). Voiceover works without it: the interface's direct monitoring has no delay.
 
@@ -59,6 +63,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus; SS3
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-03 — Option A authorized; headless editing work starts
+
+Dan authorized the editing sequence and agent-owned testing, headless only. The implementation brief and
+critic-reviewed ADR-0079/0080 record live MIDI and owned background media preparation. Pure baseline: 410/410.
+First code change is addressed native note release (including chord wildcard propagation); focused regressions
+are green, broad verification is in progress. No app, native input or audio device was launched.
 
 ## 2026-11-03 — Improvement review (recommendations, not a new implementation mandate)
 
