@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YES DAW — where to improve next</title>
+<style>
+:root{color-scheme:light;--ink:#172b35;--muted:#465c67;--paper:#f5f3ec;--card:#fffefa;--line:#cdd5d4;--accent:#075e62}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:24px}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1040px;margin:auto;padding:56px 28px 70px}header{max-width:780px}
+.eyebrow{font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:750}
+h1{font-size:clamp(34px,6vw,62px);line-height:1.08;letter-spacing:-.04em;margin:14px 0 24px}
+h2{font-size:28px;line-height:1.25;margin:42px 0 18px}h3{font-size:23px;line-height:1.3;margin:8px 0 16px}
+p,li,dd{max-width:76ch}p{margin:0 0 16px}a{color:var(--accent);text-underline-offset:3px}a:hover{color:#083a75}
+.lead{font-size:21px;line-height:1.5}.muted,.fine{color:var(--muted)}.fine{font-size:14px}
+nav ul{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:9px 20px}nav a{font-size:15px;font-weight:650}
+.note{background:#e4eeeb;border:1px solid #b8cdca;border-radius:10px;padding:20px 24px;margin:24px 0}
+.choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.choice{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:19px}
+.choice strong{display:block;font-size:18px}.choice p{font-size:15px;margin:8px 0 0}
+article{padding:28px;background:var(--card);border:1px solid var(--line);border-radius:12px;margin:20px 0}
+.article-meta{display:flex;flex-wrap:wrap;gap:8px;font-size:13px;font-weight:650;color:var(--accent)}
+.chip{background:#e7efed;border:1px solid #bfd0cc;border-radius:5px;padding:3px 9px}
+dl{margin:18px 0 0}dt{font-size:13px;letter-spacing:.045em;text-transform:uppercase;font-weight:750;margin-top:17px}
+dd{margin:4px 0 0;color:var(--muted)}code{font-size:.87em;overflow-wrap:anywhere}
+details{font-size:14px;margin:12px 0}summary{cursor:pointer;color:var(--muted)}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px}
+table{border-collapse:collapse;width:100%;background:var(--card);font-size:14px;min-width:670px}
+th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:11px 13px}
+th{background:#e7ece9}tr:last-child td{border:0}td:first-child{font-weight:700;white-space:nowrap}
+.figure{overflow-x:auto;margin:22px 0}.figure svg{display:block;min-width:650px;width:100%;height:auto}
+footer{border-top:1px solid var(--line);padding-top:22px;margin-top:45px;font-size:13px;color:var(--muted)}
+@media(max-width:720px){main{padding:30px 18px}.choice-grid{grid-template-columns:1fr}article{padding:21px}h2{font-size:25px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{body{background:white}main{padding:0}article,.choice{break-inside:avoid}a{color:inherit}.fine{font-size:11px}}
+</style>
+</head>
+<body><main>
+<header>
+<p class="eyebrow">YES DAW / improvement review</p>
+<h1>Make editing continuous.<br>Make musical time consistent.</h1>
+<p class="lead">There is substantial useful work agents can complete before Dan's first personal session. The strongest opportunities are the behavior of the editor while making music, coherent timing, and faster arrangement work.</p>
+<p class="fine"><time datetime="2026-11-03">2026-11-03</time> · Review of source <code>7a01c1e89dd4c95fa7bd67b68dd47a90df4a4149</code><br>Focus: how YES DAW could improve without waiting for Dan to sit down and test it.</p>
+</header>
+<details><summary>Document metadata</summary><dl><dt>topic</dt><dd>yes-daw-improvements</dd><dt>mode</dt><dd>repo-grounded</dd></dl></details>
+<nav aria-label="Document sections"><ul>
+<li><a href="#grounding-context">Evidence</a></li><li><a href="#topic-axes">Scope</a></li>
+<li><a href="#ranked-ideas">Seven directions</a></li><li><a href="#rejection-summary">What was cut</a></li><li><a href="#sources">Sources</a></li>
+</ul></nav>
+<section id="grounding-context"><h2>Grounding Context</h2>
+<p>The current application has a substantial foundation: editing, piano-roll MIDI, built-in mixing and automation, import, WAV export, save and recovery. The live handoff records the Usable-song milestone on packaged <code>7a1b0ad</code>, followed by thirteen layout improvements. This review checked current source and recorded evidence; it did not launch the app, inject desktop input, perform fresh hardware measurements or run a new local build.</p>
+<p><a href="https://github.com/DanielKinsner/yes-daw/actions/runs/41727515729">Current source CI run 41727515729</a> completed successfully in all ten jobs, including Windows/macOS/Linux builds and tests, RTSan, TSan and packaging. That verifies those gates, not newly measured gesture latency or a new hardware result.</p>
+<p>Two source-level opportunities are concrete: committed MIDI changes take the full playback replacement path, and import/stretch preparation is synchronous. Their actual latency and audible impact remain to be measured. Three musical limitations are explicit: head-tempo MIDI conversion, a head-tempo/metre metronome, and incomplete MIDI loop/tempo-map export.</p>
+<div class="note"><strong>Important correction from independent verification</strong><p>MIDI note dragging already commits once at mouse-up as one undo transaction. There is no basis for claiming a full durable save on every pointer movement. Transport is restored after engine replacement; a lost playhead is also not an established bug.</p></div>
+<p>Priorities remain the owner's: a full general-purpose DAW on C++/JUCE and the existing engine, editing first, MIDI written in the piano roll, voiceover as the recording use case, WAV as the final format. These recommendations are a discovery artifact; they do not amend Accepted ADRs or promote a new implementation mandate.</p>
+<p class="fine">Method: 40 raw ideas across five passes and six perspectives; 26 after deduplication; a fresh evidence check and final arbitration produced seven directions. Each generating pass had up to five targeted verification operations; the combined-frame pass shared that budget, so scrutiny was not uniform. Current source and policy outrank historical notes. The institutional solutions store has one early build/CI note; its relevant lesson is keeping pure checks independent of device setup. Slack was not consulted.</p>
+</section>
+<section id="topic-axes"><h2>Topic Axes</h2>
+<ol><li>Editing and playback continuity.</li><li>Coherent musical timing.</li><li>Arranging and composition workflow.</li><li>Unattended quality and delivery.</li></ol>
+<p>All four axes have surviving ideas. This is an opportunity ranking, not a bypass of the rule to repair confirmed product regressions promptly.</p>
+<div class="choice-grid" aria-label="Possible workstreams">
+<div class="choice"><strong>A. Finish the editor · recommended</strong><p>Continuous MIDI editing, responsive media work, coherent tempo, then arranging depth.</p></div>
+<div class="choice"><strong>B. Broaden native sounds</strong><p>Useful bass/pad/lead recipes and musical starter Projects; more built-in effects after the core editing work.</p></div>
+<div class="choice"><strong>C. Open the plugin ecosystem</strong><p>The later VST3 milestone, under its existing worker and real-plugin entry gates. Larger lifecycle scope.</p></div>
+</div>
+</section>
+<section id="ranked-ideas"><h2>Ranked Ideas</h2>
+<p>Start with a bounded outcome: edit a MIDI part while a song plays, change its tempo coherently, save it, and export the expected WAV. Use existing checks and milestone drives. Diagnose confirmed first-playback/input failures as required by the current project rules.</p>
+<p class="fine">Confidence below is a judgment about the recommendation's basis, not a statistical measurement or a delivery estimate.</p>
+<nav aria-label="Ranked idea index"><ol><li><a href="#idea-1">Keep playback continuous while editing MIDI</a></li>
+<li><a href="#idea-2">Keep controls responsive during imports and stretching</a></li>
+<li><a href="#idea-3">Make the musical clock agree everywhere</a></li>
+<li><a href="#idea-4">Let musical audio follow the song tempo</a></li>
+<li><a href="#idea-5">Arrange related Tracks and sections together</a></li>
+<li><a href="#idea-6">Show the other parts while writing MIDI</a></li>
+<li><a href="#idea-7">Close the first-playback and intermittent editing faults</a></li></ol></nav>
+<article id="idea-1">
+<div class="article-meta"><span class="chip">Editing/playback continuity</span><span class="chip">Confidence 95%</span><span class="chip">Complexity High</span></div>
+<h3>1. Keep playback continuous while editing MIDI</h3>
+<p>A committed note edit should update the playing MIDI while instruments and effects keep their state. The current changed-MIDI path builds and installs a replacement PlaybackEngine.</p>
+<dl><dt>Basis</dt><dd>direct: UiAppModel.h:12089 rejects changed MIDI from live placement; :12188 creates another engine, :12211 writes the project snapshot, :12224 replaces playback. The code restores Transport afterward; lost playhead is not an established bug. Note drags already commit once on mouse-up (PianoRollInputComponent.h:763,939-940); this is not a per-pointer-event persistence problem.</dd><dt>Rationale</dt><dd>This targets the central way Dan composes. Measure held notes, effect tails and edit latency during a playing loop, then extend live publication if the measurements confirm the expected reset cost.</dd><dt>Downsides</dt><dd>Engine and Audio-thread work needs an ADR/critic and RTSan/TSan coverage. Note-on/off transitions, controller state, undo and existing save guarantees must remain exact. No new audible failure was measured in this review.</dd></dl>
+<figure class="figure"><svg viewBox="0 0 830 176" role="img" aria-labelledby="live-title live-desc"><title id="live-title">Conceptual edit publication paths</title><desc id="live-desc">Today committed note edits build a replacement engine and restore Transport. A proposed live path publishes prepared MIDI to the existing engine. No timing values are measured here.</desc><g font-family="system-ui,sans-serif" font-size="16" fill="#172b35"><text x="10" y="29" font-weight="700">Current</text><text x="10" y="119" font-weight="700">Proposed</text><rect x="115" y="4" width="160" height="52" rx="7" fill="#e7efed" stroke="#bfd0cc"/><text x="195" y="36" text-anchor="middle">Commit note edit</text><rect x="312" y="4" width="232" height="52" rx="7" fill="#e7efed" stroke="#bfd0cc"/><text x="428" y="36" text-anchor="middle">New engine + snapshot</text><rect x="583" y="4" width="224" height="52" rx="7" fill="#e7efed" stroke="#bfd0cc"/><text x="695" y="36" text-anchor="middle">Restore Transport</text><rect x="115" y="94" width="160" height="52" rx="7" fill="#dbece5" stroke="#8db5a4"/><text x="195" y="126" text-anchor="middle">Commit note edit</text><rect x="312" y="94" width="232" height="52" rx="7" fill="#dbece5" stroke="#8db5a4"/><text x="428" y="126" text-anchor="middle">Prepared MIDI update</text><rect x="583" y="94" width="224" height="52" rx="7" fill="#dbece5" stroke="#8db5a4"/><text x="695" y="126" text-anchor="middle">Existing engine</text></g><g stroke="#465c67" stroke-width="2" fill="none"><path d="M280 30H304m-8-6 8 6-8 6M550 30H575m-8-6 8 6-8 6M280 120H304m-8-6 8 6-8 6M550 120H575m-8-6 8 6-8 6"/></g></svg><figcaption class="fine">Concept sketch. The review did not measure a speedup or prove an audible interruption.</figcaption></figure>
+</article>
+<article id="idea-2">
+<div class="article-meta"><span class="chip">Editing/playback continuity</span><span class="chip">Confidence 95%</span><span class="chip">Complexity High</span></div>
+<h3>2. Keep controls responsive during imports and stretching</h3>
+<p>Decode and prepare long media in cancellable background work, keeping the current sound until a new result is ready. Reuse identical prepared stretches across duplicated Clips when complete input identities match.</p>
+<dl><dt>Basis</dt><dd>direct: MainComponentBrowser.cpp:405-417 directly decodes before import. UiAppModel.h:13830-13877 synchronously prepares uncached source windows; :13852 also keys reuse to Clip identity. external: JUCE ThreadPool supports background jobs, but cancellation is cooperative.</dd><dt>Rationale</dt><dd>Ordinary paint timings do not measure long import or stretch operations. This foundation also helps later tempo-follow and large stem sessions.</dd><dt>Downsides</dt><dd>Measure first. Cancellation, stale results, project replacement, atomic adoption and source ownership need deliberate handling. Reusing results must include source/view rate, window, algorithm version and all relevant settings.</dd></dl>
+
+</article>
+<article id="idea-3">
+<div class="article-meta"><span class="chip">Coherent musical timing</span><span class="chip">Confidence 98%</span><span class="chip">Complexity High</span></div>
+<h3>3. Make the musical clock agree everywhere</h3>
+<p>Make the grid, new MIDI, metronome and interchange agree on the full Tempo map. Preserve an explicit fixed-time choice and existing saved Project meaning. MIDI export should include Clip repeats and all supported tempo/meter changes.</p>
+<dl><dt>Basis</dt><dd>direct: UiAppModel.h:3377-3398 converts MIDI quarters at head tempo into SampleLocked Clips; :13902-13910 configures click from head tempo/meter. Midi.h:651-675 already distinguishes SampleLocked and TempoLocked projection. UiAppModel.h:3545 omits loop unrolling; :3620-3624 supplies only head tempo/meter to export.</dd><dt>Rationale</dt><dd>Tempo ramps are already supported, so consistency closes gaps inside existing workflows. The first small correction can be the metronome following an existing tempo/meter change; MIDI interchange matters less than WAV to this user but shares the same timing concern.</dd><dt>Downsides</dt><dd>This is architecture/saved-data-sensitive. Do not silently reinterpret legacy SampleLocked Clips or alter accepted formats. Define migration/default behavior through an ADR; verify musical positions against independently computed expectations.</dd></dl>
+
+</article>
+<article id="idea-4">
+<div class="article-meta"><span class="chip">Coherent musical timing</span><span class="chip">Confidence 90%</span><span class="chip">Complexity High</span></div>
+<h3>4. Let musical audio follow the song tempo</h3>
+<p>Give Clips an explicit musical or fixed-time policy. Start with known-tempo loops fitting a chosen number of bars and following tempo edits; keep voiceover fixed by default. Internal transient/warp markers can follow later.</p>
+<dl><dt>Basis</dt><dd>direct: STATUS.md:17-18 records no audio tempo-follow or audio quantize/warp, despite manual time-stretch. external: Logic Flex &amp; Follow separates fixed audio, tempo following and bar/beat conformance.</dd><dt>Rationale</dt><dd>This turns tempo editing into a useful arrangement tool while protecting spoken audio. It is a feature expansion, separate from correcting the existing musical clock.</dd><dt>Downsides</dt><dd>Saved-data and rendering decisions need an ADR, sound-quality fixtures and render/live agreement. Source-tempo detection and transient warping are larger follow-ups, not prerequisites for a known-BPM first step.</dd></dl>
+
+</article>
+<article id="idea-5">
+<div class="article-meta"><span class="chip">Arranging/composition workflow</span><span class="chip">Confidence 90%</span><span class="chip">Complexity High</span></div>
+<h3>5. Arrange related Tracks and sections together</h3>
+<p>Add linked edit groups with clear corresponding-Clip rules and collapsible Track organization. A later section operation could move or duplicate a Verse or Chorus together with the affected Clips and automation.</p>
+<dl><dt>Basis</dt><dd>direct: STATUS.md:19 records no folder Tracks or groups. external: Ardour documents exact matching or overlapping corresponding-region selection. reasoned: reusable target sets and transactions prevent alignment/undo behavior from diverging across commands.</dd><dt>Rationale</dt><dd>Layered instruments and stem sessions need repeated coordinated edits. This reduces bookkeeping while making song structure easier to manipulate.</dd><dt>Downsides</dt><dd>Groups, folders, mixing links and section operations are different scopes. Start with a precise linked-edit behavior; define edge-crossing Clips, automation boundaries, hidden Tracks and one-step undo before broadening.</dd></dl>
+
+</article>
+<article id="idea-6">
+<div class="article-meta"><span class="chip">Arranging/composition workflow</span><span class="chip">Confidence 85%</span><span class="chip">Complexity Medium</span></div>
+<h3>6. Show the other parts while writing MIDI</h3>
+<p>Show chosen reference Tracks as faint, non-editable ghost notes behind the active MIDI Clip, with a used-pitches-only view. Keep one unmistakable active editing target.</p>
+<dl><dt>Basis</dt><dd>direct: UiAppModel.h:4319 keeps one selectedMidiClipId_; UiPianoRollSurface.h:447 projects one selected Clip. external: Logic documents multi-track and collapsed-note piano-roll views. Existing scale assist and Sampler drum view already exist and are not proposed as new features.</dd><dt>Rationale</dt><dd>Dan writes notes with the mouse. Seeing bass against chords or a melody against harmony reduces Track switching and makes composition more direct.</dd><dt>Downsides</dt><dd>Reference identity and active selection must stay clear; viewport, overlapping notes and keyboard accessibility need a simple smoke check. Validate absence with a wider symbol search before implementation; a single selected-Clip field alone cannot establish every UI capability.</dd></dl>
+
+</article>
+<article id="idea-7">
+<div class="article-meta"><span class="chip">Unattended quality and delivery</span><span class="chip">Confidence 90%</span><span class="chip">Complexity Medium</span></div>
+<h3>7. Close the first-playback and intermittent editing faults</h3>
+<p>Reproduce and diagnose the recorded launch-time Underrun and intermittent SS3 editing failure. Capture the failing sequence, callback timing, state and input delivery so a specific fix gets a regression check.</p>
+<dl><dt>Basis</dt><dd>direct: STATUS.md:56-64 records a launch glitch with unknown cause and an SS3 failure followed by clean runs. docs/evidence/2026-10-13-usable-song-drives-and-hardware.json retains the raw outcome. These are historical observations; this review did not reproduce them.</dd><dt>Rationale</dt><dd>First playback and basic editing deserve a supported explanation when they fail. Existing Session drives, State probe and audio checks can investigate without making Dan the routine tester.</dd><dt>Downsides</dt><dd>The two failures may have unrelated causes, and later successful runs do not explain either. Native input/audio proof still needs the correct isolated input session or actual device route; safe code/tests can continue independently. Reuse the existing tooling and ADR-0078 cadence.</dd></dl>
+
+</article>
+</section>
+<section id="rejection-summary"><h2>Rejection Summary</h2>
+<p>The table records every deduplicated candidate, including merges and supporting practices. Sound ideas can still be parked when a stronger direction has more immediate value.</p>
+<div class="table-wrap"><table><thead><tr><th>Candidate</th><th>Disposition</th><th>Reason</th></tr></thead><tbody>
+<tr><td>M1. Live MIDI publication</td><td>Keep in idea 1</td><td>Confirmed replacement path; measure audio-state/latency impact.</td></tr>
+<tr><td>M2. Cancellable background preparation</td><td>Keep in idea 2</td><td>Synchronous preparation verified; stalls not measured.</td></tr>
+<tr><td>M3. One musical-time law</td><td>Keep in idea 3</td><td>Full Tempo map consistency closes supported workflow gaps.</td></tr>
+<tr><td>M4. Faithful MIDI arrangement export</td><td>Merge into idea 3</td><td>Concrete export omission, lower priority than core timing for a WAV-focused user.</td></tr>
+<tr><td>M5. Explicit linked editing groups</td><td>Keep in idea 5</td><td>Missing linked editing/organization; define them separately.</td></tr>
+<tr><td>M6. Cold launch/play/edit regression</td><td>Keep in idea 7</td><td>Specific historical failures merit reproduction and diagnosis.</td></tr>
+<tr><td>M7. Isolated native milestone drives</td><td>Supporting practice</td><td>Already policy; use existing separate-session milestone drives.</td></tr>
+<tr><td>M8. Explicit musical/fixed audio and tempo-follow</td><td>Keep in idea 4</td><td>Explicit editing gap; protect fixed-time voiceover.</td></tr>
+<tr><td>M9. Searchable action/prerequisite surface</td><td>Park runnable command search</td><td>Useful lower-priority discoverability; keymap search already exists.</td></tr>
+<tr><td>M10. Musical starter Project and reference WAV</td><td>Park musical starter Projects</td><td>Useful content opportunity, separate from startup reliability.</td></tr>
+<tr><td>M11. Semantic journey replay</td><td>Cut new journey runner</td><td>Substantial headless/action coverage already exists; extend the missing journey.</td></tr>
+<tr><td>M12. Complete-gesture/edit-to-sound budgets</td><td>Support ideas 1 and 2</td><td>Measure these edits directly; avoid a separate benchmarking program.</td></tr>
+<tr><td>M13. Derived-media content cache</td><td>Conditional part of idea 2</td><td>Cache keys include Clip identity; change sharing only if measurement warrants.</td></tr>
+<tr><td>M14. Reference ghost notes and used-pitch view</td><td>Keep in idea 6</td><td>Single-Clip surface/contiguous pitch projection verified beyond selection state.</td></tr>
+<tr><td>M15. Named Verse/Chorus section edit</td><td>Later extension of idea 5</td><td>Named sections need explicit boundary rules; do not bundle into first groups change.</td></tr>
+<tr><td>M16. General musical relationship constraints</td><td>Cut general relationship solver</td><td>No basis for its scope over concrete tempo/section operations.</td></tr>
+<tr><td>M17. Named arrangement experiment savepoints</td><td>Park branching savepoints</td><td>Linear undo alone does not demonstrate unmet need beyond existing Save Copy.</td></tr>
+<tr><td>M18. Semantic edit flight recorder</td><td>Cut new flight recorder</td><td>Semantic IDs do not prove deterministic replay or explain native input failures.</td></tr>
+<tr><td>M19. Revised source conform</td><td>Park revised-source conform</td><td>Needs a concrete revision workflow and shorter-source policy; strict relink remains.</td></tr>
+<tr><td>M20. Linked MIDI phrase instances</td><td>Park linked phrase instances</td><td>Useful, but optional saved-model work is less immediate than reliable editing.</td></tr>
+<tr><td>M21. Next milestone as complete editing outcome</td><td>Supporting delivery shape</td><td>Use one complete editing outcome without replacing accepted certification rules.</td></tr>
+<tr><td>M22. Native musical recipes</td><td>Park native musical recipes</td><td>Basic bass/pad/lead recipes plausible; drums need content, broad sounds unproven.</td></tr>
+<tr><td>M23. Transient gesture previews</td><td>Cut generic transient previews</td><td>Existing previews are present; no specific missing gesture justified.</td></tr>
+<tr><td>M24. Coalesced intermediate gestures</td><td>Refuted for MIDI drag basis</td><td>Drag stores preview state and commits once on mouse-up; no per-pointer write claim.</td></tr>
+<tr><td>M25. Explicit MIDI import tempo intent</td><td>Later timing extension</td><td>Optional complete file-tempo adoption; preserve current default and undo.</td></tr>
+<tr><td>M26. Crash-boundary durability checks when touched</td><td>Existing safety obligation</td><td>Use targeted interruption tests when durability changes; no corruption bug established.</td></tr>
+</tbody></table></div>
+<p class="fine">Final arbitration accepted the evidence check's corrections: cut the repeated-pointer-write claim, a generic new journey runner, and a broad semantic flight recorder. Narrowed direction 7 to specific startup/input reliability. No empty topic axis remains. More effects and native sound recipes remain useful alternatives, with lower immediate priority for this editing-first review.</p>
+</section>
+<section id="sources"><h2>Sources</h2>
+<p>Local evidence: <code>STATUS.md:14-64</code>; <code>docs/adr/0078-ship-first-cadence.md:28-47</code>; <code>docs/plans/2026-09-01-real-daw-ground-up-plan.md:1104-1121</code>; the source pointers in each idea; and <code>docs/evidence/2026-10-13-usable-song-drives-and-hardware.json</code>. The October 13 screenshot montage predates later layout changes, so it was not treated as a current visual verdict.</p>
+<ul><li><a href="https://support.apple.com/en-il/guide/logicpro/lgcpb7abb9cc/10.7/mac/11.0">Logic: Flex &amp; Follow</a> — Explicit fixed audio, tempo following and bar/beat conformance.</li>
+<li><a href="https://help.apple.com/logicpro/mac/10.1/en.lproj/lgcpdca9f4c5.html">Logic: Flex markers</a> — Internal timing changes are a separate capability from whole-Clip stretching.</li>
+<li><a href="https://manual.ardour.org/working-with-regions/corresponding-regions-selection/">Ardour: corresponding-region selection</a> — Linked editing needs explicit exact-match or overlap correspondence.</li>
+<li><a href="https://support.apple.com/en-sg/guide/logicpro/lgcpa9111b0d/mac">Logic: piano-roll overview</a> — Multiple-track and collapsed-pitch views supply composition context.</li>
+<li><a href="https://docs.juce.com/master/classjuce_1_1ThreadPool.html">JUCE: ThreadPool</a> — Worker jobs support background work; interruption remains cooperative.</li></ul>
+<p class="fine">External examples establish useful patterns; they do not prove YES DAW lacks a feature or mandate copying another DAW's implementation. Some deeper Apple requests returned HTTP 429; version-specific assertions were excluded. Existing scale assist, drum view, templates, undo and native FX were not misreported as missing.</p>
+</section>
+<footer class="composition-signal">Composed 2026-11-03T23:26:56Z by ce-ideate from Dan's repository improvement request and current source/evidence. Application code and Accepted ADRs were not changed by this review.</footer>
+</main></body></html>

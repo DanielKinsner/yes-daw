@@ -60,6 +60,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-03 — Improvement review (recommendations, not a new implementation mandate)
+
+Reviewed source 7a01c1e and current green CI; ranked seven directions in
+`docs/ideation/2026-11-03-yes-daw-improvements-ideation.html`. Main opportunities: continuous MIDI editing,
+background media preparation, coherent musical timing, then arranging depth. No application code or Accepted ADR
+changed; no new app drive/hardware result. Next implementation should follow the current scoreboard and accepted scope.
+
 ## 2026-10-13 — Layout pass steps 1-8: colours, clip names, rulers, mixer strips, clips list, track rows, selection, icons, mixer hidden
 
 Every track wears one colour (its own, or an 8-colour palette by position) on its row, clips and mixer strip; clips
