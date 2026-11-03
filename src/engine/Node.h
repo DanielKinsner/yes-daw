@@ -74,6 +74,17 @@ struct VoiceAddress
     std::int16_t key       = -1;
 };
 
+// ADR-0009: only the selector's -1 fields are wildcards; a stored NoteOn address
+// does not broaden a later, concrete NoteOff selector.
+[[nodiscard]] constexpr bool voiceAddressMatches (const VoiceAddress& selector,
+                                                  const VoiceAddress& voice) noexcept
+{
+    return (selector.noteId == -1 || selector.noteId == voice.noteId)
+        && (selector.portIndex == -1 || selector.portIndex == voice.portIndex)
+        && (selector.channel == -1 || selector.channel == voice.channel)
+        && (selector.key == -1 || selector.key == voice.key);
+}
+
 struct ParameterChangePayload
 {
     NodeId      targetNode      = 0;

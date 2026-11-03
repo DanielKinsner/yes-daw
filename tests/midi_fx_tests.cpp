@@ -27,6 +27,8 @@
 #include "engine/ProjectMixerProjection.h"
 #include "engine/ProjectUndo.h"
 #include "engine/nodes/MidiEffectNode.h"
+#include "engine/nodes/SamplerNode.h"
+#include "engine/nodes/SimpleSynthNode.h"
 #include "persistence/ProjectBundle.h"
 
 #include <catch2/catch_approx.hpp>
@@ -305,6 +307,61 @@ TEST_CASE ("Chord node: a note grows into its triad at the same tick, copies der
     REQUIRE (out.size() == 4u);   // 120, 124, 127, (132 drops), the Midi1
     REQUIRE (out[2].voice.key == 127);
     REQUIRE (out[3].type == EventType::Midi1);
+}
+
+TEST_CASE ("Chord wildcard NoteOff releases generated voices through both native instruments",
+           "[midi-fx][voice-address]")
+{
+    constexpr int kFrames = 1024;
+    constexpr std::uint32_t kOffFrame = 319;
+    MidiChordNode chord (10);
+    chord.prepare (kSampleRate, kFrames);
+    chord.setIntervals (4, 7, 12); // Exercise every derived-id slot.
+    const Event on = noteEvent (EventType::NoteOn, 0, 60, 1.0, 7);
+    const std::vector<Event> concrete = runBlock (chord,
+        { on, noteEvent (EventType::NoteOff, kOffFrame, 60, 0.0, 7) }, kFrames, 0);
+    const std::vector<Event> wildcard = runBlock (chord,
+        { on, noteEvent (EventType::NoteOff, kOffFrame, 60, 0.0, -1) }, kFrames, 0);
+    REQUIRE (concrete.size() == 8u);
+    REQUIRE (wildcard.size() == concrete.size());
+
+    const auto render = [&] (yesdaw::engine::Node& instrument, const std::vector<Event>& events) {
+        std::vector<float> out (kFrames, 0.0f);
+        float* channels[] = { out.data() };
+        EventStream stream { std::span<const Event> (events) };
+        Transport transport;
+        instrument.process (ProcessArgs { { channels, 1 }, stream, transport, kFrames });
+        return out;
+    };
+    for (const bool sampler : { false, true })
+        DYNAMIC_SECTION ((sampler ? "pitched Sampler" : "SimpleSynth"))
+        {
+            yesdaw::engine::SimpleSynthNode synth (20);
+            yesdaw::engine::SamplerNode samplePlayer (20, 1);
+            // Long enough to keep every chord voice sounding beyond this Block unless Off
+            // actually releases it; sample exhaustion cannot make the regression pass.
+            const std::vector<float> sample (4096, 0.5f);
+            yesdaw::engine::SamplerNodePad pad;
+            pad.key = pad.rootKey = 60;
+            pad.oneShot = false;
+            pad.interleaved = sample;
+            pad.frames = sample.size();
+            samplePlayer.setPads ({ pad });
+            yesdaw::engine::Node& instrument = sampler
+                ? static_cast<yesdaw::engine::Node&> (samplePlayer)
+                : static_cast<yesdaw::engine::Node&> (synth);
+            instrument.prepare (kSampleRate, kFrames);
+            synth.setNormalizedParameter (yesdaw::engine::SimpleSynthNode::kReleaseParamId, 0.0);
+            samplePlayer.setNormalizedParameter (yesdaw::engine::SamplerNode::kReleaseParamId, 0.0);
+            const std::vector<float> control = render (instrument, concrete);
+            REQUIRE (rmsOf (control, 200, kOffFrame) > 0.0);
+            REQUIRE (rmsOf (control, 512, kFrames) == 0.0);
+            instrument.reset();
+            const std::vector<float> actual = render (instrument, wildcard);
+            REQUIRE (rmsOf (actual, 200, kOffFrame) > 0.0);
+            REQUIRE (rmsOf (actual, 512, kFrames) == 0.0);
+            REQUIRE ((actual == control));
+        }
 }
 
 TEST_CASE ("Arpeggiator: held keys step on the grid in order with the gate, the input notes are consumed, the grid is absolute", "[midi-fx]")

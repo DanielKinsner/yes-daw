@@ -284,7 +284,7 @@ private:
     struct Voice
     {
         VoiceStage stage = VoiceStage::Idle;
-        std::int16_t key = -1;
+        VoiceAddress address;
         bool heldByPedal = false;   // G3.3: released while CC64 was down; the lift releases it
         float phase = 0.0f;
         float phaseIncrement = 0.0f;
@@ -373,7 +373,7 @@ private:
 
         const float increment = phaseIncrementForKey_[static_cast<std::size_t> (key)];
         target->stage = VoiceStage::Attack;
-        target->key = static_cast<std::int16_t> (key);
+        target->address = event.voice;
         target->heldByPedal = false;
         target->phase = 0.0f;
         target->phaseIncrementTarget = increment;
@@ -403,7 +403,7 @@ private:
         for (Voice& voice : voices_)
             if (voice.stage != VoiceStage::Idle
                 && voice.stage != VoiceStage::Release
-                && voice.key == static_cast<std::int16_t> (event.voice.key))
+                && voiceAddressMatches (event.voice, voice.address))
             {
                 // G3.3: with the sustain pedal down the release waits for the pedal.
                 if (sustainPedal_)

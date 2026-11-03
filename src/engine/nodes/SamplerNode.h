@@ -234,7 +234,7 @@ private:
     struct Voice
     {
         Stage stage = Stage::Idle;
-        std::int16_t key = -1;
+        VoiceAddress address;
         int pad = -1;
         bool oneShot = true;
         double position = 0.0;
@@ -275,7 +275,7 @@ private:
                     target = &voice;
         }
         target->stage = Stage::Attack;
-        target->key = event.voice.key;
+        target->address = event.voice;
         target->pad = padIndex;
         target->oneShot = pad.oneShot;
         target->position = 0.0;
@@ -291,7 +291,7 @@ private:
     {
         for (Voice& voice : voices_)
             if (voice.stage != Stage::Idle && voice.stage != Stage::Release && ! voice.oneShot
-                && voice.key == event.voice.key)
+                && voiceAddressMatches (event.voice, voice.address))
                 voice.stage = Stage::Release;
     }
 

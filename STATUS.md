@@ -64,6 +64,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-03 — Native note release preserves overlapping voices
+
+Synth and pitched Sampler now honor every specified VoiceAddress field; chord copies preserve wildcard release.
+Rendered-audio regressions failed first, then passed; independent review's chord interaction was reproduced and fixed.
+Full headless suite: 410/410 (94.28 s); focused instrument/Sampler/MIDI-FX binaries also pass. CI on this code is next.
+Next: bounded live MIDI schedules without engine replacement. App compilation/native and hardware proof are not claimed here.
+
 ## 2026-11-03 — Option A authorized; headless editing work starts
 
 Dan authorized the editing sequence and agent-owned testing, headless only. The implementation brief and

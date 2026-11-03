@@ -407,8 +407,10 @@ public:
 
     [[nodiscard]] static std::int32_t derivedNoteId (std::int32_t noteId, int slot) noexcept
     {
-        // A distinct, stable id per copy so a NoteOff finds its NoteOn (the synth pairs by key; MPE-
-        // aware instruments pair by id).
+        // ADR-0009's wildcard must remain a wildcard on every generated NoteOff copy.
+        if (noteId == -1)
+            return -1;
+        // A distinct, stable id per concrete copy so a NoteOff finds its NoteOn.
         const std::uint32_t mixed = (static_cast<std::uint32_t> (noteId) * 2654435761u) ^ (static_cast<std::uint32_t> (slot) * 40503u);
         return static_cast<std::int32_t> (mixed & 0x7FFFFFFFu);
     }

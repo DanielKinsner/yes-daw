@@ -29,6 +29,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -226,6 +227,91 @@ std::filesystem::path makeTempBundlePath (const std::string& label)
 }
 
 } // namespace
+
+TEST_CASE ("pitched Sampler NoteOff matches every specified VoiceAddress field and preserves overlapping voices",
+           "[sampler][voice-address]")
+{
+    using yesdaw::engine::Event;
+    using yesdaw::engine::EventType;
+    using yesdaw::engine::VoiceAddress;
+    constexpr int kFrames = 1024;
+    constexpr std::uint32_t kOffFrame = 319;
+    const auto note = [] (EventType type, std::uint32_t frame, VoiceAddress address) {
+        Event event;
+        event.type = type;
+        event.timeInBlock = frame;
+        event.voice = address;
+        event.payload.note.normalizedVelocity = 1.0;
+        return event;
+    };
+    const auto render = [&] (const std::vector<Event>& events, bool oneShot = false) {
+        SamplerNode sampler (1, 1);
+        yesdaw::engine::SamplerNodePad pad;
+        pad.key = pad.rootKey = 60;
+        pad.oneShot = oneShot;
+        pad.interleaved = sampleData();
+        pad.frames = kSampleFrames;
+        sampler.setPads ({ pad });
+        sampler.prepare (kSampleRate, kFrames);
+        sampler.setNormalizedParameter (SamplerNode::kReleaseParamId, 0.0); // 5 ms
+        std::vector<float> out (kFrames, 0.0f);
+        float* channels[] = { out.data() };
+        EventStream stream { std::span<const Event> (events) };
+        REQUIRE (stream.isValidForBlock (kFrames));
+        Transport transport;
+        sampler.process (yesdaw::engine::ProcessArgs { { channels, 1 }, stream, transport, kFrames });
+        return out;
+    };
+
+    const VoiceAddress released { 101, 0, 2, 60 };
+    const std::array<VoiceAddress, 4> survivors {{
+        { 102, 0, 2, 60 }, { 101, 1, 2, 60 }, { 101, 0, 3, 60 }, { 101, 0, 2, 61 }
+    }};
+    const std::array<VoiceAddress, 4> selectors {{
+        { 101, -1, -1, -1 }, { -1, 0, -1, -1 }, { -1, -1, 2, -1 }, { -1, -1, -1, 60 }
+    }};
+    for (std::size_t field = 0; field < survivors.size(); ++field)
+        for (const bool wildcard : { false, true })
+            DYNAMIC_SECTION ("distinct address field " << field << ", wildcard selector " << wildcard)
+            {
+                const Event first = note (EventType::NoteOn, 0, released);
+                const Event second = note (EventType::NoteOn, 64, survivors[field]);
+                const Event off = note (EventType::NoteOff, kOffFrame, wildcard ? selectors[field] : released);
+                const std::vector<float> actual = render ({ first, second, off });
+                const std::vector<float> control = render ({ second });
+                REQUIRE_FALSE (std::equal (actual.begin() + 200, actual.begin() + kOffFrame,
+                                          control.begin() + 200));
+                REQUIRE (rmsOf (control, 512, kFrames) > 0.0);
+                // Past the released voice's 5 ms tail, keep the other voice bit-for-bit.
+                REQUIRE (std::equal (actual.begin() + 512, actual.end(), control.begin() + 512));
+            }
+
+    SECTION ("key-wide and all-voice wildcard Off release every pitched match but leave one-shots playing")
+    {
+        const std::vector<Event> held { note (EventType::NoteOn, 0, released),
+                                        note (EventType::NoteOn, 64, survivors[0]) };
+        for (const VoiceAddress off : { VoiceAddress { -1, -1, -1, 60 }, VoiceAddress {} })
+        {
+            std::vector<Event> events = held;
+            events.push_back (note (EventType::NoteOff, kOffFrame, off));
+            REQUIRE (rmsOf (render (events), 512, kFrames) == 0.0);
+            REQUIRE ((render (events, true) == render (held, true)));
+        }
+    }
+
+    SECTION ("a wildcard stored at NoteOn does not match a concrete NoteOff field")
+    {
+        for (const VoiceAddress address : { VoiceAddress { -1, 0, 2, 60 },
+                                           VoiceAddress { 101, -1, 2, 60 },
+                                           VoiceAddress { 101, 0, -1, 60 } })
+        {
+            const Event on = note (EventType::NoteOn, 0, address);
+            REQUIRE ((render ({ on, note (EventType::NoteOff, kOffFrame, released) }) == render ({ on })));
+        }
+        const Event on = note (EventType::NoteOn, 0, released);
+        REQUIRE ((render ({ on, note (EventType::NoteOff, kOffFrame, { -2, -1, -1, -1 }) }) == render ({ on })));
+    }
+}
 
 TEST_CASE ("Sampler pads are Track rows: set / clear by key in key order, refusals, undo, validity", "[sampler]")
 {
