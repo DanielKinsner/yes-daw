@@ -284,6 +284,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: windows-latest
+    permissions:
+      contents: write
     env:
       SCCACHE_GHA_ENABLED: "true"
     steps:
@@ -336,6 +338,39 @@ jobs:
             Write-Error "packaged verify-hardware.ps1 -SelfTest failed (exit $LASTEXITCODE)"
             exit 1
           }
+
+      # Downloadable builds (2026-11-03, Dan: "build the release package so that I can download it").
+      # Every run keeps the Windows zip as an artifact; a push to main also publishes it on the rolling
+      # `alpha-latest` pre-release, so any machine can download the newest green build without a toolchain.
+      - name: Keep the Windows zip as a downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: YesDaw-win64-portable
+          path: dist/YesDaw-*-win64-portable.zip
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish the zip on the rolling alpha-latest pre-release (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          zip="$(ls dist/YesDaw-*-win64-portable.zip | head -1)"
+          tmp="$(cygpath -u "$RUNNER_TEMP")"
+          ver="$(cat "$tmp"/yd-pkg/*/version.txt | tr -d '\r\n')"
+          notes="Rolling build of main. Version $ver (commit ${GITHUB_SHA:0:7}). Unzip anywhere and run YesDaw.exe; no install, no toolchain. Replaced on every green push to main."
+          if ! gh release view alpha-latest >/dev/null 2>&1; then
+            gh release create alpha-latest --prerelease --title "YES DAW alpha (latest main)" --notes "$notes" --target "$GITHUB_SHA"
+          fi
+          # one zip on the release: drop older-version assets before uploading this one
+          gh release view alpha-latest --json assets -q '.assets[].name' | while read -r name; do
+            [ "$name" = "$(basename "$zip")" ] || gh release delete-asset alpha-latest "$name" -y
+          done
+          gh release upload alpha-latest "$zip" --clobber
+          gh release edit alpha-latest --notes "$notes"
+          echo "published $(basename "$zip") as alpha-latest ($ver)"
 
   # H17 CP5: exercise tools/alpha-verify (the alpha-gate mechanical companion). Builds only the
   # YesDawSelfCheck CLI, then runs the script's --self-test, which proves each of the 5 alpha asserts
