@@ -48,8 +48,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
-   Next: finish the async screenshot-fixture CI repair, then batch durable Asset admission and implement the full
-   musical clock. The implementation
+   The async screenshot fixtures now wait for actual completion. Next: batch durable Asset admission, complete
+   the background-import cluster review, then implement the full musical clock. The implementation
    brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -70,12 +70,19 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-04 — Screenshot fixtures await background imports
+
+Import checkpoint CI 41795099400 failed the macOS header-selection assertion before asynchronous adoption (461/462 tests passed). This is outside the GPU exception; the raw failure is retained in `build-ci/20261104-import-controls-macos-ci-job.log`.
+All 12 screenshot import requests now explicitly await completion through the existing bounded helper. Generic click timing and every image/layout assertion remain unchanged; no golden, threshold or production code changed.
+The source-audited offscreen screenshot harness compiled, passed per-file Clang and passed all 30 cases / 15,629 assertions locally. Its injected factory disables desktop audio, no Component gains a native peer, and image output stayed in an ignored task directory. No app/window/input/device startup.
+Cut/Paste repair 7ec6a14 and this test repair are pushed together; new-head CI is pending. Next: repeated owner-admission measurements, batched durable Asset adoption, then the completed cluster's simplification/code-review gate before musical-clock work.
+
 ## 2026-11-04 — MIDI/mixed Cut and Paste repaired
 
 Arrange offered Cut for MIDI and mixed selections but refused them through audio-only checks. Independent mixed Copy/Paste also redirected audio to the wrong Track. Six failures reproduced against unchanged production before the minimal type-aware Cut and whole-selection lane repair.
 Focused proof passed 441 assertions / three cases: both MIDI time bases, complete values/fresh IDs, placement, one Undo/Redo, reopen and forced-save refusal retaining rows, selection, counters/edit serial, playback, undo and the previous clipboard. Saved-data critic accepted the two frozen files.
 Canonical pure suite: 430/430 (87.34 s); app/harness compiled without launch; two affected Clang units clean; complete audited offscreen UI suite: 496 cases / 459,652 assertions passed. Frozen hashes still match. No native keyboard/window/device proof is claimed; existing UI routing is unchanged.
-Import checkpoint 2acd62d CI 41795099400 failed only the macOS screenshot selection fixture: it asserts selection before async import completion. This is outside the GPU exception; explicit fixture completion waits are being repaired before the next push. Then batch durable Asset admission and complete the background-import cluster review before timing implementation.
+Import checkpoint 2acd62d CI 41795099400 failed the macOS screenshot selection fixture before async completion; the following test-only repair addresses it without a GPU exception. New-head CI remains pending. Next: batch durable Asset admission and complete the background-import cluster review before timing implementation.
 
 ## 2026-11-03 — Captured background-import controls integrated
 

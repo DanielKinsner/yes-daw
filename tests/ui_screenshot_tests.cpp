@@ -4,6 +4,7 @@
 #include "engine/Project.h"
 #include "io/WavFile.h"   // G5.2: the browser shot writes its own files
 #include "ui/MainComponent.h"
+#include "UiImportTestSupport.h"
 #include "ui/UiIcons.h"
 #include "ui/UiTheme.h"
 
@@ -479,6 +480,7 @@ TEST_CASE ("Timeline renders honestly at laptop, default, and large window sizes
     // via a real rail row click.
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component* rail = nullptr;
     for (int child = 0; child < shell->getNumChildComponents(); ++child)
         if (shell->getChildComponent (child)->getComponentID() == "shell.tracklist.input")
@@ -502,6 +504,7 @@ TEST_CASE ("Timeline renders honestly at laptop, default, and large window sizes
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     selectRailRow (1, 2);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     selectRailRow (2, 3);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
@@ -590,6 +593,7 @@ TEST_CASE ("Mixer renders honestly at laptop, default, and large window sizes wi
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::KeyPress addTrack ('t', juce::ModifierKeys::ctrlModifier, 0);
     REQUIRE (shell->keyPressed (addTrack));
     REQUIRE (shell->keyPressed (addTrack));
@@ -755,6 +759,7 @@ TEST_CASE ("the layout pass, step 6: the header's selection box reads the select
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));   // the import selects its clip
+    waitForAudioImports (*shell);
     REQUIRE (yesdaw::ui::snapshotMainComponent (*shell).context.timelineClipSelected);
 
     const juce::Rectangle<int> box = yesdaw::ui::mainComponentHeaderSelectionBounds (*shell);
@@ -850,6 +855,7 @@ TEST_CASE ("the layout pass, step 12: a boosted clip paints its gain line and it
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     for (int i = 0; i < 6; ++i)
         yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipGainIncrease);   // +6 dB
     const juce::Image image = renderShell (*shell);
@@ -900,6 +906,7 @@ TEST_CASE ("Piano roll and automation lane render honestly with real notes and b
     // pencilled with a phrase of notes across the key range.
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
 
     const yesdaw::ui::MainComponentSnapshot opened = yesdaw::ui::snapshotMainComponent (*shell);
@@ -1547,6 +1554,7 @@ TEST_CASE ("the shell renders honestly at the resize-limit extremes",
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
     // The window's resize limits ARE the layout contract: every shipped panel must render
@@ -1686,6 +1694,7 @@ TEST_CASE ("the rail arm badge lights red on the armed track", "[ui][screenshot]
     shell->setVisible (true);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* rail = nullptr;
     for (int child = 0; child < shell->getNumChildComponents(); ++child)
@@ -1901,6 +1910,7 @@ TEST_CASE ("V1 painted text achieves legible contrast against its panel at every
     shell->setVisible (true);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackToggleMute);   // ADR-0063: a lit rail cell to sample
 
     using L = yesdaw::ui::UiTheme::Layout;
@@ -2285,6 +2295,7 @@ TEST_CASE ("stacked automation lanes render under their track's clips", "[ui][sc
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     auto* chooser = dynamic_cast<juce::ComboBox*> (findChildById ("timeline.automation.target"));
     REQUIRE (chooser != nullptr);
@@ -2552,6 +2563,7 @@ TEST_CASE ("ADR-0063 the inspector's stretch slider has a label and a value", "[
     shell->setVisible (true);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     for (const auto& size : { std::pair<int, int> { 1280, 720 }, std::pair<int, int> { 1920, 1080 } })
     {
         shell->setSize (size.first, size.second);
@@ -2701,6 +2713,7 @@ TEST_CASE ("the FADES card's Curve row: whole shape names, a usable rail, worded
     shell->setVisible (true);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));   // a clip, selected: its FADES card
+    waitForAudioImports (*shell);
     auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "clip.inspector.fade_curve"));
     auto* amount = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, "clip.inspector.fade_curve_amount"));
     REQUIRE (chooser != nullptr);
