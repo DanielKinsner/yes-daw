@@ -45,8 +45,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 3. **Option A authorized 2026-11-03:** continuous MIDI editing, background media preparation, full Tempo map
    consistency, musical audio tempo-follow, linked Track editing/organization, then piano-roll reference notes.
    Done: addressed note release, bounded notes-only updates without replacing playback, selected-Clip background
-   stretch, and the prepared-Asset persistence/recovery seam. Next: the owned copy/hash/decode/resample import job,
-   then chooser/Browser/drop/Sampler integration. App imports are still synchronous. The implementation
+   stretch, prepared-Asset persistence/recovery, and the owned copy/hash/decode/resample import worker.
+   Next: chooser/Browser/drop/Sampler integration. App imports are still synchronous. The implementation
    brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -65,6 +65,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus; SS3
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-03 — Owned background audio import worker
+
+One worker owns copy/hash, canonical decode and live-rate conversion; ordered refusals preserve each original extension's format policy before duplicate folding. Cancellation reaches bounded copy/hash stages; terminal publication follows private cleanup. The model/database stay outside the worker.
+Focused worker proof: 434 assertions / 12 cases; full pure suite: 428/428 (82.47 s). Real canonical WAV/AIFF/FLAC/Ogg/MP3 checks: 192,701 assertions / 12 cases, including independently decoded samples and existing converter equivalence before joining.
+App/input harness compiled without launch; stock Clang: 23 clean units. Engine/saved-data critic accepted the frozen worker and cancellable persistence changes. No native window, input or device used.
+Next: connect actual import controls and captured destinations, then Sampler loading. Worker proof does not certify asynchronous app imports; replacement Linux CI for the fixture correction below is pending.
 
 ## 2026-11-03 — Deterministic changed-proof test on Linux
 

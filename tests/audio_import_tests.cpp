@@ -5,6 +5,7 @@
 // channels and match it after alignment within a stated floor; MP3 lengths are pinned (the same on every CI
 // platform); every refusal carries its reason; reopen identifies a stored asset by its content and its row.
 
+#include "app/AudioImportJob.h"
 #include "io/AudioFileDecode.h"
 #include "ui/MainComponentInternal.h"
 
@@ -16,6 +17,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -319,6 +321,71 @@ TEST_CASE ("ADR-0054 reopen identifies a stored asset by content and refuses one
     REQUIRE_FALSE (yesdaw::io::decodeStoredAudio (directory / "flac.asset", { flacImport.audio->frames + 1u, kRate, 2 }).audio.has_value());
     REQUIRE_FALSE (yesdaw::io::decodeStoredAudio (directory / "flac.asset", { flacImport.audio->frames, 44'100.0, 2 }).audio.has_value());
     REQUIRE_FALSE (yesdaw::io::decodeStoredAudio (directory / "mp3.asset", { mp3Import.audio->frames, kRate, 1 }).audio.has_value());
+}
+
+TEST_CASE ("Owned import preparation uses the canonical decoder for every supported format", "[import-formats][import-job-codecs]")
+{
+    const auto directory = scratchDirectory ("job-codecs");
+    const auto signal = sourceSignal (2);
+    juce::WavAudioFormat wav;
+    juce::AiffAudioFormat aiff;
+    juce::FlacAudioFormat flac;
+    juce::OggVorbisAudioFormat ogg;
+    writeWith (wav, directory / "tone.wav", signal, 24);
+    writeWith (aiff, directory / "tone.aiff", signal, 24);
+    writeWith (flac, directory / "tone.flac", signal, 24);
+    writeWith (ogg, directory / "tone.ogg", signal, 16);
+    const std::vector<std::filesystem::path> paths {
+        directory / "tone.wav", directory / "tone.aiff", directory / "tone.flac",
+        directory / "tone.ogg", importFixture ("cbr128_info.mp3")
+    };
+    const auto bundle = directory / "prepared.yesdaw";
+    yesdaw::persistence::ProjectBundleDb db;
+    REQUIRE (yesdaw::persistence::ProjectBundleDb::openOrCreateBundle (bundle, db).ok());
+    yesdaw::app::AudioImportRequest request;
+    request.destinationBundle = bundle;
+    request.stageId = yesdaw::engine::EntityId::fromBigEndianParts (0, 200);
+    request.viewRateHz = 44'100.0;
+    request.decoder = &yesdaw::io::decodeAudioFile;
+    std::vector<yesdaw::io::DecodedAudioFile> expected;
+    for (std::size_t index = 0; index < paths.size(); ++index)
+    {
+        auto decoded = yesdaw::io::decodeAudioFile (paths[index]);
+        INFO (decoded.reason);
+        REQUIRE (decoded.audio.has_value());
+        expected.push_back (std::move (*decoded.audio));
+        request.files.push_back ({ paths[index], yesdaw::engine::EntityId::fromBigEndianParts (0, 300 + index) });
+    }
+    yesdaw::app::AudioImportJob job (std::move (request));
+    REQUIRE (job.start());
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (20);
+    while (! job.terminal() && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for (std::chrono::milliseconds (1));
+    INFO (job.failureReason());
+    REQUIRE (job.eligibleForAdoption());
+    auto result = job.takeResult();
+    REQUIRE (result != nullptr);
+    REQUIRE (result->items.size() == paths.size());
+    REQUIRE (result->prepared.size() == paths.size());
+    for (std::size_t index = 0; index < paths.size(); ++index)
+    {
+        const auto& item = result->items[index];
+        INFO (item.reason);
+        REQUIRE (item.preparedIndex.has_value());
+        const auto& prepared = result->prepared[*item.preparedIndex];
+        REQUIRE (prepared.source->interleaved == expected[index].interleaved);
+        REQUIRE (prepared.preparedAsset.asset().frames == expected[index].frames);
+        REQUIRE (prepared.preparedAsset.asset().sampleRate.hz == expected[index].sampleRateHz);
+        REQUIRE (prepared.preparedAsset.asset().channels == expected[index].channels);
+        const auto view = yesdaw::engine::buildRateMatchedSamples (
+            expected[index].interleaved, expected[index].channels, expected[index].sampleRateHz,
+            result->viewRateHz, yesdaw::engine::ResampleQuality::LivePlayback);
+        REQUIRE (prepared.view->interleaved == view->interleaved);
+    }
+    sqlite3_int64 count = -1;
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM assets;", count).ok());
+    REQUIRE (count == 0);
+    job.join();
 }
 
 TEST_CASE ("ADR-0054 a bundle with MP3 and FLAC assets reopens: each decoded by content, matching its row",

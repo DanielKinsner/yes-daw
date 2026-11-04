@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "io/AudioImportFormat.h"
+
 #include "io/PathText.h"   // file names as UTF-8 (never through the ANSI code page)
 #include "analysis/LoudnessMeter.h"   // ADR-0053: the streaming meter behind the live readout (message thread)
 #include "app/RecordingAssetCommit.h"
@@ -2857,7 +2859,7 @@ public:
                 result.refusals.push_back (name + ": not usable audio");
                 continue;
             }
-            if (! importSampleRateSupported (item.decoded.sampleRate.hz))   // ADR-0055
+            if (! io::importSampleRateSupported (item.decoded.sampleRate.hz))   // ADR-0055
             {
                 result.refusals.push_back (name + ": unsupported sample rate ("
                                            + std::to_string (static_cast<long long> (item.decoded.sampleRate.hz)) + " Hz)");
@@ -3964,7 +3966,7 @@ private:
             return result;
         }
 
-        if (! importSampleRateSupported (decoded.sampleRate.hz))   // ADR-0055: any rate 8 kHz..384 kHz
+        if (! io::importSampleRateSupported (decoded.sampleRate.hz))   // ADR-0055: any rate 8 kHz..384 kHz
         {
             reportStatus ("Import refused: " + yesdaw::io::utf8Text (sourcePath.filename()) + ": unsupported sample rate ("
                               + std::to_string (static_cast<long long> (decoded.sampleRate.hz)) + " Hz)",
@@ -6702,7 +6704,7 @@ public:
             result.status = UiAppImportStatus::InvalidDecodedAudio;
             return result;
         }
-        if (! importSampleRateSupported (decoded.sampleRate.hz))   // ADR-0055: a cross-rate pad plays its view
+        if (! io::importSampleRateSupported (decoded.sampleRate.hz))   // ADR-0055: a cross-rate pad plays its view
         {
             reportStatus ("Sampler pad refused: " + yesdaw::io::utf8Text (sourcePath.filename()) + ": unsupported sample rate ("
                               + std::to_string (static_cast<long long> (decoded.sampleRate.hz)) + " Hz)",
@@ -12755,12 +12757,6 @@ private:
         ++context_.commandDispatchCount;
         ++context_.redoCount;
         return { id, state, true };
-    }
-
-    // ADR-0055: the rates an import accepts.
-    [[nodiscard]] static bool importSampleRateSupported (double rateHz) noexcept
-    {
-        return rateHz >= 8'000.0 && rateHz <= 384'000.0;
     }
 
     // ADR-0055: a clip's rate ratio r = projectRate / assetRate (1 when its Asset is at the project rate or missing).

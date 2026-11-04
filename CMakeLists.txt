@@ -987,6 +987,13 @@ target_link_libraries(YesDawStretchPreparationCheck PRIVATE Catch2::Catch2WithMa
 yesdaw_harden(YesDawStretchPreparationCheck)
 add_test(NAME YesDawStretchPreparationCheck COMMAND $<TARGET_FILE:YesDawStretchPreparationCheck>)
 
+# Owned audio import preparation; real files and a pure decoder seam, without JUCE or devices.
+add_executable(YesDawAudioImportJobCheck tests/audio_import_job_tests.cpp)
+target_include_directories(YesDawAudioImportJobCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawAudioImportJobCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
+yesdaw_harden(YesDawAudioImportJobCheck)
+add_test(NAME YesDawAudioImportJobCheck COMMAND $<TARGET_FILE:YesDawAudioImportJobCheck>)
+
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
 target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})
