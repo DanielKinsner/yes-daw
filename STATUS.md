@@ -66,12 +66,18 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-03 — Deterministic changed-proof test on Linux
+
+CI 41767892569 passed Windows, macOS, sanitizers and packaging, but Linux accepted two rapid same-size rewrites in the changed-proof fixture. The log lacked scenario/stamp captures; a native timestamp collision is supported by the Linux kernel's coarse-timestamp contract, not proven retrospectively.
+The fixture now explicitly advances and reads back mtime, proves unchanged file identity/size and a changed native fingerprint, and retains refusal, untouched bytes and zero repeated owner work. No sleeps, production behavior or thresholds changed; ordinary open still hashes Asset contents.
+Headless prepared-import checks: 964 assertions / 14 cases; updated persistence test is Clang-clean. Independent saved-data critic accepted the correction. Replacement CI is pending; app import integration remains next.
+
 ## 2026-11-03 — Prepared import adoption and interrupted staging recovery
 
 Owned snapshots adopt with zero additional full-file hashes/copies. ADR-0081 leases/receipts protect live jobs and foreign files; crash, marker-alias, live-intent, empty-retirement and legacy-migration failures were reproduced and fixed before shipping.
 Final headless suite: 427/427 (85.38 s); real-codec/model checks: 192,646 assertions / 11 cases. App and input harness compile/link without launch; stock Clang: 17 clean units, updated persistence test also clean. No native window, input or device used.
 Saved-data critic accepted; actual ce-code-review complete, run 20261103-190644-70d6d022, no confirmed defects. Its canonical-without-row gap now has 41 passing assertions, including file identity, zero repeated work, private cleanup and reopen; prior proof-test bytes are unchanged outside that added case.
-Next: the pure owned import job, then editor integration; app imports remain synchronous. New-head CI/POSIX execution is pending. Stretch CI 41757494357 is green after retrying cache HTTP 503 ServerBusy ("Egress is over the account limit."); no source/gate change was needed.
+Next: the pure owned import job, then editor integration; app imports remain synchronous. CI 41767892569's Linux changed-proof fixture failure and correction are recorded above. Stretch CI 41757494357 is green after retrying cache HTTP 503 ServerBusy ("Egress is over the account limit."); no source/gate change was needed.
 
 ## 2026-11-03 — Selected-Clip stretch prepares in the background
 

@@ -3029,6 +3029,7 @@ TEST_CASE ("Prepared Asset adoption refuses changed proofs without touching cano
     REQUIRE (AssetImportStaging::create (path, idFromLowByte (83), staging).ok());
     const auto canonical = storedAssetPathForHash (path, hashBytes (bytes));
     const int scenario = GENERATE (0, 1, 2, 3, 4);
+    CAPTURE (scenario);
     if (scenario >= 2)
         writeBytes (canonical, bytes);
     StagedAssetImport snapshot;
@@ -3036,12 +3037,25 @@ TEST_CASE ("Prepared Asset adoption refuses changed proofs without touching cano
     const auto privatePath = snapshot.snapshotPath();
     PreparedAssetImport prepared;
     REQUIRE (std::move (snapshot).complete (idFromLowByte (83), 1024, SampleRate { 44100.0 }, 1, prepared).ok());
-    if (scenario == 0)
-        writeBytes (privatePath, foreign); // same inode, same byte count, changed write/change stamps
+    if (scenario == 0 || scenario == 2)
+    {
+        const auto changedPath = scenario == 0 ? privatePath : canonical;
+        prepared_asset_detail::FileFingerprint before, after;
+        REQUIRE_FALSE (prepared_asset_detail::fingerprint (changedPath, before));
+        const auto beforeTime = std::filesystem::last_write_time (changedPath);
+        writeBytes (changedPath, foreign);
+        // Rapid writes can share native timestamps. Establish an observable changed proof without sleeps.
+        std::filesystem::last_write_time (changedPath, beforeTime + std::chrono::seconds (2));
+        REQUIRE_FALSE (prepared_asset_detail::fingerprint (changedPath, after));
+        CAPTURE (before.writeSeconds, before.writeFraction, before.changeSeconds, before.changeFraction,
+                 after.writeSeconds, after.writeFraction, after.changeSeconds, after.changeFraction);
+        REQUIRE (before.sameIdentity (after));
+        REQUIRE (before.size == after.size);
+        REQUIRE (std::filesystem::last_write_time (changedPath) != beforeTime);
+        REQUIRE (before != after);
+    }
     else if (scenario == 1)
         writeBytes (canonical, foreign); // appeared since preparation, so no owner hash/overwrite
-    else if (scenario == 2)
-        writeBytes (canonical, foreign);
     else if (scenario == 3)
     {
         std::filesystem::rename (canonical, path / "held-original.asset");
