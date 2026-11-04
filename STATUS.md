@@ -68,6 +68,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-03 — Full musical-clock contract accepted
+
+ADR-0082 defines checked fractional time, exact Meter origins, full-map click/count-in, native-unit editing, musical MIDI defaults and faithful Project MIDI export. Existing SampleLocked data and the legacy export bridge retain their meaning.
+An independent engine/saved-data critic accepted the actual document; all local links resolve. This is architecture acceptance only: timing code and executable proof are still pending.
+Next: finish background-import controls and admission measurements, then implement the shared time helpers before click, editing/defaults and interchange.
+
 ## 2026-11-03 — Portable reversed-edit regression checks
 
 Linux and macOS CI rejected three copied structured-binding loops in the new regression fixture under warnings-as-errors. They now bind by reference; production behavior and assertions are unchanged.
