@@ -44,8 +44,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1.
 3. **Option A authorized 2026-11-03:** continuous MIDI editing, background media preparation, full Tempo map
    consistency, musical audio tempo-follow, linked Track editing/organization, then piano-roll reference notes.
-   Done: addressed note release, bounded notes-only updates without replacing playback, and selected-Clip background
-   stretch preparation. Next: staged copy/decode/resample imports. The implementation
+   Done: addressed note release, bounded notes-only updates without replacing playback, selected-Clip background
+   stretch, and the prepared-Asset persistence/recovery seam. Next: the owned copy/hash/decode/resample import job,
+   then chooser/Browser/drop/Sampler integration. App imports are still synchronous. The implementation
    brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -65,11 +66,18 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-03 — Prepared import adoption and interrupted staging recovery
+
+Owned snapshots adopt with zero additional full-file hashes/copies. ADR-0081 leases/receipts protect live jobs and foreign files; crash, marker-alias, live-intent, empty-retirement and legacy-migration failures were reproduced and fixed before shipping.
+Final headless suite: 427/427 (85.38 s); real-codec/model checks: 192,646 assertions / 11 cases. App and input harness compile/link without launch; stock Clang: 17 clean units, updated persistence test also clean. No native window, input or device used.
+Saved-data critic accepted; actual ce-code-review complete, run 20261103-190644-70d6d022, no confirmed defects. Its canonical-without-row gap now has 41 passing assertions, including file identity, zero repeated work, private cleanup and reopen; prior proof-test bytes are unchanged outside that added case.
+Next: the pure owned import job, then editor integration; app imports remain synchronous. New-head CI/POSIX execution is pending. Stretch CI 41757494357 is green after retrying cache HTTP 503 ServerBusy ("Egress is over the account limit."); no source/gate change was needed.
+
 ## 2026-11-03 — Selected-Clip stretch prepares in the background
 
 Edge, percentage and loop-fit requests use owned preparation; Clip > Cancel Stretch Preparation cancels. Captured targets/versions reject stale results and preserve intervening edits in one durable undo step.
 Review found and fixed loaded-cache and cached-canvas defects; focused proof: 358 assertions / 3 cases. Existing stretch checks: 132,734 assertions. Full pure suite: 413/413 (93.98 s); engine/saved-data critic accepted.
-App compiled without launch; audited offscreen input suite: 487 cases / 458,040 assertions. Repaint negative control failed at 12 > 12; restored source hash matched and 91 stretch assertions passed. Two cached variants cover immediate undo/redo; older history/paste/open remain synchronous. Imports are next; new-head CI is pending.
+App compiled without launch; audited offscreen input suite: 487 cases / 458,040 assertions. Repaint negative control failed at 12 > 12; restored source hash matched and 91 stretch assertions passed. Two cached variants cover immediate undo/redo; older history/paste/open remain synchronous. Imports are next; CI 41757494357 is green after a cache-service retry.
 Timing evidence retained: unchanged H6 binary missed 6.0205 ms against 2.666666 ms once, then passed isolated at 1.8516 ms and in the full suite. Cause remains unresolved; no threshold or exception changed. No native window, input or audio device was used.
 
 ## 2026-11-03 — Owned background stretch worker is ready for editor integration

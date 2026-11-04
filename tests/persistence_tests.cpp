@@ -7,11 +7,13 @@
 
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <sqlite3.h>
 
 #include <algorithm>
 #include <array>
+#include <barrier>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -22,6 +24,7 @@
 #include <span>
 #include <string>
 #include <system_error>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -34,6 +37,7 @@
 #include <sddl.h>
 #else
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #if defined(__APPLE__)
 #include <grp.h>
@@ -123,6 +127,9 @@ std::filesystem::path makeTempBundlePath (std::string_view label)
     const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
     std::filesystem::path path = std::filesystem::temp_directory_path() / ("yesdaw-" + std::string (label) + "-" + std::to_string (ticks) + ".yesdaw");
 
+    REQUIRE (std::filesystem::weakly_canonical (path.parent_path()) == std::filesystem::canonical (std::filesystem::temp_directory_path()));
+    REQUIRE (path.filename().string().starts_with ("yesdaw-"));
+    REQUIRE (path.extension() == ".yesdaw");
     std::error_code ec;
     std::filesystem::remove_all (path, ec);
     return path;
@@ -1430,7 +1437,9 @@ TEST_CASE ("Schema v7 migration adds empty FX chains to a v6 bundle", "[persiste
     REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
 
     ProjectBundleDb reopened;
-    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    const auto opened = ProjectBundleDb::openExistingBundle (path, reopened);
+    INFO (opened.message);
+    REQUIRE (opened.ok());
 
     sqlite3_int64 value = 0;
     REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
@@ -1474,7 +1483,9 @@ TEST_CASE ("Schema v8 migration adds empty automation lane tables to a v7 bundle
     REQUIRE (sqlite3_close (rawDb) == SQLITE_OK);
 
     ProjectBundleDb reopened;
-    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    const auto opened = ProjectBundleDb::openExistingBundle (path, reopened);
+    INFO (opened.message);
+    REQUIRE (opened.ok());
 
     sqlite3_int64 value = 0;
     REQUIRE (reopened.queryInt64 ("PRAGMA user_version;", value).ok());
@@ -2426,9 +2437,13 @@ TEST_CASE ("Asset import copies bytes by content hash and dedupes repeated impor
     };
 
     Asset first;
+    yesdaw::persistence::detail::assetHashCallsForTest = 0;
+    yesdaw::persistence::detail::copiedFileBytesForTest = 0;
     const auto firstImport = db.importAssetBytes (firstRequest, first);
     INFO (firstImport.message);
     REQUIRE (firstImport.ok());
+    REQUIRE (yesdaw::persistence::detail::assetHashCallsForTest == 2);
+    REQUIRE (yesdaw::persistence::detail::copiedFileBytesForTest == bytes.size());
     REQUIRE (first.id == firstRequest.assetId);
     REQUIRE (first.contentHash == hashBytes (std::span<const std::uint8_t> (bytes.data(), bytes.size())));
 
@@ -2445,7 +2460,11 @@ TEST_CASE ("Asset import copies bytes by content hash and dedupes repeated impor
     };
 
     Asset second;
+    yesdaw::persistence::detail::assetHashCallsForTest = 0;
+    yesdaw::persistence::detail::copiedFileBytesForTest = 0;
     REQUIRE (db.importAssetBytes (secondRequest, second).ok());
+    REQUIRE (yesdaw::persistence::detail::assetHashCallsForTest == 2);
+    REQUIRE (yesdaw::persistence::detail::copiedFileBytesForTest == 0);
     REQUIRE (second == first);
 
     sqlite3_int64 count = 0;
@@ -2453,6 +2472,804 @@ TEST_CASE ("Asset import copies bytes by content hash and dedupes repeated impor
     REQUIRE (count == 1);
     REQUIRE (countAudioAssetFiles (path) == 1);
     REQUIRE (db.pendingFsOpCount (false, count).ok());
+    REQUIRE (count == 0);
+}
+
+namespace {
+
+void runImportStagingCrashHelper (const std::filesystem::path& bundle, const std::filesystem::path& source,
+                                  bool retireMarker = false)
+{
+    const std::filesystem::path helper { YESDAW_IMPORT_STAGING_CRASH_HELPER_PATH };
+#if defined(_WIN32)
+    std::wstring arguments = L"\"" + helper.wstring() + L"\" \"" + bundle.wstring() + L"\" \"" + source.wstring() + L"\"";
+    if (retireMarker)
+        arguments += L" retire-marker";
+    STARTUPINFOW startup {};
+    startup.cb = sizeof (startup);
+    PROCESS_INFORMATION process {};
+    REQUIRE (CreateProcessW (helper.c_str(), arguments.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW,
+                             nullptr, nullptr, &startup, &process) != FALSE);
+    const DWORD waited = WaitForSingleObject (process.hProcess, 30000);
+    if (waited != WAIT_OBJECT_0)
+    {
+        (void) TerminateProcess (process.hProcess, 99);
+        (void) WaitForSingleObject (process.hProcess, 5000);
+    }
+    DWORD code = 0;
+    const bool readCode = GetExitCodeProcess (process.hProcess, &code) != FALSE;
+    CloseHandle (process.hThread);
+    CloseHandle (process.hProcess);
+    REQUIRE (waited == WAIT_OBJECT_0);
+    REQUIRE (readCode);
+    REQUIRE (code == 0);
+#else
+    const pid_t child = ::fork();
+    REQUIRE (child >= 0);
+    if (child == 0)
+    {
+        ::execl (helper.c_str(), helper.c_str(), bundle.c_str(), source.c_str(),
+                  retireMarker ? "retire-marker" : nullptr, static_cast<char*> (nullptr));
+        ::_exit (127);
+    }
+    int status = 0;
+    REQUIRE (::waitpid (child, &status, 0) == child);
+    REQUIRE (WIFEXITED (status));
+    REQUIRE (WEXITSTATUS (status) == 0);
+#endif
+}
+
+} // namespace
+
+TEST_CASE ("Reopen reclaims a private import snapshot after a child exits without destructors", "[persistence][asset][prepared-import][staging-crash]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-child-crash");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const std::vector<std::uint8_t> bytes (2 * 1024 * 1024, 0x5Au);
+    writeBytes (source, bytes);
+    { auto db = openFreshBundle (path); }
+    runImportStagingCrashHelper (path, source);
+    const auto job = path / "audio" / (".import-" + detail::hexBytes (idFromLowByte (200).bytes));
+    const auto snapshot = job / "item-0.wav";
+    REQUIRE (readBytes (snapshot) == bytes);
+    const auto metadata = readBytes (job / ".lease");
+    const std::string records (metadata.begin(), metadata.end());
+    REQUIRE (records.starts_with ("YESDAW_IMPORT_STAGING 1 000000000000000000000000000000c8 "));
+    REQUIRE (records.find ("\nITEM 6974656d2d302e776176 ") != std::string::npos);
+    REQUIRE (records.back() == '\n');
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    REQUIRE_FALSE (std::filesystem::exists (snapshot));
+    REQUIRE_FALSE (std::filesystem::exists (job));
+    REQUIRE (readBytes (source) == bytes);
+}
+
+TEST_CASE ("A staged snapshot keeps its live lease after the staging wrapper is destroyed", "[persistence][asset][prepared-import][staging-crash]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-live-lease");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (201));
+    writeBytes (source, bytes);
+    auto db = openFreshBundle (path);
+    StagedAssetImport snapshot;
+    {
+        AssetImportStaging staging;
+        REQUIRE (AssetImportStaging::create (path, idFromLowByte (201), staging).ok());
+        REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+        ProjectBundleDb another;
+        REQUIRE (ProjectBundleDb::openExistingBundle (path, another).ok());
+        REQUIRE (readBytes (snapshot.snapshotPath()) == bytes);
+    }
+    const auto privatePath = snapshot.snapshotPath();
+    const auto job = privatePath.parent_path();
+    PreparedAssetImport prepared;
+    REQUIRE (std::move (snapshot).complete (idFromLowByte (201), 128, SampleRate { 48000.0 }, 2, prepared).ok());
+    {
+        ProjectBundleDb another;
+        REQUIRE (ProjectBundleDb::openExistingBundle (path, another).ok());
+        REQUIRE (readBytes (privatePath) == bytes); // same-process recovery cannot acquire the prepared owner's lease
+    }
+    Asset asset;
+    REQUIRE (db.adoptPreparedAsset (std::move (prepared), asset).ok());
+    REQUIRE_FALSE (std::filesystem::exists (job));
+    REQUIRE (readBytes (storedAssetPathForHash (path, asset.contentHash)) == bytes);
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    REQUIRE (readBytes (storedAssetPathForHash (path, asset.contentHash)) == bytes);
+}
+
+TEST_CASE ("Interrupted lease retirement recovers only a proven empty missing-marker job", "[persistence][asset][prepared-import][staging-retirement]")
+{
+    using namespace yesdaw::persistence;
+    const int scenario = GENERATE (0, 1, 2);
+    const auto path = makeTempBundlePath ("prepared-retirement-crash");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (207));
+    writeBytes (source, bytes);
+    auto db = openFreshBundle (path);
+    runImportStagingCrashHelper (path, source, true);
+    const auto job = path / "audio" / (".import-" + detail::hexBytes (idFromLowByte (200).bytes));
+    const auto canonical = storedAssetPathForHash (path, hashBytes (bytes));
+    REQUIRE_FALSE (std::filesystem::exists (job / ".lease"));
+    REQUIRE (std::filesystem::is_empty (job));
+    REQUIRE (readBytes (canonical) == bytes);
+    sqlite3_int64 count = 0;
+    REQUIRE (db.pendingFsOpCount (false, count).ok());
+    REQUIRE (count == 1);
+    if (scenario == 1)
+        writeBytes (job / "foreign.wav", bytes);
+    else if (scenario == 2)
+    {
+        REQUIRE (std::filesystem::remove (job));
+        writeBytes (job, bytes); // an unproven replacement is not an empty job directory
+    }
+    ProjectBundleDb recovered;
+    const auto result = ProjectBundleDb::openExistingBundle (path, recovered);
+    INFO (result.message);
+    if (scenario == 0)
+    {
+        REQUIRE (result.ok());
+        REQUIRE_FALSE (std::filesystem::exists (canonical));
+        REQUIRE (readBytes (path / ".trash" / canonical.filename()) == bytes);
+        REQUIRE (db.pendingFsOpCount (false, count).ok());
+        REQUIRE (count == 0);
+    }
+    else
+    {
+        REQUIRE_FALSE (result.ok());
+        REQUIRE (readBytes (canonical) == bytes);
+        REQUIRE (readBytes (scenario == 1 ? job / "foreign.wav" : job) == bytes);
+        REQUIRE (db.pendingFsOpCount (false, count).ok());
+        REQUIRE (count == 1);
+    }
+    REQUIRE (readBytes (source) == bytes);
+}
+
+TEST_CASE ("Reopen refuses a live import intent before touching staged or transferred bytes", "[persistence][asset][prepared-import][live-import-intent]")
+{
+    using namespace yesdaw::persistence;
+    const bool transferred = GENERATE (false, true);
+    const auto path = makeTempBundlePath ("prepared-live-intent");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (206));
+    writeBytes (source, bytes);
+    auto db = openFreshBundle (path);
+    std::filesystem::path privatePath;
+    const auto canonical = storedAssetPathForHash (path, hashBytes (bytes));
+    {
+        AssetImportStaging staging;
+        REQUIRE (AssetImportStaging::create (path, idFromLowByte (206), staging).ok());
+        StagedAssetImport snapshot;
+        REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+        privatePath = snapshot.snapshotPath();
+        const PendingFsOp intent {
+            PendingFsOpKind::StageAsset,
+            privatePath.lexically_relative (std::filesystem::canonical (path)).generic_string(),
+            detail::assetRelativePathForHash (hashBytes (bytes)),
+            hashBytes (bytes),
+        };
+        sqlite3_int64 rowId = 0;
+        REQUIRE (db.executeSql ("PRAGMA synchronous=FULL; BEGIN IMMEDIATE;").ok());
+        REQUIRE (db.recordPendingFsOp (intent, rowId).ok());
+        REQUIRE (db.executeSql ("COMMIT; PRAGMA synchronous=NORMAL;").ok());
+        if (transferred)
+        {
+            REQUIRE (! prepared_asset_detail::transferNoReplace (privatePath, canonical));
+            REQUIRE (detail::flushFileToDisk (canonical).ok());
+            REQUIRE (detail::flushDirectoryToDisk (canonical.parent_path()).ok());
+            REQUIRE (detail::flushDirectoryToDisk (privatePath.parent_path()).ok());
+        }
+        // A real live lease and a real durable intent reproduce either side of transfer without any hook.
+        ProjectBundleDb another;
+        const auto result = ProjectBundleDb::openExistingBundle (path, another);
+        INFO (result.message);
+        CHECK_FALSE (result.ok());
+        CHECK (result.message.find ("busy") != std::string::npos);
+        CHECK (std::filesystem::exists (privatePath) == ! transferred);
+        CHECK (std::filesystem::exists (canonical) == transferred);
+        if (std::filesystem::exists (transferred ? canonical : privatePath))
+            CHECK (readBytes (transferred ? canonical : privatePath) == bytes);
+        sqlite3_int64 count = 0;
+        REQUIRE (db.pendingFsOpCount (false, count).ok());
+        CHECK (count == 1);
+        REQUIRE (readBytes (source) == bytes);
+    }
+    // Once the actual owners release the lease, ordinary interrupted-import recovery is allowed to reclaim.
+    ProjectBundleDb recovered;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, recovered).ok());
+    REQUIRE_FALSE (std::filesystem::exists (privatePath));
+    REQUIRE_FALSE (std::filesystem::exists (canonical));
+    sqlite3_int64 count = 0;
+    REQUIRE (recovered.pendingFsOpCount (false, count).ok());
+    REQUIRE (count == 0);
+    REQUIRE (readBytes (source) == bytes);
+}
+
+TEST_CASE ("Abandoned import cleanup preserves foreign files and unproven metadata", "[persistence][asset][prepared-import][staging-crash]")
+{
+    using namespace yesdaw::persistence;
+    const int scenario = GENERATE (0, 1, 2, 3, 4, 5, 6);
+    const auto path = makeTempBundlePath ("prepared-abandoned-boundary");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (202));
+    writeBytes (source, bytes);
+    Asset canonical;
+    {
+        auto db = openFreshBundle (path);
+        REQUIRE (db.importAssetBytes ({ source, idFromLowByte (202), 128, SampleRate { 48000.0 }, 2 }, canonical).ok());
+    }
+    runImportStagingCrashHelper (path, source);
+    const auto job = path / "audio" / (".import-" + detail::hexBytes (idFromLowByte (200).bytes));
+    const auto snapshot = job / "item-0.wav", marker = job / ".lease";
+    auto metadata = readBytes (marker);
+    if (scenario == 0)
+    {
+        writeBytes (job / "unknown.wav", bytes);
+        writeBytes (job / "subdirectory" / "unknown.wav", bytes);
+    }
+    else if (scenario == 1)
+    {
+        std::filesystem::rename (snapshot, job / "held-original.wav");
+        writeBytes (snapshot, bytes); // the same name and bytes are not the receipted file identity
+    }
+    else if (scenario == 2)
+    {
+        std::filesystem::rename (marker, job / "held-original.lease");
+        writeBytes (marker, metadata); // identical contents copied into a new marker cannot carry its old lease identity
+    }
+    else if (scenario == 3)
+    {
+        metadata = bytes;
+        writeBytes (marker, metadata); // unrecognized/truncated header
+    }
+    else if (scenario == 4)
+    {
+        REQUIRE (metadata.back() == '\n');
+        metadata.pop_back();
+        writeBytes (marker, metadata); // a truncated receipt never authorizes deletion
+    }
+    else if (scenario == 5)
+    {
+        const std::string malformed = "ITEM 2e2e2f657363617065 0 00000000000000000000000000000000\n";
+        metadata.insert (metadata.end(), malformed.begin(), malformed.end());
+        writeBytes (marker, metadata); // valid complete prefix remains usable; the malformed record grants no authority
+        writeBytes (job / "unknown.wav", bytes);
+    }
+    else
+    {
+        const auto headerEnd = std::find (metadata.begin(), metadata.end(), static_cast<std::uint8_t> ('\n'));
+        REQUIRE (headerEnd != metadata.end());
+        const std::string malformed = "ITEM ff 0 00000000000000000000000000000000\n";
+        metadata.erase (headerEnd + 1, metadata.end());
+        metadata.insert (metadata.end(), malformed.begin(), malformed.end());
+        writeBytes (marker, metadata);
+    }
+    ProjectBundleDb reopened;
+    const auto result = ProjectBundleDb::openExistingBundle (path, reopened);
+    INFO (result.message);
+    REQUIRE (result.ok());
+    REQUIRE (readBytes (source) == bytes);
+    REQUIRE (readBytes (storedAssetPathForHash (path, canonical.contentHash)) == bytes);
+    REQUIRE (std::filesystem::exists (snapshot) == (scenario != 0 && scenario != 5));
+    REQUIRE (std::filesystem::exists (marker));
+    if (scenario == 0 || scenario == 5)
+        REQUIRE (readBytes (job / "unknown.wav") == bytes);
+    if (scenario == 0)
+        REQUIRE (readBytes (job / "subdirectory" / "unknown.wav") == bytes);
+    if (scenario == 1)
+    {
+        REQUIRE (readBytes (snapshot) == bytes);
+        REQUIRE (readBytes (job / "held-original.wav") == bytes);
+    }
+    if (scenario >= 2)
+        REQUIRE (readBytes (marker) == metadata);
+}
+
+TEST_CASE ("Replacing a live import lease marker prevents mutation adoption and private cleanup", "[persistence][asset][prepared-import][staging-crash]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-live-marker-replaced");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (203));
+    writeBytes (source, bytes);
+    auto db = openFreshBundle (path);
+    std::filesystem::path privatePath, marker;
+    {
+        AssetImportStaging staging;
+        REQUIRE (AssetImportStaging::create (path, idFromLowByte (203), staging).ok());
+        StagedAssetImport snapshot;
+        REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+        privatePath = snapshot.snapshotPath();
+        marker = privatePath.parent_path() / ".lease";
+        std::filesystem::rename (marker, privatePath.parent_path() / "held-original.lease");
+        writeBytes (marker, bytes);
+        StagedAssetImport another;
+        const auto next = staging.stageSource (source, 1, another);
+        REQUIRE_FALSE (next.ok());
+        REQUIRE (next.message.find ("lease marker identity changed") != std::string::npos);
+        REQUIRE_FALSE (std::filesystem::exists (privatePath.parent_path() / "item-1.wav"));
+        PreparedAssetImport prepared;
+        REQUIRE (std::move (snapshot).complete (idFromLowByte (203), 128, SampleRate { 48000.0 }, 2, prepared).ok());
+        Asset ignored;
+        const auto result = db.adoptPreparedAsset (std::move (prepared), ignored);
+        REQUIRE_FALSE (result.ok());
+        REQUIRE (result.message.find ("lease marker identity changed") != std::string::npos);
+    }
+    REQUIRE (readBytes (privatePath) == bytes);
+    REQUIRE (readBytes (marker) == bytes);
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    REQUIRE (readBytes (privatePath) == bytes);
+    REQUIRE (readBytes (marker) == bytes);
+}
+
+#if ! defined(_WIN32)
+TEST_CASE ("Abandoned import recovery never follows job marker or item symlinks", "[persistence][asset][prepared-import][staging-crash]")
+{
+    using namespace yesdaw::persistence;
+    const int scenario = GENERATE (0, 1, 2);
+    const auto path = makeTempBundlePath ("prepared-symlink-boundary");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (204));
+    writeBytes (source, bytes);
+    { auto db = openFreshBundle (path); }
+    runImportStagingCrashHelper (path, source);
+    const auto job = path / "audio" / (".import-" + detail::hexBytes (idFromLowByte (200).bytes));
+    const auto marker = job / ".lease", snapshot = job / "item-0.wav";
+    const auto held = path / "held-entry";
+    if (scenario == 0)
+    {
+        std::filesystem::rename (job, held);
+        std::filesystem::create_directory_symlink (held, job);
+    }
+    else if (scenario == 1)
+    {
+        std::filesystem::rename (marker, held);
+        std::filesystem::create_symlink (held, marker);
+    }
+    else
+    {
+        std::filesystem::rename (snapshot, held);
+        std::filesystem::create_symlink (source, snapshot);
+    }
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    REQUIRE (std::filesystem::is_symlink (scenario == 0 ? job : scenario == 1 ? marker : snapshot));
+    REQUIRE (readBytes (source) == bytes);
+    REQUIRE (readBytes (scenario == 0 ? held / "item-0.wav" : snapshot) == bytes);
+}
+#endif
+
+#if defined(_WIN32)
+TEST_CASE ("Import receipts cannot authorize a Windows alias of the lease marker", "[persistence][asset][prepared-import][staging-marker-alias]")
+{
+    using namespace yesdaw::persistence;
+    const auto alias = GENERATE (".LEASE", ".lease.", ".lease ");
+    const auto path = makeTempBundlePath ("prepared-marker-alias");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (205));
+    writeBytes (source, bytes);
+    { auto db = openFreshBundle (path); }
+    runImportStagingCrashHelper (path, source);
+    const auto job = path / "audio" / (".import-" + detail::hexBytes (idFromLowByte (200).bytes));
+    const auto marker = job / ".lease";
+    prepared_asset_detail::FileFingerprint actualMarker, actualAlias;
+    REQUIRE (! prepared_asset_detail::fingerprint (marker, actualMarker));
+    REQUIRE (! prepared_asset_detail::fingerprint (job / alias, actualAlias));
+    REQUIRE (actualAlias.sameIdentity (actualMarker)); // actual Windows alias and measured IDs, not a fabricated receipt identity
+    auto metadata = readBytes (marker);
+    const auto invalidReceipt = prepared_asset_detail::serializeReceipt (alias, actualMarker);
+    metadata.insert (metadata.end(), invalidReceipt.begin(), invalidReceipt.end());
+    writeBytes (marker, metadata);
+    ProjectBundleDb reopened;
+    const auto result = ProjectBundleDb::openExistingBundle (path, reopened);
+    INFO (result.message);
+    REQUIRE (result.ok());
+    REQUIRE_FALSE (std::filesystem::exists (job / "item-0.wav")); // the preceding valid receipt remains usable
+    REQUIRE (readBytes (marker) == metadata);
+    REQUIRE (readBytes (source) == bytes);
+}
+#endif
+
+TEST_CASE ("Prepared Asset adoption keeps the staged snapshot and does no hash or copy", "[persistence][asset][prepared-import]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-import");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (80));
+    writeBytes (source, bytes);
+    Asset first;
+    {
+        auto db = openFreshBundle (path);
+        AssetImportStaging staging;
+        REQUIRE (AssetImportStaging::create (path, idFromLowByte (80), staging).ok());
+        StagedAssetImport snapshot;
+        detail::assetHashCallsForTest = 0;
+        detail::copiedFileBytesForTest = 0;
+        REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+        REQUIRE (detail::assetHashCallsForTest == 1);
+        REQUIRE (detail::copiedFileBytesForTest == bytes.size());
+        const auto privatePath = snapshot.snapshotPath();
+        REQUIRE (privatePath.filename() == "item-0.wav");
+        REQUIRE (snapshot.originalFilename() == source.filename());
+        REQUIRE (readBytes (privatePath) == bytes);
+        // The future decoder reads privatePath; subsequent source changes cannot alter this snapshot.
+        writeBytes (source, assetBytesForId (idFromLowByte (81)));
+        PreparedAssetImport prepared;
+        REQUIRE (std::move (snapshot).complete (idFromLowByte (80), 96000, SampleRate { 96000.0 }, 2, prepared).ok());
+        detail::assetHashCallsForTest = 0;
+        detail::copiedFileBytesForTest = 0;
+        const auto adopted = db.adoptPreparedAsset (std::move (prepared), first);
+        INFO (adopted.message);
+        REQUIRE (adopted.ok());
+        REQUIRE (detail::assetHashCallsForTest == 0);
+        REQUIRE (detail::copiedFileBytesForTest == 0);
+        REQUIRE (first.id == idFromLowByte (80));
+        REQUIRE (first.frames == 96000);
+        REQUIRE (first.sampleRate == SampleRate { 96000.0 });
+        REQUIRE (first.channels == 2);
+        REQUIRE (first.contentHash == hashBytes (bytes));
+        REQUIRE (readBytes (storedAssetPathForHash (path, first.contentHash)) == bytes);
+        REQUIRE (readBytes (source) == assetBytesForId (idFromLowByte (81)));
+        REQUIRE_FALSE (std::filesystem::exists (privatePath));
+        sqlite3_int64 value = 0;
+        REQUIRE (db.queryInt64 ("PRAGMA synchronous;", value).ok());
+        REQUIRE (value == 1); // temporary FULL did not change the live NORMAL contract
+        REQUIRE (db.pendingFsOpCount (false, value).ok());
+        REQUIRE (value == 0);
+        REQUIRE (db.pendingFsOpCount (true, value).ok());
+        REQUIRE (value == 1);
+
+        writeBytes (source, bytes);
+        for (const bool conflict : { false, true })
+        {
+            StagedAssetImport duplicateSnapshot;
+            REQUIRE (staging.stageSource (source, conflict ? 2 : 1, duplicateSnapshot).ok());
+            PreparedAssetImport duplicate;
+            REQUIRE (std::move (duplicateSnapshot).complete (idFromLowByte (82), conflict ? 1 : 96000,
+                                                             SampleRate { 96000.0 }, 2, duplicate).ok());
+            Asset same;
+            detail::assetHashCallsForTest = 0;
+            detail::copiedFileBytesForTest = 0;
+            const auto result = db.adoptPreparedAsset (std::move (duplicate), same);
+            REQUIRE (detail::assetHashCallsForTest == 0);
+            REQUIRE (detail::copiedFileBytesForTest == 0);
+            if (conflict)
+            {
+                REQUIRE (result.status == BundleStatus::SemanticInvalid);
+                REQUIRE (result.message.find ("conflicting Asset metadata") != std::string::npos);
+            }
+            else
+            {
+                REQUIRE (result.ok());
+                REQUIRE (same == first); // existing ID wins over the requested duplicate ID
+            }
+        }
+        auto project = makeProject();
+        project.clips.clear();
+        project.assets = { first };
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM assets;", value).ok());
+        REQUIRE (value == 1);
+    }
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    Project restored;
+    REQUIRE (reopened.readProjectSnapshot (restored).ok());
+    REQUIRE (restored.assets == std::vector<Asset> { first });
+}
+
+TEST_CASE ("Prepared Asset adoption reuses verified canonical bytes before an Asset row exists", "[persistence][asset][prepared-import]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-canonical-without-row");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (210));
+    writeBytes (source, bytes);
+    auto db = openFreshBundle (path);
+    auto project = makeProject();
+    project.clips.clear();
+    project.assets.clear();
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+    const auto canonical = storedAssetPathForHash (path, hashBytes (bytes));
+    writeBytes (canonical, bytes);
+    prepared_asset_detail::FileFingerprint before;
+    REQUIRE (! prepared_asset_detail::fingerprint (canonical, before));
+    sqlite3_int64 count = -1;
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM assets;", count).ok());
+    REQUIRE (count == 0);
+    AssetImportStaging staging;
+    REQUIRE (AssetImportStaging::create (path, idFromLowByte (210), staging).ok());
+    StagedAssetImport snapshot;
+    REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+    const auto privatePath = snapshot.snapshotPath();
+    PreparedAssetImport prepared;
+    REQUIRE (std::move (snapshot).complete (idFromLowByte (211), 512, SampleRate { 48000.0 }, 2, prepared).ok());
+    detail::assetHashCallsForTest = 0;
+    detail::copiedFileBytesForTest = 0;
+    Asset imported;
+    const auto adopted = db.adoptPreparedAsset (std::move (prepared), imported);
+    INFO (adopted.message);
+    REQUIRE (adopted.ok());
+    REQUIRE (detail::assetHashCallsForTest == 0);
+    REQUIRE (detail::copiedFileBytesForTest == 0);
+    REQUIRE (imported.id == idFromLowByte (211));
+    prepared_asset_detail::FileFingerprint after;
+    REQUIRE (! prepared_asset_detail::fingerprint (canonical, after));
+    REQUIRE (after.sameIdentity (before));
+    REQUIRE (readBytes (canonical) == bytes);
+    REQUIRE_FALSE (std::filesystem::exists (privatePath));
+    REQUIRE (db.pendingFsOpCount (false, count).ok());
+    REQUIRE (count == 0);
+    REQUIRE (db.pendingFsOpCount (true, count).ok());
+    REQUIRE (count == 1);
+    db = {};
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    Project loaded;
+    REQUIRE (reopened.readProjectSnapshot (loaded).ok());
+    REQUIRE (loaded.assets.size() == 1);
+    REQUIRE (loaded.assets.front() == imported);
+    REQUIRE (readBytes (canonical) == bytes);
+    REQUIRE (readBytes (source) == bytes);
+}
+
+TEST_CASE ("Prepared Asset adoption refuses changed proofs without touching canonical bytes", "[persistence][asset][prepared-import]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-stale");
+    const auto source = path.parent_path() / (path.filename().string() + ".aiff");
+    const auto bytes = assetBytesForId (idFromLowByte (83));
+    const auto foreign = assetBytesForId (idFromLowByte (84));
+    writeBytes (source, bytes);
+    auto db = openFreshBundle (path);
+    AssetImportStaging staging;
+    REQUIRE (AssetImportStaging::create (path, idFromLowByte (83), staging).ok());
+    const auto canonical = storedAssetPathForHash (path, hashBytes (bytes));
+    const int scenario = GENERATE (0, 1, 2, 3, 4);
+    if (scenario >= 2)
+        writeBytes (canonical, bytes);
+    StagedAssetImport snapshot;
+    REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+    const auto privatePath = snapshot.snapshotPath();
+    PreparedAssetImport prepared;
+    REQUIRE (std::move (snapshot).complete (idFromLowByte (83), 1024, SampleRate { 44100.0 }, 1, prepared).ok());
+    if (scenario == 0)
+        writeBytes (privatePath, foreign); // same inode, same byte count, changed write/change stamps
+    else if (scenario == 1)
+        writeBytes (canonical, foreign); // appeared since preparation, so no owner hash/overwrite
+    else if (scenario == 2)
+        writeBytes (canonical, foreign);
+    else if (scenario == 3)
+    {
+        std::filesystem::rename (canonical, path / "held-original.asset");
+        writeBytes (canonical, bytes); // matching bytes at a different file identity still need worker proof
+    }
+    else
+    {
+        std::filesystem::rename (privatePath, privatePath.parent_path() / "held-original.aiff");
+        writeBytes (privatePath, bytes);
+    }
+    Asset ignored;
+    detail::assetHashCallsForTest = 0;
+    detail::copiedFileBytesForTest = 0;
+    const auto result = db.adoptPreparedAsset (std::move (prepared), ignored);
+    INFO (result.message);
+    REQUIRE_FALSE (result.ok());
+    REQUIRE (result.message.find ("revalidation required") != std::string::npos);
+    REQUIRE (detail::assetHashCallsForTest == 0);
+    REQUIRE (detail::copiedFileBytesForTest == 0);
+    sqlite3_int64 count = 0;
+    REQUIRE (db.pendingFsOpCount (false, count).ok());
+    REQUIRE (count == 0);
+    prepared = {};
+    REQUIRE (readBytes (source) == bytes);
+    if (scenario == 1 || scenario == 2)
+        REQUIRE (readBytes (canonical) == foreign);
+    if (scenario == 3 || scenario == 4)
+        REQUIRE (readBytes (canonical) == bytes);
+    if (scenario == 4)
+        REQUIRE (readBytes (privatePath) == bytes); // replacement is foreign, not private cleanup's property
+}
+
+TEST_CASE ("Prepared Asset private cleanup owns only tracked files in the captured directory", "[persistence][asset][prepared-import]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-owned-cleanup");
+    const auto source = path.parent_path() / (path.filename().string() + ".flac");
+    const auto bytes = assetBytesForId (idFromLowByte (85));
+    writeBytes (source, bytes);
+    auto db = openFreshBundle (path);
+    const auto canonical = storedAssetPathForHash (path, hashBytes (bytes));
+    writeBytes (canonical, bytes);
+    std::filesystem::path privatePath;
+    {
+        AssetImportStaging staging;
+        REQUIRE (AssetImportStaging::create (path, idFromLowByte (85), staging).ok());
+        StagedAssetImport snapshot;
+        REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+        privatePath = snapshot.snapshotPath();
+        writeBytes (privatePath.parent_path() / "foreign.flac", bytes);
+        StagedAssetImport collision;
+        REQUIRE_FALSE (staging.stageSource (source, 0, collision).ok());
+        REQUIRE (readBytes (privatePath) == bytes);
+    }
+    REQUIRE_FALSE (std::filesystem::exists (privatePath));
+    REQUIRE (readBytes (privatePath.parent_path() / "foreign.flac") == bytes);
+    REQUIRE (readBytes (source) == bytes);
+    REQUIRE (readBytes (canonical) == bytes);
+
+    std::filesystem::path retiredDirectory;
+    {
+        AssetImportStaging staging;
+        REQUIRE (AssetImportStaging::create (path, idFromLowByte (86), staging).ok());
+        StagedAssetImport snapshot;
+        REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+        privatePath = snapshot.snapshotPath();
+        retiredDirectory = path / "held-job";
+        // Windows refuses renaming a directory containing an open lease. Move that marker out first;
+        // replacing the directory must still fail its captured identity check before any cleanup or adoption.
+        std::filesystem::rename (privatePath.parent_path() / ".lease", path / "held-job.lease");
+        std::filesystem::rename (privatePath.parent_path(), retiredDirectory);
+        writeBytes (privatePath, bytes);
+        PreparedAssetImport prepared;
+        REQUIRE (std::move (snapshot).complete (idFromLowByte (86), 1, SampleRate { 48000.0 }, 1, prepared).ok());
+        Asset ignored;
+        const auto result = db.adoptPreparedAsset (std::move (prepared), ignored);
+        REQUIRE_FALSE (result.ok());
+        REQUIRE (result.message.find ("directory identity changed") != std::string::npos);
+    }
+    REQUIRE (readBytes (privatePath) == bytes);
+    REQUIRE (readBytes (retiredDirectory / privatePath.filename()) == bytes);
+}
+
+TEST_CASE ("No-overwrite Asset transfer gives one concurrent contender ownership", "[persistence][asset][prepared-import]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-transfer-race");
+    auto db = openFreshBundle (path);
+    const auto a = path / "a.wav", b = path / "b.wav", target = path / "winner.asset";
+    const auto aBytes = assetBytesForId (idFromLowByte (87)), bBytes = assetBytesForId (idFromLowByte (88));
+    writeBytes (a, aBytes);
+    writeBytes (b, bBytes);
+    std::barrier gate (3);
+    std::error_code aResult, bResult;
+    std::thread one ([&] { gate.arrive_and_wait(); aResult = prepared_asset_detail::transferNoReplace (a, target); });
+    std::thread two ([&] { gate.arrive_and_wait(); bResult = prepared_asset_detail::transferNoReplace (b, target); });
+    gate.arrive_and_wait();
+    one.join();
+    two.join();
+    REQUIRE (static_cast<bool> (aResult) != static_cast<bool> (bResult));
+    REQUIRE (readBytes (target) == (aResult ? bBytes : aBytes));
+    REQUIRE (readBytes (aResult ? a : b) == (aResult ? aBytes : bBytes));
+}
+
+TEST_CASE ("Prepared Asset row failure retains journal ownership and recovers the transferred orphan", "[persistence][asset][prepared-import][recovery]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-row-failure");
+    const auto source = path.parent_path() / (path.filename().string() + ".ogg");
+    const auto bytes = assetBytesForId (idFromLowByte (89));
+    writeBytes (source, bytes);
+    std::filesystem::path privatePath;
+    const auto canonical = storedAssetPathForHash (path, hashBytes (bytes));
+    {
+        auto db = openFreshBundle (path);
+        AssetImportStaging staging;
+        REQUIRE (AssetImportStaging::create (path, idFromLowByte (89), staging).ok());
+        StagedAssetImport snapshot;
+        REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+        privatePath = snapshot.snapshotPath();
+        PreparedAssetImport prepared;
+        REQUIRE (std::move (snapshot).complete (idFromLowByte (89), 512, SampleRate { 48000.0 }, 2, prepared).ok());
+        REQUIRE (db.executeSql ("CREATE TRIGGER reject_prepared BEFORE INSERT ON assets BEGIN SELECT RAISE(ABORT,'refuse row'); END;").ok());
+        Asset ignored;
+        const auto result = db.adoptPreparedAsset (std::move (prepared), ignored);
+        REQUIRE_FALSE (result.ok());
+        REQUIRE (result.message.find ("refuse row") != std::string::npos);
+        sqlite3_int64 count = 0;
+        REQUIRE (db.pendingFsOpCount (false, count).ok());
+        REQUIRE (count == 1);
+        REQUIRE (db.queryInt64 ("PRAGMA synchronous;", count).ok());
+        REQUIRE (count == 1);
+        prepared = {};
+        REQUIRE (readBytes (canonical) == bytes); // private cleanup cannot undo transferred ownership
+        REQUIRE_FALSE (std::filesystem::exists (privatePath));
+    }
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    REQUIRE_FALSE (std::filesystem::exists (canonical));
+    REQUIRE (readBytes (path / ".trash" / canonical.filename()) == bytes);
+    REQUIRE (readBytes (source) == bytes);
+    sqlite3_int64 count = 0;
+    REQUIRE (reopened.pendingFsOpCount (false, count).ok());
+    REQUIRE (count == 0);
+}
+
+TEST_CASE ("Prepared Asset transfer failure clears its intent or retains journal-owned staging", "[persistence][asset][prepared-import][recovery]")
+{
+    using namespace yesdaw::persistence;
+    const bool cleanupFails = GENERATE (false, true);
+    const auto path = makeTempBundlePath ("prepared-transfer-failure");
+    const auto source = path.parent_path() / (path.filename().string() + ".mp3");
+    const auto bytes = assetBytesForId (idFromLowByte (90));
+    writeBytes (source, bytes);
+    std::filesystem::path privatePath;
+    Asset kept;
+    {
+        auto db = openFreshBundle (path);
+        const auto keptSource = path / "kept.wav";
+        writeBytes (keptSource, assetBytesForId (idFromLowByte (91)));
+        REQUIRE (db.importAssetBytes ({ keptSource, idFromLowByte (91), 32, SampleRate { 48000.0 }, 1 }, kept).ok());
+        AssetImportStaging staging;
+        REQUIRE (AssetImportStaging::create (path, idFromLowByte (90), staging).ok());
+        StagedAssetImport snapshot;
+        REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+        privatePath = snapshot.snapshotPath();
+        PreparedAssetImport prepared;
+        REQUIRE (std::move (snapshot).complete (idFromLowByte (90), 512, SampleRate { 48000.0 }, 2, prepared).ok());
+        if (cleanupFails)
+            REQUIRE (db.executeSql ("CREATE TRIGGER refuse_intent_delete BEFORE DELETE ON pending_fs_ops BEGIN SELECT RAISE(ABORT,'intent delete refused'); END;").ok());
+#if defined(_WIN32)
+        struct TransferBlock
+        {
+            HANDLE handle = INVALID_HANDLE_VALUE;
+            void release() { if (handle != INVALID_HANDLE_VALUE) CloseHandle (std::exchange (handle, INVALID_HANDLE_VALUE)); }
+            ~TransferBlock() { release(); }
+        } block;
+        block.handle = CreateFileW (privatePath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                     nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+        REQUIRE (block.handle != INVALID_HANDLE_VALUE); // deny rename/delete, retain readable identity and stamps
+#else
+        if (::geteuid() == 0)
+            SKIP ("root bypasses directory write permission checks");
+        struct TransferBlock
+        {
+            std::filesystem::path directory;
+            std::filesystem::perms original;
+            void release()
+            {
+                if (directory.empty()) return;
+                std::error_code ignored;
+                std::filesystem::permissions (directory, original, ignored);
+                directory.clear();
+            }
+            ~TransferBlock() { release(); }
+        } block { path / "audio", std::filesystem::status (path / "audio").permissions() };
+        std::filesystem::permissions (block.directory, std::filesystem::perms::owner_read | std::filesystem::perms::owner_exec);
+#endif
+        Asset ignored;
+        detail::assetHashCallsForTest = 0;
+        detail::copiedFileBytesForTest = 0;
+        const auto result = db.adoptPreparedAsset (std::move (prepared), ignored);
+        INFO (result.message);
+        REQUIRE_FALSE (result.ok());
+        REQUIRE (result.message.find ("no-overwrite Asset transfer refused") != std::string::npos);
+        REQUIRE (detail::assetHashCallsForTest == 0);
+        REQUIRE (detail::copiedFileBytesForTest == 0);
+        sqlite3_int64 count = 0;
+        REQUIRE (db.pendingFsOpCount (false, count).ok());
+        REQUIRE (count == (cleanupFails ? 1 : 0));
+        REQUIRE (db.queryInt64 ("PRAGMA synchronous;", count).ok());
+        REQUIRE (count == 1);
+        if (cleanupFails)
+            REQUIRE (result.message.find ("staging remains journal-owned: intent delete refused") != std::string::npos);
+        block.release();
+        prepared = {};
+        REQUIRE (std::filesystem::exists (privatePath) == cleanupFails);
+        if (cleanupFails)
+            REQUIRE (db.executeSql ("DROP TRIGGER refuse_intent_delete;").ok());
+        REQUIRE (readBytes (storedAssetPathForHash (path, kept.contentHash)) == assetBytesForId (idFromLowByte (91)));
+    }
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (path, reopened).ok());
+    REQUIRE_FALSE (std::filesystem::exists (privatePath));
+    REQUIRE (readBytes (source) == bytes);
+    REQUIRE (readBytes (storedAssetPathForHash (path, kept.contentHash)) == assetBytesForId (idFromLowByte (91)));
+    sqlite3_int64 count = 0;
+    REQUIRE (reopened.pendingFsOpCount (false, count).ok());
     REQUIRE (count == 0);
 }
 

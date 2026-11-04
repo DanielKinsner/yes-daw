@@ -9,6 +9,7 @@
 #include "engine/Automation.h"
 #include "engine/Project.h"
 #include "engine/Time.h"
+#include "persistence/ImportStagingLease.h"
 
 #include <sqlite3.h>
 
@@ -19,6 +20,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -31,6 +33,7 @@
 #include <fcntl.h>
 #include <io.h>
 #include <share.h>
+#include <sys/stat.h>
 #else
 #include <fcntl.h>
 #include <unistd.h>
@@ -1792,6 +1795,553 @@ inline BundleResult configureConnection (sqlite3* db)
     return bundlePath / detail::assetRelativePathForHash (hash);
 }
 
+namespace prepared_asset_detail {
+
+inline BundleResult fileError (std::string_view reason, const std::filesystem::path& path,
+                               const std::error_code& error = {})
+{
+    return { BundleStatus::FilesystemError, SQLITE_OK, 0,
+             std::string (reason) + ": " + detail::utf8Path (path) + (error ? ": " + error.message() : "") };
+}
+
+struct ImportDirectory
+{
+    std::filesystem::path root, audio, job;
+    FileFingerprint rootIdentity, audioIdentity, jobIdentity;
+    ImportStagingLease lease;
+    ImportLeaseHeader header;
+    bool privateDirectoryOwner = false;
+
+    [[nodiscard]] BundleResult validateDirectories() const
+    {
+        for (const auto& entry : { std::pair { &root, &rootIdentity }, { &audio, &audioIdentity }, { &job, &jobIdentity } })
+        {
+            FileFingerprint current;
+            const auto error = fingerprint (*entry.first, current);
+            if (error || ! current.directory || ! current.sameIdentity (*entry.second))
+                return fileError ("import staging directory identity changed", *entry.first, error);
+        }
+        return detail::ok();
+    }
+
+    [[nodiscard]] BundleResult validate()
+    {
+        if (auto result = validateDirectories(); ! result.ok())
+            return result;
+        const auto marker = job / kImportLeaseFilename;
+        if (const auto error = lease.validateMarker (marker))
+            return fileError ("import staging lease marker identity changed", marker, error);
+        ImportLeaseHeader current;
+        bool recognized = false;
+        if (const auto error = lease.readHeader (current, recognized))
+            return fileError ("cannot read import staging lease header", marker, error);
+        if (! recognized || current.jobId != header.jobId || ! current.root.sameIdentity (rootIdentity)
+            || ! current.audio.sameIdentity (audioIdentity) || ! current.job.sameIdentity (jobIdentity)
+            || ! current.marker.sameIdentity (lease.identity()))
+            return fileError ("import staging lease header does not bind its locked marker and directories", marker);
+        return detail::ok();
+    }
+
+    [[nodiscard]] BundleResult retireIfEmpty()
+    {
+        if (auto result = validate(); ! result.ok())
+            return result;
+        std::error_code error;
+        std::filesystem::directory_iterator entry (job, error), end;
+        if (error)
+            return fileError ("cannot inspect import staging directory for retirement", job, error);
+        for (; entry != end; entry.increment (error))
+        {
+            if (error)
+                return fileError ("cannot inspect import staging directory for retirement", job, error);
+            if (entry->path().filename() != kImportLeaseFilename)
+                return detail::ok();
+        }
+        if (error)
+            return fileError ("cannot inspect import staging directory for retirement", job, error);
+        const auto marker = job / kImportLeaseFilename;
+        if (auto result = validate(); ! result.ok())
+            return result;
+        if (! std::filesystem::remove (marker, error) || error)
+            return fileError ("cannot remove owned import staging lease", marker, error);
+        if (auto result = detail::flushDirectoryToDisk (job); ! result.ok())
+            return result;
+        lease.close();
+        privateDirectoryOwner = false;
+        if (auto result = validateDirectories(); ! result.ok())
+            return result;
+        if (! std::filesystem::remove (job, error) || error)
+            return fileError ("cannot remove empty import staging directory", job, error);
+        return detail::flushDirectoryToDisk (audio);
+    }
+
+    [[nodiscard]] BundleResult recordItem (const std::filesystem::path& name, const FileFingerprint& identity)
+    {
+        if (auto result = validate(); ! result.ok())
+            return result;
+        const auto utf8 = name.generic_u8string();
+        if (! privateReceiptName ({ reinterpret_cast<const char*> (utf8.data()), utf8.size() }) || name != name.filename())
+            return fileError ("import receipt filename must stay flat and private", name);
+        if (const auto error = lease.write (serializeReceipt (name, identity)))
+            return fileError ("cannot flush import item cleanup receipt", job / kImportLeaseFilename, error);
+        return detail::flushDirectoryToDisk (job); // the empty item's entry is durable before any bulk copy
+    }
+
+    ~ImportDirectory()
+    {
+        if (privateDirectoryOwner)
+            (void) retireIfEmpty();
+    }
+};
+
+enum class StagingOwnership : std::uint8_t { Private, Journal, Canonical };
+
+struct StagedAsset
+{
+    std::shared_ptr<ImportDirectory> directory;
+    std::filesystem::path path, originalFilename;
+    FileFingerprint stagedFingerprint;
+    std::optional<FileFingerprint> canonicalFingerprint;
+    engine::Asset asset;
+    StagingOwnership ownership = StagingOwnership::Private;
+
+    ~StagedAsset()
+    {
+        if (ownership != StagingOwnership::Private || ! directory || ! directory->validate().ok())
+            return;
+        FileFingerprint current;
+        if (! fingerprint (path, current) && ! current.directory && current.sameIdentity (stagedFingerprint))
+        {
+            std::error_code ignored;
+            std::filesystem::remove (path, ignored);
+        }
+    }
+};
+
+// A fresh private name must be created exclusively; an existing or substituted item is never truncated.
+inline BundleResult copyIntoPrivateFile (const std::filesystem::path& source, StagedAsset& staged)
+{
+    std::ifstream input (source, std::ios::binary);
+    if (! input)
+        return fileError ("cannot read import source", source);
+#if defined(_WIN32)
+    int fd = -1;
+    const auto openError = _wsopen_s (&fd, staged.path.c_str(), _O_WRONLY | _O_CREAT | _O_EXCL | _O_BINARY | _O_NOINHERIT,
+                                  _SH_DENYNO, _S_IREAD | _S_IWRITE);
+    if (openError != 0)
+        return fileError ("cannot exclusively create import staging file", staged.path,
+                           { static_cast<int> (openError), std::generic_category() });
+#else
+    const int fd = ::open (staged.path.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+    if (fd == -1)
+        return fileError ("cannot exclusively create import staging file", staged.path, { errno, std::generic_category() });
+#endif
+    BundleResult result;
+    if (const auto error = fingerprint (staged.path, staged.stagedFingerprint, fd))
+        result = fileError ("cannot identify import staging file", staged.path, error);
+    if (result.ok())
+        result = staged.directory->recordItem (staged.path.filename(), staged.stagedFingerprint);
+    std::array<char, 65536> buffer {};
+    while (result.ok() && input)
+    {
+        input.read (buffer.data(), static_cast<std::streamsize> (buffer.size()));
+        const auto count = input.gcount();
+        std::streamsize written = 0;
+        while (written < count)
+        {
+#if defined(_WIN32)
+            const auto n = _write (fd, buffer.data() + written, static_cast<unsigned int> (count - written));
+#else
+            const auto n = ::write (fd, buffer.data() + written, static_cast<std::size_t> (count - written));
+#endif
+            if (n <= 0)
+            {
+                result = fileError ("cannot write import staging file", staged.path, { errno, std::generic_category() });
+                break;
+            }
+            written += n;
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+            detail::copiedFileBytesForTest += static_cast<std::uint64_t> (n);
+#endif
+        }
+    }
+    if (result.ok() && ! input.eof())
+        result = fileError ("cannot finish reading import source", source);
+#if defined(_WIN32)
+    const int closed = _close (fd);
+#else
+    const int closed = ::close (fd);
+#endif
+    if (result.ok() && closed != 0)
+        result = fileError ("cannot close import staging file", staged.path, { errno, std::generic_category() });
+    if (! result.ok())
+        return result;
+    return detail::flushFileToDisk (staged.path);
+}
+
+inline BundleResult verifiedFingerprint (const std::filesystem::path& path, engine::AssetContentHash& hash,
+                                         FileFingerprint& proof)
+{
+    FileFingerprint before;
+    if (const auto error = fingerprint (path, before))
+        return fileError ("cannot identify import bytes", path, error);
+    if (before.directory)
+        return fileError ("import bytes are not a regular file", path);
+    if (auto result = detail::hashFile (path, hash); ! result.ok())
+        return result;
+    if (const auto error = fingerprint (path, proof))
+        return fileError ("cannot identify hashed import bytes", path, error);
+    if (before != proof)
+        return fileError ("import bytes changed while hashing", path);
+    return detail::ok();
+}
+
+inline bool unprovenImportEntry (const std::error_code& error)
+{
+    return error == std::errc::no_such_file_or_directory || error == std::errc::too_many_symbolic_link_levels
+        || error == std::errc::invalid_argument;
+}
+
+inline BundleResult checkImportIntentLease (const std::filesystem::path& bundle, std::string_view temporaryRelative)
+{
+    const std::filesystem::path relative { std::string (temporaryRelative) };
+    const auto utf8Job = relative.parent_path().filename().generic_u8string();
+    const std::string jobName (utf8Job.begin(), utf8Job.end());
+    const auto utf8Item = relative.filename().generic_u8string();
+    const std::string itemName (utf8Item.begin(), utf8Item.end());
+    if (relative.parent_path().parent_path() != "audio" || ! jobName.starts_with (".import-")
+        || ! lowerHexId (std::string_view (jobName).substr (8)) || ! privateReceiptName (itemName))
+        return detail::ok(); // legacy StageAsset records retain their existing recovery policy
+    ImportDirectory candidate;
+    std::error_code error;
+    candidate.root = std::filesystem::canonical (bundle, error);
+    if (error)
+        return fileError ("cannot resolve import intent bundle", bundle, error);
+    candidate.audio = candidate.root / "audio";
+    candidate.job = candidate.audio / jobName;
+    if ((error = fingerprint (candidate.job, candidate.jobIdentity)))
+    {
+        if (error == std::errc::no_such_file_or_directory)
+            return detail::ok(); // a retired owner may already have removed its empty private directory
+        return fileError ("cannot verify import intent job directory", candidate.job, error);
+    }
+    if (! candidate.jobIdentity.directory)
+        return fileError ("import intent job directory is no longer a directory", candidate.job);
+    if ((error = fingerprint (candidate.root, candidate.rootIdentity))
+        || (error = fingerprint (candidate.audio, candidate.audioIdentity)))
+        return fileError ("cannot verify import intent destination directories", candidate.job, error);
+    const auto marker = candidate.job / kImportLeaseFilename;
+    bool busy = false;
+    if ((error = candidate.lease.open (marker, false, busy)))
+    {
+        if (busy)
+            return fileError ("import staging lease is busy; reopen refused while its owner adopts the Asset", candidate.job);
+        if (error == std::errc::no_such_file_or_directory)
+        {
+            // Retirement removes the marker before its empty directory. A crash in that tiny interval must
+            // not strand the durable intent, but a nonempty or replaced job still has no cleanup authority.
+            if (auto result = candidate.validateDirectories(); ! result.ok())
+                return result;
+            std::filesystem::directory_iterator entry (candidate.job, error), end;
+            if (error)
+                return fileError ("cannot prove missing-lease import job is empty", candidate.job, error);
+            if (entry != end)
+                return fileError ("missing-lease import job is not empty; its intent cannot be recovered", candidate.job);
+            if (auto result = candidate.validateDirectories(); ! result.ok())
+                return result;
+            FileFingerprint currentMarker;
+            error = fingerprint (marker, currentMarker);
+            if (error != std::errc::no_such_file_or_directory)
+                return fileError ("import lease changed while proving its retired job empty", marker, error);
+            return detail::ok();
+        }
+        return fileError ("cannot verify import intent staging lease", marker, error);
+    }
+    bool recognized = false;
+    if ((error = candidate.lease.readHeader (candidate.header, recognized)))
+        return fileError ("cannot read import intent staging lease", marker, error);
+    if (! recognized || candidate.header.jobId != jobName.substr (8))
+        return fileError ("import intent staging lease header is unrecognized", marker);
+    return candidate.validate();
+}
+
+// Existing StageAsset reconciliation runs first. This handles only abandoned pre-intent private files whose
+// exact names and identities have durable receipts, never canonical Assets or an unrecognized directory.
+inline BundleResult reclaimAbandonedImportStaging (const std::filesystem::path& bundle)
+{
+    std::error_code error;
+    const auto root = std::filesystem::canonical (bundle, error);
+    if (error)
+        return fileError ("cannot resolve import staging recovery bundle", bundle, error);
+    const auto audio = root / "audio";
+    FileFingerprint rootIdentity, audioIdentity;
+    if ((error = fingerprint (root, rootIdentity)) || ! rootIdentity.directory)
+        return fileError ("cannot identify import staging recovery bundle", root, error);
+    if ((error = fingerprint (audio, audioIdentity)))
+    {
+        if (error == std::errc::no_such_file_or_directory)
+            return detail::ok(); // legacy bundles without audio have no private staging; the existing sweep creates it
+        return fileError ("cannot identify import staging recovery audio directory", audio, error);
+    }
+    if (! audioIdentity.directory)
+        return fileError ("cannot identify import staging recovery audio directory", audio, error);
+    std::filesystem::directory_iterator entry (audio, error), end;
+    if (error)
+        return fileError ("cannot inspect abandoned import staging", audio, error);
+    for (; entry != end; entry.increment (error))
+    {
+        if (error)
+            return fileError ("cannot inspect abandoned import staging", audio, error);
+        const auto utf8Name = entry->path().filename().generic_u8string();
+        const std::string name (utf8Name.begin(), utf8Name.end());
+        if (! name.starts_with (".import-") || ! lowerHexId (std::string_view (name).substr (8)))
+            continue;
+        ImportDirectory candidate;
+        candidate.root = root;
+        candidate.audio = audio;
+        candidate.job = entry->path();
+        candidate.rootIdentity = rootIdentity;
+        candidate.audioIdentity = audioIdentity;
+        if ((error = fingerprint (candidate.job, candidate.jobIdentity)))
+        {
+            if (unprovenImportEntry (error)) continue;
+            return fileError ("cannot identify abandoned import staging directory", candidate.job, error);
+        }
+        if (! candidate.jobIdentity.directory)
+            continue;
+        const auto marker = candidate.job / kImportLeaseFilename;
+        FileFingerprint markerIdentity;
+        if ((error = fingerprint (marker, markerIdentity)))
+        {
+            if (unprovenImportEntry (error)) continue;
+            return fileError ("cannot identify abandoned import staging lease", marker, error);
+        }
+        if (markerIdentity.directory)
+            continue;
+        bool busy = false;
+        if ((error = candidate.lease.open (marker, false, busy)))
+        {
+            if (busy || unprovenImportEntry (error)) continue;
+            return fileError ("cannot acquire abandoned import staging lease", marker, error);
+        }
+        bool recognized = false;
+        if ((error = candidate.lease.readHeader (candidate.header, recognized)))
+        {
+            if (error == std::errc::invalid_argument) continue;
+            return fileError ("cannot read abandoned import staging header", marker, error);
+        }
+        if (! recognized || candidate.header.jobId != name.substr (8)
+            || ! candidate.header.root.sameIdentity (rootIdentity) || ! candidate.header.audio.sameIdentity (audioIdentity)
+            || ! candidate.header.job.sameIdentity (candidate.jobIdentity)
+            || ! candidate.header.marker.sameIdentity (candidate.lease.identity()))
+            continue;
+        if (const auto binding = candidate.lease.validateMarker (marker))
+        {
+            if (unprovenImportEntry (binding) || binding == std::errc::state_not_recoverable) continue;
+            return fileError ("cannot validate abandoned import staging marker", marker, binding);
+        }
+        std::vector<ImportItemReceipt> receipts;
+        bool malformed = false;
+        while (true)
+        {
+            std::string line;
+            bool complete = false;
+            if ((error = candidate.lease.readLine (line, complete)))
+            {
+                if (error == std::errc::invalid_argument) { malformed = true; break; }
+                return fileError ("cannot read abandoned import item receipts", marker, error);
+            }
+            if (! complete)
+            {
+                malformed = ! line.empty();
+                break;
+            }
+            ImportItemReceipt receipt;
+            if (! parseReceipt (line, receipt)) { malformed = true; break; }
+            receipts.push_back (std::move (receipt));
+        }
+        bool removed = false;
+        for (const auto& receipt : receipts)
+        {
+            if (auto result = candidate.validate(); ! result.ok())
+                return result;
+            const auto file = candidate.job / receipt.name;
+            FileFingerprint current;
+            if ((error = fingerprint (file, current)))
+            {
+                if (unprovenImportEntry (error)) continue;
+                return fileError ("cannot identify receipted import snapshot", file, error);
+            }
+            if (current.directory || ! current.sameIdentity (receipt.identity))
+                continue;
+            if (! std::filesystem::remove (file, error) || error)
+                return fileError ("cannot remove abandoned import snapshot", file, error);
+            removed = true;
+        }
+        if (removed)
+            if (auto result = detail::flushDirectoryToDisk (candidate.job); ! result.ok())
+                return result;
+        if (! malformed)
+            if (auto result = candidate.retireIfEmpty(); ! result.ok())
+                return result;
+    }
+    return error ? fileError ("cannot inspect abandoned import staging", audio, error) : detail::ok();
+}
+
+} // namespace prepared_asset_detail
+
+class PreparedAssetImport;
+class AssetImportStaging;
+
+// Workers decode this staged snapshot, then complete its original Asset shape without another copy/hash.
+class StagedAssetImport final
+{
+public:
+    StagedAssetImport() = default;
+    StagedAssetImport (StagedAssetImport&&) noexcept = default;
+    StagedAssetImport& operator= (StagedAssetImport&&) noexcept = default;
+    StagedAssetImport (const StagedAssetImport&) = delete;
+    StagedAssetImport& operator= (const StagedAssetImport&) = delete;
+
+    [[nodiscard]] const std::filesystem::path& snapshotPath() const { return state_->path; }
+    [[nodiscard]] const std::filesystem::path& originalFilename() const { return state_->originalFilename; }
+    [[nodiscard]] BundleResult complete (engine::EntityId id, std::uint64_t frames, engine::SampleRate rate,
+                                         std::uint16_t channels, PreparedAssetImport& out) &&;
+private:
+    friend class AssetImportStaging;
+    std::unique_ptr<prepared_asset_detail::StagedAsset> state_;
+};
+
+class PreparedAssetImport final
+{
+public:
+    PreparedAssetImport() = default;
+    PreparedAssetImport (PreparedAssetImport&&) noexcept = default;
+    PreparedAssetImport& operator= (PreparedAssetImport&&) noexcept = default;
+    PreparedAssetImport (const PreparedAssetImport&) = delete;
+    PreparedAssetImport& operator= (const PreparedAssetImport&) = delete;
+
+    [[nodiscard]] const engine::Asset& asset() const { return state_->asset; }
+    [[nodiscard]] const std::filesystem::path& originalFilename() const { return state_->originalFilename; }
+private:
+    friend class StagedAssetImport;
+    friend class ProjectBundleDb;
+    std::unique_ptr<prepared_asset_detail::StagedAsset> state_;
+};
+
+inline BundleResult StagedAssetImport::complete (engine::EntityId id, std::uint64_t frames, engine::SampleRate rate,
+                                                std::uint16_t channels, PreparedAssetImport& out) &&
+{
+    if (! state_ || ! id.isValid() || frames == 0 || ! detail::fitsSqliteInteger (frames)
+        || ! rate.isValid() || channels == 0)
+        return detail::semanticInvalid ("prepared Asset metadata violates ADR-0011");
+    state_->asset.id = id;
+    state_->asset.frames = frames;
+    state_->asset.sampleRate = rate;
+    state_->asset.channels = channels;
+    out.state_ = std::move (state_);
+    return detail::ok();
+}
+
+// One flat, uniquely named directory per future import job, on the destination bundle's filesystem.
+// This worker-owned object and its snapshots contain no database handle.
+class AssetImportStaging final
+{
+public:
+    AssetImportStaging() = default;
+    AssetImportStaging (AssetImportStaging&&) noexcept = default;
+    AssetImportStaging& operator= (AssetImportStaging&&) noexcept = default;
+    AssetImportStaging (const AssetImportStaging&) = delete;
+    AssetImportStaging& operator= (const AssetImportStaging&) = delete;
+
+    [[nodiscard]] static BundleResult create (const std::filesystem::path& bundle, engine::EntityId stageId,
+                                               AssetImportStaging& out)
+    {
+        using namespace prepared_asset_detail;
+        if (! stageId.isValid())
+            return detail::semanticInvalid ("import staging ID must be valid");
+        auto state = std::make_shared<ImportDirectory>();
+        std::error_code error;
+        state->root = std::filesystem::canonical (bundle, error);
+        if (error)
+            return fileError ("cannot resolve import destination bundle", bundle, error);
+        state->audio = state->root / "audio";
+        state->job = state->audio / (".import-" + detail::hexBytes (stageId.bytes));
+        if ((error = fingerprint (state->root, state->rootIdentity)) || ! state->rootIdentity.directory)
+            return fileError ("cannot identify import destination bundle", state->root, error);
+        if ((error = fingerprint (state->audio, state->audioIdentity)) || ! state->audioIdentity.directory)
+            return fileError ("cannot identify import destination audio directory", state->audio, error);
+        if (! std::filesystem::create_directory (state->job, error))
+            return fileError ("import staging ID is unavailable", state->job, error);
+        if ((error = fingerprint (state->job, state->jobIdentity)))
+            return fileError ("cannot identify import job directory", state->job, error);
+        if (auto result = state->validateDirectories(); ! result.ok())
+            return result;
+        bool busy = false;
+        const auto marker = state->job / kImportLeaseFilename;
+        if ((error = state->lease.open (marker, true, busy)))
+            return fileError ("cannot acquire import staging lease; filesystem locking support is required", marker, error);
+        state->header = { detail::hexBytes (stageId.bytes), state->rootIdentity, state->audioIdentity,
+                          state->jobIdentity, state->lease.identity() };
+        if ((error = state->lease.write (serializeHeader (state->header))))
+            return fileError ("cannot flush import staging lease header", marker, error);
+        if (auto result = detail::flushDirectoryToDisk (state->job); ! result.ok())
+            return result;
+        if (auto result = detail::flushDirectoryToDisk (state->audio); ! result.ok())
+            return result;
+        state->privateDirectoryOwner = true;
+        if (auto result = state->validate(); ! result.ok())
+            return result;
+        out.directory_ = std::move (state);
+        return detail::ok();
+    }
+
+    [[nodiscard]] BundleResult stageSource (const std::filesystem::path& source, std::uint64_t item,
+                                            StagedAssetImport& out) const
+    {
+        using namespace prepared_asset_detail;
+        if (! directory_)
+            return detail::semanticInvalid ("import staging is not initialized");
+        if (auto result = directory_->validate(); ! result.ok())
+            return result;
+        auto state = std::make_unique<StagedAsset>();
+        state->directory = directory_;
+        state->originalFilename = source.filename();
+        state->path = directory_->job / (std::filesystem::path ("item-" + std::to_string (item)) += source.extension());
+        if (auto result = copyIntoPrivateFile (source, *state); ! result.ok())
+            return result;
+        FileFingerprint hashed;
+        if (auto result = verifiedFingerprint (state->path, state->asset.contentHash, hashed); ! result.ok())
+            return result;
+        if (! hashed.sameIdentity (state->stagedFingerprint))
+            return fileError ("import staging file was replaced during preparation", state->path);
+        state->stagedFingerprint = hashed;
+        const auto canonical = storedAssetPathForHash (directory_->root, state->asset.contentHash);
+        std::error_code error;
+        const auto status = std::filesystem::symlink_status (canonical, error);
+        if (error && error != std::errc::no_such_file_or_directory)
+            return fileError ("cannot inspect canonical Asset", canonical, error);
+        if (std::filesystem::exists (status))
+        {
+            FileFingerprint proof;
+            engine::AssetContentHash canonicalHash;
+            if (auto result = verifiedFingerprint (canonical, canonicalHash, proof); ! result.ok())
+                return result;
+            if (canonicalHash != state->asset.contentHash)
+                return { BundleStatus::IntegrityFailed, SQLITE_CORRUPT, kCodeSchemaVersion, "canonical Asset bytes do not match import hash" };
+            state->canonicalFingerprint = proof;
+        }
+        if (auto result = directory_->validate(); ! result.ok())
+            return result;
+        if (auto result = detail::flushDirectoryToDisk (directory_->job); ! result.ok())
+            return result;
+        out.state_ = std::move (state);
+        return detail::ok();
+    }
+private:
+    std::shared_ptr<prepared_asset_detail::ImportDirectory> directory_;
+};
+
 // ADR-0068 §5: whether a snapshot write also clears the bundle's unresolved recovery question - a Restore answers it, and
 // a copy has no autosave for it to name.
 enum class UnresolvedSnapshotStamp : std::uint8_t
@@ -2310,6 +2860,152 @@ public:
         }
 
         out = imported;
+        return detail::ok();
+    }
+
+    // ADR-0080: owner-thread adoption consumes worker-verified bytes without copying, hashing or decoding them.
+    [[nodiscard]] BundleResult adoptPreparedAsset (PreparedAssetImport&& prepared, engine::Asset& out)
+    {
+        using namespace prepared_asset_detail;
+        if (! prepared.state_ || prepared.state_->ownership != StagingOwnership::Private)
+            return detail::semanticInvalid ("prepared Asset handoff is empty or no longer privately owned");
+        auto& staged = *prepared.state_;
+        const auto finalPath = storedAssetPathForHash (staged.directory->root, staged.asset.contentHash);
+        const auto validate = [&]() -> BundleResult {
+            std::error_code error;
+            if (std::filesystem::canonical (bundlePath_, error) != staged.directory->root || error)
+                return fileError ("prepared Asset belongs to another destination bundle", bundlePath_, error);
+            if (auto result = staged.directory->validate(); ! result.ok())
+                return result;
+            FileFingerprint current;
+            if ((error = fingerprint (staged.path, current)) || current != staged.stagedFingerprint)
+                return fileError ("prepared staging bytes changed; worker revalidation required", staged.path, error);
+            if (staged.canonicalFingerprint)
+            {
+                if ((error = fingerprint (finalPath, current)) || current != *staged.canonicalFingerprint)
+                    return fileError ("canonical Asset proof is stale; worker revalidation required", finalPath, error);
+            }
+            else
+            {
+                const auto status = std::filesystem::symlink_status (finalPath, error);
+                if (error && error != std::errc::no_such_file_or_directory)
+                    return fileError ("cannot inspect canonical Asset", finalPath, error);
+                if (std::filesystem::exists (status))
+                    return fileError ("canonical Asset appeared after preparation; worker revalidation required", finalPath);
+            }
+            return detail::ok();
+        };
+        if (auto result = validate(); ! result.ok())
+            return result;
+
+        engine::Asset existing;
+        std::string existingRelativePath;
+        bool foundExisting = false;
+        if (auto result = findAssetByContentHash (staged.asset.contentHash, existing, existingRelativePath, foundExisting); ! result.ok())
+            return result;
+        if (foundExisting)
+        {
+            if (existing.frames != staged.asset.frames || existing.sampleRate != staged.asset.sampleRate
+                || existing.channels != staged.asset.channels)
+                return detail::semanticInvalid ("duplicate content hash has conflicting Asset metadata");
+            if (existingRelativePath != detail::assetRelativePathForHash (existing.contentHash))
+                return detail::semanticInvalid ("duplicate content hash points at a non-canonical Asset path");
+            if (! staged.canonicalFingerprint)
+                return fileError ("canonical duplicate requires worker revalidation", finalPath);
+            out = existing;
+            prepared.state_.reset();
+            return detail::ok();
+        }
+
+        if (sqlite3_get_autocommit (db_) == 0)
+            return detail::semanticInvalid ("prepared Asset adoption requires its own SQLite transactions");
+        sqlite3_int64 priorSynchronous = 0;
+        if (auto result = detail::queryInt64 (db_, "PRAGMA synchronous;", priorSynchronous); ! result.ok())
+            return result;
+        // Legacy connections retain NORMAL (ADR-0012). Only this seam needs every intent/cleanup commit on disk
+        // before changing ownership, so FULL is temporary and restored outside every transaction, including errors.
+        if (auto result = detail::exec (db_, "PRAGMA synchronous=FULL;"); ! result.ok())
+            return result;
+        const auto rollback = [&](BundleResult failure) {
+            if (sqlite3_get_autocommit (db_) == 0)
+                if (auto result = detail::exec (db_, "ROLLBACK;"); ! result.ok())
+                    failure.message += "; SQLite rollback failed: " + result.message;
+            return failure;
+        };
+        engine::Asset imported;
+        const auto apply = [&]() -> BundleResult {
+            const auto tempRelative = staged.path.lexically_relative (staged.directory->root).generic_string();
+            const auto finalRelative = detail::assetRelativePathForHash (staged.asset.contentHash);
+            const PendingFsOp op { PendingFsOpKind::StageAsset, tempRelative, finalRelative, staged.asset.contentHash };
+            sqlite3_int64 pendingRowId = 0;
+            if (auto result = detail::exec (db_, "BEGIN IMMEDIATE;"); ! result.ok())
+                return result;
+            if (auto result = recordPendingFsOp (op, pendingRowId); ! result.ok())
+                return rollback (result);
+            if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
+                return rollback (result);
+            staged.ownership = StagingOwnership::Journal;
+
+            const auto abandonTransfer = [&](BundleResult failure) -> BundleResult {
+                auto cleanup = detail::exec (db_, "BEGIN IMMEDIATE;");
+                if (cleanup.ok())
+                    cleanup = deletePendingFsOp (pendingRowId);
+                if (cleanup.ok())
+                    cleanup = detail::exec (db_, "COMMIT;");
+                if (! cleanup.ok())
+                {
+                    cleanup = rollback (cleanup);
+                    failure.message += "; StageAsset intent cleanup failed; staging remains journal-owned: " + cleanup.message;
+                    return failure;
+                }
+                staged.ownership = StagingOwnership::Private;
+                return failure;
+            };
+            if (auto result = validate(); ! result.ok())
+                return abandonTransfer (result);
+            if (! staged.canonicalFingerprint)
+            {
+                if (const auto error = transferNoReplace (staged.path, finalPath))
+                    return abandonTransfer (fileError ("same-filesystem no-overwrite Asset transfer refused", finalPath, error));
+                staged.ownership = StagingOwnership::Canonical;
+                if (auto result = detail::flushDirectoryToDisk (staged.directory->job); ! result.ok())
+                    return result;
+            }
+            if (auto result = detail::flushFileToDisk (finalPath); ! result.ok())
+                return result;
+            if (auto result = detail::flushDirectoryToDisk (finalPath.parent_path()); ! result.ok())
+                return result;
+            if (auto result = detail::exec (db_, "BEGIN IMMEDIATE;"); ! result.ok())
+                return result;
+            if (auto result = insertAssetRow (staged.asset, finalRelative); ! result.ok())
+                return rollback (result);
+            if (auto result = markPendingFsOpCommitted (pendingRowId); ! result.ok())
+                return rollback (result);
+            if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
+                return rollback (result);
+            imported = staged.asset;
+            // A verified pre-existing canonical file did not consume the private snapshot.
+            if (staged.canonicalFingerprint)
+                staged.ownership = StagingOwnership::Private;
+            return detail::ok();
+        };
+        auto result = apply();
+        if (sqlite3_get_autocommit (db_) == 0)
+        {
+            result = rollback (result);
+            if (sqlite3_get_autocommit (db_) == 0)
+                return { BundleStatus::SqliteError, SQLITE_ERROR, 0, result.message + "; synchronous setting cannot be restored while rollback is incomplete" };
+        }
+        if (auto restored = detail::exec (db_, "PRAGMA synchronous=" + std::to_string (priorSynchronous) + ";"); ! restored.ok())
+        {
+            restored.message = (result.ok() ? "Asset committed; " : result.message + "; ")
+                             + std::string ("restoring SQLite synchronous setting failed: ") + restored.message;
+            return restored;
+        }
+        if (! result.ok())
+            return result;
+        out = imported;
+        prepared.state_.reset();
         return detail::ok();
     }
 
@@ -4771,6 +5467,12 @@ private:
             }
         }
 
+        // Preflight every new staging intent before mutating any pending path. A second connection must not
+        // reconcile an adopter's durable-intent / Asset-row gap while that adopter still holds its lease.
+        for (const PendingRow& row : pending)
+            if (auto result = prepared_asset_detail::checkImportIntentLease (bundlePath_, row.tempRelativePath); ! result.ok())
+                return result;
+
         for (const PendingRow& row : pending)
         {
             std::filesystem::path tempPath;
@@ -4840,14 +5542,29 @@ private:
 
     [[nodiscard]] BundleResult reconcileBundleFilesystem()
     {
-        std::vector<StoredAssetFile> assets;
-        if (auto result = loadStoredAssetFiles (assets); ! result.ok())
+        // Hold the write reservation from the assets/pending snapshot through the final sweep. Otherwise an
+        // adopter could commit a new intent/row after our snapshot and have its canonical file swept as stale.
+        if (auto result = detail::exec (db_, "BEGIN IMMEDIATE;"); ! result.ok())
             return result;
-        if (auto result = verifyStoredAssetFiles (assets); ! result.ok())
-            return result;
-        if (auto result = reconcilePendingFsOps (assets); ! result.ok())
-            return result;
-        return sweepOrphanAssetFiles (assets);
+        const auto reconcile = [&]() -> BundleResult {
+            std::vector<StoredAssetFile> assets;
+            if (auto result = loadStoredAssetFiles (assets); ! result.ok())
+                return result;
+            if (auto result = verifyStoredAssetFiles (assets); ! result.ok())
+                return result;
+            if (auto result = reconcilePendingFsOps (assets); ! result.ok())
+                return result;
+            if (auto result = prepared_asset_detail::reclaimAbandonedImportStaging (bundlePath_); ! result.ok())
+                return result;
+            return sweepOrphanAssetFiles (assets);
+        };
+        auto result = reconcile();
+        if (result.ok())
+            result = detail::exec (db_, "COMMIT;");
+        if (! result.ok() && sqlite3_get_autocommit (db_) == 0)
+            if (auto rolledBack = detail::exec (db_, "ROLLBACK;"); ! rolledBack.ok())
+                result.message += "; filesystem reconciliation rollback failed: " + rolledBack.message;
+        return result;
     }
 
     [[nodiscard]] BundleResult validateFiniteReals() const

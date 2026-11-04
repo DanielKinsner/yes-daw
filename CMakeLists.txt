@@ -782,9 +782,15 @@ yesdaw_harden(YesDawProjectCheck)
 catch_discover_tests(YesDawProjectCheck)
 
 # --- Persistence check (H1; SQLite .yesdaw bundle schema/migrations/intent log — ADR-0012) ---
+add_executable(YesDawImportStagingCrashHelper tests/import_staging_crash_helper.cpp)
+target_include_directories(YesDawImportStagingCrashHelper PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawImportStagingCrashHelper PRIVATE sqlite3_amalgamation)
+yesdaw_harden(YesDawImportStagingCrashHelper)
 add_executable(YesDawPersistenceCheck tests/persistence_tests.cpp tests/autosave_cloud_tests.cpp)
+add_dependencies(YesDawPersistenceCheck YesDawImportStagingCrashHelper)
 target_include_directories(YesDawPersistenceCheck PRIVATE ${YESDAW_SRC_DIR})
 target_compile_definitions(YesDawPersistenceCheck PRIVATE
+  YESDAW_IMPORT_STAGING_CRASH_HELPER_PATH="$<TARGET_FILE:YesDawImportStagingCrashHelper>"
   YESDAW_AUTOMATION_SCHEMA_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/h15_cp1_automation_schema_v8.yesdaw")
 target_link_libraries(YesDawPersistenceCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
 yesdaw_harden(YesDawPersistenceCheck)
