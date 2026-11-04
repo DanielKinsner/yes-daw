@@ -48,8 +48,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
-   The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Next:
-   use the full map for click/count-in, then native editing boundaries and MIDI interchange. Checked fractional
+   The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. The full-map metronome is delivered.
+   Next: captured-map count-in, then native editing boundaries and MIDI interchange. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -70,6 +70,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — Full-map metronome
+
+Normal playback and shuttle now use the current Project's full Tempo/Meter maps at the engine's Project rate: rational beat origins, downbeat coalescing and absolute seek/loop tails. The immutable index is built on Control; Audio uses borrowed data and stack-only bounded search. Export remains free of the monitoring click.
+Runtime RED reproduced two rational-floor defects (2/16 assertions) and a rounded-prefix join-order defect (1/6). Local arithmetic certification, possible/definite search and derived join ambiguity ranges repair or precisely refuse them without truncating later exact onsets. Focused correctness 502,745/32, model/preserved count-in 647/5 and unchanged stress timing 22/22 passed after a retained failed timing candidate and measured comparison optimization. Compiled prefix/log anchors retain their accepted binary64 scope; no true-real logarithm/prefix enclosure or universal deadline claim.
+Both independent clock and real-time/lifetime critics accepted the final five hashes. Fresh canonical integration passed pure 459/459 (97.70 s), three GUI targets compiled without launch, three Clang units, audited offscreen UI 502/459,884 and screenshots 30/15,629; final HEAD/five-hash/six-path guards passed. Original proof contents, Time.h, old RT annotations and count-in bodies remain protected.
+Cleanup CI 41839501609 passed all ten latest jobs after its Linux cache-service 503 rerun; the original failure is retained. This metronome head's CI remains pending. Next: captured-map count-in boundary, tail and one-shot completion across engine replacement. All local execution stayed headless; no native interaction, device or hardware certification.
 
 ## 2026-11-04 — Clock foundation simplified and checked
 

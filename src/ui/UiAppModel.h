@@ -471,9 +471,13 @@ public:
         }
         return snapshot;
     }
-    void refreshTransportSnapshot() noexcept
+    void refreshTransportSnapshot()
     {
         syncContextFromPlayback();
+        const auto status = playback_ != nullptr ? playback_->metronomeLookupStatus() : engine::TimeLookupStatus::Ok;
+        if (status != engine::TimeLookupStatus::Ok && status != observedMetronomeFailure_)
+            reportStatus ("Metronome unavailable: musical timing lookup failed", true);
+        observedMetronomeFailure_ = status;
     }
 
     // ADR-0053: the live loudness readout. The UI tick drains the engines' tap into the streaming meter here, on
@@ -9191,6 +9195,12 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
+        if (! context_.metronomeEnabled && playback_ != nullptr
+            && playback_->metronomePreparationStatus() != engine::TimeLookupStatus::Ok)
+        {
+            reportStatus ("Metronome unavailable: musical timing cannot be represented", true);
+            return { id, { false, "metronome timing preparation failed" }, false };
+        }
         context_.metronomeEnabled = ! context_.metronomeEnabled;
         applyMetronomeToPlayback();
         ++context_.commandDispatchCount;
@@ -10545,7 +10555,7 @@ public:
             // a real transport rendering exact silence — the same fallback adoptEditedProject uses
             // when a live edit empties the timeline, so a user who deletes their last Clip never
             // ends up with a bundle that refuses to reopen.
-            loadedEngine = engine::PlaybackEngine::createTransportOnly (loadedProject.sampleRate,
+            loadedEngine = engine::PlaybackEngine::createTransportOnly (loadedProject,
                                                                          playbackMaxBlockSize_);
         }
 
@@ -12629,7 +12639,7 @@ private:
         {
             // ADR-0041: an edit that empties the timeline (deleting the last Clip) still leaves the
             // Project with a real transport rendering exact silence.
-            nextEngine = engine::PlaybackEngine::createTransportOnly (nextProject.sampleRate,
+            nextEngine = engine::PlaybackEngine::createTransportOnly (nextProject,
                                                                       playbackMaxBlockSize_);
         }
 
@@ -12688,7 +12698,7 @@ private:
         project_ = std::move (nextProject);
         undo_ = std::move (nextUndo);
         std::unique_ptr<engine::PlaybackEngine> transport =
-            engine::PlaybackEngine::createTransportOnly (project_.sampleRate, playbackMaxBlockSize_);
+            engine::PlaybackEngine::createTransportOnly (project_, playbackMaxBlockSize_);
         if (transport != nullptr)
         {
             (void) transport->stop();
@@ -12820,7 +12830,7 @@ private:
         if (built.ok())
             nextEngine = std::move (built.engine);
         else if (built.status == engine::OfflineRenderStatus::EmptyTimeline)
-            nextEngine = engine::PlaybackEngine::createTransportOnly (project_.sampleRate,
+            nextEngine = engine::PlaybackEngine::createTransportOnly (project_,
                                                                       playbackMaxBlockSize_);
         if (nextEngine == nullptr)
             return false;
@@ -13975,7 +13985,7 @@ private:
         pruneRateMatchedViews();
         decodedAssetViews_.clear();
         std::unique_ptr<engine::PlaybackEngine> transport =
-            engine::PlaybackEngine::createTransportOnly (project_.sampleRate, playbackMaxBlockSize_);
+            engine::PlaybackEngine::createTransportOnly (project_, playbackMaxBlockSize_);
         if (transport != nullptr)
         {
             (void) transport->stop();
@@ -14907,6 +14917,7 @@ private:
         playback_ = std::move (replacement);
         liveMidiNoteBounds_.clear();
         observedMidiScheduleRejects_ = 0;
+        observedMetronomeFailure_ = engine::TimeLookupStatus::Ok;
         applyMetronomeToPlayback();
         audioPlayback_.store (playback_.get(), std::memory_order_release);
         if (retired != nullptr)
@@ -14915,20 +14926,14 @@ private:
         reclaimRetiredAudioObjects();
     }
 
-    void applyMetronomeToPlayback (bool forceEnabled = false) noexcept
+    void applyMetronomeToPlayback (bool forceEnabled = false)
     {
         if (playback_ == nullptr)
             return;
 
-        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
-        const int beatsPerBar = ! project_.meterMap.empty()
-            ? static_cast<int> (project_.meterMap.front().numerator)
-            : 4;
-        const int beatDenominator = ! project_.meterMap.empty()
-            ? static_cast<int> (project_.meterMap.front().denominator)
-            : 4;
-        playback_->setMetronome (
-            forceEnabled || context_.metronomeEnabled, bpm, beatsPerBar, beatDenominator);
+        if (playback_->setMetronomeEnabled (forceEnabled || context_.metronomeEnabled)
+            != engine::TimeLookupStatus::Ok)
+            reportStatus ("Metronome unavailable: musical timing cannot be represented", true);
     }
 
     static void zeroAudioOutputs (float* const* outputChannels,
@@ -15035,6 +15040,7 @@ private:
     UiRecordedMidiTake pendingMidiPlacement_;
     UiRecordingCompSelection recordingCompSelection_;
     std::int64_t recordCountInEndFrame_ = 0;
+    engine::TimeLookupStatus observedMetronomeFailure_ = engine::TimeLookupStatus::Ok;
     bool deterministicRecordCountInPending_ = false;
     UiAutosaveRecoveryPrompt autosaveRecovery_;
     engine::Project autosaveRecoveryProject_;   // the asking autosave, as the question read it (names a refused asset)

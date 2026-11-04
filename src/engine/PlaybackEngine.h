@@ -9,6 +9,7 @@
 
 #include "engine/LoudnessTap.h"   // ADR-0053
 #include "engine/MidiInputQueue.h"   // G3.10
+#include "engine/MusicalClick.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/ProjectMixerProjection.h"
 #include "engine/Recording.h"
@@ -73,7 +74,9 @@ public:
         }
 
         std::unique_ptr<PlaybackEngine> engine (
-            new PlaybackEngine (built.sampleRate, built.channels, built.frames, built.maxBlockSize));
+            new PlaybackEngine (built.sampleRate, built.channels, built.frames, built.maxBlockSize,
+                                { project.tempoMap.data(), project.tempoMap.size() },
+                                { project.meterMap.data(), project.meterMap.size() }));
         engine->copiedAssets_ = built.copiedAssets;   // ADR-0059
         engine->midiInput_ = options.midiInput;   // G3.10: the device lane this engine's audio thread drains
         engine->loudnessTap_ = options.loudnessTap;   // ADR-0053: the model's live loudness ring (shared across engines)
@@ -145,14 +148,16 @@ public:
 
     // CONTROL THREAD: a loaded Project has a real transport before it has media. The empty Runtime is the
     // canonical silence path, so no hidden Asset/Clip/Node is needed and the audio callback stays identical.
-    [[nodiscard]] static std::unique_ptr<PlaybackEngine> createTransportOnly (SampleRate sampleRate,
+    [[nodiscard]] static std::unique_ptr<PlaybackEngine> createTransportOnly (const Project& project,
                                                                               int maxBlockSize)
     {
-        if (! sampleRate.isValid() || maxBlockSize <= 0)
+        if (! project.sampleRate.isValid() || maxBlockSize <= 0)
             return nullptr;
 
         return std::unique_ptr<PlaybackEngine> (
-            new PlaybackEngine (sampleRate, 2u, 0u, maxBlockSize));
+            new PlaybackEngine (project.sampleRate, 2u, 0u, maxBlockSize,
+                                { project.tempoMap.data(), project.tempoMap.size() },
+                                { project.meterMap.data(), project.meterMap.size() }));
     }
 
     PlaybackEngine (const PlaybackEngine&)            = delete;
@@ -327,29 +332,30 @@ public:
             TransportCommand { TransportCommandType::SetPlaybackRate, static_cast<std::int64_t> (rate) });
     }
 
-    // CONTROL THREAD: metronome click overlay (usable-DAW P1). The click tables are precomputed at
-    // construction for this engine's sample rate; only the beat grid parameters travel through
-    // atomics, so the audio thread never allocates or computes trig. The click is a MONITORING
-    // overlay summed after the graph — offline Render/export never contains it. Head-tempo grid
-    // (constant BPM) is the alpha scope, matching the header tempo control.
-    void setMetronome (bool enabled, double bpm, int beatsPerBar, int beatDenominator) noexcept
+    // CONTROL THREAD: the immutable clock and click tables use this engine's timeline/sample
+    // rate. Toggle only an atomic flag; a failed clock never prevents the graph from playing.
+    [[nodiscard]] TimeLookupStatus setMetronomeEnabled (bool enabled) noexcept
     {
-        const double sampleRateHz = sampleRate_.isValid() ? sampleRate_.hz : 48000.0;
-        const double clampedBpm = std::isfinite (bpm) ? std::clamp (bpm, 20.0, 400.0) : 120.0;
-        const double beatScale = 4.0 / static_cast<double> (std::clamp (beatDenominator, 1, 64));
-        const std::int64_t framesPerBeat =
-            std::max<std::int64_t> (
-                1,
-                static_cast<std::int64_t> (sampleRateHz * 60.0 / clampedBpm * beatScale + 0.5));
-        metronomeFramesPerBeat_.store (framesPerBeat, std::memory_order_relaxed);
-        metronomeBeatsPerBar_.store (std::clamp (beatsPerBar, 1, 32), std::memory_order_relaxed);
+        if (enabled && metronomePreparationStatus_ != TimeLookupStatus::Ok)
+            return metronomePreparationStatus_;
+        metronomeLookupStatus_.store (TimeLookupStatus::Ok, std::memory_order_relaxed);
         metronomeEnabled_.store (enabled, std::memory_order_release);
+        return TimeLookupStatus::Ok;
     }
 
     [[nodiscard]] bool metronomeEnabled() const noexcept
     {
         return metronomeEnabled_.load (std::memory_order_acquire);
     }
+
+    [[nodiscard]] TimeLookupStatus metronomePreparationStatus() const noexcept { return metronomePreparationStatus_; }
+    [[nodiscard]] TimeLookupStatus metronomeLookupStatus() const noexcept
+    {
+        return metronomeLookupStatus_.load (std::memory_order_acquire);
+    }
+    // CONTROL THREAD: a future captured count-in can retain this accepted clock independently
+    // of an engine replacement. Audio reads only get(); ownership is reclaimed off Audio.
+    [[nodiscard]] std::shared_ptr<const MusicalClickMap> metronomeClock() const noexcept { return metronomeClock_; }
 
     [[nodiscard]] RecordingCaptureResult captureRecordingInputBlock (
         RecordingChunkFifo& fifo,
@@ -486,7 +492,8 @@ private:
     static_assert (std::is_trivially_copyable_v<TransportCommand>,
                    "TransportCommand must pass through the SPSC queue losslessly");
 
-    PlaybackEngine (SampleRate sampleRate, std::uint16_t channels, std::uint64_t frames, int maxBlockSize)
+    PlaybackEngine (SampleRate sampleRate, std::uint16_t channels, std::uint64_t frames, int maxBlockSize,
+                    TempoMapView tempo, MeterMapView meter)
         : sampleRate_ (sampleRate),
           channels_ (channels),
           frames_ (frames),
@@ -499,6 +506,10 @@ private:
         transportCommands_.reset (kTransportCommandCapacity);
         liveEvents_.reset (kLiveEventCapacity);
         buildMetronomeClickTables();
+        auto clock = std::make_shared<MusicalClickMap>();
+        metronomePreparationStatus_ = MusicalClickMap::build (tempo, meter, sampleRate_, *clock);
+        if (metronomePreparationStatus_ == TimeLookupStatus::Ok)
+            metronomeClock_ = std::move (clock);
     }
 
     // CONTROL THREAD (constructor): two short decaying sine bursts — beat and accented downbeat. The
@@ -522,7 +533,8 @@ private:
         }
     }
 
-    // AUDIO THREAD: overlay clicks onto the rendered segment. Integer beat-grid math per frame only.
+    // AUDIO THREAD: enumerate distinct onset Frames, including preceding five-millisecond
+    // tails after a seek. Per-output-sample work is only precomputed-table reads and summing.
     void overlayMetronome (float* const* outChannels,
                            int numOutputChannels,
                            int blockOffset,
@@ -533,28 +545,34 @@ private:
             || outChannels == nullptr || numOutputChannels <= 0)
             return;
 
-        const std::int64_t framesPerBeat = metronomeFramesPerBeat_.load (std::memory_order_relaxed);
-        const std::int64_t beatsPerBar =
-            std::max<std::int64_t> (1, metronomeBeatsPerBar_.load (std::memory_order_relaxed));
-        if (framesPerBeat <= 0 || metronomeBeatClick_.empty())
+        const auto* const clock = metronomeClock_.get();
+        if (clock == nullptr || metronomeBeatClick_.empty())
             return;
 
         const std::int64_t clickFrames = static_cast<std::int64_t> (metronomeBeatClick_.size());
-        for (int i = 0; i < segmentFrames; ++i)
+        const auto endFrame = segmentStartFrame + static_cast<std::int64_t> (segmentFrames);
+        const auto firstFrame = std::max<std::int64_t> (0, segmentStartFrame - (clickFrames - 1));
+        auto window = clock->onsetsInRange (firstFrame, endFrame);
+        for (;;)
         {
-            const std::int64_t timelineFrame = segmentStartFrame + static_cast<std::int64_t> (i);
-            const std::int64_t phase = timelineFrame % framesPerBeat;
-            if (phase >= clickFrames)
-                continue;
-
-            const std::int64_t beatIndex = timelineFrame / framesPerBeat;
-            const float click = (beatIndex % beatsPerBar) == 0
-                ? metronomeDownbeatClick_[static_cast<std::size_t> (phase)]
-                : metronomeBeatClick_[static_cast<std::size_t> (phase)];
-
+            const auto onset = window.next();
+            if (onset.status != TimeLookupStatus::Ok)
+            {
+                metronomeLookupStatus_.store (onset.status, std::memory_order_release);
+                return;
+            }
+            if (! onset.found || onset.frame >= endFrame)
+                return;
+            const auto outputStart = std::max<std::int64_t> (0, onset.frame - segmentStartFrame);
+            const auto clickStart = std::max<std::int64_t> (0, segmentStartFrame - onset.frame);
+            const auto length = std::min<std::int64_t> (clickFrames - clickStart,
+                                                       segmentFrames - outputStart);
+            const auto& table = onset.downbeat ? metronomeDownbeatClick_ : metronomeBeatClick_;
             for (int channel = 0; channel < numOutputChannels; ++channel)
                 if (outChannels[channel] != nullptr)
-                    outChannels[channel][blockOffset + i] += click;
+                    for (std::int64_t i = 0; i < length; ++i)
+                        outChannels[channel][blockOffset + static_cast<int> (outputStart + i)]
+                            += table[static_cast<std::size_t> (clickStart + i)];
         }
     }
 
@@ -810,8 +828,9 @@ private:
     static constexpr double kMetronomeGain = 0.5;
 
     std::atomic<bool>          metronomeEnabled_ { false };
-    std::atomic<std::int64_t>  metronomeFramesPerBeat_ { 24000 };
-    std::atomic<std::int64_t>  metronomeBeatsPerBar_ { 4 };
+    std::shared_ptr<const MusicalClickMap> metronomeClock_; // immutable; Control owns/reclaims
+    TimeLookupStatus metronomePreparationStatus_ = TimeLookupStatus::InvalidMap;
+    std::atomic<TimeLookupStatus> metronomeLookupStatus_ { TimeLookupStatus::Ok };
     std::vector<float>         metronomeBeatClick_;
     std::vector<float>         metronomeDownbeatClick_;
 
@@ -838,6 +857,8 @@ private:
 
 static_assert (std::atomic<std::int64_t>::is_always_lock_free,
                "published transport frames must stay lock-free on the audio thread");
+static_assert (std::atomic<TimeLookupStatus>::is_always_lock_free,
+               "metronome lookup status must stay lock-free on the audio thread");
 static_assert (std::atomic<int>::is_always_lock_free,
                "published playback rate must stay lock-free on the audio thread");
 

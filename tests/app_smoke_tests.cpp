@@ -3183,3 +3183,99 @@ TEST_CASE ("G0.5 a burst of queued schedule posts is applied in order by the nex
             REQUIRE (live[i] == offline.interleavedSamples[i]);
     }
 }
+
+TEST_CASE ("current Project clocks reach the metronome through load and playback replacement", "[ui][app][musical-click]")
+{
+    const auto bundlePath = makeTempBundlePath ("musical-click-map");
+    Project project = makeSmokeProject();
+    project.tempoMap = { { 0, 120.0, yesdaw::engine::TempoCurve::LinearRamp },
+                         { 61440, 240.0, yesdaw::engine::TempoCurve::Jump } };
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+    {
+        UiAppModel app;
+        const UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+        REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+        REQUIRE (app.dispatch (UiActionId::TransportToggleMetronome).dispatched);
+        const auto peakAt = [&] (std::int64_t frame) {
+            REQUIRE (app.locatePlaybackFrame (frame));
+            REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+            const auto audio = app.renderPlaybackFrames (64, 7);
+            float peak = 0.0f;
+            for (const float sample : audio)
+                peak = std::max (peak, std::abs (sample));
+            return peak;
+        };
+        CHECK (peakAt (21421) > 0.1f);
+        CHECK (peakAt (24000) == 0.0f);
+        REQUIRE (app.addAudioTrack().dispatched);
+        CHECK (peakAt (21421) > 0.1f);
+        REQUIRE (app.locatePlaybackFrame (0));
+        REQUIRE (app.setProjectTempoBpm (60.0).dispatched);
+        // New ramp slope: F(1)=64000*log(1.75), independently floored.
+        CHECK (peakAt (35815) > 0.1f);
+        CHECK (peakAt (21421) == 0.0f);
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        CHECK (peakAt (21421) > 0.1f);
+    }
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("unrepresentable click preparation refuses enabling while SampleLocked audio remains playable", "[ui][app][musical-click]")
+{
+    const auto bundlePath = makeTempBundlePath ("musical-click-refusal");
+    Project project = makeSmokeProject();
+    project.tempoMap = { { 0, 1.0e-300, yesdaw::engine::TempoCurve::LinearRamp },
+        { yesdaw::engine::Tick { 1 } << 48, std::nextafter (1.0e-300, 1.0), yesdaw::engine::TempoCurve::Jump } };
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+    {
+        UiAppModel app;
+        const UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+        REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+        REQUIRE_FALSE (app.dispatch (UiActionId::TransportToggleMetronome).dispatched);
+        CHECK_FALSE (app.context().metronomeEnabled);
+        CHECK (app.statusLineIsError());
+        CHECK (app.statusLineText().starts_with ("Metronome unavailable:"));
+        REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+        const auto audio = app.renderPlaybackFrames (64, 7);
+        CHECK (std::any_of (audio.begin(), audio.end(), [] (float sample) { return sample != 0.0f; }));
+    }
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("runtime metronome domain refusals reach the existing status line", "[ui][app][musical-click]")
+{
+    const auto bundlePath = makeTempBundlePath ("musical-click-lookup-refusal");
+    Project project = makeSmokeProject();
+    project.tempoMap = { { 0, std::numeric_limits<double>::denorm_min(), yesdaw::engine::TempoCurve::Jump } };
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+        writeProjectAssetFiles (bundlePath, project);
+    }
+    {
+        UiAppModel app;
+        const UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+        REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+        REQUIRE (app.dispatch (UiActionId::TransportToggleMetronome).dispatched);
+        REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+        REQUIRE_FALSE (app.renderPlaybackFrames (64, 7).empty());
+        app.refreshTransportSnapshot();
+        CHECK (app.statusLineIsError());
+        CHECK (app.statusLineText() == "Metronome unavailable: musical timing lookup failed");
+    }
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
