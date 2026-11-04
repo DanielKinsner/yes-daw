@@ -46,8 +46,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    consistency, musical audio tempo-follow, linked Track editing/organization, then piano-roll reference notes.
    Done: addressed note release, bounded notes-only updates without replacing playback, selected-Clip background
    stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
-   model adoption. Next: reproduce/repair the reversed-Clip split issue from source review, then connect
-   chooser/Browser/drop/Sampler imports. App imports are still synchronous. The implementation
+   model adoption, plus reversed Split/Join/Strip Silence and natural cross-rate selected-split repairs.
+   Next: connect chooser/Browser/drop/Sampler imports. App imports are still synchronous. The implementation
    brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -60,12 +60,21 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Feel since the 1 Sept "laggy, half-working" verdict: Space is reliable, audio no longer restarts per action, a frame
   paints in about 3 ms, launch takes 1.1-1.4 s, and windows no longer freeze under dialogs. Measured on the
   recorded builds; Dan's personal feedback is optional.
-- The drives hear one audio glitch right after launch. The cause is unknown (parked since 1 Sept).
+- Historical launch xrun/output-glitch causality is unproved. The pinned Windows backend's reported counter
+  counts input-capture discontinuities, not output underruns; available headless evidence establishes no repair.
 - Unfinished or confusing (parked): the denser Logic-style layout, a dead "Export DAWproject" menu item, no MIDI input
   chooser, and a clock that can read "0:60.000".
-- Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus; SS3
-  failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
+- Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
+  from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-03 — Reversed audio keeps its order through editing
+
+Split preserves source adjacency and rendered temporal order; Join retains the lower-source identity and refuses mixed directions. Strip Silence uses the correct reversed fragments and absolute source endpoints. A linked Take refuses splitting before mutation, preserving its Take/Comp metadata.
+Reproduced split/caller/Take failures and forward/reversed cross-rate endpoint failures before their fixes. Focused proof: 680 assertions / 8 cases; existing Project edits: 5,281 / 13 cases; existing cross-rate checks: 48,181 / 9 cases. Original bytes, undo/redo, save/reopen and each resampler tier's retained PCM are checked.
+Canonical pure suite: 430/430 (82.11 s); app/harness compiled without launch; stock Clang: 24 clean units, new proof also checked separately. Independent engine/saved-data critic accepted the final hashes. No native window, input or device used.
+Natural cross-rate selected cuts reproject absolute Asset boundaries; an unrepresentable requested frame can quantize (2728 to 2727 in the fixture). This does not certify cross-rate range inclusion/quantization, No overlap, separately stretched PCM identity or arbitrary stored geometry.
+Next: actual chooser/Browser/drop/Sampler background-import wiring, then phase-measure final owner admission. New-head CI is pending; import-model CI 41775312219 is still running, including the macOS portability repairs.
 
 ## 2026-11-03 — Captured-target background import adoption
 

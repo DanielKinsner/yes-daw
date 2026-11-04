@@ -8520,9 +8520,34 @@ public:
             if (clip == nullptr || timelineTick <= clip->timelineStart)
                 return { id, { false, "split must be inside every selected clip" }, false };
 
-            const engine::Tick leftTimelineLength = timelineTick - clip->timelineStart;
-            const std::optional<std::uint64_t> leftSourceLength =
+            engine::Tick leftTimelineLength = timelineTick - clip->timelineStart;
+            std::optional<std::uint64_t> leftSourceLength =
                 sourceLengthForSplit (*clip, leftTimelineLength);
+            const double r = clipRateRatio (*clip);
+            if (r != 1.0 && clip->stretchFactor == 1.0f && clip->srcLen > 1u
+                && leftTimelineLength > 0 && leftTimelineLength < clip->timelineLength)
+            {
+                const auto sourceEnd = clip->srcOffset + clip->srcLen;
+                const auto viewStart = engine::viewFrameFor (clip->srcOffset, r);
+                const auto viewEnd = engine::viewFrameFor (sourceEnd, r);
+                if (clip->timelineLength == engine::timelineLengthForSource (clip->srcLen, r)
+                    || clip->timelineLength == static_cast<engine::Tick> (viewEnd - viewStart))
+                {
+                    // Natural cross-rate audio splits at an absolute Asset boundary. Mapping
+                    // that boundary back also quantizes a request between representable frames.
+                    const auto distance = std::min (static_cast<std::uint64_t> (leftTimelineLength), viewEnd - viewStart);
+                    const auto target = clip->reversed ? viewEnd - distance : viewStart + distance;
+                    const auto boundary = std::clamp (
+                        static_cast<std::uint64_t> (std::llround (static_cast<double> (target) / r)),
+                        clip->srcOffset + 1u, sourceEnd - 1u);
+                    const auto mappedBoundary = engine::viewFrameFor (boundary, r);
+                    leftTimelineLength = static_cast<engine::Tick> (clip->reversed
+                        ? viewEnd - mappedBoundary : mappedBoundary - viewStart);
+                    leftSourceLength = clip->reversed ? sourceEnd - boundary : boundary - clip->srcOffset;
+                    if (leftTimelineLength <= 0 || leftTimelineLength >= clip->timelineLength)
+                        return { id, { false, "split needs an interior source boundary" }, false };
+                }
+            }
             if (! leftSourceLength)
                 return { id, { false, "split must be inside every selected clip" }, false };
 
@@ -8590,6 +8615,8 @@ public:
         const engine::Clip right = *second;
         if (left.trackId != right.trackId || left.assetId != right.assetId)
             return { id, { false, "clips must share a track and asset" }, false };
+        if (left.reversed != right.reversed)
+            return { id, { false, "clip reverse settings differ" }, false };
         if (left.gain != right.gain
             || left.fadeIn != right.fadeIn
             || left.fadeOut != right.fadeOut
@@ -8600,17 +8627,19 @@ public:
 
         constexpr engine::Tick maxTick = std::numeric_limits<engine::Tick>::max();
         constexpr std::uint64_t maxSource = std::numeric_limits<std::uint64_t>::max();
+        const engine::Clip& lowerSource = left.reversed ? right : left;
+        const engine::Clip& higherSource = left.reversed ? left : right;
         if (left.timelineLength > maxTick - left.timelineStart
             || right.timelineLength > maxTick - left.timelineLength
-            || left.srcLen > maxSource - left.srcOffset
+            || lowerSource.srcLen > maxSource - lowerSource.srcOffset
             || right.srcLen > maxSource - left.srcLen)
         {
             return { id, { false, "clip window overflow" }, false };
         }
 
         const engine::Tick leftTimelineEnd = left.timelineStart + left.timelineLength;
-        const std::uint64_t leftSourceEnd = left.srcOffset + left.srcLen;
-        if (leftTimelineEnd != right.timelineStart || leftSourceEnd != right.srcOffset)
+        const std::uint64_t lowerSourceEnd = lowerSource.srcOffset + lowerSource.srcLen;
+        if (leftTimelineEnd != right.timelineStart || lowerSourceEnd != higherSource.srcOffset)
             return { id, { false, "clip windows are not contiguous" }, false };
 
         const engine::Tick joinedTimelineLength = left.timelineLength + right.timelineLength;
@@ -8622,8 +8651,8 @@ public:
         if (! nextUndo.apply (
                  nextProject,
                  engine::ProjectEditCommand::trimClip (
-                     left.id, left.timelineStart, joinedTimelineLength, left.srcOffset, joinedSourceLength)).applied()
-            || ! nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (right.id)).applied()
+                     lowerSource.id, left.timelineStart, joinedTimelineLength, lowerSource.srcOffset, joinedSourceLength)).applied()
+            || ! nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (higherSource.id)).applied()
             || ! nextUndo.endTransactionGroup())
         {
             return { id, state, false };
@@ -8632,8 +8661,8 @@ public:
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "healed clips did not persist" }, false };
 
-        selectedTimelineClipIds_.assign (1, left.id);
-        selectedTimelineClipId_ = left.id;
+        selectedTimelineClipIds_.assign (1, lowerSource.id);
+        selectedTimelineClipId_ = lowerSource.id;
         context_.timelineClipSelected = true;
         context_.activePanel = UiPanel::Timeline;
         ++context_.commandDispatchCount;
@@ -9593,19 +9622,25 @@ public:
         if (decoded == nullptr || decoded->channels == 0 || clip->srcOffset > decoded->frames
             || clip->srcLen > decoded->frames - clip->srcOffset || ! project_.sampleRate.isValid())
             return { id, { false, "timeline clip source missing" }, false };
-        // ADR-0055: the scan runs in Asset frames over the clip's source window; its minimum run is 50 ms at the
-        // Asset's rate, and each run reaches the timeline as round (frames x r) ticks.
+        // ADR-0055: scan in Asset frames, with a 50 ms minimum at the Asset's rate. Map absolute
+        // source endpoints into the view before subtracting the Clip's playback boundary.
         const double r = clipRateRatio (*clip);
         const std::uint64_t windowFrames = std::min<std::uint64_t> (
             clip->srcLen, static_cast<std::uint64_t> (std::llround (static_cast<double> (std::max<engine::Tick> (0, clip->timelineLength)) / r)));
         const std::size_t stride = decoded->channels;
-        const std::size_t first = static_cast<std::size_t> (clip->srcOffset) * stride;
+        const std::uint64_t scanOffset = clip->reversed ? clip->srcLen - windowFrames : 0;
+        const std::size_t first = static_cast<std::size_t> (clip->srcOffset + scanOffset) * stride;
         const auto minRun = static_cast<std::uint64_t> (std::llround (kStripSilenceMinRunSeconds * decoded->sampleRate.hz));
-        const std::vector<engine::SilentRun> runs = engine::detectSilentRuns (
+        std::vector<engine::SilentRun> runs = engine::detectSilentRuns (
             decoded->interleaved().subspan (first, static_cast<std::size_t> (windowFrames) * stride),
             static_cast<int> (stride), windowFrames, kStripSilenceThreshold, minRun);
         if (runs.empty())
             return { id, { false, "strip silence: no silent stretch found" }, false };
+        const bool reversed = clip->reversed;
+        if (reversed)
+            std::reverse (runs.begin(), runs.end());
+        const auto viewStart = engine::viewFrameFor (clip->srcOffset, r);
+        const auto viewEnd = engine::viewFrameFor (clip->srcOffset + clip->srcLen, r);
 
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
@@ -9625,25 +9660,37 @@ public:
         {
             const engine::Clip* const working = clipIn (nextProject, current);
             if (working == nullptr) { ok = false; break; }
-            const auto runStart = static_cast<engine::Tick> (engine::viewFrameFor (it->start, r));
-            const auto runEnd = static_cast<engine::Tick> (engine::viewFrameFor (std::min<std::uint64_t> (it->end, windowFrames), r));
+            const auto sourceStart = clip->srcOffset + scanOffset + it->start;
+            const auto sourceEnd = clip->srcOffset + scanOffset + it->end;
+            const auto runStart = static_cast<engine::Tick> (reversed
+                ? viewEnd - engine::viewFrameFor (sourceEnd, r)
+                : engine::viewFrameFor (sourceStart, r) - viewStart);
+            const auto runEnd = static_cast<engine::Tick> (reversed
+                ? viewEnd - engine::viewFrameFor (sourceStart, r)
+                : engine::viewFrameFor (sourceEnd, r) - viewStart);
             if (runEnd < working->timelineLength)   // keep what follows the run as its own clip
             {
-                const std::optional<std::uint64_t> leftSource = sourceLengthForSplit (*working, runEnd);
-                if (! leftSource) { ok = false; break; }
+                const auto leftSource = reversed ? working->srcOffset + working->srcLen - sourceStart
+                                                 : sourceEnd - working->srcOffset;
+                const engine::EntityId newId = allocateSessionEntityId (seed++, nextProject);
                 ok = nextUndo.apply (nextProject, engine::ProjectEditCommand::splitClip (
-                                         current, allocateSessionEntityId (seed++, nextProject), runEnd, *leftSource)).applied();
+                                         current, newId, runEnd, leftSource)).applied();
                 if (! ok) break;
+                if (reversed)
+                    current = newId;   // the higher-source fragment is the temporal head
             }
             if (runStart > 0)   // the silent piece becomes its own clip, then goes
             {
                 const engine::Clip* const head = clipIn (nextProject, current);
                 if (head == nullptr) { ok = false; break; }
-                const std::optional<std::uint64_t> leftSource = sourceLengthForSplit (*head, runStart);
-                if (! leftSource) { ok = false; break; }
-                const engine::EntityId silentId = allocateSessionEntityId (seed++, nextProject);
-                ok = nextUndo.apply (nextProject, engine::ProjectEditCommand::splitClip (current, silentId, runStart, *leftSource)).applied()
+                const auto leftSource = reversed ? head->srcOffset + head->srcLen - sourceEnd
+                                                 : sourceStart - head->srcOffset;
+                const engine::EntityId newId = allocateSessionEntityId (seed++, nextProject);
+                const engine::EntityId silentId = reversed ? current : newId;
+                ok = nextUndo.apply (nextProject, engine::ProjectEditCommand::splitClip (current, newId, runStart, leftSource)).applied()
                   && nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (silentId)).applied();
+                if (reversed)
+                    current = newId;
             }
             else   // the run starts the clip: the head itself is the silence
             {
@@ -9658,6 +9705,11 @@ public:
             return { id, { false, "timeline edit did not persist" }, false };
         if (! current.isValid())
             selectedTimelineClipIds_.clear();
+        else
+        {
+            selectedTimelineClipIds_.assign (1, current);
+            selectedTimelineClipId_ = current;
+        }
         syncProjectEditContext();
         ++context_.commandDispatchCount;
         ++context_.timelineEditCount;

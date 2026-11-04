@@ -2552,6 +2552,11 @@ namespace detail {
     if (leftSourceLength == 0 || leftSourceLength >= original.srcLen)
         return ProjectEditStatus::InvalidSourceWindow;
 
+    // A linked Take requires this Clip's complete source window and original placement.
+    for (const RecordingTake& take : project.recordingTakes)
+        if (take.clipId == clipId)
+            return ProjectEditStatus::InvalidSourceWindow;
+
     Clip left = original;
     left.timelineLength = leftTimelineLength;
     left.srcLen = leftSourceLength;
@@ -2562,6 +2567,19 @@ namespace detail {
     right.timelineLength = original.timelineLength - leftTimelineLength;
     right.srcOffset = original.srcOffset + leftSourceLength;
     right.srcLen = original.srcLen - leftSourceLength;
+
+    if (original.reversed)
+    {
+        // Keep rows in ascending source order (and the original ID first). Reversed playback
+        // reaches the higher source window first, so its new ID occupies the temporal left.
+        left.timelineStart = rightTimelineStart;
+        left.timelineLength = original.timelineLength - leftTimelineLength;
+        left.srcLen = original.srcLen - leftSourceLength;
+        right.timelineStart = original.timelineStart;
+        right.timelineLength = leftTimelineLength;
+        right.srcOffset = original.srcOffset + left.srcLen;
+        right.srcLen = leftSourceLength;
+    }
 
     if (! detail::clipSourceWindowFitsProject (project, left) || ! detail::clipSourceWindowFitsProject (project, right))
         return ProjectEditStatus::InvalidSourceWindow;

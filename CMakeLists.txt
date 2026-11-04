@@ -1003,6 +1003,14 @@ target_link_libraries(YesDawAudioImportModelCheck PRIVATE Catch2::Catch2WithMain
 yesdaw_harden(YesDawAudioImportModelCheck)
 add_test(NAME YesDawAudioImportModelCheck COMMAND $<TARGET_FILE:YesDawAudioImportModelCheck>)
 
+# Reversed audio edits through the pure model and renderer; no native shell or devices.
+add_executable(YesDawReversedClipEditCheck tests/reversed_clip_edit_tests.cpp)
+target_include_directories(YesDawReversedClipEditCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawReversedClipEditCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawReversedClipEditCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads yesdaw_loudness)
+yesdaw_harden(YesDawReversedClipEditCheck)
+add_test(NAME YesDawReversedClipEditCheck COMMAND $<TARGET_FILE:YesDawReversedClipEditCheck>)
+
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
 target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})
