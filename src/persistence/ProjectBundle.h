@@ -95,6 +95,12 @@ struct BundleResult
     [[nodiscard]] bool ok() const noexcept { return status == BundleStatus::Ok; }
 };
 
+struct PreparedAssetAdoption
+{
+    BundleResult result;
+    std::optional<engine::Asset> asset;
+};
+
 enum class PendingFsOpKind : std::int32_t
 {
     StageAsset = 0,
@@ -2888,15 +2894,29 @@ public:
         return detail::ok();
     }
 
-    // ADR-0080: owner-thread adoption consumes worker-verified bytes without copying, hashing or decoding them.
-    [[nodiscard]] BundleResult adoptPreparedAsset (PreparedAssetImport&& prepared, engine::Asset& out)
+    // ADR-0080: verified bytes enter through two shared FULL commits, without owner-side copy/hash/decode.
+    // A global failure suppresses every outcome's Asset, including already-stored duplicates.
+    [[nodiscard]] BundleResult adoptPreparedAssets (std::span<PreparedAssetImport> prepared,
+                                                    std::vector<PreparedAssetAdoption>& outcomes)
     {
         using namespace prepared_asset_detail;
-        if (! prepared.state_ || prepared.state_->ownership != StagingOwnership::Private)
-            return detail::semanticInvalid ("prepared Asset handoff is empty or no longer privately owned");
-        auto& staged = *prepared.state_;
-        const auto finalPath = storedAssetPathForHash (staged.directory->root, staged.asset.contentHash);
-        const auto validate = [&]() -> BundleResult {
+        outcomes.assign (prepared.size(), {});
+        if (! isOpen())
+            return detail::sqliteError (db_);
+        if (sqlite3_get_autocommit (db_) == 0)
+            return detail::semanticInvalid ("prepared Asset adoption requires its own SQLite transactions");
+        struct Admission
+        {
+            StagedAsset* staged = nullptr;
+            std::filesystem::path finalPath;
+            engine::Asset asset;
+            std::optional<std::size_t> representative;
+            sqlite3_int64 pending = 0;
+            bool insert = false, transferred = false, committed = false, deletedIntent = false;
+        };
+        std::vector<Admission> admissions (prepared.size());
+        const auto validate = [&] (const Admission& item) -> BundleResult {
+            const auto& staged = *item.staged;
             std::error_code error;
             if (std::filesystem::canonical (bundlePath_, error) != staged.directory->root || error)
                 return fileError ("prepared Asset belongs to another destination bundle", bundlePath_, error);
@@ -2907,130 +2927,227 @@ public:
                 return fileError ("prepared staging bytes changed; worker revalidation required", staged.path, error);
             if (staged.canonicalFingerprint)
             {
-                if ((error = fingerprint (finalPath, current)) || current != *staged.canonicalFingerprint)
-                    return fileError ("canonical Asset proof is stale; worker revalidation required", finalPath, error);
+                if ((error = fingerprint (item.finalPath, current)) || current != *staged.canonicalFingerprint)
+                    return fileError ("canonical Asset proof is stale; worker revalidation required", item.finalPath, error);
             }
             else
             {
-                const auto status = std::filesystem::symlink_status (finalPath, error);
+                const auto status = std::filesystem::symlink_status (item.finalPath, error);
                 if (error && error != std::errc::no_such_file_or_directory)
-                    return fileError ("cannot inspect canonical Asset", finalPath, error);
+                    return fileError ("cannot inspect canonical Asset", item.finalPath, error);
                 if (std::filesystem::exists (status))
-                    return fileError ("canonical Asset appeared after preparation; worker revalidation required", finalPath);
+                    return fileError ("canonical Asset appeared after preparation; worker revalidation required", item.finalPath);
             }
             return detail::ok();
         };
-        if (auto result = validate(); ! result.ok())
-            return result;
-
-        engine::Asset existing;
-        std::string existingRelativePath;
-        bool foundExisting = false;
-        if (auto result = findAssetByContentHash (staged.asset.contentHash, existing, existingRelativePath, foundExisting); ! result.ok())
-            return result;
-        if (foundExisting)
+        const auto sameShape = [] (const engine::Asset& x, const engine::Asset& y) {
+            return x.frames == y.frames && x.sampleRate == y.sampleRate && x.channels == y.channels;
+        };
+        // All proofs and actual stored identities precede every intent and filesystem transfer.
+        for (std::size_t index = 0; index < prepared.size(); ++index)
         {
-            if (existing.frames != staged.asset.frames || existing.sampleRate != staged.asset.sampleRate
-                || existing.channels != staged.asset.channels)
-                return detail::semanticInvalid ("duplicate content hash has conflicting Asset metadata");
-            if (existingRelativePath != detail::assetRelativePathForHash (existing.contentHash))
-                return detail::semanticInvalid ("duplicate content hash points at a non-canonical Asset path");
-            if (! staged.canonicalFingerprint)
-                return fileError ("canonical duplicate requires worker revalidation", finalPath);
-            out = existing;
-            prepared.state_.reset();
-            return detail::ok();
+            auto& item = admissions[index];
+            auto& outcome = outcomes[index];
+            if (! prepared[index].state_ || prepared[index].state_->ownership != StagingOwnership::Private)
+            {
+                outcome.result = detail::semanticInvalid ("prepared Asset handoff is empty or no longer privately owned");
+                continue;
+            }
+            item.staged = prepared[index].state_.get();
+            item.asset = item.staged->asset;
+            item.finalPath = storedAssetPathForHash (item.staged->directory->root, item.asset.contentHash);
+            outcome.result = validate (item);
+            if (! outcome.result.ok())
+                continue;
+            engine::Asset existing;
+            std::string relative;
+            bool found = false;
+            if (auto result = findAssetByContentHash (item.asset.contentHash, existing, relative, found); ! result.ok())
+                return result;
+            if (found)
+            {
+                if (! sameShape (existing, item.asset))
+                    outcome.result = detail::semanticInvalid ("duplicate content hash has conflicting Asset metadata");
+                else if (relative != detail::assetRelativePathForHash (existing.contentHash))
+                    outcome.result = detail::semanticInvalid ("duplicate content hash points at a non-canonical Asset path");
+                else if (! item.staged->canonicalFingerprint)
+                    outcome.result = fileError ("canonical duplicate requires worker revalidation", item.finalPath);
+                else
+                    item.asset = existing; // earliest stored hash row wins over the requested duplicate ID
+                continue;
+            }
+            for (std::size_t previous = 0; previous < index; ++previous)
+            {
+                if (admissions[previous].insert && admissions[previous].asset.contentHash == item.asset.contentHash)
+                {
+                    if (! sameShape (admissions[previous].asset, item.asset))
+                        outcome.result = detail::semanticInvalid ("duplicate content hash has conflicting Asset metadata");
+                    else
+                        item.representative = previous;
+                    break;
+                }
+            }
+            if (! outcome.result.ok() || item.representative)
+                continue;
+            detail::Statement idLookup (db_, "SELECT COUNT(*) FROM assets WHERE id=?;");
+            if (auto result = idLookup.bindBlob (1, item.asset.id.bytes); ! result.ok())
+                return result;
+            if (idLookup.step() != SQLITE_ROW)
+                return detail::sqliteError (db_);
+            bool collision = sqlite3_column_int64 (idLookup.get(), 0) != 0;
+            for (std::size_t previous = 0; previous < index; ++previous)
+                collision = collision || (admissions[previous].insert && admissions[previous].asset.id == item.asset.id);
+            if (collision)
+                outcome.result = detail::semanticInvalid ("requested Asset ID already exists for different content");
+            else
+                item.insert = true;
         }
-
-        if (sqlite3_get_autocommit (db_) == 0)
-            return detail::semanticInvalid ("prepared Asset adoption requires its own SQLite transactions");
+        const bool needsWrites = std::any_of (admissions.begin(), admissions.end(), [] (const auto& item) { return item.insert; });
         sqlite3_int64 priorSynchronous = 0;
-        if (auto result = detail::queryInt64 (db_, "PRAGMA synchronous;", priorSynchronous); ! result.ok())
-            return result;
-        // Legacy connections retain NORMAL (ADR-0012). Only this seam needs every intent/cleanup commit on disk
-        // before changing ownership, so FULL is temporary and restored outside every transaction, including errors.
-        if (auto result = detail::exec (db_, "PRAGMA synchronous=FULL;"); ! result.ok())
-            return result;
-        const auto rollback = [&](BundleResult failure) {
+        if (needsWrites)
+        {
+            if (auto result = detail::queryInt64 (db_, "PRAGMA synchronous;", priorSynchronous); ! result.ok())
+                return result;
+            if (auto result = detail::exec (db_, "PRAGMA synchronous=FULL;"); ! result.ok())
+                return result;
+        }
+        const auto finish = [&] (BundleResult failure) {
             if (sqlite3_get_autocommit (db_) == 0)
-                if (auto result = detail::exec (db_, "ROLLBACK;"); ! result.ok())
-                    failure.message += "; SQLite rollback failed: " + result.message;
+                if (auto rolledBack = detail::exec (db_, "ROLLBACK;"); ! rolledBack.ok())
+                {
+                    failure.message += "; SQLite rollback failed: " + rolledBack.message;
+                    failure.status = BundleStatus::SqliteError;
+                }
+            if (sqlite3_get_autocommit (db_) == 0)
+                return BundleResult { BundleStatus::SqliteError, SQLITE_ERROR, 0,
+                    failure.message + "; synchronous setting cannot be restored while rollback is incomplete" };
+            if (needsWrites)
+                if (auto restored = detail::exec (db_, "PRAGMA synchronous=" + std::to_string (priorSynchronous) + ";"); ! restored.ok())
+                {
+                    restored.message = failure.message + "; restoring SQLite synchronous setting failed: " + restored.message;
+                    return restored;
+                }
             return failure;
         };
-        engine::Asset imported;
-        const auto apply = [&]() -> BundleResult {
-            const auto tempRelative = staged.path.lexically_relative (staged.directory->root).generic_string();
-            const auto finalRelative = detail::assetRelativePathForHash (staged.asset.contentHash);
-            const PendingFsOp op { PendingFsOpKind::StageAsset, tempRelative, finalRelative, staged.asset.contentHash };
-            sqlite3_int64 pendingRowId = 0;
-            if (auto result = detail::exec (db_, "BEGIN IMMEDIATE;"); ! result.ok())
+        // Only an isolated constraint refusal is recoverable. ROLLBACK triggers and shared I/O never qualify.
+        const auto savepoint = [&] (auto&& action, BundleResult& itemResult) -> BundleResult {
+            if (auto result = detail::exec (db_, "SAVEPOINT prepared_asset_item;"); ! result.ok())
                 return result;
-            if (auto result = recordPendingFsOp (op, pendingRowId); ! result.ok())
-                return rollback (result);
-            if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
-                return rollback (result);
-            staged.ownership = StagingOwnership::Journal;
-
-            const auto abandonTransfer = [&](BundleResult failure) -> BundleResult {
-                auto cleanup = detail::exec (db_, "BEGIN IMMEDIATE;");
-                if (cleanup.ok())
-                    cleanup = deletePendingFsOp (pendingRowId);
-                if (cleanup.ok())
-                    cleanup = detail::exec (db_, "COMMIT;");
-                if (! cleanup.ok())
-                {
-                    cleanup = rollback (cleanup);
-                    failure.message += "; StageAsset intent cleanup failed; staging remains journal-owned: " + cleanup.message;
-                    return failure;
-                }
-                staged.ownership = StagingOwnership::Private;
-                return failure;
-            };
-            if (auto result = validate(); ! result.ok())
-                return abandonTransfer (result);
-            if (! staged.canonicalFingerprint)
+            itemResult = action();
+            if (! itemResult.ok())
             {
-                if (const auto error = transferNoReplace (staged.path, finalPath))
-                    return abandonTransfer (fileError ("same-filesystem no-overwrite Asset transfer refused", finalPath, error));
-                staged.ownership = StagingOwnership::Canonical;
-                if (auto result = detail::flushDirectoryToDisk (staged.directory->job); ! result.ok())
+                if ((itemResult.sqliteCode & 0xff) != SQLITE_CONSTRAINT || sqlite3_get_autocommit (db_) != 0)
+                    return itemResult;
+                if (auto result = detail::exec (db_, "ROLLBACK TO prepared_asset_item;"); ! result.ok())
                     return result;
             }
-            if (auto result = detail::flushFileToDisk (finalPath); ! result.ok())
-                return result;
-            if (auto result = detail::flushDirectoryToDisk (finalPath.parent_path()); ! result.ok())
-                return result;
+            return detail::exec (db_, "RELEASE prepared_asset_item;");
+        };
+        const auto persist = [&]() -> BundleResult {
+            if (! needsWrites)
+                return detail::ok();
             if (auto result = detail::exec (db_, "BEGIN IMMEDIATE;"); ! result.ok())
                 return result;
-            if (auto result = insertAssetRow (staged.asset, finalRelative); ! result.ok())
-                return rollback (result);
-            if (auto result = markPendingFsOpCommitted (pendingRowId); ! result.ok())
-                return rollback (result);
+            for (std::size_t index = 0; index < admissions.size(); ++index)
+            {
+                auto& item = admissions[index];
+                if (! item.insert)
+                    continue;
+                const PendingFsOp op { PendingFsOpKind::StageAsset,
+                    item.staged->path.lexically_relative (item.staged->directory->root).generic_string(),
+                    detail::assetRelativePathForHash (item.asset.contentHash), item.asset.contentHash };
+                if (auto result = savepoint ([&] { return recordPendingFsOp (op, item.pending); }, outcomes[index].result); ! result.ok())
+                    return result;
+                if (! outcomes[index].result.ok())
+                    item.pending = 0;
+            }
+            // A failed intent COMMIT may have uncertain durability: protect snapshots before attempting it.
+            for (auto& item : admissions)
+                if (item.pending != 0)
+                    item.staged->ownership = StagingOwnership::Journal;
             if (auto result = detail::exec (db_, "COMMIT;"); ! result.ok())
-                return rollback (result);
-            imported = staged.asset;
-            // A verified pre-existing canonical file did not consume the private snapshot.
-            if (staged.canonicalFingerprint)
-                staged.ownership = StagingOwnership::Private;
-            return detail::ok();
+                return result;
+            std::vector<std::filesystem::path> changedDirectories;
+            const auto rememberDirectory = [&] (const std::filesystem::path& directory) {
+                if (std::find (changedDirectories.begin(), changedDirectories.end(), directory) == changedDirectories.end())
+                    changedDirectories.push_back (directory);
+            };
+            for (std::size_t index = 0; index < admissions.size(); ++index)
+            {
+                auto& item = admissions[index];
+                if (item.pending == 0)
+                    continue;
+                auto& result = outcomes[index].result;
+                result = validate (item);
+                if (! result.ok())
+                    continue;
+                if (! item.staged->canonicalFingerprint)
+                {
+                    if (const auto error = transferNoReplace (item.staged->path, item.finalPath))
+                    {
+                        result = fileError ("same-filesystem no-overwrite Asset transfer refused", item.finalPath, error);
+                        continue;
+                    }
+                    item.transferred = true;
+                    item.staged->ownership = StagingOwnership::Canonical;
+                    rememberDirectory (item.staged->directory->job);
+                }
+                if (auto flushed = detail::flushFileToDisk (item.finalPath); ! flushed.ok())
+                    return flushed;
+                rememberDirectory (item.finalPath.parent_path());
+            }
+            for (const auto& directory : changedDirectories)
+                if (auto result = detail::flushDirectoryToDisk (directory); ! result.ok())
+                    return result;
+            if (auto result = detail::exec (db_, "BEGIN IMMEDIATE;"); ! result.ok())
+                return result;
+            for (std::size_t index = 0; index < admissions.size(); ++index)
+            {
+                auto& item = admissions[index];
+                if (item.pending == 0)
+                    continue;
+                auto& outcome = outcomes[index];
+                if (outcome.result.ok())
+                {
+                    if (auto result = savepoint ([&] {
+                        auto inserted = insertAssetRow (item.asset, detail::assetRelativePathForHash (item.asset.contentHash));
+                        return inserted.ok() ? markPendingFsOpCommitted (item.pending) : inserted;
+                    }, outcome.result); ! result.ok())
+                        return result;
+                    item.committed = outcome.result.ok();
+                }
+                else
+                {
+                    BundleResult cleanup;
+                    if (auto result = savepoint ([&] { return deletePendingFsOp (item.pending); }, cleanup); ! result.ok())
+                        return result;
+                    item.deletedIntent = cleanup.ok();
+                    if (! cleanup.ok())
+                        outcome.result.message += "; StageAsset intent cleanup failed; staging remains journal-owned: " + cleanup.message;
+                }
+            }
+            // RELEASE is not durability. Only the outer commit permits success or private cleanup.
+            return detail::exec (db_, "COMMIT;");
         };
-        auto result = apply();
-        if (sqlite3_get_autocommit (db_) == 0)
-        {
-            result = rollback (result);
-            if (sqlite3_get_autocommit (db_) == 0)
-                return { BundleStatus::SqliteError, SQLITE_ERROR, 0, result.message + "; synchronous setting cannot be restored while rollback is incomplete" };
-        }
-        if (auto restored = detail::exec (db_, "PRAGMA synchronous=" + std::to_string (priorSynchronous) + ";"); ! restored.ok())
-        {
-            restored.message = (result.ok() ? "Asset committed; " : result.message + "; ")
-                             + std::string ("restoring SQLite synchronous setting failed: ") + restored.message;
-            return restored;
-        }
+        auto result = finish (persist());
         if (! result.ok())
             return result;
-        out = imported;
-        prepared.state_.reset();
+        for (std::size_t index = 0; index < admissions.size(); ++index)
+        {
+            auto& item = admissions[index];
+            if (item.staged && ! item.transferred && (item.deletedIntent || item.committed))
+                item.staged->ownership = StagingOwnership::Private;
+            if (item.representative)
+            {
+                outcomes[index] = outcomes[*item.representative];
+                continue;
+            }
+            if (outcomes[index].result.ok() && item.staged && (! item.insert || item.committed))
+                outcomes[index].asset = item.asset;
+        }
+        for (std::size_t index = 0; index < prepared.size(); ++index)
+            if (outcomes[index].asset)
+                prepared[index].state_.reset();
         return detail::ok();
     }
 

@@ -13613,28 +13613,27 @@ private:
                                                 const PendingAudioImport& pending,
                                                 UiAudioImportCompletion& completion)
     {
-        struct Adopted
+        // Finish the shared durable admission before touching model, undo or decoded owners.
+        std::vector<persistence::PreparedAssetImport> inputs;
+        inputs.reserve (prepared.prepared.size());
+        for (auto& input : prepared.prepared)
+            inputs.push_back (std::move (input.preparedAsset));
+        std::vector<persistence::PreparedAssetAdoption> adopted;
+        if (const auto result = bundleDb_.adoptPreparedAssets (inputs, adopted); ! result.ok())
         {
-            std::optional<engine::Asset> asset;
-            std::string reason;
-        };
-        // Adoption consumes preparedAsset. Only the returned Asset supplies IDs/metadata afterwards;
-        // aliases share this outcome, including a persistence refusal.
-        std::vector<Adopted> adopted (prepared.prepared.size());
+            completion.disposition = UiAudioImportDisposition::Failed;
+            completion.placement.refusals.push_back ("Asset admission failed: " + result.message);
+            return false;
+        }
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
         const auto previousDecoded = decodedAssets_;
         for (std::size_t index = 0; index < prepared.prepared.size(); ++index)
         {
             auto& input = prepared.prepared[index];
-            engine::Asset asset;
-            const auto result = bundleDb_.adoptPreparedAsset (std::move (input.preparedAsset), asset);
-            if (! result.ok())
-            {
-                adopted[index].reason = result.message;
+            if (! adopted[index].asset)
                 continue;
-            }
-            adopted[index].asset = asset;
+            const auto& asset = *adopted[index].asset;
             if (! nextProject.findAsset (asset.id))
                 nextProject.assets.push_back (asset);
             // A canonical duplicate already has an immutable owner (and stretch keys tied to it).
@@ -13645,7 +13644,7 @@ private:
                     || existing->channels != asset.channels)
                 {
                     adopted[index].asset.reset();
-                    adopted[index].reason = "existing decoded Asset metadata does not match";
+                    adopted[index].result = persistence::detail::semanticInvalid ("existing decoded Asset metadata does not match");
                 }
                 continue;
             }
@@ -13676,7 +13675,7 @@ private:
             const auto& outcome = adopted[*item.preparedIndex];
             if (! outcome.asset)
             {
-                refuse (outcome.reason);
+                refuse (outcome.result.message);
                 continue;
             }
             const auto& asset = *outcome.asset;

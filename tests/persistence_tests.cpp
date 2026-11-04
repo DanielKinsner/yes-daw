@@ -107,6 +107,17 @@ using yesdaw::persistence::detail::kSchemaV8Sql;
 using Catch::Approx;
 
 namespace {
+yesdaw::persistence::BundleResult adoptPreparedAsset (
+    ProjectBundleDb& db, yesdaw::persistence::PreparedAssetImport&& prepared, Asset& asset)
+{
+    std::vector<yesdaw::persistence::PreparedAssetAdoption> outcomes;
+    auto result = db.adoptPreparedAssets ({ &prepared, 1 }, outcomes);
+    if (! result.ok())
+        return result;
+    if (outcomes.front().asset)
+        asset = *outcomes.front().asset;
+    return outcomes.front().result;
+}
 
 constexpr EntityId idFromLowByte (std::uint8_t low) noexcept
 {
@@ -2572,7 +2583,7 @@ TEST_CASE ("A staged snapshot keeps its live lease after the staging wrapper is 
         REQUIRE (readBytes (privatePath) == bytes); // same-process recovery cannot acquire the prepared owner's lease
     }
     Asset asset;
-    REQUIRE (db.adoptPreparedAsset (std::move (prepared), asset).ok());
+    REQUIRE (adoptPreparedAsset (db, std::move (prepared), asset).ok());
     REQUIRE_FALSE (std::filesystem::exists (job));
     REQUIRE (readBytes (storedAssetPathForHash (path, asset.contentHash)) == bytes);
     ProjectBundleDb reopened;
@@ -2793,7 +2804,7 @@ TEST_CASE ("Replacing a live import lease marker prevents mutation adoption and 
         PreparedAssetImport prepared;
         REQUIRE (std::move (snapshot).complete (idFromLowByte (203), 128, SampleRate { 48000.0 }, 2, prepared).ok());
         Asset ignored;
-        const auto result = db.adoptPreparedAsset (std::move (prepared), ignored);
+        const auto result = adoptPreparedAsset (db, std::move (prepared), ignored);
         REQUIRE_FALSE (result.ok());
         REQUIRE (result.message.find ("lease marker identity changed") != std::string::npos);
     }
@@ -2873,6 +2884,405 @@ TEST_CASE ("Import receipts cannot authorize a Windows alias of the lease marker
 }
 #endif
 
+namespace {
+using PreparedBatchOutcome = yesdaw::persistence::PreparedAssetAdoption;
+
+yesdaw::persistence::BundleResult admitPreparedBatch (
+    ProjectBundleDb& db, std::span<yesdaw::persistence::PreparedAssetImport> prepared,
+    std::vector<PreparedBatchOutcome>& outcomes)
+{
+    return db.adoptPreparedAssets (prepared, outcomes);
+}
+
+std::size_t walCommitCount (const std::filesystem::path& path)
+{
+    const auto bytes = readBytes (path);
+    REQUIRE (bytes.size() >= 32);
+    const auto bigEndian = [&] (std::size_t offset) {
+        return (static_cast<std::uint32_t> (bytes[offset]) << 24)
+             | (static_cast<std::uint32_t> (bytes[offset + 1]) << 16)
+             | (static_cast<std::uint32_t> (bytes[offset + 2]) << 8) | bytes[offset + 3];
+    };
+    REQUIRE ((bigEndian (0) & 0xfffffffeu) == 0x377f0682u);
+    // SQLite's WAL format: 32-byte header, 24-byte frame header, database size at frame+4.
+    // A nonzero size marks an actual transaction commit, independent of SQL statement spelling.
+    const auto frameSize = static_cast<std::size_t> (bigEndian (8)) + 24;
+    REQUIRE (frameSize > 24);
+    REQUIRE ((bytes.size() - 32) % frameSize == 0);
+    std::size_t commits = 0;
+    for (std::size_t frame = 32; frame < bytes.size(); frame += frameSize)
+        if (bigEndian (frame + 4) != 0)
+            ++commits;
+    return commits;
+}
+
+struct PreparedBatchFixture
+{
+    std::filesystem::path path = makeTempBundlePath ("prepared-batch-fault");
+    ProjectBundleDb db = openFreshBundle (path);
+    std::vector<yesdaw::persistence::AssetImportStaging> staging;
+    std::vector<yesdaw::persistence::PreparedAssetImport> prepared;
+    std::vector<std::filesystem::path> sources, snapshots, canonical;
+    std::vector<std::vector<std::uint8_t>> bytes;
+
+    void add (std::uint8_t id, std::vector<std::uint8_t> contents = {}, std::uint64_t frames = 512)
+    {
+        using namespace yesdaw::persistence;
+        const auto index = prepared.size();
+        if (contents.empty())
+            contents = assetBytesForId (idFromLowByte (id));
+        sources.push_back (path.parent_path() / (path.filename().string() + std::to_string (index) + ".wav"));
+        writeBytes (sources.back(), contents);
+        bytes.push_back (contents);
+        canonical.push_back (storedAssetPathForHash (path, hashBytes (contents)));
+        staging.emplace_back();
+        REQUIRE (AssetImportStaging::create (path, idFromLowByte (static_cast<std::uint8_t> (220 + index)), staging.back()).ok());
+        StagedAssetImport snapshot;
+        REQUIRE (staging.back().stageSource (sources.back(), index, snapshot).ok());
+        snapshots.push_back (snapshot.snapshotPath());
+        prepared.emplace_back();
+        REQUIRE (std::move (snapshot).complete (idFromLowByte (id), frames, SampleRate { 48000.0 }, 2, prepared.back()).ok());
+    }
+
+    void close()
+    {
+        prepared.clear();
+        staging.clear();
+        db = ProjectBundleDb {};
+    }
+};
+} // namespace
+
+TEST_CASE ("Prepared batch admission uses two real durable SQLite commits", "[persistence][asset][prepared-import][prepared-batch]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-batch-commits");
+    auto db = openFreshBundle (path);
+    AssetImportStaging staging;
+    REQUIRE (AssetImportStaging::create (path, idFromLowByte (150), staging).ok());
+    std::vector<PreparedAssetImport> prepared (4);
+    for (std::size_t index = 0; index < prepared.size(); ++index)
+    {
+        const auto id = idFromLowByte (static_cast<std::uint8_t> (151 + index));
+        const auto source = path.parent_path() / (path.filename().string() + std::to_string (index) + ".wav");
+        writeBytes (source, assetBytesForId (id));
+        StagedAssetImport snapshot;
+        REQUIRE (staging.stageSource (source, index, snapshot).ok());
+        REQUIRE (std::move (snapshot).complete (id, 512, SampleRate { 48000.0 }, 2, prepared[index]).ok());
+    }
+    REQUIRE (db.executeSql ("PRAGMA wal_autocheckpoint=0; PRAGMA wal_checkpoint(TRUNCATE);").ok());
+    detail::assetHashCallsForTest = 0;
+    detail::copiedFileBytesForTest = 0;
+    std::vector<PreparedBatchOutcome> outcomes;
+    REQUIRE (admitPreparedBatch (db, prepared, outcomes).ok());
+    for (const auto& outcome : outcomes)
+        REQUIRE (outcome.asset.has_value());
+    CHECK (detail::assetHashCallsForTest == 0);
+    CHECK (detail::copiedFileBytesForTest == 0);
+    CHECK (walCommitCount (path / "project.db-wal") == 2);
+    sqlite3_int64 count = 0;
+    REQUIRE (db.queryInt64 ("SELECT COUNT(*) FROM assets;", count).ok());
+    CHECK (count == 4);
+    REQUIRE (db.pendingFsOpCount (false, count).ok());
+    CHECK (count == 0);
+    REQUIRE (db.pendingFsOpCount (true, count).ok());
+    CHECK (count == 4);
+}
+
+TEST_CASE ("Prepared admission refuses closed handles and accepts an open empty batch", "[persistence][asset][prepared-import][prepared-batch]")
+{
+    using namespace yesdaw::persistence;
+    const bool movedFrom = GENERATE (false, true);
+    const bool empty = GENERATE (false, true);
+    PreparedBatchFixture f;
+    f.add (159);
+    ProjectBundleDb closed;
+    ProjectBundleDb destination;
+    if (movedFrom)
+    {
+        closed = std::move (f.db);
+        destination = std::move (closed);
+    }
+    REQUIRE_FALSE (closed.isOpen());
+    std::vector<PreparedBatchOutcome> outcomes (1);
+    outcomes.front().asset = f.prepared.front().asset(); // an old output must not survive refusal
+    const auto inputs = empty ? std::span<PreparedAssetImport> {} : std::span<PreparedAssetImport> { f.prepared };
+    const auto result = closed.adoptPreparedAssets (inputs, outcomes);
+    CHECK (result.status == BundleStatus::SqliteError);
+    CHECK (result.message == "sqlite handle is null");
+    REQUIRE (outcomes.size() == (empty ? 0 : 1));
+    for (const auto& outcome : outcomes)
+        CHECK_FALSE (outcome.asset.has_value());
+    CHECK (readBytes (f.snapshots[0]) == f.bytes[0]);
+    CHECK_FALSE (std::filesystem::exists (f.canonical[0]));
+    auto& opened = movedFrom ? destination : f.db;
+    REQUIRE (opened.isOpen());
+    REQUIRE (opened.adoptPreparedAssets ({}, outcomes).ok());
+    CHECK (outcomes.empty());
+    REQUIRE (opened.adoptPreparedAssets (f.prepared, outcomes).ok());
+    REQUIRE (outcomes.front().asset.has_value()); // the earlier refusal did not consume the handoff
+    CHECK (readBytes (f.canonical[0]) == f.bytes[0]);
+    CHECK_FALSE (std::filesystem::exists (f.snapshots[0]));
+}
+
+TEST_CASE ("Prepared batch savepoints retain other files after a row or marker refusal", "[persistence][asset][prepared-import][prepared-batch][recovery]")
+{
+    using namespace yesdaw::persistence;
+    PreparedBatchFixture f;
+    f.add (160);
+    f.add (161);
+    const bool markerFailure = GENERATE (false, true);
+    const auto id = detail::hexBytes (idFromLowByte (160).bytes);
+    if (markerFailure)
+        REQUIRE (f.db.executeSql ("CREATE TRIGGER refuse_one BEFORE UPDATE OF committed ON pending_fs_ops "
+            "WHEN NEW.committed=1 AND NEW.temp_relative_path LIKE '%/item-0.wav' "
+            "BEGIN SELECT RAISE(ABORT,'marker refused after row'); END;").ok());
+    else
+        REQUIRE (f.db.executeSql ("CREATE TRIGGER refuse_one BEFORE INSERT ON assets WHEN NEW.id=X'" + id
+            + "' BEGIN SELECT RAISE(ABORT,'row refused'); END;").ok());
+    std::vector<PreparedBatchOutcome> outcomes;
+    REQUIRE (admitPreparedBatch (f.db, f.prepared, outcomes).ok());
+    REQUIRE (outcomes.size() == 2);
+    CHECK_FALSE (outcomes[0].asset.has_value());
+    CHECK (outcomes[0].result.message.find (markerFailure ? "marker refused after row" : "row refused") != std::string::npos);
+    REQUIRE (outcomes[1].asset.has_value());
+    CHECK (outcomes[1].asset->id == idFromLowByte (161));
+    sqlite3_int64 count = 0;
+    REQUIRE (f.db.queryInt64 ("SELECT COUNT(*) FROM assets WHERE id=X'" + id + "';", count).ok());
+    CHECK (count == 0); // the marker failure must roll back the Asset row already inserted inside its savepoint
+    REQUIRE (f.db.queryInt64 ("SELECT COUNT(*) FROM assets;", count).ok());
+    CHECK (count == 1);
+    REQUIRE (f.db.pendingFsOpCount (false, count).ok());
+    CHECK (count == 1);
+    REQUIRE (f.db.pendingFsOpCount (true, count).ok());
+    CHECK (count == 1);
+    REQUIRE (f.db.queryInt64 ("PRAGMA synchronous;", count).ok());
+    CHECK (count == 1);
+    f.prepared.clear();
+    CHECK (readBytes (f.canonical[0]) == f.bytes[0]); // failed transferred item remains Canonical
+    CHECK (readBytes (f.canonical[1]) == f.bytes[1]);
+    f.close();
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (f.path, reopened).ok());
+    CHECK_FALSE (std::filesystem::exists (f.canonical[0]));
+    CHECK (readBytes (f.path / ".trash" / f.canonical[0].filename()) == f.bytes[0]);
+    CHECK (readBytes (f.canonical[1]) == f.bytes[1]);
+    REQUIRE (reopened.pendingFsOpCount (false, count).ok());
+    CHECK (count == 0);
+    REQUIRE (reopened.queryInt64 ("SELECT COUNT(*) FROM assets;", count).ok());
+    CHECK (count == 1);
+}
+
+TEST_CASE ("Prepared batch shared COMMIT failure publishes no Assets and recovers only owned bytes", "[persistence][asset][prepared-import][prepared-batch][recovery]")
+{
+    using namespace yesdaw::persistence;
+    PreparedBatchFixture f;
+    const auto priorSource = f.path / "prior.wav";
+    const auto priorBytes = assetBytesForId (idFromLowByte (170));
+    writeBytes (priorSource, priorBytes);
+    Asset prior;
+    REQUIRE (f.db.importAssetBytes ({ priorSource, idFromLowByte (170), 512, SampleRate { 48000.0 }, 2 }, prior).ok());
+    f.add (171);
+    f.add (172);
+    f.add (173, priorBytes); // the existing duplicate must also receive no success on global failure
+    sqlite3_int64 markerBaseline = 0;
+    REQUIRE (f.db.pendingFsOpCount (true, markerBaseline).ok());
+    REQUIRE (markerBaseline == 1);
+    const bool finalCommit = GENERATE (false, true);
+    REQUIRE (f.db.executeSql ("CREATE TABLE commit_parent(id INTEGER PRIMARY KEY); "
+        "CREATE TABLE commit_guard(id INTEGER REFERENCES commit_parent(id) DEFERRABLE INITIALLY DEFERRED);").ok());
+    REQUIRE (f.db.executeSql (std::string { "CREATE TRIGGER refuse_commit AFTER " }
+        + (finalCommit ? "UPDATE OF committed" : "INSERT")
+        + " ON pending_fs_ops BEGIN INSERT INTO commit_guard VALUES(1); END;").ok());
+    std::vector<PreparedBatchOutcome> outcomes;
+    const auto result = admitPreparedBatch (f.db, f.prepared, outcomes);
+    REQUIRE_FALSE (result.ok());
+    CHECK ((result.sqliteCode & 0xff) == SQLITE_CONSTRAINT);
+    for (const auto& outcome : outcomes)
+        CHECK_FALSE (outcome.asset.has_value());
+    sqlite3_int64 count = 0;
+    REQUIRE (f.db.queryInt64 ("SELECT COUNT(*) FROM assets;", count).ok());
+    CHECK (count == 1);
+    REQUIRE (f.db.pendingFsOpCount (false, count).ok());
+    CHECK (count == (finalCommit ? 2 : 0));
+    REQUIRE (f.db.pendingFsOpCount (true, count).ok());
+    CHECK (count == markerBaseline); // the earlier successful import's marker is unchanged
+    REQUIRE (f.db.queryInt64 ("PRAGMA synchronous;", count).ok());
+    CHECK (count == 1);
+    REQUIRE (f.db.executeSql ("BEGIN IMMEDIATE; ROLLBACK;").ok());
+    f.prepared.clear();
+    for (std::size_t index = 0; index < 2; ++index)
+    {
+        CHECK (std::filesystem::exists (f.canonical[index]) == finalCommit);
+        CHECK (std::filesystem::exists (f.snapshots[index]) == ! finalCommit);
+        CHECK (readBytes (finalCommit ? f.canonical[index] : f.snapshots[index]) == f.bytes[index]);
+    }
+    CHECK (readBytes (storedAssetPathForHash (f.path, prior.contentHash)) == priorBytes);
+    f.close();
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (f.path, reopened).ok());
+    for (std::size_t index = 0; index < 2; ++index)
+    {
+        CHECK_FALSE (std::filesystem::exists (f.snapshots[index]));
+        CHECK_FALSE (std::filesystem::exists (f.canonical[index]));
+        CHECK (readBytes (f.sources[index]) == f.bytes[index]);
+        if (finalCommit)
+            CHECK (readBytes (f.path / ".trash" / f.canonical[index].filename()) == f.bytes[index]);
+    }
+    CHECK (readBytes (storedAssetPathForHash (f.path, prior.contentHash)) == priorBytes);
+    REQUIRE (reopened.pendingFsOpCount (false, count).ok());
+    CHECK (count == 0);
+}
+
+TEST_CASE ("Prepared batch aliases preserve content identity and refuse conflicting insert IDs", "[persistence][asset][prepared-import][prepared-batch]")
+{
+    using namespace yesdaw::persistence;
+    PreparedBatchFixture f;
+    f.add (180);
+    f.add (181, f.bytes[0]);
+    f.add (182, f.bytes[0], 99);
+    f.add (180, assetBytesForId (idFromLowByte (183)));
+    std::vector<PreparedBatchOutcome> outcomes;
+    REQUIRE (admitPreparedBatch (f.db, f.prepared, outcomes).ok());
+    REQUIRE (outcomes[0].asset.has_value());
+    CHECK (outcomes[1].asset == outcomes[0].asset);
+    CHECK_FALSE (outcomes[2].asset.has_value());
+    CHECK (outcomes[2].result.message.find ("conflicting Asset metadata") != std::string::npos);
+    CHECK_FALSE (outcomes[3].asset.has_value());
+    CHECK (outcomes[3].result.message.find ("Asset ID already exists") != std::string::npos);
+    CHECK_FALSE (std::filesystem::exists (f.canonical[3]));
+    sqlite3_int64 count = 0;
+    REQUIRE (f.db.queryInt64 ("SELECT COUNT(*) FROM assets;", count).ok());
+    CHECK (count == 1);
+    // A requested duplicate ID may collide with another stored row; the real hash row still wins.
+    f.add (184);
+    std::vector<PreparedBatchOutcome> inserted;
+    REQUIRE (admitPreparedBatch (f.db, { &f.prepared.back(), 1 }, inserted).ok());
+    REQUIRE (inserted[0].asset.has_value());
+    REQUIRE (f.db.executeSql ("INSERT INTO assets SELECT X'" + detail::hexBytes (idFromLowByte (185).bytes)
+        + "',content_hash,frames,sample_rate_hz,channels,relative_path FROM assets WHERE id=X'"
+        + detail::hexBytes (idFromLowByte (180).bytes) + "';").ok()); // no UNIQUE content-hash rule
+    f.add (184, f.bytes[0]);
+    std::vector<PreparedBatchOutcome> duplicate;
+    REQUIRE (admitPreparedBatch (f.db, { &f.prepared.back(), 1 }, duplicate).ok());
+    CHECK (duplicate[0].asset == outcomes[0].asset);
+}
+
+TEST_CASE ("A transaction-wide marker rollback refuses the complete prepared batch", "[persistence][asset][prepared-import][prepared-batch][recovery]")
+{
+    using namespace yesdaw::persistence;
+    PreparedBatchFixture f;
+    f.add (186);
+    f.add (187);
+    REQUIRE (f.db.executeSql ("CREATE TRIGGER rollback_batch BEFORE UPDATE OF committed ON pending_fs_ops "
+        "WHEN NEW.committed=1 AND NEW.temp_relative_path LIKE '%/item-1.wav' "
+        "BEGIN SELECT RAISE(ROLLBACK,'whole transaction rolled back'); END;").ok());
+    std::vector<PreparedBatchOutcome> outcomes;
+    const auto result = admitPreparedBatch (f.db, f.prepared, outcomes);
+    REQUIRE_FALSE (result.ok());
+    CHECK (result.message.find ("whole transaction rolled back") != std::string::npos);
+    for (const auto& outcome : outcomes)
+        CHECK_FALSE (outcome.asset.has_value());
+    sqlite3_int64 count = 0;
+    REQUIRE (f.db.queryInt64 ("SELECT COUNT(*) FROM assets;", count).ok());
+    CHECK (count == 0);
+    REQUIRE (f.db.pendingFsOpCount (false, count).ok());
+    CHECK (count == 2);
+    REQUIRE (f.db.pendingFsOpCount (true, count).ok());
+    CHECK (count == 0);
+    REQUIRE (f.db.queryInt64 ("PRAGMA synchronous;", count).ok());
+    CHECK (count == 1);
+    f.prepared.clear();
+    for (std::size_t index = 0; index < 2; ++index)
+        CHECK (readBytes (f.canonical[index]) == f.bytes[index]);
+    f.close();
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (f.path, reopened).ok());
+    for (std::size_t index = 0; index < 2; ++index)
+    {
+        CHECK_FALSE (std::filesystem::exists (f.canonical[index]));
+        CHECK (readBytes (f.path / ".trash" / f.canonical[index].filename()) == f.bytes[index]);
+    }
+}
+
+TEST_CASE ("A selective prepared transfer refusal leaves another file durable", "[persistence][asset][prepared-import][prepared-batch][recovery]")
+{
+    using namespace yesdaw::persistence;
+    PreparedBatchFixture f;
+    f.add (190);
+    f.add (191); // distinct source job directory; denial cannot block this second file
+    const int cleanupFailure = GENERATE (0, 1, 2);
+    const bool cleanupFails = cleanupFailure != 0;
+    if (cleanupFailure == 1)
+        REQUIRE (f.db.executeSql ("CREATE TRIGGER refuse_cleanup BEFORE DELETE ON pending_fs_ops "
+            "WHEN OLD.temp_relative_path LIKE '%/item-0.wav' BEGIN SELECT RAISE(ABORT,'cleanup refused'); END;").ok());
+    if (cleanupFailure == 2)
+        REQUIRE (f.db.executeSql ("CREATE TABLE cleanup_parent(id INTEGER PRIMARY KEY); "
+            "CREATE TABLE cleanup_guard(id INTEGER REFERENCES cleanup_parent(id) DEFERRABLE INITIALLY DEFERRED); "
+            "CREATE TRIGGER refuse_cleanup AFTER DELETE ON pending_fs_ops "
+            "WHEN OLD.temp_relative_path LIKE '%/item-0.wav' BEGIN INSERT INTO cleanup_guard VALUES(1); END;").ok());
+#if defined(_WIN32)
+    struct TransferBlock
+    {
+        HANDLE handle = INVALID_HANDLE_VALUE;
+        void release() { if (handle != INVALID_HANDLE_VALUE) CloseHandle (std::exchange (handle, INVALID_HANDLE_VALUE)); }
+        ~TransferBlock() { release(); }
+    } block;
+    block.handle = CreateFileW (f.snapshots[0].c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                 nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    REQUIRE (block.handle != INVALID_HANDLE_VALUE);
+#else
+    if (::geteuid() == 0)
+        SKIP ("root bypasses directory write permission checks");
+    struct TransferBlock
+    {
+        std::filesystem::path directory;
+        std::filesystem::perms original;
+        void release()
+        {
+            if (directory.empty()) return;
+            std::error_code ignored;
+            std::filesystem::permissions (directory, original, ignored);
+            directory.clear();
+        }
+        ~TransferBlock() { release(); }
+    } block { f.snapshots[0].parent_path(), std::filesystem::status (f.snapshots[0].parent_path()).permissions() };
+    std::filesystem::permissions (block.directory, std::filesystem::perms::owner_read | std::filesystem::perms::owner_exec);
+#endif
+    std::vector<PreparedBatchOutcome> outcomes;
+    const auto result = admitPreparedBatch (f.db, f.prepared, outcomes);
+    CHECK (result.ok() == (cleanupFailure != 2));
+    CHECK_FALSE (outcomes[0].asset.has_value());
+    CHECK (outcomes[0].result.message.find ("no-overwrite Asset transfer refused") != std::string::npos);
+    CHECK (outcomes[1].asset.has_value() == (cleanupFailure != 2));
+    sqlite3_int64 count = 0;
+    REQUIRE (f.db.pendingFsOpCount (false, count).ok());
+    CHECK (count == cleanupFailure);
+    REQUIRE (f.db.pendingFsOpCount (true, count).ok());
+    CHECK (count == (cleanupFailure == 2 ? 0 : 1));
+    block.release();
+    f.prepared.clear();
+    CHECK (std::filesystem::exists (f.snapshots[0]) == cleanupFails);
+    CHECK_FALSE (std::filesystem::exists (f.canonical[0]));
+    CHECK (readBytes (f.canonical[1]) == f.bytes[1]);
+    if (cleanupFails)
+        REQUIRE (f.db.executeSql ("DROP TRIGGER refuse_cleanup;").ok());
+    f.close();
+    ProjectBundleDb reopened;
+    REQUIRE (ProjectBundleDb::openExistingBundle (f.path, reopened).ok());
+    CHECK_FALSE (std::filesystem::exists (f.snapshots[0]));
+    if (cleanupFailure == 2)
+    {
+        CHECK_FALSE (std::filesystem::exists (f.canonical[1]));
+        CHECK (readBytes (f.path / ".trash" / f.canonical[1].filename()) == f.bytes[1]);
+    }
+    else
+        CHECK (readBytes (f.canonical[1]) == f.bytes[1]);
+    CHECK (readBytes (f.sources[0]) == f.bytes[0]);
+    REQUIRE (reopened.pendingFsOpCount (false, count).ok());
+    CHECK (count == 0);
+}
+
 TEST_CASE ("Prepared Asset adoption keeps the staged snapshot and does no hash or copy", "[persistence][asset][prepared-import]")
 {
     using namespace yesdaw::persistence;
@@ -2901,7 +3311,7 @@ TEST_CASE ("Prepared Asset adoption keeps the staged snapshot and does no hash o
         REQUIRE (std::move (snapshot).complete (idFromLowByte (80), 96000, SampleRate { 96000.0 }, 2, prepared).ok());
         detail::assetHashCallsForTest = 0;
         detail::copiedFileBytesForTest = 0;
-        const auto adopted = db.adoptPreparedAsset (std::move (prepared), first);
+        const auto adopted = adoptPreparedAsset (db, std::move (prepared), first);
         INFO (adopted.message);
         REQUIRE (adopted.ok());
         REQUIRE (detail::assetHashCallsForTest == 0);
@@ -2933,7 +3343,7 @@ TEST_CASE ("Prepared Asset adoption keeps the staged snapshot and does no hash o
             Asset same;
             detail::assetHashCallsForTest = 0;
             detail::copiedFileBytesForTest = 0;
-            const auto result = db.adoptPreparedAsset (std::move (duplicate), same);
+            const auto result = adoptPreparedAsset (db, std::move (duplicate), same);
             REQUIRE (detail::assetHashCallsForTest == 0);
             REQUIRE (detail::copiedFileBytesForTest == 0);
             if (conflict)
@@ -2990,7 +3400,7 @@ TEST_CASE ("Prepared Asset adoption reuses verified canonical bytes before an As
     detail::assetHashCallsForTest = 0;
     detail::copiedFileBytesForTest = 0;
     Asset imported;
-    const auto adopted = db.adoptPreparedAsset (std::move (prepared), imported);
+    const auto adopted = adoptPreparedAsset (db, std::move (prepared), imported);
     INFO (adopted.message);
     REQUIRE (adopted.ok());
     REQUIRE (detail::assetHashCallsForTest == 0);
@@ -3070,7 +3480,7 @@ TEST_CASE ("Prepared Asset adoption refuses changed proofs without touching cano
     Asset ignored;
     detail::assetHashCallsForTest = 0;
     detail::copiedFileBytesForTest = 0;
-    const auto result = db.adoptPreparedAsset (std::move (prepared), ignored);
+    const auto result = adoptPreparedAsset (db, std::move (prepared), ignored);
     INFO (result.message);
     REQUIRE_FALSE (result.ok());
     REQUIRE (result.message.find ("revalidation required") != std::string::npos);
@@ -3132,7 +3542,7 @@ TEST_CASE ("Prepared Asset private cleanup owns only tracked files in the captur
         PreparedAssetImport prepared;
         REQUIRE (std::move (snapshot).complete (idFromLowByte (86), 1, SampleRate { 48000.0 }, 1, prepared).ok());
         Asset ignored;
-        const auto result = db.adoptPreparedAsset (std::move (prepared), ignored);
+        const auto result = adoptPreparedAsset (db, std::move (prepared), ignored);
         REQUIRE_FALSE (result.ok());
         REQUIRE (result.message.find ("directory identity changed") != std::string::npos);
     }
@@ -3181,7 +3591,7 @@ TEST_CASE ("Prepared Asset row failure retains journal ownership and recovers th
         REQUIRE (std::move (snapshot).complete (idFromLowByte (89), 512, SampleRate { 48000.0 }, 2, prepared).ok());
         REQUIRE (db.executeSql ("CREATE TRIGGER reject_prepared BEFORE INSERT ON assets BEGIN SELECT RAISE(ABORT,'refuse row'); END;").ok());
         Asset ignored;
-        const auto result = db.adoptPreparedAsset (std::move (prepared), ignored);
+        const auto result = adoptPreparedAsset (db, std::move (prepared), ignored);
         REQUIRE_FALSE (result.ok());
         REQUIRE (result.message.find ("refuse row") != std::string::npos);
         sqlite3_int64 count = 0;
@@ -3258,7 +3668,7 @@ TEST_CASE ("Prepared Asset transfer failure clears its intent or retains journal
         Asset ignored;
         detail::assetHashCallsForTest = 0;
         detail::copiedFileBytesForTest = 0;
-        const auto result = db.adoptPreparedAsset (std::move (prepared), ignored);
+        const auto result = adoptPreparedAsset (db, std::move (prepared), ignored);
         INFO (result.message);
         REQUIRE_FALSE (result.ok());
         REQUIRE (result.message.find ("no-overwrite Asset transfer refused") != std::string::npos);

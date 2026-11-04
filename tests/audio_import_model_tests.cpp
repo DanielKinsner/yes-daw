@@ -7,6 +7,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <stdexcept>
 #include <thread>
 
@@ -680,6 +681,100 @@ TEST_CASE ("Import completion performs no full source hash or copy on its owner 
         CHECK (receipt->ownerBatchMilliseconds > 0);
         WARN ("Measured owner adoption batch: " << batchSize << " unique Assets, " << receipt->ownerBatchMilliseconds << " ms");
     }
+}
+
+TEST_CASE ("A shared admission COMMIT failure publishes no duplicate or new Clip", "[import-model][prepared-batch]")
+{
+    Fixture f;
+    const auto prior = f.wav ("committed.wav", 44'100.0, 0.125f);
+    const auto fresh = f.wav ("new.wav", 44'100.0, 0.25f);
+    const auto target = f.model.project().tracks.front().id;
+    REQUIRE (f.model.startAudioImport ({ prior }, { target }, 0, true, decodeWav).accepted);
+    REQUIRE (f.finish());
+    REQUIRE (f.model.locatePlaybackFrame (0));
+    REQUIRE (f.model.dispatch (ui::UiActionId::TransportPlay).dispatched);
+    const auto beforeAudio = f.model.renderPlaybackFrames (256, 128);
+    REQUIRE (f.model.dispatch (ui::UiActionId::TransportStop).dispatched);
+    REQUIRE (f.model.saveProjectBundle().ok());
+    const auto expected = f.model.project();
+    const auto owners = f.model.distinctDecodedBuffersForTest();
+    const auto replacementCount = f.model.playbackReplaceCount();
+    const auto dispatchCount = f.model.context().commandDispatchCount;
+    const auto undo = f.model.context().canUndo;
+    const auto redo = f.model.context().canRedo;
+    const auto writeStamp = f.model.bundleWriteStamp();
+    sqlite3* raw = nullptr;
+    const int opened = sqlite3_open_v2 (persistence::detail::utf8Path (f.bundle / "project.db").c_str(),
+                                        &raw, SQLITE_OPEN_READWRITE, nullptr);
+    const std::unique_ptr<sqlite3, decltype (&sqlite3_close)> database { raw, sqlite3_close };
+    REQUIRE (opened == SQLITE_OK);
+    // Inspect/configure the real database without openExistingBundle's intentional recovery pass.
+    sqlite3_int64 markerBaseline = 0;
+    REQUIRE (persistence::detail::queryInt64 (raw, "SELECT COUNT(*) FROM pending_fs_ops WHERE committed=1;", markerBaseline).ok());
+    REQUIRE (markerBaseline == 1);
+    REQUIRE (persistence::detail::exec (raw,
+        "CREATE TABLE commit_parent(id INTEGER PRIMARY KEY); "
+        "CREATE TABLE commit_guard(id INTEGER REFERENCES commit_parent(id) DEFERRABLE INITIALLY DEFERRED); "
+        "CREATE TRIGGER fail_admission_commit AFTER UPDATE OF committed ON pending_fs_ops "
+        "WHEN NEW.committed=1 BEGIN INSERT INTO commit_guard VALUES(1); END;").ok());
+    REQUIRE (f.model.startAudioImport ({ prior, fresh }, { target }, 2000, true, decodeWav).accepted);
+    CHECK_FALSE (f.finish());
+    const auto receipt = f.model.takeAudioImportCompletion();
+    REQUIRE (receipt.has_value());
+    CHECK (receipt->disposition == ui::UiAudioImportDisposition::Failed);
+    CHECK_FALSE (receipt->allowsMidiTail());
+    CHECK (receipt->placement.landed == 0);
+    CHECK (receipt->landedTrackIds.empty());
+    CHECK (f.model.project().assets == expected.assets);
+    CHECK (f.model.project().clips == expected.clips);
+    CHECK (f.model.project().tracks == expected.tracks);
+    CHECK (f.model.distinctDecodedBuffersForTest() == owners);
+    CHECK (f.model.playbackReplaceCount() == replacementCount);
+    CHECK (f.model.context().commandDispatchCount == dispatchCount);
+    CHECK (f.model.context().canUndo == undo);
+    CHECK (f.model.context().canRedo == redo);
+    CHECK_FALSE (f.model.hasUnsavedChanges());
+    CHECK (f.model.bundleWriteStamp() == writeStamp);
+    sqlite3_int64 count = 0;
+    REQUIRE (persistence::detail::queryInt64 (raw, "SELECT COUNT(*) FROM pending_fs_ops WHERE committed=1;", count).ok());
+    CHECK (count == markerBaseline);
+    REQUIRE (persistence::detail::queryInt64 (raw, "SELECT COUNT(*) FROM pending_fs_ops WHERE committed=0;", count).ok());
+    CHECK (count == 1);
+    CHECK (f.persisted().clips == expected.clips);
+    REQUIRE (f.model.locatePlaybackFrame (0));
+    REQUIRE (f.model.dispatch (ui::UiActionId::TransportPlay).dispatched);
+    CHECK (f.model.renderPlaybackFrames (256, 128) == beforeAudio);
+}
+
+TEST_CASE ("A batch marker refusal reaches aliases while other audio lands in one undo step", "[import-model][prepared-batch]")
+{
+    Fixture f;
+    const auto refused = f.wav ("refused.wav", 44'100.0, 0.125f);
+    const auto accepted = f.wav ("accepted.wav", 44'100.0, 0.25f);
+    const auto target = f.model.project().tracks.front().id;
+    f.sql ("CREATE TRIGGER refuse_one_marker BEFORE UPDATE OF committed ON pending_fs_ops "
+           "WHEN NEW.committed=1 AND NEW.temp_relative_path LIKE '%/item-0.wav' "
+           "BEGIN SELECT RAISE(ABORT,'one marker refused'); END;");
+    REQUIRE (f.model.startAudioImport ({ refused, refused, accepted }, { target }, 1234, true, decodeWav).accepted);
+    REQUIRE (f.finish());
+    const auto receipt = f.model.takeAudioImportCompletion();
+    REQUIRE (receipt.has_value());
+    REQUIRE (receipt->placement.refusals.size() == 2);
+    CHECK (receipt->placement.refusals[0] == receipt->placement.refusals[1]);
+    CHECK (receipt->placement.refusals[0].find ("one marker refused") != std::string::npos);
+    CHECK (receipt->allowsMidiTail());
+    CHECK (receipt->placement.landed == 1);
+    REQUIRE (f.model.project().clips.size() == 1);
+    CHECK (f.model.project().clips.front().trackId == target);
+    CHECK (f.model.project().clips.front().timelineStart == 1234);
+    CHECK (f.model.project().tracks.size() == 1);
+    CHECK (f.model.project().assets.size() == 1);
+    const auto landed = f.model.project().clips;
+    CHECK (f.persisted().clips == landed);
+    REQUIRE (f.model.dispatch (ui::UiActionId::EditUndo).dispatched);
+    CHECK (f.model.project().clips.empty());
+    REQUIRE (f.model.dispatch (ui::UiActionId::EditRedo).dispatched);
+    CHECK (f.model.project().clips == landed);
 }
 
 TEST_CASE ("A loaded stretched cross-rate duplicate keeps its decoded owner and prepared playback", "[import-model]")

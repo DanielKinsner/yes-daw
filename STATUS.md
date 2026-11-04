@@ -48,8 +48,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
-   The async screenshot fixtures now wait for actual completion. Next: batch durable Asset admission, complete
-   the background-import cluster review, then implement the full musical clock. The implementation
+   The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Next:
+   complete the background-import cluster simplification/review, then implement the full musical clock. The implementation
    brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -69,6 +69,14 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — Batch durable Asset admission
+
+Prepared Assets share two FULL commits: durable intents before any transfer, then rows/markers/intent cleanup. Per-file savepoints retain other successes; a shared durability failure publishes no Assets or Project edit, including stored duplicates. Recovery, staging ownership and synchronous-mode restoration retain their existing contracts; the model admits one batch before its single Clip/Track undo transaction.
+Real WAL proof reproduced eight commits and now asserts two. Deferred final-COMMIT and per-file failures cover aliases, unchanged playback/cache/undo/stamp, retained bytes and reopen recovery. A new closed-handle guard has default/moved-from regressions; its pre-fix execution was deliberately skipped because pinned SQLite proves the null dereference and Catch cannot guarantee suppression of Windows crash dialogs.
+Focused batch 634/7, prepared-import 1,598/21 and model 812/20 passed; independent saved-data critic accepted all four frozen hashes. Canonical pure suite 437/437 (95.30 s), app plus both harnesses compiled without launch, three affected Clang units clean, audited offscreen UI 496/459,650 and screenshots 30/15,629 passed. No native windows, desktop input or audio-device startup.
+Three isolated before/final-guarded runs measured median owner admission of 11.638/74.960/293.373 ms versus 10.113/64.117/266.050 ms for 1/8/32 Assets. Final ranges were 9.749–12.611/60.489–97.103/217.025–298.115 ms. Earlier pre-guard samples, including the 94.053 ms single-item outlier, remain separate and retained; concurrent samples are excluded. Ranges overlap: no uniform speedup, deadline or fully asynchronous completion claim.
+Next: two behavior-preserving import cleanups, then the completed cluster's actual code-review receipt before timing implementation. New-head CI is pending; prior workflow 41798814373 has nine successful jobs and Windows still running.
 
 ## 2026-11-04 — Screenshot fixtures await background imports
 
