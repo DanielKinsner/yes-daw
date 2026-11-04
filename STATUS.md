@@ -71,6 +71,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-04 — Portable metronome test bindings
+
+Linux and macOS CI 41855443211 rejected two copied structured bindings under warnings-as-errors. Both loops now bind the same immutable pairs by reference; no expected value, assertion, production code or warning threshold changes.
+The exact two replacements passed the existing full Playback suite (502,767 assertions / 33 cases, including unchanged deadline checks) and one Clang unit. Byte comparison proves the rest of the test file and all production bytes unchanged. Code review: skipped (mechanical diff).
+Before the clean-baseline repair, all six count-in source/test files plus STATUS were copied and SHA-verified under build-ci/20261104-countin-before-portability-fix; manifest and WIP patch are retained. Its author is paused with no running process. Next: push this repair, restore that exact feature snapshot with these two references, then resume active-count-in timing and final integration. New-head CI remains pending; the original compile failures remain recorded.
+
 ## 2026-11-04 — Full-map metronome
 
 Normal playback and shuttle now use the current Project's full Tempo/Meter maps at the engine's Project rate: rational beat origins, downbeat coalescing and absolute seek/loop tails. The immutable index is built on Control; Audio uses borrowed data and stack-only bounded search. Export remains free of the monitoring click.

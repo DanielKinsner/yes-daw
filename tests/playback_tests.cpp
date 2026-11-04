@@ -1709,7 +1709,7 @@ TEST_CASE ("click index uses rational origins, truncated bars and full stored Me
     CHECK (noBarCounter.nextOnset (1).found);
     const auto jump = compileClick ({ { 0, 120.0, TempoCurve::Jump },
                                       { 2 * yesdaw::engine::kTicksPerQuarter, 60.0, TempoCurve::Jump } }, {});
-    for (const auto [query, expected] : { std::pair<std::int64_t, std::int64_t> { 1, 24000 },
+    for (const auto& [query, expected] : { std::pair<std::int64_t, std::int64_t> { 1, 24000 },
                                         { 24001, 48000 }, { 48001, 96000 } })
         CHECK (jump.nextOnset (query).frame == expected);
 }
@@ -1983,7 +1983,7 @@ TEST_CASE ("click transport windows match independent sparse and dense buckets w
     {
         const auto clock = compileClick ({ { 0, dense ? 11520000.0 : 120.0, TempoCurve::Jump } },
                                          { { 0, 7, 4 } });
-        for (const auto [first, end] : { std::pair<std::int64_t, std::int64_t> { 0, 0 }, { 0, 1 },
+        for (const auto& [first, end] : { std::pair<std::int64_t, std::int64_t> { 0, 0 }, { 0, 1 },
             { 0, 257 }, { 1, 257 }, { 23990, 24010 }, { 24000, 24001 }, { 24001, 48001 } })
         {
             auto window = clock.onsetsInRange (first, end);
