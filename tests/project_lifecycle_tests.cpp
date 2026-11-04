@@ -299,6 +299,7 @@ TEST_CASE ("SS-6 the probe carries the project's rate, tempo and Assets, the aut
     choices.autosaveIntervalMs = 250;   // the drive's seam (YESDAW_AUTOSAVE_INTERVAL_MS)
     auto shell = yesdaw::ui::createMainComponent (std::move (choices));
     REQUIRE (shell != nullptr);
+    REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == 0);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
     waitForAudioImports (*shell);
@@ -310,6 +311,10 @@ TEST_CASE ("SS-6 the probe carries the project's rate, tempo and Assets, the aut
     REQUIRE (static_cast<double> (project["tempoBpm"]) == 120.0);
     REQUIRE (static_cast<int> (project["clipCount"]) == 1);
     REQUIRE (project["assets"].size() == 1);
+    // Import setup may already have reached the cadence; exercise that legitimate setup write explicitly.
+    for (int n = 0; n < 100 && static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == 0; ++n)
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+    REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["writes"]) > 0);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectSave);
     std::vector<std::string> assetFiles;
     for (const auto& entry : std::filesystem::directory_iterator (bundle / "audio"))
@@ -320,17 +325,18 @@ TEST_CASE ("SS-6 the probe carries the project's rate, tempo and Assets, the aut
     REQUIRE (static_cast<int> (project["assets"][0]["channels"]) >= 1);
     REQUIRE (static_cast<juce::int64> (project["assets"][0]["frames"]) > 0);
 
-    // Autosave: the drive's cadence reaches the schedule; the counters start at nothing written.
+    // Autosave: the drive's cadence reaches the schedule; Save leaves the session's write count intact.
     REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["intervalMs"]) == 250);
     REQUIRE (static_cast<bool> (probeOf (*shell)["autosave"]["enabled"]));
     REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["failures"]) == 0);
     REQUIRE_FALSE (static_cast<bool> (probeOf (*shell)["autosave"]["recovery"]["pending"]));
     // ADR-0068 (close-out unit 4): after an edit since the Save, the shell's own tick writes an autosave.
-    REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == 0);
+    const int writesBeforeEdit = static_cast<int> (probeOf (*shell)["autosave"]["writes"]);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
-    for (int n = 0; n < 100 && static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == 0; ++n)
+    for (int n = 0; n < 100 && static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == writesBeforeEdit; ++n)
         yesdaw::ui::mainComponentServiceUiTick (*shell);
     REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["writes"]) > 0);
+    REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == writesBeforeEdit + 1);
     REQUIRE (static_cast<juce::int64> (probeOf (*shell)["autosave"]["lastAutosavedEditSerial"])
              == static_cast<juce::int64> (probeOf (*shell)["autosave"]["editSerial"]));
     REQUIRE_FALSE (static_cast<bool> (probeOf (*shell)["autosave"]["notDurable"]));
@@ -1568,11 +1574,16 @@ TEST_CASE ("ADR-0069 the probe carries the autosave writer's cost and carries", 
     choices.autosaveIntervalMs = 250;
     auto shell = yesdaw::ui::createMainComponent (std::move (choices));
     REQUIRE (shell != nullptr);
+    REQUIRE (static_cast<double> (probeOf (*shell)["autosave"]["writeMs"]) == 0.0);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
     waitForAudioImports (*shell);
     REQUIRE (probeOf (*shell)["project"]["assets"].size() == 1);
-    REQUIRE (static_cast<double> (probeOf (*shell)["autosave"]["writeMs"]) == 0.0);
+    // Import setup may already have reached the cadence; exercise that legitimate setup write explicitly.
+    for (int n = 0; n < 100 && static_cast<int> (probeOf (*shell)["autosave"]["writes"]) == 0; ++n)
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+    REQUIRE (static_cast<int> (probeOf (*shell)["autosave"]["writes"]) > 0);
+    REQUIRE (static_cast<double> (probeOf (*shell)["autosave"]["writeMs"]) > 0.0);
     // One write through the shell's own tick (bounded: the cadence is 250 ms of ticks).
     const auto writeThroughTick = [&shell] {
         const int before = static_cast<int> (probeOf (*shell)["autosave"]["writes"]);

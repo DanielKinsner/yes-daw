@@ -71,6 +71,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-04 — Autosave probe setup repaired
+
+Initial zero telemetry is now checked before import; the tests exercise a genuine setup autosave, then check the next edit's write against its observed baseline. Production writer behavior, the 250-ms cadence and all 790 original assertion statements remain unchanged; the measured cost/carry suffix is byte-identical.
+Deterministic RED failed exactly the two obsolete assumptions. Focused 58/2 and related offscreen lifecycle 2,287/25 passed. The actual complete CE lite receipt 20261104-084618-autosave-setup covers this exact unchanged test delta at SHA 415134A8; no production code is in this change.
+Fresh root integration on pushed clock repair 623cb26 passed pure 459/459 (100.17 s), three GUI consumers compiled without launch, one Clang unit and all 502 audited offscreen UI cases / 459,894 assertions. All 25 focused lifecycle cases are mechanically included; final base/hash/two-path guards passed. The earlier failed full-pure run remains retained and receives no pass credit.
+Next: push this test repair, restore the exact six-file MIDI-copy patch and repeat its full integration, then implement the prepared native move/nudge unit. Remote CI remains pending; no desktop/native/device checks ran.
+
 ## 2026-11-04 — Dense click and count-in cost repaired
 
 Control caches only certified exact constant k/BPM ratios; rough comparisons use cheaper arithmetic only inside the proved normal domain and retain the original normalized fallback at exponent extremes. The initial DBL_MIN shortcut was rejected before implementation. Tight ramp/log anchors, Time.h, onset searches, old assertions and RT annotations remain unchanged.
