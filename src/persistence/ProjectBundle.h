@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cerrno>
 #include <cstdint>
 #include <filesystem>
@@ -23,7 +24,6 @@
 #include <memory>
 #include <optional>
 #include <span>
-#include <stop_token>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -546,9 +546,9 @@ inline thread_local std::uint64_t copiedFileBytesForTest = 0;   // bytes copyFil
 #endif
 
 inline BundleResult hashFile (const std::filesystem::path& path, engine::AssetContentHash& out,
-                              std::stop_token stop = {})
+                              const std::atomic<bool>* cancel = nullptr)
 {
-    if (stop.stop_requested())
+    if (cancel != nullptr && cancel->load (std::memory_order_acquire))
         return { BundleStatus::FilesystemError, SQLITE_OK, 0, "audio import cancelled" };
 #if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
     ++assetHashCallsForTest;
@@ -567,7 +567,7 @@ inline BundleResult hashFile (const std::filesystem::path& path, engine::AssetCo
     std::array<char, 65536> buffer {};
     while (input)
     {
-        if (stop.stop_requested())
+        if (cancel != nullptr && cancel->load (std::memory_order_acquire))
             return { BundleStatus::FilesystemError, SQLITE_OK, 0, "audio import cancelled" };
         input.read (buffer.data(), static_cast<std::streamsize> (buffer.size()));
         const std::streamsize read = input.gcount();
@@ -580,7 +580,7 @@ inline BundleResult hashFile (const std::filesystem::path& path, engine::AssetCo
     if (! input.eof())
         return BundleResult { BundleStatus::FilesystemError, SQLITE_OK, 0, "failed while reading file: " + utf8Path (path) };
 
-    if (stop.stop_requested())
+    if (cancel != nullptr && cancel->load (std::memory_order_acquire))
         return { BundleStatus::FilesystemError, SQLITE_OK, 0, "audio import cancelled" };
     out = sha.finalize();
     return ok();
@@ -1928,9 +1928,9 @@ struct StagedAsset
 
 // A fresh private name must be created exclusively; an existing or substituted item is never truncated.
 inline BundleResult copyIntoPrivateFile (const std::filesystem::path& source, StagedAsset& staged,
-                                         std::stop_token stop = {})
+                                         const std::atomic<bool>* cancel = nullptr)
 {
-    if (stop.stop_requested())
+    if (cancel != nullptr && cancel->load (std::memory_order_acquire))
         return fileError ("audio import cancelled", source);
     std::ifstream input (source, std::ios::binary);
     if (! input)
@@ -1955,7 +1955,7 @@ inline BundleResult copyIntoPrivateFile (const std::filesystem::path& source, St
     std::array<char, 65536> buffer {};
     while (result.ok() && input)
     {
-        if (stop.stop_requested())
+        if (cancel != nullptr && cancel->load (std::memory_order_acquire))
         {
             result = fileError ("audio import cancelled", staged.path);
             break;
@@ -1965,7 +1965,7 @@ inline BundleResult copyIntoPrivateFile (const std::filesystem::path& source, St
         std::streamsize written = 0;
         while (written < count)
         {
-            if (stop.stop_requested())
+            if (cancel != nullptr && cancel->load (std::memory_order_acquire))
             {
                 result = fileError ("audio import cancelled", staged.path);
                 break;
@@ -1986,7 +1986,7 @@ inline BundleResult copyIntoPrivateFile (const std::filesystem::path& source, St
 #endif
         }
     }
-    if (result.ok() && stop.stop_requested())
+    if (result.ok() && cancel != nullptr && cancel->load (std::memory_order_acquire))
         result = fileError ("audio import cancelled", staged.path);
     if (result.ok() && ! input.eof())
         result = fileError ("cannot finish reading import source", source);
@@ -2003,14 +2003,14 @@ inline BundleResult copyIntoPrivateFile (const std::filesystem::path& source, St
 }
 
 inline BundleResult verifiedFingerprint (const std::filesystem::path& path, engine::AssetContentHash& hash,
-                                         FileFingerprint& proof, std::stop_token stop = {})
+                                         FileFingerprint& proof, const std::atomic<bool>* cancel = nullptr)
 {
     FileFingerprint before;
     if (const auto error = fingerprint (path, before))
         return fileError ("cannot identify import bytes", path, error);
     if (before.directory)
         return fileError ("import bytes are not a regular file", path);
-    if (auto result = detail::hashFile (path, hash, stop); ! result.ok())
+    if (auto result = detail::hashFile (path, hash, cancel); ! result.ok())
         return result;
     if (const auto error = fingerprint (path, proof))
         return fileError ("cannot identify hashed import bytes", path, error);
@@ -2320,7 +2320,7 @@ public:
     }
 
     [[nodiscard]] BundleResult stageSource (const std::filesystem::path& source, std::uint64_t item,
-                                            StagedAssetImport& out, std::stop_token stop = {}) const
+                                            StagedAssetImport& out, const std::atomic<bool>* cancel = nullptr) const
     {
         using namespace prepared_asset_detail;
         if (! directory_)
@@ -2331,10 +2331,10 @@ public:
         state->directory = directory_;
         state->originalFilename = source.filename();
         state->path = directory_->job / (std::filesystem::path ("item-" + std::to_string (item)) += source.extension());
-        if (auto result = copyIntoPrivateFile (source, *state, stop); ! result.ok())
+        if (auto result = copyIntoPrivateFile (source, *state, cancel); ! result.ok())
             return result;
         FileFingerprint hashed;
-        if (auto result = verifiedFingerprint (state->path, state->asset.contentHash, hashed, stop); ! result.ok())
+        if (auto result = verifiedFingerprint (state->path, state->asset.contentHash, hashed, cancel); ! result.ok())
             return result;
         if (! hashed.sameIdentity (state->stagedFingerprint))
             return fileError ("import staging file was replaced during preparation", state->path);
@@ -2348,7 +2348,7 @@ public:
         {
             FileFingerprint proof;
             engine::AssetContentHash canonicalHash;
-            if (auto result = verifiedFingerprint (canonical, canonicalHash, proof, stop); ! result.ok())
+            if (auto result = verifiedFingerprint (canonical, canonicalHash, proof, cancel); ! result.ok())
                 return result;
             if (canonicalHash != state->asset.contentHash)
                 return { BundleStatus::IntegrityFailed, SQLITE_CORRUPT, kCodeSchemaVersion, "canonical Asset bytes do not match import hash" };
@@ -2358,7 +2358,7 @@ public:
             return result;
         if (auto result = detail::flushDirectoryToDisk (directory_->job); ! result.ok())
             return result;
-        if (stop.stop_requested())
+        if (cancel != nullptr && cancel->load (std::memory_order_acquire))
             return fileError ("audio import cancelled", state->path);
         out.state_ = std::move (state);
         return detail::ok();

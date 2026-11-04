@@ -14,7 +14,6 @@
 #include <limits>
 #include <memory>
 #include <optional>
-#include <stop_token>
 #include <string>
 #include <thread>
 #include <utility>
@@ -128,8 +127,8 @@ public:
         return true;
     }
 
-    void requestCancel() noexcept { stop_.request_stop(); }
-    [[nodiscard]] bool cancelRequested() const noexcept { return stop_.stop_requested(); }
+    void requestCancel() noexcept { cancelRequested_.store (true, std::memory_order_release); }
+    [[nodiscard]] bool cancelRequested() const noexcept { return cancelRequested_.load (std::memory_order_acquire); }
     [[nodiscard]] AudioImportState state() const noexcept { return state_.load (std::memory_order_acquire); }
     [[nodiscard]] bool terminal() const noexcept { return state() != AudioImportState::Preparing; }
     [[nodiscard]] AudioImportPhase phase() const noexcept { return phase_.load (std::memory_order_relaxed); }
@@ -220,7 +219,7 @@ private:
             {
                 phase_.store (AudioImportPhase::Staging, std::memory_order_relaxed);
                 persistence::StagedAssetImport snapshot;
-                const auto staged = staging.stageSource (file.sourcePath, index, snapshot, stop_.get_token());
+                const auto staged = staging.stageSource (file.sourcePath, index, snapshot, &cancelRequested_);
                 if (stopIfCancelled())
                     return;
                 if (! staged.ok())
@@ -312,7 +311,7 @@ private:
     const AudioImportRequest request_;
     bool started_ = false;
     std::thread worker_;
-    std::stop_source stop_;
+    std::atomic<bool> cancelRequested_ { false };
     std::atomic<AudioImportState> state_ { AudioImportState::Preparing };
     std::atomic<AudioImportPhase> phase_ { AudioImportPhase::Waiting };
     std::atomic<std::size_t> completedFiles_ { 0 };

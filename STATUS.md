@@ -66,6 +66,11 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-03 — Import cancellation supports the pinned macOS toolchain
+
+CI 41773167524 exposed unavailable std::stop_token in the pinned macOS libc++; the worker and bounded persistence stages now use the same owned release/acquire atomic cancellation flag as export/stretch. The test's std::jthread also became std::thread with an unwind-safe join guard; no toolchain flags or cancellation checkpoints changed.
+Rebuilt worker: 434 assertions / 12 cases; integrated pure suite: 429/429 (78.32 s). App/harness compiled without launch, real-codec checks: 192,701 assertions / 12 cases; stock Clang: 24 clean units. Independent critic accepted ownership/guard ordering. Replacement macOS CI is pending; this compile failure is not the GPU exception.
+
 ## 2026-11-03 — Owned background audio import worker
 
 One worker owns copy/hash, canonical decode and live-rate conversion; ordered refusals preserve each original extension's format policy before duplicate folding. Cancellation reaches bounded copy/hash stages; terminal publication follows private cleanup. The model/database stay outside the worker.

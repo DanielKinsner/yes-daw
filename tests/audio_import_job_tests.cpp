@@ -13,7 +13,6 @@
 #include <limits>
 #include <memory>
 #include <stdexcept>
-#include <stop_token>
 #include <string>
 #include <thread>
 #include <type_traits>
@@ -426,12 +425,17 @@ TEST_CASE ("Audio import final teardown cancels and joins a held codec without d
     REQUIRE (await ([&] { return gate.entered.load (std::memory_order_acquire); }));
     std::atomic<bool> destructionStarted { false };
     std::atomic<bool> destructionFinished { false };
-    std::jthread teardown ([owned = std::move (job), &destructionStarted, &destructionFinished]() mutable {
+    std::thread teardown ([owned = std::move (job), &destructionStarted, &destructionFinished]() mutable {
         destructionStarted.store (true);
         owned.reset();
         destructionFinished.store (true);
     });
-    // Release before jthread destruction even when an assertion fails.
+    struct JoinOnExit
+    {
+        std::thread& thread;
+        ~JoinOnExit() { if (thread.joinable()) thread.join(); }
+    } joinOnExit { teardown };
+    // Release the decoder before joining even when an assertion fails.
     ReleaseGate releaseBeforeJoin { gate };
     REQUIRE (await ([&] { return destructionStarted.load(); }));
     CHECK_FALSE (destructionFinished.load());
@@ -543,22 +547,21 @@ TEST_CASE ("Audio import contains start and codec failures and cancellation inva
     job.join();
 }
 
-TEST_CASE ("Staged copy and hash honor standard cancellation without finalizing a proof", "[audio-import-job]")
+TEST_CASE ("Staged copy and hash honor owned cancellation without finalizing a proof", "[audio-import-job]")
 {
     Fixture fixture;
     const auto source = fixture.wav ("source.wav");
-    std::stop_source cancellation;
-    cancellation.request_stop();
+    std::atomic<bool> cancellation { true };
     engine::AssetContentHash unchanged;
     unchanged.bytes.fill (17);
     auto hash = unchanged;
-    CHECK_FALSE (persistence::detail::hashFile (source, hash, cancellation.get_token()).ok());
+    CHECK_FALSE (persistence::detail::hashFile (source, hash, &cancellation).ok());
     CHECK (hash == unchanged);
     {
         persistence::AssetImportStaging staging;
         REQUIRE (persistence::AssetImportStaging::create (fixture.bundle, id (40), staging).ok());
         persistence::StagedAssetImport snapshot;
-        CHECK_FALSE (staging.stageSource (source, 0, snapshot, cancellation.get_token()).ok());
+        CHECK_FALSE (staging.stageSource (source, 0, snapshot, &cancellation).ok());
         CHECK_FALSE (std::filesystem::exists (fixture.stage() / "item-0.wav"));
     }
     CHECK_FALSE (std::filesystem::exists (fixture.stage()));
