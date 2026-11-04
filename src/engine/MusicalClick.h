@@ -35,6 +35,25 @@ struct Enclosure
     return { -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(), true };
 }
 
+[[nodiscard]] inline bool comparisonTimeRatio (double a, double b, double c, double& out) noexcept
+{
+    const double product = a * b;
+    // Interior normal products and normal quotients round identically to the normalized
+    // power-of-two route. DBL_MIN itself can hide a subnormal half-ULP before division.
+    // Preserve that boundary and all other exponent extremes through the original helper.
+    if (std::isnormal (product) && std::abs (product) > std::numeric_limits<double>::min()
+        && std::isnormal (c))
+    {
+        const double value = product / c;
+        if (std::isnormal (value))
+        {
+            out = value;
+            return true;
+        }
+    }
+    return detail::scaledTimeRatio (a, b, c, out);
+}
+
 [[nodiscard]] inline Enclosure addPoint (double a, double b) noexcept
 {
     const double value = a + b;
@@ -281,6 +300,15 @@ public:
             prepared.tempo_.push_back ({ change, prefix,
                 haveNext ? tempo.changes[i + 1u].tick : 0,
                 haveNext ? tempo.changes[i + 1u].bpm : change.bpm });
+            auto& segment = prepared.tempo_.back();
+            const bool ramp = segment.endTick > segment.change.tick
+                && segment.change.curveToNext == TempoCurve::LinearRamp && segment.endBpm != segment.change.bpm;
+            if (! ramp)
+            {
+                const auto scale = click_detail::quotientPoint (prepared.k_, segment.change.bpm);
+                if (! scale.numericFailure && scale.low == scale.high && detail::isFinitePositive (scale.low))
+                    segment.exactConstantScale = scale.low;
+            }
         }
         for (std::size_t i = 1; i < prepared.tempo_.size(); ++i)
         {
@@ -466,6 +494,7 @@ private:
         double prefix = 0.0; // accepted compiled binary64 anchor, not a real-prefix enclosure
         Tick endTick = 0;
         double endBpm = 120.0;
+        double exactConstantScale = 0.0;
     };
 
     struct Segment
@@ -494,9 +523,19 @@ private:
             && tempo.change.curveToNext == TempoCurve::LinearRamp && tempo.endBpm != tempo.change.bpm;
         if (! ramp)
         {
-            whole = divide (multiply (integer (localWhole), k), bpm);
-            if (fraction.high != 0.0)
-                extra = divide (multiply (fraction, k), bpm);
+            if (tempo.exactConstantScale != 0.0)
+            {
+                const Enclosure scale { tempo.exactConstantScale, tempo.exactConstantScale, false };
+                whole = multiply (integer (localWhole), scale);
+                if (fraction.high != 0.0)
+                    extra = multiply (fraction, scale);
+            }
+            else
+            {
+                whole = divide (multiply (integer (localWhole), k), bpm);
+                if (fraction.high != 0.0)
+                    extra = divide (multiply (fraction, k), bpm);
+            }
         }
         else
         {
@@ -599,8 +638,15 @@ private:
             && tempo.change.curveToNext == TempoCurve::LinearRamp && tempo.endBpm != tempo.change.bpm;
         if (! ramp)
         {
-            if (! detail::scaledTimeRatio (local, k_, tempo.change.bpm, localFrame)
-                || ! detail::scaledTimeRatio (fraction, k_, tempo.change.bpm, extra))
+            if (tempo.exactConstantScale != 0.0)
+            {
+                localFrame = local * tempo.exactConstantScale;
+                extra = fraction * tempo.exactConstantScale;
+                if ((local != 0.0 && localFrame == 0.0) || (fraction != 0.0 && extra == 0.0))
+                    return { 0.0, INFINITY, true };
+            }
+            else if (! comparisonTimeRatio (local, k_, tempo.change.bpm, localFrame)
+                || ! comparisonTimeRatio (fraction, k_, tempo.change.bpm, extra))
                 return { 0.0, INFINITY, true };
         }
         else
@@ -618,7 +664,7 @@ private:
                     : tempo.endBpm - slope * static_cast<double> (length - localTick);
                 double relative = 0.0;
                 if (slope == 0.0 || ! detail::isFinitePositive (bpm)
-                    || ! detail::scaledTimeRatio (slope, fraction, bpm, relative)
+                    || ! comparisonTimeRatio (slope, fraction, bpm, relative)
                     || ! std::isnormal (relative))
                     return { 0.0, INFINITY, true };
                 const double relativeError = std::nextafter (gamma8 * std::abs (relative), INFINITY);
@@ -627,8 +673,8 @@ private:
                     return { 0.0, INFINITY, true };
                 const double logarithm = std::log1p (relative); // accepted inherited log input
                 double radius = 0.0;
-                if (! detail::scaledTimeRatio (k_, logarithm, slope, extra)
-                    || ! detail::scaledTimeRatio (k_, relativeError, std::abs (slope), radius))
+                if (! comparisonTimeRatio (k_, logarithm, slope, extra)
+                    || ! comparisonTimeRatio (k_, relativeError, std::abs (slope), radius))
                     return { 0.0, INFINITY, true };
                 perturbation = std::nextafter ((radius / domain) * (1.0 + gamma8), INFINITY);
             }
@@ -636,7 +682,7 @@ private:
             {
                 const double tickError = std::nextafter (gamma8 * std::abs (local), INFINITY);
                 double radius = 0.0;
-                if (! detail::scaledTimeRatio (tickError, k_, std::min (tempo.change.bpm, tempo.endBpm), radius))
+                if (! comparisonTimeRatio (tickError, k_, std::min (tempo.change.bpm, tempo.endBpm), radius))
                     return { 0.0, INFINITY, true };
                 perturbation = std::nextafter (perturbation + radius * (1.0 + gamma8), INFINITY);
             }

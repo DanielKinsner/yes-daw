@@ -2445,3 +2445,63 @@ TEST_CASE ("active captured count-in phases meet the existing device-block deadl
     CHECK (std::isfinite (checksum));
     CHECK (checksum != 0.0);
 }
+
+TEST_CASE ("click ratio arithmetic preserves normalized values at exponent boundaries",
+           "[playback][musical-click][click-ratio-parity]")
+{
+    struct RatioCase
+    {
+        double a, b, c, expected;
+        bool valid;
+    };
+    const double infinity = std::numeric_limits<double>::infinity();
+    const RatioCase cases[] {
+        { 1.5, 1.25, 2.0, 0.9375, true },
+        { -1.5, 1.25, 2.0, -0.9375, true },
+        { 0.0, 1.0, 2.0, 0.0, true },
+        { -0.0, 1.0, 2.0, 0.0, true },
+        { 0x1p1023, 0x1p1023, 0x1p1023, 0x1p1023, true },
+        { 0x1p-1022, 0.5, 0.5, 0x1p-1022, true },
+        // The exact product is DBL_MIN minus half a subnormal ULP. Rounding that
+        // product before division loses a bit that normalized arithmetic retains.
+        { 0x1.fffffffffffffp-1, 0x1p-1022, 0.5, 0x1.fffffffffffffp-1022, true },
+        { 0x1.fffffffffffffp-1, 0x1p-1022, 1.0, 0x1p-1022, true },
+        { 1.0, 0.5, 0x1p1021, 0x1p-1022, true },
+        { 0x1p-1022, 0.5, 1.0, 0x1p-1023, true },
+        { 0x1p-1022, 0x1p-1022, 1.0, 0.0, false },
+        { 0x1p1023, 2.0, 1.0, infinity, false },
+        { 1.0, 1.0, 0.0, 0.0, false },
+        { infinity, 1.0, 1.0, 0.0, false },
+        { std::numeric_limits<double>::quiet_NaN(), 1.0, 1.0, 0.0, false }
+    };
+    for (const auto& value : cases)
+    {
+        double normalized = 42.0;
+        CAPTURE (value.a, value.b, value.c);
+        CHECK (yesdaw::engine::detail::scaledTimeRatio (value.a, value.b, value.c, normalized) == value.valid);
+        CHECK (normalized == value.expected);
+        CHECK (std::signbit (normalized) == std::signbit (value.expected));
+        double comparison = 42.0;
+        CHECK (yesdaw::engine::click_detail::comparisonTimeRatio (value.a, value.b, value.c, comparison) == value.valid);
+        CHECK (comparison == value.expected);
+        CHECK (std::signbit (comparison) == std::signbit (value.expected));
+    }
+    // Characterize value/status parity across normal, subnormal and overflowing products
+    // and results. Independent dyadic answers above protect the delicate boundary itself.
+    constexpr int powers[] { -1022, -1021, -969, -968, -1, 0, 1, 1022, 1023 };
+    for (const int aPower : powers)
+        for (const int bPower : powers)
+            for (const int cPower : powers)
+                for (const double sign : { -1.0, 1.0 })
+                {
+                    const double a = sign * std::ldexp (1.5, aPower);
+                    const double b = std::ldexp (0x1.fffffffffffffp0, bPower);
+                    const double c = std::ldexp (1.25, cPower);
+                    double normalized = 42.0, comparison = 42.0;
+                    const bool normalizedOk = yesdaw::engine::detail::scaledTimeRatio (a, b, c, normalized);
+                    CAPTURE (aPower, bPower, cPower, sign);
+                    CHECK (yesdaw::engine::click_detail::comparisonTimeRatio (a, b, c, comparison) == normalizedOk);
+                    CHECK (comparison == normalized);
+                    CHECK (std::signbit (comparison) == std::signbit (normalized));
+                }
+}

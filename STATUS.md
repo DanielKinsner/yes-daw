@@ -48,7 +48,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
-   The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome and captured-map count-in are delivered.
+   The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome and captured-map count-in are delivered; dense-clock cost is repaired locally with CI pending.
    Next: complete MIDI copies, native editing boundaries and MIDI interchange. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
@@ -70,6 +70,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — Dense click and count-in cost repaired
+
+Control caches only certified exact constant k/BPM ratios; rough comparisons use cheaper arithmetic only inside the proved normal domain and retain the original normalized fallback at exponent extremes. The initial DBL_MIN shortcut was rejected before implementation. Tight ramp/log anchors, Time.h, onset searches, old assertions and RT annotations remain unchanged.
+Retained local/macOS failures exceeded the unchanged 2,666,666-ns deadline. Focused dense 128-Frame p99.9 now measures 839,000 / 1,419,800 ns and active count-in phases 352,200 / 402,400 / 155,200 ns; all 257-Frame variants passed too. Independent dyadic characterization passed 45 assertions before production changes; final parity passed 4,464 and full Playback 557,167/40. All original 39 test bodies remain an exact byte prefix.
+Root integration passed pure 459/459 (129.76 s), three GUI consumers compiled without launch and three Clang units. A subsequent single inline-comment deletion preserves every C++ token and line count, with another Clang unit and independent final-hash numerical/RT acceptance. Code review: skipped (ce-code-review unavailable). Actual CE run 20261104-091353-clock-cost ended failed solely because automatic approval blocked mandatory generated-job deletion; its local adversarial pass had no findings. Explicit final manual diff scan found no shipping blocker; the generated folder is retained without retry.
+Next: restore the exact autosave test repair from build-ci/20261104-autosave-before-clock-cost-repair (focused 58/2, related 2,287/25 and complete lite receipt already passed), repeat integration on this clock, then restore the six-file MIDI-copy patch from build-ci/20261104-midi-copy-before-verification-repairs. This head's CI is pending; no native/device or universal deadline proof is claimed.
 
 ## 2026-11-04 — Captured-map count-in
 
