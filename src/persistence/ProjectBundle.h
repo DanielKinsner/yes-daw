@@ -9,7 +9,7 @@
 #include "engine/Automation.h"
 #include "engine/Project.h"
 #include "engine/Time.h"
-#include "persistence/ImportStagingLease.h"
+#include "persistence/ImportStagingDiscovery.h"
 
 #include <sqlite3.h>
 
@@ -556,6 +556,13 @@ struct StagingCopyHookForTest
 };
 // The test owner publishes immutable hook storage before starting its worker and clears it after joining.
 inline std::atomic<const StagingCopyHookForTest*> stagingCopyHookForTest { nullptr };
+enum class ImportDiscoveryPointForTest { JobFingerprint, MarkerFingerprint, LeaseAcquire };
+struct ImportDiscoveryHookForTest
+{
+    void (*beforeObservation) (void*, ImportDiscoveryPointForTest, const std::filesystem::path&);
+    void* context;
+};
+inline thread_local const ImportDiscoveryHookForTest* importDiscoveryHookForTest = nullptr;
 #endif
 
 inline BundleResult hashFile (const std::filesystem::path& path, engine::AssetContentHash& out,
@@ -2149,26 +2156,38 @@ inline BundleResult reclaimAbandonedImportStaging (const std::filesystem::path& 
         candidate.job = entry->path();
         candidate.rootIdentity = rootIdentity;
         candidate.audioIdentity = audioIdentity;
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+        if (const auto* hook = detail::importDiscoveryHookForTest)
+            hook->beforeObservation (hook->context, detail::ImportDiscoveryPointForTest::JobFingerprint, candidate.job);
+#endif
         if ((error = fingerprint (candidate.job, candidate.jobIdentity)))
         {
-            if (unprovenImportEntry (error)) continue;
+            if (unprovenImportEntry (error) || retiredImportDiscoveryEntry (error, candidate.job, audio)) continue;
             return fileError ("cannot identify abandoned import staging directory", candidate.job, error);
         }
         if (! candidate.jobIdentity.directory)
             continue;
         const auto marker = candidate.job / kImportLeaseFilename;
         FileFingerprint markerIdentity;
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+        if (const auto* hook = detail::importDiscoveryHookForTest)
+            hook->beforeObservation (hook->context, detail::ImportDiscoveryPointForTest::MarkerFingerprint, marker);
+#endif
         if ((error = fingerprint (marker, markerIdentity)))
         {
-            if (unprovenImportEntry (error)) continue;
+            if (unprovenImportEntry (error) || retiredImportDiscoveryEntry (error, marker, audio)) continue;
             return fileError ("cannot identify abandoned import staging lease", marker, error);
         }
         if (markerIdentity.directory)
             continue;
         bool busy = false;
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+        if (const auto* hook = detail::importDiscoveryHookForTest)
+            hook->beforeObservation (hook->context, detail::ImportDiscoveryPointForTest::LeaseAcquire, marker);
+#endif
         if ((error = candidate.lease.open (marker, false, busy)))
         {
-            if (busy || unprovenImportEntry (error)) continue;
+            if (busy || unprovenImportEntry (error) || retiredImportDiscoveryEntry (error, marker, audio)) continue;
             return fileError ("cannot acquire abandoned import staging lease", marker, error);
         }
         bool recognized = false;

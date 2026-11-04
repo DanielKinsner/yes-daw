@@ -2591,6 +2591,232 @@ TEST_CASE ("A staged snapshot keeps its live lease after the staging wrapper is 
     REQUIRE (readBytes (storedAssetPathForHash (path, asset.contentHash)) == bytes);
 }
 
+#if defined(_WIN32)
+namespace {
+using ImportDiscoveryPoint = yesdaw::persistence::detail::ImportDiscoveryPointForTest;
+
+struct ImportDiscoveryHookGuard
+{
+    const yesdaw::persistence::detail::ImportDiscoveryHookForTest* previous
+        = yesdaw::persistence::detail::importDiscoveryHookForTest;
+    ~ImportDiscoveryHookGuard() { yesdaw::persistence::detail::importDiscoveryHookForTest = previous; }
+};
+
+struct ImportDeleteInterval
+{
+    HANDLE handle = INVALID_HANDLE_VALUE;
+    ImportDiscoveryPoint point = ImportDiscoveryPoint::JobFingerprint;
+    bool retireParent = false;
+    int observations = 0;
+    std::filesystem::path target;
+    ~ImportDeleteInterval() { if (handle != INVALID_HANDLE_VALUE) (void) CloseHandle (handle); }
+
+    void mark (const std::filesystem::path& path)
+    {
+        target = path;
+        handle = CreateFileW (path.c_str(), DELETE | FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES,
+                              FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+                              FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+        REQUIRE (handle != INVALID_HANDLE_VALUE);
+        FILE_DISPOSITION_INFO_EX disposition { FILE_DISPOSITION_FLAG_DELETE | FILE_DISPOSITION_FLAG_POSIX_SEMANTICS
+                                             | FILE_DISPOSITION_FLAG_IGNORE_READONLY_ATTRIBUTE };
+        REQUIRE (disposition.Flags == 19);
+        REQUIRE (SetFileInformationByHandle (handle, FileDispositionInfoEx, &disposition, sizeof (disposition)) != FALSE);
+        FILE_STANDARD_INFO info {};
+        REQUIRE (GetFileInformationByHandleEx (handle, FileStandardInfo, &info, sizeof (info)) != FALSE);
+        REQUIRE (info.DeletePending != FALSE);
+        REQUIRE (info.NumberOfLinks == 0);
+    }
+
+    static void beforeObservation (void* context, ImportDiscoveryPoint observed, const std::filesystem::path& path)
+    {
+        auto& self = *static_cast<ImportDeleteInterval*> (context);
+        if (observed != self.point || self.observations != 0)
+            return;
+        ++self.observations;
+        if (self.retireParent)
+        {
+            REQUIRE (std::filesystem::remove (path));
+            self.mark (path.parent_path());
+        }
+        else
+            self.mark (path);
+        yesdaw::persistence::prepared_asset_detail::FileFingerprint identity;
+        const auto error = yesdaw::persistence::prepared_asset_detail::fingerprint (path, identity);
+        REQUIRE (error.category() == std::system_category());
+        REQUIRE (error.value() == ERROR_ACCESS_DENIED);
+    }
+};
+
+struct ImportFixtureAcl
+{
+    HANDLE restoreHandle = INVALID_HANDLE_VALUE;
+    PSECURITY_DESCRIPTOR original = nullptr;
+    SECURITY_DESCRIPTOR_CONTROL originalControl = 0;
+    bool active = false;
+    ~ImportFixtureAcl()
+    {
+        if (active) (void) restore();
+        if (original != nullptr) (void) LocalFree (original);
+        if (restoreHandle != INVALID_HANDLE_VALUE) (void) CloseHandle (restoreHandle);
+    }
+
+    void deny (const std::filesystem::path& path)
+    {
+        restoreHandle = CreateFileW (path.c_str(), READ_CONTROL | WRITE_DAC,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+                                     FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+        REQUIRE (restoreHandle != INVALID_HANDLE_VALUE);
+        PACL dacl = nullptr;
+        REQUIRE (GetSecurityInfo (restoreHandle, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+                                  nullptr, nullptr, &dacl, nullptr, &original) == ERROR_SUCCESS);
+        DWORD revision = 0;
+        REQUIRE (GetSecurityDescriptorControl (original, &originalControl, &revision) != FALSE);
+        PSECURITY_DESCRIPTOR denied = nullptr;
+        REQUIRE (ConvertStringSecurityDescriptorToSecurityDescriptorW (L"D:P(D;;FA;;;WD)", SDDL_REVISION_1,
+                                                                       &denied, nullptr) != FALSE);
+        const std::unique_ptr<void, decltype (&LocalFree)> descriptor (denied, LocalFree);
+        active = true;
+        REQUIRE (SetFileSecurityW (path.c_str(), DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION,
+                                   denied) != FALSE);
+        yesdaw::persistence::prepared_asset_detail::ImportStagingLease lease;
+        bool busy = false;
+        const auto error = lease.open (path, false, busy);
+        REQUIRE_FALSE (busy);
+        REQUIRE (error.category() == std::system_category());
+        REQUIRE (error.value() == ERROR_ACCESS_DENIED);
+    }
+
+    bool restore()
+    {
+        PACL dacl = nullptr;
+        BOOL present = FALSE, defaulted = FALSE;
+        if (! GetSecurityDescriptorDacl (original, &present, &dacl, &defaulted))
+            return false;
+        const auto flags = DACL_SECURITY_INFORMATION | ((originalControl & SE_DACL_PROTECTED) != 0
+            ? PROTECTED_DACL_SECURITY_INFORMATION : UNPROTECTED_DACL_SECURITY_INFORMATION);
+        if (SetSecurityInfo (restoreHandle, SE_FILE_OBJECT, flags, nullptr, nullptr, dacl, nullptr) != ERROR_SUCCESS)
+            return false;
+        active = false;
+        return true;
+    }
+};
+} // namespace
+
+TEST_CASE ("Reopen leaves retiring import entries untouched during the POSIX delete handle interval",
+           "[persistence][asset][prepared-import][staging-discovery]")
+{
+    using namespace yesdaw::persistence;
+    const int scenario = GENERATE (0, 1, 2, 3, 4);
+    const auto path = makeTempBundlePath ("prepared-discovery-retirement");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (208));
+    writeBytes (source, bytes);
+    auto db = openFreshBundle (path);
+    Asset canonical;
+    REQUIRE (db.importAssetBytes ({ source, idFromLowByte (208), 128, SampleRate { 48000.0 }, 2 }, canonical).ok());
+    const auto job = path / "audio" / (".import-" + detail::hexBytes (idFromLowByte (209).bytes));
+    REQUIRE (std::filesystem::create_directory (job));
+    const auto foreign = scenario == 1 || scenario == 2 ? job / "foreign.wav" : path / "audio" / "foreign.wav";
+    writeBytes (foreign, bytes);
+    if (scenario != 0)
+        writeBytes (job / ".lease", bytes);
+    ImportDeleteInterval interval;
+    interval.point = scenario == 0 ? ImportDiscoveryPoint::JobFingerprint
+        : scenario == 1 || scenario == 3 ? ImportDiscoveryPoint::MarkerFingerprint : ImportDiscoveryPoint::LeaseAcquire;
+    interval.retireParent = scenario >= 3;
+    const detail::ImportDiscoveryHookForTest hook { ImportDeleteInterval::beforeObservation, &interval };
+    ImportDiscoveryHookGuard reset;
+    detail::importDiscoveryHookForTest = &hook;
+    ProjectBundleDb reopened;
+    const auto result = ProjectBundleDb::openExistingBundle (path, reopened);
+    INFO (scenario);
+    INFO (result.message);
+    CHECK (interval.observations == 1);
+    CHECK (result.ok());
+    CHECK (readBytes (source) == bytes);
+    CHECK (readBytes (storedAssetPathForHash (path, canonical.contentHash)) == bytes);
+    CHECK (readBytes (foreign) == bytes);
+    FILE_STANDARD_INFO stillPending {};
+    REQUIRE (GetFileInformationByHandleEx (interval.handle, FileStandardInfo, &stillPending, sizeof (stillPending)) != FALSE);
+    CHECK (stillPending.DeletePending != FALSE);
+}
+
+TEST_CASE ("Reopen preserves a real ACL refusal while discovering an import lease",
+           "[persistence][asset][prepared-import][staging-discovery]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-discovery-acl");
+    auto db = openFreshBundle (path);
+    const auto job = path / "audio" / (".import-" + detail::hexBytes (idFromLowByte (210).bytes));
+    REQUIRE (std::filesystem::create_directory (job));
+    const auto bytes = assetBytesForId (idFromLowByte (210));
+    const auto marker = job / ".lease", foreign = job / "foreign.wav";
+    writeBytes (marker, bytes);
+    writeBytes (foreign, bytes);
+    struct AclObservation
+    {
+        ImportFixtureAcl acl;
+        int observations = 0;
+        static void observe (void* context, ImportDiscoveryPoint point, const std::filesystem::path& observed)
+        {
+            auto& self = *static_cast<AclObservation*> (context);
+            if (point != ImportDiscoveryPoint::LeaseAcquire || self.observations != 0)
+                return;
+            ++self.observations;
+            self.acl.deny (observed);
+        }
+    } observation;
+    const detail::ImportDiscoveryHookForTest hook { AclObservation::observe, &observation };
+    ImportDiscoveryHookGuard reset;
+    detail::importDiscoveryHookForTest = &hook;
+    ProjectBundleDb reopened;
+    const auto result = ProjectBundleDb::openExistingBundle (path, reopened);
+    INFO (result.message);
+    CHECK (observation.observations == 1);
+    CHECK_FALSE (result.ok());
+    CHECK (result.message.find ("cannot acquire abandoned import staging lease") != std::string::npos);
+    REQUIRE (observation.acl.restore());
+    CHECK (readBytes (marker) == bytes);
+    CHECK (readBytes (foreign) == bytes);
+}
+
+TEST_CASE ("A retiring import marker cannot relax durable StageAsset intent checks",
+           "[persistence][asset][prepared-import][staging-discovery]")
+{
+    using namespace yesdaw::persistence;
+    const auto path = makeTempBundlePath ("prepared-discovery-intent");
+    const auto source = path.parent_path() / (path.filename().string() + ".wav");
+    const auto bytes = assetBytesForId (idFromLowByte (211));
+    writeBytes (source, bytes);
+    auto db = openFreshBundle (path);
+    AssetImportStaging staging;
+    REQUIRE (AssetImportStaging::create (path, idFromLowByte (211), staging).ok());
+    StagedAssetImport snapshot;
+    REQUIRE (staging.stageSource (source, 0, snapshot).ok());
+    const auto privatePath = snapshot.snapshotPath(), marker = privatePath.parent_path() / ".lease";
+    const PendingFsOp intent { PendingFsOpKind::StageAsset,
+        privatePath.lexically_relative (std::filesystem::canonical (path)).generic_string(),
+        detail::assetRelativePathForHash (hashBytes (bytes)), hashBytes (bytes) };
+    sqlite3_int64 rowId = 0;
+    REQUIRE (db.executeSql ("PRAGMA synchronous=FULL; BEGIN IMMEDIATE;").ok());
+    REQUIRE (db.recordPendingFsOp (intent, rowId).ok());
+    REQUIRE (db.executeSql ("COMMIT; PRAGMA synchronous=NORMAL;").ok());
+    ImportDeleteInterval interval;
+    interval.mark (marker);
+    ProjectBundleDb reopened;
+    const auto result = ProjectBundleDb::openExistingBundle (path, reopened);
+    INFO (result.message);
+    CHECK_FALSE (result.ok());
+    CHECK (result.message.find ("cannot verify import intent staging lease") != std::string::npos);
+    CHECK (readBytes (source) == bytes);
+    CHECK (readBytes (privatePath) == bytes);
+    sqlite3_int64 count = 0;
+    REQUIRE (db.pendingFsOpCount (false, count).ok());
+    CHECK (count == 1);
+}
+#endif
+
 TEST_CASE ("Interrupted lease retirement recovers only a proven empty missing-marker job", "[persistence][asset][prepared-import][staging-retirement]")
 {
     using namespace yesdaw::persistence;
