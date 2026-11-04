@@ -2544,3 +2544,151 @@ TEST_CASE ("successive dense click buckets preserve rational accents within a li
     INFO ("aggregate evaluations=" << probes << " budget=" << 6u * frameCount + 132u);
     CHECK (probes <= 6u * frameCount + 132u);
 }
+
+#include "ui/TimelineCoordinates.h"
+
+TEST_CASE ("Control arrange coordinates retain fractional spans exact Frames and signed destination rounding",
+           "[playback][native-move-nudge]")
+{
+    using namespace yesdaw::engine;
+    using namespace yesdaw::ui;
+    MusicalClickMap clock;
+    const TempoChange tempo[] { { 0, 240.0, TempoCurve::Jump } };
+    const MeterChange meter[] { { 0, 4, 4 } };
+    REQUIRE (MusicalClickMap::build ({ tempo, 1 }, { meter, 1 }, SampleRate { 48000.0 }, clock) == TimeLookupStatus::Ok);
+    SECTION ("SampleLocked integer edits never pass through binary64")
+    {
+        constexpr Tick start = (Tick { 1 } << 53) + 1;
+        TimelineFrameDisplacement shift;
+        REQUIRE (timelineDisplacementTo (clock, { TimeBase::SampleLocked, start }, start + 1, shift) == TimelineCoordinateStatus::Ok);
+        REQUIRE (shift.exactInteger);
+        Tick destination = 0;
+        REQUIRE (timelineNativeDestination (clock, { TimeBase::SampleLocked, start }, shift, destination) == TimelineCoordinateStatus::Ok);
+        CHECK (destination == start + 1);
+        shift.integerFrames = -1;
+        shift.frames = timelineSignedInteger (-1);
+        REQUIRE (timelineNativeDestination (clock, { TimeBase::SampleLocked, start }, shift, destination) == TimelineCoordinateStatus::Ok);
+        CHECK (destination == start - 1);
+    }
+    SECTION ("fractional SampleLocked ties round the absolute destination toward later time")
+    {
+        TimelineFrameDisplacement shift;
+        shift.frames = { -0.5, -0.5, false };
+        Tick destination = 0;
+        REQUIRE (timelineNativeDestination (clock, { TimeBase::SampleLocked, 10 }, shift, destination) == TimelineCoordinateStatus::Ok);
+        CHECK (destination == 10);
+        shift.frames = { 0.5, 0.5, false };
+        REQUIRE (timelineNativeDestination (clock, { TimeBase::SampleLocked, 10 }, shift, destination) == TimelineCoordinateStatus::Ok);
+        CHECK (destination == 11);
+    }
+    SECTION ("signed rational borrowing and a proved before-origin span use one group clamp")
+    {
+        yesdaw::engine::click_detail::Enclosure frames;
+        bool before = false;
+        REQUIRE (clock.frameDisplacement (2, true, -1, 4, frames, before) == TimeLookupStatus::Ok);
+        CHECK_FALSE (before);
+        CHECK (frames.low == -0.1953125);
+        CHECK (frames.high == -0.1953125);
+        REQUIRE (clock.frameDisplacement (2, true, -4, 1, frames, before) == TimeLookupStatus::Ok);
+        REQUIRE (before);
+        TimelineFrameDisplacement shift;
+        const std::array origins { TimelineNativePosition { TimeBase::TempoLocked, 2 },
+                                   TimelineNativePosition { TimeBase::SampleLocked, 3 } };
+        REQUIRE (timelineClampToOrigin (clock, origins, shift, before) == TimelineCoordinateStatus::Ok);
+        Tick destination = -1;
+        REQUIRE (timelineNativeDestination (clock, origins[0], shift, destination) == TimelineCoordinateStatus::Ok);
+        CHECK (destination == 0);
+        REQUIRE (timelineNativeDestination (clock, origins[1], shift, destination) == TimelineCoordinateStatus::Ok);
+        CHECK (destination == 1);
+    }
+    SECTION ("zero span is valid while invalid or unrepresentable spans refuse")
+    {
+        yesdaw::engine::click_detail::Enclosure frames;
+        bool before = false;
+        REQUIRE (clock.frameDisplacement (2, true, 0, 1, frames, before) == TimeLookupStatus::Ok);
+        CHECK (frames.low == 0.0);
+        CHECK (frames.high == 0.0);
+        REQUIRE (clock.frameDisplacement (2, true, 1, 0, frames, before) == TimeLookupStatus::InvalidInput);
+        REQUIRE (clock.frameDisplacement (2, true, INT64_MAX, 1, frames, before) == TimeLookupStatus::Overflow);
+        const TempoChange extreme[] { { 0, std::numeric_limits<double>::max(), TempoCurve::Jump } };
+        REQUIRE (MusicalClickMap::build ({ extreme, 1 }, { meter, 1 }, SampleRate { 48000.0 }, clock) == TimeLookupStatus::Ok);
+        CHECK (clock.frameDisplacement (0, true, 1, INT64_MAX, frames, before) == TimeLookupStatus::NumericDomain);
+    }
+    SECTION ("ramp spans preserve the accepted fractional Frame origin in both directions")
+    {
+        const TempoChange ramp[] { { 0, 120.0, TempoCurve::LinearRamp }, { 61440, 240.0, TempoCurve::Jump } };
+        REQUIRE (MusicalClickMap::build ({ ramp, 2 }, { meter, 1 }, SampleRate { 48000.0 }, clock) == TimeLookupStatus::Ok);
+        yesdaw::engine::click_detail::Enclosure frames;
+        bool before = false;
+        REQUIRE (clock.frameDisplacement (12000, false, 15360, 1, frames, before) == TimeLookupStatus::Ok);
+        const long double forward = 96000.0L * std::log (std::exp (0.125L) + 0.25L) - 12000.0L;
+        CHECK (std::abs (frames.low - forward) < 1.0e-8L);
+        CHECK (std::abs (frames.high - forward) < 1.0e-8L);
+        REQUIRE (clock.frameDisplacement (48000, false, -15360, 1, frames, before) == TimeLookupStatus::Ok);
+        const long double backward = 96000.0L * std::log (std::exp (0.5L) - 0.25L) - 48000.0L;
+        CHECK (std::abs (frames.low - backward) < 1.0e-8L);
+        CHECK (std::abs (frames.high - backward) < 1.0e-8L);
+    }
+    SECTION ("pure TempoLocked audio projection and sub-Frame snap retain fractional Frames")
+    {
+        const auto position = timelineFramePosition (clock, { TimeBase::TempoLocked, 2 });
+        CHECK (position.low == 1.5625);
+        CHECK (position.high == 1.5625);
+        const TempoChange fast[] { { 0, 100000000.0, TempoCurve::Jump } };
+        REQUIRE (MusicalClickMap::build ({ fast, 1 }, { meter, 1 }, SampleRate { 48000.0 }, clock) == TimeLookupStatus::Ok);
+        const auto snapped = timelineSnapFrame (clock.tempoMap(), clock.meterMap(), { meter, 1 }, 0.03, MusicalGridLevel::Beat, 0);
+        REQUIRE (snapped.has_value());
+        CHECK (std::abs (*snapped - 0.0288) < 1.0e-17);
+    }
+    SECTION ("an accepted anchor Frame target keeps its correlation through group preflight")
+    {
+        const TempoChange fractional[] { { 0, 130.0, TempoCurve::Jump } };
+        REQUIRE (MusicalClickMap::build ({ fractional, 1 }, { meter, 1 }, SampleRate { 48000.0 }, clock) == TimeLookupStatus::Ok);
+        const std::array origins { TimelineNativePosition { TimeBase::TempoLocked, 2 },
+                                   TimelineNativePosition { TimeBase::SampleLocked, 10 } };
+        TimelineFrameDisplacement shift;
+        REQUIRE (timelineDisplacementTo (clock, origins[0], 0, shift) == TimelineCoordinateStatus::Ok);
+        CHECK (timelineClampToOrigin (clock, origins, shift) == TimelineCoordinateStatus::Ok);
+        Tick destination = -1;
+        CHECK (timelineNativeDestination (clock, origins[0], shift, destination) == TimelineCoordinateStatus::Ok);
+        CHECK (destination == 0);
+        REQUIRE (timelineNativeDestination (clock, origins[1], shift, destination) == TimelineCoordinateStatus::Ok);
+        CHECK (destination == 7);
+    }
+    SECTION ("large exact rational denominators cannot forge a half-Frame tie")
+    {
+        const TempoChange oneFramePerTick[] { { 0, 187.5, TempoCurve::Jump } };
+        REQUIRE (MusicalClickMap::build ({ oneFramePerTick, 1 }, { meter, 1 }, SampleRate { 48000.0 }, clock) == TimeLookupStatus::Ok);
+        constexpr std::int64_t numerator = std::int64_t { 1 } << 52;
+        constexpr std::uint64_t denominator = (std::uint64_t { 1 } << 53) + 1;
+        STATIC_REQUIRE (2 * static_cast<std::uint64_t> (numerator) < denominator);
+        yesdaw::engine::click_detail::Enclosure frames;
+        bool before = false;
+        REQUIRE (clock.frameDisplacement (0, true, numerator, denominator, frames, before) == TimeLookupStatus::Ok);
+        CHECK (frames.low < 0.5);
+        TimelineFrameDisplacement shift;
+        shift.frames = frames;
+        Tick destination = -1;
+        const auto status = timelineNativeDestination (clock, { TimeBase::SampleLocked, 10 }, shift, destination);
+        CHECK ((status == TimelineCoordinateStatus::Precision
+            || (status == TimelineCoordinateStatus::Ok && destination == 10)));
+    }
+}
+
+TEST_CASE ("an integral captured Frame target preserves an odd large SampleLocked origin",
+           "[playback][native-move-nudge][integral-frame-target]")
+{
+    using namespace yesdaw::engine;
+    using namespace yesdaw::ui;
+    MusicalClickMap clock;
+    const TempoChange tempo[] { { 0, 240.0, TempoCurve::Jump } };
+    const MeterChange meter[] { { 0, 4, 4 } };
+    REQUIRE (MusicalClickMap::build ({ tempo, 1 }, { meter, 1 }, SampleRate { 48000.0 }, clock) == TimeLookupStatus::Ok);
+    constexpr Tick start = (Tick { 1 } << 53) + 1;
+    const auto target = TimelineFrameTarget::fractional (static_cast<double> ((Tick { 1 } << 53) + 4));
+    TimelineFrameDisplacement shift;
+    REQUIRE (timelineDisplacementTo (clock, { TimeBase::SampleLocked, start }, target, shift) == TimelineCoordinateStatus::Ok);
+    Tick destination = -1;
+    CHECK (timelineNativeDestination (clock, { TimeBase::SampleLocked, start }, shift, destination) == TimelineCoordinateStatus::Ok);
+    CHECK (destination == start + 3);
+}

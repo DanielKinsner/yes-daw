@@ -10,6 +10,47 @@ using namespace yesdaw::ui::shell;
 
 namespace yesdaw::ui {
 
+namespace {
+template <typename EventSnap>
+TimelineFrameTarget arrangeMoveTarget (const UiAppModel& model, double seconds, double originalSeconds,
+                                      bool invertSnap, std::int64_t effectiveGrid, EventSnap&& eventSnap)
+{
+    if (seconds == originalSeconds) return TimelineFrameTarget::noTimeChange();
+    const double frame = seconds * model.project().sampleRate.hz;
+    const auto& context = model.context();
+    const bool off = context.snapMode == UiSnapMode::Off || ! context.snapEnabled;
+    const bool snap = off ? invertSnap : ! invertSnap;
+    if (! snap || ! std::isfinite (frame) || frame < 0.0 || frame >= 0x1p63)
+        return TimelineFrameTarget::fractional (frame);
+    if (! off && context.snapMode == UiSnapMode::Events)
+    {
+        if (const auto event = eventSnap (static_cast<engine::Tick> (std::llround (frame))))
+            return TimelineFrameTarget (*event);
+        return TimelineFrameTarget::fractional (frame);
+    }
+    const auto grid = off ? context.snapGridTicks : effectiveGrid;
+    if (grid <= 0) return TimelineFrameTarget::fractional (frame);
+    if (! off && context.snapMode == UiSnapMode::Relative)
+    {
+        const double origin = originalSeconds * model.project().sampleRate.hz;
+        return TimelineFrameTarget::fractional (std::max (0.0,
+            origin + std::floor ((frame - origin) / static_cast<double> (grid) + 0.5) * static_cast<double> (grid)));
+    }
+    const auto unit = model.snapUnit();
+    if (unit != UiAppModel::UiSnapUnit::Off)
+    {
+        const auto level = unit == UiAppModel::UiSnapUnit::Bar ? MusicalGridLevel::Bar
+                         : unit == UiAppModel::UiSnapUnit::Sixteenth ? MusicalGridLevel::Sixteenth : MusicalGridLevel::Beat;
+        int subdivisions = 0;
+        for (auto whole = context.snapGridTicks; ! off && whole > grid && subdivisions < 16; whole /= 2)
+            ++subdivisions;
+        return TimelineFrameTarget::fractional (model.snapTimelineMoveFrame (frame, level, subdivisions)
+            .value_or (std::numeric_limits<double>::quiet_NaN()));
+    }
+    return TimelineFrameTarget::fractional (std::floor (frame / static_cast<double> (grid) + 0.5) * static_cast<double> (grid));
+}
+}
+
 // V8: a visible toolbar zoom control. The buttons dispatch the EXISTING zoom actions through
 // handleAction (the same playhead-anchored law the menu/keyboard path runs), and the readout
 // shows the one shared timelineZoomFactor every zoom gesture mutates — never a second zoom
@@ -2286,17 +2327,10 @@ void MainComponent::moveTimelineClipByLayoutId (int layoutClipId, double startSe
         (void) appModel.selectTimelineClip (draggedClipId);
     else
         (void) appModel.selectTimelineClipForGesture (draggedClipId, false);
-    if (const auto tick = timelineTickFromSeconds (startSeconds))
-    {
-        const yesdaw::engine::Clip* moving = nullptr;   // G2.7: Relative / Events read the clip
-        for (const yesdaw::engine::Clip& clip : appModel.project().clips)
-            if (clip.id == draggedClipId)
-                moving = &clip;
-        (void) appModel.moveSelectedTimelineClipTo (snappedTimelineTickFrom (
-            *tick, snapToGrid,
-            moving != nullptr ? std::optional<yesdaw::engine::Tick> (moving->timelineStart) : std::nullopt,
-            std::optional<yesdaw::engine::EntityId> (draggedClipId)));
-    }
+    (void) appModel.moveSelectedTimelineClipTo (arrangeMoveTarget (
+        appModel, startSeconds, timelineClips[static_cast<std::size_t> (layoutClipId)].startSeconds,
+        snapToGrid, effectiveSnapGridTicks(),
+        [&] (engine::Tick frame) { return snapTickToEvents (frame, draggedClipId); }));
 
     refreshActionState();
     repaintAll();
@@ -2447,10 +2481,11 @@ void MainComponent::moveTimelineClipToLaneByLayoutId (int layoutClipId, int targ
         (void) appModel.selectTimelineClip (draggedClipId);
     else
         (void) appModel.selectTimelineClipForGesture (draggedClipId, false);
-    if (const auto tick = timelineTickFromSeconds (startSeconds))
-        (void) appModel.moveSelectedTimelineClipToTrack (
-            project.tracks[static_cast<std::size_t> (targetLane)].id,
-            snappedTimelineTick (*tick, snapToGrid));
+    (void) appModel.moveSelectedTimelineClipToTrack (
+        project.tracks[static_cast<std::size_t> (targetLane)].id,
+        arrangeMoveTarget (appModel, startSeconds, timelineClips[static_cast<std::size_t> (layoutClipId)].startSeconds,
+            snapToGrid, effectiveSnapGridTicks(),
+            [&] (engine::Tick frame) { return snapTickToEvents (frame, draggedClipId); }));
 
     refreshActionState();
     repaintAll();
@@ -2488,9 +2523,10 @@ void MainComponent::copyTimelineClipByLayoutId (int layoutClipId, int targetLane
         (void) appModel.selectTimelineClip (sourceClipId);
     else
         (void) appModel.selectTimelineClipForGesture (sourceClipId, false);
-    if (const auto tick = timelineTickFromSeconds (startSeconds))
-        (void) appModel.copySelectedTimelineClipsTo (
-            targetTrackId, snappedTimelineTick (*tick, snapToGrid));
+    (void) appModel.copySelectedTimelineClipsTo (targetTrackId,
+        arrangeMoveTarget (appModel, startSeconds, timelineClips[static_cast<std::size_t> (layoutClipId)].startSeconds,
+            snapToGrid, effectiveSnapGridTicks(),
+            [&] (engine::Tick frame) { return snapTickToEvents (frame, sourceClipId); }));
 
     refreshActionState();
     repaintAll();

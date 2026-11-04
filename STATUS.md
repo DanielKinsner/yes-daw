@@ -47,9 +47,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Done: addressed note release, bounded notes-only updates without replacing playback, selected-Clip background
    stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
-   and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut, mixed Paste placement and complete MIDI copies are repaired.
-   The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome and captured-map count-in are delivered; bounded click-search recovery is locally verified, with macOS CI pending.
-   Next: native editing boundaries and MIDI interchange. Checked fractional
+   and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut, mixed Paste placement, complete MIDI copies and full-map native move/nudge are repaired.
+   The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome, captured-map count-in and bounded click-search recovery are delivered; all ten CI jobs passed at d97f3d2.
+   Next: native clipboard/repeat, readouts and piano boundaries, then MIDI interchange. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -70,6 +70,20 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — Native move/nudge
+
+Same/cross-Track moves, Alt-copy and arrange nudges now share Project-Frame displacement and round once into each Clip's native coordinates. Exact integer Frames, fractional musical steps, zero-time/Track-only identity, whole MIDI payloads and native automation deltas are preserved. Control reuses its compiled Tempo/Meter indexes; count-in and Audio onset searches keep their accepted laws.
+Actual model baseline had 14 failures / 513 assertions; vertical-drag characterization passed 76/1. Four further real REDs caught correlated zero target (8/3), large rational conversion (6/2), Grid-Off (34/2) and captured integral target above 2^53 (4/2), each exit 42 before repair. Final focused checks passed Playback 560,310/43, model 4,806/9 and audited UI 1,064/18, all exit 0.
+Fresh root integration 65613 passed final pure 460/460 (92.82 s), GUI compile-only 3, Clang 5, safe UI 504/460,019 and screenshots 30/15,629. Previous 85580 passed before the final factory fix and is not its final proof. All earlier forty-two Playback bodies remain an exact 124,390-byte prefix; three comment removals preserve C++ tokens/line counts. Both independent numerical/RT and saved-data critics accepted all seven final hashes.
+Code review: skipped (ce-code-review unavailable). The actual prior review failed when automatic approval blocked mandatory generated-job cleanup; no new doomed peer job was started. Five cleanup lenses completed and an explicit final manual diff scan found no shipping blocker. Accepted ADRs, goldens, RT annotations, Time.h and MainComponent.cpp stay unchanged. No native window, desktop input, device or hardware execution ran.
+Next: push this seven-file unit, then native clipboard/repeat, geometry/readouts and piano; their prep is read-only until prerequisites commit. Clock d97f3d2 passed all ten CI jobs (41892265684, macOS 491/491); MIDI CI 41892425326 owns the active slot. New-unit CI remains pending, with no remote certification claimed for unpushed code.
+
+## 2026-11-04 — Musical-audio ledger research
+
+The first pinned console probe passed nine exact-ledger fixtures but failed two center observations by 289 Frames (child exit 2). Independent reconstruction found four whole synthesis supports crossing the silence/STFT read discontinuity; the initial resolver checked only center points, and its expected-center formula shared planning code. Original sources, raw failures and receipts remain preserved.
+The independently reviewed observer correction keeps DSP, fixtures, cuts, extraction, negative controls and the two-Frame threshold unchanged. Fresh compile/presence/probe/wrapper exits are 0: 215 comparable centers have no failures, while 23 full-support cases remain UNPROVED. All nine bounded ledger/PCM/index-mutation checks passed; nonzero-FFT reuse remains unproved, and candidate acceptance is explicitly false.
+These are local research artifacts under ignored build-ci/musical-audio-ledger-probe, not a delivered tempo-follow feature or portable CI proof. No universal alignment, latency, quality, allocation, RT or hardware capability is certified. Next audio work must resolve the remaining production contract and evidence gaps before adoption.
 
 ## 2026-11-04 — Bounded click-search recovery
 

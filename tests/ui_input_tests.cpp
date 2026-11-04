@@ -34566,3 +34566,83 @@ TEST_CASE ("offscreen arrangement Alt-drag copies a complete MIDI Clip through i
     REQUIRE (readProjectSnapshot (bundle).midiClips == after.midiClips);
     requireHeadless();
 }
+
+TEST_CASE ("offscreen vertical move and Alt-copy preserve a fractional-Frame musical start exactly",
+           "[ui][input][shell][timeline][native-move-nudge]")
+{
+    using namespace yesdaw;
+    bool copy = false;
+    SECTION ("vertical move") {}
+    SECTION ("vertical Alt-copy") { copy = true; }
+    const auto bundle = makeTempBundlePath ("native-vertical-move");
+    auto original = makeMidiInputProject();
+    original.tempoMap = { { 0, 240.0, engine::TempoCurve::Jump } };
+    auto target = original.tracks.front();
+    target.id = idFromLowByte (6);
+    original.tracks.push_back (target);
+    auto& source = original.midiClips.front();
+    source.timelineStart = 2; // 1.5625 Frames; rounding to Frame 2 and inverting would store Tick 3.
+    source.timelineLength = 153600;
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.makeNewProject = [original] { return original; };
+    REQUIRE_FALSE (choices.nativePrompts);
+    auto shell = makeShell (std::move (choices));
+    const auto requireHeadless = [&] {
+        REQUIRE (shell->getPeer() == nullptr);
+        const auto snapshot = snapshotMainComponent (*shell);
+        REQUIRE_FALSE (snapshot.desktopAudioRequested);
+        REQUIRE_FALSE (snapshot.desktopAudioOpen);
+    };
+    requireHeadless();
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapDisable);
+    auto& timeline = requireTimelineComponent (*shell);
+    ui::MidiClipPreview preview;
+    REQUIRE (ui::midiClipPreview (original, source, 0, preview));
+    const auto snapshot = snapshotMainComponent (*shell);
+    ui::TimelineCanvasState state;
+    state.trackCount = 2;
+    state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+    state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+    const double fit = static_cast<double> (juce::jmax (
+        ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+        timeline.getWidth() - ui::UiTheme::Layout::timelineViewportRightGutter))
+        / std::max (ui::UiTheme::Layout::timelineMinVisibleSeconds, state.totalSeconds);
+    state.viewport.pixelsPerSecond = fit * snapshot.timelineZoomFactor;
+    const auto geometry = ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    const juce::Point<int> from {
+        geometry.clipArea.getX() + juce::roundToInt ((preview.startSeconds + preview.lengthSeconds / 2.0
+                                                    - geometry.viewport.scrollSeconds) * geometry.viewport.pixelsPerSecond),
+        geometry.clipArea.getY() + geometry.laneHeight / 2 };
+    const auto to = from.translated (0, geometry.laneHeight);
+    const juce::ModifierKeys modifiers { juce::ModifierKeys::leftButtonModifier
+        | (copy ? juce::ModifierKeys::altModifier : 0) };
+    dragFromTo (timeline, from, to, modifiers);
+    requireHeadless();
+    const auto after = readProjectSnapshot (bundle);
+    REQUIRE (after.midiClips.size() == (copy ? 2u : 1u));
+    auto moved = after.midiClips.back();
+    CHECK (moved.timelineStart == 2);
+    REQUIRE (moved.trackId == target.id);
+    if (copy)
+    {
+        REQUIRE (after.midiClips.front() == source);
+        REQUIRE (moved.id != source.id);
+        for (std::size_t i = 0; i < moved.notes.size(); ++i)
+        {
+            REQUIRE (moved.notes[i].id != source.notes[i].id);
+            moved.notes[i].id = source.notes[i].id;
+        }
+    }
+    moved.id = source.id;
+    moved.trackId = source.trackId;
+    moved.timelineStart = source.timelineStart;
+    REQUIRE (moved == source);
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    REQUIRE (readProjectSnapshot (bundle).midiClips == original.midiClips);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.canUndo);
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+    REQUIRE (readProjectSnapshot (bundle).midiClips == after.midiClips);
+    requireHeadless();
+}

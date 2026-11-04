@@ -30,6 +30,7 @@
 #include "ui/AutomationRide.h"   // G4.6 / ADR-0052
 #include "ui/MissingAudio.h"   // ADR-0069 §3: a refused Restore names its asset as ADR-0062 does
 #include "ui/UiActions.h"
+#include "ui/TimelineCoordinates.h"
 #include "ui/UiMixerSurface.h"   // ADR-0053: the loudness readout the header and mixer paint
 #include "ui/UiPianoRollSurface.h"
 #include "ui/UiPreferences.h"   // G5.6 / ADR-0061
@@ -7648,60 +7649,149 @@ public:
         return { id, state, true };
     }
 
-    [[nodiscard]] UiActionDispatchResult moveSelectedTimelineClipTo (engine::Tick timelineStart)
+    enum class TimelinePlacement { Move, CrossTrack, Copy };
+
+    [[nodiscard]] std::optional<double> snapTimelineMoveFrame (double frame, MusicalGridLevel level, int subdivisions) const
     {
-        const UiActionId id = UiActionId::TimelineClipMove;
+        const auto clock = playback_ != nullptr ? playback_->metronomeClock() : nullptr;
+        if (clock == nullptr) return std::nullopt;
+        return timelineSnapFrame (clock->tempoMap(), clock->meterMap(), { project_.meterMap.data(), project_.meterMap.size() },
+                                   frame, level, subdivisions);
+    }
+
+    [[nodiscard]] UiActionDispatchResult moveSelectedTimelineClipTo (TimelineFrameTarget target)
+    {
+        return placeSelectedTimelineClips (target, {}, TimelinePlacement::Move);
+    }
+
+    [[nodiscard]] UiActionDispatchResult placeSelectedTimelineClips (TimelineFrameTarget target,
+        engine::EntityId targetTrackId, TimelinePlacement placement)
+    {
+        const auto clock = playback_ != nullptr ? playback_->metronomeClock() : nullptr;
+        const auto anchor = timelineEntityView (selectedTimelineClipId_);
+        TimelineFrameDisplacement shift;
+        if (clock == nullptr || ! anchor.valid)
+            return timelineCoordinateRefusal (TimelineCoordinateStatus::InvalidInput);
+        const auto status = timelineDisplacementTo (*clock, { anchor.timeBase, anchor.timelineStart }, target, shift);
+        if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status);
+        return placeSelectedTimelineClips (shift, targetTrackId, placement);
+    }
+
+    [[nodiscard]] UiActionDispatchResult timelineCoordinateRefusal (TimelineCoordinateStatus status)
+    {
+        const char* reason = status == TimelineCoordinateStatus::Overflow ? "timeline destination would overflow"
+                           : status == TimelineCoordinateStatus::InvalidInput ? "invalid timeline destination"
+                           : "timing precision cannot represent the timeline destination";
+        reportStatus (reason, true);
+        return { UiActionId::TimelineClipMove, { false, reason }, false };
+    }
+
+    [[nodiscard]] UiActionDispatchResult placeSelectedTimelineClips (TimelineFrameDisplacement shift,
+        engine::EntityId targetTrackId, TimelinePlacement placement, bool provedBeforeOrigin = false)
+    {
+        const bool copy = placement == TimelinePlacement::Copy;
+        const UiActionId id = copy ? UiActionId::TimelineClipDuplicate : UiActionId::TimelineClipMove;
         const UiActionState state = registry_.stateFor (id, context_);
-        if (! state.enabled)
-            return { id, state, false };
-
-        const UiTimelineEntityView anchor = timelineEntityView (selectedTimelineClipId_);
-        if (! anchor.valid)
-            return { id, state, false };
-
-        engine::Tick earliestStart = anchor.timelineStart;
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
+        if (! state.enabled) return { id, state, false };
+        const auto clock = playback_ != nullptr ? playback_->metronomeClock() : nullptr;
+        if (clock == nullptr) return timelineCoordinateRefusal (TimelineCoordinateStatus::Precision);
+        const auto trackIndexFor = [this] (engine::EntityId trackId) {
+            const auto track = std::find_if (project_.tracks.begin(), project_.tracks.end(),
+                [trackId] (const auto& candidate) { return candidate.id == trackId; });
+            return track == project_.tracks.end() ? -1 : static_cast<int> (track - project_.tracks.begin());
+        };
+        const auto anchor = timelineEntityView (selectedTimelineClipId_);
+        const int anchorLane = anchor.valid ? trackIndexFor (anchor.trackId) : -1;
+        if (anchorLane < 0) return { id, state, false };
+        const int targetLane = placement == TimelinePlacement::Move ? anchorLane : trackIndexFor (targetTrackId);
+        if (targetLane < 0) return { id, state, false };
+        int minimumLane = anchorLane, maximumLane = anchorLane;
+        std::vector<TimelineNativePosition> origins;
+        origins.reserve (selectedTimelineClipIds_.size());
+        for (const auto clipId : selectedTimelineClipIds_)
         {
-            const UiTimelineEntityView view = timelineEntityView (clipId);
-            if (view.valid)
-                earliestStart = std::min (earliestStart, view.timelineStart);
+            const auto view = timelineEntityView (clipId);
+            const int lane = view.valid ? trackIndexFor (view.trackId) : -1;
+            if (lane < 0) return { id, state, false };
+            minimumLane = std::min (minimumLane, lane);
+            maximumLane = std::max (maximumLane, lane);
+            origins.push_back ({ view.timeBase, view.timelineStart });
         }
-
-        const engine::Tick requestedDelta = timelineStart - anchor.timelineStart;
-        const engine::Tick delta = std::max (requestedDelta, -earliestStart);
+        const int laneDelta = std::clamp (targetLane - anchorLane, -minimumLane,
+            static_cast<int> (project_.tracks.size()) - 1 - maximumLane);
+        auto status = timelineClampToOrigin (*clock, origins, shift, provedBeforeOrigin);
+        if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status);
+        std::vector<engine::Tick> destinations;
+        destinations.reserve (origins.size());
+        for (const auto origin : origins)
+        {
+            engine::Tick destination = 0;
+            status = timelineNativeDestination (*clock, origin, shift, destination);
+            if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status);
+            destinations.push_back (destination);
+        }
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.beginTransactionGroup())
-            return { id, state, false };
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
+        if (! nextUndo.beginTransactionGroup()) return { id, state, false };
+        std::vector<engine::EntityId> copiedIds;
+        engine::EntityId copiedAnchor;
+        bool changed = false;
+        for (std::size_t index = 0; index < selectedTimelineClipIds_.size(); ++index)
         {
-            const UiTimelineEntityView view = timelineEntityView (clipId);
-            const engine::ProjectEditCommand command = view.isMidi
-                ? engine::ProjectEditCommand::moveMidiClip (clipId, view.timelineStart + delta)
-                : engine::ProjectEditCommand::moveClip (clipId, view.timelineStart + delta);
-            if (! view.valid || ! nextUndo.apply (nextProject, command).applied())
-                return { id, state, false };
-            // G2.6: the Edit mode — the old place closes up (Shuffle), the new place is a placement.
-            if (! view.isMidi)
+            const auto clipId = selectedTimelineClipIds_[index];
+            const auto view = timelineEntityView (clipId);
+            const auto nextTrack = project_.tracks[static_cast<std::size_t> (trackIndexFor (view.trackId) + laneDelta)].id;
+            const auto destination = destinations[index];
+            if (destination > INT64_MAX - view.timelineLength)
+                return timelineCoordinateRefusal (TimelineCoordinateStatus::Overflow);
+            if (! copy && destination == view.timelineStart && nextTrack == view.trackId)
+                continue;
+            if (copy)
             {
-                const engine::Clip* moved = findClip (clipId);
-                if (moved != nullptr
-                    && (! applyEditModeAfterRemoval (nextProject, nextUndo, moved->trackId, view.timelineStart, view.timelineLength)
+                engine::EntityId copiedId;
+                if (view.isMidi)
+                {
+                    if (! appendMidiClipCopy (nextProject, nextUndo, *findMidiClip (clipId), nextTrack, destination, copiedId))
+                        return { id, state, false };
+                }
+                else
+                {
+                    auto clip = *findClip (clipId);
+                    clip.id = allocateSessionEntityId (0xC3u, nextProject);
+                    clip.trackId = nextTrack;
+                    clip.timelineStart = destination;
+                    if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied())
+                        return { id, state, false };
+                    copiedId = clip.id;
+                }
+                copiedIds.push_back (copiedId);
+                if (clipId == selectedTimelineClipId_) copiedAnchor = copiedId;
+            }
+            else
+            {
+                const auto command = view.isMidi
+                    ? engine::ProjectEditCommand::moveMidiClipToTrack (clipId, nextTrack, destination)
+                    : engine::ProjectEditCommand::moveClipToTrack (clipId, nextTrack, destination);
+                if (! nextUndo.apply (nextProject, command).applied()) return { id, state, false };
+                if (placement == TimelinePlacement::Move && ! view.isMidi && destination != view.timelineStart
+                    && (! applyEditModeAfterRemoval (nextProject, nextUndo, view.trackId, view.timelineStart, view.timelineLength)
                         || ! applyEditModeAfterPlacement (nextProject, nextUndo, clipId)))
                     return { id, { false, "edit mode refused the move" }, false };
             }
+            changed = true;
         }
-        if (! applyAutomationFollowingClips (nextProject, nextUndo, clipMovesBetween (project_, nextProject)))
-        {
-            reportStatus ("Move not made: the automation could not follow the clips", true);
+        if (! changed) return { id, { false, "selection is at the move boundary" }, false };
+        if (! copy && ! applyAutomationFollowingClips (nextProject, nextUndo, clipMovesBetween (project_, nextProject)))
             return { id, { false, "automation could not follow the move" }, false };
-        }
-        if (! nextUndo.endTransactionGroup())
-            return { id, state, false };
-
+        if (! nextUndo.endTransactionGroup()) return { id, state, false };
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "timeline edit did not persist" }, false };
-
+        if (copy)
+        {
+            selectedTimelineClipIds_ = std::move (copiedIds);
+            selectedTimelineClipId_ = copiedAnchor.isValid() ? copiedAnchor : selectedTimelineClipIds_.back();
+            context_.timelineClipSelected = true;
+        }
         ++context_.commandDispatchCount;
         ++context_.timelineEditCount;
         return { id, state, true };
@@ -7744,83 +7834,9 @@ public:
     }
 
     [[nodiscard]] UiActionDispatchResult moveSelectedTimelineClipToTrack (engine::EntityId targetTrackId,
-                                                                          engine::Tick timelineStart)
+                                                                          TimelineFrameTarget target)
     {
-        const UiActionId id = UiActionId::TimelineClipMove;
-        const UiActionState state = registry_.stateFor (id, context_);
-        if (! state.enabled)
-            return { id, state, false };
-
-        const UiTimelineEntityView anchor = timelineEntityView (selectedTimelineClipId_);
-        const auto targetTrack = std::find_if (project_.tracks.begin(), project_.tracks.end(), [targetTrackId] (const auto& track) {
-            return track.id == targetTrackId;
-        });
-        if (! anchor.valid || targetTrack == project_.tracks.end())
-            return { id, state, false };
-
-        const auto trackIndexFor = [this] (engine::EntityId trackId) {
-            const auto track = std::find_if (project_.tracks.begin(), project_.tracks.end(), [trackId] (const auto& candidate) {
-                return candidate.id == trackId;
-            });
-            return track == project_.tracks.end()
-                ? -1
-                : static_cast<int> (std::distance (project_.tracks.begin(), track));
-        };
-        const int anchorLane = trackIndexFor (anchor.trackId);
-        const int requestedLaneDelta = static_cast<int> (std::distance (project_.tracks.begin(), targetTrack)) - anchorLane;
-        int minimumLane = anchorLane;
-        int maximumLane = anchorLane;
-        engine::Tick earliestStart = anchor.timelineStart;
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
-        {
-            const UiTimelineEntityView view = timelineEntityView (clipId);
-            if (view.valid)
-            {
-                const int lane = trackIndexFor (view.trackId);
-                minimumLane = std::min (minimumLane, lane);
-                maximumLane = std::max (maximumLane, lane);
-                earliestStart = std::min (earliestStart, view.timelineStart);
-            }
-        }
-
-        const int laneDelta = std::clamp (requestedLaneDelta,
-                                          -minimumLane,
-                                          static_cast<int> (project_.tracks.size()) - 1 - maximumLane);
-        const engine::Tick requestedTimeDelta = timelineStart - anchor.timelineStart;
-        const engine::Tick timeDelta = std::max (requestedTimeDelta, -earliestStart);
-        engine::Project nextProject = project_;
-        engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.beginTransactionGroup())
-            return { id, state, false };
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
-        {
-            const UiTimelineEntityView view = timelineEntityView (clipId);
-            const int sourceLane = view.valid ? trackIndexFor (view.trackId) : -1;
-            if (! view.valid || sourceLane < 0)
-                return { id, state, false };
-            const engine::EntityId nextTrackId = project_.tracks[static_cast<std::size_t> (sourceLane + laneDelta)].id;
-            const engine::ProjectEditCommand command = view.isMidi
-                ? engine::ProjectEditCommand::moveMidiClipToTrack (
-                      clipId, nextTrackId, view.timelineStart + timeDelta)
-                : engine::ProjectEditCommand::moveClipToTrack (
-                      clipId, nextTrackId, view.timelineStart + timeDelta);
-            if (! nextUndo.apply (nextProject, command).applied())
-                return { id, state, false };
-        }
-        if (! applyAutomationFollowingClips (nextProject, nextUndo, clipMovesBetween (project_, nextProject)))
-        {
-            reportStatus ("Move not made: the automation could not follow the clips", true);
-            return { id, { false, "automation could not follow the move" }, false };
-        }
-        if (! nextUndo.endTransactionGroup())
-            return { id, state, false };
-
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
-            return { id, { false, "timeline edit did not persist" }, false };
-
-        ++context_.commandDispatchCount;
-        ++context_.timelineEditCount;
-        return { id, state, true };
+        return placeSelectedTimelineClips (target, targetTrackId, TimelinePlacement::CrossTrack);
     }
 
     // G4.6 / ADR-0052: the Automation Follows Clips setting — an undoable project scalar.
@@ -7942,111 +7958,10 @@ public:
         return true;
     }
 
-    // Center Alt+drag copy (E2): copies the WHOLE selection by the gesture anchor's delta — the
-    // same lane-clamp and time-clamp laws as moveSelectedTimelineClipToTrack — as one undo
-    // transaction of fresh-id AddClips, then selects the copies.
     [[nodiscard]] UiActionDispatchResult copySelectedTimelineClipsTo (engine::EntityId targetTrackId,
-                                                                      engine::Tick timelineStart)
+                                                                      TimelineFrameTarget target)
     {
-        const UiActionId id = UiActionId::TimelineClipDuplicate;
-        const UiActionState state = registry_.stateFor (id, context_);
-        if (! state.enabled)
-            return { id, state, false };
-
-        const UiTimelineEntityView anchor = timelineEntityView (selectedTimelineClipId_);
-        const auto targetTrack = std::find_if (project_.tracks.begin(), project_.tracks.end(), [targetTrackId] (const auto& track) {
-            return track.id == targetTrackId;
-        });
-        if (! anchor.valid || targetTrack == project_.tracks.end())
-            return { id, state, false };
-
-        const auto trackIndexFor = [this] (engine::EntityId trackId) {
-            const auto track = std::find_if (project_.tracks.begin(), project_.tracks.end(), [trackId] (const auto& candidate) {
-                return candidate.id == trackId;
-            });
-            return track == project_.tracks.end()
-                ? -1
-                : static_cast<int> (std::distance (project_.tracks.begin(), track));
-        };
-        const int anchorLane = trackIndexFor (anchor.trackId);
-        const int requestedLaneDelta = static_cast<int> (std::distance (project_.tracks.begin(), targetTrack)) - anchorLane;
-        int minimumLane = anchorLane;
-        int maximumLane = anchorLane;
-        engine::Tick earliestStart = anchor.timelineStart;
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
-        {
-            const UiTimelineEntityView view = timelineEntityView (clipId);
-            if (view.valid)
-            {
-                const int lane = trackIndexFor (view.trackId);
-                minimumLane = std::min (minimumLane, lane);
-                maximumLane = std::max (maximumLane, lane);
-                earliestStart = std::min (earliestStart, view.timelineStart);
-            }
-        }
-
-        const int laneDelta = std::clamp (requestedLaneDelta,
-                                          -minimumLane,
-                                          static_cast<int> (project_.tracks.size()) - 1 - maximumLane);
-        const engine::Tick requestedTimeDelta = timelineStart - anchor.timelineStart;
-        const engine::Tick timeDelta = std::max (requestedTimeDelta, -earliestStart);
-
-        constexpr engine::Tick maxTick = std::numeric_limits<engine::Tick>::max();
-        engine::Project nextProject = project_;
-        engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.beginTransactionGroup())
-            return { id, state, false };
-        std::vector<engine::EntityId> copiedClipIds;
-        copiedClipIds.reserve (selectedTimelineClipIds_.size());
-        engine::EntityId copiedAnchorId;
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
-        {
-            const UiTimelineEntityView view = timelineEntityView (clipId);
-            const int sourceLane = view.valid ? trackIndexFor (view.trackId) : -1;
-            if (! view.valid || sourceLane < 0)
-                return { id, state, false };
-            if (timeDelta > 0 && view.timelineStart > maxTick - timeDelta)
-                return { id, { false, "copy-drag would overflow timeline" }, false };
-            const engine::Tick copyStart = view.timelineStart + timeDelta;
-            if (view.timelineLength > maxTick - copyStart)
-                return { id, { false, "copy-drag would overflow timeline" }, false };
-
-            const engine::EntityId nextTrackId =
-                project_.tracks[static_cast<std::size_t> (sourceLane + laneDelta)].id;
-            engine::EntityId copiedId;
-            if (view.isMidi)
-            {
-                const engine::MidiClip* const source = findMidiClip (clipId);
-                if (source == nullptr
-                    || ! appendMidiClipCopy (nextProject, nextUndo, *source, nextTrackId, copyStart, copiedId))
-                    return { id, state, false };
-            }
-            else
-            {
-                engine::Clip copy = *findClip (clipId);
-                copy.id = allocateSessionEntityId (0xC3u, nextProject);
-                copy.trackId = nextTrackId;
-                copy.timelineStart = copyStart;
-                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (copy)).applied())
-                    return { id, state, false };
-                copiedId = copy.id;
-            }
-            copiedClipIds.push_back (copiedId);
-            if (clipId == selectedTimelineClipId_)
-                copiedAnchorId = copiedId;
-        }
-        if (! nextUndo.endTransactionGroup())
-            return { id, state, false };
-
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
-            return { id, { false, "timeline copy-drag did not persist" }, false };
-
-        selectedTimelineClipIds_ = std::move (copiedClipIds);
-        selectedTimelineClipId_ = copiedAnchorId.isValid() ? copiedAnchorId : selectedTimelineClipIds_.back();
-        context_.timelineClipSelected = true;
-        ++context_.commandDispatchCount;
-        ++context_.timelineEditCount;
-        return { id, state, true };
+        return placeSelectedTimelineClips (target, targetTrackId, TimelinePlacement::Copy);
     }
 
     [[nodiscard]] UiActionDispatchResult addAudioTrack()
@@ -8791,41 +8706,44 @@ public:
         }
 
         const UiTimelineEntityView anchor = timelineEntityView (selectedTimelineClipId_);
-        if (! anchor.valid)
+        const auto clock = playback_ != nullptr ? playback_->metronomeClock() : nullptr;
+        if (! anchor.valid || clock == nullptr)
             return { id, { false, "timeline clip missing" }, false };
-
-        engine::Tick earliestStart = anchor.timelineStart;
-        if (right)
+        TimelineFrameDisplacement shift;
+        bool beforeOrigin = false;
+        const bool clockUnit = nudgeUnit_ == UiNudgeUnit::Ms1 || nudgeUnit_ == UiNudgeUnit::Ms10
+                            || nudgeUnit_ == UiNudgeUnit::Frame || nudgeUnit_ == UiNudgeUnit::Sample
+                            || (nudgeUnit_ == UiNudgeUnit::Grid && snapUnit_ == UiSnapUnit::Off);
+        if (clockUnit)
         {
-            constexpr engine::Tick maxTick = std::numeric_limits<engine::Tick>::max();
-            for (engine::EntityId clipId : selectedTimelineClipIds_)
-            {
-                const UiTimelineEntityView view = timelineEntityView (clipId);
-                if (! view.valid
-                    || view.timelineStart > maxTick - amount
-                    || view.timelineLength > maxTick - (view.timelineStart + amount))
-                {
-                    return { id, { false, "nudge would overflow timeline" }, false };
-                }
-            }
+            shift.exactInteger = true;
+            shift.integerFrames = right ? amount : -amount;
+            shift.frames = timelineSignedInteger (shift.integerFrames);
         }
         else
         {
-            for (engine::EntityId clipId : selectedTimelineClipIds_)
+            engine::MeterChange meter;
+            auto status = clock->meterAtPosition (anchor.timelineStart,
+                anchor.timeBase == engine::TimeBase::TempoLocked, meter);
+            const auto unit = nudgeUnit_ == UiNudgeUnit::Bar ? UiSnapUnit::Bar
+                            : nudgeUnit_ == UiNudgeUnit::Sixteenth ? UiSnapUnit::Sixteenth
+                            : nudgeUnit_ == UiNudgeUnit::Beat ? UiSnapUnit::Beat : snapUnit_;
+            std::int64_t numerator = unit == UiSnapUnit::Sixteenth ? 3840
+                                   : unit == UiSnapUnit::Bar ? 61440LL * meter.numerator : 61440;
+            std::uint64_t denominator = unit == UiSnapUnit::Sixteenth ? 1u : meter.denominator;
+            if (fine) denominator *= 8u;
+            if (! right) numerator = -numerator;
+            if (status == engine::TimeLookupStatus::Ok)
+                status = clock->frameDisplacement (anchor.timelineStart,
+                    anchor.timeBase == engine::TimeBase::TempoLocked, numerator, denominator, shift.frames, beforeOrigin);
+            if (status != engine::TimeLookupStatus::Ok)
             {
-                const UiTimelineEntityView view = timelineEntityView (clipId);
-                if (! view.valid)
-                    return { id, { false, "timeline clip missing" }, false };
-                earliestStart = std::min (earliestStart, view.timelineStart);
+                auto refused = timelineCoordinateRefusal (timelineStatus (status));
+                refused.action = id;
+                return refused;
             }
-            if (earliestStart == 0)
-                return { id, { false, "selection is at the nudge boundary" }, false };
         }
-
-        const engine::Tick target = right
-            ? anchor.timelineStart + amount
-            : anchor.timelineStart - std::min (earliestStart, amount);
-        UiActionDispatchResult result = moveSelectedTimelineClipTo (target);
+        auto result = placeSelectedTimelineClips (shift, {}, TimelinePlacement::Move, beforeOrigin);
         result.action = id;
         return result;
     }
@@ -11321,14 +11239,15 @@ private:
         engine::Tick timelineStart = 0;
         engine::Tick timelineLength = 0;
         engine::EntityId trackId;
+        engine::TimeBase timeBase = engine::TimeBase::SampleLocked;
     };
 
     [[nodiscard]] UiTimelineEntityView timelineEntityView (engine::EntityId entityId) const noexcept
     {
         if (const engine::Clip* const clip = findClip (entityId))
-            return { true, false, clip->timelineStart, clip->timelineLength, clip->trackId };
+            return { true, false, clip->timelineStart, clip->timelineLength, clip->trackId, clip->timeBase };
         if (const engine::MidiClip* const midiClip = findMidiClip (entityId))
-            return { true, true, midiClip->timelineStart, midiClip->timelineLength, midiClip->trackId };
+            return { true, true, midiClip->timelineStart, midiClip->timelineLength, midiClip->trackId, midiClip->timeBase };
         return {};
     }
 

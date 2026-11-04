@@ -484,7 +484,9 @@ TEST_CASE ("MIDI duplicate, copy-drag, Track duplicate and Paste retain the comp
     CHECK (copied.loopLengthTicks == original.midiClips.front().loopLengthTicks);
     const auto targetTrack = operation == Copy::Track ? app.project().tracks[2].id
                            : operation == Copy::Duplicate ? original.tracks[1].id : original.tracks[2].id;
-    const yesdaw::engine::Tick start = operation == Copy::Track ? 125 : operation == Copy::Duplicate ? 221 : 1000;
+    // Only the arrange target is in Project Frames here; the clipboard retains its existing contract.
+    const yesdaw::engine::Tick start = operation == Copy::Track ? 125 : operation == Copy::Duplicate ? 221
+        : operation == Copy::Drag && timeBase == TimeBase::TempoLocked ? 1000 * 15360 / 24000 : 1000;
     requireFreshWholeMidiCopy (copied, original.midiClips.front(), targetTrack, start, original);
     requireSameCopiedControlSequence (copied, original.midiClips.front(), original);
     REQUIRE (app.project().hasValidAssetClipIndirection());
@@ -3675,6 +3677,212 @@ TEST_CASE ("failed count-in clock preparation leaves capture transport and store
     std::filesystem::remove_all (bundlePath, ec);
 }
 
+TEST_CASE ("arrange moves and copy-drag map a shared Frame displacement into each native time base",
+           "[ui][app][native-move-nudge]")
+{
+    using namespace yesdaw::engine;
+    enum class Operation { Move, CrossTrack, Copy };
+    const auto operation = GENERATE (Operation::Move, Operation::CrossTrack, Operation::Copy);
+    const bool ramp = GENERATE (false, true);
+    CAPTURE (operation, ramp);
+    const auto bundle = makeTempBundlePath ("native-arrange-move");
+    auto original = makeCompleteMidiCopyProject();
+    original.tempoMap = { { 0, 120.0, ramp ? TempoCurve::LinearRamp : TempoCurve::Jump },
+                          { ramp ? 61440 : 30720, 240.0, TempoCurve::Jump } };
+    original.midiClips[0].timeBase = TimeBase::TempoLocked;
+    original.midiClips[0].timelineStart = 30720;
+    original.midiClips[0].timelineLength = 15360;
+    original.midiClips[1].timeBase = TimeBase::SampleLocked;
+    original.midiClips[1].trackId = original.tracks[2].id;
+    original.midiClips[1].timelineStart = 48000;
+    original.midiClips[1].timelineLength = 12000;
+    original.tracks[2].instrumentKind = TrackInstrumentKind::SimpleSynth;
+    original.assets[0].frames = 12016;
+    original.clips[0].timelineStart = 48000;
+    original.clips[0].timelineLength = 12000;
+    original.clips[0].srcLen = 12000;
+    for (std::size_t i = 0; i < 3; ++i)
+    {
+        auto target = original.tracks[i];
+        target.id = idFromLowByte (static_cast<std::uint8_t> (0x90u + i));
+        original.tracks.push_back (target);
+    }
+    original.automationFollowsClips = true;
+    AutomationLaneData lane;
+    lane.id = idFromLowByte (0x99);
+    lane.ownerEntity = original.tracks[1].id;
+    lane.role = AutomationTargetRole::TrackFader;
+    lane.paramId = FaderNode::kGainParameterId;
+    lane.points = { { 0, 0.2 }, { 31720, 0.9 }, { 100000, 0.4 } };
+    original.automationLanes = { lane };
+    REQUIRE (original.hasValidAssetClipIndirection());
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundle, db).ok());
+        REQUIRE (db.writeProjectSnapshot (original).ok());
+        writeProjectAssetFiles (bundle, original);
+    }
+    const auto decoded = UiDecodedAsset::fromInterleaved (original.assets[0].id, original.sampleRate,
+        1, std::vector<float> (12016, 0.125f));
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundle, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    const std::array selection { original.clips[0].id, original.midiClips[0].id, original.midiClips[1].id };
+    REQUIRE (app.selectTimelineClips (selection)); // SampleLocked anchor: 48000 -> 60000 Frames.
+    const auto edit = [&] {
+        if (operation == Operation::Move)
+            return app.moveSelectedTimelineClipTo (60000);
+        if (operation == Operation::CrossTrack)
+            return app.moveSelectedTimelineClipToTrack (original.tracks[5].id, 60000);
+        return app.copySelectedTimelineClipsTo (original.tracks[5].id, 60000);
+    };
+    const auto requireRows = [&] (const Project& expected) {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openExistingBundle (bundle, db).ok());
+        Project rows;
+        REQUIRE (db.readProjectSnapshot (rows).ok());
+        REQUIRE (rows.clips == expected.clips);
+        REQUIRE (rows.midiClips == expected.midiClips);
+        REQUIRE (rows.automationLanes == expected.automationLanes);
+    };
+    sqlite3* connection = nullptr;
+    REQUIRE (sqlite3_open (yesdaw::io::utf8Text (bundle / "project.db").c_str(), &connection) == SQLITE_OK);
+    REQUIRE (sqlite3_exec (connection,
+        "CREATE TRIGGER refuse_native_move BEFORE DELETE ON midi_clips BEGIN SELECT RAISE(ABORT, 'save refused'); END;",
+        nullptr, nullptr, nullptr) == SQLITE_OK);
+    const auto replacements = app.playbackReplaceCount();
+    REQUIRE_FALSE (edit().dispatched);
+    REQUIRE (app.project().midiClips == original.midiClips);
+    REQUIRE (app.project().clips == original.clips);
+    REQUIRE (app.project().automationLanes == original.automationLanes);
+    REQUIRE_FALSE (app.context().canUndo);
+    REQUIRE (app.playbackReplaceCount() == replacements);
+    for (const auto id : selection)
+        REQUIRE (app.isTimelineClipSelected (id));
+    requireRows (original);
+    REQUIRE (sqlite3_exec (connection, "DROP TRIGGER refuse_native_move;", nullptr, nullptr, nullptr) == SQLITE_OK);
+    REQUIRE (sqlite3_close (connection) == SQLITE_OK);
+    REQUIRE (edit().dispatched);
+    const Project after = app.project();
+    const std::size_t midiOffset = operation == Operation::Copy ? 2u : 0u;
+    const std::size_t audioOffset = operation == Operation::Copy ? 1u : 0u;
+    // Independent ramp inverse: F(q)=96000*log(1+q/4), then add 12000 Frames.
+    const Tick musicalStart = ramp
+        ? static_cast<Tick> (std::llround (61440.0L * (1.5L * std::exp (12000.0L / 96000.0L) - 1.0L)))
+        : 46080;
+    CHECK (after.midiClips[midiOffset].timelineStart == musicalStart);
+    CHECK (after.midiClips[midiOffset + 1u].timelineStart == 60000);
+    CHECK (after.clips[audioOffset].timelineStart == 60000);
+    for (std::size_t i = 0; i < 2; ++i)
+    {
+        auto actual = after.midiClips[midiOffset + i];
+        const auto& source = original.midiClips[i];
+        const auto expectedTrack = original.tracks[(operation == Operation::Move ? 1u : 4u) + i].id;
+        REQUIRE (actual.trackId == expectedTrack);
+        if (operation == Operation::Copy)
+        {
+            CHECK (actual.id != source.id);
+            for (std::size_t row = 0; row < actual.notes.size(); ++row)
+            {
+                CHECK (actual.notes[row].id != source.notes[row].id);
+                actual.notes[row].id = source.notes[row].id;
+            }
+            for (std::size_t row = 0; row < actual.controlEvents.size(); ++row)
+            {
+                CHECK (actual.controlEvents[row].id != source.controlEvents[row].id);
+                actual.controlEvents[row].id = source.controlEvents[row].id;
+            }
+        }
+        actual.id = source.id;
+        actual.trackId = source.trackId;
+        actual.timelineStart = source.timelineStart;
+        REQUIRE (actual == source);
+    }
+    auto audio = after.clips[audioOffset];
+    REQUIRE (audio.trackId == original.tracks[operation == Operation::Move ? 0u : 3u].id);
+    audio.id = original.clips[0].id;
+    audio.trackId = original.clips[0].trackId;
+    audio.timelineStart = original.clips[0].timelineStart;
+    REQUIRE (audio == original.clips[0]);
+    if (operation == Operation::Move)
+    {
+        const auto& points = after.automationLanes[0].points;
+        CHECK (std::any_of (points.begin(), points.end(), [&] (const auto& point) {
+            return point.tick == musicalStart + 1000 && point.value == 0.9;
+        }));
+    }
+    else
+        REQUIRE (after.automationLanes == original.automationLanes);
+    requireRows (after);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().midiClips == original.midiClips);
+    REQUIRE (app.project().clips == original.clips);
+    REQUIRE (app.project().automationLanes == original.automationLanes);
+    REQUIRE_FALSE (app.context().canUndo);
+    requireRows (original);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    REQUIRE (app.project().midiClips == after.midiClips);
+    REQUIRE (app.project().clips == after.clips);
+    requireRows (after);
+    UiAppModel reopened;
+    REQUIRE (reopened.loadProjectBundle (bundle, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (reopened.project().midiClips == after.midiClips);
+    REQUIRE (reopened.project().clips == after.clips);
+    REQUIRE (reopened.project().automationLanes == after.automationLanes);
+}
+
+TEST_CASE ("musical nudge integrates the accepted position and preserves sub-Frame spans",
+           "[ui][app][native-move-nudge]")
+{
+    using namespace yesdaw::engine;
+    bool tiny = false;
+    bool fine = false;
+    SECTION ("Beat uses the Tempo after the jump") {}
+    SECTION ("a high-Tempo Beat remains a full quarter in Tick coordinates") { tiny = true; }
+    SECTION ("fine divides the musical span before Frame projection") { tiny = true; fine = true; }
+    const auto bundle = makeTempBundlePath ("native-musical-nudge");
+    auto song = makeCompleteMidiCopyProject();
+    song.assets.clear();
+    song.clips.clear();
+    song.tempoMap = tiny ? std::vector<TempoChange> { { 0, 100000000.0, TempoCurve::Jump } }
+                        : std::vector<TempoChange> { { 0, 120.0, TempoCurve::Jump }, { 30720, 240.0, TempoCurve::Jump } };
+    song.midiClips[0].timeBase = TimeBase::TempoLocked;
+    song.midiClips[0].timelineStart = tiny ? 0 : 30720;
+    song.midiClips[0].timelineLength = 15360;
+    song.midiClips[1].timeBase = TimeBase::SampleLocked;
+    song.midiClips[1].timelineStart = tiny ? 0 : 48000;
+    song.midiClips[1].timelineLength = 12000;
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundle, db).ok());
+        REQUIRE (db.writeProjectSnapshot (song).ok());
+    }
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    const std::array selection { song.midiClips[0].id, song.midiClips[1].id };
+    REQUIRE (app.selectTimelineClips (selection));
+    REQUIRE (app.dispatch (UiActionId::EditNudgeValueBeat).dispatched);
+    const auto result = app.dispatch (fine ? UiActionId::EditNudgeRightFine : UiActionId::EditNudgeRight);
+    INFO (app.statusLineText());
+    REQUIRE (result.dispatched);
+    CHECK (app.project().midiClips[0].timelineStart == song.midiClips[0].timelineStart + (fine ? 1920 : 15360));
+    CHECK (app.project().midiClips[1].timelineStart == (tiny ? 0 : 60000));
+    for (std::size_t i = 0; i < song.midiClips.size(); ++i)
+    {
+        auto actual = app.project().midiClips[i];
+        actual.timelineStart = song.midiClips[i].timelineStart;
+        REQUIRE (actual == song.midiClips[i]);
+    }
+    const auto after = app.project().midiClips;
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().midiClips == song.midiClips);
+    REQUIRE_FALSE (app.context().canUndo);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    REQUIRE (app.project().midiClips == after);
+    UiAppModel reopened;
+    REQUIRE (reopened.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (reopened.project().midiClips == after);
+}
+
 TEST_CASE ("complete MIDI copy save refusal keeps Project, selection, playback and both history directions",
            "[ui][app][midi-copy-complete]")
 {
@@ -3761,4 +3969,86 @@ TEST_CASE ("complete MIDI copy save refusal keeps Project, selection, playback a
     REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
     REQUIRE (app.project().midiClips == before.midiClips);
     REQUIRE (app.project().tracks == before.tracks);
+}
+
+TEST_CASE ("native arrange identity keeps large Frames and a rounded no-op member does not cancel its group",
+           "[ui][app][native-move-nudge]")
+{
+    using namespace yesdaw::engine;
+    const auto bundle = makeTempBundlePath ("native-arrange-identity");
+    auto song = makeCompleteMidiCopyProject();
+    song.assets.clear();
+    song.clips.clear();
+    const bool large = GENERATE (false, true);
+    song.tempoMap = { { 0, large ? 240.0 : 1.0, TempoCurve::Jump } };
+    song.midiClips[0].timeBase = TimeBase::TempoLocked;
+    song.midiClips[0].timelineStart = large ? 2 : 1;
+    song.midiClips[1].timeBase = TimeBase::SampleLocked;
+    song.midiClips[1].timelineStart = large ? (Tick { 1 } << 53) + 1 : 48000;
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundle, db).ok());
+        REQUIRE (db.writeProjectSnapshot (song).ok());
+    }
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    if (large)
+    {
+        REQUIRE (app.selectTimelineClip (song.midiClips[1].id));
+        REQUIRE (app.moveSelectedTimelineClipTo (song.midiClips[1].timelineStart + 1).dispatched);
+        REQUIRE (app.project().midiClips[1].timelineStart == song.midiClips[1].timelineStart + 1);
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        REQUIRE (app.moveSelectedTimelineClipToTrack (song.tracks[2].id,
+            yesdaw::ui::TimelineFrameTarget::noTimeChange()).dispatched);
+        auto moved = app.project().midiClips[1];
+        moved.trackId = song.midiClips[1].trackId;
+        REQUIRE (moved == song.midiClips[1]);
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        REQUIRE (app.selectTimelineClip (song.midiClips[0].id));
+        REQUIRE (app.copySelectedTimelineClipsTo (song.tracks[2].id,
+            yesdaw::ui::TimelineFrameTarget::noTimeChange()).dispatched);
+        requireFreshWholeMidiCopy (app.project().midiClips.back(), song.midiClips[0],
+            song.tracks[2].id, 2, song);
+    }
+    else
+    {
+        const std::array selection { song.midiClips[0].id, song.midiClips[1].id };
+        REQUIRE (app.selectTimelineClips (selection));
+        REQUIRE (app.dispatch (UiActionId::EditNudgeValueSample).dispatched);
+        REQUIRE (app.dispatch (UiActionId::EditNudgeRight).dispatched);
+        REQUIRE (app.project().midiClips[0] == song.midiClips[0]);
+        REQUIRE (app.project().midiClips[1].timelineStart == 48001);
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        REQUIRE (app.selectTimelineClip (song.midiClips[0].id));
+        REQUIRE_FALSE (app.dispatch (UiActionId::EditNudgeRight).dispatched);
+        REQUIRE (app.project().midiClips == song.midiClips);
+        REQUIRE_FALSE (app.context().canUndo);
+    }
+}
+
+TEST_CASE ("Grid nudge retains the previously chosen numeric value while Snap is Off",
+           "[ui][app][native-move-nudge][grid-off-nudge]")
+{
+    const auto unit = GENERATE (UiActionId::TimelineSnapSetSixteenth, UiActionId::TimelineSnapSetBar);
+    const auto expected = unit == UiActionId::TimelineSnapSetBar ? 96000 : 6000;
+    const auto bundle = makeTempBundlePath ("grid-off-nudge");
+    const auto song = makeSmokeProject();
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundle, db).ok());
+        REQUIRE (db.writeProjectSnapshot (song).ok());
+        writeProjectAssetFiles (bundle, song);
+    }
+    const auto decoded = makeDecodedAsset (song.assets[0]);
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundle, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.selectTimelineClip (song.clips[0].id));
+    REQUIRE (app.dispatch (unit).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TimelineSnapDisable).dispatched);
+    REQUIRE (app.context().snapGridTicks == expected);
+    REQUIRE (app.dispatch (UiActionId::EditNudgeValueGrid).dispatched);
+    REQUIRE (app.dispatch (UiActionId::EditNudgeRight).dispatched);
+    CHECK (app.project().clips[0].timelineStart == expected);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().clips == song.clips);
 }
