@@ -9236,7 +9236,7 @@ public:
             return { id, state, false };
 
         UiClipClipboard clipboard = makeClipboardForSelection();
-        if (clipboard.clips.empty())
+        if (clipboard.empty())
             return { id, { false, "timeline clip missing" }, false };
 
         engine::Project nextProject = project_;
@@ -9244,8 +9244,13 @@ public:
         if (! nextUndo.beginTransactionGroup())
             return { id, state, false };
         for (engine::EntityId clipId : selectedTimelineClipIds_)
-            if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::deleteClip (clipId)).applied())
+        {
+            const engine::ProjectEditCommand command = findMidiClip (clipId) != nullptr
+                ? engine::ProjectEditCommand::removeMidiClip (clipId)
+                : engine::ProjectEditCommand::deleteClip (clipId);
+            if (! nextUndo.apply (nextProject, command).applied())
                 return { id, state, false };
+        }
         if (! nextUndo.endTransactionGroup())
             return { id, state, false };
 
@@ -15113,7 +15118,7 @@ private:
                     });
                 engine::Clip clip = entry.source;   // every setting the copied clip had
                 clip.id = allocateSessionEntityId (0xC3u, nextProject);
-                clip.trackId = clipClipboard_.clips.size() > 1u && sourceTrackExists
+                clip.trackId = (clipClipboard_.clips.size() + clipClipboard_.midiClips.size()) > 1u && sourceTrackExists
                     ? entry.trackId
                     : (keepTracks && trackExists (nextProject, entry.trackId) ? entry.trackId : targetTrackId);
                 clip.timelineStart = timelineStart + repeatOffset + entry.timelineOffset;

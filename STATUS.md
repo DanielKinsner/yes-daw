@@ -8,7 +8,7 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## Scoreboard - where the app stands (kept current; last updated 2026-11-03)
+## Scoreboard - where the app stands (kept current; last updated 2026-11-04)
 
 **Make a song today** (evidence: the real-app drives on packaged build 7a1b0ad, 2026-10-13)
 - Import audio - WORKING: WAV/AIFF/FLAC/Ogg/MP3 at supported sample rates, drag-drop, browser preview.
@@ -47,8 +47,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Done: addressed note release, bounded notes-only updates without replacing playback, selected-Clip background
    stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
-   and natural cross-rate selected-split repairs. Next: repair offered MIDI/mixed whole-Clip Cut, then batch
-   durable Asset admission and implement the full musical clock. The implementation
+   and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
+   Next: finish the async screenshot-fixture CI repair, then batch durable Asset admission and implement the full
+   musical clock. The implementation
    brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -68,6 +69,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — MIDI/mixed Cut and Paste repaired
+
+Arrange offered Cut for MIDI and mixed selections but refused them through audio-only checks. Independent mixed Copy/Paste also redirected audio to the wrong Track. Six failures reproduced against unchanged production before the minimal type-aware Cut and whole-selection lane repair.
+Focused proof passed 441 assertions / three cases: both MIDI time bases, complete values/fresh IDs, placement, one Undo/Redo, reopen and forced-save refusal retaining rows, selection, counters/edit serial, playback, undo and the previous clipboard. Saved-data critic accepted the two frozen files.
+Canonical pure suite: 430/430 (87.34 s); app/harness compiled without launch; two affected Clang units clean; complete audited offscreen UI suite: 496 cases / 459,652 assertions passed. Frozen hashes still match. No native keyboard/window/device proof is claimed; existing UI routing is unchanged.
+Import checkpoint 2acd62d CI 41795099400 failed only the macOS screenshot selection fixture: it asserts selection before async import completion. This is outside the GPU exception; explicit fixture completion waits are being repaired before the next push. Then batch durable Asset admission and complete the background-import cluster review before timing implementation.
 
 ## 2026-11-03 — Captured background-import controls integrated
 

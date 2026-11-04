@@ -307,6 +307,92 @@ UiDecodedAsset makeDecodedAsset (const Asset& asset)
     return decoded;
 }
 
+Project makeWholeClipClipboardProject (TimeBase midiTimeBase = TimeBase::SampleLocked)
+{
+    Project project = makeThreeTrackRecordingProject();
+    project.clips.front().timelineStart = 300;
+    project.clips.front().name = "Audio clipboard source";
+    project.clips.front().gain = 0.7f;
+    project.tracks[1].instrumentKind = yesdaw::engine::TrackInstrumentKind::SimpleSynth;
+
+    yesdaw::engine::MidiClip midi;
+    midi.id = idFromLowByte (0x31);
+    midi.trackId = project.tracks[1].id;
+    midi.timelineStart = 125;
+    midi.timelineLength = 96;
+    midi.timeBase = midiTimeBase;
+    midi.muted = true;
+    midi.transposeSemitones = -9;
+    midi.velocityOffset = -0.2;
+    midi.loopLengthTicks = 24;
+    midi.notes = {
+        { idFromLowByte (0x32), 9, 17, 67, 67.25, 0.61, 3, 9 },
+        { idFromLowByte (0x33), 32, 0, 52, 51.75, 0.34, 1, 2 },
+    };
+    using yesdaw::engine::MidiControlKind;
+    midi.controlEvents = {
+        { idFromLowByte (0x40), 18, MidiControlKind::ControlChange, 64, 0.8, 2, 7 },
+        { idFromLowByte (0x41), 19, MidiControlKind::PitchBend, 0, -0.3, 1, 6 },
+        { idFromLowByte (0x42), 20, MidiControlKind::ChannelPressure, 0, 0.4, 4, 5 },
+        { idFromLowByte (0x43), 21, MidiControlKind::PolyPressure, 52, 0.6, 3, 4 },
+        { idFromLowByte (0x44), 22, MidiControlKind::ProgramChange, 17, 0.0, 2, 3 },
+    };
+    project.midiClips.push_back (midi);
+    midi.id = idFromLowByte (0x60);
+    midi.timelineStart = 500;
+    midi.transposeSemitones = 12;
+    midi.notes.front().key = 43;
+    for (std::size_t index = 0; index < midi.notes.size(); ++index)
+        midi.notes[index].id = idFromLowByte (static_cast<std::uint8_t> (0x61u + index));
+    for (std::size_t index = 0; index < midi.controlEvents.size(); ++index)
+        midi.controlEvents[index].id = idFromLowByte (static_cast<std::uint8_t> (0x70u + index));
+    project.midiClips.push_back (midi);   // an unselected Clip also seeds the refusal test's old clipboard
+    REQUIRE (project.hasValidAssetClipIndirection());
+    return project;
+}
+
+void requireFreshWholeMidiCopy (const yesdaw::engine::MidiClip& copy,
+                               const yesdaw::engine::MidiClip& source,
+                               EntityId trackId,
+                               yesdaw::engine::Tick start,
+                               const Project& original)
+{
+    std::vector<EntityId> ids;
+    for (const auto& midi : original.midiClips)
+    {
+        ids.push_back (midi.id);
+        for (const auto& note : midi.notes)
+            ids.push_back (note.id);
+        for (const auto& control : midi.controlEvents)
+            ids.push_back (control.id);
+    }
+    const auto requireFreshId = [&] (EntityId id) {
+        REQUIRE (id.isValid());
+        REQUIRE (std::find (ids.begin(), ids.end(), id) == ids.end());
+        ids.push_back (id);
+    };
+    requireFreshId (copy.id);
+    REQUIRE (copy.trackId == trackId);
+    REQUIRE (copy.timelineStart == start);
+    REQUIRE (copy.notes.size() == source.notes.size());
+    REQUIRE (copy.controlEvents.size() == source.controlEvents.size());
+    auto expected = source;
+    expected.id = copy.id;
+    expected.trackId = trackId;
+    expected.timelineStart = start;
+    for (std::size_t index = 0; index < copy.notes.size(); ++index)
+    {
+        requireFreshId (copy.notes[index].id);
+        expected.notes[index].id = copy.notes[index].id;
+    }
+    for (std::size_t index = 0; index < copy.controlEvents.size(); ++index)
+    {
+        requireFreshId (copy.controlEvents[index].id);
+        expected.controlEvents[index].id = copy.controlEvents[index].id;
+    }
+    REQUIRE (copy == expected);
+}
+
 } // namespace
 
 TEST_CASE ("stretch requests leave committed geometry and playback unchanged until serviced",
@@ -798,6 +884,206 @@ TEST_CASE ("Deleting the selected timeline clip is undoable and clears selection
 
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("offered whole-Clip Cut removes MIDI and mixed selections durably as one complete clipboard edit",
+           "[ui][app][clipboard][midi-clip-cut]")
+{
+    bool includeAudio = false;
+    TimeBase midiTimeBase = TimeBase::SampleLocked;
+    SECTION ("MIDI-only SampleLocked selection") {}
+    SECTION ("MIDI-only TempoLocked selection") { midiTimeBase = TimeBase::TempoLocked; }
+    SECTION ("mixed audio and MIDI selection") { includeAudio = true; }
+
+    const auto bundlePath = makeTempBundlePath ("midi-clip-cut");
+    const Project original = makeWholeClipClipboardProject (midiTimeBase);
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundlePath, original).ok());
+    writeProjectAssetFiles (bundlePath, original);
+    const UiDecodedAsset decoded = makeDecodedAsset (original.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    const auto requireDurableRows = [&] (const Project& expected) {
+        UiAppModel reopened;
+        REQUIRE (reopened.openProjectBundle (bundlePath).ok());
+        REQUIRE (reopened.project().clips == expected.clips);
+        REQUIRE (reopened.project().midiClips == expected.midiClips);
+        REQUIRE (reopened.project().tracks == expected.tracks);
+        REQUIRE (reopened.project().assets == expected.assets);
+    };
+    REQUIRE (app.selectMixerTrack (includeAudio ? 0u : 1u, false));
+    // Put audio first so the old mixed path applies a scratch audio deletion before refusing MIDI.
+    if (includeAudio)
+    {
+        REQUIRE (app.selectTimelineClip (original.clips.front().id));
+        REQUIRE (app.selectTimelineClipForGesture (original.midiClips.front().id, true));
+    }
+    else
+        REQUIRE (app.selectTimelineClip (original.midiClips.front().id));
+    REQUIRE (app.context().activePanel == yesdaw::ui::UiPanel::Timeline);
+    REQUIRE (app.registry().stateFor (UiActionId::TimelineClipCut, app.context()).enabled);
+    REQUIRE_FALSE (app.context().canUndo);
+    const auto commands = app.context().commandDispatchCount;
+    const auto edits = app.context().timelineEditCount;
+    REQUIRE (app.dispatch (UiActionId::TimelineClipCut).dispatched);
+    REQUIRE (app.context().commandDispatchCount == commands + 1);
+    REQUIRE (app.context().timelineEditCount == edits + 1);
+    REQUIRE (app.context().clipboardHasClip);
+    REQUIRE_FALSE (app.context().timelineClipSelected);
+    REQUIRE (app.selectedTimelineClipCount() == 0u);
+    Project cut = original;
+    cut.midiClips.erase (cut.midiClips.begin());
+    if (includeAudio)
+        cut.clips.clear();
+    REQUIRE (app.project().clips == cut.clips);
+    REQUIRE (app.project().midiClips == cut.midiClips);
+    requireDurableRows (cut);
+
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().clips == original.clips);
+    REQUIRE (app.project().midiClips == original.midiClips);
+    REQUIRE_FALSE (app.context().canUndo);   // the entire Cut was one transaction
+    REQUIRE (app.context().canRedo);
+    requireDurableRows (original);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    REQUIRE (app.project().clips == cut.clips);
+    REQUIRE (app.project().midiClips == cut.midiClips);
+    REQUIRE_FALSE (app.context().canRedo);
+
+    REQUIRE (app.locatePlaybackFrame (1000));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipPaste).dispatched);
+    REQUIRE (app.project().midiClips.size() == cut.midiClips.size() + 1u);
+    requireFreshWholeMidiCopy (app.project().midiClips.back(), original.midiClips.front(),
+                              original.midiClips.front().trackId, 1000, original);
+    REQUIRE (app.project().midiClips.front() == original.midiClips.back());
+    if (includeAudio)
+    {
+        REQUIRE (app.project().clips.size() == 1u);
+        Clip expected = original.clips.front();
+        REQUIRE (app.project().clips.front().id != expected.id);
+        expected.id = app.project().clips.front().id;
+        expected.timelineStart = 1000 + original.clips.front().timelineStart - original.midiClips.front().timelineStart;
+        REQUIRE (app.project().clips.front() == expected);
+    }
+    else
+        REQUIRE (app.project().clips == original.clips);
+    const Project pasted = app.project();
+    requireDurableRows (pasted);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().clips == cut.clips);
+    REQUIRE (app.project().midiClips == cut.midiClips);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    REQUIRE (app.project().clips == pasted.clips);
+    REQUIRE (app.project().midiClips == pasted.midiClips);
+    requireDurableRows (pasted);
+}
+
+TEST_CASE ("whole-Clip Cut save refusal preserves MIDI and mixed selection, undo and the prior clipboard",
+           "[ui][app][clipboard][midi-clip-cut]")
+{
+    bool includeAudio = false;
+    SECTION ("MIDI-only refusal") {}
+    SECTION ("mixed audio and MIDI refusal") { includeAudio = true; }
+    const auto bundlePath = makeTempBundlePath ("midi-clip-cut-refusal");
+    const Project original = makeWholeClipClipboardProject();
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundlePath, original).ok());
+    writeProjectAssetFiles (bundlePath, original);
+    const UiDecodedAsset decoded = makeDecodedAsset (original.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.renameProjectTrack (original.tracks.front().id, "Existing undo step").dispatched);
+    REQUIRE (app.selectTimelineClip (original.midiClips.back().id));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+    if (includeAudio)
+    {
+        REQUIRE (app.selectTimelineClip (original.clips.front().id));
+        REQUIRE (app.selectTimelineClipForGesture (original.midiClips.front().id, true));
+    }
+    else
+        REQUIRE (app.selectTimelineClip (original.midiClips.front().id));
+    REQUIRE (app.registry().stateFor (UiActionId::TimelineClipCut, app.context()).enabled);
+    const Project before = app.project();
+    const auto contextBefore = app.context();
+    const EntityId selectionBefore = app.selectedTimelineClipId();
+    const auto serialBefore = app.editSerial();
+    const auto replacements = app.playbackReplaceCount();
+    const auto refuseSave = [&] (bool refuse) {
+        sqlite3* connection = nullptr;
+        const std::string dbPath = yesdaw::io::utf8Text (bundlePath / "project.db");
+        REQUIRE (sqlite3_open (dbPath.c_str(), &connection) == SQLITE_OK);
+        const char* sql = refuse
+            ? "CREATE TRIGGER refuse_clip_cut BEFORE DELETE ON midi_clips BEGIN SELECT RAISE(ABORT, 'save refused'); END;"
+            : "DROP TRIGGER refuse_clip_cut;";
+        REQUIRE (sqlite3_exec (connection, sql, nullptr, nullptr, nullptr) == SQLITE_OK);
+        REQUIRE (sqlite3_close (connection) == SQLITE_OK);
+    };
+    refuseSave (true);
+    const auto refused = app.dispatch (UiActionId::TimelineClipCut);
+    REQUIRE_FALSE (refused.dispatched);
+    REQUIRE (std::string_view (refused.state.disabledReason) == "timeline edit did not persist");
+    REQUIRE (app.project().clips == before.clips);
+    REQUIRE (app.project().midiClips == before.midiClips);
+    REQUIRE (app.project().tracks == before.tracks);
+    REQUIRE (app.context().timelineClipSelected);
+    REQUIRE (app.selectedTimelineClipId() == selectionBefore);
+    REQUIRE (app.selectedTimelineClipCount() == (includeAudio ? 2u : 1u));
+    REQUIRE (app.isTimelineClipSelected (original.midiClips.front().id));
+    if (includeAudio)
+        REQUIRE (app.isTimelineClipSelected (original.clips.front().id));
+    REQUIRE (app.context().clipboardHasClip == contextBefore.clipboardHasClip);
+    REQUIRE (app.context().canUndo == contextBefore.canUndo);
+    REQUIRE (app.context().canRedo == contextBefore.canRedo);
+    REQUIRE (app.context().commandDispatchCount == contextBefore.commandDispatchCount);
+    REQUIRE (app.context().timelineEditCount == contextBefore.timelineEditCount);
+    REQUIRE (app.editSerial() == serialBefore);
+    REQUIRE (app.playbackReplaceCount() == replacements);
+    {
+        UiAppModel reopened;
+        REQUIRE (reopened.openProjectBundle (bundlePath).ok());
+        REQUIRE (reopened.project().clips == before.clips);
+        REQUIRE (reopened.project().midiClips == before.midiClips);
+        REQUIRE (reopened.project().tracks == before.tracks);
+    }
+    refuseSave (false);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().tracks == original.tracks);
+    REQUIRE (app.project().clips == original.clips);
+    REQUIRE (app.project().midiClips == original.midiClips);
+    REQUIRE_FALSE (app.context().canUndo);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    REQUIRE (app.project().tracks == before.tracks);
+    REQUIRE (app.selectMixerTrack (2, false));
+    REQUIRE (app.locatePlaybackFrame (1000));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipPaste).dispatched);
+    REQUIRE (app.project().midiClips.size() == before.midiClips.size() + 1u);
+    requireFreshWholeMidiCopy (app.project().midiClips.back(), original.midiClips.back(),
+                              original.tracks[2].id, 1000, original);
+}
+
+TEST_CASE ("mixed audio and MIDI clipboard retains both source Tracks when another Track is targeted",
+           "[ui][app][clipboard][mixed-clip-paste]")
+{
+    const auto bundlePath = makeTempBundlePath ("mixed-clip-paste");
+    const Project original = makeWholeClipClipboardProject();
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundlePath, original).ok());
+    writeProjectAssetFiles (bundlePath, original);
+    const UiDecodedAsset decoded = makeDecodedAsset (original.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.selectTimelineClip (original.clips.front().id));
+    REQUIRE (app.selectTimelineClipForGesture (original.midiClips.front().id, true));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+    REQUIRE (app.selectMixerTrack (2, false));
+    REQUIRE (app.locatePlaybackFrame (1000));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipPaste).dispatched);
+    REQUIRE (app.project().clips.size() == original.clips.size() + 1u);
+    REQUIRE (app.project().clips.back().trackId == original.clips.front().trackId);
+    REQUIRE (app.project().clips.back().timelineStart == 1175);
+    requireFreshWholeMidiCopy (app.project().midiClips.back(), original.midiClips.front(),
+                              original.midiClips.front().trackId, 1000, original);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE_FALSE (app.context().canUndo);
+    REQUIRE (app.project().clips == original.clips);
+    REQUIRE (app.project().midiClips == original.midiClips);
 }
 
 TEST_CASE ("real capture session records device input into a persisted take at the compensated frame",
