@@ -684,13 +684,14 @@ std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int 
         UiActionId::TrackToggleMute,   UiActionId::TrackToggleSolo,    UiActionId::TrackToggleArm,
         UiActionId::MixerTrackSetOutput,
     };
-    static constexpr std::array<UiActionId, 18> kClipMenu {
+    static constexpr std::array<UiActionId, 19> kClipMenu {
         UiActionId::TimelineClipSplit, UiActionId::TimelineClipHeal,
         UiActionId::TimelineClipApplyDefaultFades, UiActionId::TimelineClipSetFades,
         UiActionId::TimelineClipCrossfade, UiActionId::TimelineClipSetGain,
         UiActionId::TimelineClipGainIncrease, UiActionId::TimelineClipGainDecrease,
         UiActionId::TimelineClipMove,  UiActionId::TimelineClipTrim,
         UiActionId::TimelineClipTimeStretch, UiActionId::TimelineClipStretchToLoop,   // G2.9b
+        UiActionId::TimelineClipCancelStretch,
         UiActionId::TimelineClipToggleMute, UiActionId::TimelineClipColourNext,      // G2.12
         UiActionId::TimelineClipReverse, UiActionId::TimelineClipNormalize, UiActionId::TimelineClipStripSilence,   // G2.13
         UiActionId::TimelineMidiClipAdd,

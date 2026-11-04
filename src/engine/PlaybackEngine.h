@@ -45,6 +45,7 @@ public:
         ProjectMixerProjectionError     projectError;
         MixerProjectionError            mixerError;
         std::unique_ptr<PlaybackEngine> engine;
+        std::vector<StretchedOwnership> preparedStretches;
 
         [[nodiscard]] bool ok() const noexcept
         {
@@ -136,6 +137,7 @@ public:
             return out;
         }
 
+        out.preparedStretches = std::move (built.preparedStretches);
         out.engine = std::move (engine);
         out.status = OfflineRenderStatus::Ok;
         return out;

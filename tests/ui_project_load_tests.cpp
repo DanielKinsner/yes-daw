@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
+#include <thread>
 #include <type_traits>
 
 namespace {
@@ -640,6 +641,14 @@ TEST_CASE ("copy and paste keep every clip setting", "[ui][timeline][clipboard]"
     LoudnessModel f;
     auto& model = f.model;
     REQUIRE (model.setSelectedTimelineClipStretchFactor (1.5f).dispatched);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (10);
+    while (model.stretchPreparationPending() && std::chrono::steady_clock::now() < deadline)
+    {
+        model.serviceStretchPreparation();
+        std::this_thread::sleep_for (std::chrono::milliseconds (1));
+    }
+    REQUIRE_FALSE (model.stretchPreparationPending());
+    REQUIRE_FALSE (model.statusLineIsError());
     REQUIRE (model.dispatch (UiActionId::TimelineClipReverse).dispatched);
     REQUIRE (model.dispatch (UiActionId::TimelineClipToggleMute).dispatched);
     REQUIRE (model.dispatch (UiActionId::TimelineClipColourNext).dispatched);

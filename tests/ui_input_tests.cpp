@@ -52,6 +52,7 @@
 #include <set>
 #include <regex>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -19718,6 +19719,16 @@ TEST_CASE ("G2.9b stretch: Alt on the right edge stretches, the inspector field 
     REQUIRE (base.stretchFactor == 1.0f);
     REQUIRE (base.srcLen > 0u);
 
+    // A later Clip holds the Project's extent steady: successful preparation itself must
+    // invalidate the buffered timeline, without an accidental follow-scroll repaint.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipDuplicate);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 2u);
+    mouseDownAt (timeline, timelineClipCenterPoint (timeline, readProjectSnapshot (bundlePath), 0u));
+    const auto fullInvalidations = [&] {
+        const auto probe = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)));
+        return static_cast<juce::int64> (probe["frame"]["fullInvalidations"]);
+    };
+
     const juce::ModifierKeys alt (juce::ModifierKeys::altModifier);
     const juce::ModifierKeys altDrag (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier
                                       | juce::ModifierKeys::ctrlModifier);   // Ctrl: no snap, the pointer decides
@@ -19730,6 +19741,16 @@ TEST_CASE ("G2.9b stretch: Alt on the right edge stretches, the inspector field 
         return yesdaw::ui::mainComponentTimelineCursorAt (*shell, local + timeline.getPosition(), mods);
     };
     const auto clipNow = [&] { return readProjectSnapshot (bundlePath).clips.front(); };
+    const auto prepare = [&] {
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (10);
+        while (snapshotMainComponent (*shell).context.stretchPreparationPending
+            && std::chrono::steady_clock::now() < deadline)
+        {
+            yesdaw::ui::mainComponentServiceUiTick (*shell);
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        }
+        REQUIRE_FALSE (snapshotMainComponent (*shell).context.stretchPreparationPending);
+    };
     const auto expectedLength = [&] (float factor)
     {
         return static_cast<yesdaw::engine::Tick> (std::llround (static_cast<double> (base.srcLen) * static_cast<double> (factor)));
@@ -19751,6 +19772,7 @@ TEST_CASE ("G2.9b stretch: Alt on the right edge stretches, the inspector field 
     // The drop: dragging the edge to 1.5x the width stretches to about 1.5 (Ctrl: the pointer decides).
     const int targetX = clipRect.getX() + (clipRect.getWidth() * 3) / 2;
     dragFromTo (timeline, { rightX, midY }, { targetX, midY }, altDrag);
+    prepare();
     {
         const yesdaw::engine::Clip stretched = clipNow();
         INFO ("factor " << stretched.stretchFactor << " length " << stretched.timelineLength);
@@ -19773,6 +19795,11 @@ TEST_CASE ("G2.9b stretch: Alt on the right edge stretches, the inspector field 
 
     // The field drives: 75% is a 0.75 factor with the implied length.
     field->setValue (75.0, juce::sendNotificationSync);
+    REQUIRE (snapshotMainComponent (*shell).context.stretchPreparationPending);
+    REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::TimelineClipCancelStretch).enabled);
+    const auto invalidationsBefore = fullInvalidations();
+    prepare();
+    REQUIRE (fullInvalidations() > invalidationsBefore);
     REQUIRE (clipNow().stretchFactor == 0.75f);
     REQUIRE (clipNow().timelineLength == expectedLength (0.75f));
 
@@ -19797,6 +19824,7 @@ TEST_CASE ("G2.9b stretch: Alt on the right edge stretches, the inspector field 
     REQUIRE (loopLength > 0);
     REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::TimelineClipStretchToLoop).enabled);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipStretchToLoop);
+    prepare();
     {
         const yesdaw::engine::Clip fitted = clipNow();
         const float wanted = std::clamp (static_cast<float> (static_cast<double> (loopLength) / static_cast<double> (base.srcLen)), 0.5f, 2.0f);

@@ -9,6 +9,7 @@
 #include "analysis/LoudnessMeter.h"   // ADR-0053: the streaming meter behind the live readout (message thread)
 #include "app/RecordingAssetCommit.h"
 #include "app/ExportJob.h"   // G5.3 / ADR-0058
+#include "app/StretchPreparationJob.h"
 #include "engine/AuditionVoice.h"   // G5.2 cp2 / ADR-0056
 #include "engine/ClipSilence.h"
 #include "engine/LoudnessTap.h"
@@ -2165,6 +2166,8 @@ public:
     [[nodiscard]] const std::vector<std::string>& statusLineParts() const noexcept { return statusLineParts_; }
     void serviceStatusLineDecay() noexcept
     {
+        if (pendingStretch_ && statusLineText_.starts_with ("Preparing stretch"))
+            return;
         if (statusLineTicksRemaining_ > 0 && --statusLineTicksRemaining_ == 0)
         {
             statusLineText_.clear();
@@ -9208,9 +9211,8 @@ public:
         return applySelectedTimelineClipGain (id, nextGain);
     }
 
-    // G2.9b: the stretch gestures — the right edge dragged with Alt (a new end), the inspector's
-    // percentage, and Stretch to Loop Length — go through ONE law: factor = length / srcLen,
-    // clamped to ADR-0030's 0.5..2.0, and the length re-derived from the clamped factor.
+    // All interactive stretch surfaces capture intent here. Geometry and playback stay committed
+    // until serviceStretchPreparation adopts the owned worker's result on the Control thread.
     [[nodiscard]] UiActionDispatchResult stretchSelectedTimelineClipTo (engine::Tick timelineEnd)
     {
         const UiActionId id = UiActionId::TimelineClipTimeStretch;
@@ -9220,7 +9222,7 @@ public:
         if (timelineEnd <= clip->timelineStart)
             return { id, { false, "stretch must leave a positive clip length" }, false };
         const double factor = static_cast<double> (timelineEnd - clip->timelineStart)
-                            / (static_cast<double> (clip->srcLen) * clipRateRatio (*clip));   // ADR-0055
+                            / (static_cast<double> (clip->srcLen) * clipRateRatio (*clip));
         return applySelectedTimelineClipStretch (id, static_cast<float> (factor));
     }
 
@@ -9251,19 +9253,109 @@ public:
         const engine::Clip* const clip = findClip (selectedTimelineClipId_);
         if (clip == nullptr || clip->srcLen == 0)
             return { id, { false, "timeline clip missing" }, false };
+        if (! std::isfinite (factor))
+            return { id, { false, "stretch factor must be finite" }, false };
+        const engine::Asset* const asset = project_.findAsset (clip->assetId);
+        const auto* decoded = findDecodedAsset (clip->assetId);
+        if (asset == nullptr || decoded == nullptr || decoded->samples == nullptr
+            || ! clip->sourceWindowFits (*asset) || stretchViewWindow (*clip).srcLen == 0)
+            return { id, { false, "stretch source audio unavailable" }, false };
         const float clamped = std::clamp (factor, 0.5f, 2.0f);
-        const engine::Tick newLength = engine::timelineLengthForSource (clip->srcLen, clipRateRatio (*clip), static_cast<double> (clamped));   // ADR-0055
-        engine::Project nextProject = project_;
-        engine::ProjectUndoStack nextUndo = undo_;
-        const engine::ProjectEditApplyResult applied = nextUndo.apply (
-            nextProject, engine::ProjectEditCommand::setClipStretch (selectedTimelineClipId_, clamped, newLength));
-        if (! applied.applied())
-            return { id, state, false };
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
-            return { id, { false, "timeline edit did not persist" }, false };
-        ++context_.commandDispatchCount;
-        ++context_.timelineEditCount;
+        invalidateStretchPreparation();
+        PendingStretch pending;
+        pending.request.key = { nextStretchRequestId_++, stretchRequestVersion_, attachGeneration_,
+            project_.id, clip->trackId, clip->id, clip->assetId, asset->contentHash, decoded->samples,
+            decoded->sampleRate.hz, project_.sampleRate.hz, decoded->channels,
+            clip->srcOffset, clip->srcLen, static_cast<double> (clamped) };
+        // Lookup only: a missing view is prepared by the worker, never during a gesture.
+        pending.request.readyView = readyLiveRateMatchedView (*decoded, project_.sampleRate);
+        pending.geometry = *clip;
+        if (clip->timeBase != engine::TimeBase::SampleLocked)
+        {
+            pending.tempoMap = project_.tempoMap;
+            pending.meterMap = project_.meterMap;
+        }
+        pendingStretch_ = std::move (pending);
+        context_.stretchPreparationPending = true;
+        reportStatus ("Preparing stretch - Clip > Cancel Stretch Preparation", false);
         return { id, state, true };
+    }
+
+    [[nodiscard]] bool stretchPreparationPending() const noexcept { return pendingStretch_.has_value(); }
+    [[nodiscard]] bool stretchPreparationRetiring() const noexcept
+    {
+        return stretchJob_ != nullptr && (! pendingStretch_ || stretchJob_->key() != pendingStretch_->request.key);
+    }
+
+    [[nodiscard]] UiActionDispatchResult cancelStretchPreparation()
+    {
+        const UiActionId id = UiActionId::TimelineClipCancelStretch;
+        const auto state = registry_.stateFor (id, context_);
+        if (! state.enabled)
+            return { id, state, false };
+        invalidateStretchPreparation();
+        reportStatus ("Stretch preparation cancelled", false);
+        return { id, state, true };
+    }
+
+    bool serviceStretchPreparation()
+    {
+        if (pendingStretch_ && statusLineText_.empty())
+            reportStatus ("Preparing stretch - Clip > Cancel Stretch Preparation", false);
+        if (pendingStretch_ && ! stretchDependenciesMatch (*pendingStretch_))
+        {
+            invalidateStretchPreparation();
+            reportStatus ("Stretch refused: target or source changed", true);
+        }
+        if (stretchJob_ != nullptr)
+        {
+            if (! stretchJob_->terminal())
+                return false;
+            const bool current = pendingStretch_ && stretchJob_->key() == pendingStretch_->request.key;
+            const auto prepared = current && stretchJob_->eligibleForAdoption() ? stretchJob_->result() : nullptr;
+            stretchJob_.reset(); // terminal acquire precedes join/reclaim; never joins running work
+            if (current)
+            {
+                pendingStretch_.reset();
+                context_.stretchPreparationPending = false;
+                if (prepared == nullptr)
+                {
+                    reportStatus ("Stretch refused: audio preparation failed", true);
+                    return false;
+                }
+                installPreparedStretch (*prepared);
+                engine::Project nextProject = project_;
+                engine::ProjectUndoStack nextUndo = undo_;
+                const auto applied = nextUndo.apply (nextProject, engine::ProjectEditCommand::setClipStretch (
+                    prepared->key.clipId, static_cast<float> (prepared->key.stretchFactor),
+                    engine::timelineLengthForSource (prepared->key.srcLen,
+                        engine::rateRatio (prepared->key.sourceRateHz, prepared->key.viewRateHz),
+                        prepared->key.stretchFactor)));
+                // Preflight every required view/stretch before entering a compiler with a synchronous
+                // offline fallback. Interactive completion must have all of its prepared inputs already.
+                if (! applied.applied() || ! stretchPlaybackInputsReady (nextProject))
+                {
+                    reportStatus ("Stretch refused: required prepared audio unavailable", true);
+                    return false;
+                }
+                if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+                {
+                    reportStatus ("Stretch refused: timeline edit did not persist", true);
+                    return false;
+                }
+                ++context_.commandDispatchCount;
+                ++context_.timelineEditCount;
+                reportStatus ("Stretch ready", false);
+                return true;
+            }
+            // A retired result cannot change selection, status or the current edit.
+        }
+        if (pendingStretch_)
+        {
+            stretchJob_ = std::make_unique<app::StretchPreparationJob> (pendingStretch_->request);
+            (void) stretchJob_->start();
+        }
+        return false;
     }
 
     // G2.12: the clip's own colour cycle - 0 = follow the track, then the SAME track palette the rail row cycles through
@@ -10154,7 +10246,7 @@ public:
         const std::filesystem::path& bundlePath,
         std::span<const UiDecodedAsset> decodedAssets)
     {
-        return loadProjectBundle (bundlePath, decodedAssets, playbackBuildOptions());
+        return loadProjectBundle (bundlePath, decodedAssets, playbackBaseBuildOptions());
     }
 
     [[nodiscard]] UiAppLoadResult loadProjectBundle (
@@ -10173,7 +10265,7 @@ public:
     [[nodiscard]] UiAppLoadResult loadPreparedProjectBundle (
         UiPreparedProjectBundle prepared, std::vector<UiDecodedAsset> ownedDecoded)
     {
-        return loadPreparedProjectBundle (std::move (prepared), std::move (ownedDecoded), playbackBuildOptions());
+        return loadPreparedProjectBundle (std::move (prepared), std::move (ownedDecoded), playbackBaseBuildOptions());
     }
 
     [[nodiscard]] UiAppLoadResult loadPreparedProjectBundle (
@@ -10243,6 +10335,7 @@ public:
         decodedAssets_ = std::move (ownedDecoded);
         pruneRateMatchedViews();   // ADR-0055: the old project's views go; this one's (just built) stay
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
+        cacheLoadedStretchOwners (built.preparedStretches);
         replacePlayback (std::move (loadedEngine));
         enqueueWaveformBuildsForDecodedAssets();
 
@@ -10836,6 +10929,9 @@ public:
 
             case UiActionId::TimelineClipStretchToLoop:   // G2.9b
                 return stretchSelectedTimelineClipToLoop();
+
+            case UiActionId::TimelineClipCancelStretch:
+                return cancelStretchPreparation();
 
             case UiActionId::TimelineClipToggleMute:   // G2.12
                 return toggleSelectedTimelineClipMute();
@@ -11959,6 +12055,13 @@ private:
 
     void syncProjectEditContext() noexcept
     {
+        // Every successful edit adoption passes here, before another undo/redo can restore the
+        // old geometry. Invalidating now prevents a move-and-undo from reviving stale intent.
+        if (pendingStretch_ && ! stretchDependenciesMatch (*pendingStretch_))
+        {
+            invalidateStretchPreparation();
+            reportStatus ("Stretch refused: target or source changed", true);
+        }
         static_assert (engine::Project::kLocatePointCount == kTransportLocatePointCount);
         context_.projectLoaded = project_.hasValidAssetClipIndirection();
         context_.pianoRollScaleRoot = project_.scale.isValid() ? project_.scale.rootKey : 0;   // G3.8
@@ -12278,7 +12381,7 @@ private:
         engine::PlaybackEngine::Result built = engine::PlaybackEngine::create (
             engineProjectFor (nextProject, engineStorage),
             std::span<const engine::DecodedAssetAudio> (decodedViews.data(), decodedViews.size()),
-            playbackBuildOptions());
+            playbackBuildOptions (&nextProject));
 
         std::unique_ptr<engine::PlaybackEngine> nextEngine;
         if (built.ok())
@@ -12667,6 +12770,119 @@ private:
         return asset == nullptr ? 1.0 : engine::rateRatio (asset->sampleRate.hz, project_.sampleRate.hz);
     }
 
+    struct PendingStretch
+    {
+        app::StretchPreparationRequest request;
+        engine::Clip geometry;
+        std::vector<engine::TempoChange> tempoMap;
+        std::vector<engine::MeterChange> meterMap;
+    };
+
+    [[nodiscard]] engine::ViewWindow stretchViewWindow (const engine::Clip& clip) const noexcept
+    {
+        const auto* asset = project_.findAsset (clip.assetId);
+        if (asset == nullptr)
+            return {};
+        const auto frames = engine::resampledFrameCount (asset->frames, asset->sampleRate.hz, project_.sampleRate.hz);
+        return engine::mapWindowToView (clip.srcOffset, clip.srcLen, clipRateRatio (clip), frames);
+    }
+
+    void invalidateStretchPreparation() noexcept
+    {
+        ++stretchRequestVersion_;
+        pendingStretch_.reset();
+        context_.stretchPreparationPending = false;
+        if (stretchJob_ != nullptr)
+            stretchJob_->requestCancel();
+    }
+
+    [[nodiscard]] bool stretchDependenciesMatch (const PendingStretch& pending) const noexcept
+    {
+        const auto& key = pending.request.key;
+        const auto* clip = findClip (key.clipId);
+        const auto* asset = project_.findAsset (key.assetId);
+        if (key.requestVersion != stretchRequestVersion_ || key.attachGeneration != attachGeneration_
+            || project_.id != key.projectId || project_.sampleRate.hz != key.viewRateHz
+            || clip == nullptr || asset == nullptr || ! project_.findTrack (key.trackId)
+            || clip->trackId != key.trackId || clip->assetId != key.assetId
+            || clip->srcOffset != key.srcOffset || clip->srcLen != key.srcLen
+            || clip->timelineStart != pending.geometry.timelineStart
+            || clip->timelineLength != pending.geometry.timelineLength
+            || clip->stretchFactor != pending.geometry.stretchFactor || clip->timeBase != pending.geometry.timeBase
+            || asset->contentHash != key.contentHash || asset->sampleRate.hz != key.sourceRateHz
+            || asset->channels != key.channels || asset->frames != key.source->frames)
+            return false;
+        if (clip->timeBase != engine::TimeBase::SampleLocked
+            && (project_.tempoMap != pending.tempoMap || project_.meterMap != pending.meterMap))
+            return false;
+        return std::any_of (decodedAssets_.begin(), decodedAssets_.end(), [&] (const UiDecodedAsset& decoded) {
+            return decoded.assetId == key.assetId && decoded.samples == key.source
+                && decoded.sampleRate.hz == key.sourceRateHz && decoded.channels == key.channels;
+        });
+    }
+
+    void installPreparedStretch (const app::StretchPreparationResult& prepared)
+    {
+        const auto& key = prepared.key;
+        if (key.sourceRateHz != key.viewRateHz)
+        {
+            const std::lock_guard<std::mutex> lock (rateMatchedViewsMutex_);
+            const bool ready = std::any_of (rateMatchedViews_.begin(), rateMatchedViews_.end(), [&] (const auto& cached) {
+                return cached.assetId == key.assetId && cached.source == key.source
+                    && cached.assetRateHz == key.sourceRateHz && cached.projectRateHz == key.viewRateHz
+                    && cached.frames == key.source->frames && cached.channels == key.channels;
+            });
+            if (! ready)
+            {
+                std::erase_if (rateMatchedViews_, [&] (const auto& cached) { return cached.assetId == key.assetId; });
+                rateMatchedViews_.push_back ({ key.assetId, key.sourceRateHz, key.viewRateHz,
+                    key.source->frames, key.channels, key.source, prepared.viewSamples });
+            }
+        }
+        if (key.stretchFactor != 1.0)
+            cachePreparedStretch (key, { key.clipId, key.assetId,
+                prepared.window.srcOffset, prepared.window.srcLen, static_cast<float> (key.stretchFactor), prepared.samples });
+    }
+
+    // Fresh attachment changes the generation; retain the graph's exact immutable buffers
+    // under keys made from the newly attached Project and its decoded source owners.
+    void cacheLoadedStretchOwners (std::span<const engine::StretchedOwnership> prepared)
+    {
+        for (const auto& ownership : prepared)
+        {
+            const auto* clip = findClip (ownership.clipId);
+            const auto* asset = project_.findAsset (ownership.assetId);
+            const auto* decoded = findDecodedAsset (ownership.assetId);
+            if (clip == nullptr || asset == nullptr || decoded == nullptr || decoded->samples == nullptr
+                || ownership.samples == nullptr || clip->assetId != asset->id
+                || clip->stretchFactor != ownership.stretchFactor
+                || ownership.samples->channels != static_cast<int> (decoded->channels))
+                continue;
+            const auto window = stretchViewWindow (*clip);
+            if (ownership.srcOffset != window.srcOffset || ownership.srcLen != window.srcLen)
+                continue;
+            app::StretchPreparationKey key { 0, 0, attachGeneration_, project_.id,
+                clip->trackId, clip->id, clip->assetId, asset->contentHash, decoded->samples,
+                decoded->sampleRate.hz, project_.sampleRate.hz, decoded->channels,
+                clip->srcOffset, clip->srcLen, static_cast<double> (clip->stretchFactor) };
+            cachePreparedStretch (std::move (key), ownership);
+        }
+    }
+
+    // This checks the actual compiler inputs without invoking either resampling or Signalsmith.
+    [[nodiscard]] bool stretchPlaybackInputsReady (const engine::Project& next) const
+    {
+        for (const auto& decoded : decodedAssets_)
+            if (decoded.sampleRate != next.sampleRate && readyLiveRateMatchedView (decoded, next.sampleRate) == nullptr)
+                return false;
+        std::optional<engine::Project> storage;
+        const auto& viewProject = engineProjectFor (next, storage);
+        for (const auto& clip : viewProject.clips)
+            if (! clip.muted && clip.stretchFactor != 1.0f && findCachedStretch (viewProject, clip) == nullptr)
+                return false;
+        return true;
+    }
+
     [[nodiscard]] static bool decodedAudioIsValid (const UiDecodedAsset& decoded) noexcept
     {
         if (! decoded.sampleRate.isValid() || decoded.frames == 0 || decoded.channels == 0)
@@ -12765,14 +12981,25 @@ private:
             return nullptr;
         const std::lock_guard<std::mutex> lock (rateMatchedViewsMutex_);   // a future worker may build views too
         for (const OwnedRateMatchedView& cached : rateMatchedViews_)
-            if (cached.assetId == asset.assetId && cached.assetRateHz == asset.sampleRate.hz
-                && cached.projectRateHz == projectRateHz && cached.frames == asset.frames && cached.channels == asset.channels)
+            if (cached.matches (asset, projectRateHz))
                 return cached.view;
         std::shared_ptr<const engine::AssetSamples> view = engine::buildRateMatchedSamples (
             asset.interleaved(), asset.channels, asset.sampleRate.hz, projectRateHz, engine::ResampleQuality::LivePlayback);
         std::erase_if (rateMatchedViews_, [&asset] (const OwnedRateMatchedView& cached) { return cached.assetId == asset.assetId; });
-        rateMatchedViews_.push_back ({ asset.assetId, asset.sampleRate.hz, projectRateHz, asset.frames, asset.channels, view });
+        rateMatchedViews_.push_back ({ asset.assetId, asset.sampleRate.hz, projectRateHz, asset.frames, asset.channels, asset.samples, view });
         return view;
+    }
+
+    [[nodiscard]] std::shared_ptr<const engine::AssetSamples> readyLiveRateMatchedView (
+        const UiDecodedAsset& asset, engine::SampleRate rate) const
+    {
+        if (asset.sampleRate == rate)
+            return asset.samples;
+        const std::lock_guard<std::mutex> lock (rateMatchedViewsMutex_);
+        for (const auto& cached : rateMatchedViews_)
+            if (cached.matches (asset, rate.hz))
+                return cached.view;
+        return nullptr;
     }
 
     // ADR-0055: drop the views of Assets no longer decoded (the project's Assets changed, or another opened).
@@ -12781,7 +13008,11 @@ private:
         const std::lock_guard<std::mutex> lock (rateMatchedViewsMutex_);
         std::erase_if (rateMatchedViews_, [this] (const OwnedRateMatchedView& cached) {
             return std::none_of (decodedAssets_.begin(), decodedAssets_.end(),
-                                 [&cached] (const UiDecodedAsset& asset) { return asset.assetId == cached.assetId; });
+                [&cached] (const UiDecodedAsset& asset) {
+                    return asset.assetId == cached.assetId && asset.samples == cached.source
+                        && asset.sampleRate.hz == cached.assetRateHz && asset.frames == cached.frames
+                        && asset.channels == cached.channels;
+                });
         });
     }
 
@@ -13174,6 +13405,8 @@ private:
         engine::Project project,
         LastProjectRecord lastProjectRecord = LastProjectRecord::Write)
     {
+        invalidateStretchPreparation();
+        stretchedSamplesCache_.clear();
         stopAudition();   // ADR-0056: an audition belongs to the project (and rate) it started in
         if (activeExport_ != nullptr)   // ADR-0058: a running export belongs to the project it started in
         {
@@ -13899,32 +14132,104 @@ private:
         context_.lastLocateFrame = snapshot.lastLocateFrame;
     }
 
-    [[nodiscard]] engine::OfflineRenderOptions playbackBuildOptions() const
+    [[nodiscard]] engine::OfflineRenderOptions playbackBaseBuildOptions() const
     {
         engine::OfflineRenderOptions options;
         options.maxBlockSize = playbackMaxBlockSize_;
-        // G0.5: every engine build references the model's shared per-asset storage by asset id,
-        // so the live placement lane's schedules can keep it alive without copying.
-        pruneRateMatchedViews();   // ADR-0055: a view goes with its Asset
-        options.assetOwners = makeDecodedOwners (decodedAssets_);
-        std::optional<engine::Project> engineStorage;   // ADR-0055: stretch from the views, in view frames
-        options.stretchOwners = refreshStretchOwners (engineProjectFor (project_, engineStorage), options.assetOwners);   // G2.9
         options.midiInput = &midiInput_;   // G3.10: every live engine drains the one device lane
         options.loudnessTap = &loudnessTap_;   // ADR-0053: and feeds the one live loudness ring
         return options;
     }
 
-    // G2.9: the prepared samples of every stretched Clip (ADR-0030: control side, once per source
-    // window + factor), kept across builds so a live publish and a rebuild play the SAME buffer
-    // and neither re-runs the stretcher for an unchanged Clip. Entries no Clip needs any more are
-    // dropped here; a failed preparation leaves the Clip out and the build reports it.
+    [[nodiscard]] engine::OfflineRenderOptions playbackBuildOptions (const engine::Project* forProject = nullptr) const
+    {
+        auto options = playbackBaseBuildOptions();
+        // G0.5: every engine build references the model's shared per-asset storage by asset id,
+        // so the live placement lane's schedules can keep it alive without copying.
+        pruneRateMatchedViews();   // ADR-0055: a view goes with its Asset
+        options.assetOwners = makeDecodedOwners (decodedAssets_);
+        std::optional<engine::Project> engineStorage;   // ADR-0055: stretch from the views, in view frames
+        options.stretchOwners = refreshStretchOwners (engineProjectFor (forProject != nullptr ? *forProject : project_, engineStorage), options.assetOwners);
+        return options;
+    }
+
+    [[nodiscard]] const engine::StretchedOwnership* findCachedStretch (
+        const engine::Project& project, const engine::Clip& clip) const noexcept
+    {
+        const auto* asset = project.findAsset (clip.assetId);
+        if (asset == nullptr)
+            return nullptr;
+        const auto* decoded = findDecodedAsset (clip.assetId);
+        if (decoded == nullptr)
+            return nullptr;
+        for (const auto& cached : stretchedSamplesCache_)
+        {
+            const auto& key = cached.key;
+            const auto& ownership = cached.ownership;
+            if (key.attachGeneration == attachGeneration_ && key.projectId == project.id
+                && key.trackId == clip.trackId && key.contentHash == asset->contentHash
+                && key.source == decoded->samples && key.sourceRateHz == decoded->sampleRate.hz
+                && key.viewRateHz == project.sampleRate.hz && key.channels == asset->channels
+                && ownership.samples != nullptr && ownership.clipId == clip.id && ownership.assetId == clip.assetId
+                && ownership.srcOffset == clip.srcOffset && ownership.srcLen == clip.srcLen
+                && ownership.stretchFactor == clip.stretchFactor
+                && ownership.samples->channels == static_cast<int> (asset->channels))
+                return &ownership;
+        }
+        return nullptr;
+    }
+
+    void cachePreparedStretch (app::StretchPreparationKey key, engine::StretchedOwnership ownership) const
+    {
+        const auto clipId = ownership.clipId;
+        std::erase_if (stretchedSamplesCache_, [&] (const auto& cached) {
+            return cached.ownership.clipId == clipId && cached.key.source == key.source
+                && cached.ownership.srcOffset == ownership.srcOffset && cached.ownership.srcLen == ownership.srcLen
+                && cached.ownership.stretchFactor == ownership.stretchFactor;
+        });
+        stretchedSamplesCache_.push_back ({ std::move (key), std::move (ownership) });
+        std::size_t count = static_cast<std::size_t> (std::count_if (
+            stretchedSamplesCache_.begin(), stretchedSamplesCache_.end(),
+            [&] (const auto& cached) { return cached.ownership.clipId == clipId; }));
+        while (count > 2)
+        {
+            const auto* committed = findClip (clipId);
+            const auto window = committed != nullptr ? stretchViewWindow (*committed) : engine::ViewWindow {};
+            auto oldest = std::find_if (stretchedSamplesCache_.begin(), stretchedSamplesCache_.end(),
+                [&] (const auto& cached) {
+                    const auto& item = cached.ownership;
+                    const bool current = committed != nullptr && item.srcOffset == window.srcOffset
+                        && item.srcLen == window.srcLen && item.stretchFactor == committed->stretchFactor;
+                    return item.clipId == clipId && ! current;
+                });
+            if (oldest == stretchedSamplesCache_.end())
+                oldest = std::find_if (stretchedSamplesCache_.begin(), stretchedSamplesCache_.end(),
+                    [&] (const auto& cached) { return cached.ownership.clipId == clipId; });
+            stretchedSamplesCache_.erase (oldest);
+            --count;
+        }
+    }
+
+    // Keep two recent prepared variants per Clip for immediate undo/redo, rather than pruning
+    // the previous factor on every build. Older history and other edits retain existing synchronous
+    // preparation. Interactive stretch completion preflights this cache before calling the compiler.
     std::vector<engine::StretchedOwnership> refreshStretchOwners (const engine::Project& project,
                                                                   const std::vector<engine::AssetOwnership>& owners) const
     {
+        std::erase_if (stretchedSamplesCache_, [&] (const auto& cached) {
+            return cached.key.attachGeneration != attachGeneration_ || cached.key.projectId != project.id
+                || project.findAsset (cached.ownership.assetId) == nullptr
+                || std::none_of (project.clips.begin(), project.clips.end(), [&] (const auto& clip) {
+                    return clip.id == cached.ownership.clipId;
+                })
+                || std::none_of (decodedAssets_.begin(), decodedAssets_.end(), [&] (const auto& decoded) {
+                    return decoded.assetId == cached.ownership.assetId && decoded.samples == cached.key.source;
+                });
+        });
         std::vector<engine::StretchedOwnership> next;
         for (const engine::Clip& clip : project.clips)
         {
-            if (clip.stretchFactor == 1.0f || ! engine::detail::clipStretchIsStorageSafe (clip.stretchFactor))
+            if (clip.muted || clip.stretchFactor == 1.0f || ! engine::detail::clipStretchIsStorageSafe (clip.stretchFactor))
                 continue;
             const engine::Asset* const asset = project.findAsset (clip.assetId);
             if (asset == nullptr || clip.srcOffset > asset->frames || clip.srcLen > asset->frames - clip.srcOffset)
@@ -13937,20 +14242,11 @@ private:
                     owner = ownership.samples;
             if (owner == nullptr)
                 continue;
-            bool reused = false;
-            for (const engine::StretchedOwnership& cached : stretchedSamplesCache_)
+            if (const auto* cached = findCachedStretch (project, clip))
             {
-                if (cached.samples != nullptr && cached.clipId == clip.id && cached.assetId == asset->id
-                    && cached.srcOffset == clip.srcOffset && cached.srcLen == clip.srcLen
-                    && cached.stretchFactor == clip.stretchFactor && cached.samples->channels == owner->channels)
-                {
-                    next.push_back (cached);
-                    reused = true;
-                    break;
-                }
-            }
-            if (reused)
+                next.push_back (*cached);
                 continue;
+            }
             const std::size_t first = static_cast<std::size_t> (clip.srcOffset) * static_cast<std::size_t> (owner->channels);
             const std::size_t count = static_cast<std::size_t> (clip.srcLen) * static_cast<std::size_t> (owner->channels);
             engine::PreparedTimeStretch prepared = engine::prepareTimeStretch (
@@ -13964,8 +14260,20 @@ private:
             samples->frames = prepared.outputFrames;
             samples->interleaved = std::move (prepared.interleavedSamples);
             next.push_back ({ clip.id, asset->id, clip.srcOffset, clip.srcLen, clip.stretchFactor, samples });
+            if (const auto* decoded = findDecodedAsset (clip.assetId))
+            {
+                app::StretchPreparationKey key;
+                key.attachGeneration = attachGeneration_;
+                key.projectId = project.id;
+                key.trackId = clip.trackId;
+                key.contentHash = asset->contentHash;
+                key.source = decoded->samples;
+                key.sourceRateHz = decoded->sampleRate.hz;
+                key.viewRateHz = project.sampleRate.hz;
+                key.channels = asset->channels;
+                cachePreparedStretch (std::move (key), next.back());
+            }
         }
-        stretchedSamplesCache_ = next;
         return next;
     }
 
@@ -14403,13 +14711,30 @@ private:
         double projectRateHz = 0.0;
         std::uint64_t frames = 0;
         std::uint16_t channels = 0;
+        std::shared_ptr<const engine::AssetSamples> source;
         std::shared_ptr<const engine::AssetSamples> view;
+
+        [[nodiscard]] bool matches (const UiDecodedAsset& asset, double targetRateHz) const noexcept
+        {
+            return assetId == asset.assetId && assetRateHz == asset.sampleRate.hz
+                && projectRateHz == targetRateHz && frames == asset.frames && channels == asset.channels
+                && source == asset.samples;
+        }
     };
     mutable std::vector<OwnedRateMatchedView> rateMatchedViews_;   // filled from const build reads
     mutable std::mutex rateMatchedViewsMutex_;
     mutable std::uint32_t sessionEntityIdSerial_ = 0;   // mixed into every session id (allocateSessionEntityId)
     std::uint64_t recentAudioRevision_ = 0;              // ADR-0056: bumped when Recent changes
-    mutable std::vector<engine::StretchedOwnership> stretchedSamplesCache_;   // G2.9: prepared stretches per clip
+    struct OwnedStretch
+    {
+        app::StretchPreparationKey key;
+        engine::StretchedOwnership ownership;
+    };
+    mutable std::vector<OwnedStretch> stretchedSamplesCache_;
+    std::optional<PendingStretch> pendingStretch_;
+    std::unique_ptr<app::StretchPreparationJob> stretchJob_; // also owns a cancelled worker until terminal
+    std::uint64_t nextStretchRequestId_ = 1;
+    std::uint64_t stretchRequestVersion_ = 0;
     std::uint64_t livePlacementEdits_ = 0;
     std::vector<RetiredMonitorChain> retiredMonitorChains_;
     // ADR-0056 cp2: the audition voice the control thread owns, the pointer the device thread reads, the source

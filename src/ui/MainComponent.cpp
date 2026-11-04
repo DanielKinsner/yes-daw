@@ -2052,6 +2052,7 @@ void MainComponent::serviceUiTick()
                                     && desktopAudioOpen.load (std::memory_order_acquire));
     appModel.reclaimRetiredAudioObjects();
     appModel.serviceAudition();   // ADR-0056 cp2: a voice that played to its end is retired
+    const bool stretchAdopted = appModel.serviceStretchPreparation();
     // ADR-0058: the export job's progress and outcome; the export controls repaint when either changes.
     if (appModel.exportRunning() || appModel.retiringExportCount() > 0)
     {
@@ -2129,7 +2130,7 @@ void MainComponent::serviceUiTick()
     const double scrollBefore = timelineScrollSeconds;
     followPlaybackPlayhead();
     const bool rollScrolled = followPianoRollPlayhead();   // G3.2
-    if (timelineScrollSeconds != scrollBefore || rollScrolled)
+    if (timelineScrollSeconds != scrollBefore || rollScrolled || stretchAdopted)
         repaintAll();
     else
         repaintDynamicLayers();

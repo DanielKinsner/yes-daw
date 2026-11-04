@@ -11,10 +11,12 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <set>
 #include <span>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 TEST_CASE ("playing MIDI note edits preserve held instrument and FX state, publish the changed onset and undo durably",
@@ -306,6 +308,284 @@ UiDecodedAsset makeDecodedAsset (const Asset& asset)
 }
 
 } // namespace
+
+TEST_CASE ("stretch requests leave committed geometry and playback unchanged until serviced",
+           "[ui][app][stretch-background]")
+{
+    const auto bundlePath = makeTempBundlePath ("stretch-background");
+    Project song = makeSmokeProject();
+    song.assets.front().frames = 4800;
+    song.assets.front().sampleRate = SampleRate { 44100.0 };
+    song.clips.front().srcLen = 4001;
+    song.clips.front().timelineLength = yesdaw::engine::timelineLengthForSource (4001, 48000.0 / 44100.0, 1.0);
+    song.clips.front().srcOffset = 143;
+    Clip other = song.clips.front();
+    other.id = idFromLowByte (5);
+    other.timelineStart = 10000;
+    song.clips.push_back (other);
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (song).ok());
+        writeProjectAssetFiles (bundlePath, song);
+    }
+    const auto decoded = UiDecodedAsset::fromInterleaved (song.assets.front().id,
+        song.assets.front().sampleRate, 1, std::vector<float> (4800, 0.125f));
+    {
+        UiAppModel app;
+        REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+        REQUIRE (app.selectTimelineClip (song.clips.front().id));
+        REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+        const auto replacements = app.playbackReplaceCount();
+        REQUIRE (app.setSelectedTimelineClipStretchFactor (1.5f).dispatched);
+        REQUIRE (app.project().clips.front() == song.clips.front());
+        REQUIRE_FALSE (app.context().canUndo);
+        REQUIRE (app.playbackReplaceCount() == replacements);
+        REQUIRE (app.context().isPlaying);
+        REQUIRE (app.stretchPreparationPending());
+        REQUIRE (app.context().stretchPreparationPending);
+        REQUIRE (app.statusLineText().find ("Preparing") != std::string::npos);
+        UiAppModel unchanged;
+        REQUIRE (unchanged.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+        REQUIRE (unchanged.dispatch (UiActionId::TransportPlay).dispatched);
+        const auto render = [] (UiAppModel& model) {
+            std::array<float, 256> block {};
+            float* outputs[2] = { block.data(), block.data() + 128 };
+            REQUIRE (model.processDeviceAudioBlock (outputs, 2, 128));
+            return block;
+        };
+        REQUIRE (render (app) == render (unchanged)); // in-memory processing; no devices or native shell
+        const auto drain = [&] {
+            std::size_t adoptions = 0;
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (10);
+            while ((app.stretchPreparationPending() || app.stretchPreparationRetiring())
+                && std::chrono::steady_clock::now() < deadline)
+            {
+                adoptions += app.serviceStretchPreparation() ? 1u : 0u;
+                std::this_thread::sleep_for (std::chrono::milliseconds (1));
+            }
+            REQUIRE_FALSE (app.stretchPreparationPending());
+            REQUIRE_FALSE (app.stretchPreparationRetiring());
+            return adoptions;
+        };
+        app.serviceStretchPreparation();
+        REQUIRE (app.project().clips == song.clips); // first service only starts the owned worker
+
+        SECTION ("current-project adoption captures target, preserves gain/name, and is one durable undo step")
+        {
+            REQUIRE (app.setSelectedTimelineClipGain (0.4f).dispatched);
+            REQUIRE (app.renameSelectedTimelineClip ("Kept while preparing").dispatched);
+            REQUIRE (app.stretchPreparationPending());
+            REQUIRE (app.selectTimelineClip (other.id));
+            const auto edits = app.context().timelineEditCount;
+            REQUIRE (drain() == 1u);
+            const auto landed = app.project().clips.front();
+            REQUIRE (landed.stretchFactor == 1.5f);
+            REQUIRE (landed.gain == 0.4f);
+            REQUIRE (landed.name.asView() == "Kept while preparing");
+            REQUIRE (landed.timelineLength == yesdaw::engine::timelineLengthForSource (4001, 48000.0 / 44100.0, 1.5));
+            REQUIRE (landed.srcOffset == 143);
+            REQUIRE (landed.srcLen == 4001);
+            REQUIRE (app.project().clips.back() == other);
+            REQUIRE (app.selectedTimelineClipId() == other.id);
+            REQUIRE (app.context().timelineEditCount == edits + 1);
+            REQUIRE (app.context().isPlaying);
+            app.serviceStretchPreparation();
+            REQUIRE (app.context().timelineEditCount == edits + 1);
+            REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+            REQUIRE (app.project().clips.front().stretchFactor == 1.0f);
+            REQUIRE (app.project().clips.front().gain == 0.4f);
+            REQUIRE (app.project().clips.front().name == landed.name);
+            REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+            REQUIRE (app.project().clips.front() == landed);
+            UiAppModel reopened;
+            REQUIRE (reopened.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+            REQUIRE (reopened.project().clips.front() == landed);
+            // The DSP window maps both source endpoints; saved geometry retains the ratio law.
+            const auto window = yesdaw::engine::mapWindowToView (143, 4001, 48000.0 / 44100.0,
+                yesdaw::engine::resampledFrameCount (4800, 44100.0, 48000.0));
+            REQUIRE (window.srcLen == 4354);
+            REQUIRE (yesdaw::engine::viewFrameFor (4001, 48000.0 / 44100.0) == 4355);
+        }
+        SECTION ("save refusal preserves committed geometry, undo, playback and durable rows")
+        {
+            sqlite3* connection = nullptr;
+            const auto dbPath = yesdaw::io::utf8Text (bundlePath / "project.db");
+            REQUIRE (sqlite3_open (dbPath.c_str(), &connection) == SQLITE_OK);
+            REQUIRE (sqlite3_exec (connection,
+                "CREATE TRIGGER refuse_stretch_save BEFORE DELETE ON clips BEGIN SELECT RAISE(ABORT, 'save refused'); END;",
+                nullptr, nullptr, nullptr) == SQLITE_OK);
+            REQUIRE (drain() == 0u);
+            REQUIRE (app.project().clips == song.clips);
+            REQUIRE_FALSE (app.context().canUndo);
+            REQUIRE (app.playbackReplaceCount() == replacements);
+            REQUIRE (app.context().isPlaying);
+            REQUIRE (app.statusLineIsError());
+            REQUIRE (render (app) == render (unchanged));
+            REQUIRE (app.statusLineText().find ("did not persist") != std::string::npos);
+            REQUIRE (sqlite3_exec (connection, "DROP TRIGGER refuse_stretch_save;", nullptr, nullptr, nullptr) == SQLITE_OK);
+            REQUIRE (sqlite3_close (connection) == SQLITE_OK);
+            UiAppModel reopened;
+            REQUIRE (reopened.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+            REQUIRE (reopened.project().clips == song.clips);
+        }
+        SECTION ("cancel retires the worker without changing status or committed state")
+        {
+            REQUIRE (app.dispatch (UiActionId::TimelineClipCancelStretch).dispatched);
+            REQUIRE_FALSE (app.stretchPreparationPending());
+            REQUIRE (app.stretchPreparationRetiring());
+            const auto status = app.statusLineText();
+            drain();
+            REQUIRE (app.statusLineText() == status);
+            REQUIRE (app.project().clips == song.clips);
+            REQUIRE_FALSE (app.context().canUndo);
+        }
+        SECTION ("supersession coalesces replacement intents behind the retiring worker")
+        {
+            REQUIRE (app.setSelectedTimelineClipStretchFactor (0.6f).dispatched);
+            REQUIRE (app.stretchPreparationRetiring());
+            REQUIRE (app.setSelectedTimelineClipStretchFactor (0.75f).dispatched);
+            REQUIRE (app.project().clips == song.clips);
+            drain();
+            REQUIRE (app.project().clips.front().stretchFactor == 0.75f);
+            REQUIRE (app.context().timelineEditCount == 1);
+            REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+            REQUIRE (app.project().clips == song.clips);
+            REQUIRE_FALSE (app.context().canUndo);
+            REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+            REQUIRE (app.project().clips.front().stretchFactor == 0.75f);
+        }
+        SECTION ("move and undo cannot revive stale absolute-end intent")
+        {
+            // Supersede the percentage request with an absolute-end gesture on the same target.
+            REQUIRE (app.stretchSelectedTimelineClipTo (6000).dispatched);
+            REQUIRE (app.moveSelectedTimelineClipTo (100).dispatched);
+            REQUIRE_FALSE (app.stretchPreparationPending());
+            REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+            REQUIRE (app.project().clips == song.clips);
+            drain();
+            REQUIRE (app.project().clips == song.clips);
+        }
+        SECTION ("source-window edits invalidate before undo restores the old window")
+        {
+            REQUIRE (app.slipSelectedTimelineClipBy (20).dispatched);
+            REQUIRE_FALSE (app.stretchPreparationPending());
+            REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+            drain();
+            REQUIRE (app.project().clips == song.clips);
+        }
+        SECTION ("deleted targets stay invalid after undo recreates them")
+        {
+            REQUIRE (app.deleteSelectedTimelineClip().dispatched);
+            REQUIRE_FALSE (app.stretchPreparationPending());
+            REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+            drain();
+            REQUIRE (app.project().clips == song.clips);
+        }
+        SECTION ("project replacement invalidates even with identical Project and source identities")
+        {
+            REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+            REQUIRE_FALSE (app.stretchPreparationPending());
+            drain();
+            REQUIRE (app.project().clips == song.clips);
+            REQUIRE_FALSE (app.context().canUndo);
+        }
+        SECTION ("nonfinite requests are refused without superseding a valid intent")
+        {
+            const auto refused = app.setSelectedTimelineClipStretchFactor (std::numeric_limits<float>::quiet_NaN());
+            REQUIRE_FALSE (refused.dispatched);
+            REQUIRE (std::string_view (refused.state.disabledReason).find ("finite") != std::string_view::npos);
+            REQUIRE (app.stretchPreparationPending());
+            drain();
+            REQUIRE (app.project().clips.front().stretchFactor == 1.5f);
+        }
+    }
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("a loaded stretched neighbour keeps its prepared audio when another Clip is stretched",
+           "[ui][app][stretch-background][stretch-loaded]")
+{
+    const auto bundlePath = makeTempBundlePath ("stretch-loaded");
+    Project song = makeSmokeProject();
+    song.assets.front().frames = 4800;
+    song.assets.front().sampleRate = SampleRate { 44100.0 };
+    auto& first = song.clips.front();
+    first.srcOffset = 143;
+    first.srcLen = 4001;
+    first.timelineLength = yesdaw::engine::timelineLengthForSource (4001, 48000.0 / 44100.0, 1.0);
+    Clip other = first;
+    other.id = idFromLowByte (5);
+    other.timelineStart = 10000;
+    other.stretchFactor = 0.75f;
+    other.timelineLength = yesdaw::engine::timelineLengthForSource (4001, 48000.0 / 44100.0, 0.75);
+    song.clips.push_back (other);
+    SECTION ("the loaded neighbour is audible") {}
+    SECTION ("a muted neighbour needs no compiler preparation")
+    {
+        other.muted = true;
+        song.clips.back() = other;
+    }
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (song).ok());
+        writeProjectAssetFiles (bundlePath, song);
+    }
+    const auto decoded = UiDecodedAsset::fromInterleaved (song.assets.front().id,
+        song.assets.front().sampleRate, 1, std::vector<float> (4800, 0.125f));
+    {
+        UiAppModel app;
+        REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+        REQUIRE (app.selectTimelineClip (song.clips.front().id));
+        REQUIRE (app.setSelectedTimelineClipStretchFactor (1.5f).dispatched);
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (10);
+        while (app.stretchPreparationPending() && std::chrono::steady_clock::now() < deadline)
+        {
+            app.serviceStretchPreparation();
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        }
+        REQUIRE_FALSE (app.stretchPreparationPending());
+        INFO (app.statusLineText());
+        REQUIRE (app.project().clips.front().stretchFactor == 1.5f);
+        REQUIRE (app.project().clips.back() == other);
+        REQUIRE_FALSE (app.statusLineIsError());
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        REQUIRE (app.project().clips == song.clips);
+        REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+        REQUIRE (app.project().clips.front().stretchFactor == 1.5f);
+        REQUIRE (app.project().clips.back() == other);
+    }
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("playback build returns the immutable prepared stretch owner it actually reused",
+           "[ui][app][stretch-background][stretch-owner]")
+{
+    Project song = makeSmokeProject();
+    auto& clip = song.clips.front();
+    clip.stretchFactor = 1.5f;
+    clip.timelineLength = 12;
+    const auto decoded = makeDecodedAsset (song.assets.front());
+    const yesdaw::engine::DecodedAssetAudio view { decoded.assetId, decoded.sampleRate,
+        decoded.frames, decoded.channels, decoded.interleaved() };
+    auto samples = std::make_shared<yesdaw::engine::AssetSamples>();
+    samples->channels = 1;
+    samples->frames = 12;
+    samples->interleaved.assign (12, 0.375f);
+    yesdaw::engine::OfflineRenderOptions options;
+    options.assetOwners.push_back ({ decoded.assetId, decoded.samples });
+    options.stretchOwners.push_back ({ clip.id, clip.assetId, clip.srcOffset, clip.srcLen,
+                                      clip.stretchFactor, samples });
+    auto built = yesdaw::engine::PlaybackEngine::create (song,
+        std::span<const yesdaw::engine::DecodedAssetAudio> (&view, 1), options);
+    REQUIRE (built.ok());
+    REQUIRE (built.preparedStretches.size() == 1u);
+    REQUIRE (built.preparedStretches.front().samples == samples);
+    REQUIRE (built.preparedStretches.front().clipId == clip.id);
+}
 
 TEST_CASE ("H11 app model loads a Project bundle and drives transport through action ids",
            "[ui][app][smoke]")

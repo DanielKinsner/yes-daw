@@ -44,8 +44,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1.
 3. **Option A authorized 2026-11-03:** continuous MIDI editing, background media preparation, full Tempo map
    consistency, musical audio tempo-follow, linked Track editing/organization, then piano-roll reference notes.
-   Done: addressed note release and bounded notes-only updates without replacing playback. Next: connect background
-   stretch preparation to editor gestures, then import. The implementation
+   Done: addressed note release, bounded notes-only updates without replacing playback, and selected-Clip background
+   stretch preparation. Next: staged copy/decode/resample imports. The implementation
    brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -56,14 +56,21 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 
 **Known pain points**
 - Feel since the 1 Sept "laggy, half-working" verdict: Space is reliable, audio no longer restarts per action, a frame
-  paints in about 3 ms, launch takes 1.1-1.4 s, and windows no longer freeze under dialogs. All measured; none felt
-  by Dan yet.
+  paints in about 3 ms, launch takes 1.1-1.4 s, and windows no longer freeze under dialogs. Measured on the
+  recorded builds; Dan's personal feedback is optional.
 - The drives hear one audio glitch right after launch. The cause is unknown (parked since 1 Sept).
 - Unfinished or confusing (parked): the denser Logic-style layout, a dead "Export DAWproject" menu item, no MIDI input
   chooser, and a clock that can read "0:60.000".
 - Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus; SS3
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-03 — Selected-Clip stretch prepares in the background
+
+Edge, percentage and loop-fit requests use owned preparation; Clip > Cancel Stretch Preparation cancels. Captured targets/versions reject stale results and preserve intervening edits in one durable undo step.
+Review found and fixed loaded-cache and cached-canvas defects; focused proof: 358 assertions / 3 cases. Existing stretch checks: 132,734 assertions. Full pure suite: 413/413 (93.98 s); engine/saved-data critic accepted.
+App compiled without launch; audited offscreen input suite: 487 cases / 458,040 assertions. Repaint negative control failed at 12 > 12; restored source hash matched and 91 stretch assertions passed. Two cached variants cover immediate undo/redo; older history/paste/open remain synchronous. Imports are next; new-head CI is pending.
+Timing evidence retained: unchanged H6 binary missed 6.0205 ms against 2.666666 ms once, then passed isolated at 1.8516 ms and in the full suite. Cause remains unresolved; no threshold or exception changed. No native window, input or audio device was used.
 
 ## 2026-11-03 — Owned background stretch worker is ready for editor integration
 

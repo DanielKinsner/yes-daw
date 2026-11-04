@@ -149,6 +149,7 @@ struct ProjectGraphResult
     std::uint64_t                  frames = 0;          // full timeline, including the graph/PDC tail
     int                            maxBlockSize = 128;
     std::size_t                    copiedAssets = 0;    // ADR-0059: Assets this build had to copy (no owner given)
+    std::vector<StretchedOwnership> preparedStretches; // Control-side owners actually used by the graph
 
     [[nodiscard]] bool ok() const noexcept { return status == OfflineRenderStatus::Ok; }
 };
@@ -667,6 +668,7 @@ namespace detail {
     // resolver, so what the engine plays after a live edit is exactly what a rebuild would bake.
     std::vector<std::pair<EntityId, std::shared_ptr<const AssetSamples>>> copiedAssets;
     std::vector<StretchedOwnership> preparedStretches;   // G2.9: prepared once per stretched Clip per build
+    std::vector<StretchedOwnership> effectiveUsedStretches;
     // G3.9 / ADR-0048: a Sampler pad's samples through the SAME ownership law as a Clip's — the G0.5
     // owner when the build has one for the asset, else the build's one copy (shared by every pad and
     // Clip of that asset in this build).
@@ -709,7 +711,7 @@ namespace detail {
     const bool projected = projectToMixerProjectionInputs (
         project,
         config,
-        [&decodedAssets, &resolved, &factoryStatus, &copiedAssets, &options, &preparedStretches] (const Project& projected,
+        [&decodedAssets, &resolved, &factoryStatus, &copiedAssets, &options, &preparedStretches, &effectiveUsedStretches] (const Project& projected,
                                                                                                   const Clip& clip, const Asset& asset,
                                                                                                   int stripChannels, ScheduledClipSource& out) -> bool
         {
@@ -719,7 +721,7 @@ namespace detail {
                 factoryStatus = OfflineRenderStatus::InvalidTimeline;
                 return false;
             }
-            return detail::makeScheduledClipSource (decodedAssets,
+            const bool made = detail::makeScheduledClipSource (decodedAssets,
                                                     std::span<const AssetOwnership> (options.assetOwners.data(),
                                                                                      options.assetOwners.size()),
                                                     clip, asset, stripChannels, *window,
@@ -728,6 +730,10 @@ namespace detail {
                                                     std::span<const StretchedOwnership> (options.stretchOwners.data(),
                                                                                          options.stretchOwners.size()),
                                                     &preparedStretches);
+            if (made && clip.stretchFactor != 1.0f)
+                effectiveUsedStretches.push_back ({ clip.id, asset.id, clip.srcOffset, clip.srcLen,
+                                                   clip.stretchFactor, out.owner });
+            return made;
         },
         projection,
         &result.projectError);
@@ -781,6 +787,7 @@ namespace detail {
     applyProjectStripMuteMask (*graph, project);
 
     result.copiedAssets = copiedAssets.size();   // ADR-0059
+    result.preparedStretches = std::move (effectiveUsedStretches);
     result.graph = std::move (graph);
     result.channels = static_cast<std::uint16_t> (masterChannels);
     result.frames = timelineEndFrames;

@@ -127,6 +127,7 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Clip Fades (`timeline.clip.set_fades`)
 - Time Stretch (`timeline.clip.time_stretch`)
 - Stretch to Loop Length (`timeline.clip.stretch_to_loop`)
+- Cancel Stretch Preparation (`timeline.clip.cancel_stretch`)
 - Clip Colour: Next (`timeline.clip.colour_next`)
 - Reverse (`timeline.clip.reverse`)
 - Normalize (`timeline.clip.normalize`)

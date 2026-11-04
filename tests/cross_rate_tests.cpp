@@ -15,6 +15,7 @@
 #include <cmath>
 #include <filesystem>
 #include <numbers>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -186,16 +187,30 @@ TEST_CASE ("ADR-0055 a click in a 44.1 kHz clip lands where the rate ratio puts 
 TEST_CASE ("ADR-0055 slip and stretch on a 44.1 kHz clip convert through the rate ratio", "[cross-rate]")
 {
     CrossRateModel f ("edits", sineAt (kAssetRate, 44'100));
+    const auto prepare = [&] {
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (10);
+        while (f.model.stretchPreparationPending() && std::chrono::steady_clock::now() < deadline)
+        {
+            f.model.serviceStretchPreparation();
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        }
+        REQUIRE_FALSE (f.model.stretchPreparationPending());
+        REQUIRE_FALSE (f.model.statusLineIsError());
+    };
     REQUIRE (f.model.selectTimelineClip (f.clip().id));
     REQUIRE (f.model.dispatch (yesdaw::ui::UiActionId::TimelineClipStretchToLoop).dispatched == false);   // no loop region
     REQUIRE (f.model.setSelectedTimelineClipStretchFactor (1.5f).dispatched);
+    prepare();
     REQUIRE (f.clip().stretchFactor == 1.5f);
     REQUIRE (f.clip().timelineLength == 72'000);   // round (44 100 x r x 1.5): the natural 48 000 stretched by half
     REQUIRE (f.model.setSelectedTimelineClipStretchFactor (1.0f).dispatched);
+    prepare();
     REQUIRE (f.clip().timelineLength == 48'000);
     REQUIRE (f.model.stretchSelectedTimelineClipTo (f.clip().timelineStart + 96'000).dispatched);
+    prepare();
     REQUIRE (f.clip().stretchFactor == 2.0f);      // 96 000 / (44 100 x r): twice the natural length
     REQUIRE (f.model.setSelectedTimelineClipStretchFactor (1.0f).dispatched);
+    prepare();
 
     // Slip: split at the clip's middle, then slip the right half by 480 ticks — 441 Asset frames, not 480.
     REQUIRE (f.model.splitSelectedTimelineClipAt (24'000).dispatched);

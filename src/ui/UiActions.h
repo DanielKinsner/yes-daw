@@ -51,6 +51,7 @@ enum class UiActionId : std::uint8_t
     TimelineClipSetFades,
     TimelineClipTimeStretch,
     TimelineClipStretchToLoop,   // G2.9b
+    TimelineClipCancelStretch,
     TimelineClipToggleMute,      // G2.12
     TimelineClipColourNext,
     TimelineClipReverse,         // G2.13
@@ -530,6 +531,7 @@ struct UiActionContext
     bool canUndo = false;
     bool canRedo = false;
     bool timelineClipSelected = false;
+    bool stretchPreparationPending = false;
     bool mixerTargetSelected = false;
     bool midiClipSelected = false;
     bool midiNoteSelected = false;
@@ -772,6 +774,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
       AccessibilityRole::Button, UiActionKind::Command, true, false, false, true },
     { UiActionId::TimelineClipStretchToLoop, "timeline.clip.stretch_to_loop", "Stretch to Loop Length", "", "Time-stretch the selected clip to the loop region's length",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, true },
+    { UiActionId::TimelineClipCancelStretch, "timeline.clip.cancel_stretch", "Cancel Stretch Preparation", "", "Cancel the pending stretch and keep the committed clip",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::TimelineClipToggleMute, "timeline.clip.toggle_mute", "Mute Clip", "Ctrl+M", "Mute or unmute the selected clip: it keeps its place, plays nothing, paints dim",
       AccessibilityRole::MenuItem, UiActionKind::Toggle, true, false, false, true },
     { UiActionId::TimelineClipColourNext, "timeline.clip.colour_next", "Clip Colour: Next", "", "Cycle the selected clip's colour: follow the track, then the five accents",
@@ -1504,6 +1508,8 @@ public:
         // G2.9b: Stretch to Loop Length reads the loop region, so it needs one.
         if (id == UiActionId::TimelineClipStretchToLoop && ! context.loopEnabled)
             return { false, "no loop region" };
+        if (id == UiActionId::TimelineClipCancelStretch && ! context.stretchPreparationPending)
+            return { false, "no stretch preparation pending" };
         if (id == UiActionId::MixerSetFirstSendLevel && context.projectLoaded && ! context.firstTrackSendAvailable)
             return { false, "no send on the first Track" };
         if (id == UiActionId::MixerToggleFirstFxSlotEnabled && context.projectLoaded && ! context.firstTrackFxSlotAvailable)
@@ -2383,6 +2389,10 @@ public:
 
             case UiActionId::ProjectSaveACopy:   // G5.5 / ADR-0060: the copy changes nothing here (the source stays current)
             case UiActionId::ProjectSaveAsTemplate:   // nor does writing a template
+                break;
+
+            case UiActionId::TimelineClipCancelStretch:
+                context.stretchPreparationPending = false;
                 break;
 
             case UiActionId::Count:
