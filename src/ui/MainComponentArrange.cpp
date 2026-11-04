@@ -1550,8 +1550,10 @@ yesdaw::ui::TimelineCanvasState MainComponent::makeTimelineState()
         timelineMeterMap = appModel.project().meterMap;
         timelineCompiledTempoMapValid = appModel.context().projectLoaded && appModel.project().sampleRate.isValid()
                                      && appModel.compiledTempoMap (timelineCompiledTempoMap);
-        state.tempoMap = timelineCompiledTempoMapValid ? &timelineCompiledTempoMap : nullptr;
+        state.tempoMap = appModel.context().projectLoaded ? &timelineCompiledTempoMap : nullptr;
         state.meterMap = yesdaw::engine::MeterMapView { timelineMeterMap.data(), timelineMeterMap.size() };
+        (void) yesdaw::engine::CompiledMeterMap::build (state.meterMap, timelineCompiledMeterMap);
+        state.compiledMeterMap = &timelineCompiledMeterMap;
     }
     // G2.2: the time row follows the app-wide time display (the header counter's law).
     state.timeDisplayMode = timeDisplayMode;
@@ -2398,8 +2400,10 @@ yesdaw::engine::Tick MainComponent::snappedTimelineTickFrom (yesdaw::engine::Tic
     yesdaw::engine::Tick snapped = 0;
     // The layout pass, step 13: a project with a tempo or meter change snaps to the music's lines (bars, beats,
     // sixteenths, the zoom's finer cells) through the maps - the uniform grid drifted off the bars after a change.
+    // The unit chooser's Off retains its numeric grid for one-shot Ctrl inversion.
     if (const yesdaw::engine::Project& project = appModel.project();
-        (project.tempoMap.size() > 1 || project.meterMap.size() > 1) && ! (! modeOff && mode == yesdaw::ui::UiSnapMode::Relative && origin))
+        appModel.context().projectLoaded && appModel.snapUnit() != yesdaw::ui::UiAppModel::UiSnapUnit::Off
+        && ! (! modeOff && mode == yesdaw::ui::UiSnapMode::Relative && origin))
     {
         yesdaw::engine::CompiledTempoMap compiled;
         if (appModel.compiledTempoMap (compiled))
@@ -2411,10 +2415,16 @@ yesdaw::engine::Tick MainComponent::snappedTimelineTickFrom (yesdaw::engine::Tic
             int subdivisions = 0;
             for (std::int64_t whole = appModel.context().snapGridTicks; ! modeOff && whole > gridTicks && subdivisions < 16; whole /= 2)
                 ++subdivisions;
-            if (const std::optional<std::int64_t> frame = yesdaw::ui::snapFrameToMusicalGrid (
-                    compiled, { project.meterMap.data(), project.meterMap.size() }, static_cast<double> (tick), level, subdivisions))
-                return std::max<yesdaw::engine::Tick> (0, static_cast<yesdaw::engine::Tick> (*frame));
+            const yesdaw::engine::MeterMapView meterView { project.meterMap.data(), project.meterMap.size() };
+            yesdaw::engine::CompiledMeterMap meters;
+            std::int64_t frame = 0;
+            if (yesdaw::engine::CompiledMeterMap::build (meterView, meters) != yesdaw::engine::TimeLookupStatus::Ok
+                || yesdaw::ui::checkedSnapFrameToMusicalGrid (
+                    compiled, meters, meterView, static_cast<double> (tick), level, subdivisions, frame) != yesdaw::ui::MusicalGridStatus::Ok)
+                return tick;   // A checked lookup refusal never authorizes the head-tempo grid.
+            return frame;
         }
+        return tick;   // Loaded Project map preparation failed; no uniform-grid fallback.
     }
     if (! modeOff && mode == yesdaw::ui::UiSnapMode::Relative && origin)
     {

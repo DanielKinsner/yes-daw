@@ -2671,34 +2671,31 @@ void MainComponent::drawHeader (juce::Graphics& g) const
                     .removeFromBottom (yesdaw::ui::UiTheme::Space::hairline));
 }
 
-// V2: bar|beat at the current playhead — a single-tempo/meter law (the project's head
-// values, matching the existing headBarFrames() family's own scope). Shared by the paint
-// path below and the harness accessor, so a test can never duplicate this formula.
+// Full-map readout uses fractional musical time. Only unavailable caches use the head fallback.
 yesdaw::engine::BarBeat MainComponent::headerBarBeat() const
 {
-    const double sampleRate = appModel.project().sampleRate.isValid()
-                                  ? appModel.project().sampleRate.hz
-                                  : 48000.0;
-    // G2.15: the FULL maps — frame -> tick through the compiled tempo map's inverse, then the
-    // meter walk; the single-tempo law only when the map cannot be built.
-    yesdaw::engine::CompiledTempoMap compiled;
-    yesdaw::engine::BarBeat piecewise;
-    if (appModel.project().sampleRate.isValid() && appModel.compiledTempoMap (compiled)
-        && yesdaw::engine::computeBarBeatPiecewise (
-               compiled,
-               yesdaw::engine::MeterMapView { appModel.project().meterMap.data(), appModel.project().meterMap.size() },
-               appModel.context().playheadFrame, piecewise))
-        return piecewise;
+    const auto& project = appModel.project();
+    yesdaw::engine::CompiledTempoMap tempo;
+    if (appModel.context().projectLoaded)
+    {
+        yesdaw::engine::CompiledMeterMap meters;
+        yesdaw::engine::BarBeat position { 0, 0 };
+        if (project.sampleRate.isValid() && appModel.compiledTempoMap (tempo)
+            && yesdaw::engine::CompiledMeterMap::build ({ project.meterMap.data(), project.meterMap.size() }, meters) == yesdaw::engine::TimeLookupStatus::Ok)
+            (void) yesdaw::ui::checkedMusicalBarBeatForFrame (tempo, meters,
+                static_cast<double> (std::max<std::int64_t> (0, appModel.context().playheadFrame)), position);
+        return position;
+    }
     const HeadTempoMeter head = headTempoMeter();
-    return yesdaw::engine::computeBarBeat (
-        head.bpm, head.numerator, head.denominator, sampleRate, appModel.context().playheadFrame);
+    return yesdaw::engine::computeBarBeat (head.bpm, head.numerator, head.denominator,
+        project.sampleRate.isValid() ? project.sampleRate.hz : 48000.0, appModel.context().playheadFrame);
 }
 
 MainComponent::CounterStrings MainComponent::counterStrings() const
 {
     const yesdaw::engine::BarBeat barBeat = headerBarBeat();
-    const juce::String bars = juce::String::formatted (
-        "%03lld|%02lld", static_cast<long long> (barBeat.bar), static_cast<long long> (barBeat.beat));
+    const juce::String bars = barBeat.bar > 0 ? juce::String::formatted (
+        "%03lld|%02lld", static_cast<long long> (barBeat.bar), static_cast<long long> (barBeat.beat)) : "---|--";
     const double sampleRate = appModel.project().sampleRate.isValid() ? appModel.project().sampleRate.hz : 48000.0;
     const double seconds = std::max (0.0, static_cast<double> (appModel.context().playheadFrame) / sampleRate);
     const int minutes = static_cast<int> (seconds / 60.0);

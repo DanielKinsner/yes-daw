@@ -807,6 +807,10 @@ public:
         {
             const auto upper = std::upper_bound (startFrame_.begin(), startFrame_.end(), frame);
             i = upper == startFrame_.begin() ? 0u : static_cast<std::size_t> (upper - startFrame_.begin()) - 1u;
+            // Lost prefix separation cannot certify an inverse at this exact Frame.
+            // Keep dense forward clocks usable; refuse only the ambiguous lookup.
+            if (i > 0u && frame == startFrame_[i] && startFrame_[i] == startFrame_[i - 1u])
+                return TimeLookupStatus::NumericDomain;
             origin = changes_[i].tick;
             local -= startFrame_[i];
             bpm = changes_[i].bpm;

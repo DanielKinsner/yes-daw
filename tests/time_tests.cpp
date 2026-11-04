@@ -1051,3 +1051,42 @@ TEST_CASE ("Compiled Meter queries stay inside a real-time-safe scope", "[time][
     REQUIRE (CompiledMeterMap::build ({ map.data(), map.size() }, compiled) == TimeLookupStatus::Ok);
     REQUIRE (meterQueriesInRealtimeScope (compiled));
 }
+
+TEST_CASE ("Checked Tempo inverse refuses a collapsed prefix without suppressing forward clocks", "[time][checked-time][collapsed-prefix]")
+{
+    // At 48 kHz, one quarter at 120 BPM is exactly 24000 Frames. The next Tick
+    // takes 1.875e-298 Frames: positive in the specified clock, lost in its prefix sum.
+    const std::array<TempoChange, 3> changes {
+        TempoChange { 0, 120.0, TempoCurve::Jump },
+        TempoChange { kTicksPerQuarter, 1.0e300, TempoCurve::Jump },
+        TempoChange { kTicksPerQuarter + 1, 120.0, TempoCurve::Jump }
+    };
+    CompiledTempoMap map;
+    REQUIRE (CompiledTempoMap::build ({ changes.data(), changes.size() }, { 48000.0 }, map));
+    double frame = -1.0;
+    REQUIRE (map.frameForTick (kTicksPerQuarter, frame));
+    CHECK (frame == 24000.0);
+    REQUIRE (map.frameForTick (kTicksPerQuarter + 1, frame));
+    CHECK (frame == 24000.0);
+    REQUIRE (map.frameForMusicalTime ({ kTicksPerQuarter, 0.5 }, frame) == TimeLookupStatus::Ok);
+    CHECK (frame == 24000.0);
+    MusicalTime time { 123, 0.5 };
+    CHECK (map.musicalTimeForFrame (24000.0, time) == TimeLookupStatus::NumericDomain);
+    CHECK (time == MusicalTime {});
+    REQUIRE (map.musicalTimeForFrame (23999.0, time) == TimeLookupStatus::Ok);
+    CHECK (time.tick == kTicksPerQuarter - 1);
+    CHECK (std::abs (time.frac - 0.36) < 1.0e-9);
+    REQUIRE (map.musicalTimeForFrame (24001.0, time) == TimeLookupStatus::Ok);
+    CHECK (time.tick == kTicksPerQuarter + 1);
+    CHECK (std::abs (time.frac - 0.64) < 1.0e-12);
+
+    // An ordinary exact boundary still resolves to its own origin, including the
+    // first boundary. Replacing upper_bound with lower_bound would break this case.
+    auto strict = changes;
+    strict[1].bpm = 240.0;
+    REQUIRE (CompiledTempoMap::build ({ strict.data(), strict.size() }, { 48000.0 }, map));
+    REQUIRE (map.musicalTimeForFrame (24000.0, time) == TimeLookupStatus::Ok);
+    CHECK (time == MusicalTime { kTicksPerQuarter, 0.0 });
+    REQUIRE (map.musicalTimeForFrame (24000.78125, time) == TimeLookupStatus::Ok);
+    CHECK (time == MusicalTime { kTicksPerQuarter + 1, 0.0 });
+}

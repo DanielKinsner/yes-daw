@@ -49,8 +49,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Next:
-   connect the full musical clock to the grid/ruler, click and editing boundaries. Checked fractional Tempo and
-   exact Meter primitives are delivered; the three import review findings and reversed/cross-rate No Overlap
+   use the full map for click/count-in, then native editing boundaries and MIDI interchange. Checked fractional
+   Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -70,6 +70,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — Fractional musical grid, ruler and snap
+
+Grid lines, ruler labels and the header use exact Meter origins and checked fractional Tempo positions, including a single fractional Meter. Grid snap ranks mapped Frame distance; beat/sixteenth unions retain spacing and priority. Checked map failures show unavailable timing and leave gestures raw; explicit snap-unit Off retains its existing numeric Ctrl-inversion grid. Relative/Events behavior is preserved.
+Runtime RED reproduced fractional-origin/ramp snap errors (4/8 assertions), ambiguous inverse prefixes (2/20) and retained-Off gesture errors (4/52). Narrow repairs preserve legacy clock build/prefix/forward arithmetic. Unchanged ruler assertions also caught dense-change priority and rounded-pixel culling errors, both corrected. All original test contents remain exact prefixes; no golden, accepted ADR or old RT annotation changed.
+Focused grid 153/7, TimeCheck 21,763/27 and offscreen UI 44,944/11 passed; independent engine/grid critics accepted the nine final hashes. The earlier stopped canonical tree is not final proof. Fresh final integration passed pure 459/459 (89.37 s), app plus both harnesses compiled without launch, six Clang units, offscreen UI 502/459,879 and screenshots 30/15,629; final HEAD/nine-hash/ten-path guards passed. MainComponent.cpp is 2,996 lines under the unchanged cap.
+No native windows, desktop input or device startup. No Overlap CI 41815982029 passed all ten jobs; Tempo-kernel 41819737766 has only Windows still running, and primitive CI 41823948990 is queued. This checkpoint's own CI remains pending. Next: foundation simplification/review, then full-map click/count-in before native editing units, defaults and interchange; no full-clock, native or hardware certification is claimed.
 
 ## 2026-11-04 — Checked fractional time and exact Meter primitives
 

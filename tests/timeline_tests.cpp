@@ -228,3 +228,174 @@ TEST_CASE ("the musical grid's bars and beats and its snap follow a tempo change
     REQUIRE (ui::snapFrameToMusicalGrid (compiled, meterMap, 48000.0 * 6.5, ui::MusicalGridLevel::Bar, 0) == std::int64_t { 384000 });
     REQUIRE (ui::snapFrameToMusicalGrid (compiled, meterMap, 48000.0 * 6.5, ui::MusicalGridLevel::Bar, 1) == std::int64_t { 288000 });
 }
+
+TEST_CASE ("fractional Meter grid boundaries retain their rational origins", "[timeline][musical-grid][checked-grid]")
+{
+    using namespace yesdaw;
+    const engine::TempoChange tempo[] { { 0, 120.0 } };
+    const engine::MeterChange meter[] { { 0, 7, 39 } };
+    engine::CompiledTempoMap compiled;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 1 }, engine::SampleRate { 48000.0 }, compiled));
+    // A denominator beat is exactly 4/39 quarters: 96000/39 frames at this clock.
+    auto lines = ui::musicalGridLines (compiled, { meter, 1 }, 0.0, 449.0 * 96000.0 / 39.0, 400.0);
+    lines.erase (std::remove_if (lines.begin(), lines.end(), [] (const auto& line) {
+        return line.level == ui::MusicalGridLevel::Sixteenth;
+    }), lines.end());
+    REQUIRE (lines.size() >= 449u);
+    CHECK (approx (lines[1].frame, 96000.0 / 39.0, 1.0e-8));
+    CHECK (approx (lines[7].frame, 7.0 * 96000.0 / 39.0, 1.0e-8));
+    CHECK (approx (lines[448].frame, 448.0 * 96000.0 / 39.0, 1.0e-8));
+    CHECK (lines[448].level == ui::MusicalGridLevel::Bar);
+}
+
+TEST_CASE ("musical Grid snap chooses the nearest mapped frame across a ramp", "[timeline][musical-grid][checked-grid]")
+{
+    using namespace yesdaw;
+    const engine::TempoChange tempo[] { { 0, 60.0, engine::TempoCurve::LinearRamp },
+                                        { 4 * engine::kTicksPerQuarter, 600.0 } };
+    const engine::MeterChange meter[] { { 0, 4, 4 } };
+    engine::CompiledTempoMap compiled;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 2 }, engine::SampleRate { 48000.0 }, compiled));
+    // BPM(q) = 60 + 135q; seconds(q) = (4/9) log(1 + 9q/4).
+    // q=.4 is nearer Tick zero, but its mapped frame is nearer the beat at q=1.
+    const double query = 48000.0 * (4.0 / 9.0) * std::log (1.9);
+    const auto expected = static_cast<std::int64_t> (std::llround (48000.0 * (4.0 / 9.0) * std::log (3.25)));
+    REQUIRE (ui::snapFrameToMusicalGrid (compiled, { meter, 1 }, query, ui::MusicalGridLevel::Beat, 0) == expected);
+}
+
+TEST_CASE ("musical grid unites incommensurate beats and sixteenths", "[timeline][musical-grid][checked-grid]")
+{
+    using namespace yesdaw;
+    const engine::TempoChange tempo[] { { 0, 120.0 } };
+    const engine::MeterChange meter[] { { 0, 7, 7 } };
+    engine::CompiledTempoMap compiled;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 1 }, engine::SampleRate { 48000.0 }, compiled));
+    const auto lines = ui::musicalGridLines (compiled, { meter, 1 }, 0.0, 96001.0, 1.0);
+    REQUIRE (lines.size() == 23u);   // 2 bars + 6 denominator beats + 15 sixteenths; only endpoints coincide.
+    for (int beat = 1; beat < 7; ++beat)
+        REQUIRE (std::count_if (lines.begin(), lines.end(), [beat] (const auto& line) {
+            return line.level == ui::MusicalGridLevel::Beat && approx (line.frame, beat * 96000.0 / 7.0, 1.0e-8);
+        }) == 1);
+    for (int sixteenth = 1; sixteenth < 16; ++sixteenth)
+        REQUIRE (std::count_if (lines.begin(), lines.end(), [sixteenth] (const auto& line) {
+            return line.level == ui::MusicalGridLevel::Sixteenth && approx (line.frame, sixteenth * 6000.0, 1.0e-8);
+        }) == 1);
+    for (std::size_t i = 1; i < lines.size(); ++i)
+        REQUIRE (lines[i].frame > lines[i - 1].frame);
+    REQUIRE (ui::snapFrameToMusicalGrid (compiled, { meter, 1 }, 96000.0 / 7.0,
+        ui::MusicalGridLevel::Sixteenth, 0) == std::int64_t { 13714 });
+    REQUIRE (ui::snapFrameToMusicalGrid (compiled, { meter, 1 }, 6000.0,
+        ui::MusicalGridLevel::Sixteenth, 0) == std::int64_t { 6000 });
+}
+
+TEST_CASE ("checked musical grids truncate Meter segments and retain fractional readouts", "[timeline][musical-grid][checked-grid]")
+{
+    using namespace yesdaw;
+    const engine::TempoChange tempo[] { { 0, 120.0 } };
+    const engine::MeterChange meter[] { { 0, 7, 39 }, { 10000, 3, 7 } };
+    engine::CompiledTempoMap compiled;
+    engine::CompiledMeterMap meters;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 1 }, engine::SampleRate { 48000.0 }, compiled));
+    REQUIRE (engine::CompiledMeterMap::build ({ meter, 2 }, meters) == engine::TimeLookupStatus::Ok);
+    const auto grid = ui::checkedMusicalGridLines (compiled, meters, { meter, 2 }, 0.0, 30000.0, 1.0);
+    REQUIRE (grid.status == ui::MusicalGridStatus::Ok);
+    for (int beat = 0; beat < 7; ++beat)
+        REQUIRE (std::count_if (grid.lines.begin(), grid.lines.end(), [beat] (const auto& line) {
+            return approx (line.frame, beat * 96000.0 / 39.0, 1.0e-8);
+        }) == 1);
+    REQUIRE (std::count_if (grid.lines.begin(), grid.lines.end(), [] (const auto& line) {
+        return line.level == ui::MusicalGridLevel::Bar && line.bar == 2 && line.frame == 15625.0;
+    }) == 1);
+    REQUIRE (std::none_of (grid.lines.begin(), grid.lines.end(), [] (const auto& line) {
+        return approx (line.frame, 7.0 * 96000.0 / 39.0, 1.0e-8);
+    }));
+    const engine::MeterChange tiny[] { { 0, 3, 7 }, { 26332, 4, 4 } };
+    REQUIRE (engine::CompiledMeterMap::build ({ tiny, 2 }, meters) == engine::TimeLookupStatus::Ok);
+    engine::BarBeat position;
+    REQUIRE (ui::checkedMusicalBarBeatForFrame (compiled, meters, 41143.0, position) == ui::MusicalGridStatus::Ok);
+    REQUIRE (position.bar == 2);   // Actual fractional bar 2 exists before the change at Frame 41143.75.
+    REQUIRE (position.beat == 1);
+    REQUIRE (ui::checkedMusicalBarBeatForFrame (compiled, meters, 41144.0, position) == ui::MusicalGridStatus::Ok);
+    REQUIRE (position.bar == 3);
+}
+
+TEST_CASE ("checked musical grids bound dense views and refuse numeric failures", "[timeline][musical-grid][checked-grid]")
+{
+    using namespace yesdaw;
+    const engine::TempoChange tempo[] { { 0, 120.0 } };
+    engine::CompiledTempoMap compiled;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 1 }, engine::SampleRate { 48000.0 }, compiled));
+    const engine::MeterChange dense[] { { 0, 65535, 65535 } };
+    engine::CompiledMeterMap meters;
+    REQUIRE (engine::CompiledMeterMap::build ({ dense, 1 }, meters) == engine::TimeLookupStatus::Ok);
+    const auto sparse = ui::checkedMusicalGridLines (compiled, meters, { dense, 1 }, 0.0, 192000.0, 100.0);
+    REQUIRE (sparse.status == ui::MusicalGridStatus::Ok);
+    REQUIRE (std::count_if (sparse.lines.begin(), sparse.lines.end(), [] (const auto& line) {
+        return line.level == ui::MusicalGridLevel::Bar;
+    }) == 3);   // 65535/65535 is exactly a 4-quarter bar, without clamping.
+    REQUIRE (std::any_of (sparse.lines.begin(), sparse.lines.end(), [] (const auto& line) {
+        return line.level == ui::MusicalGridLevel::Bar && line.frame == 96000.0;
+    }));
+    const auto capped = ui::checkedMusicalGridLines (compiled, meters, { dense, 1 }, 0.0, 96000.0, 0.1, 8);
+    REQUIRE (capped.status == ui::MusicalGridStatus::ResourceLimit);
+    REQUIRE (capped.lines.empty());
+    const engine::MeterChange shortBars[] { { 0, 1, 65535 } };
+    REQUIRE (engine::CompiledMeterMap::build ({ shortBars, 1 }, meters) == engine::TimeLookupStatus::Ok);
+    const auto thinned = ui::checkedMusicalGridLines (compiled, meters, { shortBars, 1 }, 0.0, 1000.0, 100.0);
+    REQUIRE (thinned.status == ui::MusicalGridStatus::Ok);
+    REQUIRE (thinned.lines.size() >= 5u);
+    REQUIRE (thinned.lines.size() <= 11u);
+    for (const auto& line : thinned.lines)
+        REQUIRE (approx (line.frame, static_cast<double> (line.bar - 1) * 96000.0 / 65535.0, 1.0e-8));
+    const auto invalid = ui::checkedMusicalGridLines (compiled, meters, { shortBars, 1 }, 0.0,
+        std::numeric_limits<double>::infinity(), 100.0);
+    REQUIRE (invalid.status == ui::MusicalGridStatus::InvalidInput);
+    REQUIRE (invalid.lines.empty());
+    REQUIRE (ui::checkedMusicalGridLines (compiled, meters, { shortBars, 1 }, 0.0, 0x1p63, 100.0).status
+        == ui::MusicalGridStatus::Overflow);
+    const auto clipped = ui::checkedMusicalGridLines (compiled, meters, { shortBars, 1 }, -1000.0, 1000.0, 100.0);
+    REQUIRE (clipped.status == ui::MusicalGridStatus::Ok);
+    REQUIRE (clipped.lines.front().frame == 0.0);
+    std::int64_t frame = 42;
+    REQUIRE (ui::checkedSnapFrameToMusicalGrid (compiled, meters, { shortBars, 1 }, 0x1p63,
+        ui::MusicalGridLevel::Beat, 0, frame) == ui::MusicalGridStatus::Overflow);
+    REQUIRE (frame == 0);
+    engine::CompiledTempoMap unavailable;
+    REQUIRE (ui::checkedSnapFrameToMusicalGrid (unavailable, meters, { shortBars, 1 }, 100.0,
+        ui::MusicalGridLevel::Beat, 0, frame) == ui::MusicalGridStatus::InvalidMap);
+    engine::BarBeat position;
+    REQUIRE (ui::checkedMusicalBarBeatForFrame (unavailable, meters, 100.0, position) == ui::MusicalGridStatus::InvalidMap);
+    REQUIRE (position.bar == 0);
+    const engine::MeterChange longBars[] { { 0, 65535, 1 } };
+    REQUIRE (engine::CompiledMeterMap::build ({ longBars, 1 }, meters) == engine::TimeLookupStatus::Ok);
+    constexpr double secondBar = 65535.0 * 96000.0;
+    const auto longView = ui::checkedMusicalGridLines (compiled, meters, { longBars, 1 },
+        secondBar - 10000.0, secondBar + 10000.0, 1000.0);
+    REQUIRE (longView.status == ui::MusicalGridStatus::Ok);
+    REQUIRE (std::count_if (longView.lines.begin(), longView.lines.end(), [] (const auto& line) {
+        return line.level == ui::MusicalGridLevel::Bar && line.bar == 2 && line.frame == secondBar;
+    }) == 1);
+}
+
+TEST_CASE ("7/39 paints and snaps both denominator beats and sixteenths", "[timeline][musical-grid][checked-grid]")
+{
+    using namespace yesdaw;
+    const engine::TempoChange tempo[] { { 0, 120.0 } };
+    const engine::MeterChange meter[] { { 0, 7, 39 } };
+    engine::CompiledTempoMap compiled;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 1 }, engine::SampleRate { 48000.0 }, compiled));
+    const auto lines = ui::musicalGridLines (compiled, { meter, 1 }, 0.0, 17000.0, 100.0);
+    REQUIRE (std::any_of (lines.begin(), lines.end(), [] (const auto& line) {
+        return line.level == ui::MusicalGridLevel::Sixteenth && line.frame == 6000.0;
+    }));
+    REQUIRE (std::any_of (lines.begin(), lines.end(), [] (const auto& line) {
+        return line.level == ui::MusicalGridLevel::Beat && approx (line.frame, 96000.0 / 39.0, 1.0e-8);
+    }));
+    REQUIRE (ui::snapFrameToMusicalGrid (compiled, { meter, 1 }, 6000.0,
+        ui::MusicalGridLevel::Sixteenth, 0) == std::int64_t { 6000 });
+    REQUIRE (ui::snapFrameToMusicalGrid (compiled, { meter, 1 }, 96000.0 / 39.0,
+        ui::MusicalGridLevel::Sixteenth, 0) == std::int64_t { 2462 });
+    const auto spaced = ui::musicalGridLines (compiled, { meter, 1 }, 0.0, 17000.0, 400.0);
+    for (std::size_t i = 1; i < spaced.size(); ++i)
+        REQUIRE (spaced[i].frame - spaced[i - 1].frame >= 400.0);
+}

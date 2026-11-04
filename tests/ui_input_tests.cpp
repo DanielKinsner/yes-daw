@@ -34297,3 +34297,181 @@ TEST_CASE ("mixer strip parts: the drag readout in its cell, narrow I/O whole, l
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("checked ruler labels preserve fractional origins and refuse unavailable math", "[ui][timeline][ruler][checked-grid-ui]")
+{
+    using namespace yesdaw;
+    const engine::TempoChange tempo[] { { 0, 120.0 } };
+    const engine::MeterChange meter[] { { 0, 7, 39 } };
+    engine::CompiledTempoMap compiled;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 1 }, engine::SampleRate { 48000.0 }, compiled));
+    ui::TimelineCanvasState state;
+    state.tempoMap = &compiled;
+    state.meterMap = { meter, 1 };
+    ui::Viewport vp;
+    vp.pixelsPerSecond = 400.0;
+    const auto labels = ui::computeRulerBarLabels ({ 0, 0, 1600, 100 }, state, vp);
+    REQUIRE (labels.size() >= 8u);
+    for (const auto& label : labels)
+        REQUIRE (std::abs (label.seconds - static_cast<double> (label.bar - 1) * 14.0 / 39.0) < 1.0e-10);
+    engine::CompiledMeterMap unavailable;
+    state.compiledMeterMap = &unavailable;
+    REQUIRE (ui::computeRulerBarLabels ({ 0, 0, 1600, 100 }, state, vp).empty());
+    state.tempoMap = nullptr;   // Explicit cache-unavailable legacy fallback remains available.
+    REQUIRE_FALSE (ui::computeRulerBarLabels ({ 0, 0, 1600, 100 }, state, vp).empty());
+}
+
+TEST_CASE ("single fractional Meter uses mapped ruler gestures and fractional header positions", "[ui][input][shell][checked-grid-ui]")
+{
+    using namespace yesdaw;
+    SECTION ("single-entry map Grid snap rounds only at its destination")
+    {
+        const auto bundle = makeTempBundlePath ("checked-single-meter-grid");
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundle] { return bundle; };
+        choices.makeNewProject = [] {
+            auto project = ui::UiAppModel::makeDefaultSessionProject();
+            project.meterMap = { { 0, 7, 39 } };
+            return project;
+        };
+        auto shell = makeShell (std::move (choices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapSetBar);
+        juce::Component& timeline = requireTimelineComponent (*shell);
+        const auto project = readProjectSnapshot (bundle);
+        const auto snapshot = snapshotMainComponent (*shell);
+        const auto from = projectRulerPointAtTick (timeline, snapshot, project, 150000);
+        const auto to = projectRulerPointAtTick (timeline, snapshot, project, 300000);
+        const auto expectedAt = [&] (int x) {
+            const double frame = std::round (ui::mainComponentRulerSecondsAtX (*shell, x) * 48000.0);
+            const double barFrames = 672000.0 / 39.0;
+            return static_cast<std::int64_t> (std::llround (std::round (frame / barFrames) * barFrames));
+        };
+        const auto expectedFrom = expectedAt (from.x);
+        const auto expectedTo = expectedAt (to.x);
+        dragFromTo (timeline, from, to, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier));
+        const auto landed = snapshotMainComponent (*shell);
+        REQUIRE (landed.playbackLoopStartFrame == expectedFrom);
+        REQUIRE (landed.playbackLoopEndFrame == expectedTo);
+        std::error_code ec;
+        std::filesystem::remove_all (bundle, ec);
+    }
+    SECTION ("a fractional truncated bar appears in the actual header before the Meter change")
+    {
+        const auto bundle = makeTempBundlePath ("checked-fractional-header");
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundle] { return bundle; };
+        choices.makeNewProject = [] {
+            auto project = ui::UiAppModel::makeDefaultSessionProject();
+            project.meterMap = { { 0, 3, 7 }, { 26332, 4, 4 } };
+            return project;
+        };
+        auto shell = makeShell (std::move (choices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::spaceKey)));
+        (void) renderMainComponentPlayback (*shell, 41143, 128);
+        ui::mainComponentDispatchAction (*shell, UiActionId::TransportStop);
+        REQUIRE (snapshotMainComponent (*shell).context.playheadFrame == 41143);
+        REQUIRE (ui::mainComponentHeaderBarBeat (*shell).bar == 2);
+        REQUIRE (ui::mainComponentHeaderBarBeat (*shell).beat == 1);
+        std::error_code ec;
+        std::filesystem::remove_all (bundle, ec);
+    }
+}
+
+TEST_CASE ("a loaded numeric-domain Tempo failure never authorizes the head grid", "[ui][input][shell][checked-grid-ui]")
+{
+    using namespace yesdaw;
+    const auto bundle = makeTempBundlePath ("checked-map-domain-failure");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.makeNewProject = [] {
+        auto project = ui::UiAppModel::makeDefaultSessionProject();
+        project.tempoMap = { { 0, 1.0e-300, engine::TempoCurve::LinearRamp },
+            { engine::Tick { 1 } << 48, std::nextafter (1.0e-300, std::numeric_limits<double>::infinity()) } };
+        return project;
+    };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
+    const auto project = readProjectSnapshot (bundle);
+    REQUIRE (project.tempoMap.front().hasValidBpm());
+    REQUIRE (project.tempoMap.back().hasValidBpm());
+    engine::CompiledTempoMap compiled;
+    REQUIRE_FALSE (engine::CompiledTempoMap::build ({ project.tempoMap.data(), project.tempoMap.size() }, project.sampleRate, compiled));
+    REQUIRE (ui::mainComponentHeaderBarBeat (*shell).bar == 0);
+    REQUIRE (ui::mainComponentRulerBarLabels (*shell).empty());
+    juce::var probe;
+    REQUIRE (juce::JSON::parse (juce::String (ui::mainComponentStateProbeJson (*shell)), probe).wasOk());
+    REQUIRE (probe.getProperty ("view", {}).getProperty ("counterPrimary", {}).toString() == "---|--");
+    ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeGrid);
+    juce::Component& timeline = requireTimelineComponent (*shell);
+    const auto snapshot = snapshotMainComponent (*shell);
+    auto from = projectRulerPointAtTick (timeline, snapshot, project, 150000);
+    auto to = projectRulerPointAtTick (timeline, snapshot, project, 300000);
+    const auto geometry = ui::timelineCanvasGeometry (timeline.getLocalBounds(), ui::TimelineCanvasState {});
+    const auto rows = ui::timeline_canvas_detail::rulerRows (geometry.rulerArea);
+    from.y = to.y = rows.time.getCentreY();
+    const auto rawFrom = static_cast<std::int64_t> (std::llround (ui::mainComponentRulerSecondsAtX (*shell, from.x) * 48000.0));
+    const auto rawTo = static_cast<std::int64_t> (std::llround (ui::mainComponentRulerSecondsAtX (*shell, to.x) * 48000.0));
+    dragFromTo (timeline, from, to);
+    const auto landed = snapshotMainComponent (*shell);
+    REQUIRE (landed.context.timelineRangeSelected);
+    REQUIRE (landed.timelineRangeStartFrame == rawFrom);
+    REQUIRE (landed.timelineRangeEndFrame == rawTo);
+    std::error_code ec;
+    std::filesystem::remove_all (bundle, ec);
+}
+
+
+TEST_CASE ("Snap Off Ctrl inversion keeps the previously chosen numeric grid", "[ui][input][shell][checked-grid-ui][snap-off-retained-grid]")
+{
+    using namespace yesdaw;
+    struct Choice
+    {
+        UiActionId action;
+        const char* name;
+        std::int64_t retainedGrid, fromFrame, toFrame, expectedFrom, expectedTo;
+    };
+    for (const Choice choice : {
+        Choice { UiActionId::TimelineSnapSetBar, "bar", 96000, 24000, 72000, 0, 96000 },
+        Choice { UiActionId::TimelineSnapSetSixteenth, "sixteenth", 6000, 4500, 13500, 6000, 12000 } })
+    {
+        INFO (choice.name);
+        const auto bundle = makeTempBundlePath (choice.name);
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundle] { return bundle; };
+        auto shell = makeShell (std::move (choices));
+        clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+        for (int zoom = 0; zoom < 4; ++zoom)
+            ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomIn);
+        ui::mainComponentDispatchAction (*shell, choice.action);
+        REQUIRE (snapshotMainComponent (*shell).context.snapGridTicks == choice.retainedGrid);
+        ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapDisable);
+        const auto snapshot = snapshotMainComponent (*shell);
+        REQUIRE_FALSE (snapshot.context.snapEnabled);
+        REQUIRE (snapshot.context.snapGridTicks == choice.retainedGrid);
+        const auto project = readProjectSnapshot (bundle);
+        juce::Component& timeline = requireTimelineComponent (*shell);
+        auto from = projectRulerPointAtTick (timeline, snapshot, project, choice.fromFrame);
+        auto to = projectRulerPointAtTick (timeline, snapshot, project, choice.toFrame);
+        const auto geometry = ui::timelineCanvasGeometry (timeline.getLocalBounds(), ui::TimelineCanvasState {});
+        const auto rows = ui::timeline_canvas_detail::rulerRows (geometry.rulerArea);
+        from.y = to.y = rows.time.getCentreY();
+        REQUIRE (to.x - from.x >= 4);
+        const auto rawFrom = static_cast<std::int64_t> (std::llround (ui::mainComponentRulerSecondsAtX (*shell, from.x) * 48000.0));
+        const auto rawTo = static_cast<std::int64_t> (std::llround (ui::mainComponentRulerSecondsAtX (*shell, to.x) * 48000.0));
+        dragFromTo (timeline, from, to);
+        const auto raw = snapshotMainComponent (*shell);
+        REQUIRE (raw.context.timelineRangeSelected);
+        CHECK (raw.timelineRangeStartFrame == rawFrom);
+        CHECK (raw.timelineRangeEndFrame == rawTo);
+        dragFromTo (timeline, from, to, juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier));
+        const auto snapped = snapshotMainComponent (*shell);
+        REQUIRE (snapped.context.timelineRangeSelected);
+        CHECK (snapped.timelineRangeStartFrame == choice.expectedFrom);
+        CHECK (snapped.timelineRangeEndFrame == choice.expectedTo);
+        std::error_code ec;
+        std::filesystem::remove_all (bundle, ec);
+    }
+}
