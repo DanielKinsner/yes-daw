@@ -47,9 +47,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Done: addressed note release, bounded notes-only updates without replacing playback, selected-Clip background
    stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
-   and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
+   and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut, mixed Paste placement and complete MIDI copies are repaired.
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome and captured-map count-in are delivered; bounded click-search recovery is locally verified, with macOS CI pending.
-   Next: complete MIDI copies, native editing boundaries and MIDI interchange. Checked fractional
+   Next: native editing boundaries and MIDI interchange. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -79,12 +79,13 @@ Root integration 11747 passed the combined clock/MIDI tree: pure 460/460 (93.07 
 Code review: skipped (ce-code-review unavailable). The actual prior focused review ended failed because automatic approval blocked its mandatory generated-job cleanup; that capability remains unavailable, so no new doomed peer job was started. Explicit final manual diff scan found no shipping blocker; five simplification lenses and independent critics completed. This is not a completed CE review receipt.
 Next: push this clock-only repair, then the separately verified six-file MIDI-copy fix; continue native move/nudge editing while watching CI. Local proof covers the combined tree; the exact clock parent is CI-gated separately. macOS CI and aggregate remote success remain pending.
 
-## 2026-11-04 — Complete MIDI copies local gates passed; shipping held
+## 2026-11-04 — Complete MIDI copies
 
-The exact six-file MIDI-copy patch is restored on pushed repairs 623cb26 / 0a39fda. Ctrl+D, Alt-copy, Track duplicate and Paste retain the complete MIDI Clip, including controllers, mute, transpose, velocity and loop settings, while assigning fresh entity IDs. The actual arrange Alt-copy path now finds a MIDI source Track.
-Before preservation, actual model RED lost settings/controllers (16 failed assertions) and actual offscreen Alt-copy RED produced one Clip instead of two. Focused Project 270/1, model 1,153/2, audited UI 516/5 and related checks passed; independent saved-data critic accepted the exact six hashes. Native placement is intentionally still a later boundary unit.
-The first restored run 27191 retained old file timestamps: Ninja reused baseline binaries, and the existing MIDI UI proof-presence guard rejected the missing new case before UI execution. That run receives no MIDI integration credit. All six restored timestamps are now fresh with byte-identical hashes; the rerun also requires new Project/model cases in the executables and exactly 460 discovered pure checks before executing CTest.
-Fresh root integration 73048 passed all 460 pure checks (119.98 s), three GUI consumers compiled without launch, five Clang units, 503 audited offscreen UI cases / 459,940 assertions and screenshots 30/15,629; final base/six-hash/seven-path guards passed. The old 65063 timing failure and 27191 stale-binary run receive no MIDI integration pass credit. Saved-data critic reaffirmed the unchanged six hashes against 0a39fda. Shipping is held for the new macOS clock miss above; then finish MIDI simplification/review and commit/push before the prepared seven-file native move/nudge unit. No desktop/native/device checks ran.
+Ctrl+D, Alt-copy, Track duplicate and Paste preserve the complete MIDI Clip, including controller row order/multiplicity, mute, transpose, velocity and loop settings, with fresh entity IDs. The real arrange Alt-copy path now finds a MIDI source Track. Native placement remains the next boundary unit.
+Actual model RED lost settings/controllers (16 failures); actual offscreen Alt-copy RED made one Clip instead of two. Focused Project 270/1, model 1,153/2 and audited UI 516/5 passed, including real save refusal, Undo/Redo and reopen. A fresh independent saved-data critic accepted all six final hashes; simplification removed only four comment lines with identical C++ tokens/line counts and protected tests.
+Root integration 11747 passed this exact MIDI delta together with clock repair d97f3d2: pure 460/460 (93.07 s), GUI compile-only 3, Clang 6, audited offscreen UI 503/459,937 and screenshots 30/15,629. Prior 73048 also passed; failed 65063 and stale-binary 27191 receive no pass credit. Fresh executable proof-presence and hash/scope guards passed.
+Code review: skipped (ce-code-review unavailable). Mandatory generated-job cleanup remains blocked by automatic approval after the actual prior failed review; explicit manual diff scan found no blocker, and five simplification lenses plus the independent data critic completed. No completed CE receipt is claimed.
+Next: push this six-file fix, then implement native move/nudge on the committed baseline. Clock CI 41892265684 owns the active slot; this head queues behind it so both verdicts survive. CI remains pending; all local execution was headless, with no native window, device or hardware check.
 
 ## 2026-11-04 — Autosave probe setup repaired
 

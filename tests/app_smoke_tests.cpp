@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_approx.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <array>
 #include <chrono>
@@ -368,6 +369,7 @@ void requireFreshWholeMidiCopy (const yesdaw::engine::MidiClip& copy,
     }
     const auto requireFreshId = [&] (EntityId id) {
         REQUIRE (id.isValid());
+        REQUIRE_FALSE (yesdaw::engine::detail::projectContainsEntityId (original, id));
         REQUIRE (std::find (ids.begin(), ids.end(), id) == ids.end());
         ids.push_back (id);
     };
@@ -393,7 +395,136 @@ void requireFreshWholeMidiCopy (const yesdaw::engine::MidiClip& copy,
     REQUIRE (copy == expected);
 }
 
+void requireSameCopiedControlSequence (yesdaw::engine::MidiClip copy,
+                                      yesdaw::engine::MidiClip source, const Project& project)
+{
+    using namespace yesdaw::engine;
+    // Stored mute and placement are checked separately. Project the source payload at the intended
+    // destination too: native Tick rounding does not promise an integer-frame shift at every Tempo.
+    copy.muted = false;
+    source.muted = false;
+    source.timelineStart = copy.timelineStart;
+    const auto sequence = [&] (const MidiClip& clip) {
+        std::vector<ScheduledMidiEvent> events;
+        REQUIRE (flattenMidiClipForProjection (clip, { project.tempoMap.data(), project.tempoMap.size() },
+                                               project.sampleRate, events) == MidiFlattenStatus::Ok);
+        std::vector<std::array<std::int64_t, 7>> controls;
+        double startFrame = static_cast<double> (clip.timelineStart);
+        if (clip.timeBase == TimeBase::TempoLocked)
+            REQUIRE (tickToFrame ({ project.tempoMap.data(), project.tempoMap.size() }, project.sampleRate,
+                                  clip.timelineStart, startFrame));
+        for (const auto& scheduled : events)
+            if (scheduled.event.type == EventType::Midi1)
+            {
+                const auto& event = scheduled.event;
+                controls.push_back ({ scheduled.frame - static_cast<std::int64_t> (std::floor (startFrame)), event.payload.midi1.status,
+                                      event.payload.midi1.data1, event.payload.midi1.data2,
+                                      event.voice.portIndex, event.voice.channel, event.voice.key });
+            }
+        return controls;
+    };
+    const auto expected = sequence (source);
+    REQUIRE_FALSE (expected.empty());
+    REQUIRE (sequence (copy) == expected);
+}
+
+Project makeCompleteMidiCopyProject (TimeBase timeBase = TimeBase::SampleLocked)
+{
+    Project project = makeWholeClipClipboardProject (timeBase);
+    auto control = project.midiClips.front().controlEvents.front();
+    // Legal stored duplicates: vector order deliberately differs from ID and wire-value order.
+    control.id = idFromLowByte (0x39);
+    control.value = 0.2;
+    project.midiClips.front().controlEvents.insert (
+        project.midiClips.front().controlEvents.begin() + 1, control);
+    control.id = idFromLowByte (0x38);
+    control.value = 0.8;
+    project.midiClips.front().controlEvents.push_back (control);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    return project;
+}
+
 } // namespace
+
+TEST_CASE ("MIDI duplicate, copy-drag, Track duplicate and Paste retain the complete stored Clip",
+           "[ui][app][midi-copy-complete]")
+{
+    enum class Copy { Duplicate, Drag, Track, Paste };
+    Copy operation = Copy::Duplicate;
+    const auto timeBase = GENERATE (TimeBase::SampleLocked, TimeBase::TempoLocked);
+    SECTION ("Ctrl+D") {}
+    SECTION ("copy-drag action") { operation = Copy::Drag; }
+    SECTION ("Track duplicate") { operation = Copy::Track; }
+    SECTION ("clipboard Paste with coincident controls") { operation = Copy::Paste; }
+    const auto bundlePath = makeTempBundlePath ("midi-copy-complete");
+    const Project original = makeCompleteMidiCopyProject (timeBase);
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundlePath, original).ok());
+    writeProjectAssetFiles (bundlePath, original);
+    const auto decoded = makeDecodedAsset (original.assets.front());
+    REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.selectTimelineClip (original.midiClips.front().id));
+    if (operation == Copy::Duplicate)
+        REQUIRE (app.dispatch (UiActionId::TimelineClipDuplicate).dispatched);
+    else if (operation == Copy::Drag)
+        REQUIRE (app.copySelectedTimelineClipsTo (original.tracks[2].id, 1000).dispatched);
+    else if (operation == Copy::Track)
+        REQUIRE (app.duplicateProjectTrack (original.tracks[1].id).dispatched);
+    else
+    {
+        REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+        REQUIRE (app.selectMixerTrack (2, false));
+        REQUIRE (app.locatePlaybackFrame (1000));
+        REQUIRE (app.dispatch (UiActionId::TimelineClipPaste).dispatched);
+    }
+    const auto& copied = app.project().midiClips[original.midiClips.size()];
+    CHECK (copied.muted == original.midiClips.front().muted);
+    CHECK (copied.transposeSemitones == original.midiClips.front().transposeSemitones);
+    CHECK (copied.velocityOffset == original.midiClips.front().velocityOffset);
+    CHECK (copied.loopLengthTicks == original.midiClips.front().loopLengthTicks);
+    const auto targetTrack = operation == Copy::Track ? app.project().tracks[2].id
+                           : operation == Copy::Duplicate ? original.tracks[1].id : original.tracks[2].id;
+    const yesdaw::engine::Tick start = operation == Copy::Track ? 125 : operation == Copy::Duplicate ? 221 : 1000;
+    requireFreshWholeMidiCopy (copied, original.midiClips.front(), targetTrack, start, original);
+    requireSameCopiedControlSequence (copied, original.midiClips.front(), original);
+    REQUIRE (app.project().hasValidAssetClipIndirection());
+    REQUIRE (app.project().midiClips.front() == original.midiClips.front());
+    REQUIRE (app.project().midiClips[1] == original.midiClips[1]);
+    const Project after = app.project();
+    std::set<EntityId> allMidiIds;
+    for (const auto& clip : after.midiClips)
+    {
+        REQUIRE (allMidiIds.insert (clip.id).second);
+        for (const auto& note : clip.notes)
+            REQUIRE (allMidiIds.insert (note.id).second);
+        for (const auto& control : clip.controlEvents)
+            REQUIRE (allMidiIds.insert (control.id).second);
+    }
+    if (operation == Copy::Track)
+    {
+        requireFreshWholeMidiCopy (after.midiClips.back(), original.midiClips.back(),
+                                  targetTrack, original.midiClips.back().timelineStart, original);
+        requireSameCopiedControlSequence (after.midiClips.back(), original.midiClips.back(), original);
+    }
+    const auto requireReopen = [&] (const Project& expected) {
+        UiAppModel reopened;
+        REQUIRE (reopened.openProjectBundle (bundlePath).ok());
+        REQUIRE (reopened.project().midiClips == expected.midiClips);
+        REQUIRE (reopened.project().tracks == expected.tracks);
+        REQUIRE (reopened.project().clips == expected.clips);
+    };
+    requireReopen (after);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().midiClips == original.midiClips);
+    REQUIRE (app.project().tracks == original.tracks);
+    REQUIRE_FALSE (app.context().canUndo);
+    requireReopen (original);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    REQUIRE (app.project().midiClips == after.midiClips);
+    REQUIRE (app.project().tracks == after.tracks);
+    REQUIRE_FALSE (app.context().canRedo);
+    requireReopen (after);
+}
 
 TEST_CASE ("stretch requests leave committed geometry and playback unchanged until serviced",
            "[ui][app][stretch-background]")
@@ -3542,4 +3673,92 @@ TEST_CASE ("failed count-in clock preparation leaves capture transport and store
     CHECK (persisted.tempoMap == project.tempoMap);
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("complete MIDI copy save refusal keeps Project, selection, playback and both history directions",
+           "[ui][app][midi-copy-complete]")
+{
+    enum class Copy { Duplicate, Drag, Track, Paste };
+    Copy operation = Copy::Duplicate;
+    SECTION ("Ctrl+D") {}
+    SECTION ("copy-drag") { operation = Copy::Drag; }
+    SECTION ("Track duplicate") { operation = Copy::Track; }
+    SECTION ("Paste") { operation = Copy::Paste; }
+    const auto bundle = makeTempBundlePath ("complete-midi-copy-refusal");
+    const Project original = makeCompleteMidiCopyProject();
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, original).ok());
+    writeProjectAssetFiles (bundle, original);
+    const auto decoded = makeDecodedAsset (original.assets.front());
+    REQUIRE (app.loadProjectBundle (bundle, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+    REQUIRE (app.renameProjectTrack (original.tracks.front().id, "Undo survives").dispatched);
+    REQUIRE (app.renameProjectTrack (original.tracks.front().id, "Redo survives").dispatched);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.context().canUndo);
+    REQUIRE (app.context().canRedo);
+    REQUIRE (app.selectTimelineClip (original.midiClips.front().id));
+    if (operation == Copy::Paste)
+    {
+        REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+        REQUIRE (app.selectMixerTrack (2, false));
+        REQUIRE (app.locatePlaybackFrame (1000));
+    }
+    const auto before = app.project();
+    const auto context = app.context();
+    const auto selected = app.selectedTimelineClipId();
+    const auto selectedCount = app.selectedTimelineClipCount();
+    const auto serial = app.editSerial();
+    const auto replacements = app.playbackReplaceCount();
+    const auto refuseSave = [&] (bool refuse) {
+        sqlite3* connection = nullptr;
+        const auto path = yesdaw::io::utf8Text (bundle / "project.db");
+        REQUIRE (sqlite3_open (path.c_str(), &connection) == SQLITE_OK);
+        const char* sql = refuse
+            ? "CREATE TRIGGER refuse_midi_copy BEFORE DELETE ON midi_clips BEGIN SELECT RAISE(ABORT, 'save refused'); END;"
+            : "DROP TRIGGER refuse_midi_copy;";
+        REQUIRE (sqlite3_exec (connection, sql, nullptr, nullptr, nullptr) == SQLITE_OK);
+        REQUIRE (sqlite3_close (connection) == SQLITE_OK);
+    };
+    const auto performCopy = [&] {
+        if (operation == Copy::Drag)
+            return app.copySelectedTimelineClipsTo (original.tracks[2].id, 1000).dispatched;
+        if (operation == Copy::Track)
+            return app.duplicateProjectTrack (original.tracks[1].id).dispatched;
+        return app.dispatch (operation == Copy::Paste ? UiActionId::TimelineClipPaste
+                                                     : UiActionId::TimelineClipDuplicate).dispatched;
+    };
+    refuseSave (true);
+    REQUIRE_FALSE (performCopy());
+    REQUIRE (app.project().midiClips == before.midiClips);
+    REQUIRE (app.project().clips == before.clips);
+    REQUIRE (app.project().tracks == before.tracks);
+    REQUIRE (app.project().assets == before.assets);
+    REQUIRE (app.selectedTimelineClipId() == selected);
+    REQUIRE (app.selectedTimelineClipCount() == selectedCount);
+    REQUIRE (app.isTimelineClipSelected (original.midiClips.front().id));
+    REQUIRE (app.context().canUndo == context.canUndo);
+    REQUIRE (app.context().canRedo == context.canRedo);
+    REQUIRE (app.context().commandDispatchCount == context.commandDispatchCount);
+    REQUIRE (app.context().timelineEditCount == context.timelineEditCount);
+    REQUIRE (app.context().trackEditCount == context.trackEditCount);
+    REQUIRE (app.context().clipboardHasClip == context.clipboardHasClip);
+    REQUIRE (app.editSerial() == serial);
+    REQUIRE (app.playbackReplaceCount() == replacements);
+    {
+        UiAppModel reopened;
+        REQUIRE (reopened.openProjectBundle (bundle).ok());
+        REQUIRE (reopened.project().midiClips == before.midiClips);
+        REQUIRE (reopened.project().clips == before.clips);
+        REQUIRE (reopened.project().tracks == before.tracks);
+    }
+    refuseSave (false);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    REQUIRE (app.project().tracks.front().strip.name == "Redo survives");
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().tracks == before.tracks);
+    REQUIRE (performCopy());
+    REQUIRE (app.project().midiClips.size() > before.midiClips.size());
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().midiClips == before.midiClips);
+    REQUIRE (app.project().tracks == before.tracks);
 }

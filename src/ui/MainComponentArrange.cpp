@@ -2464,10 +2464,17 @@ void MainComponent::copyTimelineClipByLayoutId (int layoutClipId, int targetLane
     const yesdaw::engine::Project& project = appModel.project();
     const yesdaw::engine::EntityId sourceClipId = timelineClipIds[static_cast<std::size_t> (layoutClipId)];
     const yesdaw::engine::Clip* const sourceClip = findProjectClipById (sourceClipId);
-    if (sourceClip == nullptr)
-        return;
-
-    yesdaw::engine::EntityId targetTrackId = sourceClip->trackId;
+    yesdaw::engine::EntityId targetTrackId;
+    if (sourceClip != nullptr)
+        targetTrackId = sourceClip->trackId;
+    else
+    {
+        const auto midiClip = std::find_if (project.midiClips.begin(), project.midiClips.end(),
+                                           [sourceClipId] (const auto& clip) { return clip.id == sourceClipId; });
+        if (midiClip == project.midiClips.end())
+            return;
+        targetTrackId = midiClip->trackId;
+    }
     if (targetLane >= 0)
     {
         if (targetLane >= static_cast<int> (project.tracks.size()))

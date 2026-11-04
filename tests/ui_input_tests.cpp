@@ -34475,3 +34475,94 @@ TEST_CASE ("Snap Off Ctrl inversion keeps the previously chosen numeric grid", "
         std::filesystem::remove_all (bundle, ec);
     }
 }
+
+TEST_CASE ("offscreen arrangement Alt-drag copies a complete MIDI Clip through its real anchor",
+           "[ui][input][shell][timeline][midi-copy-complete]")
+{
+    using namespace yesdaw;
+    const auto bundle = makeTempBundlePath ("midi-copy-offscreen");
+    auto original = makeMidiInputProject();
+    auto target = original.tracks.front();
+    target.id = idFromLowByte (6);
+    original.tracks.push_back (target);
+    auto& source = original.midiClips.front();
+    source.timeBase = engine::TimeBase::SampleLocked;
+    source.timelineStart = 24000;
+    source.timelineLength = 96000;
+    source.muted = true;
+    source.transposeSemitones = -5;
+    source.velocityOffset = -0.2;
+    source.loopLengthTicks = 24000;
+    source.controlEvents = {
+        { idFromLowByte (9), 128, engine::MidiControlKind::ControlChange, 64, 0.8, 2, 7 },
+        { idFromLowByte (8), 128, engine::MidiControlKind::ControlChange, 64, 0.2, 2, 7 }
+    };
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.makeNewProject = [original] { return original; };
+    REQUIRE_FALSE (choices.nativePrompts);
+    auto shell = makeShell (std::move (choices));
+    const auto requireHeadless = [&] {
+        REQUIRE (shell->getPeer() == nullptr);
+        const auto snapshot = snapshotMainComponent (*shell);
+        REQUIRE_FALSE (snapshot.desktopAudioRequested);
+        REQUIRE_FALSE (snapshot.desktopAudioOpen);
+    };
+    requireHeadless();
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapDisable);
+    auto& timeline = requireTimelineComponent (*shell);
+    ui::MidiClipPreview preview;
+    REQUIRE (ui::midiClipPreview (original, source, 0, preview));
+    const auto snapshot = snapshotMainComponent (*shell);
+    ui::TimelineCanvasState state;
+    state.trackCount = 2;
+    state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+    state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+    const double fit = static_cast<double> (juce::jmax (
+        ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+        timeline.getWidth() - ui::UiTheme::Layout::timelineViewportRightGutter))
+        / std::max (ui::UiTheme::Layout::timelineMinVisibleSeconds, state.totalSeconds);
+    state.viewport.pixelsPerSecond = fit * snapshot.timelineZoomFactor;
+    const auto geometry = ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    const juce::Point<int> from {
+        geometry.clipArea.getX() + juce::roundToInt ((preview.startSeconds + preview.lengthSeconds / 2.0
+                                                    - geometry.viewport.scrollSeconds) * geometry.viewport.pixelsPerSecond),
+        geometry.clipArea.getY() + geometry.laneHeight / 2 };
+    const auto to = from.translated (100, geometry.laneHeight);
+    const juce::ModifierKeys alt { juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier };
+    dragFromTo (timeline, from, to, alt);
+    requireHeadless();
+    const auto after = readProjectSnapshot (bundle);
+    REQUIRE (after.midiClips.size() == 2u);
+    REQUIRE (after.midiClips.front() == source);
+    auto copy = after.midiClips.back();
+    REQUIRE (copy.id != source.id);
+    REQUIRE (copy.trackId == target.id);
+    const auto expectedStart = static_cast<engine::Tick> (std::llround (
+        (preview.startSeconds + 100.0 / geometry.viewport.pixelsPerSecond) * original.sampleRate.hz));
+    REQUIRE (copy.timelineStart == expectedStart);
+    REQUIRE (snapshotMainComponent (*shell).context.timelineClipSelected);
+    copy.id = source.id;
+    copy.trackId = source.trackId;
+    copy.timelineStart = source.timelineStart;
+    REQUIRE (copy.notes.size() == source.notes.size());
+    for (std::size_t i = 0; i < copy.notes.size(); ++i)
+    {
+        REQUIRE (copy.notes[i].id != source.notes[i].id);
+        copy.notes[i].id = source.notes[i].id;
+    }
+    REQUIRE (copy.controlEvents.size() == source.controlEvents.size());
+    for (std::size_t i = 0; i < copy.controlEvents.size(); ++i)
+    {
+        REQUIRE (copy.controlEvents[i].id != source.controlEvents[i].id);
+        copy.controlEvents[i].id = source.controlEvents[i].id;
+    }
+    REQUIRE (copy == source);
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    REQUIRE (readProjectSnapshot (bundle).midiClips == original.midiClips);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.canUndo);
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+    REQUIRE (readProjectSnapshot (bundle).midiClips == after.midiClips);
+    requireHeadless();
+}

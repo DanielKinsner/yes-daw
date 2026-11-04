@@ -3658,3 +3658,82 @@ TEST_CASE ("Automation a clip lands on is replaced; an empty lane stays empty", 
     REQUIRE (yesdaw::engine::moveAutomationWithClips ({}, std::span (&move, 1), map, out) == yesdaw::engine::AutomationSpanEditStatus::Ok);
     REQUIRE (out.empty());
 }
+
+TEST_CASE ("owned MIDI Clip add preserves raw payload and rejects nested ID collisions without changing history",
+           "[project][undo][midi-copy-complete]")
+{
+    using namespace yesdaw::engine;
+    Project project = makeEditableProject();
+    MidiClip existing;
+    existing.id = idFromLowByte (128);
+    existing.trackId = project.tracks.front().id;
+    existing.timelineStart = 100;
+    existing.timelineLength = 96;
+    existing.timeBase = TimeBase::SampleLocked;
+    existing.notes = { { idFromLowByte (129), 9, 17, 67, 67.25, 0.61, 3, 9 } };
+    existing.controlEvents = { { idFromLowByte (130), 18, MidiControlKind::ControlChange, 64, 0.8, 2, 7 } };
+    project.midiClips.push_back (existing);
+    const Project before = project;
+    MidiClip copy = existing;
+    copy.id = idFromLowByte (140);
+    copy.notes.front().id = idFromLowByte (141);
+    copy.controlEvents.front().id = idFromLowByte (143);
+    auto coincident = copy.controlEvents.front();
+    coincident.id = idFromLowByte (142);
+    coincident.value = 0.2;
+    copy.controlEvents.push_back (coincident);
+    copy.muted = true;
+    copy.transposeSemitones = -9;
+    copy.velocityOffset = -0.2;
+    copy.loopLengthTicks = 24;
+    ProjectUndoStack undo;
+    REQUIRE (undo.addMidiClip (project, copy).applied());
+    REQUIRE (project.midiClips.back() == copy);
+    REQUIRE (undo.nextUndo()->command.verb == ProjectEditVerb::AddMidiClip);
+    const auto after = project.midiClips;
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (project.midiClips == before.midiClips);
+    REQUIRE (undo.nextUndo() == nullptr);
+    REQUIRE (undo.nextRedo() != nullptr);
+
+    auto refused = copy;
+    ProjectEditStatus expected = ProjectEditStatus::DuplicateEntityId;
+    SECTION ("existing Project ID") { refused.controlEvents.front().id = project.id; }
+    SECTION ("existing Track ID") { refused.notes.front().id = project.tracks.front().id; }
+    SECTION ("existing Asset ID") { refused.controlEvents.front().id = project.assets.front().id; }
+    SECTION ("existing audio Clip ID") { refused.controlEvents.front().id = project.clips.front().id; }
+    SECTION ("existing MIDI Clip ID") { refused.id = existing.id; }
+    SECTION ("existing Note ID") { refused.controlEvents.front().id = existing.notes.front().id; }
+    SECTION ("existing control ID") { refused.controlEvents.front().id = existing.controlEvents.front().id; }
+    SECTION ("duplicate incoming control IDs") { refused.controlEvents.back().id = refused.controlEvents.front().id; }
+    SECTION ("incoming control and Note ID") { refused.controlEvents.front().id = refused.notes.front().id; }
+    SECTION ("incoming control and Clip ID") { refused.controlEvents.front().id = refused.id; }
+    SECTION ("incoming Note and Clip ID") { refused.notes.front().id = refused.id; }
+    SECTION ("duplicate incoming Note IDs") { refused.notes.push_back (refused.notes.front()); }
+    SECTION ("invalid control ID")
+    {
+        refused.controlEvents.front().id = {};
+        expected = ProjectEditStatus::InvalidMidiControlEventId;
+    }
+    SECTION ("invalid window")
+    {
+        refused.timelineLength = 0;
+        expected = ProjectEditStatus::InvalidTimelineWindow;
+    }
+    SECTION ("missing Track")
+    {
+        refused.trackId = idFromLowByte (155);
+        expected = ProjectEditStatus::TrackNotFound;
+    }
+    REQUIRE (undo.addMidiClip (project, refused).editStatus == expected);
+    REQUIRE (project.midiClips == before.midiClips);
+    REQUIRE (project.clips == before.clips);
+    REQUIRE (project.tracks == before.tracks);
+    REQUIRE (undo.nextUndo() == nullptr);
+    REQUIRE (undo.nextRedo() != nullptr);
+    REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (project.midiClips == after);
+    REQUIRE (undo.nextRedo() == nullptr);
+    REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+    REQUIRE (project.midiClips == before.midiClips);
+}

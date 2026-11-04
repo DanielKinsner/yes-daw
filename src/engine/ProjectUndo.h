@@ -8,6 +8,7 @@
 
 #include "engine/Project.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <string_view>
@@ -2983,6 +2984,53 @@ public:
             return result;
 
         return record (std::move (transaction), result);
+    }
+
+
+
+    [[nodiscard]] ProjectEditApplyResult addMidiClip (Project& project, MidiClip clip)
+    {
+        std::vector<EntityId> incomingIds;
+        incomingIds.reserve (1u + clip.notes.size() + clip.controlEvents.size());
+        const auto admitId = [&] (EntityId id, ProjectEditStatus invalidId) {
+            if (! id.isValid())
+                return invalidId;
+            if (detail::projectContainsEntityId (project, id)
+                || std::find (incomingIds.begin(), incomingIds.end(), id) != incomingIds.end())
+                return ProjectEditStatus::DuplicateEntityId;
+            incomingIds.push_back (id);
+            return ProjectEditStatus::Applied;
+        };
+        auto status = admitId (clip.id, ProjectEditStatus::InvalidMidiClipId);
+        if (status != ProjectEditStatus::Applied)
+            return { status, false };
+        for (const Note& note : clip.notes)
+        {
+            status = admitId (note.id, ProjectEditStatus::InvalidNoteId);
+            if (status != ProjectEditStatus::Applied)
+                return { status, false };
+        }
+        for (const MidiControlEvent& control : clip.controlEvents)
+        {
+            status = admitId (control.id, ProjectEditStatus::InvalidMidiControlEventId);
+            if (status != ProjectEditStatus::Applied)
+                return { status, false };
+        }
+
+        Project candidate = project;
+        status = engine::addMidiClip (candidate, clip);
+        if (status != ProjectEditStatus::Applied)
+            return { status, false };
+        if (! candidate.hasValidAssetClipIndirection())
+            return { ProjectEditStatus::InvalidProject, false };
+
+        ProjectEditTransaction transaction;
+        transaction.command = ProjectEditCommand::addMidiClip (
+            clip.id, clip.trackId, clip.timelineStart, clip.timelineLength, clip.timeBase);
+        if (! detail::buildProjectMidiClipRowsDiff (project, candidate, transaction.command, transaction.midiDiff))
+            return { ProjectEditStatus::InvalidProject, false };
+        project = std::move (candidate);
+        return record (std::move (transaction), { ProjectEditStatus::Applied, true });
     }
 
     // G4.6 / ADR-0052: replace one lane's points wholesale (a ride pass, a Pencil or Eraser sweep) as ONE

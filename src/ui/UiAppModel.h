@@ -7917,41 +7917,28 @@ public:
         return true;
     }
 
-    // E8: append a fresh-id copy of a MIDI clip (with all its notes) inside the caller's
-    // transaction group — the same emission the track duplicate uses.
+
     [[nodiscard]] bool appendMidiClipCopy (engine::Project& nextProject,
                                            engine::ProjectUndoStack& nextUndo,
                                            const engine::MidiClip& source,
                                            engine::EntityId targetTrackId,
                                            engine::Tick timelineStart,
-                                           engine::EntityId& copiedId)
+                                           engine::EntityId& copiedId,
+                                           std::uint8_t clipIdSeed = 0xC5u,
+                                           std::uint8_t noteIdSeed = 0xC6u)
     {
-        const engine::EntityId newMidiClipId = allocateSessionEntityId (0xC5u, nextProject);
-        if (! nextUndo.apply (nextProject,
-                              engine::ProjectEditCommand::addMidiClip (newMidiClipId,
-                                                                       targetTrackId,
-                                                                       timelineStart,
-                                                                       source.timelineLength,
-                                                                       source.timeBase)).applied())
+        engine::MidiClip copy = source;
+        copy.id = allocateSessionEntityId (clipIdSeed, nextProject);
+        copy.trackId = targetTrackId;
+        copy.timelineStart = timelineStart;
+        for (engine::Note& note : copy.notes)
+            note.id = allocateSessionEntityId (noteIdSeed, nextProject);
+        for (engine::MidiControlEvent& control : copy.controlEvents)
+            control.id = allocateSessionEntityId (0xB3u, nextProject);
+        const engine::EntityId newId = copy.id;
+        if (! nextUndo.addMidiClip (nextProject, std::move (copy)).applied())
             return false;
-
-        for (const engine::Note& note : source.notes)
-        {
-            engine::ProjectEditCommand noteCommand = engine::ProjectEditCommand::addNote (
-                newMidiClipId,
-                allocateSessionEntityId (0xC6u, nextProject),
-                note.startTick,
-                note.lengthTicks,
-                note.key,
-                note.normalizedVelocity);
-            noteCommand.notePitch = note.pitchNote;
-            noteCommand.notePort = note.portIndex;
-            noteCommand.noteChannel = note.channel;
-            if (! nextUndo.apply (nextProject, noteCommand).applied())
-                return false;
-        }
-
-        copiedId = newMidiClipId;
+        copiedId = newId;
         return true;
     }
 
@@ -8303,30 +8290,10 @@ public:
             if (midiClip.trackId != trackId)
                 continue;
 
-            const engine::EntityId newMidiClipId = allocateSessionEntityId (0xC5u, nextProject);
-            if (! nextUndo.apply (nextProject,
-                                  engine::ProjectEditCommand::addMidiClip (newMidiClipId,
-                                                                           newTrackId,
-                                                                           midiClip.timelineStart,
-                                                                           midiClip.timelineLength,
-                                                                           midiClip.timeBase)).applied())
+            engine::EntityId copiedId;
+            if (! appendMidiClipCopy (nextProject, nextUndo, midiClip, newTrackId,
+                                      midiClip.timelineStart, copiedId))
                 return { id, { false, "duplicate MIDI clip failed" }, false };
-
-            for (const engine::Note& note : midiClip.notes)
-            {
-                engine::ProjectEditCommand noteCommand = engine::ProjectEditCommand::addNote (
-                    newMidiClipId,
-                    allocateSessionEntityId (0xC6u, nextProject),
-                    note.startTick,
-                    note.lengthTicks,
-                    note.key,
-                    note.normalizedVelocity);
-                noteCommand.notePitch = note.pitchNote;
-                noteCommand.notePort = note.portIndex;
-                noteCommand.noteChannel = note.channel;
-                if (! nextUndo.apply (nextProject, noteCommand).applied())
-                    return { id, { false, "duplicate note failed" }, false };
-            }
         }
 
         // AddTrack appends at the back; only reorder when the copy is not already directly below
@@ -15251,46 +15218,17 @@ private:
                     return { id, { false, "edit mode refused the paste" }, false };   // G2.6
                 pastedClipIds.push_back (clip.id);
             }
-            // G3.5: MIDI clips paste whole — the shape, then every note and point, then the settings —
-            // inside the same undo group; every id is fresh.
+
             for (const UiMidiClipClipboardEntry& entry : clipClipboard_.midiClips)
             {
                 const bool sourceTrackExists = trackExists (nextProject, entry.clip.trackId);
-                const engine::EntityId midiClipId = allocateSessionEntityId (0xC4u, nextProject);
                 const engine::EntityId trackId = (clipClipboard_.clips.size() + clipClipboard_.midiClips.size()) > 1u && sourceTrackExists
                     ? entry.clip.trackId
                     : (keepTracks && sourceTrackExists ? entry.clip.trackId : targetTrackId);
                 const engine::Tick start = timelineStart + repeatOffset + entry.timelineOffset;
-                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addMidiClip (
-                        midiClipId, trackId, start, entry.clip.timelineLength, entry.clip.timeBase)).applied())
-                    return { id, state, false };
-                for (const engine::Note& note : entry.clip.notes)
-                {
-                    engine::ProjectEditCommand add = engine::ProjectEditCommand::addNote (
-                        midiClipId, allocateSessionEntityId (0xB2u, nextProject), note.startTick, note.lengthTicks, note.key, note.normalizedVelocity);
-                    add.notePitch = note.pitchNote;
-                    add.notePort = note.portIndex;
-                    add.noteChannel = note.channel;
-                    if (! nextUndo.apply (nextProject, add).applied())
-                        return { id, state, false };
-                }
-                for (const engine::MidiControlEvent& control : entry.clip.controlEvents)
-                {
-                    engine::MidiControlEvent copy = control;
-                    copy.id = allocateSessionEntityId (0xB3u, nextProject);
-                    if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addMidiControlEvent (midiClipId, copy)).applied())
-                        return { id, state, false };
-                }
-                if (entry.clip.muted && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setMidiClipMuted (midiClipId, true)).applied())
-                    return { id, state, false };
-                if (entry.clip.transposeSemitones != 0
-                    && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setMidiClipTranspose (midiClipId, entry.clip.transposeSemitones)).applied())
-                    return { id, state, false };
-                if (entry.clip.velocityOffset != 0.0
-                    && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setMidiClipVelocityOffset (midiClipId, entry.clip.velocityOffset)).applied())
-                    return { id, state, false };
-                if (entry.clip.loopLengthTicks != 0
-                    && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setMidiClipLoopLength (midiClipId, entry.clip.loopLengthTicks)).applied())
+                engine::EntityId midiClipId;
+                if (! appendMidiClipCopy (nextProject, nextUndo, entry.clip, trackId, start,
+                                          midiClipId, 0xC4u, 0xB2u))
                     return { id, state, false };
                 pastedClipIds.push_back (midiClipId);
             }
