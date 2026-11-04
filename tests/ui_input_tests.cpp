@@ -289,7 +289,10 @@ std::filesystem::path makeTempBundlePath (std::string label)
 yesdaw::engine::Project readProjectSnapshot (const std::filesystem::path& bundlePath)
 {
     yesdaw::persistence::ProjectBundleDb db;
-    REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundlePath, db).ok());
+    const auto opened = yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundlePath, db);
+    INFO ("Bundle: " << yesdaw::persistence::detail::utf8Path (bundlePath) << "; open status: " << static_cast<int> (opened.status)
+                    << "; sqlite: " << opened.sqliteCode << "; " << opened.message);
+    REQUIRE (opened.ok());
 
     yesdaw::engine::Project project;
     REQUIRE (db.readProjectSnapshot (project).ok());
@@ -34644,5 +34647,112 @@ TEST_CASE ("offscreen vertical move and Alt-copy preserve a fractional-Frame mus
     REQUIRE_FALSE (snapshotMainComponent (*shell).context.canUndo);
     ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
     REQUIRE (readProjectSnapshot (bundle).midiClips == after.midiClips);
+    requireHeadless();
+}
+
+TEST_CASE ("offscreen Ctrl+C V R D preserve the clipboard and map musical group placement",
+           "[ui][input][shell][timeline][native-clipboard-input]")
+{
+    using namespace yesdaw;
+    auto original = makeMidiInputProject();
+    original.tempoMap = { { 0, 120.0, engine::TempoCurve::Jump }, { 30720, 240.0, engine::TempoCurve::Jump } };
+    auto& first = original.midiClips.front();
+    first.timelineStart = 15360;
+    first.timelineLength = 15360;
+    first.muted = true;
+    first.transposeSemitones = -5;
+    first.velocityOffset = -0.2;
+    first.loopLengthTicks = 3840;
+    first.controlEvents = {
+        { idFromLowByte (10), 128, engine::MidiControlKind::ControlChange, 64, 0.8, 2, 7 },
+        { idFromLowByte (9), 128, engine::MidiControlKind::ControlChange, 64, 0.2, 2, 7 }
+    };
+    auto second = first;
+    second.id = idFromLowByte (6);
+    second.timelineStart = 46080;
+    second.transposeSemitones = 7;
+    for (std::size_t i = 0; i < second.notes.size(); ++i)
+        second.notes[i].id = idFromLowByte (static_cast<std::uint8_t> (20u + i));
+    for (std::size_t i = 0; i < second.controlEvents.size(); ++i)
+        second.controlEvents[i].id = idFromLowByte (static_cast<std::uint8_t> (30u + i));
+    original.midiClips.push_back (second);
+    const auto bundle = makeTempBundlePath ("native-clipboard-input");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.makeNewProject = [original] { return original; };
+    REQUIRE_FALSE (choices.nativePrompts);
+    auto shell = makeShell (std::move (choices));
+    const auto requireHeadless = [&] {
+        REQUIRE (shell->getPeer() == nullptr);
+        const auto snapshot = snapshotMainComponent (*shell);
+        REQUIRE_FALSE (snapshot.desktopAudioRequested);
+        REQUIRE_FALSE (snapshot.desktopAudioOpen);
+    };
+    const auto chord = [&] (int key) {
+        REQUIRE (shell->keyPressed (juce::KeyPress (key, juce::ModifierKeys::ctrlModifier, 0)));
+        requireHeadless();
+    };
+    const auto requireCopy = [&] (engine::MidiClip copy, const engine::MidiClip& source, engine::Tick start) {
+        REQUIRE (copy.id != source.id);
+        REQUIRE (copy.timelineStart == start);
+        auto expected = source;
+        expected.id = copy.id;
+        expected.timelineStart = start;
+        REQUIRE (copy.notes.size() == source.notes.size());
+        REQUIRE (copy.controlEvents.size() == source.controlEvents.size());
+        for (std::size_t i = 0; i < copy.notes.size(); ++i)
+        {
+            REQUIRE (copy.notes[i].id != source.notes[i].id);
+            expected.notes[i].id = copy.notes[i].id;
+        }
+        for (std::size_t i = 0; i < copy.controlEvents.size(); ++i)
+        {
+            REQUIRE (copy.controlEvents[i].id != source.controlEvents[i].id);
+            expected.controlEvents[i].id = copy.controlEvents[i].id;
+        }
+        REQUIRE (copy == expected);
+    };
+    requireHeadless();
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapDisable);
+    auto& timeline = requireTimelineComponent (*shell);
+    const auto clipPoint = [&] (std::size_t index) {
+        ui::MidiClipPreview preview;
+        REQUIRE (ui::midiClipPreview (original, original.midiClips[index], 0, preview));
+        const auto snapshot = snapshotMainComponent (*shell);
+        const auto ruler = projectRulerPointAtTick (timeline, snapshot, original,
+            static_cast<engine::Tick> (std::llround ((preview.startSeconds + preview.lengthSeconds * 0.5) * 48000.0)));
+        ui::TimelineCanvasState state;
+        state.trackCount = 1;
+        const auto geometry = ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+        return juce::Point<int> { ruler.x, geometry.clipArea.getY() + geometry.laneHeight / 2 };
+    };
+    mouseDownAt (timeline, clipPoint (0));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+    chord ('c');
+    mouseDownAt (timeline, clipPoint (1), juce::ModifierKeys (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::shiftModifier));
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 2);
+    chord ('d');
+    auto edited = readProjectSnapshot (bundle);
+    REQUIRE (edited.midiClips.size() == 4u);
+    requireCopy (edited.midiClips[2], original.midiClips[0], 61440);
+    requireCopy (edited.midiClips[3], original.midiClips[1], 107520);
+    mouseDownAt (timeline, projectRulerPointAtTick (timeline, snapshotMainComponent (*shell), edited, 60000));
+    const auto frame = snapshotMainComponent (*shell).context.playheadFrame;
+    REQUIRE (frame > 48000);
+    const engine::Tick nativeStart = 30720 + ((frame - 48000) * 32 + 12) / 25;
+    chord ('v');
+    edited = readProjectSnapshot (bundle);
+    REQUIRE (edited.midiClips.size() == 5u);
+    requireCopy (edited.midiClips.back(), original.midiClips[0], nativeStart);
+    chord ('r');
+    const auto repeated = readProjectSnapshot (bundle);
+    REQUIRE (repeated.midiClips.size() == 7u);
+    requireCopy (repeated.midiClips[5], original.midiClips[0], nativeStart);
+    requireCopy (repeated.midiClips[6], original.midiClips[0], nativeStart + 15360);
+    chord ('z');
+    REQUIRE (readProjectSnapshot (bundle).midiClips == edited.midiClips);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('z', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    REQUIRE (readProjectSnapshot (bundle).midiClips == repeated.midiClips);
     requireHeadless();
 }

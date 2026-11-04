@@ -6,6 +6,7 @@
 
 #include <optional>
 #include <span>
+#include <memory>
 
 namespace yesdaw::ui {
 
@@ -79,6 +80,190 @@ struct TimelineFrameDisplacement
     return position.timeBase == engine::TimeBase::SampleLocked
         ? engine::click_detail::integer (static_cast<std::uint64_t> (position.start))
         : clock.framePosition (position.start);
+}
+
+struct TimelineFramePoint
+{
+    std::int64_t integerOrigin = 0;
+    engine::click_detail::Enclosure offset;
+    std::shared_ptr<const engine::MusicalClickMap> clock;
+    std::optional<engine::Tick> nativeTick;
+
+    [[nodiscard]] static TimelineFramePoint exact (std::int64_t frame) noexcept
+    {
+        TimelineFramePoint point;
+        point.integerOrigin = frame;
+        return point;
+    }
+    [[nodiscard]] bool exactFrame() const noexcept
+    {
+        return ! offset.numericFailure && offset.low == 0.0 && offset.high == 0.0;
+    }
+};
+
+struct TimelineFrameSpan
+{
+    TimelineFramePoint start, end;
+};
+
+[[nodiscard]] inline engine::click_detail::Enclosure timelineFrameValue (const TimelineFramePoint& point) noexcept
+{
+    return engine::click_detail::add (timelineSignedInteger (point.integerOrigin), point.offset);
+}
+
+[[nodiscard]] inline bool timelineSameFramePoint (const TimelineFramePoint& a, const TimelineFramePoint& b) noexcept
+{
+    if (a.exactFrame() && b.exactFrame()) return a.integerOrigin == b.integerOrigin;
+    if (a.nativeTick && b.nativeTick && a.clock == b.clock && a.clock != nullptr)
+        return a.nativeTick == b.nativeTick;
+    const auto av = timelineFrameValue (a), bv = timelineFrameValue (b);
+    return ! av.numericFailure && ! bv.numericFailure && av.low == av.high && bv.low == bv.high && av.low == bv.low;
+}
+
+[[nodiscard]] inline TimelineCoordinateStatus timelineCheckFramePoint (const TimelineFramePoint& point) noexcept
+{
+    if (point.integerOrigin < 0) return TimelineCoordinateStatus::BeforeOrigin;
+    if (point.exactFrame()) return TimelineCoordinateStatus::Ok;
+    const auto value = point.offset;
+    if (value.numericFailure || ! std::isfinite (value.low) || ! std::isfinite (value.high)) return TimelineCoordinateStatus::Precision;
+    if (value.low < 0.0 && engine::click_detail::compareScalar (-value.low, point.integerOrigin) > 0)
+        return value.high < 0.0 && engine::click_detail::compareScalar (-value.high, point.integerOrigin) > 0
+            ? TimelineCoordinateStatus::BeforeOrigin : TimelineCoordinateStatus::Precision;
+    if (point.integerOrigin == 0)
+    {
+        if (value.low >= 0x1p63) return TimelineCoordinateStatus::Overflow;
+        if (value.high >= 0x1p63) return TimelineCoordinateStatus::Precision;
+    }
+    else
+    {
+        const auto limit = (INT64_MAX - point.integerOrigin) + 1;
+        if (engine::click_detail::compareScalar (value.low, limit) >= 0) return TimelineCoordinateStatus::Overflow;
+        if (engine::click_detail::compareScalar (value.high, limit) >= 0) return TimelineCoordinateStatus::Precision;
+    }
+    return TimelineCoordinateStatus::Ok;
+}
+
+[[nodiscard]] inline TimelineCoordinateStatus timelineCompareFramePoints (
+    const TimelineFramePoint& a, const TimelineFramePoint& b, int& order) noexcept
+{
+    order = 0;
+    auto status = timelineCheckFramePoint (a);
+    if (status != TimelineCoordinateStatus::Ok) return status;
+    status = timelineCheckFramePoint (b);
+    if (status != TimelineCoordinateStatus::Ok) return status;
+    if (timelineSameFramePoint (a, b)) return TimelineCoordinateStatus::Ok;
+    if (a.exactFrame() && b.exactFrame()) order = a.integerOrigin < b.integerOrigin ? -1 : 1;
+    else if (a.nativeTick && b.nativeTick && a.clock == b.clock && a.clock != nullptr)
+        order = *a.nativeTick < *b.nativeTick ? -1 : 1;
+    else
+    {
+        const auto av = timelineFrameValue (a), bv = timelineFrameValue (b);
+        if (av.numericFailure || bv.numericFailure) return TimelineCoordinateStatus::Precision;
+        if (av.high <= bv.low) order = -1;
+        else if (bv.high <= av.low) order = 1;
+        else return TimelineCoordinateStatus::Precision;
+    }
+    return TimelineCoordinateStatus::Ok;
+}
+
+[[nodiscard]] inline TimelineCoordinateStatus timelineProjectFrameSpan (
+    const std::shared_ptr<const engine::MusicalClickMap>& clock, TimelineNativePosition start,
+    engine::Tick length, TimelineFrameSpan& out) noexcept
+{
+    if (start.start < 0 || length <= 0) return TimelineCoordinateStatus::InvalidInput;
+    if (length > INT64_MAX - start.start) return TimelineCoordinateStatus::Overflow;
+    const auto project = [&] (engine::Tick tick, TimelineFramePoint& point) {
+        point = TimelineFramePoint::exact (tick);
+        if (start.timeBase == engine::TimeBase::TempoLocked)
+        {
+            if (clock == nullptr) return TimelineCoordinateStatus::Precision;
+            point.integerOrigin = 0;
+            point.offset = clock->framePosition (tick);
+            point.clock = clock;
+            point.nativeTick = tick;
+            const auto status = timelineCheckFramePoint (point);
+            if (status != TimelineCoordinateStatus::Ok) return status;
+            const double integral = std::floor (point.offset.low);
+            point.integerOrigin = static_cast<std::int64_t> (integral);
+            point.offset = engine::click_detail::add (point.offset, { -integral, -integral, false });
+        }
+        return timelineCheckFramePoint (point);
+    };
+    auto status = project (start.start, out.start);
+    return status == TimelineCoordinateStatus::Ok ? project (start.start + length, out.end) : status;
+}
+
+[[nodiscard]] inline TimelineCoordinateStatus timelineExpandFrameSpan (
+    TimelineFrameSpan& bounds, const TimelineFrameSpan& candidate) noexcept
+{
+    int order = 0;
+    auto status = timelineCompareFramePoints (candidate.start, bounds.start, order);
+    if (status != TimelineCoordinateStatus::Ok) return status;
+    if (order < 0) bounds.start = candidate.start;
+    status = timelineCompareFramePoints (candidate.end, bounds.end, order);
+    if (status == TimelineCoordinateStatus::Ok && order > 0) bounds.end = candidate.end;
+    return status;
+}
+
+[[nodiscard]] inline TimelineCoordinateStatus timelineTranslateFramePoint (
+    const TimelineFramePoint& base, const TimelineFrameSpan& offset, TimelineFramePoint& out) noexcept
+{
+    auto status = timelineCheckFramePoint (base);
+    if (status != TimelineCoordinateStatus::Ok) return status;
+    status = timelineCheckFramePoint (offset.start);
+    if (status != TimelineCoordinateStatus::Ok) return status;
+    status = timelineCheckFramePoint (offset.end);
+    if (status != TimelineCoordinateStatus::Ok) return status;
+    if (timelineSameFramePoint (offset.start, offset.end)) out = base;
+    else if (timelineSameFramePoint (base, offset.start)) out = offset.end;
+    else
+    {
+        const auto integerShift = offset.end.integerOrigin - offset.start.integerOrigin;
+        auto fractionalShift = engine::click_detail::add (offset.end.offset,
+            { -offset.start.offset.high, -offset.start.offset.low, offset.start.offset.numericFailure });
+        out = base;
+        out.clock.reset();
+        out.nativeTick.reset();
+        if (integerShift < -out.integerOrigin)
+        {
+            fractionalShift = engine::click_detail::add (fractionalShift,
+                timelineSignedInteger (out.integerOrigin + integerShift));
+            out.integerOrigin = 0;
+        }
+        else if (integerShift > INT64_MAX - out.integerOrigin)
+        {
+            fractionalShift = engine::click_detail::add (fractionalShift,
+                timelineSignedInteger (integerShift - (INT64_MAX - out.integerOrigin)));
+            out.integerOrigin = INT64_MAX;
+        }
+        else out.integerOrigin += integerShift;
+        out.offset = engine::click_detail::add (out.offset, fractionalShift);
+    }
+    return timelineCheckFramePoint (out);
+}
+
+[[nodiscard]] inline TimelineCoordinateStatus timelineNativeFrameTarget (
+    const std::shared_ptr<const engine::MusicalClickMap>& clock, engine::TimeBase timeBase,
+    const TimelineFramePoint& point, engine::Tick& out) noexcept
+{
+    const auto status = timelineCheckFramePoint (point);
+    if (status != TimelineCoordinateStatus::Ok) return status;
+    if (timeBase == engine::TimeBase::TempoLocked)
+    {
+        if (clock == nullptr) return TimelineCoordinateStatus::Precision;
+        if (point.clock == clock && point.nativeTick) { out = *point.nativeTick; return TimelineCoordinateStatus::Ok; }
+        return timelineStatus (clock->tickAtFramePosition (timelineFrameValue (point), out));
+    }
+    const auto shifted = engine::click_detail::add (point.offset, { 0.5, 0.5, false });
+    const double low = std::floor (shifted.low), high = std::floor (shifted.high);
+    if (shifted.numericFailure) return TimelineCoordinateStatus::Precision;
+    if (low < -0x1p63 || high >= 0x1p63) return TimelineCoordinateStatus::Overflow;
+    if (low != high) return TimelineCoordinateStatus::Precision;
+    const auto delta = static_cast<std::int64_t> (low);
+    if (delta < -point.integerOrigin) return TimelineCoordinateStatus::BeforeOrigin;
+    if (delta > INT64_MAX - point.integerOrigin) return TimelineCoordinateStatus::Overflow;
+    out = point.integerOrigin + delta;
+    return TimelineCoordinateStatus::Ok;
 }
 
 [[nodiscard]] inline TimelineCoordinateStatus timelineDisplacementTo (

@@ -486,7 +486,7 @@ TEST_CASE ("MIDI duplicate, copy-drag, Track duplicate and Paste retain the comp
                            : operation == Copy::Duplicate ? original.tracks[1].id : original.tracks[2].id;
     // Only the arrange target is in Project Frames here; the clipboard retains its existing contract.
     const yesdaw::engine::Tick start = operation == Copy::Track ? 125 : operation == Copy::Duplicate ? 221
-        : operation == Copy::Drag && timeBase == TimeBase::TempoLocked ? 1000 * 15360 / 24000 : 1000;
+        : (operation == Copy::Drag || operation == Copy::Paste) && timeBase == TimeBase::TempoLocked ? 1000 * 15360 / 24000 : 1000;
     requireFreshWholeMidiCopy (copied, original.midiClips.front(), targetTrack, start, original);
     requireSameCopiedControlSequence (copied, original.midiClips.front(), original);
     REQUIRE (app.project().hasValidAssetClipIndirection());
@@ -1086,7 +1086,8 @@ TEST_CASE ("offered whole-Clip Cut removes MIDI and mixed selections durably as 
     REQUIRE (app.dispatch (UiActionId::TimelineClipPaste).dispatched);
     REQUIRE (app.project().midiClips.size() == cut.midiClips.size() + 1u);
     requireFreshWholeMidiCopy (app.project().midiClips.back(), original.midiClips.front(),
-                              original.midiClips.front().trackId, 1000, original);
+                              original.midiClips.front().trackId,
+                              midiTimeBase == TimeBase::TempoLocked ? 640 : 1000, original);
     REQUIRE (app.project().midiClips.front() == original.midiClips.back());
     if (includeAudio)
     {
@@ -4051,4 +4052,588 @@ TEST_CASE ("Grid nudge retains the previously chosen numeric value while Snap is
     CHECK (app.project().clips[0].timelineStart == expected);
     REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
     REQUIRE (app.project().clips == song.clips);
+}
+
+
+namespace {
+
+Project makeNativeClipboardProofProject()
+{
+    using namespace yesdaw::engine;
+    auto project = makeCompleteMidiCopyProject();
+    project.assets.clear();
+    project.clips.clear();
+    for (auto& track : project.tracks)
+        track.instrumentKind = TrackInstrumentKind::SimpleSynth;
+    project.midiClips[1].trackId = project.tracks[2].id;
+    auto sentinel = project.midiClips[1];
+    sentinel.id = idFromLowByte (0x80);
+    sentinel.trackId = project.tracks[0].id;
+    sentinel.timelineStart = 200000;
+    for (std::size_t i = 0; i < sentinel.notes.size(); ++i)
+        sentinel.notes[i].id = idFromLowByte (static_cast<std::uint8_t> (0x81u + i));
+    for (std::size_t i = 0; i < sentinel.controlEvents.size(); ++i)
+        sentinel.controlEvents[i].id = idFromLowByte (static_cast<std::uint8_t> (0x90u + i));
+    project.midiClips.push_back (sentinel);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    return project;
+}
+
+void writeNativeClipboardProofBundle (const std::filesystem::path& bundle, const Project& project)
+{
+    ProjectBundleDb db;
+    REQUIRE (ProjectBundleDb::openOrCreateBundle (bundle, db).ok());
+    REQUIRE (db.writeProjectSnapshot (project).ok());
+}
+
+void requireNativeClipboardProofRows (const std::filesystem::path& bundle, const Project& expected)
+{
+    UiAppModel reopened;
+    REQUIRE (reopened.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (reopened.project().midiClips == expected.midiClips);
+    REQUIRE (reopened.project().clips == expected.clips);
+    REQUIRE (reopened.project().tracks == expected.tracks);
+}
+
+void requireNativeClipboardProofHistory (UiAppModel& app, const std::filesystem::path& bundle,
+                                        const Project& before, std::size_t copyCount)
+{
+    const Project after = app.project();
+    REQUIRE (app.selectedTimelineClipCount() == copyCount);
+    std::set<EntityId> ids;
+    for (const auto& clip : after.midiClips)
+    {
+        REQUIRE (ids.insert (clip.id).second);
+        for (const auto& note : clip.notes)
+            REQUIRE (ids.insert (note.id).second);
+        for (const auto& point : clip.controlEvents)
+            REQUIRE (ids.insert (point.id).second);
+    }
+    requireNativeClipboardProofRows (bundle, after);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().midiClips == before.midiClips);
+    REQUIRE (app.project().tracks == before.tracks);
+    requireNativeClipboardProofRows (bundle, before);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    REQUIRE (app.project().midiClips == after.midiClips);
+    REQUIRE (app.project().tracks == after.tracks);
+    requireNativeClipboardProofRows (bundle, after);
+}
+
+template <typename Action>
+void requireNativeClipboardProofSaveRefusal (UiAppModel& app, const std::filesystem::path& bundle, Action action)
+{
+    const Project before = app.project();
+    const auto context = app.context();
+    const auto selected = app.selectedTimelineClipId();
+    const auto selectedCount = app.selectedTimelineClipCount();
+    const auto serial = app.editSerial();
+    const auto replacements = app.playbackReplaceCount();
+    sqlite3* connection = nullptr;
+    const auto path = yesdaw::io::utf8Text (bundle / "project.db");
+    REQUIRE (sqlite3_open (path.c_str(), &connection) == SQLITE_OK);
+    REQUIRE (sqlite3_exec (connection,
+        "CREATE TRIGGER refuse_native_clipboard BEFORE DELETE ON midi_clips BEGIN SELECT RAISE(ABORT, 'save refused'); END;",
+        nullptr, nullptr, nullptr) == SQLITE_OK);
+    const auto result = action();
+    CHECK_FALSE (result.dispatched);
+    CHECK (std::string_view (result.state.disabledReason) == "timeline edit did not persist");
+    REQUIRE (app.project().midiClips == before.midiClips);
+    REQUIRE (app.project().clips == before.clips);
+    REQUIRE (app.project().tracks == before.tracks);
+    REQUIRE (app.project().assets == before.assets);
+    REQUIRE (app.selectedTimelineClipId() == selected);
+    REQUIRE (app.selectedTimelineClipCount() == selectedCount);
+    REQUIRE (app.context().clipboardHasClip == context.clipboardHasClip);
+    REQUIRE (app.context().canUndo == context.canUndo);
+    REQUIRE (app.context().canRedo == context.canRedo);
+    REQUIRE (app.context().commandDispatchCount == context.commandDispatchCount);
+    REQUIRE (app.context().timelineEditCount == context.timelineEditCount);
+    REQUIRE (app.editSerial() == serial);
+    REQUIRE (app.playbackReplaceCount() == replacements);
+    requireNativeClipboardProofRows (bundle, before);
+    REQUIRE (sqlite3_exec (connection, "DROP TRIGGER refuse_native_clipboard;", nullptr, nullptr, nullptr) == SQLITE_OK);
+    REQUIRE (sqlite3_close (connection) == SQLITE_OK);
+}
+
+} // namespace
+
+TEST_CASE ("native clipboard captures fractional source Frame offsets across map edits and MIDI Projects",
+           "[ui][app][native-clipboard-red][clipboard-capture]")
+{
+    using namespace yesdaw::engine;
+    const bool replaceProject = GENERATE (false, true);
+    const bool cut = GENERATE (false, true);
+    CAPTURE (replaceProject, cut);
+    auto source = makeNativeClipboardProofProject();
+    source.tempoMap = { { 0, 120.0, TempoCurve::Jump } };
+    source.midiClips[0].timeBase = TimeBase::TempoLocked;
+    source.midiClips[0].timelineStart = 15361;
+    source.midiClips[1].timeBase = TimeBase::SampleLocked;
+    source.midiClips[1].timelineStart = 24000;
+    const auto sourceBundle = makeTempBundlePath ("native-clipboard-source");
+    writeNativeClipboardProofBundle (sourceBundle, source);
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (sourceBundle, {}).ok());
+    const std::array selection { source.midiClips[0].id, source.midiClips[1].id };
+    REQUIRE (app.selectTimelineClips (selection));
+    const auto copyAction = cut ? UiActionId::TimelineClipCut : UiActionId::TimelineClipCopy;
+    if (cut)
+        requireNativeClipboardProofSaveRefusal (app, sourceBundle, [&] { return app.dispatch (copyAction); });
+    REQUIRE (app.dispatch (copyAction).dispatched);
+    REQUIRE (app.context().clipboardHasClip);
+    if (cut)
+    {
+        REQUIRE (app.project().midiClips.size() == 1u);
+        const auto cutProject = app.project();
+        requireNativeClipboardProofRows (sourceBundle, cutProject);
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        REQUIRE (app.project().midiClips == source.midiClips);
+        REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+        REQUIRE (app.project().midiClips == cutProject.midiClips);
+    }
+    auto destinationBundle = sourceBundle;
+    if (replaceProject)
+    {
+        auto destination = source;
+        destination.id = idFromLowByte (0xA0);
+        destination.tempoMap = { { 0, 240.0, TempoCurve::Jump } };
+        for (std::size_t i = 0; i < destination.tracks.size(); ++i)
+        {
+            const auto oldId = destination.tracks[i].id;
+            const auto newId = idFromLowByte (static_cast<std::uint8_t> (0xA1u + i));
+            destination.tracks[i].id = newId;
+            for (auto& clip : destination.midiClips)
+                if (clip.trackId == oldId)
+                    clip.trackId = newId;
+        }
+        destinationBundle = makeTempBundlePath ("native-clipboard-destination");
+        writeNativeClipboardProofBundle (destinationBundle, destination);
+        REQUIRE (app.loadProjectBundle (destinationBundle, {}).ok());
+    }
+    else
+        REQUIRE (app.setProjectTempoBpm (240.0).dispatched);
+    CHECK (app.context().clipboardHasClip);
+    REQUIRE (app.registry().stateFor (UiActionId::TimelineClipPaste, app.context()).enabled);
+    REQUIRE (app.selectMixerTrack (2, false));
+    REQUIRE (app.locatePlaybackFrame (60000));
+    requireNativeClipboardProofSaveRefusal (app, destinationBundle,
+                                           [&] { return app.dispatch (UiActionId::TimelineClipPaste); });
+    const auto before = app.project();
+    REQUIRE (app.dispatch (UiActionId::TimelineClipPaste).dispatched);
+    REQUIRE (app.project().midiClips.size() == before.midiClips.size() + 2u);
+    // At 120 BPM F(T)=25*T/16. Captured offsets are 1.5625 and 0 Frames.
+    // At destination 240 BPM, (60000+1.5625)*32/25=76802 exactly.
+    const std::array<Tick, 2> expectedStarts { 76802, 60000 };
+    for (std::size_t i = 0; i < 2; ++i)
+    {
+        const auto& copy = app.project().midiClips[before.midiClips.size() + i];
+        CHECK (copy.timelineStart == expectedStarts[i]);
+        const auto track = replaceProject ? before.tracks[2].id : source.midiClips[i].trackId;
+        requireFreshWholeMidiCopy (copy, source.midiClips[i], track, copy.timelineStart, before);
+        REQUIRE (app.isTimelineClipSelected (copy.id));
+    }
+    requireNativeClipboardProofHistory (app, destinationBundle, before, 2u);
+}
+
+TEST_CASE ("native repeat Paste uses the preceding copies projected ends across a Tempo jump",
+           "[ui][app][native-clipboard-red][clipboard-repeat-jump]")
+{
+    using namespace yesdaw::engine;
+    auto source = makeNativeClipboardProofProject();
+    source.tempoMap = { { 0, 120.0, TempoCurve::Jump }, { 30720, 240.0, TempoCurve::Jump } };
+    source.midiClips[0].timeBase = TimeBase::TempoLocked;
+    source.midiClips[0].timelineStart = 15360;
+    source.midiClips[0].timelineLength = 30720;
+    source.midiClips[1].timeBase = TimeBase::SampleLocked;
+    source.midiClips[1].timelineStart = 30000;
+    source.midiClips[1].timelineLength = 12000;
+    const auto bundle = makeTempBundlePath ("native-clipboard-jump");
+    writeNativeClipboardProofBundle (bundle, source);
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    const std::array selection { source.midiClips[0].id, source.midiClips[1].id };
+    REQUIRE (app.selectTimelineClips (selection));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+    REQUIRE (app.locatePlaybackFrame (48000));
+    app.setRepeatPasteCount (2);
+    requireNativeClipboardProofSaveRefusal (app, bundle,
+                                           [&] { return app.dispatch (UiActionId::TimelineClipRepeatPaste); });
+    const auto before = app.project();
+    REQUIRE (app.dispatch (UiActionId::TimelineClipRepeatPaste).dispatched);
+    REQUIRE (app.project().midiClips.size() == before.midiClips.size() + 4u);
+    // Source projects to TL [24000,60000), SL [30000,42000): offset 6000.
+    // Destination first actual ends are 72000/66000; the next base is 72000.
+    const std::array<Tick, 4> expectedStarts { 30720, 54000, 61440, 78000 };
+    for (std::size_t i = 0; i < 4; ++i)
+    {
+        const auto& copy = app.project().midiClips[before.midiClips.size() + i];
+        CHECK (copy.timelineStart == expectedStarts[i]);
+        const auto& original = source.midiClips[i % 2u];
+        requireFreshWholeMidiCopy (copy, original, original.trackId, copy.timelineStart, before);
+        REQUIRE (app.isTimelineClipSelected (copy.id));
+    }
+    requireNativeClipboardProofHistory (app, bundle, before, 4u);
+}
+
+TEST_CASE ("native repeat Paste reprojects a canonically rounded first copy through a Tempo ramp",
+           "[ui][app][native-clipboard-red][clipboard-repeat-ramp]")
+{
+    using namespace yesdaw::engine;
+    auto source = makeNativeClipboardProofProject();
+    source.midiClips.resize (1);
+    source.tempoMap = { { 0, 120.0, TempoCurve::LinearRamp }, { 61440, 240.0, TempoCurve::Jump } };
+    source.midiClips[0].timeBase = TimeBase::TempoLocked;
+    source.midiClips[0].timelineStart = 0;
+    source.midiClips[0].timelineLength = 15360;
+    const auto bundle = makeTempBundlePath ("native-clipboard-ramp");
+    writeNativeClipboardProofBundle (bundle, source);
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (app.selectTimelineClip (source.midiClips[0].id));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+    REQUIRE (app.selectMixerTrack (static_cast<int> (std::find_if (
+        app.project().tracks.begin(), app.project().tracks.end(),
+        [&] (const Track& track) { return track.id == source.midiClips[0].trackId; })
+        - app.project().tracks.begin()), false));
+    REQUIRE (app.locatePlaybackFrame (24000));
+    app.setRepeatPasteCount (2);
+    const auto before = app.project();
+    REQUIRE (app.dispatch (UiActionId::TimelineClipRepeatPaste).dispatched);
+    REQUIRE (app.project().midiClips.size() == 3u);
+    // Independent integral F(T)=96000*log(1+T/61440).
+    // Its inverse at Frame 24000 is 17450.521601..., rounding once to 17451.
+    // Reprojecting that copy's end yields F(32811), so the next start is 32811.
+    const std::array<Tick, 2> expectedStarts { 17451, 32811 };
+    for (std::size_t i = 0; i < 2; ++i)
+    {
+        const auto& copy = app.project().midiClips[i + 1u];
+        CHECK (copy.timelineStart == expectedStarts[i]);
+        requireFreshWholeMidiCopy (copy, source.midiClips[0], source.midiClips[0].trackId,
+                                  copy.timelineStart, before);
+    }
+    requireNativeClipboardProofHistory (app, bundle, before, 2u);
+}
+
+TEST_CASE ("native Ctrl+D retains exact SampleLocked group bounds above binary64 integer precision",
+           "[ui][app][native-clipboard-red][clipboard-exact-large]")
+{
+    using namespace yesdaw::engine;
+    auto source = makeNativeClipboardProofProject();
+    const bool unavailableClock = GENERATE (false, true);
+    CAPTURE (unavailableClock);
+    if (unavailableClock)
+        source.tempoMap = { { 0, 1.0e-300, TempoCurve::LinearRamp },
+            { Tick { 1 } << 48, std::nextafter (1.0e-300, 1.0), TempoCurve::Jump } };
+    constexpr Tick start = (Tick { 1 } << 53) + 1;
+    source.midiClips[0].timeBase = TimeBase::SampleLocked;
+    source.midiClips[0].timelineStart = start;
+    source.midiClips[0].timelineLength = 96;
+    source.midiClips[1].timeBase = TimeBase::SampleLocked;
+    source.midiClips[1].timelineStart = start + 3;
+    source.midiClips[1].timelineLength = 96;
+    const auto bundle = makeTempBundlePath ("native-clipboard-large");
+    writeNativeClipboardProofBundle (bundle, source);
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    if (unavailableClock)
+    {
+        REQUIRE_FALSE (app.dispatch (UiActionId::TransportToggleMetronome).dispatched);
+        REQUIRE_FALSE (app.context().metronomeEnabled);
+        REQUIRE (app.statusLineText().starts_with ("Metronome unavailable:"));
+    }
+    const std::array selection { source.midiClips[0].id, source.midiClips[1].id };
+    REQUIRE (app.selectTimelineClips (selection));
+    requireNativeClipboardProofSaveRefusal (app, bundle,
+                                           [&] { return app.dispatch (UiActionId::TimelineClipDuplicate); });
+    const auto before = app.project();
+    REQUIRE (app.dispatch (UiActionId::TimelineClipDuplicate).dispatched);
+    REQUIRE (app.project().midiClips.size() == before.midiClips.size() + 2u);
+    const std::array<Tick, 2> expectedStarts { start + 99, start + 102 };
+    for (std::size_t i = 0; i < 2; ++i)
+    {
+        const auto& copy = app.project().midiClips[before.midiClips.size() + i];
+        CHECK (copy.timelineStart == expectedStarts[i]);
+        requireFreshWholeMidiCopy (copy, source.midiClips[i], source.midiClips[i].trackId,
+                                  copy.timelineStart, before);
+    }
+    requireNativeClipboardProofHistory (app, bundle, before, 2u);
+    if (unavailableClock)
+    {
+        // Musical preparation failure must not disable exact integer Frame clipboard edits.
+        REQUIRE (app.selectTimelineClips (selection));
+        REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+        REQUIRE (app.locatePlaybackFrame (60000));
+        app.setRepeatPasteCount (2);
+        const auto beforeRepeat = app.project();
+        REQUIRE (app.dispatch (UiActionId::TimelineClipRepeatPaste).dispatched);
+        REQUIRE (app.project().midiClips.size() == beforeRepeat.midiClips.size() + 4u);
+        const std::array<Tick, 4> expectedRepeatStarts { 60000, 60003, 60099, 60102 };
+        for (std::size_t i = 0; i < 4; ++i)
+        {
+            const auto& copy = app.project().midiClips[beforeRepeat.midiClips.size() + i];
+            CHECK (copy.timelineStart == expectedRepeatStarts[i]);
+            const auto& originalClip = source.midiClips[i % 2u];
+            requireFreshWholeMidiCopy (copy, originalClip, originalClip.trackId,
+                                      copy.timelineStart, beforeRepeat);
+        }
+        requireNativeClipboardProofHistory (app, bundle, beforeRepeat, 4u);
+    }
+}
+
+
+TEST_CASE ("audio clipboard keeps attachment policy and refused Time-selection Cut preserves prior MIDI",
+           "[ui][app][native-clipboard-red][clipboard-range-cut-refusal]")
+{
+    enum class Policy { RefusedRangeCut, AudioAfterAttach, MixedAfterAttach };
+    const auto policy = GENERATE (Policy::RefusedRangeCut, Policy::AudioAfterAttach, Policy::MixedAfterAttach);
+    CAPTURE (policy);
+    const auto source = makeCompleteMidiCopyProject();
+    const auto bundle = makeTempBundlePath ("native-clipboard-range-cut-refusal");
+    writeNativeClipboardProofBundle (bundle, source);
+    writeProjectAssetFiles (bundle, source);
+    const auto decoded = makeDecodedAsset (source.assets.front());
+    const std::span<const UiDecodedAsset> decodedView (&decoded, 1);
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundle, decodedView).ok());
+    const auto requireRows = [&] (const Project& expected) {
+        UiAppModel reopened;
+        REQUIRE (reopened.loadProjectBundle (bundle, decodedView).ok());
+        REQUIRE (reopened.project().clips == expected.clips);
+        REQUIRE (reopened.project().midiClips == expected.midiClips);
+        REQUIRE (reopened.project().tracks == expected.tracks);
+        REQUIRE (reopened.project().assets == expected.assets);
+    };
+    if (policy != Policy::RefusedRangeCut)
+    {
+        REQUIRE (app.selectTimelineClip (source.clips.front().id));
+        if (policy == Policy::MixedAfterAttach)
+            REQUIRE (app.selectTimelineClipForGesture (source.midiClips.front().id, true));
+        REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+        REQUIRE (app.context().clipboardHasClip);
+        REQUIRE (app.loadProjectBundle (bundle, decodedView).ok());
+        const auto attached = app.project();
+        const auto attachedContext = app.context();
+        const auto attachedSerial = app.editSerial();
+        const auto refused = app.dispatch (UiActionId::TimelineClipPaste);
+        REQUIRE_FALSE (refused.dispatched);
+        REQUIRE (std::string_view (refused.state.disabledReason) == "clipboard has no clip");
+        REQUIRE_FALSE (app.context().clipboardHasClip);
+        REQUIRE (app.project().clips == attached.clips);
+        REQUIRE (app.project().midiClips == attached.midiClips);
+        REQUIRE (app.project().tracks == attached.tracks);
+        REQUIRE (app.project().assets == attached.assets);
+        REQUIRE (app.context().commandDispatchCount == attachedContext.commandDispatchCount);
+        REQUIRE (app.context().timelineEditCount == attachedContext.timelineEditCount);
+        REQUIRE (app.editSerial() == attachedSerial);
+        requireRows (attached);
+        return;
+    }
+    REQUIRE (app.renameProjectTrack (source.tracks.front().id, "Range undo survives").dispatched);
+    REQUIRE (app.renameProjectTrack (source.tracks.front().id, "Range redo survives").dispatched);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.context().canUndo);
+    REQUIRE (app.context().canRedo);
+    REQUIRE (app.selectTimelineClip (source.midiClips.front().id));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+    const auto& audio = source.clips.front();
+    REQUIRE (audio.timeBase == TimeBase::SampleLocked);
+    REQUIRE (app.setTimelineRangeSelection (audio.timelineStart, audio.timelineStart + audio.timelineLength));
+    app.clearTimelineClipSelection();
+    REQUIRE (app.registry().stateFor (UiActionId::TimelineRangeCut, app.context()).enabled);
+    const auto before = app.project();
+    const auto context = app.context();
+    const auto serial = app.editSerial();
+    const auto replacements = app.playbackReplaceCount();
+    sqlite3* connection = nullptr;
+    const auto path = yesdaw::io::utf8Text (bundle / "project.db");
+    REQUIRE (sqlite3_open (path.c_str(), &connection) == SQLITE_OK);
+    REQUIRE (sqlite3_exec (connection,
+        "CREATE TRIGGER refuse_audio_range_cut BEFORE DELETE ON midi_clips BEGIN SELECT RAISE(ABORT, 'save refused'); END;",
+        nullptr, nullptr, nullptr) == SQLITE_OK);
+    const auto refused = app.dispatch (UiActionId::TimelineRangeCut);
+    REQUIRE_FALSE (refused.dispatched);
+    REQUIRE (std::string_view (refused.state.disabledReason) == "timeline edit did not persist");
+    REQUIRE (app.project().clips == before.clips);
+    REQUIRE (app.project().midiClips == before.midiClips);
+    REQUIRE (app.project().tracks == before.tracks);
+    REQUIRE (app.project().assets == before.assets);
+    REQUIRE (app.selectedTimelineClipCount() == 0u);
+    REQUIRE_FALSE (app.selectedTimelineClipId().isValid());
+    REQUIRE_FALSE (app.context().timelineClipSelected);
+    REQUIRE (app.timelineRangeStartFrame() == audio.timelineStart);
+    REQUIRE (app.timelineRangeEndFrame() == audio.timelineStart + audio.timelineLength);
+    REQUIRE (app.context().timelineRangeSelected == context.timelineRangeSelected);
+    REQUIRE (app.context().clipboardHasClip == context.clipboardHasClip);
+    REQUIRE (app.context().canUndo == context.canUndo);
+    REQUIRE (app.context().canRedo == context.canRedo);
+    REQUIRE (app.context().commandDispatchCount == context.commandDispatchCount);
+    REQUIRE (app.context().timelineEditCount == context.timelineEditCount);
+    REQUIRE (app.editSerial() == serial);
+    REQUIRE (app.playbackReplaceCount() == replacements);
+    requireRows (before);
+    REQUIRE (sqlite3_exec (connection, "DROP TRIGGER refuse_audio_range_cut;", nullptr, nullptr, nullptr) == SQLITE_OK);
+    REQUIRE (sqlite3_close (connection) == SQLITE_OK);
+    REQUIRE (app.selectMixerTrack (2, false));
+    REQUIRE (app.locatePlaybackFrame (1000));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipPaste).dispatched);
+    CHECK (app.project().clips == before.clips);
+    REQUIRE (app.project().midiClips.size() == before.midiClips.size() + 1u);
+    const auto& copy = app.project().midiClips.back();
+    requireFreshWholeMidiCopy (copy, source.midiClips.front(), before.tracks[2].id, 1000, before);
+    REQUIRE (app.selectedTimelineClipCount() == 1u);
+    REQUIRE (app.isTimelineClipSelected (copy.id));
+    const auto after = app.project();
+    requireRows (after);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().clips == before.clips);
+    REQUIRE (app.project().midiClips == before.midiClips);
+    REQUIRE (app.project().tracks == before.tracks);
+    requireRows (before);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    REQUIRE (app.project().clips == after.clips);
+    REQUIRE (app.project().midiClips == after.midiClips);
+    REQUIRE (app.project().tracks == after.tracks);
+    requireRows (after);
+}
+
+
+TEST_CASE ("No overlap Paste and Repeat retain the surviving audio copies as one durable edit",
+           "[ui][app][native-clipboard-red][clipboard-no-overlap]")
+{
+    const bool repeat = GENERATE (false, true);
+    const bool split = GENERATE (false, true);
+    CAPTURE (repeat, split);
+    auto source = makeSmokeProject();
+    auto second = source.clips.front();
+    second.id = idFromLowByte (0x87);
+    second.srcOffset = 8;
+    second.timelineStart = split ? 2 : 0;
+    second.timelineLength = split ? 2 : 8;
+    second.srcLen = static_cast<std::uint64_t> (second.timelineLength);
+    second.gain = 0.5f;
+    second.name = "Overlapping second source";
+    source.clips.push_back (second);
+    auto neighbour = source.clips.front();
+    neighbour.id = idFromLowByte (0x88);
+    neighbour.timelineStart = 998;
+    neighbour.timelineLength = 12;
+    neighbour.srcLen = 12;
+    source.clips.push_back (neighbour);
+    REQUIRE (source.hasValidAssetClipIndirection());
+    const auto bundle = makeTempBundlePath ("native-clipboard-no-overlap");
+    writeNativeClipboardProofBundle (bundle, source);
+    writeProjectAssetFiles (bundle, source);
+    const auto decoded = makeDecodedAsset (source.assets.front());
+    const std::span<const UiDecodedAsset> decodedView (&decoded, 1);
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundle, decodedView).ok());
+    const std::array selection { source.clips[0].id, source.clips[1].id };
+    REQUIRE (app.selectTimelineClips (selection));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+    REQUIRE (app.dispatch (UiActionId::EditModeNoOverlap).dispatched);
+    REQUIRE (app.locatePlaybackFrame (1000));
+    const auto before = app.project();
+    const auto action = repeat ? UiActionId::TimelineClipRepeatPaste : UiActionId::TimelineClipPaste;
+    REQUIRE (app.dispatch (action).dispatched);
+    const auto copies = repeat ? 2u : 1u;
+    const auto survivingCopies = copies * (split ? 3u : 1u);
+    REQUIRE (app.project().clips.size() == before.clips.size() + survivingCopies + (repeat ? 0u : 1u));
+    REQUIRE (app.selectedTimelineClipCount() == survivingCopies);
+    const auto requireClip = [&] (const Clip& from, yesdaw::engine::Tick start,
+                                 yesdaw::engine::Tick length, std::uint64_t offset, std::uint64_t sourceLength) {
+        const auto it = std::find_if (app.project().clips.begin(), app.project().clips.end(),
+            [start] (const auto& clip) { return clip.timelineStart == start; });
+        REQUIRE (it != app.project().clips.end());
+        auto expected = from;
+        expected.id = it->id;
+        expected.timelineStart = start;
+        expected.timelineLength = length;
+        expected.srcOffset = offset;
+        expected.srcLen = sourceLength;
+        REQUIRE_FALSE (yesdaw::engine::detail::projectContainsEntityId (source, it->id));
+        REQUIRE (*it == expected);
+        REQUIRE (app.isTimelineClipSelected (it->id));
+    };
+    for (std::size_t i = 0; i < copies; ++i)
+    {
+        const auto start = 1000 + static_cast<yesdaw::engine::Tick> (i) * 8;
+        if (split)
+        {
+            requireClip (source.clips.front(), start, 2, 0, 2);
+            requireClip (second, start + 2, 2, 8, 2);
+            requireClip (source.clips.front(), start + 4, 4, 4, 4);
+        }
+        else requireClip (second, start, 8, 8, 8);
+    }
+    if (! repeat)
+    {
+        const auto tail = std::find_if (app.project().clips.begin(), app.project().clips.end(),
+            [] (const auto& clip) { return clip.timelineStart == 1008; });
+        REQUIRE (tail != app.project().clips.end());
+        REQUIRE_FALSE (app.isTimelineClipSelected (tail->id));
+    }
+    const auto after = app.project();
+    const auto requireRows = [&] (const Project& expected) {
+        UiAppModel reopened;
+        REQUIRE (reopened.loadProjectBundle (bundle, decodedView).ok());
+        REQUIRE (reopened.project().clips == expected.clips);
+        REQUIRE (reopened.project().assets == expected.assets);
+    };
+    requireRows (after);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.project().clips == before.clips);
+    REQUIRE_FALSE (app.context().canUndo);
+    requireRows (before);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    REQUIRE (app.project().clips == after.clips);
+    requireRows (after);
+}
+
+
+TEST_CASE ("mixed clipboard preserves a large exact Frame origin with a fractional source offset",
+           "[ui][app][native-clipboard-red][clipboard-large-fraction]")
+{
+    using namespace yesdaw::engine;
+    const int scenario = GENERATE (0, 1, 2);
+    const bool nearMax = scenario != 0;
+    const bool compensated = scenario == 1;
+    CAPTURE (scenario);
+    auto source = makeNativeClipboardProofProject();
+    source.tempoMap = { { 0, 750.0, TempoCurve::Jump } };
+    auto& musical = source.midiClips[0];
+    musical.timeBase = TimeBase::TempoLocked;
+    musical.timelineStart = compensated ? 8001 : 1;
+    musical.timelineLength = 1;
+    musical.notes.clear();
+    musical.controlEvents.clear();
+    musical.loopLengthTicks = 0;
+    const Tick frame = nearMax ? INT64_MAX - 100 : (Tick { 1 } << 53) + 1;
+    source.midiClips[1].timeBase = TimeBase::SampleLocked;
+    source.midiClips[1].timelineStart = frame;
+    source.midiClips[1].timelineLength = 96;
+    REQUIRE (source.hasValidAssetClipIndirection());
+    const auto bundle = makeTempBundlePath ("native-clipboard-large-fraction");
+    writeNativeClipboardProofBundle (bundle, source);
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    const std::array selection { source.midiClips[0].id, source.midiClips[1].id };
+    REQUIRE (app.selectTimelineClips (selection));
+    REQUIRE (app.dispatch (UiActionId::TimelineClipCopy).dispatched);
+    REQUIRE (app.locatePlaybackFrame (compensated ? 1024 : 1));
+    const auto before = app.project();
+    REQUIRE (app.dispatch (UiActionId::TimelineClipPaste).dispatched);
+    REQUIRE (app.project().midiClips.size() == before.midiClips.size() + 2u);
+    // At 750 BPM there is exactly one quarter Frame per Tick. Captured SL offset
+    // is frame-1/4; destination 1+frame-1/4 rounds to frame+1 without binary64 loss.
+    // Tick 8001 projects to 2000.25 Frames; Paste 1024 gives MAX-1076.25, rounded to MAX-1076.
+    const std::array<Tick, 2> expectedStarts { compensated ? 4096 : 4, compensated ? INT64_MAX - 1076 : frame + 1 };
+    for (std::size_t i = 0; i < 2; ++i)
+    {
+        const auto& copy = app.project().midiClips[before.midiClips.size() + i];
+        CHECK (copy.timelineStart == expectedStarts[i]);
+        requireFreshWholeMidiCopy (copy, source.midiClips[i], source.midiClips[i].trackId,
+                                  copy.timelineStart, before);
+    }
+    requireNativeClipboardProofHistory (app, bundle, before, 2u);
 }

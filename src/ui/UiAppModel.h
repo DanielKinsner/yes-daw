@@ -7677,13 +7677,14 @@ public:
         return placeSelectedTimelineClips (shift, targetTrackId, placement);
     }
 
-    [[nodiscard]] UiActionDispatchResult timelineCoordinateRefusal (TimelineCoordinateStatus status)
+    [[nodiscard]] UiActionDispatchResult timelineCoordinateRefusal (TimelineCoordinateStatus status,
+                                                                  UiActionId id = UiActionId::TimelineClipMove)
     {
         const char* reason = status == TimelineCoordinateStatus::Overflow ? "timeline destination would overflow"
                            : status == TimelineCoordinateStatus::InvalidInput ? "invalid timeline destination"
                            : "timing precision cannot represent the timeline destination";
         reportStatus (reason, true);
-        return { UiActionId::TimelineClipMove, { false, reason }, false };
+        return { id, { false, reason }, false };
     }
 
     [[nodiscard]] UiActionDispatchResult placeSelectedTimelineClips (TimelineFrameDisplacement shift,
@@ -9104,7 +9105,9 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        UiClipClipboard clipboard = makeClipboardForSelection();
+        UiClipClipboard clipboard;
+        const auto captureStatus = makeClipboardForSelection (clipboard);
+        if (captureStatus != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (captureStatus, id);
         if (clipboard.empty())
             return { id, { false, "timeline clip missing" }, false };
 
@@ -9121,7 +9124,9 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        UiClipClipboard clipboard = makeClipboardForSelection();
+        UiClipClipboard clipboard;
+        const auto captureStatus = makeClipboardForSelection (clipboard);
+        if (captureStatus != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (captureStatus, id);
         if (clipboard.empty())
             return { id, { false, "timeline clip missing" }, false };
 
@@ -9175,8 +9180,8 @@ public:
         else
             return { id, { false, "no track to paste onto" }, false };
 
-        return addClipsFromClipboard (id, state, targetTrackId,
-                                      static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)),
+        return addClipsFromClipboard (id, state, clipClipboard_, targetTrackId,
+                                      TimelineFramePoint::exact (std::max<std::int64_t> (0, context_.playheadFrame)),
                                       1);
     }
 
@@ -9204,93 +9209,23 @@ public:
         return addClipsFromClipboard (
             id,
             state,
+            clipClipboard_,
             targetTrackId,
-            static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame)),
+            TimelineFramePoint::exact (std::max<std::int64_t> (0, context_.playheadFrame)),
             repeatPasteCount_);
     }
 
     [[nodiscard]] UiActionDispatchResult duplicateSelectedTimelineClip()
     {
         const UiActionId id = UiActionId::TimelineClipDuplicate;
-        const UiActionState state = registry_.stateFor (id, context_);
-        if (! state.enabled)
-            return { id, state, false };
-
-        const UiTimelineEntityView anchor = timelineEntityView (selectedTimelineClipId_);
-        if (! anchor.valid)
-            return { id, { false, "timeline clip missing" }, false };
-
-        // Duplicate the WHOLE selection (E2/E8): fresh-id copies of every selected audio or MIDI
-        // clip land directly after the selection's span, preserving relative time and track
-        // offsets, as one undo transaction. A single-clip selection keeps the historical law
-        // (its copy appended right after the source on the same track).
-        engine::Tick earliestStart = anchor.timelineStart;
-        engine::Tick selectionSpan = 0;
-        constexpr engine::Tick maxTick = std::numeric_limits<engine::Tick>::max();
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
-        {
-            const UiTimelineEntityView view = timelineEntityView (clipId);
-            if (! view.valid)
-                return { id, { false, "timeline clip missing" }, false };
-            earliestStart = std::min (earliestStart, view.timelineStart);
-        }
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
-        {
-            const UiTimelineEntityView view = timelineEntityView (clipId);
-            selectionSpan = std::max (selectionSpan,
-                                      view.timelineStart - earliestStart + view.timelineLength);
-        }
-        if (selectionSpan <= 0)
-            return { id, { false, "timeline clip missing" }, false };
-
-        engine::Project nextProject = project_;
-        engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.beginTransactionGroup())
-            return { id, state, false };
-        std::vector<engine::EntityId> copiedClipIds;
-        copiedClipIds.reserve (selectedTimelineClipIds_.size());
-        engine::EntityId copiedAnchorId;
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
-        {
-            const UiTimelineEntityView view = timelineEntityView (clipId);
-            if (view.timelineStart > maxTick - selectionSpan
-                || view.timelineLength > maxTick - (view.timelineStart + selectionSpan))
-                return { id, { false, "duplicate would overflow timeline" }, false };
-            const engine::Tick copyStart = view.timelineStart + selectionSpan;
-
-            engine::EntityId copiedId;
-            if (view.isMidi)
-            {
-                const engine::MidiClip* const source = findMidiClip (clipId);
-                if (source == nullptr
-                    || ! appendMidiClipCopy (nextProject, nextUndo, *source, view.trackId, copyStart, copiedId))
-                    return { id, state, false };
-            }
-            else
-            {
-                engine::Clip copy = *findClip (clipId);
-                copy.id = allocateSessionEntityId (0xC3u, nextProject);
-                copy.timelineStart = copyStart;
-                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (copy)).applied())
-                    return { id, state, false };
-                copiedId = copy.id;
-            }
-            copiedClipIds.push_back (copiedId);
-            if (clipId == selectedTimelineClipId_)
-                copiedAnchorId = copiedId;
-        }
-        if (! nextUndo.endTransactionGroup())
-            return { id, state, false };
-
-        if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
-            return { id, { false, "timeline edit did not persist" }, false };
-
-        selectedTimelineClipIds_ = std::move (copiedClipIds);
-        selectedTimelineClipId_ = copiedAnchorId.isValid() ? copiedAnchorId : selectedTimelineClipIds_.back();
-        context_.timelineClipSelected = true;
-        ++context_.commandDispatchCount;
-        ++context_.timelineEditCount;
-        return { id, state, true };
+        const auto state = registry_.stateFor (id, context_);
+        if (! state.enabled) return { id, state, false };
+        const auto anchor = timelineEntityView (selectedTimelineClipId_);
+        UiClipClipboard copies;
+        const auto status = makeClipboardForSelection (copies);
+        if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status, id);
+        if (! anchor.valid || copies.empty()) return { id, { false, "timeline clip missing" }, false };
+        return addClipsFromClipboard (id, state, copies, anchor.trackId, copies.sourceBounds.end, 1);
     }
 
     [[nodiscard]] UiActionDispatchResult setSelectedTimelineClipGain (float newGain)
@@ -13885,6 +13820,7 @@ private:
         replacePlayback (std::move (transport));
 
         context_ = {};
+        context_.clipboardHasClip = clipClipboard_.clips.empty() && ! clipClipboard_.midiClips.empty();
         context_.projectLoaded = true;
         context_.activePanel = UiPanel::Timeline;
         applyContextPreferences();   // ADR-0061: the user's dock, inspector, snap, metronome and export choices
@@ -14101,7 +14037,8 @@ private:
     //  - Shuffle: a placement pushes every later clip on the track right by the placed length;
     //    a removal pulls every later clip left by the removed length (closes up).
     [[nodiscard]] bool applyEditModeAfterPlacement (engine::Project& project, engine::ProjectUndoStack& undo,
-                                                    engine::EntityId placedId)
+                                                    engine::EntityId placedId,
+                                                    std::vector<engine::EntityId>* copiedGroup = nullptr)
     {
         const auto placedIt = std::find_if (project.clips.begin(), project.clips.end(),
                                             [placedId] (const engine::Clip& c) { return c.id == placedId; });
@@ -14157,6 +14094,7 @@ private:
             {
                 if (! undo.apply (project, engine::ProjectEditCommand::deleteClip (clipId)).applied())
                     return false;
+                if (copiedGroup != nullptr) std::erase (*copiedGroup, clipId);
                 continue;
             }
             if (nStart < start && nEnd > end)
@@ -14172,6 +14110,8 @@ private:
                         clipId, head->timelineStart, head->timelineLength, head->srcOffset, head->srcLen)).applied()
                     || ! undo.apply (project, engine::ProjectEditCommand::addClip (*tail)).applied())
                     return false;
+                if (copiedGroup != nullptr && std::find (copiedGroup->begin(), copiedGroup->end(), clipId) != copiedGroup->end())
+                    copiedGroup->push_back (tail->id);
                 continue;
             }
             if (nStart < start)
@@ -14294,22 +14234,26 @@ private:
         if (! splitAllClipsAt (nextProject, nextUndo, start) || ! splitAllClipsAt (nextProject, nextUndo, end))
             return { id, { false, "split refused inside the selection" }, false };
         const std::vector<engine::EntityId> inside = clipsInsideRange (nextProject, start, end);
+        UiClipClipboard clipboard;
         if (toClipboard)
         {
-            UiClipClipboard clipboard;
             clipboard.keepTracks = true;
             for (const engine::EntityId clipId : inside)
                 if (const auto it = std::find_if (nextProject.clips.begin(), nextProject.clips.end(),
                                                   [clipId] (const engine::Clip& c) { return c.id == clipId; });
                     it != nextProject.clips.end())
-                    clipboard.clips.push_back (clipboardEntryForClip (*it, start));
+                {
+                    UiClipClipboardEntry entry;
+                    const auto status = clipboardEntryForClip (*it, TimelineFramePoint::exact (start), entry);
+                    if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status, id);
+                    clipboard.clips.push_back (std::move (entry));
+                }
             if (clipboard.clips.empty())
                 return { id, { false, "nothing inside the selection" }, false };
-            clipClipboard_ = std::move (clipboard);
-            context_.clipboardHasClip = true;
         }
         if (! remove)
         {
+            if (toClipboard) { clipClipboard_ = std::move (clipboard); context_.clipboardHasClip = true; }
             ++context_.commandDispatchCount;   // Copy: the project is untouched (the splits were a scratch copy)
             return { id, state, true };
         }
@@ -14334,6 +14278,7 @@ private:
             return { id, state, false };
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "timeline edit did not persist" }, false };
+        if (toClipboard) { clipClipboard_ = std::move (clipboard); context_.clipboardHasClip = true; }
         ++context_.commandDispatchCount;
         ++context_.timelineEditCount;
         return { id, state, true };
@@ -14979,33 +14924,20 @@ private:
     std::size_t autosaveCopied_ = 0;
     struct UiClipClipboardEntry
     {
-        engine::EntityId assetId;
-        engine::EntityId trackId;
-        engine::Tick timelineOffset = 0;
-        engine::Tick timelineLength = 0;
-        std::uint64_t srcOffset = 0;
-        std::uint64_t srcLen = 0;
-        float gain = 1.0f;
-        engine::Tick fadeIn = 0;
-        engine::Tick fadeOut = 0;
-        engine::TimeBase timeBase = engine::TimeBase::SampleLocked;
-        engine::ClipName name;
-        // The whole copied clip — its stretch, reverse, fade shapes, colour and mute ride with it (they were
-        // dropped on paste before; a pasted stretched clip came back unstretched).
         engine::Clip source;
+        TimelineFrameSpan placementOffset;
     };
-    // G3.5: a copied MIDI clip rides the clipboard whole (notes, control points and settings); the
-    // paste gives the clip, its notes and its points fresh ids.
     struct UiMidiClipClipboardEntry
     {
         engine::MidiClip clip;
-        engine::Tick timelineOffset = 0;
+        TimelineFrameSpan placementOffset;
     };
     struct UiClipClipboard
     {
-        bool keepTracks = false;   // G2.5: a range copy keeps every fragment on its own track
+        bool keepTracks = false;
+        TimelineFrameSpan sourceBounds;
         std::vector<UiClipClipboardEntry> clips;
-        std::vector<UiMidiClipClipboardEntry> midiClips;   // G3.5
+        std::vector<UiMidiClipClipboardEntry> midiClips;
         [[nodiscard]] bool empty() const noexcept { return clips.empty() && midiClips.empty(); }
     };
     UiClipClipboard clipClipboard_;
@@ -15021,49 +14953,47 @@ private:
     static constexpr const char* kLastProjectRecordFileName = "last-project.txt";
     static constexpr const char* kRecentProjectsRecordFileName = "recent-projects.txt";
 
-    [[nodiscard]] static UiClipClipboardEntry clipboardEntryForClip (const engine::Clip& clip,
-                                                                     engine::Tick anchorStart) noexcept
+    [[nodiscard]] TimelineCoordinateStatus clipboardEntryForClip (const engine::Clip& clip,
+        const TimelineFramePoint& anchor, UiClipClipboardEntry& out) const
     {
-        return {
-            clip.assetId,
-            clip.trackId,
-            clip.timelineStart - anchorStart,
-            clip.timelineLength,
-            clip.srcOffset,
-            clip.srcLen,
-            clip.gain,
-            clip.fadeIn,
-            clip.fadeOut,
-            clip.timeBase,
-            clip.name,
-            clip,
-        };
+        TimelineFrameSpan span;
+        const auto clock = playback_ != nullptr ? playback_->metronomeClock() : nullptr;
+        const auto status = timelineProjectFrameSpan (clock, { clip.timeBase, clip.timelineStart }, clip.timelineLength, span);
+        if (status == TimelineCoordinateStatus::Ok) out = { clip, { anchor, span.start } };
+        return status;
     }
 
-    [[nodiscard]] UiClipClipboard makeClipboardForSelection() const
+    [[nodiscard]] TimelineCoordinateStatus makeClipboardForSelection (UiClipClipboard& clipboard) const
     {
-        UiClipClipboard clipboard;
-        engine::Tick anchorStart = std::numeric_limits<engine::Tick>::max();
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
+        const auto clock = playback_ != nullptr ? playback_->metronomeClock() : nullptr;
+        std::optional<TimelineFrameSpan> bounds;
+        std::vector<std::pair<engine::EntityId, TimelineFramePoint>> selectedStarts;
+        for (const auto clipId : selectedTimelineClipIds_)
         {
-            if (const engine::Clip* const clip = findClip (clipId))
-                anchorStart = std::min (anchorStart, clip->timelineStart);
-            else if (const engine::MidiClip* const midiClip = findMidiClip (clipId))   // G3.5
-                anchorStart = std::min (anchorStart, midiClip->timelineStart);
+            const auto view = timelineEntityView (clipId);
+            if (! view.valid) return TimelineCoordinateStatus::InvalidInput;
+            TimelineFrameSpan span;
+            auto status = timelineProjectFrameSpan (clock, { view.timeBase, view.timelineStart }, view.timelineLength, span);
+            if (status != TimelineCoordinateStatus::Ok) return status;
+            if (bounds) status = timelineExpandFrameSpan (*bounds, span);
+            else bounds = span;
+            if (status != TimelineCoordinateStatus::Ok) return status;
+            selectedStarts.push_back ({ clipId, span.start });
         }
-
-        if (anchorStart == std::numeric_limits<engine::Tick>::max())
-            return clipboard;
-
-        clipboard.clips.reserve (selectedTimelineClipIds_.size());
-        for (engine::EntityId clipId : selectedTimelineClipIds_)
+        if (! bounds) return TimelineCoordinateStatus::InvalidInput;
+        clipboard.sourceBounds = *bounds;
+        for (const auto& [clipId, start] : selectedStarts)
         {
-            if (const engine::Clip* const clip = findClip (clipId))
-                clipboard.clips.push_back (clipboardEntryForClip (*clip, anchorStart));
-            else if (const engine::MidiClip* const midiClip = findMidiClip (clipId))
-                clipboard.midiClips.push_back ({ *midiClip, midiClip->timelineStart - anchorStart });
+            if (const auto* clip = findClip (clipId))
+            {
+                clipboard.clips.push_back ({ *clip, { bounds->start, start } });
+            }
+            else if (const auto* midiClip = findMidiClip (clipId))
+            {
+                clipboard.midiClips.push_back ({ *midiClip, { bounds->start, start } });
+            }
         }
-        return clipboard;
+        return TimelineCoordinateStatus::Ok;
     }
 
     [[nodiscard]] static bool trackExists (const engine::Project& project, engine::EntityId trackId) noexcept
@@ -15073,93 +15003,80 @@ private:
     }
 
     [[nodiscard]] UiActionDispatchResult addClipsFromClipboard (UiActionId id,
-                                                                const UiActionState& state,
-                                                                engine::EntityId targetTrackId,
-                                                                engine::Tick timelineStart,
-                                                                int repeatCount)
+        const UiActionState& state, const UiClipClipboard& clipboard, engine::EntityId targetTrackId,
+        TimelineFramePoint repeatBase, int repeatCount)
     {
-        if (clipClipboard_.empty()
-            || repeatCount < 1
-            || timelineStart < 0)
-            return { id, state, false };
-
-        engine::Tick clipboardSpan = 0;
-        constexpr engine::Tick tickMax = std::numeric_limits<engine::Tick>::max();
-        for (const UiClipClipboardEntry& entry : clipClipboard_.clips)
-        {
-            if (entry.timelineOffset < 0
-                || entry.timelineLength <= 0
-                || entry.timelineOffset > tickMax - entry.timelineLength)
-                return { id, state, false };
-            clipboardSpan = std::max (clipboardSpan, entry.timelineOffset + entry.timelineLength);
-        }
-        for (const UiMidiClipClipboardEntry& entry : clipClipboard_.midiClips)   // G3.5
-        {
-            if (entry.timelineOffset < 0 || entry.clip.timelineLength <= 0
-                || entry.timelineOffset > tickMax - entry.clip.timelineLength)
-                return { id, state, false };
-            clipboardSpan = std::max (clipboardSpan, entry.timelineOffset + entry.clip.timelineLength);
-        }
-        const engine::Tick repeatCountTicks = static_cast<engine::Tick> (repeatCount);
-        if (clipboardSpan <= 0 || clipboardSpan > (tickMax - timelineStart) / repeatCountTicks)
-            return { id, state, false };
-
+        if (clipboard.empty() || repeatCount < 1) return { id, state, false };
+        const auto clock = playback_ != nullptr ? playback_->metronomeClock() : nullptr;
         engine::Project nextProject = project_;
         engine::ProjectUndoStack nextUndo = undo_;
-        if (! nextUndo.beginTransactionGroup())
-            return { id, state, false };
-
+        if (! nextUndo.beginTransactionGroup()) return { id, state, false };
         std::vector<engine::EntityId> pastedClipIds;
-        const std::size_t repeatCountSize = static_cast<std::size_t> (repeatCount);
-        if (clipClipboard_.clips.size() > pastedClipIds.max_size() / repeatCountSize)
-            return { id, state, false };
-        pastedClipIds.reserve (clipClipboard_.clips.size() * repeatCountSize);
-        const bool keepTracks = clipClipboard_.keepTracks;   // G2.5: range fragments land on their own tracks
-        for (int repeatIndex = 0; repeatIndex < repeatCount; ++repeatIndex)
+        const auto count = clipboard.clips.size() + clipboard.midiClips.size();
+        if (count > pastedClipIds.max_size() / static_cast<std::size_t> (repeatCount)) return { id, state, false };
+        pastedClipIds.reserve (count * static_cast<std::size_t> (repeatCount));
+        engine::EntityId copiedAnchor;
+        const auto trackFor = [&] (engine::EntityId source) {
+            const bool exists = trackExists (nextProject, source);
+            return exists && (count > 1u || clipboard.keepTracks) ? source : targetTrackId;
+        };
+        for (int repeat = 0; repeat < repeatCount; ++repeat)
         {
-            const engine::Tick repeatOffset = clipboardSpan * static_cast<engine::Tick> (repeatIndex);
-            for (const UiClipClipboardEntry& entry : clipClipboard_.clips)
+            std::vector<engine::EntityId> groupClipIds;
+            for (const auto& entry : clipboard.clips)
             {
-                const bool sourceTrackExists = std::any_of (
-                    project_.tracks.begin(), project_.tracks.end(), [&entry] (const engine::Track& track) {
-                        return track.id == entry.trackId;
-                    });
-                engine::Clip clip = entry.source;   // every setting the copied clip had
+                TimelineFramePoint target;
+                auto status = timelineTranslateFramePoint (repeatBase, entry.placementOffset, target);
+                if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status, id);
+                auto clip = entry.source;
+                status = timelineNativeFrameTarget (clock, clip.timeBase, target, clip.timelineStart);
+                if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status, id);
                 clip.id = allocateSessionEntityId (0xC3u, nextProject);
-                clip.trackId = (clipClipboard_.clips.size() + clipClipboard_.midiClips.size()) > 1u && sourceTrackExists
-                    ? entry.trackId
-                    : (keepTracks && trackExists (nextProject, entry.trackId) ? entry.trackId : targetTrackId);
-                clip.timelineStart = timelineStart + repeatOffset + entry.timelineOffset;
-
-                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied())
-                    return { id, state, false };
-                if (! applyEditModeAfterPlacement (nextProject, nextUndo, clip.id))
-                    return { id, { false, "edit mode refused the paste" }, false };   // G2.6
-                pastedClipIds.push_back (clip.id);
+                clip.trackId = trackFor (entry.source.trackId);
+                if (! nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied()) return { id, state, false };
+                groupClipIds.push_back (clip.id);
+                if (id != UiActionId::TimelineClipDuplicate && ! applyEditModeAfterPlacement (nextProject, nextUndo, clip.id, &groupClipIds))
+                    return { id, { false, "edit mode refused the paste" }, false };
+                if (entry.source.id == selectedTimelineClipId_) copiedAnchor = clip.id;
             }
-
-            for (const UiMidiClipClipboardEntry& entry : clipClipboard_.midiClips)
+            for (const auto& entry : clipboard.midiClips)
             {
-                const bool sourceTrackExists = trackExists (nextProject, entry.clip.trackId);
-                const engine::EntityId trackId = (clipClipboard_.clips.size() + clipClipboard_.midiClips.size()) > 1u && sourceTrackExists
-                    ? entry.clip.trackId
-                    : (keepTracks && sourceTrackExists ? entry.clip.trackId : targetTrackId);
-                const engine::Tick start = timelineStart + repeatOffset + entry.timelineOffset;
-                engine::EntityId midiClipId;
-                if (! appendMidiClipCopy (nextProject, nextUndo, entry.clip, trackId, start,
-                                          midiClipId, 0xC4u, 0xB2u))
+                TimelineFramePoint target;
+                auto status = timelineTranslateFramePoint (repeatBase, entry.placementOffset, target);
+                if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status, id);
+                engine::Tick start = 0;
+                status = timelineNativeFrameTarget (clock, entry.clip.timeBase, target, start);
+                if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status, id);
+                engine::EntityId copiedId;
+                if (! appendMidiClipCopy (nextProject, nextUndo, entry.clip, trackFor (entry.clip.trackId), start, copiedId, 0xC4u, 0xB2u))
                     return { id, state, false };
-                pastedClipIds.push_back (midiClipId);
+                groupClipIds.push_back (copiedId);
+                if (entry.clip.id == selectedTimelineClipId_) copiedAnchor = copiedId;
             }
+            std::optional<TimelineFrameSpan> placedBounds;
+            for (const auto clipId : groupClipIds)
+            {
+                TimelineFrameSpan span;
+                auto status = TimelineCoordinateStatus::InvalidInput;
+                if (const auto* audio = engine::detail::findClip (nextProject, clipId))
+                    status = timelineProjectFrameSpan (clock, { audio->timeBase, audio->timelineStart }, audio->timelineLength, span);
+                else if (const auto* midi = engine::detail::findMidiClip (nextProject, clipId))
+                    status = timelineProjectFrameSpan (clock, { midi->timeBase, midi->timelineStart }, midi->timelineLength, span);
+                if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status, id);
+                if (placedBounds) status = timelineExpandFrameSpan (*placedBounds, span);
+                else placedBounds = span;
+                if (status != TimelineCoordinateStatus::Ok) return timelineCoordinateRefusal (status, id);
+            }
+            if (! placedBounds) return { id, state, false };
+            repeatBase = placedBounds->end;
+            pastedClipIds.insert (pastedClipIds.end(), groupClipIds.begin(), groupClipIds.end());
         }
-        if (! nextUndo.endTransactionGroup())
-            return { id, state, false };
-
+        if (! nextUndo.endTransactionGroup()) return { id, state, false };
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "timeline edit did not persist" }, false };
-
         selectedTimelineClipIds_ = std::move (pastedClipIds);
-        selectedTimelineClipId_ = selectedTimelineClipIds_.back();
+        selectedTimelineClipId_ = id == UiActionId::TimelineClipDuplicate && copiedAnchor.isValid()
+            ? copiedAnchor : selectedTimelineClipIds_.back();
         context_.timelineClipSelected = true;
         ++context_.commandDispatchCount;
         ++context_.timelineEditCount;
