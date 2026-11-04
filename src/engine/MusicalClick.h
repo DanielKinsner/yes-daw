@@ -254,8 +254,8 @@ public:
         MusicalClickLookup preparation_;
         std::int64_t cursor_ = 0, end_ = 0;
         std::size_t firstSegment_ = 0, lastSegment_ = 0;
-        std::uint64_t firstOrdinal_ = 0, lastOrdinal_ = 0;
-        bool hasPending_ = false, done_ = true;
+        std::uint64_t firstOrdinal_ = 0, lastOrdinal_ = 0, ordinalStride_ = 0;
+        bool hasPending_ = false, done_ = true, allowOrdinalHints_ = false;
     };
 
     [[nodiscard]] static TimeLookupStatus build (TempoMapView tempo, MeterMapView meter,
@@ -746,7 +746,8 @@ private:
 
     [[nodiscard]] LocatedOnset findOnset (std::int64_t minimumFrame,
                                          std::size_t firstIndex, std::uint64_t firstOrdinal,
-                                         std::size_t lastIndex, std::uint64_t lastOrdinal) const noexcept
+                                         std::size_t lastIndex, std::uint64_t lastOrdinal,
+                                         std::uint64_t ordinalStride = 0) const noexcept
     {
         using click_detail::Order;
         LocatedOnset located;
@@ -819,9 +820,31 @@ private:
         }
         bool uncertainOrdinals = originOrder == Order::Uncertain;
         if (originOrder != Order::AtOrAfter)
+        {
+
+
+            unsigned remaining = 64, hintComparisons = 0;
+            bool haveHint = firstSegment == firstIndex && ordinalStride != 0
+                && ordinalStride <= std::numeric_limits<std::uint64_t>::max() - firstOrdinal;
+            std::uint64_t hint = haveHint ? firstOrdinal + ordinalStride : 0;
             while (first < last)
             {
-                const auto mid = first + (last - first) / 2u;
+                auto mid = first + (last - first) / 2u;
+                if (haveHint)
+                {
+                    const auto capacity = std::uint64_t { 1 } << (remaining - 1u);
+
+
+                    if (hint >= first && hint < last
+                        && hint - first < capacity && last - hint <= capacity)
+                    {
+                        mid = hint;
+                        ++hintComparisons;
+                    }
+                    else
+                        haveHint = false;
+                }
+                --remaining;
                 const auto order = comparisonForOrdinal (segment, mid, minimumFrame, result);
                 if (order == Order::Before) first = mid + 1u;
                 else
@@ -829,7 +852,15 @@ private:
                     last = mid;
                     uncertainOrdinals = uncertainOrdinals || order == Order::Uncertain;
                 }
+                if (haveHint)
+                {
+                    if (hintComparisons == 3u)
+                        haveHint = false;
+                    else if (first < last)
+                        hint = order == Order::Before ? first : last - 1u;
+                }
             }
+        }
         const auto possibleOrdinal = first;
         auto position = countedPositionForOrdinal (segment, first, result);
         auto order = click_detail::compare (position, minimumFrame);
@@ -997,6 +1028,7 @@ inline MusicalClickMap::Window MusicalClickMap::onsetsInRange (std::int64_t firs
     window.lastOrdinal_ = lastOrdinal;
     if (after.lookup.status == TimeLookupStatus::Ok && after.lookup.found)
     {
+        window.allowOrdinalHints_ = true;
         window.lastSegment_ = after.segment;
         if (after.ordinal != 0)
             window.lastOrdinal_ = after.ordinal - 1u;
@@ -1031,7 +1063,8 @@ inline MusicalClickLookup MusicalClickMap::Window::next() noexcept
             done_ = true;
             return {};
         }
-        located = map_->findOnset (cursor_, firstSegment_, firstOrdinal_, lastSegment_, lastOrdinal_);
+        located = map_->findOnset (cursor_, firstSegment_, firstOrdinal_, lastSegment_, lastOrdinal_,
+                                  allowOrdinalHints_ ? ordinalStride_ : 0u);
     }
     if (located.lookup.status != TimeLookupStatus::Ok || ! located.lookup.found)
     {
@@ -1044,6 +1077,10 @@ inline MusicalClickLookup MusicalClickMap::Window::next() noexcept
         return {};
     }
     cursor_ = located.lookup.frame + 1;
+
+
+    ordinalStride_ = allowOrdinalHints_ && located.segment == firstSegment_ && located.ordinal > firstOrdinal_
+        ? located.ordinal - firstOrdinal_ : 0u;
     firstSegment_ = located.segment;
     firstOrdinal_ = located.ordinal;
     return located.lookup;

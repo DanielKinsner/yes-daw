@@ -2505,3 +2505,42 @@ TEST_CASE ("click ratio arithmetic preserves normalized values at exponent bound
                     CHECK (std::signbit (comparison) == std::signbit (normalized));
                 }
 }
+
+TEST_CASE ("successive dense click buckets preserve rational accents within a linear work budget",
+           "[playback][musical-click][click-window-work]")
+{
+    const auto clock = compileClick ({ { 0, 6000.0, TempoCurve::Jump } }, { { 0, 97, 65535 } });
+    constexpr std::uint64_t firstFrame = 256, frameCount = 512;
+    auto window = clock.onsetsInRange (static_cast<std::int64_t> (firstFrame),
+                                      static_cast<std::int64_t> (firstFrame + frameCount));
+    CHECK (window.preparation().ordinalProbes <= 524);
+    CHECK (window.preparation().ordinalProbes
+           == window.preparation().roughProbes + window.preparation().tightProbes);
+    std::uint64_t probes = window.preparation().ordinalProbes;
+    for (std::uint64_t frame = firstFrame; frame < firstFrame + frameCount; ++frame)
+    {
+        // Independent exact law: one beat spans 128/4369 Frames. The bucket contains
+        // every ordinal from ceil(frame*4369/128) through ceil((frame+1)*4369/128)-1.
+        const auto firstOrdinal = (frame * 4369u + 127u) / 128u;
+        const auto lastOrdinal = ((frame + 1u) * 4369u + 127u) / 128u - 1u;
+        const auto firstDownbeat = ((firstOrdinal + 96u) / 97u) * 97u;
+        const auto onset = window.next();
+        CAPTURE (frame, firstOrdinal, lastOrdinal);
+        REQUIRE (onset.status == TimeLookupStatus::Ok);
+        REQUIRE (onset.found);
+        CHECK (onset.frame == static_cast<std::int64_t> (frame));
+        CHECK (onset.downbeat == (firstDownbeat <= lastOrdinal));
+        CHECK (onset.ordinalProbes <= 262);
+        CHECK (onset.ordinalProbes == onset.roughProbes + onset.tightProbes);
+        probes += onset.ordinalProbes;
+    }
+    const auto end = window.next();
+    CHECK (end.status == TimeLookupStatus::Ok);
+    CHECK_FALSE (end.found);
+    CHECK (end.ordinalProbes == end.roughProbes + end.tightProbes);
+    probes += end.ordinalProbes;
+    // Successive exact boundaries advance 34 or 35 ordinals. A linear work allowance
+    // includes full preparation, startup, endpoint/accent proofs and integer fallbacks.
+    INFO ("aggregate evaluations=" << probes << " budget=" << 6u * frameCount + 132u);
+    CHECK (probes <= 6u * frameCount + 132u);
+}
