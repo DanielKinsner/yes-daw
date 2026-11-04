@@ -65,6 +65,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-03 — Owned background stretch worker is ready for editor integration
+
+The one-shot worker owns immutable source/view samples, prepares missing cross-rate views and publishes exact
+endpoint-mapped stretch results. Cancellation invalidates adoption; terminal reads precede joins in the tests.
+Pure worker check: 194 assertions / 7 cases; full integrated suite 413/413 before the test-only review refinement.
+No editor surface uses this worker yet. Next: request/service/cancel wiring with stale-result and durable undo proof.
+
 ## 2026-11-03 — Notes-only edits keep the playing instrument and effects
 
 Ordinary eligible piano-roll edits now publish immutable schedules at an Audio-thread boundary; changed sounding notes

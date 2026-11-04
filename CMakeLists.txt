@@ -973,6 +973,14 @@ endif()
 yesdaw_harden(YesDawExportJobCheck)
 add_test(NAME YesDawExportJobCheck COMMAND $<TARGET_FILE:YesDawExportJobCheck>)
 
+# Owned background stretch preparation (ADR-0080); pure, including the worker handoff.
+add_executable(YesDawStretchPreparationCheck tests/stretch_preparation_job_tests.cpp)
+target_include_directories(YesDawStretchPreparationCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawStretchPreparationCheck SYSTEM PRIVATE ${signalsmith_stretch_SOURCE_DIR})
+target_link_libraries(YesDawStretchPreparationCheck PRIVATE Catch2::Catch2WithMain Threads::Threads)
+yesdaw_harden(YesDawStretchPreparationCheck)
+add_test(NAME YesDawStretchPreparationCheck COMMAND $<TARGET_FILE:YesDawStretchPreparationCheck>)
+
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
 target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})
