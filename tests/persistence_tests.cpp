@@ -3051,7 +3051,8 @@ TEST_CASE ("Prepared Asset adoption refuses changed proofs without touching cano
                  after.writeSeconds, after.writeFraction, after.changeSeconds, after.changeFraction);
         REQUIRE (before.sameIdentity (after));
         REQUIRE (before.size == after.size);
-        REQUIRE (std::filesystem::last_write_time (changedPath) != beforeTime);
+        const bool writeTimeChanged = std::filesystem::last_write_time (changedPath) != beforeTime;
+        REQUIRE (writeTimeChanged);
         REQUIRE (before != after);
     }
     else if (scenario == 1)

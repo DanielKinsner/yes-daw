@@ -73,6 +73,11 @@ Focused worker proof: 434 assertions / 12 cases; full pure suite: 428/428 (82.47
 App/input harness compiled without launch; stock Clang: 23 clean units. Engine/saved-data critic accepted the frozen worker and cancellable persistence changes. No native window, input or device used.
 Next: connect actual import controls and captured destinations, then Sampler loading. Worker proof does not certify asynchronous app imports; replacement Linux CI for the fixture correction below is pending.
 
+## 2026-11-03 — Portable timestamp assertion
+
+CI 41772201718 caught a macOS compile error in the fixture correction: Catch attempted to print libc++ filesystem-clock durations backed by __int128. This is outside the standing GPU exception.
+The test now computes the same timestamp inequality as a bool before asserting it; native fingerprint diagnostics and every rejection/data-preservation condition remain. Prepared-import/open checks: 1,296 assertions / 27 cases; updated persistence test is Clang-clean. Replacement cross-platform CI is pending.
+
 ## 2026-11-03 — Deterministic changed-proof test on Linux
 
 CI 41767892569 passed Windows, macOS, sanitizers and packaging, but Linux accepted two rapid same-size rewrites in the changed-proof fixture. The log lacked scenario/stamp captures; a native timestamp collision is supported by the Linux kernel's coarse-timestamp contract, not proven retrospectively.
