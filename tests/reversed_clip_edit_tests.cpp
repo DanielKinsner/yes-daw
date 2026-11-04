@@ -156,8 +156,356 @@ struct Fixture
         CHECK (bool (render (reopened.project()) == render (model.project())));
         unchangedBytes();
     }
+
+    void copyForNoOverlap (engine::Project project, engine::Tick placedLength)
+    {
+        engine::Clip copy = project.clips.front();
+        copy.id = entity (8);
+        copy.timelineStart = start + original.clips.front().timelineLength + 200;
+        copy.timelineLength = placedLength;
+        copy.srcOffset = 0;
+        copy.srcLen = 1;
+        copy.muted = true;
+        project.clips.push_back (copy);
+        load (project);
+        REQUIRE (model.selectTimelineClip (copy.id));
+        REQUIRE (model.dispatch (ui::UiActionId::TimelineClipCopy).dispatched);
+        REQUIRE (model.dispatch (ui::UiActionId::EditModeNoOverlap).dispatched);
+    }
 };
+
+std::vector<engine::Clip> noOverlapNeighbours (const ui::UiAppModel& model)
+{
+    std::vector<engine::Clip> neighbours;
+    for (const auto& clip : model.project().clips)
+        if (clip.id != entity (8) && clip.id != model.selectedTimelineClipId())
+            neighbours.push_back (clip);
+    std::sort (neighbours.begin(), neighbours.end(), [] (const auto& a, const auto& b) {
+        return a.timelineStart < b.timelineStart;
+    });
+    return neighbours;
+}
+
+void checkNoOverlapHistory (Fixture& f, const engine::Project& before)
+{
+    const auto after = f.model.project().clips;
+    REQUIRE (f.model.dispatch (ui::UiActionId::EditUndo).dispatched);
+    CHECK (f.model.project().clips == before.clips);
+    CHECK_FALSE (f.model.context().canUndo);
+    REQUIRE (f.model.dispatch (ui::UiActionId::EditRedo).dispatched);
+    CHECK (f.model.project().clips == after);
+    CHECK_FALSE (f.model.context().canRedo);
+    f.durable (after);
+}
+
+void checkNoOverlapRefusal (Fixture& f, engine::Tick placedStart)
+{
+    const auto beforeAudio = f.play();
+    REQUIRE (f.model.locatePlaybackFrame (placedStart));
+    const auto before = f.model.project();
+    const auto selected = f.model.selectedTimelineClipId();
+    const auto selectedCount = f.model.selectedTimelineClipCount();
+    const auto dispatchCount = f.model.context().commandDispatchCount;
+    const auto editCount = f.model.context().timelineEditCount;
+    const auto replacementCount = f.model.playbackReplaceCount();
+    const auto writeStamp = f.model.bundleWriteStamp();
+    const auto canUndo = f.model.context().canUndo;
+    const auto canRedo = f.model.context().canRedo;
+    const auto dirty = f.model.hasUnsavedChanges();
+    const auto result = f.model.dispatch (ui::UiActionId::TimelineClipPaste);
+    CHECK_FALSE (result.dispatched);
+    CHECK (std::string_view (result.state.disabledReason) == "edit mode refused the paste");
+    CHECK (f.model.project().clips == before.clips);
+    CHECK (f.model.project().assets == before.assets);
+    CHECK (f.model.project().recordingTakes == before.recordingTakes);
+    CHECK (f.model.project().recordingCompSegments == before.recordingCompSegments);
+    CHECK (f.model.project().hasValidAssetClipIndirection());
+    CHECK (f.model.selectedTimelineClipId() == selected);
+    CHECK (f.model.selectedTimelineClipCount() == selectedCount);
+    CHECK (f.model.isTimelineClipSelected (selected));
+    CHECK (f.model.context().commandDispatchCount == dispatchCount);
+    CHECK (f.model.context().timelineEditCount == editCount);
+    CHECK (f.model.playbackReplaceCount() == replacementCount);
+    CHECK (f.model.context().canUndo == canUndo);
+    CHECK (f.model.context().canRedo == canRedo);
+    CHECK (f.model.hasUnsavedChanges() == dirty);
+    CHECK (f.model.bundleWriteStamp() == writeStamp);
+    CHECK (bool (f.play() == beforeAudio));
+    f.durable (before.clips);
+    persistence::ProjectBundleDb db;
+    REQUIRE (persistence::ProjectBundleDb::openExistingBundle (f.bundle, db).ok());
+    engine::Project saved;
+    REQUIRE (db.readProjectSnapshot (saved).ok());
+    CHECK (saved.recordingTakes == before.recordingTakes);
+    CHECK (saved.recordingCompSegments == before.recordingCompSegments);
+}
 } // namespace
+
+TEST_CASE ("No Overlap placement preserves temporal audio neighbours and refuses invalid fragments atomically",
+           "[reversed-clip][no-overlap]")
+{
+    SECTION ("same-rate head, tail and spanning neighbours keep exact source audio and metadata")
+    {
+        Fixture f;
+        const bool reversed = GENERATE (false, true);
+        const int branch = GENERATE (0, 1, 2);   // head, tail, both
+        const bool fades = GENERATE (false, true);
+        auto& original = f.original.clips.front();
+        original.reversed = reversed;
+        original.gain = 0.75f;
+        original.colour = 0xff336699u;
+        original.name = engine::ClipName { "neighbour" };
+        if (fades)
+        {
+            original.fadeIn = 123;
+            original.fadeOut = 456;
+            original.fadeInShape = engine::FadeShape::Linear;
+            original.fadeOutShape = engine::FadeShape::Log;
+            original.fadeInCurve = -0.25f;
+            original.fadeOutCurve = 0.5f;
+        }
+        const engine::Tick a = branch == 1 ? 0 : 1701;
+        const engine::Tick b = branch == 0 ? 9001 : 6203;
+        f.copyForNoOverlap (f.original, b - a);
+        const auto before = f.model.project();
+        const auto beforeAudio = f.render (before);
+        REQUIRE (f.model.locatePlaybackFrame (Fixture::start + a));
+        REQUIRE (f.model.dispatch (ui::UiActionId::TimelineClipPaste).dispatched);
+        const auto neighbours = noOverlapNeighbours (f.model);
+        REQUIRE (neighbours.size() == (branch == 2 ? 2u : 1u));
+        std::vector<engine::Clip> expected;
+        if (branch != 1)
+        {
+            auto head = original;
+            head.timelineLength = 1701;
+            head.srcOffset = reversed ? 7437u : 137u;
+            head.srcLen = 1701;
+            expected.push_back (head);
+        }
+        if (branch != 0)
+        {
+            auto tail = original;
+            tail.timelineStart += 6203;
+            tail.timelineLength = 2798;
+            tail.srcOffset = reversed ? 137u : 6340u;
+            tail.srcLen = 2798;
+            if (branch == 2)
+            {
+                tail.id = neighbours.back().id;
+                CHECK (tail.id != original.id);
+                CHECK (tail.id.bytes[9] == 0xC6u);
+                tail.fadeIn = 0;
+            }
+            expected.push_back (tail);
+        }
+        CHECK (neighbours == expected);
+        if (! fades)
+        {
+            auto expectedAudio = beforeAudio;
+            std::fill (expectedAudio.begin() + static_cast<std::ptrdiff_t> ((Fixture::start + a) * 2),
+                       expectedAudio.begin() + static_cast<std::ptrdiff_t> ((Fixture::start + b) * 2), 0.0f);
+            CHECK (bool (f.render (f.model.project()) == expectedAudio));
+            CHECK (bool (f.play() == expectedAudio));
+        }
+        checkNoOverlapHistory (f, before);
+    }
+
+    SECTION ("natural cross-rate cuts move outward to the nearest absolute Asset boundary")
+    {
+        Fixture f { false, 44100.0 };
+        const bool reversed = GENERATE (false, true);
+        const int branch = GENERATE (0, 1, 2);
+        const bool missing = GENERATE (false, true);
+        f.original.clips.front().reversed = reversed;
+        const engine::Tick request = missing ? (reversed ? 2728 : 2725) : 2727;
+        const engine::Tick headEnd = missing ? (reversed ? 2727 : 2724) : 2727;
+        const engine::Tick tailStart = missing ? (reversed ? 2729 : 2726) : 2727;
+        const std::uint64_t headBoundary = reversed ? 6632u : (missing ? 2640u : 2642u);
+        const std::uint64_t tailBoundary = reversed ? (missing ? 6631u : 6632u) : (missing ? 2641u : 2642u);
+        const auto mapped = [] (std::uint64_t frame) { return (frame * 160u + 73u) / 147u; };
+        CHECK ((reversed ? mapped (9138u) - mapped (headBoundary) : mapped (headBoundary) - mapped (137u))
+               == static_cast<std::uint64_t> (headEnd));
+        CHECK ((reversed ? mapped (9138u) - mapped (tailBoundary) : mapped (tailBoundary) - mapped (137u))
+               == static_cast<std::uint64_t> (tailStart));
+        CHECK (request - headEnd <= 1);
+        CHECK (tailStart - request <= 1);
+        const engine::Tick a = branch == 1 ? 0 : request;
+        const engine::Tick b = branch == 0 ? 9797 : (branch == 1 ? request : 6203);
+        f.copyForNoOverlap (f.original, b - a);
+        const auto before = f.model.project();
+        auto expectedOffline = f.render (before);
+        auto expectedLive = f.play();
+        REQUIRE (f.model.locatePlaybackFrame (Fixture::start + a));
+        REQUIRE (f.model.dispatch (ui::UiActionId::TimelineClipPaste).dispatched);
+        const auto neighbours = noOverlapNeighbours (f.model);
+        REQUIRE (neighbours.size() == (branch == 2 ? 2u : 1u));
+        if (branch != 1)
+        {
+            const auto& head = neighbours.front();
+            CHECK (head.id == entity (4));
+            CHECK (head.timelineStart == Fixture::start);
+            CHECK (head.timelineLength == headEnd);
+            CHECK (head.srcOffset == (reversed ? headBoundary : 137u));
+            CHECK (head.srcLen == (reversed ? 9138u - headBoundary : headBoundary - 137u));
+        }
+        const auto retainedTail = branch == 2 ? 6203 : tailStart;
+        const auto retainedTailBoundary = branch == 2 ? (reversed ? 3439u : 5836u) : tailBoundary;
+        if (branch != 0)
+        {
+            const auto& tail = neighbours.back();
+            CHECK (tail.timelineStart == Fixture::start + retainedTail);
+            CHECK (tail.timelineLength == 9797 - retainedTail);
+            CHECK (tail.srcOffset == (reversed ? 137u : retainedTailBoundary));
+            CHECK (tail.srcLen == (reversed ? retainedTailBoundary - 137u : 9138u - retainedTailBoundary));
+            CHECK (tail.timelineStart >= Fixture::start + b);
+        }
+        const auto silentBegin = Fixture::start + (branch == 1 ? 0 : headEnd);
+        const auto silentEnd = Fixture::start + (branch == 0 ? 9797 : retainedTail);
+        for (auto* expected : { &expectedOffline, &expectedLive })
+            std::fill (expected->begin() + static_cast<std::ptrdiff_t> (silentBegin * 2),
+                       expected->begin() + static_cast<std::ptrdiff_t> (silentEnd * 2), 0.0f);
+        CHECK (bool (f.render (f.model.project()) == expectedOffline));
+        CHECK (bool (f.play() == expectedLive));
+        checkNoOverlapHistory (f, before);
+    }
+
+    SECTION ("legacy rounded outer endpoints retain their original padding or truncation")
+    {
+        Fixture f { false, 44100.0 };
+        const bool reversed = GENERATE (false, true);
+        const bool padded = GENERATE (false, true);
+        auto& original = f.original.clips.front();
+        original.reversed = reversed;
+        original.srcOffset = padded ? 6 : 1;
+        original.srcLen = padded ? 1001 : 1000;
+        original.timelineLength = padded ? 1090 : 1088;
+        const auto mapped = [] (std::uint64_t frame) { return (frame * 160u + 73u) / 147u; };
+        const auto sourceEnd = original.srcOffset + original.srcLen;
+        const auto headBoundary = reversed ? sourceEnd - 300u : original.srcOffset + 300u;
+        const auto tailBoundary = reversed ? sourceEnd - 700u : original.srcOffset + 700u;
+        const auto a = static_cast<engine::Tick> (reversed
+            ? mapped (sourceEnd) - mapped (headBoundary) : mapped (headBoundary) - mapped (original.srcOffset));
+        const auto b = static_cast<engine::Tick> (reversed
+            ? mapped (sourceEnd) - mapped (tailBoundary) : mapped (tailBoundary) - mapped (original.srcOffset));
+        f.copyForNoOverlap (f.original, b - a);
+        const auto before = f.model.project();
+        auto expectedOffline = f.render (before);
+        auto expectedLive = f.play();
+        REQUIRE (f.model.locatePlaybackFrame (Fixture::start + a));
+        REQUIRE (f.model.dispatch (ui::UiActionId::TimelineClipPaste).dispatched);
+        const auto neighbours = noOverlapNeighbours (f.model);
+        REQUIRE (neighbours.size() == 2);
+        CHECK (neighbours.front().timelineStart == original.timelineStart);
+        CHECK (neighbours.front().timelineLength == a);
+        CHECK (neighbours.front().srcOffset == (reversed ? headBoundary : original.srcOffset));
+        CHECK (neighbours.front().srcLen == 300u);
+        CHECK (neighbours.back().timelineStart == Fixture::start + b);
+        CHECK (neighbours.back().timelineStart + neighbours.back().timelineLength
+               == original.timelineStart + original.timelineLength);
+        CHECK (neighbours.back().srcOffset == (reversed ? original.srcOffset : tailBoundary));
+        CHECK (neighbours.back().srcLen == original.srcLen - 700u);
+        for (auto* expected : { &expectedOffline, &expectedLive })
+            std::fill (expected->begin() + static_cast<std::ptrdiff_t> ((Fixture::start + a) * 2),
+                       expected->begin() + static_cast<std::ptrdiff_t> ((Fixture::start + b) * 2), 0.0f);
+        CHECK (bool (f.render (f.model.project()) == expectedOffline));
+        CHECK (bool (f.play() == expectedLive));
+        checkNoOverlapHistory (f, before);
+    }
+
+    SECTION ("a wider natural rate ratio leaves only the minimal representable gap")
+    {
+        Fixture f { false, 16000.0 };
+        const bool reversed = GENERATE (false, true);
+        f.original.clips.front().reversed = reversed;
+        f.original.clips.front().timelineLength = 27003;
+        f.copyForNoOverlap (f.original, 6202 - 1703);
+        const auto before = f.model.project();
+        auto expectedOffline = f.render (before);
+        auto expectedLive = f.play();
+        REQUIRE (f.model.locatePlaybackFrame (Fixture::start + 1703));
+        REQUIRE (f.model.dispatch (ui::UiActionId::TimelineClipPaste).dispatched);
+        const auto neighbours = noOverlapNeighbours (f.model);
+        REQUIRE (neighbours.size() == 2);
+        CHECK (neighbours.front().timelineLength == 1701);
+        CHECK (neighbours.front().srcOffset == (reversed ? 8571u : 137u));
+        CHECK (neighbours.front().srcLen == 567u);
+        CHECK (neighbours.back().timelineStart == Fixture::start + 6204);
+        CHECK (neighbours.back().timelineLength == 27003 - 6204);
+        CHECK (neighbours.back().srcOffset == (reversed ? 137u : 2205u));
+        CHECK (neighbours.back().srcLen == 6933u);
+        // Each adjacent Asset boundary is exactly three project frames apart: neither
+        // retained fragment can move inward one Asset frame without entering placement.
+        CHECK (567u * 3u <= 1703u);
+        CHECK (568u * 3u > 1703u);
+        CHECK (2068u * 3u >= 6202u);
+        CHECK (2067u * 3u < 6202u);
+        CHECK (1703 - neighbours.front().timelineLength == 2);
+        CHECK (neighbours.back().timelineStart - (Fixture::start + 6202) == 2);
+        for (auto* expected : { &expectedOffline, &expectedLive })
+            std::fill (expected->begin() + static_cast<std::ptrdiff_t> ((Fixture::start + 1701) * 2),
+                       expected->begin() + static_cast<std::ptrdiff_t> ((Fixture::start + 6204) * 2), 0.0f);
+        CHECK (bool (f.render (f.model.project()) == expectedOffline));
+        CHECK (bool (f.play() == expectedLive));
+        checkNoOverlapHistory (f, before);
+    }
+
+    SECTION ("non-natural stretched windows use complementary original source boundaries")
+    {
+        Fixture f;
+        const bool reversed = GENERATE (false, true);
+        auto& original = f.original.clips.front();
+        original.reversed = reversed;
+        original.stretchFactor = 2.0f;
+        original.timelineLength = 18002;
+        f.copyForNoOverlap (f.original, 12407 - 3403);
+        const auto before = f.model.project();
+        REQUIRE (f.model.locatePlaybackFrame (Fixture::start + 3403));
+        REQUIRE (f.model.dispatch (ui::UiActionId::TimelineClipPaste).dispatched);
+        const auto neighbours = noOverlapNeighbours (f.model);
+        REQUIRE (neighbours.size() == 2);
+        CHECK (neighbours.front().srcOffset == (reversed ? 7436u : 137u));
+        CHECK (neighbours.front().srcLen == 1702u);
+        CHECK (neighbours.back().srcOffset == (reversed ? 137u : 6341u));
+        CHECK (neighbours.back().srcLen == 2797u);
+        CHECK (neighbours.front().timelineLength == 3403);
+        CHECK (neighbours.back().timelineStart == Fixture::start + 12407);
+        CHECK (neighbours.back().timelineLength == 5595);
+        checkNoOverlapHistory (f, before);
+    }
+
+    SECTION ("affected linked RecordingTake and Comp refuse partial or complete coverage")
+    {
+        Fixture f;
+        const bool reversed = GENERATE (false, true);
+        const int branch = GENERATE (0, 1, 2, 3);
+        f.original.clips.front().reversed = reversed;
+        engine::RecordingTake take;
+        take.id = entity (6);
+        take.assetId = entity (2);
+        take.trackId = entity (3);
+        take.clipId = entity (4);
+        take.timelineStart = Fixture::start;
+        take.frameCount = Fixture::length;
+        f.original.recordingTakes.push_back (take);
+        f.original.recordingCompSegments.push_back ({ entity (7), take.id, Fixture::start, 1000, 30 });
+        const engine::Tick a = branch == 1 || branch == 3 ? 0 : 1701;
+        const engine::Tick b = branch == 0 || branch == 3 ? 9001 : 6203;
+        f.copyForNoOverlap (f.original, b - a);
+        checkNoOverlapRefusal (f, Fixture::start + a);
+    }
+
+    SECTION ("a required fragment with no representable source or timeline length refuses")
+    {
+        Fixture f { false, 24000.0 };
+        const bool reversed = GENERATE (false, true);
+        const bool head = GENERATE (false, true);
+        f.original.clips.front().reversed = reversed;
+        f.original.clips.front().srcLen = 1;
+        f.original.clips.front().timelineLength = 2;
+        f.copyForNoOverlap (f.original, 1);
+        checkNoOverlapRefusal (f, Fixture::start + (head ? 1 : 0));
+    }
+}
 
 TEST_CASE ("Reversed Clip split preserves rendered order and exact source adjacency", "[reversed-clip][split]")
 {

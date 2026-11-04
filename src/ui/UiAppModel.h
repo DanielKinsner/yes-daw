@@ -14115,6 +14115,83 @@ private:
         return { id, state, true };
     }
 
+    // No Overlap retains temporal fragments of the ORIGINAL neighbour. Source boundaries are
+    // complementary in Asset frames; reversed playback consumes the high end first.
+    [[nodiscard]] std::optional<engine::Clip> noOverlapFragment (const engine::Clip& original,
+                                                                  engine::Tick cut, bool keepHead) const
+    {
+        if (original.timelineLength <= 0 || cut <= 0 || cut >= original.timelineLength
+            || original.srcLen == 0u
+            || original.srcOffset > std::numeric_limits<std::uint64_t>::max() - original.srcLen)
+            return std::nullopt;
+        const auto sourceEnd = original.srcOffset + original.srcLen;
+        std::uint64_t consumed = 0;
+        engine::Tick mappedCut = cut;
+        const double r = clipRateRatio (original);
+        bool natural = false;
+        if (r != 1.0 && original.timeBase == engine::TimeBase::SampleLocked && original.stretchFactor == 1.0f)
+        {
+            // viewFrameFor uses llround: check its absolute domain before calling it.
+            const double mappedEnd = static_cast<double> (sourceEnd) * r;
+            if (! std::isfinite (r) || r <= 0.0 || ! std::isfinite (mappedEnd)
+                || mappedEnd >= static_cast<double> (std::numeric_limits<engine::Tick>::max()))
+                return std::nullopt;
+            const auto viewStart = engine::viewFrameFor (original.srcOffset, r);
+            const auto viewEnd = engine::viewFrameFor (sourceEnd, r);
+            natural = original.timelineLength == engine::timelineLengthForSource (original.srcLen, r)
+                || original.timelineLength == static_cast<engine::Tick> (viewEnd - viewStart);
+            if (natural)
+            {
+                const auto temporalBoundary = [&] (std::uint64_t prefix) {
+                    return original.reversed
+                        ? viewEnd - engine::viewFrameFor (sourceEnd - prefix, r)
+                        : engine::viewFrameFor (original.srcOffset + prefix, r) - viewStart;
+                };
+                // Head ends at the greatest attainable frame <= the placed start; tail begins
+                // at the least attainable frame >= the placed end. Never round into placement.
+                std::uint64_t low = 0;
+                std::uint64_t high = original.srcLen;
+                const auto requested = static_cast<std::uint64_t> (cut);
+                while (low < high)
+                {
+                    const auto distance = high - low;
+                    const auto middle = low + distance / 2u + (keepHead ? distance % 2u : 0u);
+                    const auto mapped = temporalBoundary (middle);
+                    if (keepHead ? mapped <= requested : mapped < requested)
+                        low = middle + (keepHead ? 0u : 1u);
+                    else
+                        high = middle - (keepHead ? 1u : 0u);
+                }
+                consumed = low;
+                const auto mapped = temporalBoundary (consumed);
+                if (keepHead ? mapped > requested : mapped < requested)
+                    return std::nullopt;
+                mappedCut = static_cast<engine::Tick> (mapped);
+            }
+        }
+        if (! natural)
+        {
+            const long double scaled = static_cast<long double> (cut) * static_cast<long double> (original.srcLen)
+                / static_cast<long double> (original.timelineLength);
+            const long double rounded = std::floor (scaled + 0.5L);
+            if (rounded < 0.0L || rounded >= static_cast<long double> (std::numeric_limits<std::uint64_t>::max()))
+                return std::nullopt;
+            consumed = static_cast<std::uint64_t> (rounded);
+            if (consumed > original.srcLen)
+                return std::nullopt;
+        }
+        engine::Clip fragment = original;
+        fragment.timelineLength = keepHead ? mappedCut : original.timelineLength - mappedCut;
+        fragment.srcLen = keepHead ? consumed : original.srcLen - consumed;
+        fragment.srcOffset = original.reversed
+            ? (keepHead ? sourceEnd - consumed : original.srcOffset)
+            : (keepHead ? original.srcOffset : original.srcOffset + consumed);
+        if (fragment.timelineLength <= 0 || fragment.srcLen == 0u
+            || (! keepHead && ! engine::detail::addTickChecked (original.timelineStart, mappedCut, fragment.timelineStart)))
+            return std::nullopt;
+        return fragment;
+    }
+
     // G2.6: the Edit mode's laws, applied inside the placing / removing verb's own transaction so
     // the whole thing is ONE undo step. Only audio clips on the same track take part.
     //  - No overlap: a placed clip trims what it covers (fully covered neighbours go; a
@@ -14130,7 +14207,6 @@ private:
             return true;
         const engine::Clip placed = *placedIt;
         const engine::Tick start = placed.timelineStart;
-        const engine::Tick end = placed.timelineStart + placed.timelineLength;
         std::vector<engine::EntityId> neighbours;
         for (const engine::Clip& clip : project.clips)
             if (clip.id != placedId && clip.trackId == placed.trackId && clip.timelineLength > 0)
@@ -14147,7 +14223,23 @@ private:
             }
             return true;
         }
-        // No overlap.
+        // No overlap. A linked Take requires its complete original Clip window and placement,
+        // including when the Clip would be fully covered. Refuse before issuing any commands.
+        engine::Tick end = 0;
+        if (! engine::detail::addTickChecked (start, placed.timelineLength, end))
+            return false;
+        for (const engine::Clip& clip : project.clips)
+        {
+            if (clip.id == placedId || clip.trackId != placed.trackId || clip.timelineLength <= 0)
+                continue;
+            engine::Tick clipEnd = 0;
+            if (! engine::detail::addTickChecked (clip.timelineStart, clip.timelineLength, clipEnd))
+                return false;
+            if (clipEnd > start && clip.timelineStart < end
+                && std::any_of (project.recordingTakes.begin(), project.recordingTakes.end(),
+                                [&clip] (const engine::RecordingTake& take) { return take.clipId == clip.id; }))
+                return false;
+        }
         for (const engine::EntityId clipId : neighbours)
         {
             const auto it = std::find_if (project.clips.begin(), project.clips.end(),
@@ -14168,44 +14260,35 @@ private:
             if (nStart < start && nEnd > end)
             {
                 // Spans the placed clip: keep the head, add the tail as a new clip.
-                const engine::Tick headLength = start - nStart;
-                const engine::Tick tailLength = nEnd - end;
-                const std::optional<std::uint64_t> headSrc = sourceLengthForSplit (n, headLength);
-                const std::optional<std::uint64_t> consumed = sourceLengthForSplit (n, end - nStart);
-                const std::optional<std::uint64_t> tailSrc = sourceLengthForSplit (n, tailLength);
-                if (! headSrc || ! consumed || ! tailSrc)
+                const auto head = noOverlapFragment (n, start - nStart, true);
+                auto tail = noOverlapFragment (n, end - nStart, false);
+                if (! head || ! tail)
                     return false;
-                engine::Clip tail = n;
-                tail.id = allocateSessionEntityId (0xC6u, project);
-                tail.timelineStart = end;
-                tail.timelineLength = tailLength;
-                tail.srcOffset = n.srcOffset + *consumed;
-                tail.srcLen = *tailSrc;
-                tail.fadeIn = 0;
-                if (! undo.apply (project, engine::ProjectEditCommand::trimClip (clipId, nStart, headLength, n.srcOffset, *headSrc)).applied()
-                    || ! undo.apply (project, engine::ProjectEditCommand::addClip (tail)).applied())
+                tail->id = allocateSessionEntityId (0xC6u, project);
+                tail->fadeIn = 0;
+                if (! undo.apply (project, engine::ProjectEditCommand::trimClip (
+                        clipId, head->timelineStart, head->timelineLength, head->srcOffset, head->srcLen)).applied()
+                    || ! undo.apply (project, engine::ProjectEditCommand::addClip (*tail)).applied())
                     return false;
                 continue;
             }
             if (nStart < start)
             {
                 // Overlaps at its tail: keep the head.
-                const engine::Tick headLength = start - nStart;
-                const std::optional<std::uint64_t> headSrc = sourceLengthForSplit (n, headLength);
-                if (! headSrc)
+                const auto head = noOverlapFragment (n, start - nStart, true);
+                if (! head)
                     return false;
-                if (! undo.apply (project, engine::ProjectEditCommand::trimClip (clipId, nStart, headLength, n.srcOffset, *headSrc)).applied())
+                if (! undo.apply (project, engine::ProjectEditCommand::trimClip (
+                        clipId, head->timelineStart, head->timelineLength, head->srcOffset, head->srcLen)).applied())
                     return false;
                 continue;
             }
             // Overlaps at its head: keep the tail.
-            const engine::Tick consumedTicks = end - nStart;
-            const engine::Tick tailLength = nEnd - end;
-            const std::optional<std::uint64_t> consumed = sourceLengthForSplit (n, consumedTicks);
-            const std::optional<std::uint64_t> tailSrc = sourceLengthForSplit (n, tailLength);
-            if (! consumed || ! tailSrc)
+            const auto tail = noOverlapFragment (n, end - nStart, false);
+            if (! tail)
                 return false;
-            if (! undo.apply (project, engine::ProjectEditCommand::trimClip (clipId, end, tailLength, n.srcOffset + *consumed, *tailSrc)).applied())
+            if (! undo.apply (project, engine::ProjectEditCommand::trimClip (
+                    clipId, tail->timelineStart, tail->timelineLength, tail->srcOffset, tail->srcLen)).applied())
                 return false;
         }
         return true;

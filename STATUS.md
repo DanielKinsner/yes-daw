@@ -49,8 +49,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Next:
-   repair reversed No Overlap neighbour trimming, then implement the full musical clock. The three import review
-   findings are fixed. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
+   implement the full musical clock. The three import review findings and reversed/cross-rate No Overlap
+   neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
 5. Diagnose the recorded launch Underrun and intermittent SS3 failure with available headless evidence; confirmed
@@ -69,6 +69,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — No Overlap preserves the retained audio
+
+The pre-existing No Overlap helper kept forward source windows for reversed neighbours and independently rounded cross-rate tails. Unchanged production reproduced 78 failed assertions / 2,196 before the repair.
+A private temporal-fragment helper now derives both boundaries from the original neighbour, preserves reverse source order and natural resampler phase, and rounds cuts away from placement. Original outer endpoints, Clip identities and existing fade rules remain; unrepresentable fragments and affected linked Takes refuse atomically. Other edit modes and Trim/Slip/range verbs are unchanged. Stretched/non-natural geometry retains its proportional policy; exact retained-PCM proof covers equal-rate and natural converted audio.
+All nine focused cases passed (2,996 assertions); an independent engine/saved-data critic accepted the exact frozen hashes. Canonical pure suite 437/437 (91.40 s), app plus both harnesses compiled without launch, two affected Clang units clean, offscreen UI 498/459,921 and screenshots 30/15,629 passed. Existing No Overlap UI smoke was mechanically included; final HEAD/two-hash/three-path guards passed. No native window, desktop input or audio-device startup.
+Next: repair the shared Tempo-ramp equations under Accepted ADR-0082, then checked fractional time and exact Meter helpers. This checkpoint's new-head CI is pending; import-review workflow 41813535261 remains in progress. No native/hardware certification is implied.
 
 ## 2026-11-04 — Import cluster review findings repaired
 
