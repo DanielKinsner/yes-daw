@@ -55,7 +55,7 @@ struct Fixture
         for (std::size_t i = 0; i < samples.size(); ++i)
             samples[i] = static_cast<float> (i + 1) / 32768.0f;
         if (silence)
-            for (const auto [begin, end] : silentRuns)
+            for (const auto& [begin, end] : silentRuns)
                 std::fill (samples.begin() + static_cast<std::ptrdiff_t> (offset + begin),
                            samples.begin() + static_cast<std::ptrdiff_t> (offset + end), 0.0f);
         REQUIRE (io::writeFloat32WavFile (originalPath, engine::SampleRate { assetRate }, 1, samples.size(), samples).ok());
@@ -350,7 +350,7 @@ TEST_CASE ("Cross-rate Strip Silence preserves absolute source endpoints and bot
     CHECK (bool (beforeLive == f.render (f.original, engine::ResampleQuality::LivePlayback)));
     auto expectedOffline = beforeOffline;
     auto expectedLive = beforeLive;
-    for (const auto [begin, end] : { std::pair { 0u, 2501u }, { 3197u, 5703u }, { 6496u, 9001u } })
+    for (const auto& [begin, end] : { std::pair { 0u, 2501u }, { 3197u, 5703u }, { 6496u, 9001u } })
     {
         const auto first = static_cast<std::ptrdiff_t> (
             (static_cast<std::uint64_t> (Fixture::start) + (reversed
@@ -369,7 +369,7 @@ TEST_CASE ("Cross-rate Strip Silence preserves absolute source endpoints and bot
     if (reversed)
         std::reverse (kept.begin(), kept.end());
     std::size_t index = 0;
-    for (const auto [begin, end] : kept)
+    for (const auto& [begin, end] : kept)
     {
         const auto& clip = clips[index++];
         CHECK (clip.srcOffset == Fixture::offset + begin);

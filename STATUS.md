@@ -68,6 +68,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-03 — Portable reversed-edit regression checks
+
+Linux and macOS CI rejected three copied structured-binding loops in the new regression fixture under warnings-as-errors. They now bind by reference; production behavior and assertions are unchanged.
+Focused reversed-edit target rebuilt and passed (680 assertions / 8 cases); per-file Clang passed. Import-model workflow 41775312219 completed successfully across its full matrix, including sanitizers and packages.
+Reversed-edit workflow 41778350976 failed those compile checks; this repair's new-head CI remains pending. Headless background-import shell integration continues separately.
+
 ## 2026-11-03 — Reversed audio keeps its order through editing
 
 Split preserves source adjacency and rendered temporal order; Join retains the lower-source identity and refuses mixed directions. Strip Silence uses the correct reversed fragments and absolute source endpoints. A linked Take refuses splitting before mutation, preserving its Take/Comp metadata.
