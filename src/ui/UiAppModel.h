@@ -508,16 +508,16 @@ public:
     [[nodiscard]] std::uint64_t liveLoudnessOverflowCount() const noexcept { return loudnessTap_.overflowCount(); }
     [[nodiscard]] std::uint64_t liveLoudnessFrames() const noexcept { return liveLoudness_.frames(); }   // since the reset
 
-    // CONTROL THREAD: finish a pending one-bar count-in only after the audio-owned transport has
-    // reached the exact head-tempo/meter boundary. The real capture FIFO is already punch-gated at
-    // that frame; the deterministic test-device path commits its canonical Take here.
+    // CONTROL THREAD: observe Audio's one-shot completion, even if a later loop/seek has
+    // already moved the published playhead below the accepted boundary. The capture FIFO is
+    // already punch-gated there; the deterministic test-device path commits its Take here.
     void serviceRecordingCountIn()
     {
         if (! context_.recordCountInActive)
             return;
 
         syncContextFromPlayback();
-        if (context_.playheadFrame < recordCountInEndFrame_)
+        if (recordCountIn_ == nullptr || ! recordCountIn_->completed())
             return;
 
         context_.recordCountInActive = false;
@@ -606,6 +606,8 @@ public:
         };
         std::erase_if (retiredPlayback_,
                        [&] (const RetiredPlayback& r) { return reclaimable (r.retiredAtBlock); });
+        std::erase_if (retiredCountIns_,
+                       [&] (const RetiredCountIn& r) { return reclaimable (r.retiredAtBlock); });
         std::erase_if (retiredMonitorChains_,
                        [&] (const RetiredMonitorChain& r) { return reclaimable (r.retiredAtBlock); });
         std::erase_if (retiredAuditions_,
@@ -614,7 +616,7 @@ public:
 
     [[nodiscard]] std::size_t retiredAudioObjectCount() const noexcept
     {
-        return retiredPlayback_.size() + retiredMonitorChains_.size() + retiredAuditions_.size();
+        return retiredPlayback_.size() + retiredCountIns_.size() + retiredMonitorChains_.size() + retiredAuditions_.size();
     }
 
     // ---- ADR-0056 cp2: the audition voice — a file heard on the monitor path, never in the mix ----
@@ -1093,14 +1095,16 @@ public:
         sharedConfig.channels = 1;
         sharedConfig.latency.inputLatencyFrames = inputLatencyFrames;
         sharedConfig.latency.outputLatencyFrames = outputLatencyFrames;
-        std::optional<std::int64_t> countInEnd;
+        std::shared_ptr<engine::CapturedCountIn> preparedCountIn;
         if (context_.recordCountInEnabled)
         {
-            countInEnd = nextRecordCountInEndFrame();
-            if (! countInEnd)
-                return false;
-            sharedConfig.window.punchStartFrame = *countInEnd;
+            preparedCountIn = prepareRecordingCountIn();
+            if (preparedCountIn == nullptr) return false;
+            sharedConfig.window.punchStartFrame = preparedCountIn->openingFrame();
         }
+        // One Control producer owns this queue. Audio only frees slots, so after this
+        // preflight the final Play push cannot fail: no transport push intervenes.
+        if (! playback_->canQueuePlay()) return false;
         // N8: a persisted punch region additionally bounds the capture window. Punch-in never
         // lets recording start before count-in finishes (the LATER of the two wins); punch-out
         // closes the window exactly like a punch-out button would. Disabled leaves
@@ -1153,11 +1157,9 @@ public:
         }
 
         capturedMidi_.clear();
-        captureSlotCount_.store (armedTrackInputs_.size(), std::memory_order_release);
-        captureActive_.store (true, std::memory_order_release);
-        if (countInEnd)
+        if (preparedCountIn != nullptr)
         {
-            if (! beginRecordingCountIn (*countInEnd, false))
+            if (! beginRecordingCountIn (std::move (preparedCountIn), false, armedTrackInputs_.size()))
             {
                 captureActive_.store (false, std::memory_order_release);
                 return false;
@@ -1165,6 +1167,8 @@ public:
         }
         else
         {
+            captureSlotCount_.store (armedTrackInputs_.size(), std::memory_order_release);
+            captureActive_.store (true, std::memory_order_release);
             if (! postPlayStartingListen())
             {
                 captureActive_.store (false, std::memory_order_release);
@@ -1265,6 +1269,7 @@ public:
         }
 
         captureActive_.store (false, std::memory_order_release);
+        detachRecordingCountIn();
         if (playback_ != nullptr)
         {
             (void) playback_->stop();
@@ -3865,8 +3870,8 @@ public:
 
         if (! servicingCountIn && context_.recordCountInEnabled)
         {
-            const std::optional<std::int64_t> countInEnd = nextRecordCountInEndFrame();
-            if (! countInEnd || ! beginRecordingCountIn (*countInEnd, true))
+            auto prepared = prepareRecordingCountIn();
+            if (prepared == nullptr || ! beginRecordingCountIn (std::move (prepared), true))
             {
                 result.status = UiAppRecordStatus::PreconditionsNotMet;
                 return result;
@@ -12661,10 +12666,10 @@ private:
         project_ = std::move (nextProject);
         undo_ = std::move (nextUndo);
         decodedAssetViews_ = makeDecodedViews (decodedAssets_);
-        replacePlayback (std::move (nextEngine));
+        replacePlayback (std::move (nextEngine), true);
         ++editSerial_;
         syncProjectEditContext();
-        resetContextForFreshPlayback();
+        resetContextForFreshPlayback (true);
         restoreTransportAfterAdoption (liveTransport);
         // M13: a strip edit changes the monitor path's DSP too.
         rebuildMonitorChain();
@@ -12704,10 +12709,10 @@ private:
             (void) transport->stop();
             drainTransport (*transport);
         }
-        replacePlayback (std::move (transport));
+        replacePlayback (std::move (transport), true);
         ++editSerial_;
         syncProjectEditContext();
-        resetContextForFreshPlayback();
+        resetContextForFreshPlayback (true);
         restoreTransportAfterAdoption (liveTransport);
         // M13: a strip edit changes the monitor path's DSP too.
         rebuildMonitorChain();
@@ -12838,8 +12843,8 @@ private:
         const TransportAdoptionSnapshot liveTransport = captureTransportForAdoption();
         (void) nextEngine->stop();
         drainTransport (*nextEngine);
-        replacePlayback (std::move (nextEngine));
-        resetContextForFreshPlayback();
+        replacePlayback (std::move (nextEngine), true);
+        resetContextForFreshPlayback (true);
         restoreTransportAfterAdoption (liveTransport);
         return true;
     }
@@ -14076,6 +14081,7 @@ private:
     {
         if (playback_ == nullptr || ! playback_->stop())
             return false;
+        detachRecordingCountIn();
 
         return ! context_.returnToStartOnStopEnabled
             || playback_->locate (context_.playbackStartFrame);
@@ -14573,34 +14579,52 @@ private:
             1, static_cast<std::int64_t> (headBarFramesExact() + 0.5));
     }
 
-    [[nodiscard]] std::optional<std::int64_t> nextRecordCountInEndFrame() noexcept
+    [[nodiscard]] std::shared_ptr<engine::CapturedCountIn> prepareRecordingCountIn()
     {
+        if (playback_ == nullptr) return {};
         syncContextFromPlayback();
-        const std::int64_t duration = headBarFrames();
-        if (context_.playheadFrame < 0
-            || context_.playheadFrame > std::numeric_limits<std::int64_t>::max() - duration)
-            return std::nullopt;
-        return context_.playheadFrame + duration;
+        std::shared_ptr<engine::CapturedCountIn> prepared;
+        const auto status = playback_->prepareCountIn (context_.playheadFrame, prepared);
+        if (status != engine::TimeLookupStatus::Ok)
+            reportStatus ("Count-in unavailable: musical timing cannot be represented", true);
+        return prepared;
     }
 
-    [[nodiscard]] bool beginRecordingCountIn (std::int64_t endFrame, bool deterministic)
+    void detachRecordingCountIn()
     {
-        if (playback_ == nullptr || endFrame <= context_.playheadFrame)
-            return false;
+        auto previous = playback_ != nullptr ? playback_->setCountIn ({}) : nullptr;
+        if (recordCountIn_ != nullptr) previous = std::move (recordCountIn_);
+        if (previous != nullptr)
+            retiredCountIns_.push_back ({ std::move (previous), deviceBlocksStarted_.load (std::memory_order_acquire) });
+    }
 
-        recordCountInEndFrame_ = endFrame;
+    [[nodiscard]] bool beginRecordingCountIn (std::shared_ptr<engine::CapturedCountIn> prepared,
+                                               bool deterministic, std::size_t captureSlots = 0)
+    {
+        if (playback_ == nullptr || prepared == nullptr || prepared->openingFrame() <= context_.playheadFrame
+            || ! playback_->canQueuePlay())
+            return false;
+        detachRecordingCountIn();
+        recordCountInEndFrame_ = prepared->openingFrame();
+        recordCountIn_ = std::move (prepared);
+        (void) playback_->setCountIn (recordCountIn_);
         deterministicRecordCountInPending_ = deterministic;
         context_.recordCountInActive = true;
         context_.isRecording = false;
-        applyMetronomeToPlayback (true);
+        applyMetronomeToPlayback();
+        if (captureSlots != 0)
+        {
+            captureSlotCount_.store (captureSlots, std::memory_order_release);
+            captureActive_.store (true, std::memory_order_release);
+        }
         if (! postPlayStartingListen())
         {
+            captureActive_.store (false, std::memory_order_release);
+            detachRecordingCountIn();
             context_.recordCountInActive = false;
             deterministicRecordCountInPending_ = false;
-            applyMetronomeToPlayback();
             return false;
         }
-
         drainTransport (*playback_);
         syncContextFromPlayback();
         return true;
@@ -14608,6 +14632,7 @@ private:
 
     void cancelRecordingCountIn()
     {
+        detachRecordingCountIn();
         captureActive_.store (false, std::memory_order_release);
         drainRealRecordingCapture();
         for (CaptureSlot& slot : captureSlots_)
@@ -14692,16 +14717,19 @@ private:
         context_.shuttlePlaybackRate = playback_->playbackRate();
     }
 
-    void resetContextForFreshPlayback() noexcept
+    void resetContextForFreshPlayback (bool preserveCountIn = false) noexcept
     {
         context_.isPlaying = false;
         context_.loopEnabled = false;
         context_.playheadFrame = 0;
         context_.playbackStartFrame = 0;
         context_.lastLocateFrame = 0;
-        context_.recordCountInActive = false;
-        recordCountInEndFrame_ = 0;
-        deterministicRecordCountInPending_ = false;
+        if (! preserveCountIn)
+        {
+            context_.recordCountInActive = false;
+            recordCountInEndFrame_ = 0;
+            deterministicRecordCountInPending_ = false;
+        }
         context_.shuttlePlaybackRate = 1;
     }
 
@@ -14907,8 +14935,15 @@ private:
         return next;
     }
 
-    void replacePlayback (std::unique_ptr<engine::PlaybackEngine> replacement)
+    void replacePlayback (std::unique_ptr<engine::PlaybackEngine> replacement, bool preserveCountIn = false)
     {
+        if (! preserveCountIn)
+        {
+            if (recordCountIn_ != nullptr) captureActive_.store (false, std::memory_order_release);
+            detachRecordingCountIn();
+        }
+        if (replacement != nullptr && preserveCountIn)
+            (void) replacement->setCountIn (recordCountIn_);
         ++playbackReplaceCount_;   // R12: every engine swap counts — the live lane must not take this path
 
         // G0.3: publish the complete new engine in one atomic store (no silent gap), retire the
@@ -14926,12 +14961,12 @@ private:
         reclaimRetiredAudioObjects();
     }
 
-    void applyMetronomeToPlayback (bool forceEnabled = false)
+    void applyMetronomeToPlayback()
     {
         if (playback_ == nullptr)
             return;
 
-        if (playback_->setMetronomeEnabled (forceEnabled || context_.metronomeEnabled)
+        if (playback_->setMetronomeEnabled (context_.metronomeEnabled)
             != engine::TimeLookupStatus::Ok)
             reportStatus ("Metronome unavailable: musical timing cannot be represented", true);
     }
@@ -15039,6 +15074,7 @@ private:
     UiRecordedMidiTake lastRecordedMidiTake_;
     UiRecordedMidiTake pendingMidiPlacement_;
     UiRecordingCompSelection recordingCompSelection_;
+    std::shared_ptr<engine::CapturedCountIn> recordCountIn_;
     std::int64_t recordCountInEndFrame_ = 0;
     engine::TimeLookupStatus observedMetronomeFailure_ = engine::TimeLookupStatus::Ok;
     bool deterministicRecordCountInPending_ = false;
@@ -15318,6 +15354,12 @@ private:
     std::int64_t timelineRangeEndFrame_ = -1;
     // G0.3: retired audio objects awaiting the janitor (see reclaimRetiredAudioObjects), the
     // device-thread block counter the retire law reads, and whether a device callback is live.
+    struct RetiredCountIn
+    {
+        std::shared_ptr<engine::CapturedCountIn> session;
+        std::uint64_t retiredAtBlock = 0;
+    };
+    std::vector<RetiredCountIn> retiredCountIns_;
     struct RetiredPlayback
     {
         std::unique_ptr<engine::PlaybackEngine> engine;

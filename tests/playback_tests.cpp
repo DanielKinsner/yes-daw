@@ -2146,3 +2146,302 @@ TEST_CASE ("uncertain dense ordinal brackets keep exact buckets and bounded work
     CHECK (events == 257);
     CHECK (probes <= 524u + 258u * 262u);
 }
+
+TEST_CASE ("captured count-in boundaries preserve exact Frame anchors and nominal rational bars",
+           "[playback][captured-count-in][count-in-boundary]")
+{
+    using yesdaw::engine::TimeLookupStatus;
+    const auto flat = compileClick ({ { 0, 120.0, TempoCurve::Jump } }, { { 0, 4, 4 } });
+    for (const std::int64_t start : { 0, 1, 7, 127, 128 })
+    {
+        CAPTURE (start);
+        std::int64_t opening = -1;
+        REQUIRE (flat.countInEndFrame (start, opening) == TimeLookupStatus::Ok);
+        CHECK (opening == start + 96'000);
+    }
+    const auto jump = compileClick ({ { 0, 120.0, TempoCurve::Jump },
+                                      { 2 * yesdaw::engine::kTicksPerQuarter, 240.0, TempoCurve::Jump } }, { { 0, 4, 4 } });
+    std::int64_t jumpOpening = -1;
+    REQUIRE (jump.countInEndFrame (2, jumpOpening) == TimeLookupStatus::Ok);
+    CHECK (jumpOpening == 72'001); // exact Frame anchor 2, inverse Tick 32/25, across the jump
+    const auto legacy = compileClick ({ { 0, 150.0, TempoCurve::Jump } }, { { 0, 7, 8 } });
+    std::int64_t opening = -1;
+    REQUIRE (legacy.countInEndFrame (0, opening) == TimeLookupStatus::Ok);
+    CHECK (opening == 67'200);
+    const auto fractional = compileClick ({ { 0, 120.0, TempoCurve::Jump } }, { { 0, 7, 39 }, { 100, 3, 8 } });
+    REQUIRE (fractional.countInEndFrame (0, opening) == TimeLookupStatus::Ok);
+    CHECK (opening == 17'231); // ceil(24000 * 28/39); the interior Meter change cannot shorten it.
+    const auto extreme = compileClick ({ { 0, 125.0, TempoCurve::Jump } }, { { 0, 7, 65535 } });
+    for (const std::int64_t start : { 3LL * (1LL << 40) + 4081, 3LL * (1LL << 49) + 4081 })
+    {
+        CAPTURE (start);
+        const auto status = extreme.countInEndFrame (start, opening);
+        CHECK ((status == TimeLookupStatus::NumericDomain || (status == TimeLookupStatus::Ok && opening == start + 10)));
+    }
+    CHECK (flat.countInEndFrame (-1, opening) == TimeLookupStatus::InvalidInput);
+    CHECK (opening == 0);
+}
+
+TEST_CASE ("captured count-in hands tails over once across block partitions and engine replacements",
+           "[playback][captured-count-in][count-in-tail]")
+{
+    using yesdaw::engine::CapturedCountIn;
+    using yesdaw::engine::TimeLookupStatus;
+    const auto wave = [] (std::int64_t offset) {
+        if (offset < 0 || offset >= 240) return 0.0f;
+        const double t = static_cast<double> (offset) / 48'000.0;
+        return static_cast<float> (std::sin (6.283185307179586 * 1500.0 * t) * std::exp (-t * 600.0) * 0.5);
+    };
+    constexpr std::int64_t boundary = 72'100, onset = 72'000;
+    for (const int partition : { 1, 7, 128, 257 })
+        for (const bool replace : { false, true })
+        {
+            CAPTURE (partition, replace);
+            auto project = makePlaybackFixture().project;
+            project.tempoMap = { { 0, 120.0, TempoCurve::Jump } };
+            project.meterMap = { { 0, 3, 4 } };
+            auto playback = PlaybackEngine::createTransportOnly (project, 257);
+            REQUIRE (playback != nullptr);
+            std::shared_ptr<CapturedCountIn> session;
+            REQUIRE (playback->prepareCountIn (100, session) == TimeLookupStatus::Ok);
+            REQUIRE (session->openingFrame() == boundary);
+            (void) playback->setCountIn (session);
+            REQUIRE (playback->locate (boundary));
+            REQUIRE (playback->play());
+            playback->processBlock (nullptr, 0, 0);
+            REQUIRE_FALSE (session->completed()); // zero-frame Control drain
+            REQUIRE (playback->locate (boundary - 50));
+            std::array<float, 257> left {}, right {};
+            float* outputs[] { left.data(), right.data() };
+            std::vector<float> rendered;
+            const auto replacement = [&] (std::int64_t cursor) {
+                project.tempoMap = { { 0, 90.0, TempoCurve::Jump } };
+                project.meterMap = { { 0, 5, 8 } };
+                auto next = PlaybackEngine::createTransportOnly (project, 257);
+                REQUIRE (next != nullptr);
+                (void) next->setCountIn (session);
+                REQUIRE (next->locate (cursor));
+                REQUIRE (next->play());
+                next->processBlock (nullptr, 0, 0);
+                playback = std::move (next); // Control; no device or callback exists in this harness
+            };
+            if (replace) replacement (boundary - 50); // replacement before completion
+            for (auto cursor = boundary - 50; cursor < boundary + 300;)
+            {
+                const auto cut = cursor < boundary + 31 ? boundary + 31 : boundary + 300;
+                const int length = static_cast<int> (std::min<std::int64_t> (partition, cut - cursor));
+                playback->processBlock (outputs, 2, length);
+                rendered.insert (rendered.end(), left.begin(), left.begin() + length);
+                cursor += length;
+                if (replace && cursor == boundary + 31)
+                {
+                    REQUIRE (session->completed());
+                    replacement (cursor);
+                    replacement (cursor); // back-to-back replacement retains the same tail progress
+                }
+            }
+            REQUIRE (session->completed());
+            REQUIRE (rendered.size() == 350u);
+            for (std::size_t i = 0; i < rendered.size(); ++i)
+                CHECK (std::abs (rendered[i] - wave (boundary - 50 + static_cast<std::int64_t> (i) - onset)) < 1.0e-7f);
+            for (const bool enabled : { false, true })
+            {
+                REQUIRE (playback->setMetronomeEnabled (enabled) == TimeLookupStatus::Ok);
+                REQUIRE (playback->locate (0));
+                playback->processBlock (outputs, 2, 64);
+                for (int i = 0; i < 64; ++i)
+                    CHECK (std::abs (left[static_cast<std::size_t> (i)] - (enabled ? wave (i) : 0.0f)) < 1.0e-7f);
+                REQUIRE (playback->setLoop (0, 64));
+                REQUIRE (playback->locate (0));
+                playback->processBlock (outputs, 2, 128);
+                for (int i = 0; i < 128; ++i)
+                    CHECK (std::abs (left[static_cast<std::size_t> (i)] - (enabled ? wave (i % 64) : 0.0f)) < 1.0e-7f);
+                REQUIRE (playback->clearLoop());
+            }
+            // Crossing B again cannot replay the accepted pre-boundary tail.
+            REQUIRE (playback->setMetronomeEnabled (false) == TimeLookupStatus::Ok);
+            REQUIRE (playback->locate (boundary));
+            playback->processBlock (outputs, 2, 64);
+            CHECK (std::all_of (left.begin(), left.begin() + 64, [] (float value) { return value == 0.0f; }));
+        }
+}
+
+TEST_CASE ("count-in tail seek intersection never advances future unconsumed samples early",
+           "[playback][captured-count-in][count-in-tail]")
+{
+    using yesdaw::engine::CapturedCountIn;
+    using yesdaw::engine::TimeLookupStatus;
+    auto project = makePlaybackFixture().project;
+    project.tempoMap = { { 0, 120.0, TempoCurve::Jump } };
+    project.meterMap = { { 0, 3, 4 } };
+    constexpr std::int64_t boundary = 72'100;
+    const auto wave = [] (int offset) {
+        const double t = static_cast<double> (offset) / 48'000.0;
+        return static_cast<float> (std::sin (6.283185307179586 * 1500.0 * t) * std::exp (-t * 600.0) * 0.5);
+    };
+    auto playback = PlaybackEngine::createTransportOnly (project, 257);
+    std::shared_ptr<CapturedCountIn> session;
+    REQUIRE (playback->prepareCountIn (100, session) == TimeLookupStatus::Ok);
+    (void) playback->setCountIn (session);
+    REQUIRE (playback->locate (boundary - 50));
+    REQUIRE (playback->play());
+    playback->processBlock (nullptr, 0, 50); // advancing zero-output segment ENDS exactly at B
+    REQUIRE (session->completed());
+    std::array<float, 257> left {}, right {};
+    float* outputs[] { left.data(), right.data() };
+    playback->processBlock (outputs, 2, 50); // accepted tail samples [0,50) consumed
+    REQUIRE (playback->locate (boundary + 20));
+    playback->processBlock (outputs, 2, 20);
+    CHECK (std::all_of (left.begin(), left.begin() + 20, [] (float value) { return value == 0.0f; }));
+    playback->processBlock (outputs, 2, 20); // [40,60): ten consumed zeros, then tail [50,60)
+    for (int i = 0; i < 20; ++i)
+        CHECK (std::abs (left[static_cast<std::size_t> (i)] - (i < 10 ? 0.0f : wave (140 + i))) < 1.0e-7f);
+    REQUIRE (playback->locate (boundary + 120));
+    playback->processBlock (outputs, 2, 20);
+    for (int i = 0; i < 20; ++i)
+        CHECK (std::abs (left[static_cast<std::size_t> (i)] - wave (220 + i)) < 1.0e-7f);
+    REQUIRE (playback->locate (boundary + 1000));
+    playback->processBlock (outputs, 2, 1); // jump past the tail window exhausts it
+    REQUIRE (playback->locate (boundary));
+    playback->processBlock (outputs, 2, 64);
+    CHECK (std::all_of (left.begin(), left.begin() + 64, [] (float value) { return value == 0.0f; }));
+
+    // Completion is latched before a loop wraps, even when no Control service sees B.
+    auto looped = PlaybackEngine::createTransportOnly (project, 257);
+    REQUIRE (looped->prepareCountIn (100, session) == TimeLookupStatus::Ok);
+    (void) looped->setCountIn (session);
+    REQUIRE (looped->setLoop (boundary - 50, boundary));
+    REQUIRE (looped->locate (boundary - 50));
+    REQUIRE (looped->play());
+    looped->processBlock (outputs, 2, 100);
+    REQUIRE (session->completed());
+    CHECK (looped->playheadFrame() == boundary - 50);
+    for (int i = 0; i < 100; ++i)
+        CHECK (std::abs (left[static_cast<std::size_t> (i)] - (i < 50 ? wave (50 + i) : 0.0f)) < 1.0e-7f);
+}
+
+TEST_CASE ("first count-in handoff excludes edited historical tails then restores ordinary seek tails",
+           "[playback][captured-count-in][count-in-tail]")
+{
+    using yesdaw::engine::CapturedCountIn;
+    using yesdaw::engine::TimeLookupStatus;
+    auto project = makePlaybackFixture().project;
+    project.tempoMap = { { 0, 120.0, TempoCurve::Jump } };
+    project.meterMap = { { 0, 3, 4 } };
+    auto original = PlaybackEngine::createTransportOnly (project, 257);
+    std::shared_ptr<CapturedCountIn> session;
+    REQUIRE (original->prepareCountIn (100, session) == TimeLookupStatus::Ok);
+    REQUIRE (session->openingFrame() == 72'100);
+    // The edited current grid starts a DIFFERENT downbeat at Frame 72050.
+    project.meterMap.push_back ({ 46'112, 4, 4 });
+    auto edited = PlaybackEngine::createTransportOnly (project, 257);
+    (void) edited->setCountIn (session);
+    REQUIRE (edited->setMetronomeEnabled (true) == TimeLookupStatus::Ok);
+    REQUIRE (edited->locate (72'100));
+    REQUIRE (edited->play());
+    const auto wave = [] (int offset) {
+        const double t = static_cast<double> (offset) / 48'000.0;
+        return static_cast<float> (std::sin (6.283185307179586 * 1500.0 * t) * std::exp (-t * 600.0) * 0.5);
+    };
+    std::array<float, 257> left {}, right {};
+    float* outputs[] { left.data(), right.data() };
+    edited->processBlock (outputs, 2, 64);
+    for (int i = 0; i < 64; ++i)
+        CHECK (std::abs (left[static_cast<std::size_t> (i)] - wave (100 + i)) < 1.0e-7f);
+    edited->processBlock (outputs, 2, 257); // exhaust the one-shot accepted handoff
+    REQUIRE (edited->locate (72'100));
+    edited->processBlock (outputs, 2, 64);
+    for (int i = 0; i < 64; ++i)
+        CHECK (std::abs (left[static_cast<std::size_t> (i)] - (wave (100 + i) + wave (50 + i))) < 1.0e-7f);
+}
+
+TEST_CASE ("count-in preflight rejects known interior join ambiguity without walking beats",
+           "[playback][captured-count-in][count-in-boundary]")
+{
+    using yesdaw::engine::TimeLookupStatus;
+    constexpr Tick join = (Tick { 1 } << 53) + 1;
+    constexpr std::int64_t anchor = std::int64_t { 3 } << 52;
+    const auto clock = compileClick ({ { 0, 125.0, TempoCurve::Jump }, { join, 125.0, TempoCurve::Jump } },
+                                     { { 0, 7, 65535 }, { join, 4, 4 } });
+    CHECK (clock.checkCountInRange (anchor - 100, anchor) == TimeLookupStatus::Ok);
+    CHECK (clock.checkCountInRange (anchor - 100, anchor + 100) == TimeLookupStatus::NumericDomain);
+    CHECK (clock.checkCountInRange (anchor, anchor + 100) == TimeLookupStatus::NumericDomain);
+    CHECK (clock.checkCountInRange (anchor + 100, anchor + 1000) == TimeLookupStatus::Ok);
+    CHECK (clock.checkCountInRange (-1, 100) == TimeLookupStatus::InvalidInput);
+}
+
+TEST_CASE ("active captured count-in phases meet the existing device-block deadline oracle",
+           "[playback][captured-count-in][count-in-deadline][perf]")
+{
+    using yesdaw::engine::CapturedCountIn;
+    using yesdaw::engine::TimeLookupStatus;
+    Project captured;
+    captured.sampleRate = { 48'000.0 };
+    captured.tempoMap = { { 0, 6000.0, TempoCurve::Jump } };
+    captured.meterMap = { { 0, 65535, 65535 } }; // multiple beat ordinals coalesce in EVERY Frame
+    auto source = PlaybackEngine::createTransportOnly (captured, 257);
+    REQUIRE (source != nullptr);
+    Project current = captured;
+    current.tempoMap = { { 0, 12000.0, TempoCurve::Jump } };
+    auto playback = PlaybackEngine::createTransportOnly (current, 257);
+    REQUIRE (playback != nullptr);
+    REQUIRE (playback->setMetronomeEnabled (true) == TimeLookupStatus::Ok);
+    constexpr std::int64_t boundary = 1920; // exact 6000-BPM four-quarter nominal bar
+    std::array<float, 257> left {}, right {};
+    float* outputs[] { left.data(), right.data() };
+    double checksum = 0.0;
+    for (const int blockSize : { 128, 257 })
+        for (const int phase : { 0, 1, 2 })
+        {
+            std::vector<std::uint64_t> times;
+            times.reserve (1000);
+            // Preparation, owner retirement and command drains are Control work. A fresh
+            // session EVERY iteration prevents ordinary completed blocks masking this path.
+            const auto prepare = [&] {
+                std::shared_ptr<CapturedCountIn> session;
+                REQUIRE (source->prepareCountIn (0, session) == TimeLookupStatus::Ok);
+                REQUIRE (session->openingFrame() == boundary);
+                (void) playback->setCountIn (session);
+                if (phase == 2)
+                {
+                    REQUIRE (playback->locate (boundary - 1));
+                    REQUIRE (playback->play());
+                    playback->processBlock (nullptr, 0, 1); // Audio completes, tail remains untouched
+                    REQUIRE (session->completed());
+                }
+                const auto target = phase == 0 ? boundary - blockSize - 16
+                    : phase == 1 ? boundary - blockSize / 2 : boundary + 17;
+                REQUIRE (playback->locate (target));
+                REQUIRE (playback->play());
+                playback->processBlock (nullptr, 0, 0);
+                return session;
+            };
+            for (int warm = 0; warm < 50; ++warm)
+            {
+                const auto session = prepare();
+                playback->processBlock (outputs, 2, blockSize);
+            }
+            for (int block = 0; block < 1000; ++block)
+            {
+                const auto session = prepare();
+                const auto before = std::chrono::steady_clock::now();
+                playback->processBlock (outputs, 2, blockSize);
+                const auto after = std::chrono::steady_clock::now();
+                const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds> (after - before).count();
+                times.push_back (ns > 0 ? static_cast<std::uint64_t> (ns) : 1u);
+                CHECK (session->completed() == (phase != 0));
+                CHECK (playback->metronomeLookupStatus() == TimeLookupStatus::Ok);
+                checksum += left[static_cast<std::size_t> (block % blockSize)];
+            }
+            const auto stats = yesdaw::engine::summarizeDeadlineSoak (times, 48'000.0, blockSize, 1u, 0u);
+            INFO ("count-in phase=" << phase << " block=" << blockSize
+                  << " p999=" << stats.p999BlockNanos << " max=" << stats.maxBlockNanos
+                  << " deadline=" << stats.blockPeriodNanos << " ns");
+            CHECK (stats.blocksProcessed == times.size());
+    #if ! defined (YESDAW_SANITIZER_BUILD)
+            CHECK (stats.passesDeadline());
+    #endif
+        }
+    CHECK (std::isfinite (checksum));
+    CHECK (checksum != 0.0);
+}

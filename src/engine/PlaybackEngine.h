@@ -9,7 +9,7 @@
 
 #include "engine/LoudnessTap.h"   // ADR-0053
 #include "engine/MidiInputQueue.h"   // G3.10
-#include "engine/MusicalClick.h"
+#include "engine/CapturedCountIn.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/ProjectMixerProjection.h"
 #include "engine/Recording.h"
@@ -285,6 +285,7 @@ public:
 
     // CONTROL THREAD: transport changes travel through one bounded SPSC command queue. The audio callback
     // drains it at the top of each Block and remains the sole owner of the live transport fields.
+    [[nodiscard]] bool canQueuePlay() const noexcept { return transportCommands_.getFreeSlots() != 0; }
     bool play() noexcept { return postTransportCommand (TransportCommand { TransportCommandType::Play }); }
     bool stop() noexcept { return postTransportCommand (TransportCommand { TransportCommandType::Stop }); }
 
@@ -356,6 +357,52 @@ public:
     // CONTROL THREAD: a future captured count-in can retain this accepted clock independently
     // of an engine replacement. Audio reads only get(); ownership is reclaimed off Audio.
     [[nodiscard]] std::shared_ptr<const MusicalClickMap> metronomeClock() const noexcept { return metronomeClock_; }
+
+    // CONTROL THREAD: no publication until the complete immutable boundary/tail is ready.
+    [[nodiscard]] TimeLookupStatus prepareCountIn (std::int64_t startFrame,
+                                                   std::shared_ptr<CapturedCountIn>& out) const
+    {
+        out.reset();
+        if (metronomePreparationStatus_ != TimeLookupStatus::Ok || metronomeClock_ == nullptr)
+            return metronomePreparationStatus_;
+        std::int64_t opening = 0;
+        const auto status = metronomeClock_->countInEndFrame (startFrame, opening);
+        if (status != TimeLookupStatus::Ok) return status;
+        const auto length = static_cast<std::int64_t> (metronomeBeatClick_.size());
+        if (length < 1 || metronomeDownbeatClick_.size() != metronomeBeatClick_.size())
+            return TimeLookupStatus::InvalidMap;
+        const auto rangeStatus = metronomeClock_->checkCountInRange (
+            std::max<std::int64_t> (0, startFrame - length + 1), opening);
+        if (rangeStatus != TimeLookupStatus::Ok) return rangeStatus;
+        std::vector<float> tail (static_cast<std::size_t> (length - 1), 0.0f);
+        auto window = metronomeClock_->onsetsInRange (std::max<std::int64_t> (0, opening - length + 1), opening);
+        for (;;)
+        {
+            const auto onset = window.next();
+            if (onset.status != TimeLookupStatus::Ok) return onset.status;
+            if (! onset.found) break;
+            const auto& table = onset.downbeat ? metronomeDownbeatClick_ : metronomeBeatClick_;
+            const auto source = opening - onset.frame;
+            for (auto i = source; i < length; ++i)
+                tail[static_cast<std::size_t> (i - source)] += table[static_cast<std::size_t> (i)];
+        }
+        out = std::make_shared<CapturedCountIn> (metronomeClock_, sampleRate_, opening, std::move (tail));
+        return TimeLookupStatus::Ok;
+    }
+
+    // CONTROL THREAD: retain the returned owner until the device has passed its two-start
+    // fence. Retired engines also retain their own owner. Audio never touches a shared_ptr.
+    [[nodiscard]] std::shared_ptr<CapturedCountIn> setCountIn (std::shared_ptr<CapturedCountIn> session) noexcept
+    {
+        // Session transfer is for one Project; a fresh Project detaches it. A mismatched
+        // rate cannot reinterpret immutable captured Frames or its prepared click PCM.
+        YESDAW_RT_FATAL (session == nullptr || session->rate_ == sampleRate_);
+        auto previous = std::move (countInOwner_);
+        countInOwner_ = std::move (session);
+        audioCountIn_.store (countInOwner_.get(), std::memory_order_release);
+        return previous;
+    }
+
 
     [[nodiscard]] RecordingCaptureResult captureRecordingInputBlock (
         RecordingChunkFifo& fifo,
@@ -535,24 +582,76 @@ private:
 
     // AUDIO THREAD: enumerate distinct onset Frames, including preceding five-millisecond
     // tails after a seek. Per-output-sample work is only precomputed-table reads and summing.
-    void overlayMetronome (float* const* outChannels,
+    void overlayMetronome (float* const* outputs, int channels, int offset, int frames,
+                           std::int64_t start) noexcept YESDAW_RT_HOT
+    {
+        if (frames <= 0) return; // Control's zero-frame command drains never advance session state.
+        auto* session = audioCountIn_.load (std::memory_order_acquire);
+        const bool ordinary = metronomeEnabled_.load (std::memory_order_acquire);
+        constexpr auto unlimited = std::numeric_limits<std::int64_t>::max();
+        if (session == nullptr)
+        {
+            if (ordinary) overlayClickMap (outputs, channels, offset, frames, start, metronomeClock_.get(), 0, unlimited);
+            return;
+        }
+        const auto boundary = session->opening_;
+        const auto end = start + static_cast<std::int64_t> (frames);
+        if (! session->completedAudio_)
+        {
+            const int before = static_cast<int> (std::max<std::int64_t> (0, std::min (end, boundary) - start));
+            if (before > 0)
+                overlayClickMap (outputs, channels, offset, before, start, session->clock_.get(), 0, boundary);
+            if (end < boundary) return;
+            session->completedAudio_ = true;
+            session->publishedCompleted_.store (true, std::memory_order_release);
+            offset += before;
+            frames -= before;
+            start += before;
+        }
+        // A later advancing segment below the boundary is ordinary playback. Exhaust the
+        // accepted remainder so a loop or seek can never replay the one-shot handoff.
+        if (start < boundary)
+            session->consumedTail_ = session->tail_.size();
+        const bool handoff = session->consumedTail_ < session->tail_.size();
+        if (ordinary && frames > 0)
+            overlayClickMap (outputs, channels, offset, frames, start, metronomeClock_.get(),
+                             handoff ? boundary : 0, unlimited);
+        if (! handoff || frames <= 0) return;
+        const auto elapsed = static_cast<std::uint64_t> (start - boundary);
+        if (elapsed >= session->tail_.size())
+        {
+            session->consumedTail_ = session->tail_.size();
+            return;
+        }
+        const auto first = std::max (session->consumedTail_, static_cast<std::size_t> (elapsed));
+        const auto skip = first - static_cast<std::size_t> (elapsed);
+        if (skip >= static_cast<std::size_t> (frames)) return;
+        const auto count = std::min (static_cast<std::size_t> (frames) - skip, session->tail_.size() - first);
+        if (outputs != nullptr)
+            for (int channel = 0; channel < channels; ++channel)
+                if (outputs[channel] != nullptr)
+                    for (std::size_t i = 0; i < count; ++i)
+                        outputs[channel][offset + static_cast<int> (skip + i)] += session->tail_[first + i];
+        session->consumedTail_ = first + count;
+    }
+
+    void overlayClickMap (float* const* outChannels,
                            int numOutputChannels,
                            int blockOffset,
                            int segmentFrames,
-                           std::int64_t segmentStartFrame) noexcept YESDAW_RT_HOT
+                           std::int64_t segmentStartFrame, const MusicalClickMap* clock,
+                           std::int64_t minimumOnset, std::int64_t endOnset) noexcept YESDAW_RT_HOT
     {
-        if (! metronomeEnabled_.load (std::memory_order_acquire)
-            || outChannels == nullptr || numOutputChannels <= 0)
+        if (outChannels == nullptr || numOutputChannels <= 0)
             return;
 
-        const auto* const clock = metronomeClock_.get();
         if (clock == nullptr || metronomeBeatClick_.empty())
             return;
 
         const std::int64_t clickFrames = static_cast<std::int64_t> (metronomeBeatClick_.size());
         const auto endFrame = segmentStartFrame + static_cast<std::int64_t> (segmentFrames);
-        const auto firstFrame = std::max<std::int64_t> (0, segmentStartFrame - (clickFrames - 1));
-        auto window = clock->onsetsInRange (firstFrame, endFrame);
+        const auto firstFrame = std::max (minimumOnset, std::max<std::int64_t> (0, segmentStartFrame - (clickFrames - 1)));
+        auto window = clock->onsetsInRange (firstFrame, std::min (endFrame, endOnset));
         for (;;)
         {
             const auto onset = window.next();
@@ -827,6 +926,8 @@ private:
     static constexpr double kMetronomeDownbeatHz = 1500.0;
     static constexpr double kMetronomeGain = 0.5;
 
+    std::shared_ptr<CapturedCountIn> countInOwner_; // Control-only ownership; retired engines retain it
+    std::atomic<CapturedCountIn*> audioCountIn_ { nullptr };
     std::atomic<bool>          metronomeEnabled_ { false };
     std::shared_ptr<const MusicalClickMap> metronomeClock_; // immutable; Control owns/reclaims
     TimeLookupStatus metronomePreparationStatus_ = TimeLookupStatus::InvalidMap;

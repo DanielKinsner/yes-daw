@@ -48,8 +48,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
-   The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. The full-map metronome is delivered.
-   Next: captured-map count-in, then native editing boundaries and MIDI interchange. Checked fractional
+   The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome and captured-map count-in are delivered.
+   Next: complete MIDI copies, native editing boundaries and MIDI interchange. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -70,6 +70,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — Captured-map count-in
+
+Count-in now integrates a nominal starting-Meter bar from the accepted Frame through its captured full map, certifies one opening ceil and keeps the recording window immutable. Audio switches captured force to the current ordinary grid at that boundary, retains accepted tails once and completes before loop wrap. Same-Project edits and media insertions preserve the stable session; replacement Projects/New/Open/Stop/cancel detach and retire it under the callback fence.
+Actual persisted marker RED reproduced 84000 versus expected 60763; ordinary flat/jump cursor refusals and backward tail placement were also repaired. Source samples, Take/Clip/Asset endpoints and EOF survive reopen at partitions 1/7/128/257. Final focused Playback 509,164/37, AppSmoke 214,614/45, Recording 113/9, old click timing 22/1 and active pre/cross/tail timing 43,517/1 passed with unchanged H6 budgets. Known join barriers preflight in logarithmic work; other arithmetic lookups retain named runtime refusal.
+Independent clock and ownership/RT critics accepted the final six hashes. Fresh integration passed pure 459/459 (101.10 s), three GUI targets compiled without launch, three Clang units, audited offscreen UI 502/459,891 and screenshots 30/15,629; final HEAD/six-hash/seven-path guards passed. Original assertions, Time.h/Recording.h, accepted ADRs, saved format and old RT annotations remain protected.
+Portability repair 4cc5393 is pushed; CI 41860201420 owns the active concurrency slot while runner jobs queue, preserving its verdict before this push. The original 28020f0 Linux/macOS compile failures are retained; no threshold exemption used. This count-in head's CI remains pending. Next: complete MIDI copies, then native boundaries/defaults and interchange. No true-real inverse/log, atomic capture/transport start, universal deadline, native interaction or hardware certification is claimed.
 
 ## 2026-11-04 — Portable metronome test bindings
 

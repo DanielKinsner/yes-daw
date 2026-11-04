@@ -329,6 +329,7 @@ public:
         const auto& lastTempo = prepared.tempo_.back();
         prepared.domainEnd_ = prepared.positionInTempo (lastTempo,
             static_cast<std::uint64_t> (std::numeric_limits<Tick>::max() - lastTempo.change.tick) + 1u, 0, 1);
+        prepared.compiled_ = std::move (compiled);
         prepared.status_ = TimeLookupStatus::Ok;
         out = std::move (prepared);
         return TimeLookupStatus::Ok;
@@ -348,6 +349,112 @@ public:
     }
 
     [[nodiscard]] Window onsetsInRange (std::int64_t firstFrame, std::int64_t endFrame) const noexcept;
+    // CONTROL THREAD: accepted fractional cursor plus one EXACT nominal starting-Meter
+    // bar. Certify the new rational addition and ceil against the same binary64 prefix/log
+    // anchors as click lookup; an uncertain destination refuses instead of rounding twice.
+    [[nodiscard]] TimeLookupStatus countInEndFrame (std::int64_t startFrame, std::int64_t& out) const noexcept
+    {
+        using namespace click_detail;
+        out = 0;
+        if (startFrame < 0) return TimeLookupStatus::InvalidInput;
+        if (status_ != TimeLookupStatus::Ok) return status_;
+        const auto accepted = integer (static_cast<std::uint64_t> (startFrame));
+        if (accepted.low != accepted.high) return TimeLookupStatus::NumericDomain;
+        std::uint32_t comparisons = 0;
+        if (inJoinBarrier (startFrame, comparisons)) return TimeLookupStatus::NumericDomain;
+        MusicalTime start;
+        const auto status = compiled_.musicalTimeForFrame (accepted.low, start);
+        if (status != TimeLookupStatus::Ok) return status;
+        // Select the starting Meter against its actual fractional Frame, not a floored
+        // onset bucket or the rounded inverse Tick. A future sub-Frame change is still future.
+        std::size_t first = 0, last = segments_.size();
+        while (first < last)
+        {
+            const auto mid = first + (last - first) / 2u;
+            const auto position = segments_[mid].first;
+            if (position.numericFailure) return TimeLookupStatus::NumericDomain;
+            if (compareScalar (position.high, startFrame) <= 0) first = mid + 1u;
+            else if (compareScalar (position.low, startFrame) > 0) last = mid;
+            else return TimeLookupStatus::NumericDomain;
+        }
+        if (first == 0) return TimeLookupStatus::InvalidMap;
+        const auto& meter = segments_[first - 1u].meter;
+        const std::uint64_t span = 61440ULL * meter.numerator;
+        const auto whole = span / meter.denominator;
+        const auto remainder = span % meter.denominator;
+        if (whole > static_cast<std::uint64_t> (std::numeric_limits<Tick>::max() - start.tick))
+            return TimeLookupStatus::Overflow;
+        Tick destination = start.tick + static_cast<Tick> (whole);
+        auto fraction = add ({ start.frac, start.frac, false },
+                             quotientPoint (static_cast<double> (remainder), meter.denominator));
+        if (fraction.low >= 1.0)
+        {
+            if (destination == std::numeric_limits<Tick>::max()) return TimeLookupStatus::Overflow;
+            ++destination;
+            fraction = add (fraction, { -1.0, -1.0, false });
+        }
+        if (fraction.numericFailure || fraction.low < 0.0 || fraction.high >= 1.0)
+            return TimeLookupStatus::NumericDomain;
+        const auto& tempo = tempoAtTick (destination);
+        const auto& initialTempo = tempoAtTick (start.tick);
+        const auto constant = [] (const TempoSegment& segment) noexcept {
+            return segment.endTick <= segment.change.tick || segment.change.curveToNext != TempoCurve::LinearRamp
+                || segment.endBpm == segment.change.bpm;
+        };
+        Enclosure position;
+        if (constant (initialTempo) && constant (tempo))
+        {
+            // Keep the accepted Frame as the exact origin, including across Tempo jumps.
+            // Inverse->forward would freeze the inverse's rounded fraction and can make
+            // ordinary cursor 1 (or cursor 2 crossing a jump) refuse an exact ceil.
+            const auto spanTicks = add (integer (whole), quotientPoint (static_cast<double> (remainder), meter.denominator));
+            const auto deltaTicks = integer (static_cast<std::uint64_t> (tempo.change.tick - initialTempo.change.tick));
+            const auto remainingTicks = add (spanTicks, { -deltaTicks.high, -deltaTicks.low, deltaTicks.numericFailure });
+            const auto startOffset = add (accepted, { -initialTempo.prefix, -initialTempo.prefix, false });
+            const auto initialScaled = multiply (startOffset, { initialTempo.change.bpm, initialTempo.change.bpm, false });
+            const auto localTicks = add (divide (initialScaled, { k_, k_, false }), remainingTicks);
+            // The rounded inverse chose the endpoint piece; certify its membership before
+            // using that piece's accepted prefix and constant law.
+            if (localTicks.numericFailure || localTicks.low < 0.0
+                || (tempo.endTick > tempo.change.tick
+                    && compareScalar (localTicks.high, tempo.endTick - tempo.change.tick) >= 0))
+                return TimeLookupStatus::NumericDomain;
+            position = add ({ tempo.prefix, tempo.prefix, false },
+                divide (add (initialScaled, multiply (remainingTicks, { k_, k_, false })),
+                        { tempo.change.bpm, tempo.change.bpm, false }));
+        }
+        else
+            position = positionInTempoFraction (tempo, static_cast<std::uint64_t> (destination - tempo.change.tick),
+                                                fraction, fraction.low + (fraction.high - fraction.low) * 0.5);
+        if (position.numericFailure) return TimeLookupStatus::NumericDomain;
+        if (position.low >= 0x1p63) return TimeLookupStatus::Overflow;
+        if (position.low < 0.0 || position.high >= 0x1p63) return TimeLookupStatus::NumericDomain;
+        const double low = std::ceil (position.low), high = std::ceil (position.high);
+        if (low != high || high >= 0x1p63) return TimeLookupStatus::NumericDomain;
+        const auto opening = static_cast<std::int64_t> (low);
+        if (opening <= startFrame || inJoinBarrier (opening, comparisons)) return TimeLookupStatus::NumericDomain;
+        out = opening;
+        return TimeLookupStatus::Ok;
+    }
+
+    // CONTROL THREAD: cheap preflight for ambiguity already established at map joins.
+    // This does not certify all onset floors; later arithmetic lookup refusals stay named.
+    [[nodiscard]] TimeLookupStatus checkCountInRange (std::int64_t firstFrame, std::int64_t endFrame) const noexcept
+    {
+        if (firstFrame < 0 || endFrame < firstFrame) return TimeLookupStatus::InvalidInput;
+        if (status_ != TimeLookupStatus::Ok) return status_;
+        if (firstFrame == endFrame) return TimeLookupStatus::Ok;
+        std::size_t low = 0, high = joinBarriers_.size();
+        while (low < high)
+        {
+            const auto mid = low + (high - low) / 2u;
+            if (click_detail::compareScalar (joinBarriers_[mid].high, firstFrame) < 0) low = mid + 1u;
+            else high = mid;
+        }
+        return low < joinBarriers_.size() && click_detail::compareScalar (joinBarriers_[low].low, endFrame) < 0
+            ? TimeLookupStatus::NumericDomain : TimeLookupStatus::Ok;
+    }
+
     [[nodiscard]] std::size_t segmentCount() const noexcept { return segments_.size(); }
 
 private:
@@ -371,17 +478,24 @@ private:
     [[nodiscard]] Enclosure positionInTempo (const TempoSegment& tempo, std::uint64_t localWhole,
                                              std::uint32_t numerator, std::uint32_t denominator) const noexcept
     {
+        return positionInTempoFraction (tempo, localWhole,
+            click_detail::quotientPoint (static_cast<double> (numerator), static_cast<double> (denominator)),
+            static_cast<double> (numerator) / denominator);
+    }
+
+    [[nodiscard]] Enclosure positionInTempoFraction (const TempoSegment& tempo, std::uint64_t localWhole,
+                                                     Enclosure fraction, double nominalFraction) const noexcept
+    {
         using namespace click_detail;
         const Enclosure k { k_, k_, false };
         const Enclosure bpm { tempo.change.bpm, tempo.change.bpm, false };
-        const auto fraction = quotientPoint (static_cast<double> (numerator), static_cast<double> (denominator));
         Enclosure whole, extra;
         const bool ramp = tempo.endTick > tempo.change.tick
             && tempo.change.curveToNext == TempoCurve::LinearRamp && tempo.endBpm != tempo.change.bpm;
         if (! ramp)
         {
             whole = divide (multiply (integer (localWhole), k), bpm);
-            if (numerator != 0)
+            if (fraction.high != 0.0)
                 extra = divide (multiply (fraction, k), bpm);
         }
         else
@@ -394,7 +508,7 @@ private:
             // The inherited ramp kernel output is an accepted input. Its real-log error
             // and the compiled cumulative anchors are deliberately outside this certificate.
             whole = { local, local, false };
-            if (numerator != 0)
+            if (fraction.high != 0.0)
             {
                 const double slope = (tempo.endBpm - tempo.change.bpm) / static_cast<double> (length);
                 const Tick tick = static_cast<Tick> (localWhole);
@@ -407,7 +521,7 @@ private:
                 const auto relative = divide (multiply (slopePoint, fraction), bpmPoint);
                 double nominal = 0.0;
                 if (relative.numericFailure || ! std::isfinite (relative.low) || ! std::isfinite (relative.high)
-                    || ! detail::scaledTimeRatio (slope, static_cast<double> (numerator) / denominator,
+                    || ! detail::scaledTimeRatio (slope, nominalFraction,
                                                  localBpm, nominal))
                     return { 0.0, INFINITY, true };
                 const double minimum = std::min (relative.low, nominal);
@@ -784,6 +898,7 @@ private:
         return click_detail::compareScalar (joinBarriers_[low - 1u].high, frame) >= 0;
     }
 
+    CompiledTempoMap compiled_; // Control-only inverse for accepted count-in cursors
     std::vector<TempoSegment> tempo_;
     std::vector<Segment> segments_;
     // Rounded prefix anchors can create a downward bucket jump against more exact local

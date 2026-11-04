@@ -3279,3 +3279,267 @@ TEST_CASE ("runtime metronome domain refusals reach the existing status line", "
     std::error_code ec;
     std::filesystem::remove_all (bundlePath, ec);
 }
+
+TEST_CASE ("captured count-in opens at the integrated nominal bar from a fractional cursor",
+           "[ui][app][recording][capture][count-in][captured-count-in]")
+{
+    for (const int partition : { 1, 7, 128, 257 })
+    {
+        CAPTURE (partition);
+        const auto bundlePath = makeTempBundlePath ("captured-count-in-ramp");
+        Project project = makeSmokeProject();
+        project.tempoMap = { { 0, 120.0, yesdaw::engine::TempoCurve::LinearRamp },
+                             { 4 * yesdaw::engine::kTicksPerQuarter, 240.0, yesdaw::engine::TempoCurve::Jump } };
+        project.meterMap = { { 0, 3, 4 } };
+        {
+            ProjectBundleDb db;
+            REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+            REQUIRE (db.writeProjectSnapshot (project).ok());
+            writeProjectAssetFiles (bundlePath, project);
+        }
+        UiAppModel app;
+        app.setPlaybackMaxBlockSize (257);
+        UiDecodedAsset decoded = makeDecodedAsset (project.assets.front());
+        REQUIRE (app.loadProjectBundle (bundlePath, std::span<const UiDecodedAsset> (&decoded, 1)).ok());
+        REQUIRE (app.dispatch (UiActionId::DeviceSelectTestAudio).dispatched);
+        REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+        REQUIRE (app.dispatch (UiActionId::TransportToggleRecordCountIn).dispatched);
+        constexpr std::int64_t start = 12'000, opening = 60'763, end = 90'016;
+        // Independent ramp law: ceil(96000*log(exp(.125)+.75)) = 60763.
+        // Adding the head 3/4 duration instead incorrectly opens at 84000.
+        REQUIRE (app.locatePlaybackFrame (start));
+        REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+        std::array<float, 257> input {}, left {}, right {};
+        float* outputs[] { left.data(), right.data() };
+        const float* inputs[] { input.data() };
+        const auto marker = [] (std::int64_t frame) { return 0.25f + static_cast<float> (frame % 1024) * 0x1p-14f; };
+        for (auto frame = start; frame < end;)
+        {
+            const int length = static_cast<int> (std::min<std::int64_t> (partition, end - frame));
+            for (int i = 0; i < length; ++i)
+                input[static_cast<std::size_t> (i)] = marker (frame + i);
+            REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs, 2, length));
+            app.drainRealRecordingCapture();
+            frame += length;
+        }
+        // Deliberately no Control service while Audio crosses the accepted opening.
+        const auto committed = app.stopRealRecordingCaptureAndCommit();
+        REQUIRE (committed.ok());
+        REQUIRE (committed.take.timelineStart == opening);
+        REQUIRE (committed.take.frames == static_cast<std::uint64_t> (end - opening));
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, db).ok());
+        Project persisted;
+        REQUIRE (db.readProjectSnapshot (persisted).ok());
+        REQUIRE (persisted.recordingTakes.size() == 1u);
+        REQUIRE (persisted.recordingTakes.front().timelineStart == opening);
+        REQUIRE (persisted.recordingTakes.front().frameCount == static_cast<std::uint64_t> (end - opening));
+        REQUIRE (persisted.clips.back().timelineStart == opening);
+        REQUIRE (persisted.clips.back().timelineLength == end - opening);
+        REQUIRE (persisted.clips.back().srcLen == end - opening);
+        const auto asset = std::find_if (persisted.assets.begin(), persisted.assets.end(),
+            [&] (const Asset& candidate) { return candidate.id == committed.take.assetId; });
+        REQUIRE (asset != persisted.assets.end());
+        REQUIRE (asset->frames == static_cast<std::uint64_t> (end - opening));
+        std::ifstream in (bundlePath / yesdaw::persistence::detail::assetRelativePathForHash (asset->contentHash), std::ios::binary);
+        REQUIRE (in.good());
+        in.seekg (44); // the recording writer's canonical float-WAV header
+        std::vector<float> samples (static_cast<std::size_t> (end - opening));
+        in.read (reinterpret_cast<char*> (samples.data()), static_cast<std::streamsize> (samples.size() * sizeof (float)));
+        REQUIRE (in.good());
+        REQUIRE (in.peek() == std::char_traits<char>::eof());
+        for (std::size_t i = 0; i < samples.size(); ++i)
+            REQUIRE (samples[i] == marker (opening + static_cast<std::int64_t> (i)));
+        std::error_code ec;
+        std::filesystem::remove_all (bundlePath, ec);
+    }
+}
+
+TEST_CASE ("pending count-in keeps its accepted map and boundary through real Tempo Meter adoption",
+           "[ui][app][recording][capture][count-in][captured-count-in]")
+{
+    const auto bundlePath = makeTempBundlePath ("captured-count-in-adoption");
+    auto project = makeSmokeProject();
+    project.assets.clear();
+    project.clips.clear();
+    project.tempoMap = { { 0, 120.0, yesdaw::engine::TempoCurve::Jump } };
+    project.meterMap = { { 0, 3, 4 } };
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+    }
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundlePath, {}).ok());
+    REQUIRE (app.dispatch (UiActionId::DeviceSelectTestAudio).dispatched);
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TransportToggleRecordCountIn).dispatched);
+    REQUIRE_FALSE (app.context().metronomeEnabled);
+    REQUIRE (app.locatePlaybackFrame (100));
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+    app.setDeviceCallbackLive (true); // fence protocol only: no device or worker is started
+    REQUIRE (app.setProjectTempoBpm (90.0).dispatched);
+    REQUIRE (app.setProjectMeterSignature (5, 8).dispatched);
+    REQUIRE (app.context().recordCountInActive);
+    REQUIRE (app.realRecordingCaptureActive());
+    REQUIRE_FALSE (app.context().metronomeEnabled);
+    std::array<float, 128> input {}, left {}, right {};
+    input.fill (0.375f);
+    const float* inputs[] { input.data() };
+    float* outputs[] { left.data(), right.data() };
+    const auto renderTo = [&] (std::int64_t end) {
+        app.refreshTransportSnapshot();
+        auto cursor = app.context().playheadFrame;
+        while (cursor < end)
+        {
+            const int length = static_cast<int> (std::min<std::int64_t> (128, end - cursor));
+            REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs, 2, length));
+            app.drainRealRecordingCapture();
+            cursor += length;
+        }
+    };
+    renderTo (72'000);
+    REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs, 2, 64));
+    app.drainRealRecordingCapture();
+    CHECK (std::any_of (left.begin(), left.begin() + 64, [] (float value) { return std::abs (value) > 0.1f; }));
+    // The captured 120-BPM 3/4 grid clicks at 72000. The edited 90-BPM 5/8 grid does not.
+    renderTo (72'131);
+    app.serviceRecordingCountIn();
+    REQUIRE_FALSE (app.context().recordCountInActive);
+    REQUIRE (app.context().isRecording);
+    REQUIRE (app.setProjectTempoBpm (100.0).dispatched); // replace mid-tail after Control clears active
+    REQUIRE (app.setProjectTempoBpm (90.0).dispatched); // back-to-back replacement
+    renderTo (79'900);
+    REQUIRE (app.dispatch (UiActionId::TransportToggleMetronome).dispatched);
+    renderTo (80'000);
+    REQUIRE (app.processDeviceAudioBlock (inputs, 1, outputs, 2, 64));
+    app.drainRealRecordingCapture();
+    CHECK (std::any_of (left.begin(), left.begin() + 64, [] (float value) { return std::abs (value) > 0.1f; }));
+    // Current 90-BPM 5/8 bar starts at 80000, rather than the captured map's next beat.
+    const auto committed = app.stopRealRecordingCaptureAndCommit();
+    REQUIRE (committed.ok());
+    CHECK (committed.take.timelineStart == 72'100);
+    CHECK (committed.take.frames == 7'964u);
+    ProjectBundleDb db;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, db).ok());
+    Project persisted;
+    REQUIRE (db.readProjectSnapshot (persisted).ok());
+    CHECK (persisted.recordingTakes.front().timelineStart == 72'100);
+    CHECK (persisted.meterMap.front().numerator == 5);
+    CHECK (persisted.tempoMap.front().bpm == 90.0);
+    app.setDeviceCallbackLive (false);
+    app.reclaimRetiredAudioObjects();
+    CHECK (app.retiredAudioObjectCount() == 0);
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
+
+TEST_CASE ("Audio count-in completion survives delayed Control seeks and cancellation retires its owner",
+           "[ui][app][recording][capture][count-in][captured-count-in]")
+{
+    const auto bundlePath = makeTempBundlePath ("captured-count-in-completion");
+    const auto freshPath = makeTempBundlePath ("captured-count-in-fresh");
+    auto project = makeSmokeProject();
+    project.assets.clear();
+    project.clips.clear();
+    project.tempoMap = { { 0, 120.0, yesdaw::engine::TempoCurve::Jump } };
+    project.meterMap = { { 0, 3, 4 } };
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+    }
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundlePath, {}).ok());
+    REQUIRE (app.dispatch (UiActionId::DeviceSelectTestAudio).dispatched);
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TransportToggleRecordCountIn).dispatched);
+    REQUIRE (app.locatePlaybackFrame (100));
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+    std::array<float, 128> left {}, right {};
+    float* outputs[] { left.data(), right.data() };
+    REQUIRE (app.locatePlaybackFrame (72'100)); // Control drain alone cannot complete
+    app.serviceRecordingCountIn();
+    REQUIRE (app.context().recordCountInActive);
+    REQUIRE (app.processDeviceAudioBlock (outputs, 2, 128));
+    REQUIRE (app.locatePlaybackFrame (0));
+    app.serviceRecordingCountIn(); // current cursor is now BELOW B; the Audio latch decides
+    REQUIRE_FALSE (app.context().recordCountInActive);
+    REQUIRE (app.context().isRecording);
+    REQUIRE (app.processDeviceAudioBlock (outputs, 2, 128));
+    CHECK (std::all_of (left.begin(), left.end(), [] (float value) { return value == 0.0f; }));
+    REQUIRE (app.locatePlaybackFrame (72'100));
+    REQUIRE (app.processDeviceAudioBlock (outputs, 2, 128));
+    CHECK (std::all_of (left.begin(), left.end(), [] (float value) { return value == 0.0f; }));
+    (void) app.stopRealRecordingCaptureAndCommit(); // no input: no partial Take
+    CHECK (app.project().recordingTakes.empty());
+
+    app.setDeviceCallbackLive (true);
+    REQUIRE (app.locatePlaybackFrame (100));
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+    REQUIRE (app.dispatch (UiActionId::TransportStop).dispatched);
+    CHECK_FALSE (app.realRecordingCaptureActive());
+    CHECK_FALSE (app.context().recordCountInActive);
+    app.reclaimRetiredAudioObjects();
+    CHECK (app.retiredAudioObjectCount() >= 1u);
+    REQUIRE (app.processDeviceAudioBlock (outputs, 2, 128));
+    app.reclaimRetiredAudioObjects();
+    CHECK (app.retiredAudioObjectCount() >= 1u);
+    REQUIRE (app.processDeviceAudioBlock (outputs, 2, 128));
+    app.reclaimRetiredAudioObjects();
+    CHECK (app.retiredAudioObjectCount() == 0);
+    REQUIRE (app.locatePlaybackFrame (100));
+    REQUIRE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+    REQUIRE (app.createProjectBundle (freshPath).ok());
+    CHECK_FALSE (app.realRecordingCaptureActive());
+    CHECK_FALSE (app.context().recordCountInActive);
+    REQUIRE (app.dispatch (UiActionId::TransportPlay).dispatched);
+    REQUIRE (app.processDeviceAudioBlock (outputs, 2, 128));
+    CHECK (std::all_of (left.begin(), left.end(), [] (float value) { return value == 0.0f; }));
+    CHECK (app.project().recordingTakes.empty());
+    app.setDeviceCallbackLive (false);
+    app.reclaimRetiredAudioObjects();
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+    std::filesystem::remove_all (freshPath, ec);
+}
+
+TEST_CASE ("failed count-in clock preparation leaves capture transport and stored Takes untouched",
+           "[ui][app][recording][capture][count-in][captured-count-in]")
+{
+    const auto bundlePath = makeTempBundlePath ("captured-count-in-refusal");
+    auto project = makeSmokeProject();
+    project.assets.clear();
+    project.clips.clear();
+    project.tempoMap = { { 0, 1.0e-300, yesdaw::engine::TempoCurve::Jump } };
+    project.meterMap = { { 0, 7, 39 } };
+    {
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openOrCreateBundle (bundlePath, db).ok());
+        REQUIRE (db.writeProjectSnapshot (project).ok());
+    }
+    UiAppModel app;
+    REQUIRE (app.loadProjectBundle (bundlePath, {}).ok());
+    REQUIRE (app.dispatch (UiActionId::DeviceSelectTestAudio).dispatched);
+    REQUIRE (app.dispatch (UiActionId::RecordingArmTrack).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TransportToggleRecordCountIn).dispatched);
+    const auto replacements = app.playbackReplaceCount();
+    const auto commands = app.context().recordingCommandCount;
+    REQUIRE_FALSE (app.startRealRecordingCapture (1, 48'000.0, 0, 0));
+    CHECK_FALSE (app.realRecordingCaptureActive());
+    CHECK_FALSE (app.context().recordCountInActive);
+    CHECK_FALSE (app.context().isRecording);
+    CHECK_FALSE (app.context().isPlaying);
+    CHECK (app.context().playheadFrame == 0);
+    CHECK (app.context().recordingCommandCount == commands);
+    CHECK (app.playbackReplaceCount() == replacements);
+    CHECK (app.project().recordingTakes.empty());
+    ProjectBundleDb db;
+    REQUIRE (ProjectBundleDb::openExistingBundle (bundlePath, db).ok());
+    Project persisted;
+    REQUIRE (db.readProjectSnapshot (persisted).ok());
+    CHECK (persisted.recordingTakes.empty());
+    CHECK (persisted.tempoMap == project.tempoMap);
+    std::error_code ec;
+    std::filesystem::remove_all (bundlePath, ec);
+}
