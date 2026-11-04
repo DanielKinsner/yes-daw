@@ -2416,13 +2416,9 @@ yesdaw::engine::Tick MainComponent::snappedTimelineTickFrom (yesdaw::engine::Tic
             for (std::int64_t whole = appModel.context().snapGridTicks; ! modeOff && whole > gridTicks && subdivisions < 16; whole /= 2)
                 ++subdivisions;
             const yesdaw::engine::MeterMapView meterView { project.meterMap.data(), project.meterMap.size() };
-            yesdaw::engine::CompiledMeterMap meters;
-            std::int64_t frame = 0;
-            if (yesdaw::engine::CompiledMeterMap::build (meterView, meters) != yesdaw::engine::TimeLookupStatus::Ok
-                || yesdaw::ui::checkedSnapFrameToMusicalGrid (
-                    compiled, meters, meterView, static_cast<double> (tick), level, subdivisions, frame) != yesdaw::ui::MusicalGridStatus::Ok)
-                return tick;   // A checked lookup refusal never authorizes the head-tempo grid.
-            return frame;
+            // A checked lookup refusal never authorizes the head-tempo grid.
+            return yesdaw::ui::snapFrameToMusicalGrid (
+                compiled, meterView, static_cast<double> (tick), level, subdivisions).value_or (tick);
         }
         return tick;   // Loaded Project map preparation failed; no uniform-grid fallback.
     }

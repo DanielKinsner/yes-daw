@@ -71,6 +71,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-04 — Clock foundation simplified and checked
+
+The actual simplification pass now reuses the existing checked snap wrapper and moves the completed grid result instead of copying its vector. All three proof-test files and the other seven source/test hashes remain unchanged; no timing or fallback semantics changed.
+Focused pure grid 153/7, audited offscreen UI 44,944/11 and two affected Clang units passed. Full canonical integration passed pure 459/459 (102.32 s), three GUI targets compiled without launch, two Clang units, offscreen UI 502/459,880 and screenshots 30/15,629, with final HEAD/nine-hash/three-path guards. All proof-test bytes remain unchanged; this behavior-preserving cleanup deliberately adds no test.
+Code review: skipped (ce-code-review unavailable). Actual run 20261104-125236-23dc2636 ended failed because automatic approval blocked mandatory terminal-job-folder deletion. Its eight local source reviews and merge admitted no actionable findings; a generic file-size candidate was rejected for lacking a material defect. The documented autonomous fallback's parent manual diff scan found no blocker. The Claude runner skipped before dispatch for missing jq; no code left the machine, and the original job plus verified diagnostics remain retained. No completed CE receipt or successful cleanup is claimed.
+Grid checkpoint a8d35c6 is pushed with CI 41831207786 queued behind primitive run 41823948990, whose nine jobs are green and Windows is testing. Tempo-kernel CI 41819737766 passed all ten jobs. This cleanup's own CI remains pending. Next: full-map click/count-in; local execution remains strictly headless.
+
 ## 2026-11-04 — Fractional musical grid, ruler and snap
 
 Grid lines, ruler labels and the header use exact Meter origins and checked fractional Tempo positions, including a single fractional Meter. Grid snap ranks mapped Frame distance; beat/sixteenth unions retain spacing and priority. Checked map failures show unavailable timing and leave gestures raw; explicit snap-unit Off retains its existing numeric Ctrl-inversion grid. Relative/Events behavior is preserved.

@@ -144,7 +144,7 @@ inline void orderLines (std::vector<MusicalGridLine>& lines, double spacing)
     using namespace musical_grid_detail;
     MusicalGridResult result;
     const auto fail = [&result] (MusicalGridStatus failure) { result.status = failure; result.lines.clear(); return result; };
-    const auto finish = [&result, minSpacingFrames] { orderLines (result.lines, minSpacingFrames); return result; };
+    const auto finish = [&result, minSpacingFrames] { orderLines (result.lines, minSpacingFrames); return std::move (result); };
     if (! std::isfinite (startFrame) || ! std::isfinite (endFrame) || ! std::isfinite (minSpacingFrames)
         || ! (endFrame > startFrame) || ! (minSpacingFrames > 0.0)) return fail (MusicalGridStatus::InvalidInput);
     if (maxLines == 0 || maxLines > 4096) return fail (MusicalGridStatus::ResourceLimit);
