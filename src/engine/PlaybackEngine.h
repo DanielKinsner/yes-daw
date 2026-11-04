@@ -667,11 +667,15 @@ private:
             const auto length = std::min<std::int64_t> (clickFrames - clickStart,
                                                        segmentFrames - outputStart);
             const auto& table = onset.downbeat ? metronomeDownbeatClick_ : metronomeBeatClick_;
+            const auto* source = table.data() + static_cast<std::size_t> (clickStart);
+            const auto count = static_cast<int> (length);
             for (int channel = 0; channel < numOutputChannels; ++channel)
                 if (outChannels[channel] != nullptr)
-                    for (std::int64_t i = 0; i < length; ++i)
-                        outChannels[channel][blockOffset + static_cast<int> (outputStart + i)]
-                            += table[static_cast<std::size_t> (clickStart + i)];
+                {
+                    auto* destination = outChannels[channel] + blockOffset + static_cast<int> (outputStart);
+                    for (int i = 0; i < count; ++i)
+                        destination[i] += source[i];
+                }
         }
     }
 
