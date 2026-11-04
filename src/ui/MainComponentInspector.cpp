@@ -69,6 +69,7 @@ void MainComponent::configureInspectorControls()
     inspectorTakeChooser.onChange = [this] {
         if (refreshingInspectorControls)
             return;
+        inspectorChoiceBaseline.takeClip = {}; // delivery consumed the choice, including a refused save
 
         const int selected = inspectorTakeChooser.getSelectedId();
         if (selected <= 0

@@ -49,8 +49,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Next:
-   complete the background-import cluster simplification/review, then implement the full musical clock. The implementation
-   brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
+   repair reversed No Overlap neighbour trimming, then implement the full musical clock. The three import review
+   findings are fixed. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
 5. Diagnose the recorded launch Underrun and intermittent SS3 failure with available headless evidence; confirmed
@@ -69,6 +69,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — Import cluster review findings repaired
+
+Actual `ce-simplify-code mode:pipeline` and `ce-code-review` receipt `20261104-011807-6bf6a979` completed. All three confirmed P2 findings are repaired: import placement/MIDI tails wait for mixer drags, Take popup/queued choices retain their original target, and a test-only first-chunk barrier makes partial-copy cancellation proof deterministic. Shared progress reporting and idle-query cleanup preserve existing behavior.
+Unchanged production reproduced both UI defects (24/262 assertions failed); fixed cases passed 269/2 and nearby controls 2,846/27. Cancellation passed 20/1 and the restored worker target 455/13; withholding cancellation failed the three original state/codec/result checks, then exact source bytes were restored. The original flaky incidence was not reproduced or measured. Preprocessing without the test macro matches the original header; every original proof assertion remains.
+Integrated canonical checks passed: pure 437/437 (83.36 s), app plus both harnesses compiled without launch, six affected Clang units clean, audited offscreen UI 498/459,919 and screenshots 30/15,629. All 23 safe focused cases are contained in the full UI selection. Final HEAD, nine frozen source/test hashes and exact ten-path scope checks passed; no native windows, desktop input or audio-device startup. Native-popup/hardware proof is not claimed.
+Nine selected reviewers, the fresh adversarial fallback and the independent validator completed; no justified review finding remains unapplied. The optional Claude runner skipped for missing jq before dispatch, with no code egress/install/deletion. Batch workflow 41803803317 and prior 41798814373 passed their full matrices; this checkpoint's new-head CI is pending. Next: reproduce/repair pre-existing reversed No Overlap neighbour trimming, then the musical clock.
 
 ## 2026-11-04 — Batch durable Asset admission
 

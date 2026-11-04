@@ -4,6 +4,7 @@
 #include "ui/MainComponentShell.h"
 
 #include <cstring>
+#include <iterator>
 #include <optional>
 
 using namespace yesdaw::ui::shell;
@@ -431,11 +432,23 @@ MainComponent::ImportRailSelection MainComponent::importRailSelection() const
 bool MainComponent::inspectorChoicePending() const
 {
     if (const auto* clip = findProjectClipById (appModel.selectedTimelineClipId()))
+    {
         if (inspectorFadeCurve.isEnabled() && inspectorChoiceBaseline.fadeClip == clip->id
             && inspectorChoiceBaseline.fadeChoice == inspectorIdForFadeShape (clip->fadeInShape)
             && inspectorFadeCurve.getSelectedId() > 0
             && inspectorFadeCurve.getSelectedId() != inspectorChoiceBaseline.fadeChoice)
             return true;
+        if (inspectorTakeChooser.isEnabled() && inspectorChoiceBaseline.takeClip == clip->id
+            && inspectorTakeChooser.getSelectedId() > 0
+            && inspectorTakeChooser.getSelectedId() != inspectorChoiceBaseline.takeChoice)
+        {
+            const auto takes = appModel.takesForSelectedClipWindow();
+            const auto audible = std::find_if (takes.begin(), takes.end(), [] (const auto& take) { return take.audible; });
+            const int choice = audible == takes.end() ? 0 : static_cast<int> (std::distance (takes.begin(), audible)) + 1;
+            if (inspectorChoiceBaseline.takeChoice == choice)
+                return true;
+        }
+    }
     if (const auto* clip = appModel.selectedMidiClip())
     {
         const int choice = appModel.midiClipLoopChoiceFor (*clip);
@@ -455,6 +468,8 @@ void MainComponent::rememberDisplayedInspectorChoices()
     {
         inspectorChoiceBaseline.fadeClip = clip->id;
         inspectorChoiceBaseline.fadeChoice = inspectorIdForFadeShape (clip->fadeInShape);
+        inspectorChoiceBaseline.takeClip = clip->id;
+        inspectorChoiceBaseline.takeChoice = inspectorTakeChooser.getSelectedId();
     }
     if (const auto* clip = appModel.selectedMidiClip())
     {
@@ -541,19 +556,24 @@ bool MainComponent::importMidiDropTail (const std::vector<std::filesystem::path>
 
 bool MainComponent::serviceAudioImport()
 {
-    const bool railUnchanged = ! pendingShellAudioImport || pendingShellAudioImport->rail == importRailSelection();
-    const std::array<const FineDragSlider*, 10> clipSliders { &inspectorStart, &inspectorEnd, &inspectorLength,
-        &inspectorGain, &inspectorStretch, &inspectorFadeIn, &inspectorFadeOut, &inspectorFadeCurveAmount,
-        &inspectorMidiTranspose, &inspectorMidiVelocity };
-    const bool inspectorDrag = std::any_of (clipSliders.begin(), clipSliders.end(), [] (const auto* slider) {
-        return slider->hasActiveInteraction();
-    });
-    const bool allowSelectionChange = railUnchanged && ! clipRenameEditor.isVisible()
-        && ! trackRenameEditor.isVisible() && ! controlNavigator.interacting() && ! inspectorDrag
-        && ! inspectorFadeCurve.isPopupActive() && ! inspectorMidiLoop.isPopupActive()
-        && (! pendingShellAudioImport || pendingShellAudioImport->menuInteractionRevision == menuInteractionRevision);
-    const bool allowAdoption = ! timelineInput.hasActiveInteraction() && ! pianoRollInput.hasActiveInteraction()
-        && ! inspectorChoicePending();
+    bool allowSelectionChange = true;
+    bool allowAdoption = true;
+    if (appModel.audioImportPending())
+    {
+        const bool railUnchanged = ! pendingShellAudioImport || pendingShellAudioImport->rail == importRailSelection();
+        const std::array<const FineDragSlider*, 10> clipSliders { &inspectorStart, &inspectorEnd, &inspectorLength,
+            &inspectorGain, &inspectorStretch, &inspectorFadeIn, &inspectorFadeOut, &inspectorFadeCurveAmount,
+            &inspectorMidiTranspose, &inspectorMidiVelocity };
+        const bool inspectorDrag = std::any_of (clipSliders.begin(), clipSliders.end(), [] (const auto* slider) {
+            return slider->hasActiveInteraction();
+        });
+        allowSelectionChange = railUnchanged && ! clipRenameEditor.isVisible()
+            && ! trackRenameEditor.isVisible() && ! controlNavigator.interacting() && ! inspectorDrag
+            && ! inspectorFadeCurve.isPopupActive() && ! inspectorMidiLoop.isPopupActive() && ! inspectorTakeChooser.isPopupActive()
+            && (! pendingShellAudioImport || pendingShellAudioImport->menuInteractionRevision == menuInteractionRevision);
+        allowAdoption = ! timelineInput.hasActiveInteraction() && ! pianoRollInput.hasActiveInteraction()
+            && ! mixerStripsInput.hasActiveInteraction() && ! inspectorChoicePending();
+    }
     bool adopted = appModel.serviceAudioImport (allowSelectionChange, allowAdoption);
     auto completion = appModel.takeAudioImportCompletion();
     if (! completion || ! pendingShellAudioImport)

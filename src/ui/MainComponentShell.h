@@ -512,8 +512,8 @@ private:
     void rememberDisplayedInspectorChoices();
     struct InspectorChoiceBaseline
     {
-        engine::EntityId fadeClip, midiClip;
-        int fadeChoice = 0, midiLoopChoice = 0;
+        engine::EntityId fadeClip, midiClip, takeClip;
+        int fadeChoice = 0, midiLoopChoice = 0, takeChoice = 0;
     } inspectorChoiceBaseline;
     void beginAudioImport (std::vector<std::filesystem::path> paths, std::vector<engine::EntityId> targets,
                            engine::Tick position, std::vector<std::filesystem::path> midiFiles = {}, bool selectRail = false);

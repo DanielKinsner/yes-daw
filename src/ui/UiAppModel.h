@@ -2934,27 +2934,13 @@ public:
                 : phase == app::AudioImportPhase::Decoding ? "decoding"
                 : phase == app::AudioImportPhase::Resampling ? "resampling"
                 : phase == app::AudioImportPhase::Completing ? "finishing" : "waiting";
-            const std::string progress = std::string ("Preparing audio: ") + stage + " ("
-                + std::to_string (audioImportJob_->completedFiles()) + "/"
-                + std::to_string (audioImportJob_->totalFiles()) + " files)";
-            if (progress != statusLineText_ && audioImportCanUseStatus (pendingAudioImport_->padKey.has_value()))
-            {
-                audioImportProgressShown_ = progress;
-                reportStatus (progress, false);
-            }
+            reportAudioImportProgress (stage);
         }
         if (! audioImportJob_ || ! audioImportJob_->terminal())
             return false;
         if (pendingAudioImport_ && ! allowAdoption && audioImportJob_->eligibleForAdoption())
         {
-            const std::string progress = "Preparing audio: ready to place ("
-                + std::to_string (audioImportJob_->completedFiles()) + "/"
-                + std::to_string (audioImportJob_->totalFiles()) + " files)";
-            if (progress != statusLineText_ && audioImportCanUseStatus (pendingAudioImport_->padKey.has_value()))
-            {
-                audioImportProgressShown_ = progress;
-                reportStatus (progress, false);
-            }
+            reportAudioImportProgress ("ready to place");
             return false; // successful results, including zero landed files, can authorize a deferred MIDI edit
         }
         const auto began = std::chrono::steady_clock::now();
@@ -13515,6 +13501,18 @@ private:
         return ! statusLineIsError_ && (statusLineText_.empty()
             || statusLineText_ == (samplerPad ? "Preparing Sampler pad" : "Preparing audio import")
             || (! audioImportProgressShown_.empty() && statusLineText_ == audioImportProgressShown_));
+    }
+
+    void reportAudioImportProgress (const char* stage)
+    {
+        const std::string progress = std::string ("Preparing audio: ") + stage + " ("
+            + std::to_string (audioImportJob_->completedFiles()) + "/"
+            + std::to_string (audioImportJob_->totalFiles()) + " files)";
+        if (progress != statusLineText_ && audioImportCanUseStatus (pendingAudioImport_->padKey.has_value()))
+        {
+            audioImportProgressShown_ = progress;
+            reportStatus (progress, false);
+        }
     }
 
     [[nodiscard]] UiAudioImportStart startOwnedAudioImport (

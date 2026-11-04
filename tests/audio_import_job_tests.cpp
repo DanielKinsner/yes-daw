@@ -139,6 +139,54 @@ struct ReleaseGate
     ~ReleaseGate() { gate.release.store (true); }
 };
 
+struct StagingCopyGate
+{
+    std::atomic<bool> entered { false };
+    std::atomic<bool> release { false };
+    std::atomic<bool> timedOut { false };
+
+    static void afterFirstChunk (void* context) noexcept
+    {
+        auto& gate = *static_cast<StagingCopyGate*> (context);
+        gate.entered.store (true, std::memory_order_release);
+        const auto end = std::chrono::steady_clock::now() + std::chrono::seconds (20);
+        while (! gate.release.load (std::memory_order_acquire))
+        {
+            if (std::chrono::steady_clock::now() >= end)
+            {
+                gate.timedOut.store (true, std::memory_order_release);
+                return;
+            }
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        }
+    }
+};
+
+// All referenced storage outlives this guard. A failed REQUIRE cancels, unblocks and joins before
+// the hook is cleared, so neither a held copy nor an unexpectedly reached decoder can strand a worker.
+struct StagingCopyBinding
+{
+    app::AudioImportJob& job;
+    StagingCopyGate& copy;
+    DecoderGate& decoder;
+    const persistence::detail::StagingCopyHookForTest hook { StagingCopyGate::afterFirstChunk, &copy };
+
+    StagingCopyBinding (app::AudioImportJob& ownedJob, StagingCopyGate& copyGate, DecoderGate& decoderBarrier)
+        : job (ownedJob), copy (copyGate), decoder (decoderBarrier)
+    {
+        persistence::detail::stagingCopyHookForTest.store (&hook, std::memory_order_release);
+    }
+
+    ~StagingCopyBinding()
+    {
+        job.requestCancel();
+        copy.release.store (true, std::memory_order_release);
+        decoder.release.store (true, std::memory_order_release);
+        job.join();
+        persistence::detail::stagingCopyHookForTest.store (nullptr, std::memory_order_release);
+    }
+};
+
 io::AudioDecodeResult heldDecode (const std::filesystem::path& path)
 {
     DecoderGate& gate = *decoderGate.load();
@@ -612,24 +660,22 @@ TEST_CASE ("Audio import cancellation during bounded staging cleans a partially 
     auto request = fixture.request ({ source });
     request.decoder = heldDecode;
     app::AudioImportJob job (std::move (request));
-    ReleaseGate release { gate };
+    StagingCopyGate copyGate;
+    StagingCopyBinding copyBinding (job, copyGate, gate);
     REQUIRE (job.start());
     const auto partial = fixture.stage() / "item-0.wav";
-    std::uintmax_t witnessedBytes = 0;
-    REQUIRE (await ([&] {
-        std::error_code error;
-        const auto bytes = std::filesystem::file_size (partial, error);
-        if (! error && bytes >= 65'536 && bytes < totalBytes)
-        {
-            witnessedBytes = bytes;
-            job.requestCancel();
-            return true;
-        }
-        return job.terminal() || gate.entered.load();
-    }));
+    REQUIRE (await ([&] { return copyGate.entered.load (std::memory_order_acquire); }));
+    std::error_code error;
+    const auto witnessedBytes = std::filesystem::file_size (partial, error);
+    REQUIRE_FALSE (error);
     CHECK (witnessedBytes >= 65'536);
+    CHECK (witnessedBytes == 65'536); // the observer can arrive only after the worker is held
+    REQUIRE (witnessedBytes < totalBytes);
+    job.requestCancel();
+    copyGate.release.store (true, std::memory_order_release);
     gate.release.store (true);
     terminal (job);
+    CHECK_FALSE (copyGate.timedOut.load (std::memory_order_acquire));
     CHECK (job.state() == app::AudioImportState::Cancelled);
     CHECK (gate.calls.load() == 0); // cancellation interrupted bulk copy/hash before the codec
     CHECK_FALSE (std::filesystem::exists (partial));

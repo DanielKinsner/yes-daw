@@ -100,6 +100,12 @@ public:
     // message is active. hintAt() is the one law mouseMove and the harness share.
     std::function<void (const juce::String&)> onHoverHint;
 
+    [[nodiscard]] bool hasActiveInteraction() const noexcept
+    {
+        return draggingFaderStrip >= 0 || draggingPanStrip >= 0
+            || draggingSendStrip >= 0 || draggingInsertStrip >= 0;
+    }
+
     [[nodiscard]] juce::String hintAt (juce::Point<int> position, juce::ModifierKeys) const
     {
         if (getParentComponent() == nullptr)

@@ -549,6 +549,13 @@ inline bool pluginBlacklistKeyIsValid (PluginStateFormat format,
 #if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
 inline thread_local std::uint64_t assetHashCallsForTest = 0;
 inline thread_local std::uint64_t copiedFileBytesForTest = 0;   // bytes copyFileBytes actually wrote (not hash reads)
+struct StagingCopyHookForTest
+{
+    void (*afterFirstChunk) (void*) noexcept;
+    void* context;
+};
+// The test owner publishes immutable hook storage before starting its worker and clears it after joining.
+inline std::atomic<const StagingCopyHookForTest*> stagingCopyHookForTest { nullptr };
 #endif
 
 inline BundleResult hashFile (const std::filesystem::path& path, engine::AssetContentHash& out,
@@ -1959,6 +1966,9 @@ inline BundleResult copyIntoPrivateFile (const std::filesystem::path& source, St
     if (result.ok())
         result = staged.directory->recordItem (staged.path.filename(), staged.stagedFingerprint);
     std::array<char, 65536> buffer {};
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+    bool firstChunk = true;
+#endif
     while (result.ok() && input)
     {
         if (cancel != nullptr && cancel->load (std::memory_order_acquire))
@@ -1991,6 +2001,14 @@ inline BundleResult copyIntoPrivateFile (const std::filesystem::path& source, St
             detail::copiedFileBytesForTest += static_cast<std::uint64_t> (n);
 #endif
         }
+#if defined(YESDAW_PERSISTENCE_TEST_HOOKS)
+        if (firstChunk && result.ok() && count > 0 && written == count)
+        {
+            firstChunk = false;
+            if (const auto* hook = detail::stagingCopyHookForTest.load (std::memory_order_acquire))
+                hook->afterFirstChunk (hook->context);
+        }
+#endif
     }
     if (result.ok() && cancel != nullptr && cancel->load (std::memory_order_acquire))
         result = fileError ("audio import cancelled", staged.path);

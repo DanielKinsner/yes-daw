@@ -6923,6 +6923,212 @@ TEST_CASE ("background import waits for canvas edits to release their captured m
     std::filesystem::remove (midiPath, ignored);
 }
 
+TEST_CASE ("background import keeps a held Bus fader on its original strip",
+           "[ui][input][shell][background-import-shell][background-import-mixer]")
+{
+    using L = yesdaw::ui::UiTheme::Layout;
+    const auto bundle = makeTempBundlePath ("background-bus-fader");
+    const auto midiPath = bundle.parent_path() / (bundle.stem().string() + ".mid");
+    bool mixed = false, refusedAudio = false;
+    SECTION ("audio append") { }
+    SECTION ("mixed audio and MIDI append") { mixed = true; }
+    SECTION ("all audio refused still waits before its MIDI append") { mixed = refusedAudio = true; }
+    if (mixed)
+    {
+        namespace smf = yesdaw::interchange;
+        smf::SmfFile midiFile;
+        midiFile.ticksPerQuarter = 480;
+        smf::SmfTrack notes;
+        smf::SmfEvent event;
+        event.kind = smf::SmfEventKind::NoteOn; event.data1 = 72; event.data2 = 100;
+        notes.events.push_back (event);
+        event.kind = smf::SmfEventKind::NoteOff; event.tick = 480;
+        notes.events.push_back (event);
+        midiFile.tracks.push_back (notes);
+        const auto bytes = smf::writeSmf (midiFile);
+        std::ofstream out (midiPath, std::ios::binary);
+        REQUIRE (out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size())));
+    }
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path (YESDAW_WAV_FIXTURE_PATH); };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
+    yesdaw::ui::mainComponentSetDockHeight (*shell, L::windowMaxHeight);
+    auto* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
+    auto* timeline = dynamic_cast<yesdaw::ui::TimelineInputComponent*> (&requireTimelineComponent (*shell));
+    REQUIRE (strips != nullptr);
+    REQUIRE (timeline != nullptr);
+    const auto before = readProjectSnapshot (bundle);
+    REQUIRE (before.tracks.size() == 1);
+    REQUIRE (before.buses.size() == 1);
+    const auto busId = before.buses.front().id;
+    const auto rail = yesdaw::ui::mainComponentPaintedFaderRailBounds (*shell, 1);
+    REQUIRE (rail.getHeight() > 20);
+    const juce::Point<int> down = juce::Point<int> (rail.getCentreX(), rail.getBottom()
+        - juce::roundToInt (before.buses.front().strip.linearGain / static_cast<float> (L::mixerFaderSliderMax)
+                           * static_cast<float> (rail.getHeight()))) - strips->getPosition();
+    const auto moved = down + juce::Point<int> (0, rail.getHeight() / 5);
+    // Drop below the existing Track through the actual captured-target callback: adoption appends a Track.
+    REQUIRE (timeline->onFilesDropped != nullptr);
+    juce::StringArray paths { refusedAudio ? juce::String ((bundle.parent_path() / "missing-background-bus.wav").string())
+                                          : juce::String (YESDAW_WAV_FIXTURE_PATH) };
+    if (mixed)
+        paths.add (juce::String (midiPath.string()));
+    timeline->onFilesDropped (paths, 1, 4.0);
+    strips->mouseDown (makeMouseEvent (*strips, down, down, false));
+    strips->mouseDrag (makeMouseEvent (*strips, moved, down, true));
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (20);
+    while (snapshotMainComponent (*shell).context.audioImportPending
+        && snapshotMainComponent (*shell).statusLineText.find ("ready to place") == std::string::npos
+        && std::chrono::steady_clock::now() < deadline)
+    {
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        std::this_thread::sleep_for (std::chrono::milliseconds (1));
+    }
+    CHECK (snapshotMainComponent (*shell).context.audioImportPending);
+    CHECK (readProjectSnapshot (bundle).tracks.size() == 1);
+    CHECK (readProjectSnapshot (bundle).midiClips.empty());
+    CHECK (snapshotMainComponent (*shell).statusLineText.find ("ready to place") != std::string::npos);
+    const auto released = moved + juce::Point<int> (0, 4);
+    strips->mouseDrag (makeMouseEvent (*strips, released, down, true));
+    strips->mouseUp (makeMouseEvent (*strips, released, down, true));
+    const auto edited = readProjectSnapshot (bundle);
+    CHECK (edited.buses.front().id == busId);
+    CHECK (edited.buses.front().strip.linearGain != before.buses.front().strip.linearGain);
+    waitForAudioImports (*shell);
+    const auto imported = readProjectSnapshot (bundle);
+    REQUIRE (imported.tracks.size() == (mixed && ! refusedAudio ? 3u : 2u));
+    REQUIRE (imported.clips.size() == (refusedAudio ? 1u : 2u));
+    CHECK (imported.midiClips.size() == (mixed ? 1u : 0u));
+    for (std::size_t index = before.tracks.size(); index < imported.tracks.size(); ++index)
+        CHECK (imported.tracks[index].strip.linearGain == 1.0f);
+    CHECK (imported.buses.front() == edited.buses.front());
+    CHECK (imported.clips.front() == before.clips.front());
+    if (! mixed)
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        const auto undoImport = readProjectSnapshot (bundle);
+        CHECK (undoImport.tracks.size() == 1);
+        CHECK (undoImport.buses.front() == edited.buses.front());
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        CHECK (readProjectSnapshot (bundle).buses.front() == before.buses.front());
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+        CHECK (readProjectSnapshot (bundle).buses.front() == edited.buses.front());
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+        CHECK (readProjectSnapshot (bundle).tracks == imported.tracks);
+    }
+    shell.reset();
+    std::error_code ignored;
+    std::filesystem::remove_all (bundle, ignored);
+    std::filesystem::remove (midiPath, ignored);
+}
+
+TEST_CASE ("queued take choices keep their original stack through an audio import",
+           "[ui][input][shell][background-import-shell][background-import-take-choice]")
+{
+    const auto bundle = makeTempBundlePath ("background-queued-take");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.chooseOpenProjectBundle = [bundle] { return bundle; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path (YESDAW_WAV_FIXTURE_PATH); };
+    auto shell = makeShell (choices);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
+    auto seed = readProjectSnapshot (bundle);
+    shell.reset();
+    auto second = seed.clips.front();
+    second.id = idFromLowByte (201);
+    second.gain = 0.0f;
+    seed.clips.push_back (second);
+    for (std::size_t index = 0; index < seed.clips.size(); ++index)
+    {
+        yesdaw::engine::RecordingTake take;
+        take.id = idFromLowByte (static_cast<std::uint8_t> (202 + index));
+        take.assetId = seed.clips[index].assetId;
+        take.trackId = seed.clips[index].trackId;
+        take.clipId = seed.clips[index].id;
+        take.timelineStart = seed.clips[index].timelineStart;
+        take.frameCount = static_cast<std::uint64_t> (seed.clips[index].timelineLength);
+        take.takeOrdinal = static_cast<std::uint32_t> (index);
+        seed.recordingTakes.push_back (take);
+    }
+    writeProjectSnapshot (bundle, seed);
+    shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectOpen);
+    yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);
+    auto& timeline = requireTimelineComponent (*shell);
+    const auto at = timelineClipCenterPoint (timeline, seed, 0u);
+    timeline.mouseDown (makeMouseEvent (timeline, at, at, false));
+    timeline.mouseUp (makeMouseEvent (timeline, at, at, false));
+    auto& combo = requireComboBoxWithComponentId (*shell, "clip.inspector.take.chooser");
+    REQUIRE (combo.isEnabled());
+    REQUIRE (combo.getNumItems() == 2);
+    REQUIRE (combo.getSelectedId() == 1);
+    bool undo = false, saveRefusal = false;
+    SECTION ("queued choice") { }
+    SECTION ("a model choice and Undo refresh their displayed baseline") { undo = true; }
+    SECTION ("a delivered take choice whose save fails is consumed") { saveRefusal = true; }
+    const auto sql = [&] (const std::string& statement) {
+        yesdaw::persistence::ProjectBundleDb db;
+        REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (bundle, db).ok());
+        REQUIRE (db.executeSql (statement).ok());
+    };
+    auto* input = dynamic_cast<yesdaw::ui::TimelineInputComponent*> (&timeline);
+    REQUIRE (input != nullptr);
+    REQUIRE (input->onFilesDropped != nullptr);
+    input->onFilesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH) }, 0, 4.0);
+    if (saveRefusal)
+        sql ("CREATE TRIGGER refuse_queued_take BEFORE DELETE ON tracks BEGIN SELECT RAISE(ABORT, 'queued take save refused'); END;");
+    combo.setSelectedId (2, undo ? juce::sendNotificationSync : juce::sendNotificationAsync);
+    if (undo)
+    {
+        CHECK (readProjectSnapshot (bundle).clips.front().gain == 0.0f);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        REQUIRE (combo.getSelectedId() == 1);
+    }
+    else
+    {
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (20);
+        while (snapshotMainComponent (*shell).context.audioImportPending
+            && snapshotMainComponent (*shell).statusLineText.find ("ready to place") == std::string::npos
+            && std::chrono::steady_clock::now() < deadline)
+        {
+            yesdaw::ui::mainComponentServiceUiTick (*shell);
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        }
+        CHECK (combo.getSelectedId() == 2);
+        CHECK (readProjectSnapshot (bundle).clips.size() == 2);
+        CHECK (snapshotMainComponent (*shell).statusLineText.find ("ready to place") != std::string::npos);
+        if (saveRefusal)
+        {
+            combo.onChange(); // consume the actual handler before the next owner-thread service
+            CHECK (combo.getSelectedId() == 1);
+            CHECK (readProjectSnapshot (bundle).clips == seed.clips);
+            sql ("DROP TRIGGER refuse_queued_take;");
+        }
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    }
+    waitForAudioImports (*shell);
+    const auto after = readProjectSnapshot (bundle);
+    REQUIRE (after.clips.size() == 3);
+    CHECK (after.recordingTakes == seed.recordingTakes);
+    CHECK (after.clips[0].id == seed.clips[0].id);
+    CHECK (after.clips[1].id == seed.clips[1].id);
+    CHECK (after.clips[0].gain == (undo || saveRefusal ? 1.0f : 0.0f));
+    CHECK (after.clips[1].gain == (undo || saveRefusal ? 0.0f : 1.0f));
+    CHECK (after.clips.back().gain == 1.0f);
+    CHECK (after.clips.back().timelineStart == 4 * static_cast<yesdaw::engine::Tick> (seed.sampleRate.hz));
+    shell.reset();
+    std::error_code ignored;
+    std::filesystem::remove_all (bundle, ignored);
+}
+
 TEST_CASE ("queued fade choices survive import completion and terminal refreshes",
            "[ui][input][shell][background-import-shell][background-import-choice]")
 {

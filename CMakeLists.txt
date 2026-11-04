@@ -989,6 +989,7 @@ add_test(NAME YesDawStretchPreparationCheck COMMAND $<TARGET_FILE:YesDawStretchP
 
 # Owned audio import preparation; real files and a pure decoder seam, without JUCE or devices.
 add_executable(YesDawAudioImportJobCheck tests/audio_import_job_tests.cpp)
+target_compile_definitions(YesDawAudioImportJobCheck PRIVATE YESDAW_PERSISTENCE_TEST_HOOKS=1)
 target_include_directories(YesDawAudioImportJobCheck PRIVATE ${YESDAW_SRC_DIR})
 target_link_libraries(YesDawAudioImportJobCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads)
 yesdaw_harden(YesDawAudioImportJobCheck)
