@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -272,6 +273,161 @@ TEST_CASE ("CompiledTempoMap prefix-sum frameForTick is bit-identical to tickToF
     REQUIRE_FALSE (CompiledTempoMap::build (TempoMapView { nonZeroStart.data(), nonZeroStart.size() }, SampleRate { sr }, invalid));
     double naiveInvalid = 0.0;
     REQUIRE_FALSE (tickToFrame (TempoMapView { nonZeroStart.data(), nonZeroStart.size() }, SampleRate { sr }, 100, naiveInvalid));
+}
+
+TEST_CASE ("Long shallow linear Tempo ramps match independent analytic clocks", "[time][tempo][adr0082][ramp-kernel]")
+{
+    constexpr Tick length = Tick { 1 } << 48;
+    constexpr double k = 187.5;   // 60 * 48000 / 15360, frames per Tick times BPM
+    for (const double endBpm : { 128.0, 32.0 })
+    {
+        const std::array<TempoChange, 2> changes {
+            TempoChange { 0, 64.0, TempoCurve::LinearRamp },
+            TempoChange { length, endBpm, TempoCurve::Jump },
+        };
+        const TempoMapView view { changes.data(), changes.size() };
+        CompiledTempoMap compiled;
+        REQUIRE (CompiledTempoMap::build (view, SampleRate { 48000.0 }, compiled));
+        for (const Tick quarter : { Tick { 0 }, Tick { 1 }, Tick { 2 }, Tick { 3 }, Tick { 4 } })
+        {
+            const double p = static_cast<double> (quarter) / 4.0;
+            const Tick tick = quarter * (length / 4);
+            // These clocks come directly from the specified 64->128 / 64->32 BPM laws,
+            // independently of either conversion path and its computed slope or prefix.
+            const double expected = endBpm == 128.0
+                ? (k * static_cast<double> (length) / 64.0) * std::log (1.0 + p)
+                : -(k * static_cast<double> (length) / 32.0) * std::log (1.0 - p / 2.0);
+            const double tolerance = 8.0 * (std::nextafter (expected, std::numeric_limits<double>::infinity()) - expected);
+            CAPTURE (endBpm, p, tick, expected, tolerance);
+            double freeFrame = -1.0;
+            double compiledFrame = -1.0;
+            REQUIRE (tickToFrame (view, SampleRate { 48000.0 }, tick, freeFrame));
+            REQUIRE (compiled.frameForTick (tick, compiledFrame));
+            CHECK (std::abs (freeFrame - expected) <= tolerance);
+            CHECK (std::abs (compiledFrame - expected) <= tolerance);
+            Tick inverseTick = -1;
+            REQUIRE (compiled.tickForFrame (expected, inverseTick));
+            CHECK (std::llabs (inverseTick - tick) <= 2);
+        }
+    }
+}
+
+TEST_CASE ("Linear Tempo ramps retain a one-Tick change over very long segments", "[time][tempo][adr0082][ramp-kernel]")
+{
+    constexpr Tick length = Tick { 1 } << 60;
+    constexpr double expected = 187.5 / 64.0;
+    const double tolerance = 8.0 * (std::nextafter (expected, std::numeric_limits<double>::infinity()) - expected);
+    for (const double endBpm : { 128.0, 32.0 })
+    {
+        const std::array<TempoChange, 2> changes {
+            TempoChange { 0, 64.0, TempoCurve::LinearRamp },
+            TempoChange { length, endBpm, TempoCurve::Jump },
+        };
+        const TempoMapView view { changes.data(), changes.size() };
+        CompiledTempoMap compiled;
+        REQUIRE (CompiledTempoMap::build (view, SampleRate { 48000.0 }, compiled));
+        CAPTURE (endBpm);
+        double freeFrame = -1.0;
+        double compiledFrame = -1.0;
+        REQUIRE (tickToFrame (view, SampleRate { 48000.0 }, 1, freeFrame));
+        REQUIRE (compiled.frameForTick (1, compiledFrame));
+        CHECK (std::abs (freeFrame - expected) <= tolerance);
+        CHECK (std::abs (compiledFrame - expected) <= tolerance);
+        Tick inverseTick = -1;
+        REQUIRE (compiled.tickForFrame (expected, inverseTick));
+        CHECK (inverseTick == 1);
+    }
+}
+
+TEST_CASE ("Unequal Tempo ramps refuse an unrepresentable slope without rejecting stored BPM", "[time][tempo][adr0082][ramp-kernel]")
+{
+    constexpr Tick length = Tick { 1 } << 48;
+    constexpr double tinyBpm = 1.0e-300;
+    const double nextBpm = std::nextafter (tinyBpm, std::numeric_limits<double>::infinity());
+    const TempoChange tiny { 0, tinyBpm, TempoCurve::LinearRamp };
+    const TempoChange next { length, nextBpm, TempoCurve::Jump };
+    REQUIRE (tiny.hasValidBpm());
+    REQUIRE (next.hasValidBpm());
+    REQUIRE (nextBpm > tinyBpm);
+    REQUIRE ((nextBpm - tinyBpm) / static_cast<double> (length) == 0.0);
+
+    const std::array<TempoChange, 2> equal { tiny, TempoChange { length, tinyBpm, TempoCurve::Jump } };
+    double constantFrame = -1.0;
+    REQUIRE (tickToFrame (TempoMapView { equal.data(), equal.size() }, SampleRate { 48000.0 }, 1, constantFrame));
+    REQUIRE (std::isfinite (constantFrame));
+    REQUIRE (constantFrame == 187.5 / tinyBpm);
+
+    // Only the partial free lookup is requested: the full segment's frame count overflows.
+    const std::array<TempoChange, 2> unequal { tiny, next };
+    double frame = -1.0;
+    CHECK_FALSE (tickToFrame (TempoMapView { unequal.data(), unequal.size() }, SampleRate { 48000.0 }, 1, frame));
+}
+
+TEST_CASE ("Linear Tempo inverse retains a nonzero exponent when its numerator underflows", "[time][tempo][adr0082][ramp-kernel][ramp-scaling]")
+{
+    constexpr Tick length = Tick { 1 } << 48;
+    const SampleRate sampleRate { std::ldexp (1.0, -1000) };
+    const double startBpm = std::ldexp (1.0, -700);
+    const double endBpm = std::nextafter (startBpm, std::numeric_limits<double>::infinity());
+    const std::array<TempoChange, 2> changes {
+        TempoChange { 0, startBpm, TempoCurve::LinearRamp },
+        TempoChange { length, endBpm, TempoCurve::Jump },
+    };
+    REQUIRE (sampleRate.isValid());
+    REQUIRE (changes[0].hasValidBpm());
+    REQUIRE (changes[1].hasValidBpm());
+    const TempoMapView view { changes.data(), changes.size() };
+    CompiledTempoMap compiled;
+    REQUIRE (CompiledTempoMap::build (view, sampleRate, compiled));
+
+    // k = 2^-1008 and the initial BPM is 2^-700. The ramp's relative change
+    // during Tick 1 is 2^-100, so its analytic frame rounds exactly to 2^-308.
+    const double expectedFrame = std::ldexp (1.0, -308);
+    double freeFrame = -1.0;
+    double compiledFrame = -1.0;
+    REQUIRE (tickToFrame (view, sampleRate, 1, freeFrame));
+    REQUIRE (compiled.frameForTick (1, compiledFrame));
+    CHECK (freeFrame == expectedFrame);
+    CHECK (compiledFrame == expectedFrame);
+    Tick tick = -1;
+    REQUIRE (compiled.tickForFrame (expectedFrame, tick));
+    CHECK (tick == 1);
+}
+
+TEST_CASE ("Linear Tempo inverse retains a finite exponent when division first would overflow", "[time][tempo][adr0082][ramp-kernel][ramp-scaling]")
+{
+    const SampleRate sampleRate { std::ldexp (1.0, -1000) };
+    const double startBpm = std::ldexp (1.0, -1050);
+    const std::array<TempoChange, 2> changes {
+        TempoChange { 0, startBpm, TempoCurve::LinearRamp },
+        TempoChange { 1, std::nextafter (startBpm, std::numeric_limits<double>::infinity()), TempoCurve::Jump },
+    };
+    REQUIRE (sampleRate.isValid());
+    REQUIRE (changes[0].hasValidBpm());
+    REQUIRE (changes[1].hasValidBpm());
+    CompiledTempoMap compiled;
+    REQUIRE (CompiledTempoMap::build (TempoMapView { changes.data(), changes.size() }, sampleRate, compiled));
+
+    // At frame 2^41 the exponent is 2^-25: delta = 2^24 * expm1(2^-25),
+    // strictly above 1/2 and below 1 Tick. Dividing this frame by k first overflows.
+    Tick tick = -1;
+    REQUIRE (compiled.tickForFrame (std::ldexp (1.0, 41), tick));
+    CHECK (tick == 1);
+}
+
+TEST_CASE ("Linear Tempo inverse refuses a nonzero exponent that cannot be represented", "[time][tempo][adr0082][ramp-kernel][ramp-scaling]")
+{
+    constexpr Tick length = Tick { 1 } << 48;
+    const std::array<TempoChange, 2> changes {
+        TempoChange { 0, 64.0, TempoCurve::LinearRamp },
+        TempoChange { length, std::nextafter (64.0, std::numeric_limits<double>::infinity()), TempoCurve::Jump },
+    };
+    CompiledTempoMap compiled;
+    REQUIRE (CompiledTempoMap::build (TempoMapView { changes.data(), changes.size() }, SampleRate { 48000.0 }, compiled));
+    Tick tick = -1;
+    REQUIRE (compiled.tickForFrame (0.0, tick));
+    CHECK (tick == 0);
+    CHECK_FALSE (compiled.tickForFrame (std::numeric_limits<double>::denorm_min(), tick));
 }
 
 // G2.15: the inverse and the piecewise readout — tickForFrame undoes frameForTick within a tick across

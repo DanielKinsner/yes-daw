@@ -336,17 +336,14 @@ namespace detail {
     }
 
     const double slope = (endBpm - startBpm) / static_cast<double> (segmentTicks);
-    if (std::abs (slope) < 1.0e-12)
-    {
-        frame += delta * k / startBpm;
-        return std::isfinite (frame);
-    }
-
-    const double bpmAtDelta = startBpm + slope * delta;
-    if (! isFinitePositive (bpmAtDelta))
+    if (slope == 0.0 || ! std::isfinite (slope))
         return false;
 
-    frame += (k / slope) * std::log (bpmAtDelta / startBpm);
+    const double relativeChange = slope * delta / startBpm;
+    if (! std::isfinite (relativeChange) || relativeChange <= -1.0)
+        return false;
+
+    frame += (k / slope) * std::log1p (relativeChange);
     return std::isfinite (frame);
 }
 
@@ -572,8 +569,8 @@ public:
     }
 
     // G2.15: the inverse — the tick at a frame, per segment: a jump inverts the linear law, a ramp
-    // inverts the logarithm (frame = (k/slope)·ln(bpmAt/startBpm)  ⇒  bpmAt = startBpm·exp(frame·slope/k),
-    // delta = (bpmAt − startBpm)/slope). Rounded to the nearest tick; frameForTick (tickForFrame (f)) ≈ f.
+    // inverts the logarithm (delta = (startBpm/slope)·expm1(frame·slope/k)), retaining small relative
+    // changes without cancellation. Rounded to the nearest tick; frameForTick (tickForFrame (f)) ≈ f.
     [[nodiscard]] bool tickForFrame (double frame, Tick& tickOut) const noexcept
     {
         tickOut = 0;
@@ -597,10 +594,18 @@ public:
         {
             const double segmentTicks = static_cast<double> (changes_[i + 1u].tick - changes_[i].tick);
             const double slope = (changes_[i + 1u].bpm - startBpm) / segmentTicks;
-            if (std::abs (slope) < 1.0e-12)
-                deltaTicks = local * startBpm / k;
-            else
-                deltaTicks = (startBpm * std::exp (local * slope / k) - startBpm) / slope;
+            if (slope == 0.0 || ! std::isfinite (slope) || ! detail::isFinitePositive (k))
+                return false;
+            // Normalize this ratio so neither local*slope nor local/k must be representable.
+            int localPower = 0, slopePower = 0, kPower = 0;
+            const double localMantissa = std::frexp (local, &localPower);
+            const double slopeMantissa = std::frexp (slope, &slopePower);
+            const double kMantissa = std::frexp (k, &kPower);
+            const double exponent = std::ldexp ((localMantissa * slopeMantissa) / kMantissa,
+                                                localPower + slopePower - kPower);
+            if (! std::isfinite (exponent) || (local != 0.0 && exponent == 0.0))
+                return false;
+            deltaTicks = (startBpm / slope) * std::expm1 (exponent);
         }
         else
             deltaTicks = local * startBpm / k;

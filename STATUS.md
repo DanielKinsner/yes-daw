@@ -70,6 +70,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-04 — Shared Tempo-ramp equations repaired
+
+The shared forward/inverse clock treated sufficiently small slopes as constant even over long ramps. Independent analytic forward and inverse fixtures reproduced 24 accuracy failures; a valid-BPM zero-slope-underflow refusal fixture added one more failure (25/84 assertions before production changes).
+The ramp equations now use log1p/expm1 and refuse unrepresentable unequal slopes/domains. A fresh critic caught a new inverse product-underflow on an accepted tiny sample rate; an independent Tick-1 fixture reproduced it. Local frexp/ldexp exponent scaling repairs it, with an overflow-order companion and explicit collapse refusal. Expanded recovery RED failed 2/20 assertions; the companion passed the rejected candidate.
+The corrected pair passes 104/6 focused assertions/cases and the complete TimeCheck 20,380/17; the same independent critic renewed acceptance on its exact hashes. Constant/Jump/tail operations, stored validity and every original test/identity gate remain unchanged. The rejected candidate's terminated canonical run is not final proof. Fresh corrected integration passed pure 443/443 (91.18 s), app plus both harnesses compiled without launch, two affected Clang units, offscreen UI 498/459,920 and screenshots 30/15,629; final HEAD/two-hash/three-path guards passed. No native windows, desktop input or device startup.
+Next: checked fractional APIs, exact Meter origins, build/output status and cast-range guards under ADR-0082, before grid/click/native-unit/default/interchange work. No Overlap CI 41815982029 has started, preserving its own verdict; this new checkpoint's CI is pending. This foundation does not yet certify the full musical clock or native/hardware behavior.
+
 ## 2026-11-04 — No Overlap preserves the retained audio
 
 The pre-existing No Overlap helper kept forward source windows for reversed neighbours and independently rounded cross-rate tails. Unchanged production reproduced 78 failed assertions / 2,196 before the repair.
