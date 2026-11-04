@@ -23,6 +23,7 @@ enum class UiActionId : std::uint8_t
     ProjectSave,
     ProjectSaveAs,
     ProjectImportAudio,
+    ProjectCancelImport,
     ProjectExportAudio,
     ProjectExportAudioCancel,
     ProjectExportDawproject,
@@ -532,6 +533,7 @@ struct UiActionContext
     bool canRedo = false;
     bool timelineClipSelected = false;
     bool stretchPreparationPending = false;
+    bool audioImportPending = false;
     bool mixerTargetSelected = false;
     bool midiClipSelected = false;
     bool midiNoteSelected = false;
@@ -714,6 +716,8 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     { UiActionId::ProjectSaveAs, "project.save_as", "Save As", "Ctrl+Shift+S", "Save project as",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectImportAudio, "project.import_audio", "Import Audio", "Ctrl+Shift+I", "Import audio",
+      AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::ProjectCancelImport, "project.import_audio.cancel", "Cancel Audio Import", "", "Cancel pending audio preparation",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
     { UiActionId::ProjectExportAudio, "project.export_audio", "Export Audio", "Ctrl+B", "Export audio",
       AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
@@ -1510,6 +1514,8 @@ public:
             return { false, "no loop region" };
         if (id == UiActionId::TimelineClipCancelStretch && ! context.stretchPreparationPending)
             return { false, "no stretch preparation pending" };
+        if (id == UiActionId::ProjectCancelImport && ! context.audioImportPending)
+            return { false, "no audio import pending" };
         if (id == UiActionId::MixerSetFirstSendLevel && context.projectLoaded && ! context.firstTrackSendAvailable)
             return { false, "no send on the first Track" };
         if (id == UiActionId::MixerToggleFirstFxSlotEnabled && context.projectLoaded && ! context.firstTrackFxSlotAvailable)
@@ -2393,6 +2399,9 @@ public:
 
             case UiActionId::TimelineClipCancelStretch:
                 context.stretchPreparationPending = false;
+                break;
+            case UiActionId::ProjectCancelImport:
+                context.audioImportPending = false;
                 break;
 
             case UiActionId::Count:

@@ -7,6 +7,7 @@
 #include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <stdexcept>
 #include <thread>
 
 namespace {
@@ -56,10 +57,10 @@ struct Fixture
         return path;
     }
 
-    bool finish()
+    bool finish (bool allowAdoption = true)
     {
         bool adopted = false;
-        REQUIRE (await ([&] { adopted = model.serviceAudioImport() || adopted; return ! model.audioImportBusy(); }));
+        REQUIRE (await ([&] { adopted = model.serviceAudioImport (true, allowAdoption) || adopted; return ! model.audioImportBusy(); }));
         return adopted;
     }
 
@@ -106,6 +107,11 @@ io::AudioDecodeResult heldDecode (const std::filesystem::path& path)
         std::this_thread::sleep_for (std::chrono::milliseconds (1));
     return decodeWav (path);
 }
+
+io::AudioDecodeResult throwingDecode (const std::filesystem::path&)
+{
+    throw std::runtime_error ("injected decoder failure");
+}
 } // namespace
 
 TEST_CASE ("Background import lands captured audio as one durable undo transaction", "[import-model]")
@@ -121,6 +127,9 @@ TEST_CASE ("Background import lands captured audio as one durable undo transacti
     CHECK (completion->allowsMidiTail());
     CHECK (completion->placement.landed == 2);
     CHECK (completion->placement.tracksCreated == 1);
+    CHECK (completion->selectionMayChange);
+    CHECK (completion->selectedImportedClips);
+    CHECK (f.model.selectedTimelineClipId() == f.model.project().clips.back().id);
     REQUIRE (f.model.project().clips.size() == 2);
     CHECK (f.model.project().clips[0].trackId == firstTrack);
     CHECK (f.model.project().clips[0].timelineStart == 123);
@@ -134,6 +143,210 @@ TEST_CASE ("Background import lands captured audio as one durable undo transacti
     CHECK (f.model.project().clips == landed);
     CHECK (f.persisted().clips == landed);
     CHECK (completion->ownerBatchMilliseconds >= 0.0);
+}
+
+TEST_CASE ("Background import status belongs only to its pending request", "[import-model][import-status]")
+{
+    DecoderGate gate;
+    GateBinding binding { gate };
+    Fixture f;
+    ReleaseGate release { gate };
+    bool showProgress = false;
+    bool reportWhileHeld = false;
+    bool reportBeforeReady = false;
+    bool samplerPad = false;
+    std::string laterStatus;
+    bool laterError = false;
+    SECTION ("initial Preparing status") { }
+    SECTION ("serviced progress") { showProgress = true; }
+    SECTION ("a later error") { showProgress = true; laterStatus = "A later edit could not be saved"; laterError = true; }
+    SECTION ("a later message") { showProgress = true; laterStatus = "A later operation's message"; }
+    SECTION ("a later error before the first phase report")
+    {
+        reportWhileHeld = true;
+        laterStatus = "A later edit could not be saved";
+        laterError = true;
+    }
+    SECTION ("a later error before the first ready report")
+    {
+        showProgress = true;
+        reportBeforeReady = true;
+        laterStatus = "A later edit could not be saved";
+        laterError = true;
+    }
+    SECTION ("a later error after a phase report resumes progress after decay")
+    {
+        showProgress = true;
+        reportWhileHeld = true;
+        laterStatus = "A later edit could not be saved";
+        laterError = true;
+    }
+    SECTION ("a later message before the first phase report")
+    {
+        reportWhileHeld = true;
+        laterStatus = "A later operation's message";
+    }
+    SECTION ("normal Sampler success keeps its Pad feedback") { samplerPad = true; }
+    SECTION ("Sampler completion preserves a later error")
+    {
+        samplerPad = true;
+        showProgress = true;
+        laterStatus = "A later edit could not be saved";
+        laterError = true;
+    }
+    SECTION ("Sampler completion preserves a later message")
+    {
+        samplerPad = true;
+        showProgress = true;
+        laterStatus = "A later operation's message";
+    }
+    const auto track = f.model.project().tracks.front().id;
+    const auto path = f.wav ("quiet.wav");
+    if (samplerPad)
+    {
+        REQUIRE (f.model.selectMixerTrack (0));
+        REQUIRE (f.model.setInstrumentOnSelectedTrack (engine::TrackInstrumentKind::Sampler).dispatched);
+        REQUIRE (f.model.startSamplerPadImport (path, track, 36, heldDecode).accepted);
+    }
+    else
+        REQUIRE (f.model.startAudioImport ({ path }, { track }, 0, true, heldDecode).accepted);
+    REQUIRE (await ([&] { return gate.entered.load(); }));
+    if (showProgress)
+    {
+        CHECK_FALSE (f.model.serviceAudioImport());
+        CHECK (f.model.statusLineText().starts_with ("Preparing audio:"));
+    }
+    if (reportWhileHeld)
+    {
+        f.model.reportStatus (laterStatus, laterError);
+        CHECK_FALSE (f.model.serviceAudioImport());
+        CHECK (f.model.statusLineText() == laterStatus);
+        CHECK (f.model.statusLineIsError() == laterError);
+        for (int tick = 0; tick < ui::UiAppModel::kStatusLineDecayTicks; ++tick)
+            f.model.serviceStatusLineDecay();
+        CHECK (f.model.statusLineText().empty());
+        CHECK_FALSE (f.model.serviceAudioImport());
+        CHECK (f.model.statusLineText().starts_with ("Preparing audio:"));
+        f.model.reportStatus (laterStatus, laterError);
+    }
+    gate.release.store (true);
+    REQUIRE (await ([&] { return f.model.audioImportPhase() == app::AudioImportPhase::Finished; }));
+    if (! laterStatus.empty())
+    {
+        if (! reportWhileHeld && ! reportBeforeReady)
+            REQUIRE (await ([&] {
+                CHECK_FALSE (f.model.serviceAudioImport (true, false));
+                return f.model.statusLineText().find ("ready to place") != std::string::npos;
+            }));
+        f.model.reportStatus (laterStatus, laterError);
+        CHECK_FALSE (f.model.serviceAudioImport (true, false));
+        CHECK (f.model.statusLineText() == laterStatus);
+        CHECK (f.model.statusLineIsError() == laterError);
+    }
+    REQUIRE (f.finish());
+    CHECK (f.model.statusLineText() == (samplerPad && laterStatus.empty() ? "Pad C2: quiet" : laterStatus));
+    CHECK (f.model.statusLineIsError() == laterError);
+    if (samplerPad)
+    {
+        CHECK (f.model.project().clips.empty());
+        REQUIRE (f.model.project().findTrack (track)->findSamplerPad (36) != nullptr);
+        CHECK (f.model.project().findTrack (track)->findSamplerPad (36)->nameView() == "quiet");
+    }
+    else
+        CHECK (f.model.project().clips.size() == 1);
+}
+
+TEST_CASE ("Background import preserves an ongoing Note edit in the same MIDI Clip", "[import-model][background-import-selection]")
+{
+    DecoderGate gate;
+    GateBinding binding { gate };
+    Fixture f;
+    ReleaseGate release { gate };
+    const auto track = f.model.project().tracks.front().id;
+    REQUIRE (f.model.addMidiClipOnTrackAt (track, 0).dispatched);
+    const auto clip = f.model.selectedMidiClipId();
+    REQUIRE (f.model.selectTimelineClip (clip));
+    REQUIRE (f.model.addPianoRollNoteAt (0, 120, 60).dispatched);
+    REQUIRE (f.model.dispatch (ui::UiActionId::ViewPianoRoll).dispatched);
+    const auto note = f.model.selectedMidiNoteId();
+    REQUIRE (f.model.startAudioImport ({ f.wav ("ongoing.wav") }, { track }, 4'000, true, heldDecode).accepted);
+    REQUIRE (await ([&] { return gate.entered.load(); }));
+    REQUIRE (f.model.moveSelectedPianoRollNoteTo (240).dispatched);
+    const auto panel = f.model.context().activePanel;
+    const auto tab = f.model.context().editorDockTab;
+    const auto dock = f.model.context().mixerDockVisible;
+    gate.release.store (true);
+    REQUIRE (f.finish());
+    REQUIRE (f.model.project().clips.size() == 1);
+    CHECK (f.model.selectedTimelineClipId() == clip);
+    CHECK (f.model.selectedMidiClipId() == clip);
+    CHECK (f.model.selectedMidiNoteId() == note);
+    CHECK (f.model.context().activePanel == panel);
+    CHECK (f.model.context().editorDockTab == tab);
+    CHECK (f.model.context().mixerDockVisible == dock);
+    CHECK (f.model.project().midiClips.front().notes.front().startTick == 240);
+    CHECK (f.model.context().importCount == 1);
+    const auto completion = f.model.takeAudioImportCompletion();
+    REQUIRE (completion.has_value());
+    CHECK_FALSE (completion->selectionMayChange);
+    CHECK_FALSE (completion->selectedImportedClips);
+}
+
+TEST_CASE ("An explicit selection veto still adopts ready media without selecting its Clips", "[import-model][import-interaction]")
+{
+    Fixture f;
+    const auto originalSelection = f.model.selectedTimelineClipId();
+    REQUIRE (f.model.startAudioImport ({ f.wav ("selection-veto.wav") },
+        { f.model.project().tracks.front().id }, 0, true, decodeWav).accepted);
+    bool adopted = false;
+    REQUIRE (await ([&] { adopted = f.model.serviceAudioImport (false) || adopted; return ! f.model.audioImportBusy(); }));
+    REQUIRE (adopted);
+    REQUIRE (f.model.project().clips.size() == 1);
+    CHECK (f.model.selectedTimelineClipId() == originalSelection);
+    const auto completion = f.model.takeAudioImportCompletion();
+    REQUIRE (completion.has_value());
+    CHECK_FALSE (completion->selectionMayChange);
+    CHECK_FALSE (completion->selectedImportedClips);
+    CHECK (completion->placement.landed == 1);
+}
+
+TEST_CASE ("Ready imports stay owned during editing including all-refused batches", "[import-model][import-interaction]")
+{
+    Fixture f;
+    auto path = f.wav ("ready.wav");
+    SECTION ("prepared audio") { }
+    SECTION ("all files refused") { path = f.root / "absent.wav"; }
+    REQUIRE (f.model.startAudioImport ({ path }, { f.model.project().tracks.front().id }, 0, true, decodeWav).accepted);
+    REQUIRE (await ([&] {
+        CHECK_FALSE (f.model.serviceAudioImport (false, false));
+        return f.model.statusLineText().find ("ready to place") != std::string::npos;
+    }));
+    CHECK (f.model.project().clips.empty());
+    CHECK (f.model.project().assets.empty());
+    CHECK (f.model.audioImportBusy());
+    CHECK (f.model.audioImportPending());
+    CHECK (f.model.audioImportPhase() == app::AudioImportPhase::Finished);
+    CHECK_FALSE (f.model.takeAudioImportCompletion().has_value());
+    REQUIRE (f.model.cancelAudioImport());
+    CHECK_FALSE (f.model.serviceAudioImport (false, false));
+    CHECK_FALSE (f.model.audioImportBusy());
+    const auto receipt = f.model.takeAudioImportCompletion();
+    REQUIRE (receipt.has_value());
+    CHECK_FALSE (receipt->allowsMidiTail());
+    CHECK (f.model.project().clips.empty());
+}
+
+TEST_CASE ("Failed import workers drain while successful adoption is deferred", "[import-model][import-interaction]")
+{
+    Fixture f;
+    REQUIRE (f.model.startAudioImport ({ f.wav ("throws.wav") }, { f.model.project().tracks.front().id }, 0, true, throwingDecode).accepted);
+    REQUIRE (await ([&] { CHECK_FALSE (f.model.serviceAudioImport (false, false)); return ! f.model.audioImportBusy(); }));
+    CHECK_FALSE (f.model.audioImportPending());
+    CHECK_FALSE (f.model.context().audioImportPending);
+    const auto receipt = f.model.takeAudioImportCompletion();
+    REQUIRE (receipt.has_value());
+    CHECK (receipt->disposition == ui::UiAudioImportDisposition::Failed);
+    CHECK_FALSE (receipt->allowsMidiTail());
 }
 
 TEST_CASE ("Held background imports preserve current edits and captured Track identities", "[import-model]")
@@ -204,7 +417,7 @@ TEST_CASE ("Deleting and undoing a captured Track permanently retires its import
     const auto status = f.model.statusLineText();
     CHECK_FALSE (f.model.startAudioImport ({ path }, { target }, 0, true, decodeWav).accepted);
     gate.release.store (true);
-    CHECK_FALSE (f.finish());
+    CHECK_FALSE (f.finish (false));
     CHECK (f.model.project().clips.empty());
     CHECK (f.model.statusLineText() == status);
     CHECK_FALSE (f.model.takeAudioImportCompletion().has_value());
@@ -243,8 +456,15 @@ TEST_CASE ("Cancellation and Project replacement return without waiting for held
     REQUIRE (f.model.startAudioImport ({ path }, { target }, 0, true, heldDecode).accepted);
     REQUIRE (await ([&] { return gate.entered.load(); }));
     auto disposition = ui::UiAudioImportDisposition::Cancelled;
+    CHECK (f.model.context().audioImportPending);
+    CHECK (f.model.registry().stateFor (ui::UiActionId::ProjectCancelImport, f.model.context()).enabled);
+    CHECK (f.model.audioImportPhase() == app::AudioImportPhase::Decoding);
+    CHECK (f.model.audioImportCompletedFiles() == 0);
+    CHECK (f.model.audioImportTotalFiles() == 1);
+    CHECK_FALSE (f.model.serviceAudioImport());
+    CHECK (f.model.statusLineText().find ("decoding (0/1 files)") != std::string::npos);
     const auto began = std::chrono::steady_clock::now();
-    SECTION ("cancel") { REQUIRE (f.model.cancelAudioImport()); }
+    SECTION ("cancel") { REQUIRE (f.model.dispatch (ui::UiActionId::ProjectCancelImport).dispatched); }
     SECTION ("replace Project")
     {
         REQUIRE (f.model.createProjectBundle (f.root / "replacement.yesdaw").ok());
@@ -252,6 +472,8 @@ TEST_CASE ("Cancellation and Project replacement return without waiting for held
     }
     CHECK (std::chrono::steady_clock::now() - began < std::chrono::seconds (2));
     CHECK (f.model.audioImportRetiring());
+    CHECK_FALSE (f.model.context().audioImportPending);
+    CHECK_FALSE (f.model.registry().stateFor (ui::UiActionId::ProjectCancelImport, f.model.context()).enabled);
     const auto currentTrack = f.model.project().tracks.front().id;
     CHECK_FALSE (f.model.startAudioImport ({ path }, { currentTrack }, 0, true, decodeWav).accepted);
     const auto receipt = f.model.takeAudioImportCompletion();
@@ -260,7 +482,7 @@ TEST_CASE ("Cancellation and Project replacement return without waiting for held
     CHECK_FALSE (receipt->allowsMidiTail());
     const auto status = f.model.statusLineText();
     gate.release.store (true);
-    CHECK_FALSE (f.finish());
+    CHECK_FALSE (f.finish (false));
     CHECK (f.model.project().clips.empty());
     CHECK (f.model.statusLineText() == status);
     REQUIRE (f.model.startAudioImport ({ path }, { currentTrack }, 0, true, decodeWav).accepted);

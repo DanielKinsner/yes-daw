@@ -254,6 +254,7 @@ void MainComponent::configureInspectorControls()
     inspectorFadeCurve.onChange = [this] {
         if (refreshingInspectorControls || ! inspectorFadeCurve.isEnabled())
             return;
+        inspectorChoiceBaseline.fadeClip = {}; // delivery consumed the choice, including a refused save
 
         // G2.10: the chooser sets BOTH ends' shape; the curve amounts stay.
         const yesdaw::engine::FadeShape shape = fadeShapeForInspectorId (inspectorFadeCurve.getSelectedId());

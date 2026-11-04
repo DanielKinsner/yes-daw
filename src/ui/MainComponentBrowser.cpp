@@ -404,23 +404,189 @@ void MainComponent::refreshBrowserAuditionState()
 // Ctrl+Shift+I's import, for a path from any surface: the selected track at the playhead; a refusal is named.
 void MainComponent::importAudioFromPath (const std::filesystem::path& path)
 {
-    UiAudioDecodeResult decodedFile = decodeProjectAudio (path);   // ADR-0054: any supported format
-    if (auto& decoded = decodedFile.decoded)
+    const auto& tracks = appModel.project().tracks;
+    std::vector<engine::EntityId> targets;
+    if (! tracks.empty())
     {
-        // Import lands on the SELECTED Track when the rail has a selection.
-        const auto& tracks = appModel.project().tracks;
-        // R7: verb failures report their precise reason inside the model.
-        if (selectedTrackLane >= 0 && selectedTrackLane < static_cast<int> (tracks.size()))
-            (void) appModel.importAudioFileToTrack (path, std::move (*decoded),
-                                                    tracks[static_cast<std::size_t> (selectedTrackLane)].id);
+        const auto lane = selectedTrackLane >= 0 && selectedTrackLane < static_cast<int> (tracks.size())
+            ? static_cast<std::size_t> (selectedTrackLane) : 0u;
+        targets.push_back (tracks[lane].id);
+    }
+    beginAudioImport ({ path }, std::move (targets), std::max<engine::Tick> (0, appModel.context().playheadFrame));
+}
+
+MainComponent::ImportRailSelection MainComponent::importRailSelection() const
+{
+    ImportRailSelection selection;
+    const auto& tracks = appModel.project().tracks;
+    if (selectedTrackLane >= 0 && selectedTrackLane < static_cast<int> (tracks.size()))
+        selection.primary = tracks[static_cast<std::size_t> (selectedTrackLane)].id;
+    for (const auto lane : selectedTrackLanes)
+        if (lane >= 0 && lane < static_cast<int> (tracks.size()))
+            selection.selected.push_back (tracks[static_cast<std::size_t> (lane)].id);
+    std::sort (selection.selected.begin(), selection.selected.end());
+    return selection;
+}
+
+bool MainComponent::inspectorChoicePending() const
+{
+    if (const auto* clip = findProjectClipById (appModel.selectedTimelineClipId()))
+        if (inspectorFadeCurve.isEnabled() && inspectorChoiceBaseline.fadeClip == clip->id
+            && inspectorChoiceBaseline.fadeChoice == inspectorIdForFadeShape (clip->fadeInShape)
+            && inspectorFadeCurve.getSelectedId() > 0
+            && inspectorFadeCurve.getSelectedId() != inspectorChoiceBaseline.fadeChoice)
+            return true;
+    if (const auto* clip = appModel.selectedMidiClip())
+    {
+        const int choice = appModel.midiClipLoopChoiceFor (*clip);
+        const int id = choice >= 0 ? choice + 1 : 0;
+        if (inspectorMidiLoop.isEnabled() && inspectorChoiceBaseline.midiClip == clip->id
+            && inspectorChoiceBaseline.midiLoopChoice == id && inspectorMidiLoop.getSelectedId() > 0
+            && inspectorMidiLoop.getSelectedId() != id)
+            return true;
+    }
+    return false;
+}
+
+void MainComponent::rememberDisplayedInspectorChoices()
+{
+    inspectorChoiceBaseline = {};
+    if (const auto* clip = findProjectClipById (appModel.selectedTimelineClipId()))
+    {
+        inspectorChoiceBaseline.fadeClip = clip->id;
+        inspectorChoiceBaseline.fadeChoice = inspectorIdForFadeShape (clip->fadeInShape);
+    }
+    if (const auto* clip = appModel.selectedMidiClip())
+    {
+        inspectorChoiceBaseline.midiClip = clip->id;
+        const int choice = appModel.midiClipLoopChoiceFor (*clip);
+        inspectorChoiceBaseline.midiLoopChoice = choice >= 0 ? choice + 1 : 0;
+    }
+}
+
+void MainComponent::beginAudioImport (std::vector<std::filesystem::path> paths, std::vector<engine::EntityId> targets,
+                                       engine::Tick position, std::vector<std::filesystem::path> midiFiles, bool selectRail)
+{
+    const auto started = appModel.startAudioImport (std::move (paths), targets, position, true, io::decodeAudioFile);
+    if (! started.accepted)
+    {
+        appModel.reportStatus ("Import refused: " + started.reason, true);
+        return; // a refused busy request must not replace the accepted request's deferred MIDI
+    }
+    PendingShellAudioImport pending;
+    pending.requestId = started.requestId;
+    pending.attachGeneration = appModel.attachGeneration();
+    pending.menuInteractionRevision = menuInteractionRevision;
+    pending.rail = importRailSelection();
+    pending.midiFiles = std::move (midiFiles);
+    pending.targets = std::move (targets);
+    for (const auto target : pending.targets)
+        pending.targetNames.push_back (appModel.project().findTrack (target)->strip.name);
+    pending.position = position;
+    pending.selectRail = selectRail;
+    pendingShellAudioImport = std::move (pending);
+}
+
+bool MainComponent::importMidiDropTail (const std::vector<std::filesystem::path>& paths,
+                                       const std::vector<engine::EntityId>& targets, const std::vector<std::string>& targetNames,
+                                       engine::Tick position, std::size_t slot, bool allowSelectionChange,
+                                        std::vector<std::string>& refusals, engine::EntityId& firstLandedTrack, bool reportSuccess)
+{
+    bool landed = false;
+    std::optional<engine::EntityId> appendedTarget;
+    for (const auto& path : paths)
+    {
+        engine::EntityId track;
+        if (slot < targets.size())
+        {
+            track = targets[slot];
+            if (appModel.project().findTrack (track) == nullptr)
+            {
+                refusals.push_back (io::utf8Text (path.filename()) + ": captured Track \"" + targetNames[slot] + "\" is missing");
+                continue;
+            }
+        }
         else
-            (void) appModel.importAudioFile (path, std::move (*decoded));
+        {
+            if (! appendedTarget)
+            {
+                const auto added = appModel.addAudioTrack();
+                if (! added.dispatched)
+                {
+                    refusals.push_back (io::utf8Text (path.filename()) + ": " + added.state.disabledReason);
+                    continue;
+                }
+                appendedTarget = appModel.project().tracks.back().id;
+            }
+            track = *appendedTarget;
+        }
+        const auto imported = appModel.importMidiFileAt (path, track, position, allowSelectionChange, reportSuccess);
+        if (imported.dispatched)
+        {
+            if (! firstLandedTrack.isValid())
+                firstLandedTrack = track;
+            landed = true;
+            ++slot;
+            appendedTarget.reset();
+        }
+        else
+        {
+            refusals.push_back (appModel.statusLineIsError()
+                && appModel.statusLineText().find (io::utf8Text (path.filename())) != std::string::npos ? appModel.statusLineText()
+                : io::utf8Text (path.filename()) + ": " + imported.state.disabledReason);
+        }
     }
-    else
+    return landed;
+}
+
+bool MainComponent::serviceAudioImport()
+{
+    const bool railUnchanged = ! pendingShellAudioImport || pendingShellAudioImport->rail == importRailSelection();
+    const std::array<const FineDragSlider*, 10> clipSliders { &inspectorStart, &inspectorEnd, &inspectorLength,
+        &inspectorGain, &inspectorStretch, &inspectorFadeIn, &inspectorFadeOut, &inspectorFadeCurveAmount,
+        &inspectorMidiTranspose, &inspectorMidiVelocity };
+    const bool inspectorDrag = std::any_of (clipSliders.begin(), clipSliders.end(), [] (const auto* slider) {
+        return slider->hasActiveInteraction();
+    });
+    const bool allowSelectionChange = railUnchanged && ! clipRenameEditor.isVisible()
+        && ! trackRenameEditor.isVisible() && ! controlNavigator.interacting() && ! inspectorDrag
+        && ! inspectorFadeCurve.isPopupActive() && ! inspectorMidiLoop.isPopupActive()
+        && (! pendingShellAudioImport || pendingShellAudioImport->menuInteractionRevision == menuInteractionRevision);
+    const bool allowAdoption = ! timelineInput.hasActiveInteraction() && ! pianoRollInput.hasActiveInteraction()
+        && ! inspectorChoicePending();
+    bool adopted = appModel.serviceAudioImport (allowSelectionChange, allowAdoption);
+    auto completion = appModel.takeAudioImportCompletion();
+    if (! completion || ! pendingShellAudioImport)
+        return adopted;
+    if (completion->key.requestId != pendingShellAudioImport->requestId
+        || completion->key.attachGeneration != pendingShellAudioImport->attachGeneration)
+        return adopted;
+    auto pending = std::move (*pendingShellAudioImport);
+    pendingShellAudioImport.reset();
+    auto refusals = completion->placement.refusals;
+    engine::EntityId firstLandedTrack;
+    if (! completion->landedTrackIds.empty())
+        firstLandedTrack = completion->landedTrackIds.front();
+    if (completion->allowsMidiTail())
     {
-        // R6: a refused file is named with its reason, never swallowed.
-        appModel.reportStatus ("Import refused: " + yesdaw::io::utf8Text (path.filename()) + ": " + decodedFile.reason, true);
+        const bool reportMidiSuccess = appModel.statusLineText().empty();
+        adopted = importMidiDropTail (pending.midiFiles, pending.targets, pending.targetNames, pending.position,
+            completion->placement.landed, completion->selectionMayChange, refusals, firstLandedTrack, reportMidiSuccess) || adopted;
+        if (pending.selectRail && completion->selectionMayChange && firstLandedTrack.isValid())
+            for (std::size_t index = 0; index < appModel.project().tracks.size(); ++index)
+                if (appModel.project().tracks[index].id == firstLandedTrack)
+                {
+                    selectedTrackLane = static_cast<int> (index);
+                    selectedTrackLanes.clear();
+                }
     }
+    if (! refusals.empty() && (completion->disposition == UiAudioImportDisposition::Completed
+        || completion->disposition == UiAudioImportDisposition::Failed))
+    {
+        refusals.front() = "Import refused: " + refusals.front();
+        appModel.reportStatusParts (std::move (refusals), true);
+    }
+    return adopted;
 }
 
 } // namespace yesdaw::ui

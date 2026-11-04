@@ -11,7 +11,7 @@ Older entries below are dated history, not competing "Now" instructions.
 ## Scoreboard - where the app stands (kept current; last updated 2026-11-03)
 
 **Make a song today** (evidence: the real-app drives on packaged build 7a1b0ad, 2026-10-13)
-- Import audio - WORKING: WAV/AIFF/FLAC/Ogg/MP3 at any sample rate, drag-drop, browser preview.
+- Import audio - WORKING: WAV/AIFF/FLAC/Ogg/MP3 at supported sample rates, drag-drop, browser preview.
 - MIDI instruments - WORKING (basic): a synth and a drum-pad sampler. No third-party instruments.
 - MIDI editing - WORKING: piano roll tools, quantize/swing, step input, MIDI files in and out.
 - Audio editing - WORKING: split, trim, slip, fades, crossfades, stretch, reverse, normalize, tempo ramps. No audio
@@ -46,8 +46,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    consistency, musical audio tempo-follow, linked Track editing/organization, then piano-roll reference notes.
    Done: addressed note release, bounded notes-only updates without replacing playback, selected-Clip background
    stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
-   model adoption, plus reversed Split/Join/Strip Silence and natural cross-rate selected-split repairs.
-   Next: connect chooser/Browser/drop/Sampler imports. App imports are still synchronous. The implementation
+   model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
+   and natural cross-rate selected-split repairs. Next: repair offered MIDI/mixed whole-Clip Cut, then batch
+   durable Asset admission and implement the full musical clock. The implementation
    brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -67,6 +68,14 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-03 — Captured background-import controls integrated
+
+Chooser, Browser, timeline drops and Sampler loading prepare audio off-thread, land into captured targets and retain ongoing edits. Mixed MIDI tails, cancellation/retirement, progress ownership and completion redraws are connected; ordinary audio success stays quiet and later messages/errors survive completion.
+Canonical pure suite: 430/430 (82.38 s). Full audited offscreen UI: 496 cases / 459,652 assertions passed. App/harness compiled without launch; final six affected Clang units clean after the earlier 22-unit stock pass. Native interaction/AlertWindow/constructor cases were mechanically excluded; no local desktop input or device startup.
+Existing integration failures reproduced before repair; original refusal, hint, pixel, timing and topology limits remain. Independent critic accepted all 20 frozen hashes. Renewed repaint negative control failed exactly at 6 > 6 (39/40), exact source restore passed 55 cases / 197,631 assertions; worker/model and direct MIDI compatibility checks passed.
+Owner admission remains synchronous: latest 1/8/32 unique short-file batches measured 9.319/77.794/305.932 ms. Separate low-level persistence measured 5.06/27.58/106.12 ms; these are different runs, not an exact decomposition or responsiveness bound. Browser audition and Project opening remain separate synchronous surfaces.
+Next: repair the offered MIDI/mixed whole-Clip Cut refusal, then batch durable Asset admission; run the completed background-import cluster's simplification/code-review gate before timing implementation. New-head CI is pending; portability-repair workflow 41784136996 passed its full matrix.
 
 ## 2026-11-03 — Full musical-clock contract accepted
 

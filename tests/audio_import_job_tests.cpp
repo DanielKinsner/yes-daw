@@ -164,6 +164,15 @@ io::AudioDecodeResult nonfiniteDecode (const std::filesystem::path& path)
     return decoded;
 }
 
+io::AudioDecodeResult nonfiniteRateDecode (const std::filesystem::path& path)
+{
+    auto decoded = decodeWav (path);
+    if (decoded.audio)
+        decoded.audio->sampleRateHz = path.extension() == ".wave"
+            ? std::numeric_limits<double>::infinity() : std::numeric_limits<double>::quiet_NaN();
+    return decoded;
+}
+
 io::AudioDecodeResult conflictingDecode (const std::filesystem::path& path)
 {
     auto decoded = decodeWav (path);
@@ -463,8 +472,8 @@ TEST_CASE ("Audio import names all per-file refusals and leaves no private or ca
     CHECK (result->prepared.empty());
     REQUIRE (result->items.size() == paths.size());
     CHECK (result->items[2].reason == "3 channels (mono or stereo only)");
-    CHECK (result->items[3].reason == "sample rate must be between 8000 and 384000 Hz");
-    CHECK (result->items[4].reason == "sample rate must be between 8000 and 384000 Hz");
+    CHECK (result->items[3].reason == "unsupported sample rate (4000 Hz); supported range is 8000 to 384000 Hz");
+    CHECK (result->items[4].reason == "unsupported sample rate (385000 Hz); supported range is 8000 to 384000 Hz");
     CHECK (result->items[5].reason == "no audio in the file");
     for (std::size_t index = 0; index < paths.size(); ++index)
     {
@@ -476,6 +485,25 @@ TEST_CASE ("Audio import names all per-file refusals and leaves no private or ca
     CHECK_FALSE (std::filesystem::exists (fixture.stage()));
     fixture.checkNoAdoption();
     job.join();
+}
+
+TEST_CASE ("Audio import names non-finite source rates without adopting audio", "[audio-import-job]")
+{
+    Fixture fixture;
+    auto request = fixture.request ({ fixture.wav ("nan.wav"), fixture.wav ("infinite.wave") });
+    request.decoder = nonfiniteRateDecode;
+    app::AudioImportJob job (std::move (request));
+    REQUIRE (job.start());
+    terminal (job);
+    auto result = job.takeResult();
+    REQUIRE (result);
+    REQUIRE (result->items.size() == 2);
+    CHECK (result->prepared.empty());
+    CHECK (result->items[0].reason.starts_with ("unsupported sample rate (nan"));
+    CHECK (result->items[1].reason.starts_with ("unsupported sample rate (inf"));
+    for (const auto& item : result->items)
+        CHECK (item.reason.ends_with ("Hz); supported range is 8000 to 384000 Hz"));
+    fixture.checkNoAdoption();
 }
 
 TEST_CASE ("Audio import validates decoded samples and duplicate metadata before publishing", "[audio-import-job]")

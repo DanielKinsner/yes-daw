@@ -137,17 +137,27 @@ public:
     // gesture (a MIDI clip opens its piano roll instead of attempting the audio split).
     std::function<bool (int)> onClipDoubleClicked;                // layoutClipId -> consumed
 
+    [[nodiscard]] bool hasActiveInteraction() const noexcept
+    {
+        return dragState.active || marqueeState.active || rulerRangeDragActive || handDragActive
+            || overviewDragActive || loopBraceDrag != LoopBraceEdit::None || markerDragIndex >= 0
+            || playheadLocateActive || loopDragActive || punchDragActive;
+    }
+
     [[nodiscard]] bool cancelInProgressEdit()
     {
         stopTimer();   // G2.3: an Esc mid-drag ends the auto-scroll with the drag
-        if (! dragState.active && ! marqueeState.active && ! rulerRangeDragActive && ! handDragActive
-            && loopBraceDrag == LoopBraceEdit::None && markerDragIndex < 0)
+        if (! hasActiveInteraction())
             return false;
 
         dragState = {};
         marqueeState = {};
         rulerRangeDragActive = false;
         handDragActive = false;
+        overviewDragActive = false;
+        playheadLocateActive = false;
+        loopDragActive = false;
+        punchDragActive = false;
         loopBraceDrag = LoopBraceEdit::None;
         markerDragIndex = -1;
         repaint();

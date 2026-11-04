@@ -14,6 +14,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <utility>
@@ -175,7 +176,11 @@ private:
         if (audio.channels != 1 && audio.channels != 2)
             return std::to_string (audio.channels) + " channels (mono or stereo only)";
         if (! io::importSampleRateSupported (audio.sampleRateHz))
-            return "sample rate must be between 8000 and 384000 Hz";
+        {
+            std::ostringstream rate;
+            rate << audio.sampleRateHz;
+            return "unsupported sample rate (" + rate.str() + " Hz); supported range is 8000 to 384000 Hz";
+        }
         if (audio.frames == 0)
             return "no audio in the file";
         if (audio.frames > static_cast<std::uint64_t> (std::numeric_limits<int>::max()))

@@ -110,6 +110,11 @@ class FineDragSlider : public juce::Slider
 public:
     using juce::Slider::Slider;
 
+    [[nodiscard]] bool hasActiveInteraction() const noexcept
+    {
+        return fineActive || getThumbBeingDragged() >= 0;
+    }
+
     void mouseDown (const juce::MouseEvent& event) override
     {
         fineActive = false;

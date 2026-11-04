@@ -332,7 +332,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
             return;
 
         const yesdaw::engine::Tick start = snappedTimelineTick (*tick, false);
-        std::vector<yesdaw::ui::UiAudioImportItem> audio;
+        std::vector<std::filesystem::path> audio;
         std::vector<std::filesystem::path> midiFiles;
         std::vector<std::string> refusals;
         for (const juce::String& file : files)
@@ -343,40 +343,27 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
                 midiFiles.push_back (path);
                 continue;
             }
-            UiAudioDecodeResult decoded = decodeProjectAudio (path);
-            if (! decoded.decoded.has_value())
-            {
-                refusals.push_back (yesdaw::io::utf8Text (path.filename()) + ": " + decoded.reason);
-                continue;
-            }
-            audio.push_back ({ path, std::move (*decoded.decoded) });
+            audio.push_back (path);
         }
-
-        std::size_t nextLane = firstLane;
-        bool anyImported = false;
+        // Capture only the slots these files could consume. Later Tracks beyond this tail are unrelated.
+        std::vector<engine::EntityId> targets;
+        std::vector<std::string> targetNames;
+        const auto& tracks = appModel.project().tracks;
+        const std::size_t lastLane = std::min (tracks.size(), firstLane + audio.size() + midiFiles.size());
+        for (std::size_t index = firstLane; index < lastLane; ++index)
+        {
+            targets.push_back (tracks[index].id);
+            targetNames.push_back (tracks[index].strip.name);
+        }
         if (! audio.empty())
         {
-            yesdaw::ui::UiAudioDropResult dropped = appModel.importAudioFilesAt (std::move (audio), firstLane, start);
-            refusals.insert (refusals.end(), dropped.refusals.begin(), dropped.refusals.end());
-            anyImported = dropped.landed > 0;
-            nextLane = dropped.nextLane;
+            beginAudioImport (std::move (audio), std::move (targets), start, std::move (midiFiles), true);
+            refreshActionState();
+            repaintAll();
+            return;
         }
-        // G3.7: a .mid lands on the lane after the audio as MIDI clips (the model names its own refusals).
-        for (const std::filesystem::path& path : midiFiles)
-        {
-            // Past the last track a MIDI file gets a track of its own (never stacked on the last one).
-            if (nextLane >= appModel.project().tracks.size() && ! appModel.addAudioTrack().dispatched)
-                break;
-            const auto& tracks = appModel.project().tracks;
-            if (tracks.empty())
-                break;
-            const std::size_t midiLane = std::min (nextLane, tracks.size() - 1u);
-            if (appModel.importMidiFileAt (path, tracks[midiLane].id, start).dispatched)
-            {
-                anyImported = true;
-                ++nextLane;
-            }
-        }
+        engine::EntityId firstLandedTrack;
+        const bool anyImported = importMidiDropTail (midiFiles, targets, targetNames, start, 0, true, refusals, firstLandedTrack);
 
         // R6: every refused file is named with its reason — the good files still landed.
         if (! refusals.empty())
@@ -388,7 +375,9 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         }
 
         if (anyImported)
-            selectedTrackLane = static_cast<int> (firstLane);
+            for (std::size_t index = 0; index < appModel.project().tracks.size(); ++index)
+                if (appModel.project().tracks[index].id == firstLandedTrack)
+                    selectedTrackLane = static_cast<int> (index);
 
         refreshActionState();
         repaintAll();
@@ -1117,9 +1106,13 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         }
         else
         {
-            ask (fileChoices.chooseSamplerPadFile, true, [this, padKey] (std::optional<std::filesystem::path> path) {   // ADR-0077
+            const auto* track = appModel.selectedTrackForInstrument();
+            if (track == nullptr)
+                return;
+            const auto trackId = track->id;
+            ask (fileChoices.chooseSamplerPadFile, true, [this, trackId, padKey] (std::optional<std::filesystem::path> path) {   // ADR-0077
                 if (path && ! path->empty())
-                    loadSamplerPadFromPath (padKey, *path);
+                    loadSamplerPadFromPath (trackId, padKey, *path);
                 refreshActionState();
                 resized();
                 repaintAll();
@@ -1130,10 +1123,14 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         repaintAll();
     };
     instrumentPanel.onPadFilesDropped = [this] (int key, const juce::StringArray& files) {
+        const auto* track = appModel.selectedTrackForInstrument();
+        if (track == nullptr)
+            return;
+        const auto trackId = track->id;
         for (const juce::String& file : files)
             if (juce::File (file).hasFileExtension ("wav;wave"))
             {
-                loadSamplerPadFromPath (static_cast<std::int16_t> (key), std::filesystem::path (file.toStdString()));
+                loadSamplerPadFromPath (trackId, static_cast<std::int16_t> (key), std::filesystem::path (file.toStdString()));
                 break;   // one file, one pad
             }
         refreshActionState();
@@ -1253,6 +1250,7 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     inspectorMidiLoop.onChange = [this] {
         if (refreshingInspectorControls || inspectorMidiLoop.getSelectedId() <= 0)
             return;
+        inspectorChoiceBaseline.midiClip = {}; // the real callback consumed this choice, even if saving refuses it
         (void) appModel.setSelectedMidiClipLoopChoice (inspectorMidiLoop.getSelectedId() - 1);
         recordLastAction (yesdaw::ui::UiActionId::MidiClipLoopSelect);
         refreshActionState();
@@ -2053,6 +2051,7 @@ void MainComponent::serviceUiTick()
     appModel.reclaimRetiredAudioObjects();
     appModel.serviceAudition();   // ADR-0056 cp2: a voice that played to its end is retired
     const bool stretchAdopted = appModel.serviceStretchPreparation();
+    const bool importAdopted = serviceAudioImport();
     // ADR-0058: the export job's progress and outcome; the export controls repaint when either changes.
     if (appModel.exportRunning() || appModel.retiringExportCount() > 0)
     {
@@ -2130,7 +2129,7 @@ void MainComponent::serviceUiTick()
     const double scrollBefore = timelineScrollSeconds;
     followPlaybackPlayhead();
     const bool rollScrolled = followPianoRollPlayhead();   // G3.2
-    if (timelineScrollSeconds != scrollBefore || rollScrolled || stretchAdopted)
+    if (timelineScrollSeconds != scrollBefore || rollScrolled || stretchAdopted || importAdopted)
         repaintAll();
     else
         repaintDynamicLayers();

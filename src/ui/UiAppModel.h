@@ -251,6 +251,8 @@ struct UiAudioImportCompletion
     app::AudioImportKey key;
     UiAudioImportDisposition disposition = UiAudioImportDisposition::Failed;
     bool samplerPad = false;
+    bool selectionMayChange = false;
+    bool selectedImportedClips = false;
     UiAudioDropResult placement;
     std::vector<engine::EntityId> landedTrackIds;
     double ownerBatchMilliseconds = 0.0;
@@ -2195,7 +2197,8 @@ public:
     [[nodiscard]] const std::vector<std::string>& statusLineParts() const noexcept { return statusLineParts_; }
     void serviceStatusLineDecay() noexcept
     {
-        if (pendingStretch_ && statusLineText_.starts_with ("Preparing stretch"))
+        if ((pendingStretch_ && statusLineText_.starts_with ("Preparing stretch"))
+            || (pendingAudioImport_ && statusLineText_.starts_with ("Preparing audio")))
             return;
         if (statusLineTicksRemaining_ > 0 && --statusLineTicksRemaining_ == 0)
         {
@@ -2920,12 +2923,40 @@ public:
     }
 
     // Control-thread tick. Only durable visible adoption returns true; retirement never joins running work.
-    bool serviceAudioImport()
+    bool serviceAudioImport (bool allowSelectionChange = true, bool allowAdoption = true)
     {
         if (pendingAudioImport_ && ! audioImportDependenciesMatch (*pendingAudioImport_))
             retireAudioImport (UiAudioImportDisposition::Stale, audioImportDependencyRefusal (*pendingAudioImport_));
+        if (pendingAudioImport_ && audioImportJob_ && ! audioImportJob_->terminal())
+        {
+            const auto phase = audioImportJob_->phase();
+            const char* stage = phase == app::AudioImportPhase::Staging ? "staging"
+                : phase == app::AudioImportPhase::Decoding ? "decoding"
+                : phase == app::AudioImportPhase::Resampling ? "resampling"
+                : phase == app::AudioImportPhase::Completing ? "finishing" : "waiting";
+            const std::string progress = std::string ("Preparing audio: ") + stage + " ("
+                + std::to_string (audioImportJob_->completedFiles()) + "/"
+                + std::to_string (audioImportJob_->totalFiles()) + " files)";
+            if (progress != statusLineText_ && audioImportCanUseStatus (pendingAudioImport_->padKey.has_value()))
+            {
+                audioImportProgressShown_ = progress;
+                reportStatus (progress, false);
+            }
+        }
         if (! audioImportJob_ || ! audioImportJob_->terminal())
             return false;
+        if (pendingAudioImport_ && ! allowAdoption && audioImportJob_->eligibleForAdoption())
+        {
+            const std::string progress = "Preparing audio: ready to place ("
+                + std::to_string (audioImportJob_->completedFiles()) + "/"
+                + std::to_string (audioImportJob_->totalFiles()) + " files)";
+            if (progress != statusLineText_ && audioImportCanUseStatus (pendingAudioImport_->padKey.has_value()))
+            {
+                audioImportProgressShown_ = progress;
+                reportStatus (progress, false);
+            }
+            return false; // successful results, including zero landed files, can authorize a deferred MIDI edit
+        }
         const auto began = std::chrono::steady_clock::now();
         const bool current = pendingAudioImport_ && audioImportJob_->key() == pendingAudioImport_->key;
         const bool eligible = current && audioImportJob_->eligibleForAdoption();
@@ -2936,9 +2967,12 @@ public:
             return false; // retired work cannot alter status, selection or a completion receipt
         PendingAudioImport pending = std::move (*pendingAudioImport_);
         pendingAudioImport_.reset();
+        context_.audioImportPending = false;
         UiAudioImportCompletion completion;
         completion.key = pending.key;
         completion.samplerPad = pending.padKey.has_value();
+        completion.selectionMayChange = ! completion.samplerPad && allowSelectionChange
+            && pending.selection == audioImportEditSelection();
         const bool adopted = prepared && adoptPreparedAudioImport (*prepared, pending, completion);
         if (! prepared)
             completion.placement.refusals.push_back (reason.empty() ? "audio preparation failed" : reason);
@@ -2949,9 +2983,25 @@ public:
             reportStatus ("Audio import refused: " + (completion.placement.refusals.empty()
                 ? std::string { "the project could not be saved or rebuilt" } : completion.placement.refusals.back()), true);
         else if (completion.placement.refusals.empty())
-            reportStatus (completion.samplerPad ? "Sampler pad ready" : "Audio import ready", false);
+        {
+            if (pending.padKey)
+            {
+                if (audioImportCanUseStatus (true))
+                {
+                    const auto* pad = project_.findTrack (pending.key.targetTrackIds.front())->findSamplerPad (*pending.padKey);
+                    reportStatus ("Pad " + std::string (pianoRollKeyName (*pending.padKey))
+                        + (pad ? ": " + std::string (pad->nameView()) : ": ready"), false);
+                }
+            }
+            else if (audioImportCanUseStatus (false))
+                retireSuccessStatus();
+        }
         else
-            reportStatus ("Audio import: " + completion.placement.refusals.front(), true);
+        {
+            auto parts = completion.placement.refusals;
+            parts.front() = "Audio import: " + parts.front();
+            reportStatusParts (std::move (parts), true);
+        }
         audioImportCompletion_ = std::move (completion);
         return adopted;
     }
@@ -3546,7 +3596,8 @@ public:
     // clip becomes the MIDI clip in the roll. Refusals name their reason on the status line.
     [[nodiscard]] UiActionDispatchResult importMidiFileAt (const std::filesystem::path& sourcePath,
                                                            engine::EntityId targetTrackId,
-                                                           engine::Tick timelineStart)
+                                                           engine::Tick timelineStart, bool allowSelectionChange = true,
+                                                           bool reportSuccess = true)
     {
         const UiActionId id = UiActionId::ProjectImportMidi;
         const UiActionState state = registry_.stateFor (id, context_);
@@ -3661,25 +3712,31 @@ public:
         if (! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
             return { id, { false, "MIDI import did not persist" }, false };
 
-        selectedMidiClipId_ = clipIds.front();
-        selectedMidiNoteId_ = {};
-        selectedMidiNoteIds_.clear();
-        selectedTimelineClipIds_ = clipIds;
-        selectedTimelineClipId_ = clipIds.front();
-        context_.timelineClipSelected = true;
-        context_.midiClipSelected = true;
-        context_.midiNoteSelected = false;
+        if (allowSelectionChange)
+        {
+            selectedMidiClipId_ = clipIds.front();
+            selectedMidiNoteId_ = {};
+            selectedMidiNoteIds_.clear();
+            selectedTimelineClipIds_ = clipIds;
+            selectedTimelineClipId_ = clipIds.front();
+            context_.timelineClipSelected = true;
+            context_.midiClipSelected = true;
+            context_.midiNoteSelected = false;
+        }
         syncProjectEditContext();
         ++context_.commandDispatchCount;
         ++context_.midiEditCount;
         ++context_.midiImportCount;
-        const interchange::SmfHead head = interchange::smfHead (file);
-        char tempo[32];
-        std::snprintf (tempo, sizeof (tempo), "%.1f", head.bpm);
-        reportStatus ("Imported " + std::to_string (clipIds.size()) + (clipIds.size() == 1u ? " MIDI clip" : " MIDI clips")
-                          + (tracksAdded > 0 ? " on " + std::to_string (tracksAdded + 1) + " tracks" : "")
-                          + " from " + yesdaw::io::utf8Text (sourcePath.filename()) + " (file tempo " + tempo + " BPM, placed at the project tempo)",
-                      false);
+        if (reportSuccess)
+        {
+            const interchange::SmfHead head = interchange::smfHead (file);
+            char tempo[32];
+            std::snprintf (tempo, sizeof (tempo), "%.1f", head.bpm);
+            reportStatus ("Imported " + std::to_string (clipIds.size()) + (clipIds.size() == 1u ? " MIDI clip" : " MIDI clips")
+                              + (tracksAdded > 0 ? " on " + std::to_string (tracksAdded + 1) + " tracks" : "")
+                              + " from " + yesdaw::io::utf8Text (sourcePath.filename()) + " (file tempo " + tempo + " BPM, placed at the project tempo)",
+                          false);
+        }
         return { id, state, true };
     }
 
@@ -10546,6 +10603,14 @@ public:
             case UiActionId::ProjectImportAudio:
                 return { id, { false, "audio import path required" }, false };
 
+            case UiActionId::ProjectCancelImport:
+                if (cancelAudioImport())
+                {
+                    ++context_.commandDispatchCount;
+                    return { id, state, true };
+                }
+                return { id, { false, "no audio import pending" }, false };
+
             case UiActionId::ProjectExportAudio:
                 return { id, { false, "audio export path required" }, false };
 
@@ -13403,6 +13468,33 @@ private:
         std::filesystem::path sourcePath;
     };
 
+    struct AudioImportEditSelection
+    {
+        std::uint64_t editSerial = 0;
+        engine::EntityId primaryClip, midiClip, primaryNote, mixerOwner;
+        std::vector<engine::EntityId> clips, notes;
+        UiPanel panel = UiPanel::Timeline;
+        UiEditorDockTab tab = UiEditorDockTab::Mixer;
+        bool dockVisible = false;
+        bool operator== (const AudioImportEditSelection&) const = default;
+    };
+
+    [[nodiscard]] AudioImportEditSelection audioImportEditSelection() const
+    {
+        AudioImportEditSelection selection;
+        selection.editSerial = editSerial_;
+        selection.primaryClip = selectedTimelineClipId_;
+        selection.midiClip = selectedMidiClipId_;
+        selection.primaryNote = selectedMidiNoteId_;
+        selection.clips = selectedTimelineClipIds_;
+        selection.notes = selectedMidiNoteIds_;
+        (void) selectedMixerOwnerId (selection.mixerOwner);
+        selection.panel = context_.activePanel;
+        selection.tab = context_.editorDockTab;
+        selection.dockVisible = context_.mixerDockVisible;
+        return selection;
+    }
+
     struct PendingAudioImport
     {
         app::AudioImportKey key;
@@ -13410,7 +13502,15 @@ private:
         std::optional<std::int16_t> padKey;
         std::optional<engine::SamplerPad> pad;
         std::vector<std::string> targetNames;
+        AudioImportEditSelection selection;
     };
+
+    [[nodiscard]] bool audioImportCanUseStatus (bool samplerPad) const noexcept
+    {
+        return ! statusLineIsError_ && (statusLineText_.empty()
+            || statusLineText_ == (samplerPad ? "Preparing Sampler pad" : "Preparing audio import")
+            || (! audioImportProgressShown_.empty() && statusLineText_ == audioImportProgressShown_));
+    }
 
     [[nodiscard]] UiAudioImportStart startOwnedAudioImport (
         std::vector<std::filesystem::path> paths, std::vector<engine::EntityId> targets,
@@ -13437,7 +13537,7 @@ private:
         request.decoder = decoder;
         for (auto& path : paths)
             request.files.push_back ({ std::move (path), allocateSessionEntityId (0xA9u) });
-        PendingAudioImport pending { request.key, request.viewRateHz, padKey, std::nullopt, {} };
+        PendingAudioImport pending { request.key, request.viewRateHz, padKey, std::nullopt, {}, audioImportEditSelection() };
         for (const auto target : request.key.targetTrackIds)
             pending.targetNames.push_back (project_.findTrack (target)->strip.name);
         if (padKey)
@@ -13448,6 +13548,8 @@ private:
         if (! job->start())
             return { false, 0, "audio import worker could not start" };
         pendingAudioImport_ = std::move (pending);
+        context_.audioImportPending = true;
+        audioImportProgressShown_.clear();
         audioImportCompletion_.reset();
         audioImportJob_ = std::move (job);
         reportStatus (padKey ? "Preparing Sampler pad" : "Preparing audio import", false);
@@ -13495,6 +13597,7 @@ private:
             completion.placement.refusals.push_back (reason);
             audioImportCompletion_ = std::move (completion);
             pendingAudioImport_.reset();
+            context_.audioImportPending = false;
             reportStatus (reason, disposition == UiAudioImportDisposition::Stale);
         }
         if (audioImportJob_)
@@ -13639,11 +13742,15 @@ private:
         completion.placement.tracksCreated = tracksCreated;
         if (! pending.padKey)
         {
-            selectedTimelineClipIds_ = clips;
-            selectedTimelineClipId_ = clips.back();
-            context_.timelineClipSelected = true;
-            pendingAudioPlacement_ = {};
-            pendingMidiPlacement_ = {};
+            if (completion.selectionMayChange)
+            {
+                selectedTimelineClipIds_ = clips;
+                selectedTimelineClipId_ = clips.back();
+                context_.timelineClipSelected = true;
+                pendingAudioPlacement_ = {};
+                pendingMidiPlacement_ = {};
+                completion.selectedImportedClips = true;
+            }
             context_.importCount += static_cast<int> (slot);
             for (auto it = files.rbegin(); it != files.rend(); ++it)
                 rememberRecentAudioFile (*it);
@@ -15166,6 +15273,7 @@ private:
     std::optional<PendingAudioImport> pendingAudioImport_;
     std::unique_ptr<app::AudioImportJob> audioImportJob_; // active or retiring, bounded to one worker
     std::optional<UiAudioImportCompletion> audioImportCompletion_;
+    std::string audioImportProgressShown_;
     std::uint64_t nextAudioImportRequestId_ = 1;
     std::uint64_t audioImportRequestVersion_ = 0;
     std::uint64_t livePlacementEdits_ = 0;

@@ -6,6 +6,8 @@
 // folders, then supported files only (non-ASCII names included); Recent and the browser's state live in the
 // session folder; the Control target browses with the keyboard alone; only painted rows read a file header.
 
+#include "UiImportTestSupport.h"
+
 #include "io/AudioFileDecode.h"
 #include "io/WavFile.h"
 #include "persistence/ProjectBundle.h"
@@ -189,11 +191,13 @@ TEST_CASE ("ADR-0056 Y shows the Browser tab; a kept file lands as Ctrl+Shift+I 
     REQUIRE (viaBrowser.browser().source == "Files");
     yesdaw::ui::mainComponentBrowserSelect (*viaBrowser, viaBrowser.rowNamed ("kick.wav"));
     yesdaw::ui::mainComponentBrowserImport (*viaBrowser);
+    waitForAudioImports (*viaBrowser);
 
     // Through Ctrl+Shift+I with the same file.
     BrowserShell viaChord (directory, "chord");
     viaChord.importPick = media / "kick.wav";
     REQUIRE (press (*viaChord, 'i', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier));
+    waitForAudioImports (*viaChord);
 
     const auto browserClips = landedClips (viaBrowser.project());
     REQUIRE (browserClips.size() == 1u);
@@ -201,6 +205,7 @@ TEST_CASE ("ADR-0056 Y shows the Browser tab; a kept file lands as Ctrl+Shift+I 
 
     // A double-click on the row is the same keep.
     yesdaw::ui::mainComponentBrowserDoubleClick (*viaBrowser, viaBrowser.rowNamed ("kick.wav"));
+    waitForAudioImports (*viaBrowser);
     REQUIRE (viaBrowser.project().clips.size() == 2u);
 
     // Y again hides it; the dock tab is view state only.
@@ -224,6 +229,7 @@ TEST_CASE ("ADR-0056 a browser drag of two rows lands exactly as an OS drop of t
     const juce::Rectangle<int> lane = layoutRect (*viaBrowser, "lane.0");
     const juce::Point<int> releaseAt { lane.getX() + lane.getWidth() / 3, lane.getCentreY() };
     yesdaw::ui::mainComponentBrowserDragSelectedTo (*viaBrowser, releaseAt);
+    waitForAudioImports (*viaBrowser);
 
     BrowserShell viaDrop (directory, "drop");
     juce::Component* timeline = findById (*viaDrop, yesdaw::ui::shell::kTimelineComponentId);
@@ -233,6 +239,7 @@ TEST_CASE ("ADR-0056 a browser drag of two rows lands exactly as an OS drop of t
     const juce::Point<int> local = timeline->getLocalPoint (viaDrop.shell.get(), releaseAt);
     dropTarget->filesDropped (juce::StringArray { juce::String ((media / "a.wav").string()), juce::String ((media / "b.wav").string()) },
                               local.x, local.y);
+    waitForAudioImports (*viaDrop);
 
     const yesdaw::engine::Project dragged = viaBrowser.project();
     REQUIRE (dragged.tracks.size() == 2u);   // the second file made the track it needed
@@ -252,6 +259,7 @@ TEST_CASE ("ADR-0056 a browser drag of two rows lands exactly as an OS drop of t
     const juce::Rectangle<int> lastLane = layoutRect (*viaBrowser, "lane.1");
     yesdaw::ui::mainComponentBrowserSelect (*viaBrowser, viaBrowser.rowNamed ("b.wav"));
     yesdaw::ui::mainComponentBrowserDragSelectedTo (*viaBrowser, { releaseAt.x, lastLane.getBottom() + lastLane.getHeight() / 2 });
+    waitForAudioImports (*viaBrowser);
     const yesdaw::engine::Project below = viaBrowser.project();
     REQUIRE (below.tracks.size() == 3u);
     REQUIRE (landedClips (below).back().lane == 2u);
@@ -265,6 +273,7 @@ TEST_CASE ("ADR-0056 a project Asset placed from the browser is a new clip on th
     BrowserShell f (directory, "asset");
     f.importPick = directory / "loop.wav";
     REQUIRE (press (*f, 'i', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier));
+    waitForAudioImports (*f);
     const yesdaw::engine::Project imported = f.project();
     REQUIRE (imported.assets.size() == 1u);
     REQUIRE (imported.clips.size() == 1u);
@@ -281,6 +290,7 @@ TEST_CASE ("ADR-0056 a project Asset placed from the browser is a new clip on th
 
     yesdaw::ui::mainComponentBrowserSelect (*f, 0);
     yesdaw::ui::mainComponentBrowserImport (*f);
+    waitForAudioImports (*f);
     const yesdaw::engine::Project placed = f.project();
     REQUIRE (placed.assets.size() == 1u);   // no copy
     REQUIRE (placed.clips.size() == 2u);
@@ -290,6 +300,7 @@ TEST_CASE ("ADR-0056 a project Asset placed from the browser is a new clip on th
     // A drag of the Asset onto the lanes places it too (at the snapped point, through placeAssetsAt).
     const juce::Rectangle<int> lane = layoutRect (*f, "lane.0");
     yesdaw::ui::mainComponentBrowserDragSelectedTo (*f, { lane.getRight() - 40, lane.getCentreY() });
+    waitForAudioImports (*f);
     REQUIRE (f.project().clips.size() == 3u);
     REQUIRE (f.project().assets.size() == 1u);
 
@@ -308,6 +319,7 @@ TEST_CASE ("ADR-0056 a project Asset placed from the browser is a new clip on th
     {
         f.importPick = directory / name;
         REQUIRE (press (*f, 'i', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier));
+        waitForAudioImports (*f);
     }
     REQUIRE (f.browser().names.size() == 3u);   // the other surface's imports showed up
     yesdaw::ui::mainComponentBrowserSelect (*f, 0);
@@ -318,6 +330,7 @@ TEST_CASE ("ADR-0056 a project Asset placed from the browser is a new clip on th
     writeTone (directory / "fourth.wav", 1'500, 0.2f);
     f.importPick = directory / "fourth.wav";
     REQUIRE (press (*f, 'i', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier));
+    waitForAudioImports (*f);
     auto rebuilt = f.browser();
     REQUIRE (rebuilt.names.size() == 4u);
     REQUIRE (rebuilt.marked == std::vector<int> { 0, 2 });   // the same two Assets, still selected
@@ -339,6 +352,7 @@ TEST_CASE ("ADR-0056 an unreadable and a missing file show their reasons in the 
     BrowserShell f (directory, "refusals");
     f.importPick = media / "gone.wav";
     REQUIRE (press (*f, 'i', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier));   // into Recent
+    waitForAudioImports (*f);
     REQUIRE (f.project().clips.size() == 1u);
     std::filesystem::remove (media / "gone.wav");
 
@@ -353,6 +367,7 @@ TEST_CASE ("ADR-0056 an unreadable and a missing file show their reasons in the 
     yesdaw::ui::mainComponentBrowserSelect (*f, junkRow);
     REQUIRE (f.browser().description.contains ("not a readable MP3 file"));
     yesdaw::ui::mainComponentBrowserImport (*f);
+    waitForAudioImports (*f);
     REQUIRE (statusOf (*f).contains ("junk.mp3"));
     REQUIRE (statusOf (*f).contains ("not a readable MP3 file"));
     REQUIRE (f.project().clips.size() == before.clips.size());
@@ -366,6 +381,7 @@ TEST_CASE ("ADR-0056 an unreadable and a missing file show their reasons in the 
     REQUIRE (snapshot.reasons[0] == "missing");
     yesdaw::ui::mainComponentBrowserSelect (*f, 0);
     yesdaw::ui::mainComponentBrowserImport (*f);
+    waitForAudioImports (*f);
     REQUIRE (statusOf (*f).contains ("gone.wav"));
     REQUIRE (f.project().clips.size() == before.clips.size());
 }
@@ -401,16 +417,19 @@ TEST_CASE ("ADR-0056 Files lists .., folders, then supported files only; non-ASC
 
     // Open the non-ASCII folder by keeping its row; import the non-ASCII file in it.
     yesdaw::ui::mainComponentBrowserDoubleClick (*f, 3);
+    waitForAudioImports (*f);
     snapshot = f.browser();
     REQUIRE (snapshot.location.contains (fromU8 (u8"\u97f3")));
     REQUIRE (snapshot.names == std::vector<juce::String> { "..", fromU8 (u8"se\u00f1al.wav") });
     yesdaw::ui::mainComponentBrowserPaint (*f);
     REQUIRE (f.browser().facts[1].contains ("48 kHz"));
     yesdaw::ui::mainComponentBrowserDoubleClick (*f, 1);
+    waitForAudioImports (*f);
     REQUIRE (f.project().clips.size() == 1u);
 
     // Up (and the ".." row) go back to the parent.
     yesdaw::ui::mainComponentBrowserDoubleClick (*f, 0);
+    waitForAudioImports (*f);
     REQUIRE (f.browser().names == expected);
 }
 
@@ -426,15 +445,18 @@ TEST_CASE ("ADR-0056 Recent holds imports newest first and survives a new shell;
         BrowserShell f (directory, "one", session);
         f.importPick = media / "first.wav";
         REQUIRE (press (*f, 'i', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier));
+        waitForAudioImports (*f);
         f.showBrowser();
         yesdaw::ui::mainComponentBrowserOpenFolder (*f, media);
         yesdaw::ui::mainComponentBrowserSelect (*f, f.rowNamed ("second.wav"));
         yesdaw::ui::mainComponentBrowserImport (*f);   // a browser import is a Recent entry too
+        waitForAudioImports (*f);
         yesdaw::ui::mainComponentBrowserSetSource (*f, 2);
         REQUIRE (f.browser().names == std::vector<juce::String> { "second.wav", "first.wav" });
         // Re-importing the older one moves it to the top, once.
         f.importPick = media / "first.wav";
         REQUIRE (press (*f, 'i', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier));
+        waitForAudioImports (*f);
         yesdaw::ui::mainComponentBrowserSetSource (*f, 2);
         REQUIRE (f.browser().names == std::vector<juce::String> { "first.wav", "second.wav" });
         for (const auto& entry : std::filesystem::directory_iterator (session))
@@ -497,6 +519,7 @@ TEST_CASE ("ADR-0056 the keyboard alone browses: Tab to the list, Enter, arrows,
     REQUIRE (press (*f, juce::KeyPress::returnKey));
     REQUIRE (press (*f, juce::KeyPress::downKey));
     REQUIRE (press (*f, juce::KeyPress::returnKey));
+    waitForAudioImports (*f);
     const yesdaw::engine::Project project = f.project();
     REQUIRE (project.clips.size() == 1u);
     REQUIRE (project.assets.size() == 1u);

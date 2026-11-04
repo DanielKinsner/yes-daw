@@ -691,10 +691,15 @@ public:
         g.drawRect (marquee.toFloat(), yesdaw::ui::UiTheme::Layout::timelineCanvasOutlineStrokeWidth);
     }
 
+    [[nodiscard]] bool hasActiveInteraction() const noexcept
+    {
+        return dragState.active || marqueeState.active || velocityDragState.active
+            || controlDragState.active || pendingShiftToggleNoteId.isValid() || auditionKey >= 0;
+    }
+
     [[nodiscard]] bool cancelInProgressEdit()
     {
-        if (! dragState.active && ! marqueeState.active && ! velocityDragState.active
-            && ! controlDragState.active && ! pendingShiftToggleNoteId.isValid())
+        if (! hasActiveInteraction())
             return false;
 
         dragState = {};
@@ -702,6 +707,7 @@ public:
         velocityDragState = {};
         controlDragState = {};
         pendingShiftToggleNoteId = {};
+        endAudition();
         repaint();
         return true;
     }

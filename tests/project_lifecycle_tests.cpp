@@ -7,6 +7,7 @@
 #include "persistence/ProjectBundle.h"
 #include "ui/MainComponent.h"
 #include "ui/MainComponentInternal.h"
+#include "UiImportTestSupport.h"
 
 #include <catch2/catch_test_macros.hpp>
 #include <juce_gui_extra/juce_gui_extra.h>
@@ -300,6 +301,7 @@ TEST_CASE ("SS-6 the probe carries the project's rate, tempo and Assets, the aut
     REQUIRE (shell != nullptr);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
     REQUIRE (static_cast<bool> (probeOf (*shell)["projectLoaded"]));
 
     // The project: its rate and tempo, and the one Asset by the hash its bundle file is named for.
@@ -1568,6 +1570,7 @@ TEST_CASE ("ADR-0069 the probe carries the autosave writer's cost and carries", 
     REQUIRE (shell != nullptr);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
     REQUIRE (probeOf (*shell)["project"]["assets"].size() == 1);
     REQUIRE (static_cast<double> (probeOf (*shell)["autosave"]["writeMs"]) == 0.0);
     // One write through the shell's own tick (bounded: the cadence is 250 ms of ticks).

@@ -1033,16 +1033,13 @@ void MainComponent::hideArrangeControlsBehindMixWindow()
 
 // G3.9 / ADR-0054: a sample onto a Sampler pad — any supported format; the decoder's refusal is the shell's
 // to name with its reason (R6), every other refusal the model's (R7).
-void MainComponent::loadSamplerPadFromPath (std::int16_t key, const std::filesystem::path& path)
+void MainComponent::loadSamplerPadFromPath (engine::EntityId trackId, std::int16_t key, const std::filesystem::path& path)
 {
-    UiAudioDecodeResult decodedFile = decodeProjectAudio (path);
-    if (! decodedFile.decoded)
-    {
-        appModel.reportStatus ("Sampler pad refused: " + yesdaw::io::utf8Text (path.filename()) + ": " + decodedFile.reason, true);
-        return;
-    }
-    if (appModel.importSamplerPadFromSource (path, std::move (*decodedFile.decoded), key).ok())
+    const auto started = appModel.startSamplerPadImport (path, trackId, key, io::decodeAudioFile);
+    if (started.accepted)
         recordLastAction (yesdaw::ui::UiActionId::SamplerPadLoad);
+    else
+        appModel.reportStatus ("Sampler pad refused: " + io::utf8Text (path.filename()) + ": " + started.reason, true);
 }
 
 // G3.1: the instrument kind's name (the probe, the panel title, the inspector row).

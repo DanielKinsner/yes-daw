@@ -32,6 +32,7 @@ UiActionContext fullyReachableContext()
     context.canRedo = true;
     context.timelineClipSelected = true;
     context.stretchPreparationPending = true;
+    context.audioImportPending = true;
     context.loopEnabled = true;   // G2.9b: Stretch to Loop Length reads the loop
     context.mixerTargetSelected = true;
     context.midiClipSelected = true;

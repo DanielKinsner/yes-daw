@@ -1,5 +1,7 @@
 // YES DAW - H12 real-shell UI input harness skeleton.
 
+#include "UiImportTestSupport.h"
+
 #include "app/SongFixture.h"   // ADR-0067 cp3: a song with tempo-locked MIDI clips
 #include "interchange/Smf.h"   // G3.7: the [midi-file] gate writes and reads back a Standard MIDI File
 #include "io/AudioFileDecode.h"   // ADR-0054: the [import-formats] shell gate
@@ -20,6 +22,8 @@
 #include "ui/AutomationLaneCanvasComponent.h"   // 2026-10-06: the lane's time law
 #include "ui/MidiClipPreview.h"                 // 2026-10-06: the arrange view's MIDI time law
 #include "ui/TimelineCanvas.h"
+#include "ui/TimelineInputComponent.h"
+#include "ui/ShellWidgets.h"
 #include "ui/UiAccessibility.h"
 #include "ui/UiPianoRollSurface.h"   // G3.2: pianoRollKeyName
 #include "ui/UiTheme.h"
@@ -1475,6 +1479,7 @@ TEST_CASE ("command router: widgets decline focus, Space toggles, window-level k
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // (1) The focus law over the WHOLE tree: buttons, combos, sliders, overlays — all decline;
     // only text editors (the rename editors) may take focus; the shell itself wants it.
@@ -1578,6 +1583,7 @@ TEST_CASE ("no callback teardown: 200 dispatched actions request zero audio-call
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (suspendRequests() == 0);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
@@ -1648,6 +1654,7 @@ TEST_CASE ("render budget: ticks invalidate only dynamic layers and refresh only
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
     REQUIRE (imported.clips.size() == 1u);
@@ -1762,6 +1769,7 @@ TEST_CASE ("B4: placement edits while playing never rebuild the engine",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
     REQUIRE (imported.clips.size() == 1u);
@@ -2003,6 +2011,7 @@ TEST_CASE ("F2 renames the selected Clip through the shipped shell and preserves
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
@@ -2069,6 +2078,7 @@ TEST_CASE ("Escape cancels an in-progress timeline move before mouse-up can pers
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -2109,6 +2119,7 @@ TEST_CASE ("Escape cancels in-progress timeline trim and fade edits",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -2164,6 +2175,7 @@ TEST_CASE ("Escape cancels an in-progress marquee before mouse-up can change sel
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -2203,6 +2215,7 @@ TEST_CASE ("Escape dismisses Clip and Track inline editors without persisting dr
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -2265,6 +2278,7 @@ TEST_CASE ("shipped MainComponent device callback renders playing Project audio"
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
 
     std::array<float, 128> left {};
@@ -2302,6 +2316,7 @@ TEST_CASE ("[g6-motion][meters]: PeakSinceRead carries every block to master, in
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const auto tick = [&] { yesdaw::ui::mainComponentServiceUiTick (*shell); };
 
@@ -2660,6 +2675,7 @@ TEST_CASE ("ADR-0053 Master Dim and Mute act on the speakers only, lit and named
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Button& dim = requireButtonForAction (*shell, UiActionId::MasterMonitorDimToggle);
     juce::Button& mute = requireButtonForAction (*shell, UiActionId::MasterMonitorMuteToggle);
@@ -2771,6 +2787,7 @@ TEST_CASE ("G4.7 the master pane's insert slots: Limiter first, the editor, bypa
     shell->setSize (1536, 960);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
     juce::Component* strips = findChildWithComponentId (*shell, "shell.mixer.strips.input");
@@ -2843,6 +2860,7 @@ TEST_CASE ("shipped MainComponent reopens bundled Assets as playable audio",
         auto shell = makeShell (std::move (createChoices));
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        waitForAudioImports (*shell);
         REQUIRE (snapshotMainComponent (*shell).playbackReady);
     }
 
@@ -2909,6 +2927,7 @@ TEST_CASE ("shipped MainComponent imports, reopens, plays, and exports a stereo 
         auto shell = makeShell (std::move (choices));
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        waitForAudioImports (*shell);
 
         const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
         REQUIRE (snapshot.context.projectLoaded);
@@ -3431,6 +3450,7 @@ TEST_CASE ("ADR-0053 the header LUFS button follows the live loudness of the pla
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Button& loudness = requireButtonForAction (*shell, UiActionId::MixerReadLoudness);
     REQUIRE (loudness.getButtonText() == "-- LUFS");
     REQUIRE_FALSE (snapshotMainComponent (*shell).visibleMixerLoudnessValid);
@@ -3486,6 +3506,7 @@ TEST_CASE ("H16 CP7 UI input harness exports the current Project to canonical WA
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.projectLoaded);
@@ -3851,6 +3872,7 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     juce::Slider& start = requireSliderWithComponentId (*shell, kInspectorStartComponentId);
@@ -3874,6 +3896,8 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
     REQUIRE (fadeCurve.getText() == "Equal power");
 
     mouseDownAt (timeline, { timeline.getWidth() - 20, timeline.getHeight() - 20 });
+    timeline.mouseUp (makeMouseEvent (timeline, { timeline.getWidth() - 20, timeline.getHeight() - 20 },
+                                      { timeline.getWidth() - 20, timeline.getHeight() - 20 }, false));
     snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.timelineClipSelected);
     REQUIRE_FALSE (start.isEnabled());
@@ -3887,6 +3911,8 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
 
     const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
     mouseDownAt (timeline, timelineClipCenterPoint (timeline, imported, 0u));
+    timeline.mouseUp (makeMouseEvent (timeline, timelineClipCenterPoint (timeline, imported, 0u),
+                                      timelineClipCenterPoint (timeline, imported, 0u), false));
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.timelineClipSelected);
     REQUIRE (start.isEnabled());
@@ -3971,6 +3997,7 @@ TEST_CASE ("H12 UI input harness edits selected Clip fields through real inspect
                                    yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
                                        + 2 * thirdRowHeight + thirdRowHeight / 2 });
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::engine::Project thirdTrackProject = readProjectSnapshot (bundlePath);
     REQUIRE (thirdTrackProject.tracks.size() == 3u);
     REQUIRE (thirdTrackProject.clips.size() == 2u);
@@ -4007,6 +4034,7 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
     juce::Button& import = requireButtonForAction (*shell, UiActionId::ProjectImportAudio);
     REQUIRE (import.isEnabled());
     clickButton (import);
+    waitForAudioImports (*shell);
 
     snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.projectLoaded);
@@ -4776,6 +4804,7 @@ TEST_CASE ("shipped MainComponent dispatches keymap chords through keyPressed",
     // Ctrl+N news, Ctrl+I imports — the same native-choice path as the toolbar buttons.
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('i', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
+    waitForAudioImports (*shell);
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.projectLoaded);
     REQUIRE (snapshot.context.importCount == 1);
@@ -4835,6 +4864,7 @@ TEST_CASE ("interactive track rail — select, add, rename, remove, import-to-tr
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
 
     // The Add Track button is a real component driving the undoable verb.
@@ -4858,6 +4888,7 @@ TEST_CASE ("interactive track rail — select, add, rename, remove, import-to-tr
     mouseDownAt (*railComponent, secondRowCentre);
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 2u);
     REQUIRE (project.clips.back().trackId == project.tracks.back().id);
@@ -4902,6 +4933,7 @@ TEST_CASE ("Up and Down select adjacent Track rail rows and retarget persisted m
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -5003,6 +5035,7 @@ TEST_CASE ("Left and Right locate the playhead by one current grid unit without 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (snapshotMainComponent (*shell).context.snapGridTicks == static_cast<std::int64_t> (kBeatFrames));
     const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
 
@@ -5062,6 +5095,7 @@ TEST_CASE ("Save As copies the bundle and continues working in the copy", "[ui][
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // Ctrl+Shift+S copies the bundle; subsequent edits land in the COPY, not the original.
     REQUIRE (shell->keyPressed (juce::KeyPress ('s',
@@ -5113,6 +5147,7 @@ TEST_CASE ("fresh native session is backed, recoverable, and named on first Save
     REQUIRE (yesdaw::ui::mainComponentConfirmsClose (*shell));
     REQUIRE (saveChoices == 0);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (readProjectSnapshot (initial.bundlePath).clips.size() == 1u);
     REQUIRE_FALSE (yesdaw::ui::mainComponentConfirmsClose (*shell));
     REQUIRE (saveChoices == 1);
@@ -5270,6 +5305,7 @@ TEST_CASE ("every mixer track strip is selectable and retargets the shared contr
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // Second track via keymap, second clip onto it through the rail selection.
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
@@ -5279,6 +5315,7 @@ TEST_CASE ("every mixer track strip is selectable and retargets the shared contr
     const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*railComponent, { kRailRowClickX, headerHeight + rowHeight + rowHeight / 2 });
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
@@ -5315,6 +5352,7 @@ TEST_CASE ("FX inserts add, bypass, and remove on the selected strip through rea
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // Select strip 0 through the rail, then add an EQ and a Reverb from the chooser.
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
@@ -5376,6 +5414,7 @@ TEST_CASE ("track-rail mini pan, volume, and mute/solo controls edit the strip t
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -5445,6 +5484,7 @@ TEST_CASE ("mixer clicks, the control lane, and the master fader share the paint
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
@@ -5519,6 +5559,7 @@ TEST_CASE ("every direct strip edit is its own undo step: drags coalesce, toggle
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // Sentinel edit: a marker. If any strip edit were still un-undoable, its Ctrl+Z would
     // silently eat THIS instead.
@@ -5628,6 +5669,7 @@ TEST_CASE ("bus and send controls route the selected track undoably through real
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // Select the first track strip through the rail so send actions have a target, then open the
     // full mixer view — the routing tools live in the mixer tools column.
@@ -5720,8 +5762,8 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     // G1.2: Logic's menu order.
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
     // Ten action items + the B39 Open Recent submenu (G3.7 re-pin: + Import MIDI File / Export MIDI File; G5.5: + Save a
-    // Copy, Save as Template).
-    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 13);
+    // Copy, Save as Template), plus Cancel Audio Import.
+    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 14);
     REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 35);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes; G2.18: + Undo History…; G4.6: + Automation Follows Clips
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 2);   // G6.5 / ADR-0073: + Show Tips Again
 
@@ -5732,6 +5774,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
 
     // File > Import lands a clip; View > Mixer switches the active panel.
     model->menuItemSelected (static_cast<int> (UiActionId::ProjectImportAudio) + 1, 0);
+    waitForAudioImports (*shell);
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
     model->menuItemSelected (static_cast<int> (UiActionId::ViewMixer) + 1, 5);
     snapshot = snapshotMainComponent (*shell);
@@ -5760,6 +5803,7 @@ TEST_CASE ("export bit-depth chooser drives a 16-bit PCM export through the real
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, true);
     auto* bitDepth = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "shell.export.bitdepth"));
@@ -5841,6 +5885,7 @@ TEST_CASE ("FX parameter sliders edit the selected insert undoably through real 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (railComponent != nullptr);
@@ -5930,6 +5975,7 @@ TEST_CASE ("FX slot up/down reorder the chain undoably and audibly for a non-com
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (railComponent != nullptr);
@@ -6013,6 +6059,7 @@ TEST_CASE ("every FX param of every kind is reachable, with choosers for choice 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (railComponent != nullptr);
@@ -6129,6 +6176,7 @@ TEST_CASE ("bus strips select and edit like real strips: undoable scalars and a 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (railComponent != nullptr);
@@ -6218,6 +6266,7 @@ TEST_CASE ("bus rename edits inline and bus remove honestly refuses while sends 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (railComponent != nullptr);
@@ -6281,6 +6330,7 @@ TEST_CASE ("send tap toggles pre/post undoably and the destination chooser re-ro
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (railComponent != nullptr);
@@ -6360,6 +6410,7 @@ TEST_CASE ("the master fader persists an undoable master gain that scales the wh
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
@@ -6421,6 +6472,7 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
     REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
     REQUIRE (shell->keyPressed (juce::KeyPress ('.')));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     {
         const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
         REQUIRE (imported.clips.size() == 1u);
@@ -6530,6 +6582,719 @@ TEST_CASE ("a MIDI track's strip controls the MIDI it owns",
     }
 }
 
+TEST_CASE ("timeline audio drop returns before preparing or adopting media", "[ui][input][shell][background-import-shell]")
+{
+    const auto bundlePath = makeTempBundlePath ("background-import-shell");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundlePath] { return bundlePath; };
+    auto shell = makeShell (std::move (choices));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    auto& timeline = requireTimelineComponent (*shell);
+    auto* dropTarget = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (dropTarget != nullptr);
+    const auto geometry = timelineGeometryForProject (timeline, readProjectSnapshot (bundlePath));
+    const int x = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 3;
+    const int y = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2;
+    dropTarget->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH) }, x, y);
+    // No message-loop pump or timer service has occurred since the actual drop handler returned.
+    REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
+    REQUIRE (snapshotMainComponent (*shell).context.importCount == 0);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (20);
+    while (snapshotMainComponent (*shell).context.importCount == 0 && std::chrono::steady_clock::now() < deadline)
+    {
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        std::this_thread::sleep_for (std::chrono::milliseconds (1));
+    }
+    REQUIRE (snapshotMainComponent (*shell).context.importCount == 1);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1);
+    REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
+    const auto selectedClips = [&] {
+        return juce::JSON::toString (juce::JSON::parse (
+            juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["selection"]["clips"], false);
+    };
+    const auto firstSelection = selectedClips();
+    // Hold the extent steady so neither a scroll nor a fit-view change can invalidate the canvas for us.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineClipDuplicate);
+    const auto beforeSecond = readProjectSnapshot (bundlePath);
+    REQUIRE (beforeSecond.clips.size() == 2);
+    const auto geometry2 = timelineGeometryForProject (timeline, beforeSecond);
+    dropTarget->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH) },
+        geometry2.clipArea.getX() + geometry2.clipArea.getWidth() / 4, y);
+    const auto firstPoint = timelineClipCenterPoint (timeline, beforeSecond, 0u);
+    timeline.mouseDown (makeMouseEvent (timeline, firstPoint, firstPoint, false));
+    timeline.mouseUp (makeMouseEvent (timeline, firstPoint, firstPoint, false));
+    REQUIRE (selectedClips() == firstSelection);
+    const auto fullInvalidations = [&] {
+        return static_cast<juce::int64> (juce::JSON::parse (
+            juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["frame"]["fullInvalidations"]);
+    };
+    const auto invalidationsBefore = fullInvalidations();
+    const auto canvasBefore = shell->createComponentSnapshot (timeline.getBoundsInParent(), true, 1.0f);
+    waitForAudioImports (*shell);
+    REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3);
+    REQUIRE (selectedClips() == firstSelection);
+    REQUIRE (fullInvalidations() > invalidationsBefore);
+    const auto canvasAfter = shell->createComponentSnapshot (timeline.getBoundsInParent(), true, 1.0f);
+    REQUIRE (canvasBefore.getBounds() == canvasAfter.getBounds());
+    bool pixelsChanged = false;
+    for (int row = 0; row < canvasBefore.getHeight(); ++row)
+        for (int column = 0; column < canvasBefore.getWidth(); ++column)
+            pixelsChanged = pixelsChanged || canvasBefore.getPixelAt (column, row) != canvasAfter.getPixelAt (column, row);
+    REQUIRE (pixelsChanged);
+    std::error_code ignored;
+    std::filesystem::remove_all (bundlePath, ignored);
+}
+
+TEST_CASE ("background completion preserves the target of an open inline rename editor",
+           "[ui][input][shell][background-import-shell][background-import-inline]")
+{
+    const auto bundle = makeTempBundlePath ("background-inline-rename");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path (YESDAW_WAV_FIXTURE_PATH); };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    auto* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+    REQUIRE (rail != nullptr);
+    const juce::Point<int> firstTrack { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+        + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 };
+    rail->mouseDown (makeMouseEvent (*rail, firstTrack, firstTrack, false));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
+    const auto before = readProjectSnapshot (bundle);
+    REQUIRE (before.clips.size() == 1);
+    REQUIRE (before.clips.front().trackId == before.tracks[0].id);
+    auto& timeline = requireTimelineComponent (*shell);
+    auto* target = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (target != nullptr);
+    const auto geometry = timelineGeometryForProject (timeline, before);
+    target->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH) },
+        geometry.clipArea.getX() + geometry.clipArea.getWidth() / 4,
+        geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) * 3 / 2);
+    REQUIRE (snapshotMainComponent (*shell).context.audioImportPending);
+    juce::TextEditor* editor = nullptr;
+    bool clipRename = false, gainInteraction = false;
+    SECTION ("Clip rename")
+    {
+        clipRename = true;
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditRenameSelection);
+        editor = dynamic_cast<juce::TextEditor*> (findChildWithComponentId (*shell, "shell.timeline.clip.rename"));
+    }
+    SECTION ("Track rename")
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRename);
+        editor = dynamic_cast<juce::TextEditor*> (findChildWithComponentId (*shell, "shell.tracklist.rename"));
+    }
+    SECTION ("Clip gain keyboard interaction")
+    {
+        gainInteraction = true;
+        REQUIRE (yesdaw::ui::mainComponentAccessibilityTargetControl (*shell, "timeline.clip.set_gain"));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+        REQUIRE (yesdaw::ui::mainComponentControlTarget (*shell).interacting);
+    }
+    if (! gainInteraction)
+    {
+        REQUIRE (editor != nullptr);
+        REQUIRE (editor->isVisible());
+        editor->setText ("Original renamed", juce::dontSendNotification);
+    }
+    waitForAudioImports (*shell);
+    if (gainInteraction)
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::returnKey)));
+    }
+    else
+    {
+        REQUIRE (editor->isVisible());
+        editor->onReturnKey();
+    }
+    const auto after = readProjectSnapshot (bundle);
+    REQUIRE (after.clips.size() == 2);
+    CHECK (after.clips.back().trackId == before.tracks[1].id);
+    if (gainInteraction)
+    {
+        CHECK (after.clips.front().gain != before.clips.front().gain);
+        CHECK (after.clips.back().gain == 1.0f);
+    }
+    else if (clipRename)
+    {
+        CHECK (after.clips.front().name == "Original renamed");
+        CHECK (after.clips.back().name == before.clips.front().name);
+    }
+    else
+    {
+        CHECK (after.tracks[0].strip.name == "Original renamed");
+        CHECK (after.tracks[1].strip.name == before.tracks[1].strip.name);
+    }
+    shell.reset();
+    std::error_code ignored;
+    std::filesystem::remove_all (bundle, ignored);
+}
+
+TEST_CASE ("background import preserves an inspector slider held before its first adjustment",
+           "[ui][input][shell][background-import-shell][background-import-slider]")
+{
+    const auto bundle = makeTempBundlePath ("background-inspector-drag");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path (YESDAW_WAV_FIXTURE_PATH); };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
+    auto* slider = dynamic_cast<yesdaw::ui::FineDragSlider*> (findMainComponentChildForAction (*shell, UiActionId::TimelineClipSetGain));
+    REQUIRE (slider != nullptr);
+    REQUIRE_FALSE (slider->hasActiveInteraction());
+    bool fine = false, cancel = false, timeDrag = false;
+    SECTION ("native drag") { }
+    SECTION ("Shift fine drag") { fine = true; }
+    SECTION ("cancellation drains while Shift drag stays active") { fine = cancel = true; }
+    SECTION ("Clip start drag keeps its original target")
+    {
+        fine = timeDrag = true;
+        slider = dynamic_cast<yesdaw::ui::FineDragSlider*> (findChildWithComponentId (*shell, "clip.inspector.start"));
+        REQUIRE (slider != nullptr);
+        REQUIRE_FALSE (slider->hasActiveInteraction());
+    }
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    const juce::ModifierKeys mods (juce::ModifierKeys::leftButtonModifier | (fine ? juce::ModifierKeys::shiftModifier : 0));
+    const juce::Point<int> down { juce::roundToInt (slider->getPositionOfValue (slider->getValue())), slider->getHeight() / 2 };
+    const auto moved = down + juce::Point<int> (20, 0);
+    slider->mouseDown (makeMouseEvent (*slider, down, down, false, 1, mods));
+    REQUIRE (slider->hasActiveInteraction());
+    if (cancel)
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectCancelImport);
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        REQUIRE_FALSE (snapshotMainComponent (*shell).context.audioImportPending);
+    }
+    else
+    {
+        waitForAudioImports (*shell);
+        REQUIRE (readProjectSnapshot (bundle).clips.size() == 2);
+    }
+    REQUIRE (slider->hasActiveInteraction());
+    slider->mouseDrag (makeMouseEvent (*slider, moved, down, true, 1, mods));
+    slider->mouseUp (makeMouseEvent (*slider, moved, down, true, 1, mods));
+    REQUIRE_FALSE (slider->hasActiveInteraction());
+    waitForAudioImports (*shell);
+    const auto after = readProjectSnapshot (bundle);
+    REQUIRE (after.clips.size() == (cancel ? 1u : 2u));
+    if (timeDrag)
+    {
+        CHECK (after.clips.front().timelineStart > 0);
+        CHECK (after.clips.back().timelineStart == 0);
+    }
+    else
+        CHECK (after.clips.front().gain != 1.0f);
+    if (! cancel && ! timeDrag)
+        CHECK (after.clips.back().gain == 1.0f);
+    shell.reset();
+    std::error_code ignored;
+    std::filesystem::remove_all (bundle, ignored);
+}
+
+TEST_CASE ("background import waits for canvas edits to release their captured media",
+           "[ui][input][shell][background-import-shell][background-import-gesture]")
+{
+    const auto bundle = makeTempBundlePath ("background-canvas-gesture");
+    auto seed = makeMidiInputProject();
+    seed.midiClips.front().timelineLength = 384000;
+    seed.midiClips.front().notes = { makeMidiInputNote (idFromLowByte (4), 50000, 48000, 60, 0.55),
+                                   makeMidiInputNote (idFromLowByte (5), 200000, 48000, 64, 0.82) };
+    writeProjectSnapshot (bundle, seed);
+    const auto midiPath = bundle.parent_path() / (bundle.stem().string() + ".mid");
+    namespace smf = yesdaw::interchange;
+    smf::SmfFile midiFile;
+    midiFile.ticksPerQuarter = 480;
+    smf::SmfTrack notes;
+    smf::SmfEvent event;
+    event.kind = smf::SmfEventKind::NoteOn; event.data1 = 72; event.data2 = 100;
+    notes.events.push_back (event);
+    event.kind = smf::SmfEventKind::NoteOff; event.tick = 480;
+    notes.events.push_back (event);
+    midiFile.tracks.push_back (notes);
+    const auto bytes = smf::writeSmf (midiFile);
+    { std::ofstream out (midiPath, std::ios::binary); REQUIRE (out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size()))); }
+    MainComponentFileChoices choices;
+    choices.chooseOpenProjectBundle = [bundle] { return bundle; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1536, 960);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectOpen);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeOff);
+    auto* timeline = dynamic_cast<yesdaw::ui::TimelineInputComponent*> (&requireTimelineComponent (*shell));
+    REQUIRE (timeline != nullptr);
+    bool velocity = false, refusedAudio = false, audition = false, cancelGesture = false;
+    SECTION ("MIDI Clip move holds its layout index") { }
+    SECTION ("Escape cancels a held MIDI move before adoption") { cancelGesture = true; }
+    SECTION ("velocity lane holds its original Clip surface") { velocity = true; }
+    SECTION ("all audio refused still defers its MIDI tail") { velocity = refusedAudio = true; }
+    SECTION ("a held piano key keeps its Track through note release") { audition = true; }
+    SECTION ("Escape releases a held piano key before adoption") { audition = cancelGesture = true; }
+    if (velocity || audition)
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewPianoRoll);
+        yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
+    }
+    const auto state = timeline->stateProvider();
+    const auto geometry = yesdaw::ui::timelineCanvasGeometry (timeline->getLocalBounds(), state);
+    const juce::Point<int> drop { geometry.clipArea.getX() + geometry.clipArea.getWidth() * 3 / 4,
+        geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2 };
+    const auto intent = timeline->dropLaneAndSecondsAt (drop);
+    REQUIRE (intent.has_value());
+    const auto expectedAudioStart = static_cast<yesdaw::engine::Tick> (std::llround (intent->second * seed.sampleRate.hz));
+    juce::StringArray paths { refusedAudio ? juce::String ((bundle.parent_path() / "missing-background-gesture.wav").string())
+                                          : juce::String (YESDAW_WAV_FIXTURE_PATH) };
+    if (velocity || audition)
+        paths.add (juce::String (midiPath.string()));
+    timeline->filesDropped (paths, drop.x, drop.y);
+    juce::Component* editSurface = timeline;
+    juce::Point<int> down, moved;
+    if (velocity || audition)
+    {
+        editSurface = &requirePianoRollComponent (*shell);
+        const auto grid = pianoRollGridBounds (*editSurface);
+        const auto lane = pianoRollVelocityLaneBounds (*editSurface);
+        down = { grid.getX() + grid.getWidth() / 8, lane.getBottom() - 6 };
+        moved = { grid.getX() + grid.getWidth() * 5 / 8, lane.getY() + 6 };
+        if (audition)
+        {
+            auto* roll = dynamic_cast<yesdaw::ui::PianoRollInputComponent*> (editSurface);
+            REQUIRE (roll != nullptr);
+            const auto rollGeometry = yesdaw::ui::pianoRollCanvasGeometry (roll->getLocalBounds());
+            down = { rollGeometry.grid.getX() - 5, yesdaw::ui::pianoRollKeyY (rollGeometry, roll->stateProvider(), 60)
+                + juce::roundToInt (rollGeometry.rowHeight / 2.0f) };
+            moved = down;
+        }
+    }
+    else
+    {
+        REQUIRE (state.clipCount == 1);
+        const auto rect = yesdaw::ui::visibleClipPixelRect (state.clips[0], yesdaw::ui::viewportForClipLayout (geometry));
+        down = { geometry.clipArea.getX() + juce::roundToInt (rect.x + rect.w / 3),
+                 geometry.clipArea.getY() + juce::roundToInt (rect.y + rect.h / 3) };
+        moved = down + juce::Point<int> (24, 0);
+    }
+    const juce::ModifierKeys mods (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+    editSurface->mouseDown (makeMouseEvent (*editSurface, down, down, false, 1, mods));
+    if (! audition)
+        editSurface->mouseDrag (makeMouseEvent (*editSurface, moved, down, true, 1, mods));
+    auto* roll = dynamic_cast<yesdaw::ui::PianoRollInputComponent*> (editSurface);
+    REQUIRE ((roll ? roll->hasActiveInteraction() : timeline->hasActiveInteraction()));
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (20);
+    while (snapshotMainComponent (*shell).context.importCount == 0
+        && snapshotMainComponent (*shell).context.audioImportPending
+        && snapshotMainComponent (*shell).statusLineText.find ("ready to place") == std::string::npos
+        && std::chrono::steady_clock::now() < deadline)
+    {
+        yesdaw::ui::mainComponentServiceUiTick (*shell);
+        std::this_thread::sleep_for (std::chrono::milliseconds (1));
+    }
+    CHECK (readProjectSnapshot (bundle).clips.empty());
+    CHECK (readProjectSnapshot (bundle).midiClips.size() == 1);
+    CHECK (snapshotMainComponent (*shell).context.audioImportPending);
+    if (cancelGesture)
+    {
+        REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::escapeKey)));
+        CHECK_FALSE ((roll ? roll->hasActiveInteraction() : timeline->hasActiveInteraction()));
+    }
+    editSurface->mouseUp (makeMouseEvent (*editSurface, moved, down, true, 1, mods));
+    CHECK_FALSE ((roll ? roll->hasActiveInteraction() : timeline->hasActiveInteraction()));
+    const auto edited = readProjectSnapshot (bundle);
+    if (velocity)
+    {
+        CHECK (edited.midiClips.front().notes[0].normalizedVelocity != seed.midiClips.front().notes[0].normalizedVelocity);
+        CHECK (edited.midiClips.front().notes[1].normalizedVelocity != seed.midiClips.front().notes[1].normalizedVelocity);
+    }
+    else if (! audition && ! cancelGesture)
+        CHECK (edited.midiClips.front().timelineStart != seed.midiClips.front().timelineStart);
+    waitForAudioImports (*shell);
+    const auto imported = readProjectSnapshot (bundle);
+    REQUIRE (imported.clips.size() == (refusedAudio ? 0u : 1u));
+    if (! refusedAudio)
+        CHECK (imported.clips.front().timelineStart == expectedAudioStart);
+    CHECK (imported.midiClips.front() == edited.midiClips.front());
+    CHECK (imported.midiClips.size() == (velocity || audition ? 2u : 1u));
+    shell.reset();
+    std::error_code ignored;
+    std::filesystem::remove_all (bundle, ignored);
+    std::filesystem::remove (midiPath, ignored);
+}
+
+TEST_CASE ("queued fade choices survive import completion and terminal refreshes",
+           "[ui][input][shell][background-import-shell][background-import-choice]")
+{
+    const auto bundle = makeTempBundlePath ("background-queued-fade");
+    const auto copy = bundle.parent_path() / (bundle.stem().string() + "-copy.yesdaw");
+    std::filesystem::path pick (YESDAW_WAV_FIXTURE_PATH);
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.chooseImportAudioFile = [&pick] { return pick; };
+    choices.chooseSaveAsProjectBundle = [copy] { return copy; };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
+    auto& combo = requireComboBoxWithComponentId (*shell, kInspectorFadeCurveComponentId);
+    const auto original = readProjectSnapshot (bundle).clips.front();
+    const int beforeId = combo.getSelectedId();
+    const int choice = combo.getItemId (1); // the real Linear entry
+    REQUIRE (choice != beforeId);
+    bool cancel = false, refused = false, saveAs = false, undo = false, saveRefusal = false;
+    SECTION ("successful import") { }
+    SECTION ("cancelled request") { cancel = true; }
+    SECTION ("all audio refused") { refused = true; pick = bundle.parent_path() / "missing-queued-fade.wav"; }
+    SECTION ("Save As retires the request") { saveAs = true; }
+    SECTION ("model edit and Undo refresh their displayed baseline") { undo = true; }
+    SECTION ("a delivered choice whose save fails is consumed") { saveRefusal = true; }
+    const auto sql = [&] (const std::string& statement) {
+        yesdaw::persistence::ProjectBundleDb db;
+        REQUIRE (yesdaw::persistence::ProjectBundleDb::openExistingBundle (snapshotMainComponent (*shell).bundlePath, db).ok());
+        REQUIRE (db.executeSql (statement).ok());
+    };
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    if (undo)
+    {
+        combo.setSelectedId (choice, juce::sendNotificationSync);
+        CHECK (readProjectSnapshot (bundle).clips.front().fadeInShape == yesdaw::engine::FadeShape::Linear);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        REQUIRE (combo.getSelectedId() == beforeId);
+    }
+    else
+    {
+        if (saveRefusal)
+            sql ("CREATE TRIGGER refuse_queued_choice BEFORE DELETE ON tracks BEGIN SELECT RAISE(ABORT, 'queued choice save refused'); END;");
+        combo.setSelectedId (choice, juce::sendNotificationAsync);
+        if (cancel)
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectCancelImport);
+        if (saveAs)
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectSaveAs);
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (20);
+        while (snapshotMainComponent (*shell).context.audioImportPending
+            && snapshotMainComponent (*shell).statusLineText.find ("ready to place") == std::string::npos
+            && std::chrono::steady_clock::now() < deadline)
+        {
+            yesdaw::ui::mainComponentServiceUiTick (*shell);
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        }
+        // The actual vendor AsyncUpdater has not been pumped, so the choice must still be present.
+        CHECK (combo.getSelectedId() == choice);
+        if (saveRefusal)
+        {
+            combo.onChange(); // deliver the real handler before permitting another timer tick
+            CHECK (combo.getSelectedId() == beforeId);
+            CHECK (readProjectSnapshot (bundle).clips.front().fadeInShape == original.fadeInShape);
+            sql ("DROP TRIGGER refuse_queued_choice;");
+        }
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    }
+    waitForAudioImports (*shell);
+    const auto activeBundle = snapshotMainComponent (*shell).bundlePath;
+    const auto after = readProjectSnapshot (activeBundle);
+    REQUIRE (after.clips.size() == (cancel || refused || saveAs ? 1u : 2u));
+    CHECK (after.clips.front().id == original.id);
+    CHECK (after.clips.front().fadeInShape == (undo || saveRefusal ? original.fadeInShape : yesdaw::engine::FadeShape::Linear));
+    if (after.clips.size() == 2)
+        CHECK (after.clips.back().fadeInShape == original.fadeInShape);
+    if (saveAs)
+    {
+        CHECK (activeBundle == copy);
+        CHECK (readProjectSnapshot (bundle).clips.front().fadeInShape == original.fadeInShape);
+    }
+    shell.reset();
+    std::error_code ignored;
+    std::filesystem::remove_all (bundle, ignored);
+    std::filesystem::remove_all (copy, ignored);
+}
+
+TEST_CASE ("queued MIDI loop choices keep their original Clip through an audio import",
+           "[ui][input][shell][background-import-shell][background-import-choice]")
+{
+    const auto bundle = makeTempBundlePath ("background-queued-loop");
+    auto seed = makeMidiInputProject();
+    seed.midiClips.front().timelineLength = 384000;
+    writeProjectSnapshot (bundle, seed);
+    MainComponentFileChoices choices;
+    choices.chooseOpenProjectBundle = [bundle] { return bundle; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path (YESDAW_WAV_FIXTURE_PATH); };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectOpen);
+    auto* timeline = dynamic_cast<yesdaw::ui::TimelineInputComponent*> (&requireTimelineComponent (*shell));
+    REQUIRE (timeline != nullptr);
+    const auto state = timeline->stateProvider();
+    const auto geometry = yesdaw::ui::timelineCanvasGeometry (timeline->getLocalBounds(), state);
+    const auto rect = yesdaw::ui::visibleClipPixelRect (state.clips[0], yesdaw::ui::viewportForClipLayout (geometry));
+    const juce::Point<int> at { geometry.clipArea.getX() + juce::roundToInt (rect.x + rect.w / 3),
+                              geometry.clipArea.getY() + juce::roundToInt (rect.y + rect.h / 3) };
+    timeline->mouseDown (makeMouseEvent (*timeline, at, at, false));
+    timeline->mouseUp (makeMouseEvent (*timeline, at, at, false));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewPianoRoll);
+    auto& combo = requireComboBoxWithComponentId (*shell, "clip.inspector.midi.loop");
+    REQUIRE (combo.isEnabled());
+    bool undo = false;
+    SECTION ("queued choice") { }
+    SECTION ("synchronous model choice and Undo") { undo = true; }
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    combo.setSelectedId (2, undo ? juce::sendNotificationSync : juce::sendNotificationAsync);
+    if (undo)
+    {
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        REQUIRE (combo.getSelectedId() == 1);
+    }
+    else
+    {
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds (20);
+        while (snapshotMainComponent (*shell).context.audioImportPending
+            && snapshotMainComponent (*shell).statusLineText.find ("ready to place") == std::string::npos
+            && std::chrono::steady_clock::now() < deadline)
+        {
+            yesdaw::ui::mainComponentServiceUiTick (*shell);
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        }
+        CHECK (combo.getSelectedId() == 2);
+        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (50);
+    }
+    waitForAudioImports (*shell);
+    const auto after = readProjectSnapshot (bundle);
+    REQUIRE (after.clips.size() == 1);
+    REQUIRE (after.midiClips.size() == 1);
+    CHECK (after.midiClips.front().id == seed.midiClips.front().id);
+    CHECK ((after.midiClips.front().loopLengthTicks > 0) == ! undo);
+    shell.reset();
+    std::error_code ignored;
+    std::filesystem::remove_all (bundle, ignored);
+}
+
+TEST_CASE ("a menu opened during import keeps its original Clip action target",
+           "[ui][input][shell][background-import-shell][background-import-menu]")
+{
+    const auto bundle = makeTempBundlePath ("background-menu-target");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.chooseImportAudioFile = [] { return std::filesystem::path (YESDAW_WAV_FIXTURE_PATH); };
+    auto shell = makeShell (std::move (choices));
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
+    const auto before = readProjectSnapshot (bundle);
+    const auto original = before.clips.front().id;
+    juce::MenuBarModel* menuModel = nullptr;
+    int clipMenu = -1;
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    SECTION ("Clip context menu")
+    {
+        auto& timeline = requireTimelineComponent (*shell);
+        const auto at = timelineClipCenterPoint (timeline, before, 0u) + timeline.getPosition();
+        REQUIRE (yesdaw::ui::mainComponentRequestContextMenu (*shell, at).shown);
+    }
+    SECTION ("menu bar Clip menu")
+    {
+        auto* bar = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (*shell, "shell.menubar"));
+        REQUIRE (bar != nullptr);
+        menuModel = bar->getModel();
+        REQUIRE (menuModel != nullptr);
+        clipMenu = menuModel->getMenuBarNames().indexOf ("Clip");
+        REQUIRE (clipMenu >= 0);
+        (void) menuModel->getMenuForIndex (clipMenu, "Clip");
+    }
+    waitForAudioImports (*shell);
+    const auto imported = readProjectSnapshot (bundle);
+    REQUIRE (imported.clips.size() == 2);
+    const auto newClip = imported.clips.back().id;
+    if (menuModel)
+        menuModel->menuItemSelected (static_cast<int> (UiActionId::TimelineClipDelete) + 1, clipMenu);
+    else
+        yesdaw::ui::mainComponentInvokeContextMenuItem (*shell, UiActionId::TimelineClipDelete);
+    const auto deleted = readProjectSnapshot (bundle);
+    REQUIRE (deleted.clips.size() == 1);
+    CHECK (deleted.clips.front().id == newClip);
+    CHECK (deleted.clips.front().id != original);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    CHECK (readProjectSnapshot (bundle).clips == imported.clips);
+    shell.reset();
+    std::error_code ignored;
+    std::filesystem::remove_all (bundle, ignored);
+}
+
+TEST_CASE ("mixed background drops retain captured targets and suppress retired MIDI tails",
+           "[ui][input][shell][background-import-shell]")
+{
+    const auto bundle = makeTempBundlePath ("background-mixed");
+    const auto midi = bundle.parent_path() / (bundle.stem().string() + ".mid");
+    const auto lastMidi = bundle.parent_path() / (bundle.stem().string() + "-last.mid");
+    const auto badAudio = bundle.parent_path() / (bundle.stem().string() + "-missing.wav");
+    const auto badMidi = bundle.parent_path() / (bundle.stem().string() + "-missing.mid");
+    namespace smf = yesdaw::interchange;
+    smf::SmfFile file;
+    file.ticksPerQuarter = 480;
+    smf::SmfTrack notes;
+    smf::SmfEvent on;
+    on.kind = smf::SmfEventKind::NoteOn; on.data1 = 60; on.data2 = 100;
+    notes.events.push_back (on);
+    on.kind = smf::SmfEventKind::NoteOff; on.tick = 480;
+    notes.events.push_back (on);
+    file.tracks.push_back (notes);
+    const auto bytes = smf::writeSmf (file);
+    { std::ofstream out (midi, std::ios::binary); REQUIRE (out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size()))); }
+    auto nextBundle = bundle;
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [&nextBundle] { return nextBundle; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1536, 960);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    const auto before = readProjectSnapshot (bundle);
+    auto& timeline = requireTimelineComponent (*shell);
+    auto* target = dynamic_cast<juce::FileDragAndDropTarget*> (&timeline);
+    REQUIRE (target != nullptr);
+    const auto geometry = timelineGeometryForProject (timeline, before);
+    const int x = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 3;
+    const int y = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2;
+    const auto asJuce = [] (const auto& path) { return juce::String (path.string()); };
+    bool audioLands = true, retired = false, append = false, continuedSelection = false, preserveStatus = false;
+    bool normalTailMessage = false;
+    SECTION ("reordered targets and an unrelated appended Track")
+    {
+        continuedSelection = true;
+        target->filesDropped ({ asJuce (badAudio), juce::String (YESDAW_WAV_FIXTURE_PATH), asJuce (badMidi), asJuce (midi) }, x, y);
+        auto* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+        REQUIRE (rail != nullptr);
+        const juce::Point<int> railPoint { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 };
+        rail->mouseDown (makeMouseEvent (*rail, railPoint, railPoint, false));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackMoveDown);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    }
+    SECTION ("past the captured tail appends after later unrelated Tracks")
+    {
+        append = continuedSelection = true;
+        const int below = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) * 7 / 2;
+        REQUIRE (below < geometry.clipArea.getBottom());
+        target->filesDropped ({ asJuce (badAudio), juce::String (YESDAW_WAV_FIXTURE_PATH), asJuce (badMidi), asJuce (midi) }, x, below);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    }
+    SECTION ("all audio refused still permits the MIDI tail")
+    {
+        audioLands = false;
+        target->filesDropped ({ asJuce (badAudio), asJuce (midi) }, x, y);
+    }
+    SECTION ("busy refusal retains the accepted mixed drop")
+    {
+        target->filesDropped ({ asJuce (badAudio), juce::String (YESDAW_WAV_FIXTURE_PATH), asJuce (badMidi), asJuce (midi) }, x, y);
+        target->filesDropped ({ asJuce (badAudio) }, x, y);
+        REQUIRE (snapshotMainComponent (*shell).statusLineText.find ("busy") != std::string::npos);
+    }
+    SECTION ("cancel suppresses audio and MIDI before any service")
+    {
+        retired = true;
+        target->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH), asJuce (midi) }, x, y);
+        REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::ProjectCancelImport).enabled);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectCancelImport);
+        REQUIRE_FALSE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::ProjectCancelImport).enabled);
+    }
+    SECTION ("deleting a captured target refuses the batch and its MIDI tail")
+    {
+        retired = true;
+        target->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH), asJuce (midi) }, x, y);
+        auto* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+        REQUIRE (rail != nullptr);
+        const juce::Point<int> firstTrack { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+            + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 };
+        rail->mouseDown (makeMouseEvent (*rail, firstTrack, firstTrack, false));
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackRemove);
+        REQUIRE (readProjectSnapshot (bundle).findTrack (before.tracks[0].id) == nullptr);
+        REQUIRE (snapshotMainComponent (*shell).statusLineText.find ("missing") != std::string::npos);
+    }
+    SECTION ("Project replacement suppresses the deferred MIDI")
+    {
+        retired = true;
+        target->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH), asJuce (midi) }, x, y);
+        nextBundle = bundle.parent_path() / (bundle.stem().string() + "-replacement.yesdaw");
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+        REQUIRE (snapshotMainComponent (*shell).bundlePath == nextBundle);
+    }
+    SECTION ("successful deferred MIDI preserves a later busy refusal")
+    {
+        preserveStatus = true;
+        target->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH), asJuce (midi) }, x, y);
+        target->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH) }, x, y);
+        REQUIRE (snapshotMainComponent (*shell).statusLineIsError);
+        REQUIRE (snapshotMainComponent (*shell).statusLineText.find ("busy") != std::string::npos);
+    }
+    SECTION ("successful deferred MIDI preserves a later routing message")
+    {
+        preserveStatus = true;
+        auto* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+        REQUIRE (rail != nullptr);
+        const juce::Point<int> firstTrack { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
+            + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 };
+        rail->mouseDown (makeMouseEvent (*rail, firstTrack, firstTrack, false));
+        target->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH), asJuce (midi) }, x, y);
+        REQUIRE (yesdaw::ui::mainComponentActionState (*shell, UiActionId::MixerSendAddNewBus).enabled);
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerSendAddNewBus);
+        REQUIRE (snapshotMainComponent (*shell).statusLineText == "Sent to new Bus 1");
+        REQUIRE_FALSE (snapshotMainComponent (*shell).statusLineIsError);
+    }
+    SECTION ("a clean multiple-file MIDI tail reports its last successful file")
+    {
+        normalTailMessage = true;
+        { std::ofstream out (lastMidi, std::ios::binary); REQUIRE (out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size()))); }
+        target->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH), asJuce (midi), asJuce (lastMidi) }, x, y);
+    }
+    REQUIRE (readProjectSnapshot (nextBundle).clips.empty());
+    REQUIRE (readProjectSnapshot (nextBundle).midiClips.empty());
+    const auto statusBeforeService = snapshotMainComponent (*shell).statusLineText;
+    const auto statusErrorBeforeService = snapshotMainComponent (*shell).statusLineIsError;
+    const auto railBefore = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["selection"]["primaryTrack"];
+    waitForAudioImports (*shell);
+    const auto landed = readProjectSnapshot (nextBundle);
+    REQUIRE (landed.clips.size() == (audioLands && ! retired ? 1u : 0u));
+    REQUIRE (landed.midiClips.size() == (retired ? 0u : normalTailMessage ? 2u : 1u));
+    if (retired)
+        CHECK (snapshotMainComponent (*shell).statusLineText == statusBeforeService);
+    if (! retired)
+    {
+        if (append)
+            REQUIRE (landed.tracks.size() == 6);
+        if (audioLands)
+            CHECK (landed.clips.front().trackId == (append ? landed.tracks[4].id : before.tracks[0].id));
+        CHECK (landed.midiClips.front().trackId == (append ? landed.tracks[5].id : before.tracks[audioLands ? 1u : 0u].id));
+        if (continuedSelection)
+            CHECK (juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["selection"]["primaryTrack"] == railBefore);
+        if (normalTailMessage)
+        {
+            CHECK (landed.midiClips.back().trackId == before.tracks[2].id);
+            CHECK (snapshotMainComponent (*shell).statusLineText.starts_with ("Imported 1 MIDI clip"));
+            CHECK (snapshotMainComponent (*shell).statusLineText.find (lastMidi.filename().string()) != std::string::npos);
+            CHECK_FALSE (snapshotMainComponent (*shell).statusLineIsError);
+            yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+            CHECK (readProjectSnapshot (bundle).midiClips.size() == 1);
+        }
+        else if (preserveStatus)
+        {
+            CHECK (snapshotMainComponent (*shell).statusLineText == statusBeforeService);
+            CHECK (snapshotMainComponent (*shell).statusLineIsError == statusErrorBeforeService);
+        }
+        else
+        {
+            CHECK (snapshotMainComponent (*shell).statusLineText.find (badAudio.filename().string()) != std::string::npos);
+            if (audioLands)
+                CHECK (snapshotMainComponent (*shell).statusLineText.find (badMidi.filename().string()) != std::string::npos);
+        }
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+        CHECK (readProjectSnapshot (bundle).midiClips.empty());
+        CHECK (readProjectSnapshot (bundle).clips.size() == (audioLands ? 1u : 0u));
+    }
+    shell.reset();
+    std::error_code ignored;
+    std::filesystem::remove_all (bundle, ignored);
+    std::filesystem::remove_all (nextBundle, ignored);
+    std::filesystem::remove (midi, ignored);
+    std::filesystem::remove (lastMidi, ignored);
+}
+
 // M10 — dropping files from the OS. There was no `FileDragAndDropTarget` anywhere in the shell:
 // the only way in was Ctrl+I, which always lands on the SELECTED track at the PLAYHEAD. A drop
 // carries its own target — the lane under the pointer and the tick under the pointer.
@@ -6566,6 +7331,7 @@ TEST_CASE ("a drop that adds tracks keeps the master fader on the master pane", 
     const int dropX = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 3;
     const int firstLaneY = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2;
     dropTarget->filesDropped (juce::StringArray { juce::String (fixturePath.string()), juce::String (fixturePath.string()) }, dropX, firstLaneY);
+    waitForAudioImports (*shell);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
     REQUIRE (masterPane().getX() > paneBefore.getX());
     REQUIRE (masterPane().contains (masterFader->getBounds()));   // red before the fix: the old slot, over strip 2
@@ -6618,6 +7384,7 @@ TEST_CASE ("dropping audio files onto the timeline imports them where they land"
     const int laneHeight = juce::jmax (1, geometry.laneHeight);
     const int thirdLaneY = geometry.clipArea.getY() + laneHeight * 2 + laneHeight / 2;
     dropTarget->filesDropped (wavOnly, dropX, thirdLaneY);
+    waitForAudioImports (*shell);
 
     yesdaw::engine::Project dropped = readProjectSnapshot (bundlePath);
     REQUIRE (dropped.clips.size() == 1u);
@@ -6642,7 +7409,9 @@ TEST_CASE ("dropping audio files onto the timeline imports them where they land"
     {
         juce::Component& canvas = requireTimelineComponent (*shell);
         const yesdaw::engine::Project current = readProjectSnapshot (bundlePath);
-        mouseDownAt (canvas, timelineClipCenterPointOnItsLane (canvas, current, 0u));
+        const auto currentPoint = timelineClipCenterPointOnItsLane (canvas, current, 0u);
+        mouseDownAt (canvas, currentPoint);
+        canvas.mouseUp (makeMouseEvent (canvas, currentPoint, currentPoint, false));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
         REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
         // ...and THAT is undoable, so the dropped clip comes back exactly where it landed.
@@ -6651,7 +7420,9 @@ TEST_CASE ("dropping audio files onto the timeline imports them where they land"
         REQUIRE (restored.clips.size() == 1u);
         REQUIRE (restored.clips.front().timelineStart == droppedStart);
         REQUIRE (restored.clips.front().trackId == restored.tracks[2].id);
-        mouseDownAt (canvas, timelineClipCenterPointOnItsLane (canvas, restored, 0u));
+        const auto restoredPoint = timelineClipCenterPointOnItsLane (canvas, restored, 0u);
+        mouseDownAt (canvas, restoredPoint);
+        canvas.mouseUp (makeMouseEvent (canvas, restoredPoint, restoredPoint, false));
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::deleteKey)));
     }
     REQUIRE (readProjectSnapshot (bundlePath).clips.empty());
@@ -6661,6 +7432,7 @@ TEST_CASE ("dropping audio files onto the timeline imports them where they land"
                                        juce::String (fixturePath.string()) };
     const int firstLaneY = geometry.clipArea.getY() + laneHeight / 2;
     dropTarget->filesDropped (twoFiles, dropX, firstLaneY);
+    waitForAudioImports (*shell);
     dropped = readProjectSnapshot (bundlePath);
     REQUIRE (dropped.clips.size() == 2u);
     REQUIRE (dropped.clips[0].trackId == dropped.tracks[0].id);
@@ -6670,6 +7442,7 @@ TEST_CASE ("dropping audio files onto the timeline imports them where they land"
     // A junk path is refused honestly: nothing imports, and the project is untouched.
     const yesdaw::engine::Project beforeJunk = readProjectSnapshot (bundlePath);
     dropTarget->filesDropped (juce::StringArray { "C:/does/not/exist.wav" }, dropX, firstLaneY);
+    waitForAudioImports (*shell);
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == beforeJunk.clips.size());
     (void) before;
 }
@@ -6729,6 +7502,7 @@ TEST_CASE ("ADR-0054 a multi-format drop lands on consecutive tracks as one undo
     const int dropX = geometry.clipArea.getX() + geometry.clipArea.getWidth() / 4;
     const int firstLaneY = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2;
     dropTarget->filesDropped (juce::StringArray { asJuce (wavPath), asJuce (mp3Path), asJuce (flacPath) }, dropX, firstLaneY);
+    waitForAudioImports (*shell);
 
     const yesdaw::engine::Project dropped = readProjectSnapshot (bundlePath);
     REQUIRE (dropped.tracks.size() == 3u);   // the drop made the two tracks it needed
@@ -6772,6 +7546,7 @@ TEST_CASE ("ADR-0054 a multi-format drop lands on consecutive tracks as one undo
     // named with its reason.
     const int secondLaneY = firstLaneY + juce::jmax (1, geometry.laneHeight);
     dropTarget->filesDropped (juce::StringArray { asJuce (junkPath), asJuce (flacPath), asJuce (crossRatePath) }, dropX, secondLaneY);
+    waitForAudioImports (*shell);
     const yesdaw::engine::Project mixed = readProjectSnapshot (bundlePath);
     REQUIRE (mixed.clips.size() == 5u);
     REQUIRE (mixed.clips[3].trackId == mixed.tracks[1].id);
@@ -6790,14 +7565,17 @@ TEST_CASE ("ADR-0054 a multi-format drop lands on consecutive tracks as one undo
     REQUIRE (status.find ("mono_44k.mp3") == std::string::npos);
     // ...and every file refused changes nothing.
     dropTarget->filesDropped (juce::StringArray { asJuce (junkPath) }, dropX, firstLaneY);
+    waitForAudioImports (*shell);
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 5u);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
 
     // The chooser takes an MP3, and names a refusal with its reason.
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 6u);
     chooserPick = junkPath;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 6u);
     REQUIRE (snapshotMainComponent (*shell).statusLineText == "Import refused: junk.mp3: not a readable MP3 file");
 
@@ -6843,6 +7621,7 @@ TEST_CASE ("ADR-0054 a drop below the tracks lands on new tracks; a MIDI file pa
     const int belowY = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) * 3 / 2;   // under the only lane
     REQUIRE (belowY < geometry.clipArea.getBottom());
     dropTarget->filesDropped (juce::StringArray { juce::String (wavPath.string()), juce::String (midiPath.string()) }, dropX, belowY);
+    waitForAudioImports (*shell);
 
     const yesdaw::engine::Project dropped = readProjectSnapshot (bundlePath);
     INFO ("status " << juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["status"]["text"].toString());
@@ -6890,6 +7669,7 @@ TEST_CASE ("names outside the ANSI code page: the title, Open Recent, a drop and
     const yesdaw::ui::TimelineCanvasGeometry geometry = timelineGeometryForProject (timeline, readProjectSnapshot (bundlePath));
     dropTarget->filesDropped (juce::StringArray { asJuce (goodPath), asJuce (junkPath) },
                               geometry.clipArea.getX() + 40, geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2);
+                              waitForAudioImports (*shell);
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 1u);
     const juce::String status = juce::JSON::parse (juce::String (yesdaw::ui::mainComponentStateProbeJson (*shell)))["status"]["text"].toString();
     INFO (status);
@@ -6921,6 +7701,7 @@ TEST_CASE ("the painted fader scale puts unity at half travel with boost above i
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
@@ -6999,6 +7780,7 @@ TEST_CASE ("every mixer strip paints its sends and a painted send row sets its l
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
@@ -7010,6 +7792,7 @@ TEST_CASE ("every mixer strip paints its sends and a painted send row sets its l
     {
         mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight * trackIndex + rowHeight / 2 });
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        waitForAudioImports (*shell);
     }
 
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
@@ -7099,6 +7882,7 @@ TEST_CASE ("N1 the painted Mute and Solo cells work on every mixer strip",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
@@ -7217,6 +8001,7 @@ TEST_CASE ("N3 the mixer strip band fills its window and the master strip sits f
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
@@ -7301,6 +8086,7 @@ TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot open
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
@@ -7312,6 +8098,7 @@ TEST_CASE ("every mixer strip paints its FX insert slots and a painted slot open
     {
         mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight * trackIndex + rowHeight / 2 });
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        waitForAudioImports (*shell);
     }
 
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
@@ -7479,6 +8266,7 @@ TEST_CASE ("tracks route their main output to a bus and the bus fader carries th
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
 
@@ -7490,6 +8278,7 @@ TEST_CASE ("tracks route their main output to a bus and the bus fader carries th
     {
         mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight * trackIndex + rowHeight / 2 });
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        waitForAudioImports (*shell);
     }
     REQUIRE (readProjectSnapshot (bundlePath).clips.size() == 3u);
 
@@ -7587,6 +8376,7 @@ TEST_CASE ("removing an automated target is never silently refused",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // Three tracks, one clip each: the multi-track shape the run's rules require. Tracks are
     // selected by clicking their rail row (the [three-track] gate's law), then imported onto.
@@ -7602,6 +8392,7 @@ TEST_CASE ("removing an automated target is never silently refused",
             mouseDownAt (*rail, { kRailRowClickX,
                                   headerHeight + rowHeight * trackIndex + rowHeight / 2 });
             clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+            waitForAudioImports (*shell);
         }
     }
     {
@@ -7790,6 +8581,7 @@ TEST_CASE ("header tempo and time-signature controls edit the project time map u
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (tempo->isEnabled());
     REQUIRE (meter->isEnabled());
 
@@ -7832,6 +8624,7 @@ TEST_CASE ("header tempo cell: a still press never changes the tempo; a drag scr
     REQUIRE (tempo != nullptr);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (tempo->isEnabled());
 
     REQUIRE_FALSE (readProjectSnapshot (bundlePath).tempoMap.empty());
@@ -7890,6 +8683,7 @@ TEST_CASE ("header tempo cell: a Shift drag moves a tenth of a plain drag, from 
     REQUIRE (tempo != nullptr);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE_FALSE (readProjectSnapshot (bundlePath).tempoMap.empty());
     REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 120.0);
 
@@ -7927,6 +8721,7 @@ TEST_CASE ("header tempo cell: a drag is one undo step", "[ui][input][shell][tim
     REQUIRE (tempo != nullptr);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE_FALSE (readProjectSnapshot (bundlePath).tempoMap.empty());
     REQUIRE (readProjectSnapshot (bundlePath).tempoMap.front().bpm == 120.0);
     REQUIRE (tempo->getMouseDragSensitivity() == 250);
@@ -7997,6 +8792,7 @@ TEST_CASE ("shift-drag on the ruler defines a user loop region", "[ui][input][sh
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE_FALSE (snapshot.context.loopEnabled);
@@ -8035,6 +8831,7 @@ TEST_CASE ("N8 alt+shift-drag on the ruler defines a persisted punch region, and
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     REQUIRE_FALSE (readProjectSnapshot (bundlePath).punchRegion.enabled);
 
@@ -8125,6 +8922,7 @@ TEST_CASE ("V3 the mixer dock's strips start at its edge and a real show/hide to
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.mixerDockVisible);
@@ -8525,6 +9323,7 @@ TEST_CASE ("V5 the rail meters L/R independently and the mini VOL is a vertical 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -8605,6 +9404,7 @@ TEST_CASE ("V6 a clip paints its name, its fade curves, and an unmistakable sele
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     // Fit the short fixture clip to the window so its body is wide enough to carry a name band
@@ -8720,6 +9520,7 @@ TEST_CASE ("V7 the inspector's TRACK tab is real, FX list reflects the chain, an
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // The track-scoped surface has a real accessibility inventory entry backed by the tab action.
     const auto* trackRegion = yesdaw::ui::accessibilityRegionForStableId ("track.inspector");
@@ -8888,6 +9689,7 @@ TEST_CASE ("V8 the toolbar shows a live zoom control wired to the one shared zoo
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // The cluster paints inside the timeline's toolbar band: real buttons for the EXISTING zoom
     // actions plus a readout label.
@@ -8958,6 +9760,7 @@ TEST_CASE ("Phase 3 dogfood readiness: new project, three stems, split, move, fa
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 1u);
 
@@ -8980,6 +9783,7 @@ TEST_CASE ("Phase 3 dogfood readiness: new project, three stems, split, move, fa
         timeline, snapshot, project, project.clips.front().timelineLength / 2);
     REQUIRE (timeline.getLocalBounds().contains (rulerPoint));
     mouseDownAt (timeline, rulerPoint);
+    timeline.mouseUp (makeMouseEvent (timeline, rulerPoint, rulerPoint, false));
     REQUIRE (shell->keyPressed (juce::KeyPress ('t', juce::ModifierKeys::ctrlModifier, 0)));
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 2u);
@@ -8998,6 +9802,7 @@ TEST_CASE ("Phase 3 dogfood readiness: new project, three stems, split, move, fa
         REQUIRE_FALSE (rowRect.isEmpty());
         mouseDownAt (*rail, rowRect.getCentre() - rail->getPosition());
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        waitForAudioImports (*shell);
     }
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 4u);
@@ -9083,6 +9888,7 @@ TEST_CASE ("ctrl-wheel zooms the timeline and plain wheel scrolls it", "[ui][inp
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const juce::Point<int> centre { timeline.getWidth() / 2, timeline.getHeight() / 2 };
@@ -9136,6 +9942,7 @@ TEST_CASE ("Ctrl+0 fits the whole Project horizontally without changing Snap",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const juce::Point<int> centre { timeline.getWidth() / 2, timeline.getHeight() / 2 };
@@ -9190,6 +9997,7 @@ TEST_CASE ("Ctrl+Shift+0 fits the current loop region with exact viewport math",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::ui::TimelineCanvasGeometry rulerGeometry =
@@ -9269,6 +10077,7 @@ TEST_CASE ("plus zooms the Timeline in while keeping the playhead at the same pi
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const yesdaw::engine::Project persisted = readProjectSnapshot (bundlePath);
     REQUIRE (persisted.clips.size() == 1u);
@@ -9347,6 +10156,7 @@ TEST_CASE ("minus zooms the Timeline out at the playhead and clamps at whole-Pro
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const yesdaw::engine::Project persisted = readProjectSnapshot (bundlePath);
     REQUIRE (persisted.clips.size() == 1u);
@@ -9406,6 +10216,7 @@ TEST_CASE ("dragging the clip's left edge trims its head without moving the audi
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
@@ -9452,6 +10263,7 @@ TEST_CASE ("a clip too narrow for the edge zones still moves and copy-drags unde
         auto importer = makeShell (std::move (choices));
         clickButton (requireButtonForAction (*importer, UiActionId::ProjectNew));
         clickButton (requireButtonForAction (*importer, UiActionId::ProjectImportAudio));
+        waitForAudioImports (*importer);
     }
 
     // Seed a far-out sibling of the imported stem so the fit view spreads over ~25 s and the
@@ -9549,6 +10361,7 @@ TEST_CASE ("editing while playing keeps the transport rolling with the loop and 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
@@ -9665,6 +10478,7 @@ TEST_CASE ("the loop region survives close and reopen, and clearing it persists 
         auto shell = makeShell (std::move (choices));
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        waitForAudioImports (*shell);
 
         juce::Component& timeline = requireTimelineComponent (*shell);
         const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
@@ -9771,6 +10585,7 @@ TEST_CASE ("the status line reports failures, stays quiet on success, and decays
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     REQUIRE (snapshotMainComponent (*shell).statusLineText.empty());
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
     yesdaw::ui::mainComponentWaitForExport (*shell);   // ADR-0058: a worker job
     REQUIRE (std::filesystem::exists (goodExportPath));
@@ -9829,6 +10644,7 @@ TEST_CASE ("refused imports are named on the status line while good files still 
 
     // Ctrl+I path: the WAV reader's refusal is named, and nothing changes.
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     {
         const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
         REQUIRE (snapshot.statusLineIsError);
@@ -9857,6 +10673,7 @@ TEST_CASE ("refused imports are named on the status line while good files still 
     };
     REQUIRE (dropTarget->isInterestedInFileDrag (mixedDrop));
     dropTarget->filesDropped (mixedDrop, dropX, firstLaneY);
+    waitForAudioImports (*shell);
     {
         const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
         REQUIRE (snapshot.statusLineIsError);
@@ -9884,6 +10701,7 @@ TEST_CASE ("the master strip hosts a real FX chain that provably changes the mix
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
 
@@ -9973,6 +10791,7 @@ TEST_CASE ("solo never silences the soloed signal's own path through a bus",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);   // NOTE (G4.1 cp2): the verb — the lane's + Bus is gone
@@ -10050,6 +10869,7 @@ TEST_CASE ("riding a fader while playing never rebuilds the engine",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
@@ -10200,6 +11020,7 @@ TEST_CASE ("buses route and send like tracks through real mixer controls",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
@@ -10304,6 +11125,7 @@ TEST_CASE ("a penciled bus-fader lane audibly drives the render",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
@@ -10418,6 +11240,7 @@ TEST_CASE ("R15 Touch rides send levels and FX params; Off ignores lanes and wri
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
@@ -10612,6 +11435,7 @@ TEST_CASE ("R16 a breakpoint's curve cycles from the canvas and audibly shapes t
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // Lane open, snap Off, default target (the track fader). Two penciled points: HIGH early,
     // LOW later — the segment between them is what the curve shapes.
@@ -10728,6 +11552,7 @@ TEST_CASE ("R17 the send add refuses at the painted row capacity with a painted 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);   // G2.1 cp3: the menu verb (the cluster's X toggles the dock)
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G2.1 cp2: a dock tab — grow it for the full lane
     shell->setSize (1536, 960);
@@ -10804,6 +11629,7 @@ TEST_CASE ("undo after an import removes the import, never the edit before it",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
@@ -10823,6 +11649,7 @@ TEST_CASE ("undo after an import removes the import, never the edit before it",
     // Import B — its own asset, its own clip, and NOW its own undo step.
     currentImportPath = secondWavPath;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 2u);
     REQUIRE (project.assets.size() == 2u);
@@ -10894,6 +11721,7 @@ TEST_CASE ("a 44.1 kHz import lands at its true duration; an unsupported rate is
 
     // Ctrl+I path: the 44.1 kHz file lands as 10 ms of timeline (480 frames at 48 kHz), its Asset at 44.1 kHz.
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     {
         const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
         REQUIRE (project.clips.size() == 1u);
@@ -10906,6 +11734,7 @@ TEST_CASE ("a 44.1 kHz import lands at its true duration; an unsupported rate is
     // An unsupported rate is refused with the rate named; the project is untouched.
     currentImportPath = unsupportedPath;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     {
         const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
         REQUIRE (snapshot.statusLineIsError);
@@ -10924,6 +11753,7 @@ TEST_CASE ("a 44.1 kHz import lands at its true duration; an unsupported rate is
     const int firstLaneY = geometry.clipArea.getY() + juce::jmax (1, geometry.laneHeight) / 2;
     dropTarget->filesDropped (juce::StringArray { juce::String (fixturePath.string()), juce::String (crossRatePath.string()) },
                               dropX, firstLaneY);
+                              waitForAudioImports (*shell);
     {
         const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
         REQUIRE (project.clips.size() == 3u);
@@ -10950,6 +11780,7 @@ TEST_CASE ("opening a project with a missing audio file reports the file and ref
         auto shell = makeShell (std::move (choices));
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        waitForAudioImports (*shell);
     }
 
     const yesdaw::engine::Project seeded = readProjectSnapshot (bundlePath);
@@ -11011,6 +11842,7 @@ TEST_CASE ("Ctrl+C/V/D copy, paste at playhead, and duplicate the selected clip"
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // Paste is disabled until something is copied.
     REQUIRE (shell->keyPressed (juce::KeyPress ('v', juce::ModifierKeys::ctrlModifier, 0)));
@@ -11065,6 +11897,7 @@ TEST_CASE ("Ctrl+R repeat-pastes the clipboard back-to-back as one audible undo 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -11162,6 +11995,7 @@ TEST_CASE ("Alt-drag copies a timeline clip to the drag destination as one audib
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TrackAdd));
 
     juce::Component& timeline = requireTimelineComponent (*shell);
@@ -11235,6 +12069,7 @@ TEST_CASE ("Alt+Up and Alt+Down step the selected clip gain by one decibel",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -11297,6 +12132,7 @@ TEST_CASE ("Ctrl+F replaces selected clip fades with the default length as one a
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -11388,6 +12224,7 @@ TEST_CASE ("X crossfades two overlapping clips on one track as one audible edit"
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
     REQUIRE (imported.clips.size() == 1u);
@@ -11494,6 +12331,7 @@ TEST_CASE ("Ctrl+X cuts the selected clip into the clipboard as one undoable edi
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
@@ -11564,6 +12402,7 @@ TEST_CASE ("timeline multi-select edits the shipped project and playback as one 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
 
     auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
@@ -11575,6 +12414,7 @@ TEST_CASE ("timeline multi-select edits the shipped project and playback as one 
     const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight + rowHeight / 2 });
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
@@ -11658,6 +12498,7 @@ TEST_CASE ("pointer-tool marquee selects exactly the touched clips for a persist
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
 
@@ -11717,6 +12558,7 @@ TEST_CASE ("three-track arrangement is first-class at the shipped boundary",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
     REQUIRE (addTrack != nullptr);
@@ -11736,6 +12578,7 @@ TEST_CASE ("three-track arrangement is first-class at the shipped boundary",
     mouseDownAt (*rail, railRowCenter (1));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     mouseDownAt (*rail, railRowCenter (2));
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
@@ -11743,6 +12586,7 @@ TEST_CASE ("three-track arrangement is first-class at the shipped boundary",
     REQUIRE (locatedFrame > 0);
     const yesdaw::engine::Tick gridTick = static_cast<yesdaw::engine::Tick> (locatedFrame);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.size() == 3u);
@@ -11871,6 +12715,7 @@ TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's o
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
     REQUIRE (addTrack != nullptr);
@@ -11885,12 +12730,14 @@ TEST_CASE ("group duplicate and group copy-drag preserve the whole selection's o
     mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight + rowHeight / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     mouseDownAt (*rail, { kRailRowClickX, headerHeight + 2 * rowHeight + rowHeight / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
     const auto locatedFrame = snapshotMainComponent (*shell).context.playheadFrame;
     REQUIRE (locatedFrame > 0);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.tracks.size() == 3u);
@@ -12026,6 +12873,7 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
     REQUIRE (addTrack != nullptr);
@@ -12039,11 +12887,13 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
     mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight + rowHeight / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     mouseDownAt (*rail, { kRailRowClickX, headerHeight + 2 * rowHeight + rowHeight / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::rightKey)));
     const auto locatedFrame = snapshotMainComponent (*shell).context.playheadFrame;
     REQUIRE (locatedFrame > 0);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -12244,6 +13094,7 @@ TEST_CASE ("every timeline time-gesture consults the snap chooser with Ctrl inve
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
@@ -12434,6 +13285,7 @@ TEST_CASE ("vertical track scroll reaches and edits the last track of a deep pro
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
     REQUIRE (addTrack != nullptr);
@@ -12497,6 +13349,7 @@ TEST_CASE ("vertical track scroll reaches and edits the last track of a deep pro
     mouseDownAt (*rail, { kRailRowClickX, lastRowY });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const yesdaw::engine::Project imported = readProjectSnapshot (bundlePath);
     REQUIRE (imported.clips.size() == 2u);
@@ -12543,6 +13396,7 @@ TEST_CASE ("the loop brace resizes and moves on the ruler with snap and exact sp
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
@@ -12697,6 +13551,7 @@ TEST_CASE ("markers drag-move on the ruler and rename inline, all undoable",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
@@ -12854,6 +13709,7 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
     REQUIRE (addTrack != nullptr);
@@ -13632,6 +14488,7 @@ TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
     REQUIRE (addTrack != nullptr);
@@ -13642,6 +14499,7 @@ TEST_CASE ("B splits every selected clip at the playhead as one sample-accurate 
     const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight + rowHeight / 2 });
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.clips.size() == 2u);
@@ -13735,6 +14593,7 @@ TEST_CASE ("Ctrl+J heals only adjacent clips with contiguous source windows",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.clips.size() == 1u);
@@ -13816,6 +14675,7 @@ TEST_CASE ("comma and period nudge selected clips by the snap grid as one edit",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('d', juce::ModifierKeys::ctrlModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
 
@@ -13949,6 +14809,7 @@ TEST_CASE ("the snap grid derives from tempo and bites on unmodified drags", "[u
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // Default: Beat grid at 120 BPM / 48 kHz -> 24000 frames.
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
@@ -13999,6 +14860,7 @@ TEST_CASE ("markers add with M at the playhead, remove on Alt+click, and paint o
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // M adds a marker at the playhead (0).
     REQUIRE (shell->keyPressed (juce::KeyPress ('m')));
@@ -14049,6 +14911,7 @@ TEST_CASE ("the automation lane canvas adds, moves, and deletes breakpoints that
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
@@ -14111,6 +14974,7 @@ TEST_CASE ("the input channel chooser lists the adopted device's channels and dr
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     auto* inputChooser = dynamic_cast<juce::ComboBox*> (
         findChildWithComponentId (*shell, "shell.device.input.chooser"));
@@ -14155,6 +15019,7 @@ TEST_CASE ("the shell's armed rail meter shows the live input peak", "[ui][input
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
     REQUIRE (snapshotMainComponent (*shell).context.recordingTrackArmed);
@@ -14194,6 +15059,7 @@ TEST_CASE ("the inspector take chooser lists the stack and drives switch and del
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);   // G0.8: harness-only verb
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy));
@@ -14275,6 +15141,7 @@ TEST_CASE ("the automation lane anchors under its target track's row, not a fixe
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
 
     // The one track is selected by default (row 0). G4.6 / ADR-0052 re-pin: its lanes stack UNDER its row
@@ -14344,6 +15211,7 @@ TEST_CASE ("N4 the automation lane anchors under the selected track and its head
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
@@ -14458,6 +15326,7 @@ TEST_CASE ("N5 a Touch-mode fader ride during playback writes automation as one 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
@@ -14615,6 +15484,7 @@ TEST_CASE ("N6 a row-boundary drag resizes exactly one track's row, persists, cl
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
@@ -14721,6 +15591,7 @@ TEST_CASE ("the layout pass, step 11: a click or drag on the overview moves the 
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     for (int i = 0; i < 6; ++i)   // zoomed in, so the view is a part of the song
         yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomIn);
 
@@ -14823,6 +15694,7 @@ TEST_CASE ("the layout pass, step 1: an imported clip is named after its file, a
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // The saved project carries the name, so it survives a reopen.
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
@@ -14863,6 +15735,7 @@ TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));   // clip lands on track 0
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
@@ -14883,6 +15756,7 @@ TEST_CASE ("N7 a colour-swatch click cycles exactly one track's colour, persists
     };
     mouseDownAt (*rail, railRowCenter (1));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.size() == 3u);
@@ -15005,6 +15879,7 @@ TEST_CASE ("the automation target chooser drives pan and FX-param lanes the rend
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
 
     juce::Component* canvas = findChildWithComponentId (*shell, "timeline.automation.canvas");
@@ -15170,6 +16045,7 @@ TEST_CASE ("Options toggles default-on playhead paging without changing Project 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
 
     for (int step = 0; step < 32; ++step)
@@ -15256,6 +16132,7 @@ TEST_CASE ("L starts forward shuttle playback at one-times speed without togglin
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const yesdaw::engine::Project persistedBefore = readProjectSnapshot (bundlePath);
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
@@ -15325,6 +16202,7 @@ TEST_CASE ("repeated L shuttles real playback at two-times then four-times speed
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
 
     const auto stopAndLocateStart = [&shell]
@@ -15383,6 +16261,7 @@ TEST_CASE ("J halves forward shuttle speed to stop and K stops from four-times s
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
@@ -15461,6 +16340,7 @@ TEST_CASE ("Options can return Stop to the captured playback start",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
@@ -15551,6 +16431,7 @@ TEST_CASE ("Enter always returns the transport to timeline zero",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
 
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
@@ -15643,6 +16524,7 @@ TEST_CASE ("ruler double-click locates the real transport without creating a Mar
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
     REQUIRE (project.markers.empty());
@@ -15709,6 +16591,7 @@ TEST_CASE ("Shift+Space plays from the last explicit ruler locate",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     const std::vector<std::uint8_t> persistedBefore = readBytes (bundlePath / "project.db");
 
@@ -15784,6 +16667,7 @@ TEST_CASE ("tool keys dispatch uniquely and idle Escape restores Pointer for a p
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
     REQUIRE (snapshotMainComponent (*shell).context.activeTimelineTool == yesdaw::ui::TimelineTool::Pencil);
@@ -15881,6 +16765,7 @@ TEST_CASE ("locate-point keys persist two playheads and recall their exact playb
     auto shell = makeShell (choices);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     juce::Component& timeline = requireTimelineComponent (*shell);
 
@@ -15972,6 +16857,7 @@ TEST_CASE ("marker navigation keys locate persisted Markers and drive exact play
     auto shell = makeShell (choices);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     juce::Component& timeline = requireTimelineComponent (*shell);
 
@@ -16077,6 +16963,7 @@ TEST_CASE ("plain ruler drag selects a painted range, Shift+L converts it to the
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 1u);
 
@@ -16209,6 +17096,7 @@ TEST_CASE ("Ctrl+Alt+T duplicates the selected track with clips, strip, FX, and 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // With no rail row selected the chord resolves but the shell honestly does nothing.
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackDuplicate);   // G1.1: no default chord
@@ -16391,6 +17279,7 @@ TEST_CASE ("Ctrl+Shift+Up and Ctrl+Shift+Down reorder the selected track with th
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // With no rail row selected the chords resolve but honestly do nothing.
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackMoveDown);   // G1.1: no default chord
@@ -16519,6 +17408,7 @@ TEST_CASE ("Shift+M, Shift+S, and Shift+R toggle mute, solo, and arm on the sele
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.size() == 2u);
@@ -16647,6 +17537,7 @@ TEST_CASE ("Alt+click resets faders to unity, pans to center, sends to unity, an
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -16778,6 +17669,7 @@ TEST_CASE ("Shift while dragging makes every fader, pan, and send exactly ten ti
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -16848,6 +17740,7 @@ TEST_CASE ("the fader and rail VOL show a live dB readout while dragging, -inf a
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -16939,6 +17832,7 @@ TEST_CASE ("track meters hold peaks for the tick law and latch a clip light that
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     // A second (silent) track: deselecting the clip-owning strip later moves the interactive
     // overlay off its painted meter so the clip light is observable and clickable.
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
@@ -17103,6 +17997,7 @@ TEST_CASE ("bus meters read live send audio, latch a clip light, and a meter cli
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -17742,6 +18637,7 @@ TEST_CASE ("every componentID'd control carries a tooltip naming its action and 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     int checkedControls = 0;
     std::function<void (juce::Component&)> visit = [&] (juce::Component& parent)
@@ -18357,6 +19253,7 @@ TEST_CASE ("no dead affordances: every visible control is enabled or reasoned; t
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     for (const bool settings : { false, true })
     {
@@ -18450,6 +19347,7 @@ TEST_CASE ("dead-affordance sweep: the repeat combo becomes Edit > Repeat Count,
 
     // 3. Clip controls in the inspector hide without a clip and return with one.
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     juce::Slider& gain = requireSliderForAction (*shell, UiActionId::TimelineClipSetGain);
     juce::Slider& start = requireSliderWithComponentId (*shell, kInspectorStartComponentId);
@@ -18520,6 +19418,7 @@ TEST_CASE ("G2.1 dock layout: three splitters drag within the plan's ranges, siz
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     using L = yesdaw::ui::UiTheme::Layout;
 
     const auto viewInt = [] (juce::Component& s, const char* key)
@@ -18638,6 +19537,7 @@ TEST_CASE ("G2.1 dock tabs: the mixer and the piano roll are Editor-dock tabs (X
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const auto dockName = [] (juce::Component& s)
     {
@@ -18824,6 +19724,7 @@ TEST_CASE ("G2.2 ruler v2: the time row's format comes from the ruler menu and t
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // The formatters: one law for the ruler's time row and the header counter.
     REQUIRE (yesdaw::ui::timeline_canvas_detail::formatRulerTime (61.5, yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplayMinSec, 200.0, 48000.0) == "1:01.5");
@@ -18945,6 +19846,7 @@ TEST_CASE ("G2.3 drag previews: a mid-drag paints a ghost while the model stays 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.clips.size() == 1u);
@@ -19047,6 +19949,7 @@ TEST_CASE ("the layout pass, step 12: a Shift-drag moves a clip's gain line and 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));   // the import selects its clip
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 1u);
@@ -19088,6 +19991,7 @@ TEST_CASE ("G2.4 smart tool: pointer zones map to modes and cursors on a wide cl
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 1u);
@@ -19194,6 +20098,7 @@ TEST_CASE ("G2.5 time selection: split at edges, copy / paste keeping tracks, de
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.clips.size() == 1u);
@@ -19330,6 +20235,7 @@ TEST_CASE ("G2.6 edit modes: Overlap leaves neighbours, No Overlap trims what a 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
 
     const auto sortedClips = [&] ()
@@ -19469,6 +20375,7 @@ TEST_CASE ("G2.7 snap modes: Grid subdivides with zoom, Relative keeps the offse
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
 
     const auto viewStr = [&] (const char* key)
@@ -19622,6 +20529,7 @@ TEST_CASE ("G2.8 nudge value: 1 ms, 10 ms, 1 frame and 1 sample nudge by exactly
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.clips.size() == 1u);
@@ -19711,6 +20619,7 @@ TEST_CASE ("G2.9b stretch: Alt on the right edge stretches, the inspector field 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.clips.size() == 1u);
@@ -19853,6 +20762,7 @@ TEST_CASE ("G2.10 fade handles: the corner drag bends the curve, the inspector s
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     REQUIRE (original.clips.size() == 1u);
@@ -19940,6 +20850,7 @@ TEST_CASE ("G2.11 slip: Ctrl+Alt-drag moves the source under a fixed window, sna
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const juce::ModifierKeys ctrlAlt (juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::altModifier);
     const juce::ModifierKeys ctrlAltDrag (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier
@@ -20050,6 +20961,7 @@ TEST_CASE ("G2.12 clip properties: mute is silent and undoable, colour cycles, t
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Clip base = readProjectSnapshot (bundlePath).clips.front();
     REQUIRE_FALSE (base.muted);
@@ -20147,6 +21059,7 @@ TEST_CASE ("G2.13 clip processing: reverse, normalize and strip silence are hone
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const yesdaw::engine::Clip base = readProjectSnapshot (bundlePath).clips.front();
     REQUIRE (base.srcLen == frames);
     const auto clipNow = [&] { return readProjectSnapshot (bundlePath).clips.front(); };
@@ -20234,6 +21147,7 @@ TEST_CASE ("G2.14 markers v2: colour cycles and persists, the inspector list loc
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const yesdaw::engine::Project original = readProjectSnapshot (bundlePath);
     const yesdaw::engine::Tick L = original.clips.front().timelineLength;
@@ -20345,6 +21259,7 @@ TEST_CASE ("G2.15 tempo map: changes at the playhead, the piecewise readout, the
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const double sampleRate = readProjectSnapshot (bundlePath).sampleRate.hz;
     REQUIRE (sampleRate > 0.0);
@@ -20497,6 +21412,7 @@ TEST_CASE ("G2.16 zoom and navigation: row zoom, the zoom slider, scroll bars, c
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     const auto viewNum = [&] (const char* key)
     {
@@ -20620,6 +21536,7 @@ TEST_CASE ("G2.17 track headers v2: kind badges, drag reorder, multi-select",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 3u);
@@ -20732,6 +21649,7 @@ TEST_CASE ("G2.18 undo history window: rows, jump, Esc", "[ui][input][shell][g2]
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     const auto probeView = [&] {
         const juce::var probe = juce::JSON::parse (yesdaw::ui::mainComponentStateProbeJson (*shell));
         return probe.getProperty ("view", juce::var());
@@ -21229,6 +22147,7 @@ TEST_CASE ("context menus: clip, empty lane, track header, ruler, marker, note a
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     auto* addTrack = dynamic_cast<juce::Button*> (findChildWithComponentId (*shell, "track.add"));
     REQUIRE (addTrack != nullptr);
     clickButton (*addTrack);
@@ -21394,6 +22313,7 @@ TEST_CASE ("context menus: an insert slot's menu acts on the clicked slot",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     mouseDownAt (*rail, { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight
@@ -21468,6 +22388,7 @@ TEST_CASE ("toolbar v2: nudge value chooser, inspector toggle, two-readout count
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     mouseDownAt (timeline, timelineClipCenterPoint (timeline, readProjectSnapshot (bundlePath), 0u));
     REQUIRE (snapshotMainComponent (*shell).selectedTimelineClipCount == 1);
@@ -21635,6 +22556,7 @@ TEST_CASE ("hover hints name the gesture for every zone; tooltips follow the liv
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -22115,6 +23037,7 @@ TEST_CASE ("rail arm badge: a click on the O cell arms and disarms that track",
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -22318,6 +23241,7 @@ TEST_CASE ("mixer track strip: a double-click renames the track inline; the prob
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
 
@@ -22504,6 +23428,7 @@ TEST_CASE ("G3.9 Sampler in the shell: the kind, the pad grid, load by click and
     // named from the file at its own key; the status line names the pad.
     const int dispatches = snapshotMainComponent (*shell).context.commandDispatchCount;
     yesdaw::ui::mainComponentInstrumentPanelClickPad (*shell, 36, false, false);
+    waitForAudioImports (*shell);
     {
         const yesdaw::engine::Project loaded = project();
         REQUIRE (loaded.assets.size() == 1u);
@@ -22522,6 +23447,7 @@ TEST_CASE ("G3.9 Sampler in the shell: the kind, the pad grid, load by click and
 
     // A WAV dropped on the D2 (38) cell loads it too (the same Asset — content-hashed — a second pad).
     yesdaw::ui::mainComponentInstrumentPanelDropFileOnPad (*shell, 38, juce::String (fixturePath.string()));
+    waitForAudioImports (*shell);
     REQUIRE (project().tracks[0].samplerPads.size() == 2u);
     REQUIRE (project().tracks[0].samplerPads[1].key == 38);
     REQUIRE (project().assets.size() == 1u);   // the same bytes, one Asset
@@ -22932,6 +23858,7 @@ TEST_CASE ("G3.7 MIDI file: a .mid drop lands as clips and tracks, the menu impo
     {
         const yesdaw::engine::Project before = project();
         dropTarget->filesDropped (juce::StringArray { juce::String (junkPath.string()) }, dropX, secondLaneY);
+        waitForAudioImports (*shell);
         REQUIRE (project().midiClips.size() == before.midiClips.size());
         REQUIRE (project().tracks.size() == before.tracks.size());
         REQUIRE (snapshotMainComponent (*shell).statusLineText.find ("MIDI import refused (not a MIDI file)") != std::string::npos);
@@ -23728,6 +24655,7 @@ TEST_CASE ("timeline clips carry their source window to the painter: a split's h
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.clips.size() == 1u);
@@ -23786,6 +24714,7 @@ TEST_CASE ("timeline zoom reaches one sample per pixel and clamps there, not at 
     REQUIRE (yesdaw::ui::mainComponentTimelineZoomCeiling (*shell) == L::timelineZoomMax);   // no project: the floor
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     juce::Component& timeline = requireTimelineComponent (*shell);
     // The 0.09 s fixture alone fits at ~1000 px/s, where 64x is already past one sample per
     // pixel and the ceiling honestly stays at the floor. A MIDI clip forty bars out makes the
@@ -23862,6 +24791,7 @@ TEST_CASE ("mixer strips: the painted fader and pan on an unselected strip drag 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
@@ -24015,6 +24945,7 @@ TEST_CASE ("mixer v2: I/O slots, the R cell, per-kind strip menus, per-kind FX l
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
@@ -24236,6 +25167,7 @@ TEST_CASE ("mixer v2: the tools lane is gone — well clicks, the FX editor, the
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
@@ -24742,6 +25674,7 @@ TEST_CASE ("G4.0b control navigation: Tab walks every control, Enter clicks once
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     // Not navigating: Enter is Return to zero (keymap v2) and nothing is targeted.
     REQUIRE_FALSE (controlTargetOf (*shell).navigating);
@@ -24898,6 +25831,7 @@ TEST_CASE ("G4.0b control navigation: a mixer fader steps in dB as one undo step
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
     // The Arrange editor keeps the focus (its Left / Right locate the playhead) while the dock shows the mixer.
@@ -24972,6 +25906,7 @@ TEST_CASE ("ADR-0066 painted controls are Control targets: the rail, the tool st
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 2u);
 
@@ -25166,6 +26101,7 @@ TEST_CASE ("ADR-0066 painted controls are Control targets: the mixer's zones, th
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
     REQUIRE (readProjectSnapshot (bundlePath).buses.size() == 1u);
@@ -25302,6 +26238,7 @@ TEST_CASE ("ADR-0066 painted controls are Control targets: the mixer's zones, th
     }
     target ("instrument.pad." + juce::String (yesdaw::ui::UiTheme::Layout::instrumentPanelPadFirstKey));
     REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
+    waitForAudioImports (*shell);
     REQUIRE (yesdaw::ui::mainComponentInstrumentPanel (*shell).pads.size() == 1u);
 
     std::error_code ec;
@@ -25322,6 +26259,7 @@ TEST_CASE ("ADR-0066 every Control target has an accurate accessible element", "
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::MixerBusAdd);
     yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
@@ -26705,6 +27643,7 @@ TEST_CASE ("ADR-0067 the playhead paints the published frame, and stopped it sta
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // a clip at the start, open in the roll
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
@@ -26957,6 +27896,7 @@ TEST_CASE ("ADR-0067 a still shell paints the same pixels every tick, before and
 
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TransportLocateStart));
     clickButton (requireButtonForAction (*shell, UiActionId::TransportPlay));
     for (int block = 0; block < 6; ++block)   // the meters light: blocks ran, ticks read them
@@ -27254,15 +28194,26 @@ TEST_CASE ("ADR-0073 an empty Arrange offers its next actions as rows", "[ui][in
     // Import audio through its row: the fixture lands on a new track.
     tabTo ("empty.arrange.import_audio");
     REQUIRE (pressKey (*shell, juce::KeyPress::returnKey));
-    (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
+    waitForAudioImports (*shell);
     REQUIRE (trackCount() == 1);
     REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 1);
     REQUIRE (arrangeRows (*shell).empty());
+    const auto imported = readProjectSnapshot (bundlePath);
 
-    // Undo the import's clip: one track, no clip - the new-project state (ADR-0074).
+    // Background import owns its created Track and Clip as one transaction; Redo restores their identities.
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
-    REQUIRE (trackCount() == 1);
+    REQUIRE (trackCount() == 0);
     REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 0);
+    REQUIRE (arrangeRows (*shell) == noTracks);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+    REQUIRE (readProjectSnapshot (bundlePath).tracks == imported.tracks);
+    REQUIRE (readProjectSnapshot (bundlePath).clips == imported.clips);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    REQUIRE (trackCount() == 0);
+
+    // The remaining empty-Track row checks start with an explicitly existing Track.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
+    REQUIRE (trackCount() == 1);
     REQUIRE (arrangeRows (*shell) == noClips);
 
     // ADR-0074: the row takes clicks only inside its own rect - the lane's gestures start everywhere else.
@@ -27281,7 +28232,7 @@ TEST_CASE ("ADR-0073 an empty Arrange offers its next actions as rows", "[ui][in
         mouseDownAt (timeline, timeline.getLocalPoint (shell.get(), row.getCentre()), juce::ModifierKeys::middleButtonModifier);
         REQUIRE (importChooserOpened == opened);   // a middle click is not the row's
         mouseDownAt (timeline, timeline.getLocalPoint (shell.get(), row.getCentre()));
-        (void) juce::MessageManager::getInstance()->runDispatchLoopUntil (200);
+        waitForAudioImports (*shell);
         REQUIRE (importChooserOpened == opened + 1);   // the row's own click imports
         REQUIRE (static_cast<int> (probeRoot (*shell)["project"]["clipCount"]) == 1);
         yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
@@ -27973,6 +28924,7 @@ TEST_CASE ("the inspector Takes card does not cover the Markers heading", "[ui][
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentSetSettingsRowVisible (*shell, false);
     yesdaw::ui::mainComponentSetDockHeight (*shell, L::mixerHeight);
     auto* list = dynamic_cast<juce::ListBox*> (findChildWithComponentId (*shell, "clip.inspector.markers"));
@@ -28139,6 +29091,7 @@ TEST_CASE ("ADR-0066 on a real window: a screen reader's focus move adopts the t
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
     yesdaw::ui::mainComponentSetDockHeight (*shell, 420);
 
@@ -28229,6 +29182,7 @@ TEST_CASE ("ADR-0066 targets that go away move on, overlays give the target back
     shell->setSize (1280, 720);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     for (int i = 1; i < 16; ++i)
         yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 16u);
@@ -28555,6 +29509,7 @@ TEST_CASE ("G4.2 cp2 the compressor face meters the running node's gain reductio
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewMixer);
     addInsertToStrip (*shell, 0, yesdaw::engine::FxKind::Compressor);
     yesdaw::ui::mainComponentOpenFxEditor (*shell, 0, 0);
@@ -29727,6 +30682,7 @@ TEST_CASE ("automation breakpoints play exactly where the lane draws them", "[ui
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     auto* snapChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
     REQUIRE (snapChooser != nullptr);
@@ -29918,6 +30874,7 @@ TEST_CASE ("a fader ride is heard while it lasts, over a lane that holds the fad
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     auto* modeChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.automation.mode"));
@@ -30026,6 +30983,7 @@ struct RideShell
         shell = makeShell (std::move (choices));
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
         clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+        waitForAudioImports (*shell);
     }
 
     ~RideShell()
@@ -30319,6 +31277,7 @@ TEST_CASE ("automation lanes show per track, grow the row under its clips, and r
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     const yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.tracks.size() == 2u);
@@ -30394,6 +31353,7 @@ TEST_CASE ("every lane a shown track owns stacks under its clips, each editing i
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
 
     auto* chooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.automation.target"));
@@ -30458,6 +31418,7 @@ TEST_CASE ("Pencil draws a lane span, Shift+Pencil draws a line, the Eraser swee
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     auto* snapChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
     REQUIRE (snapChooser != nullptr);
@@ -30541,6 +31502,7 @@ TEST_CASE ("a snapped Pencil stroke writes one point per snap step", "[ui][input
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     REQUIRE (snapshotMainComponent (*shell).context.snapMode != yesdaw::ui::UiSnapMode::Off);   // the default grid
     auto* canvas = dynamic_cast<yesdaw::ui::AutomationLaneCanvasComponent*> (findChildWithComponentId (*shell, "timeline.automation.canvas"));
@@ -30583,6 +31545,7 @@ TEST_CASE ("the Eraser deletes every point a back-and-forth drag swept", "[ui][i
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     auto* snapChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.snap.chooser"));
     REQUIRE (snapChooser != nullptr);
@@ -30627,6 +31590,7 @@ TEST_CASE ("another shown track's last lane offers + Lane; its chooser lane star
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     REQUIRE (shell->keyPressed (juce::KeyPress ('n', juce::ModifierKeys::ctrlModifier | juce::ModifierKeys::shiftModifier, 0)));
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
@@ -30681,6 +31645,7 @@ TEST_CASE ("a fader ride shows and writes the value being ridden", "[ui][input][
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     clickButton (requireButtonForAction (*shell, UiActionId::TimelineAutomationToggleTrackLane));
     auto* modeChooser = dynamic_cast<juce::ComboBox*> (findChildWithComponentId (*shell, "timeline.automation.mode"));
@@ -30978,6 +31943,7 @@ TEST_CASE ("hiding the dock by key gives its height to the arrangement", "[ui][i
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     const auto require = [&shell] (const char* id) -> juce::Component& {
         juce::Component* c = findChildWithComponentId (*shell, id);
@@ -31097,6 +32063,7 @@ TEST_CASE ("the export Cancel control reads during an export", "[ui][input][shel
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     shell->setSize (L::windowMinWidth, L::windowMinHeight);
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectExportAudio));
@@ -31185,6 +32152,7 @@ TEST_CASE ("the export progress readout reads whole: the percent beside the cros
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     shell->setSize (L::windowMinWidth, L::windowMinHeight);
 
     juce::Button& exportAudio = requireButtonForAction (*shell, UiActionId::ProjectExportAudio);
@@ -31725,6 +32693,7 @@ TEST_CASE ("a send row's PRE / PST reads over its level bar", "[ui][input][shell
     auto shell = makeShell (std::move (choices));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
     REQUIRE (readProjectSnapshot (bundlePath).tracks.size() == 1u);
     juce::Component* railComponent = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (railComponent != nullptr);
@@ -31979,6 +32948,7 @@ TEST_CASE ("an undo takes down the message about the edit it reversed", "[ui][in
     auto shell = makeShell (std::move (choices));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     mouseDownAt (*rail, { kRailRowClickX, L::trackListHeaderHeight + L::trackListRowMinHeight / 2 });
@@ -32273,6 +33243,7 @@ TEST_CASE ("ADR-0077 a question answered later: one at a time, and an answer act
     // Asked: held, nothing imported yet, the question open.
     REQUIRE_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
     REQUIRE (heldFile.has_value());
     CHECK (yesdaw::ui::mainComponentQuestionOpen (*shell));
     CHECK (clipCount (bundlePath) == 0u);
@@ -32286,6 +33257,8 @@ TEST_CASE ("ADR-0077 a question answered later: one at a time, and an answer act
 
     // The answer imports, and frees the question: the next one is asked.
     (*heldFile) (fixturePath);
+    CHECK (clipCount (bundlePath) == 0u);
+    waitForAudioImports (*shell);
     CHECK (clipCount (bundlePath) == 1u);
     CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectExportMidi);
@@ -32294,6 +33267,7 @@ TEST_CASE ("ADR-0077 a question answered later: one at a time, and an answer act
     // A reply dropped unanswered is a refusal: nothing imported, the question freed.
     heldFile.reset();
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
     REQUIRE (heldFile.has_value());
     heldFile.reset();
     CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
@@ -32312,6 +33286,7 @@ TEST_CASE ("ADR-0077 a question answered later: one at a time, and an answer act
     // New is itself a question now (unit 29b), so it is refused while this one is open.
     heldFile.reset();
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
     REQUIRE (heldFile.has_value());
     nextBundle = makeTempBundlePath ("questions-later-refused");
     const std::string statusBeforeNew = snapshotMainComponent (*shell).statusLineText;
@@ -32335,6 +33310,7 @@ TEST_CASE ("ADR-0077 a question answered later: one at a time, and an answer act
     // Asked, then the shell closes: the answer does nothing (and nothing crashes).
     heldFile.reset();
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
     REQUIRE (heldFile.has_value());
     shell.reset();
     (*heldFile) (fixturePath);
@@ -32348,7 +33324,7 @@ TEST_CASE ("ADR-0077 a question answered later: one at a time, and an answer act
 
 // ADR-0077 rule 3, flow by flow: each of unit 29a's questions answered later does its work on the answer and not
 // before - Export Audio, Export MIDI, Import MIDI, Save a Copy, Save as Template's name and the Sampler pad's file.
-TEST_CASE ("ADR-0077 each question flow does its work on the answer, not before", "[ui][input][shell][questions]")
+TEST_CASE ("ADR-0077 each question flow does its work on the answer, not before", "[ui][input][shell][questions][background-import-shell]")
 {
     const std::filesystem::path bundlePath = makeTempBundlePath ("questions-flows");
     const std::filesystem::path scratch = bundlePath.parent_path() / (bundlePath.stem().string() + "-files");
@@ -32386,6 +33362,7 @@ TEST_CASE ("ADR-0077 each question flow does its work on the answer, not before"
     shell->setSize (1920, 1080);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ProjectImportAudio);
+    waitForAudioImports (*shell);
     const auto project = [&] { return readProjectSnapshot (bundlePath); };
     REQUIRE (project().clips.size() == 1u);
     const auto askHeld = [&] (UiActionId action, const std::string& expected) {
@@ -32444,6 +33421,7 @@ TEST_CASE ("ADR-0077 each question flow does its work on the answer, not before"
     CHECK (replaceAsked == 1);   // the first answer saved it
 
     // The Sampler pad: no pad until the file arrives.
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackAdd);
     juce::Component* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
     REQUIRE (rail != nullptr);
     mouseDownAt (*rail, { kRailRowClickX, yesdaw::ui::UiTheme::Layout::trackListHeaderHeight + yesdaw::ui::UiTheme::Layout::trackListRowMinHeight / 2 });
@@ -32458,8 +33436,18 @@ TEST_CASE ("ADR-0077 each question flow does its work on the answer, not before"
     yesdaw::ui::mainComponentInstrumentPanelClickPad (*shell, 36, false, false);
     REQUIRE (asked == "sampler pad");
     CHECK (project().tracks[0].samplerPads.empty());
+    const auto otherLane = static_cast<int> (project().tracks.size()) - 1;
+    // The maximized Instrument dock can hide the next rail row. Its registered navigation action
+    // still changes the editing target while this nonblocking chooser is held.
+    for (int lane = 0; lane < otherLane; ++lane)
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TrackSelectNext);
+    REQUIRE (snapshotMainComponent (*shell).selectedMixerStripOrdinal == otherLane);
     (*heldPath) (fixturePath);
+    CHECK (project().tracks[0].samplerPads.empty());
+    waitForAudioImports (*shell);
     CHECK (project().tracks[0].samplerPads.size() == 1u);
+    CHECK (project().tracks.back().samplerPads.empty());
+    CHECK (snapshotMainComponent (*shell).selectedMixerStripOrdinal == otherLane);
     CHECK_FALSE (yesdaw::ui::mainComponentQuestionOpen (*shell));
 
     shell.reset();
@@ -32612,6 +33600,7 @@ TEST_CASE ("ADR-0076 the status line shows its messages whole", "[ui][input][she
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
 
     auto* label = dynamic_cast<juce::Label*> (findChildWithComponentId (*shell, "shell.statusline"));
     REQUIRE (label != nullptr);
@@ -32760,6 +33749,7 @@ TEST_CASE ("ADR-0076 the status line shows its messages whole", "[ui][input][she
     }
     importPath = notAudio;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentServiceUiTick (*shell);   // the tick hands the line its text (macOS reports the refusal then)
     {
         const std::string text = snapshotMainComponent (*shell).statusLineText;
@@ -32795,6 +33785,7 @@ TEST_CASE ("ADR-0076 the status line shows its messages whole", "[ui][input][she
     }
     importPath = longName;
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentServiceUiTick (*shell);
     {
         const juce::String text = label->getText();
@@ -32837,6 +33828,7 @@ TEST_CASE ("the inspector's TAKES card shows whole or not at all", "[ui][input][
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::DeviceSelectTestAudio);
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingArmTrack));
     clickButton (requireButtonForAction (*shell, UiActionId::RecordingSetMonitoringPolicy));

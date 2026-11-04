@@ -489,6 +489,40 @@ private:
     void browserKeep (const yesdaw::ui::BrowserRow& row);
     void browserDropAt (std::vector<yesdaw::ui::BrowserRow> rows, juce::Point<int> listPosition);
     void importAudioFromPath (const std::filesystem::path& path);
+    struct ImportRailSelection
+    {
+        engine::EntityId primary;
+        std::vector<engine::EntityId> selected;
+        bool operator== (const ImportRailSelection&) const = default;
+    };
+    struct PendingShellAudioImport
+    {
+        std::uint64_t requestId = 0;
+        std::uint64_t attachGeneration = 0;
+        std::uint64_t menuInteractionRevision = 0;
+        ImportRailSelection rail;
+        std::vector<std::filesystem::path> midiFiles;
+        std::vector<engine::EntityId> targets;
+        std::vector<std::string> targetNames;
+        engine::Tick position = 0;
+        bool selectRail = false;
+    };
+    [[nodiscard]] ImportRailSelection importRailSelection() const;
+    [[nodiscard]] bool inspectorChoicePending() const;
+    void rememberDisplayedInspectorChoices();
+    struct InspectorChoiceBaseline
+    {
+        engine::EntityId fadeClip, midiClip;
+        int fadeChoice = 0, midiLoopChoice = 0;
+    } inspectorChoiceBaseline;
+    void beginAudioImport (std::vector<std::filesystem::path> paths, std::vector<engine::EntityId> targets,
+                           engine::Tick position, std::vector<std::filesystem::path> midiFiles = {}, bool selectRail = false);
+    bool serviceAudioImport();
+    bool importMidiDropTail (const std::vector<std::filesystem::path>& paths,
+                            const std::vector<engine::EntityId>& targets, const std::vector<std::string>& targetNames,
+                            engine::Tick position, std::size_t slot, bool allowSelectionChange,
+                             std::vector<std::string>& refusals, engine::EntityId& firstLandedTrack, bool reportSuccess = true);
+    std::optional<PendingShellAudioImport> pendingShellAudioImport;
     // G5.5 / ADR-0060: New and Open.
     void initialiseNewProjectDialog();
     void beginNewProject();
@@ -600,7 +634,7 @@ private:
 
     // G3.9: a WAV onto a Sampler pad — the WAV reader's refusal is the shell's to name (R6), every
     // other refusal the model's (R7).
-    void loadSamplerPadFromPath (std::int16_t key, const std::filesystem::path& path);
+    void loadSamplerPadFromPath (engine::EntityId trackId, std::int16_t key, const std::filesystem::path& path);
 
     // G3.1: the instrument kind's name (the probe, the panel title, the inspector row).
     [[nodiscard]] static const char* instrumentKindName (yesdaw::engine::TrackInstrumentKind kind) noexcept;
@@ -1075,6 +1109,7 @@ private:
         }
     };
     LastContextMenu lastContextMenu;
+    std::uint64_t menuInteractionRevision = 0;
 
     void openContextMenu (yesdaw::ui::ContextMenuTarget target, int index, juce::Component& source,
                           juce::Point<int> sourcePosition);

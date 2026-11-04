@@ -652,10 +652,11 @@ juce::StringArray MainComponent::getMenuBarNames()
 std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int topLevelMenuIndex)
 {
     using yesdaw::ui::UiActionId;
-    static constexpr std::array<UiActionId, 12> kFileMenu {
+    static constexpr std::array<UiActionId, 13> kFileMenu {
         UiActionId::ProjectNew,        UiActionId::ProjectOpen,        UiActionId::ProjectSave,
         UiActionId::ProjectSaveAs,     UiActionId::ProjectSaveACopy,   UiActionId::ProjectSaveAsTemplate,   // G5.5 / ADR-0060
         UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
+        UiActionId::ProjectCancelImport,
         UiActionId::ProjectImportMidi, UiActionId::ProjectExportMidi,   // G3.7
         UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
     };
@@ -830,6 +831,7 @@ bool MainComponent::menuTickState (yesdaw::ui::UiActionId action) const noexcept
 void MainComponent::openContextMenu (yesdaw::ui::ContextMenuTarget target, int index, juce::Component& source,
                       juce::Point<int> sourcePosition)
 {
+    ++menuInteractionRevision;
     lastContextMenu = {};
     lastContextMenu.shown = true;
     lastContextMenu.target = target;
@@ -1295,6 +1297,7 @@ juce::String MainComponent::menuShortcutFor (yesdaw::ui::UiActionId action) cons
 
 juce::PopupMenu MainComponent::getMenuForIndex (int topLevelMenuIndex, const juce::String&)
 {
+    ++menuInteractionRevision;
     juce::PopupMenu menu;
     for (const yesdaw::ui::UiActionId action : menuActionsForIndex (topLevelMenuIndex))
     {
@@ -2387,7 +2390,11 @@ void MainComponent::refreshActionState()
     rebuildInspectorClipRows();   // the layout pass, step 4
     layoutInspectorClipList();
     refreshAutomationLaneControls();
-    refreshInspectorControls();
+    if (! inspectorChoicePending())
+    {
+        refreshInspectorControls();
+        rememberDisplayedInspectorChoices();
+    }
     refreshMixerControls();
     {
         // G3.1: the inspector's instrument chooser mirrors the selected Track's slot; the
