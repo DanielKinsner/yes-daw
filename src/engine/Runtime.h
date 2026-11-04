@@ -32,6 +32,7 @@
 #include "engine/ClipSchedule.h"
 #include "engine/CompiledGraph.h"
 #include "engine/Command.h"
+#include "engine/MidiSchedule.h"
 #include "rt/RtHot.h"
 
 #include "choc/containers/choc_SingleReaderSingleWriterFIFO.h"
@@ -53,6 +54,7 @@ struct Retired
     const CompiledGraph* graph       = nullptr;
     std::uint64_t        retiredAtGen = 0;
     const ClipSchedule*  schedule    = nullptr;   // G0.5: a retired Track schedule (graph == nullptr)
+    const MidiSchedule* midiSchedule = nullptr;
 };
 static_assert (std::is_trivially_copyable_v<Retired>, "Retired must pass losslessly through the FIFO");
 
@@ -96,6 +98,7 @@ public:
                 p.graph->snapshotDelayCache();
             delete p.graph;
             delete p.schedule;
+            delete p.midiSchedule;
         }
 
         pending_.clear();
@@ -118,6 +121,8 @@ public:
             {
                 delete c.schedule;   // never installed: still ours to free
             }
+            else if (c.type == CommandType::SetMidiSchedule)
+                delete c.midiSchedule;
         }
     }
 
@@ -186,6 +191,22 @@ public:
     }
 
     std::uint64_t schedulesApplied() const noexcept { return schedulesApplied_.load (std::memory_order_acquire); }
+
+    [[nodiscard]] bool postSetMidiSchedule (const CompiledGraph* expectedGraph, NodeId node,
+                                            std::unique_ptr<const MidiSchedule> schedule) noexcept
+    {
+        if (expectedGraph == nullptr || schedule == nullptr || ! schedule->liveEligible)
+            return false;
+        Command c { CommandType::SetMidiSchedule, expectedGraph, node };
+        c.midiSchedule = schedule.get();
+        if (! cmdFifo_.push (c))
+            return false;
+        (void) schedule.release();
+        return true;
+    }
+
+    std::uint64_t midiSchedulesApplied() const noexcept { return midiSchedulesApplied_.load (std::memory_order_acquire); }
+    std::uint64_t midiSchedulesRejected() const noexcept { return midiSchedulesRejected_.load (std::memory_order_acquire); }
 
     // ---- AUDIO THREAD --------------------------------------------------------------------------------
     void processBlock (float* out, int numFrames) noexcept YESDAW_RT_HOT
@@ -300,6 +321,7 @@ public:
                     pending_[i].graph->snapshotDelayCache();
                 delete pending_[i].graph;
                 delete pending_[i].schedule;   // G0.5: retired Track schedules ride the same fence-post
+                delete pending_[i].midiSchedule;
                 ++freed;
             }
             else
@@ -392,6 +414,30 @@ private:
                 }
                 break;
             }
+
+            case CommandType::SetMidiSchedule:
+            {
+                const MidiSchedule* retire = c.midiSchedule;
+                const MidiSchedule* previous = nullptr;
+                if (current_ != nullptr && current_ == c.graph
+                    && current_->applySetMidiSchedule (c.node, c.midiSchedule, previous))
+                {
+                    midiSchedulesApplied_.fetch_add (1, std::memory_order_relaxed);
+                    retire = previous;
+                }
+                else
+                    midiSchedulesRejected_.fetch_add (1, std::memory_order_relaxed);
+                if (retire != nullptr)
+                {
+                    Retired r;
+                    r.midiSchedule = retire;
+                    r.retiredAtGen = processedGen_.load (std::memory_order_relaxed);
+                    const bool retired = retireFifo_.push (r);
+                    YESDAW_RT_FATAL (retired);
+                    (void) retired;
+                }
+                break;
+            }
         }
     }
 
@@ -405,6 +451,8 @@ private:
     std::atomic<std::uint64_t> processedGen_   { 0 };
     std::atomic<std::uint64_t> scalarsApplied_ { 0 };
     std::atomic<std::uint64_t> schedulesApplied_ { 0 };   // G0.5
+    std::atomic<std::uint64_t> midiSchedulesApplied_ { 0 };
+    std::atomic<std::uint64_t> midiSchedulesRejected_ { 0 };
     std::vector<Retired>       pending_;                  // JANITOR-THREAD-LOCAL
 };
 

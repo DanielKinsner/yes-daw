@@ -44,7 +44,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Source: `docs/research/2026-10-11-soundcraft-takeaways.md` section 1.
 3. **Option A authorized 2026-11-03:** continuous MIDI editing, background media preparation, full Tempo map
    consistency, musical audio tempo-follow, linked Track editing/organization, then piano-roll reference notes.
-   First: correct addressed note release and publish note changes without replacing playback. The implementation
+   Done: addressed note release and bounded notes-only updates without replacing playback. Next: connect background
+   stretch preparation to editor gestures, then import. The implementation
    brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -63,6 +64,15 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus; SS3
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-03 — Notes-only edits keep the playing instrument and effects
+
+Ordinary eligible piano-roll edits now publish immutable schedules at an Audio-thread boundary; changed sounding notes
+release by address. MIDI FX, repeated/ambiguous addresses and oversized event sets retain the existing rebuild path.
+Headless proof: 100 moves without an engine replacement; held synth/delay audio unchanged; failed save, undo/redo and
+reopen covered. Full pure suite 413/413 (76.05 s); app compiled without launch; independent review found no production
+issue. Code review: skipped (ce-code-review unavailable): mandatory peer scratch cleanup was policy-denied; all eight
+local lenses and caller manual diff scan finished. CI on this commit is pending. Next: background stretch editor integration.
 
 ## 2026-11-03 — Native note release preserves overlapping voices
 

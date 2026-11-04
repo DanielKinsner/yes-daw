@@ -13,6 +13,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -1343,6 +1344,146 @@ TEST_CASE ("PlaybackEngine live ClipSchedule publish renders bit-identically to 
     (void) drainPlayback (*live.engine, 16, 8);
     REQUIRE (live.engine->liveSchedulesApplied() == 1);
     (void) live.engine->reclaim();
+}
+
+TEST_CASE ("PlaybackEngine MIDI publication keeps held audio continuous and reports pending and rejected installs",
+           "[playback][midi-schedule]")
+{
+    using namespace yesdaw::engine;
+    const PlaybackFixture fixture = makePlaybackFixture();
+    Project project = fixture.project;
+    MidiClip clip;
+    clip.id = EntityId::fromBigEndianParts (0, 8000);
+    clip.trackId = project.tracks[0].id;
+    clip.timelineLength = 128;
+    clip.timeBase = TimeBase::SampleLocked;
+    Note held;
+    held.id = EntityId::fromBigEndianParts (0, 8001);
+    held.lengthTicks = 112;
+    Note future = held;
+    future.id = EntityId::fromBigEndianParts (0, 8002);
+    future.startTick = 64;
+    future.lengthTicks = 16;
+    future.key = 72;
+    future.pitchNote = 72.0;
+    clip.notes = { held, future };
+    project.midiClips.push_back (clip);
+    REQUIRE (project.hasValidAssetClipIndirection());
+    const auto views = std::span<const DecodedAssetAudio> (fixture.decodedAssets);
+    auto live = PlaybackEngine::create (project, views);
+    auto reference = PlaybackEngine::create (project, views);
+    REQUIRE (live.ok());
+    REQUIRE (reference.ok());
+    REQUIRE (bitIdentical (drainPlayback (*live.engine, 32, 8), drainPlayback (*reference.engine, 32, 8)));
+
+    clip.notes[1].startTick = 80;
+    auto built = buildMidiSchedule (clip, {}, project.sampleRate);
+    REQUIRE (built.ok());
+    const NodeId source = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::MidiSource);
+    REQUIRE (live.engine->postLiveMidiSchedule (source, std::move (built.schedule)));
+    REQUIRE (live.engine->liveMidiSchedulesApplied() == 0u);
+    REQUIRE (bitIdentical (drainPlayback (*live.engine, 32, 8), drainPlayback (*reference.engine, 32, 8)));
+    REQUIRE (live.engine->liveMidiSchedulesApplied() == 1u);
+    REQUIRE (live.engine->liveMidiSchedulesRejected() == 0u);
+    REQUIRE_FALSE (bitIdentical (drainPlayback (*live.engine, 32, 8), drainPlayback (*reference.engine, 32, 8)));
+    REQUIRE (live.engine->reclaim() == 1u);
+
+    REQUIRE (live.engine->stop());
+    (void) drainPlayback (*live.engine, 8, 8);
+    const auto stoppedGeneration = live.engine->processedGen();
+    clip.notes[0].lengthTicks = 120;
+    built = buildMidiSchedule (clip, {}, project.sampleRate);
+    REQUIRE (built.ok());
+    REQUIRE (live.engine->postLiveMidiSchedule (source, std::move (built.schedule)));
+    const auto stopped = drainPlayback (*live.engine, 8, 8);
+    REQUIRE (std::all_of (stopped.begin(), stopped.end(), [] (float sample) { return sample == 0.0f; }));
+    REQUIRE (live.engine->processedGen() == stoppedGeneration);
+    REQUIRE (live.engine->liveMidiSchedulesApplied() == 1u); // Control does not drain a stopped Runtime
+    REQUIRE (live.engine->play());
+    (void) drainPlayback (*live.engine, 8, 8);
+    REQUIRE (live.engine->liveMidiSchedulesApplied() == 2u);
+    built = buildMidiSchedule (clip, {}, project.sampleRate);
+    REQUIRE (built.ok());
+    REQUIRE (live.engine->postLiveMidiSchedule (12345678u, std::move (built.schedule)));
+    (void) drainPlayback (*live.engine, 8, 8);
+    REQUIRE (live.engine->liveMidiSchedulesApplied() == 2u);
+    REQUIRE (live.engine->liveMidiSchedulesRejected() == 1u);
+    REQUIRE (live.engine->reclaim() == 2u);
+}
+
+TEST_CASE ("Initial MIDI Track certificate gates every source before any live publication",
+           "[playback][midi-schedule]")
+{
+    using namespace yesdaw::engine;
+    bool denseTrack = false;
+    SECTION ("eligible Track services seek releases") {}
+    SECTION ("dense neighboring Clip preserves unsupported ordinary rendering") { denseTrack = true; }
+
+    Project project;
+    project.id = EntityId::fromBigEndianParts (0, 8100);
+    project.sampleRate = SampleRate { 48000.0 };
+    Track track;
+    track.id = EntityId::fromBigEndianParts (0, 8101);
+    project.tracks.push_back (track);
+    MidiClip clip;
+    clip.id = EntityId::fromBigEndianParts (0, 8102);
+    clip.trackId = track.id;
+    clip.timeBase = TimeBase::SampleLocked;
+    clip.timelineLength = 128;
+    Note held;
+    held.id = EntityId::fromBigEndianParts (0, 8103);
+    held.lengthTicks = 100;
+    clip.notes.push_back (held);
+    project.midiClips.push_back (clip);
+    if (denseTrack)
+    {
+        MidiClip neighbor = clip;
+        neighbor.id = EntityId::fromBigEndianParts (0, 8104);
+        neighbor.notes.clear();
+        for (std::uint64_t i = 0; i < 400u; ++i)
+        {
+            held.id = EntityId::fromBigEndianParts (0, 9000u + i);
+            neighbor.notes.push_back (held);
+        }
+        project.midiClips.push_back (std::move (neighbor));
+    }
+    REQUIRE (project.hasValidAssetClipIndirection());
+    MixerProjectionInputs projection;
+    REQUIRE (projectToMixerProjectionInputs (project, {},
+        [] (const Project&, const Clip&, const Asset&, int, ScheduledClipSource&) { return false; }, projection));
+    DecodedMidiClipNode* source = nullptr;
+    const NodeId sourceId = projectMixerNodeIdForClip (clip.id, ProjectMixerNodeRole::MidiSource);
+    for (auto& node : projection.tracks[0].supportNodes)
+        if (node->properties().id == sourceId)
+            source = dynamic_cast<DecodedMidiClipNode*> (node.get());
+    REQUIRE (source != nullptr);
+    source->prepare (48000.0, 8);
+    std::array<Event, 1024> storage {};
+    EventStream stream { std::span<Event> (storage), 0 };
+    Transport transport;
+    transport.hasTimelineFrame = true;
+    source->process (ProcessArgs { AudioBlock {}, stream, transport, 8 });
+    REQUIRE (stream.size() == 1u);
+    REQUIRE (stream.events()[0].type == EventType::NoteOn); // ordinary timeline is unchanged
+    transport.timelineFrame = 32;
+    source->process (ProcessArgs { AudioBlock {}, stream, transport, 8 });
+    if (denseTrack)
+        REQUIRE (stream.events().empty()); // no extra release demand on a never-admitted dense Track
+    else
+    {
+        REQUIRE (stream.size() == 1u);
+        REQUIRE (stream.events()[0].type == EventType::NoteOff);
+        REQUIRE (stream.events()[0].timeInBlock == 0u);
+    }
+    auto next = buildMidiSchedule (clip, {}, project.sampleRate);
+    REQUIRE (next.ok());
+    const MidiSchedule* previous = nullptr;
+    REQUIRE (source->exchangeSchedule (next.schedule.get(), previous) == ! denseTrack);
+    if (! denseTrack)
+    {
+        (void) next.schedule.release();
+        const std::unique_ptr<const MidiSchedule> retired (previous);
+    }
 }
 
 // ADR-0053: the live loudness tap. The ring round-trips blocks with their format (frames, channels, rate); a block

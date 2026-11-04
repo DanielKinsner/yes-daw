@@ -12,6 +12,7 @@
 #include "engine/AuditionVoice.h"   // G5.2 cp2 / ADR-0056
 #include "engine/ClipSilence.h"
 #include "engine/LoudnessTap.h"
+#include "engine/MidiSchedule.h"
 #include "engine/OfflineRenderer.h"
 #include "engine/PlaybackEngine.h"
 #include "engine/RateMatchedView.h"   // ADR-0055: cross-rate Assets read through rate-matched views
@@ -524,6 +525,22 @@ public:
     [[nodiscard]] std::uint64_t playbackLiveSchedulesApplied() const noexcept
     {
         return playback_ != nullptr ? playback_->liveSchedulesApplied() : 0;
+    }
+    [[nodiscard]] std::uint64_t playbackLiveMidiSchedulesApplied() const noexcept
+    {
+        return playback_ != nullptr ? playback_->liveMidiSchedulesApplied() : 0;
+    }
+    // Owner tick only: a rejected audio-side install must converge, not leave a saved edit silent.
+    void serviceLiveMidiEdits()
+    {
+        if (playback_ == nullptr)
+            return;
+        const auto rejected = playback_->liveMidiSchedulesRejected();
+        if (rejected == observedMidiScheduleRejects_)
+            return;
+        observedMidiScheduleRejects_ = rejected;
+        if (! rebuildPlaybackForCurrentProject())
+            reportStatus ("Playback error: the saved MIDI edit could not be applied", true);
     }
     [[nodiscard]] std::uint64_t playbackLiveScalarsApplied() const noexcept
     {
@@ -12171,9 +12188,82 @@ private:
         return true;
     }
 
+    // ADR-0079: an eligible note-only edit keeps the running instrument and FX. A null result
+    // means the existing rebuild path is required; false means compilation/save failed unchanged.
+    [[nodiscard]] std::optional<bool> adoptMidiNoteEditLive (engine::Project& next,
+                                                           engine::ProjectUndoStack& nextUndo)
+    {
+        const engine::Project& cur = project_;
+        if (playback_ == nullptr || ! playback_->hasLiveGraph() || ! context_.projectLoaded
+            || cur.id != next.id || cur.sampleRate != next.sampleRate
+            || cur.assets != next.assets || cur.tracks != next.tracks || cur.buses != next.buses
+            || cur.clips != next.clips || cur.tempoMap != next.tempoMap || cur.meterMap != next.meterMap
+            || cur.markers != next.markers || cur.locatePoints != next.locatePoints
+            || cur.recordingTakes != next.recordingTakes || cur.recordingCompSegments != next.recordingCompSegments
+            || cur.automationLanes != next.automationLanes || cur.masterLinearGain != next.masterLinearGain
+            || cur.masterStrip != next.masterStrip || cur.automationMode != next.automationMode
+            || cur.automationFollowsClips != next.automationFollowsClips || cur.punchRegion != next.punchRegion
+            || cur.loopRegion != next.loopRegion || cur.scale != next.scale
+            || cur.midiClips.size() != next.midiClips.size())
+            return std::nullopt;
+
+        std::optional<std::size_t> changed;
+        for (std::size_t index = 0; index < cur.midiClips.size(); ++index)
+        {
+            if (cur.midiClips[index] == next.midiClips[index])
+                continue;
+            if (changed.has_value())
+                return std::nullopt;
+            engine::MidiClip sameMetadata = cur.midiClips[index];
+            sameMetadata.notes = next.midiClips[index].notes;
+            if (sameMetadata != next.midiClips[index])
+                return std::nullopt;
+            changed = index;
+        }
+        if (! changed.has_value())
+            return std::nullopt;
+
+        const engine::MidiClip& clip = next.midiClips[*changed];
+        const auto currentBounds = engine::midiTrackBounds (cur, clip.trackId);
+        const auto nextBounds = engine::midiTrackBounds (next, clip.trackId);
+        auto bound = std::find_if (liveMidiNoteBounds_.begin(), liveMidiNoteBounds_.end(),
+                                  [&] (const auto& item) { return item.first == clip.trackId; });
+        const std::size_t prior = bound != liveMidiNoteBounds_.end() ? bound->second : 0;
+        const std::size_t retained = std::max ({ prior, currentBounds.noteOns, nextBounds.noteOns });
+        if (! currentBounds.fits (retained) || ! nextBounds.fits (retained))
+            return std::nullopt;
+
+        auto built = engine::buildMidiSchedule (
+            clip, engine::TempoMapView { next.tempoMap.data(), next.tempoMap.size() }, next.sampleRate);
+        if (! built.ok())
+            return false;
+        if (bundleDb_.isOpen() && ! bundleDb_.writeProjectSnapshot (next).ok())
+            return false;
+
+        // A NoteOn high-water mark includes commands not yet installed while stopped. Never
+        // lower it from the latest Project alone; a queued predecessor can still be sounding.
+        const engine::EntityId trackId = clip.trackId;
+        const engine::NodeId sourceId = engine::projectMixerNodeIdForClip (
+            clip.id, engine::ProjectMixerNodeRole::MidiSource);
+        if (bound != liveMidiNoteBounds_.end())
+            bound->second = retained;
+        else
+            liveMidiNoteBounds_.emplace_back (trackId, retained);
+        project_ = std::move (next);
+        undo_ = std::move (nextUndo);
+        ++editSerial_;
+        syncProjectEditContext();
+        if (! playback_->postLiveMidiSchedule (sourceId, std::move (built.schedule))
+            && ! rebuildPlaybackForCurrentProject())
+            reportStatus ("Playback error: the saved MIDI edit could not be applied", true);
+        return true;
+    }
+
     [[nodiscard]] bool adoptEditedProject (engine::Project nextProject,
                                            engine::ProjectUndoStack nextUndo)
     {
+        if (const auto adopted = adoptMidiNoteEditLive (nextProject, nextUndo); adopted.has_value())
+            return *adopted;
         // G0.5: placement-only edits ride the live lane; a refused build falls through to the rebuild.
         if (canAdoptPlacementEditLive (nextProject))
         {
@@ -12377,7 +12467,7 @@ private:
 
     // The engine half of adoptEditedProject over the ALREADY-adopted project_ — the live lane's
     // convergence fallback when a post could not be delivered.
-    void rebuildPlaybackForCurrentProject()
+    bool rebuildPlaybackForCurrentProject()
     {
         std::vector<engine::DecodedAssetAudio> decodedViews = makeDecodedViews (decodedAssets_);
         std::optional<engine::Project> engineStorage;   // ADR-0055: cross-rate windows in view frames
@@ -12393,7 +12483,7 @@ private:
             nextEngine = engine::PlaybackEngine::createTransportOnly (project_.sampleRate,
                                                                       playbackMaxBlockSize_);
         if (nextEngine == nullptr)
-            return;   // keep the current engine; the persisted project is already the truth
+            return false;
 
         const TransportAdoptionSnapshot liveTransport = captureTransportForAdoption();
         (void) nextEngine->stop();
@@ -12401,6 +12491,7 @@ private:
         replacePlayback (std::move (nextEngine));
         resetContextForFreshPlayback();
         restoreTransportAfterAdoption (liveTransport);
+        return true;
     }
 
     // One seam for every strip-scalar dispatcher (gain/pan/mute/solo/solo-safe on a Track or
@@ -13886,6 +13977,8 @@ private:
         // old one for the janitor instead of destroying it under a running callback.
         std::unique_ptr<engine::PlaybackEngine> retired = std::move (playback_);
         playback_ = std::move (replacement);
+        liveMidiNoteBounds_.clear();
+        observedMidiScheduleRejects_ = 0;
         applyMetronomeToPlayback();
         audioPlayback_.store (playback_.get(), std::memory_order_release);
         if (retired != nullptr)
@@ -13956,6 +14049,8 @@ private:
     std::optional<std::uint64_t> dontSaveAttach_; // the attach a Don't Save retired under (its replace still pending)
     std::function<persistence::AutosaveResult()> autosaveWriteOverride_;   // ADR-0068 §2's test seam
     std::uint64_t playbackReplaceCount_ = 0;   // R12: engine rebuild counter (see replacePlayback)
+    std::vector<std::pair<engine::EntityId, std::size_t>> liveMidiNoteBounds_;
+    std::uint64_t observedMidiScheduleRejects_ = 0;
     MixerTargetSelection selectedMixerTarget_ {};
     UiRecordingDeviceSelection recordingDevice_;
     std::optional<UiRealRecordingDeviceProfile> adoptedRealDevice_;   // G0.4: survives project resets

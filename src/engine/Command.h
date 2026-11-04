@@ -20,10 +20,12 @@
 namespace yesdaw::engine {
 
 struct ClipSchedule;   // G0.5
+struct MidiSchedule;
 
 enum class CommandType : std::uint32_t { SwapGraph = 0, SetGain = 1, SetPan = 2, SetFxParam = 3,
                                         SetClipSchedule = 4,   // G0.5: install a Track's ClipSchedule
-                                        SetAutomationSuspended = 5 };   // G4.6: a ride suspends / resumes a lane
+                                        SetAutomationSuspended = 5,   // G4.6: a ride suspends / resumes a lane
+                                        SetMidiSchedule = 6 };
 
 struct Command
 {
@@ -35,6 +37,7 @@ struct Command
     double               normalized = 0.0;  // SetFxParam: normalized 0..1 (double — bit-exact with the
                                             // persisted Project value, so live == the next rebuild)
     const ClipSchedule*  schedule = nullptr; // SetClipSchedule: the next schedule (ownership transfers)
+    const MidiSchedule* midiSchedule = nullptr; // SetMidiSchedule: graph is expected identity only, never owned
 };
 
 static_assert (std::is_trivially_copyable_v<Command>,

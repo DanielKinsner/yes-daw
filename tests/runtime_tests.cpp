@@ -9,6 +9,7 @@
 #include "engine/Runtime.h"
 #include "engine/nodes/FaderNode.h"
 #include "engine/nodes/IdentityDcNode.h"
+#include "engine/nodes/ImpulseInstrumentNode.h"
 #include "engine/nodes/MasterNode.h"
 #include "engine/nodes/PanNode.h"
 
@@ -607,6 +608,139 @@ TEST_CASE ("Runtime lets a ride's SetGain through while the ride suspends the fa
         REQUIRE (buf.back() == Approx (0.0f).margin (1.0e-6f));
 
         rt.reclaim();
+    }
+    REQUIRE (CompiledGraph::aliveCount() == base);
+}
+
+namespace {
+
+yesdaw::engine::MidiClip runtimeMidiClip()
+{
+    using namespace yesdaw::engine;
+    MidiClip clip;
+    clip.id = EntityId::fromBigEndianParts (0, 7000);
+    clip.trackId = EntityId::fromBigEndianParts (0, 7001);
+    clip.timelineLength = 128;
+    clip.timeBase = TimeBase::SampleLocked;
+    Note note;
+    note.id = EntityId::fromBigEndianParts (0, 7002);
+    note.lengthTicks = 64;
+    clip.notes.push_back (note);
+    return clip;
+}
+
+std::unique_ptr<const yesdaw::engine::MidiSchedule> runtimeMidiSchedule (yesdaw::engine::MidiClip clip)
+{
+    auto built = yesdaw::engine::buildMidiSchedule (clip, {}, yesdaw::engine::SampleRate { 48000.0 });
+    REQUIRE (built.ok());
+    REQUIRE (built.schedule->liveEligible);
+    return std::move (built.schedule);
+}
+
+std::unique_ptr<CompiledGraph> runtimeMidiGraph()
+{
+    using namespace yesdaw::engine;
+    auto source = std::make_unique<DecodedMidiClipNode> (62000, runtimeMidiSchedule (runtimeMidiClip()));
+    auto instrument = std::make_unique<ImpulseInstrumentNode> (62001, 0);
+    instrument->setEventInput (source.get());
+    auto master = std::make_unique<MasterNode> (kRuntimeMasterId, 1);
+    master->setInputNodes ({ instrument.get() });
+    GraphBuilder::Inputs inputs;
+    inputs.id = 62;
+    inputs.masterNodeId = kRuntimeMasterId;
+    inputs.sampleRate = 48000.0;
+    inputs.maxBlockSize = 8;
+    inputs.nodes.push_back (std::move (source));
+    inputs.nodes.push_back (std::move (instrument));
+    inputs.nodes.push_back (std::move (master));
+    auto built = GraphBuilder::build (std::move (inputs));
+    REQUIRE (built != nullptr);
+    return built;
+}
+
+} // namespace
+
+TEST_CASE ("Runtime MIDI installs and rejections share ordered retirement backpressure and generation fencing",
+           "[runtime][midi-schedule]")
+{
+    Runtime::Config config;
+    config.commandCapacity = 8;
+    config.retireCapacity = 1;
+    Runtime runtime (config);
+    auto initial = runtimeMidiGraph();
+    const CompiledGraph* const expected = initial.get();
+    REQUIRE (runtime.publish (std::move (initial)));
+    std::vector<float> output (8, 0.0f);
+    runtime.processBlock (output.data(), 8);
+
+    auto removed = runtimeMidiClip();
+    removed.notes.clear();
+    REQUIRE (runtime.postSetMidiSchedule (expected, 62000, runtimeMidiSchedule (removed)));
+    REQUIRE (runtime.postSetMidiSchedule (expected, 62000, runtimeMidiSchedule (runtimeMidiClip())));
+    REQUIRE (runtime.reclaim() == 0u); // both successors are still owned by the command lane
+    const auto before = runtime.processedGen();
+    runtime.processBlock (output.data(), 8);
+    REQUIRE (runtime.processedGen() == before + 1u);
+    REQUIRE (runtime.midiSchedulesApplied() == 1u); // retirement capacity deferred successor two
+    REQUIRE (runtime.midiSchedulesRejected() == 0u);
+    REQUIRE (runtime.reclaim() == 1u); // completed generation is strictly beyond retirement
+    runtime.processBlock (output.data(), 8);
+    REQUIRE (runtime.midiSchedulesApplied() == 2u);
+    REQUIRE (runtime.reclaim() == 1u);
+
+    auto wrongIdentity = runtimeMidiClip();
+    wrongIdentity.id = yesdaw::engine::EntityId::fromBigEndianParts (0, 7999);
+    REQUIRE (runtime.postSetMidiSchedule (expected, 62000, runtimeMidiSchedule (wrongIdentity)));
+    runtime.processBlock (output.data(), 8);
+    REQUIRE (runtime.midiSchedulesRejected() == 1u);
+    REQUIRE (runtime.reclaim() == 1u); // refused new schedule, never the installed one
+
+    REQUIRE (runtime.postSetMidiSchedule (expected, kRuntimeMasterId, runtimeMidiSchedule (runtimeMidiClip())));
+    runtime.processBlock (output.data(), 8);
+    REQUIRE (runtime.midiSchedulesRejected() == 2u);
+    REQUIRE (runtime.reclaim() == 1u);
+
+    const auto wrongGraph = graph (999, 0.0f);
+    REQUIRE (runtime.postSetMidiSchedule (wrongGraph.get(), 62000, runtimeMidiSchedule (runtimeMidiClip())));
+    runtime.processBlock (output.data(), 8);
+    REQUIRE (runtime.midiSchedulesApplied() == 2u);
+    REQUIRE (runtime.midiSchedulesRejected() == 3u);
+    REQUIRE (runtime.reclaim() == 1u);
+}
+
+TEST_CASE ("Runtime MIDI queue refusal and stopped shutdown retain sole ownership",
+           "[runtime][midi-schedule]")
+{
+    const auto base = CompiledGraph::aliveCount();
+    {
+        Runtime::Config config;
+        config.commandCapacity = 2;
+        Runtime runtime (config);
+        auto initial = runtimeMidiGraph();
+        const CompiledGraph* const expected = initial.get();
+        REQUIRE (runtime.publish (std::move (initial)));
+        REQUIRE (runtime.postSetMidiSchedule (expected, 62000, runtimeMidiSchedule (runtimeMidiClip())));
+        REQUIRE_FALSE (runtime.postSetMidiSchedule (expected, 62000, runtimeMidiSchedule (runtimeMidiClip())));
+        REQUIRE (runtime.midiSchedulesApplied() == 0u);
+        REQUIRE (runtime.reclaim() == 0u);
+        // No callback: destructor owns the never-installed graph and queued successor separately.
+    }
+    REQUIRE (CompiledGraph::aliveCount() == base);
+
+    {
+        Runtime runtime;
+        auto initial = runtimeMidiGraph();
+        const CompiledGraph* const expected = initial.get();
+        REQUIRE (runtime.publish (std::move (initial)));
+        std::vector<float> output (8, 0.0f);
+        runtime.processBlock (output.data(), 8);
+        auto removed = runtimeMidiClip();
+        removed.notes.clear();
+        REQUIRE (runtime.postSetMidiSchedule (expected, 62000, runtimeMidiSchedule (removed)));
+        REQUIRE (runtime.postSetMidiSchedule (expected, 62000, runtimeMidiSchedule (runtimeMidiClip())));
+        runtime.processBlock (output.data(), 8);
+        REQUIRE (runtime.midiSchedulesApplied() == 2u);
+        REQUIRE (runtime.reclaim() == 2u);
     }
     REQUIRE (CompiledGraph::aliveCount() == base);
 }

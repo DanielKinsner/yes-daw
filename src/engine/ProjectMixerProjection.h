@@ -655,18 +655,17 @@ template <typename ClipSourceProvider>
         // as it does to audio, and voices are shared across the Track's Clips. The instrument emits
         // the strip's width; SimpleSynthNode carries the ADR-0042 mono-widening law itself.
         std::vector<Node*> trackMidiSources;
+        const MidiTrackBounds initialMidiBounds = midiTrackBounds (project, owningTrack.id);
+        const bool allowLiveMidiTracking = initialMidiBounds.fits (initialMidiBounds.noteOns);
         for (std::size_t i = 0; i < project.midiClips.size(); ++i)
         {
             const MidiClip& midiClip = project.midiClips[i];
             if (! (midiClip.trackId == owningTrack.id))
                 continue;
 
-            std::vector<ScheduledMidiEvent> timeline;
-            if (flattenMidiClipForProjection (midiClip,
-                                              TempoMapView { project.tempoMap.data(), project.tempoMap.size() },
-                                              project.sampleRate,
-                                              timeline)
-                != MidiFlattenStatus::Ok)
+            MidiScheduleBuildResult midiSchedule = buildMidiSchedule (midiClip,
+                TempoMapView { project.tempoMap.data(), project.tempoMap.size() }, project.sampleRate);
+            if (! midiSchedule.ok())
             {
                 if (error != nullptr)
                     *error = { ProjectMixerProjectionError::Code::MidiProjectionFailed, i, 0,
@@ -678,7 +677,8 @@ template <typename ClipSourceProvider>
             if (! detail::registerProjectMixerNodeId (usedIds, midiSourceId, i, ProjectMixerNodeRole::MidiSource, error))
                 return false;
 
-            auto midiSource = std::make_unique<DecodedMidiClipNode> (midiSourceId, std::move (timeline));
+            auto midiSource = std::make_unique<DecodedMidiClipNode> (
+                midiSourceId, std::move (midiSchedule.schedule), allowLiveMidiTracking);
             trackMidiSources.push_back (midiSource.get());
             clipSources.push_back (std::move (midiSource));
         }

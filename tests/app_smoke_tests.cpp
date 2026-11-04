@@ -17,6 +17,146 @@
 #include <string_view>
 #include <vector>
 
+TEST_CASE ("playing MIDI note edits preserve held instrument and FX state, publish the changed onset and undo durably",
+           "[ui][app][midi-live]")
+{
+    using namespace yesdaw::engine;
+    const auto entity = [] (std::uint8_t value) {
+        EntityId id;
+        id.bytes.back() = value;
+        return id;
+    };
+    Project song;
+    song.id = entity (1);
+    song.sampleRate = SampleRate { 48000.0 };
+    song.tempoMap = { TempoChange { 0, 120.0 } };
+    song.meterMap = { MeterChange { 0, 4, 4 } };
+    Track track;
+    track.id = entity (4);
+    track.strip.name = "MIDI continuity";
+    track.instrumentKind = TrackInstrumentKind::SimpleSynth;
+    FxInsert delay;
+    delay.id = entity (6);
+    delay.kind = FxKind::Delay;
+    track.strip.fxChain.push_back (delay);
+    song.tracks.push_back (track);
+    MidiClip clip;
+    clip.id = entity (7);
+    clip.trackId = track.id;
+    clip.timeBase = TimeBase::SampleLocked;
+    clip.timelineLength = 48000;
+    Note held;
+    held.id = entity (8);
+    held.startTick = 0;
+    held.lengthTicks = 36000;
+    held.key = 60;
+    held.pitchNote = 60.0;
+    held.normalizedVelocity = 0.6;
+    Note later = held;
+    later.id = entity (9);
+    later.startTick = 24000;
+    later.lengthTicks = 2048;
+    later.key = 67;
+    later.pitchNote = 67.0;
+    clip.notes = { held, later };
+    song.midiClips.push_back (clip);
+    REQUIRE (song.hasValidAssetClipIndirection());
+
+    const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+    const auto bundle = std::filesystem::temp_directory_path()
+        / ("yesdaw-midi-live-" + std::to_string (stamp) + ".yesdaw");
+    {
+        yesdaw::persistence::ProjectBundleDb db;
+        REQUIRE (yesdaw::persistence::ProjectBundleDb::openOrCreateBundle (bundle, db).ok());
+        REQUIRE (db.writeProjectSnapshot (song).ok());
+    }
+    {
+        yesdaw::ui::UiAppModel edited;
+        yesdaw::ui::UiAppModel control;
+        REQUIRE (edited.loadProjectBundle (bundle, {}).ok());
+        REQUIRE (control.loadProjectBundle (bundle, {}).ok());
+        REQUIRE (edited.dispatch (yesdaw::ui::UiActionId::TransportPlay).dispatched);
+        REQUIRE (control.dispatch (yesdaw::ui::UiActionId::TransportPlay).dispatched);
+        const auto render = [] (yesdaw::ui::UiAppModel& model) {
+            std::array<float, 256> block {};
+            float* outputs[2] = { block.data(), block.data() + 128 };
+            REQUIRE (model.processDeviceAudioBlock (outputs, 2, 128));
+            model.serviceLiveMidiEdits();
+            model.refreshTransportSnapshot();
+            return block;
+        };
+        bool sounded = false;
+        for (int block = 0; block < 128; ++block)
+        {
+            const auto expected = render (control);
+            REQUIRE (render (edited) == expected);
+            for (float value : expected)
+                sounded = sounded || value != 0.0f;
+        }
+        REQUIRE (sounded);
+        REQUIRE (edited.selectPianoRollNote (clip.id, later.id).dispatched);
+        const auto replacements = edited.playbackReplaceCount();
+        const auto refuseSave = [&] (bool refuse) {
+            sqlite3* connection = nullptr;
+            const std::string dbPath = yesdaw::io::utf8Text (bundle / "project.db");
+            REQUIRE (sqlite3_open (dbPath.c_str(), &connection) == SQLITE_OK);
+            const char* sql = refuse
+                ? "CREATE TRIGGER refuse_live_note_save BEFORE DELETE ON midi_notes BEGIN SELECT RAISE(ABORT, 'save refused'); END;"
+                : "DROP TRIGGER refuse_live_note_save;";
+            REQUIRE (sqlite3_exec (connection, sql, nullptr, nullptr, nullptr) == SQLITE_OK);
+            REQUIRE (sqlite3_close (connection) == SQLITE_OK);
+        };
+        refuseSave (true);
+        REQUIRE_FALSE (edited.moveSelectedPianoRollNotesBy (1024, 0).dispatched);
+        REQUIRE (edited.project().midiClips[0].notes == clip.notes);
+        REQUIRE_FALSE (edited.context().canUndo);
+        REQUIRE (edited.playbackReplaceCount() == replacements);
+        REQUIRE (render (edited) == render (control));
+        refuseSave (false);
+        REQUIRE (edited.moveSelectedPianoRollNotesBy (2048, 0).dispatched);
+        REQUIRE (edited.playbackReplaceCount() == replacements);
+        bool changedOnsetHeard = false;
+        for (int block = 0; block < 100; ++block)
+        {
+            const auto begin = control.context().playheadFrame;
+            const auto expected = render (control);
+            const auto actual = render (edited);
+            REQUIRE (edited.context().isPlaying);
+            REQUIRE (edited.context().playheadFrame == control.context().playheadFrame);
+            if (begin + 128 <= later.startTick)
+                REQUIRE (actual == expected);   // running oscillator, envelope and feedback history survive
+            else if (begin >= later.startTick && begin + 128 <= later.startTick + 2048)
+                changedOnsetHeard = changedOnsetHeard || actual != expected;
+        }
+        REQUIRE (changedOnsetHeard);   // keeping the old schedule is not a passing implementation
+        REQUIRE (edited.dispatch (yesdaw::ui::UiActionId::EditUndo).dispatched);
+        REQUIRE (edited.project().midiClips[0].notes[1].startTick == later.startTick);
+        REQUIRE (edited.playbackReplaceCount() == replacements);
+        (void) render (edited);
+        REQUIRE (edited.dispatch (yesdaw::ui::UiActionId::EditRedo).dispatched);
+        REQUIRE (edited.playbackReplaceCount() == replacements);
+        (void) render (edited);
+        // The existing no-topology budget also applies to a hundred consecutive note edits.
+        for (int index = 0; index < 100; ++index)
+        {
+            REQUIRE (edited.moveSelectedPianoRollNotesBy (index % 2 == 0 ? 32 : -32, 0).dispatched);
+            (void) render (edited);
+            REQUIRE (edited.playbackReplaceCount() == replacements);
+        }
+        REQUIRE (edited.playbackLiveMidiSchedulesApplied() == 103);
+    }
+    {
+        yesdaw::ui::UiAppModel reopened;
+        REQUIRE (reopened.loadProjectBundle (bundle, {}).ok());
+        REQUIRE (reopened.project().midiClips[0].notes[1].startTick == later.startTick + 2048);
+    }
+    std::error_code error;
+    REQUIRE (std::filesystem::equivalent (bundle.parent_path(), std::filesystem::temp_directory_path()));
+    REQUIRE (bundle.filename().string().starts_with ("yesdaw-midi-live-"));
+    std::filesystem::remove_all (bundle, error);
+    REQUIRE_FALSE (error);
+}
+
 using Catch::Approx;
 using yesdaw::engine::Asset;
 using yesdaw::engine::AssetContentHash;

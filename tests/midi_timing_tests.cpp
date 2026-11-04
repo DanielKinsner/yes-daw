@@ -12,11 +12,13 @@
 #include "engine/plugin/PluginNode.h"
 
 #include <catch2/catch_approx.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <span>
 #include <vector>
@@ -939,4 +941,304 @@ TEST_CASE ("A MidiClip sourced by DecodedMidiClipNode reaches an instrument by t
     const std::vector<float> block2 = render (*graph, std::span<const Event> {}, kBlock);
     for (int i = 0; i < kBlock; ++i)
         REQUIRE (block2[static_cast<std::size_t> (i)] == Approx (i == 4 ? 1.0f : 0.0f).margin (1.0e-6f));
+}
+
+namespace {
+
+std::unique_ptr<const yesdaw::engine::MidiSchedule> liveSchedule (MidiClip clip)
+{
+    clip.timeBase = yesdaw::engine::TimeBase::SampleLocked;
+    auto built = yesdaw::engine::buildMidiSchedule (clip, {}, SampleRate { 48000.0 });
+    REQUIRE (built.ok());
+    REQUIRE (built.schedule->liveEligible);
+    return std::move (built.schedule);
+}
+
+std::vector<Event> renderScheduleSource (DecodedMidiClipNode& source, std::int64_t start,
+                                         int frames, bool silenced = false)
+{
+    std::array<Event, DecodedMidiClipNode::kMaxEventsPerBlock> storage {};
+    EventStream stream { std::span<Event> (storage), 0 };
+    Transport transport;
+    transport.hasTimelineFrame = true;
+    transport.timelineFrame = start;
+    transport.clipsSilenced = silenced;
+    source.process (ProcessArgs { AudioBlock {}, stream, transport, frames });
+    return { stream.events().begin(), stream.events().end() };
+}
+
+void installSchedule (DecodedMidiClipNode& source, MidiClip clip)
+{
+    auto next = liveSchedule (std::move (clip));
+    const yesdaw::engine::MidiSchedule* previous = nullptr;
+    REQUIRE (source.exchangeSchedule (next.get(), previous));
+    (void) next.release();
+    // Destroy the old schedule NOW: the next render must use owned active-note identities.
+    const std::unique_ptr<const yesdaw::engine::MidiSchedule> retired (previous);
+}
+
+class MidiOrderProbe final : public Node
+{
+public:
+    explicit MidiOrderProbe (Node* input) : input_ { input } {}
+    yesdaw::engine::NodeProperties properties() const noexcept override
+    {
+        return { true, false, 1, 0, 65004, false };
+    }
+    std::span<Node* const> directInputs() const noexcept override { return input_; }
+    void prepare (double, int) override {}
+    void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
+    {
+        count = args.events.size();
+        for (std::size_t i = 0; i < count; ++i)
+            captured[i] = args.events.events()[i];
+        for (int c = 0; c < args.audio.numChannels; ++c)
+            for (int i = 0; i < args.numFrames; ++i)
+                args.audio.channels[c][i] = 0.0f;
+    }
+    void reset() noexcept override { count = 0; }
+    void release() override {}
+    std::array<Event, 1024> captured {};
+    std::size_t count = 0;
+private:
+    std::array<Node*, 1> input_;
+};
+
+} // namespace
+
+TEST_CASE ("Live MIDI retains a held identity and adopts its new note end at the actual boundary",
+           "[midi][midi-schedule]")
+{
+    MidiClip clip = clipWithNotes ({ note (2, 0, 64) }, 0, 128);
+    DecodedMidiClipNode source (64000, liveSchedule (clip));
+    source.prepare (48000.0, 16);
+    REQUIRE (renderScheduleSource (source, 0, 8).size() == 1u);
+    REQUIRE (renderScheduleSource (source, 8, 8).empty());
+
+    SECTION ("future end is adopted without retrigger")
+    {
+        clip.notes.front().lengthTicks = 20;
+        installSchedule (source, clip);
+        const auto events = renderScheduleSource (source, 16, 8);
+        REQUIRE (events.size() == 1u);
+        REQUIRE (events[0].type == EventType::NoteOff);
+        REQUIRE (events[0].timeInBlock == 4u);
+        REQUIRE_FALSE (source.emittedReconciliation());
+    }
+    SECTION ("end already behind the later Audio boundary releases at zero")
+    {
+        clip.notes.front().lengthTicks = 12;
+        installSchedule (source, clip);
+        const auto events = renderScheduleSource (source, 16, 8);
+        REQUIRE (events.size() == 1u);
+        REQUIRE (events[0].type == EventType::NoteOff);
+        REQUIRE (events[0].timeInBlock == 0u);
+        REQUIRE (events[0].voice.noteId == voiceNoteIdFromEntityId (id (2)));
+        REQUIRE (source.emittedReconciliation());
+    }
+}
+
+TEST_CASE ("Live MIDI releases removed or changed active notes and never chases a past onset",
+           "[midi][midi-schedule]")
+{
+    MidiClip clip = clipWithNotes ({ note (2, 0, 64) }, 0, 128);
+    DecodedMidiClipNode source (64000, liveSchedule (clip));
+    source.prepare (48000.0, 16);
+    REQUIRE (renderScheduleSource (source, 0, 8).size() == 1u);
+    SECTION ("removed") { clip.notes.clear(); }
+    SECTION ("changed pitch and velocity")
+    {
+        clip.notes[0].key = 62;
+        clip.notes[0].pitchNote = 62.0;
+        clip.notes[0].normalizedVelocity = 0.5;
+    }
+    clip.notes.push_back (note (3, 4, 24)); // new past onset: no chase
+    clip.notes.push_back (note (4, 14, 2)); // ordinary future onset still sounds
+    installSchedule (source, clip);
+    const auto events = renderScheduleSource (source, 8, 8);
+    REQUIRE (events.size() == 2u);
+    REQUIRE (events[0].type == EventType::NoteOff);
+    REQUIRE (events[0].timeInBlock == 0u);
+    REQUIRE (events[0].voice.key == 60);
+    REQUIRE (events[1].type == EventType::NoteOn);
+    REQUIRE (events[1].timeInBlock == 6u);
+    REQUIRE (events[1].voice.noteId == voiceNoteIdFromEntityId (id (4)));
+}
+
+TEST_CASE ("Queued MIDI swaps reconcile only the final schedule against actually emitted notes",
+           "[midi][midi-schedule]")
+{
+    const MidiClip clip = clipWithNotes ({ note (2, 0, 64) }, 0, 128);
+    DecodedMidiClipNode source (64000, liveSchedule (clip));
+    source.prepare (48000.0, 8);
+    REQUIRE (renderScheduleSource (source, 0, 8).size() == 1u);
+    MidiClip removed = clip;
+    removed.notes.clear();
+    installSchedule (source, removed);
+    installSchedule (source, clip);
+    REQUIRE (renderScheduleSource (source, 8, 8).empty());
+    REQUIRE_FALSE (source.emittedReconciliation());
+}
+
+TEST_CASE ("MIDI seek loop and silenced segments service addressed pending releases",
+           "[midi][midi-schedule]")
+{
+    const MidiClip clip = clipWithNotes ({ note (2, 0, 64) }, 0, 128);
+    DecodedMidiClipNode source (64000, liveSchedule (clip));
+    source.prepare (48000.0, 8);
+    REQUIRE (renderScheduleSource (source, 0, 8).size() == 1u);
+    const auto seek = renderScheduleSource (source, 32, 8);
+    REQUIRE (seek.size() == 1u);
+    REQUIRE (seek[0].type == EventType::NoteOff);
+    REQUIRE (seek[0].timeInBlock == 0u);
+    REQUIRE (renderScheduleSource (source, 0, 8)[0].type == EventType::NoteOn);
+    source.markDiscontinuity(); // Stop/Resume at an unchanged playhead
+    const auto silenced = renderScheduleSource (source, 8, 8, true);
+    REQUIRE (silenced.size() == 1u);
+    REQUIRE (silenced[0].type == EventType::NoteOff);
+    REQUIRE (silenced[0].timeInBlock == 0u);
+    REQUIRE (source.cursorFrame() == 8);
+    REQUIRE (renderScheduleSource (source, 8, 8, true).empty());
+    REQUIRE (renderScheduleSource (source, 8, 8).empty());
+    REQUIRE (renderScheduleSource (source, 0, 8)[0].type == EventType::NoteOn);
+}
+
+TEST_CASE ("MIDI Track certificate bounds every source and merge at 1024 versus 1025 events",
+           "[midi][midi-schedule]")
+{
+    using namespace yesdaw::engine;
+    Project project;
+    project.sampleRate = SampleRate { 48000.0 };
+    Track track;
+    track.id = id (90);
+    project.tracks.push_back (track);
+    MidiClip a = clipWithNotes ({}, 0, 128);
+    a.timeBase = TimeBase::SampleLocked;
+    MidiClip b = a;
+    b.id = id (91);
+    for (std::uint64_t i = 0; i < 341u; ++i)
+    {
+        Note n = note (2, 0, 64);
+        n.id = EntityId::fromBigEndianParts (0, 1000u + i);
+        (i < 170u ? a : b).notes.push_back (n);
+    }
+    MidiControlEvent control;
+    control.id = id (92);
+    control.number = 1;
+    b.controlEvents.push_back (control);
+    project.midiClips = { a, b };
+    const auto current = midiTrackBounds (project, track.id);
+    REQUIRE (current.ordinaryEvents == 683u);
+    REQUIRE (current.noteOns == 341u);
+    REQUIRE (current.fits (341u));
+    REQUIRE_FALSE (current.fits (342u));
+    REQUIRE_FALSE (current.fits (std::numeric_limits<std::size_t>::max()));
+    control.id = id (93);
+    control.tick = 1;
+    project.midiClips[1].controlEvents.push_back (control);
+    REQUIRE_FALSE (midiTrackBounds (project, track.id).fits (341u));
+    project.midiClips[1].controlEvents.pop_back();
+    project.midiClips[1].notes[0].id = project.midiClips[0].notes[0].id;
+    REQUIRE_FALSE (midiTrackBounds (project, track.id).liveEligible);
+    project.midiClips = { a, b };
+    project.midiClips[0].loopLengthTicks = 64;
+    REQUIRE_FALSE (midiTrackBounds (project, track.id).liveEligible);
+    auto looped = buildMidiSchedule (project.midiClips[0], {}, project.sampleRate);
+    REQUIRE (looped.ok()); // fallback projection still has the original loop timeline
+    std::vector<ScheduledMidiEvent> expected;
+    REQUIRE (flattenMidiClipForProjection (project.midiClips[0], {}, project.sampleRate, expected)
+             == MidiFlattenStatus::Ok);
+    REQUIRE (looped.schedule->timeline.size() == expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i)
+    {
+        REQUIRE (looped.schedule->timeline[i].frame == expected[i].frame);
+        REQUIRE (looped.schedule->timeline[i].event.type == expected[i].event.type);
+        REQUIRE (looped.schedule->timeline[i].event.voice.noteId == expected[i].event.voice.noteId);
+    }
+}
+
+TEST_CASE ("MIDI merge prioritizes boundary controllers and releases only during actual reconciliation",
+           "[midi][midi-schedule]")
+{
+    using namespace yesdaw::engine;
+    const bool reconcile = GENERATE (false, true);
+    const Tick boundary = reconcile ? 8 : 0;
+    MidiClip a = clipWithNotes ({ note (2, 0, 64) }, 0, 128);
+    MidiClip b = clipWithNotes ({}, 0, 128);
+    b.id = id (10);
+    MidiControlEvent control;
+    control.id = id (11);
+    control.tick = boundary;
+    control.number = 1;
+    b.controlEvents.push_back (control);
+    b.notes.push_back (note (15, 16, 4));
+    MidiClip c = clipWithNotes ({ note (12, boundary, 0), note (13, boundary + 2, 3) }, 0, 128);
+    c.id = id (14);
+    control.id = id (16);
+    control.tick = 16;
+    c.controlEvents.push_back (control);
+    auto first = std::make_unique<DecodedMidiClipNode> (65000, liveSchedule (a));
+    DecodedMidiClipNode* const firstPtr = first.get();
+    auto second = std::make_unique<DecodedMidiClipNode> (65001, liveSchedule (b));
+    auto third = std::make_unique<DecodedMidiClipNode> (65002, liveSchedule (c));
+    auto merge = std::make_unique<MidiMergeNode> (65003,
+        std::vector<Node*> { first.get(), second.get(), third.get() });
+    auto probe = std::make_unique<MidiOrderProbe> (merge.get());
+    MidiOrderProbe* const probePtr = probe.get();
+    auto master = std::make_unique<MasterNode> (kMasterId, 1);
+    master->setInputNodes ({ probe.get() });
+    GraphBuilder::Inputs inputs;
+    inputs.id = 65;
+    inputs.masterNodeId = kMasterId;
+    inputs.sampleRate = 48000.0;
+    inputs.maxBlockSize = 8;
+    inputs.nodes.push_back (std::move (first));
+    inputs.nodes.push_back (std::move (second));
+    inputs.nodes.push_back (std::move (third));
+    inputs.nodes.push_back (std::move (merge));
+    inputs.nodes.push_back (std::move (probe));
+    inputs.nodes.push_back (std::move (master));
+    auto graph = GraphBuilder::build (std::move (inputs));
+    REQUIRE (graph != nullptr);
+    REQUIRE (graph->debugCountNodesOfKind (CompiledNodeKind::MidiSource) == 4u);
+    std::array<float, 8> output {};
+    Transport transport;
+    transport.hasTimelineFrame = true;
+    float* channels[1] = { output.data() };
+    EventStream empty;
+    graph->process (channels, 1, 8, empty, transport);
+    if (reconcile)
+    {
+        a.notes.clear();
+        installSchedule (*firstPtr, a);
+        transport.timelineFrame = boundary;
+        graph->process (channels, 1, 8, empty, transport);
+        REQUIRE (probePtr->count == 6u);
+        REQUIRE (probePtr->captured[0].type == EventType::Midi1);
+        REQUIRE (probePtr->captured[1].type == EventType::NoteOff);
+        REQUIRE (probePtr->captured[1].voice.noteId == voiceNoteIdFromEntityId (id (2)));
+    }
+    else
+    {
+        REQUIRE (probePtr->count == 6u);
+        REQUIRE (probePtr->captured[0].type == EventType::NoteOn); // existing stable input tie
+        REQUIRE (probePtr->captured[1].type == EventType::Midi1);
+    }
+    REQUIRE (probePtr->captured[2].type == EventType::NoteOn);
+    REQUIRE (probePtr->captured[3].type == EventType::NoteOff); // zero-length stays On then Off
+    REQUIRE (probePtr->captured[4].timeInBlock == 2u);
+    REQUIRE (probePtr->captured[5].timeInBlock == 5u);
+    if (reconcile)
+    {
+        // The first source's last-process flag is still true, but mute skips its next
+        // process. Its empty current producer slot must leave ordinary stable ties alone.
+        REQUIRE (graph->setMuted (65000, true));
+        transport.timelineFrame = 16;
+        graph->process (channels, 1, 8, empty, transport);
+        REQUIRE (probePtr->count == 3u);
+        REQUIRE (probePtr->captured[0].type == EventType::NoteOn);
+        REQUIRE (probePtr->captured[0].voice.noteId == voiceNoteIdFromEntityId (id (15)));
+        REQUIRE (probePtr->captured[1].type == EventType::Midi1);
+        REQUIRE (probePtr->captured[2].timeInBlock == 4u);
+    }
 }

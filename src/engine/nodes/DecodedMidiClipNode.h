@@ -8,11 +8,13 @@
 
 #pragma once
 
-#include "engine/Midi.h"
+#include "engine/MidiSchedule.h"
 #include "engine/Node.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
+#include <memory>
 #include <span>
 #include <utility>
 #include <vector>
@@ -24,12 +26,24 @@ class DecodedMidiClipNode final : public Node
 public:
     // Hard ceiling on Events emitted per Block; matches the graph's per-slot Event capacity so a copy into
     // the slot can never overflow. Excess Events in a single Block are dropped (bounded, never UB).
-    static constexpr std::size_t kMaxEventsPerBlock = 1024;
+    static constexpr std::size_t kMaxEventsPerBlock = kMidiScheduleEventCapacity;
 
-    DecodedMidiClipNode (NodeId id, std::vector<ScheduledMidiEvent> timeline) noexcept
-        : id_ (id), timeline_ (std::move (timeline))
+    DecodedMidiClipNode (NodeId id, std::vector<ScheduledMidiEvent> timeline)
+        : id_ (id)
     {
+        auto schedule = std::make_unique<MidiSchedule>();
+        schedule->timeline = std::move (timeline);
+        schedule_ = schedule.release();
     }
+
+    DecodedMidiClipNode (NodeId id, std::unique_ptr<const MidiSchedule> schedule,
+                         bool allowLiveTracking = true) noexcept
+        : id_ (id), schedule_ (schedule.release()),
+          liveTrackingAllowed_ (allowLiveTracking && schedule_ != nullptr && schedule_->liveEligible) {}
+
+    ~DecodedMidiClipNode() override { delete schedule_; }
+    DecodedMidiClipNode (const DecodedMidiClipNode&) = delete;
+    DecodedMidiClipNode& operator= (const DecodedMidiClipNode&) = delete;
 
     NodeProperties properties() const noexcept override
     {
@@ -42,83 +56,147 @@ public:
     void prepare (double, int) override
     {
         cursorFrame_ = 0;
-        nextIndex_   = 0;
+        activeCount_ = 0;
+        hasRendered_ = false;
+        reconcilePending_ = false;
+        discontinuityPending_ = false;
+        emittedReconciliation_ = false;
         scratch_.assign (kMaxEventsPerBlock, Event {});
+        active_.assign (liveTrackingAllowed_ ? kMaxEventsPerBlock : 0,
+                        MidiNoteSpan {});
     }
 
     void process (const ProcessArgs& args) noexcept YESDAW_RT_HOT override
     {
         silenceAudio (args);
-
-        // G3.2: a stopped transport carrying live notes - nothing scheduled sounds, the cursor holds.
-        if (args.numFrames <= 0 || args.transport.clipsSilenced)
+        emittedReconciliation_ = false;
+        if (args.numFrames <= 0 || schedule_ == nullptr)
         {
             (void) args.events.replaceEvents (std::span<const Event> {});
             return;
         }
 
-        const bool hasTransportFrame = args.transport.hasTimelineFrame;
-        const std::int64_t blockStart = hasTransportFrame ? args.transport.timelineFrame : cursorFrame_;
-        const std::int64_t blockEnd   = blockStart + static_cast<std::int64_t> (args.numFrames);
-
-        if (hasTransportFrame)
-            nextIndex_ = firstEventIndexAtOrAfter (blockStart);
-
+        const std::int64_t blockStart = args.transport.hasTimelineFrame ? args.transport.timelineFrame : cursorFrame_;
+        const std::int64_t blockEnd = blockStart > std::numeric_limits<std::int64_t>::max() - args.numFrames
+            ? std::numeric_limits<std::int64_t>::max() : blockStart + args.numFrames;
+        const bool discontinuous = discontinuityPending_ || args.transport.clipsSilenced
+            || (hasRendered_ && blockStart != cursorFrame_);
         std::size_t written = 0;
-        while (nextIndex_ < timeline_.size() && timeline_[nextIndex_].frame < blockEnd)
+
+        // At offset zero, unchanged controllers precede addressed releases. Computing both
+        // ends up front also makes dense unsupported overflow O(log E + capacity), not O(E).
+        std::size_t next = schedule_->firstEventAtOrAfter (blockStart);
+        const std::size_t end = schedule_->firstEventAtOrAfter (blockEnd);
+        if (! args.transport.clipsSilenced)
+            while (next < end && schedule_->timeline[next].frame == blockStart
+                   && schedule_->timeline[next].event.type == EventType::Midi1 && written < scratch_.size())
+                emitOrdinary (next++, blockStart, written);
+
+        if (discontinuous || reconcilePending_)
         {
-            const ScheduledMidiEvent& scheduled = timeline_[nextIndex_];
-            if (scheduled.frame >= blockStart && written < scratch_.size())
+            std::size_t keep = 0;
+            for (std::size_t i = 0; i < activeCount_; ++i)
             {
-                Event event = scheduled.event;
-                event.timeInBlock = static_cast<std::uint32_t> (scheduled.frame - blockStart);
-                scratch_[written++] = event;
+                const MidiNoteSpan& active = active_[i];
+                const MidiNoteSpan* const replacement = discontinuous ? nullptr
+                    : schedule_->findSpan (active.noteId, active.occurrence);
+                if (replacement != nullptr && replacement->startFrame <= blockStart && blockStart < replacement->endFrame
+                    && midiVoiceAddressesEqual (replacement->onset.voice, active.onset.voice)
+                    && replacement->onset.payload.note.pitchNote == active.onset.payload.note.pitchNote
+                    && replacement->onset.payload.note.normalizedVelocity == active.onset.payload.note.normalizedVelocity)
+                    active_[keep++] = *replacement;
+                else if (written < scratch_.size())
+                {
+                    Event off = active.onset;
+                    off.type = EventType::NoteOff;
+                    off.timeInBlock = 0;
+                    off.payload.note.normalizedVelocity = 0.0;
+                    scratch_[written++] = off;
+                    emittedReconciliation_ = true;
+                }
             }
-            ++nextIndex_;
+            activeCount_ = keep;
+            reconcilePending_ = false;
+            discontinuityPending_ = false;
         }
 
+        if (! args.transport.clipsSilenced)
+        {
+            while (next < end && written < scratch_.size())
+                emitOrdinary (next++, blockStart, written);
+            cursorFrame_ = blockEnd;
+            hasRendered_ = true;
+        }
         (void) args.events.replaceEvents (std::span<const Event> (scratch_.data(), written));
-        cursorFrame_ = blockEnd;
     }
 
     void reset() noexcept override
     {
         cursorFrame_ = 0;
-        nextIndex_   = 0;
+        discontinuityPending_ = true;
     }
 
     void release() override
     {
-        timeline_.clear();
-        timeline_.shrink_to_fit();
+        delete schedule_;
+        schedule_ = nullptr;
         scratch_.clear();
         scratch_.shrink_to_fit();
+        active_.clear();
+        active_.shrink_to_fit();
+        activeCount_ = 0;
     }
 
     [[nodiscard]] std::int64_t cursorFrame() const noexcept { return cursorFrame_; }
-    [[nodiscard]] std::size_t eventCount() const noexcept { return timeline_.size(); }
+    [[nodiscard]] std::size_t eventCount() const noexcept { return schedule_ == nullptr ? 0 : schedule_->timeline.size(); }
+
+    // AUDIO only. Ownership of previous passes to Runtime; no active state borrows from it.
+    [[nodiscard]] bool exchangeSchedule (const MidiSchedule* next,
+                                          const MidiSchedule*& previous) noexcept YESDAW_RT_HOT
+    {
+        if (next == nullptr || schedule_ == nullptr || ! liveTrackingAllowed_ || ! next->liveEligible
+            || next->clipId != schedule_->clipId || next->trackId != schedule_->trackId)
+            return false;
+        previous = schedule_;
+        schedule_ = next;
+        reconcilePending_ = true;
+        return true;
+    }
+
+    void markDiscontinuity() noexcept YESDAW_RT_HOT { discontinuityPending_ = true; }
+    [[nodiscard]] bool emittedReconciliation() const noexcept YESDAW_RT_HOT { return emittedReconciliation_; }
 
 private:
-    [[nodiscard]] std::size_t firstEventIndexAtOrAfter (std::int64_t frame) const noexcept YESDAW_RT_HOT
+    [[nodiscard]] std::size_t activeIndex (const MidiNoteSpan& span) const noexcept YESDAW_RT_HOT
     {
-        std::size_t first = 0;
-        std::size_t count = timeline_.size();
-        while (count > 0)
-        {
-            const std::size_t step = count / 2u;
-            const std::size_t mid = first + step;
-            if (timeline_[mid].frame < frame)
-            {
-                first = mid + 1u;
-                count -= step + 1u;
-            }
-            else
-            {
-                count = step;
-            }
-        }
+        for (std::size_t i = 0; i < activeCount_; ++i)
+            if (active_[i].noteId == span.noteId && active_[i].occurrence == span.occurrence)
+                return i;
+        return kNoMidiSpan;
+    }
 
-        return first;
+    void emitOrdinary (std::size_t index, std::int64_t blockStart,
+                       std::size_t& written) noexcept YESDAW_RT_HOT
+    {
+        const ScheduledMidiEvent& scheduled = schedule_->timeline[index];
+        const std::size_t spanIndex = liveTrackingAllowed_ ? schedule_->eventToSpan[index] : kNoMidiSpan;
+        if (spanIndex != kNoMidiSpan)
+        {
+            const MidiNoteSpan& span = schedule_->spans[spanIndex];
+            const std::size_t active = activeIndex (span);
+            if (scheduled.event.type == EventType::NoteOn)
+            {
+                if (active != kNoMidiSpan)
+                    return;
+                if (activeCount_ < active_.size())
+                    active_[activeCount_++] = span;
+            }
+            else if (scheduled.event.type == EventType::NoteOff && active != kNoMidiSpan)
+                active_[active] = active_[--activeCount_];
+        }
+        Event event = scheduled.event;
+        event.timeInBlock = static_cast<std::uint32_t> (scheduled.frame - blockStart);
+        scratch_[written++] = event;
     }
 
     static void silenceAudio (const ProcessArgs& args) noexcept YESDAW_RT_HOT
@@ -135,10 +213,16 @@ private:
     }
 
     NodeId                          id_ = 0;
-    std::vector<ScheduledMidiEvent> timeline_;       // sorted absolute-frame timeline (control-side built)
+    const MidiSchedule*            schedule_ = nullptr; // sole owner until exchanged into retirement
     std::vector<Event>              scratch_;        // pre-sized per-Block emit buffer (prepare() owns it)
+    std::vector<MidiNoteSpan>        active_;         // fixed-size storage; copied identities, no borrowed spans
+    std::size_t                     activeCount_ = 0;
     std::int64_t                    cursorFrame_ = 0;
-    std::size_t                     nextIndex_   = 0;
+    bool                            hasRendered_ = false;
+    bool                            reconcilePending_ = false;
+    bool                            discontinuityPending_ = false;
+    bool                            emittedReconciliation_ = false;
+    bool                            liveTrackingAllowed_ = false; // initial whole-Track certificate, never widened on Audio
 };
 
 } // namespace yesdaw::engine

@@ -84,6 +84,14 @@ public:
     }
     std::uint64_t schedulesApplied() const noexcept { return runtime_.schedulesApplied(); }
 
+    [[nodiscard]] bool postSetMidiSchedule (const CompiledGraph* expectedGraph, NodeId node,
+                                            std::unique_ptr<const MidiSchedule> schedule) noexcept
+    {
+        return runtime_.postSetMidiSchedule (expectedGraph, node, std::move (schedule));
+    }
+    std::uint64_t midiSchedulesApplied() const noexcept { return runtime_.midiSchedulesApplied(); }
+    std::uint64_t midiSchedulesRejected() const noexcept { return runtime_.midiSchedulesRejected(); }
+
     std::uint64_t processedGen() const noexcept { return runtime_.processedGen(); }
     std::uint64_t scalarsApplied() const noexcept { return runtime_.scalarsApplied(); }
 

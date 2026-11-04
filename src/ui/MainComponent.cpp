@@ -2067,6 +2067,7 @@ void MainComponent::serviceUiTick()
     }
     if (browserAuditionShown != appModel.auditioning())
         refreshBrowserAuditionState();
+    appModel.serviceLiveMidiEdits();
     appModel.refreshTransportSnapshot();
     // G3.10: the thru target follows the selection every tick; the input lamp holds for a moment
     // after the last played note (the counter is the device thread's, read relaxed).

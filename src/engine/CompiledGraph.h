@@ -25,6 +25,7 @@
 #include "engine/Automation.h"
 #include "engine/Node.h"
 #include "engine/nodes/CompressorNode.h"
+#include "engine/nodes/DecodedMidiClipNode.h"
 #include "engine/nodes/SamplerNode.h"   // G4.6: a ride's live instrument set
 #include "engine/nodes/SimpleSynthNode.h"
 #include "engine/nodes/DelayNode.h"
@@ -471,21 +472,43 @@ public:
                 Event* const merged = eventSlots[cn.eventInputSlot];
                 std::uint32_t cursors[kMaxEventInputsPerNode] = {};
                 std::uint32_t mergedCount = 0;
+                // ADR-0079 changes ties only when this Track actually emitted reconciliation
+                // releases. Ordinary renders keep their existing stable input-order law.
+                bool reconcileBoundary = false;
+                if (cn.kind == CompiledNodeKind::MidiSource)
+                    for (Node* input : cn.node->directInputs())
+                        if (const auto* source = dynamic_cast<const DecodedMidiClipNode*> (input))
+                        {
+                            // Mute can skip a source, leaving its last-process flag untouched.
+                            // Resolve its actual compiled producer slot, not a direct-input ordinal:
+                            // only this segment's nonempty output can carry reconciliation releases.
+                            const CompiledNode* const producer = findCompiledNode (source->properties().id);
+                            if (producer != nullptr && producer->eventOutputSlot != kNoEventSlot
+                                && producer->eventOutputSlot < numEventSlots_
+                                && eventCounts[producer->eventOutputSlot] != 0)
+                                reconcileBoundary = reconcileBoundary || source->emittedReconciliation();
+                        }
                 while (mergedCount < maxEventsPerBlock_)
                 {
                     int best = -1;
                     std::uint32_t bestTime = 0;
+                    unsigned bestPriority = 0;
                     for (std::uint16_t sIdx = 0; sIdx < cn.numEventInputs; ++sIdx)
                     {
                         const EventSlotIndex slot = sources[sIdx];
                         YESDAW_RT_FATAL (slot < numEventSlots_);
                         if (cursors[sIdx] >= eventCounts[slot])
                             continue;
-                        const std::uint32_t t = eventSlots[slot][cursors[sIdx]].timeInBlock;
-                        if (best < 0 || t < bestTime)
+                        const Event& candidate = eventSlots[slot][cursors[sIdx]];
+                        const std::uint32_t t = candidate.timeInBlock;
+                        const unsigned priority = candidate.type == EventType::Midi1 ? 0u
+                            : (candidate.type == EventType::NoteOff ? 1u : 2u);
+                        if (best < 0 || t < bestTime
+                            || (reconcileBoundary && t == 0 && bestTime == 0 && priority < bestPriority))
                         {
                             best = static_cast<int> (sIdx);
                             bestTime = t;
+                            bestPriority = priority;
                         }
                     }
                     if (best < 0)
@@ -698,6 +721,26 @@ public:
             return false;
         previous = schedule->exchangeSchedule (next);
         return true;
+    }
+
+    [[nodiscard]] bool applySetMidiSchedule (NodeId id, const MidiSchedule* next,
+                                             const MidiSchedule*& previous) const noexcept YESDAW_RT_HOT
+    {
+        const CompiledNode* const node = findCompiledNode (id);
+        if (node == nullptr || node->kind != CompiledNodeKind::MidiSource || node->node == nullptr)
+            return false;
+        auto* const source = dynamic_cast<DecodedMidiClipNode*> (node->node);
+        return source != nullptr && source->exchangeSchedule (next, previous);
+    }
+
+    // AUDIO only. A Stop/Locate may occur while Runtime rendering is deferred; retain
+    // pending addressed releases until the first actual (possibly silenced) graph segment.
+    void markMidiDiscontinuity() const noexcept YESDAW_RT_HOT
+    {
+        for (const CompiledNode& node : compiledNodes_)
+            if (node.kind == CompiledNodeKind::MidiSource && node.node != nullptr)
+                if (auto* source = dynamic_cast<DecodedMidiClipNode*> (node.node))
+                    source->markDiscontinuity();
     }
 
     [[nodiscard]] bool applySetPan (NodeId id, float pan) const noexcept YESDAW_RT_HOT

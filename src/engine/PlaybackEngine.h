@@ -409,6 +409,14 @@ public:
     }
     [[nodiscard]] std::uint64_t liveSchedulesApplied() const noexcept { return driver_.schedulesApplied(); }
 
+    [[nodiscard]] bool postLiveMidiSchedule (NodeId source,
+                                             std::unique_ptr<const MidiSchedule> schedule) noexcept
+    {
+        return liveGraph_ != nullptr && driver_.postSetMidiSchedule (liveGraph_, source, std::move (schedule));
+    }
+    [[nodiscard]] std::uint64_t liveMidiSchedulesApplied() const noexcept { return driver_.midiSchedulesApplied(); }
+    [[nodiscard]] std::uint64_t liveMidiSchedulesRejected() const noexcept { return driver_.midiSchedulesRejected(); }
+
     // Republish the whole ADR-0014 mute/solo/solo-safe mask from the Project's strip state onto
     // the RUNNING graph — the same one law the build path applies (applyProjectStripMuteMask),
     // through the graph's atomic mute words, so no command lane and no rebuild is needed.
@@ -620,11 +628,15 @@ private:
                 break;
 
             case TransportCommandType::Stop:
+                if (liveGraph_ != nullptr)
+                    liveGraph_->markMidiDiscontinuity();
                 playing_ = false;
                 playbackRate_ = 1;
                 break;
 
             case TransportCommandType::Locate:
+                if (liveGraph_ != nullptr)
+                    liveGraph_->markMidiDiscontinuity();
                 playheadFrame_ = command.a;
                 break;
 
