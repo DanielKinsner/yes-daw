@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <utility>
 #include <vector>
 
 namespace yesdaw::engine {
@@ -55,6 +56,72 @@ struct MusicalTime
 
     friend constexpr bool operator== (const MusicalTime&, const MusicalTime&) noexcept = default;
 };
+
+enum class TimeLookupStatus : std::uint8_t
+{
+    Ok,
+    InvalidInput,
+    InvalidMap,
+    Overflow,
+    NumericDomain
+};
+
+enum class TimeRounding : std::uint8_t { Floor, Nearest, Ceil };
+
+// Exact render/control-side boundary: whole + numerator/denominator. Fractions are proper,
+// not necessarily reduced. This introduces no stored fractional coordinates.
+struct RationalTick
+{
+    Tick          whole = 0;
+    std::uint32_t numerator = 0;
+    std::uint32_t denominator = 1;
+
+    friend constexpr bool operator== (const RationalTick&, const RationalTick&) noexcept = default;
+};
+
+// Timeline positions are nonnegative. Nearest ties go to the later Tick. Inputs are values so
+// the output may alias their original whole member; failure always resets the output.
+[[nodiscard]] constexpr TimeLookupStatus roundMusicalTime (MusicalTime time,
+                                                           TimeRounding rounding,
+                                                           Tick& out) noexcept
+{
+    out = 0;
+    if (time.tick < 0 || ! time.hasValidFraction())
+        return TimeLookupStatus::InvalidInput;
+    bool increment = false;
+    switch (rounding)
+    {
+        case TimeRounding::Floor: break;
+        case TimeRounding::Nearest: increment = time.frac >= 0.5; break;
+        case TimeRounding::Ceil: increment = time.frac > 0.0; break;
+        default: return TimeLookupStatus::InvalidInput;
+    }
+    if (increment && time.tick == std::numeric_limits<Tick>::max())
+        return TimeLookupStatus::Overflow;
+    out = time.tick + (increment ? 1 : 0);
+    return TimeLookupStatus::Ok;
+}
+
+[[nodiscard]] constexpr TimeLookupStatus roundRationalTick (RationalTick time,
+                                                           TimeRounding rounding,
+                                                           Tick& out) noexcept
+{
+    out = 0;
+    if (time.whole < 0 || time.denominator == 0 || time.numerator >= time.denominator)
+        return TimeLookupStatus::InvalidInput;
+    bool increment = false;
+    switch (rounding)
+    {
+        case TimeRounding::Floor: break;
+        case TimeRounding::Nearest: increment = time.numerator >= time.denominator - time.numerator; break;
+        case TimeRounding::Ceil: increment = time.numerator != 0; break;
+        default: return TimeLookupStatus::InvalidInput;
+    }
+    if (increment && time.whole == std::numeric_limits<Tick>::max())
+        return TimeLookupStatus::Overflow;
+    out = time.whole + (increment ? 1 : 0);
+    return TimeLookupStatus::Ok;
+}
 
 struct SnapGrid
 {
@@ -415,6 +482,37 @@ struct BarBeat
     std::int64_t beat = 1;
 };
 
+namespace detail {
+
+// Normalize a*b/c before multiplication, retaining finite tiny and huge intermediate ratios.
+// A nonzero result collapsing to zero is a named domain failure rather than a constant clock.
+[[nodiscard]] inline bool scaledTimeRatio (double a, double b, double c, double& out) noexcept
+{
+    out = 0.0;
+    if (! std::isfinite (a) || ! std::isfinite (b) || ! std::isfinite (c) || c == 0.0)
+        return false;
+    if (a == 0.0 || b == 0.0)
+        return true;
+    int aPower = 0, bPower = 0, cPower = 0;
+    const double aMantissa = std::frexp (a, &aPower);
+    const double bMantissa = std::frexp (b, &bPower);
+    const double cMantissa = std::frexp (c, &cPower);
+    out = std::ldexp ((aMantissa * bMantissa) / cMantissa, aPower + bPower - cPower);
+    return std::isfinite (out) && out != 0.0;
+}
+
+[[nodiscard]] inline TimeLookupStatus checkedNativeFrame (double frame, double& out) noexcept
+{
+    if (! std::isfinite (frame) || frame < 0.0)
+        return TimeLookupStatus::NumericDomain;
+    if (frame >= 0x1p63)
+        return TimeLookupStatus::Overflow;
+    out = frame;
+    return TimeLookupStatus::Ok;
+}
+
+} // namespace detail
+
 // V4: the bar/beat lengths at a SINGLE tempo/meter, in frames at the given sample rate. This is
 // the shared sub-law under computeBarBeat (the V2 transport readout's fallback) and the ruler's
 // fallback bar labels (V4) — both derive their grid from this exact float-operation order, so the
@@ -494,6 +592,8 @@ public:
         if (tempoMap.empty())
         {
             out.empty_ = true;
+            out.checkedBuilt_ = true;
+            out.checkedFailure_ = TimeLookupStatus::Ok;
             return true;
         }
 
@@ -519,11 +619,16 @@ public:
                                                     out.changes_[i].bpm,
                                                     out.changes_[i - 1u].curveToNext,
                                                     frame))
+            {
+                out.checkedFailure_ = TimeLookupStatus::NumericDomain;
                 return false;
+            }
 
             out.startFrame_[i] = frame;
         }
 
+        out.checkedBuilt_ = true;
+        out.checkedFailure_ = TimeLookupStatus::Ok;
         return true;
     }
 
@@ -615,6 +720,129 @@ public:
         return true;
     }
 
+    // Checked fractional lookups use native Frame doubles in [0, 2^63). Zero fractions retain
+    // the legacy whole-Tick operation order exactly; fractional work is local to its segment.
+    [[nodiscard]] TimeLookupStatus frameForMusicalTime (MusicalTime time, double& frameOut) const noexcept
+    {
+        frameOut = 0.0;
+        if (time.tick < 0 || ! time.hasValidFraction())
+            return TimeLookupStatus::InvalidInput;
+        if (! checkedBuilt_)
+            return checkedFailure_;
+        if (! empty_ && changes_.empty())
+            return TimeLookupStatus::InvalidMap;
+        double frame = 0.0;
+        if (! frameForTick (time.tick, frame))
+            return TimeLookupStatus::NumericDomain;
+        if (time.frac == 0.0)
+            return detail::checkedNativeFrame (frame, frameOut);
+        double acceptedWhole = 0.0;
+        const auto wholeStatus = detail::checkedNativeFrame (frame, acceptedWhole);
+        if (wholeStatus != TimeLookupStatus::Ok)
+            return wholeStatus;
+
+        const double k = 60.0 * sampleRate_.hz / static_cast<double> (kTicksPerQuarter);
+        if (! detail::isFinitePositive (k))
+            return TimeLookupStatus::NumericDomain;
+        double bpm = 120.0;
+        double slope = 0.0;
+        if (! empty_)
+        {
+            const auto upper = std::upper_bound (changes_.begin(), changes_.end(), time.tick,
+                [] (Tick tick, const TempoChange& change) noexcept { return tick < change.tick; });
+            const auto i = static_cast<std::size_t> (upper - changes_.begin()) - 1u;
+            bpm = changes_[i].bpm;
+            if (i + 1u < changes_.size() && changes_[i].curveToNext == TempoCurve::LinearRamp
+                && changes_[i + 1u].bpm != bpm)
+            {
+                const Tick length = changes_[i + 1u].tick - changes_[i].tick;
+                const Tick local = time.tick - changes_[i].tick;
+                slope = (changes_[i + 1u].bpm - bpm) / static_cast<double> (length);
+                if (slope == 0.0 || ! std::isfinite (slope))
+                    return TimeLookupStatus::NumericDomain;
+                // Anchor to the nearer endpoint, avoiding cancellation near a descending end.
+                bpm = local <= length / 2 ? bpm + slope * static_cast<double> (local)
+                    : changes_[i + 1u].bpm - slope * static_cast<double> (length - local);
+            }
+        }
+        if (! detail::isFinitePositive (bpm))
+            return TimeLookupStatus::NumericDomain;
+        double extra = 0.0;
+        if (slope == 0.0)
+        {
+            if (! detail::scaledTimeRatio (time.frac, k, bpm, extra))
+                return TimeLookupStatus::NumericDomain;
+        }
+        else
+        {
+            double relative = 0.0;
+            if (! detail::scaledTimeRatio (slope, time.frac, bpm, relative) || relative <= -1.0
+                || ! detail::scaledTimeRatio (k, std::log1p (relative), slope, extra))
+                return TimeLookupStatus::NumericDomain;
+        }
+        if (extra >= 0x1p63 - frame)
+            return TimeLookupStatus::Overflow;
+        return detail::checkedNativeFrame (frame + extra, frameOut);
+    }
+
+    [[nodiscard]] TimeLookupStatus musicalTimeForFrame (double frame, MusicalTime& timeOut) const noexcept
+    {
+        timeOut = MusicalTime {};
+        if (! std::isfinite (frame) || frame < 0.0)
+            return TimeLookupStatus::InvalidInput;
+        if (frame >= 0x1p63)
+            return TimeLookupStatus::Overflow;
+        if (! checkedBuilt_)
+            return checkedFailure_;
+        if (! empty_ && changes_.empty())
+            return TimeLookupStatus::InvalidMap;
+        const double k = 60.0 * sampleRate_.hz / static_cast<double> (kTicksPerQuarter);
+        if (! detail::isFinitePositive (k))
+            return TimeLookupStatus::NumericDomain;
+        Tick origin = 0;
+        std::size_t i = 0;
+        double local = frame;
+        double bpm = 120.0;
+        if (! empty_)
+        {
+            const auto upper = std::upper_bound (startFrame_.begin(), startFrame_.end(), frame);
+            i = upper == startFrame_.begin() ? 0u : static_cast<std::size_t> (upper - startFrame_.begin()) - 1u;
+            origin = changes_[i].tick;
+            local -= startFrame_[i];
+            bpm = changes_[i].bpm;
+        }
+        double delta = 0.0;
+        const bool ramp = ! empty_ && i + 1u < changes_.size()
+            && changes_[i].curveToNext == TempoCurve::LinearRamp && changes_[i + 1u].bpm != bpm;
+        if (ramp)
+        {
+            const double slope = (changes_[i + 1u].bpm - bpm)
+                / static_cast<double> (changes_[i + 1u].tick - origin);
+            double exponent = 0.0;
+            if (slope == 0.0 || ! detail::scaledTimeRatio (local, slope, k, exponent)
+                || ! detail::scaledTimeRatio (bpm, std::expm1 (exponent), slope, delta))
+                return TimeLookupStatus::NumericDomain;
+        }
+        else if (! detail::scaledTimeRatio (local, bpm, k, delta))
+            return TimeLookupStatus::NumericDomain;
+
+        // double(Tick::max) rounds UP to 2^63. Check that exact boundary BEFORE casting,
+        // then check integer origin addition; never add an absolute Tick in floating point.
+        if (! std::isfinite (delta) || delta < 0.0)
+            return TimeLookupStatus::NumericDomain;
+        if (delta >= 0x1p63)
+            return TimeLookupStatus::Overflow;
+        const double integral = std::floor (delta);
+        const Tick whole = static_cast<Tick> (integral);
+        if (whole > std::numeric_limits<Tick>::max() - origin)
+            return TimeLookupStatus::Overflow;
+        const MusicalTime result { origin + whole, delta - integral };
+        if (! empty_ && i + 1u < changes_.size() && result.tick >= changes_[i + 1u].tick)
+            return TimeLookupStatus::NumericDomain;
+        timeOut = result;
+        return TimeLookupStatus::Ok;
+    }
+
     [[nodiscard]] bool empty() const noexcept { return empty_; }
     [[nodiscard]] std::size_t segmentCount() const noexcept { return changes_.size(); }
 
@@ -623,6 +851,211 @@ private:
     std::vector<TempoChange> changes_;
     std::vector<double>      startFrame_;
     bool                     empty_ = true;
+    bool                     checkedBuilt_ = false;
+    TimeLookupStatus         checkedFailure_ = TimeLookupStatus::InvalidMap;
+};
+
+struct MeterPosition
+{
+    std::size_t   segment = 0;
+    std::uint64_t beatOrdinal = 0;   // zero-based, relative to this Meter segment
+    BarBeat       barBeat;
+    bool          downbeat = true;  // the current beat's ordinal is divisible by the numerator
+};
+
+namespace detail {
+
+// Exact a*b/divisor without a wide-integer extension. Meter callers bound the remainder
+// product below 2^48; checks keep the helper safe even if a future caller exceeds that bound.
+[[nodiscard]] inline bool meterMulDiv (std::uint64_t a, std::uint64_t b, std::uint64_t divisor,
+                                      std::uint64_t& quotient, std::uint64_t& remainder) noexcept
+{
+    quotient = remainder = 0;
+    if (divisor == 0)
+        return false;
+    const auto q = a / divisor;
+    const auto r = a % divisor;
+    constexpr auto maximum = std::numeric_limits<std::uint64_t>::max();
+    if (b != 0 && (q > maximum / b || r > maximum / b))
+        return false;
+    const auto tail = r * b;
+    const auto head = q * b;
+    if (head > maximum - tail / divisor)
+        return false;
+    quotient = head + tail / divisor;
+    remainder = tail % divisor;
+    return true;
+}
+
+} // namespace detail
+
+// Built on Control, read through immutable indexed segments. All queries are allocation-free,
+// lock-free and O(log segment count), and retain every positive stored uint16 Meter value.
+class CompiledMeterMap
+{
+public:
+    [[nodiscard]] static TimeLookupStatus build (MeterMapView map, CompiledMeterMap& out)
+    {
+        out = CompiledMeterMap {};
+        if (! map.empty())
+        {
+            if (map.changes == nullptr || map.changes[0].tick != 0 || ! map.changes[0].isValid())
+                return out.status_;
+            for (std::size_t i = 1; i < map.count; ++i)
+                if (! map.changes[i].isValid() || map.changes[i].tick <= map.changes[i - 1u].tick)
+                    return out.status_;
+        }
+        CompiledMeterMap prepared;
+        prepared.segments_.reserve (map.empty() ? 1u : map.count);
+        prepared.segments_.push_back ({ map.empty() ? MeterChange {} : map.changes[0], 1 });
+        for (std::size_t i = 1; i < map.count; ++i)
+        {
+            const Segment& previous = prepared.segments_.back();
+            std::uint64_t bars = 0, remainder = 0;
+            if (! detail::meterMulDiv (static_cast<std::uint64_t> (map.changes[i].tick - previous.meter.tick),
+                                       previous.meter.denominator, 61440ULL * previous.meter.numerator,
+                                       bars, remainder)
+                || bars > static_cast<std::uint64_t> (std::numeric_limits<Tick>::max() - previous.firstBar)
+                || (remainder != 0 && bars == static_cast<std::uint64_t> (std::numeric_limits<Tick>::max() - previous.firstBar)))
+            {
+                out.status_ = TimeLookupStatus::Overflow;
+                return out.status_;
+            }
+            const Tick firstBar = previous.firstBar + static_cast<Tick> (bars) + (remainder != 0 ? 1 : 0);
+            prepared.segments_.push_back ({ map.changes[i], firstBar });
+        }
+        prepared.status_ = TimeLookupStatus::Ok;
+        out = std::move (prepared);
+        return TimeLookupStatus::Ok;
+    }
+
+    [[nodiscard]] TimeLookupStatus positionForTick (Tick tick, MeterPosition& out) const noexcept
+    {
+        out = MeterPosition {};
+        if (tick < 0)
+            return TimeLookupStatus::InvalidInput;
+        if (status_ != TimeLookupStatus::Ok)
+            return status_;
+        if (segments_.empty())
+            return TimeLookupStatus::InvalidMap;
+        const auto upper = std::upper_bound (segments_.begin(), segments_.end(), tick,
+            [] (Tick value, const Segment& segment) noexcept { return value < segment.meter.tick; });
+        const auto i = static_cast<std::size_t> (upper - segments_.begin()) - 1u;
+        const Segment& segment = segments_[i];
+        std::uint64_t ordinal = 0, remainder = 0;
+        if (! detail::meterMulDiv (static_cast<std::uint64_t> (tick - segment.meter.tick),
+                                   segment.meter.denominator, 61440, ordinal, remainder))
+            return TimeLookupStatus::Overflow;
+        const auto bars = ordinal / segment.meter.numerator;
+        if (bars > static_cast<std::uint64_t> (std::numeric_limits<Tick>::max() - segment.firstBar))
+            return TimeLookupStatus::Overflow;
+        out = { i, ordinal,
+                { segment.firstBar + static_cast<Tick> (bars), static_cast<Tick> (ordinal % segment.meter.numerator) + 1 },
+                ordinal % segment.meter.numerator == 0 };
+        return TimeLookupStatus::Ok;
+    }
+
+    [[nodiscard]] TimeLookupStatus positionForMusicalTime (MusicalTime time, MeterPosition& out) const noexcept
+    {
+        out = MeterPosition {};
+        if (time.tick < 0 || ! time.hasValidFraction())
+            return TimeLookupStatus::InvalidInput;
+        if (time.frac == 0.0)
+            return positionForTick (time.tick, out);
+        MeterPosition position;
+        const auto status = positionForTick (time.tick, position);
+        if (status != TimeLookupStatus::Ok)
+            return status;
+        const Segment& segment = segments_[position.segment];
+        // A stored Meter beat is at least 61440/65535 > 0.937 Tick, so a fraction below
+        // one Tick can cross at most two beat starts after the whole-Tick position.
+        for (unsigned step = 0; step < 2; ++step)
+        {
+            RationalTick next;
+            const auto nextStatus = beatStart (position.segment, position.beatOrdinal + 1u, next);
+            // Either refusal proves that this next onset is beyond the active segment or
+            // the representable whole-Tick range, hence strictly after this valid input.
+            if (nextStatus == TimeLookupStatus::InvalidInput || nextStatus == TimeLookupStatus::Overflow)
+                break;
+            if (nextStatus != TimeLookupStatus::Ok)
+                return nextStatus;
+            if (next.whole > time.tick
+                || (next.whole == time.tick
+                    && std::fma (time.frac, static_cast<double> (next.denominator),
+                                 -static_cast<double> (next.numerator)) < 0.0))
+                break;
+            ++position.beatOrdinal;
+            if (position.barBeat.beat == segment.meter.numerator)
+            {
+                if (position.barBeat.bar == std::numeric_limits<Tick>::max())
+                    return TimeLookupStatus::Overflow;
+                ++position.barBeat.bar;
+                position.barBeat.beat = 1;
+            }
+            else
+                ++position.barBeat.beat;
+            position.downbeat = position.beatOrdinal % segment.meter.numerator == 0;
+        }
+        out = position;
+        return TimeLookupStatus::Ok;
+    }
+
+    [[nodiscard]] TimeLookupStatus barStart (Tick oneBasedBar, RationalTick& out) const noexcept
+    {
+        out = RationalTick {};
+        if (oneBasedBar < 1)
+            return TimeLookupStatus::InvalidInput;
+        if (status_ != TimeLookupStatus::Ok)
+            return status_;
+        if (segments_.empty())
+            return TimeLookupStatus::InvalidMap;
+        const auto upper = std::upper_bound (segments_.begin(), segments_.end(), oneBasedBar,
+            [] (Tick value, const Segment& segment) noexcept { return value < segment.firstBar; });
+        const auto i = static_cast<std::size_t> (upper - segments_.begin()) - 1u;
+        return boundary (i, static_cast<std::uint64_t> (oneBasedBar - segments_[i].firstBar),
+                         61440ULL * segments_[i].meter.numerator, out);
+    }
+
+    // Ordinals are zero-based and belong only to [this origin, next Meter-change tick).
+    // A beat exactly at the next change belongs to that next segment, whose ordinal is zero.
+    [[nodiscard]] TimeLookupStatus beatStart (std::size_t segment, std::uint64_t ordinal, RationalTick& out) const noexcept
+    {
+        out = RationalTick {};
+        if (status_ != TimeLookupStatus::Ok)
+            return status_;
+        if (segments_.empty())
+            return TimeLookupStatus::InvalidMap;
+        if (segment >= segments_.size())
+            return TimeLookupStatus::InvalidInput;
+        return boundary (segment, ordinal, 61440, out);
+    }
+
+    [[nodiscard]] std::size_t segmentCount() const noexcept { return segments_.size(); }
+
+private:
+    struct Segment
+    {
+        MeterChange meter;
+        Tick        firstBar = 1;
+    };
+
+    [[nodiscard]] TimeLookupStatus boundary (std::size_t i, std::uint64_t ordinal,
+                                            std::uint64_t span, RationalTick& out) const noexcept
+    {
+        const Segment& segment = segments_[i];
+        std::uint64_t whole = 0, remainder = 0;
+        if (! detail::meterMulDiv (ordinal, span, segment.meter.denominator, whole, remainder)
+            || whole > static_cast<std::uint64_t> (std::numeric_limits<Tick>::max() - segment.meter.tick))
+            return TimeLookupStatus::Overflow;
+        const Tick tick = segment.meter.tick + static_cast<Tick> (whole);
+        if (i + 1u < segments_.size() && tick >= segments_[i + 1u].meter.tick)
+            return TimeLookupStatus::InvalidInput;
+        out = { tick, static_cast<std::uint32_t> (remainder), remainder == 0 ? 1u : segment.meter.denominator };
+        return TimeLookupStatus::Ok;
+    }
+
+    std::vector<Segment> segments_;
+    TimeLookupStatus    status_ = TimeLookupStatus::InvalidMap;
 };
 
 namespace detail {

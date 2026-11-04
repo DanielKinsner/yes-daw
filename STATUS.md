@@ -49,7 +49,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut and mixed Paste placement are repaired.
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Next:
-   implement the full musical clock. The three import review findings and reversed/cross-rate No Overlap
+   connect the full musical clock to the grid/ruler, click and editing boundaries. Checked fractional Tempo and
+   exact Meter primitives are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -69,6 +70,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — Checked fractional time and exact Meter primitives
+
+New checked APIs retain fractional Tempo positions, exact rational Meter origins and precise input/map/overflow/domain failures; existing whole-Tick functions and all 17 original TimeCheck cases remain unchanged.
+Focused TimeCheck passed 21,743 assertions / 26 cases, including full stored Meter extremes, truncated bars, fractional boundaries, aliases and native cast limits. A test-only real-time scope prepares hosted RTSan coverage; local Windows tests do not certify RTSan.
+Independent engine critic accepted the final hashes. Canonical Clang first caught invalid placement of the new test-only RT annotation; only that placement was corrected, preserving the original failure log and every old annotation. Focused recovery and renewed critic passed; fresh integrated pure 452/452 (89.63 s), app plus both harnesses compiled without launch, two Clang units, offscreen UI 498/459,920 and screenshots 30/15,629 passed, including final HEAD/two-hash/three-path guards.
+No native windows, desktop input or device startup. New-head CI is pending; No Overlap workflow 41815982029 is finishing and Tempo-kernel 41819737766 is queued. Next: musical grid/ruler consumers, then click/count-in and native editing units. The full musical clock and hosted RTSan coverage are not yet certified.
 
 ## 2026-11-04 — Shared Tempo-ramp equations repaired
 

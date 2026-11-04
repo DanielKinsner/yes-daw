@@ -601,3 +601,453 @@ TEST_CASE ("barStartTick inverts the meter walk exactly, and nominalBarTicks is 
     REQUIRE (nominalBarTicks (view, 199780) == 46080.0);
     REQUIRE (nominalBarTicks (MeterMapView {}, 12345) == 61440.0);
 }
+
+using yesdaw::engine::CompiledMeterMap;
+using yesdaw::engine::MeterPosition;
+using yesdaw::engine::RationalTick;
+using yesdaw::engine::TimeLookupStatus;
+using yesdaw::engine::TimeRounding;
+using yesdaw::engine::roundMusicalTime;
+using yesdaw::engine::roundRationalTick;
+
+TEST_CASE ("Checked time rounding preserves integer origins and refuses endpoint overflow", "[time][checked-time]")
+{
+    constexpr Tick maximum = std::numeric_limits<Tick>::max();
+    Tick out = -1;
+    for (const TimeRounding rounding : { TimeRounding::Floor, TimeRounding::Nearest, TimeRounding::Ceil })
+    {
+        REQUIRE (roundMusicalTime ({ maximum, 0.0 }, rounding, out) == TimeLookupStatus::Ok);
+        CHECK (out == maximum);
+        REQUIRE (roundRationalTick ({ maximum, 0, 39 }, rounding, out) == TimeLookupStatus::Ok);
+        CHECK (out == maximum);
+    }
+    REQUIRE (roundMusicalTime ({ maximum, 0.49 }, TimeRounding::Nearest, out) == TimeLookupStatus::Ok);
+    CHECK (out == maximum);
+    CHECK (roundMusicalTime ({ maximum, 0.5 }, TimeRounding::Nearest, out) == TimeLookupStatus::Overflow);
+    CHECK (out == 0);
+    CHECK (roundMusicalTime ({ maximum, 0.01 }, TimeRounding::Ceil, out) == TimeLookupStatus::Overflow);
+    CHECK (out == 0);
+    REQUIRE (roundRationalTick ({ 11027, 27, 39 }, TimeRounding::Floor, out) == TimeLookupStatus::Ok);
+    CHECK (out == 11027);
+    REQUIRE (roundRationalTick ({ 11027, 27, 39 }, TimeRounding::Nearest, out) == TimeLookupStatus::Ok);
+    CHECK (out == 11028);
+    REQUIRE (roundRationalTick ({ 8, 1, 2 }, TimeRounding::Nearest, out) == TimeLookupStatus::Ok);
+    CHECK (out == 9);
+    CHECK (roundRationalTick ({ maximum, 1, 2 }, TimeRounding::Nearest, out) == TimeLookupStatus::Overflow);
+    CHECK (out == 0);
+    CHECK (roundRationalTick ({ 3, 1, 0 }, TimeRounding::Floor, out) == TimeLookupStatus::InvalidInput);
+    CHECK (out == 0);
+    CHECK (roundRationalTick ({ 3, 39, 39 }, TimeRounding::Floor, out) == TimeLookupStatus::InvalidInput);
+    CHECK (out == 0);
+    for (const MusicalTime invalid : { MusicalTime { -1, 0.0 }, MusicalTime { 1, -0.1 },
+                                      MusicalTime { 1, 1.0 }, MusicalTime { 1, std::numeric_limits<double>::quiet_NaN() } })
+    {
+        out = 123;
+        CHECK (roundMusicalTime (invalid, TimeRounding::Floor, out) == TimeLookupStatus::InvalidInput);
+        CHECK (out == 0);
+    }
+    MusicalTime alias { 8, 0.75 };
+    REQUIRE (roundMusicalTime (alias, TimeRounding::Nearest, alias.tick) == TimeLookupStatus::Ok);
+    CHECK (alias.tick == 9);
+    RationalTick rationalAlias { 8, 3, 4 };
+    REQUIRE (roundRationalTick (rationalAlias, TimeRounding::Ceil, rationalAlias.whole) == TimeLookupStatus::Ok);
+    CHECK (rationalAlias.whole == 9);
+    CHECK (roundMusicalTime ({ 1, 0.0 }, static_cast<TimeRounding> (255), out) == TimeLookupStatus::InvalidInput);
+    CHECK (out == 0);
+    CHECK (roundRationalTick ({ -1, 0, 1 }, TimeRounding::Floor, out) == TimeLookupStatus::InvalidInput);
+    CHECK (out == 0);
+}
+
+TEST_CASE ("Checked fractional Tempo conversion uses local time and independent analytic frames", "[time][checked-time]")
+{
+    constexpr Tick origin = Tick { 1 } << 60;
+    const std::array<TempoChange, 2> huge {
+        TempoChange { 0, static_cast<double> (origin), TempoCurve::Jump },
+        TempoChange { origin, 120.0, TempoCurve::Jump }
+    };
+    CompiledTempoMap compiled;
+    REQUIRE (CompiledTempoMap::build ({ huge.data(), huge.size() }, { 48000.0 }, compiled));
+    double frame = -1.0;
+    REQUIRE (compiled.frameForMusicalTime ({ origin, 0.5 }, frame) == TimeLookupStatus::Ok);
+    // The prefix is exactly 187.5, then half a Tick at 120 BPM adds 0.78125 frames.
+    CHECK (frame == 188.28125);
+    MusicalTime time { -1, 0.1 };
+    REQUIRE (compiled.musicalTimeForFrame (188.28125, time) == TimeLookupStatus::Ok);
+    CHECK (time == MusicalTime { origin, 0.5 });
+    MusicalTime alias { origin, 0.5 };
+    REQUIRE (compiled.frameForMusicalTime (alias, alias.frac) == TimeLookupStatus::Ok);
+    CHECK (alias.frac == 188.28125);
+    alias = { 0, 188.28125 };
+    REQUIRE (compiled.musicalTimeForFrame (alias.frac, alias) == TimeLookupStatus::Ok);
+    CHECK (alias == MusicalTime { origin, 0.5 });
+
+    const std::array<TempoChange, 3> ramps {
+        TempoChange { 0, 64.0, TempoCurve::LinearRamp },
+        TempoChange { 1000, 128.0, TempoCurve::LinearRamp },
+        TempoChange { 2000, 32.0, TempoCurve::Jump }
+    };
+    REQUIRE (CompiledTempoMap::build ({ ramps.data(), ramps.size() }, { 48000.0 }, compiled));
+    for (const MusicalTime point : { MusicalTime { 0, 0.25 }, MusicalTime { 499, 0.5 }, MusicalTime { 999, 0.75 },
+                                     MusicalTime { 1000, 0.25 }, MusicalTime { 1500, 0.5 }, MusicalTime { 2000, 0.5 } })
+    {
+        const double t = static_cast<double> (point.tick) + point.frac; // small, independent oracle only
+        const double prefix = (187500.0 / 64.0) * std::log (2.0);
+        const double rampEnd = prefix - (187500.0 / 96.0) * std::log (0.25);
+        const double expected = t < 1000.0 ? (187500.0 / 64.0) * std::log (1.0 + t / 1000.0)
+            : t < 2000.0 ? prefix - (187500.0 / 96.0) * std::log (1.0 - 0.75 * ((t - 1000.0) / 1000.0))
+                         : rampEnd + (t - 2000.0) * 187.5 / 32.0;
+        CAPTURE (point.tick, point.frac, expected);
+        REQUIRE (compiled.frameForMusicalTime (point, frame) == TimeLookupStatus::Ok);
+        CHECK (std::abs (frame - expected) <= 2.0e-11);
+        REQUIRE (compiled.musicalTimeForFrame (expected, time) == TimeLookupStatus::Ok);
+        CHECK (std::abs (static_cast<double> (time.tick - point.tick) + time.frac - point.frac) <= 1.0e-10);
+    }
+    for (Tick tick = 0; tick <= 2200; tick += 11)
+    {
+        double whole = -1.0;
+        REQUIRE (compiled.frameForTick (tick, whole));
+        REQUIRE (compiled.frameForMusicalTime ({ tick, 0.0 }, frame) == TimeLookupStatus::Ok);
+        CHECK (frame == whole);
+    }
+}
+
+TEST_CASE ("Checked Tempo states and native Frame bounds fail with reset outputs", "[time][checked-time]")
+{
+    CompiledTempoMap compiled;
+    double frame = 123.0;
+    MusicalTime time { 123, 0.5 };
+    CHECK (compiled.frameForMusicalTime ({ 0, 0.0 }, frame) == TimeLookupStatus::InvalidMap);
+    CHECK (frame == 0.0);
+    CHECK (compiled.musicalTimeForFrame (0.0, time) == TimeLookupStatus::InvalidMap);
+    CHECK (time == MusicalTime {});
+    REQUIRE (CompiledTempoMap::build ({}, { 48000.0 }, compiled));
+    REQUIRE (compiled.frameForMusicalTime ({ 1, 0.5 }, frame) == TimeLookupStatus::Ok);
+    CHECK (frame == 2.34375);
+    for (const double invalid : { -1.0, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN() })
+    {
+        time = { 123, 0.5 };
+        CHECK (compiled.musicalTimeForFrame (invalid, time) == TimeLookupStatus::InvalidInput);
+        CHECK (time == MusicalTime {});
+    }
+    CHECK (compiled.musicalTimeForFrame (0x1p63, time) == TimeLookupStatus::Overflow);
+    CHECK (time == MusicalTime {});
+    CHECK (compiled.frameForMusicalTime ({ std::numeric_limits<Tick>::max(), 0.5 }, frame) == TimeLookupStatus::Overflow);
+    CHECK (frame == 0.0);
+    CHECK (compiled.frameForMusicalTime ({ 1, 1.0 }, frame) == TimeLookupStatus::InvalidInput);
+    CHECK (frame == 0.0);
+    const TempoChange invalid { 1, 120.0, TempoCurve::Jump };
+    REQUIRE_FALSE (CompiledTempoMap::build ({ &invalid, 1 }, { 48000.0 }, compiled));
+    CHECK (compiled.frameForMusicalTime ({ 0, 0.0 }, frame) == TimeLookupStatus::InvalidMap);
+    CHECK (frame == 0.0);
+
+    const std::array<TempoChange, 2> tiny {
+        TempoChange { 0, 1.0e-300, TempoCurve::LinearRamp },
+        TempoChange { Tick { 1 } << 48, std::nextafter (1.0e-300, 1.0), TempoCurve::Jump }
+    };
+    REQUIRE (tiny[0].hasValidBpm());
+    REQUIRE (tiny[1].hasValidBpm());
+    REQUIRE_FALSE (CompiledTempoMap::build ({ tiny.data(), tiny.size() }, { 48000.0 }, compiled));
+    CHECK (compiled.frameForMusicalTime ({ 0, 0.0 }, frame) == TimeLookupStatus::NumericDomain);
+    CHECK (frame == 0.0);
+    CHECK (compiled.musicalTimeForFrame (0.0, time) == TimeLookupStatus::NumericDomain);
+    CHECK (time == MusicalTime {});
+
+    // Native Frame inputs remain in range, but these local Tick results do not.
+    const TempoChange fast { 0, 187.5, TempoCurve::Jump };
+    REQUIRE (CompiledTempoMap::build ({ &fast, 1 }, { 48000.0 }, compiled));
+    REQUIRE (compiled.musicalTimeForFrame (std::nextafter (0x1p63, 0.0), time) == TimeLookupStatus::Ok);
+    CHECK (time.tick == std::numeric_limits<Tick>::max() - 1023);
+    const std::array<TempoChange, 2> atEnd {
+        TempoChange { 0, static_cast<double> (std::numeric_limits<Tick>::max()), TempoCurve::Jump },
+        TempoChange { std::numeric_limits<Tick>::max(), 120.0, TempoCurve::Jump }
+    };
+    REQUIRE (CompiledTempoMap::build ({ atEnd.data(), atEnd.size() }, { 48000.0 }, compiled));
+    REQUIRE (compiled.musicalTimeForFrame (188.28125, time) == TimeLookupStatus::Ok);
+    CHECK (time == MusicalTime { std::numeric_limits<Tick>::max(), 0.5 });
+    CHECK (compiled.musicalTimeForFrame (189.0625, time) == TimeLookupStatus::Overflow);
+    CHECK (time == MusicalTime {});
+    CompiledTempoMap moved = std::move (compiled);
+    REQUIRE (moved.frameForMusicalTime ({ 0, 0.0 }, frame) == TimeLookupStatus::Ok);
+    CHECK (compiled.frameForMusicalTime ({ 0, 0.0 }, frame) == TimeLookupStatus::InvalidMap);
+    CHECK (frame == 0.0);
+    CHECK (compiled.musicalTimeForFrame (0.0, time) == TimeLookupStatus::InvalidMap);
+    CHECK (time == MusicalTime {});
+}
+
+TEST_CASE ("Checked fractional Tempo conversion preserves tiny valid clocks or names their numeric domain", "[time][checked-time]")
+{
+    const double startBpm = std::ldexp (1.0, -700);
+    const std::array<TempoChange, 2> tiny {
+        TempoChange { 0, startBpm, TempoCurve::LinearRamp },
+        TempoChange { Tick { 1 } << 48, std::nextafter (startBpm, 1.0), TempoCurve::Jump }
+    };
+    CompiledTempoMap compiled;
+    REQUIRE (CompiledTempoMap::build ({ tiny.data(), tiny.size() }, { std::ldexp (1.0, -1000) }, compiled));
+    double frame = -1.0;
+    // k/BPM = 2^-308; the fractional ramp correction is below the expected frame's ULP.
+    REQUIRE (compiled.frameForMusicalTime ({ 0, 0.5 }, frame) == TimeLookupStatus::Ok);
+    CHECK (frame == std::ldexp (1.0, -309));
+    MusicalTime time;
+    REQUIRE (compiled.musicalTimeForFrame (std::ldexp (1.0, -309), time) == TimeLookupStatus::Ok);
+    CHECK (time == MusicalTime { 0, 0.5 });
+    const std::array<TempoChange, 2> shallow {
+        TempoChange { 0, 64.0, TempoCurve::LinearRamp },
+        TempoChange { Tick { 1 } << 48, std::nextafter (64.0, 128.0), TempoCurve::Jump }
+    };
+    REQUIRE (CompiledTempoMap::build ({ shallow.data(), shallow.size() }, { 48000.0 }, compiled));
+    CHECK (compiled.musicalTimeForFrame (std::numeric_limits<double>::denorm_min(), time) == TimeLookupStatus::NumericDomain);
+    CHECK (time == MusicalTime {});
+    const TempoChange tinyConstant { 0, std::numeric_limits<double>::denorm_min(), TempoCurve::Jump };
+    REQUIRE (tinyConstant.hasValidBpm());
+    REQUIRE (CompiledTempoMap::build ({ &tinyConstant, 1 }, { 48000.0 }, compiled));
+    CHECK (compiled.frameForMusicalTime ({ 1, 0.0 }, frame) == TimeLookupStatus::NumericDomain);
+    CHECK (frame == 0.0);
+}
+
+TEST_CASE ("Compiled Meter boundaries are exact rationals and changes truncate the old bar", "[time][checked-time][exact-meter]")
+{
+    const MeterChange seven { 0, 7, 39 };
+    CompiledMeterMap compiled;
+    REQUIRE (CompiledMeterMap::build ({ &seven, 1 }, compiled) == TimeLookupStatus::Ok);
+    RationalTick start;
+    REQUIRE (compiled.beatStart (0, 1, start) == TimeLookupStatus::Ok);
+    CHECK (start.whole == 1575);
+    CHECK (start.numerator * 13u == start.denominator * 5u);
+    REQUIRE (compiled.barStart (2, start) == TimeLookupStatus::Ok);
+    CHECK (start.whole == 11027);
+    CHECK (start.numerator * 13u == start.denominator * 9u);
+    REQUIRE (compiled.barStart (3, start) == TimeLookupStatus::Ok);
+    CHECK (start.whole == 22055);
+    CHECK (start.numerator * 13u == start.denominator * 5u);
+    REQUIRE (compiled.barStart (14, start) == TimeLookupStatus::Ok);
+    CHECK (start.whole == 143360);
+    CHECK (start.numerator == 0);
+    MeterPosition position;
+    REQUIRE (compiled.positionForTick (11027, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 1);
+    CHECK (position.barBeat.beat == 7);
+    CHECK (position.beatOrdinal == 6);
+    CHECK_FALSE (position.downbeat);
+    REQUIRE (compiled.positionForTick (11028, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 2);
+    CHECK (position.barBeat.beat == 1);
+    CHECK (position.beatOrdinal == 7);
+    CHECK (position.downbeat);
+    const std::array<MeterChange, 2> phantom { MeterChange { 0, 3, 7 }, MeterChange { 26332, 4, 4 } };
+    REQUIRE (CompiledMeterMap::build ({ phantom.data(), phantom.size() }, compiled) == TimeLookupStatus::Ok);
+    REQUIRE (compiled.barStart (2, start) == TimeLookupStatus::Ok);
+    CHECK (start.whole == 26331);
+    CHECK (start.numerator * 7u == start.denominator * 3u);
+    REQUIRE (compiled.barStart (3, start) == TimeLookupStatus::Ok);
+    CHECK (start.whole == 26332);
+    CHECK (start.numerator == 0);
+    REQUIRE (compiled.positionForTick (26331, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 1);
+    REQUIRE (compiled.positionForTick (26332, position) == TimeLookupStatus::Ok);
+    CHECK (position.segment == 1);
+    CHECK (position.barBeat.bar == 3);
+    CHECK (position.barBeat.beat == 1);
+    CHECK (position.downbeat);
+    REQUIRE (compiled.beatStart (0, 3, start) == TimeLookupStatus::Ok);
+    CHECK (start.whole == 26331);
+    CHECK (compiled.beatStart (0, 4, start) == TimeLookupStatus::InvalidInput);
+    CHECK (start == RationalTick {});
+    const std::array<MeterChange, 2> onBar { MeterChange { 0, 4, 4 }, MeterChange { 61440, 3, 4 } };
+    REQUIRE (CompiledMeterMap::build ({ onBar.data(), onBar.size() }, compiled) == TimeLookupStatus::Ok);
+    CHECK (compiled.beatStart (0, 4, start) == TimeLookupStatus::InvalidInput);
+    REQUIRE (compiled.positionForTick (61439, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 1);
+    REQUIRE (compiled.positionForTick (61440, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 2);
+    REQUIRE (compiled.positionForTick (61441, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 2);
+}
+
+TEST_CASE ("Compiled Meter accepts stored extremes and checks long range and failed builds", "[time][checked-time][exact-meter]")
+{
+    CompiledMeterMap compiled;
+    MeterPosition position { 7, 9, { 8, 3 }, false };
+    RationalTick start { 123, 1, 2 };
+    CHECK (compiled.positionForTick (0, position) == TimeLookupStatus::InvalidMap);
+    CHECK (position.segment == 0);
+    CHECK (position.beatOrdinal == 0);
+    CHECK (position.barBeat.bar == 1);
+    CHECK (compiled.barStart (1, start) == TimeLookupStatus::InvalidMap);
+    CHECK (start == RationalTick {});
+    REQUIRE (CompiledMeterMap::build ({}, compiled) == TimeLookupStatus::Ok);
+    REQUIRE (compiled.barStart (5, start) == TimeLookupStatus::Ok);
+    CHECK (start.whole == 245760);
+    CHECK (compiled.positionForTick (-1, position) == TimeLookupStatus::InvalidInput);
+    CHECK (compiled.barStart (0, start) == TimeLookupStatus::InvalidInput);
+    CHECK (compiled.beatStart (1, 0, start) == TimeLookupStatus::InvalidInput);
+    CHECK (start == RationalTick {});
+    CHECK (compiled.barStart (std::numeric_limits<Tick>::max(), start) == TimeLookupStatus::Overflow);
+    CHECK (start == RationalTick {});
+
+    for (const MeterChange meter : { MeterChange { 0, 65535, 65535 }, MeterChange { 0, 65535, 1 }, MeterChange { 0, 1, 65535 } })
+    {
+        CAPTURE (meter.numerator, meter.denominator);
+        REQUIRE (meter.isValid());
+        REQUIRE (CompiledMeterMap::build ({ &meter, 1 }, compiled) == TimeLookupStatus::Ok);
+        REQUIRE (compiled.beatStart (0, meter.numerator, start) == TimeLookupStatus::Ok);
+        const std::uint64_t dividend = 61440ULL * meter.numerator;
+        CHECK (start.whole == static_cast<Tick> (dividend / meter.denominator));
+        CHECK (static_cast<std::uint64_t> (start.numerator) * meter.denominator
+               == (dividend % meter.denominator) * start.denominator);
+    }
+    const MeterChange wide { 0, 65535, 65535 };
+    REQUIRE (CompiledMeterMap::build ({ &wide, 1 }, compiled) == TimeLookupStatus::Ok);
+    constexpr Tick longTick = (Tick { 1 } << 60) + 123;
+    REQUIRE (compiled.positionForTick (longTick, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == longTick / 61440 + 1);
+    REQUIRE (compiled.barStart (position.barBeat.bar, start) == TimeLookupStatus::Ok);
+    CHECK (start.whole == (longTick / 61440) * 61440);
+    CHECK (start.numerator == 0);
+    CHECK (compiled.beatStart (0, std::numeric_limits<std::uint64_t>::max(), start) == TimeLookupStatus::Overflow);
+    CHECK (start == RationalTick {});
+    const std::array<MeterChange, 2> tooManyBars { MeterChange { 0, 1, 65535 },
+        MeterChange { std::numeric_limits<Tick>::max(), 4, 4 } };
+    CHECK (CompiledMeterMap::build ({ tooManyBars.data(), tooManyBars.size() }, compiled) == TimeLookupStatus::Overflow);
+    CHECK (compiled.positionForTick (0, position) == TimeLookupStatus::Overflow);
+    const std::array<MeterChange, 2> bad[] = {
+        { MeterChange { 1, 4, 4 }, MeterChange { 2, 4, 4 } },
+        { MeterChange { 0, 4, 4 }, MeterChange { 0, 3, 4 } },
+        { MeterChange { 0, 4, 4 }, MeterChange { 100, 0, 4 } },
+        { MeterChange { 0, 4, 4 }, MeterChange { -1, 4, 4 } }
+    };
+    for (const auto& map : bad)
+    {
+        REQUIRE (CompiledMeterMap::build ({}, compiled) == TimeLookupStatus::Ok);
+        CHECK (CompiledMeterMap::build ({ map.data(), map.size() }, compiled) == TimeLookupStatus::InvalidMap);
+        CHECK (compiled.barStart (1, start) == TimeLookupStatus::InvalidMap);
+        CHECK (start == RationalTick {});
+    }
+    CHECK (CompiledMeterMap::build ({ nullptr, 1 }, compiled) == TimeLookupStatus::InvalidMap);
+    REQUIRE (CompiledMeterMap::build ({}, compiled) == TimeLookupStatus::Ok);
+    CompiledMeterMap moved = std::move (compiled);
+    REQUIRE (moved.barStart (1, start) == TimeLookupStatus::Ok);
+    CHECK (compiled.positionForTick (0, position) == TimeLookupStatus::InvalidMap);
+    CHECK (compiled.barStart (1, start) == TimeLookupStatus::InvalidMap);
+    CHECK (compiled.beatStart (0, 0, start) == TimeLookupStatus::InvalidMap);
+    CHECK (start == RationalTick {});
+}
+
+TEST_CASE ("Exact Meter queries agree with bounded independent integer rational clocks", "[time][checked-time][exact-meter]")
+{
+    for (const std::uint16_t numerator : { std::uint16_t { 1 }, std::uint16_t { 3 }, std::uint16_t { 7 }, std::uint16_t { 65535 } })
+        for (const std::uint16_t denominator : { std::uint16_t { 7 }, std::uint16_t { 39 }, std::uint16_t { 65535 } })
+        {
+            const std::array<MeterChange, 2> map { MeterChange { 0, 4, 4 }, MeterChange { 61540, numerator, denominator } };
+            CompiledMeterMap compiled;
+            REQUIRE (CompiledMeterMap::build ({ map.data(), map.size() }, compiled) == TimeLookupStatus::Ok);
+            for (const Tick local : { Tick { 0 }, Tick { 1 }, Tick { 1575 }, Tick { 11027 }, Tick { 11028 }, Tick { 1000000 } })
+            {
+                // Products are intentionally bounded in this independent test oracle.
+                const auto ordinal = static_cast<std::uint64_t> (local) * denominator / 61440ULL;
+                MeterPosition position;
+                REQUIRE (compiled.positionForTick (61540 + local, position) == TimeLookupStatus::Ok);
+                CHECK (position.segment == 1);
+                CHECK (position.beatOrdinal == ordinal);
+                CHECK (position.barBeat.bar == static_cast<Tick> (ordinal / numerator) + 3);
+                CHECK (position.barBeat.beat == static_cast<Tick> (ordinal % numerator) + 1);
+                CHECK (position.downbeat == (ordinal % numerator == 0));
+            }
+        }
+}
+
+TEST_CASE ("Fractional Meter positions cross exact rational boundaries without flooring first", "[time][checked-time][exact-meter]")
+{
+    const MeterChange seven { 0, 7, 39 };
+    CompiledMeterMap compiled;
+    REQUIRE (CompiledMeterMap::build ({ &seven, 1 }, compiled) == TimeLookupStatus::Ok);
+    MeterPosition position;
+    REQUIRE (compiled.positionForMusicalTime ({ 11027, 0.5 }, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 1);
+    CHECK (position.barBeat.beat == 7);
+    REQUIRE (compiled.positionForMusicalTime ({ 11027, 0.75 }, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 2);
+    CHECK (position.barBeat.beat == 1);
+    CHECK (position.beatOrdinal == 7);
+    const MeterChange binary { 0, 1, 32768 };
+    REQUIRE (CompiledMeterMap::build ({ &binary, 1 }, compiled) == TimeLookupStatus::Ok);
+    REQUIRE (compiled.positionForMusicalTime ({ 1, std::nextafter (0.875, 0.0) }, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 1);
+    REQUIRE (compiled.positionForMusicalTime ({ 1, 0.875 }, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 2);
+    REQUIRE (compiled.positionForMusicalTime ({ 1, std::nextafter (0.875, 1.0) }, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 2);
+    const MeterChange shortest { 0, 7, 65535 };
+    REQUIRE (CompiledMeterMap::build ({ &shortest, 1 }, compiled) == TimeLookupStatus::Ok);
+    // Beat ordinals 16 and 17 begin at 15.0002... and 15.9377...; both follow whole Tick 15.
+    REQUIRE (compiled.positionForMusicalTime ({ 15, 0.999 }, position) == TimeLookupStatus::Ok);
+    CHECK (position.beatOrdinal == 17);
+    CHECK (position.barBeat.bar == 3);
+    CHECK (position.barBeat.beat == 4);
+    const std::array<MeterChange, 2> phantom { MeterChange { 0, 3, 7 }, MeterChange { 26332, 4, 4 } };
+    REQUIRE (CompiledMeterMap::build ({ phantom.data(), phantom.size() }, compiled) == TimeLookupStatus::Ok);
+    REQUIRE (compiled.positionForMusicalTime ({ 26331, 0.5 }, position) == TimeLookupStatus::Ok);
+    CHECK (position.barBeat.bar == 2);
+    REQUIRE (compiled.positionForMusicalTime ({ 26331, 0.99 }, position) == TimeLookupStatus::Ok);
+    CHECK (position.segment == 0);
+    CHECK (position.barBeat.bar == 2);
+    for (const Tick tick : { Tick { 0 }, Tick { 26331 }, Tick { 26332 }, Tick { 99999 } })
+    {
+        MeterPosition whole;
+        REQUIRE (compiled.positionForTick (tick, whole) == TimeLookupStatus::Ok);
+        REQUIRE (compiled.positionForMusicalTime ({ tick, 0.0 }, position) == TimeLookupStatus::Ok);
+        CHECK (position.segment == whole.segment);
+        CHECK (position.beatOrdinal == whole.beatOrdinal);
+        CHECK (position.barBeat.bar == whole.barBeat.bar);
+        CHECK (position.barBeat.beat == whole.barBeat.beat);
+        CHECK (position.downbeat == whole.downbeat);
+    }
+    CHECK (compiled.positionForMusicalTime ({ 1, 1.0 }, position) == TimeLookupStatus::InvalidInput);
+    CHECK (position.beatOrdinal == 0);
+    CHECK (position.barBeat.bar == 1);
+    REQUIRE (CompiledMeterMap::build ({}, compiled) == TimeLookupStatus::Ok);
+    MeterPosition finalWhole;
+    REQUIRE (compiled.positionForTick (std::numeric_limits<Tick>::max(), finalWhole) == TimeLookupStatus::Ok);
+    RationalTick unavailableNext;
+    CHECK (compiled.beatStart (0, finalWhole.beatOrdinal + 1u, unavailableNext) == TimeLookupStatus::Overflow);
+    REQUIRE (compiled.positionForMusicalTime ({ std::numeric_limits<Tick>::max(), 0.5 }, position) == TimeLookupStatus::Ok);
+    CHECK (position.segment == finalWhole.segment);
+    CHECK (position.beatOrdinal == finalWhole.beatOrdinal);
+    CHECK (position.barBeat.bar == finalWhole.barBeat.bar);
+    CHECK (position.barBeat.beat == finalWhole.barBeat.beat);
+    CHECK (position.downbeat == finalWhole.downbeat);
+    CompiledMeterMap unbuilt;
+    CHECK (unbuilt.positionForMusicalTime ({ 1, 0.5 }, position) == TimeLookupStatus::InvalidMap);
+    CHECK (position.beatOrdinal == 0);
+}
+
+#include "rt/RtHot.h"
+
+namespace {
+// Catch assertions stay outside the RT scope. The existing RTSan CI lane instruments this
+// wrapper and rejects allocations, locks or I/O anywhere under the immutable Meter queries.
+bool meterQueriesInRealtimeScope (const CompiledMeterMap& map) noexcept YESDAW_RT_HOT
+{
+    for (Tick tick = 11027; tick < 11027 + 257; ++tick)
+    {
+        MeterPosition position;
+        RationalTick bar, beat;
+        if (map.positionForTick (tick, position) != TimeLookupStatus::Ok
+            || map.positionForMusicalTime ({ tick, 0.75 }, position) != TimeLookupStatus::Ok
+            || map.barStart (position.barBeat.bar, bar) != TimeLookupStatus::Ok
+            || map.beatStart (position.segment, position.beatOrdinal, beat) != TimeLookupStatus::Ok
+            || bar.whole > tick || beat.whole > tick)
+            return false;
+    }
+    RationalTick refused;
+    return map.beatStart (0, 1000, refused) == TimeLookupStatus::InvalidInput
+        && refused == RationalTick {};
+}
+} // namespace
+
+TEST_CASE ("Compiled Meter queries stay inside a real-time-safe scope", "[time][checked-time][exact-meter][rtsan]")
+{
+    const std::array<MeterChange, 2> map { MeterChange { 0, 7, 39 }, MeterChange { 26332, 65535, 65535 } };
+    CompiledMeterMap compiled;
+    REQUIRE (CompiledMeterMap::build ({ map.data(), map.size() }, compiled) == TimeLookupStatus::Ok);
+    REQUIRE (meterQueriesInRealtimeScope (compiled));
+}
