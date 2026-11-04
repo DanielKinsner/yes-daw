@@ -994,6 +994,15 @@ target_link_libraries(YesDawAudioImportJobCheck PRIVATE Catch2::Catch2WithMain s
 yesdaw_harden(YesDawAudioImportJobCheck)
 add_test(NAME YesDawAudioImportJobCheck COMMAND $<TARGET_FILE:YesDawAudioImportJobCheck>)
 
+# Owner-thread adoption of background imports, without a native shell or devices.
+add_executable(YesDawAudioImportModelCheck tests/audio_import_model_tests.cpp)
+target_compile_definitions(YesDawAudioImportModelCheck PRIVATE YESDAW_PERSISTENCE_TEST_HOOKS=1)
+target_include_directories(YesDawAudioImportModelCheck PRIVATE ${YESDAW_SRC_DIR})
+target_include_directories(YesDawAudioImportModelCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
+target_link_libraries(YesDawAudioImportModelCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation Threads::Threads yesdaw_loudness)
+yesdaw_harden(YesDawAudioImportModelCheck)
+add_test(NAME YesDawAudioImportModelCheck COMMAND $<TARGET_FILE:YesDawAudioImportModelCheck>)
+
 # --- Quantize v2 check (G3.4: strength / swing / note ends / humanize — closed forms per parameter) ---
 add_executable(YesDawQuantizeCheck tests/quantize_tests.cpp)
 target_include_directories(YesDawQuantizeCheck PRIVATE ${YESDAW_SRC_DIR})

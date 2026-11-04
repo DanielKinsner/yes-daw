@@ -45,8 +45,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 3. **Option A authorized 2026-11-03:** continuous MIDI editing, background media preparation, full Tempo map
    consistency, musical audio tempo-follow, linked Track editing/organization, then piano-roll reference notes.
    Done: addressed note release, bounded notes-only updates without replacing playback, selected-Clip background
-   stretch, prepared-Asset persistence/recovery, and the owned copy/hash/decode/resample import worker.
-   Next: chooser/Browser/drop/Sampler integration. App imports are still synchronous. The implementation
+   stretch, prepared-Asset persistence/recovery, the owned copy/hash/decode/resample worker and captured-target
+   model adoption. Next: reproduce/repair the reversed-Clip split issue from source review, then connect
+   chooser/Browser/drop/Sampler imports. App imports are still synchronous. The implementation
    brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
@@ -65,6 +66,14 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Flaky: macOS CI frame timing (covered by Dan's exception); drives fail when another window grabs the focus; SS3
   failed once mid-batch on 2026-10-13, then passed 5 runs in a row.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-03 — Captured-target background import adoption
+
+The model owns start/service/cancel/retirement, lands into captured Track/pad targets and preserves intervening Project edits in one durable undo transaction. Duplicate Assets retain their decoded owners and prepared playback; failed/stale/cancelled requests cannot authorize a deferred MIDI tail.
+Review reproduced Save Copy/Save As failures (7/46 assertions): copies now omit reserved private staging; successful Save As retires the old destination, while failed Save As/Save Copy preserve the request. Independent engine/saved-data critic accepted the frozen result.
+Canonical pure suite: 429/429 (78.32 s); focused model: 449 assertions / 13 cases. App/harness compiled without launch; stock Clang: 24 clean units; real-codec checks: 192,701 assertions / 12 cases. No native window, input or device used.
+Observed final owner batch: 1/8/32 unique short Assets took 12.822/65.590/273.225 ms in the latest focused run (prior 9.412/73.455/319.084 ms). This is no responsiveness bound; phase measurement and batched persistence are planned after shell wiring.
+Next: reversed-Clip split regression/repair, then actual import-control integration. App imports remain synchronous; new-head CI, including the pinned macOS cancellation repair, is pending.
 
 ## 2026-11-03 — Import cancellation supports the pinned macOS toolchain
 

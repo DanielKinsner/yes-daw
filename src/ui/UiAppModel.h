@@ -12,6 +12,7 @@
 #include "app/RecordingAssetCommit.h"
 #include "app/ExportJob.h"   // G5.3 / ADR-0058
 #include "app/StretchPreparationJob.h"
+#include "app/AudioImportJob.h"
 #include "engine/AuditionVoice.h"   // G5.2 cp2 / ADR-0056
 #include "engine/ClipSilence.h"
 #include "engine/LoudnessTap.h"
@@ -230,8 +231,34 @@ struct UiAudioDropResult
 {
     std::size_t landed = 0;
     std::size_t tracksCreated = 0;
-    std::size_t nextLane = 0;             // the lane after the last file that landed (the drop's first lane if none)
+    std::size_t nextLane = 0;             // synchronous drops only; background receipts use captured IDs + landed
     std::vector<std::string> refusals;    // "<file>: <reason>" for each file the model refused
+};
+
+enum class UiAudioImportDisposition : std::uint8_t { Completed, Cancelled, Stale, Failed };
+
+struct UiAudioImportStart
+{
+    bool accepted = false;
+    std::uint64_t requestId = 0;
+    std::string reason;
+};
+
+// A shell continues a mixed drop from these captured slots, never from current selection/lane indices.
+// Refused audio consumes no slot. Cancellation, stale intent and adoption failure suppress its MIDI tail.
+struct UiAudioImportCompletion
+{
+    app::AudioImportKey key;
+    UiAudioImportDisposition disposition = UiAudioImportDisposition::Failed;
+    bool samplerPad = false;
+    UiAudioDropResult placement;
+    std::vector<engine::EntityId> landedTrackIds;
+    double ownerBatchMilliseconds = 0.0;
+
+    [[nodiscard]] bool allowsMidiTail() const noexcept
+    {
+        return ! samplerPad && disposition == UiAudioImportDisposition::Completed;
+    }
 };
 
 struct UiAppImportResult
@@ -2356,9 +2383,15 @@ public:
             const fs::path relative = entry->path().lexically_relative (source);
             const fs::path name = entry->path().filename();
             std::error_code status;
-            const bool excluded = entry.depth() == 0
+            const std::string filename = io::utf8Text (name);
+            // Private import snapshots and their identity-bound lease belong only to the source
+            // bundle. Skip the exact reserved directory, without touching its contents there.
+            const bool privateImport = relative.parent_path() == "audio" && filename.starts_with (".import-")
+                && persistence::prepared_asset_detail::lowerHexId (std::string_view (filename).substr (8))
+                && entry->is_directory (status);
+            const bool excluded = privateImport || (entry.depth() == 0
                                && (name == "project.db" || name == "project.db-wal" || name == "project.db-shm"
-                                   || name == "project.db-journal" || name == "autosave" || name == ".trash");
+                                   || name == "project.db-journal" || name == "autosave" || name == ".trash"));
             if (excluded || entry->is_symlink (status))
             {
                 entry.disable_recursion_pending();
@@ -2436,6 +2469,9 @@ public:
         }
 
         const std::filesystem::path previousBundlePath = bundlePath_;
+        // Save As preserves this Project's attachment/undo identity, but an import's private
+        // staging still belongs to the old bundle. A failed copy above leaves that request eligible.
+        retireAudioImport (UiAudioImportDisposition::Stale, "Audio import refused: Save As changed its destination bundle");
         bundleDb_ = std::move (reopened);
         bundlePath_ = newBundlePath;
         retireAutosaveOf (previousBundlePath);   // ADR-0068 §3: the copy holds all it did (never while a question is up)
@@ -2831,6 +2867,95 @@ public:
     // creating the tracks past the last one, as ONE undo step (the tracks and the clips; the asset rows and
     // bundle bytes stay outside it, as every import's do). A file the model refuses (another rate, a failed copy)
     // is named in the result and the rest still land; when nothing lands nothing changes.
+    // Capture all initially available consecutive Track IDs, including slots needed by a mixed drop's MIDI tail.
+    // Empty targets with appendTracks starts beyond the captured tail; later unrelated Tracks are never reused.
+    [[nodiscard]] UiAudioImportStart startAudioImport (std::vector<std::filesystem::path> paths,
+                                                       std::vector<engine::EntityId> targetTrackIds,
+                                                       engine::Tick timelineStart, bool appendTracks,
+                                                       app::AudioImportDecoder decoder)
+    {
+        return startOwnedAudioImport (std::move (paths), std::move (targetTrackIds), timelineStart,
+                                     appendTracks, decoder, std::nullopt);
+    }
+
+    // The caller supplies the chooser/drop's Track and pad; a later selection cannot redirect the sample.
+    [[nodiscard]] UiAudioImportStart startSamplerPadImport (const std::filesystem::path& path,
+                                                            engine::EntityId trackId, std::int16_t padKey,
+                                                            app::AudioImportDecoder decoder)
+    {
+        if (padKey < 0 || padKey > 127)
+            return { false, 0, "Sampler pad key must be between 0 and 127" };
+        return startOwnedAudioImport ({ path }, { trackId }, 0, false, decoder, padKey);
+    }
+
+    [[nodiscard]] bool audioImportBusy() const noexcept { return audioImportJob_ != nullptr; }
+    [[nodiscard]] bool audioImportPending() const noexcept { return pendingAudioImport_.has_value(); }
+    [[nodiscard]] bool audioImportRetiring() const noexcept { return audioImportBusy() && ! audioImportPending(); }
+    [[nodiscard]] app::AudioImportPhase audioImportPhase() const noexcept
+    {
+        return audioImportJob_ ? audioImportJob_->phase() : app::AudioImportPhase::Finished;
+    }
+    [[nodiscard]] std::size_t audioImportCompletedFiles() const noexcept
+    {
+        return audioImportJob_ ? audioImportJob_->completedFiles() : 0;
+    }
+    [[nodiscard]] std::size_t audioImportTotalFiles() const noexcept
+    {
+        return audioImportJob_ ? audioImportJob_->totalFiles() : 0;
+    }
+    [[nodiscard]] std::optional<UiAudioImportCompletion> takeAudioImportCompletion()
+    {
+        auto completion = std::exchange (audioImportCompletion_, std::nullopt);
+        if (completion && (completion->key.attachGeneration != attachGeneration_ || completion->key.projectId != project_.id))
+            completion->disposition = UiAudioImportDisposition::Stale;
+        return completion;
+    }
+
+    [[nodiscard]] bool cancelAudioImport()
+    {
+        if (! pendingAudioImport_)
+            return false;
+        retireAudioImport (UiAudioImportDisposition::Cancelled, "Audio import cancelled");
+        return true;
+    }
+
+    // Control-thread tick. Only durable visible adoption returns true; retirement never joins running work.
+    bool serviceAudioImport()
+    {
+        if (pendingAudioImport_ && ! audioImportDependenciesMatch (*pendingAudioImport_))
+            retireAudioImport (UiAudioImportDisposition::Stale, audioImportDependencyRefusal (*pendingAudioImport_));
+        if (! audioImportJob_ || ! audioImportJob_->terminal())
+            return false;
+        const auto began = std::chrono::steady_clock::now();
+        const bool current = pendingAudioImport_ && audioImportJob_->key() == pendingAudioImport_->key;
+        const bool eligible = current && audioImportJob_->eligibleForAdoption();
+        const auto reason = current ? audioImportJob_->failureReason() : std::string {};
+        auto prepared = eligible ? audioImportJob_->takeResult() : nullptr;
+        audioImportJob_.reset(); // terminal acquire precedes the destructor's join
+        if (! current)
+            return false; // retired work cannot alter status, selection or a completion receipt
+        PendingAudioImport pending = std::move (*pendingAudioImport_);
+        pendingAudioImport_.reset();
+        UiAudioImportCompletion completion;
+        completion.key = pending.key;
+        completion.samplerPad = pending.padKey.has_value();
+        const bool adopted = prepared && adoptPreparedAudioImport (*prepared, pending, completion);
+        if (! prepared)
+            completion.placement.refusals.push_back (reason.empty() ? "audio preparation failed" : reason);
+        prepared.reset(); // include discarded duplicate buffers and refused private-staging cleanup in the measurement
+        completion.ownerBatchMilliseconds = std::chrono::duration<double, std::milli> (
+            std::chrono::steady_clock::now() - began).count();
+        if (completion.disposition != UiAudioImportDisposition::Completed)
+            reportStatus ("Audio import refused: " + (completion.placement.refusals.empty()
+                ? std::string { "the project could not be saved or rebuilt" } : completion.placement.refusals.back()), true);
+        else if (completion.placement.refusals.empty())
+            reportStatus (completion.samplerPad ? "Sampler pad ready" : "Audio import ready", false);
+        else
+            reportStatus ("Audio import: " + completion.placement.refusals.front(), true);
+        audioImportCompletion_ = std::move (completion);
+        return adopted;
+    }
+
     [[nodiscard]] UiAudioDropResult importAudioFilesAt (std::vector<UiAudioImportItem> items,
                                                         std::size_t firstLane,
                                                         engine::Tick timelineStart)
@@ -12057,6 +12182,8 @@ private:
 
     void syncProjectEditContext() noexcept
     {
+        if (pendingAudioImport_ && ! audioImportDependenciesMatch (*pendingAudioImport_))
+            retireAudioImport (UiAudioImportDisposition::Stale, audioImportDependencyRefusal (*pendingAudioImport_));
         // Every successful edit adoption passes here, before another undo/redo can restore the
         // old geometry. Invalidating now prevents a move-and-undo from reviving stale intent.
         if (pendingStretch_ && ! stretchDependenciesMatch (*pendingStretch_))
@@ -13224,6 +13351,258 @@ private:
         std::filesystem::path sourcePath;
     };
 
+    struct PendingAudioImport
+    {
+        app::AudioImportKey key;
+        double viewRateHz = 0.0;
+        std::optional<std::int16_t> padKey;
+        std::optional<engine::SamplerPad> pad;
+        std::vector<std::string> targetNames;
+    };
+
+    [[nodiscard]] UiAudioImportStart startOwnedAudioImport (
+        std::vector<std::filesystem::path> paths, std::vector<engine::EntityId> targets,
+        engine::Tick position, bool appendTracks, app::AudioImportDecoder decoder,
+        std::optional<std::int16_t> padKey)
+    {
+        if (audioImportBusy())
+            return { false, 0, "audio import is busy, including retiring preparation" };
+        if (! bundleDb_.isOpen())
+            return { false, 0, "no project is open" };
+        if (paths.empty() || decoder == nullptr)
+            return { false, 0, "audio import requires files and a decoder" };
+        if (targets.empty() && ! appendTracks)
+            return { false, 0, "audio import has no captured target Track" };
+        for (const auto target : targets)
+            if (project_.findTrack (target) == nullptr)
+                return { false, 0, "audio import captured target Track is missing" };
+        app::AudioImportRequest request;
+        request.key = { nextAudioImportRequestId_++, ++audioImportRequestVersion_, attachGeneration_,
+                        project_.id, std::max<engine::Tick> (0, position), std::move (targets), appendTracks };
+        request.destinationBundle = bundlePath_;
+        request.stageId = allocateSessionEntityId (0xA8u);
+        request.viewRateHz = project_.sampleRate.hz;
+        request.decoder = decoder;
+        for (auto& path : paths)
+            request.files.push_back ({ std::move (path), allocateSessionEntityId (0xA9u) });
+        PendingAudioImport pending { request.key, request.viewRateHz, padKey, std::nullopt, {} };
+        for (const auto target : request.key.targetTrackIds)
+            pending.targetNames.push_back (project_.findTrack (target)->strip.name);
+        if (padKey)
+            if (const auto* pad = project_.findTrack (request.key.targetTrackIds.front())->findSamplerPad (*padKey))
+                pending.pad = *pad;
+        const auto requestId = request.key.requestId;
+        auto job = std::make_unique<app::AudioImportJob> (std::move (request));
+        if (! job->start())
+            return { false, 0, "audio import worker could not start" };
+        pendingAudioImport_ = std::move (pending);
+        audioImportCompletion_.reset();
+        audioImportJob_ = std::move (job);
+        reportStatus (padKey ? "Preparing Sampler pad" : "Preparing audio import", false);
+        return { true, requestId, {} };
+    }
+
+    [[nodiscard]] bool audioImportDependenciesMatch (const PendingAudioImport& pending) const noexcept
+    {
+        const auto& key = pending.key;
+        if (key.requestVersion != audioImportRequestVersion_ || key.attachGeneration != attachGeneration_
+            || key.projectId != project_.id || pending.viewRateHz != project_.sampleRate.hz)
+            return false;
+        for (const auto trackId : key.targetTrackIds)
+            if (! project_.findTrack (trackId))
+                return false;
+        if (pending.padKey)
+        {
+            const auto* pad = project_.findTrack (key.targetTrackIds.front())->findSamplerPad (*pending.padKey);
+            if (pending.pad.has_value() != (pad != nullptr) || (pad && *pad != *pending.pad))
+                return false;
+        }
+        return true;
+    }
+
+    [[nodiscard]] std::string audioImportDependencyRefusal (const PendingAudioImport& pending) const
+    {
+        for (std::size_t index = 0; index < pending.key.targetTrackIds.size(); ++index)
+            if (! project_.findTrack (pending.key.targetTrackIds[index]))
+                return "Audio import refused: captured Track \"" + pending.targetNames[index] + "\" is missing";
+        if (pending.padKey)
+            return "Audio import refused: captured pad " + std::to_string (*pending.padKey)
+                + " on Track \"" + pending.targetNames.front() + "\" changed";
+        return "Audio import refused: captured Project or sample rate changed";
+    }
+
+    void retireAudioImport (UiAudioImportDisposition disposition, const std::string& reason)
+    {
+        ++audioImportRequestVersion_;
+        if (pendingAudioImport_)
+        {
+            UiAudioImportCompletion completion;
+            completion.key = pendingAudioImport_->key;
+            completion.samplerPad = pendingAudioImport_->padKey.has_value();
+            completion.disposition = disposition;
+            completion.placement.refusals.push_back (reason);
+            audioImportCompletion_ = std::move (completion);
+            pendingAudioImport_.reset();
+            reportStatus (reason, disposition == UiAudioImportDisposition::Stale);
+        }
+        if (audioImportJob_)
+            audioImportJob_->requestCancel();
+    }
+
+    [[nodiscard]] bool adoptPreparedAudioImport (app::AudioImportResult& prepared,
+                                                const PendingAudioImport& pending,
+                                                UiAudioImportCompletion& completion)
+    {
+        struct Adopted
+        {
+            std::optional<engine::Asset> asset;
+            std::string reason;
+        };
+        // Adoption consumes preparedAsset. Only the returned Asset supplies IDs/metadata afterwards;
+        // aliases share this outcome, including a persistence refusal.
+        std::vector<Adopted> adopted (prepared.prepared.size());
+        engine::Project nextProject = project_;
+        engine::ProjectUndoStack nextUndo = undo_;
+        const auto previousDecoded = decodedAssets_;
+        for (std::size_t index = 0; index < prepared.prepared.size(); ++index)
+        {
+            auto& input = prepared.prepared[index];
+            engine::Asset asset;
+            const auto result = bundleDb_.adoptPreparedAsset (std::move (input.preparedAsset), asset);
+            if (! result.ok())
+            {
+                adopted[index].reason = result.message;
+                continue;
+            }
+            adopted[index].asset = asset;
+            if (! nextProject.findAsset (asset.id))
+                nextProject.assets.push_back (asset);
+            // A canonical duplicate already has an immutable owner (and stretch keys tied to it).
+            // Never replace that owner with the worker's equivalent but differently identified decode.
+            if (const auto* existing = findDecodedAsset (asset.id))
+            {
+                if (existing->sampleRate != asset.sampleRate || existing->frames != asset.frames
+                    || existing->channels != asset.channels)
+                {
+                    adopted[index].asset.reset();
+                    adopted[index].reason = "existing decoded Asset metadata does not match";
+                }
+                continue;
+            }
+            UiDecodedAsset decoded { asset.id, asset.sampleRate, asset.frames, asset.channels, input.source };
+            upsertDecodedAsset (decodedAssets_, std::move (decoded));
+            if (asset.sampleRate != project_.sampleRate)
+            {
+                const std::lock_guard<std::mutex> lock (rateMatchedViewsMutex_);
+                rateMatchedViews_.push_back ({ asset.id, asset.sampleRate.hz, project_.sampleRate.hz,
+                                               asset.frames, asset.channels, input.source, input.view });
+            }
+        }
+        bool applied = nextUndo.beginTransactionGroup();
+        std::vector<engine::EntityId> clips;
+        std::vector<std::filesystem::path> files;
+        std::size_t tracksCreated = 0;
+        std::size_t slot = 0;
+        for (const auto& item : prepared.items)
+        {
+            const auto refuse = [&] (const std::string& reason) {
+                completion.placement.refusals.push_back (io::utf8Text (item.sourcePath.filename()) + ": " + reason);
+            };
+            if (! item.preparedIndex)
+            {
+                refuse (item.reason);
+                continue;
+            }
+            const auto& outcome = adopted[*item.preparedIndex];
+            if (! outcome.asset)
+            {
+                refuse (outcome.reason);
+                continue;
+            }
+            const auto& asset = *outcome.asset;
+            engine::EntityId trackId;
+            if (slot < pending.key.targetTrackIds.size())
+                trackId = pending.key.targetTrackIds[slot];
+            else if (pending.key.appendTracks)
+            {
+                trackId = allocateSessionEntityId (0xB1u, nextProject);
+                applied = applied && nextUndo.apply (nextProject, engine::ProjectEditCommand::addTrack (
+                    trackId, "Audio " + std::to_string (nextProject.tracks.size() + 1))).applied();
+                ++tracksCreated;
+            }
+            else
+            {
+                refuse ("no captured target Track slot remains");
+                continue;
+            }
+            if (pending.padKey)
+            {
+                engine::SamplerPad pad;
+                pad.key = *pending.padKey;
+                pad.rootKey = pad.key;
+                pad.assetId = asset.id;
+                pad.setName (io::utf8Text (item.sourcePath.stem()));
+                applied = applied && nextUndo.apply (nextProject, engine::ProjectEditCommand::setSamplerPad (trackId, pad)).applied();
+            }
+            else
+            {
+                engine::Clip clip;
+                clip.id = allocateSessionEntityId (0xC1u, nextProject);
+                clip.trackId = trackId;
+                clip.assetId = asset.id;
+                clip.timelineStart = pending.key.intendedPosition;
+                clip.timelineLength = engine::timelineLengthForSource (asset.frames,
+                    engine::rateRatio (asset.sampleRate.hz, project_.sampleRate.hz));
+                clip.srcLen = asset.frames;
+                clip.timeBase = engine::TimeBase::SampleLocked;
+                clip.name = clipNameForFile (item.sourcePath);
+                applied = applied && nextUndo.apply (nextProject, engine::ProjectEditCommand::addClip (clip)).applied();
+                clips.push_back (clip.id);
+            }
+            if (! applied)
+                break;
+            completion.landedTrackIds.push_back (trackId);
+            files.push_back (item.sourcePath);
+            ++slot;
+        }
+        if (slot == 0 && applied)
+        {
+            decodedAssets_ = previousDecoded;
+            pruneRateMatchedViews();
+            completion.disposition = UiAudioImportDisposition::Completed;
+            return false;
+        }
+        applied = applied && slot > 0 && nextUndo.endTransactionGroup() && nextProject.hasValidAssetClipIndirection();
+        if (! applied || ! stretchPlaybackInputsReady (nextProject)
+            || ! adoptEditedProject (std::move (nextProject), std::move (nextUndo)))
+        {
+            decodedAssets_ = previousDecoded;
+            pruneRateMatchedViews();
+            completion.landedTrackIds.clear();
+            completion.placement.refusals.push_back ("required prepared audio unavailable, or the edit could not be saved or rebuilt");
+            return false;
+        }
+        completion.disposition = UiAudioImportDisposition::Completed;
+        completion.placement.landed = slot;
+        completion.placement.tracksCreated = tracksCreated;
+        if (! pending.padKey)
+        {
+            selectedTimelineClipIds_ = clips;
+            selectedTimelineClipId_ = clips.back();
+            context_.timelineClipSelected = true;
+            pendingAudioPlacement_ = {};
+            pendingMidiPlacement_ = {};
+            context_.importCount += static_cast<int> (slot);
+            for (auto it = files.rbegin(); it != files.rend(); ++it)
+                rememberRecentAudioFile (*it);
+        }
+        else
+            ++context_.mixerEditCount;
+        ++context_.commandDispatchCount;
+        enqueueWaveformBuildsForDecodedAssets();
+        return true;
+    }
+
     // The drop law shared by importAudioFilesAt and placeAssetsAt: consecutive tracks from `firstLane` at
     // `timelineStart`, the tracks past the last one created, the tracks and clips as ONE undo step (an Asset row
     // stays outside it, as every import's does); nothing lands, nothing changes.
@@ -13403,6 +13782,7 @@ private:
     {
         invalidateStretchPreparation();
         stretchedSamplesCache_.clear();
+        retireAudioImport (UiAudioImportDisposition::Stale, "Audio import refused: Project was replaced");
         stopAudition();   // ADR-0056: an audition belongs to the project (and rate) it started in
         if (activeExport_ != nullptr)   // ADR-0058: a running export belongs to the project it started in
         {
@@ -14731,6 +15111,11 @@ private:
     std::unique_ptr<app::StretchPreparationJob> stretchJob_; // also owns a cancelled worker until terminal
     std::uint64_t nextStretchRequestId_ = 1;
     std::uint64_t stretchRequestVersion_ = 0;
+    std::optional<PendingAudioImport> pendingAudioImport_;
+    std::unique_ptr<app::AudioImportJob> audioImportJob_; // active or retiring, bounded to one worker
+    std::optional<UiAudioImportCompletion> audioImportCompletion_;
+    std::uint64_t nextAudioImportRequestId_ = 1;
+    std::uint64_t audioImportRequestVersion_ = 0;
     std::uint64_t livePlacementEdits_ = 0;
     std::vector<RetiredMonitorChain> retiredMonitorChains_;
     // ADR-0056 cp2: the audition voice the control thread owns, the pointer the device thread reads, the source

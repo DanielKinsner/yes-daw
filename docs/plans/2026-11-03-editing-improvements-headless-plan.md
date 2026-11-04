@@ -36,6 +36,15 @@ Make editing continuous and musically consistent, then deepen arrangement and pi
   defers its MIDI tail until audio placement resolves, retaining the existing separate MIDI undo behavior.
 - Migrate Sampler-pad loading explicitly with its captured Track/pad target. Browser audition and Project
   opening remain separate existing synchronous surfaces unless explicitly migrated; do not imply otherwise.
+- After shell wiring, measure final owner time by phase before optimizing. Short unique-Asset batches
+  measured roughly 9/73/319 ms for 1/8/32 items; repeated persistence is a supported target, not yet a
+  demonstrated dominant phase. A batch adoption may share the existing FULL intent commit before any
+  transfer and one final FULL rows/markers commit, retaining per-file no-replace transfers and file flushes.
+  Per-file savepoints isolate recoverable refusals; releasing one is not durability. An untransferred item
+  stays Journal until its intent deletion commits durably, and a renamed item stays Canonical even on
+  later failure. Shared durability uncertainty publishes no affected new-Asset success or Project edit.
+  Restore synchronous mode outside transactions, preserve ordered outcomes and recovery, and keep the
+  current-Project Clip/Track undo transaction atomic. Do not spread Asset adoption across service ticks.
 
 For each slice, choose the focused proof before production changes, run the full pure suite on the integrated
 result, compile GUI consumers without launch, review saved-data/engine changes, and commit/push before beginning
