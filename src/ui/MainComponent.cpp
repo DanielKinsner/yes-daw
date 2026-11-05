@@ -1491,10 +1491,9 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
         repaintAll();
     };
     pianoRollInput.onNoteQuantized = [this] (yesdaw::engine::EntityId midiClipId,
-                                             yesdaw::engine::EntityId noteId,
-                                             yesdaw::engine::Tick snapGridTicks) {
-        (void) appModel.selectPianoRollNote (midiClipId, noteId);
-        (void) appModel.quantizeSelectedPianoRollNoteTo (yesdaw::engine::SnapGrid { snapGridTicks });
+                                             yesdaw::engine::EntityId noteId) {
+        if (appModel.selectPianoRollNote (midiClipId, noteId).dispatched)
+            (void) appModel.quantizeSelectedPianoRollNotesToCurrentGrid();
         refreshActionState();
         repaintAll();
     };

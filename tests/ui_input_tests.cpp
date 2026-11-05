@@ -3801,11 +3801,8 @@ TEST_CASE ("H12 UI input harness edits MIDI Clip Notes through the real Piano Ro
 
     const yesdaw::engine::MidiClip transposedMidi = edited.midiClips.front();
     const yesdaw::engine::Note transposedNote = transposedMidi.notes.front();
-    yesdaw::engine::Tick expectedQuantizedStart = 0;
-    REQUIRE (yesdaw::engine::snapTick (
-        transposedNote.startTick,
-        yesdaw::engine::SnapGrid { 512 },
-        expectedQuantizedStart));
+    constexpr yesdaw::engine::Tick expectedQuantizedStart = 0;
+    REQUIRE (transposedNote.startTick < 7680);
     REQUIRE (expectedQuantizedStart != transposedNote.startTick);
     const juce::ModifierKeys ctrlDoubleClick {
         juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier
@@ -4713,11 +4710,8 @@ TEST_CASE ("H12 UI input harness drives an end-to-end saved session through ship
 
     const yesdaw::engine::MidiClip transposedMidi = transposedPiano.midiClips.front();
     const yesdaw::engine::Note transposedNote = transposedMidi.notes.front();
-    yesdaw::engine::Tick expectedQuantizedNoteStart = 0;
-    REQUIRE (yesdaw::engine::snapTick (
-        transposedNote.startTick,
-        yesdaw::engine::SnapGrid { 512 },
-        expectedQuantizedNoteStart));
+    constexpr yesdaw::engine::Tick expectedQuantizedNoteStart = 0;
+    REQUIRE (transposedNote.startTick < 7680);
     const juce::ModifierKeys ctrlDoubleClick {
         juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier
     };
@@ -35137,4 +35131,98 @@ TEST_CASE ("offscreen arrange drag follows Meter-origin sixteenths and persists 
     ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
     CHECK (readProjectSnapshot (bundle).midiClips.front() == expected);
     requireHeadless();
+}
+
+TEST_CASE ("offscreen Ctrl-double-click quantize follows native maps and panel settings",
+           "[ui][input][shell][piano-quantize-gesture]")
+{
+    using namespace yesdaw;
+    const auto run = [] (bool musical, int setting) {
+        INFO ("TempoLocked=" << musical << " settings variant=" << setting);
+        auto original = makeMidiInputProject();
+        original.tempoMap = { { 0, 120.0 }, { 30720, 60.0 } };
+        original.meterMap = { { 0, 4, 4 }, { 38400, 3, 8 } };
+        auto& source = original.midiClips.front();
+        source.timeBase = musical ? engine::TimeBase::TempoLocked : engine::TimeBase::SampleLocked;
+        source.timelineStart = musical ? 23040 : 36000;
+        source.timelineLength = musical ? 40000 : 120000;
+        source.notes.front().startTick = musical ? 20500 : 50000;
+        source.notes.front().lengthTicks = musical ? 10000 : 20000;
+        REQUIRE (original.hasValidAssetClipIndirection());
+        const auto bundle = makeTempBundlePath ("piano-quantize-gesture");
+        MainComponentFileChoices choices;
+        choices.chooseNewProjectBundle = [bundle] { return bundle; };
+        choices.chooseOpenProjectBundle = [bundle] { return bundle; };
+        choices.makeNewProject = [original] { return original; };
+        REQUIRE_FALSE (choices.nativePrompts);
+        auto shell = makeShell (std::move (choices));
+        shell->setSize (1920, 1080);
+        const auto requireHeadless = [&] {
+            REQUIRE (shell->getPeer() == nullptr);
+            const auto snapshot = snapshotMainComponent (*shell);
+            REQUIRE_FALSE (snapshot.desktopAudioRequested);
+            REQUIRE_FALSE (snapshot.desktopAudioOpen);
+    };
+    requireHeadless();
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    ui::mainComponentDispatchAction (*shell, UiActionId::ViewPianoRoll);
+    ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapSetBeat);
+    clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+    auto* quantizeGrid = dynamic_cast<juce::ComboBox*> (
+        findChildWithComponentId (*shell, "clip.inspector.quantize.grid"));
+    auto* strength = dynamic_cast<juce::Slider*> (
+        findChildWithComponentId (*shell, "clip.inspector.quantize.strength"));
+    auto* ends = dynamic_cast<juce::Button*> (
+        findChildWithComponentId (*shell, "clip.inspector.quantize.ends"));
+    REQUIRE (quantizeGrid != nullptr);
+    REQUIRE (strength != nullptr);
+    REQUIRE (ends != nullptr);
+    quantizeGrid->setSelectedId (setting == 2 ? 2 : 1, juce::sendNotificationSync);
+    strength->setValue (setting == 1 || setting == 2 ? 50.0 : 100.0, juce::sendNotificationSync);
+    if (setting == 3) clickButton (*ends);
+    const auto context = snapshotMainComponent (*shell).context;
+    REQUIRE (context.quantizeGridChoice == (setting == 2 ? 1 : 0));
+    REQUIRE (context.quantizeStrengthPercent == (setting == 1 || setting == 2 ? 50 : 100));
+    REQUIRE (context.quantizeNoteEnds == (setting == 3));
+    ui::mainComponentSetDockHeight (*shell, ui::UiTheme::Layout::windowMaxHeight);
+    auto& roll = requirePianoRollComponent (*shell);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('a', juce::ModifierKeys::ctrlModifier, 0)));
+    const auto before = readProjectSnapshot (bundle);
+    REQUIRE (before.midiClips == original.midiClips);
+    const juce::ModifierKeys ctrlDoubleClick {
+        juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier
+    };
+    doubleClickAt (roll, pianoRollNoteCenterPoint (roll, source, source.notes.front()), ctrlDoubleClick);
+    // Meter Tick38400 is Frame72000; subsequent Beats are 7680 Ticks /24000 Frames.
+    // The panel's 1/8 override halves those cells; strength50 interpolates only once.
+    constexpr std::array<engine::Tick, 4> musicalStarts { 23040, 21770, 19850, 23040 };
+    constexpr std::array<engine::Tick, 4> fixedStarts { 60000, 55000, 49000, 60000 };
+    auto expected = source;
+    expected.notes.front().startTick = musical ? musicalStarts[static_cast<std::size_t> (setting)]
+                                              : fixedStarts[static_cast<std::size_t> (setting)];
+    if (setting == 3) expected.notes.front().lengthTicks = musical ? 7680 : 24000;
+    const auto after = readProjectSnapshot (bundle);
+    REQUIRE (after.midiClips.size() == 1u);
+    CHECK (after.midiClips.front().notes.front().startTick == expected.notes.front().startTick);
+    CHECK (after.midiClips.front().notes.front().lengthTicks == expected.notes.front().lengthTicks);
+    CHECK (after.midiClips.front() == expected);
+    requireHeadless();
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    CHECK (readProjectSnapshot (bundle).midiClips == original.midiClips);
+    CHECK_FALSE (snapshotMainComponent (*shell).context.canUndo);
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+    CHECK (readProjectSnapshot (bundle).midiClips.front() == expected);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectSave));
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectOpen));
+    CHECK (readProjectSnapshot (bundle).midiClips.front() == expected);
+    requireHeadless();
+    };
+    SECTION ("TempoLocked plain Beat") { run (true, 0); }
+    SECTION ("TempoLocked strength50") { run (true, 1); }
+    SECTION ("TempoLocked half-Beat override") { run (true, 2); }
+    SECTION ("TempoLocked note ends") { run (true, 3); }
+    SECTION ("SampleLocked plain Beat") { run (false, 0); }
+    SECTION ("SampleLocked strength50") { run (false, 1); }
+    SECTION ("SampleLocked half-Beat override") { run (false, 2); }
+    SECTION ("SampleLocked note ends") { run (false, 3); }
 }

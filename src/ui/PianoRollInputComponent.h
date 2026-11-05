@@ -35,10 +35,6 @@
 
 namespace yesdaw::ui {
 
-// The snap grid the piano roll's quantize verbs use (moved with the component).
-inline constexpr yesdaw::engine::Tick kPianoRollSnapGridTicks =
-    yesdaw::ui::UiTheme::Layout::pianoRollGridTickStep;
-
 struct PianoRollCanvasGeometry
 {
     juce::Rectangle<int> expression;
@@ -330,7 +326,7 @@ public:
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteHeadTrimmed;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteLengthChanged;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, std::int32_t)> onNoteTransposed;
-    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId, yesdaw::engine::Tick)> onNoteQuantized;
+    std::function<void (yesdaw::engine::EntityId, yesdaw::engine::EntityId)> onNoteQuantized;
     std::function<void()> onExpressionRead;
     std::function<void (yesdaw::engine::EntityId, yesdaw::engine::Tick, std::int16_t)> onNoteAdded;
     // Alt+wheel on a note adjusts its velocity (B33): clip, note, new normalized velocity.
@@ -979,7 +975,7 @@ public:
         if (event.mods.isCtrlDown())
         {
             if (onNoteQuantized)
-                onNoteQuantized (surface.midiClipId, hit->noteId, kPianoRollSnapGridTicks);
+                onNoteQuantized (surface.midiClipId, hit->noteId);
             return;
         }
 
