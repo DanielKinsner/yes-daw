@@ -73,11 +73,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
-## 2026-11-04 — Project SMF sanitizer link (active)
+## 2026-11-04 — Project SMF sanitizer link
 
 Pure-writer CI 41967981937 TSan job 127062580563 failed during linking: the allocation proof's global new/delete definitions collide with LLVM20 TSan's strong allocator interceptors. No race test ran in that job. Raw log/hash is retained locally under build-ci/20261104-project-smf-tsan-link; the workflow, sanitizer flags and all test assertions stay intact.
-Fresh project_smf_tsan_allocator_prep is preparing a two-path functional harness repair: retain the original allocator observer on normal builds, delegate instrumented allocation through the sanitizer runtime, preserve all twelve existing case bodies and add a nonzero observer health check. No tracked edit or heavy run authorized yet; root must save the completed clock candidate separately first.
-Model export a11d9f9 is committed locally. The clock candidate 438B0303 passed root canonical 45449; save it locally, then fix this build gate before the combined push. Both historical failures remain recorded and require real CI on the final code. No native windows, input, devices or hardware execution.
+The two-path candidate is CMake80AACBEC/proofAAE83132: Linux64 ThreadSanitizer alone uses a linker-wrapped new observer delegating to the real sanitizer allocator/deleters. All twelve old case bodies/oracles, the original seven-case prefix and the entire normal allocator block remain exact; only the approved functional bridge and one appended positive observer check were added. All 527 other tracked paths remain exact; no sanitizer flag/coverage reduction or workflow change.
+Normal checks passed Project SMF 1,683/13, health 2/1 (largest67, requested96), legacy121/4 and two Clang units; the bridge also passed Windows front-end syntax only. No local Linux surface exists, so updated real TSan CI is required. The independent verification critic accepted exact 80AACBEC/AAE83132 and all preservation guards.
+Root canonical 48307 exited zero at final pins: full pure 480/480 (123.11 s), app plus both harnesses compiled without launch. Exact-candidate Clang proof is retained; full offscreen UI510/461,092 and screenshots30/15,629 at source-identical production cache parent 45449 are retained, not rerun for this test-only change. No native/input/device/hardware execution or local ELF/TSan runtime credit.
+Code review: skipped (ce-code-review unavailable). Mandatory generated-job cleanup remains blocked by automatic approval review; independent sanitizer review and root's entire diff/caller scan found no blocker. Modela11d9f9 and clock8910983 are locally committed; commit this repair and push the three logical changes. Real final-code CI remains the gate. The writer's macOS passed on unchanged clock, leaving the historical timing cause unproved; do not call either failed historical job green.
 
 ## 2026-11-04 — CI metronome deadline
 

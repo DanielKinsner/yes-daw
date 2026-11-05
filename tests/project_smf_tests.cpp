@@ -407,6 +407,17 @@ thread_local std::size_t largest = 0;
 thread_local std::size_t requested = 0;
 }
 
+#if defined (YESDAW_PROJECT_SMF_WRAP_NEW)
+extern "C" void* __real__Znwm (std::size_t size);
+
+extern "C" void* __wrap__Znwm (std::size_t size)
+{
+    if (project_smf_allocation_probe::enabled)
+        project_smf_allocation_probe::largest = std::max (project_smf_allocation_probe::largest, size);
+    if (project_smf_allocation_probe::enabled) project_smf_allocation_probe::requested += size;
+    return __real__Znwm (size);
+}
+#else
 void* operator new (std::size_t size)
 {
     if (project_smf_allocation_probe::enabled)
@@ -418,6 +429,7 @@ void* operator new (std::size_t size)
 
 void operator delete (void* memory) noexcept { std::free (memory); }
 void operator delete (void* memory, std::size_t) noexcept { std::free (memory); }
+#endif
 
 TEST_CASE ("Project SMF ordinary NoteOn ties preserve full source identity before velocity", "[project-smf][regression]")
 {
@@ -553,4 +565,35 @@ TEST_CASE ("Project SMF admitted working budget covers observed container alloca
     REQUIRE (result.status == ProjectSmfStatus::Ok);
     CAPTURE (low, observed);
     CHECK (observed <= low);
+}
+
+TEST_CASE ("Project SMF allocator observer records real scalar allocation requests", "[project-smf][allocator-observer]")
+{
+    using Allocate = void* (*) (std::size_t);
+    using Deallocate = void (*) (void*) noexcept;
+    Allocate volatile allocate = &::operator new;
+    Deallocate volatile deallocate = &::operator delete;
+    void* first = nullptr;
+    void* second = nullptr;
+    project_smf_allocation_probe::largest = 0;
+    project_smf_allocation_probe::requested = 0;
+    project_smf_allocation_probe::enabled = true;
+    try
+    {
+        first = allocate (67);
+        second = allocate (29);
+    }
+    catch (...)
+    {
+        project_smf_allocation_probe::enabled = false;
+        deallocate (first);
+        throw;
+    }
+    project_smf_allocation_probe::enabled = false;
+    const auto largest = project_smf_allocation_probe::largest;
+    const auto requested = project_smf_allocation_probe::requested;
+    deallocate (first);
+    deallocate (second);
+    CHECK (largest == 67u);
+    CHECK (requested == 96u);
 }

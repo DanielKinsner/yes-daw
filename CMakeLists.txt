@@ -918,6 +918,12 @@ add_test(NAME YesDawSmfCheck COMMAND $<TARGET_FILE:YesDawSmfCheck>)
 add_executable(YesDawProjectSmfCheck tests/project_smf_tests.cpp)
 target_include_directories(YesDawProjectSmfCheck PRIVATE ${YESDAW_SRC_DIR})
 target_link_libraries(YesDawProjectSmfCheck PRIVATE Catch2::Catch2WithMain)
+if (YESDAW_SANITIZER STREQUAL "thread"
+    AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
+    AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  target_compile_definitions(YesDawProjectSmfCheck PRIVATE YESDAW_PROJECT_SMF_WRAP_NEW=1)
+  target_link_options(YesDawProjectSmfCheck PRIVATE "LINKER:--wrap=_Znwm")
+endif()
 yesdaw_harden(YesDawProjectSmfCheck)
 add_test(NAME YesDawProjectSmfCheck COMMAND $<TARGET_FILE:YesDawProjectSmfCheck>)
 
