@@ -1485,7 +1485,7 @@ TEST_CASE ("Fixed MIDI actions append stable identities and retain sibling dispa
     REQUIRE (static_cast<int> (UiActionId::ProjectImportMidiFixed) == 243);
     REQUIRE (kUiActionCount == 244u);
     UiActionRegistry registry;
-    for (const auto pair : { std::pair { UiActionId::TimelineMidiClipAddFixed, UiActionId::TimelineMidiClipAdd },
+    for (const auto& pair : { std::pair { UiActionId::TimelineMidiClipAddFixed, UiActionId::TimelineMidiClipAdd },
                              std::pair { UiActionId::ProjectImportMidiFixed, UiActionId::ProjectImportMidi } })
     {
         const auto* descriptor = registry.descriptor (pair.first);

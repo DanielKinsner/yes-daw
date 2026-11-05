@@ -51,7 +51,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome, captured-map count-in and bounded click-search recovery are delivered; all ten CI jobs passed at d97f3d2.
    Full-map timing is implemented across metronome/count-in, clipboard/moves, readouts, arrange/piano grids and quantize/Step input.
    Native MIDI occurrences, the pure file writer, app export adapter, narrow click-cache optimization and TSan allocator compatibility are pushed at e5f49d7 and passed all ten CI jobs.
-   Musical MIDI defaults and explicit Fixed-time commands are pushed at70d3b1c after all local integration gates passed. Current: commit/push Accepted ADR-0083 and its Musical-audio plan, then the pure checked window/key foundation. Latest-head CI remains required. Checked fractional
+   Musical MIDI defaults and explicit Fixed-time commands are pushed at70d3b1c after all local integration gates passed. Accepted ADR-0083 and its plan are pushed atf7d2078. Current: repair the action-test compiler warning, then resume the pure Musical-audio window/key foundation. Exact new-head CI remains required. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -72,6 +72,18 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 — MIDI action-test compiler portability (priority)
+
+MIDI70d3 CI41988919464 macOS job127116586329 and Linux job127116586354 failed their BUILDs at ui_action_tests.cpp1488: Apple Clang and GCC -Wall -Wextra -Werror reject copying the const pair in the new range loop. No runtime tests ran in either job. Raw LF logs5C530E5F/5C045AB7 are retained; no timing exception, warning suppression or flake/retry classification applies.
+The single const-reference marker changes no oracle, pair data or loop coverage. Source93BCD4D0 inverses exactly to whole6A4EA547; old76,734-byteCC09 prefix and534 other tracked paths remain exact. Focused44/1, owning4319/18 and one local Clang unit passed; independent verification critic accepted93BCD. Root narrow canonical retains the source-identical MIDI full pure482/GUI3/UI511/screenshots30 evidence. Actual Apple compiler success requires new CI.
+The audio-window author released the heavy lane before any tracked header/test/CMake write or compiler/test execution. Its ignored one-case12-section proof622FB90D and independent Decimal/Fraction oracle9E4313CB remain frozen. Root commits only this test/STATUS, waits for pending architectureCI41989211841 to start before push, then refreshes the audio unit's parent and returns its lane. Code review: skipped (ce-code-review unavailable); no native/input/device/hardware execution.
+
+## 2026-11-05 — Musical-audio window/key foundation (held for priority CI repair)
+
+HEAD/originf7d2078 contains Accepted ADR-0083 and its ordered plan. MIDI70d3b1c CI41988919464 is running; architectureCI41989211841 is pending and must not be cancelled by another push. Prior716CI41985752824 passed all ten jobs attempt1. Its actual Linux logA475EEC5 records511/511 CTest checks, including StateProbe and Smf, passing260.90s; earlier failures remain retained.
+The prepared author owns the sole heavy lane and exactly new engine/MusicalAudioWindow.h, one new pure feature proof and six adjacent CMake lines. Implement immutable complete-map clock/window/key values, portable uint64 rational progress/common-floor cuts and retained original/view owner/tier identity. Select/freeze the independent proof before implementation/execution; all existing source/proofs, Accepted ADRs, vendor, goldens and RT annotations stay exact.
+No renderer/planner, conversion, graph/UI/model/export/load activation is authorized in this unit; audio still does not follow Tempo changes. Root owns STATUS, independent engine/numeric critique, all five proof-preserving cleanup lenses, full pure483/GUI compile canonical, commit/push and CI. Source-identical MIDI offscreen511/screenshot30 evidence is retained without a redundant rerun. No native/input/device/hardware execution.
 
 ## 2026-11-05 — Musical-audio architecture (accepted; implementation pending)
 
