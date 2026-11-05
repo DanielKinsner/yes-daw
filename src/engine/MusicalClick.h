@@ -353,6 +353,8 @@ public:
             segment.lastOrdinal = beats - 1u;
             segment.first = prepared.positionForOrdinal (segment, 0);
             segment.last = prepared.positionForOrdinal (segment, segment.lastOrdinal);
+            segment.roughFirst = prepared.roughPositionForOrdinal (segment, 0);
+            segment.roughLast = prepared.roughPositionForOrdinal (segment, segment.lastOrdinal);
             // Keep the complete stored ordinal domain. An uncertain FLOOR at one ordinal
             // is not a monotonic failure and must never truncate later exact onsets.
             prepared.segments_.push_back (segment);
@@ -580,7 +582,7 @@ private:
     {
         MeterChange meter;
         std::uint64_t lastOrdinal = 0;
-        Enclosure first, last;
+        Enclosure first, last, roughFirst, roughLast;
     };
 
     [[nodiscard]] TimeLookupStatus spanDestination (MusicalTime start, Enclosure accepted,
@@ -887,11 +889,15 @@ private:
                                                             std::int64_t frame, MusicalClickLookup& work) const noexcept
     {
         ++work.ordinalProbes; ++work.roughProbes;
-        const auto rough = click_detail::compare (roughPositionForOrdinal (segment, ordinal), frame);
+        const auto roughPosition = ordinal == 0 ? segment.roughFirst
+            : ordinal == segment.lastOrdinal ? segment.roughLast : roughPositionForOrdinal (segment, ordinal);
+        const auto rough = click_detail::compare (roughPosition, frame);
         if (rough != click_detail::Order::Uncertain)
             return rough;
         ++work.ordinalProbes; ++work.tightProbes;
-        return click_detail::compare (positionForOrdinal (segment, ordinal), frame);
+        const auto tightPosition = ordinal == 0 ? segment.first
+            : ordinal == segment.lastOrdinal ? segment.last : positionForOrdinal (segment, ordinal);
+        return click_detail::compare (tightPosition, frame);
     }
 
     [[nodiscard]] Enclosure countedPositionForOrdinal (const Segment& segment, std::uint64_t ordinal,
