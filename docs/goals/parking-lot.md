@@ -157,3 +157,5 @@ Full list and reasons: [`docs/research/2026-10-11-soundcraft-takeaways.md`](../r
 - [ ] 2026-10-11 · verification · every action in every state; random edit/undo sequences; mutated-bundle fuzz; FX fuzz; a test-count ratchet; an RTSan canary; a layering gate · takeaways §3 · promote-to: the next checkpoints, as small units
 
 - [ ] 2026-11-05 · code comments · optional namespace labels and the redundant trivial-float destruction note; cosmetic only, immutable feature proof excluded · `src/engine/MusicalAudioChannelMaterialization.h:48`, `:63`, `:215` · promote-to: later (ADR-0078)
+
+- [ ] 2026-11-05 · code comments · optional new namespace label and staging/commit narration; cosmetic only, immutable history proof excluded · `src/engine/ProjectUndo.h:2932`, `:3096` · promote-to: later (ADR-0078)

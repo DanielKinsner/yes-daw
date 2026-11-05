@@ -11,6 +11,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
+#include <memory>
+#include <new>
+#include <stdexcept>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -2914,15 +2918,203 @@ namespace detail {
     return ProjectEditApplyResult { ProjectEditStatus::Applied, true };
 }
 
+namespace detail {
+
+[[nodiscard]] inline bool takeProjectUndoGroupId (std::uint64_t& next, std::uint64_t& out) noexcept
+{
+    if (next == 0 || &next == &out)
+        return false;
+    out = next;
+    next = next == (std::numeric_limits<std::uint64_t>::max)() ? 0 : next + 1;
+    return true;
+}
+
+} // namespace detail
+
 class ProjectUndoStack final
 {
+    struct HistoryEpoch final {};
+
 public:
+    // These handles remain on Control. They retain identity, never Project rows or a prior stack.
+    class HistoryToken final
+    {
+    public:
+        [[nodiscard]] bool valid() const noexcept { return epoch_ != nullptr; }
+
+    private:
+        friend class ProjectUndoStack;
+        std::shared_ptr<const HistoryEpoch> epoch_;
+    };
+
+    class HistoryNavigation final
+    {
+    public:
+        [[nodiscard]] bool valid() const noexcept { return token_.valid(); }
+
+    private:
+        friend class ProjectUndoStack;
+        HistoryToken token_;
+        std::size_t targetRow_ = 0;
+    };
+
+    enum class HistoryCaptureStatus : std::uint8_t
+    {
+        Captured, NoStep, InvalidTarget, GestureOpen, IdentityUnavailable
+    };
+
+    enum class HistoryNavigationStatus : std::uint8_t
+    {
+        Applied, NoChange, InvalidIntent, StaleHistory, ProjectMismatch, ResourceUnavailable
+    };
+
+    ProjectUndoStack() noexcept = default;
+
+    // A staging copy is a fresh history generation; source eligibility remains current.
+    ProjectUndoStack (const ProjectUndoStack& other)
+        : undo_ (other.undo_), redo_ (other.redo_), activeGroupId_ (other.activeGroupId_),
+          nextGroupId_ (other.nextGroupId_), scalarCoalescing_ (other.scalarCoalescing_),
+          redoAtGestureStart_ (other.redoAtGestureStart_)
+    {}
+
+    ProjectUndoStack (ProjectUndoStack&& other) noexcept { *this = std::move (other); }
+
+    ProjectUndoStack& operator= (const ProjectUndoStack& other)
+    {
+        if (this != &other)
+        {
+            ProjectUndoStack copy (other);
+            *this = std::move (copy);
+        }
+        return *this;
+    }
+
+    ProjectUndoStack& operator= (ProjectUndoStack&& other) noexcept
+    {
+        if (this != &other)
+        {
+            invalidateHistory();
+            other.invalidateHistory();
+            undo_ = std::move (other.undo_);
+            redo_ = std::move (other.redo_);
+            redoAtGestureStart_ = std::move (other.redoAtGestureStart_);
+            activeGroupId_ = std::exchange (other.activeGroupId_, std::uint64_t { 0 });
+            nextGroupId_ = std::exchange (other.nextGroupId_, std::uint64_t { 1 });
+            scalarCoalescing_ = std::exchange (other.scalarCoalescing_, false);
+            other.undo_.clear();
+            other.redo_.clear();
+            other.redoAtGestureStart_.clear();
+        }
+        return *this;
+    }
+
+    [[nodiscard]] bool captureHistory (HistoryToken& out) const noexcept
+    {
+        out = {};
+        if (historyEpoch_ == nullptr)
+        {
+            try { historyEpoch_ = std::make_shared<const HistoryEpoch>(); }
+            catch (const std::bad_alloc&) { return false; }
+        }
+        out.epoch_ = historyEpoch_;
+        return true;
+    }
+
+    [[nodiscard]] bool historyMatches (const HistoryToken& token) const noexcept
+    {
+        return historyEpoch_ != nullptr && token.epoch_ != nullptr
+            && historyEpoch_.get() == token.epoch_.get()
+            && ! historyEpoch_.owner_before (token.epoch_)
+            && ! token.epoch_.owner_before (historyEpoch_);
+    }
+
+    [[nodiscard]] HistoryCaptureStatus captureUndo (HistoryNavigation& out) const noexcept
+    {
+        out = {};
+        if (activeGroupId_ != 0 || scalarCoalescing_)
+            return HistoryCaptureStatus::GestureOpen;
+        HistoryPosition position;
+        if (! historyPosition (position))
+            return HistoryCaptureStatus::InvalidTarget;
+        if (position.current == 0)
+            return HistoryCaptureStatus::NoStep;
+        return captureNavigationAt (position.current - 1, out);
+    }
+
+    [[nodiscard]] HistoryCaptureStatus captureRedo (HistoryNavigation& out) const noexcept
+    {
+        out = {};
+        if (activeGroupId_ != 0 || scalarCoalescing_)
+            return HistoryCaptureStatus::GestureOpen;
+        HistoryPosition position;
+        if (! historyPosition (position))
+            return HistoryCaptureStatus::InvalidTarget;
+        if (position.current == position.total)
+            return HistoryCaptureStatus::NoStep;
+        return captureNavigationAt (position.current + 1, out);
+    }
+
+    [[nodiscard]] HistoryCaptureStatus captureHistoryJump (std::size_t row, HistoryNavigation& out) const noexcept
+    {
+        out = {};
+        if (activeGroupId_ != 0 || scalarCoalescing_)
+            return HistoryCaptureStatus::GestureOpen;
+        HistoryPosition position;
+        if (! historyPosition (position) || row > position.total)
+            return HistoryCaptureStatus::InvalidTarget;
+        return captureNavigationAt (row, out);
+    }
+
+    [[nodiscard]] HistoryNavigationStatus navigate (Project& project, const HistoryNavigation& intent)
+    {
+        if (! intent.valid())
+            return HistoryNavigationStatus::InvalidIntent;
+        if (! historyMatches (intent.token_))
+            return HistoryNavigationStatus::StaleHistory;
+        HistoryPosition position;
+        if (! historyPosition (position) || intent.targetRow_ > position.total)
+            return HistoryNavigationStatus::InvalidIntent;
+        if (intent.targetRow_ == position.current)
+            return HistoryNavigationStatus::NoChange;
+
+        try
+        {
+            Project nextProject = project;
+            ProjectUndoStack nextHistory = *this;
+            while (position.current > intent.targetRow_)
+            {
+                if (nextHistory.transferStagedGroup (nextProject, false) != ProjectUndoStatus::Applied)
+                    return HistoryNavigationStatus::ProjectMismatch;
+                --position.current;
+            }
+            while (position.current < intent.targetRow_)
+            {
+                if (nextHistory.transferStagedGroup (nextProject, true) != ProjectUndoStatus::Applied)
+                    return HistoryNavigationStatus::ProjectMismatch;
+                ++position.current;
+            }
+            // All fallible work used current copies; both commits below are nonthrowing.
+            invalidateHistory();
+            project = std::move (nextProject);
+            *this = std::move (nextHistory);
+            return HistoryNavigationStatus::Applied;
+        }
+        catch (const std::bad_alloc&) { return HistoryNavigationStatus::ResourceUnavailable; }
+        catch (const std::length_error&) { return HistoryNavigationStatus::ResourceUnavailable; }
+    }
+
     [[nodiscard]] bool beginTransactionGroup() noexcept
     {
         if (activeGroupId_ != 0)
             return false;
 
-        activeGroupId_ = nextGroupId_++;
+        auto next = nextGroupId_;
+        std::uint64_t group = 0;
+        if (! detail::takeProjectUndoGroupId (next, group))
+            return false;
+        invalidateHistory();
+        nextGroupId_ = next;
+        activeGroupId_ = group;
         return true;
     }
 
@@ -2931,6 +3123,7 @@ public:
         if (activeGroupId_ == 0)
             return false;
 
+        invalidateHistory();
         activeGroupId_ = 0;
         return true;
     }
@@ -2942,6 +3135,7 @@ public:
     {
         if (! scalarCoalescing_)
         {
+            invalidateHistory();
             // A NEW gesture never merges into the previous one: seal the current top entry.
             if (! undo_.empty())
                 undo_.back().sealed = true;
@@ -2956,6 +3150,7 @@ public:
     {
         if (scalarCoalescing_)
         {
+            invalidateHistory();
             // ADR-0066: a strip-scalar gesture that ends where it began (a keyboard adjustment Esc restored, a drag
             // released at its start) — or made no edit at all — leaves no step, and the redo history it set aside comes
             // back. An unsealed top entry is this gesture's own: begin sealed the one before.
@@ -3114,6 +3309,7 @@ public:
 private:
     [[nodiscard]] ProjectEditApplyResult record (ProjectEditTransaction transaction, ProjectEditApplyResult result)
     {
+        invalidateHistory();
         const ProjectEditCommand& command = transaction.command;
         if (! detail::canCoalesceProjectEditVerb (command.verb))
         {
@@ -3189,22 +3385,11 @@ public:
         if (undo_.empty())
             return ProjectUndoStatus::NothingToUndo;
 
-        const std::size_t entryCount = trailingGroupEntryCount (undo_);
         Project next = project;
-        for (std::size_t index = 0; index < entryCount; ++index)
-        {
-            const UndoEntry& entry = undo_[undo_.size() - 1 - index];
-            if (! detail::applyProjectEditTransactionDiff (next, entry.transaction, false))
-                return ProjectUndoStatus::ProjectMismatch;
-        }
-
-        project = std::move (next);
-        for (std::size_t index = 0; index < entryCount; ++index)
-        {
-            redo_.push_back (std::move (undo_.back()));
-            undo_.pop_back();
-        }
-        return ProjectUndoStatus::Applied;
+        const auto status = transferStagedGroup (next, false);
+        if (status == ProjectUndoStatus::Applied)
+            project = std::move (next);
+        return status;
     }
 
     [[nodiscard]] ProjectUndoStatus redo (Project& project)
@@ -3212,22 +3397,11 @@ public:
         if (redo_.empty())
             return ProjectUndoStatus::NothingToRedo;
 
-        const std::size_t entryCount = trailingGroupEntryCount (redo_);
         Project next = project;
-        for (std::size_t index = 0; index < entryCount; ++index)
-        {
-            const UndoEntry& entry = redo_[redo_.size() - 1 - index];
-            if (! detail::applyProjectEditTransactionDiff (next, entry.transaction, true))
-                return ProjectUndoStatus::ProjectMismatch;
-        }
-
-        project = std::move (next);
-        for (std::size_t index = 0; index < entryCount; ++index)
-        {
-            undo_.push_back (std::move (redo_.back()));
-            redo_.pop_back();
-        }
-        return ProjectUndoStatus::Applied;
+        const auto status = transferStagedGroup (next, true);
+        if (status == ProjectUndoStatus::Applied)
+            project = std::move (next);
+        return status;
     }
 
     // G2.18: the history as the user sees it — one row per undo STEP (an E21 group is one step),
@@ -3298,6 +3472,97 @@ private:
         bool sealed = false;   // E21: a gesture boundary — later scalar edits never merge in
     };
 
+    static_assert (std::is_nothrow_move_constructible_v<Project>
+                   && std::is_nothrow_move_assignable_v<Project>);
+    static_assert (std::is_nothrow_move_constructible_v<ProjectEditTransaction>
+                   && std::is_nothrow_move_assignable_v<ProjectEditTransaction>);
+    static_assert (std::is_nothrow_move_constructible_v<UndoEntry>
+                   && std::is_nothrow_move_assignable_v<UndoEntry>
+                   && std::is_nothrow_destructible_v<UndoEntry>);
+    static_assert (std::is_nothrow_move_assignable_v<std::vector<UndoEntry>>);
+
+    static void reserveHistoryTransfer (std::vector<UndoEntry>& destination, std::size_t addition)
+    {
+        const auto maximum = destination.max_size();
+        if (addition > maximum - destination.size())
+            throw std::length_error ("Project history capacity");
+        const auto required = destination.size() + addition;
+        const auto capacity = destination.capacity();
+        if (required <= capacity)
+            return;
+        const auto increment = std::max (capacity / 2, std::size_t { 1 });
+        const auto grown = increment > maximum - capacity ? maximum : capacity + increment;
+        destination.reserve (std::max (required, grown));
+    }
+
+    // Only disposable Project copies enter here; failed diffs can partially edit them.
+    [[nodiscard]] ProjectUndoStatus transferStagedGroup (Project& stagedProject, bool forward)
+    {
+        auto& source = forward ? redo_ : undo_;
+        auto& destination = forward ? undo_ : redo_;
+        if (source.empty())
+            return forward ? ProjectUndoStatus::NothingToRedo : ProjectUndoStatus::NothingToUndo;
+        const auto entryCount = trailingGroupEntryCount (source);
+        for (std::size_t index = 0; index < entryCount; ++index)
+        {
+            const auto& entry = source[source.size() - 1 - index];
+            if (! detail::applyProjectEditTransactionDiff (stagedProject, entry.transaction, forward))
+                return ProjectUndoStatus::ProjectMismatch;
+        }
+        reserveHistoryTransfer (destination, entryCount);
+        invalidateHistory();
+        for (std::size_t index = 0; index < entryCount; ++index)
+        {
+            destination.push_back (std::move (source.back()));
+            source.pop_back();
+        }
+        return ProjectUndoStatus::Applied;
+    }
+
+    struct HistoryPosition
+    {
+        std::size_t current = 0, total = 0;
+    };
+
+    [[nodiscard]] static bool countHistorySteps (const std::vector<UndoEntry>& entries,
+                                                std::size_t& steps) noexcept
+    {
+        steps = 0;
+        std::size_t end = entries.size();
+        while (end != 0)
+        {
+            const auto group = entries[end - 1].groupId;
+            --end;
+            if (group != 0)
+                while (end != 0 && entries[end - 1].groupId == group)
+                    --end;
+            if (steps == (std::numeric_limits<std::size_t>::max)())
+                return false;
+            ++steps;
+        }
+        return true;
+    }
+
+    [[nodiscard]] bool historyPosition (HistoryPosition& out) const noexcept
+    {
+        std::size_t current = 0, redo = 0;
+        if (! countHistorySteps (undo_, current) || ! countHistorySteps (redo_, redo)
+            || redo > (std::numeric_limits<std::size_t>::max)() - current)
+            return false;
+        out = { current, current + redo };
+        return true;
+    }
+
+    [[nodiscard]] HistoryCaptureStatus captureNavigationAt (std::size_t row, HistoryNavigation& out) const noexcept
+    {
+        if (! captureHistory (out.token_))
+            return HistoryCaptureStatus::IdentityUnavailable;
+        out.targetRow_ = row;
+        return HistoryCaptureStatus::Captured;
+    }
+
+    void invalidateHistory() noexcept { historyEpoch_.reset(); }
+
     // The strip-scalar verbs a gesture coalesces; their merged entry's before equals its after when the gesture came back.
     [[nodiscard]] static bool isNetNoOpScalarGesture (const ProjectEditTransaction& transaction) noexcept
     {
@@ -3337,6 +3602,7 @@ private:
     std::uint64_t nextGroupId_ = 1;
     bool scalarCoalescing_ = false;   // E21: an open strip-scalar gesture
     std::vector<UndoEntry> redoAtGestureStart_;   // ADR-0066: the redo history an open gesture set aside
+    mutable std::shared_ptr<const HistoryEpoch> historyEpoch_;
 };
 
 } // namespace yesdaw::engine

@@ -782,6 +782,18 @@ target_link_libraries(YesDawProjectCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawProjectCheck)
 catch_discover_tests(YesDawProjectCheck)
 
+add_executable(YesDawProjectHistoryEligibilityCheck tests/project_history_eligibility_tests.cpp)
+target_include_directories(YesDawProjectHistoryEligibilityCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawProjectHistoryEligibilityCheck PRIVATE Catch2::Catch2WithMain)
+if (YESDAW_SANITIZER STREQUAL "thread"
+    AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
+    AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  target_compile_definitions(YesDawProjectHistoryEligibilityCheck PRIVATE YESDAW_HISTORY_WRAP_NEW=1)
+  target_link_options(YesDawProjectHistoryEligibilityCheck PRIVATE "LINKER:--wrap=_Znwm")
+endif()
+yesdaw_harden(YesDawProjectHistoryEligibilityCheck)
+add_test(NAME YesDawProjectHistoryEligibilityCheck COMMAND $<TARGET_FILE:YesDawProjectHistoryEligibilityCheck>)
+
 # --- Persistence check (H1; SQLite .yesdaw bundle schema/migrations/intent log — ADR-0012) ---
 add_executable(YesDawImportStagingCrashHelper tests/import_staging_crash_helper.cpp)
 target_include_directories(YesDawImportStagingCrashHelper PRIVATE ${YESDAW_SRC_DIR})
@@ -1297,6 +1309,7 @@ set(YESDAW_ENGINE_LAYER_TARGETS
   YesDawFxSuiteCheck
   YesDawMidiTimingCheck
   YesDawProjectCheck
+  YesDawProjectHistoryEligibilityCheck
   YesDawPersistenceCheck
   YesDawGraphCheck
   YesDawBuilderCheck
