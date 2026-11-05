@@ -56,7 +56,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
    Pure history22e3348 and Linux allocator correctionddbd71d are pushed. Startup correction99c8361 is queued behind an earlier Linux dependency job; no full-GREEN certification.
    Exact-query click-cache0BB9 passes all489 pure checks, three GUI compile-only targets and three Clang units. Fresh RTSan/TSan/macOS deadline evidence remains pending.
-   DefinitionR4 reference generation/replay passed in its limited domain. ClockOracle R2 is sealed/UNRUN under fresh numeric and engine-cost review. ADR-0085 bootstrap source is being corrected for parent cleanup order and immutable preparation outcome before actual-source recount. ADRs0086/0087 and the refreshed piano packet prepare later steps; their implementation remains after Musical audio. Renderer/model adoption is still separate.
+   DefinitionR4 reference generation/replay passed in its limited domain. ClockOracle R2 is numerically accepted/UNRUN; source-cost review requires a whole harness recensus. BootstrapR2 corrects cleanup/issuance and has conditional-source acceptance; ADR-0088 now fixes real request-owned origin formation before planning. Source prices/fit, full R4 proof and renderer/model adoption remain unproved. ADRs0086/0087 and the refreshed piano packet prepare later editing steps, after Musical audio.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
 5. Diagnose the recorded launch Underrun and intermittent SS3 failure with available headless evidence; confirmed
@@ -75,6 +75,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Accept real request-owned origin formation
+
+ADR-0088 is Accepted after two engine/resource critics reviewed the concrete first-reservation rule and real unique-job lifecycle. The application forms one intrusive captured Musical request owner with its inline origin before planning; it owns neither worker nor result. Initial writes/allocation/refusal/destruction must be source-closed within the unchanged cap before execution. Fixed jobs, old helpers/proofs/prices and all saved formats remain unchanged. Code review: skipped (ce-code-review unavailable).
+BootstrapR2 has fresh conditional-source acceptance: parent retained through delete, immutable issuance status, concrete typed binding/destructor order. Its deleted owner constructor still marks absent real admission. Next is actual formation/request-owner source, whole review, independent census, funded legacy success/failure adapter and complete R4 proof; no production recipe or execution credit.
+ClockOracleR2 received fresh numerical/control ACCEPT and source-cost REVISE: JSON dispatch needs25 actions/byte plus fixed paths, and pinned iterator helpers were underexpanded. All guards stay false. A whole read-only harness redesign/census now covers failure-only gates, actual word I/O and separate clock-helper bodies; no limits or original numerical checks are relaxed.
+Local cache ceac834 remains489 pure checks/GUI3 compile/Clang3 GREEN. Queued startup99c8361 CI42070981403 remains pending; push is held to preserve it. Fresh cache sanitizer/macOS timing, full renderer/jobs/model/export/load, linked editing/folders and piano implementation remain pending. Strict headless; no app/device startup or personal-session gate.
 
 ## 2026-11-05 - Close source-review findings without starting held code
 
