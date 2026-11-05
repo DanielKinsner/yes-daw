@@ -88,18 +88,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test bounded Linux dependency setup
+        if: runner.os == 'Linux'
+        timeout-minutes: 2
+        run: bash tools/tests/install-linux-deps-tests.sh
+
       # JUCE's GUI modules need X11/ALSA/etc to link on Linux. webkit + curl are deliberately
       # OMITTED: JUCE_WEB_BROWSER=0 / JUCE_USE_CURL=0 compile out their only consumers, and
       # libwebkit2gtk-4.1-dev isn't reliably present on the ubuntu-22.04 image (the 4.0/4.1 trap).
       - name: Linux deps
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libasound2-dev libjack-jackd2-dev ladspa-sdk \
-            libfreetype-dev libfontconfig1-dev libx11-dev libxcomposite-dev \
-            libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
-            libglu1-mesa-dev mesa-common-dev ninja-build
+        timeout-minutes: 14
+        run: bash tools/install-linux-deps.sh base
 
       # Ninja (from the preset) needs cl.exe on PATH; this loads the MSVC environment.
       - name: Set up MSVC environment
@@ -236,13 +236,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Linux deps
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libasound2-dev libjack-jackd2-dev ladspa-sdk \
-            libfreetype-dev libfontconfig1-dev libx11-dev libxcomposite-dev \
-            libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
-            libglu1-mesa-dev mesa-common-dev ninja-build zip unzip
+        timeout-minutes: 14
+        run: bash tools/install-linux-deps.sh package
 
       - name: Get CMake + Ninja (consistent across all runners)
         uses: lukka/get-cmake@latest
@@ -417,13 +412,8 @@ jobs:
 
       - name: Linux deps
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libasound2-dev libjack-jackd2-dev ladspa-sdk \
-            libfreetype-dev libfontconfig1-dev libx11-dev libxcomposite-dev \
-            libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev libxrender-dev \
-            libglu1-mesa-dev mesa-common-dev ninja-build
+        timeout-minutes: 14
+        run: bash tools/install-linux-deps.sh base
 
       - name: Set up MSVC environment
         if: runner.os == 'Windows'
