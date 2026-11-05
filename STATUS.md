@@ -56,7 +56,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
    Pure history22e3348 and Linux allocator correctionddbd71d are pushed. Startup correction99c8361 is queued behind an earlier Linux dependency job; no full-GREEN certification.
    Exact-query click-cache0BB9 passes all489 pure checks, three GUI compile-only targets and three Clang units. Fresh RTSan/TSan/macOS deadline evidence remains pending.
-   DefinitionR4 reference generation/replay passed in its limited domain. ADR-0085 recipe proof remains source-only while actual caller pricing and phase-derived accounting are corrected. Renderer/model adoption is still separate.
+   DefinitionR4 reference generation/replay passed in its limited domain. ADR-0085 recipe proof remains source-only while whole bootstrap/receipt ownership is closed. ADRs0086/0087 fix the later linked-editing/folder contracts; implementation remains ordered after Musical audio. Renderer/model adoption is still separate.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
 5. Diagnose the recorded launch Underrun and intermittent SS3 failure with available headless evidence; confirmed
@@ -75,6 +75,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Accept linked-editing and folder contracts; keep implementation ordered
+
+ADRs0086/0087 are Accepted after fresh engine/saved-data review of34 current source pins and the revised selection/failure clauses. Edit groups use exact native correspondence with explicit selection seeds, existing Shift-toggle, deterministic anchor/provenance and complete atomic neighbour/Undo handling; folders are independent flat contiguous metadata with one visible-row projection. Refusals preserve committed state while monotonic attempt/request identities may advance. Code review: skipped (ce-code-review unavailable).
+This is architecture only. Group/folder storage, commands and UI remain unbuilt and follow Musical audio. Schema35 stays current; migration numbering is chosen when each storage unit is built. CONTEXT/active-plan inputs remain unchanged; glossary additions accompany implementation. No old Accepted ADR, golden, RT annotation, code or runtime gate changed.
+Cache correctionceac834 is committed locally after489 pure checks/GUI3 compile/Clang3 and real negative controls; push is held to preserve queued99c CI42070981403 behind the old Linux dependency job. Fresh cache RTSan/TSan/macOS deadline evidence is pending, so no full-GREEN certification.
+Recipe proofR3 remains UNRUN; fresh whole-bootstrap criticism requires actual private bootstrap/receipt/capture source before an independent R4 price catalog. That source-only model is underway. The56-file clock-oracle R1 source is sealed with guards false and is under independent numeric and engine-cost review after real byte/hash/PE controls, bounded filesystem inspection and cleanup reporting were corrected. Full renderer/jobs/model/export/load/controls, linked implementation and piano reference views remain unfinished. Strict headless; Dan is not a gate.
 
 ## 2026-11-05 - Exact click-query cache passes headless local gates
 
