@@ -1,7 +1,18 @@
 cmake_minimum_required(VERSION 3.25)
 
-# A cache startup failure must still run the real compiler and every build/test gate.
-execute_process(COMMAND sccache --show-stats
+# Stats can succeed without a server. CI selects startup; retain the old query
+# policy for existing callers and its frozen regression.
+if(NOT DEFINED YESDAW_CI_CACHE_PROBE)
+  set(YESDAW_CI_CACHE_PROBE legacy-stats)
+endif()
+if(YESDAW_CI_CACHE_PROBE STREQUAL "startup")
+  set(cache_probe --start-server)
+elseif(YESDAW_CI_CACHE_PROBE STREQUAL "legacy-stats")
+  set(cache_probe --show-stats)
+else()
+  message(FATAL_ERROR "Unknown CI cache probe policy")
+endif()
+execute_process(COMMAND sccache "${cache_probe}"
   RESULT_VARIABLE cache_status OUTPUT_QUIET ERROR_QUIET TIMEOUT 30)
 set(compiler_launcher "")
 set(cache_enabled false)

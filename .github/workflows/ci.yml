@@ -127,9 +127,12 @@ jobs:
       - name: Test CI cache fallback
         run: cmake "-DTEST_ROOT=${{ runner.temp }}/ci-configure-regression" -P tools/tests/configure-ci-tests.cmake
 
+      - name: Test actual cache startup policy
+        run: python tools/tests/configure-ci-startup-tests.py --output "${{ runner.temp }}/ci-cache-startup-regression"
+
       - name: Configure (Release — Debug hangs on JUCE asserts in CI)
         id: configure
-        run: cmake -P tools/configure-ci.cmake
+        run: cmake -DYESDAW_CI_CACHE_PROBE=startup -P tools/configure-ci.cmake
 
       - name: Build (GUI app + headless test)
         run: cmake --build --preset ci
@@ -255,7 +258,7 @@ jobs:
 
       - name: Configure (Release)
         id: configure
-        run: cmake -P tools/configure-ci.cmake
+        run: cmake -DYESDAW_CI_CACHE_PROBE=startup -P tools/configure-ci.cmake
 
       - name: Package (build GUI + self-check, stage, zip)
         run: tools/package.sh
@@ -323,7 +326,7 @@ jobs:
 
       - name: Configure (Release)
         id: configure
-        run: cmake -P tools/configure-ci.cmake
+        run: cmake -DYESDAW_CI_CACHE_PROBE=startup -P tools/configure-ci.cmake
 
       - name: Package (build GUI + self-check + hardware checkers, stage, manifest, zip)
         run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\package.ps1
@@ -440,7 +443,7 @@ jobs:
 
       - name: Configure (Release)
         id: configure
-        run: cmake -P tools/configure-ci.cmake
+        run: cmake -DYESDAW_CI_CACHE_PROBE=startup -P tools/configure-ci.cmake
 
       - name: Build the self-check CLI
         run: cmake --build --preset ci --target YesDawSelfCheck

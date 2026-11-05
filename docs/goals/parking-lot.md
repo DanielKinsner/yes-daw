@@ -161,3 +161,5 @@ Full list and reasons: [`docs/research/2026-10-11-soundcraft-takeaways.md`](../r
 - [ ] 2026-11-05 · code comments · optional new namespace label and staging/commit narration; cosmetic only, immutable history proof excluded · `src/engine/ProjectUndo.h:2932`, `:3096` · promote-to: later (ADR-0078)
 
 - [ ] 2026-11-05 - code comments - optional cache-helper and workflow behavior narration; cosmetic only, immutable CI regression excluded - `tools/configure-ci.cmake:3`, `.github/workflows/ci.yml:17` - promote-to: later (ADR-0078)
+
+- [ ] 2026-11-05 - code comments - optional mixed dependency/history narration in the startup policy comment; cosmetic only, both frozen CI proofs excluded - `tools/configure-ci.cmake:3` - promote-to: later (ADR-0078)
