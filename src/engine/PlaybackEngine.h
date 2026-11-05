@@ -31,14 +31,22 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
+#if defined(__x86_64__) || defined(_M_X64)
+  #include <xmmintrin.h>
+#endif
+
 namespace yesdaw::engine {
+
+namespace click_cache_proof { struct Access; }
 
 class PlaybackEngine
 {
+    friend struct click_cache_proof::Access;
 public:
     struct Result
     {
@@ -557,6 +565,7 @@ private:
         metronomePreparationStatus_ = MusicalClickMap::build (tempo, meter, sampleRate_, *clock);
         if (metronomePreparationStatus_ == TimeLookupStatus::Ok)
             metronomeClock_ = std::move (clock);
+        prepareMetronomeOnsetCache();
     }
 
     // CONTROL THREAD (constructor): two short decaying sine bursts — beat and accented downbeat. The
@@ -577,6 +586,172 @@ private:
                 std::sin (kTwoPi * kMetronomeBeatHz * t) * envelope * kMetronomeGain);
             metronomeDownbeatClick_[i] = static_cast<float> (
                 std::sin (kTwoPi * kMetronomeDownbeatHz * t) * envelope * kMetronomeGain);
+        }
+    }
+
+    struct CachedClickOnset
+    {
+        std::int64_t frame = 0;
+        TimeLookupStatus status = TimeLookupStatus::Ok;
+        bool found = false, downbeat = false;
+    };
+
+    struct ClickCacheNumericContext
+    {
+        std::uint64_t control = 0;
+    };
+
+    enum class ClickCacheState : std::uint8_t { Empty, Seen, Complete };
+
+    struct ClickCacheEntry
+    {
+        ClickCacheState state = ClickCacheState::Empty;
+        std::int64_t firstFrame = 0, endFrame = 0;
+        std::size_t rowCount = 0;
+        ClickCacheNumericContext context;
+    };
+
+    struct ClickCacheSelection
+    {
+        ClickCacheEntry* entry = nullptr;
+        std::size_t rowOffset = 0;
+        bool replay = false;
+    };
+
+    static constexpr std::size_t kClickCacheEntries = 8;
+    static constexpr std::size_t kClickCacheMaxRequestedBytes = 1024u * 1024u;
+#if defined(__x86_64__) || defined(_M_X64) \
+    || (defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__)))
+    static constexpr bool kClickCacheContextSupported = true;
+#else
+    static constexpr bool kClickCacheContextSupported = false;
+#endif
+
+    // CONTROL: optional, bounded storage. Audio only overwrites already-live rows.
+    void prepareMetronomeOnsetCache()
+    {
+        if constexpr (kClickCacheContextSupported)
+        {
+            const auto length = metronomeBeatClick_.size();
+            if (length == 0 || maxBlockSize_ <= 0
+                || length > static_cast<std::uint64_t> (INT64_MAX))
+                return;
+            const auto block = static_cast<std::size_t> (maxBlockSize_);
+            if (block > (std::numeric_limits<std::size_t>::max)() - length)
+                return;
+            const auto rowsPerEntry = length + block; // history + block + terminal
+            if (rowsPerEntry > static_cast<std::uint64_t> (INT64_MAX))
+                return;
+            constexpr auto metadata = sizeof (clickCacheEntries_) + sizeof (clickCacheRows_)
+                + sizeof (clickCacheRowsPerEntry_) + sizeof (clickCacheNextEntry_);
+            if constexpr (metadata >= kClickCacheMaxRequestedBytes)
+                return;
+            const auto maximumRows = (kClickCacheMaxRequestedBytes - metadata) / sizeof (CachedClickOnset);
+            if (rowsPerEntry > maximumRows / kClickCacheEntries)
+                return;
+            const auto rows = rowsPerEntry * kClickCacheEntries;
+            std::vector<CachedClickOnset> prepared;
+            if (rows > prepared.max_size())
+                return;
+            try
+            {
+                prepared.resize (rows);
+            }
+            catch (const std::bad_alloc&) { return; }
+            catch (const std::length_error&) { return; }
+            if (prepared.capacity() > maximumRows)
+                return;
+            clickCacheRows_ = std::move (prepared);
+            clickCacheRowsPerEntry_ = rowsPerEntry;
+        }
+    }
+
+    // Numeric controls only: nearest with traps masked; flush modes remain part of the key.
+    [[nodiscard]] static bool readClickCacheNumericContext (ClickCacheNumericContext& out) noexcept YESDAW_RT_HOT
+    {
+#if defined(__x86_64__) || defined(_M_X64)
+        const auto control = static_cast<std::uint32_t> (_mm_getcsr()) & ~std::uint32_t { 0x3f };
+        constexpr std::uint32_t exceptionMasks = 0x1f80, roundingMode = 0x6000;
+        if ((control & exceptionMasks) != exceptionMasks || (control & roundingMode) != 0)
+            return false;
+        out.control = control;
+        return true;
+#elif defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__))
+        std::uint64_t control = 0;
+        __asm__ __volatile__ ("mrs %0, fpcr" : "=r" (control));
+        constexpr auto trapEnables = (std::uint64_t { 0x1f } << 8) | (std::uint64_t { 1 } << 15);
+        constexpr auto roundingMode = std::uint64_t { 3 } << 22;
+        if ((control & (trapEnables | roundingMode)) != 0)
+            return false;
+        out.control = control;
+        return true;
+#else
+        (void) out;
+        return false;
+#endif
+    }
+
+    [[nodiscard]] static bool sameClickCacheNumericContext (const ClickCacheNumericContext& a,
+        const ClickCacheNumericContext& b) noexcept YESDAW_RT_HOT
+    {
+        return a.control == b.control;
+    }
+
+    [[nodiscard]] ClickCacheSelection selectClickCache (const MusicalClickMap* clock,
+        std::int64_t minimumOnset, std::int64_t endOnset, std::int64_t firstFrame,
+        std::int64_t endFrame) noexcept YESDAW_RT_HOT
+    {
+        if constexpr (kClickCacheContextSupported)
+        {
+            // Exact query identity only; captured/restricted count-in paths stay live.
+            if (! loopEnabled_ || clickCacheRowsPerEntry_ == 0
+                || clock != metronomeClock_.get() || minimumOnset != 0 || endOnset != INT64_MAX
+                || firstFrame < 0 || endFrame < firstFrame
+                || static_cast<std::uint64_t> (endFrame) - static_cast<std::uint64_t> (firstFrame)
+                    >= clickCacheRowsPerEntry_)
+                return {};
+            for (std::size_t slot = 0; slot < kClickCacheEntries; ++slot)
+            {
+                auto& entry = clickCacheEntries_[slot];
+                if (entry.state == ClickCacheState::Empty || entry.firstFrame != firstFrame
+                    || entry.endFrame != endFrame)
+                    continue;
+                ClickCacheNumericContext current;
+                if (! readClickCacheNumericContext (current))
+                {
+                    entry.state = ClickCacheState::Seen;
+                    entry.rowCount = 0;
+                    return {};
+                }
+                const auto offset = slot * clickCacheRowsPerEntry_;
+                if (entry.state == ClickCacheState::Complete && sameClickCacheNumericContext (entry.context, current)
+                    && entry.rowCount != 0 && entry.rowCount <= clickCacheRowsPerEntry_)
+                {
+                    const auto& terminal = clickCacheRows_[offset + entry.rowCount - 1u];
+                    if (terminal.status != TimeLookupStatus::Ok || ! terminal.found || terminal.frame >= endFrame)
+                        return { &entry, offset, true };
+                }
+                entry.state = ClickCacheState::Seen;
+                entry.rowCount = 0;
+                entry.context = current;
+                return { &entry, offset, false };
+            }
+            auto& entry = clickCacheEntries_[clickCacheNextEntry_];
+            clickCacheNextEntry_ = (clickCacheNextEntry_ + 1u) % kClickCacheEntries;
+            entry.state = ClickCacheState::Seen;
+            entry.firstFrame = firstFrame;
+            entry.endFrame = endFrame;
+            entry.rowCount = 0;
+            return {}; // A first miss pays no numeric-context read or row-recording cost.
+        }
+        else
+        {
+            (void) clock;
+            (void) minimumOnset;
+            (void) endOnset;
+            (void) firstFrame;
+            (void) endFrame;
+            return {};
         }
     }
 
@@ -651,17 +826,44 @@ private:
         const std::int64_t clickFrames = static_cast<std::int64_t> (metronomeBeatClick_.size());
         const auto endFrame = segmentStartFrame + static_cast<std::int64_t> (segmentFrames);
         const auto firstFrame = std::max (minimumOnset, std::max<std::int64_t> (0, segmentStartFrame - (clickFrames - 1)));
-        auto window = clock->onsetsInRange (firstFrame, std::min (endFrame, endOnset));
+        const auto queryEnd = std::min (endFrame, endOnset);
+        const auto selected = selectClickCache (clock, minimumOnset, endOnset, firstFrame, queryEnd);
+        auto* recording = selected.replay ? nullptr : selected.entry;
+        const auto* replay = selected.replay ? selected.entry : nullptr;
+        std::size_t replayRow = 0;
+        auto window = replay == nullptr ? clock->onsetsInRange (firstFrame, queryEnd) : MusicalClickMap::Window {};
         for (;;)
         {
-            const auto onset = window.next();
+            CachedClickOnset onset;
+            if (replay != nullptr)
+                onset = clickCacheRows_[selected.rowOffset + replayRow++];
+            else
+            {
+                const auto actual = window.next();
+                onset = { actual.frame, actual.status, actual.found, actual.downbeat };
+                if (recording != nullptr)
+                {
+                    if (recording->rowCount == clickCacheRowsPerEntry_)
+                    {
+                        recording->state = ClickCacheState::Seen;
+                        recording->rowCount = 0;
+                        recording = nullptr;
+                    }
+                    else
+                        clickCacheRows_[selected.rowOffset + recording->rowCount++] = onset;
+                }
+            }
             if (onset.status != TimeLookupStatus::Ok)
             {
+                if (recording != nullptr) recording->state = ClickCacheState::Complete;
                 metronomeLookupStatus_.store (onset.status, std::memory_order_release);
                 return;
             }
             if (! onset.found || onset.frame >= endFrame)
+            {
+                if (recording != nullptr) recording->state = ClickCacheState::Complete;
                 return;
+            }
             const auto outputStart = std::max<std::int64_t> (0, onset.frame - segmentStartFrame);
             const auto clickStart = std::max<std::int64_t> (0, segmentStartFrame - onset.frame);
             const auto length = std::min<std::int64_t> (clickFrames - clickStart,
@@ -938,6 +1140,9 @@ private:
     std::atomic<TimeLookupStatus> metronomeLookupStatus_ { TimeLookupStatus::Ok };
     std::vector<float>         metronomeBeatClick_;
     std::vector<float>         metronomeDownbeatClick_;
+    std::array<ClickCacheEntry, kClickCacheEntries> clickCacheEntries_ {};
+    std::vector<CachedClickOnset> clickCacheRows_; // Control allocates/reclaims; Audio indexes only.
+    std::size_t clickCacheRowsPerEntry_ = 0, clickCacheNextEntry_ = 0;
 
     SampleRate         sampleRate_ {};
     LoudnessTap*       loudnessTap_ = nullptr;   // ADR-0053: owned by the model, outlives every engine it feeds

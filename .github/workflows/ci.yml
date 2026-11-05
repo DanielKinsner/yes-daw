@@ -130,6 +130,10 @@ jobs:
       - name: Test actual cache startup policy
         run: python tools/tests/configure-ci-startup-tests.py --output "${{ runner.temp }}/ci-cache-startup-regression"
 
+      - name: Test local Clang diagnostic policy
+        if: runner.os == 'Windows'
+        run: pwsh -NoProfile -File tools/tests/clang-diagnostic-policy-tests.ps1
+
       - name: Configure (Release — Debug hangs on JUCE asserts in CI)
         id: configure
         run: cmake -DYESDAW_CI_CACHE_PROBE=startup -P tools/configure-ci.cmake

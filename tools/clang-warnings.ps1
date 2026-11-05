@@ -3,7 +3,7 @@
 # MSVC /W4 accepts things the Linux (GCC) and macOS (Clang) jobs reject under -Werror: -Wsign-compare
 # against size_t counts, unused const variables, and more. clang-tidy ships with VS Build Tools and runs
 # Clang's own front end over build-ci's compile_commands.json, where the project's /W4 maps to Clang's
-# -Wall -Wextra; every clang-diagnostic-* it reports is a warning CI would turn into an error.
+# -Wall -Wextra. This local gate also checks a tidy heuristic, separately from compiler diagnostics.
 # 2026-10-05: it reproduced run 37416955166's macOS/Linux sign-compare red in 13 s.
 #
 # Usage (after a ninja build has written build-ci/compile_commands.json):
@@ -15,6 +15,7 @@ param([string[]] $Files = @(), [string] $Base = 'origin/main')
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+. (Join-Path $PSScriptRoot 'ClangDiagnosticPolicy.ps1')
 $tidy = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\Llvm\x64\bin\clang-tidy.exe'
 if (-not (Test-Path -LiteralPath $tidy)) { Write-Host "FAIL: clang-tidy not found at $tidy"; exit 1 }
 if (-not (Test-Path -LiteralPath 'build-ci\compile_commands.json')) { Write-Host 'FAIL: build-ci\compile_commands.json missing (build first)'; exit 1 }
@@ -37,6 +38,9 @@ if ($Files.Count -eq 0) {
 if ($Files.Count -eq 0) { Write-Host 'PASS: no C++ changes to check'; exit 0 }
 
 $found = 0
+$compilerFindings = 0
+$tidyFindings = 0
+$reviewedFootprints = 0
 foreach ($file in $Files) {
   # Windows PowerShell turns a native program's stderr ("1 error generated.") into a terminating error
   # under 'Stop', which once killed the run before the finding printed; read it as plain text instead.
@@ -45,9 +49,23 @@ foreach ($file in $Files) {
     ForEach-Object { "$_" } |
     Select-String -Pattern 'warning:|error:' | Where-Object { $_.Line -notmatch '_deps|juce-src|catch2|too many errors' }
   $ErrorActionPreference = 'Stop'
-  foreach ($line in $lines) { Write-Host $line.Line; $found++ }
-  Write-Host ('  checked ' + $file + ': ' + @($lines).Count + ' finding(s)')
+  $sourcePath = (Get-Item -LiteralPath $file).FullName
+  $sourceHash = (Get-FileHash -LiteralPath $sourcePath).Hash
+  $before = $found
+  foreach ($line in $lines) {
+    Write-Host $line.Line
+    $kind = Get-YesDawClangDiagnosticKind -Diagnostic $line.Line -SourcePath $sourcePath -SourceSha256 $sourceHash -RepoRoot $root
+    if ($kind -ceq 'ReviewedObjectFootprint') {
+      Write-Host '  reviewed intentional vector-object footprint; allocated rows are counted separately'
+      $reviewedFootprints++
+      continue
+    }
+    if ($kind -ceq 'Compiler') { $compilerFindings++ } else { $tidyFindings++ }
+    $found++
+  }
+  Write-Host ('  checked ' + $file + ': ' + ($found - $before) + ' unhandled finding(s)')
 }
-if ($found -gt 0) { Write-Host "FAIL: $found Clang warning(s) CI would reject"; exit 1 }
-Write-Host ('PASS: ' + $Files.Count + ' translation unit(s) clean under Clang -Wall -Wextra')
+Write-Host "Compiler diagnostics: $compilerFindings; unhandled tidy findings: $tidyFindings; reviewed footprints: $reviewedFootprints"
+if ($found -gt 0) { Write-Host "FAIL: $found unhandled compiler/tidy finding(s)"; exit 1 }
+Write-Host ('PASS: ' + $Files.Count + ' translation unit(s), no compiler diagnostics or unhandled tidy findings')
 exit 0
