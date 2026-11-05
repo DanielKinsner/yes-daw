@@ -56,7 +56,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
    Pure history22e3348 and Linux allocator correctionddbd71d are pushed. Startup correction99c8361 is queued behind an earlier Linux dependency job; no full-GREEN certification.
    Exact-query click-cache0BB9 passes all489 pure checks, three GUI compile-only targets and three Clang units. Fresh RTSan/TSan/macOS deadline evidence remains pending.
-   DefinitionR4 reference generation/replay passed in its limited domain. ADR-0085 recipe proof remains source-only while whole bootstrap/receipt ownership is closed. ADRs0086/0087 fix the later linked-editing/folder contracts; implementation remains ordered after Musical audio. Renderer/model adoption is still separate.
+   DefinitionR4 reference generation/replay passed in its limited domain. ClockOracle R2 is sealed/UNRUN under fresh numeric and engine-cost review. ADR-0085 bootstrap source is being corrected for parent cleanup order and immutable preparation outcome before actual-source recount. ADRs0086/0087 and the refreshed piano packet prepare later steps; their implementation remains after Musical audio. Renderer/model adoption is still separate.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
 5. Diagnose the recorded launch Underrun and intermittent SS3 failure with available headless evidence; confirmed
@@ -75,6 +75,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Close source-review findings without starting held code
+
+ClockOracle R1 stays sealed/UNRUN after its numeric source review accepted the numerical laws/controls and engine-cost review found three real bounds gaps. R2 fixes input admission, local search and file-set membership; its complete proposed work of16,972,169,444 source actions stays below2^34, with773,856,454B retained reservation. All guards remain false pending fresh whole numeric/engine-cost review and root execution GO; compiler internals/temporary peak disk/full renderer resources stay unqualified.
+The actual bootstrap prototype received a whole-source REVISE: retain the Plan through payload deletion and preserve preparation issuance independently of consumed lease state. A sealed successor must also contain a concrete funded containing-job binding before independent R4 source prices/whole proof. R3 proof remains UNRUN, and all old sources/prices/caps stay unchanged.
+The refreshed piano packet has45 verified source pins and root whole-packet review; references remain read-only, used pitches use whole contributing Clips, and current piano Ctrl-copy/raw-key audition semantics are preserved. This is preparation only. Code review: skipped (ce-code-review unavailable).
+Local cache ceac834 still has489 pure checks, three GUI compile-only targets and three Clang units GREEN; startup99c8361 CI42070981403 remains pending behind the old Linux dependency job. Push remains held to preserve that queued run. No fresh cache sanitizer/macOS timing credit, new app drive or native/device execution. Next: reviewed clock execution and corrected bootstrap/R4 source census, then renderer/jobs/adoption, linked editing/folders and piano views in order.
 
 ## 2026-11-05 - Accept linked-editing and folder contracts; keep implementation ordered
 
