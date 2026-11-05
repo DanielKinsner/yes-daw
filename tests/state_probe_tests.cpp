@@ -7,6 +7,7 @@
 // clip rect is click-accurate (clicking its centre selects that clip through the real hit path),
 // that transport/lastAction/timing counters move, and the "never in a normal launch" law.
 
+#include "UiImportTestSupport.h"
 #include "engine/Project.h"
 #include "ui/MainComponent.h"
 #include "ui/UiActions.h"
@@ -209,6 +210,7 @@ TEST_CASE ("state probe: lanes and clips by id, and the published clip rect is c
 
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectImportAudio));
+    waitForAudioImports (*shell);
     tick (*shell);
 
     juce::var probe = probeOf (*shell);

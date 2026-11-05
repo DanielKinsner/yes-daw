@@ -73,7 +73,14 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
-## 2026-11-05 — SMF source endpoints (active)
+## 2026-11-05 — State-probe import completion
+
+Source extraction a3aa080 is locally committed with all gates passed; readerCI41979044270 has started, and push is held to finish this priority fixture repair. GeometryCI41977531006 finished attempt1 with nine jobs SUCCESS and one Linux FAIL: job127084403640 StateProbeCheck layout case clipCount0 vs1 at state_probe_tests.cpp217, one of157 assertions;509/510 CTest entries passed. Raw LF logD491BB8F is retained; no retry or tooling-flake classification.
+Source proves the fixture requests background audio import, waits50ms in clickButton and services only one timer tick before expecting adoption; that can observe a nonterminal job. The failed run did not log pending/status, so its exact terminal cause is not claimed. The repair only includes existing UiImportTestSupport.h and inserts its unchanged bounded20s actual-completion wait after that Import click, retaining the old tick and every oracle. Actual import failure still fails the unchanged clipCount assertion.
+Session17526 exited0: owning target compiled, focused80/1 and safe full225/4 passed after exact XML inventories (same CI RNG3829727945), Clang one unit0diagnostics. Root test-only canonical exited0 atB142D01A: exact two-line inverse restores whole17,262-byte6A96; all532 other paths/shared helper are exact. Independent verification critic acceptedB142; root read the complete source/diff/factories and retained prior identical pure482/115.69s and GUI3 compile evidence instead of rerunning them. No native/input/device/hardware execution.
+Code review: skipped (ce-code-review unavailable). Standing generated-job cleanup was rejected by automatic approval review; no retry/bypass. Commit/push the verified fixture with source a3aa080, then start the prepared model/default unit. Actual new-head CI is required before certification; no existing failed run was rerun or erased.
+
+## 2026-11-05 — SMF source endpoints
 
 Reader1d1ec88 is committed and pushed after geometryCI41977531006 started. e5f49d7 CI41975343559 completed all ten jobs SUCCESS on attempt1; the historical failed jobs and raw receipts remain retained. Geometry and reader final-head CI remain required.
 The source-extraction author completed exactly new SmfSourceTracks.h, one new eight-section feature proof and an adjacent pure CMake target, then released the heavy lane. Integer source Note endpoints, control positions, source extent and legacy pairing/order are retained without PPQ division, IDs, Project edits or default activation. ReaderBA68/proofE5 and geometry81DA/proof9CDA stay exact; model/actions/GUI/recording stay untouched.
