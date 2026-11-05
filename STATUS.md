@@ -51,7 +51,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome, captured-map count-in and bounded click-search recovery are delivered; all ten CI jobs passed at d97f3d2.
    Full-map timing is implemented across metronome/count-in, clipboard/moves, readouts, arrange/piano grids and quantize/Step input.
    Native MIDI occurrences, the pure file writer, app export adapter, narrow click-cache optimization and TSan allocator compatibility are pushed at e5f49d7 and passed all ten CI jobs.
-   Checked MIDI geometry f038e12 and reader bounds1d1ec88 are pushed; all ten e5f49d7 CI jobs passed on attempt1. Current: integer source extraction, then musical defaults with explicit Fixed-time commands. Checked fractional
+   Geometry f038e12, reader bounds1d1ec88, integer source extraction a3aa080 and State-probe completion fixture1143663 are pushed. All ten e5f49d7 CI jobs passed; geometry's later Linux fixture failure is repaired locally at114 and new CI is required. Current: musical defaults with explicit Fixed-time commands. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -72,6 +72,19 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 — SMF fixture GCC11 portability
+
+ReaderCI41979044270 Linux job127089336354 failed its BUILD: GCC11 -O3 -Wall -Wextra -Werror diagnoses stringop-overread in the new reader regression's fileBytes range append at tests/smf_tests.cpp258. No runtime tests ran. Raw LF logC1DC5A2C is retained; this is not a State-probe failure or cache-flake classification. Latest114CI41981248467 is pending behind that run; no failed job is rerun.
+The ordered push_back helper preserves emitted bytes. Focused110/1, full owning231/5 and one Clang unit passed0 atCB4A2037; exact inverse restores wholeE5, old12,777-byteB373 prefix and all assertions/literals/case bodies. Independent verification critic acceptedCB4. Root narrow canonical exited0, checking all532 other observed paths and six frozen feature hashes; it certifies only the priority test change, not the uncommitted model tree. No actual local GCC11 proof or warning suppression; new GCC11 CI remains required.
+The six model/default files are frozen in priority-freeze.json while this disjoint repair proceeds: model smoke310/1, action44/1, full AppSmoke219836/72 passed; full action gate only failed the generated keymap reference1/4319. The seventh model path docs/keymap-v2.md is explicitly authorized for exactly the generator's two new no-chord rows after lane return; no oracle/golden rewrite. New UI proof is uncompiled/unexecuted. Root commits only the priority test/STATUS, then refreshes that unit's base and returns its lane.
+Code review: skipped (ce-code-review unavailable). Standing generated-job cleanup was rejected by automatic approval review; no retry/bypass. Root read the full one-hunk diff/callers and the source critic reviewed equivalence. No native/input/device/hardware execution. Commit only this test/STATUS, push after114CI starts, then refresh the model base and return its lane; six unfinished model files remain local and uncommitted.
+
+## 2026-11-05 — Musical MIDI creation/import defaults (held for priority verification)
+
+HEAD/origin1143663 includes source a3aa080 and the two-line State-probe fixture repair; all local gates passed. ReaderCI41979044270 is running and new114CI is being discovered. Geometry's recorded Linux fixture failure remains9pass/1fail, with no retry; no final-head CI proof is claimed yet. New CI red interrupts this work.
+The prepared model author owns the sole heavy lane and exactly UiAppModel.h, UiActions.h, MainComponentCommands.cpp plus AppSmoke/UiAction/UIInput test files. Root alone owns CONTEXT/STATUS. Activate current-map musical defaults and explicit Fixed siblings under ADR0082 only after all raw Track geometry preflights; preserve physical chooser/drop intent, stable-ID/current-map deferred adoption, old ordinals, recording/legacy/native units and all saved-data contracts.
+One new public smoke per owning layer; only16 named reversible old UI blocks may change (ten Fixed seeds and six intentional default/menu blocks). All old model/action test prefixes and all other source/proofs/goldens remain exact. No Browser/MainComponent/header seams, CMake or shared-helper changes. Root owns fresh critique, all five proof-preserving cleanup lenses, canonical, vocabulary and Git; no native/input/device/hardware execution.
 
 ## 2026-11-05 — State-probe import completion
 

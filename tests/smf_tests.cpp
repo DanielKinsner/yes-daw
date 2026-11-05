@@ -255,7 +255,8 @@ TEST_CASE ("SMF reader bounds variable quantities and absolute source ticks befo
             'M', 'T', 'h', 'd', 0, 0, 0, 6, 0, 0, 0, 1, 0, 96,
             'M', 'T', 'r', 'k', 0, 0, 0, expectedLength
         };
-        bytes.insert (bytes.end(), body.begin(), body.end());
+        for (const auto byte : body)
+            bytes.push_back (byte);
         return bytes;
     };
     const auto boundaryBody = []
