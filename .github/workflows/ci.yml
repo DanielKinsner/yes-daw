@@ -14,7 +14,7 @@ name: ci
 # Speed (2026-08-11): two mechanisms, neither weakens the gate.
 # 1. sccache (GitHub Actions cache backend) fronts the compilers on the heavy build jobs, so a
 #    commit only recompiles the translation units it touched. Cache misses fall back to a plain
-#    compile — correctness is unaffected by cache state.
+#    compile. An unavailable cache startup also compiles directly; all build/test gates remain.
 # 2. A docs-only push (every changed path is docs/ or *.md) skips the build jobs entirely: its
 #    tree is code-identical to its parent, whose own exact-head run already proved all nine jobs.
 #    The classifier is deliberately conservative — PRs, first commits, and anything unrecognized
@@ -111,6 +111,8 @@ jobs:
 
       - name: Set up sccache (compiler cache)
         uses: mozilla/sccache-action@v0.0.9
+        with:
+          disable_annotations: true
 
       # Cache the fetched JUCE + Catch2 sources so we don't re-clone them every run.
       # Keyed to the pinned tags + CMakeLists so bumping a dependency busts the cache.
@@ -122,13 +124,19 @@ jobs:
           restore-keys: |
             deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
 
+      - name: Test CI cache fallback
+        run: cmake "-DTEST_ROOT=${{ runner.temp }}/ci-configure-regression" -P tools/tests/configure-ci-tests.cmake
+
       - name: Configure (Release — Debug hangs on JUCE asserts in CI)
-        run: cmake --preset ci -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+        id: configure
+        run: cmake -P tools/configure-ci.cmake
 
       - name: Build (GUI app + headless test)
         run: cmake --build --preset ci
 
       - name: sccache stats
+        if: steps.configure.outputs.cache_enabled == 'true'
+        continue-on-error: true
         run: sccache --show-stats
 
       - name: Test (headless DSP self-check)
@@ -234,6 +242,8 @@ jobs:
 
       - name: Set up sccache (compiler cache)
         uses: mozilla/sccache-action@v0.0.9
+        with:
+          disable_annotations: true
 
       - name: Cache fetched dependencies
         uses: actions/cache@v4
@@ -244,7 +254,8 @@ jobs:
             deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
 
       - name: Configure (Release)
-        run: cmake --preset ci -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+        id: configure
+        run: cmake -P tools/configure-ci.cmake
 
       - name: Package (build GUI + self-check, stage, zip)
         run: tools/package.sh
@@ -299,6 +310,8 @@ jobs:
 
       - name: Set up sccache (compiler cache)
         uses: mozilla/sccache-action@v0.0.9
+        with:
+          disable_annotations: true
 
       - name: Cache fetched dependencies
         uses: actions/cache@v4
@@ -309,7 +322,8 @@ jobs:
             deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
 
       - name: Configure (Release)
-        run: cmake --preset ci -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+        id: configure
+        run: cmake -P tools/configure-ci.cmake
 
       - name: Package (build GUI + self-check + hardware checkers, stage, manifest, zip)
         run: powershell -NoProfile -ExecutionPolicy Bypass -File tools\package.ps1
@@ -413,6 +427,8 @@ jobs:
 
       - name: Set up sccache (compiler cache)
         uses: mozilla/sccache-action@v0.0.9
+        with:
+          disable_annotations: true
 
       - name: Cache fetched dependencies
         uses: actions/cache@v4
@@ -423,7 +439,8 @@ jobs:
             deps-${{ runner.os }}-juce8.0.4-catch3.7.1-
 
       - name: Configure (Release)
-        run: cmake --preset ci -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+        id: configure
+        run: cmake -P tools/configure-ci.cmake
 
       - name: Build the self-check CLI
         run: cmake --build --preset ci --target YesDawSelfCheck
