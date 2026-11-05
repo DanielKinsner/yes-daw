@@ -34756,3 +34756,218 @@ TEST_CASE ("offscreen Ctrl+C V R D preserve the clipboard and map musical group 
     REQUIRE (readProjectSnapshot (bundle).midiClips == repeated.midiClips);
     requireHeadless();
 }
+
+TEST_CASE ("offscreen clip readouts and Inspector order use each native time base",
+           "[ui][input][shell][timeline][native-readout-input]")
+{
+    using namespace yesdaw;
+    auto original = makeMidiInputProject();
+    original.tempoMap = { { 0, 120.0, engine::TempoCurve::Jump }, { 15360, 60.0, engine::TempoCurve::Jump } };
+    original.midiClips.front().timelineStart = 15360;
+    original.midiClips.front().timelineLength = 15360;
+    original.midiClips.front().notes.clear();
+    auto fixed = original.midiClips.front();
+    fixed.id = idFromLowByte (8);
+    fixed.timeBase = engine::TimeBase::SampleLocked;
+    fixed.timelineStart = 20000;
+    fixed.timelineLength = 4000;
+    original.midiClips.push_back (fixed);
+    bool samples = false;
+    bool reveal = false;
+    juce::String expectedStart = "0:00.500", expectedEnd = "0:01.500", expectedLength = "0:01.000";
+    SECTION ("jump: mixed order, detail and the selected musical endpoints") {}
+    SECTION ("fractional musical endpoints round Length after subtraction")
+    {
+        original.tempoMap = { { 0, 240.0, engine::TempoCurve::Jump } };
+        original.midiClips.resize (1);
+        original.midiClips.front().timelineStart = 2;
+        original.midiClips.front().timelineLength = 1;
+        samples = true;
+        expectedStart = "2";
+        expectedEnd = "2";
+        expectedLength = "1";
+    }
+    SECTION ("large exact fixed Frames retain chronological order and sample text")
+    {
+        auto& later = original.midiClips.front();
+        later.timeBase = engine::TimeBase::SampleLocked;
+        later.timelineStart = (engine::Tick { 1 } << 53) + 1;
+        later.timelineLength = 1;
+        original.midiClips.back().timelineStart = engine::Tick { 1 } << 53;
+        original.midiClips.back().timelineLength = 1;
+        samples = true;
+        expectedStart = "9007199254740993";
+        expectedEnd = "9007199254740994";
+        expectedLength = "1";
+        SECTION ("with a usable musical clock") {}
+        SECTION ("without a usable musical clock")
+        {
+            original.tempoMap = { { 0, 1.0e-300, engine::TempoCurve::LinearRamp },
+                { engine::Tick { 1 } << 48, std::nextafter (1.0e-300, INFINITY), engine::TempoCurve::Jump } };
+        }
+    }
+    SECTION ("list click reveals the projected musical start")
+    {
+        original.midiClips.front().timelineStart = 153600;
+        original.midiClips.front().timelineLength = 15360;
+        expectedStart = "0:09.500";
+        expectedEnd = "0:10.500";
+        reveal = true;
+    }
+    const auto bundle = makeTempBundlePath ("native-readout-input");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.makeNewProject = [original] { return original; };
+    REQUIRE_FALSE (choices.nativePrompts);
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    const auto requireHeadless = [&] {
+        REQUIRE (shell->getPeer() == nullptr);
+        const auto snapshot = snapshotMainComponent (*shell);
+        REQUIRE_FALSE (snapshot.desktopAudioRequested);
+        REQUIRE_FALSE (snapshot.desktopAudioOpen);
+    };
+    requireHeadless();
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    if (! snapshotMainComponent (*shell).context.inspectorVisible)
+        ui::mainComponentDispatchAction (*shell, UiActionId::ViewToggleInspector);
+    if (snapshotMainComponent (*shell).context.inspectorTrackTabActive)
+        clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+    if (samples)
+        ui::mainComponentInvokeContextMenuId (*shell,
+            ui::mainComponentTimeDisplayMenuId (ui::timeline_canvas_detail::kRulerTimeDisplaySamples));
+    if (reveal)
+        for (int i = 0; i < 5; ++i)
+            ui::mainComponentDispatchAction (*shell, UiActionId::TimelineZoomIn);
+    auto* list = dynamic_cast<juce::ListBox*> (findChildWithComponentId (*shell, "clip.inspector.clips"));
+    REQUIRE (list != nullptr);
+    REQUIRE (list->isVisible());
+    const auto rows = probeRoot (*shell)["view"]["clipList"];
+    REQUIRE (rows.size() == static_cast<int> (original.midiClips.size()));
+    int musicalRow = -1;
+    for (int i = 0; i < rows.size(); ++i)
+        if (rows[i]["id"].toString() == "00000000000000000000000000000003")
+            musicalRow = i;
+    REQUIRE (musicalRow >= 0);
+    if (original.midiClips.size() == 2u)
+    {
+        CHECK (rows[0]["id"].toString() == "00000000000000000000000000000008");
+        CHECK (rows[1]["id"].toString() == "00000000000000000000000000000003");
+    }
+    if (! samples)
+        CHECK (rows[musicalRow]["detail"].toString() == juce::String::fromUTF8 (
+            reveal ? "MIDI Track \xc2\xb7 0:09.5" : "MIDI Track \xc2\xb7 0:00.5"));
+    list->getListBoxModel()->listBoxItemClicked (
+        musicalRow, juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), {}, {},
+            0.0f, 0.0f, 0.0f, 0.0f, 0.0f, list, list, juce::Time(), {}, juce::Time(), 1, false));
+    const auto view = probeRoot (*shell)["view"];
+    CHECK (view["selectionStart"].toString() == expectedStart);
+    CHECK (view["selectionEnd"].toString() == expectedEnd);
+    CHECK (view["selectionLength"].toString() == expectedLength);
+    CHECK (probeRoot (*shell)["selection"]["midiClip"].toString() == "00000000000000000000000000000003");
+    if (reveal)
+    {
+        const auto snapshot = snapshotMainComponent (*shell);
+        const double visible = snapshot.visibleTimelineTotalSeconds / snapshot.timelineZoomFactor;
+        CHECK (snapshot.timelineScrollSeconds <= 9.5);
+        CHECK (snapshot.timelineScrollSeconds + visible >= 9.5);
+    }
+    CHECK (readProjectSnapshot (bundle).midiClips == original.midiClips);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.canUndo);
+    requireHeadless();
+}
+
+TEST_CASE ("offscreen musical audio geometry and seconds controls project absolute endpoints",
+           "[ui][input][shell][timeline][native-audio-readout-input]")
+{
+    using namespace yesdaw;
+    const auto fixtureRoot = makeTempBundlePath ("native-audio-readout-input");
+    app::fixture::SongFixtureSpec spec;
+    spec.tracks = 1;
+    spec.midiTracks = 0;
+    spec.seconds = 1.0;
+    spec.sampleRateHz = 48000;
+    spec.channels = 1;
+    const auto fixture = app::fixture::buildSongFixture (fixtureRoot, spec);
+    INFO (fixture.error);
+    REQUIRE (fixture.ok);
+    const auto sourceBundle = fixture.bundlePath;
+    auto original = readProjectSnapshot (sourceBundle);
+    REQUIRE_FALSE (original.clips.empty());
+    original.clips.resize (1);
+    original.tempoMap = { { 0, 120.0, engine::TempoCurve::Jump }, { 15360, 60.0, engine::TempoCurve::Jump } };
+    auto& clip = original.clips.front();
+    clip.timeBase = engine::TimeBase::TempoLocked;
+    clip.timelineStart = 15360;
+    clip.timelineLength = 15360;
+    bool largeFixed = false;
+    SECTION ("musical audio endpoints") {}
+    SECTION ("unrepresentable fixed seconds fields stay read-only")
+    {
+        largeFixed = true;
+        clip.timeBase = engine::TimeBase::SampleLocked;
+        clip.timelineStart = (engine::Tick { 1 } << 53) + 1;
+        clip.timelineLength = 48000;
+    }
+    REQUIRE (original.hasValidAssetClipIndirection());
+    const auto bundle = makeTempBundlePath ("native-audio-readout-shell");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.makeNewProject = [original] { return original; };
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    // FileChoices New owns a display fixture; canonical bytes complete the stored
+    // Asset rows before readback. TempoLocked audio renderer admission is separate.
+    for (const auto& asset : original.assets)
+    {
+        const auto source = persistence::storedAssetPathForHash (sourceBundle, asset.contentHash);
+        const auto target = persistence::storedAssetPathForHash (bundle, asset.contentHash);
+        REQUIRE (std::filesystem::copy_file (source, target));
+        engine::AssetContentHash actual;
+        REQUIRE (persistence::detail::hashFile (target, actual).ok());
+        REQUIRE (actual == asset.contentHash);
+    }
+    REQUIRE (snapshotMainComponent (*shell).context.projectLoaded);
+    const auto geometry = probeRoot (*shell)["view"]["clipGeometry"];
+    REQUIRE (geometry.size() == 1);
+    const double startSeconds = largeFixed ? static_cast<double> (clip.timelineStart) / 48000.0 : 0.5;
+    CHECK (static_cast<double> (geometry[0]["startSec"]) == Catch::Approx (startSeconds));
+    CHECK (static_cast<double> (geometry[0]["lengthSec"]) == Catch::Approx (1.0));
+    if (! snapshotMainComponent (*shell).context.inspectorVisible)
+        ui::mainComponentDispatchAction (*shell, UiActionId::ViewToggleInspector);
+    if (snapshotMainComponent (*shell).context.inspectorTrackTabActive)
+        clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
+    if (largeFixed)
+        ui::mainComponentInvokeContextMenuId (*shell,
+            ui::mainComponentTimeDisplayMenuId (ui::timeline_canvas_detail::kRulerTimeDisplaySamples));
+    auto* list = dynamic_cast<juce::ListBox*> (findChildWithComponentId (*shell, "clip.inspector.clips"));
+    REQUIRE (list != nullptr);
+    REQUIRE (list->isVisible());
+    list->getListBoxModel()->listBoxItemClicked (
+        0, juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(), {}, {},
+            0.0f, 0.0f, 0.0f, 0.0f, 0.0f, list, list, juce::Time(), {}, juce::Time(), 1, false));
+    for (const auto& [id, value] : std::array<std::pair<const char*, double>, 3> {{
+             { "clip.inspector.start", startSeconds }, { "clip.inspector.end", startSeconds + 1.0 },
+             { "clip.inspector.length", 1.0 } }})
+    {
+        auto* slider = dynamic_cast<juce::Slider*> (findChildWithComponentId (*shell, id));
+        REQUIRE (slider != nullptr);
+        CHECK (slider->getValue() == Catch::Approx (value));
+        if (largeFixed)
+        {
+            CHECK_FALSE (slider->isEnabled());
+            slider->setValue (slider->getValue() + 1.0, juce::sendNotificationSync);
+        }
+    }
+    const auto view = probeRoot (*shell)["view"];
+    CHECK (view["selectionStart"].toString() == (largeFixed ? "9007199254740993" : "0:00.500"));
+    CHECK (view["selectionEnd"].toString() == (largeFixed ? "9007199254788993" : "0:01.500"));
+    CHECK (view["selectionLength"].toString() == (largeFixed ? "48000" : "0:01.000"));
+    CHECK (readProjectSnapshot (bundle).clips == original.clips);
+    CHECK (readProjectSnapshot (bundle).assets == original.assets);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).context.canUndo);
+    REQUIRE (shell->getPeer() == nullptr);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).desktopAudioRequested);
+    REQUIRE_FALSE (snapshotMainComponent (*shell).desktopAudioOpen);
+}

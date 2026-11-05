@@ -738,6 +738,32 @@ juce::String MainComponent::buildStateProbeJson()
         view->setProperty ("zoom", timelineZoomFactor);
         view->setProperty ("scrollSec", timelineScrollSeconds);
         view->setProperty ("trackScrollRows", timelineTrackScrollRows);
+        {
+            const auto text = headerSelectionTexts();
+            view->setProperty ("selectionStart", text[0]);
+            view->setProperty ("selectionEnd", text[1]);
+            view->setProperty ("selectionLength", text[2]);
+            juce::Array<juce::var> rows;
+            for (const auto& row : inspectorClipRows)
+            {
+                auto* value = new juce::DynamicObject();
+                value->setProperty ("id", juce::String (entityIdHex (row.id)));
+                value->setProperty ("name", row.name);
+                value->setProperty ("detail", row.detail);
+                rows.add (juce::var (value));
+            }
+            view->setProperty ("clipList", rows);
+            juce::Array<juce::var> clips;
+            for (std::size_t i = 0; i < timelineClips.size(); ++i)
+            {
+                auto* value = new juce::DynamicObject();
+                value->setProperty ("id", juce::String (entityIdHex (timelineClipIds[i])));
+                value->setProperty ("startSec", timelineClips[i].startSeconds);
+                value->setProperty ("lengthSec", timelineClips[i].lengthSeconds);
+                clips.add (juce::var (value));
+            }
+            view->setProperty ("clipGeometry", clips);
+        }
         view->setProperty ("activePanel", probeFocusContextName (context.activePanel));
         view->setProperty ("inspector", ! inspectorBounds().isEmpty());
         view->setProperty ("dock", ! context.mixerDockVisible ? juce::String ("None")

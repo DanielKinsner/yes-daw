@@ -17,6 +17,7 @@
 #include "ui/ControlTarget.h"
 #include "ui/PaintedAccessibleProxy.h"   // ADR-0066 cp2
 #include "ui/KeyTimeModifiers.h"   // ADR-0057
+#include "ui/TimelineReadout.h"
 
 #include <optional>
 
@@ -1427,8 +1428,9 @@ public:
     void setWindowStatePreference (std::string state) { appModel.setWindowStatePreference (std::move (state)); }
     // The layout pass, step 6: the span the selection box reads - the range selection, else the selected clip - in
     // project frames; nullopt with neither.
-    [[nodiscard]] std::optional<std::pair<std::int64_t, std::int64_t>> headerSelectionSpan() const;
-    [[nodiscard]] juce::String headerSelectionTimeText (std::int64_t frames) const;
+    [[nodiscard]] std::optional<yesdaw::ui::TimelineFrameSpan> headerSelectionSpan() const;
+    [[nodiscard]] juce::String headerSelectionTimeText (const yesdaw::ui::TimelineFramePoint& point) const;
+    [[nodiscard]] std::array<juce::String, 3> headerSelectionTexts() const;
     void drawHeaderSelection (juce::Graphics& g, juce::Rectangle<int> box) const;
     [[nodiscard]] juce::String harnessStatusLinePaintedText() const { return statusLine.paintedText(); }   // ADR-0076
     [[nodiscard]] juce::String harnessStatusLineTooltip() const { return statusLine.currentTooltip(); }

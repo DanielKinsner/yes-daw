@@ -1895,35 +1895,65 @@ bool mainComponentAccessibilityTargetControl (juce::Component& component, const 
 }
 
 // The layout pass, step 6: the range selection when there is one, else the selected audio or MIDI clip's span.
-std::optional<std::pair<std::int64_t, std::int64_t>> MainComponent::headerSelectionSpan() const
+std::optional<yesdaw::ui::TimelineFrameSpan> MainComponent::headerSelectionSpan() const
 {
     if (! appModel.context().projectLoaded)
         return std::nullopt;
     const std::int64_t rangeStart = appModel.timelineRangeStartFrame();
     const std::int64_t rangeEnd = appModel.timelineRangeEndFrame();
     if (appModel.context().timelineRangeSelected && rangeStart >= 0 && rangeEnd > rangeStart)
-        return std::pair { rangeStart, rangeEnd };
+        return yesdaw::ui::TimelineFrameSpan { yesdaw::ui::TimelineFramePoint::exact (rangeStart),
+                                               yesdaw::ui::TimelineFramePoint::exact (rangeEnd) };
+    const auto clock = yesdaw::ui::timelineReadoutClock (appModel.project());
+    const auto projectSpan = [&clock] (const auto& clip) -> std::optional<yesdaw::ui::TimelineFrameSpan> {
+        yesdaw::ui::TimelineFrameSpan span;
+        if (yesdaw::ui::timelineProjectFrameSpan (clock, { clip.timeBase, clip.timelineStart },
+                clip.timelineLength, span) != yesdaw::ui::TimelineCoordinateStatus::Ok)
+            return std::nullopt;
+        return span;
+    };
     if (const yesdaw::engine::Clip* const clip = findProjectClipById (appModel.selectedTimelineClipId()))
-        return std::pair { static_cast<std::int64_t> (clip->timelineStart),
-                           static_cast<std::int64_t> (clip->timelineStart + clip->timelineLength) };
+        return projectSpan (*clip);
     if (const yesdaw::engine::EntityId midiId = appModel.selectedMidiClipId(); midiId.isValid())
         for (const yesdaw::engine::MidiClip& clip : appModel.project().midiClips)
             if (clip.id == midiId)
-                return std::pair { static_cast<std::int64_t> (clip.timelineStart),
-                                   static_cast<std::int64_t> (clip.timelineStart + clip.timelineLength) };
+                return projectSpan (clip);
     return std::nullopt;
 }
 
 // Minutes:seconds to the millisecond, or the ruler's SMPTE / samples when the counter shows those.
-juce::String MainComponent::headerSelectionTimeText (std::int64_t frames) const
+juce::String MainComponent::headerSelectionTimeText (const yesdaw::ui::TimelineFramePoint& point) const
 {
-    const double sampleRate = appModel.project().sampleRate.isValid() ? appModel.project().sampleRate.hz : 48000.0;
-    const double seconds = std::max (0.0, static_cast<double> (frames) / sampleRate);
-    if (timeDisplayMode == yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySmpte
-        || timeDisplayMode == yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples)
-        return yesdaw::ui::timeline_canvas_detail::formatRulerTime (seconds, timeDisplayMode, 0.0, sampleRate);
+    const juce::String empty (juce::CharPointer_UTF8 ("\xe2\x80\x94"));
+    if (timeDisplayMode == yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySamples)
+    {
+        yesdaw::engine::Tick frames = 0;
+        return yesdaw::ui::timelineNativeFrameTarget (nullptr, yesdaw::engine::TimeBase::SampleLocked, point, frames)
+                == yesdaw::ui::TimelineCoordinateStatus::Ok ? juce::String (frames) : empty;
+    }
+    const auto rate = appModel.project().sampleRate.isValid() ? appModel.project().sampleRate
+                                                            : yesdaw::engine::SampleRate { 48000.0 };
+    double seconds = 0.0;
+    if (yesdaw::ui::timelineReadoutSeconds (point, rate, seconds) != yesdaw::ui::TimelineCoordinateStatus::Ok
+        || seconds >= 0x1p63 / 1000.0)
+        return empty;
+    if (timeDisplayMode == yesdaw::ui::timeline_canvas_detail::kRulerTimeDisplaySmpte)
+        return yesdaw::ui::timeline_canvas_detail::formatRulerTime (seconds, timeDisplayMode, 0.0, rate.hz);
     const long long millis = static_cast<long long> (std::floor (seconds * 1000.0 + 1e-6));
     return juce::String::formatted ("%lld:%02lld.%03lld", millis / 60000, (millis / 1000) % 60, millis % 1000);
+}
+
+std::array<juce::String, 3> MainComponent::headerSelectionTexts() const
+{
+    const auto span = headerSelectionSpan();
+    const juce::String empty (juce::CharPointer_UTF8 ("\xe2\x80\x94"));
+    if (! span) return { empty, empty, empty };
+    yesdaw::ui::TimelineFramePoint duration;
+    if (yesdaw::ui::timelineTranslateFramePoint (yesdaw::ui::TimelineFramePoint::exact (0), *span, duration)
+        != yesdaw::ui::TimelineCoordinateStatus::Ok)
+        return { empty, empty, empty };
+    return { headerSelectionTimeText (span->start), headerSelectionTimeText (span->end),
+             headerSelectionTimeText (duration) };
 }
 
 // The layout pass, step 6: Start / End / Length, as Pro Tools and SoundCraft show them beside the counter.
@@ -1931,11 +1961,9 @@ void MainComponent::drawHeaderSelection (juce::Graphics& g, juce::Rectangle<int>
 {
     using L = yesdaw::ui::UiTheme::Layout;
     fillPanel (g, box, yesdaw::ui::UiTheme::Radius::panel);
-    const auto span = headerSelectionSpan();
+    const auto text = headerSelectionTexts();
     const std::array<std::pair<const char*, juce::String>, 3> rows {{
-        { "Start", span ? headerSelectionTimeText (span->first) : juce::String (juce::CharPointer_UTF8 ("\xe2\x80\x94")) },
-        { "End", span ? headerSelectionTimeText (span->second) : juce::String (juce::CharPointer_UTF8 ("\xe2\x80\x94")) },
-        { "Length", span ? headerSelectionTimeText (span->second - span->first) : juce::String (juce::CharPointer_UTF8 ("\xe2\x80\x94")) },
+        { "Start", text[0] }, { "End", text[1] }, { "Length", text[2] },
     }};
     auto content = box.reduced (yesdaw::ui::UiTheme::Space::sm, yesdaw::ui::UiTheme::Space::xxs);
     const int rowHeight = content.getHeight() / static_cast<int> (rows.size());
@@ -1945,7 +1973,7 @@ void MainComponent::drawHeaderSelection (juce::Graphics& g, juce::Rectangle<int>
         g.setColour (kMutedText);
         g.setFont (yesdaw::ui::UiTheme::Type::font (yesdaw::ui::UiTheme::Type::tiny));
         g.drawText (label, row.removeFromLeft (L::headerSelectionLabelWidth), juce::Justification::centredLeft, false);
-        g.setColour (span ? kText : kMutedText);
+        g.setColour (text[0] != juce::String (juce::CharPointer_UTF8 ("\xe2\x80\x94")) ? kText : kMutedText);
         g.setFont (yesdaw::ui::UiTheme::Type::numericFont (yesdaw::ui::UiTheme::Type::tiny));
         g.drawText (value, row, juce::Justification::centredRight, true);
     }

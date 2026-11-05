@@ -6,6 +6,7 @@
 
 #include "ui/MusicalGrid.h"   // the layout pass, step 13
 #include "ui/TimelineLayout.h"
+#include "ui/TimelineReadout.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -21,6 +22,149 @@ using yesdaw::ui::layoutVisible;
 
 namespace {
 bool approx (double a, double b, double tol = 1e-3) { return std::fabs (a - b) <= tol; }
+}
+
+TEST_CASE ("native readouts project absolute musical endpoints before rounding duration",
+           "[timeline][native-readout]")
+{
+    using namespace yesdaw;
+    engine::Project project;
+    project.sampleRate = { 48000.0 };
+    project.tempoMap = { { 0, 120.0, engine::TempoCurve::Jump }, { 15360, 60.0, engine::TempoCurve::Jump } };
+    project.meterMap = { { 0, 4, 4 } };
+    const auto clock = ui::timelineReadoutClock (project);
+    REQUIRE (clock != nullptr);
+    ui::TimelineReadout readout;
+    REQUIRE (ui::timelineReadout (clock, { engine::TimeBase::TempoLocked, 15360 }, 15360,
+        project.sampleRate, readout) == ui::TimelineCoordinateStatus::Ok);
+    CHECK (approx (readout.startSeconds, 0.5, 1e-12));
+    CHECK (approx (readout.endSeconds, 1.5, 1e-12));
+    CHECK (approx (readout.lengthSeconds, 1.0, 1e-12));
+    engine::Tick rounded = 0;
+    REQUIRE (ui::timelineNativeFrameTarget (nullptr, engine::TimeBase::SampleLocked, readout.duration, rounded)
+             == ui::TimelineCoordinateStatus::Ok);
+    CHECK (rounded == 48000);
+    engine::Tick end = 0;
+    REQUIRE (ui::timelineReadoutNativeEnd (clock, { engine::TimeBase::TempoLocked, 15360 }, 15360,
+        project.sampleRate, 0.25, true, end) == ui::TimelineCoordinateStatus::Ok);
+    CHECK (end == 19200);   // .5 s start + .25 s duration, at the 60 BPM segment
+    REQUIRE (ui::timelineReadoutNativeEnd (clock, { engine::TimeBase::TempoLocked, 15360 }, 15360,
+        project.sampleRate, 0.75, false, end) == ui::TimelineCoordinateStatus::Ok);
+    CHECK (end == 19200);
+    project.tempoMap = { { 0, 240.0, engine::TempoCurve::Jump } };
+    const auto fast = ui::timelineReadoutClock (project);
+    REQUIRE (ui::timelineReadout (fast, { engine::TimeBase::TempoLocked, 2 }, 1,
+        project.sampleRate, readout) == ui::TimelineCoordinateStatus::Ok);
+    CHECK (approx (readout.startSeconds * 48000.0, 1.5625, 1e-12));
+    CHECK (approx (readout.endSeconds * 48000.0, 2.34375, 1e-12));
+    CHECK (approx (readout.lengthSeconds * 48000.0, 0.78125, 1e-12));
+    engine::Tick startRounded = 0, endRounded = 0;
+    REQUIRE (ui::timelineNativeFrameTarget (nullptr, engine::TimeBase::SampleLocked, readout.span.start, startRounded)
+             == ui::TimelineCoordinateStatus::Ok);
+    REQUIRE (ui::timelineNativeFrameTarget (nullptr, engine::TimeBase::SampleLocked, readout.span.end, endRounded)
+             == ui::TimelineCoordinateStatus::Ok);
+    REQUIRE (ui::timelineNativeFrameTarget (nullptr, engine::TimeBase::SampleLocked, readout.duration, rounded)
+             == ui::TimelineCoordinateStatus::Ok);
+    CHECK (startRounded == 2);
+    CHECK (endRounded == 2);
+    CHECK (rounded == 1);
+}
+
+TEST_CASE ("native readout ramp duration follows its actual placement",
+           "[timeline][native-readout]")
+{
+    using namespace yesdaw;
+    engine::Project project;
+    project.sampleRate = { 48000.0 };
+    project.tempoMap = { { 0, 120.0, engine::TempoCurve::LinearRamp }, { 30720, 240.0, engine::TempoCurve::Jump } };
+    project.meterMap = { { 0, 4, 4 } };
+    const auto clock = ui::timelineReadoutClock (project);
+    REQUIRE (clock != nullptr);
+    ui::TimelineReadout first, moved;
+    REQUIRE (ui::timelineReadout (clock, { engine::TimeBase::TempoLocked, 0 }, 15360,
+        project.sampleRate, first) == ui::TimelineCoordinateStatus::Ok);
+    REQUIRE (ui::timelineReadout (clock, { engine::TimeBase::TempoLocked, 15360 }, 15360,
+        project.sampleRate, moved) == ui::TimelineCoordinateStatus::Ok);
+    CHECK (approx (first.lengthSeconds, std::log (1.5), 1e-12));
+    CHECK (approx (moved.lengthSeconds, std::log (4.0 / 3.0), 1e-12));
+    CHECK (moved.lengthSeconds < first.lengthSeconds);
+    engine::Tick end = 0;
+    REQUIRE (ui::timelineReadoutNativeEnd (clock, { engine::TimeBase::TempoLocked, 15360 }, 15360,
+        project.sampleRate, std::log (7.0 / 6.0), true, end) == ui::TimelineCoordinateStatus::Ok);
+    CHECK (end == 23040);   // bpm ratio 210/180; length is integrated at the moved start
+}
+
+TEST_CASE ("native readout ordering preserves exact Frames and refuses ambiguous timing",
+           "[timeline][native-readout]")
+{
+    using namespace yesdaw;
+    engine::Project project;
+    project.sampleRate = { 48000.0 };
+    project.tempoMap = { { 0, 120.0, engine::TempoCurve::Jump }, { 15360, 60.0, engine::TempoCurve::Jump } };
+    project.meterMap = { { 0, 4, 4 } };
+    const auto clock = ui::timelineReadoutClock (project);
+    ui::TimelineReadout musical;
+    REQUIRE (ui::timelineReadout (clock, { engine::TimeBase::TempoLocked, 15360 }, 15360,
+        project.sampleRate, musical) == ui::TimelineCoordinateStatus::Ok);
+    std::vector<ui::TimelineFramePoint> starts { musical.span.start, ui::TimelineFramePoint::exact (20000),
+        ui::TimelineFramePoint::exact ((engine::Tick { 1 } << 53) + 1),
+        ui::TimelineFramePoint::exact (engine::Tick { 1 } << 53) };
+    std::vector<std::size_t> order;
+    REQUIRE (ui::timelineReadoutOrder (starts, order) == ui::TimelineCoordinateStatus::Ok);
+    CHECK (order == std::vector<std::size_t> { 1, 0, 3, 2 });
+    const auto retained = order;
+    auto uncertain = ui::TimelineFramePoint::exact (0);
+    uncertain.offset = { 0.2, 0.8, false };
+    auto overlap = ui::TimelineFramePoint::exact (0);
+    overlap.offset = { 0.4, 0.6, false };
+    starts = { uncertain, overlap };
+    CHECK (ui::timelineReadoutOrder (starts, order) == ui::TimelineCoordinateStatus::Precision);
+    CHECK (order == retained);
+}
+
+TEST_CASE ("fixed native readouts need no musical clock and reject overflowing endpoints",
+           "[timeline][native-readout]")
+{
+    using namespace yesdaw;
+    engine::Project project;
+    project.sampleRate = { 48000.0 };
+    project.tempoMap = { { 0, 1.0e-300, engine::TempoCurve::LinearRamp },
+        { engine::Tick { 1 } << 48, std::nextafter (1.0e-300, INFINITY), engine::TempoCurve::Jump } };
+    const auto clock = ui::timelineReadoutClock (project);
+    REQUIRE (clock == nullptr);
+    constexpr engine::Tick large = (engine::Tick { 1 } << 53) + 1;
+    ui::TimelineReadout readout;
+    REQUIRE (ui::timelineReadout (clock, { engine::TimeBase::SampleLocked, large }, 1,
+        project.sampleRate, readout) == ui::TimelineCoordinateStatus::Ok);
+    engine::Tick rounded = 0;
+    REQUIRE (ui::timelineNativeFrameTarget (nullptr, engine::TimeBase::SampleLocked, readout.span.start, rounded)
+             == ui::TimelineCoordinateStatus::Ok);
+    CHECK (rounded == large);
+    REQUIRE (ui::timelineNativeFrameTarget (nullptr, engine::TimeBase::SampleLocked, readout.duration, rounded)
+             == ui::TimelineCoordinateStatus::Ok);
+    CHECK (rounded == 1);
+    CHECK_FALSE (ui::timelineReadoutCanEdit (clock, { engine::TimeBase::SampleLocked, large }, 1, project.sampleRate, readout));
+    CHECK (ui::timelineReadout (clock, { engine::TimeBase::SampleLocked, INT64_MAX }, 1,
+        project.sampleRate, readout) == ui::TimelineCoordinateStatus::Overflow);
+    CHECK (ui::timelineReadout (clock, { engine::TimeBase::TempoLocked, 2 }, 1,
+        project.sampleRate, readout) == ui::TimelineCoordinateStatus::Precision);
+}
+
+TEST_CASE ("seconds editability certifies Length independently of its exact endpoints",
+           "[timeline][native-readout]")
+{
+    using namespace yesdaw;
+    constexpr engine::Tick start = 3;
+    constexpr engine::Tick end = engine::Tick { 1 } << 54;
+    const engine::SampleRate rate { 32768.0 };
+    ui::TimelineReadout readout;
+    REQUIRE (ui::timelineReadout (nullptr, { engine::TimeBase::SampleLocked, start }, end - start,
+        rate, readout) == ui::TimelineCoordinateStatus::Ok);
+    engine::Tick durationEnd = 0;
+    REQUIRE (ui::timelineReadoutNativeEnd (nullptr, { engine::TimeBase::SampleLocked, start }, end - start,
+        rate, readout.lengthSeconds, true, durationEnd) == ui::TimelineCoordinateStatus::Ok);
+    CHECK (durationEnd == end - 1);
+    CHECK_FALSE (ui::timelineReadoutCanEdit (nullptr, { engine::TimeBase::SampleLocked, start }, end - start, rate, readout));
 }
 
 TEST_CASE ("a fully-visible clip maps to the expected pixel rect", "[timeline][geometry]")

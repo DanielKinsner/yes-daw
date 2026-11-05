@@ -406,7 +406,8 @@ void MainComponent::rebuildInspectorClipRows()
     if (! appModel.context().projectLoaded || ! appModel.project().sampleRate.isValid())
         return;
     const yesdaw::engine::Project& project = appModel.project();
-    struct Entry { yesdaw::engine::Tick start; std::size_t lane; ClipListRow row; };
+    const auto clock = yesdaw::ui::timelineReadoutClock (project);
+    struct Entry { yesdaw::ui::TimelineFramePoint start; std::size_t lane; ClipListRow row; };
     std::vector<Entry> entries;
     const auto laneOf = [&project] (const yesdaw::engine::EntityId& trackId) -> std::optional<std::size_t> {
         for (std::size_t i = 0; i < project.tracks.size(); ++i)
@@ -414,32 +415,41 @@ void MainComponent::rebuildInspectorClipRows()
                 return i;
         return std::nullopt;
     };
-    const auto detailFor = [&project] (std::size_t lane, yesdaw::engine::Tick start) {
+    const auto detailFor = [&project] (std::size_t lane, double seconds) {
         const yesdaw::engine::Track& track = project.tracks[lane];
         const juce::String trackName = track.strip.name.empty() ? "Track " + juce::String (static_cast<int> (lane + 1))
                                                                 : juce::String (track.strip.name);
-        const double seconds = static_cast<double> (std::max<yesdaw::engine::Tick> (0, start)) / project.sampleRate.hz;
+        if (seconds >= 0x1p63 / 10.0)
+            return trackName + juce::String::fromUTF8 (" \xc2\xb7 \xe2\x80\x94");
         const long long tenths = static_cast<long long> (std::floor (seconds * 10.0 + 1e-9));
         return trackName + juce::String::fromUTF8 (" \xc2\xb7 ")
              + juce::String::formatted ("%lld:%02lld.%lld", tenths / 600, (tenths / 10) % 60, tenths % 10);
     };
+    const auto append = [&] (const auto& clip, std::size_t lane, const juce::String& name, juce::Colour colour) {
+        yesdaw::ui::TimelineReadout readout;
+        if (yesdaw::ui::timelineReadout (clock, { clip.timeBase, clip.timelineStart }, clip.timelineLength,
+                project.sampleRate, readout) == yesdaw::ui::TimelineCoordinateStatus::Ok)
+            entries.push_back ({ readout.span.start, lane, { clip.id, name, detailFor (lane, readout.startSeconds), colour } });
+    };
     for (const yesdaw::engine::Clip& clip : project.clips)
         if (const auto lane = laneOf (clip.trackId))
-            entries.push_back ({ clip.timelineStart, *lane,
-                                 { clip.id, juce::String (clip.name.c_str()), detailFor (*lane, clip.timelineStart),
-                                   clip.colour != yesdaw::engine::kTrackColourUnset ? juce::Colour (clip.colour)
-                                                                                     : colourForTrack (project.tracks[*lane], *lane) } });
+            append (clip, *lane, juce::String (clip.name.c_str()), clip.colour != yesdaw::engine::kTrackColourUnset
+                ? juce::Colour (clip.colour) : colourForTrack (project.tracks[*lane], *lane));
     for (const yesdaw::engine::MidiClip& clip : project.midiClips)
         if (const auto lane = laneOf (clip.trackId))
-            entries.push_back ({ clip.timelineStart, *lane,
-                                 { clip.id, "MIDI", detailFor (*lane, clip.timelineStart),
-                                   colourForTrack (project.tracks[*lane], *lane) } });
+            append (clip, *lane, "MIDI", colourForTrack (project.tracks[*lane], *lane));
     std::stable_sort (entries.begin(), entries.end(), [] (const Entry& a, const Entry& b) {
-        return a.start != b.start ? a.start < b.start : a.lane < b.lane;
+        return a.lane < b.lane;
     });
+    std::vector<yesdaw::ui::TimelineFramePoint> starts;
+    starts.reserve (entries.size());
+    for (const auto& entry : entries) starts.push_back (entry.start);
+    std::vector<std::size_t> order;
+    if (yesdaw::ui::timelineReadoutOrder (starts, order) != yesdaw::ui::TimelineCoordinateStatus::Ok)
+        return;
     inspectorClipRows.reserve (entries.size());
-    for (Entry& entry : entries)
-        inspectorClipRows.push_back (std::move (entry.row));
+    for (const auto index : order)
+        inspectorClipRows.push_back (std::move (entries[index].row));
 }
 
 // The list fills the CLIP tab's content under its painted label, or has no bounds.
@@ -474,24 +484,26 @@ void MainComponent::revealTimelineClip (const yesdaw::engine::EntityId& clipId)
     const yesdaw::engine::Project& project = appModel.project();
     if (! project.sampleRate.isValid())
         return;
-    std::optional<yesdaw::engine::Tick> start;
+    const auto clock = yesdaw::ui::timelineReadoutClock (project);
+    std::optional<yesdaw::ui::TimelineReadout> readout;
     yesdaw::engine::EntityId trackId;
-    for (const yesdaw::engine::Clip& clip : project.clips)
+    const auto locate = [&] (const auto& clip) {
         if (clip.id == clipId)
         {
-            start = clip.timelineStart;
+            yesdaw::ui::TimelineReadout projected;
+            if (yesdaw::ui::timelineReadout (clock, { clip.timeBase, clip.timelineStart }, clip.timelineLength,
+                    project.sampleRate, projected) == yesdaw::ui::TimelineCoordinateStatus::Ok)
+                readout = std::move (projected);
             trackId = clip.trackId;
         }
+    };
+    for (const yesdaw::engine::Clip& clip : project.clips) locate (clip);
     for (const yesdaw::engine::MidiClip& clip : project.midiClips)
-        if (clip.id == clipId)
-        {
-            start = clip.timelineStart;
-            trackId = clip.trackId;
-        }
-    if (! start)
+        locate (clip);
+    if (! readout)
         return;
 
-    const double startSeconds = static_cast<double> (std::max<yesdaw::engine::Tick> (0, *start)) / project.sampleRate.hz;
+    const double startSeconds = readout->startSeconds;
     const double visibleSeconds = timelineVisibleSecondsFor (timelineTotalSeconds);
     if (visibleSeconds > 0.0
         && (startSeconds < timelineScrollSeconds || startSeconds > timelineScrollSeconds + visibleSeconds * 0.9))
@@ -753,12 +765,18 @@ void MainComponent::refreshInspectorControls()
 {
     const yesdaw::engine::Clip* const clip = findProjectClipById (appModel.selectedTimelineClipId());
     const bool selected = appModel.context().timelineClipSelected && clip != nullptr;
+    const auto clock = selected ? yesdaw::ui::timelineReadoutClock (appModel.project()) : nullptr;
+    yesdaw::ui::TimelineReadout timing;
+    const bool hasTiming = selected && yesdaw::ui::timelineReadout (clock, { clip->timeBase, clip->timelineStart },
+        clip->timelineLength, appModel.project().sampleRate, timing) == yesdaw::ui::TimelineCoordinateStatus::Ok;
+    const bool timingEditable = hasTiming && yesdaw::ui::timelineReadoutCanEdit (clock,
+        { clip->timeBase, clip->timelineStart }, clip->timelineLength, appModel.project().sampleRate, timing);
 
-    inspectorStart.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipMove,
+    inspectorStart.setEnabled (timingEditable && appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipMove,
                                                              appModel.context()).enabled);
-    inspectorEnd.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipTrim,
+    inspectorEnd.setEnabled (timingEditable && appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipTrim,
                                                            appModel.context()).enabled);
-    inspectorLength.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipTrim,
+    inspectorLength.setEnabled (timingEditable && appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipTrim,
                                                               appModel.context()).enabled);
     inspectorGain.setEnabled (appModel.registry().stateFor (yesdaw::ui::UiActionId::TimelineClipSetGain,
                                                             appModel.context()).enabled);
@@ -812,9 +830,15 @@ void MainComponent::refreshInspectorControls()
     if (selected && appModel.project().sampleRate.isValid())
     {
         const double sampleRate = appModel.project().sampleRate.hz;
-        const double startSeconds = static_cast<double> (clip->timelineStart) / sampleRate;
-        const double lengthSeconds = static_cast<double> (clip->timelineLength) / sampleRate;
-        const double endSeconds = startSeconds + lengthSeconds;
+        const double startSeconds = hasTiming ? timing.startSeconds : 0.0;
+        const double lengthSeconds = hasTiming ? timing.lengthSeconds : 0.0;
+        const double endSeconds = hasTiming ? timing.endSeconds : 0.0;
+        if (! hasTiming)
+        {
+            inspectorStart.setVisible (false);
+            inspectorEnd.setVisible (false);
+            inspectorLength.setVisible (false);
+        }
         const double maxSeconds = std::max (
             yesdaw::ui::UiTheme::Layout::inspectorTimeSliderMaxSecondsFallback,
             endSeconds * yesdaw::ui::UiTheme::Layout::inspectorTimeSliderRangePaddingScale);
@@ -931,11 +955,20 @@ void MainComponent::setSelectedInspectorEndFromSlider()
     if (clip == nullptr)
         return;
 
-    const std::optional<yesdaw::engine::Tick> endTick = inspectorTickFromSeconds (inspectorEnd.getValue());
-    if (! endTick || *endTick <= clip->timelineStart)
+    const auto clock = yesdaw::ui::timelineReadoutClock (appModel.project());
+    yesdaw::engine::Tick endTick = 0;
+    const auto status = yesdaw::ui::timelineReadoutNativeEnd (clock, { clip->timeBase, clip->timelineStart },
+        clip->timelineLength, appModel.project().sampleRate, inspectorEnd.getValue(), false, endTick);
+    if (status != yesdaw::ui::TimelineCoordinateStatus::Ok)
+    {
+        (void) appModel.timelineCoordinateRefusal (status, yesdaw::ui::UiActionId::TimelineClipTrim);
+        refreshActionState();
+        return;
+    }
+    if (endTick <= clip->timelineStart)
         return;
 
-    (void) appModel.trimSelectedTimelineClipRightTo (*endTick);
+    (void) appModel.trimSelectedTimelineClipRightTo (endTick);
     refreshActionState();
     repaintAll();
 }
@@ -946,11 +979,22 @@ void MainComponent::setSelectedInspectorLengthFromSlider()
     if (clip == nullptr)
         return;
 
-    const std::optional<yesdaw::engine::Tick> lengthTick = inspectorTickFromSeconds (inspectorLength.getValue());
-    if (! lengthTick || *lengthTick <= 0)
+    if (inspectorLength.getValue() <= 0.0)
+        return;
+    const auto clock = yesdaw::ui::timelineReadoutClock (appModel.project());
+    yesdaw::engine::Tick endTick = 0;
+    const auto status = yesdaw::ui::timelineReadoutNativeEnd (clock, { clip->timeBase, clip->timelineStart },
+        clip->timelineLength, appModel.project().sampleRate, inspectorLength.getValue(), true, endTick);
+    if (status != yesdaw::ui::TimelineCoordinateStatus::Ok)
+    {
+        (void) appModel.timelineCoordinateRefusal (status, yesdaw::ui::UiActionId::TimelineClipTrim);
+        refreshActionState();
+        return;
+    }
+    if (endTick <= clip->timelineStart)
         return;
 
-    (void) appModel.trimSelectedTimelineClipRightTo (clip->timelineStart + *lengthTick);
+    (void) appModel.trimSelectedTimelineClipRightTo (endTick);
     refreshActionState();
     repaintAll();
 }
@@ -1199,13 +1243,18 @@ void MainComponent::drawInspector (juce::Graphics& g, juce::Rectangle<int> area)
                      .withHeight (yesdaw::ui::UiTheme::Layout::inspectorStatsSectionHeight);
     if (inspectorContent.contains (stats))
     {
-    const double selectedSampleRate = appModel.project().sampleRate.hz;
-    const double selectedStartSeconds = static_cast<double> (selectedClip->timelineStart) / selectedSampleRate;
-    const double selectedLengthSeconds = static_cast<double> (selectedClip->timelineLength) / selectedSampleRate;
+        yesdaw::ui::TimelineReadout readout;
+        const bool valid = yesdaw::ui::timelineReadout (yesdaw::ui::timelineReadoutClock (appModel.project()),
+            { selectedClip->timeBase, selectedClip->timelineStart }, selectedClip->timelineLength,
+            appModel.project().sampleRate, readout) == yesdaw::ui::TimelineCoordinateStatus::Ok;
+        const auto secondsText = [valid] (double seconds) {
+            return valid ? juce::String (seconds, 3) + " s"
+                         : juce::String (juce::CharPointer_UTF8 ("\xe2\x80\x94"));
+        };
         const std::array<std::pair<const char*, juce::String>, 3> statsText {{
-            { "Start", juce::String (selectedStartSeconds, 3) + " s" },
-            { "End", juce::String (selectedStartSeconds + selectedLengthSeconds, 3) + " s" },
-            { "Length", juce::String (selectedLengthSeconds, 3) + " s" }
+            { "Start", secondsText (readout.startSeconds) },
+            { "End", secondsText (readout.endSeconds) },
+            { "Length", secondsText (readout.lengthSeconds) }
         }};
         const auto statsCells = yesdaw::ui::UiTheme::Layout::inspectorStatsCells (stats);   // G3.1 rubric FIX 1
         std::size_t statIndex = 0;

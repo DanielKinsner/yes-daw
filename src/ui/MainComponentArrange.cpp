@@ -1745,7 +1745,7 @@ void MainComponent::rebuildTimelineClipViews()
     }
 
     double endSeconds = 0.0;
-    const double sampleRate = project.sampleRate.hz;
+    const auto readoutClock = yesdaw::ui::timelineReadoutClock (project);
 
     for (const yesdaw::engine::Clip& clip : project.clips)
     {
@@ -1765,8 +1765,12 @@ void MainComponent::rebuildTimelineClipViews()
             continue;
 
         const int lane = static_cast<int> (std::distance (project.tracks.begin(), track));
-        const double startSeconds = static_cast<double> (clip.timelineStart) / sampleRate;
-        const double lengthSeconds = static_cast<double> (clip.timelineLength) / sampleRate;
+        yesdaw::ui::TimelineReadout readout;
+        if (yesdaw::ui::timelineReadout (readoutClock, { clip.timeBase, clip.timelineStart },
+                clip.timelineLength, project.sampleRate, readout) != yesdaw::ui::TimelineCoordinateStatus::Ok)
+            continue;
+        const double startSeconds = readout.startSeconds;
+        const double lengthSeconds = readout.lengthSeconds;
         const int id = static_cast<int> (timelineClips.size());
         // The clip's source window rides along (srcOffset / srcLen, asset frames) so the
         // painter draws THIS clip's audio, not the whole file squeezed into its width.

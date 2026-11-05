@@ -49,7 +49,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    model adoption, actual chooser/Browser/drop/Sampler background requests, plus reversed Split/Join/Strip Silence
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut, mixed Paste placement, complete MIDI copies and full-map native move/nudge are repaired.
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome, captured-map count-in and bounded click-search recovery are delivered; all ten CI jobs passed at d97f3d2.
-   Clock repair 0634b06 passed all ten CI lanes after one isolated Linux Alpha cache-service retry; macOS passed 492/492 including the unchanged deadline. Native clipboard/repeat and the import-lease repair passed full local headless integration; push/CI are pending. Next: readouts and piano boundaries, followed by MIDI interchange. Checked fractional
+   Clock repair 0634b06 passed all ten CI lanes after one isolated Linux Alpha cache-service retry; macOS passed 492/492 including the unchanged deadline. Native clipboard/repeat 2397ae1 and import-lease repair bb25f9e are pushed; CI 41934497320 passed all ten jobs on its first attempt. Native readouts passed full headless integration; commit/CI are next, followed by piano boundaries and MIDI interchange. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -70,6 +70,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — Native geometry/readouts
+
+Prerequisites bb25f9e and 2397ae1 are committed and pushed; their combined source passed canonical 48101. CI 41934497320 completed SUCCESS on 2397ae1: all ten first-attempt jobs passed, including macOS, Linux, Windows, both sanitizers, both packages and both Alpha checks. No retry or exception extension was needed.
+Implementation shares checked Project-Frame projection for geometry, Inspector order/reveal/seconds controls and header Start/End/Length. Captured old-shell REDs include 13 isolated MIDI/readout/order/reveal failures and eight direct audio-display failures; intermediate fixture mistakes remain recorded separately. A critic then found an independent large-Length precision bug (1/47 RED), repaired through the real Length endpoint-edit path. Pure focused 47/5, full timeline 242/19 and audited focused UI 513/4 passed; the genuine canonical-audio New fixture proves display/payload only, not TempoLocked audio Open/playback.
+Independent review accepted all eight final hashes. Five cleanup lenses completed: one duplicate Track lookup removed, two redundant comments removed, proof files unchanged. Root canonical 79798 exited 0: pure 468/468 (109.05 s), three GUI compile-only targets, six Clang units, audited offscreen UI 507/460,371 and screenshots 30/15,629. Code review: skipped (ce-code-review unavailable); the retained actual cleanup-policy failure still prevents that workflow. An explicit final manual source scan found no blocker. Commit/push/CI are next; native piano work is read-only preparation until this prerequisite commits. No native window, desktop input, audio device or hardware execution ran.
 
 ## 2026-11-04 — Import lease reopen repair
 
