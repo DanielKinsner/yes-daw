@@ -244,3 +244,133 @@ TEST_CASE ("SMF musical bridge: notes pair, controls normalize, the head is read
     }
     REQUIRE (again.front().lengthQuarters == Catch::Approx (4.0));
 }
+
+TEST_CASE ("SMF reader bounds variable quantities and absolute source ticks before publishing a Track",
+           "[smf][smf-reader-bounds]")
+{
+    const auto fileBytes = [] (const std::vector<std::uint8_t>& body, std::uint8_t expectedLength)
+    {
+        REQUIRE (body.size() == expectedLength);
+        std::vector<std::uint8_t> bytes {
+            'M', 'T', 'h', 'd', 0, 0, 0, 6, 0, 0, 0, 1, 0, 96,
+            'M', 'T', 'r', 'k', 0, 0, 0, expectedLength
+        };
+        bytes.insert (bytes.end(), body.begin(), body.end());
+        return bytes;
+    };
+    const auto boundaryBody = []
+    {
+        std::vector<std::uint8_t> body;
+        for (int i = 0; i < 16; ++i)
+            body.insert (body.end(), { 0xFF, 0xFF, 0xFF, 0x7F, 0xFF, 0x7F, 0x00 });
+        body.insert (body.end(), { 0x0F, 0x90, 60, 100, 0x00, 0xFF, 0x2F, 0x00 });
+        return body;
+    };
+    SmfFile parsed;
+
+    SECTION ("the maximum legal four-byte delta is retained exactly")
+    {
+        const auto bytes = fileBytes ({ 0xFF, 0xFF, 0xFF, 0x7F, 0x90, 60, 100, 0, 0xFF, 0x2F, 0 }, 11);
+        REQUIRE (readSmf (bytes, parsed) == SmfStatus::Ok);
+        REQUIRE (parsed.tracks.size() == 1u);
+        const auto& events = parsed.tracks.front().events;
+        REQUIRE (events.size() == 2u);
+        CHECK (events[0].kind == SmfEventKind::NoteOn);
+        CHECK (events[0].tick == 268435455u);
+        CHECK (events[0].data1 == 60);
+        CHECK (events[0].data2 == 100);
+        CHECK (events[1].kind == SmfEventKind::EndOfTrack);
+        CHECK (events[1].tick == 268435455u);
+    }
+    SECTION ("seventeen legal deltas can reach the exact uint32 endpoint")
+    {
+        REQUIRE (readSmf (fileBytes (boundaryBody(), 120), parsed) == SmfStatus::Ok);
+        REQUIRE (parsed.tracks.size() == 1u);
+        const auto& events = parsed.tracks.front().events;
+        REQUIRE (events.size() == 18u);
+        for (std::size_t i = 0; i < 16u; ++i)
+        {
+            CHECK (events[i].kind == SmfEventKind::Other);
+            CHECK (events[i].tick == static_cast<std::uint32_t> ((i + 1u) * std::uint64_t { 268435455 }));
+        }
+        CHECK (events[16].kind == SmfEventKind::NoteOn);
+        CHECK (events[16].tick == 4294967295u);
+        CHECK (events[17].kind == SmfEventKind::EndOfTrack);
+        CHECK (events[17].tick == 4294967295u);
+    }
+    SECTION ("the following delta refuses before a wrapped Track is published")
+    {
+        auto body = boundaryBody();
+        REQUIRE (body.size() == 120u);
+        body[116] = 1;
+        CHECK (readSmf (fileBytes (body, 120), parsed) == SmfStatus::BadTrack);
+        CHECK (parsed.tracks.empty());
+    }
+    SECTION ("an earlier completed Track survives a later Track refusal")
+    {
+        auto body = boundaryBody();
+        REQUIRE (body.size() == 120u);
+        body[116] = 1;
+        auto bytes = fileBytes ({ 0, 0xFF, 0x2F, 0 }, 4);
+        bytes[9] = 1;
+        bytes[11] = 2;
+        const auto second = fileBytes (body, 120);
+        bytes.insert (bytes.end(), second.begin() + 14, second.end());
+        CHECK (readSmf (bytes, parsed) == SmfStatus::BadTrack);
+        REQUIRE (parsed.tracks.size() == 1u);
+        REQUIRE (parsed.tracks.front().events.size() == 1u);
+        CHECK (parsed.tracks.front().events[0].kind == SmfEventKind::EndOfTrack);
+        CHECK (parsed.tracks.front().events[0].tick == 0u);
+    }
+    SECTION ("a fifth delta byte is refused even when it would encode zero")
+    {
+        for (const std::vector<std::uint8_t>& prefix : {
+            std::vector<std::uint8_t> { 0x81, 0x80, 0x80, 0x80, 0x00 },
+            std::vector<std::uint8_t> { 0x80, 0x80, 0x80, 0x80, 0x00 },
+            std::vector<std::uint8_t> { 0xFF, 0xFF, 0xFF, 0xFF, 0x7F } })
+        {
+            auto body = prefix;
+            body.insert (body.end(), { 0x90, 60, 100, 0, 0xFF, 0x2F, 0 });
+            CHECK (readSmf (fileBytes (body, 12), parsed) == SmfStatus::BadVlq);
+            CHECK (parsed.tracks.empty());
+        }
+    }
+    SECTION ("a fifth Meta or SysEx length byte retains the existing refusal status")
+    {
+        CHECK (readSmf (fileBytes ({ 0, 0xFF, 0x7F, 0x80, 0x80, 0x80, 0x80, 0, 0, 0xFF, 0x2F, 0 }, 12), parsed)
+               == SmfStatus::Truncated);
+        CHECK (parsed.tracks.empty());
+        for (const std::uint8_t status : { std::uint8_t { 0xF0 }, std::uint8_t { 0xF7 } })
+        {
+            CHECK (readSmf (fileBytes ({ 0, status, 0x80, 0x80, 0x80, 0x80, 0, 0, 0xFF, 0x2F, 0 }, 11), parsed)
+                   == SmfStatus::Truncated);
+            CHECK (parsed.tracks.empty());
+        }
+    }
+    SECTION ("legal padded four-byte zero lengths remain accepted")
+    {
+        const std::vector<std::vector<std::uint8_t>> bodies {
+            { 0, 0xFF, 0x7F, 0x80, 0x80, 0x80, 0, 0, 0xFF, 0x2F, 0 },
+            { 0, 0xF0, 0x80, 0x80, 0x80, 0, 0, 0xFF, 0x2F, 0 },
+            { 0, 0xF7, 0x80, 0x80, 0x80, 0, 0, 0xFF, 0x2F, 0 }
+        };
+        for (std::size_t i = 0; i < bodies.size(); ++i)
+        {
+            REQUIRE (readSmf (fileBytes (bodies[i], static_cast<std::uint8_t> (i == 0 ? 11 : 10)), parsed) == SmfStatus::Ok);
+            REQUIRE (parsed.tracks.size() == 1u);
+            const auto& events = parsed.tracks.front().events;
+            REQUIRE (events.size() == 2u);
+            CHECK (events[0].kind == SmfEventKind::Other);
+            CHECK (events[0].tick == 0u);
+            CHECK (events[1].kind == SmfEventKind::EndOfTrack);
+            CHECK (events[1].tick == 0u);
+        }
+    }
+    SECTION ("unfinished quantities keep delta and length refusal statuses")
+    {
+        CHECK (readSmf (fileBytes ({ 0x81, 0x80, 0x80, 0x80 }, 4), parsed) == SmfStatus::BadVlq);
+        CHECK (parsed.tracks.empty());
+        CHECK (readSmf (fileBytes ({ 0, 0xFF, 0x7F, 0x81, 0x80, 0x80, 0x80 }, 7), parsed) == SmfStatus::Truncated);
+        CHECK (parsed.tracks.empty());
+    }
+}

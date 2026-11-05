@@ -51,7 +51,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome, captured-map count-in and bounded click-search recovery are delivered; all ten CI jobs passed at d97f3d2.
    Full-map timing is implemented across metronome/count-in, clipboard/moves, readouts, arrange/piano grids and quantize/Step input.
    Native MIDI occurrences, the pure file writer, app export adapter, narrow click-cache optimization and TSan allocator compatibility are pushed at e5f49d7; full platform CI is running.
-   Current: checked MIDI creation/import geometry, then activate musical defaults with explicit Fixed-time commands. Checked fractional
+   Checked MIDI creation/import geometry is pushed at f038e12. Current: repair SMF reader bounds, then activate musical defaults with explicit Fixed-time commands. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -72,6 +72,14 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 — SMF reader bounds
+
+Geometry f038e12 is committed and pushed; CI41977531006 is pending behind41975343559. The predecessor passed actual TSan476, macOS509 (Playback1.91s, unchanged deadline), RTSan and packages; Windows/Linux remain running. macOS raw log21BF3F0A is retained locally; historical timing-failure causality remains unproved.
+Source inspection found that the reader accepts five-byte VLQs and can wrap aggregate uint32 source positions. A separate narrow repair owns only the four-byte decoder bound, checked pre-add overflow and one appended raw-file regression. Existing statuses, partial-output law, writer, old whole test prefix/goldens, source units and API stay intact; no new format decision.
+Actual old-source RED failed16/107 assertions (child42, runner0 expected RED); frozen proofE5BC8A02 then passed110/1 at minimal sourceBA68B851. Owning231/5, ProjectSmf1683/13 and geometry110/1 passed; wrong AppSmoke tag was a list-only setup error, retained separately, with no product failure. Independent source critic accepted exactBA68/E5 and independently recovered old source1C3180 and whole12,777-byte proof prefixB373.
+Root canonical94217 exited0 at exactBA68/E5: pure481/481 (112.60s), all three GUI consumers compiled without launch, and audited MIDI-file UI131/1 passed after exact XML inventory. Full AppSmoke219526/71 and two Clang units passed;529 protected paths remain exact. Root completed full source/proof/caller scan; production delta is below30 lines, with no additional cleanup. No native window, desktop input or audio-device activity. Commit next; hold push while geometryCI41977531006 is pending so it is not cancelled. Integer source extraction follows that push, then musical defaults and explicit Fixed-time commands.
+Code review: skipped (ce-code-review unavailable). Standing mandatory generated-job cleanup was rejected by automatic approval review; no retry or bypass. Independent source critique, root review and mechanical gates remain the review evidence.
 
 ## 2026-11-04 — MIDI creation/import geometry
 

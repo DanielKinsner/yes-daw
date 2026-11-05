@@ -130,7 +130,7 @@ struct Cursor
     [[nodiscard]] bool vlq (std::uint32_t& out) noexcept
     {
         out = 0;
-        for (int i = 0; i < 5; ++i)
+        for (int i = 0; i < 4; ++i)
         {
             if (! has (1))
                 return false;
@@ -139,7 +139,7 @@ struct Cursor
             if ((b & 0x80) == 0)
                 return true;
         }
-        return false;   // more than five bytes: not a VLQ
+        return false;   // SMF variable-length quantities use at most four bytes.
     }
 };
 
@@ -272,6 +272,8 @@ struct Cursor
             std::uint32_t delta = 0;
             if (! body.vlq (delta))
                 return SmfStatus::BadVlq;
+            if (delta > UINT32_MAX - tick)
+                return SmfStatus::BadTrack;
             tick += delta;
             if (! body.has (1))
                 return SmfStatus::Truncated;
