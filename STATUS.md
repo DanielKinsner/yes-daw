@@ -51,7 +51,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome, captured-map count-in and bounded click-search recovery are delivered; all ten CI jobs passed at d97f3d2.
    Full-map timing is implemented across metronome/count-in, clipboard/moves, readouts, arrange/piano grids and quantize/Step input.
    Native MIDI occurrences, the pure file writer, app export adapter, narrow click-cache optimization and TSan allocator compatibility are pushed at e5f49d7 and passed all ten CI jobs.
-   Geometry, bounded SMF reading/source extraction and fixture repairs are pushed through71669a9. Musical MIDI creation/import defaults and explicit Fixed-time commands passed all local integration gates; current: commit/push this unit, then the Musical-audio architecture and checked window/key foundation. Latest-head CI remains required. Checked fractional
+   Musical MIDI defaults and explicit Fixed-time commands are pushed at70d3b1c after all local integration gates passed. Current: commit/push Accepted ADR-0083 and its Musical-audio plan, then the pure checked window/key foundation. Latest-head CI remains required. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -72,6 +72,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 — Musical-audio architecture (accepted; implementation pending)
+
+MIDI70d3b1c is committed/pushed; its CI41988919464 has started. Prior716CI41985752824 finished all ten jobs SUCCESS on attempt1, including Linux runtime, Windows/macOS and RTSan/TSan; earlier failed runs remain retained. Local MIDI canonical58606 passed pure482, GUI3 compile, audited UI511/462034, screenshots30/15629 and three Clang units. Exact MIDI-head CI remains required.
+Fresh independent architecture critique accepted actual ADR-0083 at7C45C564 and companion plan6A208775, byte-identical to the reviewed publication previews. Existing Fixed audio and stored units remain unchanged; the new prepared Musical lane has explicit timing, numeric/refusal, ownership/history and quality/resource contracts. The old default-hop research remains FAIL; accepting architecture supplies no renderer or audio tempo-follow credit.
+Root's documentation-only guards passed exact approved bytes, relative cross-links, LF and533 prior tracked paths outside STATUS. No source/build/test/golden/RT contract changes or redundant runtime reruns. Code review: skipped (ce-code-review unavailable); fresh architecture critique is separate evidence. Commit/push the two new documents/STATUS, then authorize only the prepared pure window/key unit. All execution remains headless.
 
 ## 2026-11-05 — Musical MIDI creation/import (locally verified)
 
