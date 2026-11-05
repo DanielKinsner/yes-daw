@@ -933,6 +933,12 @@ target_link_libraries(YesDawMidiCreationGeometryCheck PRIVATE Catch2::Catch2With
 yesdaw_harden(YesDawMidiCreationGeometryCheck)
 add_test(NAME YesDawMidiCreationGeometryCheck COMMAND $<TARGET_FILE:YesDawMidiCreationGeometryCheck>)
 
+add_executable(YesDawSmfSourceTracksCheck tests/smf_source_tracks_tests.cpp)
+target_include_directories(YesDawSmfSourceTracksCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawSmfSourceTracksCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawSmfSourceTracksCheck)
+add_test(NAME YesDawSmfSourceTracksCheck COMMAND $<TARGET_FILE:YesDawSmfSourceTracksCheck>)
+
 # --- MIDI FX check (G3.8: transpose / scale / arpeggiator / chord inserts on the Track's MIDI path) ---
 add_executable(YesDawMidiFxCheck tests/midi_fx_tests.cpp)
 target_include_directories(YesDawMidiFxCheck PRIVATE ${YESDAW_SRC_DIR})

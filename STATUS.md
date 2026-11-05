@@ -50,8 +50,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut, mixed Paste placement, complete MIDI copies and full-map native move/nudge are repaired.
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome, captured-map count-in and bounded click-search recovery are delivered; all ten CI jobs passed at d97f3d2.
    Full-map timing is implemented across metronome/count-in, clipboard/moves, readouts, arrange/piano grids and quantize/Step input.
-   Native MIDI occurrences, the pure file writer, app export adapter, narrow click-cache optimization and TSan allocator compatibility are pushed at e5f49d7; full platform CI is running.
-   Checked MIDI creation/import geometry is pushed at f038e12. Current: repair SMF reader bounds, then activate musical defaults with explicit Fixed-time commands. Checked fractional
+   Native MIDI occurrences, the pure file writer, app export adapter, narrow click-cache optimization and TSan allocator compatibility are pushed at e5f49d7 and passed all ten CI jobs.
+   Checked MIDI geometry f038e12 and reader bounds1d1ec88 are pushed; all ten e5f49d7 CI jobs passed on attempt1. Current: integer source extraction, then musical defaults with explicit Fixed-time commands. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -72,6 +72,14 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 — SMF source endpoints (active)
+
+Reader1d1ec88 is committed and pushed after geometryCI41977531006 started. e5f49d7 CI41975343559 completed all ten jobs SUCCESS on attempt1; the historical failed jobs and raw receipts remain retained. Geometry and reader final-head CI remain required.
+The source-extraction author completed exactly new SmfSourceTracks.h, one new eight-section feature proof and an adjacent pure CMake target, then released the heavy lane. Integer source Note endpoints, control positions, source extent and legacy pairing/order are retained without PPQ division, IDs, Project edits or default activation. ReaderBA68/proofE5 and geometry81DA/proof9CDA stay exact; model/actions/GUI/recording stay untouched.
+New smoke61/1 in eight sections, old Smf231/5, ProjectSmf1683/13 and geometry110/1 passed; owning Clang one unit clean. Measured inventory482 retains every old481 entry. All530 protected paths, frozen proofED69179B and old CMakeAF587 outside six lines remain exact. Setup-only snapshot allowance/PATH lookup stops are retained; passed product tests were not rerun.
+Independent domain critic accepted header9810F22E/proofED69179B/CMake83D6F8; all five cleanup lenses found zero changes. Root read the complete new header/proof/CMake and relevant legacy laws. Canonical66736 exited0: pure482/482 (115.69s), GUI3 compiled without launch and one exact-candidate Clang unit clean; source-identical reader UI131/1 is retained, not rerun. This is not model/default delivery. Commit next; hold push while readerCI41979044270 is pending so it is not cancelled. No native/input/device/hardware execution.
+Code review: skipped (ce-code-review unavailable). Standing generated-job cleanup was rejected by automatic approval review; independent source critique, root review and mechanical gates supply the review evidence.
 
 ## 2026-11-05 — SMF reader bounds
 
