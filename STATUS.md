@@ -50,8 +50,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    and natural cross-rate selected-split repairs. MIDI/mixed whole-Clip Cut, mixed Paste placement, complete MIDI copies and full-map native move/nudge are repaired.
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome, captured-map count-in and bounded click-search recovery are delivered; all ten CI jobs passed at d97f3d2.
    Full-map timing is implemented across metronome/count-in, clipboard/moves, readouts, arrange/piano grids and quantize/Step input.
-   Native MIDI occurrences and the pure file writer are pushed; the app export adapter a11d9f9 is locally verified and committed.
-   Priority: verify/push the narrow metronome deadline optimization after macOS CI failed its unchanged deadline. MIDI creation/import defaults follow. Checked fractional
+   Native MIDI occurrences, the pure file writer, app export adapter, narrow click-cache optimization and TSan allocator compatibility are pushed at e5f49d7; full platform CI is running.
+   Current: checked MIDI creation/import geometry, then activate musical defaults with explicit Fixed-time commands. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -72,6 +72,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-04 — MIDI creation/import geometry
+
+Model export a11d9f9, endpoint-cache8910983 and allocator-compatibility e5f49d7 are pushed together; HEAD/origin are e5f49d7. CI41975343559 real Linux TSan job127072811179 passed all476 entries, including ProjectSmfCheck17.96s; raw log CF559671 is retained locally. RTSan and packages passed; Windows/macOS/Linux remain running. Prior failed jobs remain recorded; new CI red interrupts work immediately.
+The pure geometry feature passed 110 assertions in eight sections; six existing compatibility suites passed. Five cleanup lenses completed: reuse/quality/tests zero, one invariant Fixed anchor cache and two comment deletions applied before canonical. Frozen proof9CDA2030/CMakeAF587C are exact; the independent numeric critic renewed acceptance for final header81DA7410. Final feature110/1 and Clang one unit passed, with 576-context/8,976-line public parity byte-identical DCA8AD19; exact inverse restores the first reviewed source. All528 protected paths remain exact.
+Root3816 passed pure481/481 (116.62s) and compiled all three GUI consumers without launch. Its final wrapper exited1 on a bookkeeping guard that included owned CMake/STATUS; the corrected postguard passed0, checking all528 protected paths and exact CMake bytes outside the six-line registration. A here-string CRLF mismatch in the first postguard attempt was corrected; tested source and passed gates were not rerun. Safe UI510 was listed only; prior source-identical app UI/screenshot proof is retained, not rerun. No model/default/recording/legacy activation or native/input/device/hardware execution.
+Code review: skipped (ce-code-review unavailable). Mandatory generated-job cleanup was blocked by automatic approval review; independent source critique and root's complete new-header/proof/CMake/cleanup-diff scan supply review evidence. Commit/push and new-head CI remain pending; next isolate the SMF reader bounds regression, then raw source-endpoint extraction and model/default commands.
 
 ## 2026-11-04 — Project SMF sanitizer link
 

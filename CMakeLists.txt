@@ -927,6 +927,12 @@ endif()
 yesdaw_harden(YesDawProjectSmfCheck)
 add_test(NAME YesDawProjectSmfCheck COMMAND $<TARGET_FILE:YesDawProjectSmfCheck>)
 
+add_executable(YesDawMidiCreationGeometryCheck tests/midi_creation_geometry_tests.cpp)
+target_include_directories(YesDawMidiCreationGeometryCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawMidiCreationGeometryCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawMidiCreationGeometryCheck)
+add_test(NAME YesDawMidiCreationGeometryCheck COMMAND $<TARGET_FILE:YesDawMidiCreationGeometryCheck>)
+
 # --- MIDI FX check (G3.8: transpose / scale / arpeggiator / chord inserts on the Track's MIDI path) ---
 add_executable(YesDawMidiFxCheck tests/midi_fx_tests.cpp)
 target_include_directories(YesDawMidiFxCheck PRIVATE ${YESDAW_SRC_DIR})
