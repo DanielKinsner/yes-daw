@@ -35061,3 +35061,80 @@ TEST_CASE ("offscreen piano gestures and controller paint share the full native 
     CHECK (readProjectSnapshot (bundle).midiClips == current.midiClips);
     requireHeadless();
 }
+
+
+TEST_CASE ("offscreen arrange drag follows Meter-origin sixteenths and persists native placement",
+           "[ui][input][shell][timeline][arrange-meter-origin]")
+{
+    using namespace yesdaw;
+    engine::Tick expectedStart = 11520;
+    double expectedFrame = 18000.0;
+    auto original = makeMidiInputProject();
+    original.meterMap = { { 0, 7, 39 } };
+    SECTION ("fractional bar after the Project origin") {}
+    SECTION ("fractional bar after an off-bar Meter change")
+    {
+        original.meterMap = { { 0, 4, 4 }, { 10001, 7, 39 } };
+        expectedStart = 21521;
+        expectedFrame = 33626.5625;
+    }
+    original.midiClips.front().timelineLength = 61440;
+    const auto source = original.midiClips.front();
+    const auto bundle = makeTempBundlePath ("arrange-meter-origin");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.makeNewProject = [original] { return original; };
+    REQUIRE_FALSE (choices.nativePrompts);
+    auto shell = makeShell (std::move (choices));
+    const auto requireHeadless = [&] {
+        REQUIRE (shell->getPeer() == nullptr);
+        const auto snapshot = snapshotMainComponent (*shell);
+        REQUIRE_FALSE (snapshot.desktopAudioRequested);
+        REQUIRE_FALSE (snapshot.desktopAudioOpen);
+    };
+    requireHeadless();
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapSetSixteenth);
+    ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeOff);
+    auto& timeline = requireTimelineComponent (*shell);
+    ui::MidiClipPreview preview;
+    REQUIRE (ui::midiClipPreview (original, source, 0, preview));
+    const auto snapshot = snapshotMainComponent (*shell);
+    ui::TimelineCanvasState state;
+    state.trackCount = 1;
+    state.totalSeconds = snapshot.visibleTimelineTotalSeconds;
+    state.viewport.scrollSeconds = snapshot.timelineScrollSeconds;
+    const double fit = static_cast<double> (juce::jmax (
+        ui::UiTheme::Layout::timelineViewportMinPixelWidth,
+        timeline.getWidth() - ui::UiTheme::Layout::timelineViewportRightGutter))
+        / std::max (ui::UiTheme::Layout::timelineMinVisibleSeconds, state.totalSeconds);
+    state.viewport.pixelsPerSecond = fit * snapshot.timelineZoomFactor;
+    const auto geometry = ui::timelineCanvasGeometry (timeline.getLocalBounds(), state);
+    const juce::Point<int> from {
+        geometry.clipArea.getX() + juce::roundToInt ((preview.startSeconds + preview.lengthSeconds / 2.0
+            - geometry.viewport.scrollSeconds) * geometry.viewport.pixelsPerSecond),
+        geometry.clipArea.getY() + geometry.laneHeight / 2 };
+    const int pixels = juce::roundToInt (expectedFrame / original.sampleRate.hz * geometry.viewport.pixelsPerSecond);
+    const auto to = from.translated (pixels, 0);
+    INFO ("viewport width=" << geometry.clipArea.getWidth() << " pps=" << geometry.viewport.pixelsPerSecond
+        << " total=" << state.totalSeconds << " zoom=" << snapshot.timelineZoomFactor
+        << " from=" << from.x << " to=" << to.x << " clipRight=" << geometry.clipArea.getRight());
+    REQUIRE (geometry.clipArea.contains (from));
+    REQUIRE (geometry.clipArea.contains (to));
+    REQUIRE (std::abs (static_cast<double> (pixels) / geometry.viewport.pixelsPerSecond
+        * original.sampleRate.hz - expectedFrame) < 300.0);
+    const juce::ModifierKeys invertSnap { juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier };
+    dragFromTo (timeline, from, to, invertSnap);
+    requireHeadless();
+    const auto after = readProjectSnapshot (bundle);
+    REQUIRE (after.midiClips.size() == 1u);
+    auto expected = source;
+    expected.timelineStart = expectedStart;
+    CHECK (after.midiClips.front() == expected);
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    CHECK (readProjectSnapshot (bundle).midiClips == original.midiClips);
+    CHECK_FALSE (snapshotMainComponent (*shell).context.canUndo);
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+    CHECK (readProjectSnapshot (bundle).midiClips.front() == expected);
+    requireHeadless();
+}

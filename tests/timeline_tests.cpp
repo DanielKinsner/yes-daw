@@ -666,3 +666,84 @@ TEST_CASE ("nonlegacy piano quantize keeps final endpoint ties consistent with n
     CHECK (snapped == 2);
     CHECK (quantized == snapped);
 }
+
+TEST_CASE ("arrange sixteenths retain the Meter origin across fractional bars",
+           "[timeline][musical-grid][arrange-meter-origin]")
+{
+    using namespace yesdaw;
+    const engine::TempoChange tempo[] { { 0, 120.0 } };
+    const engine::MeterChange meter[] { { 0, 7, 39 } };
+    engine::CompiledTempoMap compiled;
+    engine::CompiledMeterMap meters;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 1 }, engine::SampleRate { 48000.0 }, compiled));
+    REQUIRE (engine::CompiledMeterMap::build ({ meter, 1 }, meters) == engine::TimeLookupStatus::Ok);
+    CHECK (ui::snapFrameToMusicalGrid (compiled, { meter, 1 }, 18750.0,
+        ui::MusicalGridLevel::Sixteenth, 0) == std::int64_t { 18000 });
+    CHECK (ui::timelineSnapFrame (compiled, meters, { meter, 1 }, 18750.0,
+        ui::MusicalGridLevel::Sixteenth, 0) == std::optional<double> { 18000.0 });
+    const auto grid = ui::checkedMusicalGridLines (compiled, meters, { meter, 1 }, 17000.0, 34000.0, 100.0);
+    REQUIRE (grid.status == ui::MusicalGridStatus::Ok);
+    CHECK (std::any_of (grid.lines.begin(), grid.lines.end(), [] (const auto& line) {
+        return line.level == ui::MusicalGridLevel::Sixteenth && line.bar == 2 && line.frame == 18000.0;
+    }));
+}
+
+TEST_CASE ("arrange Meter changes preserve fractional snap positions until the destination",
+           "[timeline][musical-grid][arrange-meter-origin]")
+{
+    using namespace yesdaw;
+    const engine::TempoChange tempo[] { { 0, 120.0 } };
+    const engine::MeterChange meter[] { { 0, 4, 4 }, { 10001, 7, 39 } };
+    engine::CompiledTempoMap compiled;
+    engine::CompiledMeterMap meters;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 1 }, engine::SampleRate { 48000.0 }, compiled));
+    REQUIRE (engine::CompiledMeterMap::build ({ meter, 2 }, meters) == engine::TimeLookupStatus::Ok);
+    CHECK (ui::snapFrameToMusicalGrid (compiled, { meter, 2 }, 34375.0,
+        ui::MusicalGridLevel::Sixteenth, 0) == std::int64_t { 33627 });
+    CHECK (ui::timelineSnapFrame (compiled, meters, { meter, 2 }, 34375.0,
+        ui::MusicalGridLevel::Sixteenth, 0) == std::optional<double> { 33626.5625 });
+    const auto grid = ui::checkedMusicalGridLines (compiled, meters, { meter, 2 }, 32000.0, 40000.0, 100.0);
+    REQUIRE (grid.status == ui::MusicalGridStatus::Ok);
+    CHECK (std::any_of (grid.lines.begin(), grid.lines.end(), [] (const auto& line) {
+        return line.level == ui::MusicalGridLevel::Sixteenth && line.bar == 3 && line.frame == 33626.5625;
+    }));
+}
+
+TEST_CASE ("arrange grid thinning retains a later subdivision after a short bar edge gap",
+           "[timeline][musical-grid][arrange-meter-origin]")
+{
+    using namespace yesdaw;
+    const engine::TempoChange tempo[] { { 0, 120.0 } };
+    const engine::MeterChange meter[] { { 0, 7, 39 } };
+    engine::CompiledTempoMap compiled;
+    engine::CompiledMeterMap meters;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 1 }, engine::SampleRate { 48000.0 }, compiled));
+    REQUIRE (engine::CompiledMeterMap::build ({ meter, 1 }, meters) == engine::TimeLookupStatus::Ok);
+    const auto grid = ui::checkedMusicalGridLines (compiled, meters, { meter, 1 }, 137000.0, 155000.0, 1000.0);
+    REQUIRE (grid.status == ui::MusicalGridStatus::Ok);
+    CHECK (std::any_of (grid.lines.begin(), grid.lines.end(), [] (const auto& line) {
+        return line.level == ui::MusicalGridLevel::Sixteenth && line.bar == 9 && line.frame == 144000.0;
+    }));
+    for (std::size_t i = 1; i < grid.lines.size(); ++i)
+        CHECK (grid.lines[i].frame - grid.lines[i - 1].frame >= 1000.0);
+}
+
+
+TEST_CASE ("arrange subdivision phase stays exact without a global ordinal",
+           "[timeline][musical-grid][arrange-meter-origin]")
+{
+    using namespace yesdaw;
+    constexpr engine::Tick highTick = 1200000000000000000;
+    const engine::TempoChange tempo[] { { 0, 1.0e20 }, { highTick, 120.0 } };
+    const engine::MeterChange meter[] { { 0, 7, 39 } };
+    engine::CompiledTempoMap compiled;
+    engine::CompiledMeterMap meters;
+    REQUIRE (engine::CompiledTempoMap::build ({ tempo, 2 }, engine::SampleRate { 48000.0 }, compiled));
+    REQUIRE (engine::CompiledMeterMap::build ({ meter, 1 }, meters) == engine::TimeLookupStatus::Ok);
+    // The high-Tick prefix is 2.25 Frames; the next 15/256 Tick cell adds exactly 375/4096 Frames.
+    constexpr double target = 2.25 + 375.0 / 4096.0;
+    const auto snapped = ui::timelineSnapFrame (compiled, meters, { meter, 1 }, target,
+        ui::MusicalGridLevel::Sixteenth, 16);
+    REQUIRE (snapped.has_value());
+    CHECK (approx (*snapped, target, 1.0e-12));
+}

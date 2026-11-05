@@ -382,41 +382,9 @@ struct TimelineFrameSpan
     const engine::CompiledTempoMap& tempo, const engine::CompiledMeterMap& meters, engine::MeterMapView view,
     double frame, MusicalGridLevel level, int subdivisions)
 {
-    using namespace musical_grid_detail;
-    if (! std::isfinite (frame) || frame < 0.0 || subdivisions < 0 || subdivisions > 16) return std::nullopt;
-    engine::MusicalTime time;
-    engine::MeterPosition position;
-    if (tempo.musicalTimeForFrame (frame, time) != engine::TimeLookupStatus::Ok
-        || meters.positionForMusicalTime (time, position) != engine::TimeLookupStatus::Ok) return std::nullopt;
-    Bar bar;
-    if (barAt (tempo, meters, view, position.barBeat.bar, bar) != MusicalGridStatus::Ok) return std::nullopt;
-    double best = bar.frame;
-    const auto consider = [&] (double candidate) {
-        if (std::abs (candidate - frame) < std::abs (best - frame)
-            || (std::abs (candidate - frame) == std::abs (best - frame) && candidate > best)) best = candidate;
-    };
-    consider (bar.endFrame);
-    const auto candidates = [&] (std::uint64_t span, std::uint32_t denominator) {
-        denominator *= std::uint32_t { 1 } << subdivisions;
-        const auto middle = ordinalAt (time, bar.start, span, denominator);
-        const auto first = middle > 1 ? middle - 1 : 0;
-        for (std::uint64_t n = first; n - first < 4; ++n)
-        {
-            engine::RationalTick tick;
-            if (offset (bar.start, n, span, denominator, tick) != MusicalGridStatus::Ok) return false;
-            if (! before (tick, bar.end)) break;
-            double mapped = 0.0;
-            if (frameAt (tempo, tick, mapped) != MusicalGridStatus::Ok) return false;
-            consider (mapped);
-        }
-        return true;
-    };
-    bool ok = false;
-    if (level == MusicalGridLevel::Bar) ok = candidates (61440ULL * bar.meter.numerator, bar.meter.denominator);
-    else if (level == MusicalGridLevel::Beat) ok = candidates (61440, bar.meter.denominator);
-    else if (level == MusicalGridLevel::Sixteenth)
-        ok = candidates (3840, 1) && candidates (61440, bar.meter.denominator);
-    return ok && std::isfinite (best) && best >= 0.0 && best < 0x1p63 ? std::optional<double> (best) : std::nullopt;
+    double snapped = 0.0;
+    return checkedSnapFrameToMusicalGridPosition (tempo, meters, view, frame, level, subdivisions, snapped)
+        == MusicalGridStatus::Ok ? std::optional<double> (snapped) : std::nullopt;
 }
 
 }

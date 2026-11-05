@@ -73,6 +73,11 @@ struct Bar
     engine::MeterChange meter;
     double frame = 0.0, endFrame = 0.0;
 };
+[[nodiscard]] inline engine::RationalTick sixteenthOrigin (const Bar& bar) noexcept
+{
+    const auto elapsed = bar.start.whole - bar.meter.tick;
+    return { bar.meter.tick + elapsed / 3840 * 3840, 0, 1 };
+}
 [[nodiscard]] inline MusicalGridStatus barAt (const engine::CompiledTempoMap& tempo, const engine::CompiledMeterMap& meters,
     engine::MeterMapView view, engine::Tick number, Bar& out) noexcept
 {
@@ -189,6 +194,7 @@ inline void orderLines (std::vector<MusicalGridLine>& lines, double spacing)
         if (! barsOnly && step == 1)
         {
             const auto enumerate = [&] (std::uint64_t span, std::uint32_t denominator, MusicalGridLevel level) {
+                const auto origin = level == MusicalGridLevel::Sixteenth ? sixteenthOrigin (bar) : bar.start;
                 engine::RationalTick first;
                 auto code = offset (bar.start, 1, span, denominator, first);
                 double firstFrame = 0.0;
@@ -197,12 +203,13 @@ inline void orderLines (std::vector<MusicalGridLine>& lines, double spacing)
                 engine::MusicalTime left;
                 code = status (tempo.musicalTimeForFrame (std::max (bar.frame, startFrame), left));
                 if (code != MusicalGridStatus::Ok) return code;
-                std::uint64_t ordinal = std::max<std::uint64_t> (1, ordinalAt (left, bar.start, span, denominator));
+                std::uint64_t ordinal = std::max<std::uint64_t> (1, ordinalAt (left, origin, span, denominator));
                 while (++work <= workLimit)
                 {
                     engine::RationalTick tick;
-                    code = offset (bar.start, ordinal, span, denominator, tick);
+                    code = offset (origin, ordinal, span, denominator, tick);
                     if (code != MusicalGridStatus::Ok || ! before (tick, bar.end)) return code;
+                    if (before (tick, bar.start)) { ++ordinal; continue; }
                     double frame = 0.0;
                     code = frameAt (tempo, tick, frame);
                     if (code != MusicalGridStatus::Ok || frame > endFrame) return code;
@@ -216,7 +223,7 @@ inline void orderLines (std::vector<MusicalGridLine>& lines, double spacing)
                         engine::MusicalTime next;
                         code = status (tempo.musicalTimeForFrame (seek, next));
                         if (code != MusicalGridStatus::Ok) return code;
-                        ordinal = std::max (ordinal, ordinalAt (next, bar.start, span, denominator));
+                        ordinal = std::max (ordinal, ordinalAt (next, origin, span, denominator));
                     }
                 }
                 return MusicalGridStatus::ResourceLimit;
@@ -250,9 +257,9 @@ inline void orderLines (std::vector<MusicalGridLine>& lines, double spacing)
     if (engine::CompiledMeterMap::build (view, meters) != engine::TimeLookupStatus::Ok) return {};
     return checkedMusicalGridLines (tempo, meters, view, startFrame, endFrame, minSpacingFrames, maxLines).lines;
 }
-[[nodiscard]] inline MusicalGridStatus checkedSnapFrameToMusicalGrid (
+[[nodiscard]] inline MusicalGridStatus checkedSnapFrameToMusicalGridPosition (
     const engine::CompiledTempoMap& tempo, const engine::CompiledMeterMap& meters, engine::MeterMapView view,
-    double frame, MusicalGridLevel level, int subdivisions, std::int64_t& out) noexcept
+    double frame, MusicalGridLevel level, int subdivisions, double& out) noexcept
 {
     using namespace musical_grid_detail;
     out = 0;
@@ -270,16 +277,17 @@ inline void orderLines (std::vector<MusicalGridLine>& lines, double spacing)
             || (std::abs (candidate - frame) == std::abs (best - frame) && candidate > best)) best = candidate;
     };
     consider (bar.endFrame);
-    const auto candidates = [&] (std::uint64_t span, std::uint32_t denominator) {
+    const auto candidates = [&] (std::uint64_t span, std::uint32_t denominator, engine::RationalTick origin) {
         denominator *= std::uint32_t { 1 } << subdivisions;
-        const auto middle = ordinalAt (time, bar.start, span, denominator);
+        const auto middle = ordinalAt (time, origin, span, denominator);
         const auto first = middle > 1 ? middle - 1 : 0;
         for (std::uint64_t n = first; n - first < 4; ++n)
         {
             engine::RationalTick tick;
-            auto result = offset (bar.start, n, span, denominator, tick);
+            auto result = offset (origin, n, span, denominator, tick);
             if (result != MusicalGridStatus::Ok) return result;
             if (! before (tick, bar.end)) break;
+            if (before (tick, bar.start)) continue;
             double mapped = 0.0;
             result = frameAt (tempo, tick, mapped);
             if (result != MusicalGridStatus::Ok) return result;
@@ -289,18 +297,30 @@ inline void orderLines (std::vector<MusicalGridLine>& lines, double spacing)
     };
     switch (level)
     {
-        case MusicalGridLevel::Bar: code = candidates (61440ULL * bar.meter.numerator, bar.meter.denominator); break;
-        case MusicalGridLevel::Beat: code = candidates (61440, bar.meter.denominator); break;
+        case MusicalGridLevel::Bar: code = candidates (61440ULL * bar.meter.numerator, bar.meter.denominator, bar.start); break;
+        case MusicalGridLevel::Beat: code = candidates (61440, bar.meter.denominator, bar.start); break;
         case MusicalGridLevel::Sixteenth:
-            code = candidates (3840, 1);
-            if (code == MusicalGridStatus::Ok) code = candidates (61440, bar.meter.denominator);
+            code = candidates (3840, 1, sixteenthOrigin (bar));
+            if (code == MusicalGridStatus::Ok) code = candidates (61440, bar.meter.denominator, bar.start);
             break;
         default: return MusicalGridStatus::InvalidInput;
     }
     if (code != MusicalGridStatus::Ok) return code;
     if (! std::isfinite (best) || best < 0.0 || best >= 0x1p63) return MusicalGridStatus::Overflow;
+    out = best;
+    return MusicalGridStatus::Ok;
+}
+[[nodiscard]] inline MusicalGridStatus checkedSnapFrameToMusicalGrid (
+    const engine::CompiledTempoMap& tempo, const engine::CompiledMeterMap& meters, engine::MeterMapView view,
+    double frame, MusicalGridLevel level, int subdivisions, std::int64_t& out) noexcept
+{
+    out = 0;
+    double best = 0.0;
+    const auto code = checkedSnapFrameToMusicalGridPosition (tempo, meters, view, frame, level, subdivisions, best);
+    if (code != MusicalGridStatus::Ok) return code;
     const double whole = std::floor (best);
-    return status (engine::roundMusicalTime ({ static_cast<engine::Tick> (whole), best - whole }, engine::TimeRounding::Nearest, out));
+    return musical_grid_detail::status (engine::roundMusicalTime (
+        { static_cast<engine::Tick> (whole), best - whole }, engine::TimeRounding::Nearest, out));
 }
 [[nodiscard]] inline std::optional<std::int64_t> snapFrameToMusicalGrid (
     const engine::CompiledTempoMap& tempo, engine::MeterMapView view, double frame, MusicalGridLevel level, int subdivisions)
