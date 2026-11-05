@@ -47,6 +47,8 @@ Every planned check below is **unrun**. No manual PASS row, synthetic hardware c
 
 **Quiet prerequisite:** independently replay recorded source4480->retained0 and require its mapping checker to reject versusQ6720. Prove the new named nonzero-fast-return refusal/detector; current Project, undo, source bytes and PCM publication stay unchanged. Explain/certify the odd-rate context record or give its named refusal, without a rate whitelist.
 
+**Channel prerequisite:** follow [ADR-0084](../adr/0084-musical-audio-channel-equivalence.md) before channel-dependent preparation. The worker validates all selected samples as finite and classifies complete numeric channel equivalence, including signed zeros. Equivalent stereo uses one physical C1 instance and a predetermined `[0,0]` projection into a materialized logical C2 owner; distinct stereo remains physical C2. Keep original C2 provenance, request revisions and a bound immutable prepared descriptor; ready lookup/adoption never rescans N samples. Certify the actual physical state/quiet branch and separate logical projection, full scan/materialization resources and physical classification/layout controls. Existing C2 context evidence is not C1 or waveform credit.
+
 **Finish line:** actual planner/state/context evidence and precise refusal; no quality, allocator or production credit by association.
 
 ## 4. Certify waveform and complete resources before renderer admission

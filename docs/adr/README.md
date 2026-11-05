@@ -94,6 +94,7 @@ how "measure twice, cut once" leaves a paper trail.
 | [0076](0076-status-line-in-the-menu-row-messages-whole.md) | The status line moves to the menu row (amends ADR-0064's tool-row list); never squashed; the app's own texts fit the 1280 budget on every platform font; user/OS text shortened without mixing a message's parts, full text in the tooltip, probe and accessibility | Accepted |
 | [0077](0077-questions-without-a-nested-modal-loop.md) | The shell asks its questions (file choosers, alerts, the close confirmation, the relink loop) without a nested modal loop: `JUCE_MODAL_LOOPS_PERMITTED=0` on the app, seams answered through a one-shot reply, a function that asks returns nothing and asks last, one question at a time; Cmd+Q and a logoff confirm like the close button | Accepted |
 | [0078](0078-ship-first-cadence.md) | Ship-first cadence: keep CI green, RTSan/TSan, data-safety tests and a regression test per found bug; drop per-gate mutations, UI critics, rubric gates and per-unit drives; short STATUS with a scoreboard (supersedes ADR-0075's cadence) | Accepted |
+| [0084](0084-musical-audio-channel-equivalence.md) | Musical channel equivalence: complete worker classification, one physical instance, logical stereo materialization and ready-only descriptor identity | Accepted |
 
 ## Decision status (the five research forks)
 

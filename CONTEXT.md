@@ -354,6 +354,16 @@ _Avoid_: `.ysdtake` (internal test artifact), raw float blob
 A clip's choice of how its position follows time: **tempo-locked** (moves with the tempo map) or
 **sample-locked** (a fixed sample duration that ignores tempo). Set per clip, from the schema.
 
+**Logical channels / Physical channels / Channel projection** (planned Musical preparation, ADR-0084):
+Logical channels are the original source width exposed by prepared audio and the engine builders. Physical
+channels are those actually supplied to the one persistent DSP instance. The worker validates every selected
+sample, then numerically equivalent stereo uses physical C1 with projection `[0,0]`, while distinct stereo
+uses C2 with `[0,1]`. Equality includes both zero signs; original channel 0 is supplied unchanged. A stereo
+result remains materialized logical C2 at unity, with both original source planes/identities preserved.
+Request revisions and the worker's bound descriptor make lookup ready-only; accepting ticks never scan samples.
+This architecture does not yet supply an implemented renderer or waveform admission.
+_Avoid_: downmix, mono Asset conversion, repairing one processed channel from another
+
 ### Automation
 
 **Automation**:

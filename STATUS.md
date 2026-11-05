@@ -73,6 +73,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-05 — Channel equivalence architecture accepted; preparation still inactive
+
+Documentation801cc80 CI42023558468 passed with runtime skipped; runtime source3d8a6dd retains all ten green jobs. New ADR-0084 preserves the pinned single instance and original stereo bytes: the worker completely validates finite selected samples and numeric equivalence (including signed zeros), uses physical C1 for equivalent stereo, and materializes logical C2 at unity. Distinct stereo remains physical C2; no post-hoc repair of failed C2 output.
+Fresh architecture critic accepted the concrete5DE92557 draft and its exact status promotion after reviewing companion CONTEXT/plan edits. Request policy revisions and a worker-bound immutable descriptor keep lookup/adoption ready-only with no accepting-tick sample scan. Source/state/quiet/projection, full waveform/resources and physical own-gate controls are explicitly unrun obligations. Earlier Accepted ADRs remain unchanged; no schema or original Asset rewrite.
+Root archived exact pre-change CONTEXT EFF7DBBF and plan6A208775 under build-ci/20261105-channel-equivalence-document-baseline; old proposal pins stay immutable with33 current/2 explicit archived bindings. New bounded quality-checker r3 source authoring found an unresolved RSS-ranking/direct-basis proof gap; it must remain HOLD, not inherit old calibration or claim its design budget as measured.
+Next: commit/push these five document paths, then implement checked channel classification/descriptor/materialization under ADR-0084 and resolve/review the bounded checker proof before vendor waveform evaluation. Complete renderer/model/export/controls, linked editing/folders and piano reference views remain unfinished. Headless only; Dan is not a testing gate. Code review: skipped (ce-code-review unavailable).
+
 ## 2026-11-05 — Independent checker calibrated; allocation and stereo validation active
 
 Endpoint repair3d8a6dd is pushed; all ten exact-head CI42020425794 jobs passed on attempt1, including Windows/Linux/macOS, RTSan/TSan and packaged checks. No cancellation or rerun. All local485 pure/GUI3 compile-only/Clang1/arithmetic21 checks remain the fresh source17A evidence.
