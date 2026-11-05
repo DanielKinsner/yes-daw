@@ -4637,3 +4637,415 @@ TEST_CASE ("mixed clipboard preserves a large exact Frame origin with a fraction
     }
     requireNativeClipboardProofHistory (app, bundle, before, 2u);
 }
+
+namespace {
+Project makeNativePianoProject (TimeBase timeBase, bool fast = false)
+{
+    using namespace yesdaw::engine;
+    Project song = makeCompleteMidiCopyProject (timeBase);
+    song.assets.clear();
+    song.clips.clear();
+    song.midiClips.resize (1);
+    song.tempoMap = fast ? std::vector<TempoChange> { { 0, 100000000.0 } }
+                        : std::vector<TempoChange> { { 0, 120.0 }, { 30720, 60.0 } };
+    song.meterMap = fast ? std::vector<MeterChange> { { 0, 4, 4 } }
+                        : std::vector<MeterChange> { { 0, 4, 4 }, { 38400, 3, 8 } };
+    auto& clip = song.midiClips.front();
+    clip.timeBase = timeBase;
+    clip.timelineStart = fast ? 0 : timeBase == TimeBase::TempoLocked ? 23040 : 36000;
+    clip.timelineLength = 200000;
+    clip.notes.resize (1);
+    clip.notes.front().startTick = fast ? 2000 : timeBase == TimeBase::TempoLocked ? 20500 : 50000;
+    clip.notes.front().lengthTicks = fast ? 100 : 1000;
+    REQUIRE (song.hasValidAssetClipIndirection());
+    return song;
+}
+}
+
+TEST_CASE ("piano quantize follows the complete map in each Clip's native coordinates",
+           "[ui][app][native-piano][native-piano-quantize]")
+{
+    const auto timeBase = GENERATE (TimeBase::TempoLocked, TimeBase::SampleLocked);
+    const bool fast = GENERATE (false, true);
+    if (fast && timeBase == TimeBase::SampleLocked)
+        return;
+    const auto song = makeNativePianoProject (timeBase, fast);
+    const auto bundle = makeTempBundlePath ("native-piano-quantize");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    const auto& source = song.midiClips.front();
+    REQUIRE (app.selectPianoRollNote (source.id, source.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (fast ? UiActionId::TimelineSnapSetSixteenth : UiActionId::TimelineSnapSetBeat).dispatched);
+    REQUIRE (app.quantizeSelectedPianoRollNotesToCurrentGrid().dispatched);
+    auto expected = source;
+    expected.notes.front().startTick = fast ? 3840 : timeBase == TimeBase::TempoLocked ? 23040 : 60000;
+    CHECK (app.project().midiClips.front() == expected);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    CHECK (app.project().midiClips.front() == source);
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    CHECK (app.project().midiClips.front() == expected);
+    UiAppModel reopened;
+    REQUIRE (reopened.loadProjectBundle (bundle, {}).ok());
+    CHECK (reopened.project().midiClips.front() == expected);
+}
+
+TEST_CASE ("piano step entry rest and back map native lengths and transport Frames independently",
+           "[ui][app][native-piano][native-piano-step]")
+{
+    using namespace yesdaw::engine;
+    const auto timeBase = GENERATE (TimeBase::TempoLocked, TimeBase::SampleLocked);
+    auto song = makeNativePianoProject (timeBase);
+    const auto bundle = makeTempBundlePath ("native-piano-step");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    const auto& clip = song.midiClips.front();
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TimelineSnapSetBeat).dispatched);
+    REQUIRE (app.locatePlaybackFrame (96000));
+    REQUIRE (app.stepInputEnter (72).dispatched);
+    const auto& entered = app.project().midiClips.front().notes.back();
+    CHECK (entered.startTick == (timeBase == TimeBase::TempoLocked ? 23040 : 60000));
+    CHECK (entered.lengthTicks == (timeBase == TimeBase::TempoLocked ? 7680 : 24000));
+    CHECK (app.context().playheadFrame == 120000);
+    REQUIRE (app.stepInputBack().dispatched);
+    CHECK (app.context().playheadFrame == 96000);
+    REQUIRE (app.stepInputRest().dispatched);
+    CHECK (app.context().playheadFrame == 120000);
+}
+
+TEST_CASE ("fast musical step cursor survives panel changes and resets on explicit same-Frame locate",
+           "[ui][app][native-piano][native-piano-cursor]")
+{
+    auto song = makeNativePianoProject (TimeBase::TempoLocked, true);
+    const auto bundle = makeTempBundlePath ("native-piano-cursor");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    const auto& clip = song.midiClips.front();
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TimelineSnapSetSixteenth).dispatched);
+    REQUIRE (app.stepInputEnter (60).dispatched);
+    CHECK (app.project().midiClips.front().notes.back().startTick == 0);
+    CHECK (app.context().playheadFrame == 0);
+    REQUIRE (app.setQuantizeStrength (50).dispatched);
+    REQUIRE (app.stepInputEnter (62).dispatched);
+    CHECK (app.project().midiClips.front().notes.back().startTick == 3840);
+    REQUIRE (app.dispatch (UiActionId::TimelineSnapSetBeat).dispatched);
+    REQUIRE (app.stepInputEnter (64).dispatched);
+    CHECK (app.project().midiClips.front().notes.back().startTick == 7680);
+    CHECK (app.project().midiClips.front().notes.back().lengthTicks == 15360);
+    REQUIRE (app.locatePlaybackFrame (0));
+    REQUIRE (app.stepInputEnter (65).dispatched);
+    CHECK (app.project().midiClips.front().notes.back().startTick == 0);
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.stepInputEnter (67).dispatched);
+    CHECK (app.project().midiClips.front().notes.back().startTick == 0);
+}
+
+TEST_CASE ("fractional piano steps and fine nudges round native endpoints once",
+           "[ui][app][native-piano][native-piano-fractional]")
+{
+    const auto timeBase = GENERATE (TimeBase::TempoLocked, TimeBase::SampleLocked);
+    auto song = makeNativePianoProject (timeBase);
+    song.tempoMap = { { 0, 120.0 } };
+    song.meterMap = { { 0, 7, 39 } };
+    auto& clip = song.midiClips.front();
+    clip.timelineStart = 0;
+    clip.notes.front().startTick = 0;
+    const auto bundle = makeTempBundlePath ("native-piano-fractional");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (UiActionId::EditNudgeValueBeat).dispatched);
+    if (app.context().activePanel != yesdaw::ui::UiPanel::PianoRoll)
+        REQUIRE (app.dispatch (UiActionId::ViewPianoRoll).dispatched);
+    REQUIRE (app.dispatch (UiActionId::EditNudgeRightFine).dispatched);
+    CHECK (app.project().midiClips.front().notes.front().startTick == (timeBase == TimeBase::TempoLocked ? 197 : 308));
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TimelineSnapSetBeat).dispatched);
+    REQUIRE (app.locatePlaybackFrame (0));
+    REQUIRE (app.stepInputEnter (72).dispatched);
+    CHECK (app.project().midiClips.front().notes.back().lengthTicks == (timeBase == TimeBase::TempoLocked ? 1575 : 2462));
+    CHECK (app.context().playheadFrame == 2462);
+    REQUIRE (app.stepInputEnter (74).dispatched);
+    CHECK (app.project().midiClips.front().notes.back().startTick == (timeBase == TimeBase::TempoLocked ? 1575 : 2462));
+    CHECK (app.context().playheadFrame == (timeBase == TimeBase::TempoLocked ? 4923 : 4924));
+}
+
+TEST_CASE ("piano quantize large native Frames applies exact strength without signed percent overflow",
+           "[ui][app][native-piano][native-piano-wide-percent]")
+{
+    const int strength = GENERATE (100, 50);
+    auto song = makeNativePianoProject (TimeBase::SampleLocked);
+    song.tempoMap = { { 0, std::ldexp (1.0, -40) } };
+    song.meterMap = { { 0, 4, 4 } };
+    auto& clip = song.midiClips.front();
+    clip.timelineStart = 128;
+    clip.timelineLength = 4'000'000'000'000'000'000LL;
+    clip.loopLengthTicks = 0;
+    clip.notes.front().startTick = 300'000'000'000'000'000LL;
+    const auto bundle = makeTempBundlePath ("native-piano-wide-percent");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TimelineSnapSetBeat).dispatched);
+    REQUIRE (app.setQuantizeStrength (strength).dispatched);
+    REQUIRE (app.quantizeSelectedPianoRollNotesToCurrentGrid().dispatched);
+    CHECK (app.project().midiClips.front().notes.front().startTick == (strength == 100 ? 0 : 150'000'000'000'000'000LL));
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    CHECK (app.project().midiClips.front() == clip);
+}
+
+TEST_CASE ("public piano quantize keeps Meter segment phase and mapped Frame distance",
+           "[ui][app][native-piano][native-piano-phase]")
+{
+    auto song = makeNativePianoProject (TimeBase::TempoLocked);
+    auto& clip = song.midiClips.front();
+    clip.timelineStart = 0;
+    clip.loopLengthTicks = 0;
+    int swing = 0;
+    yesdaw::engine::Tick expected = 11520;
+    SECTION ("nondividing Meter Sixteenth remains phased across a bar")
+    {
+        song.tempoMap = { { 0, 120.0 } };
+        song.meterMap = { { 0, 7, 39 } };
+        clip.notes.front().startTick = 12000;
+    }
+    SECTION ("odd Meter does not reset swing at every bar")
+    {
+        song.tempoMap = { { 0, 120.0 } };
+        song.meterMap = { { 0, 3, 4 } };
+        clip.notes.front().startTick = 61441;
+        swing = 50;
+        expected = 61440;
+    }
+    SECTION ("SampleLocked chooses distance after ramp mapping")
+    {
+        song.tempoMap = { { 0, 120.0, yesdaw::engine::TempoCurve::LinearRamp }, { 61440, 240.0 } };
+        song.meterMap = { { 0, 4, 4 } };
+        clip.timeBase = TimeBase::SampleLocked;
+        clip.timelineStart = 10000;
+        clip.notes.front().startTick = 20300;
+        expected = 28925;
+    }
+    const auto bundle = makeTempBundlePath ("native-piano-phase");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (expected == 11520 ? UiActionId::TimelineSnapSetSixteenth : UiActionId::TimelineSnapSetBeat).dispatched);
+    REQUIRE (app.setQuantizeSwing (swing).dispatched);
+    REQUIRE (app.quantizeSelectedPianoRollNotesToCurrentGrid().dispatched);
+    CHECK (app.project().midiClips.front().notes.front().startTick == expected);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    CHECK (app.project().midiClips.front() == clip);
+}
+
+TEST_CASE ("native piano quantize persistence refusal retains payload history and humanize seed",
+           "[ui][app][native-piano][native-piano-refusal]")
+{
+    const auto song = makeNativePianoProject (TimeBase::TempoLocked);
+    const auto bundle = makeTempBundlePath ("native-piano-refusal");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    const auto& clip = song.midiClips.front();
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.setQuantizeHumanize (10).dispatched);
+    const auto seed = app.quantizeSeed();
+    sqlite3* connection = nullptr;
+    const auto path = yesdaw::io::utf8Text (bundle / "project.db");
+    REQUIRE (sqlite3_open (path.c_str(), &connection) == SQLITE_OK);
+    REQUIRE (sqlite3_exec (connection, "CREATE TRIGGER refuse_native_piano BEFORE DELETE ON midi_notes BEGIN SELECT RAISE(ABORT, 'save refused'); END;", nullptr, nullptr, nullptr) == SQLITE_OK);
+    REQUIRE_FALSE (app.quantizeSelectedPianoRollNotesToCurrentGrid().dispatched);
+    CHECK (app.project().midiClips == song.midiClips);
+    CHECK (app.quantizeSeed() == seed);
+    CHECK_FALSE (app.context().canUndo);
+    REQUIRE (sqlite3_exec (connection, "DROP TRIGGER refuse_native_piano;", nullptr, nullptr, nullptr) == SQLITE_OK);
+    REQUIRE (sqlite3_close (connection) == SQLITE_OK);
+    REQUIRE (app.quantizeSelectedPianoRollNotesToCurrentGrid().dispatched);
+    CHECK (app.quantizeSeed() == seed + 1);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    CHECK (app.project().midiClips == song.midiClips);
+}
+
+TEST_CASE ("piano strength rounds the interpolated native destination once",
+           "[ui][app][native-piano][native-piano-strength-once]")
+{
+    const bool musical = GENERATE (true, false);
+    const bool ends = GENERATE (false, true);
+    auto song = makeNativePianoProject (musical ? TimeBase::TempoLocked : TimeBase::SampleLocked);
+    auto& clip = song.midiClips.front();
+    clip.timelineStart = musical ? 0 : 10000;
+    clip.loopLengthTicks = 0;
+    song.tempoMap = musical ? std::vector<yesdaw::engine::TempoChange> { { 0, 120.0 } }
+        : std::vector<yesdaw::engine::TempoChange> { { 0, 120.0, yesdaw::engine::TempoCurve::LinearRamp }, { 61440, 240.0 } };
+    song.meterMap = musical ? std::vector<yesdaw::engine::MeterChange> { { 0, 7, 39 } }
+        : std::vector<yesdaw::engine::MeterChange> { { 0, 4, 4 } };
+    const yesdaw::engine::Tick before = musical ? 2000 : 20300;
+    clip.notes.front().startTick = ends ? 0 : before;
+    clip.notes.front().lengthTicks = ends ? before : 1000;
+    const auto bundle = makeTempBundlePath ("native-piano-strength-once");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TimelineSnapSetBeat).dispatched);
+    REQUIRE (app.setQuantizeStrength (50).dispatched);
+    if (ends) REQUIRE (app.toggleQuantizeNoteEnds().dispatched);
+    REQUIRE (app.quantizeSelectedPianoRollNotesToCurrentGrid().dispatched);
+    const auto& note = app.project().midiClips.front().notes.front();
+    CHECK ((ends ? note.startTick + note.lengthTicks : note.startTick) == (musical ? 1788 : 24612));
+}
+
+TEST_CASE ("fast piano cursor follows Clip selection while unrelated edits preserve its native position",
+           "[ui][app][native-piano][native-piano-cursor-clip]")
+{
+    auto song = makeNativePianoProject (TimeBase::TempoLocked, true);
+    auto second = song.midiClips.front();
+    second.id = idFromLowByte (0xF1);
+    second.notes.front().id = idFromLowByte (0xF2);
+    second.controlEvents.clear();
+    song.midiClips.push_back (second);
+    const auto bundle = makeTempBundlePath ("native-piano-cursor-clip");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    const auto& first = song.midiClips.front();
+    REQUIRE (app.selectPianoRollNote (first.id, first.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TimelineSnapSetSixteenth).dispatched);
+    REQUIRE (app.stepInputEnter (60).dispatched);
+    REQUIRE (app.renameProjectTrack (song.tracks.front().id, "Cursor survives").dispatched);
+    REQUIRE (app.stepInputEnter (62).dispatched);
+    CHECK (app.project().midiClips.front().notes.back().startTick == 3840);
+    REQUIRE (app.selectPianoRollNote (second.id, second.notes.front().id).dispatched);
+    REQUIRE (app.stepInputEnter (64).dispatched);
+    CHECK (app.project().midiClips.back().notes.back().startTick == 0);
+    REQUIRE (app.selectPianoRollNote (first.id, first.notes.front().id).dispatched);
+    REQUIRE (app.stepInputEnter (65).dispatched);
+    CHECK (app.project().midiClips.front().notes.back().startTick == 0);
+}
+
+TEST_CASE ("piano step refuses an out-of-domain native cursor without editing or locating",
+           "[ui][app][native-piano][native-piano-invalid-cursor]")
+{
+    const int operation = GENERATE (0, 1, 2);
+    auto song = makeNativePianoProject (TimeBase::TempoLocked, true);
+    song.tempoMap.front().bpm = 1.0e308;
+    const auto bundle = makeTempBundlePath ("native-piano-invalid-cursor");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    const auto& clip = song.midiClips.front();
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TimelineSnapSetSixteenth).dispatched);
+    constexpr std::int64_t frame = std::int64_t { 1 } << 50;
+    REQUIRE (app.locatePlaybackFrame (frame));
+    REQUIRE (app.context().playheadFrame == frame);
+    REQUIRE_FALSE (app.playheadTickForClip (clip).has_value());
+    const auto serial = app.editSerial();
+    const auto replacements = app.playbackReplaceCount();
+    const auto seed = app.quantizeSeed();
+    const auto result = operation == 0 ? app.stepInputEnter (72) : operation == 1 ? app.stepInputRest() : app.stepInputBack();
+    CHECK_FALSE (result.dispatched);
+    CHECK (app.project().midiClips == song.midiClips);
+    CHECK (app.context().playheadFrame == frame);
+    CHECK_FALSE (app.context().canUndo);
+    CHECK (app.editSerial() == serial);
+    CHECK (app.playbackReplaceCount() == replacements);
+    CHECK (app.quantizeSeed() == seed);
+    CHECK (app.statusLineText().find ("Step input") != std::string::npos);
+    UiAppModel reopened;
+    REQUIRE (reopened.loadProjectBundle (bundle, {}).ok());
+    CHECK (reopened.project().midiClips == song.midiClips);
+}
+
+TEST_CASE ("piano step retains its minimum native duration when musical destinations collapse",
+           "[ui][app][native-piano][native-piano-collapsed-step]")
+{
+    const bool musical = GENERATE (true, false);
+    auto song = makeNativePianoProject (musical ? TimeBase::TempoLocked : TimeBase::SampleLocked, true);
+    song.tempoMap = { { 0, musical ? 120.0 : 100000000.0 } };
+    song.meterMap = { { 0, 7, musical ? std::uint16_t { 65535 } : std::uint16_t { 4 } } };
+    auto& clip = song.midiClips.front();
+    clip.timelineStart = 0;
+    const auto bundle = makeTempBundlePath ("native-piano-collapsed-step");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (musical ? UiActionId::TimelineSnapSetBeat : UiActionId::TimelineSnapSetSixteenth).dispatched);
+    REQUIRE (app.locatePlaybackFrame (0));
+    if (musical)
+    {
+        const std::array<yesdaw::engine::Tick, 10> starts { 0, 1, 2, 3, 4, 5, 6, 7, 8, 8 };
+        const std::array<std::int64_t, 10> frames { 1, 3, 4, 6, 7, 9, 10, 12, 13, 15 };
+        for (std::size_t i = 0; i < starts.size(); ++i)
+        {
+            REQUIRE (app.stepInputEnter (static_cast<std::int16_t> (60 + i)).dispatched);
+            CHECK (app.project().midiClips.front().notes.back().startTick == starts[i]);
+            CHECK (app.project().midiClips.front().notes.back().lengthTicks == 1);
+            CHECK (app.context().playheadFrame == frames[i]);
+        }
+        for (std::size_t i = 0; i < starts.size(); ++i) REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        CHECK (app.project().midiClips.front() == clip);
+        CHECK_FALSE (app.context().canUndo);
+    }
+    else
+    {
+        REQUIRE (app.stepInputEnter (60).dispatched);
+        CHECK (app.project().midiClips.front().notes.back().startTick == 0);
+        CHECK (app.project().midiClips.front().notes.back().lengthTicks == 1);
+        CHECK (app.context().playheadFrame == 1);
+        REQUIRE (app.stepInputEnter (62).dispatched);
+        CHECK (app.project().midiClips.front().notes.back().startTick == 1);
+        CHECK (app.context().playheadFrame == 2);
+        REQUIRE (app.stepInputRest().dispatched);
+        CHECK (app.context().playheadFrame == 3);
+        REQUIRE (app.stepInputBack().dispatched);
+        CHECK (app.context().playheadFrame == 2);
+        REQUIRE (app.stepInputEnter (64).dispatched);
+        CHECK (app.project().midiClips.front().notes.back().startTick == 2);
+        CHECK (app.context().playheadFrame == 3);
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        CHECK (app.project().midiClips.front() == clip);
+    }
+}
+
+TEST_CASE ("piano step refuses a destination beyond the existing transport domain before persistence",
+           "[ui][app][native-piano][native-piano-transport-bound]")
+{
+    auto song = makeNativePianoProject (TimeBase::SampleLocked);
+    song.tempoMap = { { 0, 120.0 } };
+    song.meterMap = { { 0, 4, 4 } };
+    auto& clip = song.midiClips.front();
+    constexpr std::int64_t frame = std::int64_t { 1 } << 60;
+    clip.timelineStart = frame;
+    clip.loopLengthTicks = 0;
+    const auto bundle = makeTempBundlePath ("native-piano-transport-bound");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (app.selectPianoRollNote (clip.id, clip.notes.front().id).dispatched);
+    REQUIRE (app.dispatch (UiActionId::TimelineSnapSetBeat).dispatched);
+    REQUIRE (app.locatePlaybackFrame (frame));
+    const auto serial = app.editSerial();
+    const auto replacements = app.playbackReplaceCount();
+    CHECK_FALSE (app.stepInputEnter (72).dispatched);
+    CHECK (app.project().midiClips == song.midiClips);
+    CHECK (app.context().playheadFrame == frame);
+    CHECK_FALSE (app.context().canUndo);
+    CHECK (app.editSerial() == serial);
+    CHECK (app.playbackReplaceCount() == replacements);
+    CHECK (app.statusLineText().find ("Step input") != std::string::npos);
+    UiAppModel reopened;
+    REQUIRE (reopened.loadProjectBundle (bundle, {}).ok());
+    CHECK (reopened.project().midiClips == song.midiClips);
+}

@@ -543,3 +543,126 @@ TEST_CASE ("7/39 paints and snaps both denominator beats and sixteenths", "[time
     for (std::size_t i = 1; i < spaced.size(); ++i)
         REQUIRE (spaced[i].frame - spaced[i - 1].frame >= 400.0);
 }
+
+#include "ui/PianoRollGrid.h"
+
+namespace {
+yesdaw::ui::PianoRollGrid nativePianoGrid (yesdaw::engine::TimeBase base, yesdaw::engine::Tick origin,
+                                         const std::vector<yesdaw::engine::TempoChange>& tempo,
+                                         const std::vector<yesdaw::engine::MeterChange>& meter)
+{
+    auto clock = std::make_shared<yesdaw::engine::MusicalClickMap>();
+    REQUIRE (yesdaw::engine::MusicalClickMap::build ({ tempo.data(), tempo.size() }, { meter.data(), meter.size() },
+             { 48000.0 }, *clock) == yesdaw::engine::TimeLookupStatus::Ok);
+    return { clock, base, origin, 1'000'000, meter };
+}
+}
+
+TEST_CASE ("native piano grid follows Clip placement Tempo jumps and Meter resets",
+           "[timeline][native-piano-grid]")
+{
+    using namespace yesdaw;
+    const std::vector<engine::TempoChange> tempo { { 0, 120.0 }, { 30720, 60.0 } };
+    const std::vector<engine::MeterChange> meter { { 0, 4, 4 }, { 38400, 3, 8 } };
+    for (const bool musical : { false, true })
+    {
+        const auto grid = nativePianoGrid (musical ? engine::TimeBase::TempoLocked : engine::TimeBase::SampleLocked,
+                                           musical ? 23040 : 36000, tempo, meter);
+        const std::vector<engine::Tick> expected = musical ? std::vector<engine::Tick> { 7680, 15360, 23040, 30720, 38400 }
+            : std::vector<engine::Tick> { 12000, 36000, 60000, 84000, 108000 };
+        const auto lines = grid.lines (0, musical ? 40000 : 110000, 1.0, {}, true);
+        REQUIRE (lines.size() == expected.size());
+        for (std::size_t i = 0; i < lines.size(); ++i) CHECK (lines[i].tick == expected[i]);
+        CHECK (lines[1].level == ui::MusicalGridLevel::Bar);
+        CHECK (lines[4].level == ui::MusicalGridLevel::Bar);
+    }
+}
+
+TEST_CASE ("native piano grid uses Frame distance on ramps and Meter origins across bars",
+           "[timeline][native-piano-grid]")
+{
+    using namespace yesdaw;
+    const auto ramp = nativePianoGrid (engine::TimeBase::SampleLocked, 10000,
+        { { 0, 120.0, engine::TempoCurve::LinearRamp }, { 61440, 240.0 } }, { { 0, 4, 4 } });
+    engine::Tick target = 0;
+    REQUIRE (ramp.snapped (20300, {}, false, target));
+    CHECK (target == 28925); // 30300 Frames is nearer F(2) than F(1), despite being before 1.5 quarters.
+    const auto rampLines = ramp.lines (0, 60000, 1.0, {}, true);
+    const std::vector<engine::Tick> expected { 11422, 28925, 43723, 56542 };
+    REQUIRE (rampLines.size() == expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i) CHECK (rampLines[i].tick == expected[i]);
+    const auto fractional = nativePianoGrid (engine::TimeBase::TempoLocked, 0, { { 0, 120.0 } }, { { 0, 7, 39 } });
+    REQUIRE (fractional.snapped (12000, { ui::MusicalGridLevel::Sixteenth, 0 }, false, target));
+    CHECK (target == 11520);
+    const auto odd = nativePianoGrid (engine::TimeBase::TempoLocked, 0, { { 0, 120.0 } }, { { 0, 3, 4 } });
+    REQUIRE (odd.snapped (61440, {}, false, target, 50));
+    CHECK (target == 61440);
+    REQUIRE (odd.snapped (46080, {}, false, target, 50));
+    CHECK (target == 53760); // odd global Beat slot 3 swings across the bar line.
+    const auto reset = nativePianoGrid (engine::TimeBase::TempoLocked, 0,
+        { { 0, 120.0 } }, { { 0, 4, 4 }, { 20000, 3, 8 } });
+    REQUIRE (reset.snapped (19800, {}, false, target));
+    CHECK (target == 20000);
+    REQUIRE (reset.snapped (20000, {}, false, target, 50));
+    CHECK (target == 20000);
+}
+
+TEST_CASE ("native piano grids retain sub-Frame musical cells and bound dense viewport work",
+           "[timeline][native-piano-grid]")
+{
+    using namespace yesdaw;
+    const auto fast = nativePianoGrid (engine::TimeBase::TempoLocked, 0, { { 0, 100000000.0 } }, { { 0, 4, 4 } });
+    engine::Tick target = 0;
+    REQUIRE (fast.snapped (2000, { ui::MusicalGridLevel::Sixteenth, 0 }, false, target));
+    CHECK (target == 3840);
+    const auto dense = fast.lines (0, 1'000'000'000'000LL, 1'000'000'000.0, { ui::MusicalGridLevel::Sixteenth, 0 }, true);
+    REQUIRE_FALSE (dense.empty());
+    CHECK (dense.size() <= 4096u);
+    const auto fractional = nativePianoGrid (engine::TimeBase::TempoLocked, 0, { { 0, 120.0 } }, { { 0, 7, 39 } });
+    engine::RationalTick cursor;
+    REQUIRE (fractional.advance (0, {}, true, target, &cursor));
+    CHECK (target == 1575);
+    REQUIRE (fractional.advance (target, {}, true, target, &cursor));
+    CHECK (target == 3151);
+    REQUIRE (fractional.advance (0, { ui::MusicalGridLevel::Beat, 3 }, true, target));
+    CHECK (target == 197);
+}
+
+TEST_CASE ("native piano percent rounding retains signed rounding headroom",
+           "[timeline][native-piano-grid][native-piano-percent-boundary]")
+{
+    constexpr yesdaw::engine::Tick boundary = INT64_MAX / 100;
+    CHECK (yesdaw::ui::pianoQuantizeTowards (0, boundary, 100) == boundary);
+    CHECK (yesdaw::ui::pianoQuantizeTowards (boundary, 0, 100) == 0);
+}
+
+TEST_CASE ("native piano grid retains exact long-range Tick phase with tiny rational Meter cells",
+           "[timeline][native-piano-grid][native-piano-long-range]")
+{
+    using namespace yesdaw;
+    const auto grid = nativePianoGrid (engine::TimeBase::TempoLocked, 0, { { 0, 120.0 } }, { { 0, 7, 65535 } });
+    const engine::Tick at = (engine::Tick { 1 } << 62) + 123;
+    engine::Tick target = 0;
+    REQUIRE (grid.snapped (at, {}, false, target));
+    CHECK (target == at); // 61440/65535 < one Tick; the nearest cell rounds back to this exact integer.
+    REQUIRE (grid.snapped (INT64_MAX - 100, { ui::MusicalGridLevel::Beat, 1 }, false, target));
+    CHECK (target == INT64_MAX - 100); // half-beats stay below one Tick too, beyond uint64 global slot indexing.
+}
+
+TEST_CASE ("nonlegacy piano quantize keeps final endpoint ties consistent with native snap",
+           "[timeline][native-piano-grid][native-piano-final-tie]")
+{
+    using namespace yesdaw;
+    CHECK (ui::pianoQuantizeTowards (501, 0, 50) == 251);
+    const auto grid = nativePianoGrid (engine::TimeBase::TempoLocked, 0, { { 0, 120.0 } }, { { 0, 7, 32768 } });
+    engine::Tick snapped = 0, quantized = 0;
+    REQUIRE (grid.snapped (8, {}, false, snapped)); // nearest rational boundary is 7.5 Ticks
+    REQUIRE (grid.quantized (8, {}, 0, 100, quantized));
+    CHECK (snapped == 8);
+    CHECK (quantized == snapped);
+    const auto frames = nativePianoGrid (engine::TimeBase::SampleLocked, 0, { { 0, 1920000.0 } }, { { 0, 4, 4 } });
+    REQUIRE (frames.snapped (2, {}, false, snapped)); // nearest musical boundary is Frame 1.5
+    REQUIRE (frames.quantized (2, {}, 0, 100, quantized));
+    CHECK (snapped == 2);
+    CHECK (quantized == snapped);
+}

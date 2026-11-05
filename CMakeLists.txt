@@ -408,6 +408,7 @@ add_executable(YesDawAppSmokeCheck tests/app_smoke_tests.cpp)
 target_include_directories(YesDawAppSmokeCheck PRIVATE ${YESDAW_SRC_DIR})
 target_include_directories(YesDawAppSmokeCheck SYSTEM PRIVATE ${choc_SOURCE_DIR})
 target_link_libraries(YesDawAppSmokeCheck PRIVATE Catch2::Catch2WithMain sqlite3_amalgamation)
+target_compile_options(YesDawAppSmokeCheck PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/bigobj>)
 yesdaw_harden(YesDawAppSmokeCheck)
 add_test(NAME YesDawAppSmokeCheck COMMAND $<TARGET_FILE:YesDawAppSmokeCheck>)
 

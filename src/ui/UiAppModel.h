@@ -707,6 +707,7 @@ public:
         drainTransport (*playback_);
         syncContextFromPlayback();
         context_.lastLocateFrame = context_.playheadFrame;
+        ++pianoLocateGeneration_;
         ++context_.commandDispatchCount;
         return true;
     }
@@ -4978,19 +4979,45 @@ public:
         return registry_.dispatch (id, context_);
     }
 
-    // The grid Q quantizes to: choice 0 follows the snap chooser (a beat when snap is off), the
-    // others are their own unit through the same head tempo / meter law the snap grid uses.
-    [[nodiscard]] engine::Tick quantizeGridTicks() const noexcept
+    [[nodiscard]] PianoGridDivision pianoRollSnapDivision() const noexcept
+    {
+        return { snapUnit_ == UiSnapUnit::Bar ? MusicalGridLevel::Bar
+               : snapUnit_ == UiSnapUnit::Sixteenth ? MusicalGridLevel::Sixteenth : MusicalGridLevel::Beat, 0 };
+    }
+
+    [[nodiscard]] PianoGridDivision pianoRollQuantizeDivision() const noexcept
     {
         switch (context_.quantizeGridChoice)
         {
-            case 1: return std::max<engine::Tick> (1, snapFramesForUnit (UiSnapUnit::Beat) / 2);
-            case 2: return std::max<engine::Tick> (1, snapFramesForUnit (UiSnapUnit::Sixteenth));
-            case 3: return std::max<engine::Tick> (1, snapFramesForUnit (UiSnapUnit::Sixteenth) / 2);
-            default: break;
+            case 1: return { MusicalGridLevel::Beat, 1 };
+            case 2: return { MusicalGridLevel::Sixteenth, 0 };
+            case 3: return { MusicalGridLevel::Sixteenth, 1 };
+            default: return context_.snapEnabled ? pianoRollSnapDivision() : PianoGridDivision {};
         }
-        return std::max<engine::Tick> (1, context_.snapEnabled ? static_cast<engine::Tick> (context_.snapGridTicks)
-                                                               : snapFramesForUnit (UiSnapUnit::Beat));
+    }
+
+    [[nodiscard]] PianoRollGrid pianoRollGrid (const engine::MidiClip& clip) const noexcept
+    {
+        return { playback_ != nullptr ? playback_->metronomeClock() : nullptr,
+                 clip.timeBase, clip.timelineStart, clip.timelineLength, project_.meterMap };
+    }
+
+    [[nodiscard]] engine::Tick pianoRollNoteLengthAt (engine::Tick tick) const noexcept
+    {
+        const auto* clip = findMidiClip (selectedMidiClipId_);
+        engine::Tick end = 0;
+        return clip != nullptr && pianoRollGrid (*clip).advance (tick, { MusicalGridLevel::Beat, 2 }, true, end)
+            ? std::max<engine::Tick> (1, end - tick) : 0;
+    }
+
+    [[nodiscard]] engine::Tick quantizeGridTicks() const noexcept
+    {
+        const auto* clip = findMidiClip (selectedMidiClipId_);
+        const auto* note = clip != nullptr ? findNote (*clip, selectedMidiNoteId_) : nullptr;
+        const auto start = note != nullptr ? note->startTick : 0;
+        engine::Tick end = 0;
+        return clip != nullptr && pianoRollGrid (*clip).advance (start, pianoRollQuantizeDivision(), true, end)
+            ? std::max<engine::Tick> (1, end - start) : 1;
     }
 
     // The settings Q applies right now. The humanize seed advances per apply so a repeated Q with
@@ -5024,7 +5051,23 @@ public:
             return { id, { false, "MIDI clip missing" }, false };
 
         const engine::QuantizeSettings settings = currentQuantizeSettings();
-        const engine::SnapGrid grid = settings.grid;
+        const auto nativeGrid = pianoRollGrid (*midiClip);
+        const auto division = pianoRollQuantizeDivision();
+        const bool legacyUniform = midiClip->timeBase == engine::TimeBase::SampleLocked
+            && midiClip->timelineStart == 0 && project_.tempoMap.size() <= 1u && project_.meterMap.size() <= 1u
+            && settings.grid.intervalTicks <= INT64_MAX / 100
+            && settings.grid.intervalTicks <= (UINT32_MAX - 1u) / 2u
+            && [&] {
+                engine::MusicalTime time;
+                std::uint64_t numerator = 0;
+                std::uint32_t denominator = 0;
+                engine::RationalTick boundary;
+                engine::click_detail::Enclosure frame;
+                return nativeGrid.musicalTime (0, time) && nativeGrid.span (time, division, numerator, denominator)
+                    && musical_grid_detail::offset ({}, 1, numerator, denominator, boundary) == MusicalGridStatus::Ok
+                    && nativeGrid.rationalFrame (boundary, frame) && frame.low == frame.high
+                    && frame.low == static_cast<double> (settings.grid.intervalTicks);
+            }();
         const std::vector<engine::EntityId> targets = selectedMidiNoteIds_.empty()
             ? std::vector<engine::EntityId> { selectedMidiNoteId_ }
             : selectedMidiNoteIds_;
@@ -5036,20 +5079,58 @@ public:
         for (const engine::EntityId noteId : targets)
         {
             const engine::Note* const note = findNote (*midiClip, noteId);
+            if (note == nullptr) continue;
             engine::Tick snapped = 0;
-            if (note == nullptr
-                || ! engine::snapTick (note->startTick, grid, snapped)
-                || (settings.isPlainGrid() && snapped == note->startTick))
-                continue;   // already on the grid (plain settings): nothing to quantize for this note
-
-            if (! nextUndo.apply (nextProject,
-                                  settings.isPlainGrid()
-                                      ? engine::ProjectEditCommand::quantizeNote (selectedMidiClipId_, noteId, grid)
-                                      : engine::ProjectEditCommand::quantizeNoteWith (selectedMidiClipId_, noteId, settings)).applied())
+            if (legacyUniform)
             {
-                if (grouped)
-                    (void) nextUndo.endTransactionGroup();
-                return { id, { false, "quantize does not fit the clip" }, false };
+                if (! engine::snapTick (note->startTick, settings.grid, snapped)
+                    || (settings.isPlainGrid() && snapped == note->startTick)) continue;
+                if (! nextUndo.apply (nextProject, settings.isPlainGrid()
+                    ? engine::ProjectEditCommand::quantizeNote (selectedMidiClipId_, noteId, settings.grid)
+                    : engine::ProjectEditCommand::quantizeNoteWith (selectedMidiClipId_, noteId, settings)).applied())
+                    return { id, { false, "quantize does not fit the clip" }, false };
+            }
+            else
+            {
+                if (! nativeGrid.quantized (note->startTick, division, settings.swingPercent, settings.strengthPercent, snapped))
+                    return { id, { false, "quantize grid is unavailable" }, false };
+                if (settings.isPlainGrid() && snapped == note->startTick) continue;
+                engine::Note edited = *note;
+                edited.startTick = snapped;
+                engine::Tick interval = 1;
+                if (settings.noteEnds || settings.humanizePercent > 0)
+                {
+                    engine::Tick nextStep = 0;
+                    if (! nativeGrid.advance (note->startTick, division, true, nextStep))
+                        return { id, { false, "quantize span is unavailable" }, false };
+                    interval = std::max<engine::Tick> (1, nextStep - note->startTick);
+                }
+                if (settings.noteEnds && note->lengthTicks > 0)
+                {
+                    const auto end = note->startTick + note->lengthTicks;
+                    engine::Tick endTarget = 0;
+                    if (! nativeGrid.quantized (end, division, 0, settings.strengthPercent, endTarget))
+                        return { id, { false, "quantize end grid is unavailable" }, false };
+                    const auto movedEnd = endTarget;
+                    edited.lengthTicks = movedEnd > edited.startTick ? movedEnd - edited.startTick : interval;
+                }
+                auto humanize = settings;
+                humanize.grid.intervalTicks = interval;
+                const auto offset = pianoHumanizeOffset (humanize, note->id);
+                if (offset > 0 && edited.startTick > INT64_MAX - offset)
+                    return { id, { false, "quantize does not fit the clip" }, false };
+                edited.startTick = std::max<engine::Tick> (0, edited.startTick + offset);
+                if (edited.startTick > midiClip->timelineLength || edited.lengthTicks > midiClip->timelineLength - edited.startTick)
+                    return { id, { false, "quantize does not fit the clip" }, false };
+                if (edited.lengthTicks < note->lengthTicks
+                    && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setNoteLength (selectedMidiClipId_, noteId, edited.lengthTicks)).applied())
+                    return { id, state, false };
+                if (edited.startTick != note->startTick
+                    && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::moveNote (selectedMidiClipId_, noteId, edited.startTick)).applied())
+                    return { id, state, false };
+                if (edited.lengthTicks > note->lengthTicks
+                    && ! nextUndo.apply (nextProject, engine::ProjectEditCommand::setNoteLength (selectedMidiClipId_, noteId, edited.lengthTicks)).applied())
+                    return { id, state, false };
             }
             anyQuantized = true;
         }
@@ -5241,92 +5322,141 @@ public:
     [[nodiscard]] int typedHeldCount() const noexcept { return static_cast<int> (typedHeldKeys_.size()); }
     [[nodiscard]] int lastTypedKey() const noexcept { return lastTypedKey_; }
 
-    // G3.6 (found by the step gate): a MIDI clip's ticks are in ITS time base — every shell-made clip is
-    // SampleLocked (tick == frame), while the tempo map speaks musical ticks (15360 a quarter). One law
-    // converts project frames into a clip's ticks, and the beat / bar / step follow it.
-    [[nodiscard]] engine::Tick midiClipTicksForFrames (const engine::MidiClip& midiClip, std::int64_t frames) const
-    {
-        if (midiClip.timeBase == engine::TimeBase::SampleLocked)
-            return static_cast<engine::Tick> (std::max<std::int64_t> (0, frames));
-        engine::CompiledTempoMap compiled;
-        engine::Tick tick = 0;
-        if (! project_.sampleRate.isValid() || ! compiledTempoMap (compiled)
-            || ! compiled.tickForFrame (static_cast<double> (std::max<std::int64_t> (0, frames)), tick))
-            return 0;
-        return tick;
-    }
-
     // The playhead as the clip counts ticks (absolute in the project; subtract the clip's start).
     [[nodiscard]] std::optional<engine::Tick> playheadTickForClip (const engine::MidiClip& midiClip) const
     {
         if (midiClip.timeBase == engine::TimeBase::SampleLocked)
             return static_cast<engine::Tick> (std::max<std::int64_t> (0, context_.playheadFrame));
-        return playheadTick();
+        const auto clock = playback_ != nullptr ? playback_->metronomeClock() : nullptr;
+        engine::Tick tick = 0;
+        const auto frame = engine::click_detail::integer (static_cast<std::uint64_t> (std::max<std::int64_t> (0, context_.playheadFrame)));
+        if (clock == nullptr || clock->tickAtFramePosition (frame, tick) != engine::TimeLookupStatus::Ok)
+            return std::nullopt;
+        return tick;
     }
 
-    [[nodiscard]] engine::Tick midiClipBeatTicks (const engine::MidiClip& midiClip) const noexcept
+    struct PianoStepMap
     {
-        if (midiClip.timeBase == engine::TimeBase::SampleLocked)
-            return std::max<engine::Tick> (1, snapFramesForUnit (UiSnapUnit::Beat));
-        const int denominator = ! project_.meterMap.empty() ? std::max<int> (1, project_.meterMap.front().denominator) : 4;
-        return std::max<engine::Tick> (1, engine::kTicksPerQuarter * 4 / denominator);
-    }
+        std::vector<engine::TempoChange> tempo;
+        std::vector<engine::MeterChange> meter;
+        double sampleRate = 0.0;
+    };
 
-    [[nodiscard]] engine::Tick midiClipBarTicks (const engine::MidiClip& midiClip) const noexcept
+    struct PianoStepCursor
     {
-        if (midiClip.timeBase == engine::TimeBase::SampleLocked)
-            return std::max<engine::Tick> (1, snapFramesForUnit (UiSnapUnit::Bar));
-        const int numerator = ! project_.meterMap.empty() ? std::max<int> (1, project_.meterMap.front().numerator) : 4;
-        return midiClipBeatTicks (midiClip) * numerator;
+        engine::EntityId clipId;
+        std::uint64_t attachment = 0;
+        std::uint64_t locateGeneration = 0;
+        std::shared_ptr<const PianoStepMap> map;
+        engine::TimeBase timeBase = engine::TimeBase::SampleLocked;
+        engine::Tick origin = 0;
+        engine::Tick length = 0;
+        std::int64_t frame = -1;
+        engine::Tick native = 0;
+        engine::RationalTick musical;
+    };
+
+    [[nodiscard]] std::optional<PianoStepCursor> pianoStepPosition (const engine::MidiClip& clip) const
+    {
+        if (pianoStepCursor_.clipId == clip.id && pianoStepCursor_.attachment == attachGeneration_
+            && pianoStepCursor_.locateGeneration == pianoLocateGeneration_ && pianoStepCursor_.frame == context_.playheadFrame
+            && pianoStepCursor_.timeBase == clip.timeBase && pianoStepCursor_.origin == clip.timelineStart
+            && pianoStepCursor_.length == clip.timelineLength && pianoStepCursor_.map != nullptr
+            && pianoStepCursor_.map->tempo == project_.tempoMap && pianoStepCursor_.map->meter == project_.meterMap
+            && pianoStepCursor_.map->sampleRate == project_.sampleRate.hz)
+            return pianoStepCursor_;
+        const auto tick = playheadTickForClip (clip);
+        if (! tick || *tick < 0 || clip.timelineStart < 0) return std::nullopt;
+        PianoStepCursor cursor;
+        cursor.clipId = clip.id;
+        cursor.attachment = attachGeneration_;
+        cursor.map = std::make_shared<const PianoStepMap> (PianoStepMap { project_.tempoMap, project_.meterMap, project_.sampleRate.hz });
+        cursor.timeBase = clip.timeBase;
+        cursor.origin = clip.timelineStart;
+        cursor.length = clip.timelineLength;
+        cursor.frame = context_.playheadFrame;
+        cursor.native = *tick - clip.timelineStart;
+        cursor.musical = { *tick, 0, 1 };
+        return cursor;
     }
 
-    // The step: the snap grid in force (a beat when snap is off) — "note length from the toolbar" —
-    // in the selected clip's ticks.
     [[nodiscard]] engine::Tick stepInputTicks() const noexcept
     {
-        const std::int64_t stepFrames = context_.snapEnabled ? context_.snapGridTicks : snapFramesForUnit (UiSnapUnit::Beat);
-        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
-        if (midiClip == nullptr || midiClip->timeBase == engine::TimeBase::SampleLocked)
-            return std::max<engine::Tick> (1, static_cast<engine::Tick> (stepFrames));
-        return std::max<engine::Tick> (1, midiClipTicksForFrames (*midiClip, stepFrames));
+        const auto* clip = findMidiClip (selectedMidiClipId_);
+        if (clip == nullptr) return 0;
+        auto position = pianoStepPosition (*clip);
+        if (! position) return 0;
+        auto& cursor = *position;
+        engine::Tick target = 0;
+        return pianoRollGrid (*clip).advance (cursor.native, context_.snapEnabled ? pianoRollSnapDivision() : PianoGridDivision {},
+            true, target, &cursor.musical) ? std::max<engine::Tick> (1, target - cursor.native) : 0;
     }
 
-    // Enter a note at the playhead into THE MIDI clip and advance one step. The playhead must sit
-    // inside the clip; a note running past the clip's end is cut there.
-    [[nodiscard]] UiActionDispatchResult stepInputEnter (std::int16_t key)
+    [[nodiscard]] UiActionDispatchResult movePianoStepCursor (bool right, std::optional<std::int16_t> key = std::nullopt)
     {
-        const UiActionId id = UiActionId::PianoRollNoteAdd;
-        const engine::MidiClip* const midiClip = findMidiClip (selectedMidiClipId_);
-        const std::optional<engine::Tick> playhead = midiClip != nullptr ? playheadTickForClip (*midiClip) : std::nullopt;
-        if (midiClip == nullptr || ! playhead)
+        const auto id = key ? UiActionId::PianoRollNoteAdd
+                            : right ? UiActionId::TransportLocateNextGrid : UiActionId::TransportLocatePreviousGrid;
+        const auto refused = [this, id] (const char* reason) {
+            reportStatus (std::string ("Step input: ") + reason, true);
+            return UiActionDispatchResult { id, { false, reason }, false };
+        };
+        const auto* clip = findMidiClip (selectedMidiClipId_);
+        if (clip == nullptr) return refused ("open a MIDI clip in the piano roll first");
+        const auto position = pianoStepPosition (*clip);
+        if (! position) return refused ("the playhead has no supported musical position");
+        auto cursor = *position;
+        const auto grid = pianoRollGrid (*clip);
+        engine::Tick target = 0;
+        auto musical = cursor.musical;
+        if (! grid.advance (cursor.native, context_.snapEnabled ? pianoRollSnapDivision() : PianoGridDivision {}, right, target, &musical))
+            return refused ("the step grid is unavailable");
+        if (clip->timeBase == engine::TimeBase::SampleLocked && target == cursor.native)
         {
-            reportStatus ("Step input: open a MIDI clip in the piano roll first", true);
-            return { id, { false, "no MIDI clip for step input" }, false };
+            if (right)
+            {
+                if (target == INT64_MAX - clip->timelineStart) return refused ("the next step is outside the transport range");
+                ++target;
+            }
+            else if (target > -clip->timelineStart) --target;
         }
-        const engine::Tick clipTick = *playhead - midiClip->timelineStart;
-        if (clipTick < 0 || clipTick >= midiClip->timelineLength)
+        if (right && target < cursor.native) return refused ("the step destination is unavailable");
+        std::int64_t frame = 0;
+        if (clip->timeBase == engine::TimeBase::TempoLocked)
         {
-            reportStatus ("Step input: move the playhead inside the MIDI clip", true);
-            return { id, { false, "the playhead is outside the MIDI clip" }, false };
+            TimelineFramePoint point;
+            if (! grid.rationalFrame (musical, point.offset)
+                || timelineNativeFrameTarget (grid.clock, engine::TimeBase::SampleLocked, point, frame) != TimelineCoordinateStatus::Ok)
+                return refused ("the step destination is unavailable");
         }
-        const engine::Tick step = stepInputTicks();
-        const engine::Tick length = std::min (step, midiClip->timelineLength - clipTick);
-        const UiActionDispatchResult added = addPianoRollNoteAt (clipTick, length, key);
-        if (! added.dispatched)
-            return added;
-        (void) locatePlaybackRelative (UiActionId::TransportLocateNextGrid, step);
-        return added;
+        else if (! grid.frameForNative (target, frame)) return refused ("the step destination is unavailable");
+        // PlaybackEngine::locate's existing domain is private. Keep this preflight in
+        // sync with its [0, 1<<60] limit, before any Note can become durable.
+        if (frame < 0 || frame > (std::int64_t { 1 } << 60)) return refused ("the next step is outside the transport range");
+        // Control is the sole transport producer; Audio only frees slots. Note-only
+        // adoption uses the separate driver lane; a rebuild restores and drains a fresh queue.
+        if (playback_ == nullptr || ! playback_->canQueuePlay()) return refused ("transport is busy");
+        UiActionDispatchResult result;
+        if (key)
+        {
+            if (cursor.native < 0 || cursor.native >= clip->timelineLength)
+                return refused ("move the playhead inside the MIDI clip");
+            const auto duration = std::max<engine::Tick> (1, target - cursor.native);
+            result = addPianoRollNoteAt (cursor.native, std::min (duration, clip->timelineLength - cursor.native), *key);
+            if (! result.dispatched) return result;
+        }
+        const auto located = locatePlaybackAbsolute (id, frame);
+        if (! located.dispatched) return key ? result : located;
+        cursor.locateGeneration = pianoLocateGeneration_;
+        cursor.frame = frame;
+        cursor.native = target;
+        cursor.musical = musical;
+        pianoStepCursor_ = cursor;
+        return key ? result : located;
     }
 
-    [[nodiscard]] UiActionDispatchResult stepInputRest()
-    {
-        return locatePlaybackRelative (UiActionId::TransportLocateNextGrid, stepInputTicks());
-    }
-
-    [[nodiscard]] UiActionDispatchResult stepInputBack()
-    {
-        return locatePlaybackRelative (UiActionId::TransportLocatePreviousGrid, -stepInputTicks());
-    }
+    [[nodiscard]] UiActionDispatchResult stepInputEnter (std::int16_t key) { return movePianoStepCursor (true, key); }
+    [[nodiscard]] UiActionDispatchResult stepInputRest() { return movePianoStepCursor (true); }
+    [[nodiscard]] UiActionDispatchResult stepInputBack() { return movePianoStepCursor (false); }
 
     // ---------------------------------------------------------------------------------------
     // G3.5: the selected MIDI clip's settings (the inspector's CLIP tab rows) — undoable edits.
@@ -8694,10 +8824,40 @@ public:
             if (midiClip == nullptr || note == nullptr)
                 return { id, { false, "MIDI note missing" }, false };
 
-            const engine::Tick maximumStart = midiClip->timelineLength - note->lengthTicks;
-            const engine::Tick target = right
-                ? note->startTick + std::min (amount, maximumStart - note->startTick)
-                : note->startTick - std::min (amount, note->startTick);
+            const auto nativeGrid = pianoRollGrid (*midiClip);
+            engine::Tick target = 0;
+            const bool clockUnit = nudgeUnit_ == UiNudgeUnit::Ms1 || nudgeUnit_ == UiNudgeUnit::Ms10
+                                || nudgeUnit_ == UiNudgeUnit::Frame || nudgeUnit_ == UiNudgeUnit::Sample;
+            if (clockUnit)
+            {
+                if (midiClip->timeBase == engine::TimeBase::SampleLocked)
+                    target = right ? note->startTick + std::min (amount, midiClip->timelineLength - note->startTick)
+                                   : note->startTick - std::min (amount, note->startTick);
+                else
+                {
+                    if (nativeGrid.clock == nullptr || midiClip->timelineStart < 0
+                        || note->startTick > INT64_MAX - midiClip->timelineStart)
+                        return { id, { false, "piano grid is unavailable" }, false };
+                    const auto position = nativeGrid.clock->framePosition (midiClip->timelineStart + note->startTick);
+                    const auto shifted = engine::click_detail::add (position, timelineSignedInteger (right ? amount : -amount));
+                    engine::Tick absolute = 0;
+                    if (shifted.high < 0.0) target = 0;
+                    else if (nativeGrid.clock->tickAtFramePosition (shifted, absolute) != engine::TimeLookupStatus::Ok)
+                        return { id, { false, "piano nudge destination is unavailable" }, false };
+                    else target = absolute - midiClip->timelineStart;
+                }
+            }
+            else
+            {
+                PianoGridDivision division = nudgeUnit_ == UiNudgeUnit::Bar ? PianoGridDivision { MusicalGridLevel::Bar, 0 }
+                    : nudgeUnit_ == UiNudgeUnit::Beat ? PianoGridDivision {}
+                    : nudgeUnit_ == UiNudgeUnit::Sixteenth ? PianoGridDivision { MusicalGridLevel::Sixteenth, 0 }
+                    : pianoRollSnapDivision();
+                if (fine) division.subdivisions = 3;
+                if (! nativeGrid.advance (note->startTick, division, right, target))
+                    return { id, { false, "piano nudge grid is unavailable" }, false };
+            }
+            target = std::clamp<engine::Tick> (target, 0, midiClip->timelineLength - note->lengthTicks);
             if (target == note->startTick)
                 return { id, { false, "MIDI note is at the nudge boundary" }, false };
 
@@ -14365,7 +14525,10 @@ private:
             return playback_ != nullptr && postLocateStartingListen (targetFrame);
         });
         if (result.dispatched)
+        {
             context_.lastLocateFrame = context_.playheadFrame;
+            ++pianoLocateGeneration_;
+        }
         return result;
     }
 
@@ -14949,6 +15112,8 @@ private:
     bool tipsStartDismissed_ = false;   // ADR-0073 §4: the harness's start (see startWithTipsDismissed)
     UiSnapUnit snapUnit_ = UiSnapUnit::Beat;
     UiNudgeUnit nudgeUnit_ = UiNudgeUnit::Grid;   // G1.4
+    PianoStepCursor pianoStepCursor_;
+    std::uint64_t pianoLocateGeneration_ = 0;
     int repeatPasteCount_ = kDefaultRepeatPasteCount;
     static constexpr const char* kLastProjectRecordFileName = "last-project.txt";
     static constexpr const char* kRecentProjectsRecordFileName = "recent-projects.txt";

@@ -1500,11 +1500,9 @@ MainComponent::MainComponent (yesdaw::ui::MainComponentFileChoices choices, bool
     };
     pianoRollInput.onNoteAdded = [this] (yesdaw::engine::EntityId midiClipId, yesdaw::engine::Tick tick, std::int16_t key) {
         (void) midiClipId;
-        // G3.2 checkpoint FIX 2: a sixteenth of the beat in force (Logic's default division), not
-        // the pre-G3.2 512-tick grid step, which drew a dot. The roll's own division chooser is G3.4.
         const yesdaw::ui::UiPianoRollSurfaceSnapshot rollSurface = currentPianoRollSurface();
-        const yesdaw::engine::Tick sixteenth =
-            std::max<yesdaw::engine::Tick> (1, rollSurface.beatTicks / 4);
+        const yesdaw::engine::Tick sixteenth = appModel.pianoRollNoteLengthAt (tick);
+        if (sixteenth <= 0) return;
         // G3.8: scale assist — the pencil lands on the nearest key inside the project's scale.
         (void) appModel.addPianoRollNoteAt (tick, sixteenth, yesdaw::ui::pianoRollScaleSnappedKey (key, rollSurface.scaleRoot, rollSurface.scaleChoice));
         refreshActionState();

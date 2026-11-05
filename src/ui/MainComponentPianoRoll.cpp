@@ -357,22 +357,15 @@ yesdaw::ui::UiPianoRollSurfaceSnapshot MainComponent::currentPianoRollSurface() 
         surface.viewScrollTicks = pianoRollViewScrollTicks;
         // E12: note gestures snap through the real chooser.
         surface.snapEnabled = appModel.context().snapEnabled;
-        surface.snapGridTicks = static_cast<yesdaw::engine::Tick> (appModel.context().snapGridTicks);
-        // G3.2: the grid follows the meter in force at the clip (bars / beats) and the snap; the
-        // shared playhead is published clip-relative (-1 when it has no tick).
         {
-            // G3.6 (found by the step gate): the grid and the playhead speak the CLIP's ticks — every
-            // shell-made MIDI clip is SampleLocked (tick == frame), so a beat is the head tempo's
-            // beat in frames and the playhead is the transport frame; G3.2 had used the tempo map's
-            // musical ticks for both, which ran 0.64x slow on a 120 BPM / 48 kHz clip.
             const yesdaw::engine::MidiClip* clip = nullptr;
             for (const yesdaw::engine::MidiClip& candidate : appModel.project().midiClips)
                 if (candidate.id == midiClipId)
                     clip = &candidate;
             if (clip != nullptr)
             {
-                surface.beatTicks = appModel.midiClipBeatTicks (*clip);
-                surface.barTicks = appModel.midiClipBarTicks (*clip);
+                surface.nativeGrid = appModel.pianoRollGrid (*clip);
+                surface.snapDivision = appModel.pianoRollSnapDivision();
                 if (const std::optional<yesdaw::engine::Tick> playhead = appModel.playheadTickForClip (*clip))
                     surface.playheadTick = *playhead - surface.timelineStart;
             }

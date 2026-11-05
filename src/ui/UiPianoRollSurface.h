@@ -7,6 +7,7 @@
 
 #include "engine/ProjectUndo.h"
 #include "ui/UiActions.h"
+#include "ui/PianoRollGrid.h"
 #include "ui/UiThemeLayout.h"
 
 #include <algorithm>
@@ -170,11 +171,9 @@ struct UiPianoRollSurfaceSnapshot
     // E12: note gestures consult the REAL snap chooser (raw edits = chooser Off; Ctrl on notes
     // already means copy-drag, so there is no Ctrl inversion in the roll).
     bool snapEnabled = true;
-    engine::Tick snapGridTicks = 0;
-    // G3.2: the grid follows the meter and the snap — beat and bar lines from the meter in force,
-    // subdivision lines from the snap chooser; the shared playhead, clip-relative (< 0 = none).
-    engine::Tick beatTicks = 15360;
-    engine::Tick barTicks = 4 * 15360;
+    PianoRollGrid nativeGrid;
+    PianoGridDivision snapDivision;
+    // The shared playhead, Clip-relative (< 0 = none).
     engine::Tick playheadTick = -1;
     int controlLaneChoice = 0;   // G3.3: which control lane the roll shows (kPianoRollControlLaneChoices)
     int scaleRoot = 0;           // G3.8: the project's key / scale (scale 0 = off: every key is in)

@@ -178,23 +178,17 @@ struct PianoRollCanvasGeometry
     std::vector<yesdaw::ui::PianoRollGridLine> lines;
     if (geometry.grid.getWidth() <= 0 || surface.timelineLength <= 0)
         return lines;
-    const yesdaw::engine::Tick beat = std::max<yesdaw::engine::Tick> (1, surface.beatTicks);
-    const yesdaw::engine::Tick bar = std::max<yesdaw::engine::Tick> (beat, surface.barTicks);
     const double pixelsPerTick = static_cast<double> (geometry.grid.getWidth()) / static_cast<double> (std::max<yesdaw::engine::Tick> (1, pianoRollVisibleTicks (surface)));
-    yesdaw::engine::Tick step = beat;
-    if (surface.snapEnabled && surface.snapGridTicks > 0 && surface.snapGridTicks < beat
-        && static_cast<double> (surface.snapGridTicks) * pixelsPerTick >= yesdaw::ui::UiTheme::Layout::pianoRollGridMinLinePx)
-        step = surface.snapGridTicks;
-    for (yesdaw::engine::Tick tick = 0; tick <= surface.timelineLength; tick += step)
+    const auto first = surface.viewScrollTicks;
+    const auto last = first + std::min (surface.timelineLength - first, pianoRollVisibleTicks (surface));
+    for (const auto& native : surface.nativeGrid.lines (first, last,
+        yesdaw::ui::UiTheme::Layout::pianoRollGridMinLinePx / pixelsPerTick, surface.snapDivision, surface.snapEnabled))
     {
-        const int x = pianoRollTickX (geometry, surface, tick);
-        if (x < geometry.grid.getX() || x > geometry.grid.getRight())
-            continue;
         yesdaw::ui::PianoRollGridLine line;
-        line.tick = tick;
-        line.x = x;
-        line.kind = (tick % bar) == 0 ? yesdaw::ui::PianoRollGridLineKind::Bar
-                  : (tick % beat) == 0 ? yesdaw::ui::PianoRollGridLineKind::Beat
+        line.tick = native.tick;
+        line.x = pianoRollTickX (geometry, surface, native.tick);
+        line.kind = native.level == yesdaw::ui::MusicalGridLevel::Bar ? yesdaw::ui::PianoRollGridLineKind::Bar
+                  : native.level == yesdaw::ui::MusicalGridLevel::Beat ? yesdaw::ui::PianoRollGridLineKind::Beat
                   : yesdaw::ui::PianoRollGridLineKind::Snap;
         lines.push_back (line);
     }
@@ -582,8 +576,8 @@ public:
                 yesdaw::engine::Tick tick = surface.viewScrollTicks
                     + static_cast<yesdaw::engine::Tick> (normalized * visibleTicks);
                 // E12: the pencil floors to the REAL snap chooser grid (chooser Off = raw).
-                if (surface.snapEnabled && surface.snapGridTicks > 0)
-                    tick -= tick % surface.snapGridTicks;
+                if (surface.snapEnabled && ! surface.nativeGrid.snapped (std::max<yesdaw::engine::Tick> (0, tick), surface.snapDivision, true, tick))
+                    return;
 
                 const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
                 const int key = pianoRollViewHighKey (surface)
@@ -626,8 +620,9 @@ public:
                 const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
                 yesdaw::engine::Tick tick = pianoRollTickForX (geometry, surface, event.getPosition().x);
                 // The split snaps like the arrangement's scissors; Ctrl defeats the snap (G2.7).
-                if (surface.snapEnabled && surface.snapGridTicks > 0 && ! event.mods.isCtrlDown())
-                    tick -= tick % surface.snapGridTicks;
+                if (surface.snapEnabled && ! event.mods.isCtrlDown()
+                    && ! surface.nativeGrid.snapped (std::max<yesdaw::engine::Tick> (0, tick), surface.snapDivision, true, tick))
+                    return;
                 if (onNoteSplit)
                     onNoteSplit (surface.midiClipId, hit->noteId, tick);
                 return;
@@ -909,6 +904,7 @@ public:
                 juce::jmax<yesdaw::engine::Tick> (0, surface.timelineLength - drag.startTick);
             const yesdaw::engine::Tick snappedEnd = snappedRollTick (
                 surface, drag.startTick + drag.lengthTicks + deltaTicks);
+            if (snappedEnd < 0) return;
             const yesdaw::engine::Tick nextLength =
                 std::clamp<yesdaw::engine::Tick> (snappedEnd - drag.startTick, 0, maxLength);
             if (nextLength != drag.lengthTicks && onNoteLengthChanged)
@@ -918,20 +914,19 @@ public:
 
         if (drag.mode == PianoDragMode::TrimHead)
         {
-            if (onNoteHeadTrimmed)
-                onNoteHeadTrimmed (drag.midiClipId, drag.noteId,
-                                   snappedRollTick (surface, drag.startTick + deltaTicks));
+            const auto tick = snappedRollTick (surface, drag.startTick + deltaTicks);
+            if (tick >= 0 && onNoteHeadTrimmed)
+                onNoteHeadTrimmed (drag.midiClipId, drag.noteId, tick);
             return;
         }
 
         const yesdaw::engine::Tick maxStart =
             juce::jmax<yesdaw::engine::Tick> (0, surface.timelineLength - drag.lengthTicks);
         // A pure pitch drag (below the horizontal dead zone) must not snap the start sideways.
-        const yesdaw::engine::Tick nextStart =
-            std::abs (deltaX) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels
-                ? std::clamp<yesdaw::engine::Tick> (snappedRollTick (surface, drag.startTick + deltaTicks),
-                                                    0, maxStart)
-                : drag.startTick;
+        const auto snappedStart = std::abs (deltaX) >= yesdaw::ui::UiTheme::Layout::inputDragDeadZonePixels
+            ? snappedRollTick (surface, drag.startTick + deltaTicks) : drag.startTick;
+        if (snappedStart < 0) return;
+        const yesdaw::engine::Tick nextStart = std::clamp<yesdaw::engine::Tick> (snappedStart, 0, maxStart);
         if (nextStart == drag.startTick && keyDelta == 0)
             return;
 
@@ -961,8 +956,8 @@ public:
             if (! surface.midiClipSelected || ! geometry.grid.contains (event.getPosition()) || ! onNoteAdded)
                 return;
             yesdaw::engine::Tick tick = pianoRollTickForX (geometry, surface, event.getPosition().x);
-            if (surface.snapEnabled && surface.snapGridTicks > 0)
-                tick -= tick % surface.snapGridTicks;
+            if (surface.snapEnabled && ! surface.nativeGrid.snapped (std::max<yesdaw::engine::Tick> (0, tick), surface.snapDivision, true, tick))
+                return;
             const float rowHeight = geometry.rowHeight > 1.0f ? geometry.rowHeight : 1.0f;
             const int key = pianoRollViewHighKey (surface)
                 - static_cast<int> ((event.getPosition().y - geometry.grid.getY()) / rowHeight);
@@ -1016,14 +1011,10 @@ private:
     [[nodiscard]] static yesdaw::engine::Tick snappedRollTick (
         const yesdaw::ui::UiPianoRollSurfaceSnapshot& surface, yesdaw::engine::Tick tick) noexcept
     {
-        if (! surface.snapEnabled || surface.snapGridTicks <= 0)
-            return juce::jmax<yesdaw::engine::Tick> (0, tick);
-
-        yesdaw::engine::Tick snapped = tick;
-        if (! yesdaw::engine::snapTick (tick, yesdaw::engine::SnapGrid { surface.snapGridTicks }, snapped))
-            return juce::jmax<yesdaw::engine::Tick> (0, tick);
-
-        return juce::jmax<yesdaw::engine::Tick> (0, snapped);
+        tick = juce::jmax<yesdaw::engine::Tick> (0, tick);
+        if (! surface.snapEnabled) return tick;
+        yesdaw::engine::Tick snapped = 0;
+        return surface.nativeGrid.snapped (tick, surface.snapDivision, false, snapped) ? snapped : -1;
     }
 
     struct PianoDragState
@@ -1117,8 +1108,8 @@ private:
                                                                   bool snap) noexcept
     {
         yesdaw::engine::Tick tick = pianoRollTickForX (geometry, surface, x);
-        if (snap && surface.snapEnabled && surface.snapGridTicks > 0)
-            tick -= tick % surface.snapGridTicks;
+        if (snap && surface.snapEnabled && ! surface.nativeGrid.snapped (tick, surface.snapDivision, true, tick))
+            return -1;
         return std::clamp<yesdaw::engine::Tick> (tick, 0, juce::jmax<yesdaw::engine::Tick> (0, surface.timelineLength));
     }
 
@@ -1195,6 +1186,7 @@ private:
                 controlDragState.downValue = controlLaneValueAt (surface, geometry, event.getPosition().y);
             }
         }
+        if (controlDragState.downTick < 0) { controlDragState.active = false; return; }
         controlDragState.currentTick = controlDragState.downTick;
         controlDragState.currentValue = controlDragState.downValue;
     }
@@ -1205,6 +1197,7 @@ private:
             return;
         const yesdaw::ui::UiPianoRollSurfaceSnapshot surface = stateProvider();
         const PianoRollCanvasGeometry geometry = pianoRollCanvasGeometry (getLocalBounds());
+        if (drag.downTick < 0 || drag.currentTick < 0) return;
 
         if (drag.kind == ControlDragKind::Point)
         {
@@ -1227,8 +1220,9 @@ private:
         {
             // A pencil click is a single point (Logic's pencil).
             laneGesture = "up:pencil click";
-            if (onControlPointAdded)
-                onControlPointAdded (drag.midiClipId, controlLaneTickAt (surface, geometry, drag.downPosition.x, true), drag.downValue);
+            const auto tick = controlLaneTickAt (surface, geometry, drag.downPosition.x, true);
+            if (tick >= 0 && onControlPointAdded)
+                onControlPointAdded (drag.midiClipId, tick, drag.downValue);
             return;
         }
 
@@ -1239,9 +1233,7 @@ private:
         const yesdaw::engine::Tick hi = juce::jmax (drag.downTick, drag.currentTick);
         const yesdaw::engine::Tick pixelTicks = juce::jmax<yesdaw::engine::Tick> (
             1, pianoRollTickDeltaForPixels (geometry, surface, 1));
-        const yesdaw::engine::Tick step = surface.snapEnabled && surface.snapGridTicks > 0
-            ? surface.snapGridTicks
-            : pixelTicks;
+        const yesdaw::engine::Tick step = pixelTicks;
 
         std::vector<std::pair<yesdaw::engine::Tick, double>> samples = drag.samples;
         std::stable_sort (samples.begin(), samples.end(),
@@ -1274,9 +1266,22 @@ private:
         };
 
         std::vector<std::pair<yesdaw::engine::Tick, double>> points;
-        const yesdaw::engine::Tick first = ((lo + step - 1) / step) * step;
-        for (yesdaw::engine::Tick tick = first; tick <= hi; tick += step)
-            points.emplace_back (tick, valueAt (tick));
+        if (surface.snapEnabled)
+        {
+            for (const auto& line : surface.nativeGrid.lines (lo, hi, static_cast<double> (pixelTicks), surface.snapDivision, true, false))
+                points.emplace_back (line.tick, valueAt (line.tick));
+            if (points.empty()) return;
+        }
+        else
+        {
+            const yesdaw::engine::Tick first = ((lo + step - 1) / step) * step;
+            for (yesdaw::engine::Tick tick = first; tick <= hi;)
+            {
+                points.emplace_back (tick, valueAt (tick));
+                if (step > hi - tick) break;
+                tick += step;
+            }
+        }
         if (points.empty())
             points.emplace_back (lo, valueAt (lo));
         laneGesture = "up:paint " + juce::String (static_cast<int> (points.size())) + " step " + juce::String (static_cast<juce::int64> (step))

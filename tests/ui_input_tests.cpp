@@ -14434,6 +14434,7 @@ TEST_CASE ("piano roll drags: pitch, group move, left-edge trim, real snap",
     // OFF that grid so every snap assertion bites, and both are wide enough to grab by the middle.
     yesdaw::engine::Project seed = makeMidiInputProject();
     seed.midiClips.front().timelineLength = 384000;
+    seed.midiClips.front().timeBase = yesdaw::engine::TimeBase::SampleLocked;
     seed.midiClips.front().notes = {
         makeMidiInputNote (idFromLowByte (4), 50000, 48000, 60, 0.55),
         makeMidiInputNote (idFromLowByte (5), 200000, 48000, 64, 0.82)
@@ -14567,7 +14568,7 @@ TEST_CASE ("piano roll drags: pitch, group move, left-edge trim, real snap",
     REQUIRE (pencilledIt != afterPencil.end());
     const yesdaw::engine::Note pencilled = *pencilledIt;
     REQUIRE (pencilled.startTick % gridTicks == 0);
-    REQUIRE (pencilled.lengthTicks == yesdaw::engine::kTicksPerQuarter / 4);   // G3.2 checkpoint FIX 2: a sixteenth of the beat in force (4/4)
+    REQUIRE (pencilled.lengthTicks == 6000);   // G3.2 checkpoint FIX 2: a sixteenth of the beat in force (4/4)
     REQUIRE (pencilled.key == 55);
 
     const juce::Point<int> pencilCentre = pianoRollNoteCenterPoint (pianoRoll, midi, pencilled);
@@ -34970,4 +34971,93 @@ TEST_CASE ("offscreen musical audio geometry and seconds controls project absolu
     REQUIRE (shell->getPeer() == nullptr);
     REQUIRE_FALSE (snapshotMainComponent (*shell).desktopAudioRequested);
     REQUIRE_FALSE (snapshotMainComponent (*shell).desktopAudioOpen);
+}
+
+TEST_CASE ("offscreen piano gestures and controller paint share the full native musical grid",
+           "[ui][input][shell][native-piano-input]")
+{
+    using namespace yesdaw;
+    bool musical = true;
+    SECTION ("TempoLocked") {}
+    SECTION ("SampleLocked") { musical = false; }
+    auto song = makeMidiInputProject();
+    song.tempoMap = { { 0, 120.0 }, { 30720, 60.0 } };
+    song.meterMap = { { 0, 4, 4 }, { 38400, 3, 8 } };
+    auto& clip = song.midiClips.front();
+    clip.timeBase = musical ? engine::TimeBase::TempoLocked : engine::TimeBase::SampleLocked;
+    clip.timelineStart = musical ? 23040 : 36000;
+    clip.timelineLength = musical ? 40000 : 120000;
+    clip.notes.clear();
+    clip.controlEvents.clear();
+    const auto bundle = makeTempBundlePath ("native-piano-input");
+    MainComponentFileChoices choices;
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.makeNewProject = [song] { return song; };
+    REQUIRE_FALSE (choices.nativePrompts);
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
+    ui::mainComponentDispatchAction (*shell, UiActionId::ViewPianoRoll);
+    ui::mainComponentSetDockHeight (*shell, ui::UiTheme::Layout::windowMaxHeight);
+    ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapSetBeat);
+    auto& roll = requirePianoRollComponent (*shell);
+    const auto geometry = ui::pianoRollCanvasGeometry (roll.getLocalBounds());
+    const auto grid = geometry.grid;
+    const auto tickX = [&] (engine::Tick tick) {
+        return grid.getX() + juce::roundToInt (static_cast<double> (tick) * grid.getWidth() / clip.timelineLength);
+    };
+    const auto keyY = [&] (int key) {
+        const auto low = snapshotMainComponent (*shell).pianoRollViewLowKey;
+        return grid.getBottom() - juce::roundToInt ((key - low + 0.5) * geometry.rowHeight);
+    };
+    const auto requireHeadless = [&] {
+        REQUIRE (shell->getPeer() == nullptr);
+        REQUIRE_FALSE (snapshotMainComponent (*shell).desktopAudioRequested);
+        REQUIRE_FALSE (snapshotMainComponent (*shell).desktopAudioOpen);
+    };
+    requireHeadless();
+    const auto painted = ui::mainComponentPianoRollGrid (*shell);
+    const std::vector<engine::Tick> boundaries = musical ? std::vector<engine::Tick> { 7680, 15360, 23040, 30720, 38400 }
+        : std::vector<engine::Tick> { 12000, 36000, 60000, 84000, 108000 };
+    REQUIRE (painted.lines.size() == boundaries.size());
+    for (std::size_t i = 0; i < boundaries.size(); ++i) CHECK (std::get<0> (painted.lines[i]) == boundaries[i]);
+    CHECK (std::get<2> (painted.lines[1]) == 0);
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
+    const juce::Point<int> point { tickX (musical ? 20000 : 50000), keyY (60) };
+    mouseDownAt (roll, point);
+    releaseDragAt (roll, point, point);
+    auto current = readProjectSnapshot (bundle);
+    REQUIRE (current.midiClips.front().notes.size() == 1u);
+    auto note = current.midiClips.front().notes.front();
+    CHECK (note.startTick == (musical ? 15360 : 36000));
+    CHECK (note.lengthTicks == (musical ? 1920 : 6000));
+    const auto noteId = note.id;
+    REQUIRE (shell->keyPressed (juce::KeyPress ('1')));
+    const juce::Point<int> from { tickX (note.startTick + note.lengthTicks / 2), keyY (60) };
+    const auto delta = musical ? 7680 : 24000;
+    dragFromTo (roll, from, from.translated (tickX (delta) - grid.getX(), 0));
+    current = readProjectSnapshot (bundle);
+    note = current.midiClips.front().notes.front();
+    CHECK (note.id == noteId);
+    CHECK (note.startTick == (musical ? 23040 : 60000));
+    CHECK (note.lengthTicks == (musical ? 1920 : 6000));
+    REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
+    const auto lane = ui::mainComponentPianoRollControlLane (*shell);
+    REQUIRE_FALSE (lane.lane.isEmpty());
+    const juce::Point<int> laneFrom { tickX (musical ? 7000 : 10000), lane.lane.getBottom() - 3 };
+    const juce::Point<int> laneTo { tickX (musical ? 39000 : 110000), lane.lane.getY() + 3 };
+    dragFromTo (roll, laneFrom, laneTo);
+    current = readProjectSnapshot (bundle);
+    REQUIRE (current.midiClips.front().controlEvents.size() == boundaries.size());
+    for (std::size_t i = 0; i < boundaries.size(); ++i)
+        CHECK (current.midiClips.front().controlEvents[i].tick == boundaries[i]);
+    CHECK (current.midiClips.front().timelineStart == clip.timelineStart);
+    CHECK (current.midiClips.front().timeBase == clip.timeBase);
+    CHECK (current.midiClips.front().notes.front() == note);
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    CHECK (readProjectSnapshot (bundle).midiClips.front().controlEvents.empty());
+    CHECK (readProjectSnapshot (bundle).midiClips.front().notes.front() == note);
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+    CHECK (readProjectSnapshot (bundle).midiClips == current.midiClips);
+    requireHeadless();
 }
