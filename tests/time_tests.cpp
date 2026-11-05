@@ -1090,3 +1090,77 @@ TEST_CASE ("Checked Tempo inverse refuses a collapsed prefix without suppressing
     REQUIRE (map.musicalTimeForFrame (24000.78125, time) == TimeLookupStatus::Ok);
     CHECK (time == MusicalTime { kTicksPerQuarter + 1, 0.0 });
 }
+
+TEST_CASE ("Whole-Tick Tempo inverse checks conversion and prefix capacity before publishing",
+           "[time][tempo][inverse-bounds]")
+{
+    constexpr Tick maximum = std::numeric_limits<Tick>::max();
+    CompiledTempoMap compiled;
+    const auto refuses = [&compiled] (double frame) {
+        Tick tick = 123;
+        CHECK_FALSE (compiled.tickForFrame (frame, tick));
+        CHECK (tick == 0);
+    };
+
+    SECTION ("finite fast-clock result exceeds the Tick domain")
+    {
+        const TempoChange fast { 0, 1.0e8, TempoCurve::Jump };
+        REQUIRE (CompiledTempoMap::build ({ &fast, 1 }, { 48000.0 }, compiled));
+        const double frame = std::ldexp (1.0, 50);
+        REQUIRE (std::isfinite (frame * fast.bpm / 187.5));
+        REQUIRE (frame * fast.bpm / 187.5 >= 0x1p63);
+        refuses (frame);
+    }
+
+    SECTION ("empty clock checks finite and nonfinite computed results")
+    {
+        REQUIRE (CompiledTempoMap::build ({}, { 48000.0 }, compiled));
+        refuses (0x1p64);
+        refuses (std::numeric_limits<double>::max());
+    }
+
+    SECTION ("the exact conversion boundary retains its preceding representable value")
+    {
+        const TempoChange unit { 0, 256.0, TempoCurve::Jump };
+        REQUIRE (CompiledTempoMap::build ({ &unit, 1 }, { 65536.0 }, compiled));
+        Tick tick = 123;
+        REQUIRE (compiled.tickForFrame (std::nextafter (0x1p63, 0.0), tick));
+        CHECK (tick == maximum - 1023);
+        refuses (0x1p63);
+    }
+
+    SECTION ("an individually representable delta cannot overflow its segment origin")
+    {
+        const std::array<TempoChange, 2> changes {
+            TempoChange { 0, 256.0, TempoCurve::Jump },
+            TempoChange { Tick { 1 } << 62, 256.0, TempoCurve::Jump }
+        };
+        REQUIRE (CompiledTempoMap::build ({ changes.data(), changes.size() }, { 65536.0 }, compiled));
+        Tick tick = 123;
+        REQUIRE (compiled.tickForFrame (0x1p62, tick));
+        CHECK (tick == Tick { 1 } << 62);
+        refuses (0x1p63);
+    }
+
+    SECTION ("rounding a local half Tick cannot overflow the final absolute Tick")
+    {
+        const std::array<TempoChange, 2> changes {
+            TempoChange { 0, static_cast<double> (maximum), TempoCurve::Jump },
+            TempoChange { maximum, 120.0, TempoCurve::Jump }
+        };
+        REQUIRE (CompiledTempoMap::build ({ changes.data(), changes.size() }, { 48000.0 }, compiled));
+        Tick tick = 123;
+        REQUIRE (compiled.tickForFrame (187.5, tick));
+        CHECK (tick == maximum);
+        refuses (188.28125);
+    }
+
+    SECTION ("a large Frame remains valid when the musical result fits")
+    {
+        const TempoChange slow { 0, std::ldexp (1.0, -40), TempoCurve::Jump };
+        REQUIRE (CompiledTempoMap::build ({ &slow, 1 }, { 48000.0 }, compiled));
+        Tick tick = 123;
+        REQUIRE (compiled.tickForFrame (0x1p64, tick));
+        CHECK (tick == 89478);
+    }
+}

@@ -682,11 +682,17 @@ public:
         if (! sampleRate_.isValid() || ! std::isfinite (frame) || frame < 0.0)
             return false;
         const double k = 60.0 * sampleRate_.hz / static_cast<double> (kTicksPerQuarter);
-        if (empty_)
-        {
-            tickOut = static_cast<Tick> (std::llround (frame * 120.0 / k));
+        const auto acceptDelta = [&tickOut] (double delta, Tick origin) noexcept {
+            if (! std::isfinite (delta) || delta < 0.0 || delta >= 0x1p63)
+                return false;
+            const Tick rounded = static_cast<Tick> (std::llround (delta));
+            if (rounded > std::numeric_limits<Tick>::max() - origin)
+                return false;
+            tickOut = origin + rounded;
             return true;
-        }
+        };
+        if (empty_)
+            return acceptDelta (frame * 120.0 / k, 0);
         // Last segment whose start frame <= frame.
         const std::size_t upper = static_cast<std::size_t> (
             std::upper_bound (startFrame_.begin(), startFrame_.end(), frame) - startFrame_.begin());
@@ -714,10 +720,7 @@ public:
         }
         else
             deltaTicks = local * startBpm / k;
-        if (! std::isfinite (deltaTicks))
-            return false;
-        tickOut = changes_[i].tick + static_cast<Tick> (std::llround (deltaTicks));
-        return true;
+        return acceptDelta (deltaTicks, changes_[i].tick);
     }
 
     // Checked fractional lookups use native Frame doubles in [0, 2^63). Zero fractions retain
