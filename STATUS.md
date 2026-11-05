@@ -51,7 +51,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome, captured-map count-in and bounded click-search recovery are delivered; all ten CI jobs passed at d97f3d2.
    Full-map timing is implemented across metronome/count-in, clipboard/moves, readouts, arrange/piano grids and quantize/Step input.
    Native MIDI occurrences, the pure file writer, app export adapter, narrow click-cache optimization and TSan allocator compatibility are pushed at e5f49d7 and passed all ten CI jobs.
-   Musical MIDI defaults and explicit Fixed-time commands are pushed at70d3b1c after all local integration gates passed. Accepted ADR-0083/plan, compiler repair028e276 and checked Musical-audio window/key foundation6b8bed3 are pushed. Conversion/complete-row undo/persistence passed all local gates; current: commit/push it, then renderer/state certification. Exact-head6b8bed3 CI41994726782 is running. Checked fractional
+   Musical MIDI defaults and explicit Fixed-time commands are pushed at70d3b1c after all local integration gates passed. Accepted ADR-0083/plan, compiler repair028e276 and checked Musical-audio window/key foundation6b8bed3 are pushed; all ten exact-head6b8bed3 CI jobs passed on attempt1. Conversion/complete-row undo/persistence is pushed at332b450 after all local gates; its CI41997241348 is running. Current: renderer/state certification, still without audible tempo-follow activation. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -72,6 +72,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 — Musical-audio quiet/control-state experiment (limited checks passed)
+
+HEAD/origin332b450 contains the verified conversion/complete-row history unit; its exact-head CI41997241348 is running. Predecessor6b8bed3 CI41994726782 completed all ten jobs SUCCESS on attempt1, including actual Apple/GCC compiler repair, Windows, RTSan and TSan. No main run was cancelled or retried.
+Two independent source critics accepted ignored quiet-state-r1 manifest2EC0463C (74 exact pins). Root's Freeze085933 exited0, retaining15 fixtures/643 calls/2,114,782 independently predicted events and the4480->0 versus6720 refusal. Freeze-receipt1564146C pins inputs/arithmetic/control/context expectations before compilation; actual frozen-artifact review preceded separate execution GO.
+Root's one strict-FP private console CompileAndRun090102 exited0 (compile/candidate/verifier0): all2,114,782 events and525,068 actual pristine/observed/hook sample-bit comparisons passed, including source-law identity, threshold/channel-order/subnormal/silence-resume cases and four reached record mutations. Both critics accepted the measured limited scope and intact pins;39 retained vendor conversion/shadow warnings mean this research build was not warning-free. Named refusals remain; no PCM was published. New134,016 quiet-nonzero count includes pre-latency private output; old131,136 counts only retained output, differing by outputLatency2880 with unchanged N/D/physical length.
+Current: complete synthesis/contribution/context ledger preparation in a new ignored directory. Context/phase ancestry, supported two-Frame centers, waveform and complete resources remain unproved; this fixture equivalence is not a universal detector or renderer certificate. Original runs/vendor/thresholds stay exact; no native app, desktop input, audio device or hardware action. Overall Option A remains unfinished. Code review: skipped (ce-code-review unavailable).
 
 ## 2026-11-05 — Musical-audio conversion/row history (locally verified)
 
