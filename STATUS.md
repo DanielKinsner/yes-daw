@@ -54,6 +54,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Musical MIDI defaults and explicit Fixed-time commands are pushed at70d3b1c after all local integration gates passed. Accepted ADR-0083/plan, compiler repair028e276 and checked Musical-audio window/key foundation6b8bed3 are pushed; all ten exact-head6b8bed3 CI jobs passed on attempt1. Conversion/complete-row undo/persistence is pushed at332b450 after all local gates. Its macOS dense-click deadline failure has a measured cache correction pushed at69626e1; all ten fresh CI jobs passed on attempt1. The logical Musical-audio cut planner is pushed at9704b59 after485 pure checks/GUI3/Clang1 passed; all ten CI42011006803 jobs passed on attempt1. Exact0.5/2 endpoint repair17A84770 is pushed at3d8a6dd; all ten exact-head CI42020425794 jobs passed on attempt1. The revised independent checker passed1125 analytic rows/690 clocks and3564 windows across six full-duration cases; actual vendor waveform and complete resources remain unproved. ADR-0084 is accepted, and owned channel classificationF47C6E49 is pushed at1a25a8d after486 pure/GUI3 compile-only/Clang1 locally; all ten exact-head CI42029666611 jobs passed on attempt1. Working logical-channel materialization6C96FC13 is pushed at2b6d46e after487 pure/GUI3 compile-only/Clang1 locally; all ten exact-head CI42035460740 jobs passed on attempt1. Renderer/state certification remains separate, without audible tempo-follow activation. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
+   Pure whole-history eligibility is pushed at22e3348; its Linux allocator-harness build correction is locally verified and full fresh CI is pending. Model adoption remains separate.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
 5. Diagnose the recorded launch Underrun and intermittent SS3 failure with available headless evidence; confirmed
@@ -72,6 +73,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 — Linux history allocator harness correction
+
+Exact-code CI42053104765 at22e3348 reached a real Linux GCC11 -Werror=mismatched-new-delete build failure in the frozen test's malloc-backed global delete. Both TSan and RTSan passed; remaining original platform jobs are still running. This failure is not a tooling flake or a certified feature result.
+Fresh critic accepts broadening only the history target's existing Linux64 linker allocation wrapper to ordinary Linux builds. Allocation-failure/zero-allocation assertions remain active, warnings stay errors, production header15A2C979 and whole proof329F1FD0 remain byte-exact; SMF is unchanged.
+Local CMake regeneration/build and the exact frozen one-case/16-section smoke passed786 assertions, receipt20261105-history-linux-allocator; all545 other tracked paths were fenced. No Linux runtime exists locally; fresh full Linux/platform/sanitizer CI is required after this correction is pushed. No GUI/native/device or desktop input occurred.
+Next: finish the original CI receipts, push this narrow build correction, and inspect every fresh job. Audio waveform/reference and full-resource work continue under their separate held review gates; model adoption, linked editing/folders and piano references remain unfinished. Dan is not a gate.
 
 ## 2026-11-05 — Whole-history eligibility passes local gates
 
