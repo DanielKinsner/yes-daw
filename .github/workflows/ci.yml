@@ -80,7 +80,7 @@ jobs:
         include:
           - { name: Windows, os: windows-latest }
           - { name: Linux,   os: ubuntu-22.04 }
-          - { name: macOS,   os: macos-14 }
+          - { name: macOS,   os: macos-15 }
     runs-on: ${{ matrix.os }}
     env:
       SCCACHE_GHA_ENABLED: "true"
