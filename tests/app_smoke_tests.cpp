@@ -5049,3 +5049,227 @@ TEST_CASE ("piano step refuses a destination beyond the existing transport domai
     REQUIRE (reopened.loadProjectBundle (bundle, {}).ok());
     CHECK (reopened.project().midiClips == song.midiClips);
 }
+
+namespace {
+Project makeProjectSmfModelSong()
+{
+    using namespace yesdaw::engine;
+    Project song;
+    song.id = idFromLowByte (1);
+    song.sampleRate = SampleRate { 48000.0 };
+    song.tempoMap = { { 0, 120.0 }, { 30720, 60.0 } };
+    song.meterMap = { { 0, 4, 4 }, { 38400, 3, 8 }, { 90000, 7, 39 } };
+    Track repeated;
+    repeated.id = idFromLowByte (2);
+    repeated.strip.name = "Repeated";
+    repeated.instrumentKind = TrackInstrumentKind::SimpleSynth;
+    Track fixed = repeated;
+    fixed.id = idFromLowByte (3);
+    fixed.strip.name = "Fixed";
+    song.tracks = { repeated, fixed };
+    MidiClip a;
+    a.id = idFromLowByte (4);
+    a.trackId = repeated.id;
+    a.timeBase = TimeBase::TempoLocked;
+    a.timelineStart = 15360;
+    a.timelineLength = 40000;
+    a.loopLengthTicks = 15360;
+    a.transposeSemitones = 2;
+    a.velocityOffset = 0.2;
+    a.notes = { { idFromLowByte (5), 0, 10000, 60, 60.0, 0.5, -1, 3 } };
+    a.controlEvents = { { idFromLowByte (6), 0, MidiControlKind::ControlChange, 1, 0.5, -1, 2 } };
+    MidiClip b;
+    b.id = idFromLowByte (7);
+    b.trackId = fixed.id;
+    b.timeBase = TimeBase::SampleLocked;
+    b.timelineStart = 72000;
+    b.timelineLength = 60000;
+    b.notes = { { idFromLowByte (8), 10000, 20000, 67, 67.0, 1.0, -1, 0 } };
+    MidiClip muted = a;
+    muted.id = idFromLowByte (9);
+    muted.notes.clear();
+    muted.controlEvents.clear();
+    muted.timelineStart = 100000;
+    muted.timelineLength = 50000;
+    muted.muted = true;
+    // Deliberately store Clips in the opposite order from their owning Tracks.
+    song.midiClips = { b, muted, a };
+    REQUIRE (song.hasValidAssetClipIndirection());
+    return song;
+}
+
+std::vector<std::uint8_t> readProjectSmfModelFile (const std::filesystem::path& path)
+{
+    std::ifstream in (path, std::ios::binary);
+    REQUIRE (in.good());
+    return { std::istreambuf_iterator<char> (in), std::istreambuf_iterator<char>() };
+}
+
+void checkProjectSmfModelTrack (const yesdaw::interchange::SmfTrack& track, std::string_view name,
+                                const std::vector<std::uint32_t>& ons, const std::vector<std::uint32_t>& offs,
+                                const std::vector<std::uint32_t>& controls, std::uint8_t key,
+                                std::uint8_t velocity, std::uint8_t channel, std::uint32_t end)
+{
+    using yesdaw::interchange::SmfEventKind;
+    std::vector<std::uint32_t> actualOns, actualOffs, actualControls;
+    std::vector<std::string> names;
+    for (const auto& event : track.events)
+    {
+        if (event.kind == SmfEventKind::TrackName) names.push_back (event.text);
+        if (event.kind == SmfEventKind::NoteOn || event.kind == SmfEventKind::NoteOff)
+        {
+            CHECK (event.data1 == key);
+            CHECK (event.channel == channel);
+            if (event.kind == SmfEventKind::NoteOn)
+            {
+                actualOns.push_back (event.tick);
+                CHECK (event.data2 == velocity);
+            }
+            else actualOffs.push_back (event.tick);
+        }
+        if (event.kind == SmfEventKind::ControlChange)
+        {
+            actualControls.push_back (event.tick);
+            CHECK (event.channel == 2);
+            CHECK (event.data1 == 1);
+            CHECK (event.data2 == 64);
+        }
+    }
+    CHECK (names == std::vector<std::string> { std::string (name) });
+    CHECK (actualOns == ons);
+    CHECK (actualOffs == offs);
+    CHECK (actualControls == controls);
+    REQUIRE_FALSE (track.events.empty());
+    CHECK (track.events.back().kind == SmfEventKind::EndOfTrack);
+    CHECK (track.events.back().tick == end);
+}
+}
+
+TEST_CASE ("model MIDI export writes native occurrences and full maps, preserving destinations on preflight refusal",
+           "[ui][app][project-smf-model]")
+{
+    using namespace yesdaw::engine;
+    namespace smf = yesdaw::interchange;
+    const int mode = GENERATE (0, 1, 2, 3, 4, 5, 6, 7);
+    const std::array<std::string_view, 8> purposes {
+        "whole Project with a roll target", "selected fixed Clip", "selected muted Clip",
+        "in-horizon unsupported Meter", "four-byte file delta limit", "no MIDI Clips",
+        "unwritable destination", "disabled without a Project"
+    };
+    INFO (purposes[static_cast<std::size_t> (mode)]);
+    UiAppModel app;
+    if (mode == 7)
+    {
+        const auto path = makeTempBundlePath ("project-smf-disabled");
+        REQUIRE_FALSE (std::filesystem::exists (path));
+        CHECK_FALSE (app.registry().stateFor (UiActionId::ProjectExportMidi, app.context()).enabled);
+        const auto dispatches = app.context().commandDispatchCount;
+        CHECK_FALSE (app.exportMidiFile (path).dispatched);
+        CHECK_FALSE (std::filesystem::exists (path));
+        CHECK (app.context().commandDispatchCount == dispatches);
+        CHECK (app.context().midiExportCount == 0);
+        return;
+    }
+    auto song = makeProjectSmfModelSong();
+    if (mode == 3) song.meterMap[1] = { 38400, 7, 39 };
+    if (mode == 4)
+    {
+        song.tempoMap = { { 0, 120.0 } };
+        song.meterMap = { { 0, 4, 4 } };
+        song.midiClips = { song.midiClips.back() };
+        auto& clip = song.midiClips.front();
+        clip.timelineStart = 0;
+        clip.timelineLength = 0x10000000;
+        clip.loopLengthTicks = 0;
+        clip.notes.clear();
+        clip.controlEvents.clear();
+    }
+    if (mode == 5) song.midiClips.clear();
+    const auto bundle = makeTempBundlePath ("project-smf-model");
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.loadProjectBundle (bundle, {}).ok());
+    REQUIRE (app.registry().stateFor (UiActionId::ProjectExportMidi, app.context()).enabled);
+    if (mode == 0 || mode == 1)
+    {
+        REQUIRE (app.selectPianoRollNote (idFromLowByte (7), idFromLowByte (8)).dispatched);
+        if (mode == 0) app.clearTimelineClipSelection();
+        else REQUIRE (app.selectTimelineClip (idFromLowByte (7)));
+    }
+    if (mode == 2) REQUIRE (app.selectTimelineClip (idFromLowByte (9)));
+    const auto before = app.project();
+    const auto serial = app.editSerial();
+    const auto replacements = app.playbackReplaceCount();
+    const auto dispatches = app.context().commandDispatchCount;
+    const auto exports = app.context().midiExportCount;
+    const auto undo = app.context().canUndo;
+    const auto redo = app.context().canRedo;
+    const auto destination = mode == 6 ? bundle / "missing-directory" / "export.mid" : bundle / "export.mid";
+    const std::vector<std::uint8_t> sentinel { 0x59, 0, 0xDA, 0x57, 0xFF, 10 };
+    if (mode != 6) writeBytes (destination, sentinel);
+    const auto result = app.exportMidiFile (destination);
+    CHECK (app.project().midiClips == before.midiClips);
+    CHECK (app.project().clips == before.clips);
+    CHECK (app.project().assets == before.assets);
+    CHECK (app.project().tracks == before.tracks);
+    CHECK (app.project().tempoMap == before.tempoMap);
+    CHECK (app.project().meterMap == before.meterMap);
+    CHECK (app.editSerial() == serial);
+    CHECK (app.playbackReplaceCount() == replacements);
+    CHECK (app.context().canUndo == undo);
+    CHECK (app.context().canRedo == redo);
+    if (mode >= 2)
+    {
+        CHECK_FALSE (result.dispatched);
+        CHECK (app.statusLineIsError());
+        CHECK (app.context().commandDispatchCount == dispatches);
+        CHECK (app.context().midiExportCount == exports);
+        if (mode == 6)
+        {
+            CHECK (std::string_view (result.state.disabledReason) == "MIDI file unwritable");
+            CHECK (app.statusLineText().find ("cannot write") != std::string::npos);
+            CHECK_FALSE (std::filesystem::exists (destination));
+        }
+        else
+        {
+            CHECK (readProjectSmfModelFile (destination) == sentinel);
+            const auto expected = mode == 2 ? "muted" : mode == 3 ? "meter" : mode == 4 ? "file" : "no MIDI clips";
+            CHECK (app.statusLineText().find (expected) != std::string::npos);
+        }
+        return;
+    }
+    REQUIRE (result.dispatched);
+    CHECK_FALSE (app.statusLineIsError());
+    CHECK (app.context().commandDispatchCount == dispatches + 1);
+    CHECK (app.context().midiExportCount == exports + 1);
+    CHECK (app.statusLineText().find (mode == 0 ? "Exported 2 MIDI clips (whole project)" : "Exported 1 MIDI clip (selection)") != std::string::npos);
+    smf::SmfFile file;
+    const auto bytes = readProjectSmfModelFile (destination);
+    REQUIRE (smf::readSmf (bytes, file) == smf::SmfStatus::Ok);
+    CHECK (file.format == 1);
+    CHECK (file.ticksPerQuarter == 15360);
+    REQUIRE (file.tracks.size() == (mode == 0 ? 3u : 2u));
+    std::vector<std::array<std::uint32_t, 2>> tempos;
+    std::vector<std::array<std::uint32_t, 3>> meters;
+    for (const auto& event : file.tracks.front().events)
+    {
+        if (event.kind == smf::SmfEventKind::Tempo) tempos.push_back ({ event.tick, event.tempoMicrosPerQuarter });
+        if (event.kind == smf::SmfEventKind::TimeSignature) meters.push_back ({ event.tick, event.numerator, event.denominatorPow2 });
+        CHECK_FALSE (event.kind == smf::SmfEventKind::NoteOn);
+        CHECK_FALSE (event.kind == smf::SmfEventKind::ControlChange);
+    }
+    CHECK (std::find (tempos.begin(), tempos.end(), std::array<std::uint32_t, 2> { 0, 500000 }) != tempos.end());
+    CHECK (std::find (tempos.begin(), tempos.end(), std::array<std::uint32_t, 2> { 30720, 1000000 }) != tempos.end());
+    for (const auto& tempo : tempos)
+    {
+        CHECK (tempo[0] <= 57600);
+        CHECK (tempo[1] == (tempo[0] < 30720u ? 500000u : 1000000u));
+    }
+    CHECK (meters == std::vector<std::array<std::uint32_t, 3>> { { 0, 4, 2 }, { 38400, 3, 3 } });
+    CHECK (file.tracks.front().events.back().tick == 57600);
+    // F(t)=25t/16 until t=30720, then F(t)=48000+25(t-30720)/8.
+    // The fixed Note's absolute Frames 82000/102000 invert to Ticks 41600/48000.
+    if (mode == 0)
+        checkProjectSmfModelTrack (file.tracks[1], "Repeated", { 15360, 30720, 46080 },
+                                  { 25360, 40720, 55360 }, { 15360, 30720, 46080 }, 62, 89, 3, 55360);
+    checkProjectSmfModelTrack (file.tracks.back(), "Fixed", { 41600 }, { 48000 }, {}, 67, 127, 0, 57600);
+}

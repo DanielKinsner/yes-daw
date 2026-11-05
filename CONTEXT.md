@@ -615,11 +615,14 @@ the nearest lower pitched pad transposed.
 _Avoid_: zone (no ranges or velocity layers yet), slot (the Track's instrument slot is a different thing)
 
 **Standard MIDI File (SMF)**:
-The `.mid` interchange file (formats 0 and 1, ticks per quarter note) that YES DAW reads and writes through
-`src/interchange/Smf.h` (G3.7). Import lands a file's tracks as MIDI Clips at the PROJECT's tempo (quarter
-notes become frames at the head tempo — the file's own tempo is named, not adopted); export writes the
-selected MIDI Clips, else every MIDI Clip, as a format-1 file at 960 PPQ with the head tempo and meter
-on track 0. Malformed files fail with a named `SmfStatus`, never a half-import.
+The `.mid` interchange file (formats 0 and 1, ticks per quarter note). `src/interchange/Smf.h` reads it;
+current import places source quarters as Frames at the Project's head tempo, naming the file's tempo
+without adopting it. `src/interchange/ProjectSmf.h` exports the arrangement's selected MIDI Clips,
+else all MIDI Clips, as format 1 at 15360 PPQ in Project Track order. Muted Clips are excluded; native
+repeats and effective Notes/controllers are retained. Track 0 represents the full Tempo/Meter maps
+through the latest chosen unmuted Clip end, using the accepted bounded approximation for Tempo ramps.
+Unsupported Meter, timing precision, resource and wire-format refusals occur before opening the
+destination. Malformed imports fail with a named `SmfStatus`, never a half-import.
 _Avoid_: MIDI file (as a synonym for a MIDI Clip), "MIDI export" when you mean DAWproject
 
 **Device hot-swap**:

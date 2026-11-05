@@ -24,6 +24,7 @@
 #include "engine/ProjectUndo.h"
 #include "engine/Recording.h"
 #include "interchange/Smf.h"   // G3.7
+#include "interchange/ProjectSmf.h"
 #include "io/WavFile.h"
 #include "persistence/AutosaveRecovery.h"
 #include "persistence/ProjectBundle.h"
@@ -3737,13 +3738,8 @@ public:
         return { id, state, true };
     }
 
-    // G3.7: export MIDI clips as a format-1 Standard MIDI File at 960 PPQ: the arrangement's selected
-    // MIDI clips, or every MIDI clip when none is selected (the G3 close's SS-4 found the earlier
-    // "else the roll's clip" rule exporting one clip of a two-track song: the roll always shows a
-    // clip, so nothing ever exported the whole project — Logic's law is selection-else-all);
-    // one file track per project track, named after it; the head tempo and meter on
-    // track 0. A clip's transpose and velocity offset are baked in (the file plays what the mix
-    // plays); a muted clip is left out; a clip's loop is not unrolled (deviation, logged).
+    // Export the arrangement's selected MIDI Clips, else all MIDI Clips, at canonical PPQ.
+    // The pure writer expands native occurrences and maps, refusing before the file is opened.
     [[nodiscard]] UiActionDispatchResult exportMidiFile (const std::filesystem::path& destinationPath)
     {
         const UiActionId id = UiActionId::ProjectExportMidi;
@@ -3751,78 +3747,45 @@ public:
         if (! state.enabled)
             return { id, state, false };
 
-        std::vector<const engine::MidiClip*> clips;
+        std::vector<engine::EntityId> clips;
         for (const engine::EntityId clipId : selectedTimelineClipIds_)
-            if (const engine::MidiClip* const clip = findMidiClip (clipId))
-                clips.push_back (clip);
+            if (findMidiClip (clipId) != nullptr)
+                clips.push_back (clipId);
         const bool wholeProject = clips.empty();
         if (wholeProject)
             for (const engine::MidiClip& clip : project_.midiClips)
-                clips.push_back (&clip);
+                clips.push_back (clip.id);
         if (clips.empty())
         {
             reportStatus ("MIDI export: no MIDI clips to export", true);
             return { id, { false, "no MIDI clips" }, false };
         }
 
-        const double framesPerQuarter = framesPerQuarterAtHeadTempo();
-        std::vector<interchange::SmfMusicalTrack> tracks;
-        std::size_t exportedClips = 0;
-        for (const engine::Track& track : project_.tracks)
-        {
-            interchange::SmfMusicalTrack musical;
-            musical.name = track.strip.name;
-            bool any = false;
-            for (const engine::MidiClip* const clip : clips)
-            {
-                if (clip->trackId != track.id || clip->muted)
-                    continue;
-                any = true;
-                ++exportedClips;
-                const bool sampleLocked = clip->timeBase == engine::TimeBase::SampleLocked;
-                const double quartersPerTick = sampleLocked ? 1.0 / framesPerQuarter : 1.0 / static_cast<double> (engine::kTicksPerQuarter);
-                const double offsetQuarters = static_cast<double> (clip->timelineStart) * (sampleLocked ? 1.0 / framesPerQuarter : 1.0 / static_cast<double> (engine::kTicksPerQuarter));
-                for (const engine::Note& note : clip->notes)
-                {
-                    const int key = note.key + clip->transposeSemitones;
-                    if (key < 0 || key > 127)
-                        continue;   // the flatten drops it too
-                    interchange::SmfNote out;
-                    out.startQuarters = offsetQuarters + static_cast<double> (note.startTick) * quartersPerTick;
-                    out.lengthQuarters = static_cast<double> (note.lengthTicks) * quartersPerTick;
-                    out.key = static_cast<std::int16_t> (key);
-                    out.normalizedVelocity = std::clamp (note.normalizedVelocity + clip->velocityOffset, 0.0, 1.0);
-                    out.channel = static_cast<std::int16_t> (std::max<int> (0, note.channel));
-                    musical.notes.push_back (out);
-                    musical.lengthQuarters = std::max (musical.lengthQuarters, out.startQuarters + out.lengthQuarters);
-                }
-                for (const engine::MidiControlEvent& control : clip->controlEvents)
-                {
-                    interchange::SmfControl out;
-                    out.quarters = offsetQuarters + static_cast<double> (control.tick) * quartersPerTick;
-                    out.kind = control.kind;
-                    out.number = control.number;
-                    out.value = control.value;
-                    out.channel = static_cast<std::int16_t> (std::max<int> (0, control.channel));
-                    musical.controls.push_back (out);
-                    musical.lengthQuarters = std::max (musical.lengthQuarters, out.quarters);
-                }
-                musical.lengthQuarters = std::max (musical.lengthQuarters, offsetQuarters + static_cast<double> (clip->timelineLength) * quartersPerTick);
-            }
-            if (any)
-                tracks.push_back (std::move (musical));
-        }
-        if (exportedClips == 0)
+        const auto result = interchange::projectSmfBytes (
+            project_, clips, bundlePath_.empty() ? "YES DAW" : yesdaw::io::utf8Text (bundlePath_.stem()));
+        if (result.status == interchange::ProjectSmfStatus::NoUnmutedClips)
         {
             reportStatus ("MIDI export: every chosen MIDI clip is muted", true);
             return { id, { false, "only muted MIDI clips" }, false };
         }
 
-        const double bpm = ! project_.tempoMap.empty() ? project_.tempoMap.front().bpm : 120.0;
-        const int numerator = ! project_.meterMap.empty() ? project_.meterMap.front().numerator : 4;
-        const int denominator = ! project_.meterMap.empty() ? project_.meterMap.front().denominator : 4;
-        const std::vector<std::uint8_t> bytes = interchange::writeSmf (
-            interchange::smfFromMusicalTracks (tracks, bpm, numerator, denominator, 960, bundlePath_.empty() ? "YES DAW" : yesdaw::io::utf8Text (bundlePath_.stem())));
+        if (result.status != interchange::ProjectSmfStatus::Ok)
+        {
+            const char* reason = "invalid arrangement";
+            switch (result.status)
+            {
+                case interchange::ProjectSmfStatus::UnsupportedMeter: reason = "unsupported meter"; break;
+                case interchange::ProjectSmfStatus::NumericPrecision: reason = "timing precision"; break;
+                case interchange::ProjectSmfStatus::ResourceLimit: reason = "resource limit"; break;
+                case interchange::ProjectSmfStatus::FileLimit: reason = "file-format limit"; break;
+                case interchange::ProjectSmfStatus::InvalidInput:
+                case interchange::ProjectSmfStatus::NoUnmutedClips:
+                case interchange::ProjectSmfStatus::Ok: break;
+            }
+            reportStatus ("MIDI export refused (" + std::string (reason) + "): " + yesdaw::io::utf8Text (destinationPath.filename()), true);
+            return { id, { false, reason }, false };
+        }
+        const auto& bytes = result.bytes;
         {
             std::ofstream out (destinationPath, std::ios::binary | std::ios::trunc);
             if (! out || ! out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size())))
@@ -3833,7 +3796,7 @@ public:
         }
         ++context_.commandDispatchCount;
         ++context_.midiExportCount;
-        reportStatus ("Exported " + std::to_string (exportedClips) + (exportedClips == 1u ? " MIDI clip" : " MIDI clips")
+        reportStatus ("Exported " + std::to_string (result.exportedClips) + (result.exportedClips == 1u ? " MIDI clip" : " MIDI clips")
                           + (wholeProject ? " (whole project)" : " (selection)") + " to " + yesdaw::io::utf8Text (destinationPath.filename()),
                       false);
         return { id, state, true };
