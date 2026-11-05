@@ -3,8 +3,10 @@
 #include "engine/MusicalAudioWindow.h"
 #include "engine/MusicalClick.h"
 
+#include <bit>
 #include <bitset>
 #include <new>
+#include <numeric>
 #include <type_traits>
 
 namespace yesdaw::engine {
@@ -137,6 +139,61 @@ struct Builder;
     return { -value.high, -value.low, value.numericFailure };
 }
 
+// Prove only the two closed ratio limits without forming an overflowing product.
+// Zero means unproved; all other ratios retain their original interval.
+[[nodiscard]] inline double exactRatioEndpoint (std::uint64_t length, std::uint64_t input,
+                                                 double rate, double bpm) noexcept
+{
+    static_assert (sizeof (double) == sizeof (std::uint64_t)
+                   && std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53);
+    const auto rateBits = std::bit_cast<std::uint64_t> (rate);
+    const auto bpmBits = std::bit_cast<std::uint64_t> (bpm);
+    constexpr std::uint64_t largestFinite = 0x7fefffffffffffff;
+    if (length == 0 || input == 0 || rateBits == 0 || rateBits > largestFinite
+        || bpmBits == 0 || bpmBits > largestFinite) return 0.0;
+    const auto rateExponent = static_cast<int> ((rateBits >> 52) & 0x7ff);
+    const auto bpmExponent = static_cast<int> ((bpmBits >> 52) & 0x7ff);
+    constexpr std::uint64_t hiddenBit = std::uint64_t { 1 } << 52;
+    const auto rateSignificand = (rateBits & (hiddenBit - 1)) | (rateExponent == 0 ? 0 : hiddenBit);
+    const auto bpmSignificand = (bpmBits & (hiddenBit - 1)) | (bpmExponent == 0 ? 0 : hiddenBit);
+    int power = (rateExponent == 0 ? -1074 : rateExponent - 1075)
+        - (bpmExponent == 0 ? -1074 : bpmExponent - 1075);
+    constexpr auto ppq = static_cast<std::uint64_t> (kTicksPerQuarter);
+    constexpr auto common = std::gcd (std::uint64_t { 60 }, ppq);
+    // These constant factors strip to one, leaving at most four runtime GCDs.
+    static_assert (60 / common == 1 && std::has_single_bit (ppq / common));
+    std::uint64_t left[] { length, 60 / common, rateSignificand };
+    std::uint64_t right[] { input, ppq / common, bpmSignificand };
+    for (unsigned index = 0; index < 3; ++index)
+    {
+        const auto leftTwos = std::countr_zero (left[index]);
+        const auto rightTwos = std::countr_zero (right[index]);
+        left[index] >>= leftTwos;
+        right[index] >>= rightTwos;
+        power += leftTwos - rightTwos;
+    }
+    if (power != -1 && power != 1) return 0.0;
+    for (auto& numerator : left)
+        for (auto& denominator : right)
+        {
+            if (numerator == 1 || denominator == 1) continue;
+            auto a = numerator, b = denominator;
+            // Each two remainders at least halve b; 128 bounds all uint64 inputs.
+            for (unsigned step = 0; b != 0 && step < 128; ++step)
+            {
+                const auto remainder = a % b;
+                a = b;
+                b = remainder;
+            }
+            if (b != 0) return 0.0;
+            numerator /= a;
+            denominator /= a;
+        }
+    for (unsigned index = 0; index < 3; ++index)
+        if (left[index] != 1 || right[index] != 1) return 0.0;
+    return power == -1 ? 0.5 : (power == 1 ? 2.0 : 0.0);
+}
+
 } // namespace musical_cut_detail
 
 class MusicalAudioCutPlan final
@@ -237,6 +294,23 @@ struct Builder
             }
         }
         out = ratio (bpm);
+        // Only metadata for constants or exact original ramp endpoints has this
+        // extra proof. Prepaid sourceRatio and clipped ramp interiors stay unchanged.
+        // Two interval primitives (128), four guarded GCDs (3072), and fixed
+        // decode/strip/validation work (<=256) fit the existing 4096 prepayment.
+        if (! prepaid && (! segment.ramp || (position.numerator == 0
+                && (position.whole == segment.originalStart || position.whole == segment.originalEnd)))
+            && ! out.numericFailure && std::isfinite (out.low) && std::isfinite (out.high)
+            && out.low > 0.0 && out.high >= out.low
+            && ! bpm.numericFailure && std::isfinite (bpm.low) && bpm.low > 0.0 && bpm.low == bpm.high
+            && ((out.low < 0.5 && out.high >= 0.5) || (out.low <= 2.0 && out.high > 2.0)))
+        {
+            const auto& window = plan->window_;
+            const auto endpoint = exactRatioEndpoint (static_cast<std::uint64_t> (window.lengthTicks()),
+                window.inputFrames(), window.clock()->sampleRate().hz, bpm.low);
+            if (endpoint != 0.0 && out.low <= endpoint && endpoint <= out.high)
+                out = { endpoint, endpoint, false };
+        }
         return true;
     }
 

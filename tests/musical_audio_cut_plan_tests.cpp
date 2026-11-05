@@ -356,3 +356,129 @@ TEST_CASE ("Musical audio logical cuts retain exact boundaries and bounded cumul
         CHECK_FALSE (boundaryGate (rounded));
     }
 }
+
+TEST_CASE ("Musical audio planner admits exact ratio endpoints before jump chord checks",
+           "[musical-audio-cut-plan][endpoint-regression]")
+{
+    using namespace yesdaw::engine;
+    using Status = MusicalAudioCutStatus;
+    using Geometry = MusicalAudioStatus;
+    constexpr Tick start = 3 * kTicksPerQuarter + 1;
+    constexpr Tick length = 10 * kTicksPerQuarter;
+    struct Map { double first, last; TempoCurve curve; };
+    constexpr std::array<Map, 9> maps {{
+        { 120.0, 120.0, TempoCurve::Jump }, { 80.0, 80.0, TempoCurve::Jump },
+        { 60.0, 60.0, TempoCurve::Jump }, { 40.0, 40.0, TempoCurve::Jump },
+        { 30.0, 30.0, TempoCurve::Jump }, { 120.0, 30.0, TempoCurve::LinearRamp },
+        { 30.0, 120.0, TempoCurve::LinearRamp }, { 120.0, 30.0, TempoCurve::Jump },
+        { 30.0, 120.0, TempoCurve::Jump }
+    }};
+    const auto windowFor = [] (std::span<const TempoChange> rows, double rate,
+                              Tick begin, Tick span, std::uint64_t count) {
+        std::shared_ptr<const MusicalAudioClock> clock;
+        REQUIRE (MusicalAudioClock::build ({ rows.data(), rows.size() }, { rate }, {}, clock) == Geometry::Ok);
+        MusicalAudioWindow window;
+        REQUIRE (resolveMusicalAudioWindow (clock, begin, span, count, window) == Geometry::Ok);
+        return window;
+    };
+    SECTION ("closed ratios reach a plan or a precise jump chord refusal")
+    {
+        constexpr std::array<std::uint64_t, 5> numerators { 1, 3, 1, 3, 2 };
+        constexpr std::array<std::uint64_t, 5> denominators { 2, 4, 1, 2, 1 };
+        for (const int rate : { 44100, 48000, 96000 })
+            for (std::size_t kind = 0; kind < maps.size(); ++kind)
+            {
+                INFO ("rate=" << rate << ", map=" << kind);
+                const auto& map = maps[kind];
+                std::vector<TempoChange> rows { { 0, 90.0, TempoCurve::Jump },
+                                                 { start, map.first, map.curve } };
+                if (kind >= 7)
+                    rows.push_back ({ start + 4 * kTicksPerQuarter + 1, map.last, TempoCurve::Jump });
+                rows.push_back ({ start + length, map.last, TempoCurve::Jump });
+                const auto count = 10u * static_cast<std::uint64_t> (rate);
+                const auto window = windowFor (rows, static_cast<double> (rate), start, length, count);
+                std::shared_ptr<const MusicalAudioCutPlan> plan;
+                const auto result = buildMusicalAudioCutPlan (window, {}, {}, plan);
+                if (kind < 7)
+                    CHECK (result.status == Status::Ok);
+                else
+                {
+                    CHECK ((result.status == Status::Ok || result.status == Status::ChordBoundUnproved));
+                    // This fixture exceeds the current planner's quarter-Frame chord aid.
+                    if (rate == 96000) CHECK (result.status == Status::ChordBoundUnproved);
+                }
+                CHECK (result.geometryStatus == Geometry::Ok);
+                CHECK (static_cast<bool> (plan) == (result.status == Status::Ok));
+                if (! plan) continue;
+                REQUIRE_FALSE (plan->calls().empty());
+                std::uint64_t input = 0;
+                std::int64_t output = 0;
+                for (const auto& call : plan->calls())
+                {
+                    REQUIRE (call.inputBegin == input);
+                    REQUIRE (call.outputBegin == output);
+                    REQUIRE (call.inputFrames > 0);
+                    REQUIRE (call.outputFrames > 0);
+                    REQUIRE (call.inputFrames <= 2048);
+                    REQUIRE (call.outputFrames <= 2048);
+                    REQUIRE (call.inputFrames <= count - input);
+                    input += call.inputFrames;
+                    output += call.outputFrames;
+                    if (kind < 5)
+                    {
+                        const auto prefixNumerator = static_cast<std::uint64_t> (start) * 60u
+                            * static_cast<std::uint64_t> (rate);
+                        constexpr auto prefixDenominator = static_cast<std::uint64_t> (kTicksPerQuarter) * 90u;
+                        const auto n = numerators[kind], d = denominators[kind];
+                        const auto absolute = (prefixNumerator * d + input * n * prefixDenominator)
+                            / (prefixDenominator * d);
+                        CHECK (output == static_cast<std::int64_t> (absolute - prefixNumerator / prefixDenominator));
+                    }
+                    else
+                    {
+                        std::int64_t cut = -1;
+                        REQUIRE (window.cutAtSource (input, cut) == Geometry::Ok);
+                        CHECK (output == cut);
+                    }
+                }
+                CHECK (input == count);
+                CHECK (output == window.frameCount());
+                CHECK (plan->boundaries().size() == (kind >= 7 ? 1u : 0u));
+                CHECK (plan->accounting().constructionWorkUnits <= kMusicalAudioMaxWorkUnits);
+                CHECK (plan->accounting().reservedBytes <= kMusicalAudioMaxReservedBytes);
+            }
+    }
+    SECTION ("adjacent outside BPM values are never snapped into the supported domain")
+    {
+        const std::array<double, 2> outside {
+            std::nextafter (120.0, std::numeric_limits<double>::infinity()),
+            std::nextafter (30.0, 0.0)
+        };
+        for (const auto bpm : outside)
+        {
+            const std::array<TempoChange, 3> rows {{ { 0, 90.0 }, { start, bpm }, { start + length, bpm } }};
+            const auto window = windowFor (rows, 48000.0, start, length, 480000);
+            std::shared_ptr<const MusicalAudioCutPlan> plan;
+            const auto result = buildMusicalAudioCutPlan (window, {}, {}, plan);
+            CHECK (result.status != Status::Ok);
+            CHECK_FALSE (plan);
+        }
+    }
+    SECTION ("large exact native factors cancel without a source-sized allocation")
+    {
+        const std::array<TempoChange, 1> rows {{ { 0, 60.0 } }};
+        constexpr Tick wide = Tick { 1 } << 55;
+        const auto half = windowFor (rows, 15.0 * 0x1p-40, 0, wide, 64);
+        const auto twice = windowFor (rows, 15.0 * 0x1p-38, 0, wide, 64);
+        for (const auto* window : { &half, &twice })
+        {
+            std::shared_ptr<const MusicalAudioCutPlan> plan;
+            REQUIRE (buildMusicalAudioCutPlan (*window, {}, {}, plan).status == Status::Ok);
+            REQUIRE (plan);
+            REQUIRE (plan->calls().size() == 1);
+            CHECK (plan->calls()[0].inputFrames == 64);
+            CHECK (plan->calls()[0].outputFrames == (window == &half ? 32 : 128));
+            CHECK (plan->boundaries().empty());
+        }
+    }
+}
