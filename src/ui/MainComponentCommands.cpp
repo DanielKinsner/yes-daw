@@ -652,12 +652,12 @@ juce::StringArray MainComponent::getMenuBarNames()
 std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int topLevelMenuIndex)
 {
     using yesdaw::ui::UiActionId;
-    static constexpr std::array<UiActionId, 13> kFileMenu {
+    static constexpr std::array<UiActionId, 14> kFileMenu {
         UiActionId::ProjectNew,        UiActionId::ProjectOpen,        UiActionId::ProjectSave,
         UiActionId::ProjectSaveAs,     UiActionId::ProjectSaveACopy,   UiActionId::ProjectSaveAsTemplate,   // G5.5 / ADR-0060
         UiActionId::ProjectImportAudio, UiActionId::ProjectExportAudio,
         UiActionId::ProjectCancelImport,
-        UiActionId::ProjectImportMidi, UiActionId::ProjectExportMidi,   // G3.7
+        UiActionId::ProjectImportMidi, UiActionId::ProjectImportMidiFixed, UiActionId::ProjectExportMidi,   // G3.7
         UiActionId::ProjectExportDawproject, UiActionId::ProjectExportAudioCancel,
     };
     static constexpr std::array<UiActionId, 34> kEditMenu {
@@ -685,7 +685,7 @@ std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int 
         UiActionId::TrackToggleMute,   UiActionId::TrackToggleSolo,    UiActionId::TrackToggleArm,
         UiActionId::MixerTrackSetOutput,
     };
-    static constexpr std::array<UiActionId, 19> kClipMenu {
+    static constexpr std::array<UiActionId, 20> kClipMenu {
         UiActionId::TimelineClipSplit, UiActionId::TimelineClipHeal,
         UiActionId::TimelineClipApplyDefaultFades, UiActionId::TimelineClipSetFades,
         UiActionId::TimelineClipCrossfade, UiActionId::TimelineClipSetGain,
@@ -695,7 +695,7 @@ std::span<const yesdaw::ui::UiActionId> MainComponent::menuActionsForIndex (int 
         UiActionId::TimelineClipCancelStretch,
         UiActionId::TimelineClipToggleMute, UiActionId::TimelineClipColourNext,      // G2.12
         UiActionId::TimelineClipReverse, UiActionId::TimelineClipNormalize, UiActionId::TimelineClipStripSilence,   // G2.13
-        UiActionId::TimelineMidiClipAdd,
+        UiActionId::TimelineMidiClipAdd, UiActionId::TimelineMidiClipAddFixed,
     };
     static constexpr std::array<UiActionId, 14> kMidiMenu {
         UiActionId::PianoRollNoteAdd,  UiActionId::PianoRollNoteDelete, UiActionId::PianoRollNoteSelectAll,
@@ -1695,7 +1695,11 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
         // G3.7: a MIDI file lands on the SELECTED track (else the first) at the playhead; the
         // export takes the selection, else the whole project. The model names every refusal.
         case yesdaw::ui::UiActionId::ProjectImportMidi:
-            ask (fileChoices.chooseImportMidiFile, true, [this] (std::optional<std::filesystem::path> path) {   // ADR-0077
+        case yesdaw::ui::UiActionId::ProjectImportMidiFixed:
+            ask (fileChoices.chooseImportMidiFile, true,
+                 [this, timeBase = action == yesdaw::ui::UiActionId::ProjectImportMidiFixed
+                     ? yesdaw::engine::TimeBase::SampleLocked : yesdaw::engine::TimeBase::TempoLocked]
+                 (std::optional<std::filesystem::path> path) {
                 const auto& tracks = appModel.project().tracks;
                 if (path && ! path->empty() && ! tracks.empty())
                 {
@@ -1703,7 +1707,7 @@ void MainComponent::handleActionWhileAudioStopped (yesdaw::ui::UiActionId action
                         ? static_cast<std::size_t> (selectedTrackLane) : std::size_t {};
                     (void) appModel.importMidiFileAt (
                         *path, tracks[lane].id,
-                        static_cast<yesdaw::engine::Tick> (std::max<std::int64_t> (0, appModel.context().playheadFrame)));
+                        std::max<std::int64_t> (0, appModel.context().playheadFrame), true, true, timeBase);
                 }
                 afterQuestion();
             });

@@ -268,3 +268,5 @@ the numpad's digits and operators spell the same chords as the main keys.
 - Save a Copy (`project.save_a_copy`)
 - Save as Template (`project.save_as_template`)
 - Show Tips Again (`help.show_tips_again`)
+- Add Fixed-time MIDI Clip (`timeline.midi_clip.add_fixed`)
+- Import Fixed-time MIDI File (`project.import_midi_fixed`)

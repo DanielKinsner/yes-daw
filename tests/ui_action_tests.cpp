@@ -1476,3 +1476,44 @@ TEST_CASE ("ADR-0073 an empty-state row names the chord that works here, else th
     REQUIRE (yesdaw::ui::emptyStateRowText ("Add MIDI clip", "Clip > Add MIDI Clip") == "Add MIDI clip  (Clip > Add MIDI Clip)");
     REQUIRE (yesdaw::ui::emptyStateRowText ("Add audio track", "") == "Add audio track");
 }
+
+TEST_CASE ("Fixed MIDI actions append stable identities and retain sibling dispatch contracts",
+           "[ui][actions][musical-midi-actions]")
+{
+    REQUIRE (static_cast<int> (UiActionId::ViewMixWindow) == 241);
+    REQUIRE (static_cast<int> (UiActionId::TimelineMidiClipAddFixed) == 242);
+    REQUIRE (static_cast<int> (UiActionId::ProjectImportMidiFixed) == 243);
+    REQUIRE (kUiActionCount == 244u);
+    UiActionRegistry registry;
+    for (const auto pair : { std::pair { UiActionId::TimelineMidiClipAddFixed, UiActionId::TimelineMidiClipAdd },
+                             std::pair { UiActionId::ProjectImportMidiFixed, UiActionId::ProjectImportMidi } })
+    {
+        const auto* descriptor = registry.descriptor (pair.first);
+        REQUIRE (descriptor != nullptr);
+        CHECK (std::string_view (descriptor->defaultKey).empty());
+        CHECK (descriptor->requiresProject);
+        CHECK (descriptor->accessibleRole == AccessibilityRole::MenuItem);
+        CHECK (descriptor->kind == UiActionKind::Command);
+        const bool creation = pair.first == UiActionId::TimelineMidiClipAddFixed;
+        CHECK (std::string_view (descriptor->stableId) == (creation ? "timeline.midi_clip.add_fixed" : "project.import_midi_fixed"));
+        CHECK (std::string_view (descriptor->label) == (creation ? "Add Fixed-time MIDI Clip" : "Import Fixed-time MIDI File"));
+        const auto* stable = descriptorForStableId (descriptor->stableId);
+        REQUIRE (stable != nullptr);
+        CHECK (stable->id == pair.first);
+        UiActionContext context;
+        CHECK_FALSE (registry.stateFor (pair.first, context).enabled);
+        CHECK_FALSE (registry.dispatch (pair.first, context).dispatched);
+        context.projectLoaded = true;
+        auto ordinary = context;
+        REQUIRE (registry.dispatch (pair.second, ordinary).dispatched);
+        const auto result = registry.dispatch (pair.first, context);
+        CHECK (result.action == pair.first);
+        CHECK (result.dispatched);
+        CHECK (context.commandDispatchCount == ordinary.commandDispatchCount);
+        CHECK (context.midiEditCount == ordinary.midiEditCount);
+        CHECK (context.midiImportCount == ordinary.midiImportCount);
+        CHECK (context.midiClipSelected == ordinary.midiClipSelected);
+        CHECK (context.canUndo == ordinary.canUndo);
+        CHECK (context.canRedo == ordinary.canRedo);
+    }
+}

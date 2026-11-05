@@ -278,6 +278,8 @@ enum class UiActionId : std::uint8_t
     ProjectSaveAsTemplate,      // G5.5 / ADR-0060: the project's layout as a template for new projects
     HelpShowTipsAgain,          // G6.5 / ADR-0073 §4: every dismissed first-run tip comes back
     ViewMixWindow,              // the layout pass, step 10: the Edit / Mix window switch (Ctrl+=, Pro Tools' chord)
+    TimelineMidiClipAddFixed,
+    ProjectImportMidiFixed,
     Count
 };
 
@@ -1216,7 +1218,11 @@ inline constexpr std::array<UiActionDescriptor, kUiActionCount> kUiActionDescrip
     // otherwise - SoundCraft's and Pro Tools' Edit / Mix windows, on Pro Tools' chord.
     { UiActionId::ViewMixWindow, "view.mix_window", "Mix Window", "Ctrl+=",
       "Switch between the Edit window and the full-window mixer",
-      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false }
+      AccessibilityRole::MenuItem, UiActionKind::Toggle, false, false, false, false },
+    { UiActionId::TimelineMidiClipAddFixed, "timeline.midi_clip.add_fixed", "Add Fixed-time MIDI Clip", "",
+      "Add MIDI clip with fixed timing", AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false },
+    { UiActionId::ProjectImportMidiFixed, "project.import_midi_fixed", "Import Fixed-time MIDI File", "",
+      "Import a Standard MIDI File with fixed timing", AccessibilityRole::MenuItem, UiActionKind::Command, true, false, false, false }
 }};
 
 // G0.8: no Refresh / Test Device buttons in the shell. Refresh lives in the Options menu; the
@@ -1657,6 +1663,7 @@ public:
                 ++context.dawprojectExportCount;
                 break;
 
+            case UiActionId::ProjectImportMidiFixed:
             case UiActionId::ProjectImportMidi:
                 ++context.midiImportCount;
                 break;
@@ -2360,6 +2367,7 @@ public:
                 ++context.timelineEditCount;
                 break;
 
+            case UiActionId::TimelineMidiClipAddFixed:
             case UiActionId::TimelineMidiClipAdd:
                 context.midiClipSelected = true;
                 context.canUndo = true;

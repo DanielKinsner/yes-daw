@@ -5758,9 +5758,7 @@ TEST_CASE ("menu bar model lists real menus and dispatches actions through the s
     REQUIRE (model != nullptr);
     // G1.2: Logic's menu order.
     REQUIRE (model->getMenuBarNames() == juce::StringArray ({ "File", "Edit", "Track", "Clip", "MIDI", "View", "Transport", "Options", "Help" }));
-    // Ten action items + the B39 Open Recent submenu (G3.7 re-pin: + Import MIDI File / Export MIDI File; G5.5: + Save a
-    // Copy, Save as Template), plus Cancel Audio Import.
-    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 14);
+    REQUIRE (model->getMenuForIndex (0, "File").getNumItems() == 15);
     REQUIRE (model->getMenuForIndex (1, "Edit").getNumItems() == 35);   // G1.4: + the four nudge values; G1.7: + Repeat Count ▸; G2.5: + the six range verbs; G2.6: + the three edit modes; G2.18: + Undo History…; G4.6: + Automation Follows Clips
     REQUIRE (model->getMenuForIndex (8, "Help").getNumItems() == 2);   // G6.5 / ADR-0073: + Show Tips Again
 
@@ -13244,23 +13242,23 @@ TEST_CASE ("the tool palette drives real timeline behavior per tool",
         midBounds.getCentreY()
     };
     const double pencilSeconds = secondsAtX (pencilBase, pencilPoint.x);
-    const auto pencilRawTick = static_cast<yesdaw::engine::Tick> (
+    const auto pencilRawFrame = static_cast<yesdaw::engine::Tick> (
         std::llround (pencilSeconds * original.sampleRate.hz));
-    yesdaw::engine::Tick pencilExpectedTick = pencilRawTick;
+    yesdaw::engine::Tick pencilExpectedFrame = pencilRawFrame;
     REQUIRE (pencilBase.context.snapEnabled);
     REQUIRE (pencilBase.context.snapGridTicks > 0);
-    REQUIRE (yesdaw::engine::snapTick (pencilRawTick,
+    REQUIRE (yesdaw::engine::snapTick (pencilRawFrame,
                                        yesdaw::engine::SnapGrid { pencilBase.context.snapGridTicks },
-                                       pencilExpectedTick));
+                                       pencilExpectedFrame));
+    const auto pencilExpectedTick = (pencilExpectedFrame * 16 + 12) / 25;
+    const auto pencilExpectedEnd = (pencilExpectedTick / 61440 + 1) * 61440;
     mouseDownAt (timeline, pencilPoint);
     const yesdaw::engine::Project penciled = readProjectSnapshot (bundlePath);
     REQUIRE (penciled.midiClips.size() == 1u);
     REQUIRE (penciled.midiClips.front().trackId == original.tracks[1].id);
+    REQUIRE (penciled.midiClips.front().timeBase == yesdaw::engine::TimeBase::TempoLocked);
     REQUIRE (penciled.midiClips.front().timelineStart == pencilExpectedTick);
-    const double barSeconds = 60.0 / penciled.tempoMap.front().bpm
-                            * static_cast<double> (penciled.meterMap.front().numerator);
-    REQUIRE (penciled.midiClips.front().timelineLength
-             == static_cast<yesdaw::engine::Tick> (barSeconds * penciled.sampleRate.hz + 0.5));
+    REQUIRE (penciled.midiClips.front().timelineLength == pencilExpectedEnd - pencilExpectedTick);
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
 
     yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
@@ -13923,7 +13921,7 @@ TEST_CASE ("MIDI clips are first-class timeline citizens",
     const int rowHeight = yesdaw::ui::UiTheme::Layout::trackListRowMinHeight;
     mouseDownAt (*rail, { kRailRowClickX, headerHeight + rowHeight + rowHeight / 2 });
     REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAddFixed);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
 
     // E11: the empty roll grid is tool-aware — the pencil needs the Pencil tool; Pointer is
@@ -14118,7 +14116,7 @@ TEST_CASE ("the piano roll follows the double-clicked timeline MIDI clip",
     {
         selectRailRow (row);
         REQUIRE (shell->keyPressed (juce::KeyPress (juce::KeyPress::homeKey)));
-        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
+        yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAddFixed);   // G1.1: no default chord
         yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::ViewTimeline);   // G1.1: no default chord
         yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::mixerHeight);   // G2.1 cp2: back to the default dock
     }
@@ -14215,7 +14213,7 @@ TEST_CASE ("the piano roll viewport scrolls all 128 keys and zooms and scrolls t
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAddFixed);   // G1.1: no default chord
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     // E11: the empty-grid pencil needs the Pencil tool.
     REQUIRE (shell->keyPressed (juce::KeyPress ('2')));
@@ -14942,7 +14940,7 @@ TEST_CASE ("comma and period nudge the selected piano-roll note by the snap grid
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAddFixed);   // G1.1: no default chord
 
     // E11: the empty-grid pencil needs the Pencil tool (the pencil selects its new note).
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
@@ -16188,7 +16186,9 @@ TEST_CASE ("Ctrl+M creates a MIDI clip and the pencil adds audible notes", "[ui]
     yesdaw::engine::Project project = readProjectSnapshot (bundlePath);
     REQUIRE (project.midiClips.size() == 1u);
     REQUIRE (project.midiClips.front().notes.empty());
-    REQUIRE (project.midiClips.front().timelineLength == 96'000);   // one 4/4 bar at 120 BPM / 48 kHz
+    REQUIRE (project.midiClips.front().timeBase == yesdaw::engine::TimeBase::TempoLocked);
+    REQUIRE (project.midiClips.front().timelineStart == 0);
+    REQUIRE (project.midiClips.front().timelineLength == 61440);
     MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
     REQUIRE (snapshot.context.activePanel == UiPanel::PianoRoll);
     REQUIRE (snapshot.context.midiClipSelected);
@@ -18594,7 +18594,7 @@ TEST_CASE ("Q quantizes the selected notes to the snap grid as one undo group",
 
     auto shell = makeShell (std::move (choices));
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);   // G1.1: no default chord
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAddFixed);   // G1.1: no default chord
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
     // E12: the pencil floors to the real chooser grid, which would pre-align these notes and
@@ -22073,7 +22073,7 @@ TEST_CASE ("G3.2 piano roll v2: grid, names, playhead + follow, adjacent notes, 
     auto shell = makeShell (std::move (choices));
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAddFixed);
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);   // G3.2 FIX 3: the full 25-key window for the historical key expectations
@@ -23868,13 +23868,9 @@ TEST_CASE ("G3.8 MIDI FX in the shell: the Add FX chooser lists them, the slot n
     std::filesystem::remove_all (bundlePath, ec);
 }
 
-// G3.7: MIDI file import / export. A .mid dropped on a lane lands as MIDI clips at the tick under the
-// pointer — the file's first musical track on that lane, every further track on a NEW track named from
-// the file with the synth on it; quarter notes become frames at the project's head tempo (Logic's law:
-// the file plays at the project tempo); notes and control points come through; one Ctrl+Z removes it
-// all. File > Import MIDI File lands on the selected track at the playhead. File > Export MIDI File
-// writes the selection (else every MIDI clip) as a format-1 SMF that reads back to the same notes.
-// Refusals name their reason on the status line.
+// G3.7: MIDI files retain source quarters as musical Notes at the Project's current map.
+// Each retained source Track lands on its captured lane or a new synth Track, with one Undo group.
+// The ordinary chooser/drop use musical timing; export retains arrangement placement and maps.
 TEST_CASE ("G3.7 MIDI file: a .mid drop lands as clips and tracks, the menu import, the export reads back, refusals are named",
            "[ui][input][shell][g3][midi-file]")
 {
@@ -23924,8 +23920,17 @@ TEST_CASE ("G3.7 MIDI file: a .mid drop lands as clips and tracks, the menu impo
     REQUIRE (project().midiClips.empty());
     const double sampleRateHz = project().sampleRate.hz;
     const double bpm = project().tempoMap.front().bpm;
-    const double framesPerQuarter = sampleRateHz * 60.0 / bpm;
-    const auto frames = [&] (double quarters) { return static_cast<yesdaw::engine::Tick> (quarters * framesPerQuarter + 0.5); };
+    const auto importTempoMap = project().tempoMap;
+    const auto importMeterMap = project().meterMap;
+    auto* const importInput = dynamic_cast<yesdaw::ui::TimelineInputComponent*> (&requireTimelineComponent (*shell));
+    REQUIRE (importInput != nullptr);
+    const auto importState = importInput->stateProvider();
+    const auto importGeometry = yesdaw::ui::timelineCanvasGeometry (importInput->getLocalBounds(), importState);
+    const auto importSnap = snapshotMainComponent (*shell).context;
+    REQUIRE (importTempoMap.size() == 1u);
+    REQUIRE (importMeterMap.size() == 1u);
+    REQUIRE (importSnap.snapEnabled);
+    REQUIRE (importSnap.snapGridTicks > 0);
 
     // The File menu lists both verbs.
     {
@@ -23966,28 +23971,38 @@ TEST_CASE ("G3.7 MIDI file: a .mid drop lands as clips and tracks, the menu impo
         const yesdaw::engine::MidiClip& bass = dropped.midiClips[1];
         REQUIRE (keys.trackId == dropped.tracks[1].id);
         REQUIRE (bass.trackId == dropped.tracks[2].id);
-        REQUIRE (keys.timelineStart > 0);   // the tick under the pointer, not the playhead
+        const auto rawDropFrame = static_cast<yesdaw::engine::Tick> (std::llround (
+            (importGeometry.viewport.scrollSeconds + static_cast<double> (dropX - importGeometry.clipArea.getX())
+                / importGeometry.viewport.pixelsPerSecond) * sampleRateHz));
+        const auto gridFrames = static_cast<yesdaw::engine::Tick> (importSnap.snapGridTicks);
+        const auto snappedDropFrame = ((rawDropFrame + gridFrames / 2) / gridFrames) * gridFrames;
+        const auto expectedStart = static_cast<yesdaw::engine::Tick> (std::llround (
+            static_cast<double> (snappedDropFrame) * bpm * 15360.0 / (60.0 * sampleRateHz)));
+        REQUIRE (keys.timelineStart > 0);
+        REQUIRE (keys.timelineStart == expectedStart);
         REQUIRE (keys.timelineStart == bass.timelineStart);
-        REQUIRE (keys.timeBase == yesdaw::engine::TimeBase::SampleLocked);
-        // Whole bars at the head meter: 1.5 quarters of content → one 4/4 bar.
-        REQUIRE (keys.timelineLength == frames (4.0));
-        REQUIRE (bass.timelineLength == frames (4.0));
+        REQUIRE (keys.timeBase == yesdaw::engine::TimeBase::TempoLocked);
+        REQUIRE (bass.timeBase == yesdaw::engine::TimeBase::TempoLocked);
+        REQUIRE (keys.timelineLength == ((expectedStart + 23040 + 61439) / 61440) * 61440 - expectedStart);
+        REQUIRE (bass.timelineLength == ((expectedStart + 30720 + 61439) / 61440) * 61440 - expectedStart);
         REQUIRE (keys.notes.size() == 2u);
         REQUIRE (keys.notes[0].key == 60);
         REQUIRE (keys.notes[0].startTick == 0);
-        REQUIRE (keys.notes[0].lengthTicks == frames (1.0));
+        REQUIRE (keys.notes[0].lengthTicks == 15360);
         REQUIRE (keys.notes[0].normalizedVelocity == Catch::Approx (100.0 / 127.0));
         REQUIRE (keys.notes[1].key == 64);
-        REQUIRE (keys.notes[1].startTick == frames (1.0));
-        REQUIRE (keys.notes[1].lengthTicks == frames (0.5));
+        REQUIRE (keys.notes[1].startTick == 15360);
+        REQUIRE (keys.notes[1].lengthTicks == 7680);
         REQUIRE (keys.controlEvents.size() == 1u);
         REQUIRE (keys.controlEvents[0].kind == yesdaw::engine::MidiControlKind::ControlChange);
         REQUIRE (keys.controlEvents[0].number == 1);
-        REQUIRE (keys.controlEvents[0].tick == frames (0.5));
+        REQUIRE (keys.controlEvents[0].tick == 7680);
         REQUIRE (keys.controlEvents[0].value == Catch::Approx (64.0 / 127.0));
         REQUIRE (bass.notes.size() == 1u);
         REQUIRE (bass.notes[0].key == 36);
-        REQUIRE (bass.notes[0].lengthTicks == frames (2.0));
+        REQUIRE (bass.notes[0].lengthTicks == 30720);
+        REQUIRE (dropped.tempoMap == importTempoMap);
+        REQUIRE (dropped.meterMap == importMeterMap);
         // The status line says what landed; the roll follows the first clip.
         const MainComponentSnapshot snapshot = snapshotMainComponent (*shell);
         REQUIRE (snapshot.statusLineText.find ("Imported 2 MIDI clips") != std::string::npos);
@@ -24092,7 +24107,7 @@ TEST_CASE ("G3.6 musical typing and step input: Ctrl+K, the letter layout, octav
     auto shell = makeShell (std::move (choices));
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAddFixed);
     REQUIRE (requirePianoRollComponent (*shell).isVisible());
     const auto project = [&] { return readProjectSnapshot (bundlePath); };
     const auto probe = [&] {
@@ -24237,7 +24252,7 @@ TEST_CASE ("G3.5 MIDI clip ops: inspector rows, mute, split, heal, copy / paste 
     auto shell = makeShell (std::move (choices));
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAddFixed);
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
     clickButton (requireButtonForAction (*shell, UiActionId::InspectorShowClipTab));
 
@@ -24437,7 +24452,7 @@ TEST_CASE ("G3.4 quantize panel: grid, strength, swing, note ends, humanize and 
     auto shell = makeShell (std::move (choices));
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAddFixed);
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
     // The default dock height: a maxed dock leaves the inspector too short for the panel's rows,
     // which then drop whole (the E24 law) — the gate exercises the panel at the plan's 300 px dock.
@@ -24632,7 +24647,7 @@ TEST_CASE ("G3.3 control lane: chooser, pointer points and drags, eraser, pencil
     auto shell = makeShell (std::move (choices));
     shell->setSize (1920, 1080);
     clickButton (requireButtonForAction (*shell, UiActionId::ProjectNew));
-    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAdd);
+    yesdaw::ui::mainComponentDispatchAction (*shell, UiActionId::TimelineMidiClipAddFixed);
     REQUIRE (snapshotMainComponent (*shell).context.activePanel == yesdaw::ui::UiPanel::PianoRoll);
     juce::Component& pianoRoll = requirePianoRollComponent (*shell);
     yesdaw::ui::mainComponentSetDockHeight (*shell, yesdaw::ui::UiTheme::Layout::windowMaxHeight);
@@ -35225,4 +35240,211 @@ TEST_CASE ("offscreen Ctrl-double-click quantize follows native maps and panel s
     SECTION ("SampleLocked strength50") { run (false, 1); }
     SECTION ("SampleLocked half-Beat override") { run (false, 2); }
     SECTION ("SampleLocked note ends") { run (false, 3); }
+}
+
+TEST_CASE ("offscreen MIDI creation and imports keep musical defaults and explicit Fixed timing",
+           "[ui][input][shell][musical-midi-defaults-input][adr0082]")
+{
+    using namespace yesdaw;
+    int scenario = 0;
+    SECTION ("ordinary Clip menu creates musical MIDI") {}
+    SECTION ("Fixed Clip menu creates explicit physical MIDI") { scenario = 1; }
+    SECTION ("Pencil uses its physical pointer with musical destination units") { scenario = 2; }
+    SECTION ("ordinary chooser reads its lane and playhead when answered") { scenario = 3; }
+    SECTION ("Fixed chooser captures its mode but reads its target when answered") { scenario = 4; }
+    SECTION ("a direct MIDI drop defaults to musical timing") { scenario = 5; }
+    SECTION ("a deferred mixed tail uses the current map and captured Track identities") { scenario = 6; }
+    const auto bundle = makeTempBundlePath ("musical-midi-input");
+    const auto midiPath = bundle.parent_path() / (bundle.stem().string() + ".mid");
+    auto song = ui::UiAppModel::makeDefaultSessionProject();
+    song.tempoMap = { { 0, 120.0 }, { 30720, 60.0 } };
+    song.meterMap = { { 0, 4, 4 }, { 38400, 3, 8 } };
+    for (std::uint8_t value : { std::uint8_t { 70 }, std::uint8_t { 71 } })
+    {
+        auto track = song.tracks.front();
+        track.id = idFromLowByte (value);
+        track.strip.name = value == 70 ? "Second" : "Held";
+        track.instrumentKind = engine::TrackInstrumentKind::SimpleSynth;
+        song.tracks.push_back (track);
+    }
+    if (scenario == 6)
+    {
+        engine::MidiClip held;
+        held.id = idFromLowByte (72);
+        held.trackId = song.tracks.back().id;
+        held.timeBase = engine::TimeBase::SampleLocked;
+        held.timelineLength = 96000;
+        held.notes = { { idFromLowByte (73), 0, 48000, 60, 60.0, 0.5, -1, 0 } };
+        song.midiClips.push_back (held);
+    }
+    const std::vector<std::uint8_t> bytes {
+        'M','T','h','d',0,0,0,6,0,0,0,1,0x01,0xE0, 'M','T','r','k',0,0,0,33,
+        0,0xFF,0x03,4,'K','e','y','s', 0,0xFF,0x51,3,0x09,0x27,0xC0,
+        0,0x93,60,100, 0x81,0x70,0xB2,1,64, 0x81,0x70,0x83,60,0, 0,0xFF,0x2F,0 };
+    REQUIRE (bytes.size() == 55u);
+    { std::ofstream out (midiPath, std::ios::binary); REQUIRE (out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size()))); }
+    std::optional<ui::QuestionReply<std::filesystem::path>> reply;
+    MainComponentFileChoices choices;
+    choices.makeNewProject = [song] { return song; };
+    choices.chooseNewProjectBundle = [bundle] { return bundle; };
+    choices.chooseOpenProjectBundle = [bundle] { return bundle; };
+    choices.chooseImportMidiFile = [&reply] (ui::QuestionReply<std::filesystem::path> answer) { reply = std::move (answer); };
+    REQUIRE_FALSE (choices.nativePrompts);
+    auto shell = makeShell (std::move (choices));
+    shell->setSize (1920, 1080);
+    const auto requireHeadless = [&] {
+        REQUIRE (shell->getPeer() == nullptr);
+        const auto snapshot = snapshotMainComponent (*shell);
+        REQUIRE_FALSE (snapshot.desktopAudioRequested);
+        REQUIRE_FALSE (snapshot.desktopAudioOpen);
+    };
+    requireHeadless();
+    ui::mainComponentDispatchAction (*shell, UiActionId::ProjectNew);
+    ui::mainComponentDispatchAction (*shell, UiActionId::TimelineSnapModeOff);
+    auto* timeline = dynamic_cast<ui::TimelineInputComponent*> (&requireTimelineComponent (*shell));
+    REQUIRE (timeline != nullptr);
+    const auto state = timeline->stateProvider();
+    const auto geometry = ui::timelineCanvasGeometry (timeline->getLocalBounds(), state);
+    const int x = geometry.clipArea.getX() + juce::roundToInt ((0.75 - geometry.viewport.scrollSeconds) * geometry.viewport.pixelsPerSecond);
+    const auto physicalFrame = static_cast<engine::Tick> (std::llround (
+        (geometry.viewport.scrollSeconds + static_cast<double> (x - geometry.clipArea.getX()) / geometry.viewport.pixelsPerSecond) * 48000.0));
+    REQUIRE (physicalFrame > 30000);
+    REQUIRE (physicalFrame < 45000);
+    auto* menu = dynamic_cast<juce::MenuBarComponent*> (findChildWithComponentId (*shell, "shell.menubar"));
+    REQUIRE (menu != nullptr);
+    const auto invokeMenu = [&] (UiActionId action, int index) {
+        const auto model = menu->getModel();
+        REQUIRE (model != nullptr);
+        const auto items = model->getMenuForIndex (index, index == 0 ? "File" : "Clip");
+        bool found = false;
+        for (juce::PopupMenu::MenuItemIterator it (items); it.next();)
+            found = found || it.getItem().itemID == static_cast<int> (action) + 1;
+        REQUIRE (found);
+        model->menuItemSelected (static_cast<int> (action) + 1, index);
+    };
+    engine::Tick insertion = 0;
+    engine::EntityId expectedTrack = song.tracks.front().id;
+    auto expectedTempoMap = song.tempoMap;
+    const bool fixed = scenario == 1 || scenario == 4;
+    if (scenario <= 1)
+        invokeMenu (fixed ? UiActionId::TimelineMidiClipAddFixed : UiActionId::TimelineMidiClipAdd, 3);
+    else if (scenario == 2)
+    {
+        insertion = physicalFrame;
+        ui::mainComponentDispatchAction (*shell, UiActionId::TimelineToolSelectPencil);
+        mouseDownAt (*timeline, { x, geometry.clipArea.getY() + geometry.laneHeight / 2 });
+    }
+    else if (scenario == 3 || scenario == 4)
+    {
+        REQUIRE (static_cast<int> (probeRoot (*shell)["selection"]["primaryTrack"]) == -1);
+        ui::mainComponentDispatchAction (*shell, UiActionId::TrackSelectNext);
+        REQUIRE (static_cast<int> (probeRoot (*shell)["selection"]["primaryTrack"]) == 0);
+        invokeMenu (fixed ? UiActionId::ProjectImportMidiFixed : UiActionId::ProjectImportMidi, 0);
+        REQUIRE (reply.has_value());
+        REQUIRE (ui::mainComponentQuestionOpen (*shell));
+        ui::mainComponentDispatchAction (*shell, UiActionId::TrackSelectNext);
+        REQUIRE (static_cast<int> (probeRoot (*shell)["selection"]["primaryTrack"]) == 1);
+        expectedTrack = song.tracks[1].id;
+        mouseDownAt (*timeline, { x, geometry.rulerArea.getCentreY() });
+        insertion = snapshotMainComponent (*shell).context.playheadFrame;
+        REQUIRE (insertion == physicalFrame);
+        (*reply) (midiPath);
+        REQUIRE_FALSE (ui::mainComponentQuestionOpen (*shell));
+    }
+    else if (scenario == 5)
+    {
+        insertion = physicalFrame;
+        timeline->filesDropped ({ juce::String (midiPath.string()) }, x, geometry.clipArea.getY() + geometry.laneHeight / 2);
+    }
+    else
+    {
+        insertion = physicalFrame;
+        expectedTrack = song.tracks[1].id;
+        timeline->filesDropped ({ juce::String (YESDAW_WAV_FIXTURE_PATH), juce::String (midiPath.string()) },
+                                x, geometry.clipArea.getY() + geometry.laneHeight / 2);
+        REQUIRE (snapshotMainComponent (*shell).context.audioImportPending);
+        auto* rail = findChildWithComponentId (*shell, "shell.tracklist.input");
+        REQUIRE (rail != nullptr);
+        const juce::Point<int> first { kRailRowClickX, ui::UiTheme::Layout::trackListHeaderHeight + ui::UiTheme::Layout::trackListRowMinHeight / 2 };
+        rail->mouseDown (makeMouseEvent (*rail, first, first, false));
+        ui::mainComponentDispatchAction (*shell, UiActionId::TrackMoveDown);
+        auto& tempo = requireSliderForAction (*shell, UiActionId::TransportSetTempo);
+        tempo.setValue (60.0, juce::sendNotificationSync);
+        REQUIRE (readProjectSnapshot (bundle).tempoMap.front().bpm == 60.0);
+        expectedTempoMap = readProjectSnapshot (bundle).tempoMap;
+        ui::mainComponentDispatchAction (*shell, UiActionId::ViewPianoRoll);
+        ui::mainComponentSetDockHeight (*shell, ui::UiTheme::Layout::windowMaxHeight);
+        auto& roll = requirePianoRollComponent (*shell);
+        auto* input = dynamic_cast<ui::PianoRollInputComponent*> (&roll);
+        REQUIRE (input != nullptr);
+        REQUIRE (input->stateProvider().midiClipId == song.midiClips.front().id);
+        REQUIRE (input->stateProvider().notes.size() == 1u);
+        REQUIRE (input->stateProvider().timelineLength == 96000);
+        const auto grid = pianoRollGridBounds (roll);
+        const auto lane = pianoRollVelocityLaneBounds (roll);
+        const juce::Point<int> down { grid.getX() + grid.getWidth() / 8, lane.getBottom() - 6 };
+        const auto moved = down + juce::Point<int> (0, -1);
+        const juce::ModifierKeys mods (juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::ctrlModifier);
+        roll.mouseDown (makeMouseEvent (roll, down, down, false, 1, mods));
+        roll.mouseDrag (makeMouseEvent (roll, moved, down, true, 1, mods));
+        REQUIRE (input->hasActiveInteraction());
+        const auto until = std::chrono::steady_clock::now() + std::chrono::seconds (20);
+        while (snapshotMainComponent (*shell).context.audioImportPending
+               && snapshotMainComponent (*shell).statusLineText.find ("ready to place") == std::string::npos
+               && std::chrono::steady_clock::now() < until)
+        {
+            ui::mainComponentServiceUiTick (*shell);
+            std::this_thread::sleep_for (std::chrono::milliseconds (1));
+        }
+        CHECK (readProjectSnapshot (bundle).clips.empty());
+        CHECK (readProjectSnapshot (bundle).midiClips.size() == 1u);
+        REQUIRE (snapshotMainComponent (*shell).context.audioImportPending);
+        REQUIRE (snapshotMainComponent (*shell).statusLineText.find ("ready to place") != std::string::npos);
+        const auto selectedRail = probeRoot (*shell)["selection"]["primaryTrack"];
+        roll.mouseUp (makeMouseEvent (roll, moved, down, true, 1, mods));
+        waitForAudioImports (*shell);
+        const auto after = readProjectSnapshot (bundle);
+        REQUIRE (after.clips.size() == 1u);
+        CHECK (after.clips.front().trackId == song.tracks[0].id);
+        CHECK (after.clips.front().timelineStart == insertion);
+        CHECK (after.tracks.front().id == song.tracks[1].id);
+        CHECK (probeRoot (*shell)["selection"]["primaryTrack"] == selectedRail);
+    }
+    const auto after = readProjectSnapshot (bundle);
+    REQUIRE (after.midiClips.size() == (scenario == 6 ? 2u : 1u));
+    const auto created = after.midiClips.back();
+    CHECK (created.trackId == expectedTrack);
+    CHECK (created.timeBase == (fixed ? engine::TimeBase::SampleLocked : engine::TimeBase::TempoLocked));
+    const engine::Tick startTick = scenario == 6 ? (insertion * 8 + 12) / 25 : (insertion * 16 + 12) / 25;
+    CHECK (created.timelineStart == (fixed ? insertion : startTick));
+    const auto frameAt = [] (engine::Tick tick) {
+        return tick <= 30720 ? (25 * tick + 8) / 16 : 48000 + (25 * (tick - 30720) + 4) / 8;
+    };
+    const auto barAtOrAfter = [] (engine::Tick tick) {
+        return tick <= 38400 ? engine::Tick { 38400 } : 38400 + ((tick - 38400 + 23039) / 23040) * 23040;
+    };
+    const engine::Tick endTick = scenario <= 2 ? 38400 : barAtOrAfter (startTick + 15360);
+    CHECK (created.timelineLength == (fixed ? frameAt (endTick) - frameAt (startTick) : endTick - startTick));
+    if (scenario >= 3)
+    {
+        REQUIRE (created.notes.size() == 1u);
+        CHECK (created.notes.front().key == 60);
+        CHECK (created.notes.front().channel == 3);
+        CHECK (created.notes.front().startTick == 0);
+        CHECK (created.notes.front().lengthTicks == (fixed ? frameAt (startTick + 15360) - frameAt (startTick) : 15360));
+        REQUIRE (created.controlEvents.size() == 1u);
+        CHECK (created.controlEvents.front().tick == (fixed ? frameAt (startTick + 7680) - frameAt (startTick) : 7680));
+    }
+    CHECK (after.meterMap == song.meterMap);
+    CHECK (after.tempoMap == expectedTempoMap);
+    requireHeadless();
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditUndo);
+    const auto undone = readProjectSnapshot (bundle);
+    CHECK (std::none_of (undone.midiClips.begin(), undone.midiClips.end(), [&] (const auto& clip) { return clip.id == created.id; }));
+    ui::mainComponentDispatchAction (*shell, UiActionId::EditRedo);
+    CHECK (readProjectSnapshot (bundle).midiClips == after.midiClips);
+    ui::mainComponentDispatchAction (*shell, UiActionId::ProjectSave);
+    ui::mainComponentDispatchAction (*shell, UiActionId::ProjectOpen);
+    CHECK (readProjectSnapshot (bundle).midiClips == after.midiClips);
+    requireHeadless();
 }

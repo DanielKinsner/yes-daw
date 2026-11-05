@@ -51,7 +51,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    The async screenshot fixtures now wait for actual completion, and durable Asset admission is batched. Full-map metronome, captured-map count-in and bounded click-search recovery are delivered; all ten CI jobs passed at d97f3d2.
    Full-map timing is implemented across metronome/count-in, clipboard/moves, readouts, arrange/piano grids and quantize/Step input.
    Native MIDI occurrences, the pure file writer, app export adapter, narrow click-cache optimization and TSan allocator compatibility are pushed at e5f49d7 and passed all ten CI jobs.
-   Geometry f038e12, reader bounds1d1ec88, integer source extraction a3aa080 and State-probe completion fixture1143663 are pushed. All ten e5f49d7 CI jobs passed; geometry's later Linux fixture failure is repaired locally at114 and new CI is required. Current: musical defaults with explicit Fixed-time commands. Checked fractional
+   Geometry, bounded SMF reading/source extraction and fixture repairs are pushed through71669a9. Musical MIDI creation/import defaults and explicit Fixed-time commands passed all local integration gates; current: commit/push this unit, then the Musical-audio architecture and checked window/key foundation. Latest-head CI remains required. Checked fractional
    Tempo, exact Meter primitives and the grid/ruler/snap migration are delivered; the three import review findings and reversed/cross-rate No Overlap
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
@@ -72,6 +72,14 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 — Musical MIDI creation/import (locally verified)
+
+HEAD/origin71669a9 is pushed; its CI41985752824 is running, with Linux/Windows runtime checks pending and the other eight jobs passed. All114CI41981248467 jobs finished: nine passed, Linux BUILD failed at the same smf_tests.cpp258 GCC11 stringop-overread already repaired by716. Raw LF log427F5AC8 is retained; runtime tests did not run in that failed Linux job. Latest716 Linux compilation passed; no failed run was retried.
+New musical model310/1, metadata52/1, full model219888/73, action44/1 and full actions4319/18 passed. New offscreen UI374/1, affected old UI1454/14 and background imports1288/11 passed after exact XML inventories. Model/action prefixes and the16 reversible old UI blocks remain exact; generated keymap adds exactly two no-chord rows. UI setup-r1 compile and r2 Track-precondition failures remain retained; the corrected fixture explicitly selects row1 before replying, preserving the late-binding oracle.
+The BPM report now reads only the first positive Tempo event or120, avoiding smfHead's ignored-Meter shift hazard; Smf.h is unchanged. The one metadata regression was appended after the entire frozen feature proof; no old undefined-behavior baseline was executed. All five cleanup lenses completed; only redundant endpoint rescans and factory-owned pitch assignment were removed. Model61039E65 reverses exactly to2DB5; all three whole proof hashes remain frozen.
+Root canonical58606 exited0: pure482/482 passed116.69s, all three GUI consumers compiled without app launch, audited UI511/462034 and screenshots30/15629 passed. Three Clang units are clean; independent source critique accepted61039E65 and both sibling source hashes. Pre/post guards passed525 protected paths and all frozen proofs. CONTEXT describes the implemented defaults/import law. Code review: skipped (ce-code-review unavailable); its standing generated-job cleanup approval rejection is not retried. No native/input/device/hardware execution.
+Commit/push the nine named paths next; exact new-head CI remains required. Next unit: promote the freshly reviewed Musical-audio ADR/plan, then implement only the prepared pure checked window/key foundation. Renderer, audio tempo-follow, linked editing/folders and piano-roll reference views remain unfinished; architecture/proposals are not product proof.
 
 ## 2026-11-05 — SMF fixture GCC11 portability
 

@@ -5273,3 +5273,274 @@ TEST_CASE ("model MIDI export writes native occurrences and full maps, preservin
                                   { 25360, 40720, 55360 }, { 15360, 30720, 46080 }, 62, 89, 3, 55360);
     checkProjectSmfModelTrack (file.tracks.back(), "Fixed", { 41600 }, { 48000 }, {}, 67, 127, 0, 57600);
 }
+
+TEST_CASE ("model MIDI creation and import preserve native endpoints and adopt whole files atomically",
+           "[ui][app][musical-midi-model][adr0082]")
+{
+    using namespace yesdaw;
+    int scenario = 0;
+    SECTION ("ordinary empty creation follows the current full map") {}
+    SECTION ("explicit Fixed empty creation retains physical placement") { scenario = 1; }
+    SECTION ("ordinary import keeps source endpoints and controller-only Tracks") { scenario = 2; }
+    SECTION ("explicit Fixed import follows the current full map") { scenario = 3; }
+    SECTION ("noncanonical PPQ retains endpoint rounding and zero Notes") { scenario = 4; }
+    SECTION ("Fixed fractional bars project directly to Frames") { scenario = 5; }
+    SECTION ("Fixed endpoints retain their physical fractional anchor") { scenario = 6; }
+    SECTION ("a later collapsed source Track refuses the whole file") { scenario = 7; }
+    SECTION ("uncertifiable insertion refuses before Project mutation") { scenario = 8; }
+    SECTION ("persistence refusal retains Project and history") { scenario = 9; }
+    SECTION ("unsupported creation mode has a named refusal") { scenario = 10; }
+
+    auto song = UiAppModel::makeDefaultSessionProject();
+    song.tempoMap = { { 0, 120.0 }, { 30720, 60.0 } };
+    song.meterMap = { { 0, 4, 4 }, { 38400, 3, 8 } };
+    auto legacyTrack = song.tracks.front();
+    legacyTrack.id = idFromLowByte (90);
+    legacyTrack.strip.name = "Legacy Fixed";
+    legacyTrack.instrumentKind = engine::TrackInstrumentKind::SimpleSynth;
+    song.tracks.push_back (legacyTrack);
+    engine::MidiClip legacy;
+    legacy.id = idFromLowByte (91);
+    legacy.trackId = legacyTrack.id;
+    legacy.timeBase = TimeBase::SampleLocked;
+    legacy.timelineStart = 200000;
+    legacy.timelineLength = 48000;
+    legacy.notes = { { idFromLowByte (92), 123, 456, 64, 64.0, 0.75, -1, 4 } };
+    song.midiClips.push_back (legacy);
+    if (scenario == 4 || scenario == 6 || scenario == 7 || scenario == 10)
+    {
+        song.tempoMap = { { 0, 120.0 } };
+        song.meterMap = { { 0, 4, 4 } };
+    }
+    if (scenario == 5)
+    {
+        song.tempoMap = { { 0, 120.0 } };
+        song.meterMap = { { 0, 7, 39 } };
+    }
+    if (scenario == 8)
+        song.tempoMap = { { 0, 120.0 }, { 15360, 1.0e300 }, { 15361, 120.0 } };
+    const auto bundle = makeTempBundlePath ("musical-midi-model");
+    const auto path = bundle.parent_path() / (bundle.stem().string() + ".mid");
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    const auto target = song.tracks.front().id;
+    const auto base = scenario == 1 || scenario == 3 || scenario == 5 || scenario == 6
+        ? TimeBase::SampleLocked : TimeBase::TempoLocked;
+    const std::int64_t insertion = scenario == 4 || scenario == 5 || scenario == 7 || scenario == 10 ? 0
+        : scenario == 6 ? 1 : scenario == 8 ? 24000 : 36000;
+    REQUIRE (app.locatePlaybackFrame (insertion));
+    const auto fileBytes = [] (std::uint16_t ppq, const std::vector<std::vector<std::uint8_t>>& bodies)
+    {
+        std::vector<std::uint8_t> bytes { 'M','T','h','d',0,0,0,6,0,1,0,
+            static_cast<std::uint8_t> (bodies.size()), static_cast<std::uint8_t> (ppq >> 8), static_cast<std::uint8_t> (ppq) };
+        for (const auto& body : bodies)
+        {
+            REQUIRE (body.size() < 256u);
+            bytes.insert (bytes.end(), { 'M','T','r','k',0,0,0,static_cast<std::uint8_t> (body.size()) });
+            bytes.insert (bytes.end(), body.begin(), body.end());
+        }
+        return bytes;
+    };
+    const std::vector<std::uint8_t> keys {
+        0,0xFF,0x03,4,'K','e','y','s', 0,0xFF,0x51,3,0x09,0x27,0xC0,
+        0,0x93,60,100, 0x81,0x70,0xB2,1,64, 0x81,0x70,0x83,60,0, 0,0xFF,0x2F,0 };
+    const std::vector<std::uint8_t> controls {
+        0,0xFF,0x03,7,'C','o','n','t','r','o','l', 0,0xC5,7, 0x83,0x60,0xFF,0x2F,0 };
+    std::vector<std::vector<std::uint8_t>> bodies { keys, controls };
+    std::uint16_t ppq = 480;
+    if (scenario == 4)
+    {
+        ppq = 1001;
+        bodies = { { 1,0x90,60,100, 0,0xB0,1,32, 1,0x80,60,0,
+                     0,0xB0,2,64, 1,0x90,64,127, 0,0x80,64,0, 0,0xFF,0x2F,0 } };
+    }
+    if (scenario == 5)
+    {
+        ppq = 15360;
+        bodies = { { 0,0x90,60,100, 0x81,0xAC,0x27,0x80,60,0, 0,0xFF,0x2F,0 } };
+    }
+    if (scenario == 6)
+    {
+        ppq = 15360;
+        bodies = { { 0,0x90,60,100, 1,0x80,60,0, 0,0xFF,0x2F,0 } };
+    }
+    if (scenario == 7)
+        bodies[1] = { 0,0x90,67,100, 0,0x80,67,0, 0,0xFF,0x2F,0 };
+    const auto bytes = fileBytes (ppq, bodies);
+    { std::ofstream out (path, std::ios::binary); REQUIRE (out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size()))); }
+    const auto persisted = [&] {
+        std::ifstream input (bundle / "project.db", std::ios::binary);
+        return std::vector<char> (std::istreambuf_iterator<char> (input), std::istreambuf_iterator<char>());
+    };
+    if (scenario == 9)
+    {
+        sqlite3* db = nullptr;
+        REQUIRE (sqlite3_open (io::utf8Text (bundle / "project.db").c_str(), &db) == SQLITE_OK);
+        REQUIRE (sqlite3_exec (db, "CREATE TRIGGER refuse_midi_create BEFORE DELETE ON midi_clips BEGIN SELECT RAISE(ABORT, 'refused'); END;", nullptr, nullptr, nullptr) == SQLITE_OK);
+        REQUIRE (sqlite3_close (db) == SQLITE_OK);
+    }
+    const auto beforeBytes = persisted();
+    const auto before = app.project();
+    const auto beforeContext = app.context();
+    const auto serial = app.editSerial();
+    const auto selected = app.selectedMidiClipId();
+    const auto result = scenario == 1 ? app.addMidiClipAtPlayhead (TimeBase::SampleLocked)
+        : scenario == 0 || scenario == 8 || scenario == 9 ? app.addMidiClipAtPlayhead()
+        : scenario == 10 ? app.addMidiClipOnTrackAt (target, insertion, static_cast<TimeBase> (99))
+        : scenario == 3 || scenario == 5 || scenario == 6 ? app.importMidiFileAt (path, target, insertion, true, true, TimeBase::SampleLocked)
+                                                       : app.importMidiFileAt (path, target, insertion);
+    const bool refused = scenario >= 7;
+    if (refused)
+    {
+        CHECK_FALSE (result.dispatched);
+        REQUIRE (result.state.disabledReason != nullptr);
+        CHECK_FALSE (std::string_view (result.state.disabledReason).empty());
+        CHECK (app.project().midiClips == before.midiClips);
+        CHECK (app.project().tracks == before.tracks);
+        CHECK (app.editSerial() == serial);
+        CHECK (app.selectedMidiClipId() == selected);
+        CHECK (app.context().canUndo == beforeContext.canUndo);
+        CHECK (app.context().commandDispatchCount == beforeContext.commandDispatchCount);
+        CHECK (app.context().midiEditCount == beforeContext.midiEditCount);
+        CHECK (app.context().midiImportCount == beforeContext.midiImportCount);
+        CHECK (persisted() == beforeBytes);
+    }
+    else
+    {
+        const auto created = app.project().midiClips;
+        REQUIRE (created.size() == (scenario == 2 || scenario == 3 ? 3u : 2u));
+        CHECK (created.front() == legacy);
+        const auto& clip = created[1];
+        CHECK (clip.timeBase == base);
+        CHECK (clip.trackId == target);
+        CHECK (app.selectedMidiClipId() == clip.id);
+        CHECK (app.project().tempoMap == before.tempoMap);
+        CHECK (app.project().meterMap == before.meterMap);
+        CHECK (app.context().commandDispatchCount == beforeContext.commandDispatchCount + 1);
+        CHECK (app.context().midiEditCount == beforeContext.midiEditCount + 1);
+        if (scenario <= 1)
+        {
+            CHECK (result.action == (scenario == 1 ? UiActionId::TimelineMidiClipAddFixed : UiActionId::TimelineMidiClipAdd));
+            CHECK (clip.timelineStart == (scenario == 1 ? 36000 : 23040));
+            CHECK (clip.timelineLength == (scenario == 1 ? 36000 : 15360));
+            CHECK (clip.notes.empty());
+        }
+        else
+        {
+            CHECK (result.action == (base == TimeBase::SampleLocked ? UiActionId::ProjectImportMidiFixed : UiActionId::ProjectImportMidi));
+            CHECK (app.context().midiImportCount == beforeContext.midiImportCount + 1);
+            if (scenario == 2 || scenario == 3)
+            {
+                CHECK (clip.timelineStart == (scenario == 3 ? 36000 : 23040));
+                CHECK (clip.timelineLength == (scenario == 3 ? 36000 : 15360));
+                REQUIRE (clip.notes.size() == 1u);
+                CHECK (clip.notes.front().startTick == 0);
+                CHECK (clip.notes.front().lengthTicks == (scenario == 3 ? 36000 : 15360));
+                CHECK (clip.notes.front().key == 60);
+                CHECK (clip.notes.front().channel == 3);
+                CHECK (clip.notes.front().normalizedVelocity == Catch::Approx (100.0 / 127.0));
+                REQUIRE (clip.controlEvents.size() == 1u);
+                CHECK (clip.controlEvents.front().tick == (scenario == 3 ? 12000 : 7680));
+                CHECK (clip.controlEvents.front().channel == 2);
+                REQUIRE (created[2].controlEvents.size() == 1u);
+                CHECK (created[2].notes.empty());
+                CHECK (created[2].controlEvents.front().kind == engine::MidiControlKind::ProgramChange);
+                CHECK (app.project().tracks.back().strip.name == "Control");
+                CHECK (app.project().tracks.back().instrumentKind == engine::TrackInstrumentKind::SimpleSynth);
+                CHECK (app.statusLineText().find ("100.0 BPM") != std::string::npos);
+            }
+            if (scenario == 4)
+            {
+                REQUIRE (clip.notes.size() == 2u);
+                CHECK (clip.notes[0].startTick == 15);
+                CHECK (clip.notes[0].lengthTicks == 16);
+                CHECK (clip.notes[1].startTick == 46);
+                CHECK (clip.notes[1].lengthTicks == 0);
+                REQUIRE (clip.controlEvents.size() == 2u);
+                CHECK (clip.controlEvents[0].tick == 15);
+                CHECK (clip.controlEvents[1].tick == 31);
+            }
+            if (scenario == 5)
+            {
+                CHECK (clip.timelineLength == 34462);
+                REQUIRE (clip.notes.size() == 1u);
+                CHECK (clip.notes.front().lengthTicks == 34461);
+            }
+            if (scenario == 6)
+            {
+                CHECK (clip.timelineStart == 1);
+                REQUIRE (clip.notes.size() == 1u);
+                CHECK (clip.notes.front().startTick == 0);
+                CHECK (clip.notes.front().lengthTicks == 1);
+            }
+        }
+        REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+        CHECK (app.project().midiClips == before.midiClips);
+        CHECK (app.project().tracks == before.tracks);
+        CHECK_FALSE (app.context().canUndo);
+        REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+        CHECK (app.project().midiClips == created);
+        REQUIRE (app.dispatch (UiActionId::ProjectSave).dispatched);
+        UiAppModel reopened;
+        REQUIRE (reopened.loadProjectBundle (bundle, {}).ok());
+        CHECK (reopened.project().midiClips == created);
+        CHECK (reopened.project().tempoMap == before.tempoMap);
+        CHECK (reopened.project().meterMap == before.meterMap);
+    }
+}
+
+TEST_CASE ("MIDI import reports only file Tempo and ignores unrepresentable file Meter metadata",
+           "[ui][app][musical-midi-metadata-report]")
+{
+    using namespace yesdaw;
+    bool fallback = false;
+    SECTION ("zero Tempo is skipped and first positive Tempo wins across ordered Tracks") {}
+    SECTION ("no positive file Tempo reports120 without evaluating Meter") { fallback = true; }
+    const std::vector<std::uint8_t> bytes = fallback ? std::vector<std::uint8_t> {
+        'M','T','h','d',0,0,0,6,0,0,0,1,1,0xE0, 'M','T','r','k',0,0,0,28,
+        0,0xFF,0x58,4,7,255,24,8, 0,0xFF,0x51,3,0,0,0,
+        0,0x90,60,100, 0x83,0x60,0x80,60,0, 0,0xFF,0x2F,0
+    } : std::vector<std::uint8_t> {
+        'M','T','h','d',0,0,0,6,0,1,0,2,1,0xE0, 'M','T','r','k',0,0,0,19,
+        0,0xFF,0x58,4,4,32,24,8, 0,0xFF,0x51,3,0,0,0, 0,0xFF,0x2F,0,
+        'M','T','r','k',0,0,0,35,
+        0,0xFF,0x58,4,7,255,24,8, 0,0xFF,0x51,3,0x09,0x27,0xC0,
+        0,0xFF,0x51,3,0x06,0x1A,0x80, 0,0x90,60,100,
+        0x83,0x60,0x80,60,0, 0,0xFF,0x2F,0
+    };
+    REQUIRE (bytes.size() == (fallback ? 50u : 84u));
+    auto song = UiAppModel::makeDefaultSessionProject();
+    song.tempoMap = { { 0, 125.0 }, { 30720, 90.0 } };
+    song.meterMap = { { 0, 3, 8 }, { 38400, 7, 4 } };
+    const auto bundle = makeTempBundlePath ("midi-file-metadata");
+    const auto path = bundle.parent_path() / (bundle.stem().string() + ".mid");
+    { std::ofstream out (path, std::ios::binary); REQUIRE (out.write (reinterpret_cast<const char*> (bytes.data()), static_cast<std::streamsize> (bytes.size()))); }
+    UiAppModel app;
+    REQUIRE (app.createProjectBundle (bundle, song).ok());
+    REQUIRE (app.importMidiFileAt (path, song.tracks.front().id, 0).dispatched);
+    CHECK (app.project().tempoMap == song.tempoMap);
+    CHECK (app.project().meterMap == song.meterMap);
+    REQUIRE (app.project().tracks.size() == 1u);
+    REQUIRE (app.project().midiClips.size() == 1u);
+    const auto imported = app.project().midiClips;
+    const auto& clip = imported.front();
+    CHECK (clip.timeBase == TimeBase::TempoLocked);
+    CHECK (clip.timelineStart == 0);
+    CHECK (clip.timelineLength == 23040);
+    REQUIRE (clip.notes.size() == 1u);
+    CHECK (clip.notes.front().startTick == 0);
+    CHECK (clip.notes.front().lengthTicks == 15360);
+    CHECK (clip.notes.front().key == 60);
+    CHECK (clip.notes.front().normalizedVelocity == Catch::Approx (100.0 / 127.0));
+    CHECK (app.statusLineText().find (fallback ? "120.0 BPM" : "100.0 BPM") != std::string::npos);
+    REQUIRE (app.dispatch (UiActionId::EditUndo).dispatched);
+    CHECK (app.project().midiClips.empty());
+    REQUIRE (app.dispatch (UiActionId::EditRedo).dispatched);
+    CHECK (app.project().midiClips == imported);
+    REQUIRE (app.dispatch (UiActionId::ProjectSave).dispatched);
+    UiAppModel reopened;
+    REQUIRE (reopened.loadProjectBundle (bundle, {}).ok());
+    CHECK (reopened.project().midiClips == imported);
+    CHECK (reopened.project().tempoMap == song.tempoMap);
+    CHECK (reopened.project().meterMap == song.meterMap);
+}

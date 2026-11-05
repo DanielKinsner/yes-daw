@@ -291,7 +291,9 @@ _Avoid_: region, segment
 
 **MIDI Clip**:
 A non-destructive placement of editable Notes on a track. Unlike an audio Clip, it owns Notes instead
-of referencing an Asset.
+of referencing an Asset. New empty Clips and SMF imports default to musical TempoLocked timing.
+Add Fixed-time MIDI Clip and Import Fixed-time MIDI File explicitly create SampleLocked placements.
+These defaults do not migrate existing or recorded Clips.
 _Avoid_: MIDI region, MIDI file (unless discussing import/export)
 
 **Take**:
@@ -616,13 +618,17 @@ _Avoid_: zone (no ranges or velocity layers yet), slot (the Track's instrument s
 
 **Standard MIDI File (SMF)**:
 The `.mid` interchange file (formats 0 and 1, ticks per quarter note). `src/interchange/Smf.h` reads it;
-current import places source quarters as Frames at the Project's head tempo, naming the file's tempo
-without adopting it. `src/interchange/ProjectSmf.h` exports the arrangement's selected MIDI Clips,
+import retains absolute source-PPQ endpoints and maps them through the current complete Tempo map at
+the physical insertion position. Musical import stores canonical Ticks; explicit Fixed-time import
+stores Frames. Clip ends round upward to actual Meter bar boundaries. Every source Track is preflighted
+before the whole file is adopted as one undo step. File Tempo/Meter maps are not adopted; the first
+positive file tempo, or 120 BPM, is reported. `src/interchange/ProjectSmf.h` exports the arrangement's selected MIDI Clips,
 else all MIDI Clips, as format 1 at 15360 PPQ in Project Track order. Muted Clips are excluded; native
 repeats and effective Notes/controllers are retained. Track 0 represents the full Tempo/Meter maps
 through the latest chosen unmuted Clip end, using the accepted bounded approximation for Tempo ramps.
 Unsupported Meter, timing precision, resource and wire-format refusals occur before opening the
-destination. Malformed imports fail with a named `SmfStatus`, never a half-import.
+destination. Malformed imports fail with a named `SmfStatus`; invalid placement geometry also refuses
+before adoption, never leaving a half-import.
 _Avoid_: MIDI file (as a synonym for a MIDI Clip), "MIDI export" when you mean DAWproject
 
 **Device hot-swap**:
