@@ -122,7 +122,8 @@ enum class ProjectEditVerb : std::uint8_t
     JoinMidiClips,
     SetFxInsertSidechain,   // ADR-0051: key a Compressor (or clear its key)
     SetAutomationFollowsClips,   // G4.6 / ADR-0052
-    ReplaceAutomationLanePoints   // G4.6 / ADR-0052: ProjectUndoStack::replaceAutomationLanePoints only
+    ReplaceAutomationLanePoints,   // G4.6 / ADR-0052: ProjectUndoStack::replaceAutomationLanePoints only
+    SetClipTiming
 };
 
 // G2.18: the plain-English label of a verb for the undo history window (Logic's "Undo History").
@@ -216,6 +217,7 @@ enum class ProjectEditVerb : std::uint8_t
         case ProjectEditVerb::SetFxInsertSidechain: return "Insert Sidechain";
         case ProjectEditVerb::SetAutomationFollowsClips: return "Automation Follows Clips";
         case ProjectEditVerb::ReplaceAutomationLanePoints: return "Edit Automation";
+        case ProjectEditVerb::SetClipTiming: return "Clip Timing";
     }
     return "Edit";
 }
@@ -2062,6 +2064,8 @@ namespace detail {
             // G4.6: the points are not in the (trivially copyable) command — only
             // ProjectUndoStack::replaceAutomationLanePoints applies this verb.
             return ProjectEditStatus::InvalidProject;
+        case ProjectEditVerb::SetClipTiming:
+            return ProjectEditStatus::InvalidProject;
     }
 
     return ProjectEditStatus::InvalidProject;
@@ -3029,6 +3033,49 @@ public:
             clip.id, clip.trackId, clip.timelineStart, clip.timelineLength, clip.timeBase);
         if (! detail::buildProjectMidiClipRowsDiff (project, candidate, transaction.command, transaction.midiDiff))
             return { ProjectEditStatus::InvalidProject, false };
+        project = std::move (candidate);
+        return record (std::move (transaction), { ProjectEditStatus::Applied, true });
+    }
+
+    [[nodiscard]] ProjectEditApplyResult replaceClipTiming (Project& project,
+                                                           const Clip& expectedBefore,
+                                                           const Clip& proposedAfter)
+    {
+        const Clip before = expectedBefore, after = proposedAfter;
+        if (! detail::projectCanApplyClipEdit (project))
+            return { ProjectEditStatus::InvalidProject, false };
+        std::size_t index = 0;
+        if (! before.id.isValid() || ! detail::findClipIndex (project, before.id, index))
+            return { before.id.isValid() ? ProjectEditStatus::ClipNotFound : ProjectEditStatus::InvalidClipId, false };
+        if (project.clips[index] != before || before == after)
+            return { ProjectEditStatus::InvalidProject, false };
+        Clip permitted = before;
+        permitted.timelineStart = after.timelineStart;
+        permitted.timelineLength = after.timelineLength;
+        permitted.timeBase = after.timeBase;
+        permitted.stretchFactor = after.stretchFactor;
+        permitted.fadeIn = after.fadeIn;
+        permitted.fadeOut = after.fadeOut;
+        if (permitted != after || ! detail::clipEditMetadataIsStorageSafe (after)
+            || after.stretchFactor != 1.0f)
+            return { ProjectEditStatus::InvalidProject, false };
+        if (before.timelineLength <= 0 || after.timelineStart < 0 || after.timelineLength <= 0
+            || after.timelineLength > std::numeric_limits<Tick>::max() - after.timelineStart)
+            return { ProjectEditStatus::InvalidTimelineWindow, false };
+        for (const auto& take : project.recordingTakes)
+            if (take.clipId == before.id) return { ProjectEditStatus::InvalidProject, false };
+        Project candidate = project;
+        candidate.clips[index] = after;
+        if (! detail::projectCanApplyClipEdit (candidate))
+            return { ProjectEditStatus::InvalidProject, false };
+        ProjectEditTransaction transaction;
+        transaction.command.verb = ProjectEditVerb::SetClipTiming;
+        transaction.command.clipId = before.id;
+        transaction.diff.firstClipIndex = index;
+        transaction.diff.before = { before };
+        transaction.diff.after = { after };
+        if (undo_.size() == undo_.max_size()) return { ProjectEditStatus::InvalidProject, false };
+        undo_.reserve (undo_.size() + 1u);
         project = std::move (candidate);
         return record (std::move (transaction), { ProjectEditStatus::Applied, true });
     }

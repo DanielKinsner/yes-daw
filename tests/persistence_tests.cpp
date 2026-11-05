@@ -1,6 +1,8 @@
 // YES DAW - headless checks for ADR-0012 SQLite bundle schema/migrations/intent log.
 
 #define YESDAW_PERSISTENCE_TEST_HOOKS 1
+#include "engine/MusicalAudioConversion.h"
+#include "engine/ProjectUndo.h"
 #include "persistence/AutosaveRecovery.h"
 #include "persistence/ProjectBundle.h"
 #include "persistence/WaveformPeakCache.h"
@@ -6136,4 +6138,472 @@ TEST_CASE ("ADR-0069 restoring over a different inode does not overwrite its oth
     REQUIRE_FALSE (std::filesystem::equivalent (target, sibling));
     db = {};
     std::filesystem::remove_all (path);
+}
+
+TEST_CASE ("Musical audio conversion proposals preserve complete rows through history and durable snapshots",
+           "[persistence][musical-audio-conversion][adr0083]")
+{
+    using namespace yesdaw::engine;
+    using namespace yesdaw::persistence;
+    using Status = MusicalAudioConversionStatus;
+    using Intent = MusicalAudioConversionIntent;
+
+    Project original = makeProject();
+    original.tracks.push_back (makeTrack (idFromLowByte (11), "Unrelated track"));
+    original.tempoMap = { { 0, 120.0, TempoCurve::Jump }, { 30720, 60.0, TempoCurve::Jump } };
+    original.assets.front().frames = 56100;
+    auto& rich = original.clips.front();
+    rich.timelineStart = 36000;
+    rich.timelineLength = 84000;
+    rich.srcOffset = 100;
+    rich.srcLen = 56000;
+    rich.stretchFactor = 1.5f;
+    rich.fadeIn = 21000;
+    rich.fadeOut = 126000;
+    rich.gain = 0.625f;
+    rich.name = "Original selected window";
+    rich.fadeInShape = FadeShape::SCurve;
+    rich.fadeOutShape = FadeShape::Log;
+    rich.fadeInCurve = 0.25f;
+    rich.fadeOutCurve = -0.5f;
+    rich.colour = 0xff3b8cffu;
+    rich.muted = true;
+    rich.reversed = true;
+    original.clips[1].timeBase = TimeBase::TempoLocked;
+    original.clips[1].stretchFactor = 1.5f;
+    original.clips[1].name = "Unrelated legacy musical scalar";
+    const Clip fixed = rich;
+
+    const auto sameRows = [] (const Project& actual, const Project& expected) {
+        requireSameProjectSurface (actual, expected);
+        CHECK (actual.tempoMap == expected.tempoMap);
+        CHECK (actual.meterMap == expected.meterMap);
+        CHECK (actual.markers == expected.markers);
+    };
+    const auto clockFor = [] (const Project& project) {
+        std::shared_ptr<const MusicalAudioClock> clock;
+        REQUIRE (MusicalAudioClock::build ({ project.tempoMap.data(), project.tempoMap.size() },
+                                          project.sampleRate, {}, clock) == MusicalAudioStatus::Ok);
+        REQUIRE (clock);
+        return clock;
+    };
+    const auto propose = [&] (const Project& project,
+                             const std::shared_ptr<const MusicalAudioClock>& clock,
+                             const Clip& before, Intent intent) {
+        const Project untouched = project;
+        MusicalAudioClipProposal output;
+        REQUIRE (proposeMusicalAudioConversion (project, clock, before.id, intent, output) == Status::Ok);
+        CHECK (output.before == before);
+        sameRows (project, untouched);
+        return output;
+    };
+    const auto refuse = [&] (const Project& project,
+                            const std::shared_ptr<const MusicalAudioClock>& clock,
+                            EntityId clipId, Intent intent, Status expectedStatus) {
+        const Project untouched = project;
+        MusicalAudioClipProposal output;
+        output.before = fixed;
+        output.after = fixed;
+        output.resolvedStartFrame = 77;
+        output.resolvedEndFrame = 99;
+        REQUIRE (proposeMusicalAudioConversion (project, clock, clipId, intent, output) == expectedStatus);
+        CHECK (output.before == Clip {});
+        CHECK (output.after == Clip {});
+        CHECK (output.resolvedStartFrame == 0);
+        CHECK (output.resolvedEndFrame == 0);
+        sameRows (project, untouched);
+    };
+    const auto clock = clockFor (original);
+
+    SECTION ("complete map conversion and Original speed retain all six timing fields deliberately")
+    {
+        const auto musical = propose (original, clock, fixed, Intent::fixedToMusical());
+        Clip expected = fixed;
+        expected.timelineStart = 23040;
+        expected.timelineLength = 30720;
+        expected.timeBase = TimeBase::TempoLocked;
+        expected.stretchFactor = 1.0f;
+        expected.fadeIn = 7680;
+        expected.fadeOut = 46080;
+        CHECK (musical.after == expected);
+        CHECK (musical.resolvedStartFrame == 36000);
+        CHECK (musical.resolvedEndFrame == 120000);
+
+        Project converted = original;
+        converted.clips.front() = expected;
+        const auto natural = propose (converted, clock, expected, Intent::musicalToFixedOriginalSpeed());
+        Clip expectedNatural = expected;
+        expectedNatural.timelineStart = 36000;
+        expectedNatural.timelineLength = 56000;
+        expectedNatural.timeBase = TimeBase::SampleLocked;
+        expectedNatural.stretchFactor = 1.0f;
+        expectedNatural.fadeIn = 14000;
+        expectedNatural.fadeOut = 84000;
+        CHECK (natural.after == expectedNatural);
+        CHECK (natural.resolvedStartFrame == 36000);
+        CHECK (natural.resolvedEndFrame == 92000);
+        CHECK (converted.clips[1] == original.clips[1]);
+    }
+
+    SECTION ("known BPM uses the fractional duration in original Asset frames")
+    {
+        Project project = original;
+        project.assets.front().sampleRate = SampleRate { 44100.0 };
+        project.clips.front().srcOffset = 1;
+        project.clips.front().srcLen = 22050;
+        project.clips.front().fadeIn = project.clips.front().fadeOut = 0;
+        const auto before = project.clips.front();
+        const auto result = propose (project, clock, before, Intent::fitSourceTempo (120.0));
+        Clip expected = before;
+        expected.timelineStart = 23040;
+        expected.timelineLength = 15360;
+        expected.timeBase = TimeBase::TempoLocked;
+        expected.stretchFactor = 1.0f;
+        CHECK (result.after == expected);
+        CHECK (result.resolvedStartFrame == 36000);
+        CHECK (result.resolvedEndFrame == 72000);
+    }
+
+    SECTION ("typed musical and Frame ranges certify the same absolute ends")
+    {
+        const auto native = propose (original, clock, fixed, Intent::fitMusicalRange (23040, 53760));
+        const auto frames = propose (original, clock, fixed, Intent::fitFrameRange (36000, 120000));
+        Clip expected = fixed;
+        expected.timelineStart = 23040;
+        expected.timelineLength = 30720;
+        expected.timeBase = TimeBase::TempoLocked;
+        expected.stretchFactor = 1.0f;
+        expected.fadeIn = 7680;
+        expected.fadeOut = 46080;
+        CHECK (native.after == expected);
+        CHECK (frames.after == expected);
+        CHECK (native.resolvedStartFrame == 36000);
+        CHECK (native.resolvedEndFrame == 120000);
+        CHECK (frames.resolvedStartFrame == 36000);
+        CHECK (frames.resolvedEndFrame == 120000);
+    }
+
+    SECTION ("ramp endpoints round separately and resolve canonical floors again")
+    {
+        Project project = original;
+        project.tempoMap = { { 0, 120.0, TempoCurve::LinearRamp }, { 61440, 240.0, TempoCurve::Jump } };
+        auto& clip = project.clips.front();
+        clip.timelineStart = 21422;
+        clip.timelineLength = 17503;
+        clip.srcOffset = 0;
+        clip.srcLen = 17503;
+        clip.stretchFactor = 1.0f;
+        clip.fadeIn = 35006;
+        clip.fadeOut = 0;
+        const auto before = clip;
+        const auto result = propose (project, clockFor (project), before, Intent::fixedToMusical());
+        Clip expected = before;
+        expected.timelineStart = 15360;
+        expected.timelineLength = 15360;
+        expected.timeBase = TimeBase::TempoLocked;
+        expected.fadeIn = 30720;
+        CHECK (result.after == expected);
+        CHECK (result.resolvedStartFrame == 21421);
+        CHECK (result.resolvedEndFrame == 38924);
+    }
+
+    SECTION ("fade expansion keeps exact ties zero and overlong lengths")
+    {
+        Project project = original;
+        project.sampleRate = SampleRate { 15360.0 };
+        project.tempoMap = { { 0, 60.0, TempoCurve::Jump } };
+        project.assets.front().sampleRate = project.sampleRate;
+        auto& clip = project.clips.front();
+        clip.timelineStart = 0;
+        clip.timelineLength = 4;
+        clip.srcOffset = 0;
+        clip.srcLen = 6;
+        clip.timeBase = TimeBase::TempoLocked;
+        clip.fadeIn = 1;
+        clip.fadeOut = 6;
+        const auto before = clip;
+        const auto localClock = clockFor (project);
+        const auto result = propose (project, localClock, before, Intent::musicalToFixedOriginalSpeed());
+        Clip expected = before;
+        expected.timelineLength = 6;
+        expected.timeBase = TimeBase::SampleLocked;
+        expected.stretchFactor = 1.0f;
+        expected.fadeIn = 2;
+        expected.fadeOut = 9;
+        CHECK (result.after == expected);
+
+        clip.fadeIn = 0;
+        const auto zero = propose (project, localClock, clip, Intent::musicalToFixedOriginalSpeed());
+        CHECK (zero.after.fadeIn == 0);
+        CHECK (zero.after.fadeOut == 9);
+        clip.fadeIn = std::numeric_limits<Tick>::max();
+        refuse (project, localClock, clip.id, Intent::musicalToFixedOriginalSpeed(), Status::Overflow);
+    }
+
+    SECTION ("wide fade products retain full signed64 input without a denominator precondition violation")
+    {
+        Project project = original;
+        project.sampleRate = SampleRate { 15360.0 };
+        project.tempoMap = { { 0, 60.0, TempoCurve::Jump } };
+        project.assets.front().sampleRate = project.sampleRate;
+        constexpr Tick unit = Tick { 1 } << 62;
+        project.assets.front().frames = static_cast<std::uint64_t> (unit + 3);
+        auto& clip = project.clips.front();
+        clip.timelineStart = 0;
+        clip.timelineLength = unit + 1;
+        clip.srcOffset = 0;
+        clip.srcLen = static_cast<std::uint64_t> (unit + 3);
+        clip.timeBase = TimeBase::TempoLocked;
+        clip.fadeIn = unit + 2;
+        clip.fadeOut = 0;
+        const auto before = clip;
+        const auto result = propose (project, clockFor (project), before, Intent::musicalToFixedOriginalSpeed());
+        Clip expected = before;
+        expected.timelineLength = unit + 3;
+        expected.timeBase = TimeBase::SampleLocked;
+        expected.stretchFactor = 1.0f;
+        expected.fadeIn = unit + 4;
+        CHECK (result.after == expected);
+        CHECK (result.resolvedStartFrame == 0);
+        CHECK (result.resolvedEndFrame == unit + 3);
+    }
+
+    SECTION ("Original speed uses the original duration rather than a mapped two-end view length")
+    {
+        Project project = original;
+        project.assets.front().sampleRate = SampleRate { 44100.0 };
+        auto& clip = project.clips.front();
+        clip.timelineStart = 23040;
+        clip.timelineLength = 30720;
+        clip.srcOffset = 1;
+        clip.srcLen = 5;
+        clip.timeBase = TimeBase::TempoLocked;
+        clip.fadeIn = clip.fadeOut = 0;
+        const auto before = clip;
+        const auto result = propose (project, clock, before, Intent::musicalToFixedOriginalSpeed());
+        Clip expected = before;
+        expected.timelineStart = 36000;
+        expected.timelineLength = 5;
+        expected.timeBase = TimeBase::SampleLocked;
+        expected.stretchFactor = 1.0f;
+        CHECK (result.after == expected);
+        CHECK (result.resolvedStartFrame == 36000);
+        CHECK (result.resolvedEndFrame == 36005);
+    }
+
+    SECTION ("large original integer Frames are certified before binary64 identity can be lost")
+    {
+        Project project = original;
+        project.sampleRate = SampleRate { 15360.0 };
+        project.tempoMap = { { 0, 3.75, TempoCurve::Jump } };
+        auto& clip = project.clips.front();
+        constexpr Tick frame = Tick { 1 } << 54;
+        constexpr Tick tick = Tick { 1 } << 50;
+        clip.timelineStart = frame + 1;
+        clip.timelineLength = 31;
+        clip.fadeIn = clip.fadeOut = 0;
+        const auto before = clip;
+        const auto result = propose (project, clockFor (project), before, Intent::fixedToMusical());
+        Clip expected = before;
+        expected.timelineStart = tick;
+        expected.timelineLength = 2;
+        expected.timeBase = TimeBase::TempoLocked;
+        expected.stretchFactor = 1.0f;
+        CHECK (result.after == expected);
+        CHECK (result.resolvedStartFrame == frame);
+        CHECK (result.resolvedEndFrame == frame + 32);
+
+        clip.timelineStart = frame;
+        clip.timelineLength = 32;
+        const auto exact = propose (project, clockFor (project), clip, Intent::fixedToMusical());
+        expected.timelineStart = tick;
+        expected.timelineLength = 2;
+        CHECK (exact.after == expected);
+    }
+
+    SECTION ("an uncertifiable odd Frame refuses without rewriting the input to its rounded double")
+    {
+        Project project = original;
+        project.sampleRate = SampleRate { 15360.0 };
+        project.tempoMap = { { 0, 60.0, TempoCurve::Jump } };
+        project.clips.front().timelineStart = (Tick { 1 } << 53) + 1;
+        project.clips.front().timelineLength = 31;
+        project.clips.front().fadeIn = project.clips.front().fadeOut = 0;
+        refuse (project, clockFor (project), fixed.id, Intent::fixedToMusical(), Status::InversePrecision);
+    }
+
+    SECTION ("invalid inputs and stale clock provenance have precise refusal and reset output")
+    {
+        refuse (original, clock, idFromLowByte (250), Intent::fixedToMusical(), Status::ClipNotFound);
+        refuse (original, {}, fixed.id, Intent::fixedToMusical(), Status::InvalidClock);
+        Project changedMap = original;
+        changedMap.tempoMap.front().bpm = 125.0;
+        refuse (changedMap, clock, fixed.id, Intent::fixedToMusical(), Status::InvalidClock);
+        Project changedRate = original;
+        changedRate.sampleRate = SampleRate { 44100.0 };
+        refuse (changedRate, clock, fixed.id, Intent::fixedToMusical(), Status::InvalidClock);
+        for (const auto bpm : { 0.0, -1.0, std::numeric_limits<double>::infinity(),
+                                std::numeric_limits<double>::quiet_NaN() })
+            refuse (original, clock, fixed.id, Intent::fitSourceTempo (bpm), Status::InvalidSourceTempo);
+        refuse (original, clock, fixed.id, Intent::fitMusicalRange (53760, 23040), Status::InvalidRange);
+        refuse (original, clock, fixed.id, Intent::fitFrameRange (36000, 36000), Status::InvalidRange);
+        refuse (original, clock, fixed.id, Intent::musicalToFixedOriginalSpeed(), Status::WrongTimeBase);
+    }
+
+    SECTION ("linked Take identity excludes its Clip while a shared-Asset Clip stays eligible")
+    {
+        Project project = original;
+        project.recordingTakes = { makeRecordingTake (idFromLowByte (90), fixed.assetId, fixed.trackId,
+                                                     fixed.id, fixed.timelineStart, fixed.srcLen) };
+        project.recordingCompSegments = { makeProjectRecordingCompSegment (
+            idFromLowByte (91), project.recordingTakes.front().id, fixed.timelineStart, 100, 0) };
+        REQUIRE (project.hasValidAssetClipIndirection());
+        refuse (project, clock, fixed.id, Intent::fixedToMusical(), Status::LinkedTakeUnsupported);
+        project.clips.front().timeBase = TimeBase::TempoLocked;
+        project.clips.front().muted = true;
+        REQUIRE (project.hasValidAssetClipIndirection());
+        refuse (project, clock, fixed.id, Intent::musicalToFixedOriginalSpeed(), Status::LinkedTakeUnsupported);
+
+        Clip independent = fixed;
+        independent.id = idFromLowByte (92);
+        independent.timelineStart = 36000;
+        project.clips.push_back (independent);
+        const auto result = propose (project, clock, independent, Intent::fixedToMusical());
+        CHECK (result.after.id == independent.id);
+        CHECK (result.after.assetId == fixed.assetId);
+        CHECK (result.after.timelineStart == 23040);
+        CHECK (result.after.timelineLength == 30720);
+        CHECK (project.recordingTakes.front().clipId == fixed.id);
+
+        ProjectUndoStack linkedUndo;
+        Clip forbidden = project.clips.front();
+        forbidden.timeBase = TimeBase::SampleLocked;
+        forbidden.stretchFactor = 1.0f;
+        REQUIRE_FALSE (linkedUndo.replaceClipTiming (project, project.clips.front(), forbidden).applied());
+        CHECK (linkedUndo.undoDepth() == 0);
+        CHECK (project.recordingTakes.size() == 1u);
+        CHECK (project.recordingCompSegments.size() == 1u);
+    }
+
+    SECTION ("complete rows use one history entry and refuse stale or non-timing replacements")
+    {
+        Project project = original;
+        ProjectUndoStack undo;
+        const auto result = propose (project, clock, fixed, Intent::fixedToMusical());
+        REQUIRE (undo.replaceClipTiming (project, result.before, result.after).applied());
+        Project expected = original;
+        expected.clips.front() = result.after;
+        sameRows (project, expected);
+        REQUIRE (undo.nextUndo());
+        CHECK (undo.nextUndo()->command.verb == ProjectEditVerb::SetClipTiming);
+        CHECK (std::string (projectEditVerbLabel (ProjectEditVerb::SetClipTiming)) == "Clip Timing");
+        REQUIRE (undo.nextUndo()->diff.before.size() == 1u);
+        REQUIRE (undo.nextUndo()->diff.after.size() == 1u);
+        CHECK (undo.nextUndo()->diff.before.front() == fixed);
+        CHECK (undo.nextUndo()->diff.after.front() == result.after);
+        CHECK (undo.history().steps.size() == 1u);
+        CHECK (undo.history().steps.front().entryCount == 1u);
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+        sameRows (project, original);
+        REQUIRE (undo.redo (project) == ProjectUndoStatus::Applied);
+        sameRows (project, expected);
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+
+        const auto redoDepth = undo.redoDepth();
+        Clip stale = fixed;
+        stale.gain = 0.5f;
+        REQUIRE_FALSE (undo.replaceClipTiming (project, stale, result.after).applied());
+        REQUIRE_FALSE (undo.replaceClipTiming (project, fixed, fixed).applied());
+        std::array<Clip, 4> badRows { result.after, result.after, result.after, result.after };
+        badRows[0].gain = 0.5f;
+        badRows[1].srcOffset = 99;
+        badRows[2].trackId = original.tracks.back().id;
+        badRows[3].fadeInShape = FadeShape::Linear;
+        for (const auto& bad : badRows)
+            REQUIRE_FALSE (undo.replaceClipTiming (project, fixed, bad).applied());
+        sameRows (project, original);
+        CHECK (undo.undoDepth() == 0);
+        CHECK (undo.redoDepth() == redoDepth);
+        REQUIRE (undo.canRedo());
+
+        refuse (expected, clock, fixed.id, Intent::fitMusicalRange (23040, 53760), Status::NoChange);
+    }
+
+    SECTION ("refused proposals and history edits change no database or Asset bytes")
+    {
+        const auto path = makeTempBundlePath ("musical-audio-conversion-refusal");
+        {
+            auto db = openFreshBundle (path);
+            REQUIRE (db.writeProjectSnapshot (original).ok());
+            writeProjectAssetFiles (path, original);
+        }
+        const auto inventory = sourceInventory (path);
+        Project project = original;
+        ProjectUndoStack undo;
+        REQUIRE (undo.apply (project, ProjectEditCommand::setClipGain (fixed.id, 0.5f)).applied());
+        REQUIRE (undo.undo (project) == ProjectUndoStatus::Applied);
+        const auto redoDepth = undo.redoDepth();
+        refuse (project, clock, fixed.id, Intent::fitSourceTempo (0.0), Status::InvalidSourceTempo);
+        Clip invalid = fixed;
+        invalid.timeBase = static_cast<TimeBase> (255);
+        REQUIRE_FALSE (undo.replaceClipTiming (project, fixed, invalid).applied());
+        sameRows (project, original);
+        CHECK (undo.undoDepth() == 0);
+        CHECK (undo.redoDepth() == redoDepth);
+        CHECK (sourceInventory (path) == inventory);
+        std::filesystem::remove_all (path);
+    }
+
+    SECTION ("actual snapshots autosave and recovery preserve after rows and unrelated dormant metadata")
+    {
+        const auto path = makeTempBundlePath ("musical-audio-conversion-roundtrip");
+        Project project = original;
+        ProjectUndoStack undo;
+        const auto result = propose (project, clock, fixed, Intent::fixedToMusical());
+        REQUIRE (undo.replaceClipTiming (project, result.before, result.after).applied());
+        const Project after = project;
+        {
+            auto db = openFreshBundle (path);
+            REQUIRE (db.writeProjectSnapshot (original).ok());
+            writeProjectAssetFiles (path, original);
+            REQUIRE (db.writeProjectSnapshot (after).ok());
+        }
+        ProjectBundleDb db;
+        REQUIRE (ProjectBundleDb::openExistingBundle (path, db).ok());
+        Project reopened;
+        REQUIRE (db.readProjectSnapshot (reopened).ok());
+        sameRows (reopened, after);
+        CHECK (reopened.clips[1] == original.clips[1]);
+        CHECK (reopened.clips[1].stretchFactor == 1.5f);
+        REQUIRE (undo.undo (reopened) == ProjectUndoStatus::Applied);
+        sameRows (reopened, original);
+        REQUIRE (db.writeProjectSnapshot (reopened).ok());
+        db = {};
+        REQUIRE (ProjectBundleDb::openExistingBundle (path, db).ok());
+        REQUIRE (db.readProjectSnapshot (reopened).ok());
+        sameRows (reopened, original);
+        REQUIRE (undo.redo (reopened) == ProjectUndoStatus::Applied);
+        sameRows (reopened, after);
+
+        REQUIRE (writeAutosaveSnapshot (db, reopened).ok());
+        Project snapshot;
+        REQUIRE (readAutosaveSnapshot (path, snapshot).ok());
+        sameRows (snapshot, after);
+        Project stillBefore;
+        REQUIRE (db.readProjectSnapshot (stillBefore).ok());
+        sameRows (stillBefore, original);
+        Project restored;
+        REQUIRE (restoreAutosaveSnapshot (db, restored).ok());
+        sameRows (restored, after);
+        db = {};
+        REQUIRE (ProjectBundleDb::openExistingBundle (path, db).ok());
+        Project finalRows;
+        REQUIRE (db.readProjectSnapshot (finalRows).ok());
+        sameRows (finalRows, after);
+        CHECK (finalRows.clips[1].stretchFactor == 1.5f);
+        for (const auto& asset : original.assets)
+            CHECK (readBytes (storedAssetPathForHash (path, asset.contentHash)) == assetBytesForId (asset.id));
+        db = {};
+        std::filesystem::remove_all (path);
+    }
 }
