@@ -898,6 +898,8 @@ private:
                                                        MusicalClickLookup& work) const noexcept
     {
         ++work.ordinalProbes; ++work.tightProbes;
+        if (ordinal == 0) return segment.first;
+        if (ordinal == segment.lastOrdinal) return segment.last;
         return positionForOrdinal (segment, ordinal);
     }
 
