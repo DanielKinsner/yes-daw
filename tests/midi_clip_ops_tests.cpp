@@ -465,3 +465,362 @@ TEST_CASE ("the render honours a MIDI Clip's mute and transpose", "[engine][midi
     REQUIRE (renderProject (up) == renderProject (asNote));   // a Clip transpose is the note's transpose at render
     REQUIRE (renderProject (up) != reference);
 }
+
+TEST_CASE ("native MIDI occurrence counts retain two cycles near the Tick limit",
+           "[engine][midi][midi-clip-ops][midi-native-occurrence][regression]")
+{
+    constexpr auto limit = std::numeric_limits<yesdaw::engine::Tick>::max();
+    MidiClip clip = makeClip (40, 0, limit, { makeNote (50, 0, 1, 60) },
+                             { makeControl (60, 0, 1, 0.5) });
+    clip.loopLengthTicks = limit - 1;
+    REQUIRE (clip.isValid());
+    std::vector<ScheduledMidiEvent> timeline;
+    REQUIRE (yesdaw::engine::flattenMidiClipToTimeline (
+        clip, [] (yesdaw::engine::Tick tick, double& frame)
+        {
+            frame = static_cast<double> (tick) / 4.0;
+            return tick >= 0;
+        }, timeline) == MidiFlattenStatus::Ok);
+    CHECK (timeline.size() == 6u);
+    CHECK (std::count_if (timeline.begin(), timeline.end(), [] (const auto& event)
+    {
+        return event.event.type == EventType::NoteOn;
+    }) == 2);
+    CHECK (std::count_if (timeline.begin(), timeline.end(), [] (const auto& event)
+    {
+        return event.event.type == EventType::NoteOff;
+    }) == 2);
+    CHECK (std::count_if (timeline.begin(), timeline.end(), [] (const auto& event)
+    {
+        return event.event.type == EventType::Midi1;
+    }) == 2);
+}
+
+TEST_CASE ("native MIDI extraction preserves the existing projection refusal output",
+           "[engine][midi][midi-clip-ops][midi-native-occurrence][contract]")
+{
+    MidiClip clip = makeClip (40, 10, 100, { makeNote (50, 0, 5, 60) });
+    std::vector<ScheduledMidiEvent> timeline { ScheduledMidiEvent {} };
+    std::vector<yesdaw::engine::Tick> visited;
+    const auto refuseOff = [&] (yesdaw::engine::Tick tick, double& frame)
+    {
+        visited.push_back (tick);
+        frame = static_cast<double> (tick);
+        return tick != 15;
+    };
+    REQUIRE (yesdaw::engine::flattenMidiClipToTimeline (clip, refuseOff, timeline)
+             == MidiFlattenStatus::InvalidInput);
+    REQUIRE (visited == std::vector<yesdaw::engine::Tick> { 10, 15 });
+    REQUIRE (timeline.size() == 1u);
+    REQUIRE (timeline[0].frame == 10);
+    REQUIRE (timeline[0].event.type == EventType::NoteOn);
+
+    clip.muted = true;
+    visited.clear();
+    REQUIRE (yesdaw::engine::flattenMidiClipToTimeline (clip, refuseOff, timeline)
+             == MidiFlattenStatus::Ok);
+    REQUIRE (timeline.empty());
+    REQUIRE (visited.empty());
+
+    clip.notes[0].key = 128;
+    REQUIRE (yesdaw::engine::flattenMidiClipToTimeline (clip, refuseOff, timeline)
+             == MidiFlattenStatus::InvalidInput);
+    REQUIRE (timeline.empty());
+    REQUIRE (visited.empty());
+}
+
+TEST_CASE ("raw MIDI occurrences retain native identities overlapping tails and effective payloads",
+           "[engine][midi][midi-clip-ops][midi-native-occurrence]")
+{
+    MidiClip clip = makeClip (40, 100, 2500,
+        { makeNote (50, 900, 1200, 60, 0.5), makeNote (51, 100, 0, 62, 0.9),
+          makeNote (52, 100, 1, 127), makeNote (53, 1200, 1, 64) },
+        { makeControl (60, 50, 64, 1.0) });
+    clip.loopLengthTicks = 1000;
+    clip.transposeSemitones = 5;
+    clip.velocityOffset = 0.3;
+    const auto preflight = yesdaw::engine::preflightMidiClipOccurrences (clip, 13);
+    REQUIRE (preflight.status == MidiFlattenStatus::Ok);
+    REQUIRE (preflight.events == 13u);
+    std::vector<yesdaw::engine::MidiNativeOccurrence> raw;
+    REQUIRE (yesdaw::engine::visitMidiClipOccurrences (clip, 13, [&] (const auto& occurrence)
+    {
+        raw.push_back (occurrence);
+        return true;
+    }) == MidiFlattenStatus::Ok);
+    REQUIRE (raw.size() == 13u);
+
+    const std::array<Tick, 13> positions { 1000, 2200, 2000, 2600, 200, 200,
+                                         1200, 1200, 2200, 2200, 150, 1150, 2150 };
+    const std::array<std::uint8_t, 13> sourceIds { 50, 50, 50, 50, 51, 51, 51, 51, 51, 51, 60, 60, 60 };
+    const std::array<std::uint64_t, 13> ordinals { 0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 0, 1, 2 };
+    for (std::size_t i = 0; i < raw.size(); ++i)
+    {
+        CAPTURE (i);
+        REQUIRE (raw[i].nativePosition == positions[i]);
+        REQUIRE (raw[i].timeBase == TimeBase::TempoLocked);
+        REQUIRE (raw[i].clipId == clip.id);
+        REQUIRE (raw[i].sourceId == idFromLowByte (sourceIds[i]));
+        REQUIRE (raw[i].repeatOrdinal == ordinals[i]);
+        REQUIRE (raw[i].event.timeInBlock == 0u);
+        if (i < 10)
+        {
+            REQUIRE (raw[i].event.type == (i % 2u == 0u ? EventType::NoteOn : EventType::NoteOff));
+            const bool firstNote = i < 4;
+            REQUIRE (raw[i].event.voice.key == (firstNote ? 65 : 67));
+            REQUIRE (raw[i].event.payload.note.pitchNote == (firstNote ? 65.0 : 67.0));
+            const double expectedVelocity = i % 2u == 1u ? 0.0 : (firstNote ? 0.8 : 1.0);
+            REQUIRE (raw[i].event.payload.note.normalizedVelocity == Catch::Approx (expectedVelocity));
+        }
+        else
+        {
+            REQUIRE (raw[i].event.type == EventType::Midi1);
+            REQUIRE (raw[i].event.payload.midi1.status == 0xB1);
+            REQUIRE (raw[i].event.payload.midi1.data1 == 64);
+            REQUIRE (raw[i].event.payload.midi1.data2 == 127);
+        }
+    }
+}
+
+TEST_CASE ("raw MIDI preserves exact native coordinates before double conversion and Frame collapse",
+           "[engine][midi][midi-clip-ops][midi-native-occurrence]")
+{
+    constexpr Tick origin = 9'007'199'254'740'993;
+    MidiClip fixed = makeClip (40, origin, 10, { makeNote (50, 1, 1, 60) },
+                              { makeControl (60, 2, 1, 0.5) });
+    fixed.timeBase = TimeBase::SampleLocked;
+    std::vector<yesdaw::engine::MidiNativeOccurrence> raw;
+    const auto collect = [&] (const auto& occurrence) { raw.push_back (occurrence); return true; };
+    REQUIRE (yesdaw::engine::visitMidiClipOccurrences (fixed, 3, collect) == MidiFlattenStatus::Ok);
+    REQUIRE (raw.size() == 3u);
+    REQUIRE (raw[0].nativePosition == origin + 1);
+    REQUIRE (raw[1].nativePosition == origin + 2);
+    REQUIRE (raw[2].nativePosition == origin + 2);
+    for (const auto& occurrence : raw)
+        REQUIRE (occurrence.timeBase == TimeBase::SampleLocked);
+
+    MidiClip fast = makeClip (41, 0, 5, { makeNote (51, 1, 1, 60) },
+                             { makeControl (61, 3, 1, 0.5) });
+    raw.clear();
+    REQUIRE (yesdaw::engine::visitMidiClipOccurrences (fast, 3, collect) == MidiFlattenStatus::Ok);
+    REQUIRE (raw.size() == 3u);
+    REQUIRE (raw[0].nativePosition == 1);
+    REQUIRE (raw[1].nativePosition == 2);
+    REQUIRE (raw[2].nativePosition == 3);
+    const std::array<TempoChange, 1> tempo { TempoChange { 0, 100'000'000.0, TempoCurve::Jump } };
+    std::vector<ScheduledMidiEvent> timeline;
+    REQUIRE (yesdaw::engine::flattenMidiClipForProjection (fast, { tempo.data(), tempo.size() },
+             SampleRate { 48000.0 }, timeline) == MidiFlattenStatus::Ok);
+    REQUIRE (timeline.size() == 3u);
+    for (const auto& event : timeline)
+        REQUIRE (event.frame == 0);
+    REQUIRE (timeline[0].event.type == EventType::Midi1);
+    REQUIRE (timeline[1].event.type == EventType::NoteOn);
+    REQUIRE (timeline[2].event.type == EventType::NoteOff);
+}
+
+TEST_CASE ("raw MIDI applies each controller wire law on every repeat",
+           "[engine][midi][midi-clip-ops][midi-native-occurrence]")
+{
+    std::vector<MidiControlEvent> controls {
+        makeControl (60, 0, 64, 1.0), makeControl (61, 0, 0, 1.0),
+        makeControl (62, 0, 0, 0.5), makeControl (63, 0, 60, 0.25), makeControl (64, 0, 12, 0.0)
+    };
+    controls[1].kind = MidiControlKind::PitchBend;
+    controls[2].kind = MidiControlKind::ChannelPressure;
+    controls[3].kind = MidiControlKind::PolyPressure;
+    controls[4].kind = MidiControlKind::ProgramChange;
+    MidiClip clip = makeClip (40, 17, 300, {}, controls);
+    clip.loopLengthTicks = 100;
+    const std::array<std::uint8_t, 5> statuses { 0xB1, 0xE1, 0xD1, 0xA1, 0xC1 };
+    const std::array<std::uint8_t, 5> data1 { 64, 127, 64, 60, 12 };
+    const std::array<std::uint8_t, 5> data2 { 127, 127, 0, 32, 0 };
+    std::size_t visited = 0;
+    REQUIRE (yesdaw::engine::visitMidiClipOccurrences (clip, 15, [&] (const auto& occurrence)
+    {
+        const auto lane = visited / 3u;
+        const auto cycle = visited % 3u;
+        REQUIRE (lane < controls.size());
+        REQUIRE (occurrence.nativePosition == 17 + static_cast<Tick> (cycle) * 100);
+        REQUIRE (occurrence.sourceId == controls[lane].id);
+        REQUIRE (occurrence.repeatOrdinal == cycle);
+        REQUIRE (occurrence.event.type == EventType::Midi1);
+        REQUIRE (occurrence.event.payload.midi1.status == statuses[lane]);
+        REQUIRE (occurrence.event.payload.midi1.data1 == data1[lane]);
+        REQUIRE (occurrence.event.payload.midi1.data2 == data2[lane]);
+        REQUIRE (occurrence.event.voice.portIndex == 0);
+        REQUIRE (occurrence.event.voice.channel == 1);
+        ++visited;
+        return true;
+    }) == MidiFlattenStatus::Ok);
+    REQUIRE (visited == 15u);
+}
+
+TEST_CASE ("raw MIDI preflights budgets and numeric refusals before invoking visitors",
+           "[engine][midi][midi-clip-ops][midi-native-occurrence]")
+{
+    constexpr Tick limit = std::numeric_limits<Tick>::max();
+    MidiClip clip = makeClip (40, 10, 100, { makeNote (50, 0, 5, 60) },
+                             { makeControl (60, 20, 1, 0.5) });
+    const auto refused = [&] (std::size_t budget, MidiFlattenStatus expected)
+    {
+        const auto preflight = yesdaw::engine::preflightMidiClipOccurrences (clip, budget);
+        REQUIRE (preflight.status == expected);
+        REQUIRE (preflight.events == 0u);
+        std::size_t callbacks = 0;
+        REQUIRE (yesdaw::engine::visitMidiClipOccurrences (clip, budget, [&] (const auto&)
+        {
+            ++callbacks;
+            return true;
+        }) == expected);
+        REQUIRE (callbacks == 0u);
+    };
+    SECTION ("a later controller exceeds an otherwise fitting Note budget")
+    {
+        refused (2, MidiFlattenStatus::OutputTooSmall);
+        const auto exact = yesdaw::engine::preflightMidiClipOccurrences (clip, 3);
+        REQUIRE (exact.status == MidiFlattenStatus::Ok);
+        REQUIRE (exact.events == 3u);
+    }
+    SECTION ("the total event count cannot wrap size_t")
+    {
+        clip.timelineStart = 0;
+        clip.timelineLength = limit;
+        clip.loopLengthTicks = 1;
+        clip.notes = { makeNote (50, 0, 1, 60), makeNote (51, 0, 1, 62) };
+        clip.controlEvents.clear();
+        refused (std::numeric_limits<std::size_t>::max(), MidiFlattenStatus::OutputTooSmall);
+    }
+    SECTION ("absolute Note endpoints overflow before any earlier valid onset is emitted")
+    {
+        clip.timelineStart = limit - 5;
+        clip.notes[0].lengthTicks = 10;
+        clip.controlEvents.clear();
+        refused (3, MidiFlattenStatus::InvalidInput);
+    }
+    SECTION ("absolute controller endpoints are also checked")
+    {
+        clip.timelineStart = limit - 5;
+        clip.notes.clear();
+        refused (1, MidiFlattenStatus::InvalidInput);
+    }
+    SECTION ("an unrepresentable repeated Note tail retains the existing numeric refusal")
+    {
+        clip.timelineStart = 0;
+        clip.timelineLength = limit;
+        clip.loopLengthTicks = limit - 1;
+        clip.notes = { makeNote (50, 0, limit, 60) };
+        clip.controlEvents.clear();
+        refused (4, MidiFlattenStatus::InvalidInput);
+    }
+    SECTION ("a valid muted Clip needs no output budget")
+    {
+        clip.muted = true;
+        const auto preflight = yesdaw::engine::preflightMidiClipOccurrences (clip, 0);
+        REQUIRE (preflight.status == MidiFlattenStatus::Ok);
+        REQUIRE (preflight.events == 0u);
+        std::size_t callbacks = 0;
+        REQUIRE (yesdaw::engine::visitMidiClipOccurrences (clip, 0, [&] (const auto&)
+        {
+            ++callbacks;
+            return true;
+        }) == MidiFlattenStatus::Ok);
+        REQUIRE (callbacks == 0u);
+    }
+    SECTION ("a visitor refusal stops without rolling back prior callbacks")
+    {
+        std::size_t callbacks = 0;
+        REQUIRE (yesdaw::engine::visitMidiClipOccurrences (clip, 3, [&] (const auto&)
+        {
+            return ++callbacks < 2u;
+        }) == MidiFlattenStatus::InvalidInput);
+        REQUIRE (callbacks == 2u);
+    }
+}
+
+TEST_CASE ("raw MIDI retains the existing Note and controller end-boundary distinction",
+           "[engine][midi][midi-clip-ops][midi-native-occurrence]")
+{
+    MidiClip clip = makeClip (40, 10, 100, { makeNote (50, 100, 0, 60) },
+                             { makeControl (60, 100, 1, 0.5) });
+    for (const Tick length : { Tick { 100 }, Tick { 0 } })
+    {
+        clip.timelineLength = length;
+        clip.notes[0].startTick = length;
+        clip.controlEvents[0].tick = length;
+        const auto preflight = yesdaw::engine::preflightMidiClipOccurrences (clip, 1);
+        REQUIRE (preflight.status == MidiFlattenStatus::Ok);
+        REQUIRE (preflight.events == 1u);
+        std::size_t callbacks = 0;
+        REQUIRE (yesdaw::engine::visitMidiClipOccurrences (clip, 1, [&] (const auto& occurrence)
+        {
+            REQUIRE (occurrence.nativePosition == 10 + length);
+            REQUIRE (occurrence.sourceId == clip.controlEvents[0].id);
+            REQUIRE (occurrence.event.type == EventType::Midi1);
+            ++callbacks;
+            return true;
+        }) == MidiFlattenStatus::Ok);
+        REQUIRE (callbacks == 1u);
+    }
+}
+
+TEST_CASE ("MIDI Frame projection refuses the int64 upper boundary before casting",
+           "[engine][midi][midi-clip-ops][midi-native-occurrence][midi-frame-domain][regression]")
+{
+    const MidiClip clip = makeClip (40, 0, 10, { makeNote (50, 0, 1, 60) });
+    std::vector<ScheduledMidiEvent> timeline;
+    SECTION ("the exact exclusive limit and all larger finite doubles are refused")
+    {
+        for (const double projected : { 0x1p63, std::nextafter (0x1p63, std::numeric_limits<double>::infinity()),
+                                         std::numeric_limits<double>::max() })
+        {
+            CAPTURE (projected);
+            std::size_t callbacks = 0;
+            CHECK (yesdaw::engine::flattenMidiClipToTimeline (clip, [&] (Tick, double& frame)
+            {
+                ++callbacks;
+                frame = projected;
+                return true;
+            }, timeline) == MidiFlattenStatus::InvalidInput);
+            CHECK (timeline.empty());
+            CHECK (callbacks == 1u);
+        }
+    }
+    SECTION ("the greatest representable double below the limit remains valid")
+    {
+        const double projected = std::nextafter (0x1p63, 0.0);
+        REQUIRE (yesdaw::engine::flattenMidiClipToTimeline (clip, [&] (Tick, double& frame)
+        {
+            frame = projected;
+            return true;
+        }, timeline) == MidiFlattenStatus::Ok);
+        REQUIRE (timeline.size() == 2u);
+        for (const auto& event : timeline)
+            REQUIRE (event.frame == std::numeric_limits<std::int64_t>::max() - 1023);
+    }
+    SECTION ("negative and nonfinite positions keep their existing refusal")
+    {
+        for (const double projected : { -1.0, std::numeric_limits<double>::infinity(),
+                                         std::numeric_limits<double>::quiet_NaN() })
+        {
+            REQUIRE (yesdaw::engine::flattenMidiClipToTimeline (clip, [&] (Tick, double& frame)
+            {
+                frame = projected;
+                return true;
+            }, timeline) == MidiFlattenStatus::InvalidInput);
+            REQUIRE (timeline.empty());
+        }
+    }
+    SECTION ("an overflowing Off preserves the preceding valid On")
+    {
+        CHECK (yesdaw::engine::flattenMidiClipToTimeline (clip, [] (Tick tick, double& frame)
+        {
+            frame = tick == 0 ? 123.0 : 0x1p63;
+            return true;
+        }, timeline) == MidiFlattenStatus::InvalidInput);
+        CHECK (timeline.size() == 1u);
+        REQUIRE_FALSE (timeline.empty());
+        CHECK (timeline[0].frame == 123);
+        CHECK (timeline[0].event.type == EventType::NoteOn);
+    }
+}

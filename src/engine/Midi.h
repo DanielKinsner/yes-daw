@@ -14,6 +14,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <vector>
 
@@ -506,113 +507,171 @@ struct ScheduledMidiEvent
     return static_cast<std::uint16_t> (a.event.type) < static_cast<std::uint16_t> (b.event.type);
 }
 
-// Control-side: flatten every Note of a MidiClip into a sorted absolute-frame timeline (allocation is fine
-// here — this runs off the audio thread, exactly like DecodedClipNode's decode step). The audio thread
-// never calls this; it consumes the produced timeline by cursor.
+struct MidiNativeOccurrence
+{
+    Tick nativePosition = 0;
+    TimeBase timeBase = TimeBase::TempoLocked;
+    EntityId clipId;
+    EntityId sourceId;
+    std::uint64_t repeatOrdinal = 0;
+    Event event {};
+};
+
+struct MidiOccurrencePreflight
+{
+    MidiFlattenStatus status = MidiFlattenStatus::Ok;
+    std::size_t events = 0;
+};
+
+namespace detail {
+
+[[nodiscard]] inline Tick midiOccurrenceCount (const MidiClip& clip, Tick position,
+                                               bool isNote) noexcept
+{
+    if (isNote && position >= clip.timelineLength)
+        return 0;
+    const bool looping = clip.loopLengthTicks > 0 && clip.loopLengthTicks < clip.timelineLength;
+    if (! looping)
+        return 1;
+    if (position >= clip.loopLengthTicks)
+        return 0;
+    return 1 + (clip.timelineLength - 1 - position) / clip.loopLengthTicks;
+}
+
+[[nodiscard]] inline Tick midiLastOccurrencePosition (const MidiClip& clip, Tick position,
+                                                      Tick count) noexcept
+{
+    return count > 1 ? position + (count - 1) * clip.loopLengthTicks : position;
+}
+
+}
+
+// Control-side. A failed preflight invokes no visitor and materializes no occurrences.
+[[nodiscard]] inline MidiOccurrencePreflight preflightMidiClipOccurrences (
+    const MidiClip& clip, std::size_t eventBudget) noexcept
+{
+    MidiOccurrencePreflight result;
+
+    if (! clip.isValid())
+        return { MidiFlattenStatus::InvalidInput, 0 };
+    if (clip.muted)
+        return result;
+
+    const auto account = [&] (Tick count, std::size_t edges)
+    {
+        if (static_cast<std::uint64_t> (count) > (eventBudget - result.events) / edges)
+            return false;
+        result.events += static_cast<std::size_t> (count) * edges;
+        return true;
+    };
+
+    for (const Note& sourceNote : clip.notes)
+    {
+        const int key = static_cast<int> (sourceNote.key) + static_cast<int> (clip.transposeSemitones);
+        if (key < 0 || key > 127)
+            continue;
+        const Tick count = detail::midiOccurrenceCount (clip, sourceNote.startTick, true);
+        if (count == 0)
+            continue;
+        const Tick lastStart = detail::midiLastOccurrencePosition (clip, sourceNote.startTick, count);
+        Tick lastEnd = 0;
+        Tick absoluteEnd = 0;
+        if (! detail::addMidiTickChecked (lastStart, sourceNote.lengthTicks, lastEnd)
+            || ! detail::addMidiTickChecked (clip.timelineStart,
+                                            std::min (lastEnd, clip.timelineLength), absoluteEnd))
+            return { MidiFlattenStatus::InvalidInput, 0 };
+        if (! account (count, 2u))
+            return { MidiFlattenStatus::OutputTooSmall, 0 };
+    }
+    for (const MidiControlEvent& control : clip.controlEvents)
+    {
+        const Tick count = detail::midiOccurrenceCount (clip, control.tick, false);
+        if (count == 0)
+            continue;
+        Tick absolute = 0;
+        if (! detail::addMidiTickChecked (clip.timelineStart,
+              detail::midiLastOccurrencePosition (clip, control.tick, count), absolute))
+            return { MidiFlattenStatus::InvalidInput, 0 };
+        if (! account (count, 1u))
+            return { MidiFlattenStatus::OutputTooSmall, 0 };
+    }
+    return result;
+}
+
+// The visitor receives native absolute coordinates before any Frame projection or flooring.
+// Its false return stops enumeration; callbacks already made are not rolled back.
+template <typename Visitor>
+[[nodiscard]] inline MidiFlattenStatus visitMidiClipOccurrences (
+    const MidiClip& clip, std::size_t eventBudget, Visitor visitor)
+{
+    const auto preflight = preflightMidiClipOccurrences (clip, eventBudget);
+    if (preflight.status != MidiFlattenStatus::Ok || clip.muted)
+        return preflight.status;
+
+    const auto emit = [&] (Tick relative, EntityId sourceId, Tick cycle, Event event)
+    {
+        Tick absolute = 0;
+        if (! detail::addMidiTickChecked (clip.timelineStart, relative, absolute))
+            return false;
+        return visitor (MidiNativeOccurrence { absolute, clip.timeBase, clip.id, sourceId,
+                                              static_cast<std::uint64_t> (cycle), event });
+    };
+
+    for (const Note& sourceNote : clip.notes)
+    {
+        const int key = static_cast<int> (sourceNote.key) + static_cast<int> (clip.transposeSemitones);
+        if (key < 0 || key > 127)
+            continue;
+        Note note = sourceNote;
+        note.key = static_cast<std::int16_t> (key);
+        note.pitchNote += static_cast<double> (clip.transposeSemitones);
+        note.normalizedVelocity = std::clamp (note.normalizedVelocity + clip.velocityOffset, 0.0, 1.0);
+        const Tick count = detail::midiOccurrenceCount (clip, note.startTick, true);
+        for (Tick cycle = 0; cycle < count; ++cycle)
+        {
+            const Tick start = note.startTick + cycle * clip.loopLengthTicks;
+            Tick noteEnd = 0;
+            if (! detail::addMidiTickChecked (start, note.lengthTicks, noteEnd))
+                return MidiFlattenStatus::InvalidInput;
+            noteEnd = std::min (noteEnd, clip.timelineLength);
+            if (! emit (start, note.id, cycle, makeNoteEvent (0u, EventType::NoteOn, note))
+                || ! emit (noteEnd, note.id, cycle, makeNoteEvent (0u, EventType::NoteOff, note)))
+                return MidiFlattenStatus::InvalidInput;
+        }
+    }
+    for (const MidiControlEvent& control : clip.controlEvents)
+    {
+        const Tick count = detail::midiOccurrenceCount (clip, control.tick, false);
+        for (Tick cycle = 0; cycle < count; ++cycle)
+        {
+            const Tick relative = control.tick + cycle * clip.loopLengthTicks;
+            if (! emit (relative, control.id, cycle, makeMidiControlEvent (0u, control)))
+                return MidiFlattenStatus::InvalidInput;
+        }
+    }
+    return MidiFlattenStatus::Ok;
+}
+
+// Control-side preparation; Audio consumes the resulting immutable timeline by cursor.
 template <typename TickToFrame>
 [[nodiscard]] inline MidiFlattenStatus flattenMidiClipToTimeline (const MidiClip& clip,
                                                                   TickToFrame tickToFrameFn,
                                                                   std::vector<ScheduledMidiEvent>& outTimeline)
 {
     outTimeline.clear();
-
-    if (! clip.isValid())
-        return MidiFlattenStatus::InvalidInput;
-
-    // G3.5: a muted Clip is a valid, silent source (the render's mute law, like an audio Clip's).
-    if (clip.muted)
-        return MidiFlattenStatus::Ok;
-
-    // G3.5: the loop — the content window [0, loop) repeats every loop ticks to fill the Clip; a
-    // repeat that would run past the Clip's end is cut there. loop 0 = the content plays once.
-    const bool looping = clip.loopLengthTicks > 0 && clip.loopLengthTicks < clip.timelineLength;
-    const Tick cycleTicks = looping ? clip.loopLengthTicks : clip.timelineLength;
-    const Tick cycleCount = looping ? (clip.timelineLength + cycleTicks - 1) / cycleTicks : 1;
-
-    for (const Note& sourceNote : clip.notes)
-    {
-        if (! sourceNote.isValid())
-            return MidiFlattenStatus::InvalidInput;
-
-        // G3.5: the Clip's transpose and velocity offset apply at render; a note pushed off the
-        // keyboard drops (it never sounded — Logic does the same).
-        Note note = sourceNote;
-        const int key = static_cast<int> (sourceNote.key) + static_cast<int> (clip.transposeSemitones);
-        if (key < 0 || key > 127)
-            continue;
-        note.key = static_cast<std::int16_t> (key);
-        note.pitchNote = sourceNote.pitchNote + static_cast<double> (clip.transposeSemitones);
-        note.normalizedVelocity = std::clamp (sourceNote.normalizedVelocity + clip.velocityOffset, 0.0, 1.0);
-
-        if (looping && note.startTick >= cycleTicks)
-            continue;   // outside the content window: the loop never reaches it
-
-        for (Tick cycle = 0; cycle < cycleCount; ++cycle)
+    const auto status = visitMidiClipOccurrences (clip, outTimeline.max_size(),
+        [&] (const MidiNativeOccurrence& occurrence)
         {
-            const Tick cycleOffset = cycle * cycleTicks;
-            const Tick start = note.startTick + cycleOffset;
-            if (start >= clip.timelineLength)
-                break;
-            Tick noteEnd = 0;
-            Tick onTick = 0;
-            Tick offTick = 0;
-            if (! detail::addMidiTickChecked (start, note.lengthTicks, noteEnd))
-                return MidiFlattenStatus::InvalidInput;
-            if (noteEnd > clip.timelineLength)
-            {
-                if (! looping)
-                    return MidiFlattenStatus::InvalidInput;
-                noteEnd = clip.timelineLength;   // the repeat is cut at the Clip's end
-            }
-            if (! detail::addMidiTickChecked (clip.timelineStart, start, onTick)
-                || ! detail::addMidiTickChecked (clip.timelineStart, noteEnd, offTick))
-                return MidiFlattenStatus::InvalidInput;
-
-            // A repeated note keeps its id, so the ScheduledMidiEvent order law (frame, noteId, type)
-            // still pairs each On with its Off: repeats never overlap themselves (one per cycle).
-            const auto append = [&] (Tick tick, EventType type) -> bool
-            {
-                double frame = 0.0;
-                if (! tickToFrameFn (tick, frame) || ! std::isfinite (frame) || frame < 0.0)
-                    return false;
-
-                outTimeline.push_back (ScheduledMidiEvent {
-                    static_cast<std::int64_t> (std::floor (frame)),
-                    makeNoteEvent (0u, type, note) });
-                return true;
-            };
-
-            if (! append (onTick, EventType::NoteOn) || ! append (offTick, EventType::NoteOff))
-                return MidiFlattenStatus::InvalidInput;
-        }
-    }
-
-    // G3.3: the Clip's control events ride the same timeline as its notes (G3.5: looped too).
-    for (const MidiControlEvent& control : clip.controlEvents)
-    {
-        if (! control.isValid() || control.tick > clip.timelineLength)
-            return MidiFlattenStatus::InvalidInput;
-        if (looping && control.tick >= cycleTicks)
-            continue;
-
-        for (Tick cycle = 0; cycle < cycleCount; ++cycle)
-        {
-            const Tick tick = control.tick + cycle * cycleTicks;
-            if (tick > clip.timelineLength || (cycle > 0 && tick >= clip.timelineLength))
-                break;
-            Tick absoluteTick = 0;
-            if (! detail::addMidiTickChecked (clip.timelineStart, tick, absoluteTick))
-                return MidiFlattenStatus::InvalidInput;
-
             double frame = 0.0;
-            if (! tickToFrameFn (absoluteTick, frame) || ! std::isfinite (frame) || frame < 0.0)
-                return MidiFlattenStatus::InvalidInput;
-
+            if (! tickToFrameFn (occurrence.nativePosition, frame)
+                || detail::checkedNativeFrame (frame, frame) != TimeLookupStatus::Ok)
+                return false;
             outTimeline.push_back (ScheduledMidiEvent {
-                static_cast<std::int64_t> (std::floor (frame)),
-                makeMidiControlEvent (0u, control) });
-        }
-    }
+                static_cast<std::int64_t> (std::floor (frame)), occurrence.event });
+            return true;
+        });
+    if (status != MidiFlattenStatus::Ok)
+        return status;
 
     std::sort (outTimeline.begin(), outTimeline.end(), scheduledMidiEventLess);
     return MidiFlattenStatus::Ok;
