@@ -88,6 +88,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Select Xcode 16.2 for pinned JUCE
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          task_developer_dir=/Applications/Xcode_16.2.app/Contents/Developer
+          test -d "$task_developer_dir"
+          task_toolchain_bin="$task_developer_dir/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+          test -x "$task_toolchain_bin/clang"
+          test -x "$task_toolchain_bin/clang++"
+          task_xcode_version="$(DEVELOPER_DIR="$task_developer_dir" /usr/bin/xcodebuild -version)"
+          test "$task_xcode_version" = $'Xcode 16.2\nBuild version 16C5032a'
+          printf '%s\n' "$task_xcode_version"
+          printf 'DEVELOPER_DIR=%s\n' "$task_developer_dir" >> "$GITHUB_ENV"
+          printf 'CC=%s/clang\nCXX=%s/clang++\n' "$task_toolchain_bin" "$task_toolchain_bin" >> "$GITHUB_ENV"
+
       - name: Test bounded Linux dependency setup
         if: runner.os == 'Linux'
         timeout-minutes: 2
