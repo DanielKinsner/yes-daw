@@ -56,7 +56,7 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    neighbour trimming are repaired. The implementation brief is `docs/plans/2026-11-03-editing-improvements-headless-plan.md`.
    Pure history22e3348 and Linux allocator correctionddbd71d are pushed. Startup correction99c8361 is queued behind an earlier Linux dependency job; no full-GREEN certification.
    Exact-query click-cache0BB9 passes all489 pure checks, three GUI compile-only targets and three Clang units. Fresh RTSan/TSan/macOS deadline evidence remains pending.
-   DefinitionR4 reference generation/replay passed in its limited domain. ClockOracle R3 is sealed/UNRUN with an unbound catalogue before complete source census. BootstrapR2 has conditional-source acceptance; ADRs0088/0089 fix request-owned origin formation and explicit frozen-builder attempt settlement. Actual formation source and legacy adapter remain separate work. Source prices/fit, full R4 proof and renderer/model adoption are unproved; linked/folder/piano implementation follows Musical audio.
+   DefinitionR4 reference generation/replay passed in its limited domain. ClockOracle R4 is sealed/UNRUN: independent source review confirms its current quoted lower bound exceeds its private2^34 budget; runner source/payload bounds also remain open. A separately reviewed research contract is preparation only, with no new limit selected. FormationR2 has whole-source acceptance but its exact event/cleanup census remains HOLD; legacy adapter, source fit, full R4 proof and renderer/model adoption are unproved. Linked/folder/piano implementation follows Musical audio.
 4. Agents own testing and advancement; Dan's personal session is optional feedback, not a gate. **Headless only**
    for this run: no desktop input, native windows or audio-device startup. Native/hardware-specific proof stays pending.
 5. Diagnose the recorded launch Underrun and intermittent SS3 failure with available headless evidence; confirmed
@@ -75,6 +75,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Preserve clock NOFIT; refine the production source census
+
+ClockOracleR4 has fresh functional-source acceptance, but independent census/review confirms a quoted lower bound17,821,237,248 >2^34 under its explicitly stated scalar-action convention. Runner bounds remain HOLD at run-root admission, failure serialization and complete source/scratch closure. Old sources/guards/caps/NOFIT stay exact; a separate research-only contract is preparation, with no new number, binding or execution GO. Code review: skipped (ce-code-review unavailable).
+FormationR2 has whole-source acceptance after a real counter-alias repair. Its independent67-site census finds nonuniform allocation/loop/conditional event partitions and an unresolved parent/library primitive boundary; no numeric prices/fit or tests. Next: reviewed operation boundary, refined actual source, complete independent census, legacy adapter and whole proof. Production2^28/512MiB/1GiB and old proofs stay unchanged.
+Local cache ceac834 remains489 pure/GUI3 compile-only/Clang3 GREEN. Startup99c CI42070981403 is still pending behind the earlier Linux-deps job; push remains held to preserve that queued run. No fresh sanitizer/macOS deadline credit, app/device startup or native input. Full Musical/linked/folder/piano delivery remains incomplete; Dan is not a gate.
 
 ## 2026-11-05 - Decide explicit legacy-attempt settlement; seal the new clock source model
 
