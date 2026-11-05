@@ -915,6 +915,12 @@ target_link_libraries(YesDawSmfCheck PRIVATE Catch2::Catch2WithMain)
 yesdaw_harden(YesDawSmfCheck)
 add_test(NAME YesDawSmfCheck COMMAND $<TARGET_FILE:YesDawSmfCheck>)
 
+add_executable(YesDawProjectSmfCheck tests/project_smf_tests.cpp)
+target_include_directories(YesDawProjectSmfCheck PRIVATE ${YESDAW_SRC_DIR})
+target_link_libraries(YesDawProjectSmfCheck PRIVATE Catch2::Catch2WithMain)
+yesdaw_harden(YesDawProjectSmfCheck)
+add_test(NAME YesDawProjectSmfCheck COMMAND $<TARGET_FILE:YesDawProjectSmfCheck>)
+
 # --- MIDI FX check (G3.8: transpose / scale / arpeggiator / chord inserts on the Track's MIDI path) ---
 add_executable(YesDawMidiFxCheck tests/midi_fx_tests.cpp)
 target_include_directories(YesDawMidiFxCheck PRIVATE ${YESDAW_SRC_DIR})
