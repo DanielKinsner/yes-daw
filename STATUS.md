@@ -74,8 +74,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    the complete census is being rebuilt from operand ledgers before another independent review.
    R11's tuple metadata replacement passed5,331 independent functional source checks against its
    provisional input set; final union, new census/lifetime proof, binding and execution remain held.
-   The separate metadata successor also passed25 types/110 declared fields, including the discovered
-   JObject iterator and three CoreLib enumerators. Complete payload equations remain in progress.
+   The separate metadata successor also passed26 types/112 declared fields, including Tuple2, the
+   discovered JObject iterator and three CoreLib enumerators. Complete payload equations remain in progress.
    R5's conditional all-input/source-object argument passed18,197 independent checks; actual native
    binding/funding/resources/integration remain held. Whole production census R3 review is REVISE;
    a systematic explicit/unqualified-designator inventory across420 bodies/51 helpers is required next.
@@ -101,6 +101,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-05 - Verify the hash carrier's installed field declarations
+
+- Separate metadata reader R3 exited0 with empty stderr and complete validated JSON:26 selected types/112 declared instance fields. Installed Tuple2 derives from Object and declares exactly two InitOnly generic fields; this is file metadata, not actual object size/offset/live-value/allocation or fit evidence.
+- Independent whole source review passed79 checks before a fresh hidden, bounded root launcher. All target/toolhost/reference pins matched; the complete source/launchers froze at first green. Archived22 source/review/raw-evidence files under `docs/research/artifacts/2026-11-05-managed-file-metadata-r3/`, preserving the earlier unsealed metadata correction and original bytes.
+- R12 hash-carrier source is sealed UNRUN and in whole functional review, with fresh hashes/wire witnesses preserved and no old numerical/resource authority transferred. A fresh author is rebuilding production census R4 under the complete420/51 written-versus-unqualified inventory hypothesis.
+- Continue complete six-phase resource critique and closure, then source/data/native/whole proof and recipe/renderer/jobs/model, followed by linked/folder/piano. Census-history checkpoint9f075f7 passed CI42181358828. No clock-research target stage, GUI, desktop input or device ran.
 
 ## 2026-11-05 - Preserve all three rejected complete production census proposals
 

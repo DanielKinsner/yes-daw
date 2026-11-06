@@ -1,0 +1,21 @@
+{
+  "scope": "One separate bounded hidden public-file metadata sourceR3 attempt after independent whole source review and root launcher-delta review. Not an R12 target or allocation/size probe.",
+  "independent_review_sha256": "5E870B52977ED4F984953DF2E78CEDD012BC7C62554398D768F9F959D1271EBD",
+  "subject_manifest_sha256": "3A2060A1F51D275B2B6A160C1899DDDA55680CCC0081264484984E856F377CC2",
+  "reader_sha256": "7A8CCCE39C75E2C0030D01A864E2BFD55FDB81E5EA2B6A9644A8EF8B3B5B7F51",
+  "compiler_reference_profile_sha256": "229900F0D91E29589B2DBE9584CDDC9812BFDB99625ED8924494BA093658C3F3",
+  "launcher_sha256": "1275FF05A85465C7FFC46C59D4579355A06C66FB7AE67D93406469630615A66B",
+  "powershell_wrapper_sha256": "B7A3D20CE320BE8B1B53DA3D731EDCD8B5207A9935955278B781FA74281EA1C6",
+  "constraints": {
+    "console_PE": true,
+    "hidden": true,
+    "stdin_null": true,
+    "redirected_output": true,
+    "timeout_seconds": 60,
+    "complete_exit_and_JSON_required": true,
+    "target_invoked": false,
+    "GUI_or_devices": false
+  },
+  "scope_addition": "Exactly one required Tuple`2 field/base/signature definition, retained original inventory and updated schema/count literals.",
+  "first_green_freezes_whole_source_and_launchers": true
+}
