@@ -1,0 +1,47 @@
+# Controlled automatic-object envelope — working source proposal
+
+**INCOMPLETE. No complete OTHER-object envelope, fit or first whole passing check is claimed.** This is a new source-only successor worksheet; native ownersR1, boundary audit and the actual layout-purpose sources/results remain unchanged. Root's pending whole R13 R2 census critique has priority. Nothing in this working file authorizes a compiler, decoder, helper, target or native run.
+
+## Qualified layout ingress
+
+The actual compile-only result is `build-ci/20261106-native-object-layout-purpose-source-r1/execution-r1/layout-values.json`, SHA03A663FFA001DEAE6C284517D71B54607081F6017C1AF40A98B30B40945E750D, from objectFE84226C8D35C527BF5EBE7386887BDD4259D6421E00722A7D05D96E62C34949. Receipt records compiler exit0,111 admitted includes and194 cells; no link/native Clock run. Root's independent whole purpose review accepted the replica correspondence. This worksheet has only read these files; it has not rerun the decoder or launcher.
+
+Actual values relevant here: Text65544,Stream65584,FractionCache11784,Rejection80,CachedPort160,Production64,NumericAClock56,Picks248,Picks::Item16,Bounds104,Meter24,String32,vector24,all selected vector/string iterator types8,pair16,Native/MusicalTime16,Cut32,Change/TempoChange24,production/fixture array4=96,witness6=48,rate backing array3=24,initializer-list header16. Object padding is already included in each sizeof; members of a counted containing object must not be counted again.
+
+The same source coexistence argument as ownersR1 gives `2*65584+4*65544+11784=405128` bytes for the named large-object component. During inverse metadata verification the regular text and descriptor coexist with readText local plus no-NRVO returned/discarded Text; q plus the read helper's Stream coexist. q remains a C++ object after finish; its file member becoming null is not object reclamation. inv starts after the read helper has returned. These counts concern source object lifetimes, not compiler stack-slot allocation or physical RSS.
+
+This leaves every other explicit object, temporary and active call context to derive independently. The existing32768 is a comparison target only. It supplies no sponsor or residual allowance.
+
+## First lexical object scopes to reconcile
+
+The planned small-object ledger distinguishes by-value formal parameters, lexical locals, full-expression class temporaries, optional named-return destinations, and reference bindings. These must not be silently collapsed into each other or into machine spills. Source scalars are not deleted because the compiler could register-allocate them; conversely, every arithmetic prvalue is not automatically an extra distinct materialized C++ object.
+
+- Main278–289: argc/argv formal objects; manifestLength; bounded-loop i; verify; root/manifest strings; manifest character c; prior/runner/total; producerUpper/verifierUpper/composed; Meter; caught-generic what pointer. Whole Catalogue is a reference alias, not a copied1248-byte object. Mutually exclusive try/catch and loop scopes can be conservatively unioned if labeled as such, without claiming they were all simultaneously live.
+- Run244–269: mode and totalWork formals; entries/inverseRecords and five flags; range-for backing array/initializer-list and R/N; CachedPort and Production objects; get closure; a/z Cuts; Bounds/Picks/stem/prior; dense i/expected/actual; malformed owned[9]/encoded; prefix count/rows/Production/changedA/changedB/Bounds; distinct ramp count/rows/Production/changed; inverse binary/json strings, j/frame/actual Native/expected MusicalTime/corrupt Native. Text/Stream/cache components stay separately sponsored by the large component, not duplicated in this list.
+- Controls239–243: totalWork,reviewed,n/d,independent/original pairs,normalized Native,returned Production and each expect action/witness parameter. Returned buildProduction out and its caller object can coexist without optional NRVO; vector moves retain the source/caller headers without cloning their already separately charged backing arrays.
+- Metadata228–236: inverse formal; count; named productionRows local/caller destination; i; lo/hi; first/windows; start;k. Field/Text helper parameters and digits[20]/q[2] remain their own active helper objects. The metadata Text itself remains in the large component.
+- Stream helpers103–144: constructor w/m and descriptor/e; setvbuf owner; flush written/error; put/exact pointer/count/k and loop state; fallback a[8]; read-word x; finish expected/result/error/owner; cleanup result/error/site and close-state helpers. No source FILE object sizeof is invented from its pointer member; the separate controlled buffer/path clone and general-runtime boundary audit remains applicable.
+- Numeric methods/costs: all value parameters and locals in pair multiplication/rational search/fraction cache/cut/endpoints, quote/Meter/Catalogue, qc build/append/frame/inverse/scaled/fractionBounds, and actual checked Time build/append/frame/inverse/scaled/validation paths. They need a complete per-body inventory and nested call-context count, not a blanket “small scalar” residual.
+
+The bullets are coverage work to finish, not a numerical certificate of their full membership or coexistence. Empty-base subobjects already included in vector/string/clock sizes must not be charged as additional standalone objects; actually materialized empty allocators/proxies/guards at SDK callsites are distinct and cannot be erased.
+
+## Exact remaining closure/context facts
+
+Actual194 layout cells contain no lambda sizeof facts. Do not substitute capture_count*pointer8.
+
+- CPP240 reservation-control action captures totalWork; CPP241 carry action captures independent/normalized; CPP242 invalid-native action captures production/independent.
+- CPP251 named get action uses verify/production/fractions/generator, with i as a by-value call parameter. This can remain live across nested clock, iterator and failure paths.
+- CPP253 Q action uses actual/expected/i/R/map; CPP255/256 short/trailing actions use root (their Stream locals are separately counted); CPP257 metadata and258 prefix actions use actual/text; CPP259 ramp action uses changed/b/N/R/map; CPP264 inverse actions use corrupt/expected/j. Each action is a prvalue at the expect by-value parameter; do not automatically invent an additional lambda temporary/copy when direct construction is guaranteed.
+- qc::fractionBounds64 nextBit uses rem/denominator; qc::segmentFor103 and Time::frameForTick652/frameForMusicalTime755 have stateless comparison closure objects whose actual copy/forward multiplicities follow selected upper_bound wrappers. Source Time::tickForFrame685 has an acceptDelta closure, but this legacy inverse is not called by the current native-inverse path and must not be silently added as reached.
+
+Further qualification, if needed, must name each exact lambda expression/capture context and selected ABI sizeof/alignof plus actual by-value/copy/return incidence. Reference parameters/bindings do not clone referents; any independently modeled representation storage needs its own justified profile fact, not the observation that sizeof(T&) equals sizeof(T).
+
+## Selected SDK scope still to close
+
+This is the finite selected-source scope, not a new runtime exemption: vector default/copy/init-list/move/assign/destruction, compressed-pair/allocator/proxy/guard and uninitialized copy/fill branches; string pointer-count/C-string construction, concat/insert/append/growth/move/retirement and their allocator/guard/local objects; array/pair element/access/copy helpers; begin/end/const-iterator unwrap/next/seek and upper_bound/default-comparator/predicate forwarding; limits/classification/bit-cast/scaled wrappers; std::exception/rejection/error visible constructor/copy/destructor wrappers. Own helper and selected C++ bodies stay expanded even when their implementation can use a bulk primitive.
+
+The earlier C++76-family maps may locate these bodies but supply no accepted byte envelope. The selected raw headers must determine which locals/guards actually exist under C++20/iterator-debug0/default profile. In particular `_Fake_proxy_ptr_impl`, `_Fake_allocator`, `_Leave_proxy_unbound`, `_Tidy_guard<vector<...>>`, `_Tidy_deallocate_guard<basic_string<...>>` and branch-selected reallocation guards were not measured by the first layout purpose. They need direct selected-type/layout facts or a supported source representation proof before numeric sponsorship; candidate presence in a header alone does not prove a reached guard. Any branch proved uninstantiated/unreached should be recorded as such, not charged or erased by optimizer speculation.
+
+## Finish line retained
+
+Complete per-body object ledgers and actual maximum nested invocation/coexistence paths are still required before an OTHER bound is proposed. Nested quote expressions, comparator forwarding, no-NRVO return destinations and exception/control nesting must be checked explicitly. No automatic object is charged once per dense word as if all iterations coexisted, nor freed by a heap/GC assumption. Heap backing requests, static binding data, controlled message/path clones and simultaneous controller/child/quarantine are separate owners; they must join later without duplication. Machine frames/spills/shadow space/general runtime/RSS are not certified here. This worksheet currently establishes no whole child or joint32MiB result.

@@ -60,6 +60,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    Resource baselines explicitly retain path/process/stream/native/cold/profile gaps. The separate metadata
    reader actually passed88 types/391 declared fields. A separate /c-only purpose now measured194 type/layout
    cells; this supplies selected object-size evidence, without physical-frame, whole-fit or Clock-run credit.
+   A frozen native-object proposal lists93 named scopes/16 closures; its777 own checks preserve explicit
+   unknown SDK/context/layout terms. The measured405,128-byte large-object component is not whole fit.
    ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
    The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
    is REVISE, with no runtime credit. R13's complete scalar successor awaits a different fresh critic.
@@ -86,6 +88,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Preserve the native-object remainder without inventing fit
+
+- The [scoped native-object proposal](docs/research/artifacts/2026-11-06-native-controlled-object-envelope-r1/sources/004-argument.md) is frozen HOLD:93 named scopes,16 closure contexts,24 materialization groups,12 lifetime contexts and six selected SDK families. Its777 first-pass own file/data checks provide consistency credit only.
+- Actual194-cell layouts support only the405,128-byte large-object component. OTHER, whole-child and joint32MiB fit remain null; no32768 padding, closure-count-times8, physical-stack/RSS or runtime-heap claim fills them. The [receipt](docs/research/2026-11-06-native-object-envelope-preservation.json) pins the complete25-file archive.
+- A separate agent is completing the selected SDK/parameter/return/context source ledger before proposing any necessary missing type facts. R15's whole correction and R13's whole numeric successor remain active; no new purpose/compiler/helper/fixture/Clock execution is authorized. Commit1546bc70 passed docs-only CI42229735261, with runtime/package/sanitizer jobs skipped.
 
 ## 2026-11-06 - Complete supervisor review; correct failure paths before any run
 

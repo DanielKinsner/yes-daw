@@ -1,0 +1,3116 @@
+{
+  "verdict": "PASS_SCOPED_PROPOSAL_CONSISTENCY_ONLY",
+  "checks": [
+    {
+      "name": "input_build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "pass_": true
+    },
+    {
+      "name": "input_build-ci/musical-audio-persistent-planner-certification/source-revisions/waveform-definition-r3/independent_clock.h",
+      "pass_": true
+    },
+    {
+      "name": "input_src/engine/Time.h",
+      "pass_": true
+    },
+    {
+      "name": "input_build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "pass_": true
+    },
+    {
+      "name": "input_build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "pass_": true
+    },
+    {
+      "name": "input_build-ci/20261106-clock-native-child-source-owners-r1/owners.json",
+      "pass_": true
+    },
+    {
+      "name": "input_build-ci/20261106-clock-native-resource-boundary-audit-r1/audit.json",
+      "pass_": true
+    },
+    {
+      "name": "input_build-ci/20261106-native-object-layout-purpose-source-r1/source-pins.json",
+      "pass_": true
+    },
+    {
+      "name": "input_build-ci/20261106-native-layout-purpose-independent-review-r1/review.json",
+      "pass_": true
+    },
+    {
+      "name": "input_build-ci/20261106-native-object-layout-purpose-source-r1/execution-r1/layout-values.json",
+      "pass_": true
+    },
+    {
+      "name": "actual_compile_only_result",
+      "pass_": true
+    },
+    {
+      "name": "actual_result_correspondence",
+      "pass_": true
+    },
+    {
+      "name": "actual_cells",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_vector",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_xmemory",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_xutility",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_xstring",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_array",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_utility",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_exception",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_stdexcept",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_bit",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_limits",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_type_traits",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_initializer_list",
+      "pass_": true
+    },
+    {
+      "name": "selected_header_algorithm",
+      "pass_": true
+    },
+    {
+      "name": "93_unique_named_scopes",
+      "pass_": true
+    },
+    {
+      "name": "span_Rejection::Rejection",
+      "pass_": true
+    },
+    {
+      "name": "names_Rejection::Rejection_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_Rejection::Rejection_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_Rejection::Rejection_Witness6",
+      "pass_": true
+    },
+    {
+      "name": "size_Rejection::Rejection_Witness6",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Rejection::Rejection",
+      "pass_": true
+    },
+    {
+      "name": "span_Rejection::what",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Rejection::what",
+      "pass_": true
+    },
+    {
+      "name": "span_rememberCloseFailure",
+      "pass_": true
+    },
+    {
+      "name": "names_rememberCloseFailure_int",
+      "pass_": true
+    },
+    {
+      "name": "size_rememberCloseFailure_int",
+      "pass_": true
+    },
+    {
+      "name": "names_rememberCloseFailure_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_rememberCloseFailure_pointer",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_rememberCloseFailure",
+      "pass_": true
+    },
+    {
+      "name": "span_cleanupFileClose",
+      "pass_": true
+    },
+    {
+      "name": "names_cleanupFileClose_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_cleanupFileClose_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_cleanupFileClose_int",
+      "pass_": true
+    },
+    {
+      "name": "size_cleanupFileClose_int",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_cleanupFileClose",
+      "pass_": true
+    },
+    {
+      "name": "span_cleanupDescriptorClose",
+      "pass_": true
+    },
+    {
+      "name": "names_cleanupDescriptorClose_int",
+      "pass_": true
+    },
+    {
+      "name": "size_cleanupDescriptorClose_int",
+      "pass_": true
+    },
+    {
+      "name": "names_cleanupDescriptorClose_int",
+      "pass_": true
+    },
+    {
+      "name": "size_cleanupDescriptorClose_int",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_cleanupDescriptorClose",
+      "pass_": true
+    },
+    {
+      "name": "span_reportCleanupClose",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_reportCleanupClose",
+      "pass_": true
+    },
+    {
+      "name": "span_gate_no_witness",
+      "pass_": true
+    },
+    {
+      "name": "names_gate_no_witness_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_gate_no_witness_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_gate_no_witness_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_gate_no_witness_pointer",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_gate_no_witness",
+      "pass_": true
+    },
+    {
+      "name": "span_gate_witness",
+      "pass_": true
+    },
+    {
+      "name": "names_gate_witness_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_gate_witness_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_gate_witness_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_gate_witness_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_gate_witness_Witness6",
+      "pass_": true
+    },
+    {
+      "name": "size_gate_witness_Witness6",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_gate_witness",
+      "pass_": true
+    },
+    {
+      "name": "span_bits",
+      "pass_": true
+    },
+    {
+      "name": "names_bits_double",
+      "pass_": true
+    },
+    {
+      "name": "size_bits_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_bits",
+      "pass_": true
+    },
+    {
+      "name": "span_workLimit",
+      "pass_": true
+    },
+    {
+      "name": "names_workLimit_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_workLimit_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_workLimit",
+      "pass_": true
+    },
+    {
+      "name": "span_reservationGate",
+      "pass_": true
+    },
+    {
+      "name": "names_reservationGate_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_reservationGate_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_reservationGate_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_reservationGate_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_reservationGate",
+      "pass_": true
+    },
+    {
+      "name": "span_bytesGate_unreached",
+      "pass_": true
+    },
+    {
+      "name": "names_bytesGate_unreached_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_bytesGate_unreached_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_bytesGate_unreached",
+      "pass_": true
+    },
+    {
+      "name": "span_Cost::catalogue",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Cost::catalogue",
+      "pass_": true
+    },
+    {
+      "name": "span_Cost::price",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::price_Family",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::price_Family",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Cost::price",
+      "pass_": true
+    },
+    {
+      "name": "span_Cost::validate",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::validate_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::validate_size_t",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Cost::validate",
+      "pass_": true
+    },
+    {
+      "name": "span_Cost::plus",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::plus_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::plus_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Cost::plus",
+      "pass_": true
+    },
+    {
+      "name": "span_Cost::times",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::times_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::times_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Cost::times",
+      "pass_": true
+    },
+    {
+      "name": "span_Cost::units",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::units_Family",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::units_Family",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::units_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::units_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Cost::units",
+      "pass_": true
+    },
+    {
+      "name": "span_Cost::wordUnits",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::wordUnits_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::wordUnits_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::wordUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::wordUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::wordUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::wordUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Cost::wordUnits",
+      "pass_": true
+    },
+    {
+      "name": "span_Cost::inverseUnits",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::inverseUnits_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::inverseUnits_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::inverseUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::inverseUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::inverseUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::inverseUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Cost::inverseUnits",
+      "pass_": true
+    },
+    {
+      "name": "span_Cost::fixtureUnits",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::fixtureUnits_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::fixtureUnits_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::fixtureUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::fixtureUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::fixtureUnits_int",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::fixtureUnits_int",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::fixtureUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::fixtureUnits_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::fixtureUnits_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::fixtureUnits_bool",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Cost::fixtureUnits",
+      "pass_": true
+    },
+    {
+      "name": "span_Cost::childUpper",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::childUpper_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::childUpper_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::childUpper_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::childUpper_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::childUpper_int",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::childUpper_int",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::childUpper_Rates3",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::childUpper_Rates3",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::childUpper_RateInitializerList",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::childUpper_RateInitializerList",
+      "pass_": true
+    },
+    {
+      "name": "names_Cost::childUpper_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_Cost::childUpper_pointer",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Cost::childUpper",
+      "pass_": true
+    },
+    {
+      "name": "span_Meter::Meter",
+      "pass_": true
+    },
+    {
+      "name": "names_Meter::Meter_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Meter::Meter_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Meter::Meter",
+      "pass_": true
+    },
+    {
+      "name": "span_Meter::add",
+      "pass_": true
+    },
+    {
+      "name": "names_Meter::add_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Meter::add_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Meter::add",
+      "pass_": true
+    },
+    {
+      "name": "span_Text::add",
+      "pass_": true
+    },
+    {
+      "name": "names_Text::add_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_Text::add_pointer",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Text::add",
+      "pass_": true
+    },
+    {
+      "name": "span_Text::u",
+      "pass_": true
+    },
+    {
+      "name": "names_Text::u_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Text::u_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Text::u_Digits20",
+      "pass_": true
+    },
+    {
+      "name": "size_Text::u_Digits20",
+      "pass_": true
+    },
+    {
+      "name": "names_Text::u_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "size_Text::u_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Text::u",
+      "pass_": true
+    },
+    {
+      "name": "span_Text::i",
+      "pass_": true
+    },
+    {
+      "name": "names_Text::i_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_Text::i_Tick",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Text::i",
+      "pass_": true
+    },
+    {
+      "name": "span_Text::boolean",
+      "pass_": true
+    },
+    {
+      "name": "names_Text::boolean_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_Text::boolean_bool",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Text::boolean",
+      "pass_": true
+    },
+    {
+      "name": "span_Text::quoted",
+      "pass_": true
+    },
+    {
+      "name": "names_Text::quoted_char",
+      "pass_": true
+    },
+    {
+      "name": "size_Text::quoted_char",
+      "pass_": true
+    },
+    {
+      "name": "names_Text::quoted_Quoted2",
+      "pass_": true
+    },
+    {
+      "name": "size_Text::quoted_Quoted2",
+      "pass_": true
+    },
+    {
+      "name": "names_Text::quoted_StringConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "size_Text::quoted_StringConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Text::quoted",
+      "pass_": true
+    },
+    {
+      "name": "span_number",
+      "pass_": true
+    },
+    {
+      "name": "names_number_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_number_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_number",
+      "pass_": true
+    },
+    {
+      "name": "span_path",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_path",
+      "pass_": true
+    },
+    {
+      "name": "span_Stream::Stream",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::Stream_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::Stream_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::Stream_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::Stream_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::Stream_int",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::Stream_int",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::Stream_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::Stream_pointer",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Stream::Stream",
+      "pass_": true
+    },
+    {
+      "name": "span_Stream::~Stream",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::~Stream_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::~Stream_pointer",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Stream::~Stream",
+      "pass_": true
+    },
+    {
+      "name": "span_Stream::flush",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::flush_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::flush_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::flush_int",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::flush_int",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Stream::flush",
+      "pass_": true
+    },
+    {
+      "name": "span_Stream::put",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::put_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::put_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::put_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::put_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::put_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::put_size_t",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Stream::put",
+      "pass_": true
+    },
+    {
+      "name": "span_Stream::word_write",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::word_write_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::word_write_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::word_write_Fallback8",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::word_write_Fallback8",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Stream::word_write",
+      "pass_": true
+    },
+    {
+      "name": "span_Stream::exact",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::exact_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::exact_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::exact_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::exact_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::exact_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::exact_size_t",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Stream::exact",
+      "pass_": true
+    },
+    {
+      "name": "span_Stream::word_read",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::word_read_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::word_read_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Stream::word_read",
+      "pass_": true
+    },
+    {
+      "name": "span_Stream::finish",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::finish_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::finish_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::finish_int",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::finish_int",
+      "pass_": true
+    },
+    {
+      "name": "names_Stream::finish_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_Stream::finish_pointer",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Stream::finish",
+      "pass_": true
+    },
+    {
+      "name": "span_writeText",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_writeText",
+      "pass_": true
+    },
+    {
+      "name": "span_textWitness",
+      "pass_": true
+    },
+    {
+      "name": "names_textWitness_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_textWitness_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_textWitness_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_textWitness_size_t",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_textWitness",
+      "pass_": true
+    },
+    {
+      "name": "span_textGate",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_textGate",
+      "pass_": true
+    },
+    {
+      "name": "span_readText",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_readText",
+      "pass_": true
+    },
+    {
+      "name": "span_multiply",
+      "pass_": true
+    },
+    {
+      "name": "names_multiply_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_multiply_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_multiply_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_multiply_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_multiply",
+      "pass_": true
+    },
+    {
+      "name": "span_compareRational",
+      "pass_": true
+    },
+    {
+      "name": "names_compareRational_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_compareRational_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_compareRational_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "size_compareRational_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "names_compareRational_Pair128",
+      "pass_": true
+    },
+    {
+      "name": "size_compareRational_Pair128",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_compareRational",
+      "pass_": true
+    },
+    {
+      "name": "span_independentFraction",
+      "pass_": true
+    },
+    {
+      "name": "names_independentFraction_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_independentFraction_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_independentFraction_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_independentFraction_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_independentFraction_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "size_independentFraction_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_independentFraction",
+      "pass_": true
+    },
+    {
+      "name": "span_FractionCache::FractionCache",
+      "pass_": true
+    },
+    {
+      "name": "names_FractionCache::FractionCache_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_FractionCache::FractionCache_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_FractionCache::FractionCache_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_FractionCache::FractionCache_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_FractionCache::FractionCache_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_FractionCache::FractionCache_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_FractionCache::FractionCache_DoublePair",
+      "pass_": true
+    },
+    {
+      "name": "size_FractionCache::FractionCache_DoublePair",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_FractionCache::FractionCache",
+      "pass_": true
+    },
+    {
+      "name": "span_CachedPort::CachedPort",
+      "pass_": true
+    },
+    {
+      "name": "names_CachedPort::CachedPort_double",
+      "pass_": true
+    },
+    {
+      "name": "size_CachedPort::CachedPort_double",
+      "pass_": true
+    },
+    {
+      "name": "names_CachedPort::CachedPort_int",
+      "pass_": true
+    },
+    {
+      "name": "size_CachedPort::CachedPort_int",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_CachedPort::CachedPort",
+      "pass_": true
+    },
+    {
+      "name": "span_CachedPort::frame",
+      "pass_": true
+    },
+    {
+      "name": "names_CachedPort::frame_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "size_CachedPort::frame_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "names_CachedPort::frame_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_CachedPort::frame_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_CachedPort::frame_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_CachedPort::frame_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_CachedPort::frame_double",
+      "pass_": true
+    },
+    {
+      "name": "size_CachedPort::frame_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_CachedPort::frame",
+      "pass_": true
+    },
+    {
+      "name": "span_productionRows",
+      "pass_": true
+    },
+    {
+      "name": "names_productionRows_int",
+      "pass_": true
+    },
+    {
+      "name": "size_productionRows_int",
+      "pass_": true
+    },
+    {
+      "name": "names_productionRows_Constants5",
+      "pass_": true
+    },
+    {
+      "name": "size_productionRows_Constants5",
+      "pass_": true
+    },
+    {
+      "name": "names_productionRows_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_productionRows_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_productionRows_double",
+      "pass_": true
+    },
+    {
+      "name": "size_productionRows_double",
+      "pass_": true
+    },
+    {
+      "name": "names_productionRows_ProductionRows4",
+      "pass_": true
+    },
+    {
+      "name": "size_productionRows_ProductionRows4",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_productionRows",
+      "pass_": true
+    },
+    {
+      "name": "span_buildProduction",
+      "pass_": true
+    },
+    {
+      "name": "names_buildProduction_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_buildProduction_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_buildProduction_int",
+      "pass_": true
+    },
+    {
+      "name": "size_buildProduction_int",
+      "pass_": true
+    },
+    {
+      "name": "names_buildProduction_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_buildProduction_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_buildProduction_ProductionRows4",
+      "pass_": true
+    },
+    {
+      "name": "size_buildProduction_ProductionRows4",
+      "pass_": true
+    },
+    {
+      "name": "names_buildProduction_Production",
+      "pass_": true
+    },
+    {
+      "name": "size_buildProduction_Production",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_buildProduction",
+      "pass_": true
+    },
+    {
+      "name": "span_productionFrame",
+      "pass_": true
+    },
+    {
+      "name": "names_productionFrame_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "size_productionFrame_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "names_productionFrame_double",
+      "pass_": true
+    },
+    {
+      "name": "size_productionFrame_double",
+      "pass_": true
+    },
+    {
+      "name": "names_productionFrame_TimeLookupStatus",
+      "pass_": true
+    },
+    {
+      "name": "size_productionFrame_TimeLookupStatus",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_productionFrame",
+      "pass_": true
+    },
+    {
+      "name": "span_highEndpoint",
+      "pass_": true
+    },
+    {
+      "name": "names_highEndpoint_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_highEndpoint_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_highEndpoint_double",
+      "pass_": true
+    },
+    {
+      "name": "size_highEndpoint_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_highEndpoint",
+      "pass_": true
+    },
+    {
+      "name": "span_endpointGate",
+      "pass_": true
+    },
+    {
+      "name": "names_endpointGate_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "size_endpointGate_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_endpointGate",
+      "pass_": true
+    },
+    {
+      "name": "span_admittedCut",
+      "pass_": true
+    },
+    {
+      "name": "names_admittedCut_double",
+      "pass_": true
+    },
+    {
+      "name": "size_admittedCut_double",
+      "pass_": true
+    },
+    {
+      "name": "names_admittedCut_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_admittedCut_bool",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_admittedCut",
+      "pass_": true
+    },
+    {
+      "name": "span_cut_instantiations",
+      "pass_": true
+    },
+    {
+      "name": "names_cut_instantiations_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_cut_instantiations_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_cut_instantiations_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_cut_instantiations_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_cut_instantiations_DoublePair",
+      "pass_": true
+    },
+    {
+      "name": "size_cut_instantiations_DoublePair",
+      "pass_": true
+    },
+    {
+      "name": "names_cut_instantiations_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_cut_instantiations_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_cut_instantiations_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "size_cut_instantiations_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "names_cut_instantiations_double",
+      "pass_": true
+    },
+    {
+      "name": "size_cut_instantiations_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_cut_instantiations",
+      "pass_": true
+    },
+    {
+      "name": "span_wordGate",
+      "pass_": true
+    },
+    {
+      "name": "names_wordGate_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_wordGate_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_wordGate_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_wordGate_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_wordGate_int",
+      "pass_": true
+    },
+    {
+      "name": "size_wordGate_int",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_wordGate",
+      "pass_": true
+    },
+    {
+      "name": "span_inverseGate",
+      "pass_": true
+    },
+    {
+      "name": "names_inverseGate_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "size_inverseGate_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "names_inverseGate_MusicalTime",
+      "pass_": true
+    },
+    {
+      "name": "size_inverseGate_MusicalTime",
+      "pass_": true
+    },
+    {
+      "name": "names_inverseGate_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_inverseGate_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_inverseGate",
+      "pass_": true
+    },
+    {
+      "name": "span_Picks::Picks",
+      "pass_": true
+    },
+    {
+      "name": "names_Picks::Picks_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Picks::Picks_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Picks::Picks_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "size_Picks::Picks_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "names_Picks::Picks_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Picks::Picks_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Picks::Picks_PicksItem",
+      "pass_": true
+    },
+    {
+      "name": "size_Picks::Picks_PicksItem",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Picks::Picks",
+      "pass_": true
+    },
+    {
+      "name": "span_Picks::see",
+      "pass_": true
+    },
+    {
+      "name": "names_Picks::see_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_Picks::see_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_Picks::see_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_Picks::see_Tick",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Picks::see",
+      "pass_": true
+    },
+    {
+      "name": "span_field",
+      "pass_": true
+    },
+    {
+      "name": "names_field_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_field_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_field_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_field_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_field",
+      "pass_": true
+    },
+    {
+      "name": "span_metadata",
+      "pass_": true
+    },
+    {
+      "name": "names_metadata_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_metadata_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_metadata_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_metadata_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_metadata_ProductionRows4",
+      "pass_": true
+    },
+    {
+      "name": "size_metadata_ProductionRows4",
+      "pass_": true
+    },
+    {
+      "name": "names_metadata_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_metadata_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_metadata_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_metadata_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_metadata_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "size_metadata_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_metadata",
+      "pass_": true
+    },
+    {
+      "name": "span_expect_instantiations",
+      "pass_": true
+    },
+    {
+      "name": "names_expect_instantiations_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_expect_instantiations_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_expect_instantiations_Witness6",
+      "pass_": true
+    },
+    {
+      "name": "size_expect_instantiations_Witness6",
+      "pass_": true
+    },
+    {
+      "name": "names_expect_instantiations_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_expect_instantiations_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_expect_instantiations_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_expect_instantiations_u64",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_expect_instantiations",
+      "pass_": true
+    },
+    {
+      "name": "span_controls",
+      "pass_": true
+    },
+    {
+      "name": "names_controls_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_controls_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_controls_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_controls_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_controls_DoublePair",
+      "pass_": true
+    },
+    {
+      "name": "size_controls_DoublePair",
+      "pass_": true
+    },
+    {
+      "name": "names_controls_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "size_controls_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "names_controls_Production",
+      "pass_": true
+    },
+    {
+      "name": "size_controls_Production",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_controls",
+      "pass_": true
+    },
+    {
+      "name": "span_run",
+      "pass_": true
+    },
+    {
+      "name": "names_run_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_run_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_run_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_run_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_run_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_run_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_run_int",
+      "pass_": true
+    },
+    {
+      "name": "size_run_int",
+      "pass_": true
+    },
+    {
+      "name": "names_run_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_run_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_run_Rates3",
+      "pass_": true
+    },
+    {
+      "name": "size_run_Rates3",
+      "pass_": true
+    },
+    {
+      "name": "names_run_RateInitializerList",
+      "pass_": true
+    },
+    {
+      "name": "size_run_RateInitializerList",
+      "pass_": true
+    },
+    {
+      "name": "names_run_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_run_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_run_CachedPort",
+      "pass_": true
+    },
+    {
+      "name": "size_run_CachedPort",
+      "pass_": true
+    },
+    {
+      "name": "names_run_Production",
+      "pass_": true
+    },
+    {
+      "name": "size_run_Production",
+      "pass_": true
+    },
+    {
+      "name": "names_run_qcCut",
+      "pass_": true
+    },
+    {
+      "name": "size_run_qcCut",
+      "pass_": true
+    },
+    {
+      "name": "names_run_Bounds",
+      "pass_": true
+    },
+    {
+      "name": "size_run_Bounds",
+      "pass_": true
+    },
+    {
+      "name": "names_run_Picks",
+      "pass_": true
+    },
+    {
+      "name": "size_run_Picks",
+      "pass_": true
+    },
+    {
+      "name": "names_run_String",
+      "pass_": true
+    },
+    {
+      "name": "size_run_String",
+      "pass_": true
+    },
+    {
+      "name": "names_run_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_run_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_run_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_run_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_run_Owned9",
+      "pass_": true
+    },
+    {
+      "name": "size_run_Owned9",
+      "pass_": true
+    },
+    {
+      "name": "names_run_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_run_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_run_ProductionRows4",
+      "pass_": true
+    },
+    {
+      "name": "size_run_ProductionRows4",
+      "pass_": true
+    },
+    {
+      "name": "names_run_double",
+      "pass_": true
+    },
+    {
+      "name": "size_run_double",
+      "pass_": true
+    },
+    {
+      "name": "names_run_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "size_run_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "names_run_MusicalTime",
+      "pass_": true
+    },
+    {
+      "name": "size_run_MusicalTime",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_run",
+      "pass_": true
+    },
+    {
+      "name": "span_decimal",
+      "pass_": true
+    },
+    {
+      "name": "names_decimal_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_decimal_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_decimal_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_decimal_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_decimal_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "size_decimal_unsigned",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_decimal",
+      "pass_": true
+    },
+    {
+      "name": "span_boundedArgument",
+      "pass_": true
+    },
+    {
+      "name": "names_boundedArgument_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_boundedArgument_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_boundedArgument_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_boundedArgument_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_boundedArgument_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_boundedArgument_size_t",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_boundedArgument",
+      "pass_": true
+    },
+    {
+      "name": "span_main",
+      "pass_": true
+    },
+    {
+      "name": "names_main_int",
+      "pass_": true
+    },
+    {
+      "name": "size_main_int",
+      "pass_": true
+    },
+    {
+      "name": "names_main_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_main_pointer",
+      "pass_": true
+    },
+    {
+      "name": "names_main_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_main_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_main_int",
+      "pass_": true
+    },
+    {
+      "name": "size_main_int",
+      "pass_": true
+    },
+    {
+      "name": "names_main_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_main_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_main_String",
+      "pass_": true
+    },
+    {
+      "name": "size_main_String",
+      "pass_": true
+    },
+    {
+      "name": "names_main_char",
+      "pass_": true
+    },
+    {
+      "name": "size_main_char",
+      "pass_": true
+    },
+    {
+      "name": "names_main_StringConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "size_main_StringConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "names_main_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_main_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_main_Meter",
+      "pass_": true
+    },
+    {
+      "name": "size_main_Meter",
+      "pass_": true
+    },
+    {
+      "name": "names_main_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_main_pointer",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_main",
+      "pass_": true
+    },
+    {
+      "name": "span_qc::require",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::require_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::require_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::require_pointer",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::require_pointer",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_qc::require",
+      "pass_": true
+    },
+    {
+      "name": "span_qc::fixtureMap",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::fixtureMap_int",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::fixtureMap_int",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::fixtureMap_Constants5",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::fixtureMap_Constants5",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::fixtureMap_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::fixtureMap_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::fixtureMap_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::fixtureMap_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_qc::fixtureMap",
+      "pass_": true
+    },
+    {
+      "name": "span_qc::scaled",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::scaled_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::scaled_double",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::scaled_int",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::scaled_int",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::scaled_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::scaled_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_qc::scaled",
+      "pass_": true
+    },
+    {
+      "name": "span_qc::checkFrame",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::checkFrame_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::checkFrame_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_qc::checkFrame",
+      "pass_": true
+    },
+    {
+      "name": "span_qc::fractionBounds",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::fractionBounds_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::fractionBounds_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::fractionBounds_u64",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::fractionBounds_u64",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::fractionBounds_int",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::fractionBounds_int",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::fractionBounds_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::fractionBounds_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_qc::fractionBounds",
+      "pass_": true
+    },
+    {
+      "name": "span_qc::NumericAClock::append",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::append_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::append_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::append_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::append_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::append_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::append_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_qc::NumericAClock::append",
+      "pass_": true
+    },
+    {
+      "name": "span_qc::NumericAClock::segmentFor",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::segmentFor_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::segmentFor_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::segmentFor_ChangeConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::segmentFor_ChangeConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_qc::NumericAClock::segmentFor",
+      "pass_": true
+    },
+    {
+      "name": "span_qc::NumericAClock::NumericAClock",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::NumericAClock_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::NumericAClock_double",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::NumericAClock_ChangeVector",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::NumericAClock_ChangeVector",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::NumericAClock_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::NumericAClock_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::NumericAClock_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::NumericAClock_double",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::NumericAClock_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::NumericAClock_Tick",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_qc::NumericAClock::NumericAClock",
+      "pass_": true
+    },
+    {
+      "name": "span_qc::NumericAClock::frame",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::frame_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::frame_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::frame_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::frame_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::frame_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::frame_double",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::frame_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::frame_Tick",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_qc::NumericAClock::frame",
+      "pass_": true
+    },
+    {
+      "name": "span_qc::NumericAClock::inverse",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::inverse_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::inverse_double",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::inverse_double",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::inverse_double",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::inverse_DoubleConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::inverse_DoubleConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::inverse_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::inverse_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::inverse_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::inverse_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_qc::NumericAClock::inverse_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "size_qc::NumericAClock::inverse_qcNative",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_qc::NumericAClock::inverse",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::detail::isFinitePositive",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::detail::isFinitePositive_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::detail::isFinitePositive_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::detail::isFinitePositive",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::MusicalTime::hasValidFraction",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::MusicalTime::hasValidFraction",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::TempoChange::hasValidBpm",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::TempoChange::hasValidBpm",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::SampleRate::isValid",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::SampleRate::isValid",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::TempoMapView::empty",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::TempoMapView::empty",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::detail::appendTempoSegmentFrames",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::detail::appendTempoSegmentFrames_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::detail::appendTempoSegmentFrames_double",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::detail::appendTempoSegmentFrames_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::detail::appendTempoSegmentFrames_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::detail::appendTempoSegmentFrames_TempoCurve",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::detail::appendTempoSegmentFrames_TempoCurve",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::detail::appendTempoSegmentFrames_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::detail::appendTempoSegmentFrames_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::detail::appendTempoSegmentFrames",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::detail::scaledTimeRatio",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::detail::scaledTimeRatio_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::detail::scaledTimeRatio_double",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::detail::scaledTimeRatio_int",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::detail::scaledTimeRatio_int",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::detail::scaledTimeRatio_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::detail::scaledTimeRatio_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::detail::scaledTimeRatio",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::detail::checkedNativeFrame",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::detail::checkedNativeFrame_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::detail::checkedNativeFrame_double",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::detail::checkedNativeFrame",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::CompiledTempoMap::build",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::build_TempoMapView_UNMEASURED",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::build_TempoMapView_UNMEASURED",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::build_SampleRate",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::build_SampleRate",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::build_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::build_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::build_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::build_double",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::build_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::build_Tick",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::CompiledTempoMap::build",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::CompiledTempoMap::frameForTick",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForTick_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForTick_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForTick_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForTick_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForTick_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForTick_double",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForTick_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForTick_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForTick_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForTick_Tick",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::CompiledTempoMap::frameForTick",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::CompiledTempoMap::frameForMusicalTime",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForMusicalTime_MusicalTime",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForMusicalTime_MusicalTime",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForMusicalTime_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForMusicalTime_double",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForMusicalTime_TimeLookupStatus",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForMusicalTime_TimeLookupStatus",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForMusicalTime_TempoConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForMusicalTime_TempoConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForMusicalTime_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForMusicalTime_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::frameForMusicalTime_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::frameForMusicalTime_Tick",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::CompiledTempoMap::frameForMusicalTime",
+      "pass_": true
+    },
+    {
+      "name": "span_engine::CompiledTempoMap::musicalTimeForFrame",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::musicalTimeForFrame_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::musicalTimeForFrame_double",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::musicalTimeForFrame_double",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::musicalTimeForFrame_double",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::musicalTimeForFrame_Tick",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::musicalTimeForFrame_Tick",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::musicalTimeForFrame_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::musicalTimeForFrame_size_t",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::musicalTimeForFrame_DoubleConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::musicalTimeForFrame_DoubleConstIterator",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::musicalTimeForFrame_bool",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::musicalTimeForFrame_bool",
+      "pass_": true
+    },
+    {
+      "name": "names_engine::CompiledTempoMap::musicalTimeForFrame_MusicalTime",
+      "pass_": true
+    },
+    {
+      "name": "size_engine::CompiledTempoMap::musicalTimeForFrame_MusicalTime",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_engine::CompiledTempoMap::musicalTimeForFrame",
+      "pass_": true
+    },
+    {
+      "name": "span_Catalogue::family",
+      "pass_": true
+    },
+    {
+      "name": "names_Catalogue::family_Family",
+      "pass_": true
+    },
+    {
+      "name": "size_Catalogue::family_Family",
+      "pass_": true
+    },
+    {
+      "name": "names_Catalogue::family_size_t",
+      "pass_": true
+    },
+    {
+      "name": "size_Catalogue::family_size_t",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Catalogue::family",
+      "pass_": true
+    },
+    {
+      "name": "span_Catalogue::whole",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_Catalogue::whole",
+      "pass_": true
+    },
+    {
+      "name": "span_immutableCatalogue",
+      "pass_": true
+    },
+    {
+      "name": "subtotal_immutableCatalogue",
+      "pass_": true
+    },
+    {
+      "name": "only_view_named_unqualified",
+      "pass_": true
+    },
+    {
+      "name": "named_sum_not_an_upper",
+      "pass_": true
+    },
+    {
+      "name": "main_run_components",
+      "pass_": true
+    },
+    {
+      "name": "16_exact_closures",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_work_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_work_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_carry_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_carry_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_invalid_native_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_invalid_native_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_get",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_get",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_q_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_q_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_truncated_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_truncated_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_trailing_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_trailing_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_metadata_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_metadata_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_prefix_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_prefix_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_ramp_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_ramp_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_inverse_whole_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_inverse_whole_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_inverse_fraction_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_inverse_fraction_action",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_nextBit",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_nextBit",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_qc_tick_comparator",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_qc_tick_comparator",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_time_tick_comparator",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_time_tick_comparator",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_time_native_comparator",
+      "pass_": true
+    },
+    {
+      "name": "closure_unqualified_time_native_comparator",
+      "pass_": true
+    },
+    {
+      "name": "closure_source_counts",
+      "pass_": true
+    },
+    {
+      "name": "large_measured_component",
+      "pass_": true
+    },
+    {
+      "name": "finite_source_materializations",
+      "pass_": true
+    },
+    {
+      "name": "finite_call_contexts",
+      "pass_": true
+    },
+    {
+      "name": "finite_sdk_objects",
+      "pass_": true
+    },
+    {
+      "name": "finite_remaining_obligations",
+      "pass_": true
+    },
+    {
+      "name": "classic_predicate_not_ranges",
+      "pass_": true
+    },
+    {
+      "name": "source_map_correction",
+      "pass_": true
+    },
+    {
+      "name": "source_result_correction",
+      "pass_": true
+    },
+    {
+      "name": "view_exact_definition",
+      "pass_": true
+    },
+    {
+      "name": "no_false_total",
+      "pass_": true
+    },
+    {
+      "name": "static_assert_comparison_only",
+      "pass_": true
+    },
+    {
+      "name": "no_execution_or_binding",
+      "pass_": true
+    },
+    {
+      "name": "guard_still_false",
+      "pass_": true
+    },
+    {
+      "name": "argument_exact_partial_components",
+      "pass_": true
+    },
+    {
+      "name": "LF_argument.md",
+      "pass_": true
+    },
+    {
+      "name": "LF_check.py",
+      "pass_": true
+    },
+    {
+      "name": "LF_closure-contexts.json",
+      "pass_": true
+    },
+    {
+      "name": "LF_closure-ledger.py",
+      "pass_": true
+    },
+    {
+      "name": "LF_complete-proposal.py",
+      "pass_": true
+    },
+    {
+      "name": "LF_envelope.json",
+      "pass_": true
+    },
+    {
+      "name": "LF_own-body-ledger.py",
+      "pass_": true
+    },
+    {
+      "name": "LF_own-named-objects.json",
+      "pass_": true
+    },
+    {
+      "name": "LF_working-notes.md",
+      "pass_": true
+    }
+  ],
+  "count": 777,
+  "not_complete_resource_acceptance": true,
+  "no_subject_execution": true
+}
