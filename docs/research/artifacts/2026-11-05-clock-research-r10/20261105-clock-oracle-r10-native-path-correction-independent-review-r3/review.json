@@ -1,0 +1,51 @@
+{
+  "schema": "R10_NATIVE_PATH_CORRECTION_INDEPENDENT_REVIEW_R3",
+  "verdict": "ACCEPT_SOURCE_AND_CONDITIONAL_SCALAR_CORRESPONDENCE_ONLY_PAYLOAD_HOLD",
+  "subject_manifest_sha256": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594",
+  "runner_sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314",
+  "checks": 1269,
+  "failures": [],
+  "closed_findings": [
+    "Original runtime forward-slash literal refuses native-path ordinal guards: same-length native literal repair preserved exact from R1",
+    "README current own5 maximum170: repaired179 with same-length ten-more wording",
+    "R2 manifest R10_payload_repairs.current_own5_path_UTF16_max170: repaired179 with same-width scalar"
+  ],
+  "source_delta": "R1/R2/R3 PS, C++ and header byte-exact. R2-to-R3 README heading digit2->3; manifest source rows plus one current own5 integer. No runtime action/resource/domain/cap/guard addition.",
+  "profile": {
+    "fresh_inputs": 1220,
+    "input_bytes": 460232026,
+    "input_chunks": 7849,
+    "own_five_bytes": 655878,
+    "own_five_chunks": 13,
+    "fence_identities": 1225,
+    "fence_chunks": 7862,
+    "bootstrap_bytes": 497616,
+    "bootstrap_values": 9922,
+    "bootstrap_keys": 6056,
+    "bootstrap_visits": 15978,
+    "bootstrap_depth": 4,
+    "bootstrap_max_string_units": 435,
+    "floating_values": 0,
+    "known_current_path_maximum": 270,
+    "current_own5_maximum": 179,
+    "known_current_identity_tildes": 0
+  },
+  "conditional_scalar_upper": 5543964320,
+  "new_price_or_data_binding": false,
+  "fixed_root_equations_profile": {
+    "source_folder": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3",
+    "run_leaf": "runs/r10-one-reviewed-attempt",
+    "selected_for_equations_only_not_GO": true,
+    "identities": 1294,
+    "pooled_strings": 1458,
+    "pooled_UTF16_units": 187423,
+    "chain_visits": 14548,
+    "max_depth": 18,
+    "bundle_encoded_string_units": 349846,
+    "bundle_byte_upper": 453759,
+    "upper_request_reduction": 4163719,
+    "qualification": "Fresh lexical recomputation for this base/root. No automatic old profile transfer, native/runtime observation or live savings. Future binding source identities and phase/error joins remain necessary."
+  },
+  "holds": ["global controlled payload/lifetime", "combined_U", "typed immutable data binding", "guard promotion", "target execution GO", "native/Ready/renderer/hardware"],
+  "boundary": "Only source/text/file hashes, artifact JSON and independent Python integer/path equations. No target PS parser/AST/import/helper/compiler/program/stage, GUI/device, Git/CI or source mutation. All predecessors/reviews remain exact."
+}

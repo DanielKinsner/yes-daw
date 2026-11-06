@@ -1,0 +1,167 @@
+{
+  "schema": "YESDAW_CLOCK_R10_RUNNER_INDEPENDENT_NUMERIC_REVIEW_R1",
+  "reviewer": "/root/fp_profile_probe_source",
+  "verdict": "SCALAR_CONDITIONAL_ACCEPT_PAYLOAD_HOLD_SOURCE_FUNCTIONAL_PREREQUISITE_REVISE",
+  "subject": {
+    "census_md_sha256": "AA708737759424772AA141FA3957989C95BB66F78BFD1245CE74DB7CC74E40EF",
+    "census_json_sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7",
+    "pins_sha256": "10BABDD0C7348784BD0DD410EFC6D79611339CD5A797055C199CD1C49E6374EA",
+    "source_manifest_sha256": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23",
+    "runner_sha256": "BF117EAEA5AABCD40FFE30C785B75C875BAF92A9DA995B181B37DBB5FB75FEDB"
+  },
+  "scalar": {
+    "verdict": "CONDITIONAL_ACCEPT_UNDER_PINNED_PROSPECTIVE_RESEARCH_CONVENTIONS_ONLY",
+    "upper_proposal": 5543964320,
+    "composition_groups": 51,
+    "helper_declarations": 68,
+    "helper_path_rows": 78,
+    "historical_main_error_rows": 88,
+    "historical_main_sum": 124455,
+    "reviewed_R9_main_additions": 1600,
+    "R10_main_additions": 3245,
+    "current_main_sum": 129300,
+    "definitions_sum": 48036,
+    "source_family_omissions_found": [],
+    "arithmetic_discrepancies_found": [],
+    "not_a_price_or_GO": true,
+    "meaning": "Positive source upper over the conditional proposed schedule. Does not prove that unbound/false-guard source can currently progress or that the functional path defect is repaired."
+  },
+  "fresh_review": {
+    "mechanical_checks": 2874,
+    "mechanical_failures": [],
+    "all_inputs_rehashed": 1220,
+    "input_bytes": 460232026,
+    "input_chunks": 7849,
+    "namespaces": 31,
+    "entries": 1092,
+    "files": 1045,
+    "reparse_entries": [],
+    "body_identity": {
+      "unchanged_complete_R9_helper_bodies": 56,
+      "changed": ["Assert-NoLink", "Assert-TaskDependencies", "Get-TaskEntries", "Read-TaskJson", "Resolve-TaskInput"],
+      "new": ["Add-TaskPathCatalogueEntry", "Assert-TaskRawJsonBytes", "Get-TaskCanonicalPath", "Get-TaskCatalogueEntryPath", "Get-TaskCatalogueString", "Initialize-TaskPathCatalogue", "Test-TaskPathCatalogueContext"],
+      "removed": ["Assert-TaskDependencyJsonShape"]
+    },
+    "coverage": [
+      "All 51 compositions independently recomputed and compared with Markdown and JSON, including fresh hash/namespace/caller/profile schedules",
+      "All 78 helper/path rows, leaf vectors, new body groups, changed caller destinations/defaults and main/error deltas reviewed under source primitive conventions",
+      "Eight fences, hash reads, walker metadata/overflow/ownership, normal and actual control/refusal replacement schedules reviewed separately",
+      "Catalogue repeatable uncached/tilde paths, 1294 completed plus three failed-first-build envelope, retained partial objects/backings reviewed",
+      "Original-byte grammar before compaction, UTF8/surrogate/integer/literal loops, child bad-ID replacement and 19 actual SDK paths reviewed",
+      "All graph/clone/output/encode traversals and complete named controlled family/six-phase lifetime frontier reviewed without reclamation or global-fit invention"
+    ],
+    "primary_source_records_checked": 15,
+    "primary_source_mismatches": [],
+    "first_checker": {
+      "preserved": "evidence-first-check/verify-review.py and mechanical-evidence.json",
+      "assumptions_corrected": [
+        "Last helper textual span included the empty separator before main, while census ends at the closing brace",
+        "Expected changed-body list omitted Get-TaskEntries, whose Canonical substitutions are already priced by the census"
+      ],
+      "subject_changed": false,
+      "corrected_checker_sha256": "75702741DB8AD0E4E17B90CD184B1B35F5523C70B98ECEE7772F86F37C63578A"
+    }
+  },
+  "schedule_notes": {
+    "nonfence_chunks": "2*2342 + 2*1088 + 7*512 + 3*2 + (1+1+2) + (3*16+1+1+16) +16 =10536; each term follows an actual declared source cap/occasion",
+    "hash_helpers": 9936,
+    "hash_read_bodies": 73432,
+    "NoLink_calls_upper": 17214,
+    "Canonical_calls_upper": 34050,
+    "Entry_calls_upper": 47723,
+    "Entry_attempts_upper": 1297,
+    "normal_FileSet_slots": 256,
+    "normal_FileSet_N_M": 8615,
+    "actual_expected_control_refusals": 3,
+    "outside_control_refusal_replacements_upper": 2,
+    "stage_walkers": 784,
+    "byte_raw_calls": 6,
+    "byte_raw_units": 4789990,
+    "string_raw_calls": 16,
+    "string_raw_units": 131072,
+    "byte_own_formula": "587*L+138",
+    "string_own_formula": "512*L+106",
+    "ReadJson_own_pair": 688,
+    "dependency_fixed": 384,
+    "recursive_visitor_sum": 692748221,
+    "receipt_clone_primes": 362,
+    "all_seven_clone_primes": 11082
+  },
+  "findings": [
+    {
+      "id": "R10-NATIVE-CONTROLLER-PATH-SEPARATORS",
+      "priority": "P2_SOURCE_FUNCTIONAL_PREREQUISITE",
+      "file": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/run-clock.ps1",
+      "lines": [298, 310, 315, 322],
+      "problem": "Fixed taskRuntime contains forward slashes. OrdinalIgnoreCase comparisons against native executable/GetFullPath/assembly locations use Path.Join expectations that retain those forward slashes. Ordinal comparison does not equate '/' and '\\', so the intended ordinary Windows controller is refused.",
+      "primary_source": "Pinned .NET Path.cs JoinInternal lines703-712 concatenates component spans and optional boundary separator; it does not normalize embedded separators. Public Path.Join contract agrees.",
+      "prior_functional_review": "E7361FD1B35AEB219EA659C32DECAAF589C611F30C0E1C56C2912BD9AAB5D72F accepted source-only functionality but missed this guard",
+      "impact": "Concrete valid-launch refusal before future target work, separate from scalar arithmetic. False/unbound guards remain intact; this review executes nothing and grants no promotion.",
+      "supported_repair": "Separate successor may replace only the fixed Windows runtime literal's separators with native backslashes, preserving code-unit/source-action/storage extents and exact strict comparisons; no added GetFullPath allocation/call is needed.",
+      "required_before_transfer": "Exact whole-source/manifest/hash/chunk correspondence review and current chosen-base/root geometry recomputation; do not silently edit R10/census or auto-transfer selected profile/binding/GO.",
+      "source_modified_by_this_reviewer": false
+    }
+  ],
+  "payload": {
+    "verdict": "HOLD_GLOBAL_JOIN_UNQUALIFIED",
+    "scratch_cap_unchanged": 33554432,
+    "guard_only_upper_subtotal": 33787198,
+    "actual_coexisting_lower": "UNESTABLISHED",
+    "NOFIT": false,
+    "fit": false,
+    "reader_candidate": {
+      "verdict": "SOURCE_UPPER_SUPPORTED_CONDITIONALLY_ON_EXACT_PARSER_NULL_POOL_ASSOCIATION_NOT_RUNTIME_OBSERVATION",
+      "large_capacities": [524288, 131072, 524288],
+      "large_retained_array_bytes": 4712448,
+      "child_array_upper": 1180416,
+      "all_reader_array_upper": 5892864,
+      "StringBuffer_upper": 38912,
+      "proof": "Admitted EnsureChars relative<=4; nonappend remaining+required+1 factors to relative+2<=6. Append growth dyadic. Shift sites at string/property/number beginnings, maximum wire token6S+2, nonshift literal/structural run<=7N and conservative16-based last-10-percent threshold bound capacities. All old arrays retained. No universal32768 credit."
+    },
+    "exact_root_profile_proposal": {
+      "independently_recomputed": true,
+      "selected_or_executed": false,
+      "strings": 1458,
+      "UTF16_units": 186667,
+      "max_depth": 18,
+      "bundle_byte_upper": 453111,
+      "upper_request_reduction": 4168255,
+      "limitation": "Lexical proposal for the original exact source/base/run paths only; native normalizer/physical owner proof separate. Recompute for successor source folder or future binding identities."
+    },
+    "unclosed": [
+      "PowerShell source literal/typed/binder/ToArray/pipeline/PSCustomObject capacities and copied metadata",
+      "JToken/LineInfo/property/parsed-map/BigInteger capacities and all parser/source-to-installed-binary associations",
+      "Fresh native iterator/name/relative/path normalization/error-format buffers, unknown/tilde/first-failure prefixes and selected pools",
+      "Three exact inherited environment/startup snapshots and outgoing command/stream/console/pool capacities",
+      "All reached raw error/message/JSONPath/wrapper/cleanup ownership and copies",
+      "Six actual source success/failure phase joins including earlier owners and footer/inventory prefixes"
+    ],
+    "reclamation_credit": "NONE from null/Clear/scope/Dispose/ReturnBuffer; no reset/retry/budget split"
+  },
+  "separate_new_ABI_evidence_review": {
+    "receipt": "build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/receipt.json",
+    "receipt_sha256": "39A59FC9C42715C339B6F2AD7AB1456B3850F645A6E884F9CBDC2144A3189A50",
+    "source_pins_sha256": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431",
+    "stdout_sha256": "60D6FF3A373E8649D25772C33A0F86281F684EC298E2700E2120CF21495DA6F8",
+    "actual_raw_exit": 0,
+    "stderr_bytes": 0,
+    "actual_probe_assertions": 574,
+    "actual_measurements": 156,
+    "derived_rows": 21,
+    "read_only_receipt_checks": 400,
+    "read_only_receipt_failures": [],
+    "finite_coefficients": {"array_header":24,"tested_alignment":8,"reference_stride":8,"dictionary_entry_stride":24,"dictionary_object":80,"Hashtable_bucket_stride":24,"Hashtable_object":72},
+    "scope": "Existing new R2 current pinned Windows x64 .NET10.0.11 caller/constructor/fixed-size allocation request evidence only. Source decomposition/common-header premise still required. Public dictionary capacities observed; no private Hashtable capacity/field/heap-survival/physical-reclaim/peak/layout-wide theorem or R10 fit/GO. Reviewer read existing artifacts only."
+  },
+  "authority": {
+    "selected_runner_limit": false,
+    "combined_U": false,
+    "price_or_binding": false,
+    "guard_promotion": false,
+    "target_parser_AST_import_helper": false,
+    "target_compiler_program_stage_run": false,
+    "native_Ready_renderer_hardware": false,
+    "Git_or_CI_action": false
+  },
+  "execution_boundary": "Only source/artifact text and JSON, fresh file/hash/namespace reads, independent Python integer/path/record arithmetic and primary-source HTTP reads. No target PS language parser/AST/import/helper/compiler/program/stage, GUI/device, Git/CI or environment enumeration. Sealed target/census/prior evidence untouched."
+}

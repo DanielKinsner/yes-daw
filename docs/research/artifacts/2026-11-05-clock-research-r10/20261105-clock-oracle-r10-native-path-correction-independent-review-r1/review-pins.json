@@ -1,0 +1,79 @@
+{
+  "schema": "R10_NATIVE_PATH_CORRECTION_INDEPENDENT_REVIEW_PINS_R1",
+  "verdict": "MECHANISM_AND_SCALAR_CORRESPONDENCE_ACCEPT_DOCUMENTATION_REVISE_PAYLOAD_HOLD",
+  "subject": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1/run-clock.ps1",
+      "bytes": 104099,
+      "sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1/README.md",
+      "bytes": 15480,
+      "sha256": "983E4559D183EE22634FFC1F1D131A041F5B02D1DC1B10EE1323F7DB664704B9"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1/source-manifest.json",
+      "bytes": 497616,
+      "sha256": "FD2D09B6313EAC691B5003E9514FFAD47F5897E0B2A4AC5E341A68C925818F4B"
+    }
+  ],
+  "correspondence_inputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-r1/source-correspondence.json",
+      "bytes": 1920,
+      "sha256": "7D18FE237A4A214E149B4ABFC904301FBA1F57243204060E5FB4A8156C19E3BB"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-r1/runner.diff",
+      "bytes": 980,
+      "sha256": "E24900059EF9831542BEF8DE6B8F996B11FBC38A0A28B855DDCF4E51122E7E17"
+    }
+  ],
+  "output_files": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/evidence-first-check/failure.md",
+      "bytes": 532,
+      "sha256": "182C80EBD346BD885D1A72D1988E846D54CE062B9DE363D83043AF7D48C16A08"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/evidence-first-check/verify-correspondence.py",
+      "bytes": 8735,
+      "sha256": "0E347FA7B8139EB235A1AF8E2927C7433427354E6347D51832DDCAF5650E68AD"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/mechanical-evidence.json",
+      "bytes": 516912,
+      "sha256": "0941D54F157C89946F555C9A4C92312736D088B022CF6E0B20D207C5B13B8457"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/review.json",
+      "bytes": 4588,
+      "sha256": "0590F177C0227AEDAB66D2EBC3DE1DDB713789E297D8E7D0194BEA7DBF7862E4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/review.md",
+      "bytes": 3850,
+      "sha256": "B35B9A7F08187E0D7540ADBC5262A69C7FCE3E03F020B287214D7A5062DA10FF"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/verify-correspondence.py",
+      "bytes": 8759,
+      "sha256": "C517005F2D86132493E2778D5C04146BAB1AAE470D5A5C67D76CCB92A1A14AB7"
+    }
+  ],
+  "checks": 1270,
+  "mechanical_failures": [],
+  "documentation_finding": "README current own5 maximum170 is stale; actual new base179. Separate same-length factual successor correction needed.",
+  "scope": "Source/file/text/JSON/integer correspondence only. Conditional scalar5543964320, no selected price/binding/GO, payloadHOLD. No target parser/helper/compiler/program/stage or protected edit. New exact-root profile remains lexical/unselected."
+}

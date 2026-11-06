@@ -1,0 +1,11 @@
+function Resolve-TaskInput([string]$Name){
+ Assert-TaskString $Name 512
+ if([IO.Path]::IsPathRooted($Name)){
+  if(-not [IO.Path]::IsPathFullyQualified($Name)){throw 'FULLY_QUALIFIED_PINNED_INPUT'}
+  if((Test-TaskPathCatalogueContext) -and $script:taskPathCatalogue['inputs'].ContainsKey($Name)){return Get-TaskCatalogueEntryPath $script:taskPathCatalogue['inputs'][$Name]}
+  return [IO.Path]::GetFullPath($Name)
+ }
+ if($taskRepo.Length+1+$Name.Length -gt 512){throw 'DERIVED_INPUT_PATH_BEFORE_JOIN'}
+ if((Test-TaskPathCatalogueContext) -and $script:taskPathCatalogue['inputs'].ContainsKey($Name)){return Get-TaskCatalogueEntryPath $script:taskPathCatalogue['inputs'][$Name]}
+ return [IO.Path]::GetFullPath((Join-Path $taskRepo $Name))
+}

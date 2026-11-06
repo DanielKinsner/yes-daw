@@ -90,6 +90,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-05 - Preserve the accepted conditional R10 census and native-path repair
+
+- Independent R10 runner review conditionally accepts5,543,964,320 operations across51 groups/68helpers/78path rows;2,874 source/file/integer checks passed, including all1220 inputs and31 namespaces. This is not a selected limit, payload fit or target execution.
+- Native-path correction R3 passed1,269 independent correspondence checks: one same-length Windows runtime literal repair, corrected179-unit own-source metadata, byte-exact C++/header, unchanged497616-byte manifest shape/15978bootstrap visits/7862fence chunks. All execution guards stay false; original source/reviews and both metadata findings remain preserved.
+- Archived67 exact source/evidence files under `docs/research/artifacts/2026-11-05-clock-research-r10/`. Original raw bytes and checker failures are retained; third-party primary sources stay URL/hash-pinned. The14-key nonsecret environment seed is only a proposal: startup adds PATH content, and post-import/callback extents still need qualification.
+- Continue six success/failure payload phase joins, exact codec/DTO/path/error/environment capacities and then immutable binding/separate GO; no upper-bound miss is called NOFIT. Production420-Site census/native/whole proof and recipe/renderer/jobs/model remain active, followed by linked/folder/piano. No R10 parser/AST/import/helper/compiler/program/stage, GUI or device ran.
+
 ## 2026-11-05 - Repair the planner prototype's warning and verify its selected layout
 
 - R5 moves only the existing raw result-cell declaration; an independent critic accepted the lifetime/initialization order. Full-header MSVC /W4 /WX compilation then passed0 without suppression, preserving the original R4 C4324 failure. Whole source correspondence passed507 checks; all420 Sites/190 old packets/78 compositions remain exact.

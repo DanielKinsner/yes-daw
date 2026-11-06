@@ -1,0 +1,56 @@
+{
+  "schema": "EXPLICIT_NONSECRET_FRESH_CONTROLLER_ENVIRONMENT_PROPOSAL_R1",
+  "status": "SOURCE_ONLY_NOT_SELECTED_NOT_EXECUTED_POST_STARTUP_IMPORT_EXTENTS_UNQUALIFIED",
+  "authority": "Separate source proposal for complete R10 payload closure; no target parsing/import/helper/compiler/program/stage GO.",
+  "entry_source": "All values authored as fixed public directories or task-owned temporary path. No existing environment enumeration or cloned host values.",
+  "seed_entries": {
+    "SystemRoot": "C:\\Windows",
+    "windir": "C:\\Windows",
+    "ComSpec": "C:\\Windows\\System32\\cmd.exe",
+    "PATH": "C:\\Windows\\System32;C:\\Windows",
+    "TEMP": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-clock-oracle-r10-controller-environment-proposal-r1\\owned-temp",
+    "TMP": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\20261105-clock-oracle-r10-controller-environment-proposal-r1\\owned-temp",
+    "USERPROFILE": "C:\\Users\\SM - Dan",
+    "LOCALAPPDATA": "C:\\Users\\SM - Dan\\AppData\\Local",
+    "APPDATA": "C:\\Users\\SM - Dan\\AppData\\Roaming",
+    "ProgramFiles": "C:\\Program Files",
+    "ProgramData": "C:\\ProgramData",
+    "PSModulePath": "C:\\Users\\SM - Dan\\Documents\\PowerShell\\Modules;C:\\Program Files\\PowerShell\\Modules;C:\\Users\\SM - Dan\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\Modules;C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules",
+    "POWERSHELL_TELEMETRY_OPTOUT": "1",
+    "POWERSHELL_UPDATECHECK": "Off"
+  },
+  "seed_entry_count": 14,
+  "seed_unique_case_insensitive_keys": 14,
+  "seed_key_value_UTF16_units": 820,
+  "seed_native_valid_unique_block_UTF16_units": 849,
+  "seed_native_block_bytes_including_final_nul": 1698,
+  "seed_PSModulePath_UTF16_units": 234,
+  "temporary_directory_not_yet_created": true,
+  "host": {
+    "pwsh": "7.6.5",
+    "SMA_informational_version": "7.6.5 SHA: ea554a8f9c6085f54fb2828f7ea286c65c35599f+ea554a8f9c6085f54fb2828f7ea286c65c35599f",
+    "SMA_sha256": "2D8AF026E589C5603629BFC3E7C57265B4167B12ECA3AE549C6A6C3CA7E4967B"
+  },
+  "startup_source": {
+    "commit": "ea554a8f9c6085f54fb2828f7ea286c65c35599f",
+    "ModuleIntrinsics_url": "https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/System.Management.Automation/engine/Modules/ModuleIntrinsics.cs",
+    "InitialSessionState_url": "https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/System.Management.Automation/engine/InitialSessionState.cs",
+    "observations": [
+      "ModuleIntrinsics ctor invokes SetModulePath. Lines1250-1269 may append machine PSModulePath when process value equals user value, read user/all-user PowerShell configuration, and write the final PSModulePath. Explicit seed does not by itself prove idempotence.",
+      "GetModulePath lines1121-1172 inserts personal/shared/system paths when absent. The proposed seed includes all ordinary paths; current configuration/equality premises remain to qualify.",
+      "InitialSessionState Bind_SetEnvironment lines2071-2087 writes its configured environment entries; fresh stock host noProfile custom-state absence and relevant entry set still need source closure.",
+      "Target runner source has no SetEnvironmentVariable, env assignment or new runspace. It reads only the seven absence-gate startup names, and imports exact pinned Management and Utility manifests. These manifests have DLL NestedModules and no ScriptsToProcess, but module assembly initializer/configuration closure remains required."
+    ]
+  },
+  "requirements_before_finite_poststartup_E_use": [
+    "Pin/qualify actual relevant user/all-user PowerShell config file absence or safe fixed ModulePath values, and initial-process-vs-user PSModulePath equality branch without enumerating or dumping environment values.",
+    "Close exact stock host/SDK and the two pinned binary module import paths for environment writers, including any startup-set keys; absence of such writers cannot be inferred from the target script alone.",
+    "If a separate public metadata probe is necessary, independently review it first, launch only the exact pinned console pwsh with this authored dictionary, no profile/injection, no windows/input, and emit only fixed-key presence/length/aggregate data. Do not run/import/parse R10 or print raw environment values.",
+    "Prove no environment mutation over all three actual ProcessStartInfo.Environment accesses; then rederive complete managed Hashtable/Dictionary/string and native UTF16 clone request/capacity/lifetime terms.",
+    "A selected launcher must construct the environment directly before CreateProcess, rather than inherit then Clear inside the target child. All startup-hook/profiler/stress/GC/JIT-injection names are absent from the authored map."
+  ],
+  "poststartup_entry_count": null,
+  "postimport_key_value_UTF16_units": null,
+  "three_snapshot_payload_qualified": false,
+  "R10_GO": false
+}

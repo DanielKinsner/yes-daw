@@ -1,0 +1,10 @@
+{
+  "status": "SOURCE_ONLY_UNRUN_METADATA_CORRECTION_REQUIRES_INDEPENDENT_CORRESPONDENCE",
+  "source_folder": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3",
+  "manifest_sha256": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594",
+  "predecessor_R2_manifest_sha256": "BFDE3D6EDB34BF15FA22E966703713656C6A0377538C5C5ED9DFF7B71592CB5E",
+  "changes": "Correct informational R10_payload_repairs.current_own5_path_UTF16_max170to179 and README revision2to3; source hash row follows. Same JSONbyte/node/string/chunk shape. Driver/CPP/header exact R1 and R2.",
+  "all_guards_false": true,
+  "own5_bytes": 655878,
+  "selected_profile_or_U_or_binding_or_GO": false
+}

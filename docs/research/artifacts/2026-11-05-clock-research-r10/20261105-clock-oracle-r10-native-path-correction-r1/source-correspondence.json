@@ -1,0 +1,50 @@
+{
+  "schema": "R10_NATIVE_PATH_CORRECTION_SOURCE_ONLY_R1",
+  "status": "UNRUN_ALL_GUARDS_FALSE_REQUIRES_INDEPENDENT_WHOLE_AND_CENSUS_CORRESPONDENCE_REVIEW",
+  "predecessor_manifest_sha256": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23",
+  "source_folder": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1",
+  "manifest_sha256": "FD2D09B6313EAC691B5003E9514FFAD47F5897E0B2A4AC5E341A68C925818F4B",
+  "runner_bytes_before_and_after": 104099,
+  "runner_line_count_before_and_after": 974,
+  "single_source_change": "Only fixed runtime string separator spelling; same length, no new executed source action or temporary.",
+  "original_R10_census_is_not_automatically_a_new_price": true,
+  "profile_and_pooled_path_geometry_must_be_rederived_for_eventual_selected_new_base": true,
+  "all_guards": {
+    "sourceReviewAccepted": false,
+    "sourceWorkAccepted": false,
+    "executionAccepted": false,
+    "compilerAccepted": false,
+    "produceAccepted": false,
+    "verifyAccepted": false,
+    "compilerPeakDiskQualified": false,
+    "internalHeapRSSQualified": false,
+    "rendererReady": false
+  },
+  "source_files": [
+    {
+      "path": "clock_stage.cpp",
+      "bytes": 34958,
+      "lines": 289,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "run-clock.ps1",
+      "bytes": 104099,
+      "lines": 974,
+      "sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314"
+    },
+    {
+      "path": "source-costs.h",
+      "bytes": 3725,
+      "lines": 72,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "README.md",
+      "bytes": 15480,
+      "lines": 221,
+      "sha256": "983E4559D183EE22634FFC1F1D131A041F5B02D1DC1B10EE1323F7DB664704B9"
+    }
+  ],
+  "target_parse_compile_or_run": false
+}

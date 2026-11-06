@@ -1,0 +1,156 @@
+{
+  "schema": "YESDAW_CLOCK_R10_RUNNER_CENSUS_PINS_V1",
+  "state": "SEALED_SOURCE_ONLY_COMPLETE_SCALAR_PROPOSAL_CONDITIONAL_LIFETIME_HOLD",
+  "subject_five": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/README.md",
+      "bytes": 14639,
+      "sha256": "A95A77743ABE02ABE03C4BA8C72C08889A1A4DD3DA5D103FF7A83DF10C235F6E"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/run-clock.ps1",
+      "bytes": 104099,
+      "sha256": "BF117EAEA5AABCD40FFE30C785B75C875BAF92A9DA995B181B37DBB5FB75FEDB"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/source-manifest.json",
+      "bytes": 497616,
+      "sha256": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23"
+    }
+  ],
+  "input_identity_audit": {
+    "count": 1220,
+    "bytes": 460232026,
+    "chunks": 7849,
+    "mismatches": [],
+    "all_rehashed": true
+  },
+  "namespace_audit": {
+    "namespaces": 31,
+    "entries": 1092,
+    "files": 1045,
+    "reparse": [],
+    "exact_file_sets": true
+  },
+  "review_contract_lineage": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/review.json",
+      "bytes": 15330,
+      "sha256": "E7361FD1B35AEB219EA659C32DECAAF589C611F30C0E1C56C2912BD9AAB5D72F"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/review-pins.json",
+      "bytes": 3022,
+      "sha256": "417235BE5A351AAACA74813A03C2439CDE44A1ABAE1F5F8C0D6E51ECE27B096E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-runner-census/census.json",
+      "bytes": 122330,
+      "sha256": "7F8425F9982EFEC1C5218AFD95F3A8E443C172DEC61112E5F9008306EA6A654E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-r1/erratum.json",
+      "bytes": 2453,
+      "sha256": "36453AC17D85CFAF7C28F6FDFE32290FB09DDF4124E97B974A4FED58BFBC79EA"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r9-clone-capacity-erratum-independent-review-r1/review.json",
+      "bytes": 8665,
+      "sha256": "7BE6A0515B2ACC9AA2641584EA5D37C7C3926437CA5D997BCC83BB80D1670957"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-leaf-census-conventions.md",
+      "bytes": 1746,
+      "sha256": "DE33D91712372C2FE887A02FB137AA9A96C8C3BB93CB0D88BF57AA32DBEAE564"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-bulk-leaf-clarification.md",
+      "bytes": 2153,
+      "sha256": "268597D1F066779CE76DACFDBBC384FC452DC6B9AD319419F52DE597242BB3E8"
+    }
+  ],
+  "new_primary_sources": [
+    {
+      "name": "StringBuffer.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Utilities/StringBuffer.cs",
+      "bytes": 3658,
+      "sha256": "36A21B9B46B4C78AF9C2911D3EEF628CB80308473217B44FEE8F7857EAE51DB9",
+      "qualification": "source association only; no binary equivalence/runtime credit"
+    },
+    {
+      "name": "JsonTextWriter.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonTextWriter.cs",
+      "bytes": 30240,
+      "sha256": "CBEEB4F5A322E3772910CEC13788938AE6598B03C396B1187B9EC170127469D2",
+      "qualification": "source association only; no binary equivalence/runtime credit"
+    },
+    {
+      "name": "Compiler.cs",
+      "url": "https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/System.Management.Automation/engine/parser/Compiler.cs",
+      "bytes": 341878,
+      "sha256": "C5DED9509B65F2CD81B1D5B11F8915A220B32BE038599FC7008BA235563B95DC",
+      "qualification": "source association only; no binary equivalence/runtime credit"
+    }
+  ],
+  "packet_outputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.md",
+      "bytes": 7525,
+      "sha256": "AA708737759424772AA141FA3957989C95BB66F78BFD1245CE74DB7CC74E40EF"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "bytes": 143375,
+      "sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/evidence/build-census.py",
+      "bytes": 39084,
+      "sha256": "E06323D9C354592BE4F3EEB7871D9778F921A452B4B61EB9554DDF63A2466381"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/evidence/draft-r1/build-census.py",
+      "bytes": 36567,
+      "sha256": "3DEDE2F6BB4F4C9C27332C09461DF55134E299C64114FD994C773DFDC0F6BB55"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/evidence/draft-r1/census.json",
+      "bytes": 143098,
+      "sha256": "E89476182F01E0282CD0DAB3836B993F107D845311931310EC8FC9356003E41A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/evidence/draft-r1/census.md",
+      "bytes": 7525,
+      "sha256": "AA708737759424772AA141FA3957989C95BB66F78BFD1245CE74DB7CC74E40EF"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/evidence/draft-r1/source-pins.json",
+      "bytes": 5492,
+      "sha256": "204F30CDD77432BF30852BDAE2B9E79DA575CCED36AC87EDDF398FC83185B794"
+    }
+  ],
+  "first_draft": {
+    "reason": "Current helper-profile labels reconciled before final seal; scalar group arithmetic and assertions unchanged. Original generator and all three draft outputs retained byte-exact.",
+    "original_generator_sha256": "3DEDE2F6BB4F4C9C27332C09461DF55134E299C64114FD994C773DFDC0F6BB55",
+    "archive": "evidence/draft-r1"
+  },
+  "target_execution_or_GO": false,
+  "self_checks": "51sourcefamilies/68helpers/newgroups/graphs/currentprofiles checked with Pythonintegers; fresh independent numericreview required."
+}

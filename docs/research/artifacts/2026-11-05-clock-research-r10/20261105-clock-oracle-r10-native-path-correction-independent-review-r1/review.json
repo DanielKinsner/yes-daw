@@ -1,0 +1,89 @@
+{
+  "schema": "R10_NATIVE_PATH_CORRECTION_INDEPENDENT_REVIEW_R1",
+  "verdict": "MECHANISM_AND_SCALAR_CORRESPONDENCE_ACCEPT_DOCUMENTATION_REVISE_PAYLOAD_HOLD",
+  "source_only": true,
+  "subject": {
+    "folder": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1",
+    "manifest_sha256": "FD2D09B6313EAC691B5003E9514FFAD47F5897E0B2A4AC5E341A68C925818F4B",
+    "runner_sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314",
+    "source_correspondence_sha256": "7D18FE237A4A214E149B4ABFC904301FBA1F57243204060E5FB4A8156C19E3BB",
+    "original_census_review_pins": "C9AC2C6D0D3C18C1BC03FA009E45BF4547CCB86AD07347DFC8C3240FFDCB0C29"
+  },
+  "mechanical": {
+    "checks": 1270,
+    "failures": [],
+    "fresh_inputs_rehashed": 1220,
+    "runner_single_literal_edit_only": true,
+    "runner_bytes": 104099,
+    "runner_lines": 974,
+    "CXX_header_unchanged": true,
+    "manifest_only_source_row_differences": true,
+    "all_guards_false": true,
+    "own_five_bytes": 655878,
+    "own_five_chunks": 13,
+    "input_bytes": 460232026,
+    "input_chunks": 7849,
+    "fence_identities": 1225,
+    "fence_chunks": 7862,
+    "bootstrap_bytes": 497616,
+    "bootstrap_node_key_visits": 15978,
+    "bootstrap_keys": 6056,
+    "bootstrap_container_depth": 4,
+    "bootstrap_max_string_units": 435
+  },
+  "mechanism": {
+    "fixed_literal_native_separators": "Single-quoted PowerShell Windows literal with backslashes. Same byte/UTF16 extent; no new runtime call, temporary or allocation.",
+    "repaired_source_sites": [298, 310, 315, 322],
+    "guard_semantics": "Exact OrdinalIgnoreCase comparisons and all authenticated file identities remain; expected executable/apphost/assembly paths now use the intended native separator spelling.",
+    "runtime_success_claimed": false
+  },
+  "scalar_correspondence": {
+    "verdict": "SUPPORTED_CONDITIONAL_SOURCE_COUNT_CORRESPONDENCE_ONLY",
+    "upper_proposal": 5543964320,
+    "new_price_selected": false,
+    "basis": "No new executed source action; same runner length, literal extent, helper/caller topology, source input/hash/fence/byte/token extents. README/manifest metadata changes remain within the same exact digit/raw-byte/chunk/JSON-shape profiles. Not automatic new binding authority."
+  },
+  "findings": [
+    {
+      "id": "SUCCESSOR-README-OWN5-PATH-MAXIMUM",
+      "priority": "P2_DOCUMENTATION_PROFILE_CORRECTION",
+      "file": "README.md",
+      "line": 215,
+      "problem": "Inherited sentence states current own5 maximum170 (one more than R9). The actual successor source folder yields179; the all-input+own maximum270 remains valid.",
+      "supported_same_length_repair": "179 (ten more than R9) replaces 170 (one more than R9)",
+      "effect": "No runtime/source-action width change, but exact successor README/manifest hashes must be reviewed; no sealed predecessor mutation. Whole packet not accepted with unqualified stale current profile assertion."
+    }
+  ],
+  "fresh_new_base_lexical_profile_proposal": {
+    "selected_or_executed": false,
+    "run_leaf": "runs/r10-one-reviewed-attempt",
+    "identities": 1294,
+    "pooled_strings": 1458,
+    "pooled_UTF16_units": 187423,
+    "chain_visits": 14548,
+    "max_depth": 18,
+    "own5_path_maximum": 179,
+    "known_current_identity_path_maximum": 270,
+    "bundle_encoded_string_units": 349846,
+    "bundle_byte_upper": 453759,
+    "upper_request_reduction": 4163719,
+    "original_profile_not_transferred": "186667/453111",
+    "limits": "Lexical candidate only for this exact source base and hypothetical root. Native normalization, future bound source identities, actual chosen argv/env and six lifetime/error phases remain required. No measured savings, coexisting lower, global scratch fit or NOFIT."
+  },
+  "checker_history": {
+    "first_failure": "Own evidence JSON writer raised TypeError on raw bytes comparison values; preserved under evidence-first-check. No target program involved.",
+    "correction": "Store boolean byte-equality results instead of raw bytes; no subject change",
+    "corrected_checker_sha256": "C517005F2D86132493E2778D5C04146BAB1AAE470D5A5C67D76CCB92A1A14AB7",
+    "corrected_evidence_sha256": "0941D54F157C89946F555C9A4C92312736D088B022CF6E0B20D207C5B13B8457"
+  },
+  "authority": {
+    "payload": "HOLD",
+    "combined_U": false,
+    "price_or_binding": false,
+    "guard_promotion": false,
+    "target_parse_compile_helper_program_stage": false,
+    "GO": false,
+    "production_Ready_renderer_hardware": false,
+    "sealed_subject_modified": false
+  }
+}

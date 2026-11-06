@@ -1,0 +1,139 @@
+{
+  "schema": "YESDAW_R10_RUNNER_INDEPENDENT_REVIEW_PINS_R1",
+  "verdict": "SCALAR_CONDITIONAL_ACCEPT_PAYLOAD_HOLD_SOURCE_FUNCTIONAL_PREREQUISITE_REVISE",
+  "subject": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.md",
+      "bytes": 7525,
+      "sha256": "AA708737759424772AA141FA3957989C95BB66F78BFD1245CE74DB7CC74E40EF"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "bytes": 143375,
+      "sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census/source-pins.json",
+      "bytes": 6709,
+      "sha256": "10BABDD0C7348784BD0DD410EFC6D79611339CD5A797055C199CD1C49E6374EA"
+    }
+  ],
+  "output_files": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/abi-receipt-review.json",
+      "bytes": 51786,
+      "sha256": "69F770ADE8317D0064674C97AB99D1A43A26BDB3935FF5BF54BE875F29554C22"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/evidence-first-check/mechanical-evidence.json",
+      "bytes": 1201437,
+      "sha256": "69FB39BA9087BED7D5E830C206118FAB5E9D3D7CA2ED21B2081B3F269D193485"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/evidence-first-check/verify-review.py",
+      "bytes": 18474,
+      "sha256": "A194EFFFD65B30450BE8E65D227859825B3A975C395708F9E694EFEE37637375"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/mechanical-evidence.json",
+      "bytes": 1200864,
+      "sha256": "867C2C69E4483BE79BA04D8877F87EE09C4D8029077630B5F421613216F8AE1F"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-source-evidence.json",
+      "bytes": 5957,
+      "sha256": "3C5CF123021462FB9F7AF13587B552421A255B740C771FC8CA5E631AADA23D58"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/Compiler.cs",
+      "bytes": 341878,
+      "sha256": "C5DED9509B65F2CD81B1D5B11F8915A220B32BE038599FC7008BA235563B95DC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/JsonTextReader.cs",
+      "bytes": 101923,
+      "sha256": "A9F79EBF4527275D5DE362DD9160F8B246CF34A5D1F767B4A978ECF420C36039"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/JsonTextWriter.cs",
+      "bytes": 30240,
+      "sha256": "CBEEB4F5A322E3772910CEC13788938AE6598B03C396B1187B9EC170127469D2"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-sources/StringBuffer.cs",
+      "bytes": 3658,
+      "sha256": "36A21B9B46B4C78AF9C2911D3EEF628CB80308473217B44FEE8F7857EAE51DB9"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/review.json",
+      "bytes": 10507,
+      "sha256": "241BFC147A6AECA36396BE566F6AFBA89FD60193D4462A911BE439F84328D9B4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/review.md",
+      "bytes": 10140,
+      "sha256": "09DA62377E4A222DB2A87451B4A7A91546D98B371ACC9FC79FCB5A8782DD99A4"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/verify-review.py",
+      "bytes": 18726,
+      "sha256": "75702741DB8AD0E4E17B90CD184B1B35F5523C70B98ECEE7772F86F37C63578A"
+    }
+  ],
+  "separate_ABI_existing_evidence": [
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/probe.cs",
+      "bytes": 15934,
+      "sha256": "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/run-probe.ps1",
+      "bytes": 7627,
+      "sha256": "B1F85467BCBD392A58B1EBA9E3663C2A0316B2D6925DC144DEFD657B7D4323F8"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/README.md",
+      "bytes": 11813,
+      "sha256": "9283F6FA83B75EFB7802EC098B7D0DDD8A3BC7706BA12597CD5C7C083E6D08FF"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/source-pins.json",
+      "bytes": 8306,
+      "sha256": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/run-abi.py",
+      "bytes": 7087,
+      "sha256": "527610BD07139F74D3DEDEAD89C5BBD84CABF923CC8BCE5477F42D7D8DF763ED"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/receipt.json",
+      "bytes": 2316,
+      "sha256": "39A59FC9C42715C339B6F2AD7AB1456B3850F645A6E884F9CBDC2144A3189A50"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/stdout.jsonl",
+      "bytes": 33658,
+      "sha256": "60D6FF3A373E8649D25772C33A0F86281F684EC298E2700E2120CF21495DA6F8"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/first-green-whole-source-freeze.json",
+      "bytes": 917,
+      "sha256": "246DBD185817C074590B2BDC01A67B18C8FC01F183C4D9D2E1A9D727EDF212AA"
+    }
+  ],
+  "scope": "Static/file/arithmetic review only. Conditional scalar upper 5543964320; payload HOLD; path-separator functional prerequisite. ABI artifacts read only and confer finite request coefficients, no fit/GO. All sealed subject bytes unchanged. No target parser/helper/compiler/program/stage executed.",
+  "checks": {
+    "source_file_integer": 2874,
+    "primary_source_records": 15,
+    "existing_ABI_receipt": 400,
+    "failures": []
+  },
+  "new_review_text_encoding": "UTF8 no BOM, LF; raw whole bytes hashed",
+  "first_pass_checker": "Corrected reviewer checker passed with no subject correction; original two reviewer assumption discrepancies preserved. Corrected checker and its outputs now sealed."
+}

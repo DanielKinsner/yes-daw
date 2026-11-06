@@ -1,0 +1,5 @@
+function Assert-NoLink([string]$Path){
+ if($Path.Length -gt 512){throw 'PATH_LENGTH_BEFORE_NORMALIZATION'}
+ $taskAt=Get-TaskCanonicalPath $Path;$taskDepth=0
+ while($taskAt){Spend-Task 1;$taskDepth++;if($taskDepth -gt 64){throw 'Path depth'};if([IO.File]::Exists($taskAt) -or [IO.Directory]::Exists($taskAt)){if(([IO.File]::GetAttributes($taskAt)-band [IO.FileAttributes]::ReparsePoint)-ne 0){throw 'Reparse path refused'}};if((Test-TaskPathCatalogueContext) -and $script:taskPathCatalogue['parent_strings'].ContainsKey($taskAt)){$taskAt=$script:taskPathCatalogue['parent_strings'][$taskAt]}else{$taskAt=[IO.Path]::GetDirectoryName($taskAt)}}
+}

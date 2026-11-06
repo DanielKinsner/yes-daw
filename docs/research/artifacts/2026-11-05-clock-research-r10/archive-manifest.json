@@ -1,0 +1,616 @@
+{
+  "schema": "CLOCK_R10_CONDITIONAL_SOURCE_RESOURCE_ARCHIVE_V1",
+  "purpose": "Conditional scalar/correspondence only; payload/typedbinding/GO held",
+  "original_runner_scalar_upper": 5543964320,
+  "current_R3_manifest_sha256": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594",
+  "original_numeric_review_sha256": "241BFC147A6AECA36396BE566F6AFBA89FD60193D4462A911BE439F84328D9B4",
+  "R3_correspondence_review_sha256": "EDB3ABB083167BB462D6589562E0A6D9786A4AEA928B3ABBDD2F0CA3EED094E2",
+  "all_guards_false": true,
+  "target_execution": false,
+  "third_party_primary_files_external_not_copied": 6,
+  "files": [
+    {
+      "file": "clock-oracle-r10-source-prototype/clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-source-prototype/README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/README.md",
+      "original_bytes": 14639,
+      "original_sha256": "A95A77743ABE02ABE03C4BA8C72C08889A1A4DD3DA5D103FF7A83DF10C235F6E",
+      "bytes": 14639,
+      "sha256": "A95A77743ABE02ABE03C4BA8C72C08889A1A4DD3DA5D103FF7A83DF10C235F6E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-source-prototype/run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/run-clock.ps1",
+      "original_bytes": 104099,
+      "original_sha256": "BF117EAEA5AABCD40FFE30C785B75C875BAF92A9DA995B181B37DBB5FB75FEDB",
+      "bytes": 104099,
+      "sha256": "BF117EAEA5AABCD40FFE30C785B75C875BAF92A9DA995B181B37DBB5FB75FEDB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-source-prototype/source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-source-prototype/source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/source-manifest.json",
+      "original_bytes": 497616,
+      "original_sha256": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23",
+      "bytes": 497616,
+      "sha256": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r1/clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r1/README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1/README.md",
+      "original_bytes": 15480,
+      "original_sha256": "983E4559D183EE22634FFC1F1D131A041F5B02D1DC1B10EE1323F7DB664704B9",
+      "bytes": 15480,
+      "sha256": "983E4559D183EE22634FFC1F1D131A041F5B02D1DC1B10EE1323F7DB664704B9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r1/run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1/run-clock.ps1",
+      "original_bytes": 104099,
+      "original_sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314",
+      "bytes": 104099,
+      "sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r1/source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r1/source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r1/source-manifest.json",
+      "original_bytes": 497616,
+      "original_sha256": "FD2D09B6313EAC691B5003E9514FFAD47F5897E0B2A4AC5E341A68C925818F4B",
+      "bytes": 497616,
+      "sha256": "FD2D09B6313EAC691B5003E9514FFAD47F5897E0B2A4AC5E341A68C925818F4B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r2/clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r2/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r2/README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r2/README.md",
+      "original_bytes": 15480,
+      "original_sha256": "1D6C048CC2F26D02829FF6C5F221EAA846B53AAB9FFB76C4F0D5F126DC0BE50D",
+      "bytes": 15480,
+      "sha256": "1D6C048CC2F26D02829FF6C5F221EAA846B53AAB9FFB76C4F0D5F126DC0BE50D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r2/run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r2/run-clock.ps1",
+      "original_bytes": 104099,
+      "original_sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314",
+      "bytes": 104099,
+      "sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r2/source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r2/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r2/source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r2/source-manifest.json",
+      "original_bytes": 497616,
+      "original_sha256": "BFDE3D6EDB34BF15FA22E966703713656C6A0377538C5C5ED9DFF7B71592CB5E",
+      "bytes": 497616,
+      "sha256": "BFDE3D6EDB34BF15FA22E966703713656C6A0377538C5C5ED9DFF7B71592CB5E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r3/clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r3/README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/README.md",
+      "original_bytes": 15480,
+      "original_sha256": "FB9F7E54FBA12CA560B40FF38AE41B97548BF7DF5D5160EB9FCA0538BCBCD5F8",
+      "bytes": 15480,
+      "sha256": "FB9F7E54FBA12CA560B40FF38AE41B97548BF7DF5D5160EB9FCA0538BCBCD5F8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r3/run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/run-clock.ps1",
+      "original_bytes": 104099,
+      "original_sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314",
+      "bytes": 104099,
+      "sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r3/source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "clock-oracle-r10-native-path-correction-r3/source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/source-manifest.json",
+      "original_bytes": 497616,
+      "original_sha256": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594",
+      "bytes": 497616,
+      "sha256": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/Assert-NoLink.txt",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Assert-NoLink.txt",
+      "original_bytes": 644,
+      "original_sha256": "31DE6D632202DA09BAA1014F5635A30B88EAB2F76E1BDFE9E35DF23E2859718E",
+      "bytes": 644,
+      "sha256": "31DE6D632202DA09BAA1014F5635A30B88EAB2F76E1BDFE9E35DF23E2859718E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/Assert-TaskDependencies.txt",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Assert-TaskDependencies.txt",
+      "original_bytes": 1830,
+      "original_sha256": "7C108FBB50D5B4F7C70FC8E268170F2D4BD48BBA9F2CD85FC6E1D0D20FA3AD12",
+      "bytes": 1830,
+      "sha256": "7C108FBB50D5B4F7C70FC8E268170F2D4BD48BBA9F2CD85FC6E1D0D20FA3AD12",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/Assert-TaskRawJsonBytes.txt",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Assert-TaskRawJsonBytes.txt",
+      "original_bytes": 7016,
+      "original_sha256": "408D55883E67E1FE590C3F4752F0C7EB86A933E25D0AF1E30173B457387AFC75",
+      "bytes": 7016,
+      "sha256": "408D55883E67E1FE590C3F4752F0C7EB86A933E25D0AF1E30173B457387AFC75",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/audit-evidence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/audit-evidence.json",
+      "original_bytes": 1672797,
+      "original_sha256": "DBE48C2F661C7D364DBD6B76226673B1D5627EC6D56DF89962073EACE9F4E428",
+      "bytes": 1672797,
+      "sha256": "DBE48C2F661C7D364DBD6B76226673B1D5627EC6D56DF89962073EACE9F4E428",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/audit.py",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/audit.py",
+      "original_bytes": 7353,
+      "original_sha256": "9C177DBE646AF43822E19B277402F562B2D739385B7337FD4860A5896230917A",
+      "bytes": 7353,
+      "sha256": "9C177DBE646AF43822E19B277402F562B2D739385B7337FD4860A5896230917A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/Get-TaskEntries.txt",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Get-TaskEntries.txt",
+      "original_bytes": 2233,
+      "original_sha256": "7DC85804F0C58CE924C3FAA2B3EEE0394F027BA4906BD180A3D9F63B429FB24A",
+      "bytes": 2233,
+      "sha256": "7DC85804F0C58CE924C3FAA2B3EEE0394F027BA4906BD180A3D9F63B429FB24A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/Read-TaskJson.txt",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Read-TaskJson.txt",
+      "original_bytes": 1124,
+      "original_sha256": "7C93DE6919DCDC16AE3BE3601C70D5C1AA37FE3CFB5950B6C7073A58E982C64E",
+      "bytes": 1124,
+      "sha256": "7C93DE6919DCDC16AE3BE3601C70D5C1AA37FE3CFB5950B6C7073A58E982C64E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/Resolve-TaskInput.txt",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Resolve-TaskInput.txt",
+      "original_bytes": 737,
+      "original_sha256": "4E5BDEC2369F8F5E7799559DFD2107E2960C413A8C4EAEB9757B9335D6F93C4D",
+      "bytes": 737,
+      "sha256": "4E5BDEC2369F8F5E7799559DFD2107E2960C413A8C4EAEB9757B9335D6F93C4D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/review-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/review-pins.json",
+      "original_bytes": 3022,
+      "original_sha256": "417235BE5A351AAACA74813A03C2439CDE44A1ABAE1F5F8C0D6E51ECE27B096E",
+      "bytes": 3022,
+      "sha256": "417235BE5A351AAACA74813A03C2439CDE44A1ABAE1F5F8C0D6E51ECE27B096E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/review.json",
+      "original_bytes": 15330,
+      "original_sha256": "E7361FD1B35AEB219EA659C32DECAAF589C611F30C0E1C56C2912BD9AAB5D72F",
+      "bytes": 15330,
+      "sha256": "E7361FD1B35AEB219EA659C32DECAAF589C611F30C0E1C56C2912BD9AAB5D72F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/review.md",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/review.md",
+      "original_bytes": 2030,
+      "original_sha256": "2B54C1B911D426804BEAD1593E9976207AF41BD93DB7927E01A8E9B912D0A41A",
+      "bytes": 2030,
+      "sha256": "2B54C1B911D426804BEAD1593E9976207AF41BD93DB7927E01A8E9B912D0A41A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-independent-functional-review/run-clock-r9-r10.diff.original.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/run-clock-r9-r10.diff",
+      "original_bytes": 31199,
+      "original_sha256": "1E29B112AB55CC376A81E007139A182BD961CAD865637BC7C93C549D8B4A37A5",
+      "bytes": 41791,
+      "sha256": "91D3B2AF8EF46569626039C4E23D2B94F914BD8F805F43679382DB1E821BA038",
+      "transformation": "BASE64_JSON_OF_ORIGINAL_DIFF"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census/census.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census/census.json",
+      "original_bytes": 143375,
+      "original_sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7",
+      "bytes": 143375,
+      "sha256": "D8B9FDFC1FE16FAC28D89ED80D3395715114F46CE49D572C23BE79CB10DEFBD7",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census/census.md",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census/census.md",
+      "original_bytes": 7525,
+      "original_sha256": "AA708737759424772AA141FA3957989C95BB66F78BFD1245CE74DB7CC74E40EF",
+      "bytes": 7525,
+      "sha256": "AA708737759424772AA141FA3957989C95BB66F78BFD1245CE74DB7CC74E40EF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census/evidence/build-census.py",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census/evidence/build-census.py",
+      "original_bytes": 39084,
+      "original_sha256": "E06323D9C354592BE4F3EEB7871D9778F921A452B4B61EB9554DDF63A2466381",
+      "bytes": 39084,
+      "sha256": "E06323D9C354592BE4F3EEB7871D9778F921A452B4B61EB9554DDF63A2466381",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census/evidence/draft-r1/build-census.py",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census/evidence/draft-r1/build-census.py",
+      "original_bytes": 36567,
+      "original_sha256": "3DEDE2F6BB4F4C9C27332C09461DF55134E299C64114FD994C773DFDC0F6BB55",
+      "bytes": 36567,
+      "sha256": "3DEDE2F6BB4F4C9C27332C09461DF55134E299C64114FD994C773DFDC0F6BB55",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census/evidence/draft-r1/census.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census/evidence/draft-r1/census.json",
+      "original_bytes": 143098,
+      "original_sha256": "E89476182F01E0282CD0DAB3836B993F107D845311931310EC8FC9356003E41A",
+      "bytes": 143098,
+      "sha256": "E89476182F01E0282CD0DAB3836B993F107D845311931310EC8FC9356003E41A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census/evidence/draft-r1/census.md",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census/evidence/draft-r1/census.md",
+      "original_bytes": 7525,
+      "original_sha256": "AA708737759424772AA141FA3957989C95BB66F78BFD1245CE74DB7CC74E40EF",
+      "bytes": 7525,
+      "sha256": "AA708737759424772AA141FA3957989C95BB66F78BFD1245CE74DB7CC74E40EF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census/evidence/draft-r1/source-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census/evidence/draft-r1/source-pins.json",
+      "original_bytes": 5492,
+      "original_sha256": "204F30CDD77432BF30852BDAE2B9E79DA575CCED36AC87EDDF398FC83185B794",
+      "bytes": 5492,
+      "sha256": "204F30CDD77432BF30852BDAE2B9E79DA575CCED36AC87EDDF398FC83185B794",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census/source-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census/source-pins.json",
+      "original_bytes": 6709,
+      "original_sha256": "10BABDD0C7348784BD0DD410EFC6D79611339CD5A797055C199CD1C49E6374EA",
+      "bytes": 6709,
+      "sha256": "10BABDD0C7348784BD0DD410EFC6D79611339CD5A797055C199CD1C49E6374EA",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census-independent-review-r1/abi-receipt-review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/abi-receipt-review.json",
+      "original_bytes": 51786,
+      "original_sha256": "69F770ADE8317D0064674C97AB99D1A43A26BDB3935FF5BF54BE875F29554C22",
+      "bytes": 51786,
+      "sha256": "69F770ADE8317D0064674C97AB99D1A43A26BDB3935FF5BF54BE875F29554C22",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census-independent-review-r1/evidence-first-check/mechanical-evidence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/evidence-first-check/mechanical-evidence.json",
+      "original_bytes": 1201437,
+      "original_sha256": "69FB39BA9087BED7D5E830C206118FAB5E9D3D7CA2ED21B2081B3F269D193485",
+      "bytes": 1201437,
+      "sha256": "69FB39BA9087BED7D5E830C206118FAB5E9D3D7CA2ED21B2081B3F269D193485",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census-independent-review-r1/evidence-first-check/verify-review.py",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/evidence-first-check/verify-review.py",
+      "original_bytes": 18474,
+      "original_sha256": "A194EFFFD65B30450BE8E65D227859825B3A975C395708F9E694EFEE37637375",
+      "bytes": 18474,
+      "sha256": "A194EFFFD65B30450BE8E65D227859825B3A975C395708F9E694EFEE37637375",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census-independent-review-r1/mechanical-evidence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/mechanical-evidence.json",
+      "original_bytes": 1200864,
+      "original_sha256": "867C2C69E4483BE79BA04D8877F87EE09C4D8029077630B5F421613216F8AE1F",
+      "bytes": 1200864,
+      "sha256": "867C2C69E4483BE79BA04D8877F87EE09C4D8029077630B5F421613216F8AE1F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-source-evidence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/primary-source-evidence.json",
+      "original_bytes": 5957,
+      "original_sha256": "3C5CF123021462FB9F7AF13587B552421A255B740C771FC8CA5E631AADA23D58",
+      "bytes": 5957,
+      "sha256": "3C5CF123021462FB9F7AF13587B552421A255B740C771FC8CA5E631AADA23D58",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census-independent-review-r1/review-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/review-pins.json",
+      "original_bytes": 6227,
+      "original_sha256": "C9AC2C6D0D3C18C1BC03FA009E45BF4547CCB86AD07347DFC8C3240FFDCB0C29",
+      "bytes": 6227,
+      "sha256": "C9AC2C6D0D3C18C1BC03FA009E45BF4547CCB86AD07347DFC8C3240FFDCB0C29",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census-independent-review-r1/review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/review.json",
+      "original_bytes": 10507,
+      "original_sha256": "241BFC147A6AECA36396BE566F6AFBA89FD60193D4462A911BE439F84328D9B4",
+      "bytes": 10507,
+      "sha256": "241BFC147A6AECA36396BE566F6AFBA89FD60193D4462A911BE439F84328D9B4",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census-independent-review-r1/review.md",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/review.md",
+      "original_bytes": 10140,
+      "original_sha256": "09DA62377E4A222DB2A87451B4A7A91546D98B371ACC9FC79FCB5A8782DD99A4",
+      "bytes": 10140,
+      "sha256": "09DA62377E4A222DB2A87451B4A7A91546D98B371ACC9FC79FCB5A8782DD99A4",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-runner-census-independent-review-r1/verify-review.py",
+      "original_path": "build-ci/20261105-clock-oracle-r10-runner-census-independent-review-r1/verify-review.py",
+      "original_bytes": 18726,
+      "original_sha256": "75702741DB8AD0E4E17B90CD184B1B35F5523C70B98ECEE7772F86F37C63578A",
+      "bytes": 18726,
+      "sha256": "75702741DB8AD0E4E17B90CD184B1B35F5523C70B98ECEE7772F86F37C63578A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-r1/runner.diff.original.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-r1/runner.diff",
+      "original_bytes": 980,
+      "original_sha256": "E24900059EF9831542BEF8DE6B8F996B11FBC38A0A28B855DDCF4E51122E7E17",
+      "bytes": 1497,
+      "sha256": "CCF1CAEFF12A0DCC604AE796117C49ED7D5FB15E05E906460C0BD3B22A223124",
+      "transformation": "BASE64_JSON_OF_ORIGINAL_DIFF"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-r1/source-correspondence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-r1/source-correspondence.json",
+      "original_bytes": 1920,
+      "original_sha256": "7D18FE237A4A214E149B4ABFC904301FBA1F57243204060E5FB4A8156C19E3BB",
+      "bytes": 1920,
+      "sha256": "7D18FE237A4A214E149B4ABFC904301FBA1F57243204060E5FB4A8156C19E3BB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-r2/README.diff.original.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-r2/README.diff",
+      "original_bytes": 1449,
+      "original_sha256": "8D7D6DC182524D056AAA04377A2515FCF5DAD73D0D6602F4FFE0F28C5D9F4FE4",
+      "bytes": 2122,
+      "sha256": "5B69850DEC5F352BBCA48C56C776660F7A8A9A92EFA3C5B1A536968F73A1E1A3",
+      "transformation": "BASE64_JSON_OF_ORIGINAL_DIFF"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-r2/source-correspondence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-r2/source-correspondence.json",
+      "original_bytes": 1402,
+      "original_sha256": "4867DCE4B7FB37B2E18715BD724CEE4ACD247D4C44C2D27C7E197C1C4BDB7BEE",
+      "bytes": 1402,
+      "sha256": "4867DCE4B7FB37B2E18715BD724CEE4ACD247D4C44C2D27C7E197C1C4BDB7BEE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-r3/source-correspondence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-r3/source-correspondence.json",
+      "original_bytes": 744,
+      "original_sha256": "AACFA54BD90AF4C58DACBDB3C5A3951FF7B40D23DB37037916C09B1AB60B50F6",
+      "bytes": 744,
+      "sha256": "AACFA54BD90AF4C58DACBDB3C5A3951FF7B40D23DB37037916C09B1AB60B50F6",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r1/evidence-first-check/failure.md",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/evidence-first-check/failure.md",
+      "original_bytes": 532,
+      "original_sha256": "182C80EBD346BD885D1A72D1988E846D54CE062B9DE363D83043AF7D48C16A08",
+      "bytes": 532,
+      "sha256": "182C80EBD346BD885D1A72D1988E846D54CE062B9DE363D83043AF7D48C16A08",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r1/evidence-first-check/verify-correspondence.py",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/evidence-first-check/verify-correspondence.py",
+      "original_bytes": 8735,
+      "original_sha256": "0E347FA7B8139EB235A1AF8E2927C7433427354E6347D51832DDCAF5650E68AD",
+      "bytes": 8735,
+      "sha256": "0E347FA7B8139EB235A1AF8E2927C7433427354E6347D51832DDCAF5650E68AD",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r1/mechanical-evidence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/mechanical-evidence.json",
+      "original_bytes": 516912,
+      "original_sha256": "0941D54F157C89946F555C9A4C92312736D088B022CF6E0B20D207C5B13B8457",
+      "bytes": 516912,
+      "sha256": "0941D54F157C89946F555C9A4C92312736D088B022CF6E0B20D207C5B13B8457",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r1/review-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/review-pins.json",
+      "original_bytes": 3887,
+      "original_sha256": "B78FC71D40C9BC4F55CDB4401A36FBF61D769AF4462F00BC737AA9413DF9A9BF",
+      "bytes": 3887,
+      "sha256": "B78FC71D40C9BC4F55CDB4401A36FBF61D769AF4462F00BC737AA9413DF9A9BF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r1/review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/review.json",
+      "original_bytes": 4588,
+      "original_sha256": "0590F177C0227AEDAB66D2EBC3DE1DDB713789E297D8E7D0194BEA7DBF7862E4",
+      "bytes": 4588,
+      "sha256": "0590F177C0227AEDAB66D2EBC3DE1DDB713789E297D8E7D0194BEA7DBF7862E4",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r1/review.md",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/review.md",
+      "original_bytes": 3850,
+      "original_sha256": "B35B9A7F08187E0D7540ADBC5262A69C7FCE3E03F020B287214D7A5062DA10FF",
+      "bytes": 3850,
+      "sha256": "B35B9A7F08187E0D7540ADBC5262A69C7FCE3E03F020B287214D7A5062DA10FF",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r1/verify-correspondence.py",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r1/verify-correspondence.py",
+      "original_bytes": 8759,
+      "original_sha256": "C517005F2D86132493E2778D5C04146BAB1AAE470D5A5C67D76CCB92A1A14AB7",
+      "bytes": 8759,
+      "sha256": "C517005F2D86132493E2778D5C04146BAB1AAE470D5A5C67D76CCB92A1A14AB7",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r3/mechanical-evidence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r3/mechanical-evidence.json",
+      "original_bytes": 552496,
+      "original_sha256": "ABF703674438C4F635A2194742727C4391D5EA5C95E9EB691158B0A4893A8E1C",
+      "bytes": 552496,
+      "sha256": "ABF703674438C4F635A2194742727C4391D5EA5C95E9EB691158B0A4893A8E1C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r3/review-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r3/review-pins.json",
+      "original_bytes": 3020,
+      "original_sha256": "AD219CAECD7F152245279FD6861E14BA5263333BAB4E8B10E24B988678B182BE",
+      "bytes": 3020,
+      "sha256": "AD219CAECD7F152245279FD6861E14BA5263333BAB4E8B10E24B988678B182BE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r3/review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r3/review.json",
+      "original_bytes": 2722,
+      "original_sha256": "EDB3ABB083167BB462D6589562E0A6D9786A4AEA928B3ABBDD2F0CA3EED094E2",
+      "bytes": 2722,
+      "sha256": "EDB3ABB083167BB462D6589562E0A6D9786A4AEA928B3ABBDD2F0CA3EED094E2",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r3/review.md",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r3/review.md",
+      "original_bytes": 2407,
+      "original_sha256": "728955C58AD3962F71E762CAA97986DD6FA1CC686CE4F38DA25EDF9C49809558",
+      "bytes": 2407,
+      "sha256": "728955C58AD3962F71E762CAA97986DD6FA1CC686CE4F38DA25EDF9C49809558",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-native-path-correction-independent-review-r3/verify-correspondence.py",
+      "original_path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r3/verify-correspondence.py",
+      "original_bytes": 9071,
+      "original_sha256": "A6446C8F8E1A74FA85E1D5828AFE7940C5DD431FF424DA426925FE8E9B66CCDE",
+      "bytes": 9071,
+      "sha256": "A6446C8F8E1A74FA85E1D5828AFE7940C5DD431FF424DA426925FE8E9B66CCDE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "20261105-clock-oracle-r10-controller-environment-proposal-r1/proposal.json",
+      "original_path": "build-ci/20261105-clock-oracle-r10-controller-environment-proposal-r1/proposal.json",
+      "original_bytes": 4995,
+      "original_sha256": "3294595F71EDB97130703808C6CB9B6136DAF56716C93E1580CC7DC2CB8E126E",
+      "bytes": 4995,
+      "sha256": "3294595F71EDB97130703808C6CB9B6136DAF56716C93E1580CC7DC2CB8E126E",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "status": "SOURCE_ONLY_UNRUN_DOC_CORRECTION_REQUIRES_INDEPENDENT_CORRESPONDENCE",
+  "source_folder": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r2",
+  "manifest_sha256": "BFDE3D6EDB34BF15FA22E966703713656C6A0377538C5C5ED9DFF7B71592CB5E",
+  "predecessor_source_manifest_sha256": "FD2D09B6313EAC691B5003E9514FFAD47F5897E0B2A4AC5E341A68C925818F4B",
+  "independent_R1_review_sha256": "0590F177C0227AEDAB66D2EBC3DE1DDB713789E297D8E7D0194BEA7DBF7862E4",
+  "README_same_bytes_and_lines": true,
+  "runner_CPP_header_byte_exact_R1": true,
+  "native_base_same_character_length_as_R1": true,
+  "no_automatic_price_or_geometry_or_GO": true,
+  "source_rows": [
+    {
+      "path": "clock_stage.cpp",
+      "bytes": 34958,
+      "lines": 289,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "run-clock.ps1",
+      "bytes": 104099,
+      "lines": 974,
+      "sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314"
+    },
+    {
+      "path": "source-costs.h",
+      "bytes": 3725,
+      "lines": 72,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "README.md",
+      "bytes": 15480,
+      "lines": 221,
+      "sha256": "1D6C048CC2F26D02829FF6C5F221EAA846B53AAB9FFB76C4F0D5F126DC0BE50D"
+    }
+  ]
+}

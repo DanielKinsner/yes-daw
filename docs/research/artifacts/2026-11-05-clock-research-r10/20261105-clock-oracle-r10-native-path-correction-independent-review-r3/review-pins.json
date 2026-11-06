@@ -1,0 +1,64 @@
+{
+  "schema": "R10_NATIVE_PATH_CORRECTION_R3_INDEPENDENT_REVIEW_PINS",
+  "verdict": "ACCEPT_SOURCE_AND_CONDITIONAL_SCALAR_CORRESPONDENCE_ONLY_PAYLOAD_HOLD",
+  "subject": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/run-clock.ps1",
+      "bytes": 104099,
+      "sha256": "4124D01AFEEC4E88C038C0A948800182561D8608DE175AF352CF574F164E9314"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/README.md",
+      "bytes": 15480,
+      "sha256": "FB9F7E54FBA12CA560B40FF38AE41B97548BF7DF5D5160EB9FCA0538BCBCD5F8"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-native-path-correction-r3/source-manifest.json",
+      "bytes": 497616,
+      "sha256": "824A2980CDACD71D084F5C9A62835299ACBB82E95FE693BF8FEF9E22F960D594"
+    }
+  ],
+  "correspondence": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-r3/source-correspondence.json",
+      "bytes": 744,
+      "sha256": "AACFA54BD90AF4C58DACBDB3C5A3951FF7B40D23DB37037916C09B1AB60B50F6"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r3/mechanical-evidence.json",
+      "bytes": 552496,
+      "sha256": "ABF703674438C4F635A2194742727C4391D5EA5C95E9EB691158B0A4893A8E1C"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r3/review.json",
+      "bytes": 2722,
+      "sha256": "EDB3ABB083167BB462D6589562E0A6D9786A4AEA928B3ABBDD2F0CA3EED094E2"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r3/review.md",
+      "bytes": 2407,
+      "sha256": "728955C58AD3962F71E762CAA97986DD6FA1CC686CE4F38DA25EDF9C49809558"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-native-path-correction-independent-review-r3/verify-correspondence.py",
+      "bytes": 9071,
+      "sha256": "A6446C8F8E1A74FA85E1D5828AFE7940C5DD431FF424DA426925FE8E9B66CCDE"
+    }
+  ],
+  "checks": 1269,
+  "failures": [],
+  "scope": "Only source/text/file hashes, artifact JSON and independent Python integer/path equations. No target PS parser/AST/import/helper/compiler/program/stage, GUI/device, Git/CI or source mutation. All predecessors/reviews remain exact.",
+  "predecessors_untouched": true
+}

@@ -1,0 +1,10 @@
+function Read-TaskJson([string]$Path,[long]$Maximum=1048576,[string]$ExpectedSha256=$null){
+ Spend-Task 64;Assert-TaskCodecBinding;$taskBytes=Read-TaskBoundedBytes $Path $Maximum
+ if($Maximum -eq 4194304){
+  if($ExpectedSha256.Length -ne 64 -or [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskBytes)) -cne $ExpectedSha256){throw 'DEPENDENCY_CAPTURED_BYTE_IDENTITY_BEFORE_PARSE'}
+ }elseif($ExpectedSha256 -cne '28909B793046C026890456FA59A841DA2B75450B60AAD5E8DD3888DFCCB23E71' -or [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($taskBytes)) -cne $ExpectedSha256){throw 'PREDECESSOR_CAPTURED_BYTE_IDENTITY_BEFORE_PARSE'}
+ Add-TaskJsonVisit $taskBytes.Length
+ if($Maximum -eq 4194304){$taskCompactLength=Assert-TaskRawJsonBytes $taskBytes (2*[int]$taskManifest['profile']['include_input_count']+256) 512 24}else{$taskCompactLength=Assert-TaskRawJsonBytes $taskBytes 2420 270 3}
+ $taskRaw=[Text.UTF8Encoding]::new($false,$true).GetString($taskBytes,0,$taskCompactLength);$taskBytes=$null
+ return & $script:taskConvertFromJson -InputObject $taskRaw -AsHashtable -Depth 24 -DateKind String
+}

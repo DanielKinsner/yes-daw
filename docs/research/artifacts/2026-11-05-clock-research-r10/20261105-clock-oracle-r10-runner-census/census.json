@@ -1,0 +1,3661 @@
+{
+  "schema": "YESDAW_CLOCK_R10_RUNNER_CENSUS_V1",
+  "state": "COMPLETE_SCALAR_PROPOSAL_CONDITIONAL_CAPACITY_LIFETIME_HOLD_SOURCE_ONLY_UNRUN",
+  "subject_manifest_sha256": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23",
+  "whole_functional_review_sha256": "E7361FD1B35AEB219EA659C32DECAAF589C611F30C0E1C56C2912BD9AAB5D72F",
+  "scalar_upper_proposal": 5543964320,
+  "new_work_limit_selected": false,
+  "combined_U_selected": false,
+  "binding_or_execution_GO": false,
+  "profile": {
+    "inputs": 1220,
+    "input_bytes": 460232026,
+    "input_chunks": 7849,
+    "namespaces": 31,
+    "entries": 1092,
+    "files": 1045,
+    "namespace_guard_rows": 1123,
+    "namespace_directory_upper": 720,
+    "fence_identities": 1225,
+    "fence_chunks": 7862,
+    "fences": 8,
+    "hash_calls": 9936,
+    "hash_bodies": 73432,
+    "resolve_calls": 13673,
+    "nolink_outside_hash_walk_copy": 447,
+    "walker_calls": 1039,
+    "walker_directory_iterations_upper": 6827,
+    "walker_appended_rows_upper": 14757,
+    "walker_canonical_calls_upper": 16835,
+    "all_NoLink_calls_upper": 17214,
+    "all_canonical_calls_upper": 34050,
+    "all_entry_path_calls_upper": 47723,
+    "completed_entry_first_builds_upper": 1294,
+    "additional_unpublished_failure_builds_upper": 3,
+    "first_build_attempts_upper": 1297,
+    "stage_calls": 784,
+    "normal_FileSet_calls": 256,
+    "normal_FileSet_N_M": 8615,
+    "all_FileSet_calls_with_controls": 259,
+    "FileSet_N": 8783,
+    "FileSet_M": 8784,
+    "raw_byte_calls": 6,
+    "raw_byte_units": 4789990,
+    "raw_string_calls": 16,
+    "raw_string_units": 131072,
+    "normal_SDK_calls": 19,
+    "byte_boundary_arrays_total": 61
+  },
+  "composition": {
+    "fixedBootstrapDefinitions": 48036,
+    "fixedMainCatchAndSourceCallers": 129300,
+    "InitializeControllerWithSevenFixedHashes": 423000,
+    "allHashOwnRowsExcludingNoLink": 7704200,
+    "allNoLinkOwnRowsExcludingCanonical": 124870356,
+    "allResolveOwnRowsExcludingEntryPath": 449882719,
+    "allWalkerOwnRowsExcludingNoLinkAndCanonical": 521773958,
+    "stageByteOwnRows": 417088,
+    "pinsOwnRows": 1089496,
+    "FileSetNormalClosedSlots": 566005255,
+    "twoUnexpectedFileSetRefusalReplacementSurpluses": 161029102,
+    "threeActualExpectedFileSetRefusals": 11077172,
+    "childOwnRowsWithAllPollsCleanup": 4874097,
+    "threeFencedWrapperOwnRows": 460,
+    "84CompilerReplacementHelpers": 4608324,
+    "twoCopyOwnRowsExcludingNoLink": 36550,
+    "twoOwnedMutationHelpers": 526,
+    "fourPEHeaderHelpers": 1332,
+    "threeOrdinaryConsolePE": 93,
+    "oneUnexpectedConsolePERefusalReplacementSurplus": 62,
+    "predecessorDescriptor": 41635,
+    "predecessorMap": 3619,
+    "fourBoundSignedIntegerHelpers": 440,
+    "twoNormalWorkReservations": 40,
+    "twoNormalRetainedReservations": 32,
+    "normalAttempt": 6,
+    "normalLastLegalPoll": 11,
+    "rootASCIIValidation": 27185,
+    "28CompilerArgumentASCIIValidations": 761180,
+    "elevenMeasurementOwnRowsAndDefaults": 1140,
+    "allRecursiveVisitorPasses": 692748221,
+    "fourSaveReceiptOwnRowsExcludingMeasurementHelper": 2324,
+    "twoWriteJsonOwnRowsExcludingMeasurementHelper": 124,
+    "thirteenDocumentOwnRows": 427167,
+    "sevenOnceEncodeOwnRows": 53436369,
+    "bootstrapBoundedRead": 197,
+    "twoReadJsonOwnRows": 688,
+    "dependencyOtherOwnRows": 40127129,
+    "twoChildResultOwnRowsWith14AdmittedControls": 5200812,
+    "oneAttemptedBadControlPrefixBeforeRefusal": 11894,
+    "twoBuildArtifactOwnRows": 878,
+    "twoReferenceOwnRows": 15764,
+    "sameReferencesIncluding56normalIdentities": 2886,
+    "sevenOtherNormalIdentityHelpers": 168,
+    "twoUnexpectedIdentityRefusalReplacementSurpluses": 138,
+    "failureInventoryOwnRows": 5185,
+    "allByteGrammarAndCompactionHelpers": 2811724958,
+    "allStringRawHelpers": 67110560,
+    "allCanonicalHelperOwnRows": 2587800,
+    "allCatalogueEntryPathHelpers": 15655359,
+    "initializePathCatalogue": 99285
+  },
+  "graphs": {
+    "bundle": {
+      "fields": 21,
+      "maps": 1294,
+      "arrays": 2,
+      "keys": 5251,
+      "strings": 3938,
+      "integers": 1302,
+      "booleans": 8,
+      "key_units": 46364,
+      "string_units": 829725,
+      "array_elements": 1292,
+      "map_separators": 3957,
+      "array_separators": 1290,
+      "value_calls": 6544,
+      "nodes_keys": 11795,
+      "visitor": 135546922,
+      "clone_dictionary_prime_capacity_sum": 9074
+    },
+    "receipt": {
+      "fields": 30,
+      "maps": 58,
+      "arrays": 23,
+      "keys": 300,
+      "strings": 155,
+      "integers": 177,
+      "booleans": 52,
+      "key_units": 2877,
+      "string_units": 7601,
+      "array_elements": 164,
+      "map_separators": 242,
+      "array_separators": 141,
+      "value_calls": 465,
+      "nodes_keys": 765,
+      "visitor": 1947224,
+      "clone_dictionary_field_histogram": {
+        "2": 3,
+        "3": 37,
+        "4": 6,
+        "5": 5,
+        "6": 1,
+        "13": 2,
+        "24": 3,
+        "30": 1
+      },
+      "clone_dictionary_prime_capacity_sum": 362,
+      "clone_histogram_check": "58maps300keys; identity retained control5 fields, GUI retained control6 after mutation/hash additions"
+    },
+    "failure": {
+      "maps": 79,
+      "arrays": 1,
+      "keys": 397,
+      "strings": 158,
+      "integers": 78,
+      "booleans": 160,
+      "key_units": 3313,
+      "string_units": 42504,
+      "visitor": 7193129,
+      "byte_upper": 262760,
+      "clone_dictionary_prime_capacity_sum": 553
+    },
+    "marker": {
+      "maps": 1,
+      "arrays": 0,
+      "keys": 6,
+      "strings": 2,
+      "integers": 3,
+      "booleans": 1,
+      "key_units": 80,
+      "string_units": 75,
+      "visitor": 31586,
+      "byte_upper": 319,
+      "clone_dictionary_prime_capacity_sum": 7
+    }
+  },
+  "receipt_byte_upper": 23635,
+  "new_family_groups": {
+    "Context": {
+      "entry_return": 2,
+      "nonnull": 3,
+      "equalities": 18,
+      "and_ops": 3
+    },
+    "AddEntry_true": {
+      "entry_params": 3,
+      "local": 2,
+      "guard": 15,
+      "entry_map": 17,
+      "rows_Add": 10,
+      "branch": 2,
+      "inputs_Add": 12,
+      "return_": 1
+    },
+    "AddEntry_false": {
+      "entry_params": 3,
+      "local": 2,
+      "guard": 15,
+      "entry_map": 17,
+      "rows_Add": 10,
+      "branch": 2,
+      "alias_Add": 12,
+      "drive_guard": 17,
+      "Replace": 14,
+      "contains_guard": 13,
+      "separator_alias_Add": 12,
+      "return_": 1
+    },
+    "String_hit": {
+      "entry_param": 2,
+      "local": 5,
+      "contains_branch": 9,
+      "return_cell": 5
+    },
+    "String_miss": {
+      "entry_param": 2,
+      "local": 5,
+      "contains_branch": 9,
+      "count_guard": 14,
+      "Add": 9,
+      "return_Path": 2
+    },
+    "Entry_hit": {
+      "entry_param": 2,
+      "nonnull_guard": 7,
+      "return_cell": 5
+    },
+    "Entry_tilde": {
+      "entry_guard": 9,
+      "name_raw": 7,
+      "repo_guard": 14,
+      "Join": 8,
+      "raw_tilde": 12,
+      "GetFullPath": 7,
+      "canonical_tilde": 12,
+      "return_": 2
+    },
+    "Entry_first": {
+      "entry_guard": 9,
+      "name_raw": 7,
+      "repo_guard": 14,
+      "Join": 8,
+      "raw_tilde": 12,
+      "GetFullPath": 7,
+      "canonical_tilde": 12,
+      "pool_call": 44,
+      "parent_array_locals": 12,
+      "while_fixed": 8,
+      "bodies65": 9295,
+      "aliases_local": 5,
+      "foreach_fixed": 7,
+      "alias_rows2": 72,
+      "field_writes": 15,
+      "return_": 2
+    },
+    "Entry_parent_body": {
+      "condition_controls": 8,
+      "pool": 44,
+      "array_store": 5,
+      "increment": 3,
+      "depth_branch": 4,
+      "link_contains": 12,
+      "link_miss": 67
+    },
+    "Entry_link_miss": {
+      "GetDirectoryName": 7,
+      "nonnull": 2,
+      "pool": 44,
+      "Add": 12,
+      "At_write": 2
+    },
+    "Entry_alias_row": {
+      "foreach": 5,
+      "contains": 10,
+      "count_guard": 12,
+      "Add": 9
+    },
+    "Init_fixed": {
+      "entry": 1,
+      "maximum": 36,
+      "guards": 28,
+      "map": 95,
+      "inputs_foreach": 6,
+      "own_foreach": 3,
+      "manifest_caller": 3,
+      "refs_foreach": 6,
+      "compiler_foreach": 6,
+      "controls_foreach": 6,
+      "stage_foreach": 6,
+      "final_guard": 12,
+      "return_": 1
+    },
+    "Canonical_own": {
+      "entry_param": 2,
+      "context": 28,
+      "tilde_guard": 12,
+      "and_branch": 2,
+      "alias_contains": 12,
+      "strings_contains": 12,
+      "return_cell": 8
+    },
+    "Resolve_own": {
+      "entry_param": 2,
+      "string_fixed_caller": 53,
+      "rooted_branch": 8,
+      "length_guard": 18,
+      "context_contains": 41,
+      "max_private9_fallback13": 13
+    },
+    "NoLink_tail": {
+      "context": 28,
+      "contains": 11,
+      "and_branch": 2,
+      "max_hit8_old7": 8
+    },
+    "ReadJson_common": {
+      "entry_params": 4,
+      "Spend": 20,
+      "codec": 19,
+      "bounded_read": 201,
+      "first_Maximum": 4,
+      "AddJsonVisit": 24,
+      "second_Maximum": 4,
+      "prefix_GetString": 19,
+      "null_write": 2,
+      "SDK": 12,
+      "return_": 1,
+      "Maximum_conversion": 1
+    },
+    "Dependency_fixed": {
+      "entry_Build": 2,
+      "report_canonical_caller": 9,
+      "locals": 4,
+      "descriptor_scan": 50,
+      "match_guard": 4,
+      "ReadJson_caller": 5,
+      "root_type": 22,
+      "Data_local": 5,
+      "Data_type": 22,
+      "Source_string_fixed": 56,
+      "Source_comparison": 16,
+      "optional_modules": 109,
+      "Includes_guard": 55,
+      "foreach_fixed": 6,
+      "return_map": 19
+    }
+  },
+  "helper_rows": [
+    {
+      "name": "Spend-Task",
+      "path": "normal",
+      "vector": {
+        "R": 7,
+        "W": 2,
+        "O": 5,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 17,
+      "parameterConversionUnits": "C_long:0or1; all Int32 literal callers add1",
+      "normalLiteralCallerCalleeUnits": 18,
+      "caller": "Argument read and dispatch at actual caller; no result destination for void return.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        60,
+        60
+      ],
+      "lines": [
+        62,
+        62
+      ]
+    },
+    {
+      "name": "Spend-Task",
+      "path": "negative-refusal",
+      "vector": {
+        "R": 3,
+        "W": 1,
+        "O": 2,
+        "B": 1,
+        "E": 1,
+        "K": 1
+      },
+      "units": 9,
+      "parameterConversionUnits": "C_long:0or1",
+      "maxWithConversion": 10,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        60,
+        60
+      ],
+      "lines": [
+        62,
+        62
+      ]
+    },
+    {
+      "name": "Spend-Task",
+      "path": "remaining-refusal",
+      "vector": {
+        "R": 6,
+        "W": 1,
+        "O": 4,
+        "B": 1,
+        "E": 1,
+        "K": 1
+      },
+      "units": 14,
+      "parameterConversionUnits": "C_long:0or1",
+      "maxWithConversion": 15,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        60,
+        60
+      ],
+      "lines": [
+        62,
+        62
+      ]
+    },
+    {
+      "name": "Add-TaskJsonVisit",
+      "path": "normal",
+      "vector": {
+        "R": 7,
+        "W": 2,
+        "O": 5,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 17,
+      "parameterConversionUnits": "C_long:0or1",
+      "maxWithConversion": 18,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        194,
+        194
+      ],
+      "lines": [
+        274,
+        274
+      ]
+    },
+    {
+      "name": "Add-TaskJsonBound",
+      "path": "normal",
+      "vector": {
+        "R": 13,
+        "W": 3,
+        "O": 8,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 27,
+      "parameterConversionUnits": "C_long:0or1",
+      "maxWithConversion": 28,
+      "indexing": "Each state index has evaluated receiver/key, source access and selected cell read/write; no hidden get_Item call.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        331,
+        331
+      ],
+      "lines": [
+        411,
+        411
+      ]
+    },
+    {
+      "name": "Complete-TaskOwnerClose",
+      "path": "full-test-normal",
+      "vector": {
+        "R": 6,
+        "W": 2,
+        "O": 5,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 16,
+      "caller": "Two evaluated caller arguments and caller dispatch are not duplicated here.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        297,
+        297
+      ],
+      "lines": [
+        377,
+        377
+      ]
+    },
+    {
+      "name": "Complete-TaskOwnerClose",
+      "path": "propagate-first-primary",
+      "vector": {
+        "R": 7,
+        "W": 2,
+        "O": 5,
+        "B": 1,
+        "E": 1,
+        "K": 1
+      },
+      "units": 17,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        297,
+        297
+      ],
+      "lines": [
+        377,
+        377
+      ]
+    },
+    {
+      "name": "Assert-TaskPollAdmission",
+      "path": "admit",
+      "vector": {
+        "R": 4,
+        "W": 1,
+        "O": 3,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 11,
+      "caller": "Actual caller has Long count; no parameter conversion or result copy.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        75,
+        77
+      ],
+      "lines": [
+        155,
+        157
+      ]
+    },
+    {
+      "name": "Assert-TaskPollAdmission",
+      "path": "reject-prefix-before-Reject-TaskGate",
+      "vector": {
+        "R": 12,
+        "W": 7,
+        "O": 4,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1
+      },
+      "units": 27,
+      "callee": "Reject-TaskGate",
+      "calleeUnits": 32,
+      "fullUnits": 59,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        75,
+        77
+      ],
+      "lines": [
+        155,
+        157
+      ]
+    },
+    {
+      "name": "Reject-TaskGate",
+      "path": "throw",
+      "vector": {
+        "R": 9,
+        "W": 10,
+        "O": 2,
+        "D": 3,
+        "E": 4,
+        "T": 3,
+        "K": 1
+      },
+      "units": 32,
+      "primitiveCalls": "InvalidOperationException constructor and two Data getters:12units in total including primitive argument/receiver writes. Scalar results fuse with actual destinations; no duplicate result transfer.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        186,
+        186
+      ],
+      "lines": [
+        266,
+        266
+      ]
+    },
+    {
+      "name": "Assert-TaskIdentity",
+      "path": "equal",
+      "vector": {
+        "R": 12,
+        "W": 2,
+        "O": 7,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 24,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        534,
+        534
+      ],
+      "lines": [
+        715,
+        715
+      ]
+    },
+    {
+      "name": "Assert-TaskIdentity",
+      "path": "full-test-reject-prefix",
+      "vector": {
+        "R": 33,
+        "W": 12,
+        "O": 12,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1
+      },
+      "units": 61,
+      "callee": "Reject-TaskGate",
+      "calleeUnits": 32,
+      "fullUnits": 93,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        534,
+        534
+      ],
+      "lines": [
+        715,
+        715
+      ]
+    },
+    {
+      "name": "Assert-TaskConsolePE",
+      "path": "console-pass",
+      "vector": {
+        "R": 16,
+        "W": 1,
+        "O": 11,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 31,
+      "ordinaryCalls": 3,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        594,
+        594
+      ],
+      "lines": [
+        785,
+        785
+      ]
+    },
+    {
+      "name": "Assert-TaskConsolePE",
+      "path": "GUI-reject-prefix",
+      "vector": {
+        "R": 33,
+        "W": 9,
+        "O": 15,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1
+      },
+      "units": 61,
+      "callee": "Reject-TaskGate",
+      "calleeUnits": 32,
+      "fullUnits": 93,
+      "expectedRejectionCalls": 1,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        594,
+        594
+      ],
+      "lines": [
+        785,
+        785
+      ]
+    },
+    {
+      "name": "Assert-TaskAttempt",
+      "path": "absent-pass",
+      "vector": {
+        "R": 1,
+        "W": 2,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 6,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        546,
+        546
+      ],
+      "lines": [
+        727,
+        727
+      ]
+    },
+    {
+      "name": "Assert-TaskAttempt",
+      "path": "existing-reject-prefix",
+      "vector": {
+        "R": 6,
+        "W": 6,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1
+      },
+      "units": 16,
+      "callee": "Reject-TaskGate",
+      "calleeUnits": 32,
+      "fullUnits": 48,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        546,
+        546
+      ],
+      "lines": [
+        727,
+        727
+      ]
+    },
+    {
+      "name": "Get-TaskRuntimeType",
+      "path": "null",
+      "vector": {
+        "R": 3,
+        "W": 1,
+        "O": 1,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "units": 8,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        195,
+        195
+      ],
+      "lines": [
+        275,
+        275
+      ]
+    },
+    {
+      "name": "Get-TaskRuntimeType",
+      "path": "actual-Object-GetType",
+      "vector": {
+        "R": 5,
+        "W": 4,
+        "O": 1,
+        "B": 1,
+        "D": 1,
+        "E": 2,
+        "T": 2
+      },
+      "units": 16,
+      "result": "Caller owns the one actual scalar result destination; not priced again inside this direct return.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        195,
+        195
+      ],
+      "lines": [
+        275,
+        275
+      ]
+    },
+    {
+      "name": "Set-TaskSecondary",
+      "path": "first-unsaturated-slot",
+      "vector": {
+        "R": 19,
+        "W": 6,
+        "O": 11,
+        "B": 3,
+        "D": 1,
+        "E": 2,
+        "T": 2
+      },
+      "units": 44,
+      "note": "Includes Length primitive receiver/argument/result and static Int64.MaxValue source member read; row requires independent arithmetic review before sealing.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        289,
+        293
+      ],
+      "lines": [
+        369,
+        373
+      ]
+    },
+    {
+      "name": "Assert-TaskIntegral",
+      "path": "last-admitted-type-and-nonnegative",
+      "vector": {
+        "R": 20,
+        "W": 3,
+        "O": 17,
+        "B": 2,
+        "D": 1,
+        "E": 1,
+        "T": 1
+      },
+      "localUnits": 45,
+      "calls": [
+        {
+          "callee": "Get-TaskRuntimeType",
+          "count": 1,
+          "units": 16
+        }
+      ],
+      "units": 61,
+      "defaultLiteralReads": "Add1 if Nonnegative omitted; that path omits the value<0 test, saving3, so bound remains61.",
+      "perType": "For admitted type position i in the eight exact kinds: flagFalse body3*i+34; flagTrue nonnegative body3*i+37; first-class exact type/domain check and one GetType caller transfer retained.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        264,
+        268
+      ],
+      "lines": [
+        344,
+        348
+      ]
+    },
+    {
+      "name": "Get-TaskIntegerDigits",
+      "path": "negative-Int64-minimum",
+      "fixedVector": {
+        "R": 7,
+        "W": 3,
+        "O": 2,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1,
+        "T": 1,
+        "K": 2
+      },
+      "fixedUnits": 19,
+      "calls": [
+        {
+          "callee": "Assert-TaskIntegral",
+          "path": "Int64 defaultNonnegativeFalse",
+          "count": 1,
+          "units": 56
+        }
+      ],
+      "loop": {
+        "kind": "foreach",
+        "bodies": 18,
+        "bodyVector": {
+          "R": 4,
+          "W": 2,
+          "O": 3,
+          "B": 1,
+          "K": 3
+        },
+        "bodyUnits": 13,
+        "reason": "All18 threshold comparisons and increments reached for Int64 minimum; per-body includes one element read/write and reached condition/advance/body control."
+      },
+      "units": 309,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        308,
+        319
+      ],
+      "lines": [
+        388,
+        399
+      ]
+    },
+    {
+      "name": "Get-TaskIntegerDigits",
+      "path": "nonnegative-UInt64-maximum",
+      "fixedVector": {
+        "R": 8,
+        "W": 3,
+        "O": 2,
+        "B": 1,
+        "S": 1,
+        "D": 1,
+        "E": 1,
+        "T": 1,
+        "K": 2
+      },
+      "fixedUnits": 20,
+      "calls": [
+        {
+          "callee": "Assert-TaskIntegral",
+          "path": "UInt64 defaultNonnegativeFalse",
+          "count": 1,
+          "units": 59
+        }
+      ],
+      "loop": {
+        "kind": "foreach",
+        "bodies": 19,
+        "bodyVector": {
+          "R": 4,
+          "W": 2,
+          "O": 2,
+          "B": 1,
+          "K": 3
+        },
+        "bodyUnits": 12
+      },
+      "units": 307,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        308,
+        319
+      ],
+      "lines": [
+        388,
+        399
+      ]
+    },
+    {
+      "name": "Assert-TaskString",
+      "path": "normal-bounded-valid-string",
+      "fixedVector": {
+        "R": 4,
+        "W": 5,
+        "O": 3,
+        "B": 1,
+        "D": 1,
+        "E": 1,
+        "T": 1
+      },
+      "fixedLocalUnits": 16,
+      "primitiveFixedUnits": 4,
+      "helperFixedUnits": 16,
+      "loopFramework": "14*N+13",
+      "perCharacterUpper": 50,
+      "perCharacterPaths": {
+        "asciiTrueValid": 39,
+        "asciiFalsePlain": 32,
+        "validHighSurrogate": 46,
+        "validLowSurrogate": 50,
+        "malformedRefusalLastBody": 52
+      },
+      "defaultLiteralReads": "D=0,1or2 actual omitted defaults; no duplicate parameter write",
+      "formula": "64*N+49+D; first-invalid-char prefix bounded64*N+36+D, no fake finalfalse/advance after throw",
+      "maximum512BothDefaults": 32819,
+      "note": "Maximum entry length and exact type gate precedes indexed scan. Scalar property/method results fuse with their actual caller destinations.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        249,
+        257
+      ],
+      "lines": [
+        329,
+        337
+      ]
+    },
+    {
+      "name": "Get-TaskEscapedStringBytes",
+      "path": "all-admitted-UTF16",
+      "fixedUnits": 25,
+      "perCharacterBodyUpper": 70,
+      "perCharacterBranches": {
+        "shortEscape": 62,
+        "escapedNonAscii": 70,
+        "safeAscii": 69
+      },
+      "loopFramework": "14*N+13 (fixed13 included in25)",
+      "calls": [
+        {
+          "callee": "Assert-TaskString",
+          "formula": "64*N+50; Maximum explicit, Ascii default omitted"
+        }
+      ],
+      "formula": "148*N+75",
+      "maximum512": 75851,
+      "note": "The body includes actual Spend-Task1 caller+conversion/callee20, independent of its debit1. External encoding CPU stays opaque.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        320,
+        330
+      ],
+      "lines": [
+        400,
+        410
+      ]
+    },
+    {
+      "name": "Assert-TaskCodecBinding",
+      "path": "bound-codecs-null-defaultsettings",
+      "vector": {
+        "R": 6,
+        "W": 1,
+        "O": 4,
+        "B": 2,
+        "D": 1,
+        "E": 2,
+        "T": 2
+      },
+      "units": 18,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        303,
+        307
+      ],
+      "lines": [
+        383,
+        387
+      ]
+    },
+    {
+      "name": "Assert-TaskCodecBinding",
+      "path": "reject-nonnull-defaultsettings",
+      "vector": {
+        "R": 7,
+        "W": 1,
+        "O": 4,
+        "B": 2,
+        "D": 1,
+        "E": 2,
+        "T": 1,
+        "K": 1
+      },
+      "units": 19,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        303,
+        307
+      ],
+      "lines": [
+        383,
+        387
+      ]
+    },
+    {
+      "name": "Get-TaskSafePrefix",
+      "path": "actual-private-ASCII-root-caller",
+      "units": 51,
+      "components": {
+        "entryParametersReturn": 4,
+        "maximumGate": 8,
+        "MinAndLength": 13,
+        "highSurrogateGate": 17,
+        "substringCallerAndLeaf": 9
+      },
+      "genericUtf16AlternativeUnits": 54,
+      "note": "The sole actual caller supplies explicit512 and the initial ASCII/full-path gate makes the decrement unreachable. Primitive substring scalar result initializes the output map value once at caller.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        258,
+        263
+      ],
+      "lines": [
+        338,
+        343
+      ]
+    },
+    {
+      "name": "Assert-TaskBoundSourceInteger",
+      "path": "positive-signed-kind",
+      "units": 54,
+      "components": {
+        "entryParametersReturn": 4,
+        "allowedKinds": 16,
+        "typeProjection": 27,
+        "allowedBranch": 3,
+        "positiveBranch": 4
+      },
+      "rejectionUpper": 110,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        535,
+        543
+      ],
+      "lines": [
+        716,
+        724
+      ]
+    },
+    {
+      "name": "Assert-NoLink",
+      "lines": [
+        141,
+        145
+      ],
+      "historical_R9_lines": [
+        61,
+        65
+      ],
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "own_upper": 7254,
+      "excluded": "Canonical body",
+      "formula": "4570-7+3+64*(49-7)=7254"
+    },
+    {
+      "name": "Close-TaskOwner",
+      "path": "null-or-Dispose-outcome",
+      "paths": {
+        "null": 7,
+        "disposeNormal": 12,
+        "firstRawDisposeFailure": 17,
+        "secondaryDisposeFailure": 62
+      },
+      "upper": 62,
+      "secondaryFactoring": "Normal12 minus nonreached primitive normalreturn1 plus primary-test4 plus literal/raw/caller-dispatch3 plus Set-TaskSecondary44 =62.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        294,
+        296
+      ],
+      "lines": [
+        374,
+        376
+      ]
+    },
+    {
+      "name": "Get-TaskHash",
+      "path": "all-admitted-read-and-error-paths",
+      "formula": "295+NoLinkOwn7254+CanonicalBody+65*B",
+      "loopBodies": "B=ceil(admitted cap/65536)",
+      "components": {
+        "fixedAndFinallyUpper": 295,
+        "parentHelperUpper": 7254,
+        "chunkBody": 59,
+        "chunkConditionBodyAdvance": 6,
+        "primitiveBulkInternalByteFees": 0,
+        "catchUpper": 9,
+        "closeOwnerCalls": 2,
+        "closeOwnerUpperEach": 62,
+        "completeOwnerCloseUpper": 17,
+        "parent_helper_scope": "OwnNoLink excludes separately composed Canonical body"
+      },
+      "note": "Fixed groups: own/parameter5, firstline43, setup12, streamCtor25, openLength9, hashCtor10, loopFixed6, EOF10, returnedIdentityMap18, finally24+2*62, plus bodyCatch9. OriginalMethod/primitive parameters and direct scalar destinations counted once.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        66,
+        74
+      ],
+      "lines": [
+        146,
+        154
+      ],
+      "flattened_own": "295+65*chunks; oneNoLink separately composed"
+    },
+    {
+      "name": "Get-TaskBootstrapHash",
+      "path": "fixed-seven-file-caller-profile",
+      "formula": "279+49*D+45*B; D<=64 =>3415+45*B",
+      "allSevenUpper": 40960,
+      "components": {
+        "fixedAndErrorUpper": 279,
+        "parentBodyAndControls": 49,
+        "chunkBodyAndControls": 45,
+        "fixedParentDepthLimit": 64,
+        "depth65RefusalUpper": 3170
+      },
+      "note": "No per-hash bytearray and no internal bulk byte CPU fees. Exact seven identities24581790 bytes/379chunks.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        196,
+        212
+      ],
+      "lines": [
+        276,
+        292
+      ]
+    },
+    {
+      "name": "Replace-TaskBounded",
+      "path": "actual-ASCII-compiler-arguments",
+      "formula": "53*(L+T+R)+217+loopRow",
+      "loopRows": {
+        "tooShort": 18,
+        "noMatchBreak": 38,
+        "oneMatchShortTail": 66,
+        "oneMatchLongTail": 86
+      },
+      "calls": 84,
+      "actualNormalMatches": 5,
+      "actualLoopRecipe": {
+        "tooShort": 18,
+        "noMatch": 61,
+        "oneMatchShortTail": 1,
+        "oneMatchLongTail": 4,
+        "units": 3052
+      },
+      "sourceLengthExtents": {
+        "valueEach": 512,
+        "tokenLengths": [
+          6,
+          6,
+          7
+        ],
+        "baseMaximum": 491,
+        "repoMaximum": 512,
+        "rootMaximum": 464,
+        "buildMaximum": 470,
+        "wholeLengthSumUpper": 84784
+      },
+      "wholeHelperUpper": 4608324,
+      "note": "Six unchanged short compiler flags yield18 too-short calls. Exactly five pinned placeholders remain; replacements are actual admitted Windows path strings and cannot introduce angle-bracket tokens. All original arguments and replacements remain ASCII; Assert-TaskString ASCII row53*N+49.",
+      "guardBackedRevision": {
+        "reason": "Remove unsupported normalized-length<=raw-length inference.",
+        "sumValueTokenReplacementUnitsUpper": 86548,
+        "allHelperUpper": 4608324,
+        "basis": "84Value and84Replacement assertions each admit<=512UTF16 units; tokens28*(6+6+7)=532. Earlier84784tight proposal is withdrawn, not certified."
+      },
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        176,
+        184
+      ],
+      "lines": [
+        256,
+        265
+      ],
+      "historical_tight_candidate_withdrawn": 4514832
+    },
+    {
+      "name": "Visit-TaskJsonValue",
+      "path": "closed-trusted-graph-normal-branches",
+      "branches": {
+        "null": 86,
+        "string": "184+148*N",
+        "boolean": 115,
+        "integer": 455,
+        "map": "185+223*E+31*max(E-1,0)+212*sumKeyUnits+sum(childVisits)",
+        "array": "190+21*E+31*max(E-1,0)+sum(childVisits)",
+        "unsupported": 139
+      },
+      "mapEntryLocalBase": 223,
+      "mapFixedAfterDispatch": 185,
+      "arrayEntryLocalBase": 21,
+      "arrayFixedAfterDispatch": 190,
+      "notes": [
+        "All key node tests/counters are included; keys do not call Visit recursively and get no invented Spend1 node call.",
+        "String branch includes exact GetEscaped helper; integer branch uses proved309 digit helper upper, not an external decimal-byte fee.",
+        "Returned scalar destinations fuse with actual primitive parameter/local/field destinations. Own recursive callee parameters/entry/return counted once per value node."
+      ],
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        332,
+        365
+      ],
+      "lines": [
+        412,
+        445
+      ]
+    },
+    {
+      "name": "Convert-TaskControlOperand",
+      "paths": {
+        "builtinNonnegative": {
+          "groups": [
+            2,
+            21,
+            64,
+            2
+          ],
+          "units": 89
+        },
+        "BigIntegerInRange": {
+          "groups": [
+            2,
+            21,
+            27,
+            3
+          ],
+          "units": 53
+        },
+        "BigIntegerRangeRefusal": {
+          "units": 54
+        }
+      },
+      "normalizations": 84,
+      "note": "Only six operands in each of14 actual records; caller index/assignment separate. A true range test includes Sign and CompareTo with freshly constructed BigInteger(UInt64.MaxValue), then actual UInt64 cast. Normal builtin path preserves exact kind.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        269,
+        280
+      ],
+      "lines": [
+        349,
+        360
+      ]
+    },
+    {
+      "name": "Assert-TaskExactKeys",
+      "formula": "71+81*K+64*sumKeyUnits",
+      "groups": {
+        "entryAndParameters": 3,
+        "typeCallWithDestination": 19,
+        "threeKindTests": 12,
+        "countLengthTest": 14,
+        "setConstructor": 9,
+        "firstForeachFixed": 4,
+        "secondForeachFixed": 9,
+        "normalReturn": 1,
+        "firstForeachPerKey": 13,
+        "secondForeachPerKeyFixed": 68,
+        "secondForeachPerCodeUnit": 64
+      },
+      "note": "Actual reached fixed key families bounded by source call sites. No map index binder graph; K keys, actual key UTF16 lengths. Wrong-kind/count/set paths are bounded prefixes; map mutation outside closed call graph not assumed.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        281,
+        288
+      ],
+      "lines": [
+        361,
+        368
+      ]
+    },
+    {
+      "name": "Get-TaskSecondaryCodes",
+      "groups": {
+        "entryAndListCtor": 12,
+        "lengthForFramework": 167,
+        "elevenConditionalRows": 319,
+        "directToArrayCommaReturn": 7
+      },
+      "units": 505,
+      "note": "11 slots; non-null family upper, 3-field maps. ToArray result destination belongs to caller.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        298,
+        302
+      ],
+      "lines": [
+        378,
+        382
+      ]
+    },
+    {
+      "name": "Set-TaskRawExit",
+      "groups": {
+        "entryParametersReturn": 5,
+        "ObservedGate": 2,
+        "switchSelectorAndThreeLiteralTests": 9,
+        "selectedReceiptCellWrite": 5
+      },
+      "units": 21,
+      "note": "At most one selected output slot. Unknown-name default throws before write; no third-party Name ingress.",
+      "vector": {
+        "R": 8,
+        "W": 4,
+        "O": 4,
+        "B": 2,
+        "S": 1,
+        "E": 1,
+        "T": 1
+      },
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        161,
+        163
+      ],
+      "lines": [
+        241,
+        243
+      ]
+    },
+    {
+      "name": "Add-TaskChildCleanup",
+      "formula": "144+53*CodeUnits",
+      "groups": {
+        "entryParameters": 5,
+        "sourceMaximumSevenLiteralsSixAddsAndLocal": 14,
+        "countMaximumGate": 9,
+        "ASCIIStringFixedAndCaller": 53,
+        "listAdd": 7,
+        "rawPrimaryOrSecondaryUpper": 55,
+        "return": 1
+      },
+      "actualCodeUnitsUpper": 43,
+      "upper": 2423,
+      "maxCallsPerChild": 13,
+      "note": "Source fixed cleanup family: cancel1/reap1/settlement1/reads2/flushes2/positions2/owners4. Quarantine replaces owner group, never adds another four. Caller argument evaluation separate.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        153,
+        160
+      ],
+      "lines": [
+        233,
+        240
+      ]
+    },
+    {
+      "name": "Expect-TaskGate",
+      "formula": "93+25*K+ActualActionBody",
+      "groups": {
+        "entryParameters": 5,
+        "caughtInit": 2,
+        "actionDispatch": 2,
+        "actualThrowCatchProperty": 7,
+        "reasonAndGateTests": 25,
+        "witnessRead": 10,
+        "countTest": 14,
+        "foreachFixed": 9,
+        "returnMapAndReturn": 19
+      },
+      "perWitnessKey": 25,
+      "note": "All ten successful controls invoke a throwing actual helper; Out-Null after thrown action is not reached. An unexpected normal Action has its own bounded Out-Null/refusal prefix and cannot proceed to retained control. Scriptblock entry and own selected action instructions remain actual caller rows, not hidden or free.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        187,
+        193
+      ],
+      "lines": [
+        267,
+        273
+      ]
+    },
+    {
+      "name": "Assert-TaskReservation",
+      "paths": {
+        "normal": 20,
+        "gateRefusal": 63,
+        "unboundRefusal": 9
+      },
+      "note": "Caller two argument reads/dispatch and actual type conversions outside. Bound catalogue absent; prices are prospective source census only.",
+      "normalVector": {
+        "R": 8,
+        "W": 2,
+        "O": 6,
+        "B": 2,
+        "E": 1,
+        "T": 1
+      },
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        544,
+        544
+      ],
+      "lines": [
+        725,
+        725
+      ]
+    },
+    {
+      "name": "Assert-TaskRetainedReservation",
+      "paths": {
+        "normal": 16,
+        "gateRefusal": 59
+      },
+      "note": "Same unchanged880803840 byte cap; no new work or retained allowance.",
+      "normalVector": {
+        "R": 6,
+        "W": 2,
+        "O": 5,
+        "B": 1,
+        "E": 1,
+        "T": 1
+      },
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        545,
+        545
+      ],
+      "lines": [
+        726,
+        726
+      ]
+    },
+    {
+      "name": "Assert-TaskPredecessor",
+      "groups": {
+        "entryParameter": 2,
+        "runtimeTypeDestination": 19,
+        "mapKind": 8,
+        "arrayTypeTests": 48,
+        "hashASCIIValidationAndCaller": 3448,
+        "descriptorComparisons": 31,
+        "normalReturn": 1
+      },
+      "normal": 3557,
+      "withActualGateRefusal": 3619,
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        547,
+        552
+      ],
+      "lines": [
+        728,
+        733
+      ]
+    },
+    {
+      "name": "Get-TaskPredecessorDescriptor",
+      "groups": {
+        "entryParameter": 2,
+        "exactSixKeysAndCaller": 4988,
+        "pathStringAndCaller": 32824,
+        "hashASCIIAndCaller": 3448,
+        "fourIntegralLoopAndCallers": 300,
+        "exactDescriptorComparisons": 35,
+        "returnSixFieldMap": 38
+      },
+      "upper": 41635,
+      "keyUnits": 69,
+      "note": "Default cap512 is an admitted upper, not a claim the fixed path has512 units. Same six-field validated projection retained.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        553,
+        559
+      ],
+      "lines": [
+        734,
+        740
+      ]
+    },
+    {
+      "name": "Resolve-TaskInput",
+      "lines": [
+        741,
+        751
+      ],
+      "historical_R9_lines": [
+        560,
+        560
+      ],
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "own_formula": "64*NameUnits+135",
+      "excluded": "EntryPath body"
+    },
+    {
+      "name": "Join-TaskBoundedNames",
+      "formula": "66+87*K+64*sumNameUnits",
+      "groups": {
+        "entryParameters": 3,
+        "extentBeforeCopy": 13,
+        "lengthInit": 2,
+        "indexedCountLoopFixed": 13,
+        "upper512MulAndMathMax": 15,
+        "beforeAllocationTest": 10,
+        "directJoinCastAndReturn": 10
+      },
+      "perElement": {
+        "forFramework": 14,
+        "stringFixedCaller": 56,
+        "lengthAccumulate": 12,
+        "separatorConditional": 5
+      },
+      "maximumJoinedUnitsFormula": "512*K+max(K-1,0)",
+      "note": "List.Count property and actual List index access visible; Join internal CPU opaque, output UTF16 capacity fully retained. Cast IEnumerable does not copy referent cells.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        373,
+        380
+      ],
+      "lines": [
+        453,
+        460
+      ]
+    },
+    {
+      "name": "Measure-TaskJson",
+      "formula": "103+Ddefault+Visitor(Value)",
+      "groups": {
+        "entryParameters": 3,
+        "codecCallerAndHelper": 19,
+        "documentProfileGate": 12,
+        "stateThreeFieldMap": 11,
+        "VisitorCaller": 4,
+        "finalLFBoundAndCaller": 31,
+        "returnedFourFieldMeasurement": 23
+      },
+      "defaultLiteralUnits": 1,
+      "note": "Maximum omitted only at actual caller sites; all11 recursive passes remain separate. No codec preprocessing clone during measurement.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        366,
+        372
+      ],
+      "lines": [
+        446,
+        452
+      ]
+    },
+    {
+      "name": "Read-TaskBoundedBytes",
+      "groups": {
+        "entryParametersConversionUpper": 4,
+        "statAndLength": 12,
+        "preallocationGate": 12,
+        "ownerLocals": 6,
+        "unbufferedStreamConstructor": 25,
+        "openLengthGate": 9,
+        "exactByteArrayConstructor": 8,
+        "ReadExactly": 15,
+        "EOF": 10,
+        "directCommaReturn": 3,
+        "catchUpper": 9,
+        "closeAndCompleteUpper": 84
+      },
+      "upper": 197,
+      "note": "Argument/property result initialization fused once with actual read parameter. Unbuffered mode1; array extent admitted before allocation.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        481,
+        485
+      ],
+      "lines": [
+        659,
+        663
+      ]
+    },
+    {
+      "name": "Read-TaskJson",
+      "lines": [
+        664,
+        673
+      ],
+      "historical_R9_lines": [
+        486,
+        492
+      ],
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "own_pair": 688,
+      "formula": "2*311+24+19+17+6",
+      "excluded": "byte helper"
+    },
+    {
+      "name": "Encode-TaskJson",
+      "formula": "38*(ByteLength-1)+175",
+      "groups": {
+        "entryParameters": 4,
+        "codecCallerAndHelper": 19,
+        "measurementNullGate": 4,
+        "admittedLengthGate": 18,
+        "exactCmdletCallEnumConversionAndDestination": 14,
+        "actualRuntimeTypeAndLengthTest": 35,
+        "forLengthFixed": 13,
+        "UTF8CtorAppendLFAndGetBytes": 17,
+        "actualBytesTest": 21,
+        "visitCounterCallerAndHelper": 24,
+        "encodeCounter": 3,
+        "directCommaReturn": 3
+      },
+      "note": "All closed actual7 callers supply a measurement. No extra Measure pass or encoding iteration is invented. L=actual ASCII output units before LF. Named source params/enum coercion retained; codec internal scalar loop opaque.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        493,
+        506
+      ],
+      "lines": [
+        674,
+        687
+      ]
+    },
+    {
+      "name": "Assert-TaskDocumentWrite",
+      "formula": "64*PathUnits+91+StageBytes",
+      "groups": {
+        "entryParameters": 3,
+        "stringAndCallerFixed": 53,
+        "existsBranch": 8,
+        "oldLengthThenUpper": 12,
+        "lengthAndStageArithmeticGate": 14,
+        "normalReturn": 1
+      },
+      "note": "Length primitive result destination fused with actual source arithmetic; StageBytes helper result destination written once. Failed earlier path is prefix.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        510,
+        514
+      ],
+      "lines": [
+        691,
+        695
+      ]
+    },
+    {
+      "name": "Write-TaskJsonBytes",
+      "formula": "34+DocumentWrite(Path)",
+      "groups": {
+        "entryParametersConversionUpper": 5,
+        "encodedCapGate": 13,
+        "documentCaller": 7,
+        "WriteAllBytesAndReturn": 9
+      },
+      "note": "Existing CLR WriteAllBytes implementation CPU opaque, controlled stream/temporary capacity remains worksheet obligation.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        515,
+        518
+      ],
+      "lines": [
+        696,
+        699
+      ]
+    },
+    {
+      "name": "Write-TaskJson",
+      "formula": "59+Ddefaults+2*DocumentWrite(Path)+Encode(Value)+107*NeedsMeasurement",
+      "groups": {
+        "entryParameters": 5,
+        "measurementNullGate": 4,
+        "firstDocumentCaller": 6,
+        "encodeCallerAndDestination": 5,
+        "writeBytesCaller": 4,
+        "writeBytesOwnRows": 34,
+        "normalReturn": 1
+      },
+      "note": "Only failure inventory omits measurement (and Maximum); final bundle supplies both. Measure visitor price separate; both actual stage-pool checks retained.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        519,
+        524
+      ],
+      "lines": [
+        700,
+        705
+      ]
+    },
+    {
+      "name": "Save-TaskReceipt",
+      "formula": "684+2*DocumentWrite(Path)+Encode(Receipt)+Visitor(Receipt)",
+      "groups": {
+        "ownStatementsAndCallers": 179,
+        "secondaryProjection": 505
+      },
+      "note": "At most4 actual calls including failure footer; cap12 is reservation/guard not actual call multiplicity. Both before-encode/write pool checks remain; no null as physical-free.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        525,
+        533
+      ],
+      "lines": [
+        706,
+        714
+      ]
+    },
+    {
+      "name": "Get-TaskStageBytes",
+      "formula": "21+73*E+Entries(Stage,false,7)",
+      "maximumReturnedRows": 7,
+      "upperOwn": 532,
+      "note": "Six known names; at most7 admitted rows before unlisted refusal, eighth candidate refuses inside walker before append. Both normal/failure prefixes retained; not count-as-capacity.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        507,
+        509
+      ],
+      "lines": [
+        688,
+        690
+      ]
+    },
+    {
+      "name": "Get-TaskEntries",
+      "lines": [
+        461,
+        469
+      ],
+      "historical_R9_lines": [
+        381,
+        389
+      ],
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "own_formula": "old factored walker -4570*D -4*CanonicalCalls",
+      "excluded": "NoLink and Canonical bodies"
+    },
+    {
+      "name": "Invoke-TaskFencedChild",
+      "formula": "107+Ddefault+2*Pins+Child+b*(69+HashBinary+IdentityNormal)",
+      "actualCalls": 3,
+      "actualAfterBinaryBranches": 2,
+      "note": "Compiler's omitted null default readD1, two actual oracle expected-binary branches. Both actual finally fences and their errors are retained. Each helper result goes once into its real destination.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        164,
+        175
+      ],
+      "lines": [
+        244,
+        255
+      ]
+    },
+    {
+      "name": "Copy-TaskOwned",
+      "formula": "285+2*NoLinkBody+70*chunks",
+      "groups": {
+        "entryParametersAndConversions": 7,
+        "pathCapAndOwnedPrefix": 30,
+        "twoNoLinkCallsAndCallers": 4,
+        "localsAndBufferCtor": 17,
+        "twoDefaultBufferedStreamCtors": 38,
+        "sourceLengthGate": 9,
+        "whileTerminal": 5,
+        "EOF": 10,
+        "FlushTrue": 7,
+        "catch": 9,
+        "closeAndComplete": 148,
+        "normalReturn": 1,
+        "twoNoLinkCallsAndCallers_scope": "Caller argument/dispatch only; bodies globally composed"
+      },
+      "chunkBody70IncludesLoop": true,
+      "actualCalls": 2,
+      "actualChunkUpper": 514,
+      "combinedHelperUpper": 36550,
+      "note": "One98009-byte copy2chunks; binary cap33554432 gives512chunks. Per-call explicit65536 array and default stream capacities remain full lifetime worksheet.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "old9525": "WITHDRAWN arithmetic mismatch",
+      "historical_R9_lines": [
+        390,
+        394
+      ],
+      "lines": [
+        470,
+        474
+      ],
+      "flattened_own": "285+70*chunks; twoNoLink separately composed",
+      "combinedHelperUpper_scope": "Two own rows excluding NoLink bodies",
+      "historical_R9_whole_fixed": 9425,
+      "ownFixedCorrected": 285
+    },
+    {
+      "name": "Mutate-TaskOwnedBytes",
+      "groups": {
+        "entryParametersConversion": 5,
+        "ownedPathAndReplacementGate": 34,
+        "localsAndBeforeArray": 17,
+        "ReadWriteDefaultStream": 19,
+        "coordinateGate": 20,
+        "twoPositions": 14,
+        "ReadExactly": 15,
+        "Write": 15,
+        "Flush": 7,
+        "catch": 9,
+        "finally": 84,
+        "returnedFourFields": 24
+      },
+      "upper": 263,
+      "actualCalls": 2,
+      "note": "Replacement1 and2 bytes only. Hex return strings2/4 chars; prior byte arrays equally1/2. Owned before/body/secondary preserved.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        395,
+        399
+      ],
+      "lines": [
+        475,
+        479
+      ]
+    },
+    {
+      "name": "Get-TaskPEHeader",
+      "groups": {
+        "entryParameter": 2,
+        "GetItem": 7,
+        "sizeGate": 18,
+        "locals": 6,
+        "FileOpen": 19,
+        "DOSArray": 7,
+        "ReadDOS": 15,
+        "Offset": 9,
+        "DOSGate": 25,
+        "Position": 7,
+        "HeaderArray": 7,
+        "ReadHeader": 15,
+        "OptionalSize": 9,
+        "OptionalGate": 21,
+        "OptionalArray": 7,
+        "ReadOptional": 15,
+        "returnedSevenFields": 51,
+        "catch": 9,
+        "finally": 84
+      },
+      "upper": 333,
+      "actualCalls": 4,
+      "note": "Explicit64+24+optional<=4096 payload;4calls. Four ordinary/GUI ConsolePE includes separate actual expected rejection count3+1, not5.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        589,
+        593
+      ],
+      "lines": [
+        780,
+        784
+      ]
+    },
+    {
+      "name": "Get-TaskBuildArtifacts",
+      "formula": "47+98*E+Entries(Build,false,4)+FileSet+sumHashFiles",
+      "normalFiles": 3,
+      "actualCalls": 2,
+      "note": "Guard max4 permits a prefix row set but exact known admitted file recipe3. Hashes6 in normal schedule; overall67MiB admitted pool does not multiply per-file bytes.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        644,
+        648
+      ],
+      "lines": [
+        835,
+        839
+      ]
+    },
+    {
+      "name": "Get-TaskReferences",
+      "formula": "54+39*E+98*F+Entries(Data,true,60)+E*NoLink+sumHashFiles+FileSet",
+      "normalFiles": 56,
+      "entryBound": 60,
+      "actualCalls": 2,
+      "note": "Directories run through Spend/NoLink/container continue; only files acquire name/hash/5-field descriptor. Source cap152627224 applies complete pool; no bytecap relabelled as actual chunks.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        583,
+        587
+      ],
+      "lines": [
+        774,
+        778
+      ]
+    },
+    {
+      "name": "Assert-TaskSameReferences",
+      "formula": "30+51*F",
+      "normalFiles": 56,
+      "upperNormal": 2886,
+      "actualCalls": 1,
+      "note": "Includes56 normal Identity helper calls. One actual outside-control mismatch changes a prefix to IdentityRefusal; no new array or file set helper.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        588,
+        588
+      ],
+      "lines": [
+        779,
+        779
+      ]
+    },
+    {
+      "name": "Assert-TaskDependencies",
+      "lines": [
+        840,
+        856
+      ],
+      "historical_R9_lines": [
+        649,
+        662
+      ],
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "own_formula": "384+64*SourceUnits+sum(69+64*IncludeUnits)",
+      "excluded": "ReadJson/Resolve/ReportCanonical bodies",
+      "historical421": "Not borrowed: old unchanged fixed groups re-expand321; R10prefix/parameter adds63. R9upper/history preserved."
+    },
+    {
+      "name": "Read-TaskChildResult",
+      "formula": "21557+38*TextUnits+12630*Controls+8*ControlRawCallers+15*SummaryRawCallers+FileSet+RawBodies",
+      "groups": {
+        "fixedAndSummaryWithFixed12FieldKeys": 21557,
+        "scanPerUTF16Unit": 38,
+        "perAdmittedThreeFieldControl": 12630
+      },
+      "actualCalls": 2,
+      "actualControls": 14,
+      "actualOperandNormalizations": 84,
+      "bothHelperOwnUpper": 5200812,
+      "note": "Each raw segment<=65536bytes; UTF16 units<=65536. Scan includes terminalI==Length, every blank line,<=33 nonempty Substrings. Controls are unique expected3/11; at most one additional bad-ID parsed prefix before refusal, never an extra admitted operand normalization. Per-control includes six89-unit helper upper +actual indexed assignments. Exact-key/summary methods and both raw/error/close paths expanded; FileSet separate to avoid double count.",
+      "source_identity": "Changed R9 body recensused",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        595,
+        643
+      ],
+      "lines": [
+        786,
+        834
+      ]
+    },
+    {
+      "name": "Assert-TaskPins",
+      "formula": "87+50*NS+38*(entries+NS)+63*4+44*I+NS*(4+I), plus separately composed resolver/walker/no-link/FileSet/hash families",
+      "normalNamespaces": 31,
+      "actualCallsUpper": 8,
+      "note": "Own4 plus1220inputs plusmanifest1; all8fences/current31namespace profiles re-derived. Resolver/walker/NoLink/FileSet/hash bodies composed separately.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "actualRows": 1092,
+      "actualFiles": 1045,
+      "guardRowsUpper": 1123,
+      "historical_R9_lines": [
+        561,
+        573
+      ],
+      "lines": [
+        752,
+        764
+      ]
+    },
+    {
+      "name": "Assert-TaskFileSet",
+      "normalFormula": "100+83*N+78*M+64*(ExpectedUnits+ObservedUnits)",
+      "refusalFormula": "169+90*N+87*M+64*(ExpectedUnits+ObservedUnits)+JoinMissing+JoinUnknown",
+      "actualNormalScheduleCallSlots": 259,
+      "normalExpectedElementsUpper": 8783,
+      "normalObservedElementsUpper": 8784,
+      "note": "Control observed55/57/57 vs expected56 each; other admitted sets exact. Generic outside-control FileSet failures<=2 (before-fence failure plus required finally fence); normal source envelope plus their actual refusal-path surplus may dominate prefix but must never be labelled extra helper calls. Fixed keyset constructors,3 foreach loops, direct source Contains/Add and nonempty bounded joins retained.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "twoGenericReplacementSurplus": 161029102,
+      "historical_R9_lines": [
+        574,
+        582
+      ],
+      "lines": [
+        765,
+        773
+      ]
+    },
+    {
+      "name": "Save-TaskFailureInventory",
+      "formula": "193+64*FileRows+Entries(Root,true,78,Destination)+WriteJson(Failure,NeedsMeasurement1)",
+      "ownUpperFor78": 5185,
+      "groups": {
+        "entryLocals": 15,
+        "exists": 8,
+        "walkerCaller": 13,
+        "catchAndSecondary": 52,
+        "foreachFixed": 4,
+        "receiptTwoCells": 10,
+        "outputJoinCaller": 8,
+        "outerSevenFieldGraph": 81,
+        "WriteJsonDispatch": 1,
+        "normalReturn": 1
+      },
+      "fileRowsUpper": 78,
+      "perFileOwn": 64,
+      "note": "True Directory rows continue before descriptor; at most78files in rawprefix,79th candidate before append. Iterator partial destination persists after failure. NeedsMeasurement1 causes exactly one failure recursive pass and once-encode, never69-as-failurebound.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        663,
+        669
+      ],
+      "lines": [
+        857,
+        863
+      ]
+    },
+    {
+      "name": "Initialize-TaskController",
+      "formula": "2136+53*sum14ArgUnits+7BootstrapHash",
+      "ownUpper": 2136,
+      "groups": {
+        "registrationAndSevenHookLoop": 123,
+        "runtimeLiteral": 2,
+        "sevenThreeFieldPinArrays": 58,
+        "pinForeachFixed": 4,
+        "pinForeachBodyAndCallers": 203,
+        "selfAndOwnerLocals": 9,
+        "selfNativeIdentityGate": 29,
+        "catch": 9,
+        "ownerFinally": 84,
+        "commandLineArgsBoundary": 5,
+        "expected14Array": 37,
+        "argCountGate": 14,
+        "argForFramework": 209,
+        "argPerBodyFixed": 1120,
+        "appFullPath": 10,
+        "apphostDllAlternativeIdentity": 42,
+        "autoloadWrite": 2,
+        "authenticImports": 30,
+        "actualGetCommands": 24,
+        "implementingTypeGate": 18,
+        "twoCodecAssemblyChecks": 84,
+        "codecBinding": 19,
+        "normalReturn": 1
+      },
+      "argumentGuardUpper": 379904,
+      "bootstrapHashUpper": 40960,
+      "totalUpper": 423000,
+      "note": "Fresh actual14 arguments; all inputcodeunits bounded before String assertion.7fixed hashes24581790bytes/379read bodies. Two authentic Import-Module plus two Get-Command opaque boundaries retain visible params/returns; no preauth module call.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        213,
+        248
+      ],
+      "lines": [
+        293,
+        328
+      ]
+    },
+    {
+      "name": "Invoke-TaskChild",
+      "formula": "1044811+74*ArgumentCount+53*(sumArgumentUnits+sumEightEnvironmentValueUnits)+257*StageBytes",
+      "actualChildSlots": 3,
+      "actualArgs": [
+        28,
+        6,
+        6
+      ],
+      "ownFixedGroups": {
+        "entry": 4,
+        "nameProfile": 10,
+        "childIndex": 10,
+        "argumentExtent": 14,
+        "argumentValidationForeachFixed": 4,
+        "SpendAndQuarantine": 44,
+        "locals": 81,
+        "cancelCtor": 5,
+        "twoLogStreamCtors": 64,
+        "twoPositions": 12,
+        "processInfoAndSixPropertyWrites": 47,
+        "exactEightEnvironmentKeys": 3493,
+        "environmentClear": 9,
+        "environmentForeachFixed": 12,
+        "eightEnvironmentPerEntryFixed": 696,
+        "argumentAddForeachFixed": 4,
+        "startAndWatch": 14,
+        "initialTwoAsyncReads": 74,
+        "pollOuterUpper": 1007971,
+        "normalExitRecord": 8,
+        "bodyCatchUpper": 13,
+        "cleanupAndFooterUpper": 32222
+      },
+      "argumentForeachPerEntryFixed": 74,
+      "poll": {
+        "normalBodyMaximum": 7200,
+        "whileGatePrefixMaximum": 7201,
+        "basePerNormalPoll": 135,
+        "terminalAndGateRefusal": 78,
+        "completedDirectionsUpper": 260,
+        "completedBodyPer": 48,
+        "positiveAdmittedBeforeStageUpper": 257,
+        "positiveBodyOwnPer": 91,
+        "oneRawCapOverflowOwn": 14,
+        "zeroEOFUpper": 2,
+        "zeroAssignOwnPer": 6,
+        "ownTotal": 1007971
+      },
+      "cleanup": {
+        "cancel": 2440,
+        "reap": 2462,
+        "readArraySetup": 25,
+        "WaitAll": 2449,
+        "twoReadSettlement": 4954,
+        "twoFlush": 4898,
+        "twoPosition": 4886,
+        "settledOwnerCondition": 7,
+        "settledOwnerOrQuarantine": 9820,
+        "cleanupFailureFlag": 15,
+        "child24FieldMap": 95,
+        "childrenAppend": 10,
+        "rawExitSwitch": 16,
+        "footerCatchQuarantineRawExit": 120,
+        "postBodyPrimaryFooter": 10,
+        "postCleanupAndActualRawExit": 13,
+        "normalReturn": 2,
+        "helperCallsUpper": 13
+      },
+      "note": "Source/primary Stream.ReadAtLeastAsync guarantees4096 except EOF; real child anonymous pipes have terminal EOF. Max raw cap1MiB permits<=257 positive admission/StageBytes calls (including stage-before-write refusal), <=1 later raw-cap rejection, <=2 zeroEOF. Bound260 completed bodies uses these disjoint families, independent of elapsed time. Two EOF partials cannot both coexist with256full writes;257 is floor((1048576-2)/4096)+2. Source loops remain <=7200; all14400 direction-condition passes counted. This is an upper envelope, not measured reads/sleep/completion counts. All13 scheduled cleanup calls retained, quarantine replaces4 settledowner disposals. CLR task/process/pipe internals remain opaque CPU and generic heap, explicit arrays/streams stay worksheet.",
+      "source_identity": "Byte-identical R7-R9 body",
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "historical_R9_lines": [
+        78,
+        152
+      ],
+      "lines": [
+        158,
+        232
+      ]
+    },
+    {
+      "name": "Assert-TaskRawJson",
+      "formula": "512*L+106",
+      "details": "UNCHANGED512L+106 string helper; current16calls/sumL131072; byte helper separate",
+      "registration": "included in62; caller actions separate",
+      "historical_R9_lines": [
+        400,
+        476
+      ],
+      "lines": [
+        480,
+        556
+      ],
+      "price_status": "R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW"
+    },
+    {
+      "name": "Test-TaskPathCatalogueContext",
+      "lines": [
+        63,
+        65
+      ],
+      "upper": 26,
+      "price_status": "NEW_R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "source_groups": "new_family_groups/byte_lexical_derivation"
+    },
+    {
+      "name": "Add-TaskPathCatalogueEntry",
+      "lines": [
+        66,
+        80
+      ],
+      "upper": "62/118",
+      "price_status": "NEW_R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "source_groups": "new_family_groups/byte_lexical_derivation"
+    },
+    {
+      "name": "Initialize-TaskPathCatalogue",
+      "lines": [
+        81,
+        95
+      ],
+      "upper": 99285,
+      "price_status": "NEW_R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "source_groups": "new_family_groups/byte_lexical_derivation"
+    },
+    {
+      "name": "Get-TaskCatalogueString",
+      "lines": [
+        96,
+        101
+      ],
+      "upper": "21/41",
+      "price_status": "NEW_R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "source_groups": "new_family_groups/byte_lexical_derivation"
+    },
+    {
+      "name": "Get-TaskCatalogueEntryPath",
+      "lines": [
+        102,
+        132
+      ],
+      "upper": "14/71/9529",
+      "price_status": "NEW_R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "source_groups": "new_family_groups/byte_lexical_derivation"
+    },
+    {
+      "name": "Get-TaskCanonicalPath",
+      "lines": [
+        133,
+        140
+      ],
+      "upper": "76+Entry",
+      "price_status": "NEW_R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "source_groups": "new_family_groups/byte_lexical_derivation"
+    },
+    {
+      "name": "Assert-TaskRawJsonBytes",
+      "lines": [
+        557,
+        658
+      ],
+      "upper": "587*L+138",
+      "price_status": "NEW_R10_PROPOSAL_REQUIRES_FRESH_NUMERIC_REVIEW",
+      "source_groups": "new_family_groups/byte_lexical_derivation"
+    }
+  ],
+  "helper_coverage": {
+    "unique_names": 68,
+    "rows": 78,
+    "missing": [],
+    "removed_wrapper": "Assert-TaskDependencyJsonShape;formula nowatbytecaller;no zero-pricedhelper"
+  },
+  "byte_lexical_derivation": {
+    "formula": "587*L+138",
+    "original_grammar_per_input": 536,
+    "grammar_components": {
+      "outer": 234,
+      "string": 134,
+      "hex": 61,
+      "digits": 38,
+      "magnitude": 32,
+      "literal": 37
+    },
+    "string_extra": "Original111+unitCount init2+UTF8branch/test max20+incrementdelta1=134;allrawskipops counted.",
+    "literal_extra": "Original36+explicit char-to-int cast1 at bytecompare=37.",
+    "fixed_common": {
+      "entry_params": 5,
+      "profile_guard": 20,
+      "stack_ctor": 10,
+      "locals": 6,
+      "outer_terminal": 10,
+      "final_grammar": 11,
+      "byte_cap": 9,
+      "GetCharCount": 23
+    },
+    "failure_exit_upper": 44,
+    "compaction_per_input": 51,
+    "compaction": {
+      "forLength": 14,
+      "read_local": 5,
+      "quoted_branch": 2,
+      "whitespace_test": 16,
+      "copy": 5,
+      "write_increment": 3,
+      "quote_test": 4,
+      "quoted_assignment": 2
+    },
+    "compaction_fixed": 21,
+    "proof": "94+536L+max(failure44,normal51L+21)<=587L+138. No normalreturn fabricated onthrow;no unreadbyte overwritten.",
+    "byte_calls": 6,
+    "byte_units": 4789990,
+    "byte_work": 2811724958,
+    "string_formula": "UNCHANGED512L+106;16calls/sumL131072=>67110560. BadID replaces unreachable summaryslice/call."
+  },
+  "path_schedule_proof": {
+    "equations": {
+      "hash": "8*1225+136=9936",
+      "chunks": "8*7862+10536=73432",
+      "resolve": "10*1220+8*31+1221+4=13673",
+      "outsideNoLink": "8*31+120+78+1=447",
+      "walkers": "784+8*31+2+2+2+1=1039",
+      "D": "784+8*720+2*79+2*61+2+1=6827",
+      "E": "784*7+8*1123+2*78+2*60+2*4+1=14757",
+      "walkerCanonical": "2*1039+14757=16835",
+      "allNoLink": "9936+447+6827+4=17214",
+      "allCanonical": "17214+16835+1=34050",
+      "EntryPath": "atmost34050+13673=47723",
+      "firstBuild": "1294completed+3failed=1297"
+    },
+    "first_failure_explanation": "Beforecreatedfailure has nofooter. By firstsuccessfulsourcefence,all1220inputs+own5materialized. Childfinallyfences revisit onlythosecompletedentries. Aftercreated, atmostone mainbody buildfailure,oneinventory buildfailure,onefailurereceipt buildfailure propagate; failurehelpers do not retry afterthrow. Cheaptilde/unpublished normalization mayrepeat, so everyEntrycall pays71. Whole71*47723+(9529-71)*1297=15655359 is upper,not measuredactualcalls.",
+    "flattening": "Hashown295+65B,NoLinkown7254 excludesCanonical;walkers subtract4570D and oldcanonical7=>newcaller3 perroot/appended/overflow;Canonicalown76 excludesEntry;Copyown285+70B excludes2NoLink. Context26 folded intail/Canonical/Resolve;StringPool41/21 folded inEntry;AddEntry62/118 folded inInit. No doublebodycount.",
+    "namespace_guard": "sum(entrycount+1)=1123;sum(entrycount+2 ifrecursive else1)=720"
+  },
+  "main_and_bootstrap": {
+    "historical_R7_rows": [
+      {
+        "lines": "599",
+        "units": 19
+      },
+      {
+        "lines": "600",
+        "units": 1
+      },
+      {
+        "lines": "601",
+        "units": 52
+      },
+      {
+        "lines": "604",
+        "units": 25
+      },
+      {
+        "lines": "605",
+        "units": 68
+      },
+      {
+        "lines": "606",
+        "units": 36
+      },
+      {
+        "lines": "607",
+        "units": 18
+      },
+      {
+        "lines": "608",
+        "units": 8
+      },
+      {
+        "lines": "609",
+        "units": 5
+      },
+      {
+        "lines": "610",
+        "units": 42
+      },
+      {
+        "lines": "611",
+        "units": 23
+      },
+      {
+        "lines": "614",
+        "units": 35
+      },
+      {
+        "lines": "615",
+        "units": 6
+      },
+      {
+        "lines": "616",
+        "units": 44514
+      },
+      {
+        "lines": "617",
+        "units": 15
+      },
+      {
+        "lines": "618",
+        "units": 25780
+      },
+      {
+        "lines": "619",
+        "units": 94
+      },
+      {
+        "lines": "620",
+        "units": 15
+      },
+      {
+        "lines": "621",
+        "units": 76
+      },
+      {
+        "lines": "622",
+        "units": 83
+      },
+      {
+        "lines": "623",
+        "units": 56
+      },
+      {
+        "lines": "624",
+        "units": 4
+      },
+      {
+        "lines": "625",
+        "units": 11
+      },
+      {
+        "lines": "626",
+        "units": 32
+      },
+      {
+        "lines": "627",
+        "units": 10
+      },
+      {
+        "lines": "628",
+        "units": 1192
+      },
+      {
+        "lines": "629",
+        "units": 79
+      },
+      {
+        "lines": "630",
+        "units": 11
+      },
+      {
+        "lines": "631",
+        "units": 121
+      },
+      {
+        "lines": "632",
+        "units": 29
+      },
+      {
+        "lines": "633",
+        "units": 14
+      },
+      {
+        "lines": "634",
+        "units": 6
+      },
+      {
+        "lines": "635",
+        "units": 119
+      },
+      {
+        "lines": "636",
+        "units": 10
+      },
+      {
+        "lines": "637",
+        "units": 4
+      },
+      {
+        "lines": "638",
+        "units": 252
+      },
+      {
+        "lines": "639",
+        "units": 259
+      },
+      {
+        "lines": "640",
+        "units": 255
+      },
+      {
+        "lines": "641",
+        "units": 218
+      },
+      {
+        "lines": "642",
+        "units": 24
+      },
+      {
+        "lines": "643",
+        "units": 19
+      },
+      {
+        "lines": "644",
+        "units": 6
+      },
+      {
+        "lines": "645",
+        "units": 106
+      },
+      {
+        "lines": "646",
+        "units": 15
+      },
+      {
+        "lines": "647",
+        "units": 383
+      },
+      {
+        "lines": "648",
+        "units": 25
+      },
+      {
+        "lines": "649",
+        "units": 12
+      },
+      {
+        "lines": "650",
+        "units": 15
+      },
+      {
+        "lines": "651",
+        "units": 7
+      },
+      {
+        "lines": "652",
+        "units": 878
+      },
+      {
+        "lines": "653",
+        "units": 17
+      },
+      {
+        "lines": "654",
+        "units": 14
+      },
+      {
+        "lines": "655",
+        "units": 18
+      },
+      {
+        "lines": "656",
+        "units": 40
+      },
+      {
+        "lines": "657",
+        "units": 23
+      },
+      {
+        "lines": "658",
+        "units": 375
+      },
+      {
+        "lines": "659",
+        "units": 4
+      },
+      {
+        "lines": "660",
+        "units": 21
+      },
+      {
+        "lines": "661",
+        "units": 36
+      },
+      {
+        "lines": "662",
+        "units": 15
+      },
+      {
+        "lines": "663",
+        "units": 656
+      },
+      {
+        "lines": "664",
+        "units": 264
+      },
+      {
+        "lines": "665",
+        "units": 276
+      },
+      {
+        "lines": "666",
+        "units": 11
+      },
+      {
+        "lines": "667",
+        "units": 4
+      },
+      {
+        "lines": "668",
+        "units": 21
+      },
+      {
+        "lines": "669",
+        "units": 44
+      },
+      {
+        "lines": "670",
+        "units": 7
+      },
+      {
+        "lines": "671",
+        "units": 124
+      },
+      {
+        "lines": "672",
+        "units": 284
+      },
+      {
+        "lines": "673",
+        "units": 984
+      },
+      {
+        "lines": "674",
+        "units": 3686
+      },
+      {
+        "lines": "675",
+        "units": 11
+      },
+      {
+        "lines": "676",
+        "units": 30
+      },
+      {
+        "lines": "677",
+        "units": 783
+      },
+      {
+        "lines": "678",
+        "units": 184
+      },
+      {
+        "lines": "679",
+        "units": 886
+      },
+      {
+        "lines": "680",
+        "units": 40021
+      },
+      {
+        "lines": "681",
+        "units": 74
+      },
+      {
+        "lines": "682",
+        "units": 4
+      },
+      {
+        "lines": "683-687",
+        "units": 268
+      },
+      {
+        "lines": "688",
+        "units": 5
+      },
+      {
+        "lines": "689",
+        "units": 6
+      },
+      {
+        "lines": "690",
+        "units": 12
+      },
+      {
+        "lines": "691",
+        "units": 21
+      },
+      {
+        "lines": "692-700",
+        "units": 136
+      },
+      {
+        "lines": "first reached direct refusal",
+        "units": 2
+      },
+      {
+        "lines": "script normal exit",
+        "units": 1
+      }
+    ],
+    "historical_R7_sum": 124455,
+    "R9_main": 126055,
+    "R10_delta": {
+      "input_index": 1292,
+      "include_copy": 748,
+      "transitive": 1156,
+      "bootstrap": 5,
+      "Init_dispatch": 1,
+      "Build_argread": 1,
+      "byte_controls3": 42
+    },
+    "main_current": 129300,
+    "bootstrap_old": 48028,
+    "new_catalogue_null": 2,
+    "net_registrations": 6,
+    "bootstrap_current": 48036,
+    "byte_control_caller": "Ctorreceiver9+GetBytes literal/param/boundary excludingfusedByteparam5=14; replacesoldliteralread1,addsnullresultwrite1=>+14percall.20/20/21bytearrays retained.",
+    "historical_R9_definition_rows": [
+      {
+        "lines": "2-7",
+        "units": 44,
+        "basis": "four native parameter writes/type admissions; four Mandatory attribute source constructions plus one ValidateSet literal construction; no binder-internal graph"
+      },
+      {
+        "lines": "8-17",
+        "units": 36,
+        "basis": "Stop write2, eight flag writes16, six not/read plus five or and selected guard18"
+      },
+      {
+        "lines": "20-24",
+        "units": 46230,
+        "basis": "three-value array/foreach18; each raw path guard22, indexed UTF16 ASCII loop30*512+13, IsPathFullyQualified9"
+      },
+      {
+        "lines": "25-26",
+        "units": 1041,
+        "basis": "hash length9 and64 reached indexed regex checks1032"
+      },
+      {
+        "lines": "27-29",
+        "units": 183,
+        "basis": "seven suffix literal array16, suffix foreach/derived guards151, script suffix guard16"
+      },
+      {
+        "lines": "30-33",
+        "units": 82,
+        "basis": "three GetFullPath21, manifestJoin/Upper15, four root joins36, own-name literal array10"
+      },
+      {
+        "lines": "34-49",
+        "units": 81,
+        "basis": "fixed source locals12+hashCtor7+poll2+JSON2+visit expression18+state locals10+max/null6+reflection12+codecNull6+counter6"
+      },
+      {
+        "lines": "50-54",
+        "units": 154,
+        "basis": "eleven literal secondary sites24, two exact arrays11+11, raw null2, actual30-field ordered receipt106"
+      },
+      {
+        "lines": "57-59",
+        "units": 115,
+        "basis": "signed threshold18element array39, unsigned19element array and Parse50, summary12array26"
+      },
+      {
+        "lines": "60-669",
+        "units": 62,
+        "basis": "62 actual source registrations"
+      }
+    ]
+  },
+  "corrections": {
+    "Dependency_fixed": "Old421re-expanded321;newprefix/Buildparam adds63=>384. No old unexplained100 borrowed;historicalR9upper/source untouched.",
+    "clone": "Accepted narrowerratum362receipt/1448four;R10bundle9074=>all7=11082.",
+    "history": "ReadJson403=>303,Copy9525=>9425,controller2137=>2136 preserved. OldfullR4fitUNKNOWN;no falseNOFIT."
+  },
+  "controlled_payload": {
+    "status": "R10_COMPLETE_FAMILY_CONDITIONAL_WORKSHEET_GLOBAL_JOIN_HOLD",
+    "scratch_cap_unchanged": 33554432,
+    "claim": "No global payload upper or fit certificate. Every controlled family is enumerated below; unclosed terms remain named obligations, never assigned zero. A loose no-reclamation upper above cap is not an actual coexisting violation.",
+    "representation": {
+      "Str(n)": "2*(n+1) UTF16 storage bytes including terminator; excludes general object headers",
+      "A_T(c)": "c*element_storage_T, with selected ABI cell/struct stride required",
+      "no_reclamation": "Keep all prior requested payload until explicit successful physical release or independent real reclaim proof; null/Dispose/Clear/scope are not such proof. Reference aliases do not clone referents.",
+      "ABI_hold": "Separate bounded C# publicallocation/EnsureCapacity probe may qualify selected refs/array/string alignment/dictionary/Hashtable/OrderedDictionary coefficients. GC.GetAllocatedBytesForCurrentThread deltas are request/profile evidence only, never live/reclaim/RSS. Object-header inclusion remains explicit qualified representation, not silently zero."
+    },
+    "known_normal_input_byte_requests": {
+      "bootstrap": 497616,
+      "predecessor": 98009,
+      "dependency": 4194304,
+      "two_child_captures": 131072
+    },
+    "known_document_byte_upper_requests": {
+      "marker": 319,
+      "four_receipts": 94540,
+      "bundle": 1048576,
+      "failure": 262760
+    },
+    "known_fixed_array_requests": {
+      "hash_owner": 65536,
+      "six_child_arrays": 24576,
+      "two_copy_arrays": 131072,
+      "two_mutation_before_arrays": 3,
+      "two_mutation_replacement_arrays": 3,
+      "four_PE_arrays": 16736,
+      "raw_grammar_stack_arrays": 87,
+      "three_literal_byte_controls": 61
+    },
+    "configured_stream_buffer_upper_requests": {
+      "six_child_log_stream_buffers": 24576,
+      "four_copy_stream_buffers": 16384,
+      "two_mutation_stream_buffers": 8192,
+      "four_PE_stream_buffers": 16384,
+      "two_child_result_stream_buffers": 8192,
+      "first_predecessor_byte_stream": 4096,
+      "marker_stream": 4096
+    },
+    "known_requested_byte_subtotal": 6647190,
+    "subtotal_scope": "Cumulative upper requests for normal rawcaptures,7encodes,explicit arrays/streambuffers plus61bytecontrolarrays. Before unknown conversion/path/error/ABI terms. A failed capturedidentity prefix can use1MiB but never reachesdecoder/SDK and is a separate phase.",
+    "raw_stack_derivation": "bootstrap5+predecessor4+dependency25+14*3+2*2+3*2=86 bytes; one bad-ID prefix can add a3-byte control stack replacing a2-byte summary, so any-prefix bound87 bytes.",
+    "decoded_text": {
+      "normal_units_sum": 4921001,
+      "corrected_string_count": 5,
+      "normal_storage_bytes": 9842012,
+      "reference_owners": "StringReader retains each full input reference; no additional full source string clone for constructor. Assignment of original byte[] to null does not free it.",
+      "child_line_substrings": "2 captures; at most33 nonempty slices each. Total slice units<=131072, <=66 fresh string terminators; at most262276 bytes; whole-input Substring may alias and lowers actual requests.",
+      "early_refusal": "Bootstrap identity failures use<=1MiB raw capture, no decode. Predecessor captured hash failure uses<=1MiB raw capture, no decoder/SDK; succeeds only at98009 bytes. Use separate path maximum, not an extra successful read.",
+      "normal_storage_equation": "2*(497616+98009+4194304+2*65536)+2*5=9842012; compaction may lower actual, not allocation-free."
+    },
+    "json_reader": {
+      "sources": "Pinned local JsonTextReader lines281-362,365-405,2366-2412; PS JsonObject exact SDK path; BufferUtils null pool association must be carried.",
+      "input_lengths": "R10bootstrap497616,pred98009,dep4194304 originalbytecaps;compactprefix lengths<=those. Childslice total131072 over16SDKcalls.3byteboundarycontrols do not reachSDK.",
+      "capacity_recurrence": "Initial1024. append replacement max(2*C,used+required+1). nonappend replacement remaining+required+1 if remaining+required+1>=C. Strict admitted grammar has maximum EnsureChars relativePosition4, hence required<=5 at reached source sites. used<=L.",
+      "finite_loose_upper": "Historical loose request bound is superseded as the current candidate by R10_candidate_source_bound, still pending independent numeric review. No universalcapacity certified.",
+      "string_and_token_buffers": "Decoded quoted strings<=512UTF16, raw escape span<=3074 units; integer tokens<=20. StringBuffer/escaped-copy capacities and JsonPosition/list arrays must be joined per actual read schedule, not discarded when a token/reader exits.",
+      "null_pool": "No ArrayPool assigned on the pinned parser construction path; when association confirmed, Rent is exact new char[minimum], ReturnBuffer(null,buffer) provides no physical release.",
+      "global_join": "UNQUALIFIED: no complete tight no-reclamation reader/StringBuffer/JToken/conversion graph join sealed.",
+      "R10_candidate_source_bound": {
+        "status": "DERIVED_SOURCE_UPPER_NEEDS_FRESH_REVIEW_NOT_FIT",
+        "growth": "Initial1024. Strict EnsureChars relative<=4; nonappend remaining+required+1<=6, so no nonappend replacement. Direct nonappend reads are at consumed boundary. Append max(2C,used+required+1)=2C for C>=1024/required<=5; old arrays remain charged.",
+        "uncompacted": "C<=nextPow2(max(1024,L+6)); retained array bytes<4*C. Child sumL<=131072 over16parses gives8*(131072+16*1030)=1180416bytes.",
+        "compacted": "String/property/number starts shift in last10percent. String wire span<=6S+2, totalnonstring run<=7N. U=6S+2+7N+6. C>=16U ensures remaining after nonshift>C/16>=U since0.1>=1/16; no append growth before another shift. C<=min(nextPow2(max(1024,L+6)),nextPow2(max(1024,16U))). This is not an arbitrary32768 cap.",
+        "large_capacity_upper": [
+          524288,
+          131072,
+          524288
+        ],
+        "large_requested_bytes": 4712448,
+        "children_requested_bytes": 1180416,
+        "all_reader_requested_bytes": 5892864,
+        "StringBuffer": "ReadStringIntoBuffer resetsPosition. EnsureBuffer initializes1024; each decodedstring<=512 so no growth.19arrays*2048=38912bytes; no return/null physicalfree."
+      }
+    },
+    "reader_witnesses": {
+      "historical_R9": "Small32771false-whitespace witness forcedchar65536 and4MiB13false candidate gave21037056. LargeR10bytecompaction removes that whitespacepacing; do not transfer either as R10lower.",
+      "R10_inside_escape": "Compaction removes R9 whitespace pacing for large inputs, but4MiB inside-string mixed escape/ASCII can retain near8MiB wire text and many512-unit parsed strings. Child slices keep original bounded string admission. No fixed32768 cap or small decoded-string theorem."
+    },
+    "serialization": {
+      "actual_measurements": 11,
+      "actual_encodes": 7,
+      "preflight": "No clone from Measure; all eleven source visitor passes retained in scalar proposal. Five bundle fixed-point passes do not mean five encodes.",
+      "ProcessDictionary": "Each map creates Dictionary(dict.Count); original builtin strings borrowed, nested map/list containers cloned. All clone arrays/backings retained cumulatively.",
+      "map_clone_capacity_cells": {
+        "marker": 7,
+        "receipts_four": 1448,
+        "bundle": 9074,
+        "failure": 553,
+        "total_each_of_entry_and_bucket_arrays": 11082
+      },
+      "map_clone_storage": "11082*(4+dictionary_entry_stride), plus explicit object fields/headers if in the qualified representation. Expected x64entry24 is CONDITIONAL pending separate public allocation/ABI probe. No32MiBfit.",
+      "array_clones": "ProcessEnumerable List<object> growth retains every backing. Bundle arrays67/1225 require cumulative252+4092=4344reference cells before any original ToArray. Receipt23/failure1array families retain all growth; no alias-as-new-string or ReturnBuffer release.",
+      "StringBuilder": "Closed strings<=512/integers<=20 imply append spans<=3072chars. Append-only chunks max8000 give retained chunk capacity<=M+8000 perdocument; retain finalToString,LFconcat,UTF8bytes. Source upper pending review, no free credit.",
+      "writer_buffers": "Nullpool JsonTextWriter beginschar35. JavaScriptUtils requests<=512+6=518 and strictly grows capacity; retain every old array. Perwriter2*sum(1..518)=268842bytes,seven1881894. Also3*128bool escape flags and writer/token/property fields. Dates/base64/custom values not admitted. Source/binary association pending.",
+      "join": "UNQUALIFIED: remaining writer/temp/container scalar storage associations are explicit, not zero."
+    },
+    "path_strings": {
+      "known_source": "Canonical/parent catalogue reuses strings only. NativeDirectoryiterator Current, GetFileName, namespaceGetRelativePath/Replace, rawJoin/case/unknownGetFullPath remain new request families.",
+      "registry": "See path_catalogue conditional profile and originalcontainer/array rows. HistoricalR9parent95616requests are not transferred toR10.",
+      "conditional_equation": "AllKnownFirstCanonAndParentRequests + AllFreshIteratorCurrentAndNameRelativeStrings + Alias/Join/case strings + UnknownFirst/Finally/FooterNativePathPrefixes + selectedpooled/nativebuffers. Eachterm retained cumulatively unless explicit physicalrelease proved.",
+      "global_join": "HOLD: actual6phasecounts/nativeprefix capacities/selected normalizer/ArrayPool association required; no normalizedlength<=raw512 inference for unknown/tilde inputs."
+    },
+    "environment": {
+      "status": "COMPLETE_CONDITIONAL_EQUATIONS_EXTERNAL_LAUNCH_PROFILE_REQUIRED",
+      "symbols": {
+        "Eentry_i": "Number of native rows with separator atindex>0, including duplicate insertion attempts, at childi (i=1..3)",
+        "EUTF16_i": "Sum of key+value UTF16 units for those rows, including copies made for duplicate attempts",
+        "Eunique_i": "Successful unique Hashtable entries<=Eentry_i; their totalUTF16<=EUTF16_i",
+        "Bnative_i": "Native block UTF16 units including hidden/malformed rows and all separators/terminators. Must profile separately unless constructed valid unique nonhidden environment establishes Bnative=EUTF16+2*Eentry+1 (empty block needs2NUL).",
+        "h(c)": "Hashtable source loadsize=(int)(_loadFactor*c),_loadFactor=.72f, InitialSize3; use exact selected single-precision behavior",
+        "Hcap(E)": "Final bucketcapacity for E unique Add attempts from3, expanding via HashHelpers.ExpandPrime when count>=h(cap). Source prime table/overflow association required.",
+        "Hsum(E)": "Sum of growth bucket capacities +E*Hcap(E) bounds at mostone same-capacity cleanup rehash per Insert; this is a source site bound, not an invented retry",
+        "Dsum(U,8)": "Initial Prime(U) ifU>0 then each actual capacity growth needed after Clear to add8; U=0 begins with first Add capacities3,7,17. Clear retains inherited arrays.",
+        "Drehash(U)": "At mostone additional current-capacity entry+bucket allocation while comparer transitions to randomized for >100 collisions; take Dmax(U,8) only if reachable.",
+        "Str": "2*(units+1), headers/ABI separate"
+      },
+      "snapshot_payload_equation": "Capture_i <=2*Bnative_i + (2*EUTF16_i+4*Eentry_i) + HashtableBucketStride*Hsum(Eentry_i) +(4+DictionaryStringEntryStride)*(Dsum(Eunique_i,8)+Drehash(Eunique_i)) + EnvOwnerScalarCells_i. Initial Hashtable and subsequent Dictionary share captured key/value strings; do not charge a second string copy, and do not omit either capacity family.",
+      "three_captures": "No initial clone can be called free after Clear/scope/Dispose. Safe no-reclaim sum uses Capture_1+Capture_2+Capture_3; each native block can be subtracted only on explicit successful FreeEnvironmentStringsW proof. Source invokes Free in finally; no general managed reclaim follows.",
+      "outgoing_eight_keys": "Per child exactly8 outgoing keys, sorted string[8]. Let S8=sum eightkey/value units, after TEMP/TMP substitution. StringBuilder starts64; output environment string lengthS8+16 and implicit string terminator; charge builder chunks+Str(S8+16)+8*reference_stride. The native caller pins this string; no second native block clone is inferred inside managed source. OS child copy is separately process/OS qualification.",
+      "scalar_work": "Selected CLR getter/clone/Hashtable/Dictionary CPU is opaque under contract. Source visible Clear/8-key foreach/index writes are already in Child own rows. Thus runner scalar upper does not scale with Eentry/EUTF16; controlled storage explicitly does.",
+      "external_profile": "Outer launcher must construct an exact bounded environment before pinned pwsh startup. Profile later child snapshots too, including pinned PowerShell startup/PSModulePath changes, or source-close those additions. No current environment enumeration/value dump/hash was performed. No exact launch profile/GO/execution authorized here.",
+      "qualification_plan": "Separate RootGO launcher constructs explicit fresh nonsecret env, never host clone. Pinned8values plus source-qualified PSModulePath/startup additions; startup/profiling hooks absentBEFORElaunch. Purpose pinned-pwsh profile can self-assert public aggregate entry/unit/nativeblock counts and whitelist only without values/hashes/privatefields. RecheckatGO; no existing env was enumerated, no profile selected/executed here."
+    },
+    "child_process_and_streams": {
+      "controlled_fixed": "6 explicit4096 read arrays,6 configured4096 log buffers, two task references per child plus cleanup13/ref arrays. One rooted quarantine forbids next child; earlier owners are not assumed physically reclaimed.",
+      "hidden_StreamReader_buffers": "Process.Windows Start constructs two StreamReader objects per child despite BaseStream direct reads: each allocates byte[4096] and char[encoding.GetMaxCharCount(4096)]. Charge6*4096+2*sum sixGetMaxCharCount values. Selected console code-page/encoding association remains an explicit qualification. Underlying FileStream buffer<=4096 each also retained.",
+      "command_lines": "Source arg extents28/6/6, strings<=512. Windows quoting duplicates at mostone backslash per input unit; command content upper2*sumArgUnits+3*ArgCount+FileNameUnits+2. VSB stack256 and every grown ArrayPool backing remain required; Return does not prove physical release.",
+      "write_all_bytes": "7 document writes reuse source byte arrays but selected File.WriteAllBytes/RandomAccess/FileStream strategy buffers and path transforms need exact capacity association; not assignedzero.",
+      "join": "UNQUALIFIED: selected ArrayPool/stream/console encoding capacities and command buffers need closing."
+    },
+    "raw_errors": {
+      "root_slots": "1 first primary+11 first-secondary raw owners; child primary/footer/quarantine owners may alias those. First-only retention is not a bound on all prior discarded raw allocations without physical reclaim.",
+      "source_bounded_fields": "Reject-TaskGate only fixed reason+bounded witness fields. Strict raw grammar prevents large unsupported scalar echoes before SDK; accepted string keys<=512 and depth<=24 bound JSON-path components, but selected SDK error formatting/copies and OS/path exception messages need their own exact source association.",
+      "source_attempts": "Existing error/admission/cleanup source rows included;13 cleanup obligations per child, owner-finally paths, first-prefix failure and mandatory finally fences remain explicit. No retries or resets.",
+      "join": "UNQUALIFIED: raw message/JSONPath/wrapped ErrorRecord/string clones across all reached error sites must be joined, not hidden behind general heap exclusion."
+    },
+    "global_join_equation": "P_no_reclaim=KnownByteRequests+DecodedAndChildSlices+ReaderAndStringBuffers+OriginalSourceContainersAndScalarArrays+All7SerializationClonesAndWriterBuffers+PathCatalogueMapsAliasesStringsParentArraysLinksAndBackings+FreshPathIteratorNameRelativeAndRefusalOutputs+sum3EnvironmentCapturesAndOutgoingBlocks+ProcessStreamCommandPoolBuffers+AllReachedControlledRawErrorPayload+qualifiedObjectMetadata. Each term joins six actual source phases; no numeric global upper sealed while stated coefficients/associations remain unqualified.",
+    "actual_coexisting_lower": "UNESTABLISHED_FOR_R10; historicalR9lower not transferred after source repairs.",
+    "conclusion": "HOLD:no global32MiBfit/no source-proven R10coexistingviolation/no newlimit/binding/GO. Scalarproposalreviewable separately. No GC/null/Clear/scope/Dispose/ReturnBuffer credit; upper never relabelled actual.",
+    "source_scalar_reference_arrays": {
+      "status": "EXPLICIT_FAMILY_INVENTORY_SELECTED_POWERSHELL_COPY_CAPACITIES_UNQUALIFIED",
+      "fixed": "initial path array3;suffixes7;own names4;secondary sites11/raw refs11/Int64 counters11;typed thresholds18+19 and their literal-to-typed conversion intermediates;summary fields12;initial empty receipt arrays;controller hooks7,seven pin rows3 plusouter7,expected args14,codec refs2;main bound field names4,creation dirs6.;68registrations,catalogue10fieldmap/1294entrymaps,byte-control20/20/21 arrays andbyte stackfamilies.",
+      "repeated_fixed": "child/fenced-name arrays3 each per3 invocations;environment key arrays8 per3;poll direction comma-array2 per <=7200*3 normal polls plus cleanup directions;cleanup sinks2/owners4 perchild;source task-read empty/append1/append2 arrays and typed conversion intermediates. Stage allowed-name array6 per <=7*784 returned rows; all actual foreach source construction/registration already in scalar rows.",
+      "variable_extent": "R10namespace31/1092rows1045files,FileSet259/N8783/M8784,inputs1220/transitive1225. All original literal/typed/binder/ToArray/pipeline/concat sites retained, plus catalogue65ref arrays and alias-pair arrays. Poll directions2 and stage names6 remain fresh source constructions.",
+      "key_families": "predecessor exact keys6/integer fields4;child control exact keys3 per14 records;summary integerfields6/flagfields4 per2;dependency optional modulekeys2;other source-defined keyset arrays as actual caller sites. Generic List/Queue/HashSet/Dictionary source backings grow by actual bounded count, not merely finalCount.",
+      "obligation": "All source-literal,typedconversion,ToArray,pipeline,array-concatenation and ref/typed cell storage is part of OriginalSourceContainersAndScalarArrays. No zero allocation implied. Exact PS implementation copy/capacity associations and selected cell ABI must close before fit.",
+      "historical_R9_literal_registry": [
+        {
+          "line": 20,
+          "source": "foreach($taskArgumentValue in @($Repo,$NewRunRoot,$PSScriptRoot)){"
+        },
+        {
+          "line": 27,
+          "source": "$taskSuffixes=@('/opaque-temp','/stage/failure-inventory.json','/build/source-dependencies.json','/controls/predecessor-mutant.json','/controls/gui-mutant.exe','/data/references/native-inverse/r48000-map5.json','/data/references/clock/r96000-map8-metadata.json')"
+        },
+        {
+          "line": 33,
+          "source": "$taskOwnNames=@('clock_stage.cpp','run-clock.ps1','source-costs.h','README.md')"
+        },
+        {
+          "line": 36,
+          "source": "$taskHashBuffer=[byte[]]::new(65536)"
+        },
+        {
+          "line": 50,
+          "source": "$taskSecondarySites=@('compile-after-fence','produce-after-fence','verify-after-fence','produce-after-binary','verify-after-binary','compile-child-finally','produce-child-finally','verify-child-finally','failure-inventory','failure-receipt','owned-dispose')"
+        },
+        {
+          "line": 51,
+          "source": "$taskSecondaryRaw=[object[]]::new($taskSecondarySites.Length)"
+        },
+        {
+          "line": 52,
+          "source": "$taskSecondaryCounts=[long[]]::new($taskSecondarySites.Length)"
+        },
+        {
+          "line": 54,
+          "source": "$taskReceipt=[ordered]@{schema=1;stage=$Stage;status='NOT_STARTED_NO_CERTIFICATION';source_manifest_sha256=$taskExpectedManifest;compiler_is_opaque=$true;compiler_internal_CPU_heap_RSS_temporary_peak_disk_qualified=$false;old_broad_compiler_output_bound_fulfilled=$false;children=[Collections.Generic.List[object]]::new();compiler_exit=$null;producer_exit=$null;verifier_exit=$null;vendor=$false;quality=$false;context=$false;Ready=$false;renderer=$false;reserved_source_work=$null;reserved_admitted_retained=$null;runner_controls=[object[]]::new(0);compiler_final_outputs=$null;source_dependencies=$null;producer=$null;verification=$null;runner_used=0L;failure_code=$null;primary_failure=$false;secondary_failures=[object[]]::new(0);failure_inventory_complete=$null;failure_inventory_code=$null;compiler_final_outputs_admitted=$false}"
+        },
+        {
+          "line": 57,
+          "source": "$taskSignedDigitThresholds=[long[]]@(10,100,1000,10000,100000,1000000,10000000,100000000,1000000000,10000000000,100000000000,1000000000000,10000000000000,100000000000000,1000000000000000,10000000000000000,100000000000000000,1000000000000000000)"
+        },
+        {
+          "line": 58,
+          "source": "$taskUnsignedDigitThresholds=[uint64[]]@(10,100,1000,10000,100000,1000000,10000000,100000000,1000000000,10000000000,100000000000,1000000000000,10000000000000,100000000000000,1000000000000000,10000000000000000,100000000000000000,1000000000000000000,[uint64]::Parse('10000000000000000000',[Globalization.CultureInfo]::InvariantCulture))"
+        },
+        {
+          "line": 59,
+          "source": "$taskSummaryFields=@('status','source_manifest_sha256','entries','inverse_records','reserved','used','prior','composed_after','vendor','quality','Ready','compiler_peak_disk_qualified')"
+        },
+        {
+          "line": 79,
+          "source": "if($Name -cnotin @('one-opaque-compile','oracle-produce','independent-full-verify')){throw 'Exact finite child name profile'}"
+        },
+        {
+          "line": 85,
+          "source": "$taskA=[byte[]]::new(4096);$taskB=[byte[]]::new(4096);$taskDoneA=$false;$taskDoneB=$false;$taskExit=$null;$taskExitObserved=$false;$taskFailure=$null;$taskTimedOut=$false;$taskPollLimited=$false;$taskPolls=0L;$taskCap=$false"
+        },
+        {
+          "line": 93,
+          "source": "Assert-TaskExactKeys $taskManifest['environment'] @('SystemRoot','windir','PATH','INCLUDE','LIB','TEMP','TMP','VSLANG')"
+        },
+        {
+          "line": 102,
+          "source": "foreach($taskDirection in 0,1){"
+        },
+        {
+          "line": 124,
+          "source": "[Threading.Tasks.Task[]]$taskReads=@();if($null -ne $taskReadA){$taskReads+=@($taskReadA)};if($null -ne $taskReadB){$taskReads+=@($taskReadB)}"
+        },
+        {
+          "line": 126,
+          "source": "foreach($taskDirection in 0,1){"
+        },
+        {
+          "line": 130,
+          "source": "foreach($taskSink in @($taskOut,$taskErr)){if($null -ne $taskSink){try{$taskSink.Flush()}catch{Add-TaskChildCleanup $taskCleanup 'retained_prefix_flush' $_ (5+$taskChildIndex)}}}"
+        },
+        {
+          "line": 135,
+          "source": "foreach($taskOwner in @($taskOut,$taskErr,$taskCancel,$taskProcess)){if($null -ne $taskOwner){try{$taskOwner.Dispose()}catch{Add-TaskChildCleanup $taskCleanup 'settled_owner_dispose' $_ (5+$taskChildIndex)}}}"
+        },
+        {
+          "line": 165,
+          "source": "if($Name -cnotin @('one-opaque-compile','oracle-produce','independent-full-verify')){throw 'EXACT_FENCED_CHILD_NAME'}"
+        },
+        {
+          "line": 217,
+          "source": "foreach($taskName in @('DOTNET_STARTUP_HOOKS','DOTNET_ADDITIONAL_DEPS','DOTNET_SHARED_STORE','CORECLR_ENABLE_PROFILING','CORECLR_PROFILER','COR_ENABLE_PROFILING','COR_PROFILER')){if($null -ne [Environment]::GetEnvironmentVariable($taskName)){throw 'CLOSED_CONTROLLER_STARTUP_ENVIRONMENT'}}"
+        },
+        {
+          "line": 219,
+          "source": "$taskPins=@("
+        },
+        {
+          "line": 220,
+          "source": "@('pwsh.exe',301368L,'362A356CE7F0940EC74F73A8FC2C990A2CC24A38A11C90BBD8ECA947110AD139'),"
+        },
+        {
+          "line": 221,
+          "source": "@('System.Management.Automation.dll',19646264L,'2D8AF026E589C5603629BFC3E7C57265B4167B12ECA3AE549C6A6C3CA7E4967B'),"
+        },
+        {
+          "line": 222,
+          "source": "@('Microsoft.PowerShell.Commands.Utility.dll',1652504L,'2F6201BB3CAF4C08158BE733E786DD85B11537694F7E6AB40356FC0727A3596F'),"
+        },
+        {
+          "line": 223,
+          "source": "@('Microsoft.PowerShell.Commands.Management.dll',1124152L,'40818818DD94A5FA1F53043E33D31D8312ADAD24EF61B06481DFAE4C45D6E677'),"
+        },
+        {
+          "line": 224,
+          "source": "@('Newtonsoft.Json.dll',1824600L,'9AF3870D53662BA1C8E9B19EC8AD0020E815FFE9E916A1F3204AC6E206447F60'),"
+        },
+        {
+          "line": 225,
+          "source": "@('Modules/Microsoft.PowerShell.Management/Microsoft.PowerShell.Management.psd1',16076L,'A73617CBA10DF0D2641DF909C6B8BD7981769B3FC78845976290093DF2941941'),"
+        },
+        {
+          "line": 226,
+          "source": "@('Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1',16826L,'D103110AAE93CA1061FAB8ADD8F00EA6110740AC94B236654D0EFB0B08654AAA')"
+        },
+        {
+          "line": 232,
+          "source": "$taskExpected=@('<APPHOST>','-NoLogo','-NoProfile','-NonInteractive','-File',[IO.Path]::Join($taskBase,'run-clock.ps1'),'-Stage','ClockOracle','-Repo',$Repo,'-NewRunRoot',$NewRunRoot,'-ReviewedManifestSha256',$ReviewedManifestSha256)"
+        },
+        {
+          "line": 242,
+          "source": "foreach($taskCodec in @($script:taskConvertToJson,$script:taskConvertFromJson)){if(-not $taskCodec.ImplementingType.Assembly.Location.Equals([IO.Path]::Join($taskRuntime,'Microsoft.PowerShell.Commands.Utility.dll'),[StringComparison]::OrdinalIgnoreCase)){throw 'EXACT_SERIALIZER_ASSEMBLY'}}"
+        },
+        {
+          "line": 392,
+          "source": "Assert-NoLink $Source;Assert-NoLink $Destination;$taskIn=$null;$taskOut=$null;$taskBuffer=[byte[]]::new(65536);$taskSeen=0L;$taskBefore=$script:taskPrimaryRaw;$taskBody=$null"
+        },
+        {
+          "line": 396,
+          "source": "if(-not $Path.StartsWith((Join-Path $taskRoot 'controls')+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or $Replacement.Length -gt 2){throw 'Bounded owned mutation path/bytes'};$taskFile=$null;$taskBefore=[byte[]]::new($Replacement.Length);$taskPriorPrimary=$script:taskPrimaryRaw;$taskBody=$null"
+        },
+        {
+          "line": 406,
+          "source": "$taskStates=[byte[]]::new($MaximumDepth+1);$taskLevel=0;$taskNodes=0;$taskAt=0"
+        },
+        {
+          "line": 484,
+          "source": "try{$taskFile=[IO.FileStream]::new($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read,1,[IO.FileOptions]::SequentialScan);if($taskFile.Length -ne $taskLength){throw 'JSON length changed before bounded allocation'};$taskBytes=[byte[]]::new([int]$taskLength);$taskFile.ReadExactly($taskBytes,0,$taskBytes.Length);if($taskFile.ReadByte() -ne -1){throw 'JSON exact EOF'};return ,$taskBytes}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+        },
+        {
+          "line": 508,
+          "source": "$taskSum=0L;if([IO.Directory]::Exists($taskStageRoot)){foreach($taskF in (Get-TaskEntries $taskStageRoot $false 7)){Spend-Task 1;if($taskF.PSIsContainer -or $taskF.Name -cnotin @('stdout.log','stderr.log','receipt.json','bundle.json','consumed.json','failure-inventory.json')){throw 'Unlisted controlled stage artifact'};if($taskF.Length -gt $taskStageCap-$taskSum){throw 'Controlled stage aggregate'};$taskSum+=$taskF.Length}};return $taskSum"
+        },
+        {
+          "line": 554,
+          "source": "Assert-TaskExactKeys $Parsed @('path','sha256','artifacts','transitive','complete_union_paths','complete_union_bytes')"
+        },
+        {
+          "line": 556,
+          "source": "foreach($taskK in @('artifacts','transitive','complete_union_paths','complete_union_bytes')){Assert-TaskIntegral $Parsed[$taskK] $true}"
+        },
+        {
+          "line": 564,
+          "source": "$taskActualFiles=@((Get-TaskEntries $taskRootDir $taskDir['recursive'] ([int]$taskDir['entry_count']+1))|Where-Object {-not $_.PSIsContainer})"
+        },
+        {
+          "line": 565,
+          "source": "$taskObservedNames=@($taskActualFiles|ForEach-Object {[IO.Path]::GetRelativePath($taskRootDir,$_.FullName).Replace([char]92,[char]47)})"
+        },
+        {
+          "line": 566,
+          "source": "Assert-TaskFileSet $taskObservedNames @($taskDir['files'])"
+        },
+        {
+          "line": 586,
+          "source": "Assert-TaskFileSet $taskNames.ToArray() @($taskCaps.Keys);return @{files=$taskRows.ToArray();bytes=$taskBytes;names=$taskNames.ToArray()}"
+        },
+        {
+          "line": 590,
+          "source": "try{$taskFile=[IO.File]::Open($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$taskDos=[byte[]]::new(64);$taskFile.ReadExactly($taskDos,0,$taskDos.Length);$taskOffset=[BitConverter]::ToUInt32($taskDos,60);if($taskDos[0] -ne 77 -or $taskDos[1] -ne 90 -or $taskOffset -gt $taskItem.Length-24){throw 'Actual PE DOS/offset'};$taskFile.Position=$taskOffset;$taskHeader=[byte[]]::new(24);$taskFile.ReadExactly($taskHeader,0,$taskHeader.Length);$taskOptional=[BitConverter]::ToUInt16($taskHeader,20);if($taskOptional -lt 70 -or $taskOptional -gt 4096 -or $taskOffset+24+$taskOptional -gt $taskItem.Length){throw 'Actual PE optional size'};$taskOpt=[byte[]]::new($taskOptional);$taskFile.ReadExactly($taskOpt,0,$taskOpt.Length);return @{signature=[BitConverter]::ToUInt32($taskHeader,0);machine=[BitConverter]::ToUInt16($taskHeader,4);magic=[BitConverter]::ToUInt16($taskOpt,0);subsystem=[BitConverter]::ToUInt16($taskOpt,68);path=$Path;offset=$taskOffset;optional_bytes=$taskOptional}}"
+        },
+        {
+          "line": 600,
+          "source": "Add-TaskJsonVisit $taskLength;$taskBuffer=[byte[]]::new([int]$taskLength);$taskFile.ReadExactly($taskBuffer,0,$taskBuffer.Length)"
+        },
+        {
+          "line": 618,
+          "source": "Assert-TaskExactKeys $taskParsed @('control','gate','operands')"
+        },
+        {
+          "line": 623,
+          "source": "$taskOperands=[object[]]::new(6)"
+        },
+        {
+          "line": 627,
+          "source": "Assert-TaskFileSet @($taskIds) @($taskExpected.Keys)"
+        },
+        {
+          "line": 632,
+          "source": "foreach($taskK in @('entries','inverse_records','reserved','used','prior','composed_after')){Assert-TaskIntegral $taskParsed[$taskK] $true;if($taskParsed[$taskK] -gt [long]::MaxValue){throw 'SUMMARY_SIGNED_REPRESENTATION'}}"
+        },
+        {
+          "line": 633,
+          "source": "foreach($taskK in @('vendor','quality','Ready','compiler_peak_disk_qualified')){if((Get-TaskRuntimeType $taskParsed[$taskK]) -ne [bool] -or $taskParsed[$taskK]){throw 'EXACT_FALSE_SUMMARY_FLAGS'}}"
+        },
+        {
+          "line": 647,
+          "source": "Assert-TaskFileSet $taskSeen.ToArray() @($taskBuildCaps.Keys);return @{files=$taskRows.ToArray();bytes=$taskSum}"
+        },
+        {
+          "line": 655,
+          "source": "foreach($taskKey in @('ImportedModules','ImportedHeaderUnits')){"
+        },
+        {
+          "line": 682,
+          "source": "foreach($taskKey in @('runner_upper','producer_upper','verifier_upper','whole_upper')){Assert-TaskBoundSourceInteger $taskKey $taskManifest['source_work'][$taskKey]}"
+        },
+        {
+          "line": 696,
+          "source": "foreach($taskName in $taskManifest['current_include_inputs']){if($taskName -cne 'source-costs.h'){throw 'Unlisted current source header'};$taskPin=@($taskManifest['sources']|Where-Object {$_['path'] -ceq $taskName});if($taskPin.Count -ne 1){throw 'Current source header exact own pin'};$taskIncludeIndex.Add((Join-Path $taskBase $taskName),$taskPin[0])}"
+        },
+        {
+          "line": 703,
+          "source": "$taskRuns=Join-Path $taskBase 'runs';if((Test-Path -LiteralPath $taskRuns) -and @(Get-TaskEntries $taskRuns $false 1).Count -gt 0){throw 'Revision sole attempt already exists'}"
+        },
+        {
+          "line": 708,
+          "source": "foreach($taskDir in @($taskStageRoot,$taskBuildRoot,$taskOpaqueRoot,(Join-Path $taskDataRoot 'references/clock'),(Join-Path $taskDataRoot 'references/native-inverse'),(Join-Path $taskRoot 'controls'))){$null=New-Item -ItemType Directory -Path $taskDir}"
+        },
+        {
+          "line": 725,
+          "source": "$taskMutation=Mutate-TaskOwnedBytes $taskMutantBundle 0 ([byte[]]@([byte]($taskFirst -bxor 1)));$taskCorrupt=Get-TaskHash $taskMutantBundle 98009"
+        },
+        {
+          "line": 739,
+          "source": "$taskProduce=Invoke-TaskFencedChild 'oracle-produce' $taskBinary @('produce',$taskDataRoot,$taskExpectedManifest,[string]$taskRunnerLimit,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+        },
+        {
+          "line": 741,
+          "source": "$taskBefore=Get-TaskReferences;Assert-TaskFileSet $taskBefore['names'] @($taskCaps.Keys)"
+        },
+        {
+          "line": 742,
+          "source": "$taskMissing=@($taskBefore['names']|Where-Object {$_ -cne 'references/native-inverse/r48000-map5.json'});$taskControls.Add((Expect-TaskGate 'missing-inverse-descriptor' {Assert-TaskFileSet $taskMissing @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=55;expected=56;missing='references/native-inverse/r48000-map5.json';unknown='';duplicate=''}))"
+        },
+        {
+          "line": 743,
+          "source": "$taskExtra=@($taskBefore['names'])+@('unlisted.bin');$taskControls.Add((Expect-TaskGate 'extra-file' {Assert-TaskFileSet $taskExtra @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=57;expected=56;missing='';unknown='unlisted.bin';duplicate=''}))"
+        },
+        {
+          "line": 744,
+          "source": "$taskDuplicate=@($taskBefore['names'])+@($taskBefore['names'][0]);$taskControls.Add((Expect-TaskGate 'duplicate-file' {Assert-TaskFileSet $taskDuplicate @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=57;expected=56;missing='';unknown='';duplicate=$taskBefore['names'][0]}))"
+        },
+        {
+          "line": 747,
+          "source": "$taskVerify=Invoke-TaskFencedChild 'independent-full-verify' $taskBinary @('verify',$taskDataRoot,$taskExpectedManifest,[string]$taskPrior,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+        },
+        {
+          "line": 750,
+          "source": "foreach($taskOldFile in $taskBuild['files']){$taskNow=@($taskFinalBuild['files']|Where-Object path -ceq $taskOldFile['path']);if($taskNow.Count -ne 1){throw 'Compiler artifacts changed'};Assert-TaskIdentity $taskOldFile $taskNow[0]}"
+        },
+        {
+          "line": 752,
+          "source": "$taskExpectedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskN in $taskCaps.Keys){$taskExpectedRunFiles.Add('data/'+$taskN)};foreach($taskN in $taskBuildCaps.Keys){$taskExpectedRunFiles.Add('build/'+$taskN)};foreach($taskC in $taskManifest['control_files']){$taskExpectedRunFiles.Add($taskC['path'])};foreach($taskN in @('stdout.log','stderr.log','receipt.json','consumed.json')){$taskExpectedRunFiles.Add('stage/'+$taskN)}"
+        },
+        {
+          "line": 756,
+          "source": "$taskArtifacts=[Collections.Generic.List[object]]::new();foreach($taskA in @($taskAfter['files'])+@($taskBuild['files'])+@($taskControlsFiles.ToArray())){$taskArtifacts.Add($taskA)}"
+        },
+        {
+          "line": 757,
+          "source": "foreach($taskName in @('stdout.log','stderr.log','receipt.json','consumed.json')){$taskPath=Join-Path $taskStageRoot $taskName;$taskH=Get-TaskHash $taskPath 67108864;$taskArtifacts.Add(@{path=$taskPath;bytes=$taskH['bytes'];sha256=$taskH['sha256'];origin_bundle_sha256=$taskExpectedManifest})}"
+        }
+      ],
+      "literal_site_registry": [
+        {
+          "line": 20,
+          "source": "foreach($taskArgumentValue in @($Repo,$NewRunRoot,$PSScriptRoot)){"
+        },
+        {
+          "line": 27,
+          "source": "$taskSuffixes=@('/opaque-temp','/stage/failure-inventory.json','/build/source-dependencies.json','/controls/predecessor-mutant.json','/controls/gui-mutant.exe','/data/references/native-inverse/r48000-map5.json','/data/references/clock/r96000-map8-metadata.json')"
+        },
+        {
+          "line": 33,
+          "source": "$taskOwnNames=@('clock_stage.cpp','run-clock.ps1','source-costs.h','README.md')"
+        },
+        {
+          "line": 37,
+          "source": "$taskHashBuffer=[byte[]]::new(65536)"
+        },
+        {
+          "line": 52,
+          "source": "$taskSecondarySites=@('compile-after-fence','produce-after-fence','verify-after-fence','produce-after-binary','verify-after-binary','compile-child-finally','produce-child-finally','verify-child-finally','failure-inventory','failure-receipt','owned-dispose')"
+        },
+        {
+          "line": 53,
+          "source": "$taskSecondaryRaw=[object[]]::new($taskSecondarySites.Length)"
+        },
+        {
+          "line": 54,
+          "source": "$taskSecondaryCounts=[long[]]::new($taskSecondarySites.Length)"
+        },
+        {
+          "line": 56,
+          "source": "$taskReceipt=[ordered]@{schema=1;stage=$Stage;status='NOT_STARTED_NO_CERTIFICATION';source_manifest_sha256=$taskExpectedManifest;compiler_is_opaque=$true;compiler_internal_CPU_heap_RSS_temporary_peak_disk_qualified=$false;old_broad_compiler_output_bound_fulfilled=$false;children=[Collections.Generic.List[object]]::new();compiler_exit=$null;producer_exit=$null;verifier_exit=$null;vendor=$false;quality=$false;context=$false;Ready=$false;renderer=$false;reserved_source_work=$null;reserved_admitted_retained=$null;runner_controls=[object[]]::new(0);compiler_final_outputs=$null;source_dependencies=$null;producer=$null;verification=$null;runner_used=0L;failure_code=$null;primary_failure=$false;secondary_failures=[object[]]::new(0);failure_inventory_complete=$null;failure_inventory_code=$null;compiler_final_outputs_admitted=$false}"
+        },
+        {
+          "line": 59,
+          "source": "$taskSignedDigitThresholds=[long[]]@(10,100,1000,10000,100000,1000000,10000000,100000000,1000000000,10000000000,100000000000,1000000000000,10000000000000,100000000000000,1000000000000000,10000000000000000,100000000000000000,1000000000000000000)"
+        },
+        {
+          "line": 60,
+          "source": "$taskUnsignedDigitThresholds=[uint64[]]@(10,100,1000,10000,100000,1000000,10000000,100000000,1000000000,10000000000,100000000000,1000000000000,10000000000000,100000000000000,1000000000000000,10000000000000000,100000000000000000,1000000000000000000,[uint64]::Parse('10000000000000000000',[Globalization.CultureInfo]::InvariantCulture))"
+        },
+        {
+          "line": 61,
+          "source": "$taskSummaryFields=@('status','source_manifest_sha256','entries','inverse_records','reserved','used','prior','composed_after','vendor','quality','Ready','compiler_peak_disk_qualified')"
+        },
+        {
+          "line": 112,
+          "source": "$taskParents=[string[]]::new(65);$taskParentCount=0;$taskAt=$taskCanonical"
+        },
+        {
+          "line": 124,
+          "source": "foreach($taskAlias in @($taskRaw,$taskCanonical)){"
+        },
+        {
+          "line": 159,
+          "source": "if($Name -cnotin @('one-opaque-compile','oracle-produce','independent-full-verify')){throw 'Exact finite child name profile'}"
+        },
+        {
+          "line": 165,
+          "source": "$taskA=[byte[]]::new(4096);$taskB=[byte[]]::new(4096);$taskDoneA=$false;$taskDoneB=$false;$taskExit=$null;$taskExitObserved=$false;$taskFailure=$null;$taskTimedOut=$false;$taskPollLimited=$false;$taskPolls=0L;$taskCap=$false"
+        },
+        {
+          "line": 173,
+          "source": "Assert-TaskExactKeys $taskManifest['environment'] @('SystemRoot','windir','PATH','INCLUDE','LIB','TEMP','TMP','VSLANG')"
+        },
+        {
+          "line": 204,
+          "source": "[Threading.Tasks.Task[]]$taskReads=@();if($null -ne $taskReadA){$taskReads+=@($taskReadA)};if($null -ne $taskReadB){$taskReads+=@($taskReadB)}"
+        },
+        {
+          "line": 210,
+          "source": "foreach($taskSink in @($taskOut,$taskErr)){if($null -ne $taskSink){try{$taskSink.Flush()}catch{Add-TaskChildCleanup $taskCleanup 'retained_prefix_flush' $_ (5+$taskChildIndex)}}}"
+        },
+        {
+          "line": 215,
+          "source": "foreach($taskOwner in @($taskOut,$taskErr,$taskCancel,$taskProcess)){if($null -ne $taskOwner){try{$taskOwner.Dispose()}catch{Add-TaskChildCleanup $taskCleanup 'settled_owner_dispose' $_ (5+$taskChildIndex)}}}"
+        },
+        {
+          "line": 245,
+          "source": "if($Name -cnotin @('one-opaque-compile','oracle-produce','independent-full-verify')){throw 'EXACT_FENCED_CHILD_NAME'}"
+        },
+        {
+          "line": 297,
+          "source": "foreach($taskName in @('DOTNET_STARTUP_HOOKS','DOTNET_ADDITIONAL_DEPS','DOTNET_SHARED_STORE','CORECLR_ENABLE_PROFILING','CORECLR_PROFILER','COR_ENABLE_PROFILING','COR_PROFILER')){if($null -ne [Environment]::GetEnvironmentVariable($taskName)){throw 'CLOSED_CONTROLLER_STARTUP_ENVIRONMENT'}}"
+        },
+        {
+          "line": 299,
+          "source": "$taskPins=@("
+        },
+        {
+          "line": 300,
+          "source": "@('pwsh.exe',301368L,'362A356CE7F0940EC74F73A8FC2C990A2CC24A38A11C90BBD8ECA947110AD139'),"
+        },
+        {
+          "line": 301,
+          "source": "@('System.Management.Automation.dll',19646264L,'2D8AF026E589C5603629BFC3E7C57265B4167B12ECA3AE549C6A6C3CA7E4967B'),"
+        },
+        {
+          "line": 302,
+          "source": "@('Microsoft.PowerShell.Commands.Utility.dll',1652504L,'2F6201BB3CAF4C08158BE733E786DD85B11537694F7E6AB40356FC0727A3596F'),"
+        },
+        {
+          "line": 303,
+          "source": "@('Microsoft.PowerShell.Commands.Management.dll',1124152L,'40818818DD94A5FA1F53043E33D31D8312ADAD24EF61B06481DFAE4C45D6E677'),"
+        },
+        {
+          "line": 304,
+          "source": "@('Newtonsoft.Json.dll',1824600L,'9AF3870D53662BA1C8E9B19EC8AD0020E815FFE9E916A1F3204AC6E206447F60'),"
+        },
+        {
+          "line": 305,
+          "source": "@('Modules/Microsoft.PowerShell.Management/Microsoft.PowerShell.Management.psd1',16076L,'A73617CBA10DF0D2641DF909C6B8BD7981769B3FC78845976290093DF2941941'),"
+        },
+        {
+          "line": 306,
+          "source": "@('Modules/Microsoft.PowerShell.Utility/Microsoft.PowerShell.Utility.psd1',16826L,'D103110AAE93CA1061FAB8ADD8F00EA6110740AC94B236654D0EFB0B08654AAA')"
+        },
+        {
+          "line": 312,
+          "source": "$taskExpected=@('<APPHOST>','-NoLogo','-NoProfile','-NonInteractive','-File',[IO.Path]::Join($taskBase,'run-clock.ps1'),'-Stage','ClockOracle','-Repo',$Repo,'-NewRunRoot',$NewRunRoot,'-ReviewedManifestSha256',$ReviewedManifestSha256)"
+        },
+        {
+          "line": 322,
+          "source": "foreach($taskCodec in @($script:taskConvertToJson,$script:taskConvertFromJson)){if(-not $taskCodec.ImplementingType.Assembly.Location.Equals([IO.Path]::Join($taskRuntime,'Microsoft.PowerShell.Commands.Utility.dll'),[StringComparison]::OrdinalIgnoreCase)){throw 'EXACT_SERIALIZER_ASSEMBLY'}}"
+        },
+        {
+          "line": 472,
+          "source": "Assert-NoLink $Source;Assert-NoLink $Destination;$taskIn=$null;$taskOut=$null;$taskBuffer=[byte[]]::new(65536);$taskSeen=0L;$taskBefore=$script:taskPrimaryRaw;$taskBody=$null"
+        },
+        {
+          "line": 476,
+          "source": "if(-not $Path.StartsWith((Join-Path $taskRoot 'controls')+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or $Replacement.Length -gt 2){throw 'Bounded owned mutation path/bytes'};$taskFile=$null;$taskBefore=[byte[]]::new($Replacement.Length);$taskPriorPrimary=$script:taskPrimaryRaw;$taskBody=$null"
+        },
+        {
+          "line": 486,
+          "source": "$taskStates=[byte[]]::new($MaximumDepth+1);$taskLevel=0;$taskNodes=0;$taskAt=0"
+        },
+        {
+          "line": 566,
+          "source": "$taskStates=[byte[]]::new($MaximumDepth+1);$taskLevel=0;$taskNodes=0;$taskAt=0"
+        },
+        {
+          "line": 662,
+          "source": "try{$taskFile=[IO.FileStream]::new($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read,1,[IO.FileOptions]::SequentialScan);if($taskFile.Length -ne $taskLength){throw 'JSON length changed before bounded allocation'};$taskBytes=[byte[]]::new([int]$taskLength);$taskFile.ReadExactly($taskBytes,0,$taskBytes.Length);if($taskFile.ReadByte() -ne -1){throw 'JSON exact EOF'};return ,$taskBytes}catch{$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_};throw}finally{Close-TaskOwner $taskFile;Complete-TaskOwnerClose $taskBefore $taskBody}"
+        },
+        {
+          "line": 689,
+          "source": "$taskSum=0L;if([IO.Directory]::Exists($taskStageRoot)){foreach($taskF in (Get-TaskEntries $taskStageRoot $false 7)){Spend-Task 1;if($taskF.PSIsContainer -or $taskF.Name -cnotin @('stdout.log','stderr.log','receipt.json','bundle.json','consumed.json','failure-inventory.json')){throw 'Unlisted controlled stage artifact'};if($taskF.Length -gt $taskStageCap-$taskSum){throw 'Controlled stage aggregate'};$taskSum+=$taskF.Length}};return $taskSum"
+        },
+        {
+          "line": 735,
+          "source": "Assert-TaskExactKeys $Parsed @('path','sha256','artifacts','transitive','complete_union_paths','complete_union_bytes')"
+        },
+        {
+          "line": 737,
+          "source": "foreach($taskK in @('artifacts','transitive','complete_union_paths','complete_union_bytes')){Assert-TaskIntegral $Parsed[$taskK] $true}"
+        },
+        {
+          "line": 755,
+          "source": "$taskActualFiles=@((Get-TaskEntries $taskRootDir $taskDir['recursive'] ([int]$taskDir['entry_count']+1))|Where-Object {-not $_.PSIsContainer})"
+        },
+        {
+          "line": 756,
+          "source": "$taskObservedNames=@($taskActualFiles|ForEach-Object {[IO.Path]::GetRelativePath($taskRootDir,$_.FullName).Replace([char]92,[char]47)})"
+        },
+        {
+          "line": 757,
+          "source": "Assert-TaskFileSet $taskObservedNames @($taskDir['files'])"
+        },
+        {
+          "line": 777,
+          "source": "Assert-TaskFileSet $taskNames.ToArray() @($taskCaps.Keys);return @{files=$taskRows.ToArray();bytes=$taskBytes;names=$taskNames.ToArray()}"
+        },
+        {
+          "line": 781,
+          "source": "try{$taskFile=[IO.File]::Open($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$taskDos=[byte[]]::new(64);$taskFile.ReadExactly($taskDos,0,$taskDos.Length);$taskOffset=[BitConverter]::ToUInt32($taskDos,60);if($taskDos[0] -ne 77 -or $taskDos[1] -ne 90 -or $taskOffset -gt $taskItem.Length-24){throw 'Actual PE DOS/offset'};$taskFile.Position=$taskOffset;$taskHeader=[byte[]]::new(24);$taskFile.ReadExactly($taskHeader,0,$taskHeader.Length);$taskOptional=[BitConverter]::ToUInt16($taskHeader,20);if($taskOptional -lt 70 -or $taskOptional -gt 4096 -or $taskOffset+24+$taskOptional -gt $taskItem.Length){throw 'Actual PE optional size'};$taskOpt=[byte[]]::new($taskOptional);$taskFile.ReadExactly($taskOpt,0,$taskOpt.Length);return @{signature=[BitConverter]::ToUInt32($taskHeader,0);machine=[BitConverter]::ToUInt16($taskHeader,4);magic=[BitConverter]::ToUInt16($taskOpt,0);subsystem=[BitConverter]::ToUInt16($taskOpt,68);path=$Path;offset=$taskOffset;optional_bytes=$taskOptional}}"
+        },
+        {
+          "line": 791,
+          "source": "Add-TaskJsonVisit $taskLength;$taskBuffer=[byte[]]::new([int]$taskLength);$taskFile.ReadExactly($taskBuffer,0,$taskBuffer.Length)"
+        },
+        {
+          "line": 809,
+          "source": "Assert-TaskExactKeys $taskParsed @('control','gate','operands')"
+        },
+        {
+          "line": 814,
+          "source": "$taskOperands=[object[]]::new(6)"
+        },
+        {
+          "line": 818,
+          "source": "Assert-TaskFileSet @($taskIds) @($taskExpected.Keys)"
+        },
+        {
+          "line": 823,
+          "source": "foreach($taskK in @('entries','inverse_records','reserved','used','prior','composed_after')){Assert-TaskIntegral $taskParsed[$taskK] $true;if($taskParsed[$taskK] -gt [long]::MaxValue){throw 'SUMMARY_SIGNED_REPRESENTATION'}}"
+        },
+        {
+          "line": 824,
+          "source": "foreach($taskK in @('vendor','quality','Ready','compiler_peak_disk_qualified')){if((Get-TaskRuntimeType $taskParsed[$taskK]) -ne [bool] -or $taskParsed[$taskK]){throw 'EXACT_FALSE_SUMMARY_FLAGS'}}"
+        },
+        {
+          "line": 838,
+          "source": "Assert-TaskFileSet $taskSeen.ToArray() @($taskBuildCaps.Keys);return @{files=$taskRows.ToArray();bytes=$taskSum}"
+        },
+        {
+          "line": 849,
+          "source": "foreach($taskKey in @('ImportedModules','ImportedHeaderUnits')){"
+        },
+        {
+          "line": 876,
+          "source": "foreach($taskKey in @('runner_upper','producer_upper','verifier_upper','whole_upper')){Assert-TaskBoundSourceInteger $taskKey $taskManifest['source_work'][$taskKey]}"
+        },
+        {
+          "line": 891,
+          "source": "foreach($taskName in $taskManifest['current_include_inputs']){if($taskName -cne 'source-costs.h'){throw 'Unlisted current source header'};$taskPin=@($taskManifest['sources']|Where-Object {$_['path'] -ceq $taskName});if($taskPin.Count -ne 1){throw 'Current source header exact own pin'};$taskIncludeIndex.Add((Join-Path $taskBase $taskName),$taskPin[0])}"
+        },
+        {
+          "line": 898,
+          "source": "$taskRuns=Join-Path $taskBase 'runs';if((Test-Path -LiteralPath $taskRuns) -and @(Get-TaskEntries $taskRuns $false 1).Count -gt 0){throw 'Revision sole attempt already exists'}"
+        },
+        {
+          "line": 903,
+          "source": "foreach($taskDir in @($taskStageRoot,$taskBuildRoot,$taskOpaqueRoot,(Join-Path $taskDataRoot 'references/clock'),(Join-Path $taskDataRoot 'references/native-inverse'),(Join-Path $taskRoot 'controls'))){$null=New-Item -ItemType Directory -Path $taskDir}"
+        },
+        {
+          "line": 920,
+          "source": "$taskMutation=Mutate-TaskOwnedBytes $taskMutantBundle 0 ([byte[]]@([byte]($taskFirst -bxor 1)));$taskCorrupt=Get-TaskHash $taskMutantBundle 98009"
+        },
+        {
+          "line": 934,
+          "source": "$taskProduce=Invoke-TaskFencedChild 'oracle-produce' $taskBinary @('produce',$taskDataRoot,$taskExpectedManifest,[string]$taskRunnerLimit,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+        },
+        {
+          "line": 936,
+          "source": "$taskBefore=Get-TaskReferences;Assert-TaskFileSet $taskBefore['names'] @($taskCaps.Keys)"
+        },
+        {
+          "line": 937,
+          "source": "$taskMissing=@($taskBefore['names']|Where-Object {$_ -cne 'references/native-inverse/r48000-map5.json'});$taskControls.Add((Expect-TaskGate 'missing-inverse-descriptor' {Assert-TaskFileSet $taskMissing @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=55;expected=56;missing='references/native-inverse/r48000-map5.json';unknown='';duplicate=''}))"
+        },
+        {
+          "line": 938,
+          "source": "$taskExtra=@($taskBefore['names'])+@('unlisted.bin');$taskControls.Add((Expect-TaskGate 'extra-file' {Assert-TaskFileSet $taskExtra @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=57;expected=56;missing='';unknown='unlisted.bin';duplicate=''}))"
+        },
+        {
+          "line": 939,
+          "source": "$taskDuplicate=@($taskBefore['names'])+@($taskBefore['names'][0]);$taskControls.Add((Expect-TaskGate 'duplicate-file' {Assert-TaskFileSet $taskDuplicate @($taskCaps.Keys)} 'COMPLETE_EXACT_REFERENCE_FILE_SET' @{observed=57;expected=56;missing='';unknown='';duplicate=$taskBefore['names'][0]}))"
+        },
+        {
+          "line": 942,
+          "source": "$taskVerify=Invoke-TaskFencedChild 'independent-full-verify' $taskBinary @('verify',$taskDataRoot,$taskExpectedManifest,[string]$taskPrior,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+        },
+        {
+          "line": 945,
+          "source": "foreach($taskOldFile in $taskBuild['files']){$taskNow=@($taskFinalBuild['files']|Where-Object path -ceq $taskOldFile['path']);if($taskNow.Count -ne 1){throw 'Compiler artifacts changed'};Assert-TaskIdentity $taskOldFile $taskNow[0]}"
+        },
+        {
+          "line": 947,
+          "source": "$taskExpectedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskN in $taskCaps.Keys){$taskExpectedRunFiles.Add('data/'+$taskN)};foreach($taskN in $taskBuildCaps.Keys){$taskExpectedRunFiles.Add('build/'+$taskN)};foreach($taskC in $taskManifest['control_files']){$taskExpectedRunFiles.Add($taskC['path'])};foreach($taskN in @('stdout.log','stderr.log','receipt.json','consumed.json')){$taskExpectedRunFiles.Add('stage/'+$taskN)}"
+        },
+        {
+          "line": 951,
+          "source": "$taskArtifacts=[Collections.Generic.List[object]]::new();foreach($taskA in @($taskAfter['files'])+@($taskBuild['files'])+@($taskControlsFiles.ToArray())){$taskArtifacts.Add($taskA)}"
+        },
+        {
+          "line": 952,
+          "source": "foreach($taskName in @('stdout.log','stderr.log','receipt.json','consumed.json')){$taskPath=Join-Path $taskStageRoot $taskName;$taskH=Get-TaskHash $taskPath 67108864;$taskArtifacts.Add(@{path=$taskPath;bytes=$taskH['bytes'];sha256=$taskH['sha256'];origin_bundle_sha256=$taskExpectedManifest})}"
+        }
+      ]
+    },
+    "digest_and_original_map_owners": {
+      "digest_calls": 9946,
+      "equation": "9936IncrementalHash+7bootstrap+3capturedSHA=9946; each32byte digest/64UTF16hex, plusmutation2/4hex andmanifestcase.",
+      "original_hash_maps": 9936,
+      "expected_three_field_maps": 9792,
+      "literal_source": "Compiler.BuildHashtable emits Hashtable(fieldcount,OrdinalIgnoreCase); ordered emits OrderedDictionary(fieldcount,comparer). H(k)=GetPrime(floor(k/.72f)) after Initial3 gate, NOT genericDictionary.GetPrime(k). H2=3,H3=7,H5=7,H10=17. Conditional bucketstride24: hash2field buckets715392bytes;9792expected3field buckets1645056;1294catalogue5field buckets217392. Fields/boxedscalarvalues/orderedarrays/PSCustomObject conversion separate.",
+      "ABI": "Source dictionary uintHash/intNext/keyRef/valueRef suggests24-byte element;x64Hashtable keyRef/valueRef/hashColl suggests24. Ref8/int4/char2/long8/bool1 all CONDITIONAL until selected public-purpose profile qualifies. No privatefield/env hack."
+    },
+    "path_catalogue": {
+      "guard_slots": {
+        "rows": 1294,
+        "aliases": 2662,
+        "string_keys": 84110,
+        "parent_links": 84110,
+        "parent_ref_arrays": 1294,
+        "per_array_capacity": 65
+      },
+      "conditional_tight_profile": {
+        "repo": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw",
+        "base": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\musical-audio-persistent-planner-certification\\source-revisions\\clock-oracle-r10-source-prototype",
+        "new_run_root_proposal": "C:\\Users\\SM - Dan\\Documents\\GitHub\\yes-daw\\build-ci\\musical-audio-persistent-planner-certification\\source-revisions\\clock-oracle-r10-source-prototype\\runs\\r10-one-reviewed-attempt",
+        "selected_or_executed": false,
+        "identities": 1294,
+        "unique_strings": 1458,
+        "pooled_UTF16_units": 186667,
+        "chain_visits": 14548,
+        "max_depth": 18,
+        "parent_arrays_if_ref8": 672880,
+        "bundle_encoded_string_units": 349198,
+        "bundle_byte_upper": 453111,
+        "conditions": "Exact externally checked argv/no tilde/native normalization agrees with lexical Windows forms. Recompute for eventual bound-source identities/GO, not silently reuse this proposal."
+      },
+      "owners": "One10-field catalogue map,1294five-field maps,List<object>(1294),inputs/alias/string/link dictionaries and everygrowth/rehash backing,65-reference array percompletedentry,partialfailed arrays/strings/aliases and3unpublishedfailures; all initial normalization/parent Substrings beforepoollookup and every originalfallback. Wholecatalogue retained.",
+      "growth": "DictGrow(n)=sum3,7,17,37,89,197,431,919,1931,4049,8419,17519,36353,75431,156437... until>=n, plusatmostone nonrandomizedstring rehash<=finalcapacity. Buckets int4/selectedentrystride. CatalogueRowsList exactcapacity1294/noresize. Scalar fields/objectmetadata separately qualified.",
+      "fresh_native_outputs": "Directoryiterator Current still createsFullName eachoccasion; GetFileName and namespaceGetRelativePath/Replace still allocate. Count every such string, path/native/pooled capacity and first/finally/footer failure prefix; no metadata cache or GC credit."
+    },
+    "R10_guard_only_subtotal": {
+      "terms": {
+        "known_bytes": 6647190,
+        "decoded_wire": 9842012,
+        "child_slices": 262276,
+        "reader": 5892864,
+        "StringBuffer": 38912,
+        "writer_arrays": 1881894,
+        "chunks": 2924376,
+        "ToString": 2812390,
+        "LF_concat": 2812404,
+        "parent_arrays_ref8": 672880
+      },
+      "sum": 33787198,
+      "meaning": "Conservative no-reclaim request UPPER subtotal, not a coexisting lower. Above33554432 before otherfamilies, so cannot certifyfit; does NOT establishNOFIT. Proposed profile bundle453111 lowers byte/chunk/string upper by7*(1048576-453111)=4168255; remaining owners/phase/error joins stillrequired."
+    },
+    "phase_join_frontier": {
+      "status": "PRECISE_CONDITIONAL_HOLD_NOT_NUMERIC_GLOBAL_UPPER",
+      "cases": [
+        "before-created bootstrap/hash/decode/catalogue/index/fence failure",
+        "marker/firstreceipt/precompile failure",
+        "compiler/cleanup/fence/outputinventory/dependency failure",
+        "producer/control/reference failure",
+        "verifier/control/sourcefence/finalreceipt failure",
+        "late bundle/preflight/fixedpoint/encode/write/hash failure"
+      ],
+      "constraint": "Retain all earlier requests withoutGC, add actual footer/inventory prefixes and mandatorychildfinallyfences. A maximal badchildslice does not reach finalbundle. Do not conflate4receipts+bundle+everymaximal faileddecode as observedtrace. CPPsuccessfulsource has normal JSON/controlstdout and catch-only boundedstderr; nativebinaryassociation/outputextents needqualification beforetightercaseuse.",
+      "unclosed_coefficients": [
+        "PS typedparameter/ToArray/pipeline conversion multiplicities;PSObject/PSNoteProperty/backing/layout for listed sourceDTOsites",
+        "JToken/LineInfo/JProperty/parsedOrderedHashtable child/backing capacities at bootstrap15978/pred2420/dep2698/control13/summary25 incl20digitBigInteger and strings",
+        "nativeGetFullPath/GetRelativePath/iterator/FileName/ArrayPool capacities/unknownprefix ownership underexactargv profile; Current freshpermetadataoccasion",
+        "allreached DecoderFallback/JSONPath/Win32/methodwrapper/ErrorRecord/cleanup/localizedresource message copies withsourceprefix/firstslot/no-reclaim",
+        "selected ABI/objectmetadata and3inheritednativeenv/startup captures"
+      ],
+      "next_supported_work": "Qualify small public ABI coefficients; source-close literal/binder/PSCustomObject and JToken/error capacities;join6finite phases underexactnonsecret argv/env. Ifjoinedupper stillmisses32MiB, next narrow sourcecandidate isapprovedordinal pureGetFileName andnamespaceRelativePath/Replace stringreuse preservingcase/context/allfreshFS/reparse/hash checks. DoesnotremoveiteratorCurrent;deriveactualrequestreduction beforeadoption. No capraise/inputdomainrestriction."
+    }
+  },
+  "convention": {
+    "R": "Reached scalar/literal/source cell reads.",
+    "W": "Actual initialization/write, including parameter/receiver binding; guaranteed direct result destination counted once at caller.",
+    "O": "Arithmetic/bitwise/comparison/boolean/conversion/source access.",
+    "B": "Selected source branch.",
+    "S": "Visible source setup/registration/literal-construction control.",
+    "D": "Visible dispatch.",
+    "E": "Visible callee or primitive boundary entry.",
+    "T": "Actual normal return; no normal return fabricated on a throwing path.",
+    "K": "Explicit throwing/control transfer.",
+    "implicitFramework": "Root confirmed visible foreach setup/condition/advance/body/final-exit and registration once; no interpreter enumerator/binder/get_Item CPU graph.",
+    "primitive": "DE33/2685: external scalar result once, no internal bulk byte fee; explicit methods/properties/own helpers retain source argument/receiver/parameter/boundary actions.",
+    "sourceTypeMember": "Evaluated static type/member source values remain reads/accesses; no CLR reflection-framework internal body expansion."
+  },
+  "composition_convention": {
+    "scope": "Positive source-derived upper envelope, not minimal actual trace or measured implementation. Native opaque internals stay unchanged.",
+    "evaluations": "Caller evaluated source operands/read/dispatch stay at their caller; callee parameter destination writes stay at callee. Direct external result and next parameter destination fuse once. Explicit wrapper entry/return remains separate. Reference binding copies no referent cells.",
+    "loops": "Every reached test/body/advance/finalfalse or explicitbreak/throw alternative is represented; for any-path walker rows the overflow form subtracts22 normal terminal/return units before substituting32897 actual overflow prefix, never claiming a false test after throw.",
+    "foreach": "Root-confirmed visible foreach source actions only; no invented interpreter enumerator/command-binder/get_Item body. Actual source array-literal elements and source registration retained.",
+    "bulk": "Existing declared CRT/CLR bulk primitive boundaries/visible args/wrappers; no internal n-byte write fee, no invented extra bulk scalar. Byte extents and all controlled lifetimes retained.",
+    "bounds": "A source maximum used in a positive inequality is labelled upper, never relabelled actual visits/length/capacity. Complete fence actual schedule8; reserve9 is not an extra call.",
+    "failure": "Normal full-schedule rows dominate terminated prefixes; two generic FileSet and Identity refusal replacement surpluses cover before-fence plus mandatory finally failures. Expected controls remain distinct actual errors. No extra failing-call slots invented.",
+    "arithmetic": "51disjoint rows;integeraddition;no selectedlimit",
+    "sourceRegistration": "68registrations;no bodyexecution"
+  },
+  "external_primary_source_associations": [
+    {
+      "name": "StringBuffer.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Utilities/StringBuffer.cs",
+      "bytes": 3658,
+      "sha256": "36A21B9B46B4C78AF9C2911D3EEF628CB80308473217B44FEE8F7857EAE51DB9",
+      "qualification": "source association only; no binary equivalence/runtime credit"
+    },
+    {
+      "name": "JsonTextWriter.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/JsonTextWriter.cs",
+      "bytes": 30240,
+      "sha256": "CBEEB4F5A322E3772910CEC13788938AE6598B03C396B1187B9EC170127469D2",
+      "qualification": "source association only; no binary equivalence/runtime credit"
+    },
+    {
+      "name": "Compiler.cs",
+      "url": "https://raw.githubusercontent.com/PowerShell/PowerShell/ea554a8f9c6085f54fb2828f7ea286c65c35599f/src/System.Management.Automation/engine/parser/Compiler.cs",
+      "bytes": 341878,
+      "sha256": "C5DED9509B65F2CD81B1D5B11F8915A220B32BE038599FC7008BA235563B95DC",
+      "qualification": "source association only; no binary equivalence/runtime credit"
+    }
+  ],
+  "self_checks": {
+    "composition_rows": 51,
+    "sum": 5543964320,
+    "new_groups_sums": {
+      "Context": 26,
+      "AddEntry_true": 62,
+      "AddEntry_false": 118,
+      "String_hit": 21,
+      "String_miss": 41,
+      "Entry_hit": 14,
+      "Entry_tilde": 71,
+      "Entry_first": 9529,
+      "Entry_parent_body": 143,
+      "Entry_link_miss": 67,
+      "Entry_alias_row": 36,
+      "Init_fixed": 209,
+      "Canonical_own": 76,
+      "Resolve_own": 135,
+      "NoLink_tail": 49,
+      "ReadJson_common": 311,
+      "Dependency_fixed": 384
+    },
+    "byte_component_sum": 536,
+    "raw_fixed_common": 94,
+    "raw_total": 2878835518,
+    "recursive_visitors": 692748221,
+    "clone_primes": 11082,
+    "input_hash_mismatches": [],
+    "namespaces": [
+      31,
+      1092,
+      1045
+    ],
+    "target_execution": false,
+    "scope": "ordinary source/artifactJSON/hash/inventory/text/integer and primarysource reads only;no targetparser/AST/import/helper/compiler/program/test/stage/GUI/Git/CI"
+  }
+}

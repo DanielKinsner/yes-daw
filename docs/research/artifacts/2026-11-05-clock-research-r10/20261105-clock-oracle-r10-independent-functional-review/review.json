@@ -1,0 +1,233 @@
+{
+  "schema": "YESDAW_R10_FUNCTIONAL_SOURCE_REVIEW_V1",
+  "reviewer": "/root/clock_r9_numeric_review",
+  "verdict": "WHOLE_FUNCTIONAL_SOURCE_ACCEPT_ONLY_UNRUN",
+  "scope": "Whole exact five-file R10 source packet. Acceptance concerns functional source mechanisms and preserved contracts; no parser/syntax/compile/runtime, price, storage, limit or execution qualification.",
+  "subject": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/clock_stage.cpp",
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "LF_only": true
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/README.md",
+      "sha256": "A95A77743ABE02ABE03C4BA8C72C08889A1A4DD3DA5D103FF7A83DF10C235F6E",
+      "bytes": 14639,
+      "LF_only": true
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/run-clock.ps1",
+      "sha256": "BF117EAEA5AABCD40FFE30C785B75C875BAF92A9DA995B181B37DBB5FB75FEDB",
+      "bytes": 104099,
+      "LF_only": true
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/source-costs.h",
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "LF_only": true
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r10-source-prototype/source-manifest.json",
+      "sha256": "91529AC11BB131BAE1B9083D95CE343877C5AF62AC50AF23628B63E1C1331B23",
+      "bytes": 497616,
+      "LF_only": true
+    }
+  ],
+  "mechanical_source_checks": {
+    "count": 2550,
+    "failures": [],
+    "inputs_rehashed": 1220,
+    "old_input_identities_preserved": 1186,
+    "namespaces": 31,
+    "entries": 1092,
+    "files": 1045,
+    "no_reparse_entries": true,
+    "CPP_header_byte_exact_R9": true,
+    "helper_identity": {
+      "same": [
+        "Add-TaskChildCleanup",
+        "Add-TaskJsonBound",
+        "Add-TaskJsonVisit",
+        "Assert-TaskAttempt",
+        "Assert-TaskBoundSourceInteger",
+        "Assert-TaskCodecBinding",
+        "Assert-TaskConsolePE",
+        "Assert-TaskDocumentWrite",
+        "Assert-TaskExactKeys",
+        "Assert-TaskFileSet",
+        "Assert-TaskIdentity",
+        "Assert-TaskIntegral",
+        "Assert-TaskPins",
+        "Assert-TaskPollAdmission",
+        "Assert-TaskPredecessor",
+        "Assert-TaskRawJson",
+        "Assert-TaskReservation",
+        "Assert-TaskRetainedReservation",
+        "Assert-TaskSameReferences",
+        "Assert-TaskString",
+        "Close-TaskOwner",
+        "Complete-TaskOwnerClose",
+        "Convert-TaskControlOperand",
+        "Copy-TaskOwned",
+        "Encode-TaskJson",
+        "Expect-TaskGate",
+        "Get-TaskBootstrapHash",
+        "Get-TaskBuildArtifacts",
+        "Get-TaskEscapedStringBytes",
+        "Get-TaskHash",
+        "Get-TaskIntegerDigits",
+        "Get-TaskPEHeader",
+        "Get-TaskPredecessorDescriptor",
+        "Get-TaskReferences",
+        "Get-TaskRuntimeType",
+        "Get-TaskSafePrefix",
+        "Get-TaskSecondaryCodes",
+        "Get-TaskStageBytes",
+        "Initialize-TaskController",
+        "Invoke-TaskChild",
+        "Invoke-TaskFencedChild",
+        "Join-TaskBoundedNames",
+        "Measure-TaskJson",
+        "Mutate-TaskOwnedBytes",
+        "Read-TaskBoundedBytes",
+        "Read-TaskChildResult",
+        "Reject-TaskGate",
+        "Replace-TaskBounded",
+        "Save-TaskFailureInventory",
+        "Save-TaskReceipt",
+        "Set-TaskRawExit",
+        "Set-TaskSecondary",
+        "Spend-Task",
+        "Visit-TaskJsonValue",
+        "Write-TaskJson",
+        "Write-TaskJsonBytes"
+      ],
+      "changed": [
+        "Assert-NoLink",
+        "Assert-TaskDependencies",
+        "Get-TaskEntries",
+        "Read-TaskJson",
+        "Resolve-TaskInput"
+      ],
+      "added": [
+        "Add-TaskPathCatalogueEntry",
+        "Assert-TaskRawJsonBytes",
+        "Get-TaskCanonicalPath",
+        "Get-TaskCatalogueEntryPath",
+        "Get-TaskCatalogueString",
+        "Initialize-TaskPathCatalogue",
+        "Test-TaskPathCatalogueContext"
+      ],
+      "removed": [
+        "Assert-TaskDependencyJsonShape"
+      ]
+    },
+    "bootstrap": {
+      "values": 9922,
+      "keys": 6056,
+      "max_string_units": 435,
+      "container_depth": 4,
+      "floating_values": 0,
+      "nodes_and_keys": 15978
+    },
+    "current_fence": 1225,
+    "max_identity_catalogue": 1294,
+    "alias_slots": 2662,
+    "parent_string_slots": 84110,
+    "own5_bytes": 655037,
+    "retained_reservation_arithmetic_only": 781778011,
+    "retention_headroom_arithmetic_only": 99025829
+  },
+  "whole_correspondence": {
+    "base": "Accepted exact R9 whole functional review27B51F4AB48EEEFAC4E0BD12AD7AEF3573B083DDBDA82F0ED8F617B077F015E4. All56unchanged helpers and identical CPP/header retained; all5changed bodies/7new bodies and whole source/main/metadata differences read. Removed dependency shape wrapper is replaced by its same node formula at actual byte-helper caller.",
+    "unchanged_runtime_contracts": [
+      "all false source/work/execution/compiler/producer/verifier/peak/Ready flags",
+      "same76-family declaration-only Catalogue/no price data definitions",
+      "all56reference files/16,929,027dense words/785fractions/nativeinverse and both actual production endpoints perQ",
+      "all14admitted CPPcontrols/84operand normalizations and unchanged19SDKparser invocations at4sites",
+      "same10runner IDs, first9controls byte-exact, same tenth21-unit witness and2legal boundary values exercise new byte helper",
+      "same7200polls/7201gate/1800seconds/250ms/two-second settlement/cancel/reap/quarantine/error policy",
+      "sameoneattempt, retained840MiB/scratch32MiB/stage64MiB and production2^28/512MiB/1GiB limits",
+      "sameoriginal file content/stat/open-length/containment/current hash/reparse/source-before-after fence checks and exact serialization output schema"
+    ],
+    "manifest_changes": "Only new current identity/inventory/source profiles, R10 lineage/mechanism/hold metadata, output array cardinality and corresponding retention arithmetic changed; old historical sections remain historical and unchanged. Compiler/env/references/control_files/compiler outputs/stage files/module controls/gate controls/fraction residues structurally match R9."
+  },
+  "byte_grammar_proof": {
+    "locations": [
+      557,
+      563,
+      565,
+      566,
+      567,
+      644,
+      647,
+      657
+    ],
+    "preconditions": "Original byte[] admitted<=4MiB; strict UTF8Encoding(false,true).GetCharCount(bytes,0,length) runs before byte grammar and before any document-byte write. It validates UTF8 without constructing an input-sized decoded string. Empty/invalid encoding or invalid JSON cannot reach compaction/SDK.",
+    "state_correspondence": "Same R9 document state0/1, array10/11/12 and object20/21/22/23/24; parent advances before child, matchingclose checks retain half-complete/trailing-comma/value/key refusal. Node/key increments and MaximumDepth+1 byte state storage preserve current profiles. Whitespace consumes original bytes only, so t r u e,1 2,truefalse,adjacent strings or unseparated array values refuse before rewriting.",
+    "UTF8_step": "Every raw-string cursor starts at a scalar boundary. After complete strict validation, raw leadsC2..DF/E0..EF/F0..F4 skip1/2/3 continuation bytes respectively. Two/three-byte scalars count1 UTF16 unit; four-byte scalars count2. ASCII quotes/backslashes/whitespace cannot occur as UTF8 continuation bytes. A pending escaped high surrogate rejects any raw nonASCII scalar; it cannot be incorrectly paired with a raw supplementary scalar.",
+    "surrogate_equivalence": "R9 decodes a raw supplementary scalar into a paired high/low sequence; the new atomic2-unit branch has identical accepted count/final surrogate state. Escaped four-hex values retain R9 high/low-state rules across adjacent escape characters; invalid/unpaired high or low and short escapes after a high refuse. Raw UTF8 encoding of surrogate scalars is rejected by strictGetCharCount. Quoted U+FEFF counts1; BOM outside strings remains unsupported as under R9.",
+    "string_domain": "ASCII controls<32, invalid escape kind/truncation, incomplete hex, unclosed quotes, unpaired surrogates and maximum decoded UTF16 units reject at original boundaries. Escape byte spans and raw multibyte counts preserve the complete R9 supported string domain; no rejected token substring, BigInteger, AST or new SDK is introduced.",
+    "integer_domain": "ASCII sign/digit/leadingzero/20-unit includingminus and lexicographic magnitude checks are the same source logic, with byte accesses replacing UTF16 accesses. Full Int64.MinValue..UInt64.MaxValue and -0 remain admitted. Plus/fraction/exponent/nondecimal/comment/identifier syntax remains refused; the21-unit actual negative control still rejects with observed21/maximum20.",
+    "compaction_induction": "Entry only after complete original grammar and finalstate check. At start of each original byte iteration0<=write<=read<length. The pass reads current byte before at mostone write, then advancesread; therefore no future unread byte changes. Quoted/escaped state preserves every inside-string byte, including escaped quote/backslash parity and UTF8. Only JSON32/9/10/13 outside strings is omitted. Original validtoken separators can be removed without joining previously invalid tokens because invalid original documents never enter this pass. Return0<=compactLength<=originalLength; caller decodes only[0,compactLength).",
+    "identity_before_rewrite": "Bootstrap SHA compares same captured original bytes at868 before bytehelper870. Predecessor same pinned captured-byte SHA at668 precedes670. Dependency build descriptor must match canonical source-dependencies path exactlyonce at841-843 and its SHA is checked on SAME captured array at667 before670. Original files are unchanged; hashes are not taken after in-memory compaction.",
+    "callers": "Bootstrap one byte admission+one prefixGetString; ReadTaskJson predecessor/dependency one each, one prefixGetString per call; child controls14 and summaries2 retain byte-exact R9 string-admission helper and exactSDK/schema/projection. Boundarycalls3 invoke bytehelper and fixed GetBytes20+20+21=61. Normal3byte+16string, boundary3byte =>22total. AddTaskJsonVisit unchanged explicit occasions/cap is correctly described as admitted extents, not all internal passes or a new scalar fee.",
+    "not_executed": "This is source/invariant reasoning. No target PS parser/AST/helper, differential test, alternate executable grammar, compiler or SDK parse was run."
+  },
+  "path_catalogue_proof": {
+    "locations": [
+      63,
+      66,
+      81,
+      96,
+      102,
+      133,
+      141,
+      461,
+      741,
+      886
+    ],
+    "approved_recipe": "Initialization after authenticated manifest/profile registers exact1220historical+4own+manifest+56reference+3compiler+4control+6stage =1294 FILE identities. It grants no new file admission. Inputs/aliases/string dictionaries explicitly use Ordinal comparers. Alias lookup is conditional on exact stored repo/base/root contexts. Fields contain only source records, canonical strings, string arrays/counts and lexical links; no stat/existence/reparse/trust/hash value is cached.",
+    "guards_before_reuse": "Every ResolveTaskInput still performs original exact string512 admission, IsPathRooted/IsPathFullyQualified or derivedrepo+name512 gate BEFORE selected cache lookup. Context mismatch/unknownraw strings run original GetFullPath/Join behavior. Nonrepo entries originate from fullyqualified existing source roots. No raw partiallyqualified path is newly admitted by cache.",
+    "stable_normalization": "All cached raw/canonical paths containingtilde bypass reuse and run original GetFullPath every call, preserving filesystem-dependent shortname expansion. No known current authenticated identity containstilde. Non-tilde fullyqualified/explicitrepo-context paths normalize lexically under selected primary source; known canonical parent strings are idempotent. Ordinarydrive separator aliases are allowed only for colon-atindex1 spellings; device/UNC aliases are not rewritten. Case spelling and root provenance are not collapsed.",
+    "parent_depth": "Each completed entry allocates65references and includes at most65nonempty chain strings. At65th path the source stops before computing/storing its next-parent relation. Original NoLink rejects depth65 before attributes or parentlookup, so there is no false truncated success path. Shared pure GetDirectoryName links and stringpool deduplicate only exact strings.1294*65=84110strings; inputs<=2aliases each,74noninputs<=3aliases each =>2662.",
+    "current_checks": "AssertNoLink line144 retains original length gate, each Spend/depth increment/depth64check, File.Exists||Directory.Exists, GetAttributes and reparse refusal on each original occasion; only pure canonical/parent string calculations are substituted. GetEntries retains live iterators/stat/metadata, candidate/string/length/overflow/depth/reparse guards, partial destination and cleanup. GetHash/FileStream/open-length/EOF/contents/before-after checks remain byte-exact. No metadata cache supplies trust.",
+    "failure_ownership": "First-use/partialbuild/alias/parent dictionary failures remain fail-closed managed owners, not reclaimed storage. Catalogue is rooted for entire runner. New records/dictionaries/arrays/backings and repeated fallbacks are UNPRICED and require full new census; no selected U or32MiB bound follows."
+  },
+  "remaining_holds": [
+    "fresh whole R10 scalar helper/caller/loop/bytepass/catalogue work census; R9 total cannot transfer",
+    "complete typed capacity/lifetime/old-new overlap for new original arrays, decodedprefixes, parsed/token/writer/clone/source/container/path/env/process/error owners",
+    "all3 inherited controller environment snapshots/startup and PSModulePath profile, selected ABI/source-binary association",
+    "actual typed literal data/identity/static storage/layout review and checked derived wholeU/independent review",
+    "separate root one-attempt GO before any target parser/compiler/stage execution",
+    "vendor waveform/quality/context/Ready/rendering and production Musical activation"
+  ],
+  "findings": [],
+  "execution_boundary": {
+    "PowerShell_parser_AST": false,
+    "target_import_or_helper": false,
+    "target_test_or_differential_model": false,
+    "compiler_Cpp_program_or_stage": false,
+    "data_or_binding_created": false,
+    "guard_or_limit_changed": false,
+    "GUI_device_input": false,
+    "Git_CI": false,
+    "actual_environment_enumeration": false,
+    "source_mutation": false
+  },
+  "evidence_files": [
+    "audit.py",
+    "audit-evidence.json",
+    "run-clock-r9-r10.diff",
+    "Assert-TaskRawJsonBytes.txt",
+    "Read-TaskJson.txt",
+    "Resolve-TaskInput.txt",
+    "Assert-NoLink.txt",
+    "Get-TaskEntries.txt",
+    "Assert-TaskDependencies.txt",
+    "primary-sources/PathHelper.Windows.cs",
+    "primary-sources/UTF8Encoding.cs"
+  ]
+}

@@ -1,0 +1,17 @@
+function Assert-TaskDependencies($Build){
+ $taskReportPath=Get-TaskCanonicalPath (Join-Path $taskBuildRoot 'source-dependencies.json');$taskReportHash=$null;$taskReportMatches=0
+ foreach($taskArtifact in $Build['files']){if($taskArtifact['path'] -ceq $taskReportPath){$taskReportHash=$taskArtifact['sha256'];$taskReportMatches++}}
+ if($taskReportMatches -ne 1){throw 'DEPENDENCY_CAPTURED_REPORT_DESCRIPTOR'}
+ $taskD=Read-TaskJson $taskReportPath 4194304 $taskReportHash
+ if((Get-TaskRuntimeType $taskD) -ne [System.Management.Automation.OrderedHashtable]){throw 'DEPENDENCY_ROOT_MAP'}
+ $taskData=$taskD['Data'];if((Get-TaskRuntimeType $taskData) -ne [System.Management.Automation.OrderedHashtable]){throw 'DEPENDENCY_DATA_MAP'}
+ Assert-TaskString $taskData['Source'] 512
+ if((Resolve-TaskInput $taskData['Source']) -ine (Join-Path $taskBase 'clock_stage.cpp')){throw 'Compiler source-dependency source binding'}
+ foreach($taskKey in @('ImportedModules','ImportedHeaderUnits')){
+  if($taskData.Contains($taskKey)){if((Get-TaskRuntimeType $taskData[$taskKey]) -ne [object[]] -or $taskData[$taskKey].Length -ne 0){throw 'Unqualified compiler module/header-unit dependency'}}
+ }
+ if((Get-TaskRuntimeType $taskData['Includes']) -ne [object[]] -or $taskData['Includes'].Length -lt 1 -or $taskData['Includes'].Length -gt $taskManifest['profile']['include_input_count']){throw 'Compiler dependency Includes finite profile'}
+ foreach($taskPath in $taskData['Includes']){Assert-TaskString $taskPath 512;if(-not $taskIncludeIndex.ContainsKey((Resolve-TaskInput $taskPath))){throw 'Source-dependency include outside pre-fenced conservative inventory'}}
+ # No arbitrary parsed field is retained in the receipt.
+ return @{includes=$taskData['Includes'].Length;report_is_additional_artifact_only=$true;complete_tool_inventory_replaced=$false}
+}

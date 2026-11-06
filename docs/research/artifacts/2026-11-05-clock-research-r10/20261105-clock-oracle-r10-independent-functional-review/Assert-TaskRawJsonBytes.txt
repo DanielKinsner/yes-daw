@@ -1,0 +1,102 @@
+function Assert-TaskRawJsonBytes([byte[]]$Bytes,[int]$MaximumNodes,[int]$MaximumStringUnits,[int]$MaximumDepth){
+ # Strict UTF8 validates original bytes without allocating decoded text.
+ # Complete original-token grammar succeeds BEFORE any in-place rewrite.
+ # Frame0 is the document. Array states10/11/12: first/comma/required value;
+ # object20/21/22/23/24: first key/colon/value/comma/required key. Parent state
+ # advances before a child frame starts; closing a child never re-enters it.
+ if($MaximumNodes -le 0 -or $MaximumStringUnits -le 0 -or $MaximumStringUnits -gt 512 -or $MaximumDepth -lt 1 -or $MaximumDepth -gt 24){throw 'JSON_RAW_PROFILE'}
+ if($Bytes.Length -gt 4194304){throw 'JSON byte cap before allocation'}
+ $taskDecodedUnits=[Text.UTF8Encoding]::new($false,$true).GetCharCount($Bytes,0,$Bytes.Length)
+ $taskStates=[byte[]]::new($MaximumDepth+1);$taskLevel=0;$taskNodes=0;$taskAt=0
+ while($taskAt -lt $Bytes.Length){
+  $taskC=[int]$Bytes[$taskAt]
+  if($taskC -eq 32 -or $taskC -eq 9 -or $taskC -eq 10 -or $taskC -eq 13){$taskAt++;continue}
+  $taskState=$taskStates[$taskLevel]
+  if($taskC -eq 58){if($taskState -ne 21){throw 'JSON_RAW_COLON'};$taskStates[$taskLevel]=22;$taskAt++;continue}
+  if($taskC -eq 44){if($taskState -eq 11){$taskStates[$taskLevel]=12}elseif($taskState -eq 23){$taskStates[$taskLevel]=24}else{throw 'JSON_RAW_COMMA'};$taskAt++;continue}
+  if($taskC -eq 93 -or $taskC -eq 125){
+   if($taskLevel -eq 0 -or ($taskC -eq 93 -and $taskState -ne 10 -and $taskState -ne 11) -or ($taskC -eq 125 -and $taskState -ne 20 -and $taskState -ne 23)){throw 'JSON_RAW_CONTAINER_END'}
+   $taskLevel--;$taskAt++;continue
+  }
+  $taskKey=($taskC -eq 34 -and ($taskState -eq 20 -or $taskState -eq 24))
+  if(-not $taskKey){
+   if($taskState -eq 0){$taskStates[$taskLevel]=1}elseif($taskState -eq 10 -or $taskState -eq 12){$taskStates[$taskLevel]=11}elseif($taskState -eq 22){$taskStates[$taskLevel]=23}else{throw 'JSON_RAW_VALUE_POSITION'}
+  }
+  $taskNodes++;if($taskNodes -gt $MaximumNodes){throw 'JSON_RAW_NODE_PROFILE'}
+  if($taskC -eq 34){
+   $taskAt++;$taskStringUnits=0;$taskHigh=$false;$taskClosed=$false
+   while($taskAt -lt $Bytes.Length){
+    $taskUnit=[int]$Bytes[$taskAt];$taskAt++
+    if($taskUnit -eq 34){if($taskHigh){throw 'JSON_RAW_UNPAIRED_SURROGATE'};$taskClosed=$true;break}
+    if($taskUnit -lt 32){throw 'JSON_RAW_STRING_CONTROL'}
+    # UTF8 was strictly validated as a whole. A raw leading sequence is one
+    # scalar: two/three bytes => one UTF16 unit, four => a surrogate pair.
+    # Escaped Unicode is handled below and must NOT enter this byte branch.
+    $taskUnitCount=1
+    if($taskUnit -ge 128){
+     if($taskHigh){throw 'JSON_RAW_UNPAIRED_SURROGATE'}
+     if($taskUnit -ge 240){$taskAt+=3;$taskUnitCount=2}elseif($taskUnit -ge 224){$taskAt+=2}else{$taskAt++}
+     $taskUnit=0
+    }
+    if($taskUnit -eq 92){
+     if($taskAt -ge $Bytes.Length){throw 'JSON_RAW_ESCAPE_END'};$taskUnit=[int]$Bytes[$taskAt];$taskAt++
+     if($taskUnit -eq 117){
+      $taskUnit=0
+      for($taskHexAt=0;$taskHexAt -lt 4;$taskHexAt++){
+       if($taskAt -ge $Bytes.Length){throw 'JSON_RAW_UNICODE_END'};$taskHex=[int]$Bytes[$taskAt];$taskAt++
+       if($taskHex -ge 48 -and $taskHex -le 57){$taskDigit=$taskHex-48}elseif($taskHex -ge 65 -and $taskHex -le 70){$taskDigit=$taskHex-55}elseif($taskHex -ge 97 -and $taskHex -le 102){$taskDigit=$taskHex-87}else{throw 'JSON_RAW_UNICODE_HEX'}
+       $taskUnit=$taskUnit*16+$taskDigit
+      }
+     }elseif($taskUnit -ne 34 -and $taskUnit -ne 92 -and $taskUnit -ne 47 -and $taskUnit -ne 98 -and $taskUnit -ne 102 -and $taskUnit -ne 110 -and $taskUnit -ne 114 -and $taskUnit -ne 116){throw 'JSON_RAW_ESCAPE_KIND'}
+    }
+    if($taskHigh){if($taskUnit -lt 56320 -or $taskUnit -gt 57343){throw 'JSON_RAW_UNPAIRED_SURROGATE'};$taskHigh=$false}elseif($taskUnit -ge 55296 -and $taskUnit -le 56319){$taskHigh=$true}elseif($taskUnit -ge 56320 -and $taskUnit -le 57343){throw 'JSON_RAW_UNPAIRED_SURROGATE'}
+    $taskStringUnits+=$taskUnitCount;if($taskStringUnits -gt $MaximumStringUnits){throw 'JSON_RAW_STRING_PROFILE'}
+   }
+   if(-not $taskClosed){throw 'JSON_RAW_UNTERMINATED_STRING'}
+   if($taskKey){$taskStates[$taskLevel]=21};continue
+  }
+  if($taskC -eq 123 -or $taskC -eq 91){
+   if($taskLevel -ge $MaximumDepth){throw 'JSON_RAW_DEPTH_PROFILE'};$taskLevel++;$taskStates[$taskLevel]=$(if($taskC -eq 123){20}else{10});$taskAt++;continue
+  }
+  if($taskC -eq 116 -or $taskC -eq 102 -or $taskC -eq 110){
+   $taskLiteral=if($taskC -eq 116){'true'}elseif($taskC -eq 102){'false'}else{'null'}
+   for($taskLiteralAt=0;$taskLiteralAt -lt $taskLiteral.Length;$taskLiteralAt++){if($taskAt -ge $Bytes.Length -or $Bytes[$taskAt] -ne [int]$taskLiteral[$taskLiteralAt]){throw 'JSON_RAW_LITERAL'};$taskAt++};continue
+  }
+  # The supported fields are builtin decimal integers, Int64.MinValue through
+  # UInt64.MaxValue. Count/sign/range are checked without a token Substring,
+  # floating arithmetic, BigInteger construction or untrusted stringification.
+  $taskStart=$taskAt;$taskNegative=($taskC -eq 45)
+  if($taskNegative){$taskAt++}
+  $taskDigitsStart=$taskAt
+  if($taskAt -ge $Bytes.Length -or [int]$Bytes[$taskAt] -lt 48 -or [int]$Bytes[$taskAt] -gt 57){throw 'JSON_RAW_INTEGER_DIGIT'}
+  $taskLeadingZero=([int]$Bytes[$taskAt] -eq 48)
+  while($taskAt -lt $Bytes.Length -and [int]$Bytes[$taskAt] -ge 48 -and [int]$Bytes[$taskAt] -le 57){
+   $taskAt++;$taskScalarUnits=$taskAt-$taskStart
+   if($taskScalarUnits -gt 20){Reject-TaskGate 'JSON_RAW_SCALAR_UNITS' @{observed=$taskScalarUnits;maximum=20}}
+  }
+  $taskDigits=$taskAt-$taskDigitsStart
+  if($taskLeadingZero -and $taskDigits -ne 1){throw 'JSON_RAW_INTEGER_LEADING_ZERO'}
+  $taskMagnitudeLimit=if($taskNegative){'9223372036854775808'}else{'18446744073709551615'}
+  if($taskDigits -gt $taskMagnitudeLimit.Length){throw 'JSON_RAW_INTEGER_RANGE'}
+  if($taskDigits -eq $taskMagnitudeLimit.Length){
+   for($taskCompareAt=0;$taskCompareAt -lt $taskDigits;$taskCompareAt++){
+    $taskDigit=[int]$Bytes[$taskDigitsStart+$taskCompareAt];$taskLimitDigit=[int]$taskMagnitudeLimit[$taskCompareAt]
+    if($taskDigit -gt $taskLimitDigit){throw 'JSON_RAW_INTEGER_RANGE'};if($taskDigit -lt $taskLimitDigit){break}
+   }
+  }
+ }
+ if($taskLevel -ne 0 -or $taskStates[0] -ne 1){throw 'JSON_RAW_INCOMPLETE_DOCUMENT'}
+ # Acceptance above used ORIGINAL token boundaries. Only now compact JSON
+ # whitespace outside strings. Read>=write, so unread bytes are never changed.
+ $taskWrite=0;$taskQuoted=$false;$taskEscaped=$false
+ for($taskRead=0;$taskRead -lt $Bytes.Length;$taskRead++){
+  $taskByte=$Bytes[$taskRead]
+  if($taskQuoted){
+   $Bytes[$taskWrite]=$taskByte;$taskWrite++
+   if($taskEscaped){$taskEscaped=$false}elseif($taskByte -eq 92){$taskEscaped=$true}elseif($taskByte -eq 34){$taskQuoted=$false}
+  }elseif($taskByte -eq 32 -or $taskByte -eq 9 -or $taskByte -eq 10 -or $taskByte -eq 13){continue}else{
+   $Bytes[$taskWrite]=$taskByte;$taskWrite++;if($taskByte -eq 34){$taskQuoted=$true}
+  }
+ }
+ return $taskWrite
+}

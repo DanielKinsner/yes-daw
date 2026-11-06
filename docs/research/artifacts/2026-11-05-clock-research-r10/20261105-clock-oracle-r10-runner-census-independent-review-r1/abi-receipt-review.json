@@ -1,0 +1,2485 @@
+{
+  "scope": "Read-only independent review of existing ABI R2 frozen source identities, root receipt and finite output rows. No probe/compiler/target rerun. Receipt root author/independent source review retains its own scope.",
+  "checks": [
+    {
+      "name": "receipt SHA",
+      "actual": "39A59FC9C42715C339B6F2AD7AB1456B3850F645A6E884F9CBDC2144A3189A50",
+      "expected": "39A59FC9C42715C339B6F2AD7AB1456B3850F645A6E884F9CBDC2144A3189A50",
+      "passed": true
+    },
+    {
+      "name": "whole frozen probe.cs",
+      "actual": "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E",
+      "expected": "FE0232CE0507AA55435CCD3B880E28F0D9ED05F79C1ECE4DAABD05F454AA2F5E",
+      "passed": true
+    },
+    {
+      "name": "whole frozen run-probe.ps1",
+      "actual": "B1F85467BCBD392A58B1EBA9E3663C2A0316B2D6925DC144DEFD657B7D4323F8",
+      "expected": "B1F85467BCBD392A58B1EBA9E3663C2A0316B2D6925DC144DEFD657B7D4323F8",
+      "passed": true
+    },
+    {
+      "name": "whole frozen README.md",
+      "actual": "9283F6FA83B75EFB7802EC098B7D0DDD8A3BC7706BA12597CD5C7C083E6D08FF",
+      "expected": "9283F6FA83B75EFB7802EC098B7D0DDD8A3BC7706BA12597CD5C7C083E6D08FF",
+      "passed": true
+    },
+    {
+      "name": "whole frozen source-pins.json",
+      "actual": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431",
+      "expected": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431",
+      "passed": true
+    },
+    {
+      "name": "whole frozen run-abi.py",
+      "actual": "527610BD07139F74D3DEDEAD89C5BBD84CABF923CC8BCE5477F42D7D8DF763ED",
+      "expected": "527610BD07139F74D3DEDEAD89C5BBD84CABF923CC8BCE5477F42D7D8DF763ED",
+      "passed": true
+    },
+    {
+      "name": "stdout SHA",
+      "actual": "60D6FF3A373E8649D25772C33A0F86281F684EC298E2700E2120CF21495DA6F8",
+      "expected": "60D6FF3A373E8649D25772C33A0F86281F684EC298E2700E2120CF21495DA6F8",
+      "passed": true
+    },
+    {
+      "name": "stdout bytes",
+      "actual": 33658,
+      "expected": 33658,
+      "passed": true
+    },
+    {
+      "name": "stderr SHA",
+      "actual": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "expected": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "passed": true
+    },
+    {
+      "name": "stderr bytes",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "name": "normal raw exit",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "name": "no timeout",
+      "actual": false,
+      "expected": false,
+      "passed": true
+    },
+    {
+      "name": "complete lines",
+      "actual": 178,
+      "expected": 178,
+      "passed": true
+    },
+    {
+      "name": "measurement count",
+      "actual": 156,
+      "expected": 156,
+      "passed": true
+    },
+    {
+      "name": "derived count",
+      "actual": 21,
+      "expected": 21,
+      "passed": true
+    },
+    {
+      "name": "summary count",
+      "actual": 1,
+      "expected": 1,
+      "passed": true
+    },
+    {
+      "name": "summary failures",
+      "actual": 0,
+      "expected": 0,
+      "passed": true
+    },
+    {
+      "name": "summary checks",
+      "actual": 574,
+      "expected": 574,
+      "passed": true
+    },
+    {
+      "name": "final-gate raw exit required",
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:1:0",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:1:0",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:7:0",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:7:0",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:17:0",
+      "actual": 48,
+      "expected": 48,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:17:0",
+      "actual": 48,
+      "expected": 48,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:64:0",
+      "actual": 88,
+      "expected": 88,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:64:0",
+      "actual": 88,
+      "expected": 88,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:435:0",
+      "actual": 464,
+      "expected": 464,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:435:0",
+      "actual": 464,
+      "expected": 464,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:512:0",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:512:0",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:1:0",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:1:0",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:7:0",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:7:0",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:17:0",
+      "actual": 64,
+      "expected": 64,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:17:0",
+      "actual": 64,
+      "expected": 64,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:64:0",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:64:0",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:435:0",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:435:0",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:512:0",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:512:0",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:1:0",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:1:0",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:7:0",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:7:0",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:17:0",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:17:0",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:64:0",
+      "actual": 280,
+      "expected": 280,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:64:0",
+      "actual": 280,
+      "expected": 280,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:435:0",
+      "actual": 1768,
+      "expected": 1768,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:435:0",
+      "actual": 1768,
+      "expected": 1768,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:512:0",
+      "actual": 2072,
+      "expected": 2072,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:512:0",
+      "actual": 2072,
+      "expected": 2072,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:1:0",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:1:0",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:7:0",
+      "actual": 80,
+      "expected": 80,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:7:0",
+      "actual": 80,
+      "expected": 80,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:17:0",
+      "actual": 160,
+      "expected": 160,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:17:0",
+      "actual": 160,
+      "expected": 160,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:64:0",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:64:0",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:435:0",
+      "actual": 3504,
+      "expected": 3504,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:435:0",
+      "actual": 3504,
+      "expected": 3504,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:512:0",
+      "actual": 4120,
+      "expected": 4120,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:512:0",
+      "actual": 4120,
+      "expected": 4120,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:1:0",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:1:0",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:7:0",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:7:0",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:17:0",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:17:0",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:64:0",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:64:0",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:435:0",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:435:0",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:512:0",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:512:0",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:3:0",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:3:0",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:7:0",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:7:0",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:17:0",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:17:0",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:37:0",
+      "actual": 176,
+      "expected": 176,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:37:0",
+      "actual": 176,
+      "expected": 176,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:197:0",
+      "actual": 816,
+      "expected": 816,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:197:0",
+      "actual": 816,
+      "expected": 816,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:1931:0",
+      "actual": 7752,
+      "expected": 7752,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:1931:0",
+      "actual": 7752,
+      "expected": 7752,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:3:0",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:3:0",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:3:0",
+      "actual": 3,
+      "expected": 3,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:7:0",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:7:0",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:7:0",
+      "actual": 7,
+      "expected": 7,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:17:0",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:17:0",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:17:0",
+      "actual": 17,
+      "expected": 17,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:37:0",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:37:0",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:37:0",
+      "actual": 37,
+      "expected": 37,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:197:0",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:197:0",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:197:0",
+      "actual": 197,
+      "expected": 197,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:1931:0",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:1931:0",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:1931:0",
+      "actual": 1931,
+      "expected": 1931,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:3:0",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:3:0",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:3:0",
+      "actual": 3,
+      "expected": 3,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:7:0",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:7:0",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:7:0",
+      "actual": 7,
+      "expected": 7,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:17:0",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:17:0",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:17:0",
+      "actual": 17,
+      "expected": 17,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:37:0",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:37:0",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:37:0",
+      "actual": 37,
+      "expected": 37,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:197:0",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:197:0",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:197:0",
+      "actual": 197,
+      "expected": 197,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:1931:0",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:1931:0",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:1931:0",
+      "actual": 1931,
+      "expected": 1931,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:2:0",
+      "actual": 168,
+      "expected": 168,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:2:0",
+      "actual": 168,
+      "expected": 168,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:2:0",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:3:0",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:3:0",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:3:0",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:5:0",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:5:0",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:5:0",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:10:0",
+      "actual": 504,
+      "expected": 504,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:10:0",
+      "actual": 504,
+      "expected": 504,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:10:0",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:1:1",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:1:1",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:7:1",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:7:1",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:17:1",
+      "actual": 48,
+      "expected": 48,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:17:1",
+      "actual": 48,
+      "expected": 48,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:64:1",
+      "actual": 88,
+      "expected": 88,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:64:1",
+      "actual": 88,
+      "expected": 88,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:435:1",
+      "actual": 464,
+      "expected": 464,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:435:1",
+      "actual": 464,
+      "expected": 464,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:512:1",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:512:1",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:1:1",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:1:1",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:7:1",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:7:1",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:17:1",
+      "actual": 64,
+      "expected": 64,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:17:1",
+      "actual": 64,
+      "expected": 64,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:64:1",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:64:1",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:435:1",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:435:1",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:512:1",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:512:1",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:1:1",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:1:1",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:7:1",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:7:1",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:17:1",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:17:1",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:64:1",
+      "actual": 280,
+      "expected": 280,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:64:1",
+      "actual": 280,
+      "expected": 280,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:435:1",
+      "actual": 1768,
+      "expected": 1768,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:435:1",
+      "actual": 1768,
+      "expected": 1768,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:512:1",
+      "actual": 2072,
+      "expected": 2072,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:512:1",
+      "actual": 2072,
+      "expected": 2072,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:1:1",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:1:1",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:7:1",
+      "actual": 80,
+      "expected": 80,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:7:1",
+      "actual": 80,
+      "expected": 80,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:17:1",
+      "actual": 160,
+      "expected": 160,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:17:1",
+      "actual": 160,
+      "expected": 160,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:64:1",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:64:1",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:435:1",
+      "actual": 3504,
+      "expected": 3504,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:435:1",
+      "actual": 3504,
+      "expected": 3504,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:512:1",
+      "actual": 4120,
+      "expected": 4120,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:512:1",
+      "actual": 4120,
+      "expected": 4120,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:1:1",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:1:1",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:7:1",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:7:1",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:17:1",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:17:1",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:64:1",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:64:1",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:435:1",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:435:1",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:512:1",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:512:1",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:3:1",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:3:1",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:7:1",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:7:1",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:17:1",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:17:1",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:37:1",
+      "actual": 176,
+      "expected": 176,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:37:1",
+      "actual": 176,
+      "expected": 176,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:197:1",
+      "actual": 816,
+      "expected": 816,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:197:1",
+      "actual": 816,
+      "expected": 816,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:1931:1",
+      "actual": 7752,
+      "expected": 7752,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:1931:1",
+      "actual": 7752,
+      "expected": 7752,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:3:1",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:3:1",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:3:1",
+      "actual": 3,
+      "expected": 3,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:7:1",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:7:1",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:7:1",
+      "actual": 7,
+      "expected": 7,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:17:1",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:17:1",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:17:1",
+      "actual": 17,
+      "expected": 17,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:37:1",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:37:1",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:37:1",
+      "actual": 37,
+      "expected": 37,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:197:1",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:197:1",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:197:1",
+      "actual": 197,
+      "expected": 197,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:1931:1",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:1931:1",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:1931:1",
+      "actual": 1931,
+      "expected": 1931,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:3:1",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:3:1",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:3:1",
+      "actual": 3,
+      "expected": 3,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:7:1",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:7:1",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:7:1",
+      "actual": 7,
+      "expected": 7,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:17:1",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:17:1",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:17:1",
+      "actual": 17,
+      "expected": 17,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:37:1",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:37:1",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:37:1",
+      "actual": 37,
+      "expected": 37,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:197:1",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:197:1",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:197:1",
+      "actual": 197,
+      "expected": 197,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:1931:1",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:1931:1",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:1931:1",
+      "actual": 1931,
+      "expected": 1931,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:2:1",
+      "actual": 168,
+      "expected": 168,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:2:1",
+      "actual": 168,
+      "expected": 168,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:2:1",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:3:1",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:3:1",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:3:1",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:5:1",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:5:1",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:5:1",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:10:1",
+      "actual": 504,
+      "expected": 504,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:10:1",
+      "actual": 504,
+      "expected": 504,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:10:1",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:1:2",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:1:2",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:7:2",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:7:2",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:17:2",
+      "actual": 48,
+      "expected": 48,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:17:2",
+      "actual": 48,
+      "expected": 48,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:64:2",
+      "actual": 88,
+      "expected": 88,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:64:2",
+      "actual": 88,
+      "expected": 88,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:435:2",
+      "actual": 464,
+      "expected": 464,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:435:2",
+      "actual": 464,
+      "expected": 464,
+      "passed": true
+    },
+    {
+      "name": "counter delta Byte:512:2",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Byte:512:2",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:1:2",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:1:2",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:7:2",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:7:2",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:17:2",
+      "actual": 64,
+      "expected": 64,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:17:2",
+      "actual": 64,
+      "expected": 64,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:64:2",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:64:2",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:435:2",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:435:2",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "counter delta Char:512:2",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Char:512:2",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:1:2",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:1:2",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:7:2",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:7:2",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:17:2",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:17:2",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:64:2",
+      "actual": 280,
+      "expected": 280,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:64:2",
+      "actual": 280,
+      "expected": 280,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:435:2",
+      "actual": 1768,
+      "expected": 1768,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:435:2",
+      "actual": 1768,
+      "expected": 1768,
+      "passed": true
+    },
+    {
+      "name": "counter delta Int:512:2",
+      "actual": 2072,
+      "expected": 2072,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Int:512:2",
+      "actual": 2072,
+      "expected": 2072,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:1:2",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:1:2",
+      "actual": 32,
+      "expected": 32,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:7:2",
+      "actual": 80,
+      "expected": 80,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:7:2",
+      "actual": 80,
+      "expected": 80,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:17:2",
+      "actual": 160,
+      "expected": 160,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:17:2",
+      "actual": 160,
+      "expected": 160,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:64:2",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:64:2",
+      "actual": 536,
+      "expected": 536,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:435:2",
+      "actual": 3504,
+      "expected": 3504,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:435:2",
+      "actual": 3504,
+      "expected": 3504,
+      "passed": true
+    },
+    {
+      "name": "counter delta Reference:512:2",
+      "actual": 4120,
+      "expected": 4120,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Reference:512:2",
+      "actual": 4120,
+      "expected": 4120,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:1:2",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:1:2",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:7:2",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:7:2",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:17:2",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:17:2",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:64:2",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:64:2",
+      "actual": 152,
+      "expected": 152,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:435:2",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:435:2",
+      "actual": 896,
+      "expected": 896,
+      "passed": true
+    },
+    {
+      "name": "counter delta String:512:2",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "predicted delta String:512:2",
+      "actual": 1048,
+      "expected": 1048,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:3:2",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:3:2",
+      "actual": 40,
+      "expected": 40,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:7:2",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:7:2",
+      "actual": 56,
+      "expected": 56,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:17:2",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:17:2",
+      "actual": 96,
+      "expected": 96,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:37:2",
+      "actual": 176,
+      "expected": 176,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:37:2",
+      "actual": 176,
+      "expected": 176,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:197:2",
+      "actual": 816,
+      "expected": 816,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:197:2",
+      "actual": 816,
+      "expected": 816,
+      "passed": true
+    },
+    {
+      "name": "counter delta BucketInt:1931:2",
+      "actual": 7752,
+      "expected": 7752,
+      "passed": true
+    },
+    {
+      "name": "predicted delta BucketInt:1931:2",
+      "actual": 7752,
+      "expected": 7752,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:3:2",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:3:2",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:3:2",
+      "actual": 3,
+      "expected": 3,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:7:2",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:7:2",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:7:2",
+      "actual": 7,
+      "expected": 7,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:17:2",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:17:2",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:17:2",
+      "actual": 17,
+      "expected": 17,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:37:2",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:37:2",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:37:2",
+      "actual": 37,
+      "expected": 37,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:197:2",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:197:2",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:197:2",
+      "actual": 197,
+      "expected": 197,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictObject:1931:2",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictObject:1931:2",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictObject:1931:2",
+      "actual": 1931,
+      "expected": 1931,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:3:2",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:3:2",
+      "actual": 216,
+      "expected": 216,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:3:2",
+      "actual": 3,
+      "expected": 3,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:7:2",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:7:2",
+      "actual": 328,
+      "expected": 328,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:7:2",
+      "actual": 7,
+      "expected": 7,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:17:2",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:17:2",
+      "actual": 608,
+      "expected": 608,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:17:2",
+      "actual": 17,
+      "expected": 17,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:37:2",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:37:2",
+      "actual": 1168,
+      "expected": 1168,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:37:2",
+      "actual": 37,
+      "expected": 37,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:197:2",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:197:2",
+      "actual": 5648,
+      "expected": 5648,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:197:2",
+      "actual": 197,
+      "expected": 197,
+      "passed": true
+    },
+    {
+      "name": "counter delta DictString:1931:2",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "predicted delta DictString:1931:2",
+      "actual": 54200,
+      "expected": 54200,
+      "passed": true
+    },
+    {
+      "name": "public capacity DictString:1931:2",
+      "actual": 1931,
+      "expected": 1931,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:2:2",
+      "actual": 168,
+      "expected": 168,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:2:2",
+      "actual": 168,
+      "expected": 168,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:2:2",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:3:2",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:3:2",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:3:2",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:5:2",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:5:2",
+      "actual": 264,
+      "expected": 264,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:5:2",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "counter delta Hashtable:10:2",
+      "actual": 504,
+      "expected": 504,
+      "passed": true
+    },
+    {
+      "name": "predicted delta Hashtable:10:2",
+      "actual": 504,
+      "expected": 504,
+      "passed": true
+    },
+    {
+      "name": "no invented public capacity Hashtable:10:2",
+      "actual": -1,
+      "expected": -1,
+      "passed": true
+    },
+    {
+      "name": "array header Byte:0",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "array header Char:0",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "array header Int:0",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "array header Reference:0",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "dictionary DictObject:0",
+      "actual": [
+        24,
+        80,
+        24
+      ],
+      "expected": [
+        24,
+        80,
+        24
+      ],
+      "passed": true
+    },
+    {
+      "name": "dictionary DictString:0",
+      "actual": [
+        24,
+        80,
+        24
+      ],
+      "expected": [
+        24,
+        80,
+        24
+      ],
+      "passed": true
+    },
+    {
+      "name": "Hashtable 0",
+      "actual": [
+        24,
+        72
+      ],
+      "expected": [
+        24,
+        72
+      ],
+      "passed": true
+    },
+    {
+      "name": "array header Byte:1",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "array header Char:1",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "array header Int:1",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "array header Reference:1",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "dictionary DictObject:1",
+      "actual": [
+        24,
+        80,
+        24
+      ],
+      "expected": [
+        24,
+        80,
+        24
+      ],
+      "passed": true
+    },
+    {
+      "name": "dictionary DictString:1",
+      "actual": [
+        24,
+        80,
+        24
+      ],
+      "expected": [
+        24,
+        80,
+        24
+      ],
+      "passed": true
+    },
+    {
+      "name": "Hashtable 1",
+      "actual": [
+        24,
+        72
+      ],
+      "expected": [
+        24,
+        72
+      ],
+      "passed": true
+    },
+    {
+      "name": "array header Byte:2",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "array header Char:2",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "array header Int:2",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "array header Reference:2",
+      "actual": 24,
+      "expected": 24,
+      "passed": true
+    },
+    {
+      "name": "dictionary DictObject:2",
+      "actual": [
+        24,
+        80,
+        24
+      ],
+      "expected": [
+        24,
+        80,
+        24
+      ],
+      "passed": true
+    },
+    {
+      "name": "dictionary DictString:2",
+      "actual": [
+        24,
+        80,
+        24
+      ],
+      "expected": [
+        24,
+        80,
+        24
+      ],
+      "passed": true
+    },
+    {
+      "name": "Hashtable 2",
+      "actual": [
+        24,
+        72
+      ],
+      "expected": [
+        24,
+        72
+      ],
+      "passed": true
+    }
+  ],
+  "failures": [],
+  "qualified_finite_coefficients": {
+    "array_header": 24,
+    "tested_alignment": 8,
+    "reference_stride": 8,
+    "dictionary_entry_stride": 24,
+    "dictionary_fixed_object": 80,
+    "Hashtable_bucket_stride": 24,
+    "Hashtable_fixed_object": 72
+  },
+  "limit": "Current pinned Windows x64 .NET10.0.11 caller/constructors and fixed finite sizes only. Entry decomposition uses source two-array/common-header premise. No generic unobserved layout, Hashtable private capacity observation, peak/reclaim/ABI-wide theorem, R10 fit, price or GO.",
+  "receipt_sha256": "39A59FC9C42715C339B6F2AD7AB1456B3850F645A6E884F9CBDC2144A3189A50",
+  "source_manifest_sha256": "82F9E7B92837974001616B1D686B551D7778187383E7A4AF9EE3D5C81E9BD431",
+  "stdout_sha256": "60D6FF3A373E8649D25772C33A0F86281F684EC298E2700E2120CF21495DA6F8"
+}

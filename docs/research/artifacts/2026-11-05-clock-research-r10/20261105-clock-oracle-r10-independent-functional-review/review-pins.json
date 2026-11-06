@@ -1,0 +1,72 @@
+{
+  "schema": "YESDAW_R10_FUNCTIONAL_REVIEW_PINS_V1",
+  "verdict": "WHOLE_FUNCTIONAL_SOURCE_ACCEPT_ONLY_UNRUN",
+  "source_only": true,
+  "files": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Assert-NoLink.txt",
+      "bytes": 644,
+      "sha256": "31DE6D632202DA09BAA1014F5635A30B88EAB2F76E1BDFE9E35DF23E2859718E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Assert-TaskDependencies.txt",
+      "bytes": 1830,
+      "sha256": "7C108FBB50D5B4F7C70FC8E268170F2D4BD48BBA9F2CD85FC6E1D0D20FA3AD12"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Assert-TaskRawJsonBytes.txt",
+      "bytes": 7016,
+      "sha256": "408D55883E67E1FE590C3F4752F0C7EB86A933E25D0AF1E30173B457387AFC75"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/audit-evidence.json",
+      "bytes": 1672797,
+      "sha256": "DBE48C2F661C7D364DBD6B76226673B1D5627EC6D56DF89962073EACE9F4E428"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/audit.py",
+      "bytes": 7353,
+      "sha256": "9C177DBE646AF43822E19B277402F562B2D739385B7337FD4860A5896230917A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Get-TaskEntries.txt",
+      "bytes": 2233,
+      "sha256": "7DC85804F0C58CE924C3FAA2B3EEE0394F027BA4906BD180A3D9F63B429FB24A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/primary-sources/PathHelper.Windows.cs",
+      "bytes": 10890,
+      "sha256": "1AD8B06C5615896C1DA6DEEA0C0D83E458040A6D4A7E2A3A0FB783AE7E7046FD"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/primary-sources/UTF8Encoding.cs",
+      "bytes": 40321,
+      "sha256": "47F5E4C98751367A86329AB1E0A76D86B39FD076A5B019284694F39D40FD9011"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Read-TaskJson.txt",
+      "bytes": 1124,
+      "sha256": "7C93DE6919DCDC16AE3BE3601C70D5C1AA37FE3CFB5950B6C7073A58E982C64E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/Resolve-TaskInput.txt",
+      "bytes": 737,
+      "sha256": "4E5BDEC2369F8F5E7799559DFD2107E2960C413A8C4EAEB9757B9335D6F93C4D"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/review.json",
+      "bytes": 15330,
+      "sha256": "E7361FD1B35AEB219EA659C32DECAAF589C611F30C0E1C56C2912BD9AAB5D72F"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/review.md",
+      "bytes": 2030,
+      "sha256": "2B54C1B911D426804BEAD1593E9976207AF41BD93DB7927E01A8E9B912D0A41A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-independent-functional-review/run-clock-r9-r10.diff",
+      "bytes": 31199,
+      "sha256": "1E29B112AB55CC376A81E007139A182BD961CAD865637BC7C93C549D8B4A37A5"
+    }
+  ]
+}
