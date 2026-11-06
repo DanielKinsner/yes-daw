@@ -1,0 +1,52 @@
+{
+  "scope": "ROOT_ADOPTION_OF_COMPLETE_FUNCTIONAL_SOURCE_CORRESPONDENCE_ONLY",
+  "verdict": "ACCEPT_FUNCTIONAL_SOURCE_ONLY_NATIVE_PREMISES_HOLD",
+  "candidate_pins_sha256": "4ED6C4F3EF0FCA1A7066C9FEA12CD9D2706AF9B956486EC6783D133C2345553C",
+  "candidate_whole_freeze_sha256": "0922A22B37064DC71A0F760EE655FBA2FF9ABF5679E8D7628C89E9320EFE9CB0",
+  "review_json_sha256": "860D025D5EA98F2B295F080A86FA5666FEF029C56227349ED19F1AA0832C6B12",
+  "review_argument_raw_sha256": "C727C96A1029D9C3C6F52F922014BF172EDCB2F655F4BD58994A5473FB65C779",
+  "review_source_pins_sha256": "DE3EA56DA173929CEE880F15846CC2CCA268CAB7297FC1A7421349AE5C74732A",
+  "review_freeze_sha256": "E41AEAD77D8AA7D1BBED1AE6B1F0AD7FC97B7917051AE683B61A960517CAFDB8",
+  "review_source_checks": 6225,
+  "reviewer_is_candidate_author": false,
+  "supported_source_findings": [],
+  "native_stage_iterator_progress": "HOLD: no finite dot multiplicity premise; no observed repeated-dot runtime failure",
+  "R17_source_only_successor_authorized": "two distinct seen-dot booleans; repeat pseudo-entry refuses existing StageExtent; original seventh/eighth non-dot policy and all byte/name/wire caps unchanged",
+  "R16_unfinished_symbolic_census": "preserved unfinished, no complete gate, price or coverage acceptance; successor source authoring takes priority",
+  "source_archive": {
+    "path": "docs/research/artifacts/2026-11-06-clock-owned-supervisor-source-r3/archive-manifest.json",
+    "files": 135,
+    "sha256": "D7AC4D552A011B9CE2F93E6D218E4F055F9D82795EBADF10724174CDE0D343E9"
+  },
+  "review_archive": {
+    "path": "docs/research/artifacts/2026-11-06-r16-supervisor-functional-independent-review-r1/archive-manifest.json",
+    "files": 41,
+    "sha256": "576D67791F8D51DA9B6FBDB596C30A441CE0C4B49943DE76D2B56B97793D8497"
+  },
+  "review_chunked_delivery_freeze_sha256": "F7F631B58E917E8CB177E53E4B54B0DBBB56AAE2C23BA5ADFA56BC7224E0508D",
+  "review_preservation": {
+    "original_files": 42,
+    "original_bytes": 540637273,
+    "raw_ZIP_local_records": 3882,
+    "chunk_files": 19,
+    "unique_blobs": 5181,
+    "metadata_input_rows": 1381,
+    "original_failed_attempts_preserved": true,
+    "ZIP_members_extracted_or_executed": false
+  },
+  "root_staged_reconstruction": {
+    "checker": "docs/research/2026-11-06-r16-staged-chunk-reconstruction-check.py",
+    "checker_sha256": "648BB5BE28C7BA572B526BE81C3AFF255558E3797A4EDB16266BA06CABDF433A",
+    "result": "docs/research/verification-results/2026-11-06-r16-staged-chunk-reconstruction.json",
+    "checks": 64232,
+    "failed": 0
+  },
+  "source_price_native_ABI_resource_profile_binding_limit_Data_GO": false,
+  "target_execution": false,
+  "preceding_CI": {
+    "commit": "c7ec81f9c51ab264407bca5604a56ab5f3e417e7",
+    "run": 42244548167,
+    "conclusion": "success",
+    "scope": "DOCS_ONLY"
+  }
+}

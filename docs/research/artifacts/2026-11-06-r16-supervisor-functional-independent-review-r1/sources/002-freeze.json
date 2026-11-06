@@ -1,0 +1,20 @@
+{
+  "files": [
+    {
+      "path": "build-ci/20261106-r16-review-archive-index-r1/builder.py",
+      "bytes": 1882,
+      "sha256": "F76E070DFE87EBE6F48329CD8473E1FCBAC56AEA60376ABDD3F6EA11A44C64A2"
+    },
+    {
+      "path": "build-ci/20261106-r16-review-archive-index-r1/README.md",
+      "bytes": 227,
+      "sha256": "174B440F8B5D642B25EF2349967977800767AD243A46ACCB4AB4CFA1F7FE0DF3"
+    },
+    {
+      "path": "build-ci/20261106-r16-review-archive-index-r1/source-pins.json",
+      "bytes": 8336,
+      "sha256": "AF4291379A7608915243045FEBD99AB50CFE089F6AECB26EBBED99628413FC1C"
+    }
+  ],
+  "target_execution": false
+}

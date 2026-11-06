@@ -1,0 +1,181 @@
+{
+  "source_only": true,
+  "defined_Data_or_real_prices": false,
+  "runtime_observation": false,
+  "models": [
+    {
+      "id": "F9-old-first-read-cut",
+      "kind": "source counterexample not runtime",
+      "predecessor_tail": true,
+      "predecessor_worker1_spend_then_resume": true,
+      "successor_worker1_admitted": false,
+      "successor_resume_admitted": false
+    },
+    {
+      "id": "no_cut",
+      "admitted_worker_groups": [
+        0,
+        1
+      ],
+      "finished_owned_worker_groups": [
+        0,
+        1
+      ],
+      "tail": false,
+      "resume_ticket": true,
+      "TargetMayHaveRun": true,
+      "runtime": false
+    },
+    {
+      "id": "before_worker0",
+      "admitted_worker_groups": [],
+      "finished_owned_worker_groups": [],
+      "tail": true,
+      "resume_ticket": false,
+      "TargetMayHaveRun": false,
+      "runtime": false
+    },
+    {
+      "id": "after_worker0_ticket",
+      "admitted_worker_groups": [
+        0
+      ],
+      "finished_owned_worker_groups": [
+        0
+      ],
+      "tail": true,
+      "resume_ticket": false,
+      "TargetMayHaveRun": false,
+      "runtime": false
+    },
+    {
+      "id": "during_worker0_started_wait",
+      "admitted_worker_groups": [
+        0
+      ],
+      "finished_owned_worker_groups": [
+        0
+      ],
+      "tail": true,
+      "resume_ticket": false,
+      "TargetMayHaveRun": false,
+      "runtime": false
+    },
+    {
+      "id": "between_workers",
+      "admitted_worker_groups": [
+        0
+      ],
+      "finished_owned_worker_groups": [
+        0
+      ],
+      "tail": true,
+      "resume_ticket": false,
+      "TargetMayHaveRun": false,
+      "runtime": false
+    },
+    {
+      "id": "after_worker1_ticket",
+      "admitted_worker_groups": [
+        0,
+        1
+      ],
+      "finished_owned_worker_groups": [
+        0,
+        1
+      ],
+      "tail": true,
+      "resume_ticket": false,
+      "TargetMayHaveRun": false,
+      "runtime": false
+    },
+    {
+      "id": "after_workers",
+      "admitted_worker_groups": [
+        0,
+        1
+      ],
+      "finished_owned_worker_groups": [
+        0,
+        1
+      ],
+      "tail": true,
+      "resume_ticket": false,
+      "TargetMayHaveRun": false,
+      "runtime": false
+    },
+    {
+      "id": "before_resume",
+      "admitted_worker_groups": [
+        0,
+        1
+      ],
+      "finished_owned_worker_groups": [
+        0,
+        1
+      ],
+      "tail": true,
+      "resume_ticket": false,
+      "TargetMayHaveRun": false,
+      "runtime": false
+    },
+    {
+      "id": "after_resume_ticket",
+      "admitted_worker_groups": [
+        0,
+        1
+      ],
+      "finished_owned_worker_groups": [
+        0,
+        1
+      ],
+      "tail": true,
+      "resume_ticket": true,
+      "TargetMayHaveRun": true,
+      "runtime": false
+    },
+    {
+      "id": "resume admitted failure/cut",
+      "cut_after_ticket": false,
+      "failed_resume": false,
+      "MayHaveRun": true,
+      "primary": [],
+      "runtime": false
+    },
+    {
+      "id": "resume admitted failure/cut",
+      "cut_after_ticket": false,
+      "failed_resume": true,
+      "MayHaveRun": true,
+      "primary": [
+        [
+          "ResumeFailure",
+          123
+        ]
+      ],
+      "runtime": false
+    },
+    {
+      "id": "resume admitted failure/cut",
+      "cut_after_ticket": true,
+      "failed_resume": false,
+      "MayHaveRun": true,
+      "primary": [],
+      "runtime": false
+    },
+    {
+      "id": "resume admitted failure/cut",
+      "cut_after_ticket": true,
+      "failed_resume": true,
+      "MayHaveRun": true,
+      "primary": [
+        [
+          "ResumeFailure",
+          123
+        ]
+      ],
+      "runtime": false
+    }
+  ],
+  "older_F1_F8": "Independent finite source/state checks plus complete source-preservation assertions; no runtime fixture credit"
+}

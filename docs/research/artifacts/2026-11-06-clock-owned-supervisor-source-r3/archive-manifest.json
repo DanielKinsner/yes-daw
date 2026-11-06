@@ -1,0 +1,1225 @@
+{
+  "schema": "PINNED_SOURCE_PACKET_LOSSLESS_DELIVERY_V1",
+  "original_pins_sha256": "184EC0EE21CD4E067E0090318D8F5580DA6FBEAB9F8D5560ABF08CB41721FA9D",
+  "original_verdict": "PRESERVATION_ONLY_ORIGINAL_CANDIDATE_UNACCEPTED",
+  "scope": "Preservation of the named packet only. No new independent source/numeric/resource acceptance, fit, NOFIT, native binding, target execution or feature completion follows.",
+  "files": [
+    {
+      "file": "sources/001-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/author.py",
+      "original_bytes": 8172,
+      "original_sha256": "517908C07AF74941CF4C474BC7329E7355C6678203174AAE82938756B96FD889",
+      "bytes": 8172,
+      "sha256": "517908C07AF74941CF4C474BC7329E7355C6678203174AAE82938756B96FD889",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/002-authoring.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/authoring.json",
+      "original_bytes": 4092,
+      "original_sha256": "754C1132558644249BCBE200731BA36678E439F0273C8A876E2A11C2DD01455C",
+      "bytes": 4092,
+      "sha256": "754C1132558644249BCBE200731BA36678E439F0273C8A876E2A11C2DD01455C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/003-candidate-readme.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/candidate-readme.md",
+      "original_bytes": 4993,
+      "original_sha256": "22D233F2A96219EE8D43A99E72BB3E5F7BCD5670877777602A9F4174C5436FAE",
+      "bytes": 4993,
+      "sha256": "22D233F2A96219EE8D43A99E72BB3E5F7BCD5670877777602A9F4174C5436FAE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/004-check.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/check.py",
+      "original_bytes": 34096,
+      "original_sha256": "85CA2F6635D732DE15B48D6727FD1BF6CD720BF3AAC608B59573D36FA36DDF18",
+      "bytes": 34096,
+      "sha256": "85CA2F6635D732DE15B48D6727FD1BF6CD720BF3AAC608B59573D36FA36DDF18",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/005-checks.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/checks.json",
+      "original_bytes": 299524,
+      "original_sha256": "5A6269BF48318486ED1B97E5C9967A52D8C6313B22A65BEC064CB2137CA38C20",
+      "bytes": 299524,
+      "sha256": "5A6269BF48318486ED1B97E5C9967A52D8C6313B22A65BEC064CB2137CA38C20",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/006-correspondence.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/correspondence.json",
+      "original_bytes": 8239,
+      "original_sha256": "49EBF2FA740AE3B3FEA31506CE8F463D4743A249107B399C6059A402669DAD06",
+      "bytes": 8239,
+      "sha256": "49EBF2FA740AE3B3FEA31506CE8F463D4743A249107B399C6059A402669DAD06",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/007-counterexamples.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/counterexamples.json",
+      "original_bytes": 6967,
+      "original_sha256": "66FE7552F3AA826ABD25B9C5D27213F46855204925116BF64EC874A71F3AB446",
+      "bytes": 6967,
+      "sha256": "66FE7552F3AA826ABD25B9C5D27213F46855204925116BF64EC874A71F3AB446",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/008-freeze.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/freeze.json",
+      "original_bytes": 4846,
+      "original_sha256": "895F4F1BB04F955E9E40BFDC29AC29AE15AB844ECE21AF068D3DFAEF16914169",
+      "bytes": 4846,
+      "sha256": "895F4F1BB04F955E9E40BFDC29AC29AE15AB844ECE21AF068D3DFAEF16914169",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/009-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup.h",
+      "original_bytes": 11641,
+      "original_sha256": "2FAC2C57C731C7C997D67627DCB7AE15ED6995B912B433051213514018A94ECC",
+      "bytes": 11641,
+      "sha256": "2FAC2C57C731C7C997D67627DCB7AE15ED6995B912B433051213514018A94ECC",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/010-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_codec.cpp",
+      "original_bytes": 28790,
+      "original_sha256": "84C84E6E1B47883AAE58C9C68859FE980B420C58AECF7E29300DDF43840FEC53",
+      "bytes": 28790,
+      "sha256": "84C84E6E1B47883AAE58C9C68859FE980B420C58AECF7E29300DDF43840FEC53",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/011-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_core.cpp",
+      "original_bytes": 11208,
+      "original_sha256": "9EF4468E9B43E43FEBF8B44D602FDBD305B9F94ED04643A551496C8D4BB69FC1",
+      "bytes": 11208,
+      "sha256": "9EF4468E9B43E43FEBF8B44D602FDBD305B9F94ED04643A551496C8D4BB69FC1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/012-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_io.cpp",
+      "original_bytes": 25564,
+      "original_sha256": "AAFA64282A3E1C0EBE3AD10BD47FCA0FF43EEECA5DD353FD50D1A7D28ABCEA89",
+      "bytes": 25564,
+      "sha256": "AAFA64282A3E1C0EBE3AD10BD47FCA0FF43EEECA5DD353FD50D1A7D28ABCEA89",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/013-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_main.cpp",
+      "original_bytes": 25980,
+      "original_sha256": "C6848C0F94892C4EFF6461C9DB6641E737DD51E25F5369F18C9937953845A161",
+      "bytes": 25980,
+      "sha256": "C6848C0F94892C4EFF6461C9DB6641E737DD51E25F5369F18C9937953845A161",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/014-prepare-native.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/prepare-native.py",
+      "original_bytes": 892,
+      "original_sha256": "9D37D87AA9C1169F6473587AC9EBFDB0C01FCBA315262205DBB3828E9FEB7C73",
+      "bytes": 892,
+      "sha256": "9D37D87AA9C1169F6473587AC9EBFDB0C01FCBA315262205DBB3828E9FEB7C73",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/015-proposal.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/proposal.md",
+      "original_bytes": 7106,
+      "original_sha256": "B32C636B5E17D455E08D84EBD3E64D12CAE1AC72A8C798B24ED106DBD3410DB0",
+      "bytes": 7106,
+      "sha256": "B32C636B5E17D455E08D84EBD3E64D12CAE1AC72A8C798B24ED106DBD3410DB0",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/016-regressions.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/regressions.py",
+      "original_bytes": 13439,
+      "original_sha256": "D5C335AA1A02E9A22472D8C28F5A5032BC3621F826C0C9CBFE096E4E0699E578",
+      "bytes": 13439,
+      "sha256": "D5C335AA1A02E9A22472D8C28F5A5032BC3621F826C0C9CBFE096E4E0699E578",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/017-source-pins.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r2/source-pins.json",
+      "original_bytes": 8309,
+      "original_sha256": "5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1",
+      "bytes": 8309,
+      "sha256": "5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/018-freeze.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r2/freeze.json",
+      "original_bytes": 4846,
+      "original_sha256": "895F4F1BB04F955E9E40BFDC29AC29AE15AB844ECE21AF068D3DFAEF16914169",
+      "bytes": 4846,
+      "sha256": "895F4F1BB04F955E9E40BFDC29AC29AE15AB844ECE21AF068D3DFAEF16914169",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/019-source-pins.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r2/source-pins.json",
+      "original_bytes": 8309,
+      "original_sha256": "5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1",
+      "bytes": 8309,
+      "sha256": "5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/020-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/author.py",
+      "original_bytes": 14345,
+      "original_sha256": "13E9C94E778E2F743EBE6B64BB130F7C4AA3229CF5650A7FC7F51619639D8610",
+      "bytes": 14345,
+      "sha256": "13E9C94E778E2F743EBE6B64BB130F7C4AA3229CF5650A7FC7F51619639D8610",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/021-candidate-readme.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/candidate-readme.md",
+      "original_bytes": 1450,
+      "original_sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "bytes": 1450,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/022-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup.h",
+      "original_bytes": 11753,
+      "original_sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE",
+      "bytes": 11753,
+      "sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/023-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_codec.cpp",
+      "original_bytes": 28800,
+      "original_sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1",
+      "bytes": 28800,
+      "sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/024-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_core.cpp",
+      "original_bytes": 11332,
+      "original_sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680",
+      "bytes": 11332,
+      "sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/025-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_io.cpp",
+      "original_bytes": 25641,
+      "original_sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F",
+      "bytes": 25641,
+      "sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/026-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_main.cpp",
+      "original_bytes": 26531,
+      "original_sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721",
+      "bytes": 26531,
+      "sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/027-first-green-review-freeze.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-r15-supervisor-functional-independent-review-r1/first-green-review-freeze.json",
+      "original_bytes": 1989,
+      "original_sha256": "8D68D9BA4F652BEDD83A64B89C5C459577789631D6F190441F589CED01B14788",
+      "bytes": 1989,
+      "sha256": "8D68D9BA4F652BEDD83A64B89C5C459577789631D6F190441F589CED01B14788",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/028-review.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-r15-supervisor-functional-independent-review-r1/review.json",
+      "original_bytes": 6397,
+      "original_sha256": "48B4373D394809EE3AEA5E2A0B2D89BD19FEF64AEA088FABA9897FF01AFC45E8",
+      "bytes": 6397,
+      "sha256": "48B4373D394809EE3AEA5E2A0B2D89BD19FEF64AEA088FABA9897FF01AFC45E8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/029-review.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-r15-supervisor-functional-independent-review-r1/review.md",
+      "original_bytes": 13564,
+      "original_sha256": "FA57CD7CABE11DB932A14AE87AFBE7A9EDBB6156FCFA7513E065F7D83EF708ED",
+      "bytes": 13564,
+      "sha256": "FA57CD7CABE11DB932A14AE87AFBE7A9EDBB6156FCFA7513E065F7D83EF708ED",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/030-source-pins.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/20261106-r15-supervisor-functional-independent-review-r1/source-pins.json",
+      "original_bytes": 315148,
+      "original_sha256": "2F455971EAE1F023BA5D49FF295C893736997C846A0D73E71DF29A57A5B3980A",
+      "bytes": 315148,
+      "sha256": "2F455971EAE1F023BA5D49FF295C893736997C846A0D73E71DF29A57A5B3980A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/031-clock_stage.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/032-README.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/README.md",
+      "original_bytes": 5003,
+      "original_sha256": "180849DFAF0F4A4B74D753AE6402CCEBA86C485FECA98B699042C0C7E9F3C447",
+      "bytes": 5003,
+      "sha256": "180849DFAF0F4A4B74D753AE6402CCEBA86C485FECA98B699042C0C7E9F3C447",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/033-run-clock.ps1",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/run-clock.ps1",
+      "original_bytes": 131334,
+      "original_sha256": "6B1016841798BA2B4D6F7CEAEFC8F663F3A5FE0D7CEC3CEC34355EC71B527A38",
+      "bytes": 131334,
+      "sha256": "6B1016841798BA2B4D6F7CEAEFC8F663F3A5FE0D7CEC3CEC34355EC71B527A38",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/034-source-costs.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/035-source-manifest.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/inputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/source-manifest.json",
+      "original_bytes": 516072,
+      "original_sha256": "BDC2BE017BDF269691D727AE10A489FD6C1EFBB82F2B1C71DB392B1728D1B86F",
+      "bytes": 516072,
+      "sha256": "BDC2BE017BDF269691D727AE10A489FD6C1EFBB82F2B1C71DB392B1728D1B86F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/036-authoring.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/authoring.json",
+      "original_bytes": 4713,
+      "original_sha256": "C99F27FC16169A881A5E6449BA9004A38B31412C5AB67A8FF992EB5699356377",
+      "bytes": 4713,
+      "sha256": "C99F27FC16169A881A5E6449BA9004A38B31412C5AB67A8FF992EB5699356377",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/037-metadata-derivation.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/metadata-derivation.json",
+      "original_bytes": 11410,
+      "original_sha256": "C73D51790A4C52C54720E7814F76B4BECF9F52D026502627817D405DDE50C58E",
+      "bytes": 11410,
+      "sha256": "C73D51790A4C52C54720E7814F76B4BECF9F52D026502627817D405DDE50C58E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/038-clock_stage.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/outputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/039-README.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/outputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/README.md",
+      "original_bytes": 1450,
+      "original_sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "bytes": 1450,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/040-run-clock.ps1",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/outputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/run-clock.ps1",
+      "original_bytes": 131334,
+      "original_sha256": "86415D55AA1CF8ABED45A4E0879272C739BD5A16C0056534288B339C7DCF96BB",
+      "bytes": 131334,
+      "sha256": "86415D55AA1CF8ABED45A4E0879272C739BD5A16C0056534288B339C7DCF96BB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/041-source-costs.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/outputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/042-source-manifest.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/outputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-manifest.json",
+      "original_bytes": 521861,
+      "original_sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9",
+      "bytes": 521861,
+      "sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/043-result.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/result.json",
+      "original_bytes": 73,
+      "original_sha256": "6A1E7526D75EE1C14A2A4D8A324AAEDA384F26C4310764F2FB14B4BA2C3A9932",
+      "bytes": 73,
+      "sha256": "6A1E7526D75EE1C14A2A4D8A324AAEDA384F26C4310764F2FB14B4BA2C3A9932",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/044-stderr.txt",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/stderr.txt",
+      "original_bytes": 0,
+      "original_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/045-stdout.txt",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author-attempts/attempt-01/stdout.txt",
+      "original_bytes": 891,
+      "original_sha256": "D990F12ED45D7B85BB605CA749C49A659B2D2609D3D48986B2057CF06CE1B33D",
+      "bytes": 890,
+      "sha256": "16ED1313BC86B4E615B96F73474B90D643ACFB69D1F44D52BB61537CCE6C8583",
+      "transformation": "LF_DISPLAY_TRAILING_SPACE_SINGLE_EOF_LF_RAW_BASE64_PRESERVED",
+      "original_raw_base64": "eyJjYW5kaWRhdGUiOiAiYnVpbGQtY2kvbXVzaWNhbC1hdWRpby1wZXJzaXN0ZW50LXBsYW5uZXItY2VydGlmaWNhdGlvbi9zb3VyY2UtcmV2aXNpb25zL2Nsb2NrLW9yYWNsZS1yMTYtb3duZWQtc3VwZXJ2aXNvci1zb3VyY2UtcjEiLCAiaW5wdXRzIjogMTI1MCwgImJ5dGVzIjogNDYyNTg1NzEyLCAiYm9vdHN0cmFwX25vZGVzIjogMTY3MzEsICJnZW9tZXRyeSI6IFs0LCA0MzVdLCAiY291bnRzIjogeyJwcm9zcGVjdGl2ZV9yZWNpcGVfZmlsZXMiOiA3NSwgIm5vcm1hbF9wcmVidW5kbGVfc3VjY2Vzc19maWxlcyI6IDczLCAiZmluYWxfbm9ybWFsX3N1Y2Nlc3NfZmlsZXMiOiA3NCwgImZhaWx1cmVfZXh0cmFfZmlsZV9wb3NpdGlvbnMiOiAxLCAicmF3X2ZhaWxlZF9wcmVmaXhfZmlsZV9yb3dzX21heCI6IDg1LCAicm9vdF93YWxrX2VudHJpZXNfYWRtaXNzaW9uX21heCI6IDg1LCAicm9vdF93YWxrX2RlcHRoX2FkbWlzc2lvbl9tYXgiOiA2NCwgImNoaWxkX2NsZWFudXBfZW50cmllc19tYXgiOiAxNSwgImZpeGVkX3NlY29uZGFyeV9zbG90cyI6IDExLCAiY3VycmVudF9jb21wbGV0ZV9pbnB1dHNfYW5kX2pzb25fYXJyYXlfbWF4IjogMTI1NiwgImNvbXBsZXRlX3BhdGhfY2F0YWxvZ3VlX3Bvc2l0aW9ucyI6IDEzMzEsICJkaXJlY3RvcnlfbmFtZXNwYWNlcyI6IDM0LCAiZGlyZWN0b3J5X25hbWVzcGFjZV9lbnRyaWVzIjogMTEwNywgImRpcmVjdG9yeV9uYW1lc3BhY2VfZmlsZXMiOiAxMDYwLCAidGFyZ2V0X2ZhbWlsaWVzIjogNzYsICJuYXRpdmVfZmFtaWxpZXMiOiAzNiwgInJhdGVfcGFpcl9jb3VudHMiOiBbNzM1LCAyNSwgMjVdLCAicGFpcl9jb25zdHJ1Y3Rpb25faW52ZW50b3J5IjogNzg1LCAibWF4aW11bV9saXZlX2NhY2hlX3Jvd3MiOiA3MzV9fQ0K"
+    },
+    {
+      "file": "sources/046-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/author.py",
+      "original_bytes": 14345,
+      "original_sha256": "13E9C94E778E2F743EBE6B64BB130F7C4AA3229CF5650A7FC7F51619639D8610",
+      "bytes": 14345,
+      "sha256": "13E9C94E778E2F743EBE6B64BB130F7C4AA3229CF5650A7FC7F51619639D8610",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/047-authoring.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/authoring.json",
+      "original_bytes": 4713,
+      "original_sha256": "C99F27FC16169A881A5E6449BA9004A38B31412C5AB67A8FF992EB5699356377",
+      "bytes": 4713,
+      "sha256": "C99F27FC16169A881A5E6449BA9004A38B31412C5AB67A8FF992EB5699356377",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/048-candidate-readme.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/candidate-readme.md",
+      "original_bytes": 1450,
+      "original_sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "bytes": 1450,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/049-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/author.py",
+      "original_bytes": 14345,
+      "original_sha256": "13E9C94E778E2F743EBE6B64BB130F7C4AA3229CF5650A7FC7F51619639D8610",
+      "bytes": 14345,
+      "sha256": "13E9C94E778E2F743EBE6B64BB130F7C4AA3229CF5650A7FC7F51619639D8610",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/050-authoring.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/authoring.json",
+      "original_bytes": 4713,
+      "original_sha256": "C99F27FC16169A881A5E6449BA9004A38B31412C5AB67A8FF992EB5699356377",
+      "bytes": 4713,
+      "sha256": "C99F27FC16169A881A5E6449BA9004A38B31412C5AB67A8FF992EB5699356377",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/051-candidate-readme.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/candidate-readme.md",
+      "original_bytes": 1450,
+      "original_sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "bytes": 1450,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/052-check.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/check.py",
+      "original_bytes": 25947,
+      "original_sha256": "1E5F200CF5A58F6CF68C8E09115B16218A3C3481E53AD368D64127BB74BC18F8",
+      "bytes": 25947,
+      "sha256": "1E5F200CF5A58F6CF68C8E09115B16218A3C3481E53AD368D64127BB74BC18F8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/053-metadata-derivation.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/metadata-derivation.json",
+      "original_bytes": 11410,
+      "original_sha256": "C73D51790A4C52C54720E7814F76B4BECF9F52D026502627817D405DDE50C58E",
+      "bytes": 11410,
+      "sha256": "C73D51790A4C52C54720E7814F76B4BECF9F52D026502627817D405DDE50C58E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/054-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup.h",
+      "original_bytes": 11753,
+      "original_sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE",
+      "bytes": 11753,
+      "sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/055-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_codec.cpp",
+      "original_bytes": 28800,
+      "original_sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1",
+      "bytes": 28800,
+      "sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/056-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_core.cpp",
+      "original_bytes": 11332,
+      "original_sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680",
+      "bytes": 11332,
+      "sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/057-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_io.cpp",
+      "original_bytes": 25641,
+      "original_sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F",
+      "bytes": 25641,
+      "sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/058-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_main.cpp",
+      "original_bytes": 26531,
+      "original_sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721",
+      "bytes": 26531,
+      "sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/059-native-preparation.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/native-preparation.json",
+      "original_bytes": 1934,
+      "original_sha256": "F7D43026F377AAF9668E183A68DE7A4AF184BCB943A5B04550A34058F4DADA2E",
+      "bytes": 1934,
+      "sha256": "F7D43026F377AAF9668E183A68DE7A4AF184BCB943A5B04550A34058F4DADA2E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/060-prepare.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/prepare.py",
+      "original_bytes": 7653,
+      "original_sha256": "35CCF18FB808BCA4A3E83EB484D432271622A4BAFE449B4DFBA92FE20D597426",
+      "bytes": 7653,
+      "sha256": "35CCF18FB808BCA4A3E83EB484D432271622A4BAFE449B4DFBA92FE20D597426",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/061-proposal.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/proposal.md",
+      "original_bytes": 8242,
+      "original_sha256": "D37BA48763ED30079EF9084C66E446D57C175F2748390CB42CF2BBF74311B454",
+      "bytes": 8242,
+      "sha256": "D37BA48763ED30079EF9084C66E446D57C175F2748390CB42CF2BBF74311B454",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/062-clock_stage.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/063-README.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/README.md",
+      "original_bytes": 1450,
+      "original_sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "bytes": 1450,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/064-run-clock.ps1",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/run-clock.ps1",
+      "original_bytes": 131334,
+      "original_sha256": "86415D55AA1CF8ABED45A4E0879272C739BD5A16C0056534288B339C7DCF96BB",
+      "bytes": 131334,
+      "sha256": "86415D55AA1CF8ABED45A4E0879272C739BD5A16C0056534288B339C7DCF96BB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/065-source-costs.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/066-source-manifest.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/inputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-manifest.json",
+      "original_bytes": 521861,
+      "original_sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9",
+      "bytes": 521861,
+      "sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/067-author.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/author.py",
+      "original_bytes": 14345,
+      "original_sha256": "13E9C94E778E2F743EBE6B64BB130F7C4AA3229CF5650A7FC7F51619639D8610",
+      "bytes": 14345,
+      "sha256": "13E9C94E778E2F743EBE6B64BB130F7C4AA3229CF5650A7FC7F51619639D8610",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/068-authoring.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/authoring.json",
+      "original_bytes": 4713,
+      "original_sha256": "C99F27FC16169A881A5E6449BA9004A38B31412C5AB67A8FF992EB5699356377",
+      "bytes": 4713,
+      "sha256": "C99F27FC16169A881A5E6449BA9004A38B31412C5AB67A8FF992EB5699356377",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/069-candidate-readme.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/candidate-readme.md",
+      "original_bytes": 1450,
+      "original_sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "bytes": 1450,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/070-check.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/check.py",
+      "original_bytes": 25947,
+      "original_sha256": "1E5F200CF5A58F6CF68C8E09115B16218A3C3481E53AD368D64127BB74BC18F8",
+      "bytes": 25947,
+      "sha256": "1E5F200CF5A58F6CF68C8E09115B16218A3C3481E53AD368D64127BB74BC18F8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/071-checks.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/checks.json",
+      "original_bytes": 849889,
+      "original_sha256": "AF51DF825997445E3E50E2A660A5F8693FE59C3BFE8EB71E95B05FE64F09301B",
+      "bytes": 849889,
+      "sha256": "AF51DF825997445E3E50E2A660A5F8693FE59C3BFE8EB71E95B05FE64F09301B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/072-correspondence.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/correspondence.json",
+      "original_bytes": 2469,
+      "original_sha256": "68FF24A9AA10D2C84244D58D4585A10A8B8576D96C9ED9620D375AC77063D942",
+      "bytes": 2469,
+      "sha256": "68FF24A9AA10D2C84244D58D4585A10A8B8576D96C9ED9620D375AC77063D942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/073-counterexamples.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/counterexamples.json",
+      "original_bytes": 3848,
+      "original_sha256": "FE33B7C9518287BC39F2A3F3117665911CE6226FD61B1EB9F427CD15C5B6F270",
+      "bytes": 3848,
+      "sha256": "FE33B7C9518287BC39F2A3F3117665911CE6226FD61B1EB9F427CD15C5B6F270",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/074-metadata-derivation.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/metadata-derivation.json",
+      "original_bytes": 11410,
+      "original_sha256": "C73D51790A4C52C54720E7814F76B4BECF9F52D026502627817D405DDE50C58E",
+      "bytes": 11410,
+      "sha256": "C73D51790A4C52C54720E7814F76B4BECF9F52D026502627817D405DDE50C58E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/075-native-preparation.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/native-preparation.json",
+      "original_bytes": 1934,
+      "original_sha256": "F7D43026F377AAF9668E183A68DE7A4AF184BCB943A5B04550A34058F4DADA2E",
+      "bytes": 1934,
+      "sha256": "F7D43026F377AAF9668E183A68DE7A4AF184BCB943A5B04550A34058F4DADA2E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/076-prepare.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/prepare.py",
+      "original_bytes": 7653,
+      "original_sha256": "35CCF18FB808BCA4A3E83EB484D432271622A4BAFE449B4DFBA92FE20D597426",
+      "bytes": 7653,
+      "sha256": "35CCF18FB808BCA4A3E83EB484D432271622A4BAFE449B4DFBA92FE20D597426",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/077-proposal.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/proposal.md",
+      "original_bytes": 8242,
+      "original_sha256": "D37BA48763ED30079EF9084C66E446D57C175F2748390CB42CF2BBF74311B454",
+      "bytes": 8242,
+      "sha256": "D37BA48763ED30079EF9084C66E446D57C175F2748390CB42CF2BBF74311B454",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/078-source-pins.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/source-pins.json",
+      "original_bytes": 11201,
+      "original_sha256": "4ED6C4F3EF0FCA1A7066C9FEA12CD9D2706AF9B956486EC6783D133C2345553C",
+      "bytes": 11201,
+      "sha256": "4ED6C4F3EF0FCA1A7066C9FEA12CD9D2706AF9B956486EC6783D133C2345553C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/079-clock_stage.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/080-README.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/README.md",
+      "original_bytes": 1450,
+      "original_sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "bytes": 1450,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/081-run-clock.ps1",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/run-clock.ps1",
+      "original_bytes": 131334,
+      "original_sha256": "86415D55AA1CF8ABED45A4E0879272C739BD5A16C0056534288B339C7DCF96BB",
+      "bytes": 131334,
+      "sha256": "86415D55AA1CF8ABED45A4E0879272C739BD5A16C0056534288B339C7DCF96BB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/082-source-costs.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/083-source-manifest.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/outputs/build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-manifest.json",
+      "original_bytes": 521861,
+      "original_sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9",
+      "bytes": 521861,
+      "sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/084-result.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check-attempts/attempt-01/result.json",
+      "original_bytes": 849889,
+      "original_sha256": "AF51DF825997445E3E50E2A660A5F8693FE59C3BFE8EB71E95B05FE64F09301B",
+      "bytes": 849889,
+      "sha256": "AF51DF825997445E3E50E2A660A5F8693FE59C3BFE8EB71E95B05FE64F09301B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/085-check.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/check.py",
+      "original_bytes": 25947,
+      "original_sha256": "1E5F200CF5A58F6CF68C8E09115B16218A3C3481E53AD368D64127BB74BC18F8",
+      "bytes": 25947,
+      "sha256": "1E5F200CF5A58F6CF68C8E09115B16218A3C3481E53AD368D64127BB74BC18F8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/086-checks.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/checks.json",
+      "original_bytes": 849889,
+      "original_sha256": "AF51DF825997445E3E50E2A660A5F8693FE59C3BFE8EB71E95B05FE64F09301B",
+      "bytes": 849889,
+      "sha256": "AF51DF825997445E3E50E2A660A5F8693FE59C3BFE8EB71E95B05FE64F09301B",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/087-correspondence.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/correspondence.json",
+      "original_bytes": 2469,
+      "original_sha256": "68FF24A9AA10D2C84244D58D4585A10A8B8576D96C9ED9620D375AC77063D942",
+      "bytes": 2469,
+      "sha256": "68FF24A9AA10D2C84244D58D4585A10A8B8576D96C9ED9620D375AC77063D942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/088-counterexamples.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/counterexamples.json",
+      "original_bytes": 3848,
+      "original_sha256": "FE33B7C9518287BC39F2A3F3117665911CE6226FD61B1EB9F427CD15C5B6F270",
+      "bytes": 3848,
+      "sha256": "FE33B7C9518287BC39F2A3F3117665911CE6226FD61B1EB9F427CD15C5B6F270",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/089-freeze.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/freeze.json",
+      "original_bytes": 29336,
+      "original_sha256": "0922A22B37064DC71A0F760EE655FBA2FF9ABF5679E8D7628C89E9320EFE9CB0",
+      "bytes": 29336,
+      "sha256": "0922A22B37064DC71A0F760EE655FBA2FF9ABF5679E8D7628C89E9320EFE9CB0",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/090-metadata-derivation.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/metadata-derivation.json",
+      "original_bytes": 11410,
+      "original_sha256": "C73D51790A4C52C54720E7814F76B4BECF9F52D026502627817D405DDE50C58E",
+      "bytes": 11410,
+      "sha256": "C73D51790A4C52C54720E7814F76B4BECF9F52D026502627817D405DDE50C58E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/091-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup.h",
+      "original_bytes": 11753,
+      "original_sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE",
+      "bytes": 11753,
+      "sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/092-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_codec.cpp",
+      "original_bytes": 28800,
+      "original_sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1",
+      "bytes": 28800,
+      "sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/093-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_core.cpp",
+      "original_bytes": 11332,
+      "original_sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680",
+      "bytes": 11332,
+      "sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/094-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_io.cpp",
+      "original_bytes": 25641,
+      "original_sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F",
+      "bytes": 25641,
+      "sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/095-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_main.cpp",
+      "original_bytes": 26531,
+      "original_sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721",
+      "bytes": 26531,
+      "sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/096-native-preparation.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/native-preparation.json",
+      "original_bytes": 1934,
+      "original_sha256": "F7D43026F377AAF9668E183A68DE7A4AF184BCB943A5B04550A34058F4DADA2E",
+      "bytes": 1934,
+      "sha256": "F7D43026F377AAF9668E183A68DE7A4AF184BCB943A5B04550A34058F4DADA2E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/097-freeze.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r2/freeze.json",
+      "original_bytes": 4846,
+      "original_sha256": "895F4F1BB04F955E9E40BFDC29AC29AE15AB844ECE21AF068D3DFAEF16914169",
+      "bytes": 4846,
+      "sha256": "895F4F1BB04F955E9E40BFDC29AC29AE15AB844ECE21AF068D3DFAEF16914169",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/098-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r2/native/sup.h",
+      "original_bytes": 11641,
+      "original_sha256": "2FAC2C57C731C7C997D67627DCB7AE15ED6995B912B433051213514018A94ECC",
+      "bytes": 11641,
+      "sha256": "2FAC2C57C731C7C997D67627DCB7AE15ED6995B912B433051213514018A94ECC",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/099-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_codec.cpp",
+      "original_bytes": 28790,
+      "original_sha256": "84C84E6E1B47883AAE58C9C68859FE980B420C58AECF7E29300DDF43840FEC53",
+      "bytes": 28790,
+      "sha256": "84C84E6E1B47883AAE58C9C68859FE980B420C58AECF7E29300DDF43840FEC53",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/100-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_core.cpp",
+      "original_bytes": 11208,
+      "original_sha256": "9EF4468E9B43E43FEBF8B44D602FDBD305B9F94ED04643A551496C8D4BB69FC1",
+      "bytes": 11208,
+      "sha256": "9EF4468E9B43E43FEBF8B44D602FDBD305B9F94ED04643A551496C8D4BB69FC1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/101-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_io.cpp",
+      "original_bytes": 25564,
+      "original_sha256": "AAFA64282A3E1C0EBE3AD10BD47FCA0FF43EEECA5DD353FD50D1A7D28ABCEA89",
+      "bytes": 25564,
+      "sha256": "AAFA64282A3E1C0EBE3AD10BD47FCA0FF43EEECA5DD353FD50D1A7D28ABCEA89",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/102-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_main.cpp",
+      "original_bytes": 25980,
+      "original_sha256": "C6848C0F94892C4EFF6461C9DB6641E737DD51E25F5369F18C9937953845A161",
+      "bytes": 25980,
+      "sha256": "C6848C0F94892C4EFF6461C9DB6641E737DD51E25F5369F18C9937953845A161",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/103-source-pins.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r2/source-pins.json",
+      "original_bytes": 8309,
+      "original_sha256": "5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1",
+      "bytes": 8309,
+      "sha256": "5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/104-prepare.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/inputs/build-ci/20261106-clock-owned-supervisor-source-r3/prepare.py",
+      "original_bytes": 7653,
+      "original_sha256": "35CCF18FB808BCA4A3E83EB484D432271622A4BAFE449B4DFBA92FE20D597426",
+      "bytes": 7653,
+      "sha256": "35CCF18FB808BCA4A3E83EB484D432271622A4BAFE449B4DFBA92FE20D597426",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/105-sup.h",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup.h",
+      "original_bytes": 11753,
+      "original_sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE",
+      "bytes": 11753,
+      "sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/106-sup_codec.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_codec.cpp",
+      "original_bytes": 28800,
+      "original_sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1",
+      "bytes": 28800,
+      "sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/107-sup_core.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_core.cpp",
+      "original_bytes": 11332,
+      "original_sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680",
+      "bytes": 11332,
+      "sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/108-sup_io.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_io.cpp",
+      "original_bytes": 25641,
+      "original_sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F",
+      "bytes": 25641,
+      "sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/109-sup_main.cpp",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_main.cpp",
+      "original_bytes": 26531,
+      "original_sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721",
+      "bytes": 26531,
+      "sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/110-native-preparation.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/outputs/build-ci/20261106-clock-owned-supervisor-source-r3/native-preparation.json",
+      "original_bytes": 1934,
+      "original_sha256": "F7D43026F377AAF9668E183A68DE7A4AF184BCB943A5B04550A34058F4DADA2E",
+      "bytes": 1934,
+      "sha256": "F7D43026F377AAF9668E183A68DE7A4AF184BCB943A5B04550A34058F4DADA2E",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/111-result.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/result.json",
+      "original_bytes": 73,
+      "original_sha256": "6A1E7526D75EE1C14A2A4D8A324AAEDA384F26C4310764F2FB14B4BA2C3A9932",
+      "bytes": 73,
+      "sha256": "6A1E7526D75EE1C14A2A4D8A324AAEDA384F26C4310764F2FB14B4BA2C3A9932",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/112-stderr.txt",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/stderr.txt",
+      "original_bytes": 0,
+      "original_sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/113-stdout.txt",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/preparation-attempts/attempt-01/stdout.txt",
+      "original_bytes": 42,
+      "original_sha256": "3FEB44DBA7B0BE5F406C8A003C3450E57D5F782366C9E703A96E64175567F3D4",
+      "bytes": 41,
+      "sha256": "D3DF5C3D96A22BFBB8BA72B801466CBB07A696C0D8CA79F8B6B6F29BD56B1E93",
+      "transformation": "LF_DISPLAY_TRAILING_SPACE_SINGLE_EOF_LF_RAW_BASE64_PRESERVED",
+      "original_raw_base64": "eyJuYXRpdmVfZmlsZXMiOiA1LCAic291cmNlX29ubHkiOiB0cnVlfQ0K"
+    },
+    {
+      "file": "sources/114-prepare.py",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/prepare.py",
+      "original_bytes": 7653,
+      "original_sha256": "35CCF18FB808BCA4A3E83EB484D432271622A4BAFE449B4DFBA92FE20D597426",
+      "bytes": 7653,
+      "sha256": "35CCF18FB808BCA4A3E83EB484D432271622A4BAFE449B4DFBA92FE20D597426",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/115-proposal.md",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/proposal.md",
+      "original_bytes": 8242,
+      "original_sha256": "D37BA48763ED30079EF9084C66E446D57C175F2748390CB42CF2BBF74311B454",
+      "bytes": 8242,
+      "sha256": "D37BA48763ED30079EF9084C66E446D57C175F2748390CB42CF2BBF74311B454",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/116-source-pins.json",
+      "original_path": "build-ci/20261106-clock-owned-supervisor-source-r3/source-pins.json",
+      "original_bytes": 11201,
+      "original_sha256": "4ED6C4F3EF0FCA1A7066C9FEA12CD9D2706AF9B956486EC6783D133C2345553C",
+      "bytes": 11201,
+      "sha256": "4ED6C4F3EF0FCA1A7066C9FEA12CD9D2706AF9B956486EC6783D133C2345553C",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/117-first-green-review-freeze.json",
+      "original_path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/first-green-review-freeze.json",
+      "original_bytes": 1989,
+      "original_sha256": "8D68D9BA4F652BEDD83A64B89C5C459577789631D6F190441F589CED01B14788",
+      "bytes": 1989,
+      "sha256": "8D68D9BA4F652BEDD83A64B89C5C459577789631D6F190441F589CED01B14788",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/118-review.json",
+      "original_path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/review.json",
+      "original_bytes": 6397,
+      "original_sha256": "48B4373D394809EE3AEA5E2A0B2D89BD19FEF64AEA088FABA9897FF01AFC45E8",
+      "bytes": 6397,
+      "sha256": "48B4373D394809EE3AEA5E2A0B2D89BD19FEF64AEA088FABA9897FF01AFC45E8",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/119-review.md",
+      "original_path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/review.md",
+      "original_bytes": 13564,
+      "original_sha256": "FA57CD7CABE11DB932A14AE87AFBE7A9EDBB6156FCFA7513E065F7D83EF708ED",
+      "bytes": 13564,
+      "sha256": "FA57CD7CABE11DB932A14AE87AFBE7A9EDBB6156FCFA7513E065F7D83EF708ED",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/120-source-pins.json",
+      "original_path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/source-pins.json",
+      "original_bytes": 315148,
+      "original_sha256": "2F455971EAE1F023BA5D49FF295C893736997C846A0D73E71DF29A57A5B3980A",
+      "bytes": 315148,
+      "sha256": "2F455971EAE1F023BA5D49FF295C893736997C846A0D73E71DF29A57A5B3980A",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/121-builder.py",
+      "original_path": "build-ci/20261106-r16-source-delivery-r1/builder.py",
+      "original_bytes": 4858,
+      "original_sha256": "F15AFB9DBB38DA545525B9921ECECA03F42883517189B2777F520DA5391B2644",
+      "bytes": 4858,
+      "sha256": "F15AFB9DBB38DA545525B9921ECECA03F42883517189B2777F520DA5391B2644",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/122-freeze.json",
+      "original_path": "build-ci/20261106-r16-source-delivery-r1/freeze.json",
+      "original_bytes": 693,
+      "original_sha256": "3BC9F5BABA158A3CC6853916AD46A206C6393C106227E7B83E0FBE8381690A38",
+      "bytes": 693,
+      "sha256": "3BC9F5BABA158A3CC6853916AD46A206C6393C106227E7B83E0FBE8381690A38",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/123-raw-payloads.json",
+      "original_path": "build-ci/20261106-r16-source-delivery-r1/raw-payloads.json",
+      "original_bytes": 155,
+      "original_sha256": "656D24D68FB22B11C1B1C8DA345044F09640B6D4DAB327AF8164F5D6A32B86E4",
+      "bytes": 155,
+      "sha256": "656D24D68FB22B11C1B1C8DA345044F09640B6D4DAB327AF8164F5D6A32B86E4",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/124-README.md",
+      "original_path": "build-ci/20261106-r16-source-delivery-r1/README.md",
+      "original_bytes": 562,
+      "original_sha256": "8F339FCF369C971C0C58B4307C53ED5961C8052F0AE467EF3BD2EEE26CEDAAC7",
+      "bytes": 562,
+      "sha256": "8F339FCF369C971C0C58B4307C53ED5961C8052F0AE467EF3BD2EEE26CEDAAC7",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/125-source-pins.json",
+      "original_path": "build-ci/20261106-r16-source-delivery-r1/source-pins.json",
+      "original_bytes": 35395,
+      "original_sha256": "184EC0EE21CD4E067E0090318D8F5580DA6FBEAB9F8D5560ABF08CB41721FA9D",
+      "bytes": 35395,
+      "sha256": "184EC0EE21CD4E067E0090318D8F5580DA6FBEAB9F8D5560ABF08CB41721FA9D",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/126-clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/127-README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/README.md",
+      "original_bytes": 5003,
+      "original_sha256": "180849DFAF0F4A4B74D753AE6402CCEBA86C485FECA98B699042C0C7E9F3C447",
+      "bytes": 5003,
+      "sha256": "180849DFAF0F4A4B74D753AE6402CCEBA86C485FECA98B699042C0C7E9F3C447",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/128-run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/run-clock.ps1",
+      "original_bytes": 131334,
+      "original_sha256": "6B1016841798BA2B4D6F7CEAEFC8F663F3A5FE0D7CEC3CEC34355EC71B527A38",
+      "bytes": 131334,
+      "sha256": "6B1016841798BA2B4D6F7CEAEFC8F663F3A5FE0D7CEC3CEC34355EC71B527A38",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/129-source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/130-source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/source-manifest.json",
+      "original_bytes": 516072,
+      "original_sha256": "BDC2BE017BDF269691D727AE10A489FD6C1EFBB82F2B1C71DB392B1728D1B86F",
+      "bytes": 516072,
+      "sha256": "BDC2BE017BDF269691D727AE10A489FD6C1EFBB82F2B1C71DB392B1728D1B86F",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/131-clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/132-README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/README.md",
+      "original_bytes": 1450,
+      "original_sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "bytes": 1450,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/133-run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/run-clock.ps1",
+      "original_bytes": 131334,
+      "original_sha256": "86415D55AA1CF8ABED45A4E0879272C739BD5A16C0056534288B339C7DCF96BB",
+      "bytes": 131334,
+      "sha256": "86415D55AA1CF8ABED45A4E0879272C739BD5A16C0056534288B339C7DCF96BB",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/134-source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT"
+    },
+    {
+      "file": "sources/135-source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-manifest.json",
+      "original_bytes": 521861,
+      "original_sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9",
+      "bytes": 521861,
+      "sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9",
+      "transformation": "BYTE_EXACT"
+    }
+  ]
+}

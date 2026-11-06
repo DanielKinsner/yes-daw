@@ -1,0 +1,251 @@
+{
+  "schema": "R16_COMPLETE_SOURCE_CANDIDATE_PINS",
+  "protected_predecessor_and_review": [
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/correspondence.json",
+      "bytes": 8239,
+      "sha256": "49EBF2FA740AE3B3FEA31506CE8F463D4743A249107B399C6059A402669DAD06"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/checks.json",
+      "bytes": 299524,
+      "sha256": "5A6269BF48318486ED1B97E5C9967A52D8C6313B22A65BEC064CB2137CA38C20"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/source-pins.json",
+      "bytes": 8309,
+      "sha256": "5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/authoring.json",
+      "bytes": 4092,
+      "sha256": "754C1132558644249BCBE200731BA36678E439F0273C8A876E2A11C2DD01455C"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/counterexamples.json",
+      "bytes": 6967,
+      "sha256": "66FE7552F3AA826ABD25B9C5D27213F46855204925116BF64EC874A71F3AB446"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_codec.cpp",
+      "bytes": 28790,
+      "sha256": "84C84E6E1B47883AAE58C9C68859FE980B420C58AECF7E29300DDF43840FEC53"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_core.cpp",
+      "bytes": 11208,
+      "sha256": "9EF4468E9B43E43FEBF8B44D602FDBD305B9F94ED04643A551496C8D4BB69FC1"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_io.cpp",
+      "bytes": 25564,
+      "sha256": "AAFA64282A3E1C0EBE3AD10BD47FCA0FF43EEECA5DD353FD50D1A7D28ABCEA89"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_main.cpp",
+      "bytes": 25980,
+      "sha256": "C6848C0F94892C4EFF6461C9DB6641E737DD51E25F5369F18C9937953845A161"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup.h",
+      "bytes": 11641,
+      "sha256": "2FAC2C57C731C7C997D67627DCB7AE15ED6995B912B433051213514018A94ECC"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/run-clock.ps1",
+      "bytes": 131334,
+      "sha256": "6B1016841798BA2B4D6F7CEAEFC8F663F3A5FE0D7CEC3CEC34355EC71B527A38"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/source-manifest.json",
+      "bytes": 516072,
+      "sha256": "BDC2BE017BDF269691D727AE10A489FD6C1EFBB82F2B1C71DB392B1728D1B86F"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/README.md",
+      "bytes": 5003,
+      "sha256": "180849DFAF0F4A4B74D753AE6402CCEBA86C485FECA98B699042C0C7E9F3C447"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/author.py",
+      "bytes": 8172,
+      "sha256": "517908C07AF74941CF4C474BC7329E7355C6678203174AAE82938756B96FD889"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/candidate-readme.md",
+      "bytes": 4993,
+      "sha256": "22D233F2A96219EE8D43A99E72BB3E5F7BCD5670877777602A9F4174C5436FAE"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/proposal.md",
+      "bytes": 7106,
+      "sha256": "B32C636B5E17D455E08D84EBD3E64D12CAE1AC72A8C798B24ED106DBD3410DB0"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/prepare-native.py",
+      "bytes": 892,
+      "sha256": "9D37D87AA9C1169F6473587AC9EBFDB0C01FCBA315262205DBB3828E9FEB7C73"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/regressions.py",
+      "bytes": 13439,
+      "sha256": "D5C335AA1A02E9A22472D8C28F5A5032BC3621F826C0C9CBFE096E4E0699E578"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/check.py",
+      "bytes": 34096,
+      "sha256": "85CA2F6635D732DE15B48D6727FD1BF6CD720BF3AAC608B59573D36FA36DDF18"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r2/freeze.json",
+      "bytes": 4846,
+      "sha256": "895F4F1BB04F955E9E40BFDC29AC29AE15AB844ECE21AF068D3DFAEF16914169"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/source-pins.json",
+      "bytes": 315148,
+      "sha256": "2F455971EAE1F023BA5D49FF295C893736997C846A0D73E71DF29A57A5B3980A"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/first-green-review-freeze.json",
+      "bytes": 1989,
+      "sha256": "8D68D9BA4F652BEDD83A64B89C5C459577789631D6F190441F589CED01B14788"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/review.md",
+      "bytes": 13564,
+      "sha256": "FA57CD7CABE11DB932A14AE87AFBE7A9EDBB6156FCFA7513E065F7D83EF708ED"
+    },
+    {
+      "path": "build-ci/20261106-r15-supervisor-functional-independent-review-r1/review.json",
+      "bytes": 6397,
+      "sha256": "48B4373D394809EE3AEA5E2A0B2D89BD19FEF64AEA088FABA9897FF01AFC45E8"
+    }
+  ],
+  "accepted_docs": {
+    "docs/adr/0090-clock-research-owned-process-supervisor.md": "68DC0922BF56F0B9697CF178B69639D5346684EAC0829BEE9DB55F03CB4F6565",
+    "docs/plans/2026-11-06-clock-supervisor-source-plan.md": "6B572E5359764A41EBCF7E1AE5EF833A59C44B03E19CE4CD32278CCC059030CB",
+    "docs/research/clock-supervisor-protocol-v1.md": "7A933415DFAA6B00C76F317F723E68B8E953055B7D3F41AA65CBAAAA536367C2",
+    "docs/adr/0091-clock-supervisor-job-termination-diagnostic.md": "C46B61E7839BE765956D80E9B3AA24E86CC6B39DEDBF12C96A97449C1A2CE126",
+    "docs/research/clock-supervisor-protocol-v2.md": "6F5FCA9F2A2831FB54B7E6CB2EB2F8A38060B6EDF2EC1CA4C590F8BB6ED9CDDC"
+  },
+  "subjects": [
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup.h",
+      "bytes": 11753,
+      "sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_codec.cpp",
+      "bytes": 28800,
+      "sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_core.cpp",
+      "bytes": 11332,
+      "sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_io.cpp",
+      "bytes": 25641,
+      "sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_main.cpp",
+      "bytes": 26531,
+      "sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/README.md",
+      "bytes": 1450,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/run-clock.ps1",
+      "bytes": 131334,
+      "sha256": "86415D55AA1CF8ABED45A4E0879272C739BD5A16C0056534288B339C7DCF96BB"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-manifest.json",
+      "bytes": 521861,
+      "sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/author.py",
+      "bytes": 14345,
+      "sha256": "13E9C94E778E2F743EBE6B64BB130F7C4AA3229CF5650A7FC7F51619639D8610"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/authoring.json",
+      "bytes": 4713,
+      "sha256": "C99F27FC16169A881A5E6449BA9004A38B31412C5AB67A8FF992EB5699356377"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/candidate-readme.md",
+      "bytes": 1450,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/check.py",
+      "bytes": 25947,
+      "sha256": "1E5F200CF5A58F6CF68C8E09115B16218A3C3481E53AD368D64127BB74BC18F8"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/correspondence.json",
+      "bytes": 2469,
+      "sha256": "68FF24A9AA10D2C84244D58D4585A10A8B8576D96C9ED9620D375AC77063D942"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/counterexamples.json",
+      "bytes": 3848,
+      "sha256": "FE33B7C9518287BC39F2A3F3117665911CE6226FD61B1EB9F427CD15C5B6F270"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/metadata-derivation.json",
+      "bytes": 11410,
+      "sha256": "C73D51790A4C52C54720E7814F76B4BECF9F52D026502627817D405DDE50C58E"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native-preparation.json",
+      "bytes": 1934,
+      "sha256": "F7D43026F377AAF9668E183A68DE7A4AF184BCB943A5B04550A34058F4DADA2E"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/prepare.py",
+      "bytes": 7653,
+      "sha256": "35CCF18FB808BCA4A3E83EB484D432271622A4BAFE449B4DFBA92FE20D597426"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/proposal.md",
+      "bytes": 8242,
+      "sha256": "D37BA48763ED30079EF9084C66E446D57C175F2748390CB42CF2BBF74311B454"
+    }
+  ],
+  "input_manifest": {
+    "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-manifest.json",
+    "bytes": 521861,
+    "sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9"
+  },
+  "whole_input_rows_verified": 1250,
+  "target_parser_AST_import_compiler_native_API_helper_fixture_Clock_execution": false
+}

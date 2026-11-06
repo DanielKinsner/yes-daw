@@ -1,0 +1,1 @@
+Complete frozen chunked R16 review delivery, including every packaging source/attempt/output. Exact original ZIP bytes are reversibly encoded; no program, ZIP member or candidate checker is executed. This is preservation only.

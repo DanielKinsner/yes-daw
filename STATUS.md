@@ -65,7 +65,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    cells; this supplies selected object-size evidence, without physical-frame, whole-fit or Clock-run credit.
    A frozen native-object proposal lists93 named scopes/16 closures; its777 own checks preserve explicit
    unknown SDK/context/layout terms. The measured405,128-byte large-object component is not whole fit.
-   The selected C++ helper/context R1 also returned REVISE for three source-incidence gaps; R2 is being authored.
+   The selected C++ helper/context R1 also returned REVISE for three source-incidence gaps; complete R2 is
+   frozen after3,010 own source checks and under a fresh whole critic. Thirty layout facts remain null.
    ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
    The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
    is REVISE, with no runtime credit. A different fresh critic returned R13 scalarR2 REVISE after3,770
@@ -95,6 +96,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Accept R16 functional source correspondence; close progress in a successor
+
+- The complete [R16 proposal](docs/research/artifacts/2026-11-06-clock-owned-supervisor-source-r3/sources/115-proposal.md) passed a [fresh whole functional source review](docs/research/2026-11-06-r16-supervisor-functional-whole-review.md):6,225 source/data checks, no supported source findings. Root adopts that exact source-only verdict; all88 parent bodies, five native modules, protocol/fences, failure routes and current metadata are covered.
+- The [native progress HOLD](docs/research/2026-11-06-r16-supervisor-native-progress-holds.md) remains explicit: the current scan bounds non-dot entries but the selected API documentation supplies no numeric dot multiplicity bound. R17 will add distinct seen-dot/seen-dotdot guards with the existing StageExtent refusal, leaving the non-dot/name/byte/wire limits intact. Frozen R16 and its unfinished, unpriced symbolic census remain unchanged.
+- All42 original review files, including both failed attempts and three raw input ZIP captures, are preserved losslessly in bounded text chunks. Root reconstructed every540,637,273 original byte from staged data, checked3,882 raw ZIP records/all1,381 metadata input rows and passed Git whitespace checks; no ZIP member or candidate code was run. Original review/freeze bytes remain exact.
+- Complete pricing/tail, native/ABI/profile, joined controlled resources, immutable binding, derived limit and separate one-attempt GO remain HOLD. The prior commitc7ec81f passed CI42244548167; this documentation-only result supplies no new application/runtime proof. SDK/contextR2 is frozen under fresh review; an independent review of the older93 own-scope component is also active.
 
 ## 2026-11-06 - Accept the exact R13 scalar upper, with its limits
 

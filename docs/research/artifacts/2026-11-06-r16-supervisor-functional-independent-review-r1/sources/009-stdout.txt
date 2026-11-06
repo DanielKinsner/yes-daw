@@ -1,0 +1,1 @@
+{"status": "COMPLETE_LOSSLESS_RAW_BYTE_DELIVERY", "original_files": 42, "original_bytes": 540637273, "zip_local_records": 3882, "blob_chunks": 19, "unique_blobs": 5181, "deduplicated_raw_extent_bytes": 351811400, "package_bytes": 251574227, "metadata_input_rows": 1381, "target_execution": false, "zip_extraction": false, "checks": 75500, "failed": 0, "exit_code": 0}

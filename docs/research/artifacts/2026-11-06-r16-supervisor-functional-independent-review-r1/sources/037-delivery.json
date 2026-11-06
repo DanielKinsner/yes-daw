@@ -1,0 +1,12 @@
+{
+  "package": "build-ci/20261106-r16-review-chunked-delivery-r1/attempts/write-01/package",
+  "index": {
+    "path": "build-ci/20261106-r16-review-chunked-delivery-r1/attempts/write-01/package/archive-index.json",
+    "bytes": 5191211,
+    "sha256": "D93425817950D9158C866BB598CB7D8B5C7901059AECD384D872633687AB416F"
+  },
+  "writer_attempt": "build-ci/20261106-r16-review-chunked-delivery-r1/attempts/write-01",
+  "independent_check": "SEPARATE_VERIFICATION_JSON_AND_FIRST_GREEN_DELIVERY_FREEZE_ARE_REQUIRED",
+  "original_freeze": "E41AEAD77D8AA7D1BBED1AE6B1F0AD7FC97B7917051AE683B61A960517CAFDB8",
+  "target_execution": false
+}

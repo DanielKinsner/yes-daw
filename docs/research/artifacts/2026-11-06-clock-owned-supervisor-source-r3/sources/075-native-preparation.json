@@ -1,0 +1,42 @@
+{
+  "source_only": true,
+  "all_target_execution": false,
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup.h",
+      "bytes": 11753,
+      "sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE",
+      "predecessor_sha256": "2FAC2C57C731C7C997D67627DCB7AE15ED6995B912B433051213514018A94ECC",
+      "namespace_only_unchanged": false
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_codec.cpp",
+      "bytes": 28800,
+      "sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1",
+      "predecessor_sha256": "84C84E6E1B47883AAE58C9C68859FE980B420C58AECF7E29300DDF43840FEC53",
+      "namespace_only_unchanged": false
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_core.cpp",
+      "bytes": 11332,
+      "sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680",
+      "predecessor_sha256": "9EF4468E9B43E43FEBF8B44D602FDBD305B9F94ED04643A551496C8D4BB69FC1",
+      "namespace_only_unchanged": false
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_io.cpp",
+      "bytes": 25641,
+      "sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F",
+      "predecessor_sha256": "AAFA64282A3E1C0EBE3AD10BD47FCA0FF43EEECA5DD353FD50D1A7D28ABCEA89",
+      "namespace_only_unchanged": false
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_main.cpp",
+      "bytes": 26531,
+      "sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721",
+      "predecessor_sha256": "C6848C0F94892C4EFF6461C9DB6641E737DD51E25F5369F18C9937953845A161",
+      "namespace_only_unchanged": false
+    }
+  ],
+  "scope": "Complete new R16 native candidate. F1\u2013F8 retained; F9 prefix-only tickets added. No prices/native/resources/ABI/binding acceptance."
+}

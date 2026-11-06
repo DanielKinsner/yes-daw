@@ -1,0 +1,17 @@
+{
+  "scope": "ROOT_STAGED_LOSSLESS_BYTE_RECONSTRUCTION_ONLY",
+  "archive_manifest_sha256": "576D67791F8D51DA9B6FBDB596C30A441CE0C4B49943DE76D2B56B97793D8497",
+  "original_review_files": 42,
+  "original_bytes": 540637273,
+  "raw_ZIP_local_records": 3882,
+  "chunk_files": 19,
+  "unique_blobs": 5181,
+  "metadata_input_rows": 1381,
+  "target_execution": false,
+  "ZIP_member_inflation_extraction_or_execution": false,
+  "numeric_resource_native_binding_limit_Data_GO": false,
+  "checker_sha256": "648BB5BE28C7BA572B526BE81C3AFF255558E3797A4EDB16266BA06CABDF433A",
+  "checks": 64232,
+  "failed": 0,
+  "exit_code": 0
+}

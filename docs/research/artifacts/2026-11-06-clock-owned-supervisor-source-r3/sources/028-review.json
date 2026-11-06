@@ -1,0 +1,98 @@
+{
+  "schema": "R15_COMPLETE_FUNCTIONAL_SOURCE_INDEPENDENT_REVIEW_R1",
+  "verdict": "REVISE_WHOLE_SOURCE_CANDIDATE",
+  "subject_manifest_sha256": "BDC2BE017BDF269691D727AE10A489FD6C1EFBB82F2B1C71DB392B1728D1B86F",
+  "subject_runner_sha256": "6B1016841798BA2B4D6F7CEAEFC8F663F3A5FE0D7CEC3CEC34355EC71B527A38",
+  "subject_pins_sha256": "5806F35FE26CC1CB2A43B7E49AD6CEBEDE6C28EE7ABAC6BE52CDBE77292FDDB1",
+  "subject_freeze_sha256": "895F4F1BB04F955E9E40BFDC29AC29AE15AB844ECE21AF068D3DFAEF16914169",
+  "findings": [
+    {
+      "id": "F9",
+      "priority": "P1",
+      "title": "A pre-resume worker meter cut still permits target resume",
+      "source": [
+        {
+          "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_core.cpp",
+          "lines": [
+            9,
+            34
+          ]
+        },
+        {
+          "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_core.cpp",
+          "lines": [
+            43,
+            60
+          ]
+        },
+        {
+          "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_main.cpp",
+          "lines": [
+            209,
+            233
+          ]
+        },
+        {
+          "path": "build-ci/20261106-clock-owned-supervisor-source-r2/native/sup_main.cpp",
+          "lines": [
+            435,
+            450
+          ]
+        }
+      ],
+      "counterexample": "The target is established suspended. Worker0 signals started, then its first WorkerRead ticket refuses, setting refused/tail and freezing the prefix under the meter lock. start_workers can subsequently spend WorkerStart in tail: charge initializes ok=true and skips its prefix branch, so the second worker is created and start_workers returns true. supervisor_main unconditionally marks TargetMayHaveRun and attempts ResumeThread on ready, with no body admission/cut test. The coordinator then immediately notices tail and enters cleanup. Thus a fresh target-resume action is attempted after the cut; it was not a native call admitted before that cut.",
+      "obligation": "Protocol v1 sections8/10: first refusal enters the mandatory cleanup/publication tail; no new body admission after the linearized cut. The tail is not permission to begin target execution or create new body activity after refusal.",
+      "required_correction": "Give target resume and worker startup an explicit body-admission decision that distinguishes a pre-cut admitted operation from prepaid cleanup. A cut observed before resume must keep the established target suspended and settle it via the existing pre-execution failure route. Preserve publication/accounting of already acquired/completed results and the separate actual TargetMayHaveRun ordering. Review analogous setup/body seams, without new allowances, limits, input-domain restrictions or target execution.",
+      "runtime_observed": false
+    },
+    {
+      "id": "F10",
+      "priority": "P2",
+      "title": "Current failure-policy metadata retains unqualified predecessor bounds",
+      "source": [
+        {
+          "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r15-owned-supervisor-source-r1/source-manifest.json",
+          "lines": [
+            11871,
+            11882
+          ]
+        }
+      ],
+      "counterexample": "failure_policy still states raw/root rows78 and child cleanup13 as current unqualified fields, while this exact runner uses profile root/failure85 and cleanup15. The same object retains declared recipe69 while the new prospective exact reference/build/control/stage/transport catalogue has75 file positions. R14_cleanup_entries_max15 does not label the other older fields historical or define a precedence rule.",
+      "required_correction": "Recompute the current descriptive fields with explicit meanings or move/label the predecessor values as historical, preserving old sealed subjects. Do not blindly equate prospective recipe75 with normal success74. Current runtime code already uses85/15; this finding does not claim an observed runtime admission or resource failure.",
+      "runtime_observed": false
+    }
+  ],
+  "old_F1_F8": "SUPPORTED_CORRECTIONS_EXAMINED_IN_WHOLE_CONTEXT_NO_INDIVIDUAL_PRICE_OR_RUNTIME_ACCEPTANCE",
+  "coverage": [
+    "All five complete native modules, private worker/publication/exit states and all88 current parent bodies",
+    "Whole R14-to-R15 source correspondence, sole parent bootstrap-node change and exact protected target CPP/header",
+    "Raw CLI, UTF16/ASCII/domain/length/EOF, explicit LE request/terminal, recipes/run hashes and target/source/helper fences",
+    "Stage current checks, every actual short write, confirmed/physical/omitted/error-partial accounting",
+    "Creation/job/stdin/inheritance/attribute/worker/search/hash/log/request/terminal owners and unknown-creator provenance",
+    "Poll/deadline ordering, true-zero NoProgress continuation, cleanup retry/ack/cancellation/settlement and immutable errors",
+    "Same-origin prefix/tail cut, terminal freeze/late failures/helper-exit commit, nullable parent facts/signed exits/quarantine",
+    "All1240 admitted file pins,33 namespace rows, current bootstrap/profile/retention arithmetic and old controls/output matrices"
+  ],
+  "qualifications": [
+    "This is source-only functional review; no candidate checker/model or target parser/compiler/helper/native fixture/program/Clock/GUI/device execution",
+    "All flags remain false, both Data undefined; prices/native/ABI/profile/canonical union/resources/binding/GO remain unbound",
+    "Native synchronization, creation-time/nested job/reference/query/loaded-image/import/stack/CRT/time/cancellation/ExitProcess premises remain separate qualified facts",
+    "Controlled storage/objects/frames/counts remain owed; general runtime bookkeeping is unqualified, not zero, and process exit/close/free/GC grants no physical-free credit",
+    "No unsupported failed-ReadFile broken-pipe count or HeapFree stale-error finding is asserted"
+  ],
+  "independent_source_author": false,
+  "candidate_modified": false,
+  "target_execution": false,
+  "functional_acceptance": false,
+  "numeric_or_resource_acceptance": false,
+  "binding_or_GO": false,
+  "verification": {
+    "checks": 3374,
+    "passed": 3374,
+    "input_files": 1268,
+    "parent_bodies": 88,
+    "native_modules": 5,
+    "actual_execution": false
+  }
+}

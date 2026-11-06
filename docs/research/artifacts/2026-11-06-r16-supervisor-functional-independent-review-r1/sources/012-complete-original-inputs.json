@@ -1,0 +1,217 @@
+{
+  "original_freeze": "E41AEAD77D8AA7D1BBED1AE6B1F0AD7FC97B7917051AE683B61A960517CAFDB8",
+  "files": [
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-01/complete-inputs.zip",
+      "bytes": 159920978,
+      "sha256": "321657096B6203C81A96DD63A61C3AF97112D245CA6DA3DFD8E8E4F2E9ECE4E5"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-01/outputs/check.py",
+      "bytes": 26544,
+      "sha256": "1397F44EFDF51D2E337424ED930623238BB8B8FFE0FD677FE5A5E9073085FD9C"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-01/outputs/checks.json",
+      "bytes": 1205,
+      "sha256": "F98948C694924C2334C0F9CA37E3703C6ADE06CB7FAE811A91F45F5DB62D2655"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-01/outputs/review.md",
+      "bytes": 13756,
+      "sha256": "0FF4A47DE95D522CC4ABEBBD2F0B4EB50806C2046585E4EEC77C643EC00B3D1A"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-01/result.json",
+      "bytes": 1205,
+      "sha256": "F98948C694924C2334C0F9CA37E3703C6ADE06CB7FAE811A91F45F5DB62D2655"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-01/stderr.txt",
+      "bytes": 872,
+      "sha256": "BC577059BE613B4193EB2269500B9A706C30A9F5F3F20D896346DA467885A4C6"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-01/stdout.txt",
+      "bytes": 1060,
+      "sha256": "68E3EE05E352130FA7E4D1582AB21A92B2E948FA5194511724CE4534B55AFBA3"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/complete-inputs.json",
+      "bytes": 404045,
+      "sha256": "F92AF100389D13B63B3E65A516741BB33EB0A52FAB212AC753FF0E20D325076C"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/complete-inputs.zip",
+      "bytes": 186415880,
+      "sha256": "34493A63F7D72ACBB8CF0BA9BAE6C8BB0D4990B940D92E036B3FDE1E682E24DE"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/intended-input-paths.json",
+      "bytes": 201422,
+      "sha256": "02E362179B4CC7A56EB363B511FF926AB188A599876A42D8AED3CCB831E9334F"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/outputs/check.py",
+      "bytes": 26731,
+      "sha256": "92FA6672017A6367AB17D5798A6D644DDFC7302BF81E1A8176F4C16611497756"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/outputs/checks.json",
+      "bytes": 1113445,
+      "sha256": "99A7F9542DA62F8B5007E901593C2A370596E012FDECC3782C28D135E2409DF7"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/outputs/coverage.json",
+      "bytes": 4317,
+      "sha256": "5F07F5D5DD82AE297F993D20845907239F8E2859B6B3464CDE3A5DA8399D4F54"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/outputs/native-progress-holds.md",
+      "bytes": 3201,
+      "sha256": "29476BCA60ED70744676C81EB7374B897C04EECA1E345F3CF866B76EA78EE359"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/outputs/review.md",
+      "bytes": 14371,
+      "sha256": "E079BEA1B2441E879387C6D13DCDBE34AB8792E195D9205436D9F3BE22040341"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/outputs/source-order-traces.json",
+      "bytes": 1544,
+      "sha256": "D754FBB8E7BCB2FEDC936B76A7DDA2A88B31614E7F063A98C2A8C91ECF53BA27"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/result.json",
+      "bytes": 1113445,
+      "sha256": "99A7F9542DA62F8B5007E901593C2A370596E012FDECC3782C28D135E2409DF7"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-02/stdout.txt",
+      "bytes": 148,
+      "sha256": "CB7DD844BE5F60768E3CF11AD7D37680FFE004D7031E8B19ED500B3D82F0E999"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/complete-inputs.json",
+      "bytes": 404623,
+      "sha256": "AF6176802CA6587977050BEC47C7A766923829ED942DA3C169DE82E9B5330A43"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/complete-inputs.zip",
+      "bytes": 186466959,
+      "sha256": "20F69A0CB8C7FFA66B2FF93F395E61DF0904ADC8C6F8BAB720887DECDC6E4359"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/intended-input-paths.json",
+      "bytes": 201705,
+      "sha256": "22F7805E718EB566E1A8F94C1B523C47E8115C927D77A13FEE659BCDFDF91857"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/outputs/check.py",
+      "bytes": 27597,
+      "sha256": "7CD8DF92C09131825DAF3D302CBF31A17D5CBE3525F67F3D67B57B1BF48F102A"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/outputs/checks.json",
+      "bytes": 1113444,
+      "sha256": "368BAA3217C547F49BB4EA2C4966B05736F28E316D45C8EF2AFFDE8CD948D0A6"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/outputs/coverage.json",
+      "bytes": 4317,
+      "sha256": "5F07F5D5DD82AE297F993D20845907239F8E2859B6B3464CDE3A5DA8399D4F54"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/outputs/failed-attempt-preservation.json",
+      "bytes": 774,
+      "sha256": "D7CC710D79408733AEA5C43EADA27507B4CBEA4C946B676BBC1F207C9A23E683"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/outputs/native-progress-holds.md",
+      "bytes": 3201,
+      "sha256": "29476BCA60ED70744676C81EB7374B897C04EECA1E345F3CF866B76EA78EE359"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/outputs/review.json",
+      "bytes": 556,
+      "sha256": "860D025D5EA98F2B295F080A86FA5666FEF029C56227349ED19F1AA0832C6B12"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/outputs/review.md",
+      "bytes": 14926,
+      "sha256": "C727C96A1029D9C3C6F52F922014BF172EDCB2F655F4BD58994A5473FB65C779"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/outputs/source-order-traces.json",
+      "bytes": 1544,
+      "sha256": "D754FBB8E7BCB2FEDC936B76A7DDA2A88B31614E7F063A98C2A8C91ECF53BA27"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/outputs/source-pins.json",
+      "bytes": 421749,
+      "sha256": "DE3EA56DA173929CEE880F15846CC2CCA268CAB7297FC1A7421349AE5C74732A"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/result.json",
+      "bytes": 1113444,
+      "sha256": "368BAA3217C547F49BB4EA2C4966B05736F28E316D45C8EF2AFFDE8CD948D0A6"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/attempts/attempt-03/stdout.txt",
+      "bytes": 51,
+      "sha256": "3794B9347E7B0881BEA81E511D9EF704E27F2867FD303441A70921F8EE74961D"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/check.py",
+      "bytes": 27597,
+      "sha256": "7CD8DF92C09131825DAF3D302CBF31A17D5CBE3525F67F3D67B57B1BF48F102A"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/checks.json",
+      "bytes": 1113444,
+      "sha256": "368BAA3217C547F49BB4EA2C4966B05736F28E316D45C8EF2AFFDE8CD948D0A6"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/coverage.json",
+      "bytes": 4317,
+      "sha256": "5F07F5D5DD82AE297F993D20845907239F8E2859B6B3464CDE3A5DA8399D4F54"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/failed-attempt-preservation.json",
+      "bytes": 774,
+      "sha256": "D7CC710D79408733AEA5C43EADA27507B4CBEA4C946B676BBC1F207C9A23E683"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/first-green-review-freeze.json",
+      "bytes": 10106,
+      "sha256": "E41AEAD77D8AA7D1BBED1AE6B1F0AD7FC97B7917051AE683B61A960517CAFDB8"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/native-progress-holds.md",
+      "bytes": 3201,
+      "sha256": "29476BCA60ED70744676C81EB7374B897C04EECA1E345F3CF866B76EA78EE359"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/review.json",
+      "bytes": 556,
+      "sha256": "860D025D5EA98F2B295F080A86FA5666FEF029C56227349ED19F1AA0832C6B12"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/review.md",
+      "bytes": 14926,
+      "sha256": "C727C96A1029D9C3C6F52F922014BF172EDCB2F655F4BD58994A5473FB65C779"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/source-order-traces.json",
+      "bytes": 1544,
+      "sha256": "D754FBB8E7BCB2FEDC936B76A7DDA2A88B31614E7F063A98C2A8C91ECF53BA27"
+    },
+    {
+      "path": "build-ci/20261106-r16-supervisor-functional-independent-review-r1/source-pins.json",
+      "bytes": 421749,
+      "sha256": "DE3EA56DA173929CEE880F15846CC2CCA268CAB7297FC1A7421349AE5C74732A"
+    }
+  ],
+  "raw_bytes_retained_at_immutable_original_paths": true,
+  "no_1381_input_rearchive": true
+}

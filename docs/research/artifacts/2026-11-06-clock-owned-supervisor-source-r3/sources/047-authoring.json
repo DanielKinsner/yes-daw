@@ -1,0 +1,139 @@
+{
+  "candidate": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1",
+  "sources": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "lines": 289,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-costs.h",
+      "bytes": 3725,
+      "lines": 72,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/run-clock.ps1",
+      "bytes": 131334,
+      "lines": 1279,
+      "sha256": "86415D55AA1CF8ABED45A4E0879272C739BD5A16C0056534288B339C7DCF96BB"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/source-manifest.json",
+      "bytes": 521861,
+      "lines": 13166,
+      "sha256": "93220F660F085B85CDDBE4DD14AE7F61B0648DB6E791E0ED019BB7D4A30441A9"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r16-owned-supervisor-source-r1/README.md",
+      "bytes": 1450,
+      "lines": 23,
+      "sha256": "943BD20C0AC36FC68412EAF15936000F83EECDE75C00FEEF32E717902651E942"
+    }
+  ],
+  "native": [
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup.h",
+      "bytes": 11753,
+      "lines": 327,
+      "sha256": "3F8C109785F6CEF17C2400531140A089A6D7CACBD29530221796B5AFA01A05FE"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_codec.cpp",
+      "bytes": 28800,
+      "lines": 479,
+      "sha256": "D3D92AB6773F66F02E373A04978BEB06A1A9C749048958FBB0DF1020A67867C1"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_core.cpp",
+      "bytes": 11332,
+      "lines": 263,
+      "sha256": "B06B534C654BD71FF25B8F5777B620BD6E06CC96359ABFE354E8B17667A86680"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_io.cpp",
+      "bytes": 25641,
+      "lines": 430,
+      "sha256": "5ABCED1EC93E5C37C0F2DED2F6E792444B490A44DCC076ACFC55D4184C17062F"
+    },
+    {
+      "path": "build-ci/20261106-clock-owned-supervisor-source-r3/native/sup_main.cpp",
+      "bytes": 26531,
+      "lines": 473,
+      "sha256": "220E4439235EFEEA61C9A110E21FCD6E4A3E6F1E5C4F88422613FE4E27945721"
+    }
+  ],
+  "bootstrap_nodes": 16731,
+  "geometry": [
+    4,
+    435
+  ],
+  "profile": {
+    "input_count": 1250,
+    "input_bytes": 462585712,
+    "input_hash_chunks": 7905,
+    "include_input_count": 1251,
+    "directory_namespaces_count": 34,
+    "directory_namespace_entries": 1107,
+    "directory_namespace_files": 1060,
+    "complete_current_inputs": 1256,
+    "maximum_complete_fence_identities": 1331,
+    "declared_success_run_files": 74,
+    "declared_failure_extra_files": 1,
+    "failure_inventory_max_files": 85,
+    "root_walk_entries_max": 85,
+    "root_walk_depth_max": 64,
+    "normal_fence_calls": 8,
+    "prepaid_fence_calls_upper": 9,
+    "own5_max_bytes": 1048576,
+    "R4_244_individual_paths_preserved": true,
+    "R4_256_firststage_immutable": true,
+    "R1_R2_R3_R4_source_seals_preserved": true,
+    "profile_source": "PROVISIONAL_R16_SOURCE_UNION_ONLY_NATIVE_SDK_BINARY_AND_FINAL_CANONICAL_UNION_UNBOUND",
+    "future_constinit_data_identity_included": false,
+    "future_literal_binding_profile_state": "PENDING_CANONICAL_FUNCTIONAL_SOURCE_CONTRACT_CENSUS_RESOURCE_PROOF_DATA_UNION_AND_COMPLETE_RECOMPOSITION",
+    "R14_pending_native_sdk_and_binary_inputs": true
+  },
+  "native_families": [
+    "Entry",
+    "Profile",
+    "RawCommand",
+    "CommandCell",
+    "Decode",
+    "DecodeCell",
+    "StringGuard",
+    "StringCell",
+    "Identity",
+    "HashFile",
+    "HashChunk",
+    "HashByte",
+    "HashBlock",
+    "HashRound",
+    "PathGuard",
+    "PathCell",
+    "StageScan",
+    "StageEntry",
+    "Encode",
+    "EncodeCell",
+    "TargetQuote",
+    "QuoteCell",
+    "Environment",
+    "EnvironmentCell",
+    "Owner",
+    "CaptureSetup",
+    "TargetResume",
+    "WorkerStart",
+    "WorkerRead",
+    "WorkerPublish",
+    "Coordinator",
+    "Poll",
+    "Consume",
+    "WriteChunk",
+    "WriteCall",
+    "TerminalValidation"
+  ],
+  "source_only": true,
+  "target_execution": false,
+  "all_prices_native_ABI_resources_profile_final_union_binding_GO": "UNBOUND_HOLD"
+}
