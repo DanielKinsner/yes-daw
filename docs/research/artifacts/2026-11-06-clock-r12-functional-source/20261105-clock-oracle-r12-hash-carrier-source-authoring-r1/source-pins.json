@@ -1,0 +1,99 @@
+{
+  "schema": "R12_UNRUN_HASH_CARRIER_SOURCE_AUTHOR_PINS_R1",
+  "status": "SEALED_FOR_INDEPENDENT_WHOLE_FUNCTIONAL_SOURCE_REVIEW_UNRUN",
+  "subject": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/README.md",
+      "bytes": 20285,
+      "sha256": "DC39905A4833FB580FAA55BE562E15EAB923F3B9D1006371D88CBE928C386D90"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-manifest.json",
+      "bytes": 501180,
+      "sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557"
+    }
+  ],
+  "author_evidence": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/author-source.py",
+      "bytes": 17086,
+      "sha256": "C1C9C2C01293C539F6432E973B374EEBF7DD7E3EA18409FB34E0AE72C35FE65A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/evidence-initial-unsealed/README.md",
+      "bytes": 20270,
+      "sha256": "2983AC91A94ED10C16C828F2830F04356E792CD9B223E4760C4D20DB5E2124C6"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/evidence-initial-unsealed/source-correspondence.json",
+      "bytes": 886572,
+      "sha256": "48EED711F73F867540000470C368D1BCEB12D44BCCF3E3D52503C83E6AF4FA05"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/evidence-initial-unsealed/source-manifest.json",
+      "bytes": 501180,
+      "sha256": "AD3630A4644ED4C658582DB65337F4C544C49A1036D335ECD71CA7B154996F4E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/finalize-source.py",
+      "bytes": 4749,
+      "sha256": "126D4B9F77D9C8EB5E174BC5E86250EAACBACD1C5976EF6290C521EC36413F89"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/runner.diff",
+      "bytes": 22922,
+      "sha256": "F70355DC8574CB36D11C1766ADB43CD06F24B4C561AC091F60F7C08D4179FCE1"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/source-correspondence.json",
+      "bytes": 886860,
+      "sha256": "89FEA73C3C03B29541AC2FEBF0704EA86D2C8E4418828C5E939C6CBC87DF3BCC"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-tuple-metadata-source-authoring-r1/source-pins.json",
+      "bytes": 5096,
+      "sha256": "4ED7FBFC23870A0FD8F1A05DCB11FCC92CE3A74C41B39FD1DFD8F65F2233EF3B"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/source-pins.json",
+      "bytes": 2577,
+      "sha256": "92B58B619AC942DF84BED00BA178A2989ABC4E000E011CA2413F059C98605759"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/source-pins.json",
+      "bytes": 10653,
+      "sha256": "4D8B292BA5096826E21E9F16806CFDF36C26383DFCD35FFF67927FFA692AB61D"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/IncrementalHash.cs",
+      "bytes": 18198,
+      "sha256": "9E2AFB04284C6864F63C55A21BDEC2E4DE406502E4A7D39474B5B4E883524DF8"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/primary-sources/Tuple.cs",
+      "bytes": 43571,
+      "sha256": "A6000D29CC1DA0A3BA582D76E277DE74172FE7BC65EE0F658ABBD1F301711A24"
+    }
+  ],
+  "exact_scope": "Fresh Tuple2 count/digest result, scalar expected identity arguments, three closed compare/format/refusal helpers and all audited consumers. Existing Tuple5 rows retained. C++/header exact, same provisional admission/domain/wire/caps;71 helpers. No direct Tuple/digest serialization.",
+  "qualification": "Tuple2 binary/source/layout is PENDING. Tuple5 metadata is not Tuple2 measurement. No old price/resource/root/env/profile transfer. Complete canonical functional union/census/resource fit/binding and separate GO still pending; all source guards false and Data undefined.",
+  "execution": "Ordinary file/Python source authoring/JSON/hash/integer correspondence only. No target PowerShell parser/AST/import/helper/compiler/program/stage,GUI/device,Git/CI invoked.",
+  "no_first_GREEN": "No target syntax/runtime success. Source-only writer checks are not target execution or resource qualification."
+}

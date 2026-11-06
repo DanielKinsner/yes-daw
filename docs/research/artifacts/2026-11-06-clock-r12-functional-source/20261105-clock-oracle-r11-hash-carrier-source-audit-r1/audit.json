@@ -1,0 +1,134 @@
+{
+  "schema": "R11_HASH_CARRIER_CLOSED_SOURCE_AUDIT_R1",
+  "status": "RECOMMEND_BOUNDED_INTERNAL_CARRIER_SUCCESSOR_NO_IMPLEMENTATION",
+  "source": {
+    "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/run-clock.ps1",
+    "bytes": 104162,
+    "sha256": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9"
+  },
+  "physical_hash_calls": [
+    {
+      "line": 252,
+      "source": "  if($null -ne $ExpectedBinary){try{Assert-TaskIdentity @{path=$Executable;bytes=$ExpectedBinary['bytes'];sha256=$ExpectedBinary['sha256']} (Get-TaskHash $Executable 33554432)}catch{if($null -eq $taskBody){$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}}else{Set-TaskSecondary (2+$taskIndex) $_}}}"
+    },
+    {
+      "line": 761,
+      "source": " $taskMh=Get-TaskHash $taskManifestPath 1048576;if($taskMh['sha256'] -cne $taskExpectedManifest){throw 'Current source manifest changed'}"
+    },
+    {
+      "line": 763,
+      "source": " foreach($taskPin in $taskManifest['sources']){if($taskPin['path'] -cnotin $taskOwnNames -or -not $taskSeen.Add($taskPin['path'])){throw 'Exact own4 names'};$taskExpected=@{path=(Join-Path $taskBase $taskPin['path']);bytes=$taskPin['bytes'];sha256=$taskPin['sha256']};Assert-TaskIdentity $taskExpected (Get-TaskHash $taskExpected['path'] $taskExpected['bytes'])}"
+    },
+    {
+      "line": 764,
+      "source": " $taskSum=0L;foreach($taskPin in $taskManifest['inputs']){$taskPath=Resolve-TaskInput $taskPin['path'];$taskExpected=@{path=$taskPath;bytes=$taskPin['bytes'];sha256=$taskPin['sha256']};Assert-TaskIdentity $taskExpected (Get-TaskHash $taskPath $taskExpected['bytes']);$taskSum+=[long]$taskPin['bytes']}"
+    },
+    {
+      "line": 778,
+      "source": " foreach($taskF in (Get-TaskEntries $taskDataRoot $true 60)){Spend-Task 2;Assert-NoLink $taskF.Item1;if($taskF.Item3){continue};$taskRelative=[IO.Path]::GetRelativePath($taskDataRoot,$taskF.Item1).Replace([char]92,[char]47);$taskNames.Add($taskRelative);if(-not $taskCaps.ContainsKey($taskRelative)){throw 'Unknown reference output before admission'};$taskH=Get-TaskHash $taskF.Item1 $taskCaps[$taskRelative];if($taskH['bytes'] -gt 152627224L-$taskBytes){throw 'Complete reference pool cap'};$taskBytes+=$taskH['bytes'];$taskRows.Add(@{path=$taskF.Item1;relative_path=$taskRelative;bytes=$taskH['bytes'];sha256=$taskH['sha256'];origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "line": 839,
+      "source": " foreach($taskF in (Get-TaskEntries $taskBuildRoot $false 4)){if($taskF.Item3 -or -not $taskBuildCaps.ContainsKey($taskF.Item2)){throw 'Compiler final artifact set is not admitted'};$taskH=Get-TaskHash $taskF.Item1 $taskBuildCaps[$taskF.Item2];if($taskH['bytes'] -gt 67108864L-$taskSum){throw 'Compiler final aggregate not admitted'};$taskSum+=$taskH['bytes'];$taskSeen.Add($taskF.Item2);$taskRows.Add(@{path=$taskF.Item1;bytes=$taskH['bytes'];sha256=$taskH['sha256'];origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "line": 918,
+      "source": " $taskSourceBundle=Resolve-TaskInput $taskPredecessorDescriptor['path'];$taskBundleHash=Get-TaskHash $taskSourceBundle 98009;$taskMutantBundle=Join-Path $taskRoot 'controls/predecessor-mutant.json';Copy-TaskOwned $taskSourceBundle $taskMutantBundle 98009 98009"
+    },
+    {
+      "line": 919,
+      "source": " $taskIdentity=@{path=$taskMutantBundle;bytes=98009L;sha256=$taskPredecessorDescriptor['sha256']};Assert-TaskIdentity $taskIdentity (Get-TaskHash $taskMutantBundle 98009)"
+    },
+    {
+      "line": 922,
+      "source": " $taskMutation=Mutate-TaskOwnedBytes $taskMutantBundle 0 ([byte[]]@([byte]($taskFirst -bxor 1)));$taskCorrupt=Get-TaskHash $taskMutantBundle 98009"
+    },
+    {
+      "line": 931,
+      "source": " $taskBinary=Join-Path $taskBuildRoot 'clock_stage.exe';$taskPE=Get-TaskPEHeader $taskBinary;Assert-TaskConsolePE $taskPE;$taskInitialBinary=Get-TaskHash $taskBinary 33554432"
+    },
+    {
+      "line": 932,
+      "source": " $taskGuiPath=Join-Path $taskRoot 'controls/gui-mutant.exe';Copy-TaskOwned $taskBinary $taskGuiPath $taskInitialBinary['bytes'] 33554432;Assert-TaskIdentity @{path=$taskGuiPath;bytes=$taskInitialBinary['bytes'];sha256=$taskInitialBinary['sha256']} (Get-TaskHash $taskGuiPath 33554432);Assert-TaskConsolePE (Get-TaskPEHeader $taskGuiPath)"
+    },
+    {
+      "line": 934,
+      "source": " $taskControls.Add((Expect-TaskGate 'pe-gui-subsystem' {Assert-TaskConsolePE $taskGui} 'ACTUAL_PE_CONSOLE_BEFORE_LAUNCH' @{signature=$taskGui['signature'];machine=$taskGui['machine'];magic=$taskGui['magic'];subsystem=2}));$taskControls[$taskControls.Count-1]['mutation']=$taskGuiMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=$taskInitialBinary['sha256'];$taskControls[$taskControls.Count-1]['actual_mutant_sha256']=(Get-TaskHash $taskGuiPath 33554432)['sha256']"
+    },
+    {
+      "line": 935,
+      "source": " $taskBinaryHash=Get-TaskHash $taskBinary 33554432"
+    },
+    {
+      "line": 948,
+      "source": " $taskControlsFiles=[Collections.Generic.List[object]]::new();foreach($taskC in $taskManifest['control_files']){$taskPath=Join-Path $taskRoot $taskC['path'];$taskH=Get-TaskHash $taskPath $taskC['bytes_cap'];if($taskC.Contains('exact_bytes') -and $taskH['bytes'] -ne $taskC['exact_bytes']){throw 'Actual bounded record-control file length'};$taskControlsFiles.Add(@{path=$taskPath;bytes=$taskH['bytes'];sha256=$taskH['sha256'];origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "line": 954,
+      "source": " foreach($taskName in @('stdout.log','stderr.log','receipt.json','consumed.json')){$taskPath=Join-Path $taskStageRoot $taskName;$taskH=Get-TaskHash $taskPath 67108864;$taskArtifacts.Add(@{path=$taskPath;bytes=$taskH['bytes'];sha256=$taskH['sha256'];origin_bundle_sha256=$taskExpectedManifest})}"
+    },
+    {
+      "line": 967,
+      "source": " Write-Output ('CONTROLLED_CLOCK_COMPLETE_ROOT_OUTPUT_REVIEW_REQUIRED bundle_sha256='+(Get-TaskHash (Join-Path $taskStageRoot 'bundle.json') 1048576)['sha256'])"
+    }
+  ],
+  "physical_identity_calls": [
+    {
+      "line": 252,
+      "source": "  if($null -ne $ExpectedBinary){try{Assert-TaskIdentity @{path=$Executable;bytes=$ExpectedBinary['bytes'];sha256=$ExpectedBinary['sha256']} (Get-TaskHash $Executable 33554432)}catch{if($null -eq $taskBody){$taskBody=$_;if($null -eq $script:taskPrimaryRaw){$script:taskPrimaryRaw=$_}}else{Set-TaskSecondary (2+$taskIndex) $_}}}"
+    },
+    {
+      "line": 763,
+      "source": " foreach($taskPin in $taskManifest['sources']){if($taskPin['path'] -cnotin $taskOwnNames -or -not $taskSeen.Add($taskPin['path'])){throw 'Exact own4 names'};$taskExpected=@{path=(Join-Path $taskBase $taskPin['path']);bytes=$taskPin['bytes'];sha256=$taskPin['sha256']};Assert-TaskIdentity $taskExpected (Get-TaskHash $taskExpected['path'] $taskExpected['bytes'])}"
+    },
+    {
+      "line": 764,
+      "source": " $taskSum=0L;foreach($taskPin in $taskManifest['inputs']){$taskPath=Resolve-TaskInput $taskPin['path'];$taskExpected=@{path=$taskPath;bytes=$taskPin['bytes'];sha256=$taskPin['sha256']};Assert-TaskIdentity $taskExpected (Get-TaskHash $taskPath $taskExpected['bytes']);$taskSum+=[long]$taskPin['bytes']}"
+    },
+    {
+      "line": 781,
+      "source": "function Assert-TaskSameReferences($Before,$After){if($Before['bytes'] -ne $After['bytes']){throw 'Generated reference byte sum changed'};$taskOld=@{};foreach($taskRow in $Before['files']){$taskOld[$taskRow['relative_path']]=$taskRow};foreach($taskRow in $After['files']){Assert-TaskIdentity $taskOld[$taskRow['relative_path']] $taskRow}}"
+    },
+    {
+      "line": 919,
+      "source": " $taskIdentity=@{path=$taskMutantBundle;bytes=98009L;sha256=$taskPredecessorDescriptor['sha256']};Assert-TaskIdentity $taskIdentity (Get-TaskHash $taskMutantBundle 98009)"
+    },
+    {
+      "line": 923,
+      "source": " $taskControls.Add((Expect-TaskGate 'own-tool-or-predecessor-changed' {Assert-TaskIdentity $taskIdentity $taskCorrupt} 'BEFORE_AFTER_COMPLETE_INPUT_IDENTITY' @{path=$taskMutantBundle;expected_bytes=98009L;observed_bytes=$taskCorrupt['bytes'];expected_hash=$taskIdentity['sha256'];observed_hash=$taskCorrupt['sha256']}));$taskControls[$taskControls.Count-1]['mutation']=$taskMutation;$taskControls[$taskControls.Count-1]['initial_copy_sha256']=$taskBundleHash['sha256']"
+    },
+    {
+      "line": 932,
+      "source": " $taskGuiPath=Join-Path $taskRoot 'controls/gui-mutant.exe';Copy-TaskOwned $taskBinary $taskGuiPath $taskInitialBinary['bytes'] 33554432;Assert-TaskIdentity @{path=$taskGuiPath;bytes=$taskInitialBinary['bytes'];sha256=$taskInitialBinary['sha256']} (Get-TaskHash $taskGuiPath 33554432);Assert-TaskConsolePE (Get-TaskPEHeader $taskGuiPath)"
+    },
+    {
+      "line": 947,
+      "source": " foreach($taskOldFile in $taskBuild['files']){$taskNow=@($taskFinalBuild['files']|Where-Object path -ceq $taskOldFile['path']);if($taskNow.Count -ne 1){throw 'Compiler artifacts changed'};Assert-TaskIdentity $taskOldFile $taskNow[0]}"
+    }
+  ],
+  "conditional_whole_counts": {
+    "hash_returns": 9936,
+    "fence_expected_maps": 9792,
+    "successful_fence_hashes": 9800
+  },
+  "estimated_gross_requests_reduced": {
+    "return_tuple2": 1351296,
+    "scalar_expected_fields": 2585088,
+    "skip_success_fence_hex": 1489600,
+    "total_before_new_work": 5425984,
+    "alternative_tuple3_expected_total": 5034304
+  },
+  "mandatory_preservation": [
+    "all original fresh path/reparse/stat/hash/read/EOF/finally occasions and ordering",
+    "same BEFORE_AFTER_COMPLETE_INPUT_IDENTITY five-key wire witness",
+    "case-sensitive uppercase hex semantics and original scalar integer kinds",
+    "all reference/build/control/artifact/receipt/bundle/final stdout descriptor shapes/content",
+    "no Tuple/digest-array direct serialization",
+    "descriptor-map identity helper remains for two before/after map roles",
+    "do not globally replace taskExpected: controller argv and child module maps use the same local variable spelling",
+    "no source scalar price/profile transfer; recompose every new argument/helper/loop/temporary allocation"
+  ],
+  "qualification": "Source-only consumer/wire route. Tuple2/3 field/layout source correspondence and all new caller/binder work require proof; no claim net allocation delta/fit/live/reclaim/target execution.",
+  "implementation": false,
+  "target_execution": false
+}

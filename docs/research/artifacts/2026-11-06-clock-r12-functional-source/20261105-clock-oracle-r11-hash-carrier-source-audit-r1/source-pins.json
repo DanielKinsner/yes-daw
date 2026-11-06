@@ -1,0 +1,59 @@
+{
+  "schema": "R11_HASH_CARRIER_CLOSED_SOURCE_AUDIT_PINS_R1",
+  "status": "RECOMMEND_BOUNDED_INTERNAL_CARRIER_SUCCESSOR_NO_IMPLEMENTATION",
+  "files": [
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/audit.json",
+      "bytes": 10451,
+      "sha256": "32F773959583A1C91D235396634EEE272E8D8E8E1804FEC1DA7356B00160755E"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/audit.md",
+      "bytes": 7646,
+      "sha256": "FE299D05D51CFDF0A0371DACAEC394BD1178B2B8F17617E872C80AA216BB357A"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/IncrementalHash.cs",
+      "bytes": 18198,
+      "sha256": "9E2AFB04284C6864F63C55A21BDEC2E4DE406502E4A7D39474B5B4E883524DF8"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/primary-source.json",
+      "bytes": 314,
+      "sha256": "6D6507D19E6367086366E3ECF7B30E755D22D481D8C1D2DF49647197857F43CB"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/seal.py",
+      "bytes": 3707,
+      "sha256": "4F7A7A9CED836585FD4355116AED01A9006FAA0622BA4F300DFD5526B278BF96"
+    }
+  ],
+  "inputs": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r11-tuple-metadata-source-r1/run-clock.ps1",
+      "bytes": 104162,
+      "sha256": "0E41A01150AE5A588D7D42176F6A6C7A6D922F8CE3AE69AD474FDA26E05C7DA9"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r11-payload-phase-closure-r1/source-pins.json",
+      "bytes": 10653,
+      "sha256": "4D8B292BA5096826E21E9F16806CFDF36C26383DFCD35FFF67927FFA692AB61D"
+    },
+    {
+      "path": "build-ci/20261105-managed-payload-abi-probe-source-r2/execution-r1/receipt.json",
+      "bytes": 2316,
+      "sha256": "39A59FC9C42715C339B6F2AD7AB1456B3850F645A6E884F9CBDC2144A3189A50"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-r10-controlled-payload-closure-r1/primary-sources/Tuple.cs",
+      "bytes": 43571,
+      "sha256": "A6000D29CC1DA0A3BA582D76E277DE74172FE7BC65EE0F658ABBD1F301711A24"
+    },
+    {
+      "path": "build-ci/20261105-managed-file-type-inventory-source-r2/execution-r1/inventory.json",
+      "bytes": 41601,
+      "sha256": "EA5A5F25A40F2017BD7BE223104C210887B4A3203281FA6E16445E823C6FBF80"
+    }
+  ],
+  "execution": "Source/file/primary-source/JSON/arithmetic only; no target PS parser/AST/import/helper/compiler/program/stage,GUI/device,Git/CI; no source successor beyond the prior R11 candidate authored."
+}

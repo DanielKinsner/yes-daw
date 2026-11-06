@@ -8,7 +8,7 @@ Older entries below are dated history, not competing "Now" instructions.
 > **Cross-machine rule:** `git pull` at the start of a session. At the end, update this file, commit in
 > small chunks, and `git push`. Then the next machine — or the next session — is never lost.
 
-## Scoreboard - where the app stands (kept current; last updated 2026-11-05)
+## Scoreboard - where the app stands (kept current; last updated 2026-11-06)
 
 **Make a song today** (evidence: the real-app drives on packaged build 7a1b0ad, 2026-10-13)
 - Import audio - WORKING: WAV/AIFF/FLAC/Ogg/MP3 at supported sample rates, drag-drop, browser preview.
@@ -76,6 +76,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    provisional input set; final union, new census/lifetime proof, binding and execution remain held.
    The separate metadata successor also passed26 types/112 declared fields, including Tuple2, the
    discovered JObject iterator and three CoreLib enumerators. Complete payload equations remain in progress.
+   R12's internal hash carrier passed2,735 whole functional source checks against provisional inputs;
+   final input/root/environment, numeric/resource closure, binding and execution remain held.
    R5's conditional all-input/source-object argument passed18,197 independent checks; actual native
    binding/funding/resources/integration remain held. Whole production census R3 review is REVISE;
    a systematic explicit/unqualified-designator inventory across420 bodies/51 helpers is required next.
@@ -101,6 +103,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Preserve the complete R12 functional source review
+
+- Archived the complete provisional R12 source, authoring/correction lineage, hash-carrier audit and independent review:24 files with lossless original-byte records.
+- Whole review passed2,735 checks/1,249 input identities. Fresh hashes and wire/failure behavior remain intact; all target execution guards stay false.
+- Numeric/lifetime accounting, final inputs/path/environment, immutable binding and execution remain held. Musical audio and the rest of Option A remain unfinished; continue the fresh production census and complete payload join headlessly.
 
 ## 2026-11-05 - Verify the hash carrier's installed field declarations
 

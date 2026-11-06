@@ -1,0 +1,225 @@
+{
+  "schema": "R12_PROVISIONAL_WHOLE_FUNCTIONAL_SOURCE_ARCHIVE",
+  "scope": "Whole functional source only; numeric census, full resource closure, final input/root/environment qualification, binding and execution HOLD",
+  "subject_manifest_sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557",
+  "independent_review_sha256": "9CB2E2E9F1DDE05400CA293EC95991F8A78E9D1A1F4AFF96739966B6648E43D1",
+  "files": [
+    {
+      "file": "20261105-clock-oracle-r11-hash-carrier-source-audit-r1/audit.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/audit.json",
+      "original_bytes": 10451,
+      "original_sha256": "32F773959583A1C91D235396634EEE272E8D8E8E1804FEC1DA7356B00160755E",
+      "transformation": "BYTE_EXACT",
+      "bytes": 10451,
+      "sha256": "32F773959583A1C91D235396634EEE272E8D8E8E1804FEC1DA7356B00160755E"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-hash-carrier-source-audit-r1/audit.md",
+      "original_path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/audit.md",
+      "original_bytes": 7646,
+      "original_sha256": "FE299D05D51CFDF0A0371DACAEC394BD1178B2B8F17617E872C80AA216BB357A",
+      "transformation": "BYTE_EXACT",
+      "bytes": 7646,
+      "sha256": "FE299D05D51CFDF0A0371DACAEC394BD1178B2B8F17617E872C80AA216BB357A"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-hash-carrier-source-audit-r1/primary-source.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/primary-source.json",
+      "original_bytes": 314,
+      "original_sha256": "6D6507D19E6367086366E3ECF7B30E755D22D481D8C1D2DF49647197857F43CB",
+      "transformation": "LF_DISPLAY_SINGLE_EOF_LF_RAW_BASE64_PRESERVED",
+      "bytes": 309,
+      "sha256": "F690688D2CEF33630AB568D643DFA51EA002B5C380F45269BD7C626165722DDE",
+      "original_raw_base64": "ew0KICAidXJsIjogImh0dHBzOi8vcmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbS9kb3RuZXQvZG90bmV0L2UyZjQ3YjAxMTBlZDkyMmYyMWExNTIyZGE2NzI3OTEzM2NlMjhmMzIvc3JjL3J1bnRpbWUvc3JjL2xpYnJhcmllcy9TeXN0ZW0uU2VjdXJpdHkuQ3J5cHRvZ3JhcGh5L3NyYy9TeXN0ZW0vU2VjdXJpdHkvQ3J5cHRvZ3JhcGh5L0luY3JlbWVudGFsSGFzaC5jcyIsDQogICJieXRlcyI6IDE4MTk4LA0KICAic2hhMjU2IjogIjlFMkFGQjA0Mjg0QzY4NjRGNjNDNTVBMjFCREVDMkU0REU0MDY1MDJFNEE3RDM5NDc0QjVCNEU4ODM1MjRERjgiDQp9DQo="
+    },
+    {
+      "file": "20261105-clock-oracle-r11-hash-carrier-source-audit-r1/seal.py",
+      "original_path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/seal.py",
+      "original_bytes": 3707,
+      "original_sha256": "4F7A7A9CED836585FD4355116AED01A9006FAA0622BA4F300DFD5526B278BF96",
+      "transformation": "BYTE_EXACT",
+      "bytes": 3707,
+      "sha256": "4F7A7A9CED836585FD4355116AED01A9006FAA0622BA4F300DFD5526B278BF96"
+    },
+    {
+      "file": "20261105-clock-oracle-r11-hash-carrier-source-audit-r1/source-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r11-hash-carrier-source-audit-r1/source-pins.json",
+      "original_bytes": 2577,
+      "original_sha256": "92B58B619AC942DF84BED00BA178A2989ABC4E000E011CA2413F059C98605759",
+      "transformation": "BYTE_EXACT",
+      "bytes": 2577,
+      "sha256": "92B58B619AC942DF84BED00BA178A2989ABC4E000E011CA2413F059C98605759"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-independent-review/evidence/file-checks.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-independent-review/evidence/file-checks.json",
+      "original_bytes": 807619,
+      "original_sha256": "3B0B15D4799C8C8DB4072D368E60B3F7EB441B9001109D122CDF08C6AF6D9D55",
+      "transformation": "BYTE_EXACT",
+      "bytes": 807619,
+      "sha256": "3B0B15D4799C8C8DB4072D368E60B3F7EB441B9001109D122CDF08C6AF6D9D55"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-independent-review/evidence/runner-independent.diff.original.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-independent-review/evidence/runner-independent.diff",
+      "original_bytes": 22922,
+      "original_sha256": "F70355DC8574CB36D11C1766ADB43CD06F24B4C561AC091F60F7C08D4179FCE1",
+      "transformation": "COMPLETE_RAW_DIFF_BASE64",
+      "bytes": 30712,
+      "sha256": "736338B443DCD2DDE99AC75825B2929BA7E09C4C18112B69F970A22D1B1AA34E"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-independent-review/evidence/verify_files.py",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-independent-review/evidence/verify_files.py",
+      "original_bytes": 17455,
+      "original_sha256": "7F3368543139F8C97C052DAA74286502471302BA5D381BBCA678F284D133B093",
+      "transformation": "BYTE_EXACT",
+      "bytes": 17455,
+      "sha256": "7F3368543139F8C97C052DAA74286502471302BA5D381BBCA678F284D133B093"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-independent-review/review.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-independent-review/review.json",
+      "original_bytes": 331466,
+      "original_sha256": "9CB2E2E9F1DDE05400CA293EC95991F8A78E9D1A1F4AFF96739966B6648E43D1",
+      "transformation": "BYTE_EXACT",
+      "bytes": 331466,
+      "sha256": "9CB2E2E9F1DDE05400CA293EC95991F8A78E9D1A1F4AFF96739966B6648E43D1"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-independent-review/review.md",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-independent-review/review.md",
+      "original_bytes": 13180,
+      "original_sha256": "790881ED73353691A59CBD8888F24E54F60CBD1E65F96AB78282E1B8332CDFFB",
+      "transformation": "BYTE_EXACT",
+      "bytes": 13180,
+      "sha256": "790881ED73353691A59CBD8888F24E54F60CBD1E65F96AB78282E1B8332CDFFB"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-independent-review/source-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-independent-review/source-pins.json",
+      "original_bytes": 311345,
+      "original_sha256": "81380C9AEEEBAA6E26AF9932922B11F941FAF13ECAFB46214AE645BA141B3786",
+      "transformation": "BYTE_EXACT",
+      "bytes": 311345,
+      "sha256": "81380C9AEEEBAA6E26AF9932922B11F941FAF13ECAFB46214AE645BA141B3786"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/author-source.py",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/author-source.py",
+      "original_bytes": 17086,
+      "original_sha256": "C1C9C2C01293C539F6432E973B374EEBF7DD7E3EA18409FB34E0AE72C35FE65A",
+      "transformation": "BYTE_EXACT",
+      "bytes": 17086,
+      "sha256": "C1C9C2C01293C539F6432E973B374EEBF7DD7E3EA18409FB34E0AE72C35FE65A"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/evidence-initial-unsealed/README.md",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/evidence-initial-unsealed/README.md",
+      "original_bytes": 20270,
+      "original_sha256": "2983AC91A94ED10C16C828F2830F04356E792CD9B223E4760C4D20DB5E2124C6",
+      "transformation": "BYTE_EXACT",
+      "bytes": 20270,
+      "sha256": "2983AC91A94ED10C16C828F2830F04356E792CD9B223E4760C4D20DB5E2124C6"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/evidence-initial-unsealed/source-correspondence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/evidence-initial-unsealed/source-correspondence.json",
+      "original_bytes": 886572,
+      "original_sha256": "48EED711F73F867540000470C368D1BCEB12D44BCCF3E3D52503C83E6AF4FA05",
+      "transformation": "BYTE_EXACT",
+      "bytes": 886572,
+      "sha256": "48EED711F73F867540000470C368D1BCEB12D44BCCF3E3D52503C83E6AF4FA05"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/evidence-initial-unsealed/source-manifest.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/evidence-initial-unsealed/source-manifest.json",
+      "original_bytes": 501180,
+      "original_sha256": "AD3630A4644ED4C658582DB65337F4C544C49A1036D335ECD71CA7B154996F4E",
+      "transformation": "BYTE_EXACT",
+      "bytes": 501180,
+      "sha256": "AD3630A4644ED4C658582DB65337F4C544C49A1036D335ECD71CA7B154996F4E"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/finalize-source.py",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/finalize-source.py",
+      "original_bytes": 4749,
+      "original_sha256": "126D4B9F77D9C8EB5E174BC5E86250EAACBACD1C5976EF6290C521EC36413F89",
+      "transformation": "BYTE_EXACT",
+      "bytes": 4749,
+      "sha256": "126D4B9F77D9C8EB5E174BC5E86250EAACBACD1C5976EF6290C521EC36413F89"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/runner.diff.original.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/runner.diff",
+      "original_bytes": 22922,
+      "original_sha256": "F70355DC8574CB36D11C1766ADB43CD06F24B4C561AC091F60F7C08D4179FCE1",
+      "transformation": "COMPLETE_RAW_DIFF_BASE64",
+      "bytes": 30712,
+      "sha256": "736338B443DCD2DDE99AC75825B2929BA7E09C4C18112B69F970A22D1B1AA34E"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/source-correspondence.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/source-correspondence.json",
+      "original_bytes": 886860,
+      "original_sha256": "89FEA73C3C03B29541AC2FEBF0704EA86D2C8E4418828C5E939C6CBC87DF3BCC",
+      "transformation": "BYTE_EXACT",
+      "bytes": 886860,
+      "sha256": "89FEA73C3C03B29541AC2FEBF0704EA86D2C8E4418828C5E939C6CBC87DF3BCC"
+    },
+    {
+      "file": "20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/source-pins.json",
+      "original_path": "build-ci/20261105-clock-oracle-r12-hash-carrier-source-authoring-r1/source-pins.json",
+      "original_bytes": 5167,
+      "original_sha256": "B22F259F0BF75F786177C0CCBCDECCD893E8DC110993FAE4E57525A6C0DA3A13",
+      "transformation": "BYTE_EXACT",
+      "bytes": 5167,
+      "sha256": "B22F259F0BF75F786177C0CCBCDECCD893E8DC110993FAE4E57525A6C0DA3A13"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/README.md",
+      "original_bytes": 20285,
+      "original_sha256": "DC39905A4833FB580FAA55BE562E15EAB923F3B9D1006371D88CBE928C386D90",
+      "transformation": "BYTE_EXACT",
+      "bytes": 20285,
+      "sha256": "DC39905A4833FB580FAA55BE562E15EAB923F3B9D1006371D88CBE928C386D90"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/run-clock.ps1",
+      "original_bytes": 105903,
+      "original_sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F",
+      "transformation": "BYTE_EXACT",
+      "bytes": 105903,
+      "sha256": "3D9F23D675A9920969B6551A244BD6F07F144AE25440CA6325FAF0D4DB44319F"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r12-hash-carrier-source-r1/source-manifest.json",
+      "original_bytes": 501180,
+      "original_sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557",
+      "transformation": "BYTE_EXACT",
+      "bytes": 501180,
+      "sha256": "4C10468F6F521A754771F733E2E339B88FFCA28351D36C2C30C2F926F50CC557"
+    }
+  ]
+}
