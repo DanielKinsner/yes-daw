@@ -65,8 +65,9 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    unknown SDK/context/layout terms. The measured405,128-byte large-object component is not whole fit.
    ADR-0090's complete supervisor protocol passed115 independent checks; its v2 diagnostic delta is Accepted.
    The R14 whole review passed2,542 source/file/data assertions and the scoped IO review55; their verdict
-   is REVISE, with no runtime credit. R13's complete R2 scalar proposal is frozen at5,577,409,900;
-   its5,852 own checks are source/data only. A different fresh whole critic is reviewing it now.
+   is REVISE, with no runtime credit. A different fresh critic returned R13 scalarR2 REVISE after3,770
+   source/data checks: four source-sponsorship omissions remain. A complete R3 successor is being authored;
+   the5,577,409,900 R2 proposal is unaccepted, without a too-small/NOFIT conclusion.
    Next: finish the fresh whole R15 review, the R13 numeric review, and resource/native/binding proof
    before any Clock attempt. Detailed evidence and earlier
    source revisions remain in the dated entries below; Dan is not a tester or approval gate.
@@ -90,6 +91,13 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Fresh whole scalar review; correct four sponsorship gaps
+
+- The [independent whole R2 review](docs/research/artifacts/2026-11-06-clock-r13-runner-census-independent-review-r2/sources/018-review.md) is REVISE: raw-string literal predicate19, two missing tilde branch actions, one missing own dispatch and an omitted default Int32-to-long coercion. All74 bodies,347 calls,127 main rows and54 families across six phases were reviewed;3,770 own file/data checks passed, with the critic's failed attempts preserved.
+- No individual price or replacement total was accepted. The four gaps do not prove5,577,409,900 too small or NOFIT; graph type/length errata also remain below its deliberately larger aggregate receipt bound. A complete R3 source proposal is authorized, with all analogous source paths and composition rechecked; no silent unrelated slack or R15 transfer.
+- The [review receipt](docs/research/2026-11-06-r13-scalar-r2-whole-review.json) pins the51-file archive and original candidate/critic freezes. The source archive verifier uses hidden null-stdin Git and preserves every staged byte; it grants no source-price/resource/native/runtime acceptance. All Clock/target execution gates remain false.
+- R15's independent whole functional review and the SDK/context review continue in parallel. Precedingc8713bdf passed docs-only CI42235381262, with runtime/package/sanitizer jobs skipped; app code remainsd3ec661.
 
 ## 2026-11-06 - Freeze the complete scalar successor for a different critic
 

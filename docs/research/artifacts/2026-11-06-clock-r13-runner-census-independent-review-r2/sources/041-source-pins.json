@@ -1,0 +1,105 @@
+{
+  "schema": "ROOT_R13_MAIN_CALLER_PROPOSAL_INPUT_PINS_R3",
+  "inputs": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "bytes": 108428,
+      "sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "bytes": 503610,
+      "sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-runner-census-r2/public-cmdlet-ports.json",
+      "bytes": 8285,
+      "sha256": "135B3092E3CD24219B8758BE44C2672CA6078F5775033EF5BDB4F3B70DC099FC"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-separate-research-contract/contract.md",
+      "bytes": 7998,
+      "sha256": "344408DAEC2BD355D44B0B6DA266BF00119B09DF5028B70524699E8E2CD36010"
+    },
+    {
+      "path": "build-ci/20261105-clock-oracle-research-leaf-census-conventions.md",
+      "bytes": 1746,
+      "sha256": "DE33D91712372C2FE887A02FB137AA9A96C8C3BB93CB0D88BF57AA32DBEAE564"
+    },
+    {
+      "path": "build-ci/20261106-research-callback-destination-clarifier-r1.md",
+      "bytes": 1509,
+      "sha256": "FD16BE18EA2D6D5EFE060150E0672E16E30FC637F540718B2D1E0C7DE649DAE1"
+    },
+    {
+      "path": "build-ci/20261106-research-catch-input-clarifier-r1.md",
+      "bytes": 1696,
+      "sha256": "CA608A6E752DCA0582ED8F2B07FB519FD697EB40ECDA10ABA4C109C8A72DF71D"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/parser/Compiler.cs",
+      "bytes": 341878,
+      "sha256": "C5DED9509B65F2CD81B1D5B11F8915A220B32BE038599FC7008BA235563B95DC"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/InitialSessionState.cs",
+      "bytes": 249591,
+      "sha256": "9C9773CE2FAB13EE173DCC3859761FEC0BDB251248B40A2FF4160BF533B7A899"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/System.Management.Automation/engine/LanguagePrimitives.cs",
+      "bytes": 291050,
+      "sha256": "284B0FAD37EF182C51566E8135B20E4C27464B1EE9352A1786E7DC76C3089711"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Utility/commands/utility/Write-Object.cs",
+      "bytes": 1445,
+      "sha256": "EB4E70C833C5FD5DFD70B4CF3FDD672A8CFA7A10AF77E2D6F7C2F71A5C8D1AF4"
+    },
+    {
+      "path": "build-ci/20261105-controller-environment-writer-closure-r2/primary/src/Microsoft.PowerShell.Commands.Utility/commands/utility/Write.cs",
+      "bytes": 16802,
+      "sha256": "9F77ACF2813EBA5F11DF250823C250065AC7AD945F013637B3F66C89E570E65E"
+    },
+    {
+      "path": "build-ci/20261106-r13-main-caller-ledger-r3/main_ledger.py",
+      "bytes": 33127,
+      "sha256": "A61C4E257CADB0DD6185BF7E5BF153348C6549058CCB3E176E89B4027DE8822B"
+    },
+    {
+      "path": "build-ci/20261106-r13-main-caller-ledger-r3/argument.md",
+      "bytes": 6406,
+      "sha256": "981B2E1EA5992B1AC0ED8B5DB9723D0E18A8A592D653376D3D409BA3D9B60457"
+    },
+    {
+      "path": "build-ci/20261106-r13-main-caller-ledger-r3/WORKING.md",
+      "bytes": 2644,
+      "sha256": "89C3F3B672AA9A91A00BD543E087BFE4705DF0E1CA8FC7D1C22686C4D10489A1"
+    },
+    {
+      "path": "build-ci/20261106-r13-main-caller-ledger-r3/check_main.py",
+      "bytes": 9593,
+      "sha256": "C3B1AF35DC37D5949B59CBC1ED74985F900F89796960F0D88770351ED59D578A"
+    },
+    {
+      "path": "build-ci/20261106-r13-main-caller-ledger-r3/cast-sites.json",
+      "bytes": 12940,
+      "sha256": "08347EFF863E69E6EA0AD25BE0696134E51D1C9D9737379D0DEB5D8908901717"
+    },
+    {
+      "path": "build-ci/20261106-r13-main-caller-ledger-r2/caller-ledger.json",
+      "bytes": 143917,
+      "sha256": "0966C8A47AC17FE2283E99094E6315FD01F64FD041DF53DDE808F4F4C521928E"
+    },
+    {
+      "path": "build-ci/20261106-r13-main-caller-ledger-r3/prepare_r3.py",
+      "bytes": 7264,
+      "sha256": "2D8EAED8BD905FBD7C15AF402C943DA5EEECF71AD93B454AC30C22A4D0821AA1"
+    },
+    {
+      "path": "build-ci/20261106-research-getter-destination-clarifier-r1.md",
+      "bytes": 1927,
+      "sha256": "1F47F55CFC659159E12DACB0C3A4612F081E507617EFE7318168D570B1E623B3"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "scope": "FRESH_INDEPENDENT_WHOLE_SOURCE_SCALAR_REVIEW_NOT_RUNTIME_OR_RESOURCE_PROOF",
+  "verdict": "REVISE",
+  "candidate_census_sha256": "90E6F31DBF49D8D4A5B5DAC4B08AA022BF47EA94112850AEFD228F0B14D069CC",
+  "candidate_pins_sha256": "DFC0F598BF3CECC00484A3772B86819BA2EF71A11078B26B30ED73ECA8BB4B93",
+  "candidate_whole_freeze_sha256": "F0C4439F557C5E59DBB1096AA0DACFE9DB62EDAD944E68AD52D14B20C4876BB6",
+  "review_checks": 3770,
+  "review_json_sha256": "A9F97BDE57B80B7F92BF8AE8E6EDF3C755E7AABD41DAA63F3FE5595C0E42A06E",
+  "review_argument_sha256": "D1D11F4EEDF9329302240F5AA28355D5EB12F6A6869CBE87BAB3002B2DEF2678",
+  "review_source_pins_sha256": "60D7833F12C237370822E785F3058244A4C2CCB422DBE3064068FB498520B33F",
+  "review_freeze_sha256": "60AFB6730C193E342C1962E61406F1E99FC3AB532F3B062E461D1AA06F6AB44F",
+  "coverage": {"helper_bodies": 74, "calls": 347, "helper_calls": 233, "main_calls": 114, "main_rows": 127, "families": 54, "phases": 6},
+  "findings": [
+    {"id": "F1", "line": 561, "gap": "Raw-string literal predicate19 rather than18; class36 rather than35; byte class38 remains correct"},
+    {"id": "F2", "lines": [108,110], "gap": "Each tilde predicate omitted its selected branchB1"},
+    {"id": "F3", "line": 135, "gap": "Indexed argument7 plus own dispatch1 plus containing return1 is9; candidate group8 omitted dispatch"},
+    {"id": "F4", "line": 926, "gap": "WriteJson omitted explicit Maximum default requires Int32-to-long coercion distinct from literal read and formal write"}
+  ],
+  "graph_correspondence_errata": ["secondary code43 not41", "missing descriptor path42 not41", "child log_cap is Boolean"],
+  "graph_aggregate_underbound_claimed": false,
+  "candidate_total_unaccepted": 5577409900,
+  "total_too_small_or_NOFIT_proven": false,
+  "replacement_prices_or_total_accepted": false,
+  "source_only_R3_successor_authorized": true,
+  "wrapper_pins_sha256": "0BFA452C882A6124E0AFE0C78184514C024F48E8851E26797CEF9F625DC225BE",
+  "archive": {"path": "docs/research/artifacts/2026-11-06-clock-r13-runner-census-independent-review-r2/archive-manifest.json", "files": 51, "sha256": "49E72BD9E095F04593746F1AFE1D4FF43058A364545C84624CD42F3F11A9336D"},
+  "staged_verifier": "docs/research/2026-11-06-headless-source-archive-check.py",
+  "staged_result": "docs/research/verification-results/2026-11-06-clock-r13-runner-census-independent-review-r2.json",
+  "target_parser_AST_import_compiler_helper_fixture_Clock_execution": false,
+  "resource_native_ABI_binding_Data_GO": false,
+  "preceding_CI": {"commit": "c8713bdfdf686215c39d5e73391a1c95c6db038a", "run": 42235381262, "conclusion": "success", "scope": "DOCS_ONLY_RUNTIME_PACKAGE_SANITIZER_SKIPPED"}
+}

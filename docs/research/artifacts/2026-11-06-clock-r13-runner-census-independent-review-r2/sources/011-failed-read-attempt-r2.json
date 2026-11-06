@@ -1,0 +1,10 @@
+{
+  "kind": "OWN_SOURCE_READ_PATH_GUESS_FAILURE",
+  "requested": "build-ci/20261106-r13-main-caller-ledger-r3/main-caller.json",
+  "actual": "build-ci/20261106-r13-main-caller-ledger-r3/caller-ledger.json",
+  "raw_error": "Get-Content: Cannot find path .../main-caller.json because it does not exist.",
+  "raw_shell_exit": 0,
+  "limitation": "PowerShell emitted a nonterminating missing-path error; process exit0 was not read success.",
+  "subject_edits_or_execution": false,
+  "correction": "Read the actual listed caller-ledger.json."
+}

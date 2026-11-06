@@ -1,0 +1,9 @@
+{
+  "kind": "OWN_TOOL_ORCHESTRATION_READ_ATTEMPT_FAILURE",
+  "cause": "Missing closing parenthesis in functions.exec JavaScript wrapping a source-only exec_command read.",
+  "raw_error": "SyntaxError: missing ) after argument list",
+  "execution": "JavaScript rejected before any shell command or subject program ran.",
+  "intended_source_ranges": ["run-clock.ps1:611-748", "body_ledgers.py:541-686"],
+  "subject_edits": false,
+  "correction": "Close the tools.exec_command call before text; repeat the same source-only reads."
+}
