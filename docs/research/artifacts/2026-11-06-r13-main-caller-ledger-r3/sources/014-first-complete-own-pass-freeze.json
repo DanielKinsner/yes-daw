@@ -1,0 +1,45 @@
+{
+  "scope": "complete source/data/integer proposal, not acceptance or target execution",
+  "files": [
+    {
+      "path": "caller-ledger.json",
+      "bytes": 155738,
+      "sha256": "6FB853C6244C0C5EEEC68F114471B75953C4A959944F3B44C3D5F61EB7A59BF3"
+    },
+    {
+      "path": "source-pins.json",
+      "bytes": 4509,
+      "sha256": "B554C2BEAD02A1A3DC0816C1D896CF44448517838787ED88364EEE13798C32DB"
+    },
+    {
+      "path": "main_ledger.py",
+      "bytes": 33127,
+      "sha256": "A61C4E257CADB0DD6185BF7E5BF153348C6549058CCB3E176E89B4027DE8822B"
+    },
+    {
+      "path": "check_main.py",
+      "bytes": 9593,
+      "sha256": "C3B1AF35DC37D5949B59CBC1ED74985F900F89796960F0D88770351ED59D578A"
+    },
+    {
+      "path": "argument.md",
+      "bytes": 6406,
+      "sha256": "981B2E1EA5992B1AC0ED8B5DB9723D0E18A8A592D653376D3D409BA3D9B60457"
+    },
+    {
+      "path": "WORKING.md",
+      "bytes": 2644,
+      "sha256": "89C3F3B672AA9A91A00BD543E087BFE4705DF0E1CA8FC7D1C22686C4D10489A1"
+    },
+    {
+      "path": "cast-sites.json",
+      "bytes": 12940,
+      "sha256": "08347EFF863E69E6EA0AD25BE0696134E51D1C9D9737379D0DEB5D8908901717"
+    },
+    {
+      "path": "prepare_r3.py",
+      "bytes": 7264,
+      "sha256": "2D8EAED8BD905FBD7C15AF402C943DA5EEECF71AD93B454AC30C22A4D0821AA1"
+    }
+  ]
+}

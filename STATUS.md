@@ -85,6 +85,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-06 - Correct explicit cast sponsorship before whole source review
+
+- Root mainR2 was REVISE: it omitted141 written cast/type-check operations in six rows by treating explicit identity casts like implicit identity argument binding. R2/180,658 and every first-pass source/output remain frozen; no old getter convention or contract was changed.
+- New complete mainR3 recomputed all127 rows, audited all29 written cast sites/3,382 bounded occurrences and passed843 own source/data checks at its first pass. Its proposed caller-only180,799 excludes all own helper bodies and is an unaccepted input to the complete R13R2 assembly, not a whole price, measured execution or GO.
+- R14 adopts independently accepted protocol v2 while preserving the first diagnostic-gap snapshot. Full helper/main/global/source review and controlled-object/resource/native/binding work continue; no Clock/helper/fixture run is authorized.
+
 ## 2026-11-06 - Finish the main source ledger and separate job diagnostics
 
 - Root's complete exact-R13 bootstrap/main caller proposal passed682 own source/data checks at its first pass:127 rows/114 written main calls, upper180,658 (bootstrap/registration51,125; main129,533). It excludes own helper bodies; this unaccepted component now joins all74 freshly authored helper models for a different whole critic. Type[].EmptyTypes functionality HOLD remains.

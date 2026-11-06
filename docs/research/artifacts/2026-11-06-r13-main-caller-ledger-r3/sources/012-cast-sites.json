@@ -1,0 +1,271 @@
+{
+  "schema": "COMPLETE_R13_MAIN_WRITTEN_CAST_SITE_AUDIT_R3",
+  "sites": [
+    {
+      "line": 22,
+      "column": 104,
+      "written_cast": "[int]",
+      "bounded_multiplicity": 1536,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " for($taskCharacterIndex=0;$taskCharacterIndex -lt $taskArgumentValue.Length;$taskCharacterIndex++){if([int]$taskArgumentValue[$taskCharacterIndex] -lt 32 -or [int]$taskArgumentValue[$taskCharacterIndex] -gt 126){throw 'PINNED_ASCII_PATH_DOMAIN'}}"
+    },
+    {
+      "line": 22,
+      "column": 160,
+      "written_cast": "[int]",
+      "bounded_multiplicity": 1536,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " for($taskCharacterIndex=0;$taskCharacterIndex -lt $taskArgumentValue.Length;$taskCharacterIndex++){if([int]$taskArgumentValue[$taskCharacterIndex] -lt 32 -or [int]$taskArgumentValue[$taskCharacterIndex] -gt 126){throw 'PINNED_ASCII_PATH_DOMAIN'}}"
+    },
+    {
+      "line": 59,
+      "column": 28,
+      "written_cast": "[long[]]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": "$taskSignedDigitThresholds=[long[]]@(10,100,1000,10000,100000,1000000,10000000,100000000,1000000000,10000000000,100000000000,1000000000000,10000000000000,100000000000000,1000000000000000,10000000000000000,100000000000000000,1000000000000000000)"
+    },
+    {
+      "line": 60,
+      "column": 30,
+      "written_cast": "[uint64[]]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": "$taskUnsignedDigitThresholds=[uint64[]]@(10,100,1000,10000,100000,1000000,10000000,100000000,1000000000,10000000000,100000000000,1000000000000,10000000000000,100000000000000,1000000000000000,10000000000000000,100000000000000000,1000000000000000000,[uint64]::Parse('10000000000000000000',[Globalization.CultureInfo]::InvariantCulture))"
+    },
+    {
+      "line": 941,
+      "column": 19,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskRunnerLimit=[long]$taskManifest['source_work']['runner_upper'];$taskProducerLimit=[long]$taskManifest['source_work']['producer_upper'];$taskVerifierLimit=[long]$taskManifest['source_work']['verifier_upper'];$taskTotalWork=[long]$taskManifest['source_work']['whole_upper']"
+    },
+    {
+      "line": 941,
+      "column": 89,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskRunnerLimit=[long]$taskManifest['source_work']['runner_upper'];$taskProducerLimit=[long]$taskManifest['source_work']['producer_upper'];$taskVerifierLimit=[long]$taskManifest['source_work']['verifier_upper'];$taskTotalWork=[long]$taskManifest['source_work']['whole_upper']"
+    },
+    {
+      "line": 941,
+      "column": 161,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskRunnerLimit=[long]$taskManifest['source_work']['runner_upper'];$taskProducerLimit=[long]$taskManifest['source_work']['producer_upper'];$taskVerifierLimit=[long]$taskManifest['source_work']['verifier_upper'];$taskTotalWork=[long]$taskManifest['source_work']['whole_upper']"
+    },
+    {
+      "line": 941,
+      "column": 229,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskRunnerLimit=[long]$taskManifest['source_work']['runner_upper'];$taskProducerLimit=[long]$taskManifest['source_work']['producer_upper'];$taskVerifierLimit=[long]$taskManifest['source_work']['verifier_upper'];$taskTotalWork=[long]$taskManifest['source_work']['whole_upper']"
+    },
+    {
+      "line": 957,
+      "column": 21,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskAuthoredBytes=[long](Get-Item -LiteralPath $taskManifestPath).Length;foreach($taskPin in $taskManifest['sources']){$taskAuthoredBytes+=[long]$taskPin['bytes']};if($taskAuthoredBytes -gt 1048576L){throw 'Own five-file source payload1MiB'}"
+    },
+    {
+      "line": 957,
+      "column": 142,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 4,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskAuthoredBytes=[long](Get-Item -LiteralPath $taskManifestPath).Length;foreach($taskPin in $taskManifest['sources']){$taskAuthoredBytes+=[long]$taskPin['bytes']};if($taskAuthoredBytes -gt 1048576L){throw 'Own five-file source payload1MiB'}"
+    },
+    {
+      "line": 958,
+      "column": 90,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 4,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskControlCaps=0L;foreach($taskC in $taskManifest['control_files']){$taskControlCaps+=[long]$taskC['bytes_cap']};$taskReservedRetained=[long]$taskManifest['profile']['input_bytes']+$taskAuthoredBytes+152627224L+67108864L+67108864L+$taskControlCaps;Assert-TaskRetainedReservation $taskReservedRetained 880803840L"
+    },
+    {
+      "line": 958,
+      "column": 139,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskControlCaps=0L;foreach($taskC in $taskManifest['control_files']){$taskControlCaps+=[long]$taskC['bytes_cap']};$taskReservedRetained=[long]$taskManifest['profile']['input_bytes']+$taskAuthoredBytes+152627224L+67108864L+67108864L+$taskControlCaps;Assert-TaskRetainedReservation $taskReservedRetained 880803840L"
+    },
+    {
+      "line": 964,
+      "column": 166,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 56,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskCaps=[Collections.Generic.Dictionary[string,long]]::new([StringComparer]::Ordinal);foreach($taskA in $taskManifest['references']){$taskCaps.Add($taskA['path'],[long]$taskA['bytes_cap'])}"
+    },
+    {
+      "line": 965,
+      "column": 188,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 3,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskBuildCaps=[Collections.Generic.Dictionary[string,long]]::new([StringComparer]::Ordinal);foreach($taskA in $taskManifest['compiler_final_outputs']){$taskBuildCaps.Add($taskA['name'],[long]$taskA['bytes_cap'])}"
+    },
+    {
+      "line": 984,
+      "column": 59,
+      "written_cast": "[byte[]]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskMutation=Mutate-TaskOwnedBytes $taskMutantBundle 0 ([byte[]]@([byte]($taskFirst -bxor 1)));$taskCorrupt=Get-TaskHash $taskMutantBundle 98009"
+    },
+    {
+      "line": 984,
+      "column": 69,
+      "written_cast": "[byte]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskMutation=Mutate-TaskOwnedBytes $taskMutantBundle 0 ([byte[]]@([byte]($taskFirst -bxor 1)));$taskCorrupt=Get-TaskHash $taskMutantBundle 98009"
+    },
+    {
+      "line": 995,
+      "column": 55,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskGuiMutation=Mutate-TaskOwnedBytes $taskGuiPath ([long]$taskPE['offset']+24+68) ([BitConverter]::GetBytes([uint16]2));$taskGui=Get-TaskPEHeader $taskGuiPath"
+    },
+    {
+      "line": 995,
+      "column": 112,
+      "written_cast": "[uint16]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskGuiMutation=Mutate-TaskOwnedBytes $taskGuiPath ([long]$taskPE['offset']+24+68) ([BitConverter]::GetBytes([uint16]2));$taskGui=Get-TaskPEHeader $taskGuiPath"
+    },
+    {
+      "line": 998,
+      "column": 115,
+      "written_cast": "[string]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskProduce=Invoke-TaskFencedChild 'oracle-produce' $taskBinary @('produce',$taskDataRoot,$taskExpectedManifest,[string]$taskRunnerLimit,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 998,
+      "column": 140,
+      "written_cast": "[string]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskProduce=Invoke-TaskFencedChild 'oracle-produce' $taskBinary @('produce',$taskDataRoot,$taskExpectedManifest,[string]$taskRunnerLimit,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 998,
+      "column": 165,
+      "written_cast": "[string]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskProduce=Invoke-TaskFencedChild 'oracle-produce' $taskBinary @('produce',$taskDataRoot,$taskExpectedManifest,[string]$taskRunnerLimit,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 1006,
+      "column": 122,
+      "written_cast": "[string]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskVerify=Invoke-TaskFencedChild 'independent-full-verify' $taskBinary @('verify',$taskDataRoot,$taskExpectedManifest,[string]$taskPrior,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 1006,
+      "column": 141,
+      "written_cast": "[string]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskVerify=Invoke-TaskFencedChild 'independent-full-verify' $taskBinary @('verify',$taskDataRoot,$taskExpectedManifest,[string]$taskPrior,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 1006,
+      "column": 166,
+      "written_cast": "[string]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskVerify=Invoke-TaskFencedChild 'independent-full-verify' $taskBinary @('verify',$taskDataRoot,$taskExpectedManifest,[string]$taskPrior,[string]$taskRunnerLimit,[string]$taskTotalWork) $taskBinaryHash"
+    },
+    {
+      "line": 1012,
+      "column": 118,
+      "written_cast": "[int]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "line": 1012,
+      "column": 310,
+      "written_cast": "[char]",
+      "bounded_multiplicity": 78,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "line": 1012,
+      "column": 319,
+      "written_cast": "[char]",
+      "bounded_multiplicity": 78,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": false,
+      "source": " $taskObservedRunFiles=[Collections.Generic.List[string]]::new();foreach($taskF in (Get-TaskEntries $taskRoot $true ([int]$taskManifest['profile']['root_walk_entries_max']))){Assert-NoLink $taskF.Item1;if(-not $taskF.Item3){$taskObservedRunFiles.Add([IO.Path]::GetRelativePath($taskRoot,$taskF.Item1).Replace([char]92,[char]47))}}"
+    },
+    {
+      "line": 1017,
+      "column": 16,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 1,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskAdmitted=[long]$taskManifest['profile']['input_bytes']+$taskAuthoredBytes;foreach($taskA in $taskArtifacts){$taskAdmitted+=[long]$taskA['bytes']}"
+    },
+    {
+      "line": 1017,
+      "column": 130,
+      "written_cast": "[long]",
+      "bounded_multiplicity": 67,
+      "O_per_written_cast": 1,
+      "was_missing_in_R2": true,
+      "source": " $taskAdmitted=[long]$taskManifest['profile']['input_bytes']+$taskAuthoredBytes;foreach($taskA in $taskArtifacts){$taskAdmitted+=[long]$taskA['bytes']}"
+    }
+  ],
+  "all_written_sites": 29,
+  "bounded_O_occurrences": 3382,
+  "implicit_identity_binding_O": 0,
+  "typed_annotation_distinct": true,
+  "no_target_execution": true
+}
