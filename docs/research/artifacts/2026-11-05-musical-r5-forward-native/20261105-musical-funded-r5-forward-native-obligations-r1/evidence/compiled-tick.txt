@@ -133,4 +133,3 @@ RELOCATIONS #1DE
  0000005A  REL32                      00000000      1392  __real@404e000000000000
  0000006A  REL32                      00000000      139E  __real@413c200000000000
  00000198  REL32                      00000000       514  ?appendTempoSegmentFrames@detail@engine@yesdaw@@YA_NN_J0NNW4TempoCurve@23@AEAN@Z (bool __cdecl yesdaw::engine::detail::appendTempoSegmentFrames(double,__int64,__int64,double,double,enum yesdaw::engine::TempoCurve,double &))
-
