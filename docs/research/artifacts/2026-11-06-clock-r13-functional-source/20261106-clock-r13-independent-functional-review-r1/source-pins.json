@@ -1,0 +1,35 @@
+{
+  "status": "SEALED_INDEPENDENT_WHOLE_FUNCTIONAL_SOURCE_REVIEW_NO_EXECUTION_AUTHORITY",
+  "files": [
+    {
+      "path": "build-ci/20261106-clock-r13-independent-functional-review-r1/attempt-r1/check.py",
+      "bytes": 12685,
+      "sha256": "CE00B6BAC7580DC37B7B24683F8DC48803BDC15C817B86B3BF6EAF835AD250A4"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-independent-functional-review-r1/attempt-r1/failure.json",
+      "bytes": 385,
+      "sha256": "6C9239D6491C4402056DC08539E20E46F2C3C23F907A635D80041F3D726C3243"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-independent-functional-review-r1/check.py",
+      "bytes": 12685,
+      "sha256": "1FE04EDF6AABC1A2419901CECE0CC7D7D82A4C376E1C30B0A3EEC18F414AFB55"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-independent-functional-review-r1/checks.json",
+      "bytes": 282434,
+      "sha256": "00F9F91DBF70E0B463AE1F65913783AB6C04AD4C614BF15D91B4B6937A892168"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-independent-functional-review-r1/review.json",
+      "bytes": 2567,
+      "sha256": "9A429533FF5A1990B75A29B3C899A113CB0156C499535DFF32ED8FD6BA415F0D"
+    },
+    {
+      "path": "build-ci/20261106-clock-r13-independent-functional-review-r1/review.md",
+      "bytes": 10049,
+      "sha256": "DFC2CA876FCF49060324C66FAD2A80F8B852ECB4D4DA4C4F4E4E07E6E7DAAC51"
+    }
+  ]
+}

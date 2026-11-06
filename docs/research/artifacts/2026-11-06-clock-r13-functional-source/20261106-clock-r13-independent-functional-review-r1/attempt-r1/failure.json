@@ -1,0 +1,7 @@
+{
+  "exit_code": 1,
+  "wall_time_seconds": 0.600327,
+  "reason": "Own checker expected3 occurrences with a space, but definition uses opening parenthesis; actual two caller sites are Source and Includes. No subject defect or modification.",
+  "source_sha256": "CE00B6BAC7580DC37B7B24683F8DC48803BDC15C817B86B3BF6EAF835AD250A4",
+  "failure": "ValueError: closed new string consumers"
+}

@@ -1,0 +1,37 @@
+{
+  "kind": "AUTHOR_OWN_FILE_CHECK_FAILURE_NOT_TARGET_EXECUTION",
+  "tool_exit": 1,
+  "exception": "AssertionError: bootstrap depth4",
+  "source_line": 275,
+  "cause": "Author shape checker used zero-based container nesting while the admitted raw grammar and R12 metadata count the root as depth1. Independent iterative walk gives deepest parent index3 for BOTH R12 and R13;required grammar depth remains4.",
+  "supported_correction": "Count dict/list container depth as depth+1. Preserve source grammar and caller depth4.",
+  "unsealed_subject_before_preservation": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/README.md",
+      "bytes": 23499,
+      "sha256": "CB9F949ED9694B12E59FCDB05254152A946C31D7A82B3D8BAF0A3A1C5EF042F5"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "bytes": 108428,
+      "sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "bytes": 503610,
+      "sha256": "C30FF914B56C37FF26482CA8A7737906DA74E8F0316C3A6354286F79291178F8"
+    }
+  ],
+  "subject_preserved_as": "attempt-r2/subject",
+  "no_target_parser_or_execution": true
+}

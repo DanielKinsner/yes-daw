@@ -1,0 +1,20 @@
+{
+  "schema": "R13_INDEPENDENT_WHOLE_FUNCTIONAL_SOURCE_REVIEW_R1",
+  "verdict": "ACCEPT_WHOLE_FUNCTIONAL_SOURCE_ONLY_PROVISIONAL_ADMISSION",
+  "subject_manifest_sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3",
+  "subject_runner_sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788",
+  "author_pins_sha256": "C0910CCA2D0B8AE0ABCEE842B18F7F1BD7E4B42A188309693F8A9F39BFB089BB",
+  "author_correspondence_sha256": "E6DBC28A07F6669AB205DBA7F6BDB23952C3ED3CCC84D13A82B75E7C1D1828D1",
+  "findings": [],
+  "independent_checks": {"count": 1491, "exit_code": 0, "wall_time_seconds": 0.6245151, "sha256": "00F9F91DBF70E0B463AE1F65913783AB6C04AD4C614BF15D91B4B6937A892168"},
+  "whole_correspondence": {"helpers": 74, "unchanged_complete": 66, "changed": 5, "added": 3, "native_sources_byte_exact_R12": true, "globals_exact": true, "main_only_bootstrap_literal": true},
+  "provisional_profile": {"inputs": 1220, "input_bytes": 460232026, "input_hash_chunks": 7849, "own_five_bytes": 674220, "current_own_path_UTF16_max": 183},
+  "bootstrap": {"values": 9997, "keys": 6107, "nodes_and_keys": 16104, "container_depth": 4, "max_string_units": 435, "floats": 0},
+  "reviewed_arguments": ["long3 state identity/isomorphism and bounded integer updates", "captured identity/raw grammar/visit/compaction before streaming", "strict UTF8 compact-prefix source and sole consumer", "same undefined object parse/settings/additional-content path", "ordinal exact duplicates/case/missing/null/string/date/array semantics", "public accessor dispatch and pipeline result protection", "complete constructor/body/finally primary-secondary ownership", "same summary/wire/count types and no arbitrary token projection", "preserved controls/fences/hash callers/native matrices and caps"],
+  "holds": ["complete new source census", "all six controlled payload/error/lifetime joins", "selected source-binary/layout/runtime association", "final canonical input/proof/SDK union and exact root/environment", "whole joined upper and independent numeric review", "immutable binding data/prices", "separate root execution GO"],
+  "own_checker_history": [{"attempt": 1, "exit_code": 1, "reason": "Expected3 spaced helper occurrences incorrectly included declaration; actual two caller sites use space, declaration uses parenthesis", "preserved": "attempt-r1", "subject_defect": false}],
+  "old_prices_resources_or_geometry_transferred": false,
+  "resource_fit_or_execution_GO": false,
+  "target_or_author_checker_execution": false,
+  "subject_modified": false
+}

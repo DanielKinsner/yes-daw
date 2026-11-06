@@ -1,0 +1,278 @@
+{
+  "schema": "WHOLE_CONDITIONAL_SOURCE_REVIEW_ARCHIVE",
+  "component": "runner",
+  "independent_review_sha256": "9A429533FF5A1990B75A29B3C899A113CB0156C499535DFF32ED8FD6BA415F0D",
+  "scope": "Only the named complete conditional source review; actual resources/native/final qualification/binding/target execution and app delivery remain held",
+  "files": [
+    {
+      "file": "20261106-clock-r13-independent-functional-review-r1/attempt-r1/check.py",
+      "original_path": "build-ci/20261106-clock-r13-independent-functional-review-r1/attempt-r1/check.py",
+      "original_bytes": 12685,
+      "original_sha256": "CE00B6BAC7580DC37B7B24683F8DC48803BDC15C817B86B3BF6EAF835AD250A4",
+      "transformation": "BYTE_EXACT",
+      "bytes": 12685,
+      "sha256": "CE00B6BAC7580DC37B7B24683F8DC48803BDC15C817B86B3BF6EAF835AD250A4"
+    },
+    {
+      "file": "20261106-clock-r13-independent-functional-review-r1/attempt-r1/failure.json",
+      "original_path": "build-ci/20261106-clock-r13-independent-functional-review-r1/attempt-r1/failure.json",
+      "original_bytes": 385,
+      "original_sha256": "6C9239D6491C4402056DC08539E20E46F2C3C23F907A635D80041F3D726C3243",
+      "transformation": "BYTE_EXACT",
+      "bytes": 385,
+      "sha256": "6C9239D6491C4402056DC08539E20E46F2C3C23F907A635D80041F3D726C3243"
+    },
+    {
+      "file": "20261106-clock-r13-independent-functional-review-r1/check.py",
+      "original_path": "build-ci/20261106-clock-r13-independent-functional-review-r1/check.py",
+      "original_bytes": 12685,
+      "original_sha256": "1FE04EDF6AABC1A2419901CECE0CC7D7D82A4C376E1C30B0A3EEC18F414AFB55",
+      "transformation": "BYTE_EXACT",
+      "bytes": 12685,
+      "sha256": "1FE04EDF6AABC1A2419901CECE0CC7D7D82A4C376E1C30B0A3EEC18F414AFB55"
+    },
+    {
+      "file": "20261106-clock-r13-independent-functional-review-r1/checks.json",
+      "original_path": "build-ci/20261106-clock-r13-independent-functional-review-r1/checks.json",
+      "original_bytes": 282434,
+      "original_sha256": "00F9F91DBF70E0B463AE1F65913783AB6C04AD4C614BF15D91B4B6937A892168",
+      "transformation": "BYTE_EXACT",
+      "bytes": 282434,
+      "sha256": "00F9F91DBF70E0B463AE1F65913783AB6C04AD4C614BF15D91B4B6937A892168"
+    },
+    {
+      "file": "20261106-clock-r13-independent-functional-review-r1/review.json",
+      "original_path": "build-ci/20261106-clock-r13-independent-functional-review-r1/review.json",
+      "original_bytes": 2567,
+      "original_sha256": "9A429533FF5A1990B75A29B3C899A113CB0156C499535DFF32ED8FD6BA415F0D",
+      "transformation": "BYTE_EXACT",
+      "bytes": 2567,
+      "sha256": "9A429533FF5A1990B75A29B3C899A113CB0156C499535DFF32ED8FD6BA415F0D"
+    },
+    {
+      "file": "20261106-clock-r13-independent-functional-review-r1/review.md",
+      "original_path": "build-ci/20261106-clock-r13-independent-functional-review-r1/review.md",
+      "original_bytes": 10049,
+      "original_sha256": "DFC2CA876FCF49060324C66FAD2A80F8B852ECB4D4DA4C4F4E4E07E6E7DAAC51",
+      "transformation": "BYTE_EXACT",
+      "bytes": 10049,
+      "sha256": "DFC2CA876FCF49060324C66FAD2A80F8B852ECB4D4DA4C4F4E4E07E6E7DAAC51"
+    },
+    {
+      "file": "20261106-clock-r13-independent-functional-review-r1/source-pins.json",
+      "original_path": "build-ci/20261106-clock-r13-independent-functional-review-r1/source-pins.json",
+      "original_bytes": 1369,
+      "original_sha256": "18A892A3244AFEE9DA8264F1FD7D8130B6DE3616C9E60ECEBEC2E89AB5E0CBEA",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1369,
+      "sha256": "18A892A3244AFEE9DA8264F1FD7D8130B6DE3616C9E60ECEBEC2E89AB5E0CBEA"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r1/author-source.py",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r1/author-source.py",
+      "original_bytes": 24418,
+      "original_sha256": "4C1E13A110375F157DF869BBCD22CA8D5BC9BE96EA3089659C90D60D90A28D7C",
+      "transformation": "BYTE_EXACT",
+      "bytes": 24418,
+      "sha256": "4C1E13A110375F157DF869BBCD22CA8D5BC9BE96EA3089659C90D60D90A28D7C"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r1/failure.json",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r1/failure.json",
+      "original_bytes": 2201,
+      "original_sha256": "2659F59AA874D3E17BBFA61E153B97297BBA9C75B8EF102D5FD1E42280D2B5DC",
+      "transformation": "BYTE_EXACT",
+      "bytes": 2201,
+      "sha256": "2659F59AA874D3E17BBFA61E153B97297BBA9C75B8EF102D5FD1E42280D2B5DC"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r1/subject/clock_stage.cpp",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r1/subject/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r1/subject/README.md",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r1/subject/README.md",
+      "original_bytes": 23499,
+      "original_sha256": "CB9F949ED9694B12E59FCDB05254152A946C31D7A82B3D8BAF0A3A1C5EF042F5",
+      "transformation": "BYTE_EXACT",
+      "bytes": 23499,
+      "sha256": "CB9F949ED9694B12E59FCDB05254152A946C31D7A82B3D8BAF0A3A1C5EF042F5"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r1/subject/run-clock.ps1",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r1/subject/run-clock.ps1",
+      "original_bytes": 108426,
+      "original_sha256": "EDCFED7046F157AAD968F0530B61E3143EF1AA6A4FD88C4B01EBC9ABE89C1541",
+      "transformation": "BYTE_EXACT",
+      "bytes": 108426,
+      "sha256": "EDCFED7046F157AAD968F0530B61E3143EF1AA6A4FD88C4B01EBC9ABE89C1541"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r1/subject/source-costs.h",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r1/subject/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r1/subject/source-manifest.json",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r1/subject/source-manifest.json",
+      "original_bytes": 503610,
+      "original_sha256": "53E053FB9B2CE2AF4B385A6C29DFF473C7E3B8A0B826F3D28ABF0513410C4D81",
+      "transformation": "BYTE_EXACT",
+      "bytes": 503610,
+      "sha256": "53E053FB9B2CE2AF4B385A6C29DFF473C7E3B8A0B826F3D28ABF0513410C4D81"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r2/author-source.py",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r2/author-source.py",
+      "original_bytes": 24420,
+      "original_sha256": "E5BE6A2F74E7E0B1955BEE0768A9A6E3BABB07BBC1F04A5562B1211D463CE83C",
+      "transformation": "BYTE_EXACT",
+      "bytes": 24420,
+      "sha256": "E5BE6A2F74E7E0B1955BEE0768A9A6E3BABB07BBC1F04A5562B1211D463CE83C"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r2/failure.json",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r2/failure.json",
+      "original_bytes": 2015,
+      "original_sha256": "3BBF7494CE16C6847C3763FFFE6F1E8B74D7D6A2BDCFDC5515F3E4AD1178CCFC",
+      "transformation": "BYTE_EXACT",
+      "bytes": 2015,
+      "sha256": "3BBF7494CE16C6847C3763FFFE6F1E8B74D7D6A2BDCFDC5515F3E4AD1178CCFC"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r2/subject/clock_stage.cpp",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r2/subject/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r2/subject/README.md",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r2/subject/README.md",
+      "original_bytes": 23499,
+      "original_sha256": "CB9F949ED9694B12E59FCDB05254152A946C31D7A82B3D8BAF0A3A1C5EF042F5",
+      "transformation": "BYTE_EXACT",
+      "bytes": 23499,
+      "sha256": "CB9F949ED9694B12E59FCDB05254152A946C31D7A82B3D8BAF0A3A1C5EF042F5"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r2/subject/run-clock.ps1",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r2/subject/run-clock.ps1",
+      "original_bytes": 108428,
+      "original_sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788",
+      "transformation": "BYTE_EXACT",
+      "bytes": 108428,
+      "sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r2/subject/source-costs.h",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r2/subject/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/attempt-r2/subject/source-manifest.json",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/attempt-r2/subject/source-manifest.json",
+      "original_bytes": 503610,
+      "original_sha256": "C30FF914B56C37FF26482CA8A7737906DA74E8F0316C3A6354286F79291178F8",
+      "transformation": "BYTE_EXACT",
+      "bytes": 503610,
+      "sha256": "C30FF914B56C37FF26482CA8A7737906DA74E8F0316C3A6354286F79291178F8"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/author-source.py",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/author-source.py",
+      "original_bytes": 24424,
+      "original_sha256": "0EABD60843A2650C9462A0E8A959300FD7D2E9740D68245D373782B2C135ADF7",
+      "transformation": "BYTE_EXACT",
+      "bytes": 24424,
+      "sha256": "0EABD60843A2650C9462A0E8A959300FD7D2E9740D68245D373782B2C135ADF7"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/runner.diff.original.json",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/runner.diff",
+      "original_bytes": 12058,
+      "original_sha256": "6C5F0175FB929FF6E34E995D5941D64BE87DF298C702EAE8A745C9ACC13B38B5",
+      "transformation": "COMPLETE_RAW_DIFF_BASE64",
+      "bytes": 16228,
+      "sha256": "9FD9827A559A828BB14E69D910ECA968088DF4B8C49EFBADB295BA5F619D5186"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/source-correspondence.json",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/source-correspondence.json",
+      "original_bytes": 1657693,
+      "original_sha256": "E6DBC28A07F6669AB205DBA7F6BDB23952C3ED3CCC84D13A82B75E7C1D1828D1",
+      "transformation": "BYTE_EXACT",
+      "bytes": 1657693,
+      "sha256": "E6DBC28A07F6669AB205DBA7F6BDB23952C3ED3CCC84D13A82B75E7C1D1828D1"
+    },
+    {
+      "file": "20261106-clock-r13-source-authoring-r1/source-pins.json",
+      "original_path": "build-ci/20261106-clock-r13-source-authoring-r1/source-pins.json",
+      "original_bytes": 5626,
+      "original_sha256": "C0910CCA2D0B8AE0ABCEE842B18F7F1BD7E4B42A188309693F8A9F39BFB089BB",
+      "transformation": "BYTE_EXACT",
+      "bytes": 5626,
+      "sha256": "C0910CCA2D0B8AE0ABCEE842B18F7F1BD7E4B42A188309693F8A9F39BFB089BB"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "original_bytes": 34958,
+      "original_sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206",
+      "transformation": "BYTE_EXACT",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/README.md",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/README.md",
+      "original_bytes": 23499,
+      "original_sha256": "7243B4D955A821A59340928CE3D06D2810C85B9D58C5792AA97B8F34CC565512",
+      "transformation": "BYTE_EXACT",
+      "bytes": 23499,
+      "sha256": "7243B4D955A821A59340928CE3D06D2810C85B9D58C5792AA97B8F34CC565512"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "original_bytes": 108428,
+      "original_sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788",
+      "transformation": "BYTE_EXACT",
+      "bytes": 108428,
+      "sha256": "9E5DED855FF4A15FAE1D4B6D254AB4CF3FD96C5404BA34E1DC30F8C2BCB4E788"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "original_bytes": 3725,
+      "original_sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27",
+      "transformation": "BYTE_EXACT",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "file": "musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "original_path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "original_bytes": 503610,
+      "original_sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3",
+      "transformation": "BYTE_EXACT",
+      "bytes": 503610,
+      "sha256": "10310CC3D798E7BFFFFA99A9438121FBAD56CDA3CFEB41353FF39AD333A9DED3"
+    }
+  ]
+}

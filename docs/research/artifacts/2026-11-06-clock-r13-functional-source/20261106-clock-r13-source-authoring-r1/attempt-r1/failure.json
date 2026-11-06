@@ -1,0 +1,51 @@
+{
+  "kind": "AUTHOR_OWN_FILE_CHECK_FAILURE_NOT_TARGET_EXECUTION",
+  "tool_exit": 1,
+  "exception": "AssertionError: five changed helper set",
+  "source_line": 246,
+  "observed_changed_helpers": [
+    "Add-TaskJsonBound",
+    "Visit-TaskJsonValue",
+    "Measure-TaskJson",
+    "Read-TaskBoundedBytes",
+    "Read-TaskJson",
+    "Assert-TaskDependencies"
+  ],
+  "expected_changed_helpers": [
+    "Add-TaskJsonBound",
+    "Visit-TaskJsonValue",
+    "Measure-TaskJson",
+    "Read-TaskJson",
+    "Assert-TaskDependencies"
+  ],
+  "cause": "Two new leading comments attach to the preceding unchanged helper in the literal text partition. Move these comments inside the first new helper;no algorithm or domain change.",
+  "unsealed_subject_before_preservation": [
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/clock_stage.cpp",
+      "bytes": 34958,
+      "sha256": "F6A6E976715C9F28F1B349F60A38E79693D0157D51072C5C8C5ACB74969DF206"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/README.md",
+      "bytes": 23499,
+      "sha256": "CB9F949ED9694B12E59FCDB05254152A946C31D7A82B3D8BAF0A3A1C5EF042F5"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/run-clock.ps1",
+      "bytes": 108426,
+      "sha256": "EDCFED7046F157AAD968F0530B61E3143EF1AA6A4FD88C4B01EBC9ABE89C1541"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-costs.h",
+      "bytes": 3725,
+      "sha256": "0087C41C88C8647FCC9CAAD92DA55223164122A4E31FF2DFC27715FAAEB83A27"
+    },
+    {
+      "path": "build-ci/musical-audio-persistent-planner-certification/source-revisions/clock-oracle-r13-streamed-dependency-source-r1/source-manifest.json",
+      "bytes": 503610,
+      "sha256": "53E053FB9B2CE2AF4B385A6C29DFF473C7E3B8A0B826F3D28ABF0513410C4D81"
+    }
+  ],
+  "subject_preserved_as": "attempt-r1/subject",
+  "no_target_parser_or_execution": true
+}

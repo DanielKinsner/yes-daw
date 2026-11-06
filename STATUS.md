@@ -86,7 +86,8 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
    binding/funding/resources/integration remain held. Whole production census R4 review remains REVISE;
    its complete R5 successor passed5,713 independent checks over420 bodies/51 helpers/38 schedules/12 query terms.
    R13 is a separate unrun source successor for typed preflight counters and streamed dependency parsing;
-   its whole functional review is in progress and all target execution guards remain false.
+   its whole functional review passed1,491 checks; fresh complete scalar/resource censuses are in progress
+   and all target execution guards remain false. Parser/source checks are not target runtime success.
    The narrow candidate observation/restoration lemma passed13,368 independent checks; actual errno,
    floor/provider/interval and whole runtime/resource qualification remain pending.
    After Musical audio: linked edits/folders, then ghost reference notes/used-pitches-only view.
@@ -109,6 +110,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
 - Pending: macOS GPU frame timing under its exact exception; earlier foreground-window drive failures are separate
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
+
+## 2026-11-06 - Accept the complete R13 functional source successor
+
+- Archived30 source/author/failed-attempt/review records. Fresh independent review passed1,491 checks over the whole74-helper controller and all1,220 provisional inputs; C++/header remain exact.
+- Typed private counters and streamed dependency parsing preserve admission, byte/hash/grammar order, case/duplicates/null/date/string/array behavior, cleanup and wire summaries. Source helpers froze after their first passing own checks.
+- Target remains unrun, with all guards false/Data undefined. Complete new scalar and six-phase resource equations, final union/root/environment/native/ABI qualification, binding and separate GO remain next; Musical audio and Option A remain unfinished.
 
 ## 2026-11-06 - Accept the complete conditional production source census
 
