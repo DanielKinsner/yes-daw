@@ -1,0 +1,111 @@
+{
+  "schema": "SELECTED_SMALL_RUNTIME_OWNER_COMPONENT_PINS_R1",
+  "status": "SEALED_SOURCE_PROPOSAL_FOR_INDEPENDENT_REVIEW_NO_TARGET_OR_ALLOCATION_PROBE",
+  "files": [
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/argument.md",
+      "bytes": 4204,
+      "sha256": "704A872C167C3C947D101A507A758470DD418198305FFD471E3B87E90CC8051C"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/BigInteger.cs",
+      "bytes": 194477,
+      "sha256": "D32B253C761E52642296BB4E20927658DD0BE6959EB06701DDF55C666263FB2D"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/BigIntegerCalculator.Utils.cs",
+      "bytes": 2728,
+      "sha256": "BE9D1210C740556452D2441933B23B7755B7D664E122E50750EC63D53BDB3427"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/derive.py",
+      "bytes": 5429,
+      "sha256": "CC6A15E3C31F940F46EBDE74D3A373377752998CF837FB6896AC385A1ED3AA9B"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/filetime-origins.json",
+      "bytes": 317,
+      "sha256": "FFAFB3A3976A4111B1B3A7EC749BD7CAC52F5A0162618D909B8B310B31DD640C"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/Interop.FILE_TIME.cs",
+      "bytes": 837,
+      "sha256": "3FAB2D3AAA785D8DF09CE568682CB3CA3F51F2E0323E2DA9BE08EF66872F4AA9"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/Interop.GetFileAttributesEx.cs",
+      "bytes": 1160,
+      "sha256": "38BAC338318BC077B71547356A1DF679F4E15F462FA3DF68238E47CBDFBBD924"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/Interop.WIN32_FILE_ATTRIBUTE_DATA.cs",
+      "bytes": 1028,
+      "sha256": "6BFBFC19A0D2DB3596CC9DE06A0746DBCF9D9669BC499879442AC8B3D92BA518"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/kernel32-index.json",
+      "bytes": 362934,
+      "sha256": "2EDA3D1F11D9D7E28E38D1CB15507A6CCE86769364689F7AA666F1597770FBE4"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/MarshalByRefObject.cs",
+      "bytes": 1182,
+      "sha256": "199BD9FA229F91588CF5EA0AB7CDB159EB2A0B265C4385F83B7A33753F9FD252"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/Number.BigInteger.cs",
+      "bytes": 52752,
+      "sha256": "1DB4221AEDD26D6ADE5990FF1EFFD9DA0C3C19FC4AD67195524FD9C2144F84B8"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/numerics-index.json",
+      "bytes": 14172,
+      "sha256": "90D6F87DDDEA9F871305DF2E11A05A2C71D5616AFB741725C88EC42E663086E9"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/origins.json",
+      "bytes": 1727,
+      "sha256": "DAF64DD7E8F56917229B2A39FA3D43E1BCA9945BE6D9263A5CC65D322386F082"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/seal.py",
+      "bytes": 1226,
+      "sha256": "96671519C3FBB8704514541F8C7DA207E6C83C6FD5D465D49EC7B5CA6981778E"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/small-owner-components.json",
+      "bytes": 6773,
+      "sha256": "99BA44F5628CDF40AE19452999D790445F395C3E7712BA6DD51F9934F8B33D2B"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/StringReference.cs",
+      "bytes": 3242,
+      "sha256": "6C5151A9C0C7311FEF661219F3B513E18841A9FD926743F31FB36DF5C375D217"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-source-r1/supplement-origins.json",
+      "bytes": 1081,
+      "sha256": "C704699C4F3814B74F5DB5B60961140F55513F6E94B139910C12E74F02B527A5"
+    },
+    {
+      "path": "build-ci/20261106-fetch-small-runtime-owners.py",
+      "bytes": 1981,
+      "sha256": "A3BD8A9D9781007A54E56225806A653683DA9E48D7252B2DE421846D8F75C190"
+    },
+    {
+      "path": "build-ci/20261106-continue-small-runtime-owner-source.py",
+      "bytes": 1969,
+      "sha256": "9C376E8E8DB10AA65080BB826B1C66C3FFB48F53028C3A0131200EA130A4D795"
+    },
+    {
+      "path": "build-ci/20261106-fetch-small-runtime-owners-supplement.py",
+      "bytes": 1529,
+      "sha256": "E9B9F0E027B4391CB9A6BE2F072B0A9BDF425871FFE2A91E8A188812B8FA8E74"
+    },
+    {
+      "path": "build-ci/20261106-fetch-filetime-source.py",
+      "bytes": 1675,
+      "sha256": "9BBDF07D56D158DBF838A6FCC55A8C0F0349F45CD3889C06E8F4554F1262CEF0"
+    }
+  ]
+}

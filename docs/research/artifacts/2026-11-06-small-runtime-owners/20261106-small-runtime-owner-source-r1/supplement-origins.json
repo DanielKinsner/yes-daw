@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "file": "BigIntegerCalculator.Utils.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Runtime.Numerics/src/System/Numerics/BigIntegerCalculator.Utils.cs",
+      "bytes": 2728,
+      "sha256": "BE9D1210C740556452D2441933B23B7755B7D664E122E50750EC63D53BDB3427"
+    },
+    {
+      "file": "Interop.WIN32_FILE_ATTRIBUTE_DATA.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.WIN32_FILE_ATTRIBUTE_DATA.cs",
+      "bytes": 1028,
+      "sha256": "6BFBFC19A0D2DB3596CC9DE06A0746DBCF9D9669BC499879442AC8B3D92BA518"
+    },
+    {
+      "file": "StringReference.cs",
+      "url": "https://raw.githubusercontent.com/JamesNK/Newtonsoft.Json/4e13299d4b0ec96bd4df9954ef646bd2d1b5bf2a/Src/Newtonsoft.Json/Utilities/StringReference.cs",
+      "bytes": 3242,
+      "sha256": "6C5151A9C0C7311FEF661219F3B513E18841A9FD926743F31FB36DF5C375D217"
+    }
+  ]
+}

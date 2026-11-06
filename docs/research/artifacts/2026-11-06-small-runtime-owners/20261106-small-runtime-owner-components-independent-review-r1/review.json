@@ -1,0 +1,13 @@
+{
+  "schema": "SMALL_RUNTIME_OWNER_INDEPENDENT_SOURCE_REVIEW_R1",
+  "verdict": "ACCEPT_CONDITIONAL_SOURCE_COMPONENT_ONLY",
+  "subject_pins_sha256": "54B203434707D774F355925C7AE3B79ADB30C823D525D4AA07CBBAF968A78BC5",
+  "subject_component_sha256": "99BA44F5628CDF40AE19452999D790445F395C3E7712BA6DD51F9934F8B33D2B",
+  "findings": [],
+  "independent_checks": {"count": 105, "exit_code": 0, "checks_sha256": "9239B637DC3B5FD5669AB6E6DEB89896EF0E72F8962A1F0CFAA931F34534A2C9"},
+  "accepted_conditional_quantities": {"b20_beyond_JValue64": 160, "JValue_plus_b20": 224, "explicit_stackalloc_payload_only": 534, "once_BigInteger_uint1": 32, "separate_later_UInt64Max_constructor_uint2": 32, "FileInfo_source_slot_upper": 136},
+  "remaining": ["selected runtime/source/binary and Release association", "declared x64 header/alignment and scalar-slot premises", "culture/type/metadata and general SDK initialization boundary", "all constructor/boxing occasions and whole phase/lifetime joins", "global controlled payload fit and binding authority"],
+  "no_target_execution": true,
+  "no_actual_layout_or_general_heap_claim": true,
+  "no_source_cap_adr_price_or_binding_change": true
+}

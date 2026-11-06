@@ -1,0 +1,31 @@
+{
+  "commit": "e2f47b0110ed922f21a1522da67279133ce28f32",
+  "scope": "Official source only; no target execution",
+  "initial_fetch_failure": "Expected historical BigNumber.cs filename was absent in actual pinned Numerics directory; index/first helper/error preserved. Selected actual Number.BigInteger.cs under System.",
+  "files": [
+    {
+      "file": "BigInteger.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Runtime.Numerics/src/System/Numerics/BigInteger.cs",
+      "bytes": 194477,
+      "sha256": "D32B253C761E52642296BB4E20927658DD0BE6959EB06701DDF55C666263FB2D"
+    },
+    {
+      "file": "Number.BigInteger.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Runtime.Numerics/src/System/Number.BigInteger.cs",
+      "bytes": 52752,
+      "sha256": "1DB4221AEDD26D6ADE5990FF1EFFD9DA0C3C19FC4AD67195524FD9C2144F84B8"
+    },
+    {
+      "file": "MarshalByRefObject.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/System.Private.CoreLib/src/System/MarshalByRefObject.cs",
+      "bytes": 1182,
+      "sha256": "199BD9FA229F91588CF5EA0AB7CDB159EB2A0B265C4385F83B7A33753F9FD252"
+    },
+    {
+      "file": "Interop.GetFileAttributesEx.cs",
+      "url": "https://raw.githubusercontent.com/dotnet/dotnet/e2f47b0110ed922f21a1522da67279133ce28f32/src/runtime/src/libraries/Common/src/Interop/Windows/Kernel32/Interop.GetFileAttributesEx.cs",
+      "bytes": 1160,
+      "sha256": "38BAC338318BC077B71547356A1DF679F4E15F462FA3DF68238E47CBDFBBD924"
+    }
+  ]
+}

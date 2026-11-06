@@ -1,0 +1,25 @@
+{
+  "status": "SEALED_INDEPENDENT_SOURCE_COMPONENT_REVIEW",
+  "files": [
+    {
+      "path": "build-ci/20261106-small-runtime-owner-components-independent-review-r1/check.py",
+      "bytes": 7610,
+      "sha256": "F8242874FE0A16AD82FC27E4FA4A96BB6F6D44B3EFC25C0FD02D2FF4FA1CB3B9"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-components-independent-review-r1/checks.json",
+      "bytes": 20653,
+      "sha256": "9239B637DC3B5FD5669AB6E6DEB89896EF0E72F8962A1F0CFAA931F34534A2C9"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-components-independent-review-r1/review.json",
+      "bytes": 1174,
+      "sha256": "3718B56EA6F06D862E61D21660C29629726BD418922A250DB8E8EBCFF7E792E9"
+    },
+    {
+      "path": "build-ci/20261106-small-runtime-owner-components-independent-review-r1/review.md",
+      "bytes": 3945,
+      "sha256": "73D8C34F459E3853645BA199191672D4CEA83327E3E5E9880A4CE2AB7212B192"
+    }
+  ]
+}

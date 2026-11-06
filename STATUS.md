@@ -110,6 +110,12 @@ MIDI is written in the piano roll, not played live; voiceover is the only record
   from SS3's 2026-10-13 failure (80/89, zero foreground flashes, then five 90/90 passes). That cause remains unknown.
 - Only Windows is driven as a real app; Mac and Linux are compiled and unit-tested only.
 
+## 2026-11-06 - Preserve bounded integer and FileInfo ownership
+
+- Archived27 source/author/review records. Fresh independent review passed105 checks for conditional BigInteger/FileInfo components without a target parse or allocation probe.
+- Admitted large-integer scalar224 fits the existing child/report maxima;534 explicit stack bytes and shared/later arrays stay separate. FileInfo has a136-byte source-slot upper, with no lazy Name allocation from Length.
+- Actual source/binary/layout/general SDK association and complete phase/resource/binding/GO remain held. Continue the R5 numeric and R13 functional reviews; no GUI, input or audio/MIDI device was used.
+
 ## 2026-11-06 - Preserve corrected writer ownership and failure paths
 
 - Archived80 source/author/review records, including the original R1/R2 REVISE evidence and the fresh conditional R3 acceptance after198 checks.
